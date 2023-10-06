@@ -32,9 +32,11 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniGenericAttribute.h"
+#include "HoudiniOutput.h"
 #include "HoudiniPackageParams.h"
 #include "HoudiniMeshTranslator.h"
 
+#include "MaterialTypes.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceConstant.h"
@@ -57,6 +59,7 @@
 	#include "MaterialShared.h"
 #endif
 #include "Engine/Texture2D.h"
+#include "Serialization/BufferWriter.h"
 
 #if WITH_EDITOR
 	#include "Factories/MaterialFactoryNew.h"
@@ -68,15 +71,212 @@ const int32 FHoudiniMaterialTranslator::MaterialExpressionNodeY = -150;
 const int32 FHoudiniMaterialTranslator::MaterialExpressionNodeStepX = 220;
 const int32 FHoudiniMaterialTranslator::MaterialExpressionNodeStepY = 220;
 
+
+// Helper to get StaticParameters from UMaterialInterface in <=5.1
+// This copied from 5.3's UMaterialInterface::GetStaticParameterValues() function
+#if ENGINE_MAJOR_VERSION < 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 1)
+void GetStaticParameterValues(UMaterialInterface* MaterialInterface, FStaticParameterSet& OutStaticParameters)
+{
+	if (!IsValid(MaterialInterface))
+		return;
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 1
+	TArray<FStaticSwitchParameter>& StaticSwitchParameters = OutStaticParameters.EditorOnly.StaticSwitchParameters;
+#else
+	TArray<FStaticSwitchParameter>& StaticSwitchParameters = OutStaticParameters.StaticSwitchParameters;
+#endif
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+	TArray<FStaticComponentMaskParameter>& StaticComponentMaskParameters = OutStaticParameters.EditorOnly.StaticComponentMaskParameters;
+#else
+	TArray<FStaticComponentMaskParameter>& StaticComponentMaskParameters = OutStaticParameters.StaticComponentMaskParameters;
+#endif
+	TMap<FMaterialParameterInfo, FMaterialParameterMetadata> ParameterValues;
+	for (int32 ParameterTypeIndex = 0; ParameterTypeIndex < NumMaterialParameterTypes; ++ParameterTypeIndex)
+	{
+		const EMaterialParameterType ParameterType = (EMaterialParameterType)ParameterTypeIndex;
+		if (IsStaticMaterialParameter(ParameterType))
+		{
+			ParameterValues.Reset();
+			MaterialInterface->GetAllParametersOfType(ParameterType, ParameterValues);
+			// OutStaticParameters.AddParametersOfType(ParameterType, ParameterValues);
+			// Copied the code from FStaticParameterSet::AddParametersOfType due to missing API export
+			switch (ParameterType)
+			{
+			case EMaterialParameterType::StaticSwitch:
+				StaticSwitchParameters.Empty(ParameterValues.Num());
+				for (const auto& It : ParameterValues)
+				{
+					const FMaterialParameterMetadata& Meta = It.Value;
+					check(Meta.Value.Type == ParameterType);
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2)
+					if(!Meta.bDynamicSwitchParameter)
+					{
+						StaticSwitchParameters.Emplace(It.Key, Meta.Value.AsStaticSwitch(), Meta.bOverride, Meta.ExpressionGuid);
+					}
+#else
+					StaticSwitchParameters.Emplace(It.Key, Meta.Value.AsStaticSwitch(), Meta.bOverride, Meta.ExpressionGuid);
+#endif
+				}
+				break;
+			case EMaterialParameterType::StaticComponentMask:
+				StaticComponentMaskParameters.Empty(ParameterValues.Num());
+				for (const auto& It : ParameterValues)
+				{
+					const FMaterialParameterMetadata& Meta = It.Value;
+					check(Meta.Value.Type == ParameterType);
+					StaticComponentMaskParameters.Emplace(It.Key,
+						Meta.Value.Bool[0],
+						Meta.Value.Bool[1],
+						Meta.Value.Bool[2],
+						Meta.Value.Bool[3],
+						Meta.bOverride,
+						Meta.ExpressionGuid);
+				}
+				break;
+			default: checkNoEntry();
+			}
+		}
+	}
+
+	if(UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(MaterialInterface))
+	{
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
+		if (UMaterialInstanceEditorOnlyData* EditorOnly = MaterialInstance->GetEditorOnlyData())
+		{
+			OutStaticParameters.EditorOnly.TerrainLayerWeightParameters = EditorOnly->StaticParameters.TerrainLayerWeightParameters;
+		}
+#else
+		OutStaticParameters.TerrainLayerWeightParameters = MaterialInstance->GetStaticParameters().TerrainLayerWeightParameters;
+#endif
+	}
+
+	FMaterialLayersFunctions MaterialLayers;
+	OutStaticParameters.bHasMaterialLayers = MaterialInterface->GetMaterialLayers(MaterialLayers);
+	if (OutStaticParameters.bHasMaterialLayers)
+	{
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
+		OutStaticParameters.MaterialLayers = MoveTemp(MaterialLayers.GetRuntime());
+		OutStaticParameters.EditorOnly.MaterialLayers = MoveTemp(MaterialLayers.EditorOnly);
+#else
+		OutStaticParameters.MaterialLayers = MoveTemp(MaterialLayers);
+#endif
+	}
+
+	// OutStaticParameters.Validate();
+	// Copied the code from FStaticParameterSet::Validate() due to missing API export
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
+	FMaterialLayersFunctions::Validate(OutStaticParameters.MaterialLayers, OutStaticParameters.EditorOnly.MaterialLayers);
+#endif
+}
+#endif
+
+FHoudiniMaterialParameterValue::FHoudiniMaterialParameterValue()
+	: ParamType(EHoudiniUnrealMaterialParameterType::Invalid)
+	, DataType(EHoudiniUnrealMaterialParameterDataType::Invalid)
+	, ByteValue(0)
+	, FloatValue(0)
+	, StringValue()
+	, VectorValue(0, 0, 0, 0)
+{
+}
+
+void 
+FHoudiniMaterialParameterValue::SetValue(const uint8 InValue) 
+{ 
+	DataType = EHoudiniUnrealMaterialParameterDataType::Byte; 
+	ByteValue = InValue;
+	CleanValue();
+}
+
+void 
+FHoudiniMaterialParameterValue::SetValue(const float InValue) 
+{ 
+	DataType = EHoudiniUnrealMaterialParameterDataType::Float; 
+	FloatValue = InValue; 
+	CleanValue();
+}
+
+void 
+FHoudiniMaterialParameterValue::SetValue(const FString& InValue)
+{ 
+	DataType = EHoudiniUnrealMaterialParameterDataType::String; 
+	StringValue = InValue; 
+	CleanValue();
+}
+
+void 
+FHoudiniMaterialParameterValue::SetValue(const FLinearColor& InValue)
+{ 
+	DataType = EHoudiniUnrealMaterialParameterDataType::Vector; 
+	VectorValue = InValue; 
+	CleanValue();
+}
+
+void
+FHoudiniMaterialParameterValue::CleanValue()
+{
+	if (DataType != EHoudiniUnrealMaterialParameterDataType::Byte)
+		ByteValue = 0;
+	if (DataType != EHoudiniUnrealMaterialParameterDataType::Float)
+		FloatValue = 0;
+	if (DataType != EHoudiniUnrealMaterialParameterDataType::String)
+		StringValue.Empty();
+	if (DataType != EHoudiniUnrealMaterialParameterDataType::Vector)
+		VectorValue = {0, 0, 0, 0};
+}
+
+
+FString
+FHoudiniMaterialInfo::MakeMaterialInstanceParametersSlug() const
+{
+	if (!bMakeMaterialInstance)
+		return FString();
+
+	TArray<FName> Keys;
+	MaterialInstanceParameters.GetKeys(Keys);
+	Algo::SortBy(Keys, [](const FName& InName)
+		{
+			return InName.ToString().ToLower();
+		}
+	);
+
+	FBufferWriter Ar(nullptr, 0, EBufferWriterFlags::AllowResize | EBufferWriterFlags::TakeOwnership);
+	int32 NumKeys = Keys.Num();
+	Ar << NumKeys;
+	for (const FName& Key : Keys)
+	{
+		FHoudiniMaterialParameterValue ParamValue = MaterialInstanceParameters.FindChecked(Key);
+		ParamValue.CleanValue();
+		FString Name = Key.ToString().ToLower();
+		Ar << Name;
+		FHoudiniMaterialParameterValue::StaticStruct()->SerializeBin(Ar, &ParamValue);
+	}
+	
+	const FString OutputString = BytesToString(static_cast<uint8*>(Ar.GetWriterData()), Ar.Tell());
+	Ar.Close();
+
+	return OutputString;
+}
+
+FHoudiniMaterialIdentifier
+FHoudiniMaterialInfo::MakeIdentifier() const
+{
+	return FHoudiniMaterialIdentifier(
+		MaterialObjectPath,
+		bMakeMaterialInstance,
+		MakeMaterialInstanceParametersSlug()
+	);
+}
+
 bool 
 FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 	const HAPI_NodeId& InAssetId,
 	const FHoudiniPackageParams& InPackageParams,
 	const TArray<int32>& InUniqueMaterialIds,
 	const TArray<HAPI_MaterialInfo>& InUniqueMaterialInfos,
-	const TMap<FString, UMaterialInterface *>& InMaterials,
-	const TMap<FString, UMaterialInterface *>& InAllOutputMaterials,
-	TMap<FString, UMaterialInterface *>& OutMaterials,
+	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& InMaterials,
+	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& InAllOutputMaterials,
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& OutMaterials,
 	TArray<UPackage*>& OutPackages,
 	const bool& bForceRecookAll,
 	bool bInTreatExistingMaterialsAsUpToDate)
@@ -97,7 +297,9 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 
 	// Default Houdini material.
 	UMaterial * DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-	OutMaterials.Add(HAPI_UNREAL_DEFAULT_MATERIAL_NAME, DefaultMaterial);
+	OutMaterials.Add(
+		FHoudiniMaterialIdentifier(HAPI_UNREAL_DEFAULT_MATERIAL_NAME, false),
+		DefaultMaterial);
 
 	// Factory to create materials.
 	UMaterialFactoryNew * MaterialFactory = NewObject<UMaterialFactoryNew>();
@@ -136,10 +338,11 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		FString MaterialPathName = TEXT("");
 		if (!FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, MaterialInfo, MaterialPathName))
 			continue;
-
+		const FHoudiniMaterialIdentifier MaterialIdentifier(MaterialPathName, true);
+		
 		// Check first in the existing material map
 		UMaterial * Material = nullptr;
-		UMaterialInterface* const * FoundMaterial = InMaterials.Find(MaterialPathName);
+		UMaterialInterface* const * FoundMaterial = InMaterials.Find(MaterialIdentifier);
 		bool bCanReuseExistingMaterial = false;
 		if (FoundMaterial)
 		{
@@ -151,7 +354,7 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		{
 			// Try to see if another output/part of this HDA has already recreated this material
 			// Since those materials have just been recreated, they are considered up to date and can always be reused.
-			FoundMaterial = InAllOutputMaterials.Find(MaterialPathName);
+			FoundMaterial = InAllOutputMaterials.Find(MaterialIdentifier);
 			if (FoundMaterial)
 			{
 				Material = Cast<UMaterial>(*FoundMaterial);
@@ -173,7 +376,7 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 			// If the cached material exists and is up to date, we can reuse it.
 			if (bCanReuseExistingMaterial)
 			{
-				OutMaterials.Add(MaterialPathName, Material);
+				OutMaterials.Add(MaterialIdentifier, Material);
 				continue;
 			}
 		}
@@ -270,7 +473,7 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		MaterialUpdateContext.AddMaterial(Material);
 
 		// Cache material.
-		OutMaterials.Add(MaterialPathName, Material);
+		OutMaterials.Add(MaterialIdentifier, Material);
 
 		// Propagate and trigger material updates.
 		if (bCreatedNewMaterial)
@@ -291,10 +494,10 @@ bool
 FHoudiniMaterialTranslator::CreateMaterialInstances(
 	const FHoudiniGeoPartObject& InHGPO,
 	const FHoudiniPackageParams& InPackageParams,
-	const TMap<FString, int32>& UniqueMaterialInstanceOverrides,
+	const TMap<FHoudiniMaterialIdentifier, FHoudiniMaterialInfo>& UniqueMaterialInstanceOverrides,
 	const TArray<UPackage*>& InPackages,
-	const TMap<FString, UMaterialInterface *>& InMaterials,	
-	TMap<FString, UMaterialInterface *>& OutMaterials,	
+	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InMaterials,
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& OutMaterials,
 	const bool& bForceRecookAll)
 {
 	// Check the node ID is valid
@@ -305,53 +508,35 @@ FHoudiniMaterialTranslator::CreateMaterialInstances(
 	if (UniqueMaterialInstanceOverrides.Num() <= 0)
 		return false;
 
-	// See if we need to override some of the material instance's parameters
-	TArray<FHoudiniGenericAttribute> DetailMatParams;
-	// Get the detail material parameters
-	int32 ParamCount = FHoudiniEngineUtils::GetGenericAttributeList(
-		InHGPO.GeoId, InHGPO.PartId, HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX,
-		DetailMatParams, HAPI_ATTROWNER_DETAIL, -1);
-
-	// TODO: Improve!
-	// Get the material name from the material_instance attribute 
-	// Since the material instance attribute can be set per primitive, it's going to be very difficult to know 
-	// exactly where to look for the nth material instance. In order for the material slot to be created, 
-	// we used the fact that the material instance attribute had to be different 
-	// This is pretty hacky and we should probably require an extra material_instance_index attribute instead.
-	// as we can only create one instance of the same material, and cant get two slots for the same "source" material.	
-	int32 MaterialIndex = 0;
-	for (TMap<FString, int32>::TConstIterator Iter(UniqueMaterialInstanceOverrides); Iter; ++Iter)
+	for (const auto& Entry : UniqueMaterialInstanceOverrides)
 	{
-		FString CurrentSourceMaterial = Iter->Key;
+		const FHoudiniMaterialIdentifier& Identifier = Entry.Key;
+		const FHoudiniMaterialInfo& MatInfo = Entry.Value;
 
-		int32 SlotIndex = MaterialIndex;
-		FHoudiniMeshTranslator::ExtractMaterialIndex(CurrentSourceMaterial, SlotIndex);
-
-		if (CurrentSourceMaterial.IsEmpty())
+		const uint32 InstanceParametersGUID = FCrc::StrCrc32(*Identifier.MaterialInstanceParametersSlug);
+		
+		if (!MatInfo.bMakeMaterialInstance)
 			continue;
 
 		// Try to find the material we want to create an instance of
 		UMaterialInterface* CurrentSourceMaterialInterface = Cast<UMaterialInterface>(
-			StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *CurrentSourceMaterial, nullptr, LOAD_NoWarn, nullptr));
+			StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MatInfo.MaterialObjectPath, nullptr, LOAD_NoWarn, nullptr));
 		
 		if (!IsValid(CurrentSourceMaterialInterface))
 		{
 			// Couldn't find the source material
-			HOUDINI_LOG_WARNING(TEXT("Couldn't find the source material %s to create a material instance."), *CurrentSourceMaterial);
+			HOUDINI_LOG_WARNING(TEXT("Couldn't find the source material %s to create a material instance."), *MatInfo.MaterialObjectPath);
 			continue;
 		}
 
 		// Create/Retrieve the package for the MI
 		FString MaterialInstanceName;
 		FString MaterialInstanceNamePrefix = UPackageTools::SanitizePackageName(
-			CurrentSourceMaterialInterface->GetName() + TEXT("_instance_") + FString::FromInt(MaterialIndex));
-
-		// Increase the material index
-		MaterialIndex++;
+			CurrentSourceMaterialInterface->GetName() + TEXT("_instance_") + FString::Printf(TEXT("%u"), InstanceParametersGUID));
 
 		// See if we can find an existing package for that instance
 		UPackage * MaterialInstancePackage = nullptr;
-		UMaterialInterface * const * FoundMatPtr = InMaterials.Find(MaterialInstanceNamePrefix);
+		UMaterialInterface * const * FoundMatPtr = InMaterials.Find(Identifier);
 		if (FoundMatPtr && *FoundMatPtr)
 		{
 			// We found an already existing MI, get its package
@@ -396,51 +581,22 @@ FHoudiniMaterialTranslator::CreateMaterialInstances(
 
 		if (!NewMaterialInstance)
 		{
-			HOUDINI_LOG_WARNING(TEXT("Couldn't access the material instance for %s"), *CurrentSourceMaterial);
+			HOUDINI_LOG_WARNING(TEXT("Couldn't access the material instance for %s"), *MatInfo.MaterialObjectPath);
 			continue;
 		}			
 
 		// Update context for generated materials (will trigger when the object goes out of scope).
 		FMaterialUpdateContext MaterialUpdateContext;
 
+		// Apply material instance parameters
 		bool bModifiedMaterialParameters = false;
-
-		TArray<FHoudiniGenericAttribute> AllMatParams = DetailMatParams;
-
-		// Then the primitive material parameters
-		int32 MaterialIndexToAttributeIndex = Iter->Value;
-		ParamCount += FHoudiniEngineUtils::GetGenericAttributeList(
-			InHGPO.GeoId, InHGPO.PartId, HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX,
-			AllMatParams, HAPI_ATTROWNER_PRIM, MaterialIndexToAttributeIndex);
-
-		for (int32 ParamIdx = 0; ParamIdx < AllMatParams.Num(); ParamIdx++)
+		for (const auto& MatParamEntry : MatInfo.MaterialInstanceParameters)
 		{
-			FHoudiniGenericAttribute& ParamOverride = AllMatParams[ParamIdx];
-			FString& AttribName = ParamOverride.AttributeName;
-			// If no index specified, assume it applies to all mats
-			int32 OverrideIndex = MaterialIndex - 1;
-			int32 TentativeIndex = 0;
-			char CurChar = AttribName[0];
-			int32 AttribNameIndex = 0;
-			while (CurChar >= '0' && CurChar <= '9')
-			{
-				TentativeIndex *= 10;
-				TentativeIndex += CurChar - '0';
-				CurChar = AttribName[++AttribNameIndex];
-			}
-			if (CurChar == '_')
-			{
-				AttribName = AttribName.Mid(AttribNameIndex + 1);
-				OverrideIndex = TentativeIndex;
-			}
-
-			if (OverrideIndex != MaterialIndex - 1)
-			{
-				continue;
-			}
+			const FName& MaterialParameterName = MatParamEntry.Key;
+			const FHoudiniMaterialParameterValue& MaterialParameterValue = MatParamEntry.Value;
 
 			// Try to update the material instance parameter corresponding to the attribute
-			if (UpdateMaterialInstanceParameter(ParamOverride, NewMaterialInstance, InPackages))
+			if (UpdateMaterialInstanceParameter(MaterialParameterName, MaterialParameterValue, NewMaterialInstance, InPackages))
 				bModifiedMaterialParameters = true;
 		}
 
@@ -480,33 +636,201 @@ FHoudiniMaterialTranslator::CreateMaterialInstances(
 
 		// Add the created material to the output assignement map
 		// Use the "source" material name as we want the instance to replace it
-		OutMaterials.Add(CurrentSourceMaterial, NewMaterialInstance);
+		OutMaterials.Add(Identifier, NewMaterialInstance);
 	}
 
 	return true;
 }
 
+bool
+FHoudiniMaterialTranslator::GetMaterialParameterAttributes(
+	const int32 InGeoId,
+	const int32 InPartId,
+	const HAPI_AttributeOwner InAttributeOwner,
+	TArray<FHoudiniGenericAttribute>& OutAllMatParams,
+	const int32 InAttributeIndex)
+{
+	ensure(InAttributeOwner == HAPI_ATTROWNER_PRIM || InAttributeOwner == HAPI_ATTROWNER_POINT || InAttributeOwner == HAPI_ATTROWNER_DETAIL);
+	if (InAttributeOwner != HAPI_ATTROWNER_PRIM && InAttributeOwner != HAPI_ATTROWNER_POINT && InAttributeOwner != HAPI_ATTROWNER_DETAIL)
+	{
+		HOUDINI_LOG_WARNING(TEXT(
+			"[FHoudiniMaterialTranslator::GetMaterialParameterAttributes] Invalid InAttributeOwner: must be detail, "
+			"prim or point. Not fetching material parameters via attributes."));
+		return false;
+	}
+
+	OutAllMatParams.Empty();
+	// Get the detail material parameters
+	FHoudiniEngineUtils::GetGenericAttributeList(
+		InGeoId, InPartId, HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX,
+		OutAllMatParams, HAPI_ATTROWNER_DETAIL, -1);
+
+	if (InAttributeOwner != HAPI_ATTROWNER_DETAIL)
+	{
+		FHoudiniEngineUtils::GetGenericAttributeList(
+			InGeoId, InPartId, HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX,
+			OutAllMatParams, InAttributeOwner, InAttributeIndex);
+	}
+
+	return true;
+}
+
+bool FHoudiniMaterialTranslator::GetMaterialParameters(
+	FHoudiniMaterialInfo& MaterialInfo,
+	const TArray<FHoudiniGenericAttribute>& InAllMatParams,
+	int32 InAttributeIndex)
+{
+	MaterialInfo.MaterialInstanceParameters.Empty();
+
+	// Material parameters are only relevant if we are making material instances
+	if (!MaterialInfo.bMakeMaterialInstance)
+		return true;
+
+	// We have no material parameters, so nothing to do
+	if (InAllMatParams.Num() <= 0)
+		return true;
+
+	// Try to find the material we want to create an instance of, so that we can determine valid parameter names
+	UMaterialInterface* CurrentSourceMaterialInterface = Cast<UMaterialInterface>(
+		StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MaterialInfo.MaterialObjectPath, nullptr, LOAD_NoWarn, nullptr));
+	
+	if (!IsValid(CurrentSourceMaterialInterface))
+	{
+		// Couldn't find the source material
+		HOUDINI_LOG_WARNING(TEXT("Couldn't find the source material %s to create a material instance."), *MaterialInfo.MaterialObjectPath);
+		return false;
+	}
+
+	const int32 NumMatParams = InAllMatParams.Num();
+	for (int32 ParamIdx = 0; ParamIdx < NumMatParams; ParamIdx++)
+	{
+		const FHoudiniGenericAttribute& ParamOverride = InAllMatParams[ParamIdx];
+		// Skip if the AttribName is empty
+		if (ParamOverride.AttributeName.IsEmpty())
+			continue;
+
+		// Copy the name since we'll remove the slot prefix if present
+		FString AttribName = ParamOverride.AttributeName;
+
+		// If no index specified, assume it applies to all mats
+		int32 OverrideIndex = -1;
+		int32 TentativeIndex = 0;
+		char CurChar = AttribName[0];
+		int32 AttribNameIndex = 0;
+		while (CurChar >= '0' && CurChar <= '9')
+		{
+			TentativeIndex *= 10;
+			TentativeIndex += CurChar - '0';
+			CurChar = AttribName[++AttribNameIndex];
+		}
+		if (CurChar == '_')
+		{
+			AttribName = AttribName.Mid(AttribNameIndex + 1);
+			OverrideIndex = TentativeIndex;
+		}
+
+		if (OverrideIndex != -1 && OverrideIndex != MaterialInfo.MaterialIndex)
+			continue;
+
+		// Check if AttribName is a valid parameter of our source material
+		FHoudiniMaterialParameterValue MaterialParameterValue;
+		if (!GetAndValidateMaterialInstanceParameterValue(
+				FName(AttribName), ParamOverride, InAttributeIndex, CurrentSourceMaterialInterface, MaterialParameterValue))
+		{
+			continue;
+		}
+
+		MaterialInfo.MaterialInstanceParameters.Add(FName(AttribName), MaterialParameterValue);
+	}
+
+	return true;
+}
+
+bool FHoudiniMaterialTranslator::GetMaterialParameters(
+	TArray<FHoudiniMaterialInfo>& MaterialsByAttributeIndex,
+	const int32 InGeoId,
+	const int32 InPartId,
+	const HAPI_AttributeOwner InAttributeOwner)
+{
+	ensure(InAttributeOwner == HAPI_ATTROWNER_PRIM || InAttributeOwner == HAPI_ATTROWNER_POINT);
+	if (InAttributeOwner != HAPI_ATTROWNER_PRIM && InAttributeOwner != HAPI_ATTROWNER_POINT)
+	{
+		HOUDINI_LOG_WARNING(TEXT(
+			"[FHoudiniMaterialTranslator::GetMaterialParameters] Invalid InAttributeOwner: must be prim or point. Not "
+			"fetching material parameters via attributes."));
+		return false;
+	}
+
+	bool bHaveMaterialInstances = false;
+	for (const FHoudiniMaterialInfo& MatInfo : MaterialsByAttributeIndex)
+	{
+		if (!MatInfo.bMakeMaterialInstance)
+			continue;
+
+		bHaveMaterialInstances = true;
+		break;
+	}
+
+	// We have no material instances, no need to process material parameters
+	if (!bHaveMaterialInstances)
+		return true;
+
+	TArray<FHoudiniGenericAttribute> AllMatParams;
+	// See if we need to override some of the material instance's parameters
+	GetMaterialParameterAttributes(InGeoId, InPartId, InAttributeOwner, AllMatParams);
+
+	// Map containing unique face materials override attribute
+	// and their first valid prim index
+	// We create only one material instance per attribute
+	for (int32 AttributeIndex = 0; AttributeIndex < MaterialsByAttributeIndex.Num(); AttributeIndex++)
+	{
+		FHoudiniMaterialInfo& MatInfo = MaterialsByAttributeIndex[AttributeIndex];
+		if (!MatInfo.bMakeMaterialInstance)
+			continue;
+
+		if (!GetMaterialParameters(MatInfo, AllMatParams, AttributeIndex))
+			return false;
+	}
+	
+	return true;
+}
+
 bool FHoudiniMaterialTranslator::SortUniqueFaceMaterialOverridesAndCreateMaterialInstances(
-	const TArray<FString>& Materials,
+	const TArray<FHoudiniMaterialInfo>& Materials,
 	const FHoudiniGeoPartObject& InHGPO,
 	const FHoudiniPackageParams& InPackageParams,
 	const TArray<UPackage*>& InPackages, 
-	const TMap<FString, UMaterialInterface*>& InMaterials,
-	TMap<FString, UMaterialInterface*>& OutMaterials,
+	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InMaterials,
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& OutMaterials,
 	const bool& bForceRecookAll)
 {
 	// Map containing unique face materials override attribute
 	// and their first valid prim index
 	// We create only one material instance per attribute
-	TMap<FString, int32> UniqueFaceMaterialOverrides;
-	for (int FaceIdx = 0; FaceIdx < Materials.Num(); FaceIdx++)
+	int MaterialIndex = 0;
+	TMap<FHoudiniMaterialIdentifier, FHoudiniMaterialInfo> UniqueFaceMaterialOverrides;
+	for (int MatArrayIdx = 0; MatArrayIdx < Materials.Num(); MatArrayIdx++)
 	{
-		FString MatOverrideAttr = Materials[FaceIdx];
-		if (UniqueFaceMaterialOverrides.Contains(MatOverrideAttr))
+		FHoudiniMaterialInfo MatInfo = Materials[MatArrayIdx];
+
+		MatInfo.MaterialIndex = MaterialIndex;
+		if (!MatInfo.bMakeMaterialInstance)
+		{
+			FHoudiniMaterialIdentifier Identifier = MatInfo.MakeIdentifier();
+			if (!UniqueFaceMaterialOverrides.Contains(Identifier))
+			{
+				UniqueFaceMaterialOverrides.Add(Identifier, MatInfo);
+				MaterialIndex++;
+			}
+			continue;
+		}
+
+		FHoudiniMaterialIdentifier Identifier = MatInfo.MakeIdentifier();
+		if (UniqueFaceMaterialOverrides.Contains(Identifier))
 			continue;
 
-		// Add the material override and face index to the map
-		UniqueFaceMaterialOverrides.Add(MatOverrideAttr, FaceIdx);
+		UniqueFaceMaterialOverrides.Add(Identifier, MatInfo);
+		MaterialIndex++;
 	}
 
 	return FHoudiniMaterialTranslator::CreateMaterialInstances(
@@ -3304,87 +3628,82 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 
 
 bool
-FHoudiniMaterialTranslator::UpdateMaterialInstanceParameter(
-	FHoudiniGenericAttribute MaterialParameter,
-	UMaterialInstanceConstant* MaterialInstance,
-	const TArray<UPackage*>& InPackages)
+FHoudiniMaterialTranslator::GetAndValidateMaterialInstanceParameterValue(
+	const FName& InMaterialParameterName,
+	const FHoudiniGenericAttribute& MaterialParameterAttribute,
+	const int32 InAttributeIndex,
+	UMaterialInterface* const MaterialInterface,
+	FHoudiniMaterialParameterValue& OutMaterialParameterValue)
 {
-	bool bParameterUpdated = false;
-
+	// This function is tightly coupled with UpdateMaterialInstanceParameter(): changes to the one function likely
+	// require changes to the other!
 #if WITH_EDITOR
-	if (!MaterialInstance)
+	if (!MaterialInterface)
 		return false;
 
-	if (MaterialParameter.AttributeName.IsEmpty())
+	if (InMaterialParameterName.IsNone())
 		return false;
 
-	// The default material instance parameters needs to be handled manually as they cant be changed via generic SetParameters functions
-	if (MaterialParameter.AttributeName.Compare("CastShadowAsMasked", ESearchCase::IgnoreCase) == 0)
-	{
-		bool Value = MaterialParameter.GetBoolValue();
+	if (MaterialParameterAttribute.AttributeOwner == EAttribOwner::Invalid)
+		return false;
 
-		// Update the parameter value only if necessary
-		if (MaterialInstance->GetOverrideCastShadowAsMasked() && (MaterialInstance->GetCastShadowAsMasked() == Value))
+	int32 ValueIdx = InAttributeIndex;
+	if (ValueIdx < 0 || MaterialParameterAttribute.AttributeOwner == EAttribOwner::Detail)
+		ValueIdx = 0;
+
+	// Check if the MaterialParameter corresponds to material instance property first
+	static const FName FloatProperties[]
+	{
+		"EmissiveBoost",
+		"DiffuseBoost",
+		"ExportResolutionScale",
+		"OpacityMaskClipValue",
+	};
+	static const FName BoolProperties[]
+	{
+		"CastShadowAsMasked",
+		"TwoSided",
+		"DitheredLODTransition",
+	};
+
+	for (const FName& PropertyName : FloatProperties)
+	{
+		if (InMaterialParameterName != PropertyName)
+			continue;
+
+		if (MaterialParameterAttribute.AttributeTupleSize != 1)
 			return false;
 
-		MaterialInstance->SetOverrideCastShadowAsMasked(true);
-		MaterialInstance->SetCastShadowAsMasked(Value);
-		bParameterUpdated = true;
-	}
-	else  if (MaterialParameter.AttributeName.Compare("EmissiveBoost", ESearchCase::IgnoreCase) == 0)
-	{
-		float Value = (float)MaterialParameter.GetDoubleValue();
+		OutMaterialParameterValue.ParamType = EHoudiniUnrealMaterialParameterType::StandardParameter;
+		OutMaterialParameterValue.SetValue((float)MaterialParameterAttribute.GetDoubleValue(ValueIdx));
 
-		// Update the parameter value only if necessary
-		if (MaterialInstance->GetOverrideEmissiveBoost() && (MaterialInstance->GetEmissiveBoost() == Value))
+		return true;
+	}
+	
+	for (const FName& PropertyName : BoolProperties)
+	{
+		if (InMaterialParameterName != PropertyName)
+			continue;
+		
+		if (MaterialParameterAttribute.AttributeTupleSize != 1)
 			return false;
 
-		MaterialInstance->SetOverrideEmissiveBoost(true);
-		MaterialInstance->SetEmissiveBoost(Value);
-		bParameterUpdated = true;
-	}
-	else if (MaterialParameter.AttributeName.Compare("DiffuseBoost", ESearchCase::IgnoreCase) == 0)
-	{
-		float Value = (float)MaterialParameter.GetDoubleValue();
+		OutMaterialParameterValue.ParamType = EHoudiniUnrealMaterialParameterType::StandardParameter;
+		OutMaterialParameterValue.SetValue(static_cast<uint8>(MaterialParameterAttribute.GetBoolValue(ValueIdx)));
 
-		// Update the parameter value only if necessary
-		if (MaterialInstance->GetOverrideDiffuseBoost() && (MaterialInstance->GetDiffuseBoost() == Value))
+		return true;
+	}
+
+	if (InMaterialParameterName == "BlendMode")
+	{
+		if (MaterialParameterAttribute.AttributeTupleSize != 1)
 			return false;
 
-		MaterialInstance->SetOverrideDiffuseBoost(true);
-		MaterialInstance->SetDiffuseBoost(Value);
-		bParameterUpdated = true;
-	}
-	else if (MaterialParameter.AttributeName.Compare("ExportResolutionScale", ESearchCase::IgnoreCase) == 0)
-	{
-		float Value = (float)MaterialParameter.GetDoubleValue();
-
-		// Update the parameter value only if necessary
-		if (MaterialInstance->GetOverrideExportResolutionScale() && (MaterialInstance->GetExportResolutionScale() == Value))
-			return false;
-
-		MaterialInstance->SetOverrideExportResolutionScale(true);
-		MaterialInstance->SetExportResolutionScale(Value);
-		bParameterUpdated = true;
-	}
-	else if (MaterialParameter.AttributeName.Compare("OpacityMaskClipValue", ESearchCase::IgnoreCase) == 0)
-	{
-		float Value = (float)MaterialParameter.GetDoubleValue();
-
-		// Update the parameter value only if necessary
-		if (MaterialInstance->BasePropertyOverrides.bOverride_OpacityMaskClipValue && (MaterialInstance->BasePropertyOverrides.OpacityMaskClipValue == Value))
-			return false;
-
-		MaterialInstance->BasePropertyOverrides.bOverride_OpacityMaskClipValue = true;
-		MaterialInstance->BasePropertyOverrides.OpacityMaskClipValue = Value;
-		bParameterUpdated = true;
-	}
-	else if (MaterialParameter.AttributeName.Compare("BlendMode", ESearchCase::IgnoreCase) == 0)
-	{
-		EBlendMode EnumValue = (EBlendMode)MaterialParameter.GetIntValue();
-		if (MaterialParameter.AttributeType == EAttribStorageType::STRING)
+		OutMaterialParameterValue.ParamType = EHoudiniUnrealMaterialParameterType::StandardParameter;
+		EBlendMode EnumValue = (EBlendMode)MaterialParameterAttribute.GetIntValue(ValueIdx);
+		if (MaterialParameterAttribute.AttributeType == EAttribStorageType::STRING)
 		{
-			FString StringValue = MaterialParameter.GetStringValue();
+			FString StringValue = MaterialParameterAttribute.GetStringValue(ValueIdx);
 			if (StringValue.Compare("Opaque", ESearchCase::IgnoreCase) == 0)
 				EnumValue = EBlendMode::BLEND_Opaque;
 			else if (StringValue.Compare("Masked", ESearchCase::IgnoreCase) == 0)
@@ -3398,21 +3717,21 @@ FHoudiniMaterialTranslator::UpdateMaterialInstanceParameter(
 			else if (StringValue.StartsWith("Alpha", ESearchCase::IgnoreCase))
 				EnumValue = EBlendMode::BLEND_AlphaComposite;
 		}
+		OutMaterialParameterValue.SetValue(static_cast<uint8>(EnumValue));
 
-		// Update the parameter value only if necessary
-		if (MaterialInstance->BasePropertyOverrides.bOverride_BlendMode && (MaterialInstance->BasePropertyOverrides.BlendMode == EnumValue))
+		return true;
+	}
+	
+	if (InMaterialParameterName == "ShadingModel")
+	{
+		if (MaterialParameterAttribute.AttributeTupleSize != 1)
 			return false;
 
-		MaterialInstance->BasePropertyOverrides.bOverride_BlendMode = true;
-		MaterialInstance->BasePropertyOverrides.BlendMode = EnumValue;
-		bParameterUpdated = true;
-	}
-	else if (MaterialParameter.AttributeName.Compare("ShadingModel", ESearchCase::IgnoreCase) == 0)
-	{
-		EMaterialShadingModel EnumValue = (EMaterialShadingModel)MaterialParameter.GetIntValue();
-		if (MaterialParameter.AttributeType == EAttribStorageType::STRING)
+		OutMaterialParameterValue.ParamType = EHoudiniUnrealMaterialParameterType::StandardParameter;
+		EMaterialShadingModel EnumValue = (EMaterialShadingModel)MaterialParameterAttribute.GetIntValue(ValueIdx);
+		if (MaterialParameterAttribute.AttributeType == EAttribStorageType::STRING)
 		{
-			FString StringValue = MaterialParameter.GetStringValue();
+			FString StringValue = MaterialParameterAttribute.GetStringValue(ValueIdx);
 			if (StringValue.Compare("Unlit", ESearchCase::IgnoreCase) == 0)
 				EnumValue = EMaterialShadingModel::MSM_Unlit;
 			else if (StringValue.StartsWith("Default", ESearchCase::IgnoreCase))
@@ -3434,117 +3753,383 @@ FHoudiniMaterialTranslator::UpdateMaterialInstanceParameter(
 			else if (StringValue.Compare("Eye", ESearchCase::IgnoreCase) == 0)
 				EnumValue = EMaterialShadingModel::MSM_Eye;
 		}
+		OutMaterialParameterValue.SetValue(static_cast<uint8>(EnumValue));
 
-		// Update the parameter value only if necessary
-		if (MaterialInstance->BasePropertyOverrides.bOverride_ShadingModel && (MaterialInstance->BasePropertyOverrides.ShadingModel == EnumValue))
-			return false;
-
-		MaterialInstance->BasePropertyOverrides.bOverride_ShadingModel = true;
-		MaterialInstance->BasePropertyOverrides.ShadingModel = EnumValue;
-		bParameterUpdated = true;
-	}
-	else if (MaterialParameter.AttributeName.Compare("TwoSided", ESearchCase::IgnoreCase) == 0)
-	{
-		bool Value = MaterialParameter.GetBoolValue();
-
-		// Update the parameter value only if necessary
-		if (MaterialInstance->BasePropertyOverrides.bOverride_TwoSided && (MaterialInstance->BasePropertyOverrides.TwoSided == Value))
-			return false;
-
-		MaterialInstance->BasePropertyOverrides.bOverride_TwoSided = true;
-		MaterialInstance->BasePropertyOverrides.TwoSided = Value;
-		bParameterUpdated = true;
-	}
-	else if (MaterialParameter.AttributeName.Compare("DitheredLODTransition", ESearchCase::IgnoreCase) == 0)
-	{
-		bool Value = MaterialParameter.GetBoolValue();
-
-		// Update the parameter value only if necessary
-		if (MaterialInstance->BasePropertyOverrides.bOverride_DitheredLODTransition && (MaterialInstance->BasePropertyOverrides.DitheredLODTransition == Value))
-			return false;
-
-		MaterialInstance->BasePropertyOverrides.bOverride_DitheredLODTransition = true;
-		MaterialInstance->BasePropertyOverrides.DitheredLODTransition = Value;
-		bParameterUpdated = true;
-	}
-	else if (MaterialParameter.AttributeName.Compare("PhysMaterial", ESearchCase::IgnoreCase) == 0)
-	{
-		// Try to load a Material corresponding to the parameter value
-		FString ParamValue = MaterialParameter.GetStringValue();
-		UPhysicalMaterial* FoundPhysMaterial = Cast< UPhysicalMaterial >(
-			StaticLoadObject(UPhysicalMaterial::StaticClass(), nullptr, *ParamValue, nullptr, LOAD_NoWarn, nullptr));
-
-		// Update the parameter value if necessary
-		if (!FoundPhysMaterial || (MaterialInstance->PhysMaterial == FoundPhysMaterial))
-			return false;
-
-		MaterialInstance->PhysMaterial = FoundPhysMaterial;
-		bParameterUpdated = true;
-	}
-
-	if (bParameterUpdated)
 		return true;
-
-	// Handling custom parameters
-	FName CurrentMatParamName = FName(*MaterialParameter.AttributeName);
-	if (MaterialParameter.AttributeType == EAttribStorageType::STRING)
-	{
-		// String attributes are used for textures parameters
-		// We need to find the texture corresponding to the param
-		UTexture* FoundTexture = nullptr;
-		FString ParamValue = MaterialParameter.GetStringValue();
-
-		// Texture can either be already existing texture assets in UE4, or a newly generated textures by this asset
-		// Try to find the texture corresponding to the param value in the existing assets first.
-		FoundTexture = Cast<UTexture>(
-			StaticLoadObject(UTexture::StaticClass(), nullptr, *ParamValue, nullptr, LOAD_NoWarn, nullptr));
-
-		if (!FoundTexture)
-		{
-			// We couldn't find a texture corresponding to the parameter in the existing UE4 assets
-			// Try to find the corresponding texture in the cooked temporary package we just generated
-			FoundTexture = FHoudiniMaterialTranslator::FindGeneratedTexture(ParamValue, InPackages);
-		}
-
-		// Do not update if unnecessary
-		if (FoundTexture)
-		{
-			// Do not update if unnecessary
-			UTexture* OldTexture = nullptr;
-			bool FoundOldParam = MaterialInstance->GetTextureParameterValue(CurrentMatParamName, OldTexture);
-			if (FoundOldParam && (OldTexture == FoundTexture))
-				return false;
-
-			MaterialInstance->SetTextureParameterValueEditorOnly(CurrentMatParamName, FoundTexture);
-			bParameterUpdated = true;
-		}
 	}
-	else if (MaterialParameter.AttributeTupleSize == 1)
+	
+	if (InMaterialParameterName == "PhysMaterial")
+	{
+		if (MaterialParameterAttribute.AttributeTupleSize != 1)
+			return false;
+
+		OutMaterialParameterValue.ParamType = EHoudiniUnrealMaterialParameterType::StandardParameter;
+		OutMaterialParameterValue.SetValue(MaterialParameterAttribute.GetStringValue(ValueIdx));
+
+		return true;
+	}
+
+	// Handling custom material parameters
+	if (MaterialParameterAttribute.AttributeType == EAttribStorageType::STRING)
+	{
+		// If there is no texture parameter by this name, return false (parameter should be excluded)
+		UTexture* OldTexture = nullptr;
+		if (!MaterialInterface->GetTextureParameterValue(InMaterialParameterName, OldTexture))
+			return false;
+
+		TArray<FString> StringTuple;
+		MaterialParameterAttribute.GetStringTuple(StringTuple, ValueIdx);
+		if (StringTuple.Num() <= 0)
+			return false;
+		
+		OutMaterialParameterValue.ParamType = EHoudiniUnrealMaterialParameterType::Texture;
+		OutMaterialParameterValue.SetValue(StringTuple[0]);
+
+		return true;
+	}
+
+	if (MaterialParameterAttribute.AttributeTupleSize == 1)
 	{
 		// Single attributes are either for scalar parameters or static switches
 		float OldValue;
-		bool FoundOldScalarParam = MaterialInstance->GetScalarParameterValue(CurrentMatParamName, OldValue);
-		if (FoundOldScalarParam)
+		if (MaterialInterface->GetScalarParameterValue(InMaterialParameterName, OldValue))
 		{
 			// The material parameter is a scalar
-			float NewValue = (float)MaterialParameter.GetDoubleValue();
+			OutMaterialParameterValue.ParamType = EHoudiniUnrealMaterialParameterType::Scalar;
+			OutMaterialParameterValue.SetValue((float)MaterialParameterAttribute.GetDoubleValue(ValueIdx));
+
+			return true;
+		}
+
+		// See if the underlying parameter is a static switch
+		// We need to iterate over the material's static parameter set
+		FStaticParameterSet StaticParameters;
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2)
+		MaterialInterface->GetStaticParameterValues(StaticParameters);
+#else
+		GetStaticParameterValues(MaterialInterface, StaticParameters);
+#endif
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+		TArray<FStaticSwitchParameter>& StaticSwitchParams = StaticParameters.StaticSwitchParameters;
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 1
+		TArray<FStaticSwitchParameter>& StaticSwitchParams = StaticParameters.EditorOnly.StaticSwitchParameters;
+#else
+		TArray<FStaticSwitchParameter>& StaticSwitchParams = StaticParameters.StaticSwitchParameters;
+#endif
+		for (int32 SwitchParameterIdx = 0; SwitchParameterIdx < StaticSwitchParams.Num(); ++SwitchParameterIdx)
+		{
+			const FStaticSwitchParameter& SwitchParameter = StaticSwitchParams[SwitchParameterIdx];
+			if (SwitchParameter.ParameterInfo.Name != InMaterialParameterName)
+				continue;
+
+			OutMaterialParameterValue.ParamType = EHoudiniUnrealMaterialParameterType::StaticSwitch;
+			OutMaterialParameterValue.SetValue(static_cast<uint8>(MaterialParameterAttribute.GetBoolValue(ValueIdx)));
+			return true;
+		}
+
+		return false;
+	}
+	
+	// Tuple attributes are for vector parameters
+	FLinearColor OldValue;
+	if (!MaterialInterface->GetVectorParameterValue(InMaterialParameterName, OldValue))
+		return false;
+	
+	FLinearColor NewLinearColor(0, 0, 0, 0);
+	// if the attribute is stored in an int, we'll have to convert a color to a linear color
+	if (MaterialParameterAttribute.AttributeType == EAttribStorageType::INT || MaterialParameterAttribute.AttributeType == EAttribStorageType::INT64)
+	{
+		TArray<int64> IntTuple;
+		MaterialParameterAttribute.GetIntTuple(IntTuple, ValueIdx);
+		
+		FColor IntColor(0, 0, 0, 0);
+		if (IntTuple.IsValidIndex(0))
+			IntColor.R = (int8)IntTuple[0];
+		if (IntTuple.IsValidIndex(1))
+			IntColor.G = (int8)IntTuple[1];
+		if (IntTuple.IsValidIndex(2))
+			IntColor.B = (int8)IntTuple[2];
+		if (IntTuple.IsValidIndex(3))
+			IntColor.A = (int8)IntTuple[3];
+		else
+			IntColor.A = 1;
+
+		NewLinearColor = FLinearColor(IntColor);
+	}
+	else
+	{
+		TArray<double> DoubleTuple;
+		MaterialParameterAttribute.GetDoubleTuple(DoubleTuple, ValueIdx);
+		if (DoubleTuple.IsValidIndex(0))
+			NewLinearColor.R = (float)DoubleTuple[0];
+		if (DoubleTuple.IsValidIndex(1))
+			NewLinearColor.G = (float)DoubleTuple[1];
+		if (DoubleTuple.IsValidIndex(2))
+			NewLinearColor.B = (float)DoubleTuple[2];
+		if (DoubleTuple.IsValidIndex(3))
+			NewLinearColor.A = (float)DoubleTuple[3];
+		else
+			NewLinearColor.A = 1.0f;
+	}
+
+	OutMaterialParameterValue.ParamType = EHoudiniUnrealMaterialParameterType::Vector;
+	OutMaterialParameterValue.SetValue(NewLinearColor);
+	return true;
+#endif
+
+	return false;
+}
+
+
+bool
+FHoudiniMaterialTranslator::UpdateMaterialInstanceParameter(
+	const FName& InMaterialParameterName,
+	const FHoudiniMaterialParameterValue& InMaterialParameterValue,
+	UMaterialInstanceConstant* MaterialInstance,
+	const TArray<UPackage*>& InPackages)
+{
+	// This function is tightly coupled with GetAndValidateMaterialInstanceParameterValue(): changes to the one function
+	// likely require changes to the other!
+
+#if WITH_EDITOR
+	if (!MaterialInstance)
+		return false;
+
+	if (InMaterialParameterName.IsNone())
+		return false;
+
+	// The default material instance parameters needs to be handled manually as they cant be changed via generic SetParameters functions
+	switch (InMaterialParameterValue.ParamType)
+	{
+		case EHoudiniUnrealMaterialParameterType::Invalid:
+			return false;
+		case EHoudiniUnrealMaterialParameterType::StandardParameter:
+		{
+			if (InMaterialParameterName == "CastShadowAsMasked")
+			{
+				if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Byte)
+					return false;
+				const bool Value = static_cast<bool>(InMaterialParameterValue.ByteValue);
+
+				// Update the parameter value only if necessary
+				if (MaterialInstance->GetOverrideCastShadowAsMasked() && (MaterialInstance->GetCastShadowAsMasked() == Value))
+					return false;
+
+				MaterialInstance->SetOverrideCastShadowAsMasked(true);
+				MaterialInstance->SetCastShadowAsMasked(Value);
+				
+				return true;
+			}
+			
+			if (InMaterialParameterName == "EmissiveBoost")
+			{
+				if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Float)
+					return false;
+				const float Value = InMaterialParameterValue.FloatValue;
+
+				// Update the parameter value only if necessary
+				if (MaterialInstance->GetOverrideEmissiveBoost() && (MaterialInstance->GetEmissiveBoost() == Value))
+					return false;
+
+				MaterialInstance->SetOverrideEmissiveBoost(true);
+				MaterialInstance->SetEmissiveBoost(Value);
+				
+				return true;
+			}
+			
+			if (InMaterialParameterName == "DiffuseBoost")
+			{
+				if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Float)
+					return false;
+				const float Value = InMaterialParameterValue.FloatValue;
+
+				// Update the parameter value only if necessary
+				if (MaterialInstance->GetOverrideDiffuseBoost() && (MaterialInstance->GetDiffuseBoost() == Value))
+					return false;
+
+				MaterialInstance->SetOverrideDiffuseBoost(true);
+				MaterialInstance->SetDiffuseBoost(Value);
+				
+				return true;
+			}
+			
+			if (InMaterialParameterName == "ExportResolutionScale")
+			{
+				if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Float)
+					return false;
+				const float Value = InMaterialParameterValue.FloatValue;
+
+				// Update the parameter value only if necessary
+				if (MaterialInstance->GetOverrideExportResolutionScale() && (MaterialInstance->GetExportResolutionScale() == Value))
+					return false;
+
+				MaterialInstance->SetOverrideExportResolutionScale(true);
+				MaterialInstance->SetExportResolutionScale(Value);
+				
+				return true;
+			}
+			
+			if (InMaterialParameterName == "OpacityMaskClipValue")
+			{
+				if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Float)
+					return false;
+				const float Value = InMaterialParameterValue.FloatValue;
+
+				// Update the parameter value only if necessary
+				if (MaterialInstance->BasePropertyOverrides.bOverride_OpacityMaskClipValue && (MaterialInstance->BasePropertyOverrides.OpacityMaskClipValue == Value))
+					return false;
+
+				MaterialInstance->BasePropertyOverrides.bOverride_OpacityMaskClipValue = true;
+				MaterialInstance->BasePropertyOverrides.OpacityMaskClipValue = Value;
+				
+				return true;
+			}
+			
+			if (InMaterialParameterName == "BlendMode")
+			{
+				if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Byte)
+					return false;
+				const EBlendMode EnumValue = (EBlendMode)InMaterialParameterValue.ByteValue;
+
+				// Update the parameter value only if necessary
+				if (MaterialInstance->BasePropertyOverrides.bOverride_BlendMode && (MaterialInstance->BasePropertyOverrides.BlendMode == EnumValue))
+					return false;
+
+				MaterialInstance->BasePropertyOverrides.bOverride_BlendMode = true;
+				MaterialInstance->BasePropertyOverrides.BlendMode = EnumValue;
+				
+				return true;
+			}
+			
+			if (InMaterialParameterName == "ShadingModel")
+			{
+				if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Byte)
+					return false;
+				const EMaterialShadingModel EnumValue = (EMaterialShadingModel)InMaterialParameterValue.ByteValue;
+
+				// Update the parameter value only if necessary
+				if (MaterialInstance->BasePropertyOverrides.bOverride_ShadingModel && (MaterialInstance->BasePropertyOverrides.ShadingModel == EnumValue))
+					return false;
+
+				MaterialInstance->BasePropertyOverrides.bOverride_ShadingModel = true;
+				MaterialInstance->BasePropertyOverrides.ShadingModel = EnumValue;
+				
+				return true;
+			}
+			
+			if (InMaterialParameterName == "TwoSided")
+			{
+				if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Byte)
+					return false;
+				const bool Value = static_cast<bool>(InMaterialParameterValue.ByteValue);
+
+				// Update the parameter value only if necessary
+				if (MaterialInstance->BasePropertyOverrides.bOverride_TwoSided && (MaterialInstance->BasePropertyOverrides.TwoSided == Value))
+					return false;
+
+				MaterialInstance->BasePropertyOverrides.bOverride_TwoSided = true;
+				MaterialInstance->BasePropertyOverrides.TwoSided = Value;
+				
+				return true;
+			}
+			
+			if (InMaterialParameterName == "DitheredLODTransition")
+			{
+				if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Byte)
+					return false;
+				const bool Value = static_cast<bool>(InMaterialParameterValue.ByteValue);
+
+				// Update the parameter value only if necessary
+				if (MaterialInstance->BasePropertyOverrides.bOverride_DitheredLODTransition && (MaterialInstance->BasePropertyOverrides.DitheredLODTransition == Value))
+					return false;
+
+				MaterialInstance->BasePropertyOverrides.bOverride_DitheredLODTransition = true;
+				MaterialInstance->BasePropertyOverrides.DitheredLODTransition = Value;
+				
+				return true;
+			}
+			
+			if (InMaterialParameterName == "PhysMaterial")
+			{
+				// Try to load a Material corresponding to the parameter value
+				if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::String)
+					return false;
+				
+				UPhysicalMaterial* FoundPhysMaterial = Cast<UPhysicalMaterial>(
+					StaticLoadObject(UPhysicalMaterial::StaticClass(), nullptr, *InMaterialParameterValue.StringValue, nullptr, LOAD_NoWarn, nullptr));
+				
+				// Update the parameter value if necessary
+				if (!FoundPhysMaterial || (MaterialInstance->PhysMaterial == FoundPhysMaterial))
+					return false;
+
+				MaterialInstance->PhysMaterial = FoundPhysMaterial;
+				
+				return true;
+			}
+			break;
+		}
+		// Handling custom parameters
+		case EHoudiniUnrealMaterialParameterType::Texture:
+		{
+			// String attributes are used for textures parameters
+			// We need to find the texture corresponding to the param
+			UTexture* FoundTexture = nullptr;
+			const FString ParamValue = InMaterialParameterValue.StringValue;
+
+			// Texture can either be already existing texture assets in UE4, or a newly generated textures by this asset
+			// Try to find the texture corresponding to the param value in the existing assets first.
+			FoundTexture = Cast<UTexture>(
+				StaticLoadObject(UTexture::StaticClass(), nullptr, *ParamValue, nullptr, LOAD_NoWarn, nullptr));
+
+			if (!FoundTexture)
+			{
+				// We couldn't find a texture corresponding to the parameter in the existing UE4 assets
+				// Try to find the corresponding texture in the cooked temporary package we just generated
+				FoundTexture = FHoudiniMaterialTranslator::FindGeneratedTexture(ParamValue, InPackages);
+			}
+
+			if (!FoundTexture)
+				return false;
+
+			// Do not update if unnecessary
+			UTexture* OldTexture = nullptr;
+			bool FoundOldParam = MaterialInstance->GetTextureParameterValue(InMaterialParameterName, OldTexture);
+			if (FoundOldParam && (OldTexture == FoundTexture))
+				return false;
+
+			MaterialInstance->SetTextureParameterValueEditorOnly(InMaterialParameterName, FoundTexture);
+			return true;
+		}
+		case EHoudiniUnrealMaterialParameterType::Scalar:
+		{
+			// Single attributes are either for scalar parameters or static switches
+			float OldValue;
+			if (!MaterialInstance->GetScalarParameterValue(InMaterialParameterName, OldValue))
+				return false;
+			// The material parameter is a scalar
+			if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Float)
+				return false;
+			const float NewValue = InMaterialParameterValue.FloatValue;
 
 			// Do not update if unnecessary
 			if (OldValue == NewValue)
 				return false;
 
-			MaterialInstance->SetScalarParameterValueEditorOnly(CurrentMatParamName, NewValue);
-			bParameterUpdated = true;
+			MaterialInstance->SetScalarParameterValueEditorOnly(InMaterialParameterName, NewValue);
+			
+			return true;
 		}
-		else
+		case EHoudiniUnrealMaterialParameterType::StaticSwitch:
 		{
 			// See if the underlying parameter is a static switch
-			bool NewBoolValue = MaterialParameter.GetBoolValue();
+			if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Byte)
+				return false;
+			const bool NewBoolValue = static_cast<bool>(InMaterialParameterValue.ByteValue);
 
 			// We need to iterate over the material's static parameter set
 			FStaticParameterSet StaticParameters;
 			MaterialInstance->GetStaticParameterValues(StaticParameters);
-
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 			TArray<FStaticSwitchParameter>& StaticSwitchParams = StaticParameters.StaticSwitchParameters;
@@ -3556,7 +4141,7 @@ FHoudiniMaterialTranslator::UpdateMaterialInstanceParameter(
 			for (int32 SwitchParameterIdx = 0; SwitchParameterIdx < StaticSwitchParams.Num(); ++SwitchParameterIdx)
 			{
 				FStaticSwitchParameter& SwitchParameter = StaticSwitchParams[SwitchParameterIdx];
-				if (SwitchParameter.ParameterInfo.Name != CurrentMatParamName)
+				if (SwitchParameter.ParameterInfo.Name != InMaterialParameterName)
 					continue;
 
 				if (SwitchParameter.Value == NewBoolValue)
@@ -3566,50 +4151,30 @@ FHoudiniMaterialTranslator::UpdateMaterialInstanceParameter(
 				SwitchParameter.bOverride = true;
 
 				MaterialInstance->UpdateStaticPermutation(StaticParameters);
-				bParameterUpdated = true;
-				break;
+				return true;
 			}
-		}
-	}
-	else
-	{
-		// Tuple attributes are for vector parameters
-		FLinearColor NewLinearColor;
-		// if the attribute is stored in an int, we'll have to convert a color to a linear color
-		if (MaterialParameter.AttributeType == EAttribStorageType::INT || MaterialParameter.AttributeType == EAttribStorageType::INT64)
-		{
-			FColor IntColor;
-			IntColor.R = (int8)MaterialParameter.GetIntValue(0);
-			IntColor.G = (int8)MaterialParameter.GetIntValue(1);
-			IntColor.B = (int8)MaterialParameter.GetIntValue(2);
-			if (MaterialParameter.AttributeTupleSize >= 4)
-				IntColor.A = (int8)MaterialParameter.GetIntValue(3);
-			else
-				IntColor.A = 1;
 
-			NewLinearColor = FLinearColor(IntColor);
-		}
-		else
-		{
-			NewLinearColor.R = (float)MaterialParameter.GetDoubleValue(0);
-			NewLinearColor.G = (float)MaterialParameter.GetDoubleValue(1);
-			NewLinearColor.B = (float)MaterialParameter.GetDoubleValue(2);
-			if (MaterialParameter.AttributeTupleSize >= 4)
-				NewLinearColor.A = (float)MaterialParameter.GetDoubleValue(3);
-		}
-
-		// Do not update if unnecessary
-		FLinearColor OldValue;
-		bool FoundOldParam = MaterialInstance->GetVectorParameterValue(CurrentMatParamName, OldValue);
-		if (FoundOldParam && (OldValue == NewLinearColor))
 			return false;
+		}
+		case EHoudiniUnrealMaterialParameterType::Vector:
+		{
+			if (InMaterialParameterValue.DataType != EHoudiniUnrealMaterialParameterDataType::Vector)
+				return false;
+			const FLinearColor NewLinearColor = InMaterialParameterValue.VectorValue;
 
-		MaterialInstance->SetVectorParameterValueEditorOnly(CurrentMatParamName, NewLinearColor);
-		bParameterUpdated = true;
+			// Do not update if unnecessary
+			FLinearColor OldValue;
+			bool FoundOldParam = MaterialInstance->GetVectorParameterValue(InMaterialParameterName, OldValue);
+			if (FoundOldParam && (OldValue == NewLinearColor))
+				return false;
+
+			MaterialInstance->SetVectorParameterValueEditorOnly(InMaterialParameterName, NewLinearColor);
+			return true;
+		}
 	}
 #endif
 
-	return bParameterUpdated;
+	return false;
 }
 
 

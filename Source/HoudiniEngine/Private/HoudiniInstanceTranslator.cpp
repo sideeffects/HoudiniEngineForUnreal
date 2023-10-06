@@ -33,7 +33,9 @@
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniGenericAttribute.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "HoudiniMaterialTranslator.h"
 #include "HoudiniMeshSplitInstancerComponent.h"
+#include "HoudiniOutput.h"
 #include "HoudiniStaticMeshComponent.h"
 #include "HoudiniStaticMesh.h"
 #include "HoudiniFoliageTools.h"
@@ -171,7 +173,7 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 	}
 
 	// See if we have instancer material overrides
-	if (!GetMaterialOverridesFromAttributes(InHGPO.GeoId, InHGPO.PartId, 0, InHGPO.InstancerType, OutInstancedOutputPartData.MaterialAttributes, OutInstancedOutputPartData.MaterialOverrideNeedCreateInstance))
+	if (!GetMaterialOverridesFromAttributes(InHGPO.GeoId, InHGPO.PartId, 0, InHGPO.InstancerType, OutInstancedOutputPartData.MaterialAttributes))
 		OutInstancedOutputPartData.MaterialAttributes.Empty();
 
 	return true;
@@ -3102,10 +3104,9 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 	const int32& InPartId,
 	const int32& InAttributeIndex,
 	const EHoudiniInstancerType InInstancerType,
-	TArray<FString>& OutMaterialAttributes,
-	TArray<bool>& OutMaterialOverrideNeedToCreateInstance)
+	TArray<FHoudiniMaterialInfo>& OutMaterialAttributes)
 {	
-	HAPI_AttributeOwner AttribOwner = InInstancerType == EHoudiniInstancerType::AttributeInstancer ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_PRIM;
+	const HAPI_AttributeOwner AttribOwner = InInstancerType == EHoudiniInstancerType::AttributeInstancer ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_PRIM;
 
 	// Get the part info
 	HAPI_PartInfo PartInfo;
@@ -3150,7 +3151,6 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 
 	TArray<FString> MaterialInstanceAttributes;
 	TArray<FString> MaterialAttributes;
-	TArray<bool> MaterialOverrideNeedToCreateInstance;
 
 	// Get material instances overrides attributes
 	if (GetMaterialOverridesFromAttributes(InGeoNodeId, InPartId, InAttributeIndex, HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE, AllAttribNames, MaterialInstanceAttributes))
@@ -3168,38 +3168,37 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 	if (!bFoundMaterialAttributes)
 	{
 		OutMaterialAttributes.Empty();
-		OutMaterialOverrideNeedToCreateInstance.Empty();
 		return false;
 	}
 
-	// Consolidate the final material (or material instance) selection into MaterialAttributes
-	// Use unreal_material if non-empty. If empty, fallback to unreal_material_instance.
-	// If unreal_material_instance is used in a slot set OutMaterialOverrideNeedToCreateInstance to true for that index
-	// Grow MaterialAttributes if MaterialInstanceAttributes is larger
-	const int32 MaxNumSlots = FMath::Max(MaterialInstanceAttributes.Num(), MaterialAttributes.Num());
-	if (MaterialAttributes.Num() < MaxNumSlots)
-		MaterialAttributes.AddZeroed(MaxNumSlots - MaterialAttributes.Num());
-	// Initially set all slots as not using material instances
-	MaterialOverrideNeedToCreateInstance.SetNumZeroed(MaxNumSlots);
+	// Fetch material instance parameters (detail + AttribOwner) specified via attributes
+	TArray<FHoudiniGenericAttribute> AllMatParams;
+	FHoudiniMaterialTranslator::GetMaterialParameterAttributes(
+		InGeoNodeId, InPartId, AttribOwner, AllMatParams, InAttributeIndex);
 
+	// Consolidate the final material (or material instance) selection into OutMaterialAttributes
+	// Use unreal_material if non-empty. If empty, fallback to unreal_material_instance.
+	const int32 MaxNumSlots = FMath::Max(MaterialInstanceAttributes.Num(), MaterialAttributes.Num());
+	OutMaterialAttributes.Reset(MaxNumSlots);
 	for (int32 MatIdx = 0; MatIdx < MaxNumSlots; ++MatIdx)
 	{
-		// No material instances specified >= this slot, so we can keep what we have in MaterialAttributes after this point
-		if (!MaterialInstanceAttributes.IsValidIndex(MatIdx))
-			break;
-		// We have a non-empty unreal_material at this slot index, so we keep it
-		if (!MaterialAttributes[MatIdx].IsEmpty())
-			continue;
-		// Both unreal_material and unreal_material_instance are empty at this slot, so this slot is empty (default material)
-		if (MaterialInstanceAttributes[MatIdx].IsEmpty())
-			continue;
-		// Use unreal_material_instance at this slot
-		MaterialAttributes[MatIdx] = MaterialInstanceAttributes[MatIdx];
-		MaterialOverrideNeedToCreateInstance[MatIdx] = true;
+		FHoudiniMaterialInfo& MatInfo = OutMaterialAttributes.AddDefaulted_GetRef();
+		MatInfo.MaterialIndex = MatIdx;
+		// unreal_material takes precedence. If it is missing / empty, check unreal_material_instance
+		if (MaterialAttributes.IsValidIndex(MatIdx) && !MaterialAttributes[MatIdx].IsEmpty())
+		{
+			MatInfo.MaterialObjectPath = MaterialAttributes[MatIdx];
+		}
+		else if (MaterialInstanceAttributes.IsValidIndex(MatIdx) && !MaterialInstanceAttributes[MatIdx].IsEmpty())
+		{
+			MatInfo.MaterialObjectPath = MaterialInstanceAttributes[MatIdx];
+			MatInfo.bMakeMaterialInstance = true;
+			// Get any material parameters for the instance, specified via attributes.
+			// We use 0 for the index because we only loaded a specific index's attribute values into AllMatParams for
+			// AttribOwner. So the underlying FHoudiniGenericAttribute only contains one entry per attribute.
+			FHoudiniMaterialTranslator::GetMaterialParameters(MatInfo, AllMatParams, 0);
+		}
 	}
-	
-	OutMaterialAttributes = MoveTemp(MaterialAttributes);
-	OutMaterialOverrideNeedToCreateInstance = MoveTemp(MaterialOverrideNeedToCreateInstance);
 	
 	return true;
 }
@@ -3210,7 +3209,7 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 	const int32& InPartId, 
 	const int32& InAttributeIndex,
 	const FString& InAttributeName,
-	const TArray<FString>& InAllAttribNames,	
+	const TArray<FString>& InAllAttribNames,
 	TArray<FString>& OutMaterialAttributes)
 {
 	HAPI_AttributeInfo MaterialAttributeInfo;
@@ -3282,32 +3281,37 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 
 bool
 FHoudiniInstanceTranslator::GetInstancerMaterials(
-	const TArray<FString>& MaterialAttributes, TArray<UMaterialInterface*>& OutInstancerMaterials)
+	const TArray<FHoudiniMaterialInfo>& MaterialAttributes, TArray<UMaterialInterface*>& OutInstancerMaterials)
 {
 	// Use a map to avoid attempting to load the object for each instance
-	TMap<FString, UMaterialInterface*> MaterialMap;
-
-	bool bHasValidMaterial = false;
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> MaterialMap;
 
 	// Non-instanced materials check material attributes one by one
-	for (auto& CurrentMatString : MaterialAttributes)
+	const int32 NumSlots = MaterialAttributes.Num();
+	OutInstancerMaterials.SetNumZeroed(NumSlots);
+	for (int32 MatIdx = 0; MatIdx < NumSlots; ++MatIdx)
 	{
+		const FHoudiniMaterialInfo& CurrentMatInfo = MaterialAttributes[MatIdx];
+		// Only process cases where we are not making material instances
+		if (CurrentMatInfo.bMakeMaterialInstance)
+			continue;
+
+		const FHoudiniMaterialIdentifier MaterialIdentifier = CurrentMatInfo.MakeIdentifier();
+		
 		UMaterialInterface* CurrentMaterialInterface = nullptr;
-		UMaterialInterface** FoundMaterial = MaterialMap.Find(CurrentMatString);
+		UMaterialInterface** FoundMaterial = MaterialMap.Find(MaterialIdentifier);
 		if (!FoundMaterial)
 		{
 			// See if we can find a material interface that matches the attribute
 			CurrentMaterialInterface = Cast<UMaterialInterface>(
-				StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *CurrentMatString, nullptr, LOAD_NoWarn, nullptr));
+				StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *CurrentMatInfo.MaterialObjectPath, nullptr, LOAD_NoWarn, nullptr));
 
 			// Check validity
 			if (!IsValid(CurrentMaterialInterface))
 				CurrentMaterialInterface = nullptr;
-			else
-				bHasValidMaterial = true;
 
 			// Add what we found to the material map to avoid unnecessary loads
-			MaterialMap.Add(CurrentMatString, CurrentMaterialInterface);
+			MaterialMap.Add(MaterialIdentifier, CurrentMaterialInterface);
 		}
 		else
 		{
@@ -3315,43 +3319,75 @@ FHoudiniInstanceTranslator::GetInstancerMaterials(
 			CurrentMaterialInterface = *FoundMaterial;
 		}
 		
-		OutInstancerMaterials.Add(CurrentMaterialInterface);
+		OutInstancerMaterials[MatIdx] = CurrentMaterialInterface;
 	}
-
-	// IF we couldn't find at least one valid material interface, empty the array
-	if (!bHasValidMaterial)
-		OutInstancerMaterials.Empty();
 
 	return true;
 }
 
 bool 
 FHoudiniInstanceTranslator::GetInstancerMaterialInstances(
-	const TArray<FString>& MaterialAttribute,
+	const TArray<FHoudiniMaterialInfo>& MaterialAttribute,
 	const FHoudiniGeoPartObject& InHGPO,
 	const FHoudiniPackageParams& InPackageParams,
 	TArray<UMaterialInterface*>& OutInstancerMaterials)
 {
-	TArray<UPackage*> MaterialAndTexturePackages;
-				
-	// Purposefully empty material since it is satisfied by the override parameter
-	TMap<FString, UMaterialInterface*> InputAssignmentMaterials;
-	TMap<FString, UMaterialInterface*> OutputAssignmentMaterials;
-
-	// The function in FHoudiniMaterialTranslator should already do the duplicate checks
-	if (FHoudiniMaterialTranslator::SortUniqueFaceMaterialOverridesAndCreateMaterialInstances(MaterialAttribute, InHGPO, InPackageParams,
-		MaterialAndTexturePackages,
-		InputAssignmentMaterials, OutputAssignmentMaterials,
-		false))
+	TMap<FHoudiniMaterialIdentifier, FHoudiniMaterialInfo> MaterialInstanceOverrides;
+	TArray<FHoudiniMaterialIdentifier> MaterialIdentifiers;
+	for (const FHoudiniMaterialInfo& MatInfo : MaterialAttribute)
 	{
-		OutputAssignmentMaterials.GenerateValueArray(OutInstancerMaterials);
-		if (OutInstancerMaterials.Num() > 0)
+		if (!MatInfo.bMakeMaterialInstance)
 		{
-			return true;
+			MaterialIdentifiers.Add(FHoudiniMaterialIdentifier());
+			continue;
+		}
+		const FHoudiniMaterialIdentifier MaterialIdentifier = MatInfo.MakeIdentifier();
+		MaterialIdentifiers.Add(MaterialIdentifier);
+		MaterialInstanceOverrides.Add(MaterialIdentifier, MatInfo);
+	}
+
+	// We have no material instances to create
+	if (MaterialInstanceOverrides.Num() <= 0)
+		return true;
+	
+	TArray<UPackage*> MaterialAndTexturePackages;
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> InputAssignmentMaterials;
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputAssignmentMaterials;
+	static constexpr bool bForceRecookAll = false;
+	bool bSuccess = false;
+	if (FHoudiniMaterialTranslator::CreateMaterialInstances(
+			InHGPO,
+			InPackageParams,
+			MaterialInstanceOverrides,
+			MaterialAndTexturePackages,
+			InputAssignmentMaterials,
+			OutputAssignmentMaterials,
+			bForceRecookAll))
+	{
+		bSuccess = true;
+		// Make sure that the OutInstancerMaterials array is the correct size
+		OutInstancerMaterials.SetNumZeroed(MaterialAttribute.Num());
+		const int32 NumSlots = MaterialIdentifiers.Num();
+		for (int32 SlotIdx = 0; SlotIdx < NumSlots; ++SlotIdx)
+		{
+			const FHoudiniMaterialIdentifier& MaterialIdentifier = MaterialIdentifiers[SlotIdx];
+			// skip the invalid ids (non material instance)
+			if (!MaterialIdentifier.IsValid())
+				continue;
+			UMaterialInterface** Material = OutputAssignmentMaterials.Find(MaterialIdentifier);
+			if (!Material || !IsValid(*Material))
+			{
+				OutInstancerMaterials[SlotIdx] = nullptr;
+				bSuccess = false;
+			}
+			else
+			{
+				OutInstancerMaterials[SlotIdx] = *Material;
+			}
 		}
 	}
-	
-	return false;
+
+	return bSuccess;
 }
 
 bool
@@ -3364,46 +3400,22 @@ FHoudiniInstanceTranslator::GetAllInstancerMaterials(
 	TArray<UMaterialInterface*>& OutInstancerMaterials)
 {
 	// Get all the material attributes for that variation
-	TArray<FString> MaterialAttributes;
-	TArray<bool> MaterialInstanceNeeded;
+	TArray<FHoudiniMaterialInfo> MaterialAttributes;
 	FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
-		InGeoNodeId, InPartId, InOriginalIndex, InHGPO.InstancerType, MaterialAttributes, MaterialInstanceNeeded);
+		InGeoNodeId, InPartId, InOriginalIndex, InHGPO.InstancerType, MaterialAttributes);
 
-	// Extract the Materials instance attributes from the previous array
-	// as we'll need to process them separately
-	TArray<FString> MaterialInstancesAttributes;
-	for (int32 Idx = 0; Idx < MaterialAttributes.Num(); Idx++)
-	{
-		if (MaterialInstanceNeeded[Idx])
-			MaterialInstancesAttributes.Add(MaterialAttributes[Idx]);
-	}
+	// Get the materials (for which we don't create material instances)
+	// OutInstancerMaterials is grown to the same length as MaterialAttributes (# slots). Sets materials in
+	// corresponding slots.
+	OutInstancerMaterials.SetNumZeroed(MaterialAttributes.Num());
+	bool bSuccess = GetInstancerMaterials(MaterialAttributes, OutInstancerMaterials);
 
-	// Get the corresponding materials
-	//TArray<UMaterialInterface*> VariationMaterials;
-	if (!GetInstancerMaterials(MaterialAttributes, OutInstancerMaterials))
-		OutInstancerMaterials.Empty();
+	// Get/create the material instances (if any were specified, see FHoudiniMaterialInfo.bMakeMaterialInstace
+	// OutInstancerMaterials is grown to the same length as MaterialAttributes (# slots). Sets material instances
+	// in corresponding slots.
+	bSuccess &= GetInstancerMaterialInstances(MaterialAttributes, InHGPO, InPackageParams, OutInstancerMaterials);
 
-	if (!MaterialInstancesAttributes.IsEmpty())
-	{
-		// Create Materials instances if needed
-		// We need to process all the material instances attributes together at the same time
-		TArray<UMaterialInterface*> MaterialsInstances;
-		if (GetInstancerMaterialInstances(MaterialInstancesAttributes, InHGPO, InPackageParams, MaterialsInstances))
-		{
-			// Replace the created material instances back to the VariationMaterials arrays
-			int32 MatInstIdx = 0;
-			for (int32 Idx = 0; Idx < OutInstancerMaterials.Num(); Idx++)
-			{
-				if (!MaterialInstanceNeeded[Idx])
-					continue;
-
-				OutInstancerMaterials[Idx] = MaterialsInstances[MatInstIdx];
-				MatInstIdx++;
-			}
-		}
-	}
-
-	return !OutInstancerMaterials.IsEmpty();
+	return bSuccess;
 }
 
 

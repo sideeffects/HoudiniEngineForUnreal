@@ -147,6 +147,49 @@ struct HOUDINIENGINERUNTIME_API FHoudiniClearedEditLayers
 	void Add(FString& EditLayer, FString& TargetLayer);
 };
 
+// A struct to identify a material from a Houdini output
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FHoudiniMaterialIdentifier
+{
+	GENERATED_BODY()
+
+	FHoudiniMaterialIdentifier() : bIsHoudiniMaterial(false), bMakeMaterialInstance(false) {}
+
+	// Constructor for Unreal materials
+	FHoudiniMaterialIdentifier(
+		const FString& InMaterialObjectPath,
+		bool bInMakeMaterialInstance,
+		const FString& InMaterialInstanceParametersSlug);
+
+	// Constructor for Houdini materials or non-instance unreal materials
+	FHoudiniMaterialIdentifier(const FString& InMaterialPath, bool bIsHoudiniMaterial);
+
+	virtual ~FHoudiniMaterialIdentifier() {}
+
+	// Unreal UMaterial object path if bIsHoudiniMaterial is false. Otherwise this is a Houdini material node path. 
+	UPROPERTY()
+	FString MaterialObjectPath;
+
+	// True if this identifies a Houdini material (vs an Unreal material).
+	UPROPERTY()
+	bool bIsHoudiniMaterial;
+
+	// If not a Houdini material, does this identify a material instance of MaterialObjectPath?
+	UPROPERTY()
+	bool bMakeMaterialInstance;
+
+	// A string that encodes the overridden parameter value set of the material instance.
+	UPROPERTY()
+	FString MaterialInstanceParametersSlug;
+
+	bool IsValid() const { return !MaterialObjectPath.IsEmpty(); }
+	
+	uint32 GetTypeHash() const;
+
+	virtual bool operator==(const FHoudiniMaterialIdentifier& InRhs) const;
+};
+
+static uint32 GetTypeHash(const FHoudiniMaterialIdentifier& InIdentifier) { return InIdentifier.GetTypeHash(); }
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniLandscapeTargetLayerOutput : public UObject
@@ -717,10 +760,10 @@ public:
 	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& GetOutputObjects() const { return OutputObjects; };
 
 	// Returns this output's assignement material map
-	TMap<FString, UMaterialInterface*>& GetAssignementMaterials() { return AssignementMaterials; };
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& GetAssignementMaterials() { return AssignmentMaterialsById; };
 	
 	// Returns this output's replacement material map
-	TMap<FString, UMaterialInterface*>& GetReplacementMaterials() { return ReplacementMaterials; };
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& GetReplacementMaterials() { return ReplacementMaterialsById; };
 
 	// Returns the instanced outputs maps
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutput>& GetInstancedOutputs() { return InstancedOutputs; };
@@ -818,6 +861,8 @@ protected:
 
 	virtual void BeginDestroy() override;
 
+	virtual void PostLoad() override;
+
 protected:
 
 	// Indicates the type of output we're dealing with
@@ -838,12 +883,20 @@ protected:
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutput> InstancedOutputs;
 
 	// The material assignments for this output
+	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use AssignmentMaterialsById instead"))
+	TMap<FString, UMaterialInterface*> AssignementMaterials_DEPRECATED;
+
+	// The material assignments for this output
 	UPROPERTY()
-	TMap<FString, UMaterialInterface*> AssignementMaterials;
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AssignmentMaterialsById;
+
+	// The material replacements for this output
+	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use ReplacementMaterialsById instead"))
+	TMap<FString, UMaterialInterface*> ReplacementMaterials_DEPRECATED;
 
 	// The material replacements for this output
 	UPROPERTY()
-	TMap<FString, UMaterialInterface*> ReplacementMaterials;
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> ReplacementMaterialsById;
 
 	// Indicates the number of stale HGPO
 	int32 StaleCount;

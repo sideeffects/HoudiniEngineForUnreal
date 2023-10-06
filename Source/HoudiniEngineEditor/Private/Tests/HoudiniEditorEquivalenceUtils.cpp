@@ -523,13 +523,13 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniOutput* A, const
 		SetTestExpressionError(true);
 		Result &= TestExpressionError(HasEquivalent, Header, "InstancedOutputs");
 	}
-	Result &= TestExpressionError(A->AssignementMaterials.Num() == B->AssignementMaterials.Num(), Header, "AssignementMaterials.Num");
-	for (auto PairA : A->AssignementMaterials)
+	Result &= TestExpressionError(A->AssignmentMaterialsById.Num() == B->AssignmentMaterialsById.Num(), Header, "AssignmentMaterialsById.Num");
+	for (auto PairA : A->AssignmentMaterialsById)
 	{
 		SetTestExpressionError(false);
 
 		bool HasEquivalent = false;
-		for (auto PairB : B->AssignementMaterials)
+		for (auto PairB : B->AssignmentMaterialsById)
 		{
 			if (IsEquivalent(PairA.Value, PairB.Value))
 			{
@@ -538,15 +538,15 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniOutput* A, const
 			}
 		}
 		SetTestExpressionError(true);
-		Result &= TestExpressionError(HasEquivalent, Header, "AssignementMaterials");
+		Result &= TestExpressionError(HasEquivalent, Header, "AssignmentMaterialsById");
 	}
-	Result &= TestExpressionError(A->ReplacementMaterials.Num() == B->ReplacementMaterials.Num(), Header, "ReplacementMaterials.Num");
+	Result &= TestExpressionError(A->ReplacementMaterialsById.Num() == B->ReplacementMaterialsById.Num(), Header, "ReplacementMaterialsById.Num");
 
-	for (auto PairA : A->ReplacementMaterials)
+	for (auto PairA : A->ReplacementMaterialsById)
 	{
 		SetTestExpressionError(false);
 		bool HasEquivalent = false;
-		for (auto PairB : B->ReplacementMaterials)
+		for (auto PairB : B->ReplacementMaterialsById)
 		{
 			if (IsEquivalent(PairA.Value, PairB.Value))
 			{
@@ -555,7 +555,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniOutput* A, const
 			}
 		}
 		SetTestExpressionError(true);
-		Result &= TestExpressionError(HasEquivalent, Header, "ReplacementMaterials");
+		Result &= TestExpressionError(HasEquivalent, Header, "ReplacementMaterialsById");
 	}
 
 
