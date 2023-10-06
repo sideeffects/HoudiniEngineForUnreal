@@ -333,7 +333,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	const bool bIsHACValid = IsValid(HAC);
 	
 	// Keep track of all generated houdini materials to avoid recreating them over and over
-	TMap<FString, UMaterialInterface*> AllOutputMaterials;
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials;
 
 	for (UHoudiniOutput* CurOutput : InOutputs)
 	{

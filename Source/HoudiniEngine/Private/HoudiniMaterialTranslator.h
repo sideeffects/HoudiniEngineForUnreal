@@ -34,6 +34,8 @@
 
 #include <string>
 
+#include "HoudiniMaterialTranslator.generated.h"
+
 class UMaterial;
 class UMaterialInterface;
 class UMaterialExpression;
@@ -45,9 +47,117 @@ class UPackage;
 struct FHoudiniPackageParams;
 struct FCreateTexture2DParameters;
 struct FHoudiniGenericAttribute;
+struct FHoudiniMaterialIdentifier;
 
 // Forward declared enums do not work with 4.24 builds on Linux with the Clang 8.0.1 toolchain: ISO C++ forbids forward references to 'enum' types
 // enum TextureGroup;
+
+// Enum of material parameter type for Houdini material parameter attributes.
+UENUM()
+enum class EHoudiniUnrealMaterialParameterType : uint8
+{
+	Invalid = 0,
+	// The parameter is a standard parameter of the material instance (such as BlendMode, DiffuseBoost etc)
+	StandardParameter,
+	// The following are the types for custom parameters
+	// A scalar material parameter
+	Scalar,
+	// A static switch (bool) parameter
+	StaticSwitch,
+	// A vector parameter (represented with a color)
+	Vector,
+	// A texture parameter (represented with a string)
+	Texture,
+};
+
+// Material parameter data types from Houdini attributes
+UENUM()
+enum class EHoudiniUnrealMaterialParameterDataType : uint8
+{
+	Invalid = 0,
+	// One byte, used for enums and bools
+	Byte,
+	// Floating point value (double is cast down to float)
+	Float,
+	// String
+	String,
+	// Vector represented as a RGB or RGBA linear color
+	Vector
+};
+
+// Struct for storing material parameter type and value information from Houdini attributes after processing via
+// FHoudiniMaterialTranslator::GetAndValidateMaterialInstanceParameterValue()
+USTRUCT()
+struct FHoudiniMaterialParameterValue
+{
+	GENERATED_BODY()
+
+	FHoudiniMaterialParameterValue();
+
+	// The parameter type (standard parameter, scalar, static switch, texture, vector)
+	UPROPERTY()
+	EHoudiniUnrealMaterialParameterType ParamType;
+
+	// The data type (byte, float, string, vector)
+	UPROPERTY()
+	EHoudiniUnrealMaterialParameterDataType DataType; 
+
+	// The value used if DataType is Byte
+	UPROPERTY()
+	uint8 ByteValue;
+
+	// The value used if DataType is Float
+	UPROPERTY()
+	float FloatValue;
+
+	// The value used if DataType is String
+	UPROPERTY()
+	FString StringValue;
+
+	// The value used if DataType is Vector
+	UPROPERTY()
+	FLinearColor VectorValue;
+
+	// Convenience functions for setting values
+	void SetValue(const uint8 InValue);
+	void SetValue(const float InValue);
+	void SetValue(const FString& InValue);
+	void SetValue(const FLinearColor& InValue);
+	// Reset all *Value properties, other than the active DataType, to their default values.
+	void CleanValue();
+};
+
+// Material info collected for each unreal_material / unreal_material_instance attribute value
+USTRUCT()
+struct HOUDINIENGINE_API FHoudiniMaterialInfo
+{
+	GENERATED_BODY()
+
+	// Make a string that represents the map of MaterialInstanceParameters (used for hashing)
+	FString MakeMaterialInstanceParametersSlug() const;
+
+	// Make an identifier that uniquely identifies this material struct: includes the MaterialObjectPath,
+	// bMakeMaterialInstance and the slug returned by MakeMaterialInstanceParametersSlug 
+	FHoudiniMaterialIdentifier MakeIdentifier() const;
+
+	// The object path the UMaterial
+	UPROPERTY()
+	FString MaterialObjectPath;
+
+	// Whether a material instance should be created from MaterialObjectPath 
+	UPROPERTY()
+	bool bMakeMaterialInstance = false;
+
+	// The material slot index
+	UPROPERTY()
+	int32 MaterialIndex = INDEX_NONE;
+
+	// If bMakeMaterialInstance is true (a material instance must be made), then this is the material parameters to apply
+	// to the instance.
+	UPROPERTY()
+	TMap<FName, FHoudiniMaterialParameterValue> MaterialInstanceParameters;
+};
+
 
 struct HOUDINIENGINE_API FHoudiniMaterialTranslator
 {
@@ -59,9 +169,9 @@ public:
 		const FHoudiniPackageParams& InPackageParams,
 		const TArray<int32>& InUniqueMaterialIds,
 		const TArray<HAPI_MaterialInfo>& InUniqueMaterialInfos,
-		const TMap<FString, UMaterialInterface *>& InMaterials,
-		const TMap<FString, UMaterialInterface *>& InAllOutputMaterials,
-		TMap<FString, UMaterialInterface *>& OutMaterials,
+		const TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& InMaterials,
+		const TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& InAllOutputMaterials,
+		TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& OutMaterials,
 		TArray<UPackage*>& OutPackages,
 		const bool& bForceRecookAll,
 		bool bInTreatExistingMaterialsAsUpToDate=false);
@@ -70,26 +180,59 @@ public:
 	static bool CreateMaterialInstances(
 		const FHoudiniGeoPartObject& InHGPO,
 		const FHoudiniPackageParams& InPackageParams,
-		const TMap<FString, int32>& UniqueMaterialInstanceOverrides,
+		const TMap<FHoudiniMaterialIdentifier, FHoudiniMaterialInfo>& UniqueMaterialInstanceOverrides,
 		const TArray<UPackage*>& InPackages,
-		const TMap<FString, UMaterialInterface *>& InMaterials,
-		TMap<FString, UMaterialInterface *>& OutMaterials,
+		const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InMaterials,
+		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& OutMaterials,
 		const bool& bForceRecookAll);
 
+
+	// Helper for getting material parameters from Houdini attributes (detail + InAttributeOwner (prim or point)).
+	static bool GetMaterialParameterAttributes(
+		int32 InGeoId,
+		int32 InPartId,
+		HAPI_AttributeOwner InAttributeOwner,
+		TArray<FHoudiniGenericAttribute>& OutAllMatParams,
+		const int32 InAttributeIndex=-1);
+
+	// Helper for getting material parameters for a material instance from attributes via HAPI
+	static bool GetMaterialParameters(
+		FHoudiniMaterialInfo& MaterialInfo,
+		const TArray<FHoudiniGenericAttribute>& InAllMatParams,
+		int32 InAttributeIndex);
+
+	// Helper for getting material parameters for material instances from attributes via HAPI
+	static bool GetMaterialParameters(
+		TArray<FHoudiniMaterialInfo>& MaterialsByAttributeIndex,
+		int32 InGeoId,
+		int32 InPartId,
+		HAPI_AttributeOwner InAttributeOwner);
 
 	// Helper for CreateMaterialInstances so you don't have to sort unique face materials overrides
 	static bool SortUniqueFaceMaterialOverridesAndCreateMaterialInstances(
-		const TArray<FString>& Materials,
+		const TArray<FHoudiniMaterialInfo>& Materials,
 		const FHoudiniGeoPartObject& InHGPO,
 		const FHoudiniPackageParams& InPackageParams,
 		const TArray<UPackage*>& InPackages,
-		const TMap<FString, UMaterialInterface *>& InMaterials,
-		TMap<FString, UMaterialInterface *>& OutMaterials,
+		const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InMaterials,
+		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& OutMaterials,
 		const bool& bForceRecookAll);
-	
-	//
+
+	// Helper to check if MaterialParameter is supported by instances of MaterialInterface and to resolve the value to
+	// apply from MaterialParameter. This is tightly coupled with UpdateMaterialInstanceParameter(): changes to the one
+	// function likely require changes to the other!
+	static bool GetAndValidateMaterialInstanceParameterValue(
+		const FName& InMaterialParameterName,
+		const FHoudiniGenericAttribute& MaterialParameterAttribute,
+		const int32 InAttributeIndex,
+		UMaterialInterface* MaterialInterface,
+		FHoudiniMaterialParameterValue& OutMaterialParameterValue);
+
+	// Update a material instance parameter. This is tightly coupled with GetAndValidateMaterialInstanceParameterValue():
+	// changes to the one function likely require changes to the other!
 	static bool UpdateMaterialInstanceParameter(
-		FHoudiniGenericAttribute MaterialParameter,
+		const FName& InMaterialParameterName,
+		const FHoudiniMaterialParameterValue& InMaterialParameterValue,
 		UMaterialInstanceConstant* MaterialInstance,
 		const TArray<UPackage*>& InPackages);
 

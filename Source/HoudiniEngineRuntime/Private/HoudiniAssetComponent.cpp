@@ -58,7 +58,12 @@
 #include "UObject/UObjectGlobals.h"
 #include "BodySetupEnums.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+#include "Materials/MaterialInstance.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "GeometryCollection/GeometryCollectionComponent.h"
+#else
+	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
+#endif
 
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Private/GeomFitUtils.h"
@@ -494,10 +499,12 @@ UHoudiniAssetComponent::ConvertLegacyData()
 		// Assignements: Apply to all outputs since they're not tied to an HGPO...
 		for (auto& CurOutput : Outputs)
 		{
-			TMap<FString, UMaterialInterface*>& CurrAssign = CurOutput->GetAssignementMaterials();
+			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& CurrAssign = CurOutput->GetAssignementMaterials();
 			for (auto& LegacyMaterial : LegacyMaterials->Assignments)
 			{
-				CurrAssign.Add(LegacyMaterial.Key, LegacyMaterial.Value);
+				const FHoudiniMaterialIdentifier MaterialIdentifier(
+					LegacyMaterial.Key, false, "");
+				CurrAssign.Add(MaterialIdentifier, LegacyMaterial.Value);
 			}
 		}
 
@@ -518,10 +525,12 @@ UHoudiniAssetComponent::ConvertLegacyData()
 			if (bCreatedNew)
 				continue;
 
-			TMap<FString, UMaterialInterface*>& CurReplacement = NewOutput->GetReplacementMaterials();
+			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& CurReplacement = NewOutput->GetReplacementMaterials();
 			for (auto& CurLegacyReplacement : LegacyReplacement)
 			{
-				CurReplacement.Add(CurLegacyReplacement.Key, CurLegacyReplacement.Value);
+				FHoudiniMaterialIdentifier MaterialIdentifier(
+					CurLegacyReplacement.Key, false, "");
+				CurReplacement.Add(MaterialIdentifier, CurLegacyReplacement.Value);
 			}
 		}
 	}

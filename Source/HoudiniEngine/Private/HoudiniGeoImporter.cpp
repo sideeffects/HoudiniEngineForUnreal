@@ -165,7 +165,7 @@ UHoudiniGeoImporter::CreateStaticMeshes(
 	const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 	const FMeshBuildSettings& InMeshBuildSettings)
 {
-	TMap<FString, UMaterialInterface*> AllOutputMaterials;
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials;
 	for (auto& CurOutput : InOutputs)
 	{
 		if (CurOutput->GetType() != EHoudiniOutputType::Mesh)
@@ -178,8 +178,8 @@ UHoudiniGeoImporter::CreateStaticMeshes(
 
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> NewOutputObjects;
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> OldOutputObjects = CurOutput->GetOutputObjects();
-		TMap<FString, UMaterialInterface*>& AssignementMaterials = CurOutput->GetAssignementMaterials();
-		TMap<FString, UMaterialInterface*>& ReplacementMaterials = CurOutput->GetReplacementMaterials();
+		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& AssignementMaterials = CurOutput->GetAssignementMaterials();
+		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& ReplacementMaterials = CurOutput->GetReplacementMaterials();
 
 		// Iterate on all of the output's HGPO, creating meshes as we go
 		for (const FHoudiniGeoPartObject& CurHGPO : CurOutput->GetHoudiniGeoPartObjects())

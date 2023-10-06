@@ -71,6 +71,7 @@
 //#include "Landscape.h"
 #include "HoudiniEngineOutputStats.h"
 #include "LandscapeProxy.h"
+#include "Materials/MaterialInstance.h"
 #include "ScopedTransaction.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "UnrealEdGlobals.h"
@@ -2609,15 +2610,15 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 		return RetValue;
 
 	// Find the string corresponding to the material that is being replaced	
-	const FString* FoundString = HoudiniOutput->GetReplacementMaterials().FindKey(MaterialInterface);
-	if (!FoundString )
+	const FHoudiniMaterialIdentifier* MaterialIdentifierPtr = HoudiniOutput->GetReplacementMaterials().FindKey(MaterialInterface);
+	if (!MaterialIdentifierPtr )
 	{
 		// This material was not replaced, no need to reset it
 		return RetValue;
 	}
 
 	// This material has been replaced previously.
-	const FString MaterialString = *FoundString;
+	const FHoudiniMaterialIdentifier MaterialIdentifier = *MaterialIdentifierPtr;
 
 	// Record a transaction for undo/redo
 	FScopedTransaction Transaction(
@@ -2626,13 +2627,13 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 
 	// Remove the replacement
 	HoudiniOutput->Modify();
-	HoudiniOutput->GetReplacementMaterials().Remove(MaterialString);
+	HoudiniOutput->GetReplacementMaterials().Remove(MaterialIdentifier);
 
 	bool bViewportNeedsUpdate = true;
 
 	// Try to find the original assignment, if not, we'll use the default material
 	UMaterialInterface * AssignMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-	UMaterialInterface * const * FoundMat = HoudiniOutput->GetAssignementMaterials().Find(MaterialString);
+	UMaterialInterface * const * FoundMat = HoudiniOutput->GetAssignementMaterials().Find(MaterialIdentifier);
 	if (FoundMat && (*FoundMat))
 		AssignMaterial = *FoundMat;
 
@@ -2679,15 +2680,15 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 	UMaterialInterface * MaterialInterfaceReplacement = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
 
 	// Find the string corresponding to the material that is being replaced	
-	const FString* FoundString = InHoudiniOutput->GetReplacementMaterials().FindKey(MaterialInterface);
-	if (!FoundString)
+	const FHoudiniMaterialIdentifier* MaterialIdentifierPtr = InHoudiniOutput->GetReplacementMaterials().FindKey(MaterialInterface);
+	if (!MaterialIdentifierPtr)
 	{
 		// This material was not replaced, no need to reset it
 		return RetValue;
 	}
 
 	// This material has been replaced previously.
-	FString MaterialString = *FoundString;
+	const FHoudiniMaterialIdentifier MaterialIdentifier = *MaterialIdentifierPtr;
 
 	// Record a transaction for undo/redo
 	FScopedTransaction Transaction(
@@ -2696,13 +2697,13 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 
 	// Remove the replacement
 	InHoudiniOutput->Modify();
-	InHoudiniOutput->GetReplacementMaterials().Remove(MaterialString);
+	InHoudiniOutput->GetReplacementMaterials().Remove(MaterialIdentifier);
 
 	bool bViewportNeedsUpdate = true;
 
 	// Try to find the original assignment, if not, we'll use the default material
 	UMaterialInterface * AssignMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-	UMaterialInterface * const * FoundMat = InHoudiniOutput->GetAssignementMaterials().Find(MaterialString);
+	UMaterialInterface * const * FoundMat = InHoudiniOutput->GetAssignementMaterials().Find(MaterialIdentifier);
 	if (FoundMat && (*FoundMat))
 		AssignMaterial = *FoundMat;
 
@@ -2894,22 +2895,22 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 		return;
 
 	// Find the string corresponding to the material that is being replaced
-	FString MaterialString = FString();
-	const FString* FoundString = HoudiniOutput->GetReplacementMaterials().FindKey(OldMaterialInterface);
-	if (FoundString)
+	FHoudiniMaterialIdentifier MaterialIdentifier;
+	const FHoudiniMaterialIdentifier* MaterialIdentifierPtr = HoudiniOutput->GetReplacementMaterials().FindKey(OldMaterialInterface);
+	if (MaterialIdentifierPtr)
 	{
 		// This material has been replaced previously.
-		MaterialString = *FoundString;
+		MaterialIdentifier = *MaterialIdentifierPtr;
 	}
 	else
 	{
 		// We have no previous replacement for this material,
 		// see if we can find it the material assignment list.
-		FoundString = HoudiniOutput->GetAssignementMaterials().FindKey(OldMaterialInterface);
-		if (FoundString)
+		MaterialIdentifierPtr = HoudiniOutput->GetAssignementMaterials().FindKey(OldMaterialInterface);
+		if (MaterialIdentifierPtr)
 		{
 			// This material has been assigned previously.
-			MaterialString = *FoundString;
+			MaterialIdentifier = *MaterialIdentifierPtr;
 		}
 		else
 		{
@@ -2917,17 +2918,21 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 			if (OldMaterialInterface == DefaultMaterial)
 			{
 				// This is replacement for default material.
-				MaterialString = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+				MaterialIdentifier = FHoudiniMaterialIdentifier(HAPI_UNREAL_DEFAULT_MATERIAL_NAME, false, "");
 			}
 			else
 			{
 				// External Material?
-				MaterialString = OldMaterialInterface->GetName();
+				// TODO: can we somehow map the material instance parameters here?
+				if (IsValid(OldMaterialInterface))
+				{
+					MaterialIdentifier = FHoudiniMaterialIdentifier(OldMaterialInterface->GetPathName(), false, "");
+				}
 			}
 		}
 	}
 
-	if (MaterialString.IsEmpty())
+	if (!MaterialIdentifier.IsValid())
 		return;
 
 	// Record a transaction for undo/redo
@@ -2937,7 +2942,7 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 
 	// Add a new material replacement entry.
 	HoudiniOutput->Modify(); 
-	HoudiniOutput->GetReplacementMaterials().Add(MaterialString, MaterialInterface);	
+	HoudiniOutput->GetReplacementMaterials().Add(MaterialIdentifier, MaterialInterface);	
 
 	// Replace material on static mesh.
 	StaticMesh->Modify();
@@ -3003,22 +3008,22 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 		return;
 
 	// Find the string corresponding to the material that is being replaced
-	FString MaterialString = FString();
-	const FString* FoundString = InOutput->GetReplacementMaterials().FindKey(OldMaterialInterface);
-	if (FoundString)
+	FHoudiniMaterialIdentifier MaterialIdentifier;
+	const FHoudiniMaterialIdentifier* MaterialIdentifierPtr = InOutput->GetReplacementMaterials().FindKey(OldMaterialInterface);
+	if (MaterialIdentifierPtr)
 	{
 		// This material has been replaced previously.
-		MaterialString = *FoundString;
+		MaterialIdentifier = *MaterialIdentifierPtr;
 	}
 	else
 	{
 		// We have no previous replacement for this material,
 		// see if we can find it the material assignment list.
-		FoundString = InOutput->GetAssignementMaterials().FindKey(OldMaterialInterface);
-		if (FoundString)
+		MaterialIdentifierPtr = InOutput->GetAssignementMaterials().FindKey(OldMaterialInterface);
+		if (MaterialIdentifierPtr)
 		{
 			// This material has been assigned previously.
-			MaterialString = *FoundString;
+			MaterialIdentifier = *MaterialIdentifierPtr;
 		}
 		else
 		{
@@ -3026,18 +3031,21 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 			if (OldMaterialInterface == DefaultMaterial)
 			{
 				// This is replacement for default material.
-				MaterialString = HAPI_UNREAL_DEFAULT_MATERIAL_NAME;
+				MaterialIdentifier = FHoudiniMaterialIdentifier(HAPI_UNREAL_DEFAULT_MATERIAL_NAME, false, "");
 			}
 			else
 			{
 				// External Material?
 				if (IsValid(OldMaterialInterface))
-					MaterialString = OldMaterialInterface->GetName();
+				{
+					MaterialIdentifier = FHoudiniMaterialIdentifier(
+						OldMaterialInterface->GetPathName(), false, "");
+				}
 			}
 		}
 	}
 
-	if (MaterialString.IsEmpty())
+	if (!MaterialIdentifier.IsValid())
 		return;
 
 	// Record a transaction for undo/redo
@@ -3047,7 +3055,7 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 
 	// Add a new material replacement entry.
 	InOutput->Modify();
-	InOutput->GetReplacementMaterials().Add(MaterialString, MaterialInterface);
+	InOutput->GetReplacementMaterials().Add(MaterialIdentifier, MaterialInterface);
 
 	// Replace material on the landscape
 	InLandscape->Modify();
