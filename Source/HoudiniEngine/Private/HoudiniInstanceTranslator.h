@@ -31,6 +31,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "HoudiniGenericAttribute.h"
+#include "HoudiniMaterialTranslator.h"
 #include "HoudiniInstanceTranslator.generated.h"
 
 class UStaticMesh;
@@ -187,11 +188,7 @@ public:
 	// If multiple slots are defined, we store all the different attributes values in a flat array
 	// Such that the size of MaterialAttributes is NumberOfAttributes * NumberOfMaterialSlots
 	UPROPERTY()
-	TArray<FString> MaterialAttributes;
-
-	// Specifies that the materials in MaterialAttributes are to be created as an instance
-	UPROPERTY()
-	TArray<bool> MaterialOverrideNeedCreateInstance;
+	TArray<FHoudiniMaterialInfo> MaterialAttributes;
 	
 	// Custom float array per original instanced object
 	// Size is NumCustomFloat * NumberOfInstances
@@ -460,15 +457,14 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const int32& InPartId, 
 			const int32& InAttributeIndex,
 			const EHoudiniInstancerType InInstancerType,
-			TArray<FString>& OutMaterialAttributes,
-			TArray<bool>& OutMaterialOverrideNeedToCreateInstance);
+			TArray<FHoudiniMaterialInfo>& OutMaterialAttributes);
 
 		static bool GetInstancerMaterials(
-			const TArray<FString>& MaterialAttribute,
+			const TArray<FHoudiniMaterialInfo>& MaterialAttribute,
 			TArray<UMaterialInterface*>& OutInstancerMaterials);
 
 		static bool GetInstancerMaterialInstances(
-			const TArray<FString>& MaterialAttribute,
+			const TArray<FHoudiniMaterialInfo>& MaterialAttribute,
 			const FHoudiniGeoPartObject& InHGPO, const FHoudiniPackageParams& InPackageParams,
 			TArray<UMaterialInterface*>& OutInstancerMaterials);
 

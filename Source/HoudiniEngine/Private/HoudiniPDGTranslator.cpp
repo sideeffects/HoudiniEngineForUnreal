@@ -306,7 +306,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	const bool bIsHACValid = IsValid(HAC);
 	
 	// Keep track of all generated houdini materials to avoid recreating them over and over
-	TMap<FString, UMaterialInterface*> AllOutputMaterials;
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials;
 	TMap<FString, ALandscape*> CookedLandscapes;
 
 	// Landscape splines track edit layers that were cleared per-landscape
