@@ -4744,10 +4744,20 @@ FHoudiniLandscapeTranslator::GetLandscapeMaterials(
 				TArray<UPackage*> MaterialAndTexturePackages;
 				
 				// Purposefully empty material since it is satisfied by the override parameter
-				TMap<FString, UMaterialInterface*> InputAssignmentMaterials;
-				TMap<FString, UMaterialInterface*> OutputAssignmentMaterials;
+				TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> InputAssignmentMaterials;
+				TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputAssignmentMaterials;
 
-				if (FHoudiniMaterialTranslator::SortUniqueFaceMaterialOverridesAndCreateMaterialInstances(Materials, InHeightHGPO, InPackageParams,
+				// Create material info structs from Materials array
+				TArray<FHoudiniMaterialInfo> MaterialInfos;
+				MaterialInfos.Reserve(Materials.Num());
+				for (const FString& MaterialPath : Materials)
+				{
+					FHoudiniMaterialInfo& MatInfo = MaterialInfos.AddDefaulted_GetRef();
+					MatInfo.MaterialObjectPath = MaterialPath;
+					MatInfo.bMakeMaterialInstance = true;
+				}
+
+				if (FHoudiniMaterialTranslator::SortUniqueFaceMaterialOverridesAndCreateMaterialInstances(MaterialInfos, InHeightHGPO, InPackageParams,
 					MaterialAndTexturePackages,
 					InputAssignmentMaterials, OutputAssignmentMaterials,
 					false))
