@@ -43,9 +43,28 @@ bool HoudiniEditorMeshTest_Single::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorMeshTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Single");
 		const FString HDAAssetPath = FHoudiniEditorMeshTests::TestHDAPath + TEXT("Single");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorMeshTest_Proxy, "Houdini.Editor.Mesh.Proxy", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+
+bool HoudiniEditorMeshTest_Proxy::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::InitializeTests(this, [this]
+		{
+			const FString MapName = FHoudiniEditorMeshTests::EquivalenceTestMapName;
+			const FString ActorName = TEXT("Single_Proxy");
+			const FString HDAAssetPath = FHoudiniEditorMeshTests::TestHDAPath + TEXT("Single");
+			FHoudiniActorTestSettings Settings = {};
+			Settings.bUseProxyMesh = true;
+
+			FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
+		});
 
 	return true;
 }
@@ -59,8 +78,9 @@ bool HoudiniEditorMeshTest_Multiple::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorMeshTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Multiple");
 		const FString HDAAssetPath = FHoudiniEditorMeshTests::TestHDAPath + TEXT("Multiple");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;
@@ -75,8 +95,9 @@ bool HoudiniEditorMeshTest_LODs_Common::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorMeshTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("LODs_Common");
 		const FString HDAAssetPath = FHoudiniEditorMeshTests::TestHDAPath + TEXT("LODs_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;

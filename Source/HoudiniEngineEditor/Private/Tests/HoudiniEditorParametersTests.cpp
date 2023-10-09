@@ -53,8 +53,9 @@ bool HoudiniEditorParametersTest_Float_Single::RunTest(const FString & Parameter
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -86,8 +87,9 @@ bool HoudiniEditorParametersTest_Float_Tuple::RunTest(const FString & Parameters
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -128,8 +130,9 @@ bool HoudiniEditorParametersTest_Float_Vector::RunTest(const FString & Parameter
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -183,8 +186,9 @@ bool HoudiniEditorParametersTest_Float_Tuple_PreInstantiate::RunTest(const FStri
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -225,8 +229,9 @@ bool HoudiniEditorParametersTest_Toggle_Uncheck::RunTest(const FString & Paramet
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -259,8 +264,9 @@ bool HoudiniEditorParametersTest_Toggle_Check::RunTest(const FString & Parameter
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -292,8 +298,9 @@ bool HoudiniEditorParametersTest_Toggle_Check_PreInstantiate::RunTest(const FStr
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -321,8 +328,9 @@ bool HoudiniEditorParametersTest_Button::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -356,8 +364,9 @@ bool HoudiniEditorParametersTest_Color_Single::RunTest(const FString & Parameter
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -391,8 +400,9 @@ bool HoudiniEditorParametersTest_Color::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 			    if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -425,8 +435,9 @@ bool HoudiniEditorParametersTest_Color_PreInstantiate::RunTest(const FString & P
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -455,8 +466,9 @@ bool HoudiniEditorParametersTest_String_Choice_Single::RunTest(const FString & P
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))
@@ -488,8 +500,9 @@ bool HoudiniEditorParametersTest_Menu_Single_Select::RunTest(const FString & Par
 		const FString MapName = FHoudiniEditorParametersTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorParametersTests::TestHDAPath + TEXT("Parameters_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
 				if (!FHoudiniEditorTestUtils::CheckAssetWrapperAndTestObject(this, InAssetWrapper, InTestObject))

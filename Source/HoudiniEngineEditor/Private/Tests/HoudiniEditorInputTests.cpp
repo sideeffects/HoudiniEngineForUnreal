@@ -47,11 +47,12 @@ bool HoudiniEditorInputTest_Mesh_Input::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInputTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Mesh_Input");
 		const FString HDAAssetPath = FHoudiniEditorInputTests::TestHDAPath + TEXT("InputAsOutput");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Suppress temp file warning
 		this->AddSupressedWarning("failed to load '/Game/HoudiniEngine/Temp/plain_cube");
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr, nullptr,
 		[this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			const FString InputHDAPath = FHoudiniEditorInputTests::TestHDAPath + TEXT("Helpers/plain_cube");
@@ -106,11 +107,12 @@ bool HoudiniEditorInputTest_Heightfield_Input::RunTest(const FString & Parameter
 		const FString MapName = FHoudiniEditorInputTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Heightfield_Input");
 		const FString HDAAssetPath = FHoudiniEditorInputTests::TestHDAPath + TEXT("InputAsOutput");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Suppress temp file warning
 		 this->AddSupressedWarning("failed to load '/Game/HoudiniEngine/Temp/plain_cube");
 		
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr, nullptr,
 		[this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			const FString InputHDAPath = FHoudiniEditorInputTests::TestHDAPath + TEXT("Helpers/plain_heightfield");
@@ -178,11 +180,12 @@ bool HoudiniEditorInputTest_Mesh_Geo_Input::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInputTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Mesh_Geo_Input");
 		const FString HDAAssetPath = FHoudiniEditorInputTests::TestHDAPath + TEXT("InputAsOutput");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Suppress temp file warning
  		this->AddSupressedWarning("failed to load '/Game/HoudiniEngine/Temp/plain_cube");
 		
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr, nullptr,
 		[this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 
@@ -221,11 +224,12 @@ bool HoudiniEditorInputTest_Curve_Input::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInputTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Curve_Input");
 		const FString HDAAssetPath = FHoudiniEditorInputTests::TestHDAPath + TEXT("simple_curve_input");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Suppress temp file warning
 		this->AddSupressedWarning("failed to load '/Game/HoudiniEngine/Temp/plain_cube");
 		
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr, nullptr,
 		[this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
 			const FString CurveHDAPath = FHoudiniEditorInputTests::TestHDAPath + TEXT("Helpers/plain_editable_curve");

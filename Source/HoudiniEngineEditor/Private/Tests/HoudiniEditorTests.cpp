@@ -109,8 +109,9 @@ bool HoudiniEditorEvergreenEquivalenceTest::RunTest(const FString & Parameters)
 		const FString MapName = TEXT("RandomTests");
 		const FString ActorName = TEXT("EvergreenEquivalence");
 		const FString HDAAssetPath = TEXT("/Game/TestHDAs/Evergreen");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, [this](bool IsSuccessful)
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, [this](bool IsSuccessful)
 		{
 			
 		});
@@ -123,16 +124,18 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorRandomEquivalenceTest, "Ho
 
 bool HoudiniEditorRandomEquivalenceTest::RunTest(const FString & Parameters)
 {
+
+
 	// Really force editor size
 	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_curve"), TEXT("simple_curve"), [this](bool IsSuccessful)
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_curve"), TEXT("simple_curve"), {}, [this](bool IsSuccessful)
 		{
-			FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_heightfield"), TEXT("simple_heightfield"), [this](bool IsSuccessful)
+			FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_heightfield"), TEXT("simple_heightfield"), {}, [this](bool IsSuccessful)
 			{
-				FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/Instancing_ThreeWays"), TEXT("Instancing_ThreeWays"), [this](bool IsSuccessful)
+				FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/Instancing_ThreeWays"), TEXT("Instancing_ThreeWays"), {}, [this](bool IsSuccessful)
 				{
-					FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/SideFX__scott_spookytable"), TEXT("SideFX__scott_spookytable"), [this](bool IsSuccessful)
+					FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/SideFX__scott_spookytable"), TEXT("SideFX__scott_spookytable"), {}, [this](bool IsSuccessful)
 					{
 		
 					});

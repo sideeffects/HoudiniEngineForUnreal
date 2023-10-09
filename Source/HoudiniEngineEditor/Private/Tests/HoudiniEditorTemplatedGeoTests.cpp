@@ -52,8 +52,9 @@ bool HoudiniEditorTemplatedGeoTest_HACDisabled::RunTest(const FString& InParamet
 		const FString MapName = FHoudiniEditorTemplatedGeoTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorTemplatedGeoTests::TestHDAPath + TEXT("TemplatedGeo_Enabled_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			// OnPreInstantiate -- set parameters or HAC properties etc
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
@@ -90,8 +91,9 @@ bool HoudiniEditorTemplatedGeoTest_HACEnabled::RunTest(const FString& InParamete
 		const FString MapName = FHoudiniEditorTemplatedGeoTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorTemplatedGeoTests::TestHDAPath + TEXT("TemplatedGeo_Enabled_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			// OnPreInstantiate -- set parameters or HAC properties etc
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{
@@ -119,8 +121,9 @@ bool HoudiniEditorTemplatedGeoTest_HACEnabled_NoTemplateInOutput::RunTest(const 
 		const FString MapName = FHoudiniEditorTemplatedGeoTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorTemplatedGeoTests::TestHDAPath + TEXT("TemplatedGeo_Disabled_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr,
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr,
 			// OnPreInstantiate -- set parameters or HAC properties etc
 			[this](UHoudiniPublicAPIAssetWrapper* const InAssetWrapper, UHoudiniEditorTestObject* const InTestObject)
 			{

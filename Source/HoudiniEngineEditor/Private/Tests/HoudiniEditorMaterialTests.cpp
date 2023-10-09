@@ -43,8 +43,8 @@ bool HoudiniEditorMaterialTest_Material_Simple::RunTest(const FString & Paramete
 		const FString MapName = FHoudiniEditorMaterialTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Material_Simple");
 		const FString HDAAssetPath = FHoudiniEditorMaterialTests::TestHDAPath + TEXT("Material_Simple");
-
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		const FHoudiniActorTestSettings Settings = {};
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;
@@ -59,8 +59,8 @@ bool HoudiniEditorMaterialTest_Material_Maps::RunTest(const FString & Parameters
 		const FString MapName = FHoudiniEditorMaterialTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Material_Maps");
 		const FString HDAAssetPath = FHoudiniEditorMaterialTests::TestHDAPath + TEXT("Material_Maps");
-
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		const FHoudiniActorTestSettings Settings = {};
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;
@@ -75,8 +75,9 @@ bool HoudiniEditorMaterialTest_MaterialAttributes_Common::RunTest(const FString 
 		const FString MapName = FHoudiniEditorMaterialTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("MaterialAttributes_Common");
 		const FString HDAAssetPath = FHoudiniEditorMaterialTests::TestHDAPath + TEXT("MaterialAttributes_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;

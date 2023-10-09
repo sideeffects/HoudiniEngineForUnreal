@@ -151,6 +151,7 @@ void FHoudiniEditorTestUtils::InstantiateAsset(
 	const FName AssetUObjectPath, 
 	const FPostTestHDAInstantiationCallback & OnFinishInstantiate,
 	const bool ErrorOnFail, 
+	const FHoudiniActorTestSettings& Settings,
 	const FString DefaultCookFolder,
 	const FPreInstantiationCallback& OnPreInstantiation)
 {
@@ -184,8 +185,10 @@ void FHoudiniEditorTestUtils::InstantiateAsset(
 	UHoudiniPublicAPIAssetWrapper* Wrapper = HoudiniAPI->InstantiateAsset(HoudiniAsset, Location);
 	TestObject->InAssetWrappers.Add(Wrapper); // Need to assign it to TestObject otherwise it will be garbage collected!!!
 
-	Wrapper->GetHoudiniAssetComponent()->bEnableProxyStaticMeshOverride = false;
+	// Set properties based off test settings.
 	Wrapper->GetHoudiniAssetComponent()->bOverrideGlobalProxyStaticMeshSettings = true;
+	Wrapper->GetHoudiniAssetComponent()->bEnableProxyStaticMeshOverride = Settings.bUseProxyMesh;
+	Wrapper->GetHoudiniAssetComponent()->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = !Settings.bUseProxyMesh;
 
 	// Bind delegates from the asset wrapper to UHoudiniEditorTestObject which we use to proxy to non-dynamic delegates
 	// like OnPreInstantiation.
@@ -578,7 +581,8 @@ void FHoudiniEditorTestUtils::SetupDifferentialTest(
 	FHoudiniAutomationTest* Test, 
 	const FString MapName,
 	const FString HDAAssetPath, 
-	const FString ActorName, 
+	const FString ActorName,
+	const FHoudiniActorTestSettings& Settings,
 	const TFunction<void(bool)>& OnFinishedCallback,
 	const FPreInstantiationCallback& OnPreInstantiation,
 	const FPostDiffTestHDAInstantiationCallback& OnInstantiationFinishedCallback)
@@ -601,6 +605,7 @@ void FHoudiniEditorTestUtils::SetupDifferentialTest(
 			SavedLevelPath,
 			HDAAssetPath,
 			ActorName,
+			Settings,
 			[=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, const bool IsSuccessful)
 			{
 				Test->AddWarning("Created a new scene because it didn't exist! Please commit to dev_reg: " + SavedLevelPath + " and " + SavedAssetsPath);
@@ -671,6 +676,7 @@ void FHoudiniEditorTestUtils::SetupDifferentialTest(
 					}
 				},
 				true,
+					Settings,
 				SavedAssetsPath,
 				OnPreInstantiation
 			);
@@ -679,7 +685,7 @@ void FHoudiniEditorTestUtils::SetupDifferentialTest(
 		}
 
 		// Now actually run the differential test
-		RunDifferentialTest(Test, MapName, HDAAssetPath, ActorName, OnFinishedCallback, OnPreInstantiation, OnInstantiationFinishedCallback);		
+		RunDifferentialTest(Test, MapName, HDAAssetPath, ActorName, Settings, OnFinishedCallback, OnPreInstantiation, OnInstantiationFinishedCallback);		
 	});
 }
 
@@ -689,6 +695,7 @@ void FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
 	const FString MapName,
 	const FString HDAAssetPath,
 	const FString ActorName,
+	const FHoudiniActorTestSettings& Settings,
 	const TFunction<void(bool)>& OnFinishedCallback,
 	const FPreInstantiationCallback& OnPreInstantiationCallback,
 	const FPostDiffTestHDAInstantiationCallback& OnPostInstantiationCallback)
@@ -698,13 +705,13 @@ void FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
 	if (bSetupTest)
 	{
 		SetupDifferentialTest(
-			Test, MapName, HDAAssetPath, ActorName,
+			Test, MapName, HDAAssetPath, ActorName, Settings,
 			OnFinishedCallback, OnPreInstantiationCallback, OnPostInstantiationCallback);
 	}
 	else
 	{
 		RunDifferentialTest(
-			Test, MapName, HDAAssetPath, ActorName,
+			Test, MapName, HDAAssetPath, ActorName, Settings,
 			OnFinishedCallback, OnPreInstantiationCallback, OnPostInstantiationCallback);
 	}
 }
@@ -714,6 +721,7 @@ void FHoudiniEditorTestUtils::RunDifferentialTest(
 	const FString MapName,
 	const FString HDAAssetPath,
 	const FString ActorName,
+	const FHoudiniActorTestSettings& Settings,
 	const TFunction<void(bool)>& OnFinishedCallback,
 	const FPreInstantiationCallback& OnPreInstantiationCallback,
 	const FPostDiffTestHDAInstantiationCallback& OnPostInstantiationCallback)
@@ -805,7 +813,7 @@ void FHoudiniEditorTestUtils::RunDifferentialTest(
 				ContinueTests(true);
 			}
 
-		}, bErrorOnFail, DefaultCookFolder, OnPreInstantiationCallback
+		}, bErrorOnFail, Settings, DefaultCookFolder, OnPreInstantiationCallback
 		);
 	});
 }
@@ -816,6 +824,7 @@ void FHoudiniEditorTestUtils::CreateTestTempLevel(
 	const FString MapName,
 	const FString HDAAssetPath,
 	const FString ActorName,
+	const FHoudiniActorTestSettings& Settings,
 	const TFunction<void(bool)>& OnFinishedCallback,
 	const FPreInstantiationCallback& OnPreInstantiationCallback,
 	const FPostDiffTestHDAInstantiationCallback& OnPostInstantiationCallback)
@@ -843,6 +852,7 @@ void FHoudiniEditorTestUtils::CreateTestTempLevel(
 				TempLevelPath,
 				HDAAssetPath,
 				ActorName,
+				Settings,
 				/*[=](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, const bool IsSuccessful)
 				{
 					RunDifferentialTest(Test, MapName, HDAAssetPath, ActorName, OnFinishedCallback, OnPreInstantiation, OnInstantiationFinishedCallback);
@@ -907,8 +917,9 @@ void FHoudiniEditorTestUtils::CreateTestTempLevel(
 
 					},
 					true,
+					Settings,
 					TempAssetsPath,
-						OnPreInstantiationCallback
+					OnPreInstantiationCallback
 				);
 			});
 		}
@@ -920,7 +931,8 @@ bool FHoudiniEditorTestUtils::CreateAndLoadNewLevelWithAsset(
     FHoudiniAutomationTest* Test, 
     const FString MapAssetPath,
 	const FString HDAAssetPath, 
-	const FString ActorName, 
+	const FString ActorName,
+	const FHoudiniActorTestSettings& Settings,
 	const FPostTestHDAInstantiationCallback & OnFinishInstantiate, 
 	FString DefaultCookFolder,
 	const FPreInstantiationCallback& OnPreInstantiationCallback,
@@ -979,7 +991,7 @@ bool FHoudiniEditorTestUtils::CreateAndLoadNewLevelWithAsset(
 				ContinueTests(true);
 			}
 
-		}, true, DefaultCookFolder, OnPreInstantiationCallback);
+		}, true, Settings, DefaultCookFolder, OnPreInstantiationCallback);
 	});
 
 	return true;
