@@ -54,6 +54,11 @@ class SWindow;
 */
 
 
+struct FHoudiniActorTestSettings
+{
+	bool bUseProxyMesh = false;
+};
+
 // Struct to override FAutomationTestBase behaviour as we see fit
 struct FHoudiniAutomationTest : FAutomationTestBase
 {
@@ -134,7 +139,9 @@ public:
 		FHoudiniAutomationTest* Test,
 		const FName AssetUObjectPath,
 		const FPostTestHDAInstantiationCallback & OnFinishInstantiate,
-		const bool ErrorOnFail = true, const FString DefaultCookFolder = "",
+		const bool ErrorOnFail = true, 
+		const FHoudiniActorTestSettings& Settings = {},
+		const FString DefaultCookFolder = "",
 		const FPreInstantiationCallback& OnPreInstantiation=nullptr);
 
 	static void TakeScreenshotEditor(FHoudiniAutomationTest* Test, const FString ScreenshotName, const EEditorScreenshotType EditorScreenshotType, const FVector2D Size);
@@ -210,6 +217,7 @@ public:
 		const FString MapName,
 		const FString HDAAssetPath,
 		const FString ActorName,
+		const FHoudiniActorTestSettings& Settings,
 		const TFunction<void(bool)>& OnFinishedCallback,
 		const FPreInstantiationCallback& OnPreInstantiation = nullptr,
 		const FPostDiffTestHDAInstantiationCallback & OnPostInstantiation = nullptr);
@@ -239,6 +247,7 @@ public:
 		const FString MapName,
 		const FString HDAAssetPath,
 		const FString ActorName,
+		const FHoudiniActorTestSettings& Settings,
 		const TFunction<void(bool)>& OnFinishedCallback,
 		const FPreInstantiationCallback& OnPreInstantiation=nullptr,
 		const FPostDiffTestHDAInstantiationCallback & OnPostInstantiation = nullptr);
@@ -267,6 +276,7 @@ public:
 		const FString MapName,
 		const FString HDAAssetPath,
 		const FString ActorName,
+		const FHoudiniActorTestSettings& Settings,
 		const TFunction<void(bool)>& OnFinishedCallback,
 		const FPreInstantiationCallback& OnPreInstantiationCallback = nullptr,
 		const FPostDiffTestHDAInstantiationCallback& OnPostInstantiationCallback = nullptr);
@@ -284,6 +294,7 @@ public:
 		const FString MapName,
 		const FString HDAAssetPath,
 		const FString ActorName,
+		const FHoudiniActorTestSettings& Settings,
 		const TFunction<void(bool)>& OnFinishedCallback,
 		const FPreInstantiationCallback& OnPreInstantiationCallback = nullptr,
 		const FPostDiffTestHDAInstantiationCallback& OnPostInstantiationCallback = nullptr);
@@ -293,6 +304,7 @@ public:
 		const FString MapAssetPath,
 		const FString HDAAssetPath, 
 		const FString ActorName,
+		const FHoudiniActorTestSettings& Settings,
 		const FPostTestHDAInstantiationCallback & OnFinishInstantiate,
 		FString DefaultCookFolder = TEXT(""),
 		const FPreInstantiationCallback& OnPreInstantiation=nullptr,

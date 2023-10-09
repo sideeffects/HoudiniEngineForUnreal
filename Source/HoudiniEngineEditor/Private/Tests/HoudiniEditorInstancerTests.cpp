@@ -59,8 +59,8 @@ bool HoudiniEditorInstancerPackedPrimsOBJ::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("packedpriminstancers_obj");
-
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		const FHoudiniActorTestSettings Settings = {};
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;
@@ -78,8 +78,8 @@ bool HoudiniEditorInstancerAttributeInstancerOBJ::RunTest(const FString & Parame
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("attributeinstancers_obj");
-
- 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		const FHoudiniActorTestSettings Settings = {};
+ 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;
@@ -97,8 +97,8 @@ bool HoudiniEditorInstancerSplittingOBJ::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_obj");
-
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		const FHoudiniActorTestSettings Settings = {};
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;
@@ -116,8 +116,8 @@ bool HoudiniEditorInstancerTypesOBJ::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_obj");
-
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		const FHoudiniActorTestSettings Settings = {};
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;
@@ -135,8 +135,8 @@ bool HoudiniEditorInstancerCustomDataOBJ::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_customdata_obj");
-
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		const FHoudiniActorTestSettings Settings = {};
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;
@@ -154,7 +154,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPOneInstancer::RunTest(const FString & P
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("packedprimitives_sop");
-
+		const FHoudiniActorTestSettings Settings = {};
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
@@ -175,7 +175,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPOneInstancer::RunTest(const FString & P
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -192,6 +192,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPMultipleInstancer::RunTest(const FStrin
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("packedprimitives_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -213,7 +214,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPMultipleInstancer::RunTest(const FStrin
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -230,6 +231,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPSingleInstance::RunTest(const FString &
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("packedprimitives_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -251,7 +253,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPSingleInstance::RunTest(const FString &
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -268,6 +270,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPMultipleSingleInstance::RunTest(const F
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("packedprimitives_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -289,7 +292,7 @@ bool HoudiniEditorInstancerPackedPrimsSOPMultipleSingleInstance::RunTest(const F
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -308,6 +311,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPOneInstancer::RunTest(const FStr
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("attribinstancer_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -329,7 +333,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPOneInstancer::RunTest(const FStr
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -346,6 +350,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPMultipleInstancer::RunTest(const
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("attribinstancer_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -367,7 +372,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPMultipleInstancer::RunTest(const
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -384,6 +389,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPSingleInstance::RunTest(const FS
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("attribinstancer_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -405,7 +411,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPSingleInstance::RunTest(const FS
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -422,6 +428,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPMultipleSingleInstance::RunTest(
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("attribinstancer_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -443,7 +450,7 @@ bool HoudiniEditorInstancerAttributeInstancerSOPMultipleSingleInstance::RunTest(
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -462,6 +469,7 @@ bool HoudiniEditorInstancerSplittingSOPByColorPacked::RunTest(const FString & Pa
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -483,7 +491,7 @@ bool HoudiniEditorInstancerSplittingSOPByColorPacked::RunTest(const FString & Pa
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -500,6 +508,7 @@ bool HoudiniEditorInstancerSplittingSOPByColorAttrInstancer::RunTest(const FStri
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -521,7 +530,7 @@ bool HoudiniEditorInstancerSplittingSOPByColorAttrInstancer::RunTest(const FStri
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -538,6 +547,7 @@ bool HoudiniEditorInstancerSplittingSOPByStringPacked::RunTest(const FString & P
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -559,7 +569,7 @@ bool HoudiniEditorInstancerSplittingSOPByStringPacked::RunTest(const FString & P
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -576,6 +586,7 @@ bool HoudiniEditorInstancerSplittingSOPByStringAttrInstancer::RunTest(const FStr
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -597,7 +608,7 @@ bool HoudiniEditorInstancerSplittingSOPByStringAttrInstancer::RunTest(const FStr
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -614,6 +625,7 @@ bool HoudiniEditorInstancerSplittingSOPByMatPacked::RunTest(const FString & Para
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -635,7 +647,7 @@ bool HoudiniEditorInstancerSplittingSOPByMatPacked::RunTest(const FString & Para
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -652,6 +664,7 @@ bool HoudiniEditorInstancerSplittingSOPByMatAttrInstancer::RunTest(const FString
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_splitting_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -673,7 +686,7 @@ bool HoudiniEditorInstancerSplittingSOPByMatAttrInstancer::RunTest(const FString
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -692,6 +705,8 @@ bool HoudiniEditorInstancerTypesSOPISMC::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
+		const FHoudiniActorTestSettings Settings = {};
+
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
@@ -712,7 +727,7 @@ bool HoudiniEditorInstancerTypesSOPISMC::RunTest(const FString & Parameters)
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -729,6 +744,8 @@ bool HoudiniEditorInstancerTypesSOPHISMC::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
+		const FHoudiniActorTestSettings Settings = {};
+
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
@@ -749,7 +766,7 @@ bool HoudiniEditorInstancerTypesSOPHISMC::RunTest(const FString & Parameters)
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -766,6 +783,8 @@ bool HoudiniEditorInstancerTypesSOPHISMCForced::RunTest(const FString & Paramete
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
+		const FHoudiniActorTestSettings Settings = {};
+
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
@@ -786,7 +805,7 @@ bool HoudiniEditorInstancerTypesSOPHISMCForced::RunTest(const FString & Paramete
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -803,6 +822,8 @@ bool HoudiniEditorInstancerTypesSOPHISMCForcedOff::RunTest(const FString & Param
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
+		const FHoudiniActorTestSettings Settings = {};
+
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
@@ -823,7 +844,7 @@ bool HoudiniEditorInstancerTypesSOPHISMCForcedOff::RunTest(const FString & Param
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -840,6 +861,8 @@ bool HoudiniEditorInstancerTypesSOPMSIC::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
+		const FHoudiniActorTestSettings Settings = {};
+
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
@@ -860,7 +883,7 @@ bool HoudiniEditorInstancerTypesSOPMSIC::RunTest(const FString & Parameters)
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -877,6 +900,8 @@ bool HoudiniEditorInstancerTypesSOPIAC::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
+		const FHoudiniActorTestSettings Settings = {};
+
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
@@ -897,7 +922,7 @@ bool HoudiniEditorInstancerTypesSOPIAC::RunTest(const FString & Parameters)
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -914,6 +939,8 @@ bool HoudiniEditorInstancerTypesSOPAttribClass::RunTest(const FString & Paramete
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
+		const FHoudiniActorTestSettings Settings = {};
+
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
@@ -934,7 +961,7 @@ bool HoudiniEditorInstancerTypesSOPAttribClass::RunTest(const FString & Paramete
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -951,6 +978,7 @@ bool HoudiniEditorInstancerTypesSOPFoliage::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
+		const FHoudiniActorTestSettings Settings = {};
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
@@ -971,7 +999,7 @@ bool HoudiniEditorInstancerTypesSOPFoliage::RunTest(const FString & Parameters)
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -988,6 +1016,7 @@ bool HoudiniEditorInstancerTypesSOPDecals::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
+		const FHoudiniActorTestSettings Settings = {};
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
 		{
@@ -1008,7 +1037,7 @@ bool HoudiniEditorInstancerTypesSOPDecals::RunTest(const FString & Parameters)
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -1025,6 +1054,7 @@ bool HoudiniEditorInstancerTypesSOPInvalid::RunTest(const FString & Parameters)
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_types_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -1046,7 +1076,7 @@ bool HoudiniEditorInstancerTypesSOPInvalid::RunTest(const FString & Parameters)
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -1065,6 +1095,7 @@ bool HoudiniEditorInstancerCustomDataSOPNumberSuite::RunTest(const FString & Par
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_customdata_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -1086,7 +1117,7 @@ bool HoudiniEditorInstancerCustomDataSOPNumberSuite::RunTest(const FString & Par
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 
@@ -1103,6 +1134,7 @@ bool HoudiniEditorInstancerCustomDataSOPColors::RunTest(const FString & Paramete
 		const FString MapName = FHoudiniEditorInstancerTests::EquivalenceTestMapName + TEXT("/") + TestName;
 		const FString ActorName = TestName;
 		const FString HDAAssetPath = FHoudiniEditorInstancerTests::TestHDAPath + TEXT("instancer_customdata_sop");
+		const FHoudiniActorTestSettings Settings = {};
 
 		// Lambda that sets the "input" parameter after instantiation, then recooks before proceeding with the test.
 		auto SetParamsOnPostInstantiate = [this](UHoudiniPublicAPIAssetWrapper* InAssetWrapper, TFunction<void(bool)> ContinueCallback, const bool bSaveAssets, const FString DefaultCookFolder)
@@ -1124,7 +1156,7 @@ bool HoudiniEditorInstancerCustomDataSOPColors::RunTest(const FString & Paramete
 		};
 
 		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(
-			this, MapName, HDAAssetPath, ActorName,
+			this, MapName, HDAAssetPath, ActorName, Settings,
 			nullptr, nullptr, SetParamsOnPostInstantiate);
 	});
 

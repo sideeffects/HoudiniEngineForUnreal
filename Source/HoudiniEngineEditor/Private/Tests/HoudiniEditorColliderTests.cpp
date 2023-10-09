@@ -43,8 +43,9 @@ bool HoudiniEditorColliderTest_Colliders_Common::RunTest(const FString & Paramet
 		const FString MapName = FHoudiniEditorColliderTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Colliders_Common");
 		const FString HDAAssetPath = FHoudiniEditorColliderTests::TestHDAPath + TEXT("Colliders_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;

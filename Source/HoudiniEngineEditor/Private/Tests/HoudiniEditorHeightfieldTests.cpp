@@ -43,8 +43,9 @@ bool HoudiniEditorHeightfieldTest_Heightfields_Common::RunTest(const FString & P
 		const FString MapName = FHoudiniEditorHeightfieldTests::EquivalenceTestMapName;
 		const FString ActorName = TEXT("Heightfield_Common");
 		const FString HDAAssetPath = FHoudiniEditorHeightfieldTests::TestHDAPath + TEXT("Heightfield_Common");
+		const FHoudiniActorTestSettings Settings = {};
 
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
 	});
 
 	return true;
@@ -59,8 +60,9 @@ bool HoudiniEditorHeightfieldTest_hf_tile_scatter_instance::RunTest(const FStrin
                 const FString MapName = FHoudiniEditorHeightfieldTests::EquivalenceTestMapName;
                 const FString ActorName = TEXT("hf_tile_scatter_instance");
                 const FString HDAAssetPath = FHoudiniEditorHeightfieldTests::TestHDAPath + TEXT("hf_tile_scatter_instance");
+				const FHoudiniActorTestSettings Settings = {};
 
-                FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, nullptr);
+                FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, MapName, HDAAssetPath, ActorName, Settings, nullptr);
         });
 
 	return true;
