@@ -1438,7 +1438,7 @@ void SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Asset)
 		}
 		else
 		{
-			if (KeepInputs.Contains(InputIndex))
+			if (KeepInputs.Contains(Entry.InputIndex))
 			{
 				Asset->InputParameters.Add(Entry);
 			}

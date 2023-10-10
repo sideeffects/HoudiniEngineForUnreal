@@ -105,10 +105,8 @@ UHoudiniToolsPackageAsset::PostSaveRoot(FObjectPostSaveRootContext ObjectSaveCon
 	{
 		// Export JSON description for this package.
 		const FString JSONPath = FHoudiniToolsRuntimeUtils::GetHoudiniToolsPackageJSONPath(this);
-		HOUDINI_LOG_DISPLAY(TEXT("[UHoudiniToolsPackageAsset::PostSaveRoot] Export JSON Path: %s"), *JSONPath);
 		if (JSONPath.Len())
 		{
-			HOUDINI_LOG_DISPLAY(TEXT("[UHoudiniToolsPackageAsset::PostSaveRoot] Writing package to JSON.."));
 			FHoudiniToolsRuntimeUtils::WriteJSONFromToolPackageAsset(this, JSONPath);
 		}
 	}

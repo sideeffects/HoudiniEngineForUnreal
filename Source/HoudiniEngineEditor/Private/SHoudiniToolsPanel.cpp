@@ -2573,9 +2573,23 @@ SHoudiniToolsPanel::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 	TSharedPtr< SImage > DefaultToolImage;
 
 	// Building the tool's tooltip
-	FString HoudiniToolTip = HoudiniTool->Name.ToString() + TEXT( "\n" );
-	if ( HoudiniTool->HoudiniAsset.IsValid() )
-		HoudiniToolTip += HoudiniTool->HoudiniAsset.ToSoftObjectPath().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
+	FString HoudiniToolTip;
+	if (HoudiniTool->PackageToolType == EHoudiniPackageToolType::Preset)
+	{
+		// HoudiniToolTip += HoudiniTool->Name.ToString() + TEXT(" (Preset) ") + TEXT( "\n\n" );
+		HoudiniToolTip += HoudiniTool->Name.ToString() + TEXT(" - Preset") + TEXT( "\n\n" );
+		if ( HoudiniTool->HoudiniPreset.IsValid() )
+			HoudiniToolTip += HoudiniTool->HoudiniPreset.ToSoftObjectPath().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
+	}
+	else
+	{
+		HoudiniToolTip += HoudiniTool->Name.ToString() + TEXT(" - Houdini Asset") + TEXT( "\n\n" );
+		if ( HoudiniTool->HoudiniAsset.IsValid() )
+			HoudiniToolTip += HoudiniTool->HoudiniAsset.ToSoftObjectPath().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
+	}
+		
+	// if ( HoudiniTool->HoudiniAsset.IsValid() )
+	// 	HoudiniToolTip += HoudiniTool->HoudiniAsset.ToSoftObjectPath().ToString() /*->AssetFileName */+ TEXT( "\n\n" );
 	if ( !HoudiniTool->ToolTipText.IsEmpty() )
 		HoudiniToolTip += HoudiniTool->ToolTipText.ToString() + TEXT("\n\n");
 
@@ -2643,6 +2657,13 @@ SHoudiniToolsPanel::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 		.Style( FHoudiniEngineStyle::Get(), "HoudiniEngine.TableRow" )
 		.OnDragDetected( this, &SHoudiniToolsPanel::OnDraggingListViewWidget );
 
+	float IconOpacity = 1.f;
+
+	if (HoudiniTool->IsHiddenInCategory(CategoryName))
+	{
+		IconOpacity = 0.5f;
+	}
+	
 	TSharedPtr< SHorizontalBox > ContentBox;
 	TSharedRef<SWidget> Content =
 		SNew( SBorder )
@@ -2650,19 +2671,63 @@ SHoudiniToolsPanel::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 		.Padding( 0 )
 		.ToolTip( SNew( SToolTip ).Text( ToolTipText ) )
 		.Cursor( EMouseCursor::GrabHand )
+		.ColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, IconOpacity))
 		[ SAssignNew( ContentBox, SHorizontalBox ) ];
 
+	constexpr float IconWidth = 36.f;
+
 	// Tool Icon
-	// const FSlateBrush* ToolIcon = nullptr;
-	TSharedPtr<FSlateBrush> ToolIcon = nullptr;
-	if (HoudiniTool->Icon.IsValid())
+	const FSlateBrush* ToolIcon = nullptr;
+	if (HoudiniTool->Icon)
 	{
-		ToolIcon = HoudiniTool->Icon;
+		ToolIcon = HoudiniTool->Icon.Get();
 	}
-	// else
-	// {
-	// 	ToolIcon = FHoudiniEngineStyle::Get()->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
-	// }
+	else
+	{
+		ToolIcon = FHoudiniEngineStyle::Get()->GetBrush( FName(FHoudiniToolsEditor::GetDefaultHoudiniToolIconBrushName()) );
+	}
+
+	TSharedPtr<SOverlay> IconOverlay = SNew(SOverlay);
+
+	IconOverlay->AddSlot().AttachWidget(
+		SNew( SBorder )
+			.BorderImage( FHoudiniEngineStyle::Get()->GetBrush( "HoudiniEngine.ThumbnailBackground" ) )
+			.HAlign( HAlign_Center )
+			.VAlign( VAlign_Center )
+			[
+				SNew( SImage )
+				.Image( ToolIcon )
+				.ToolTip( SNew( SToolTip ).Text( ToolTipText ) )
+			]
+		);
+
+	UnderlineBrush.DrawAs = ESlateBrushDrawType::Box;
+	UnderlineBrush.ImageSize = FVector2D(2.f, 2.f);
+
+	FSlateColor UnderlineColor;
+
+	if (HoudiniTool->PackageToolType == EHoudiniPackageToolType::Preset)
+	{
+		UnderlineColor = FSlateColor(FLinearColor(0.0f, 0.3f, 1.0f, 1.f));
+	}
+	else
+	{
+		// Default (HoudiniAsset) color
+		UnderlineColor = FSlateColor(FLinearColor(1.0f, 0.25f, 0.0f, 1.f));
+	}
+	
+
+	// Add icon underline using UnderlineColor
+	IconOverlay->AddSlot()
+	.HAlign(HAlign_Fill)
+	.VAlign(VAlign_Bottom)
+	.Padding(FMargin(0.0f, 0.0f, 0.0f, 0.0f))
+	.AttachWidget(
+		SNew(SImage)
+		.Image(&UnderlineBrush)
+		.ColorAndOpacity( UnderlineColor )
+		.DesiredSizeOverride(FVector2D(10.0f, 2.f))
+		);
 
 	ContentBox->AddSlot()
 		.AutoWidth()
@@ -2672,29 +2737,30 @@ SHoudiniToolsPanel::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 			.BorderImage( FHoudiniEngineStyle::Get()->GetBrush( "HoudiniEngine.ThumbnailShadow" ) )
 			[
 				SNew( SBox )
-				.WidthOverride( 35.0f )
-				.HeightOverride( 35.0f )
+				.WidthOverride( IconWidth )
+				.HeightOverride( IconWidth )
 				[
-					SNew( SBorder )
-					.BorderImage( FHoudiniEngineStyle::Get()->GetBrush( "HoudiniEngine.ThumbnailBackground" ) )
-					.HAlign( HAlign_Center )
-					.VAlign( VAlign_Center )
-					[
-						SNew( SImage )
-						.Image_Lambda([ToolIcon]()->const FSlateBrush*
-						{
-							if (ToolIcon.IsValid())
-							{
-								return ToolIcon.Get();
-							}
-							else
-							{
-								return FHoudiniEngineStyle::Get()->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
-							}
-						})
-						// .Image( ToolIcon )
-						.ToolTip( SNew( SToolTip ).Text( ToolTipText ) )
-					]
+					IconOverlay.ToSharedRef()
+					// SNew( SBorder )
+					// .BorderImage( FHoudiniEngineStyle::Get()->GetBrush( "HoudiniEngine.ThumbnailBackground" ) )
+					// .HAlign( HAlign_Center )
+					// .VAlign( VAlign_Center )
+					// [
+					// 	SNew( SImage )
+					// 	.Image_Lambda([ToolIcon]()->const FSlateBrush*
+					// 	{
+					// 		if (ToolIcon.IsValid())
+					// 		{
+					// 			return ToolIcon.Get();
+					// 		}
+					// 		else
+					// 		{
+					// 			return FHoudiniEngineStyle::Get()->GetBrush( TEXT( "HoudiniEngine.HoudiniEngineLogo40" ) );
+					// 		}
+					// 	})
+					// 	// .Image( ToolIcon )
+					// 	.ToolTip( SNew( SToolTip ).Text( ToolTipText ) )
+					// ]
 				]
 			]
 		];
@@ -2931,21 +2997,6 @@ SHoudiniToolsPanel::MakeTileViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 		.DesiredSizeOverride(FVector2D(10.0f, 2.f))
 		);
 
-	// if (HoudiniTool->IsHiddenInCategory(CategoryName))
-	// {
-	// 	// Add an overlay to fade out the icon to visually indicate that it is hidden 
-	// 	IconOverlay->AddSlot()
-	// 	.HAlign(HAlign_Fill)
-	// 	.VAlign(VAlign_Fill)
-	// 	.Padding(FMargin(0.0f, 0.0f, 0.0f, 0.0f))
-	// 	.AttachWidget(
-	// 		SNew(SImage)
-	// 		.Image(&UnderlineBrush)
-	// 		.ColorAndOpacity( FSlateColor(FLinearColor(1.f, 1.f, 1.f, 0.5f)) )
-	// 		// .DesiredSizeOverride(FVector2D(10.0f, 2.f))
-	// 		);
-	// }
-
 	ContentBox->AddSlot()
 		.HAlign(EHorizontalAlignment::HAlign_Center)
 		.VAlign(EVerticalAlignment::VAlign_Center)
@@ -2984,21 +3035,6 @@ SHoudiniToolsPanel::MakeTileViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 			.ToolTip( SNew( SToolTip ).Text( ToolTipText ) )
 			.WrappingPolicy(ETextWrappingPolicy::AllowPerCharacterWrapping)
 		];
-
-	// // Default Tool Icon
-	// if ( IsDefault )
-	// {
-	//     ContentBox->AddSlot()
-	//         .VAlign( VAlign_Center )
-	//         .AutoHeight()
-	//         [
-	//             SAssignNew( DefaultToolImage, SImage )
-	//             .ToolTip( SNew( SToolTip ).Text( DefaultToolText ) )
-	//         ];
-	//
-	//     // Houdini logo for the Default Tool
-	//     DefaultToolImage->SetImage( DefaultTool );
-	// }
 
 	TableRowWidget->SetContent( Content );
 

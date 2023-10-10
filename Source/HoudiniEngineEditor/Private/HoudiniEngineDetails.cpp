@@ -2183,7 +2183,9 @@ FHoudiniEngineDetails::ConstructActionMenu(const TArray<TWeakObjectPtr<UHoudiniA
 {
 	FMenuBuilder MenuBuilder( true, NULL );
 
-	if (InHACs.Num() == 0)
+	const int32 NumHACs = InHACs.Num(); 
+
+	if (NumHACs == 0)
 	{
 		return MenuBuilder.MakeWidget();
 	}
@@ -2225,8 +2227,13 @@ FHoudiniEngineDetails::ConstructActionMenu(const TArray<TWeakObjectPtr<UHoudiniA
 			{
 				SHoudiniUpdatePresetFromHDA::CreateDialog(HAC);
 			}),
-			FCanExecuteAction::CreateLambda([]() -> bool
+			FCanExecuteAction::CreateLambda([NumHACs]() -> bool
 			{
+				if (NumHACs != 1)
+				{
+					return false;
+				}
+				
 				TArray<FAssetData> SelectedAssets; 
 				AssetSelectionUtils::GetSelectedAssets(SelectedAssets);
 				if (SelectedAssets.Num() != 1)
@@ -2258,6 +2265,11 @@ FHoudiniEngineDetails::ConstructActionMenu(const TArray<TWeakObjectPtr<UHoudiniA
 	for (UHoudiniPreset* Preset : Presets)
 	{
 		if (!IsValid(Preset))
+		{
+			continue;
+		}
+
+		if (Preset->bHidePreset)
 		{
 			continue;
 		}

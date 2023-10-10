@@ -420,6 +420,10 @@ public:
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bRevertHDAParameters;
 
+	// Whether to treat this preset as hidden (hide from preset menus and will be not be visible in HoudiniTools Panel). 
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	bool bHidePreset;
+
 	// Whether this preset can be applied to any HDA, or only the SourceHoudiniAsset.
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bApplyOnlyToSource;

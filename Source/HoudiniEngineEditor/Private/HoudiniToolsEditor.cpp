@@ -3260,7 +3260,7 @@ FHoudiniToolsEditor::LaunchHoudiniToolPropertyEditor(const TSharedPtr<FHoudiniTo
 	TSharedRef< SWindow > Window = CreateFloatingDetailsView(
 		ActiveHoudiniTools,
 		ViewIdentifier,
-		FVector2D(450,350),
+		FVector2D(450,650),
 		[EditingTool](TArray<UObject*> InObjects)
 		{
 			switch (EditingTool->PackageToolType)

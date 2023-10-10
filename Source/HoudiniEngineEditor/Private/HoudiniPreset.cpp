@@ -836,6 +836,7 @@ FHoudiniPresetHelpers::ApplyPresetCurveInput(const FHoudiniPresetInputValue& Pre
 UHoudiniPreset::UHoudiniPreset()
 	: SourceHoudiniAsset(nullptr)
 	, bRevertHDAParameters(false)
+	, bHidePreset(false)
 	, bApplyOnlyToSource(false)
 	, bCanInstantiate(false)
 {
