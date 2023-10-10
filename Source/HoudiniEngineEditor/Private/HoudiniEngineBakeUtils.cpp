@@ -1557,7 +1557,12 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	    InBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
 
 	    // Instancer name adds the split identifier (INSTANCERNUM_VARIATIONNUM)
-	    const FString InstancerName = ObjectName + "_instancer_" + InOutputObjectIdentifier.SplitIdentifier;
+	    FString InstancerName = ObjectName + "_instancer";
+		if (InOutputObject.CachedAttributes.Contains(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2))
+			InstancerName = InOutputObject.CachedAttributes[HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2];
+		InstancerName += "_" + InOutputObjectIdentifier.SplitIdentifier;
+
+
 	    const FName WorldOutlinerFolderPath = GetOutlinerFolderPath(
 		    InOutputObject,
 		    FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
@@ -1700,7 +1705,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 
 			    OutBakeStats.NotifyObjectsCreated(FoundActor->GetClass()->GetName(), 1);
 
-			    FHoudiniEngineRuntimeUtils::SetActorLabel(FoundActor, DesiredLevel->bUseExternalActors ? BakeActorName.ToString() : FoundActor->GetActorNameOrLabel());
+			    FHoudiniEngineRuntimeUtils::SetActorLabel(FoundActor, BakeActorName.ToString());
 			    FoundActor->SetActorHiddenInGame(InISMC->bHiddenInGame);
 		    }
 		    else
@@ -1927,7 +1932,6 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
-	// const TArray<FHoudiniBakedOutput>& InAllBakedOutputs,
 	const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
 	FHoudiniBakedOutputObject& InBakedOutputObject,
@@ -2041,7 +2045,11 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	    InBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
 
 	    // Instancer name adds the split identifier (INSTANCERNUM_VARIATIONNUM)
-	    const FString InstancerName = ObjectName + "_instancer_" + InOutputObjectIdentifier.SplitIdentifier;
+	    FString InstancerName = ObjectName + "_instancer";
+		if (InOutputObject.CachedAttributes.Contains(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2))
+			InstancerName = InOutputObject.CachedAttributes[HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2];
+		InstancerName += "_" + InOutputObjectIdentifier.SplitIdentifier;
+
 	    const FName WorldOutlinerFolderPath = GetOutlinerFolderPath(
 		    InOutputObject, 
 		    FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
@@ -2568,9 +2576,12 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	    InBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
 
 	    // Instancer name adds the split identifier (INSTANCERNUM_VARIATIONNUM)
-	    const FString InstancerName = ObjectName + "_instancer_" + InOutputObjectIdentifier.SplitIdentifier;
-	    const FName WorldOutlinerFolderPath = GetOutlinerFolderPath(
-		    InOutputObject, 
+	    FString InstancerName = ObjectName + "_instancer";
+		if (InOutputObject.CachedAttributes.Contains(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2))
+			InstancerName = InOutputObject.CachedAttributes[HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2];
+		InstancerName += "_" + InOutputObjectIdentifier.SplitIdentifier;
+
+		FName WorldOutlinerFolderPath = GetOutlinerFolderPath(InOutputObject, 
 		    FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 
 	    // By default spawn in the current level unless specified via the unreal_level_path attribute
