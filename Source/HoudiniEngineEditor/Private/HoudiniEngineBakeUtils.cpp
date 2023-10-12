@@ -7190,12 +7190,9 @@ FHoudiniEngineBakeUtils::CheckForAndRefineHoudiniProxyMesh(
 			// A cook is needed: request the cook, but with no proxy and with a bake after cook
 			InHoudiniAssetComponent->SetNoProxyMeshNextCookRequested(true);
 			// Only
-			if (!InHoudiniAssetComponent->IsBakeAfterNextCookEnabled() || !InHoudiniAssetComponent->GetOnPostCookBakeDelegate().IsBound())
-			{
-				InHoudiniAssetComponent->GetOnPostCookBakeDelegate().BindLambda([bInReplacePreviousBake, InBakeOption, bInRemoveHACOutputOnSuccess, bInRecenterBakedActors](UHoudiniAssetComponent* InHAC) {
-                    return FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(InHAC, bInReplacePreviousBake, InBakeOption, bInRemoveHACOutputOnSuccess, bInRecenterBakedActors);
-                });
-			}
+			if (!InHoudiniAssetComponent->IsBakeAfterNextCookEnabled())
+				InHoudiniAssetComponent->SetBakeAfterNextCook(EHoudiniBakeAfterNextCook::Once);
+
 			InHoudiniAssetComponent->MarkAsNeedCook();
 
 			bOutNeedsReCook = true;
