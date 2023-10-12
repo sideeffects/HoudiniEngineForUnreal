@@ -912,7 +912,7 @@ UHoudiniGeoImporter::MergeGeoFromNode(const FString& InNodePath, HAPI_NodeId& Ou
 	FString Notification = TEXT("Merging node data...");
 	FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(Notification), true);
 
-	// Create a file SOP
+	// Create an object merge SOP
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
 		-1, "SOP/object_merge", "NodeSyncFetch", true, &OutNodeId), false);
 

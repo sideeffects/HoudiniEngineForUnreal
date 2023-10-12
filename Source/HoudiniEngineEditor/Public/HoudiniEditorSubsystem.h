@@ -82,7 +82,7 @@ public:
  * Editor Susbsystem that creates a "Managed" Session HDA used to transfer assets between Houdini and Unreal
  */
 UCLASS()
-class HOUDINIENGINEEDITOR_API UHoudiniEditorSubsystem : public UEditorSubsystem
+class HOUDINIENGINEEDITOR_API UHoudiniEditorNodeSyncSubsystem : public UEditorSubsystem
 {
 	GENERATED_BODY()
 
@@ -124,6 +124,11 @@ public:
 	bool GetNodeSyncInput(UHoudiniInput*& OutInput);
 
 	//virtual void RegisterLayoutExtensions(FLayoutExtender& Extender) override;
+
+	bool GatherAllFetchNodeIds(
+		HAPI_NodeId UnrealFetchNodeId,
+		const bool bUseOutputNodes,
+		TArray<HAPI_NodeId>& OutOutputNodes);
 
 private:
 

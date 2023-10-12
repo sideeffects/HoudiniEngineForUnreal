@@ -1231,7 +1231,7 @@ FHoudiniEngineEditor::InitializeWidgetResource()
 void 
 FHoudiniEngineEditor::SendToHoudini_CB(TArray<FAssetData> SelectedAssets)
 {
-	UHoudiniEditorSubsystem* HoudiniSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
+	UHoudiniEditorNodeSyncSubsystem* HoudiniSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
 	if (!IsValid(HoudiniSubsystem))
 		return;
 
@@ -1255,7 +1255,7 @@ FHoudiniEngineEditor::SendToHoudini_CB(TArray<FAssetData> SelectedAssets)
 void
 FHoudiniEngineEditor::SendToHoudini_World()
 {
-	UHoudiniEditorSubsystem* HoudiniSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorSubsystem>();
+	UHoudiniEditorNodeSyncSubsystem* HoudiniSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
 	if (!IsValid(HoudiniSubsystem))
 		return;
 	/*
