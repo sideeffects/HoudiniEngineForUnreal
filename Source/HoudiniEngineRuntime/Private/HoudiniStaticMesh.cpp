@@ -509,7 +509,51 @@ void UHoudiniStaticMesh::Serialize(FArchive &InArchive)
 	VertexInstanceVTangents.BulkSerialize(InArchive);
 
 	VertexInstanceUVs.Shrink();
-	VertexInstanceUVs.BulkSerialize(InArchive);
+	// There is an issue where FVector2D was initially used for VertexInstanceUVs and used floats for the internal data
+	// type. In UE5 FVector2D changed to double, and subsequently we changed VertexInstanceUVs to be FVector2f to match
+	// the original float data type. Unfortunately some users still encounter errors where some HSMs were saved as
+	// double and they run into issues while loading.
+	if (InArchive.IsLoading())
+	{
+		const int64 Pos = InArchive.Tell();
+		const uint32 ExpectedElementSize = VertexInstanceUVs.GetTypeSize();
+		int32 ElementSize = 0;
+		// If Pos == INDEX_NONE it means that InArchive is not seekable, so we cannot check what the element size of the
+		// array was when it was saved.
+		if (Pos != INDEX_NONE)
+		{
+			InArchive << ElementSize;
+			InArchive.Seek(Pos);
+		}
+		if (ElementSize == ExpectedElementSize || Pos == INDEX_NONE)
+		{
+			VertexInstanceUVs.BulkSerialize(InArchive);
+		}
+		else if (ElementSize == sizeof(FVector2D))
+		{
+			HOUDINI_LOG_WARNING(TEXT("[UHoudiniStaticMesh::Serialize] loading `VertexInstanceUVs` of '%s' as `FVector2D`"), *GetPathName());
+			TArray<FVector2D> TempVertexInstanceUVs;
+			TempVertexInstanceUVs.BulkSerialize(InArchive);
+			VertexInstanceUVs.Empty(TempVertexInstanceUVs.Num());
+			for (const FVector2D& UV : TempVertexInstanceUVs)
+			{
+				VertexInstanceUVs.Emplace(UV);
+			}
+		}
+		else
+		{
+			HOUDINI_LOG_WARNING(TEXT(
+				"[UHoudiniStaticMesh::Serialize] Unexpected element size when loading "
+				"UHoudiniStaticMesh::VertexInstanceUVs. Expected %d got %d. Aborting loading of HoudiniStaticMesh."),
+				ExpectedElementSize, ElementSize);
+			InArchive.SetError();
+			return;
+		}
+	}
+	else
+	{
+		VertexInstanceUVs.BulkSerialize(InArchive);
+	}
 
 	MaterialIDsPerTriangle.Shrink();
 	MaterialIDsPerTriangle.BulkSerialize(InArchive);
