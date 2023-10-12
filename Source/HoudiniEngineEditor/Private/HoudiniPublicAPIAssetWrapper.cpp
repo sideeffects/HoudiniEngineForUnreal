@@ -299,7 +299,7 @@ UHoudiniPublicAPIAssetWrapper::SetAutoBakeEnabled_Implementation(const bool bInA
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	HAC->SetBakeAfterNextCookEnabled(bInAutoBakeEnabled);
+	HAC->SetBakeAfterNextCook(bInAutoBakeEnabled ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled);
 
 	return true;
 }
