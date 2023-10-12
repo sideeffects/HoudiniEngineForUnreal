@@ -2819,7 +2819,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 		HAC->HoudiniEngineBakeOption = Preset->HoudiniEngineBakeOption;
 		HAC->bRemoveOutputAfterBake = Preset->bRemoveOutputAfterBake;
 		HAC->bRecenterBakedActors = Preset->bRecenterBakedActors;
-		HAC->SetBakeAfterNextCookEnabled( Preset->bAutoBake );
+		HAC->SetBakeAfterNextCook( Preset->bAutoBake ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled);
 		HAC->bReplacePreviousBake = Preset->bReplacePreviousBake;
 	}
 
