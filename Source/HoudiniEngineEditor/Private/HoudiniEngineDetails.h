@@ -124,9 +124,6 @@ public:
 		TFunction<FText(void)>& InGetText,
 		TFunction<const FSlateBrush*(SButton* InExpanderArrow)>& InGetExpanderBrush);
 
-	// Helper for binding/unbinding the post cook bake delegate
-	static void OnBakeAfterCookChangedHelper(bool bInState, UHoudiniAssetComponent* InHAC);
-
 	// Helper to check if InWeakObjectPointer is valid or not. If not valid, the filepath and line number where the check
 	// occurred is logged.
 	template <class T>

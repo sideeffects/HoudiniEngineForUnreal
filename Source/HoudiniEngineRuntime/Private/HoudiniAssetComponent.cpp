@@ -44,6 +44,10 @@
 #include "HoudiniInstancedActorComponent.h"
 #include "HoudiniMeshSplitInstancerComponent.h"
 
+#if WITH_EDITOR
+#include "HoudiniEditorAssetStateSubsystemInterface.h"
+#endif
+
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
 #include "TimerManager.h"
@@ -710,7 +714,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	}
 	
 	bNoProxyMeshNextCookRequested = false;
-	bBakeAfterNextCook = false;
+	bBakeAfterNextCook_DEPRECATED = false;
+	BakeAfterNextCook = EHoudiniBakeAfterNextCook::Disabled;
 
 #if WITH_EDITORONLY_DATA
 	bGenerateMenuExpanded = true;
@@ -1648,6 +1653,14 @@ UHoudiniAssetComponent::PostLoad()
 	{
 		// User should see this message once when loading an old asset.
 		HOUDINI_LOG_MESSAGE(TEXT("Upgraded deprecated single component in FHoudiniOutputObject"));
+	}
+
+	// Handle deprecated bBakeAfterNextCook: default value is false, so if it is true in PostLoad then it was saved
+	// as true (pre-deprecation)
+	if (bBakeAfterNextCook_DEPRECATED)
+	{
+		bBakeAfterNextCook_DEPRECATED = false;
+		BakeAfterNextCook = EHoudiniBakeAfterNextCook::Always;
 	}
 }
 
@@ -3080,6 +3093,11 @@ UHoudiniAssetComponent::SetAssetState(EHoudiniAssetState InNewState)
 	const EHoudiniAssetState OldState = AssetState;
 	AssetState = InNewState;
 
+#if WITH_EDITOR
+	IHoudiniEditorAssetStateSubsystemInterface* const EditorSubsystem = IHoudiniEditorAssetStateSubsystemInterface::Get(); 
+	if (EditorSubsystem)
+		EditorSubsystem->NotifyOfHoudiniAssetStateChange(this, OldState, InNewState);
+#endif
 	HandleOnHoudiniAssetStateChange(this, OldState, InNewState);
 }
 
