@@ -63,6 +63,17 @@ enum class EHoudiniStaticMeshMethod : uint8
 	UHoudiniStaticMesh,
 };
 
+UENUM()
+enum class EHoudiniBakeAfterNextCook : uint8
+{
+	// Do not bake after cook
+	Disabled,
+	// Always bake after cook if cook was successful,
+	Always,
+	// Bake after the next successful cook, then reset to Disabled.
+	Once
+};
+
 class UHoudiniAssetComponent;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FHoudiniAssetEvent, UHoudiniAsset*);
@@ -92,7 +103,6 @@ public:
 
 	// Declare the delegate that is broadcast when RefineMeshesTimer fires
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRefineMeshesTimerDelegate, UHoudiniAssetComponent*);
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnPostCookBakeDelegate, UHoudiniAssetComponent*);
 	// Delegate for when EHoudiniAssetState changes from InFromState to InToState on a Houdini Asset Component (InHAC).
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAssetStateChangeDelegate, UHoudiniAssetComponent*, const EHoudiniAssetState, const EHoudiniAssetState);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostCookDelegate, UHoudiniAssetComponent*, bool);
@@ -214,10 +224,11 @@ public:
 	// Returns true if the asset state indicates that it has been cooked in this session, false otherwise.
 	bool IsHoudiniCookedDataAvailable(bool &bOutNeedsRebuildOrDelete, bool &bOutInvalidState) const;
 	// Returns true if the asset should be bake after the next cook
-	bool IsBakeAfterNextCookEnabled() const { return bBakeAfterNextCook; }
+	bool IsBakeAfterNextCookEnabled() const { return BakeAfterNextCook != EHoudiniBakeAfterNextCook::Disabled; }
+	// Get the BakeAfterNextCook setting
+	EHoudiniBakeAfterNextCook GetBakeAfterNextCook() const { return BakeAfterNextCook; }
 
 	FOnPostCookDelegate& GetOnPostCookDelegate() { return OnPostCookDelegate; }
-	FOnPostCookBakeDelegate& GetOnPostCookBakeDelegate() { return OnPostCookBakeDelegate; }
 	FOnPostBakeDelegate& GetOnPostBakeDelegate() { return OnPostBakeDelegate; }
 
 	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate; }
@@ -304,8 +315,8 @@ public:
 	// instead build a UStaticMesh directly (if applicable for the output type).
 	void SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested) { bNoProxyMeshNextCookRequested = bInNoProxyMeshNextCookRequested; }
 
-	// Set to True to force the next cook to bake the asset after the cook completes.
-	void SetBakeAfterNextCookEnabled(bool bInEnabled) { bBakeAfterNextCook = bInEnabled; }
+	// Set whether or not bake after cooking (disabled, always or once).
+	void SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook) { BakeAfterNextCook = InBakeAfterNextCook; }
 
 	//
 	void SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink);
@@ -756,18 +767,16 @@ protected:
 	TMap<UObject*, int32> InputPresets;
 
 	// If true, bake the asset after its next cook.
+	UPROPERTY(DuplicateTransient, meta=(DeprecatedProperty, DeprecationMessage="Use BakeAfterNextCook instead."))
+	bool bBakeAfterNextCook_DEPRECATED;
+
+	// If true, bake the asset after its next cook.
 	UPROPERTY(DuplicateTransient)
-	bool bBakeAfterNextCook;
+	EHoudiniBakeAfterNextCook BakeAfterNextCook;
 
 	// Delegate to broadcast after a post cook event
 	// Arguments are (HoudiniAssetComponent* HAC, bool IsSuccessful)
 	FOnPostCookDelegate OnPostCookDelegate;
-
-	// Delegate to broadcast when baking after a cook.
-	// Currently we cannot call the bake functions from here (Runtime module)
-	// or from the HoudiniEngineManager (HoudiniEngine) module, so we use
-	// a delegate.
-	FOnPostCookBakeDelegate OnPostCookBakeDelegate;
 
 	// Delegate to broadcast after baking the HAC. Not called when just baking individual outputs directly.
 	// Arguments are (HoudiniAssetComponent* HAC, bool bIsSuccessful)

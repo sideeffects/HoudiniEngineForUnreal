@@ -44,6 +44,10 @@
 #include "HoudiniInstancedActorComponent.h"
 #include "HoudiniMeshSplitInstancerComponent.h"
 
+#if WITH_EDITOR
+#include "HoudiniEditorAssetStateSubsystemInterface.h"
+#endif
+
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
 #include "TimerManager.h"
@@ -699,7 +703,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	}
 	
 	bNoProxyMeshNextCookRequested = false;
-	bBakeAfterNextCook = false;
+	bBakeAfterNextCook_DEPRECATED = false;
+	BakeAfterNextCook = EHoudiniBakeAfterNextCook::Disabled;
 
 #if WITH_EDITORONLY_DATA
 	bGenerateMenuExpanded = true;
@@ -1607,6 +1612,13 @@ UHoudiniAssetComponent::PostLoad()
 	}
 #endif
 
+	// Handle deprecated bBakeAfterNextCook: default value is false, so if it is true in PostLoad then it was saved
+	// as true (pre-deprecation)
+	if (bBakeAfterNextCook_DEPRECATED)
+	{
+		bBakeAfterNextCook_DEPRECATED = false;
+		BakeAfterNextCook = EHoudiniBakeAfterNextCook::Always;
+	}
 }
 
 void
@@ -3076,6 +3088,11 @@ UHoudiniAssetComponent::SetAssetState(EHoudiniAssetState InNewState)
 	const EHoudiniAssetState OldState = AssetState;
 	AssetState = InNewState;
 
+#if WITH_EDITOR
+	IHoudiniEditorAssetStateSubsystemInterface* const EditorSubsystem = IHoudiniEditorAssetStateSubsystemInterface::Get(); 
+	if (EditorSubsystem)
+		EditorSubsystem->NotifyOfHoudiniAssetStateChange(this, OldState, InNewState);
+#endif
 	HandleOnHoudiniAssetStateChange(this, OldState, InNewState);
 }
 

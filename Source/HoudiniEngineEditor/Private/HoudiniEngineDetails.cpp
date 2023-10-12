@@ -562,31 +562,6 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 	TempCookFolderRow.WholeRowWidget.Widget = TempCookFolderRowHorizontalBox;
 }
 
-void
-FHoudiniEngineDetails::OnBakeAfterCookChangedHelper(bool bInState, UHoudiniAssetComponent* InHAC)
-{
-	if (!IsValid(InHAC))
-		return;
-	
-	if (!bInState)
-	{
-		if (InHAC->GetOnPostCookBakeDelegate().IsBound())
-			InHAC->GetOnPostCookBakeDelegate().Unbind();
-	}
-	else
-	{
-		InHAC->GetOnPostCookBakeDelegate().BindLambda([](UHoudiniAssetComponent* HAC)
-		{
-			return FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
-				HAC,
-				HAC->bReplacePreviousBake,
-				HAC->HoudiniEngineBakeOption,
-				HAC->bRemoveOutputAfterBake,
-				HAC->bRecenterBakedActors);
-		});
-	}	
-}
-
 void 
 FHoudiniEngineDetails::CreateBakeWidgets(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
@@ -903,26 +878,6 @@ FHoudiniEngineDetails::CreateBakeWidgets(
         ]
     ];
 
-	// TODO: find a better way to manage the initial binding/unbinding of the post cook bake delegate
-	// We do this here to ensure the delegate is bound/unbound correctly when the UI is initially drawn
-	// Currently we have the problem that the HoudiniEngineRuntime and HoudiniEngine modules cannot access
-	// the FHoudiniEngineBakeUtils code that is in HoudiniEngineEditor (this is the primary reason for the delegate and
-	// managing the delegate in this way).
-	for (auto & NextHAC : InHACs) 
-	{
-		if (!IsValidWeakPointer(NextHAC))
-			continue;
-
-		const bool bState = NextHAC->IsBakeAfterNextCookEnabled();
-
-		if (NextHAC->IsBakeAfterNextCookEnabled() == bState) 
-			continue;
-
-		NextHAC->SetBakeAfterNextCookEnabled(bState);
-		NextHAC->MarkPackageDirty();
-		OnBakeAfterCookChangedHelper(bState, NextHAC.Get());
-	}	
-	
 	RightColumnVerticalBox->AddSlot()
     .AutoHeight()
     .Padding(0.0f, 0.0f, 0.0f, 3.5f)
@@ -956,9 +911,8 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 					if (NextHAC->IsBakeAfterNextCookEnabled() == bNewState)
 						continue;
 
-                    NextHAC->SetBakeAfterNextCookEnabled(bNewState);
+                    NextHAC->SetBakeAfterNextCook(bNewState ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled);
 					NextHAC->MarkPackageDirty();
-                    OnBakeAfterCookChangedHelper(bNewState, NextHAC.Get());
                 }
 
                 // FHoudiniEngineUtils::UpdateEditorProperties(MainHAC, true);
