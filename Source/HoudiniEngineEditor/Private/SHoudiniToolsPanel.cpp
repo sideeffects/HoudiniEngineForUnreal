@@ -3227,6 +3227,12 @@ SHoudiniToolsPanel::ConstructHoudiniToolContextMenu()
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked< FAssetRegistryModule >( "AssetRegistry" );
 
 	FMenuBuilder MenuBuilder( true, NULL );
+	
+	// Prevent crashes caused by null active tool
+	if (!ActiveTool.IsValid())
+	{
+		return MenuBuilder.MakeWidget();
+	}
 
 	bool bHasHelp = false;
 	bool bIsFavoritesCategory = ActiveCategoryName == FHoudiniToolsEditor::GetFavoritesCategoryName().ToString();

@@ -72,6 +72,8 @@
 #include "Interfaces/IMainFrameModule.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
+#include "Framework/Application/SlateApplication.h"
+#include "PropertyEditorModule.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	#include "Subsystems/EditorAssetSubsystem.h"
@@ -3235,7 +3237,7 @@ FHoudiniToolsEditor::LaunchHoudiniToolPropertyEditor(const TSharedPtr<FHoudiniTo
 		ToolName += TEXT(" (") + HoudiniAsset->AssetFileName + TEXT(")");
 	}
 	
-	UHoudiniToolEditorProperties* ToolProperties = NewObject< UHoudiniToolEditorProperties >( GetTransientPackage(), FName( *ToolName ) );
+	UHoudiniToolEditorProperties* ToolProperties = NewObject<UHoudiniToolEditorProperties>( GetTransientPackage(), FName( *ToolName ) );
 	// ToolProperties->AddToRoot();
 
 	// Set the default values for this asset
