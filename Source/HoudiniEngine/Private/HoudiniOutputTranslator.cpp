@@ -416,35 +416,28 @@ FHoudiniOutputTranslator::UpdateOutputs(
 
 			bHasLandscape = true;
 
-			// Attach the created landscape to the parent HAC.
-			ALandscapeProxy* OutputLandscape = nullptr;
 			for (auto& Pair : CurOutput->GetOutputObjects()) 
 			{
-				UHoudiniLandscapePtr* LandscapePtr = Cast<UHoudiniLandscapePtr>(Pair.Value.OutputObject);
-				if (IsValid(LandscapePtr))
+				UHoudiniLandscapeTargetLayerOutput* LayerOutput = Cast<UHoudiniLandscapeTargetLayerOutput>(Pair.Value.OutputObject);
+				if (IsValid(LayerOutput))
 				{
-					OutputLandscape = LandscapePtr->GetRawPtr();
+					ALandscapeProxy* OutputLandscape = LayerOutput->Landscape;
+
+					if (OutputLandscape)
+					{
+						FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(OutputLandscape, LayerOutput->PropertyAttributes);
+						OutputLandscape->GetLandscapeInfo()->FixupProxiesTransform();
+						OutputLandscape->GetLandscapeInfo()->RecreateLandscapeInfo(PersistentWorld, true);
+						OutputLandscape->RecreateCollisionComponents();
+						FEditorDelegates::PostLandscapeLayerUpdated.Broadcast();
+					}
+
 				}
 				break;
 			}
 
-			if (OutputLandscape) 
-			{
-				// Attach the created landscapes to HAC
-				// Output Transforms are always relative to the HDA
-				HAC->SetMobility(EComponentMobility::Static);
-				OutputLandscape->AttachToComponent(HAC, FAttachmentTransformRules::KeepRelativeTransform);
-				// Note that the above attach will cause the collision components to crap out. This manifests
-				// itself via the Landscape editor tools not being able to trace Landscape collision components.
-				// By recreating collision components here, it appears to put things back into working order.
-				OutputLandscape->GetLandscapeInfo()->FixupProxiesTransform();
-				OutputLandscape->GetLandscapeInfo()->RecreateLandscapeInfo(PersistentWorld, true);
-				OutputLandscape->RecreateCollisionComponents();
-				FEditorDelegates::PostLandscapeLayerUpdated.Broadcast();
-			}
-
 			bCreatedNewMaps |= bNewMapCreated;
-			break;
+
 		}
 
 		case EHoudiniOutputType::DataTable:
