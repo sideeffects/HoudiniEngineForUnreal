@@ -32,6 +32,7 @@
 #include "LevelInstance/LevelInstanceTypes.h"
 #include "LandscapeProxy.h"
 #include "Misc/StringFormatArg.h"
+#include "HoudiniGenericAttribute.h"
 #include "UObject/SoftObjectPtr.h"
 #include "HoudiniOutput.generated.h"
 
@@ -244,6 +245,9 @@ public:
 
 	UPROPERTY()
 	bool bLockLayer = false;
+
+	UPROPERTY()
+	TArray<FHoudiniGenericAttribute> PropertyAttributes;
 
 };
 

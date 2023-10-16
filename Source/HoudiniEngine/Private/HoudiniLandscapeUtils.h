@@ -166,6 +166,8 @@ struct FHoudiniHeightFieldPartData
     // whether to lock layer after cooking.
     bool bLockLayer = false;
 
+    // PropertyAttributes
+    TArray<FHoudiniGenericAttribute> PropertyAttributes;
 
 };
 

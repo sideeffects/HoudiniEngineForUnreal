@@ -270,6 +270,12 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 		PartData.bSubtractiveEditLayer = SubtractiveMode == HAPI_UNREAL_LANDSCAPE_EDITLAYER_SUBTRACTIVE_ON;
 
 		//-----------------------------------------------------------------------------------------------------------------------------
+		// Properties
+		//-----------------------------------------------------------------------------------------------------------------------------
+
+		FHoudiniEngineUtils::GetGenericPropertiesAttributes(PartObj.GeoId, PartObj.PartId, true, 0, 0, 0, PartData.PropertyAttributes);
+
+		//-----------------------------------------------------------------------------------------------------------------------------
 		// See if this HAPI Volume is part of a larger landscape, ie. it is a tile. we do this by looking for the
 		// HAPI_UNREAL_ATTRIB_LANDSCAPE_SIZE attribute, which tells us the overall size of the landscape.
 		//-----------------------------------------------------------------------------------------------------------------------------
@@ -854,6 +860,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	Obj->MaterialInstance = Part.MaterialInstance;
 	Obj->bWriteLockedLayers = Part.bWriteLockedLayers;
 	Obj->bLockLayer = Part.bLockLayer;
+	Obj->PropertyAttributes = Part.PropertyAttributes;
 	return Obj;
 
 
