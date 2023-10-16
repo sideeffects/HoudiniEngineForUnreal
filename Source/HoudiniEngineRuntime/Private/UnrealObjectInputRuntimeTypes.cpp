@@ -94,12 +94,14 @@ FUnrealObjectInputOptions::FUnrealObjectInputOptions(
 	const bool bInExportLODs,
 	const bool bInExportSockets,
 	const bool bInExportColliders,
+	const bool bMainMeshIsNaniteFallbackMesh,
 	const EHoudiniLandscapeExportType LandscapeExportType)
 		: bImportAsReference(bInImportAsReference)
 		, bImportAsReferenceRotScaleEnabled(bInImportAsReferenceRotScaleEnabled)
 		, bExportLODs(bInExportLODs)
 		, bExportSockets(bInExportSockets)
 		, bExportColliders(bInExportColliders)
+		, bMainMeshIsNaniteFallbackMesh(bMainMeshIsNaniteFallbackMesh)
 		, LandscapeExportType(LandscapeExportType)
 		, bExportLandscapeSplineControlPoints(false)
 		, bExportLandscapeSplineLeftRightCurves(false)
@@ -120,6 +122,7 @@ FUnrealObjectInputOptions::operator==(const FUnrealObjectInputOptions& InOther) 
 		&& bExportLODs == InOther.bExportLODs
 		&& bExportSockets == InOther.bExportSockets
 		&& bExportColliders == InOther.bExportColliders
+		&& bMainMeshIsNaniteFallbackMesh == InOther.bMainMeshIsNaniteFallbackMesh
 		&& LandscapeExportType == InOther.LandscapeExportType
 		&& bExportLandscapeSplineControlPoints == InOther.bExportLandscapeSplineControlPoints
 		&& bExportLandscapeSplineLeftRightCurves == InOther.bExportLandscapeSplineLeftRightCurves);

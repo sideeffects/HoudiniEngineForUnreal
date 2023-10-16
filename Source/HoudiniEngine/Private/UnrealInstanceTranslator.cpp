@@ -49,6 +49,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	const bool& bExportSockets,
 	const bool& bExportColliders,
 	const bool& bExportAsAttributeInstancer,
+	const bool bPreferNaniteFallbackMesh,
 	bool bExportMaterialParameters,
 	const bool& bInputNodesCanBeDeleted)
 {
@@ -76,7 +77,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 		bExportColliders,
 		true, 
 		true,
-		false, 
+		bPreferNaniteFallbackMesh, 
 		bExportMaterialParameters);
 
 	if (!bSuccess)
@@ -93,10 +94,8 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	if (bUseRefCountedInputSystem)
 	{
 		// Build the identifier for the entry in the manager
-		constexpr bool bImportAsReference = false;
-		constexpr bool bImportAsReferenceRotScaleEnabled = false;
 		constexpr bool bIsLeaf = false;
-		FUnrealObjectInputOptions Options(bImportAsReference, bImportAsReferenceRotScaleEnabled, bExportLODs, bExportSockets, bExportColliders);
+		FUnrealObjectInputOptions Options = SMNodeHandle.GetIdentifier().GetOptions();
 		Identifier = FUnrealObjectInputIdentifier(ISMC, Options, bIsLeaf);
 
 		// If the entry exists in the manager, the associated HAPI nodes are valid, and it is not marked as dirty, then
