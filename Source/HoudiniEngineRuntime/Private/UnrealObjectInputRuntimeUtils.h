@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "HoudiniEngineRuntimePrivatePCH.h"
 
 // Houdini Engine forward declarations
 class FUnrealObjectInputIdentifier;

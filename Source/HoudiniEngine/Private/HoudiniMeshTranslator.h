@@ -35,15 +35,11 @@
 
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
-#include "ImportUtils/SkeletalMeshImportUtils.h"
-#include "Rendering/SkeletalMeshLODImporterData.h"
 #include "PhysicsEngine/AggregateGeom.h"
 
 //#include "HoudiniMeshTranslator.generated.h"
 
 class UStaticMesh;
-class USkeletalMesh;
-class USkeleton;
 class UStaticMeshSocket;
 class UMaterialInterface;
 class UMeshComponent;
@@ -53,23 +49,6 @@ class UHoudiniStaticMeshComponent;
 
 struct FKAggregateGeom;
 struct FHoudiniGenericAttribute;
-
-struct SKBuildSettings
-{
-    FSkeletalMeshImportData SkeletalMeshImportData;
-    bool bIsNewSkeleton = false;
-    float ImportScale = 1.0f;
-	USkeletalMesh* SKMesh = nullptr;
-	UPackage* SKPackage = nullptr;
-    USkeleton* Skeleton = nullptr;
-    FString CurrentObjectName;
-    HAPI_NodeId GeoId = -1;
-    HAPI_NodeId PartId = -1;
-	bool ImportNormals = false;
-	bool OverwriteSkeleton = false;
-	FString SkeletonAssetPath = "";
-	int NumTexCoords = 1;
-};
 
 UENUM()
 enum class EHoudiniSplitType : uint8
@@ -131,14 +110,6 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InNewOutputObjects,
 			bool bInDestroyProxies=false,
 			bool bInApplyGenericProperties=true);
-
-		static void ExportSkeletalMeshAssets(UHoudiniOutput* InOutput);
-		static bool HasSkeletalMeshData(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
-		static void LoadImportData(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
-		static void CreateSKAssetAndPackage(SKBuildSettings& BuildSettings, const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, FString PackageName, int MaxInfluences = 1, bool ImportNormals = false);
-		static void BuildSKFromImportData(SKBuildSettings& BuildSettings, TArray<FSkeletalMaterial>& Materials);
-		static void SKImportData(SKBuildSettings& BuildSettings);
-		static USkeleton* CreateOrUpdateSkeleton(SKBuildSettings& BuildSettings);
 
 		//-----------------------------------------------------------------------------------------------------------------------------
 		// HELPERS
@@ -242,14 +213,12 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		// Legacy function using RawMesh for static Mesh creation
 		bool CreateStaticMesh_RawMesh();
 
-		bool CreateSkeletalMesh_SkeletalMeshImportData();
-
 		// Indicates the update is forced
 		bool ForceRebuild;
 		int32 DefaultMeshSmoothing;
 
 	protected:
-\
+
 		// Create a UHoudiniStaticMesh
 		bool CreateHoudiniStaticMesh();
 
@@ -316,9 +285,6 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			int32 MatIndex,
 			TArray<FStaticMaterial>& FoundStaticMaterials);
 
-		USkeletalMesh* CreateNewSkeletalMesh(const FString& InSplitIdentifier);
-		USkeleton* CreateNewSkeleton(const FString& InSplitIdentifier);
-
 		UStaticMesh* CreateNewStaticMesh(const FString& InMeshIdentifierString);
 
 		UStaticMesh* FindExistingStaticMesh(const FHoudiniOutputObjectIdentifier& InIdentifier);
@@ -378,8 +344,8 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		static bool AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStaticMeshComponent * StaticMeshComponent, 
 			TArray<AActor*>& HoudiniCreatedSocketActors, TArray<AActor*>& HoudiniAttachedSocketActors);
 
-
 		static bool HasFracturePieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
+
 	protected:
 
 		// Data cache for this translator
@@ -500,7 +466,6 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		// LOD Screensize
 		TArray<float> PartLODScreensize;
 		HAPI_AttributeInfo AttribInfoLODScreensize;
-
 
 		// When building a mesh, if an associated material already exists, treat
 		// it as up to date, regardless of the MaterialInfo.bHasChanged flag

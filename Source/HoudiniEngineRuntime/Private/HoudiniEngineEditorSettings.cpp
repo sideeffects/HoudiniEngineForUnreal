@@ -27,6 +27,7 @@
 #include "HoudiniEngineEditorSettings.h"
 #include "HoudiniEngineRuntimeUtils.h"
 
+#include "HoudiniEngineRuntimePrivatePCH.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 

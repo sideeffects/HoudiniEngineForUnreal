@@ -735,6 +735,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniOutput : public UObject
 	// and access our HGPO and Output objects
 	friend class FHoudiniEditorEquivalenceUtils;
 	friend struct FHoudiniMeshTranslator;
+	friend struct FHoudiniSkeletalMeshTranslator;
 	friend struct FHoudiniInstanceTranslator;
 	friend struct FHoudiniOutputTranslator;
 	friend struct FHoudiniGeometryCollectionTranslator;

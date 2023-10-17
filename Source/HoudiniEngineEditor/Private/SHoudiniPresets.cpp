@@ -28,6 +28,8 @@
 
 #include "AssetSelection.h"
 #include "HoudiniAsset.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterColor.h"
 #include "HoudiniParameterFile.h"

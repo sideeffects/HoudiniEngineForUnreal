@@ -15,6 +15,7 @@
 #include "HoudiniInputTranslator.h"
 #include "HoudiniInputTypes.h"
 #include "HoudiniMeshTranslator.h"
+#include "HoudiniSkeletalMeshTranslator.h"
 #include "HoudiniOutputTranslator.h"
 #include "UnrealMeshTranslator.h"
 
@@ -900,13 +901,13 @@ UHoudiniEditorNodeSyncSubsystem::FetchSkeletalMeshFromHoudini(
     skBuildSettings.OverwriteSkeleton = NodeSyncOptions.bOverwriteSkeleton;
     skBuildSettings.SkeletonAssetPath = NodeSyncOptions.SkeletonAssetPath;
 
-    FHoudiniMeshTranslator::CreateSKAssetAndPackage(skBuildSettings, InNodeId, PartId, FullPackageName, MaxInfluences, ImportNormals);
+    FHoudiniSkeletalMeshTranslator::CreateSKAssetAndPackage(skBuildSettings, InNodeId, PartId, FullPackageName, MaxInfluences, ImportNormals);
 
     TArray<FSkeletalMaterial> Materials;
     FSkeletalMaterial Mat;
     Materials.Add(Mat);
     Materials.Add(Mat);
-    FHoudiniMeshTranslator::BuildSKFromImportData(skBuildSettings, Materials);
+	FHoudiniSkeletalMeshTranslator::BuildSKFromImportData(skBuildSettings, Materials);
     //BuildSKFromImportData(SkeletalMeshImportData, Materials, MySkeleton, PackageName, NewMesh, Package);
 
 	return true;

@@ -29,6 +29,7 @@
 #include "CoreMinimal.h"
 #include "HoudiniInput.h"
 
+#include "Widgets/SBoxPanel.h"
 #include "Widgets/SCompoundWidget.h"
 
 class SHoudiniNodeSyncPanel : public SCompoundWidget
