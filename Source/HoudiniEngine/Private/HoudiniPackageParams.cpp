@@ -36,6 +36,7 @@
 #include "Engine/StaticMesh.h"
 #include "UObject/MetaData.h"
 #include "Animation/Skeleton.h"
+#include "Animation/AnimSequence.h"
 #include "FoliageType_InstancedStaticMesh.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 	#include "GeometryCollection/GeometryCollectionObject.h"
@@ -391,6 +392,7 @@ void TemplateFixer()
 	FHoudiniPackageParams PP;
 	UStaticMesh* SM = PP.CreateObjectAndPackage<UStaticMesh>();
 	USkeletalMesh* SK = PP.CreateObjectAndPackage<USkeletalMesh>();
+	UAnimSequence* Anim = PP.CreateObjectAndPackage<UAnimSequence>();
 	USkeleton* Skelly = PP.CreateObjectAndPackage<USkeleton>();
 	UHoudiniStaticMesh* HSM = PP.CreateObjectAndPackage<UHoudiniStaticMesh>();
 	UGeometryCollection* GC = PP.CreateObjectAndPackage<UGeometryCollection>();

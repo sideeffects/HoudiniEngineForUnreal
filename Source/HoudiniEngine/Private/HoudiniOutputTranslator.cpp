@@ -77,6 +77,7 @@
 #include "HoudiniLevelInstanceUtils.h"
 #include "Engine/UserDefinedStruct.h"
 #include "HoudiniHLODLayerUtils.h"
+#include "HoudiniAnimationTranslator.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -346,6 +347,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 				break;
 			}
 
+
 			case EHoudiniOutputType::Curve:
 			{
 				const TArray<FHoudiniGeoPartObject> &GeoPartObjects = CurOutput->GetHoudiniGeoPartObjects();
@@ -464,6 +466,12 @@ FHoudiniOutputTranslator::UpdateOutputs(
 
 			// Translation successful
 			NumVisibleOutputs += CurOutput->GetOutputObjects().Num();
+			break;
+		}
+
+		case EHoudiniOutputType::AnimSequence:
+		{
+			FHoudiniAnimationTranslator::CreateAnimSequenceFromOutput(CurOutput, PackageParams, OuterComponent);
 			break;
 		}
 
@@ -1421,11 +1429,29 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				EHoudiniPartType CurrentPartType = EHoudiniPartType::Invalid;
 				EHoudiniInstancerType CurrentInstancerType = EHoudiniInstancerType::Invalid;
 
+				bool bTypeFound = false;
 				bool bIsGeometryCollection = false;
+				bool bIsMotionClip = false;
+				bool bIsSkeletalMesh = false;
 
-				if (CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER)
+				if (CurrentHapiPartInfo.type == HAPI_PARTTYPE_MESH)
+				{
+					//TODO
+					//bIsSkeletalMesh = IsThisGeometryASkeleton(...);
+					bTypeFound = false;
+				}
+
+				if (CurrentHapiPartInfo.type == HAPI_PARTTYPE_MESH && !bTypeFound)
+				{
+					//TODO IMPLEMENT
+					bIsMotionClip = FHoudiniAnimationTranslator::IsAnimationPart(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id);
+					bTypeFound = true;
+				}
+
+				if (CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER && !bTypeFound)
 				{
 					bIsGeometryCollection = FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancerPart(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id);
+					bTypeFound = true;
 				}
 				
 				switch (CurrentHapiPartInfo.type)
@@ -1451,8 +1477,16 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						else
 						{
 							CurrentPartType = EHoudiniPartType::Mesh;
-							
-							if (CurrentHapiObjectInfo.isInstancer)
+
+							if (bIsSkeletalMesh)
+							{
+								CurrentPartType = EHoudiniPartType::SkeletalMesh;
+							}
+							else if (bIsMotionClip)
+							{
+								CurrentPartType = EHoudiniPartType::AnimSequence;
+							}
+							else if (CurrentHapiObjectInfo.isInstancer)
 							{
 								if (FHoudiniEngineUtils::IsAttributeInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, CurrentInstancerType))
 								{
@@ -1536,13 +1570,20 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					{
 						// This is a packed primitive instancer
 						CurrentPartType = EHoudiniPartType::Instancer;
-						if (!bIsGeometryCollection)
+						if (bIsMotionClip)
 						{
-							CurrentInstancerType = EHoudiniInstancerType::PackedPrimitive;
+							CurrentPartType = EHoudiniPartType::AnimSequence;
+							CurrentInstancerType = EHoudiniInstancerType::Invalid;
+						}
+						else if (bIsGeometryCollection)
+						{
+							CurrentPartType = EHoudiniPartType::Instancer;
+							CurrentInstancerType = EHoudiniInstancerType::GeometryCollection;
 						}
 						else
 						{
-							CurrentInstancerType = EHoudiniInstancerType::GeometryCollection;
+							CurrentPartType = EHoudiniPartType::Instancer;
+							CurrentInstancerType = EHoudiniInstancerType::PackedPrimitive;
 						}
 					}
 					break;

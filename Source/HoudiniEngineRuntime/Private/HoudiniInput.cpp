@@ -49,7 +49,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "UObject/UObjectGlobals.h"
 #include "FoliageType_InstancedStaticMesh.h"
-
+#include "Animation/AnimSequence.h"
 #include "Components/SplineComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -2263,6 +2263,7 @@ UHoudiniInput::GetAllowedClasses(const EHoudiniInputType& InInputType)
 		case EHoudiniInputType::Geometry:
 			AllowedClasses.Add(UStaticMesh::StaticClass());
 			AllowedClasses.Add(USkeletalMesh::StaticClass());
+			AllowedClasses.Add(UAnimSequence::StaticClass());
 			AllowedClasses.Add(UGeometryCollection::StaticClass());
 			AllowedClasses.Add(UGeometryCollectionComponent::StaticClass());
 			AllowedClasses.Add(AGeometryCollectionActor::StaticClass());

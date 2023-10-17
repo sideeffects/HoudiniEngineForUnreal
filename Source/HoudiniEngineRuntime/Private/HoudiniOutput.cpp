@@ -959,6 +959,9 @@ UHoudiniOutput::UpdateOutputType()
 	int32 InstancerCount = 0;
 	int32 DataTableCount = 0;
 	int32 LandscapeSplineCount = 0;
+	int32 AnimationCount = 0;
+	int32 SkeletonCount = 0;
+
 	for (auto& HGPO : HoudiniGeoPartObjects)
 	{
 		switch (HGPO.Type)
@@ -980,6 +983,12 @@ UHoudiniOutput::UpdateOutputType()
 			break;
 		case EHoudiniPartType::LandscapeSpline:
 			LandscapeSplineCount++;
+			break;
+		case EHoudiniPartType::AnimSequence:
+			AnimationCount++;
+			break;
+		case EHoudiniPartType::SkeletalMesh:
+			SkeletonCount++;
 			break;
 		default:
 		case EHoudiniPartType::Invalid:
@@ -1017,6 +1026,15 @@ UHoudiniOutput::UpdateOutputType()
 	{
 		Type = EHoudiniOutputType::LandscapeSpline;
 	}
+	else if (AnimationCount > 0)
+	{
+		Type = EHoudiniOutputType::AnimSequence;
+	}
+	else if (SkeletonCount > 0)
+	{
+		Type = EHoudiniOutputType::Skeletal;
+	}
+
 	else
 	{
 		// No valid HGPO detected...

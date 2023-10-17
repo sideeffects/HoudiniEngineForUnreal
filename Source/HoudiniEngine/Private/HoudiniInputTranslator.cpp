@@ -45,6 +45,7 @@
 #include "UnrealDataTableTranslator.h"
 #include "UnrealSplineTranslator.h"
 #include "UnrealMeshTranslator.h"
+#include "UnrealAnimationTranslator.h"
 #include "UnrealInstanceTranslator.h"
 #include "UnrealLandscapeTranslator.h"
 #include "UnrealFoliageTypeTranslator.h"
@@ -2482,7 +2483,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForAnimation(
 	}
 	else
 	{
-		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForAnimation(
+		bSuccess = FUnrealAnimationTranslator::HapiCreateInputNodeForAnimation(
 			Animation, CreatedNodeId, SKName, AnimInputNodeHandle, false, false, false, bInputNodesCanBeDeleted);
 		if (!bSuccess)
 		{

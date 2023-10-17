@@ -97,19 +97,6 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			const bool& bAddLODGroup,
 			const bool bInExportMaterialParametersAsAttributes);
 
-		static bool HapiCreateInputNodeForAnimation(
-			UAnimSequence* Animation,
-			HAPI_NodeId& InputObjectNodeId,
-			const FString& InputNodeName,
-			FUnrealObjectInputHandle& OutHandle,
-			const bool& ExportAllLODs = false,
-			const bool& ExportSockets = false,
-			const bool& ExportColliders = false,
-			const bool& bInputNodesCanBeDeleted = true);
-
-		static bool SetAnimationDataOnNode(
-			UAnimSequence* Animation,
-			HAPI_NodeId& NewNodeId);
 
 
 
