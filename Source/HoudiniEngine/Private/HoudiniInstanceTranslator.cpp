@@ -1594,6 +1594,9 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 		const FString & AssetName = DetailInstanceValues[0];
 		UObject * AttributeObject = StaticLoadObject(UObject::StaticClass(), nullptr, *AssetName, nullptr, LOAD_None, nullptr);
 
+		while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(AttributeObject))
+			AttributeObject = Redirector->DestinationObject;
+
 		if (!AttributeObject)
 		{
 			// See if the ref is a class that we can instantiate
@@ -1680,6 +1683,9 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 					AttributeObject = StaticLoadObject(
 						UObject::StaticClass(), nullptr, *Iter, nullptr, LOAD_None, nullptr);
 
+				while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(AttributeObject))
+					AttributeObject = Redirector->DestinationObject;
+
 				if (!AttributeObject)
 				{
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
@@ -1707,6 +1713,7 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 			bool bHiddenInGame = false;
 			// Check that we managed to load this object
 			UObject * AttributeObject = Iter.Value;
+
 			if (!AttributeObject && bDefaultObjectEnabled) 
 			{
 				HOUDINI_LOG_WARNING(
@@ -2493,7 +2500,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedActorComponent(
 	TArray<AActor*> NewActors = InstancedActorComponent->GetInstancedActors();
 	for (auto& CurActor : NewActors)
 	{
-		CurActor->PostEditChange();
+		if (CurActor)
+			CurActor->PostEditChange();
 	}
 
 	// Assign the new ISMC / HISMC to the output component if we created a new one
