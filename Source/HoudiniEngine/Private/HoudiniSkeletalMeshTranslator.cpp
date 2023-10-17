@@ -29,6 +29,7 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniGeoPartObject.h"
 #include "HoudiniMeshTranslator.h"
 
 #include "Animation/Skeleton.h"
