@@ -2207,7 +2207,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancer(
 		case HoudiniInstancedActorComponent:
 		{
 			bSuccess = CreateOrUpdateInstancedActorComponent(
-				InstancedObject, InstancedObjectTransforms, OriginalInstancerObjectIndices, AllPropertyAttributes, ParentComponent, NewComponents[0]);
+				InstancedObject, InstancedObjectTransforms, OriginalInstancerObjectIndices, AllPropertyAttributes, &InstancerGeoPartObject, ParentComponent, NewComponents[0]);
 		}
 		break;
 
@@ -2375,6 +2375,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedStaticMeshComponent(
 
 	if (!InstancedStaticMeshComponent)
 		return false;
+	
+	FHoudiniEngineUtils::KeepOrClearComponentTags(InstancedStaticMeshComponent, &InstancerGeoPartObject);
 
 	InstancedStaticMeshComponent->SetStaticMesh(InstancedStaticMesh);
 
@@ -2423,7 +2425,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedActorComponent(
 	UObject* InstancedObject,
 	const TArray<FTransform>& InstancedObjectTransforms,
 	const TArray<int32>& OriginalInstancerObjectIndices,
-	const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,	
+	const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
+	const FHoudiniGeoPartObject* InstancerHGPO,
 	USceneComponent* ParentComponent,
 	USceneComponent*& CreatedInstancedComponent)
 {
@@ -2453,6 +2456,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedActorComponent(
 
 	if (!InstancedActorComponent)
 		return false;
+
+	FHoudiniEngineUtils::KeepOrClearComponentTags(InstancedActorComponent, InstancerHGPO);
 
 	// See if the instanced object has changed
 	bool bInstancedObjectHasChanged = (InstancedObject != InstancedActorComponent->GetInstancedObject());
@@ -2492,9 +2497,15 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedActorComponent(
 			InstancedActorComponent->SetInstanceTransformAt(Idx, CurTransform);	
 		}
 
+		// Keep or clear tags on the instanced actor
+		FHoudiniEngineUtils::KeepOrClearActorTags(CurInstance, true, true, InstancerHGPO);
+
 		// Update the generic properties for that instance if any
 		FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(CurInstance, AllPropertyAttributes, OriginalInstancerObjectIndices[Idx]);
 	}
+
+	// Update generic properties for the component managing the instances
+	FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(InstancedActorComponent, AllPropertyAttributes);
 
 	// Make sure Post edit change is called on all generated actors
 	TArray<AActor*> NewActors = InstancedActorComponent->GetInstancedActors();
@@ -2553,6 +2564,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateMeshSplitInstancerComponent(
 
 	MeshSplitComponent->SetStaticMesh(InstancedStaticMesh);
 	MeshSplitComponent->SetOverrideMaterials(InInstancerMaterials);
+	
+	FHoudiniEngineUtils::KeepOrClearComponentTags(MeshSplitComponent, &InstancerGeoPartObject);
 
 	// Now add the instances
 	MeshSplitComponent->SetInstanceTransforms(InstancedObjectTransforms);
@@ -2739,6 +2752,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateStaticMeshComponent(
 
 	SMC->SetStaticMesh(InstancedStaticMesh);
 	SMC->GetBodyInstance()->bAutoWeld = false;
+	
+	FHoudiniEngineUtils::KeepOrClearComponentTags(SMC, &InstancerGeoPartObject);
 
 	SMC->OverrideMaterials.Empty();
 	if (InstancerMaterials.Num() > 0)
@@ -2755,7 +2770,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateStaticMeshComponent(
 	if (InstancedObjectTransforms.Num() > 0)
 	{
 		SMC->SetRelativeTransform(InstancedObjectTransforms[0]);
-	}	
+	}
 
 	// Apply generic attributes if we have any
 	FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SMC, AllPropertyAttributes, InOriginalIndex);
@@ -2810,6 +2825,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateHoudiniStaticMeshComponent(
 		return false; 
 
 	HSMC->SetMesh(InstancedProxyStaticMesh);
+
+	FHoudiniEngineUtils::KeepOrClearComponentTags(HSMC, &InstancerGeoPartObject);
 	
 	HSMC->OverrideMaterials.Empty();
 	if (InstancerMaterials.Num() > 0)
@@ -2933,6 +2950,8 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 						FoliageHISMC->SetMaterial(Idx, InstancerMaterials[Idx]);
 				}
 			}
+
+	    	FHoudiniEngineUtils::KeepOrClearComponentTags(FoliageHISMC, &InstancerGeoPartObject);
 
 	        NewInstancedComponents.Add(FoliageHISMC);
 

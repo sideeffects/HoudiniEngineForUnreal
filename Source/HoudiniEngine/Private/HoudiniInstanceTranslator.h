@@ -356,6 +356,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			const TArray<FTransform>& InstancedObjectTransforms,
 			const TArray<int32>& OriginalInstancerObjectIndices,
 			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
+			const FHoudiniGeoPartObject* InstancerHGPO,
 			USceneComponent* ParentComponent,
 			USceneComponent*& CreatedInstancedComponent);
 

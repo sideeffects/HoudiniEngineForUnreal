@@ -52,6 +52,7 @@ FHoudiniGeoPartObject::FHoudiniGeoPartObject()
 	, bHasTransformChanged(true)
 	, bHasMaterialsChanged(true)
 	, bLoaded(false)
+	, bKeepTags(false)
 {
 
 }

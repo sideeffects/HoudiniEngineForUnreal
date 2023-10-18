@@ -7082,6 +7082,216 @@ FHoudiniEngineUtils::SetGenericPropertyAttribute(
 	return true;
 }
 
+
+TArray<FName>
+FHoudiniEngineUtils::GetDefaultActorTags(const AActor* InActor)
+{
+	if (!IsValid(InActor))
+	{
+		return {};
+	}
+
+	 return InActor->GetClass()->GetDefaultObject<AActor>()->Tags;
+}
+
+
+TArray<FName>
+FHoudiniEngineUtils::GetDefaultComponentTags(const UActorComponent* InComponent)
+{
+	if (!IsValid(InComponent))
+	{
+		return {};
+	}
+
+	 return InComponent->GetClass()->GetDefaultObject<UActorComponent>()->ComponentTags;
+}
+
+
+void
+FHoudiniEngineUtils::ApplyTagsToActorOnly(const TArray<FHoudiniGenericAttribute>& GenericPropertyAttributes,
+                                             TArray<FName>& OutActorTags)
+{
+	for (const FHoudiniGenericAttribute& Attribute : GenericPropertyAttributes)
+	{
+		if (Attribute.AttributeName.StartsWith("ActorTag") || Attribute.AttributeName.StartsWith("Tag"))
+		{
+			OutActorTags.AddUnique(FName(Attribute.GetStringValue()));
+		}
+	}
+}
+
+
+void
+FHoudiniEngineUtils::ApplyTagsToActorAndComponents(AActor* InActor, bool bKeepActorTags, const TArray<FHoudiniGenericAttribute>& GenericPropertyAttributes)
+{
+	auto ForEachComponentFn = [InActor](TFunctionRef<void(UActorComponent*)> Fn)
+	{
+		for (UActorComponent* Component : InActor->GetComponents())
+		{
+			if (!IsValid(Component))
+			{
+				continue;
+			}
+			Fn(Component);
+		}
+	};
+	
+	if (!bKeepActorTags)
+	{
+		InActor->Tags = FHoudiniEngineUtils::GetDefaultActorTags(InActor);
+		ForEachComponentFn([](UActorComponent* Component)
+		{
+			Component->ComponentTags = FHoudiniEngineUtils::GetDefaultComponentTags(Component);
+		});
+	}
+
+
+	for (const FHoudiniGenericAttribute& Attribute : GenericPropertyAttributes)
+	{
+
+		bool bApplyTagToActor = false;
+		bool bApplyTagToMainComponent = false;
+		bool bApplyTagToAllComponents = false;
+
+		if (Attribute.AttributeName.StartsWith("ActorTag"))
+		{
+			bApplyTagToActor = true;
+		}
+		if (Attribute.AttributeName.StartsWith("MainComponentTag"))
+		{
+			bApplyTagToMainComponent = true;
+		}
+		if (Attribute.AttributeName.StartsWith("ComponentTag"))
+		{
+			bApplyTagToAllComponents = true;
+		}
+		if (Attribute.AttributeName.StartsWith("Tag"))
+		{
+			bApplyTagToActor = true;
+			bApplyTagToAllComponents = true;
+		}
+		
+		if (bApplyTagToActor)
+		{
+			InActor->Tags.AddUnique(FName(Attribute.GetStringValue()));
+		}
+
+		if (bApplyTagToAllComponents)
+		{
+			ForEachComponentFn([&Attribute](UActorComponent* Component)
+			{
+				Component->ComponentTags.AddUnique(FName(Attribute.GetStringValue()));
+			});
+		}
+		else if(bApplyTagToMainComponent)
+		{
+			InActor->GetRootComponent()->ComponentTags.AddUnique(FName(Attribute.GetStringValue()));
+		}
+	}
+}
+
+
+bool
+FHoudiniEngineUtils::IsKeepTagsEnabled(const TArray<FHoudiniGeoPartObject>& InHGPOs)
+{
+	for (const FHoudiniGeoPartObject& CurHGPO : InHGPOs)
+	{
+		if (CurHGPO.bKeepTags)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+
+bool
+FHoudiniEngineUtils::IsKeepTagsEnabled(const FHoudiniGeoPartObject* InHGPO)
+{
+	if (InHGPO)
+	{
+		return InHGPO->bKeepTags;
+	}
+	
+	return false;
+}
+
+
+void
+FHoudiniEngineUtils::KeepOrClearComponentTags(
+	UActorComponent* ActorComponent,
+	const TArray<FHoudiniGeoPartObject>& InHGPOs)
+{
+	if (!IsValid(ActorComponent))
+	{
+		return;
+	}
+	const bool bKeepTags = IsKeepTagsEnabled(InHGPOs);
+	KeepOrClearComponentTags(ActorComponent, bKeepTags);
+}
+
+
+void
+FHoudiniEngineUtils::KeepOrClearComponentTags(UActorComponent* ActorComponent, const FHoudiniGeoPartObject* InHGPO)
+{
+	if (!IsValid(ActorComponent))
+	{
+		return;
+	}
+	const bool bKeepTags = IsKeepTagsEnabled(InHGPO);
+	KeepOrClearComponentTags(ActorComponent, bKeepTags);
+}
+
+
+void
+FHoudiniEngineUtils::KeepOrClearComponentTags(UActorComponent* ActorComponent, bool bKeepTags)
+{
+	if (!bKeepTags)
+	{
+		// Ensure that we revert existing tags to their default state if this is an actor component.
+		const UActorComponent* DefaultComponent = ActorComponent->GetClass()->GetDefaultObject<UActorComponent>();
+		ActorComponent->ComponentTags = DefaultComponent->ComponentTags;
+	}
+}
+
+
+void
+FHoudiniEngineUtils::KeepOrClearActorTags(AActor* Actor, bool bApplyToActor, bool bApplyToComponents, const FHoudiniGeoPartObject* InHGPO)
+{
+	if (!IsValid(Actor))
+	{
+		return;
+	}
+
+	if (InHGPO && InHGPO->bKeepTags)
+	{
+		return;
+	}
+
+	if (bApplyToActor)
+	{
+		// Revert actor tags to their default value
+		Actor->Tags = GetDefaultActorTags(Actor);
+	}
+
+	if (bApplyToComponents)
+	{
+		// Revert all component tags to their default value
+		const TSet<UActorComponent*>& Components = Actor->GetComponents();
+		for (UActorComponent* Component : Components)
+		{
+			if (!IsValid(Component))
+			{
+				continue;
+			}
+
+			// Ensure that we revert existing tags
+			const UActorComponent* DefaultComponent = Component->GetClass()->GetDefaultObject<UActorComponent>();
+			Component->ComponentTags = DefaultComponent->ComponentTags;
+		}
+	}
+}
+
 void
 FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
 	UPackage * Package, UObject * Object, const FString& Key, const FString& Value)
