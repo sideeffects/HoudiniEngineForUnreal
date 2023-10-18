@@ -438,7 +438,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 			}
 
 			bCreatedNewMaps |= bNewMapCreated;
-
+			break;
 		}
 
 		case EHoudiniOutputType::DataTable:
