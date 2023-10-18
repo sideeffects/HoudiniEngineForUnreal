@@ -18,6 +18,7 @@
 #include "HoudiniSkeletalMeshTranslator.h"
 #include "HoudiniOutputTranslator.h"
 #include "UnrealMeshTranslator.h"
+#include "UnrealSkeletalMeshTranslator.h"
 
 #include "Engine/SkeletalMesh.h"
 //#include "Toolkits/AssetEditorModeUILayer.h"
@@ -86,7 +87,7 @@ UHoudiniEditorNodeSyncSubsystem::SendSkeletalMeshToHoudini(
 
 	int32 LODIndex = 0;
 	HAPI_NodeId SKNodeId = InNodeId;
-	if (!FUnrealMeshTranslator::SetSkeletalMeshDataOnNode(InSkelMesh, nullptr, SKNodeId, LODIndex, false, false))
+	if (!FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNode(InSkelMesh, nullptr, SKNodeId, LODIndex, false, false))
 		return false;
 
 	// Set the display flag

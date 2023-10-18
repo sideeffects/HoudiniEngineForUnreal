@@ -26,52 +26,61 @@
 
 #include "HoudiniInputTranslator.h"
 
-#include "HoudiniInput.h"
+#include "HCsgUtils.h"
 #include "HoudiniApi.h"
+#include "HoudiniAssetActor.h"
+#include "HoudiniAssetComponent.h"
+#include "HoudiniDataLayerUtils.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"
+#include "HoudiniInput.h"
+#include "HoudiniInputObject.h"
+#include "HoudiniMeshUtils.h"
+#include "HoudiniOutputTranslator.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterOperatorPath.h"
-#include "HoudiniAssetComponent.h"
 #include "HoudiniSplineComponent.h"
-#include "HoudiniInputObject.h"
-#include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniDataLayerUtils.h"
 #include "HoudiniSplineTranslator.h"
-#include "HoudiniAssetActor.h"
-#include "HoudiniOutputTranslator.h"
+#include "UnrealAnimationTranslator.h"
 #include "UnrealBrushTranslator.h"
 #include "UnrealDataTableTranslator.h"
-#include "UnrealSplineTranslator.h"
-#include "UnrealMeshTranslator.h"
-#include "UnrealAnimationTranslator.h"
-#include "UnrealInstanceTranslator.h"
-#include "UnrealLandscapeTranslator.h"
 #include "UnrealFoliageTypeTranslator.h"
-#include "UnrealObjectInputRuntimeTypes.h"
-#include "UnrealObjectInputTypes.h"
-#include "UnrealObjectInputManager.h"
-#include "UnrealObjectInputRuntimeUtils.h"
-#include "UnrealObjectInputUtils.h"
+#include "UnrealGeometryCollectionTranslator.h"
+#include "UnrealInstanceTranslator.h"
 #include "UnrealLandscapeSplineTranslator.h"
+#include "UnrealLandscapeTranslator.h"
+#include "UnrealLevelInstanceTranslator.h"
+#include "UnrealMeshTranslator.h"
+#include "UnrealObjectInputManager.h"
+#include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputRuntimeUtils.h"
+#include "UnrealObjectInputTypes.h"
+#include "UnrealObjectInputUtils.h"
+#include "UnrealSkeletalMeshTranslator.h"
+#include "UnrealSplineTranslator.h"
 
+#include "Animation/AnimSequence.h"
+#include "Async/Async.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
-#include "Animation/AnimSequence.h"
-#include "Components/StaticMeshComponent.h"
+#include "Camera/CameraComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Landscape.h"
+#include "Components/StaticMeshComponent.h"
 #include "Engine/Brush.h"
 #include "Engine/DataTable.h"
-#include "Camera/CameraComponent.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
 #include "FoliageType_InstancedStaticMesh.h"
+#include "GeometryCollection/GeometryCollection.h"
+#include "Landscape.h"
+#include "LandscapeInfo.h"
 #include "LandscapeSplinesComponent.h"
 #include "LevelInstance/LevelInstanceActor.h"
-#include "Engine/SimpleConstructionScript.h"
-#include "Engine/SCS_Node.h"
+#include "UObject/TextProperty.h"
 
 #if WITH_EDITOR
 	#include "Editor.h"
@@ -79,14 +88,6 @@
 	#include "UnrealEdGlobals.h"
 #endif
 
-#include "HCsgUtils.h"
-#include "HoudiniMeshUtils.h"
-#include "LandscapeInfo.h"
-#include "UnrealGeometryCollectionTranslator.h"
-#include "UnrealLevelInstanceTranslator.h"
-
-#include "Async/Async.h"
-#include "GeometryCollection/GeometryCollection.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 	#include "GeometryCollection/GeometryCollectionActor.h"
 	#include "GeometryCollection/GeometryCollectionComponent.h"
@@ -96,8 +97,6 @@
 	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"	
 #endif
-
-#include "UObject/TextProperty.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -2591,7 +2590,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(
 	}
 	else
 	{
-		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
+		bSuccess = FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			SkelMesh, CreatedNodeId, SKName, SKMInputNodeHandle, nullptr, InInputSettings.bExportLODs, InInputSettings.bExportSockets, InInputSettings.bExportColliders, true, bInputNodesCanBeDeleted, InInputSettings.bExportMaterialParameters );
 
 		if(!bSuccess)
@@ -2689,7 +2688,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMeshComponent(
 	}
 	else
 	{
-		bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
+		bSuccess = FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			SK, CreatedNodeId, SKCName, InputNodeHandle, SKC, InInputSettings.bExportLODs, InInputSettings.bExportSockets, InInputSettings.bExportColliders, true, bInputNodesCanBeDeleted, InInputSettings.bExportMaterialParameters);
 	}
 
