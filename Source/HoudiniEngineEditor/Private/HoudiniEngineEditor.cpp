@@ -34,7 +34,7 @@
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetComponentDetails.h"
-#include "HoudiniEditorSubsystem.h"
+#include "HoudiniEditorNodeSyncSubsystem.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineCommands.h"
 #include "HoudiniEngineEditorUtils.h"

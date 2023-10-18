@@ -9,7 +9,7 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniInput.h"
 
-#include "HoudiniEditorSubsystem.generated.h"
+#include "HoudiniEditorNodeSyncSubsystem.generated.h"
 
 
 class USkeletalMesh;
