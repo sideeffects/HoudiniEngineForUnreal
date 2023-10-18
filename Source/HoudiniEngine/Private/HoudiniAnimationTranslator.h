@@ -28,6 +28,9 @@
 
 #include "HAPI/HAPI_Common.h"
 
+struct FHoudiniGeoPartObject;
+struct FHoudiniPackageParams;
+class UHoudiniOutput;
 class UAnimSequence;
 
 struct HOUDINIENGINE_API FHoudiniAnimationTranslator

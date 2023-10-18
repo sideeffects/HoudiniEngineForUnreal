@@ -141,7 +141,7 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 		FHoudiniEngineUtils::HapiGetAttributeDataAsString(HGPO.GeoId, HGPO.PartId, "unreal_skeleton", UnrealSkeletonInfo, UnrealSkeletonData);
 		if (UnrealSkeletonData.Num() <= 0)
 		{
-			return nullptr;
+			return false;
 		}
 
 		SkeletonAssetPathString = UnrealSkeletonData[0];
@@ -152,7 +152,7 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 	MySkeleton = Cast<USkeleton>(SkeletonAssetPath.TryLoad());
 	if (!IsValid(MySkeleton))
 	{
-		return nullptr;
+		return false;
 	}
 
 
@@ -168,7 +168,7 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 	FHoudiniEngineUtils::HapiGetAttributeDataAsString(HGPO.GeoId, HGPO.PartId, "name", BoneNameInfo, BoneNameData);
 	if (BoneNameData.Num() <= 0)
 	{
-		return nullptr;
+		return false;
 	}
 
 	//Get unique Set of Bones
@@ -446,17 +446,10 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 		bool bShouldTransact = true;
 		for (auto Bone : BoneNames)  //loop over all bones
 		{
-			AnimController.AddBoneTrack(Bone, bShouldTransact);
-			//AnimController.SetBoneTrackKeys(Bone, PositionalKeys, RotationalKeys, ScalingKeys, bShouldTransact);
-			//AnimController.SetBoneTrackKeys(Bone, *PosMap.Find(Bone), *RotMap.Find(Bone), *ScaleMap.Find(Bone), bShouldTransact);
-			AnimController.SetBoneTrackKeys(Bone, *BonePosMap.Find(Bone), *BoneRotMap.Find(Bone), *BoneScaleMap.Find(Bone), bShouldTransact);
 			AnimController.AddBoneCurve(Bone, bShouldTransact);
+			AnimController.SetBoneTrackKeys(Bone, *BonePosMap.Find(Bone), *BoneRotMap.Find(Bone), *BoneScaleMap.Find(Bone), bShouldTransact);
 		}
-
-
-		AnimController.NotifyPopulated();
-
-
+		
 		AnimController.NotifyPopulated();
 	}
 	AnimController.CloseBracket();
