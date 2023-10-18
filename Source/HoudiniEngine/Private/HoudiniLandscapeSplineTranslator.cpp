@@ -652,6 +652,8 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 	if (CurveNodeId < 0 || CurvePartId < 0)
 		return false;
 
+	const FTransform HACTransform = IsValid(InHAC) ? InHAC->GetComponentTransform() : FTransform::Identity;
+
 	// Find the fallback landscape to use, either InFallbackLandscape if valid, otherwise the first one we find in the
 	// world
 	const bool bIsUsingWorldPartition = IsValid(InWorld->GetWorldPartition());
@@ -806,6 +808,8 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 					
 					if (IsValid(SplineInfo->LandscapeSplineActor))
 					{
+						// Set / update the transform of the landscape spline actor
+						SplineInfo->LandscapeSplineActor->SetActorTransform(HACTransform);
 						SplineInfo->SplinesComponent = SplineInfo->LandscapeSplineActor->GetSplinesComponent();
 					}
 				}
@@ -922,8 +926,14 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 			// and recreate based on the attributes found on the curve geo
 			SplineInfo.SplinesOutputObject->GetLayerOutputs().Empty();
 		}
-		
-		const FTransform WorldTransform = SplineInfo.SplinesComponent->GetComponentTransform();
+
+		// When not using world partition, we have to transform the splines: apply the HAC's world transform and then
+		// the inverse of the LandscapeSplinesComponent's transform.
+		// For world partition, we set the LandscapeSplineActor's transform to the HAC's transform
+		const FTransform TransformToApply = !bIsUsingWorldPartition
+			? HACTransform.GetRelativeTransform(SplineInfo.SplinesComponent->GetComponentTransform()) 
+			: FTransform::Identity;
+
 		TArray<TObjectPtr<ULandscapeSplineControlPoint>>& ControlPoints = SplineInfo.SplinesComponent->GetControlPoints();
 		TArray<TObjectPtr<ULandscapeSplineSegment>>& Segments = SplineInfo.SplinesComponent->GetSegments();
 
@@ -964,7 +974,7 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 				{
 					SplineInfo.SplinesOutputObject->GetControlPoints().Add(ThisControlPoint);
 					ControlPoints.Add(ThisControlPoint);
-					ThisControlPoint->Location = WorldTransform.InverseTransformPosition(
+					ThisControlPoint->Location = TransformToApply.TransformPosition(
 						ConvertPositionToVector(&Attributes.PointPositions[CurvePointArrayIdx * 3]));
 
 					// Update generic properties attributes on the control point
@@ -972,7 +982,7 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 						FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(ThisControlPoint, GenericPointAttributes, HGPOPointIndex);
 
 					// Apply point attributes
-					UpdateControlPointFromAttributes(ThisControlPoint, Attributes, WorldTransform, CurvePointArrayIdx);
+					UpdateControlPointFromAttributes(ThisControlPoint, Attributes, TransformToApply, CurvePointArrayIdx);
 				}
 
 				// If we have two control points, create a segment
@@ -1835,7 +1845,7 @@ bool
 FHoudiniLandscapeSplineTranslator::UpdateControlPointFromAttributes(
 		ULandscapeSplineControlPoint* const InPoint,
 		const FLandscapeSplineCurveAttributes& InAttributes,
-		const FTransform& InWorldTransform,
+		const FTransform& InTransformToApply,
 		const int32 InPointIndex)
 {
 	if (!IsValid(InPoint))
@@ -1848,7 +1858,7 @@ FHoudiniLandscapeSplineTranslator::UpdateControlPointFromAttributes(
 			&& InAttributes.PointRotations.IsValidIndex(InPointIndex * 4) && InAttributes.PointRotations.IsValidIndex(InPointIndex * 4 + 3))
 	{
 		// Convert Houdini Y-up to UE Z-up and also Houdini -Z-forward to UE X-forward
-		InPoint->Rotation = (InWorldTransform.InverseTransformRotation({
+		InPoint->Rotation = (InTransformToApply.TransformRotation({
 			InAttributes.PointRotations[InPointIndex * 4 + 0],
 			InAttributes.PointRotations[InPointIndex * 4 + 2],
 			InAttributes.PointRotations[InPointIndex * 4 + 1],
