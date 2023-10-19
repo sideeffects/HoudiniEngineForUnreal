@@ -37,6 +37,7 @@
 #include "HoudiniAssetBlueprintComponent.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputManager.h"
+#include "UnrealObjectInputRuntimeUtils.h"
 #include "LandscapeSplineActor.h"
 
 #include "EngineUtils.h"
@@ -195,7 +196,7 @@ void UHoudiniInput::PostEditUndo()
 		 	{
 		 		// If the ref counted input system is being used, we must not delete nodes managed by the system
 				TSet<int32> ManagedNodeIds;
-				const bool bIsRefCountedInputSystemEnabled = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+				const bool bIsRefCountedInputSystemEnabled = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 				if (bIsRefCountedInputSystemEnabled)
 				{
 					IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
@@ -1394,7 +1395,7 @@ void UHoudiniInput::InvalidateData()
 	{
 		// If the ref counted input system is being used, we must not delete nodes managed by the system
 		TSet<int32> ManagedNodeIds;
-		const bool bIsRefCountedInputSystemEnabled = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+		const bool bIsRefCountedInputSystemEnabled = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 		if (bIsRefCountedInputSystemEnabled)
 		{
 			IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();

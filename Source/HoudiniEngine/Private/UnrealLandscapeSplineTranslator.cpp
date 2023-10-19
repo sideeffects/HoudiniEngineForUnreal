@@ -31,6 +31,8 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputRuntimeUtils.h"
+#include "UnrealObjectInputUtils.h"
 
 #include "Landscape.h"
 #include "LandscapeSplineActor.h"
@@ -347,14 +349,14 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 	FUnrealObjectInputIdentifier Identifier;
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
 		// Check if we already have an input node for this component and its options
 		bool bSingleLeafNodeOnly = false;
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
-		if (!FHoudiniEngineUtils::BuildLandscapeSplinesInputObjectIdentifiers(
+		if (!FUnrealObjectInputUtils::BuildLandscapeSplinesInputObjectIdentifiers(
 			InSplinesComponent,
 			bInExportCurves,
 			bInExportControlPoints,
@@ -379,15 +381,15 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 			Identifier = IdentReferenceNode;
 		}
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && (bSingleLeafNodeOnly || FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle)))
+			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId) && (bSingleLeafNodeOnly || FUnrealObjectInputUtils::AreReferencedHAPINodesValid(Handle)))
 			{
 				if (!bInInputNodesCanBeDeleted)
 				{
 					// Make sure to prevent deletion of the input node if needed
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInInputNodesCanBeDeleted);
 				}
 
 				OutInputNodeHandle = Handle;
@@ -396,10 +398,10 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 			}
 		}
 
-		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
 		// For the single leaf node case we can simply continue this function
@@ -415,15 +417,15 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 				const FUnrealObjectInputOptions& Options = OptionIdentifier.GetOptions();
 				HAPI_NodeId NewNodeId = -1;
 				FString NodeLabel;
-				FHoudiniEngineUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
+				FUnrealObjectInputUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
 
-				if (FHoudiniEngineUtils::FindNodeViaManager(OptionIdentifier, OptionHandle))
+				if (FUnrealObjectInputUtils::FindNodeViaManager(OptionIdentifier, OptionHandle))
 				{
 					// The node already exists, but it is dirty. Fetch its HAPI node ID so that the old
 					// node can be deleted when creating the new HAPI node.
 					// TODO: maybe the new input system manager should delete the old HAPI nodes when we set the new
 					//		 HAPI node IDs on the node entries in the manager?
-					FHoudiniEngineUtils::GetHAPINodeId(OptionHandle, NewNodeId);
+					FUnrealObjectInputUtils::GetHAPINodeId(OptionHandle, NewNodeId);
 				}
 
 				static constexpr bool bForceInputRefNodeCreation = false;
@@ -449,11 +451,11 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 
 			// Create or update the HAPI node for the reference node if it does not exist
 			FUnrealObjectInputHandle RefNodeHandle;
-			if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(IdentReferenceNode, PerOptionNodeHandles, RefNodeHandle, true, bInInputNodesCanBeDeleted))
+			if (!FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(IdentReferenceNode, PerOptionNodeHandles, RefNodeHandle, true, bInInputNodesCanBeDeleted))
 				return false;
 			
 			OutInputNodeHandle = RefNodeHandle;
-			FHoudiniEngineUtils::GetHAPINodeId(IdentReferenceNode, OutCreatedInputNodeId);
+			FUnrealObjectInputUtils::GetHAPINodeId(IdentReferenceNode, OutCreatedInputNodeId);
 			return true;
 		}
 	}
@@ -605,7 +607,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 		const HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(OutCreatedInputNodeId);
 		static constexpr TSet<FUnrealObjectInputHandle> const* ReferencedNodes = nullptr; 
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, OutCreatedInputNodeId, Handle, InputObjectNodeId, ReferencedNodes, bInInputNodesCanBeDeleted))
+		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, OutCreatedInputNodeId, Handle, InputObjectNodeId, ReferencedNodes, bInInputNodesCanBeDeleted))
 			OutInputNodeHandle = Handle;
 	}
 

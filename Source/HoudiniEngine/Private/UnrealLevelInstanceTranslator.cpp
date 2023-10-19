@@ -29,6 +29,8 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputRuntimeUtils.h"
+#include "UnrealObjectInputUtils.h"
 
 bool FUnrealLevelInstanceTranslator::AddLevelInstance(
 	ALevelInstance* LevelInstance,
@@ -60,7 +62,7 @@ FUnrealLevelInstanceTranslator::CreateNodeForLevelInstance(
 	FUnrealObjectInputHandle& OutHandle,
 	const bool bInputNodesCanBeDeleted)
 {
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 
 	FUnrealObjectInputIdentifier Identifier;
 	FUnrealObjectInputIdentifier GeoNodeIdentifier;
@@ -75,13 +77,13 @@ FUnrealLevelInstanceTranslator::CreateNodeForLevelInstance(
 		Identifier = FUnrealObjectInputIdentifier(LevelInstance, Options, true);
 
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId))
+			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
 			{
 				if (!bInputNodesCanBeDeleted)
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
 
 				OutHandle = Handle;
 				InputNodeId = NodeId;
@@ -89,9 +91,9 @@ FUnrealLevelInstanceTranslator::CreateNodeForLevelInstance(
 			}
 		}
 
-		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
-			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
+			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 	}
 
 	HAPI_NodeId InputObjectNodeId = -1;
@@ -125,7 +127,7 @@ FUnrealLevelInstanceTranslator::CreateNodeForLevelInstance(
 	if (bUseRefCountedInputSystem)
 	{
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId))
+		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId))
 			OutHandle = Handle;
 	}
 
