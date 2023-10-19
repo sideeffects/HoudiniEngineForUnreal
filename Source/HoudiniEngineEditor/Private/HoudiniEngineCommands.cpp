@@ -60,6 +60,7 @@
 #include "ISettingsModule.h"
 #include "UObject/ObjectSaveContext.h"
 //#include "UObject/ObjectSaveContext.h"
+#include "LevelEditor.h"
 #include "UObject/UObjectIterator.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
@@ -1194,7 +1195,9 @@ FHoudiniEngineCommands::OpenNodeSync()
 
 void FHoudiniEngineCommands::OpenHoudiniToolsTab()
 {
-	FGlobalTabmanager::Get()->TryInvokeTab(HoudiniToolsTabName);
+	// FGlobalTabmanager::Get()->TryInvokeTab(HoudiniToolsTabName);
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
+	LevelEditorModule.GetLevelEditorTabManager()->TryInvokeTab(HoudiniToolsTabName);
 }
 
 
