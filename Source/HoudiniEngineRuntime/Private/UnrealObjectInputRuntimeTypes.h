@@ -88,6 +88,7 @@ struct HOUDINIENGINERUNTIME_API FUnrealObjectInputOptions
 		const bool bExportLODs=false,
 		const bool bExportSockets=false,
 		const bool bExportColliders=false,
+		const bool bMainMeshIsNaniteFallbackMesh=false,
 		const EHoudiniLandscapeExportType LandscapeExportType=EHoudiniLandscapeExportType::Heightfield);
 	
 	/** Return hash value for this object, used when using this object as a key inside hashing containers. */
@@ -113,6 +114,9 @@ struct HOUDINIENGINERUNTIME_API FUnrealObjectInputOptions
 
 	/** Indicates that all colliders in the input should be marshalled to Houdini */
 	bool bExportColliders;
+
+	/** Use the Nanite fallback mesh for the main mesh, instead of the full Nanite mesh. */
+	bool bMainMeshIsNaniteFallbackMesh;
 
 	/** Indicates the export type if this input is a Landscape */
 	EHoudiniLandscapeExportType LandscapeExportType;

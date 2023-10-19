@@ -326,6 +326,7 @@ FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 	const bool bInExportLODs,
 	const bool bInExportSockets,
 	const bool bInExportColliders,
+	const bool bInMainMeshIsNaniteFallbackMesh,
 	const bool bForceCreateReferenceNode,
 	bool &bOutSingleLeafNodeOnly,
 	FUnrealObjectInputIdentifier& OutReferenceNode,
@@ -336,13 +337,18 @@ FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 	constexpr bool bDefaultExportLODs = false;
 	constexpr bool bDefaultExportSockets = false;
 	constexpr bool bDefaultExportColliders = false;
+	constexpr bool bDefaultMainMeshIsNaniteFallbackMesh = false;
 	const FUnrealObjectInputOptions DefaultOptions(
 		bDefaultImportAsReference,
 		bDefaultImportAsReferenceRotScaleEnabled,
 		bDefaultExportLODs,
 		bDefaultExportSockets,
-		bDefaultExportColliders);
+		bDefaultExportColliders,
+		bDefaultMainMeshIsNaniteFallbackMesh);
 
+	// The Nanite fallback mesh is only applicable if we are exporting the main mesh and/or LODs
+	const bool bEffectiveMainMeshIsNaniteFallbackMesh = bInMainMeshIsNaniteFallbackMesh && (bInExportMainMesh || bInExportLODs);
+	
 	// Determine number of leaves
 	uint32 NumLeaves = 0;
 	if (bInExportMainMesh)
@@ -360,6 +366,7 @@ FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 		Options.bExportLODs = bInExportLODs;
 		Options.bExportSockets = bInExportSockets;
 		Options.bExportColliders = bInExportColliders;
+		Options.bMainMeshIsNaniteFallbackMesh = bEffectiveMainMeshIsNaniteFallbackMesh;
 
 		constexpr bool bIsLeaf = true;
 		bOutSingleLeafNodeOnly = true;
@@ -375,6 +382,7 @@ FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 		Options.bExportLODs = bInExportLODs;
 		Options.bExportSockets = bInExportSockets;
 		Options.bExportColliders = bInExportColliders;
+		Options.bMainMeshIsNaniteFallbackMesh = bEffectiveMainMeshIsNaniteFallbackMesh;
 		
 		constexpr bool bIsLeaf = false;
 		OutReferenceNode = FUnrealObjectInputIdentifier(InInputObject, Options, bIsLeaf);
@@ -387,7 +395,9 @@ FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 	{
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bMainMeshIsNaniteFallbackMesh = bEffectiveMainMeshIsNaniteFallbackMesh;
 		// TODO: add a specific main mesh option?
+		Options.bMainMeshIsNaniteFallbackMesh = bInMainMeshIsNaniteFallbackMesh;
 		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InInputObject, Options, bIsLeaf));
 	}
 	
@@ -396,6 +406,7 @@ FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportLODs = true;
+		Options.bMainMeshIsNaniteFallbackMesh = bEffectiveMainMeshIsNaniteFallbackMesh;
 		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InInputObject, Options, bIsLeaf));
 	}
 

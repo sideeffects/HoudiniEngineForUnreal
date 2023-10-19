@@ -649,6 +649,8 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 			NameParts.Add(TEXT("lods"));
 		if (Options.bExportSockets)
 			NameParts.Add(TEXT("sockets"));
+		if (Options.bMainMeshIsNaniteFallbackMesh)
+			NameParts.Add(TEXT("nanite_fallback"));
 		if (Options.bImportAsReference)
 			NameParts.Add(TEXT("reference"));
 		if (Options.bImportAsReferenceRotScaleEnabled)

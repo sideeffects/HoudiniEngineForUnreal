@@ -148,12 +148,14 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 		bool bSingleLeafNodeOnly = false;
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
+		static constexpr bool bMainMeshIsNaniteFallbackMesh = false;
 		if (!FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 			SkeletalMesh,
 			ExportMainMesh,
 			ExportAllLODs,
 			ExportSockets,
 			ExportColliders,
+			bMainMeshIsNaniteFallbackMesh,
 			bForceCreateInputRefNode,
 			bSingleLeafNodeOnly,
 			IdentReferenceNode,
@@ -1330,6 +1332,12 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		bIsSplineMesh = IsValid(SplineMeshComponent);
 	}
 
+	// Only set bMainMeshIsNaniteFallback to true if this is a Nanite mesh and we are sending the fallback
+	// For non-Nanite meshes bMainMeshIsNaniteFallback should always be false
+	const bool bNaniteBuildEnabled = StaticMesh->NaniteSettings.bEnabled;
+	const bool ShouldUseNaniteFallback = bPreferNaniteFallbackMesh && StaticMesh->GetRenderData()->LODResources.Num();
+	const bool bMainMeshIsNaniteFallback = bNaniteBuildEnabled && ShouldUseNaniteFallback && !bIsSplineMesh && (ExportMainMesh || ExportAllLODs);
+
 	// Input node name, default to InputNodeName, but can be changed by the new input system
 	FString FinalInputNodeName = InputNodeName;
 	
@@ -1353,6 +1361,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			ExportAllLODs,
 			ExportSockets,
 			ExportColliders,
+			bMainMeshIsNaniteFallback,
 			bForceReferenceInputNodeCreation,
 			bSingleLeafNodeOnly,
 			IdentReferenceNode,
@@ -1429,7 +1438,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 						Options.bExportColliders,
 						!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders,
 						bInputNodesCanBeDeleted,
-						bPreferNaniteFallbackMesh,
+						Options.bMainMeshIsNaniteFallbackMesh,
 						bExportMaterialParameters,
 						bForceInputRefNodeCreation))
 				{
@@ -1550,12 +1559,9 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	int32 NextMergeIndex = 0;
 
 	// Should we export the HiRes Nanite Mesh?
-	const bool bNaniteBuildEnabled = StaticMesh->NaniteSettings.bEnabled;
 	const bool bHaveHiResSourceModel = StaticMesh->IsHiResMeshDescriptionValid();
 	bool bHiResMeshSuccess = false;
-	const bool ShouldUseNaniteFallback = bPreferNaniteFallbackMesh && StaticMesh->GetRenderData()->LODResources.Num();
-
-	bool bWantToExportHiResModel = bNaniteBuildEnabled && ExportMainMesh && !ShouldUseNaniteFallback && !bIsSplineMesh;
+	const bool bWantToExportHiResModel = bNaniteBuildEnabled && ExportMainMesh && !ShouldUseNaniteFallback && !bIsSplineMesh;
 	if (bWantToExportHiResModel && bHaveHiResSourceModel)
 	{
 		// Get the HiRes Mesh description and SourceModel

@@ -104,6 +104,7 @@ struct HOUDINIENGINE_API FUnrealObjectInputUtils
 			const bool bInExportLODs,
 			const bool bInExportSockets,
 			const bool bInExportColliders,
+			const bool bInMainMeshIsNaniteFallbackMesh,
 			const bool bForceCreateReferenceNode,
 			bool &bOutSingleLeafNodeOnly,
 			FUnrealObjectInputIdentifier& OutReferenceNode,

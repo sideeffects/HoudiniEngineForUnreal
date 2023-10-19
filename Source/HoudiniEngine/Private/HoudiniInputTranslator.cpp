@@ -3052,8 +3052,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	{
 		if (!bComponentGeneratesData)
 		{
-			FUnrealObjectInputOptions Options(
-				InInputSettings.bImportAsReference, InInputSettings.bImportAsReferenceRotScaleEnabled, InInputSettings.bExportLODs, InInputSettings.bExportSockets, InInputSettings.bExportColliders);
+			FUnrealObjectInputOptions Options = InputNodeHandle.GetIdentifier().GetOptions();
 			constexpr bool bIsLeaf = false;
 			FUnrealObjectInputIdentifier SMCIdentifier(SMC, Options, bIsLeaf);
 			FUnrealObjectInputHandle Handle;
@@ -3244,8 +3243,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSplineMeshComponents(
 	// Create/update the node in the input manager
 	if (bUseRefCountedInputSystem)
 	{
-		FUnrealObjectInputOptions Options(
-			false, false, InInputSettings.bExportLODs, InInputSettings.bExportSockets, InInputSettings.bExportColliders);
+		FUnrealObjectInputOptions Options = InputNodeHandle.GetIdentifier().GetOptions();
 		constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier SMCIdentifier(FirstSMC, Options, bIsLeaf);
 		FUnrealObjectInputHandle Handle;
@@ -3317,6 +3315,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForInstancedStaticMeshComponent(
 		InInputSettings.bExportSockets,
 		InInputSettings.bExportColliders,
 		false,
+		InInputSettings.bPreferNaniteFallbackMesh,
 		InInputSettings.bExportMaterialParameters,
 		bInputNodesCanBeDeleted))
 		return false;

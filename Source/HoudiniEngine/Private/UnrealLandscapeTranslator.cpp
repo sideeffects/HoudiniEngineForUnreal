@@ -808,7 +808,7 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 
 	if (bUseRefCountedInputSystem)
 	{
-		const FUnrealObjectInputOptions Options(false, false, false, false, false, ExportType);
+		const FUnrealObjectInputOptions Options(false, false, false, false, false, false, ExportType);
 		Identifier = FUnrealObjectInputIdentifier(InLandscape, Options, true);
 
 		FUnrealObjectInputHandle Handle;
