@@ -1,40 +1,42 @@
 /*
- * Copyright (c) <2021> Side Effects Software Inc.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. The name of Side Effects Software may not be used to endorse or
- *    promote products derived from this software without specific prior
- *    written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY SIDE EFFECTS SOFTWARE "AS IS" AND ANY EXPRESS
- * OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
- * NO EVENT SHALL SIDE EFFECTS SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
- * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+* Copyright (c) <2021> Side Effects Software Inc.
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
+*
+* 1. Redistributions of source code must retain the above copyright notice,
+*    this list of conditions and the following disclaimer.
+*
+* 2. The name of Side Effects Software may not be used to endorse or
+*    promote products derived from this software without specific prior
+*    written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY SIDE EFFECTS SOFTWARE "AS IS" AND ANY EXPRESS
+* OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+* OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
+* NO EVENT SHALL SIDE EFFECTS SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+* LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
+* OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+* LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+* NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+* EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 
 #include "UnrealDataTableTranslator.h"
 
 #include "UObject/TextProperty.h"
 
 #include "HoudiniEngine.h"
-#include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniInputObject.h"
 
-#include "HoudiniEngineRuntimeUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputUtils.h"
+#include "UnrealObjectInputRuntimeUtils.h"
+#include "HoudiniEngineRuntimeUtils.h"
 
 #include "Engine/DataTable.h"
 
@@ -97,14 +99,55 @@ namespace
 	}
 };
 
-bool
-FUnrealDataTableTranslator::CreateInputNodeForDataTable(
-        UDataTable* DataTable,
-        HAPI_NodeId& InputNodeId,
-        const FString& InputNodeName,
-        FUnrealObjectInputHandle& OutHandle,
-        const bool& bInputNodesCanBeDeleted)
-{	
+bool FUnrealDataTableTranslator::CreateInputNodeForDataTable(
+	UDataTable* DataTable,
+	HAPI_NodeId& InputNodeId,
+	const FString& InputNodeName,
+	FUnrealObjectInputHandle& OutHandle,
+	const bool& bInputNodesCanBeDeleted)
+{
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
+	FString FinalInputNodeName = InputNodeName;
+
+	FUnrealObjectInputIdentifier Identifier;
+	FUnrealObjectInputHandle ParentHandle;
+	HAPI_NodeId ParentNodeId = -1;
+
+	if (bUseRefCountedInputSystem)
+	{
+		bool bDefaultImportAsReference = false;
+		bool bDefaultImportAsReferenceRotScaleEnabled = false;
+		const FUnrealObjectInputOptions Options(
+			bDefaultImportAsReference,
+			bDefaultImportAsReferenceRotScaleEnabled,
+			false,
+			false,
+			false
+		);
+
+		Identifier = FUnrealObjectInputIdentifier(DataTable, Options, true);
+
+		FUnrealObjectInputHandle Handle;
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		{
+			HAPI_NodeId NodeId = -1;
+			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
+			{
+				if (!bInputNodesCanBeDeleted)
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+
+				OutHandle = Handle;
+				InputNodeId = NodeId;
+				return true;
+			}
+		}
+
+		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+	}
+
+	// Create the input node
 	const UScriptStruct* ScriptStruct = DataTable->GetRowStruct();
 	if (!IsValid(ScriptStruct))
 		return true;
@@ -118,14 +161,26 @@ FUnrealDataTableTranslator::CreateInputNodeForDataTable(
 	if (NumRows <= 0 || NumAttributes <= 0)
 		return true;
 
-	// Create the input node
-        FString NodeName = InputNodeName;
 	HAPI_NodeId NewNodeId = -1;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
-		FHoudiniEngine::Get().GetSession(), &NewNodeId, TCHAR_TO_UTF8(*NodeName)), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateInputNode(FinalInputNodeName, NewNodeId, ParentNodeId), false);
 
-	// Update this input object's NodeId and ObjectNodeId
-        InputNodeId = NewNodeId;
+	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(NewNodeId))
+		return false;
+
+	HAPI_NodeId PreviousInputNodeId = InputNodeId;
+	InputNodeId = NewNodeId;
+	HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(NewNodeId);
+
+	if (PreviousInputNodeId >= 0)
+	{
+		HAPI_NodeId PreviousInputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
+
+		if (FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputNodeId) != HAPI_RESULT_SUCCESS)
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *FinalInputNodeName);
+
+		if (FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputObjectNodeId) != HAPI_RESULT_SUCCESS)
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input object node for %s."), *FinalInputNodeName);
+	}
 
 	// Create a part
 	HAPI_PartInfo Part;
@@ -684,7 +739,7 @@ FUnrealDataTableTranslator::CreateInputNodeForDataTable(
 			{
 				Col.Add(DataTableUtils::GetPropertyValueAsString(ColumnProp, It.Value(), EDataTableExportFlags()));
 			}
-			
+
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
 				TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
@@ -694,13 +749,19 @@ FUnrealDataTableTranslator::CreateInputNodeForDataTable(
 		}
 	}
 
-	// Commit the geo.
+
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
 		FHoudiniEngine::Get().GetSession(), InputNodeId), false);
 
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-		FHoudiniEngine::Get().GetSession(), InputNodeId, nullptr), false);
+	if (!FHoudiniEngineUtils::HapiCookNode(InputNodeId, nullptr, true))
+		return false;
+
+	if (bUseRefCountedInputSystem)
+	{
+		FUnrealObjectInputHandle Handle;
+		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
+			OutHandle = Handle;
+	}
 
 	return true;
 }

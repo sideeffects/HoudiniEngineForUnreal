@@ -51,6 +51,8 @@
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputTypes.h"
 #include "UnrealObjectInputManager.h"
+#include "UnrealObjectInputRuntimeUtils.h"
+#include "UnrealObjectInputUtils.h"
 
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
@@ -458,7 +460,7 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 	if (InputType == EHoudiniInputType::Asset)
 		return true;
 
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	IUnrealObjectInputManager const* const Manager = bUseRefCountedInputSystem ? FUnrealObjectInputManager::Get() : nullptr;
 	
 	// Destroy the nodes created by all the input objects
@@ -1165,7 +1167,7 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 
 	// When using the ref counted input system, update objmerge paths in reference nodes that are potentially out of
 	// date after the update above 
-	if (FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled())
+	if (FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled())
 	{
 		IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
 		if (Manager)
@@ -1188,7 +1190,7 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 					if (RefToUpdate.GetNodeType() != EUnrealObjectInputNodeType::Reference)
 						continue;
 
-					FHoudiniEngineUtils::ConnectReferencedNodesToMerge(RefToUpdate);
+					FUnrealObjectInputUtils::ConnectReferencedNodesToMerge(RefToUpdate);
 				}
 			}
 		}
@@ -1771,7 +1773,7 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 	};
 
 	// Check if the new input system is being used
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	
 	bool bSuccess = true;
 	switch (InInputObject->Type)
@@ -2169,7 +2171,7 @@ FHoudiniInputTranslator::HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
 		FHoudiniApi::SetParmNodeValue(Session, InOutObjectMergeNodeId, TCHAR_TO_UTF8(TEXT("objpath1")), InNodeToObjectMerge), false);
 	/*
 	// We shoudnt use WorldOrigin here, as it causes transform issues when merging into an input!
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
 		IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
@@ -2237,7 +2239,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	FString SMName = InObjNodeName + TEXT("_") + SM->GetName();
 
 	// Marshall the Static Mesh to Houdini
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	FUnrealObjectInputHandle SMInputNodeHandle;
 	HAPI_NodeId CreatedNodeId = -1;
 
@@ -2248,10 +2250,10 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	if (bUseRefCountedInputSystem)
 	{
 		TSet<FUnrealObjectInputHandle> ReferencedNodes;
-		if (FHoudiniEngineUtils::GetReferencedNodes(InObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
+		if (FUnrealObjectInputUtils::GetReferencedNodes(InObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
 		{
 			const FUnrealObjectInputHandle Handle = ReferencedNodes.Array()[0];
-			FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
+			FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedNodeId);
 		}
 	}
 	else
@@ -2312,7 +2314,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 		FUnrealObjectInputOptions Options;
 		static constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier GeoInputRefNodeId(InObject, Options, bIsLeaf);
-		FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { SMInputNodeHandle }, InObject->InputNodeHandle);
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { SMInputNodeHandle }, InObject->InputNodeHandle);
 	}
 	else
 	{
@@ -2358,7 +2360,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForReference(
         return false;
 
     // Marshall the Object to Houdini
-    const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+    const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
     FUnrealObjectInputHandle InputNodeHandle;
     HAPI_NodeId CreatedNodeId = -1;
 	
@@ -2369,10 +2371,10 @@ FHoudiniInputTranslator::HapiCreateInputNodeForReference(
 	if (bUseRefCountedInputSystem)
 	{
 		TSet<FUnrealObjectInputHandle> ReferencedNodes;
-		if (FHoudiniEngineUtils::GetReferencedNodes(InObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
+		if (FUnrealObjectInputUtils::GetReferencedNodes(InObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
 		{
 			const FUnrealObjectInputHandle Handle = ReferencedNodes.Array()[0];
-			FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
+			FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedNodeId);
 		}
 	}
 	else
@@ -2409,7 +2411,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForReference(
 		FUnrealObjectInputOptions Options;
 		static constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier GeoInputRefNodeId(InObject, Options, bIsLeaf);
-		FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { InputNodeHandle }, InObject->InputNodeHandle);
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { InputNodeHandle }, InObject->InputNodeHandle);
 	}
 	else
 	{
@@ -2451,7 +2453,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(
 	// Get the SM's transform offset
 	FTransform TransformOffset = InObject->Transform;
 
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	FUnrealObjectInputHandle SKMInputNodeHandle;
 	HAPI_NodeId CreatedNodeId = -1;
 
@@ -2462,10 +2464,10 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(
 	if (bUseRefCountedInputSystem)
 	{
 		TSet<FUnrealObjectInputHandle> ReferencedNodes;
-		if (FHoudiniEngineUtils::GetReferencedNodes(InObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
+		if (FUnrealObjectInputUtils::GetReferencedNodes(InObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
 		{
 			const FUnrealObjectInputHandle Handle = ReferencedNodes.Array()[0];
-			FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
+			FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedNodeId);
 		}
 	}
 	else
@@ -2524,7 +2526,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMesh(
 		FUnrealObjectInputOptions Options;
 		static constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier GeoInputRefNodeId(InObject, Options, bIsLeaf);
-		FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { SKMInputNodeHandle }, InObject->InputNodeHandle);
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { SKMInputNodeHandle }, InObject->InputNodeHandle);
 	}
 	else
 	{
@@ -2571,7 +2573,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMeshComponent(
 	if (!IsValid(SK))
 		return true;
 
-	bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	HAPI_NodeId CreatedNodeId = InObject->GetInputNodeId();
 
 	// Marshall the Skeletal Mesh to Houdini
@@ -2630,21 +2632,21 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMeshComponent(
 		constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier SKCIdentifier(SKC, Options, bIsLeaf);
 		FUnrealObjectInputHandle Handle;
-		if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(SKCIdentifier, { InputNodeHandle }, Handle, true, bInputNodesCanBeDeleted))
+		if (!FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(SKCIdentifier, { InputNodeHandle }, Handle, true, bInputNodesCanBeDeleted))
 			return false;
 
-		FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
+		FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedNodeId);
 		InObject->InputNodeHandle = Handle;
 
 		// Create the output modifier chain if missing
 		const FName ModifierChainName(FUnrealObjectInputNode::OutputChainName);
-		if (!FHoudiniEngineUtils::DoesModifierChainExist(InObject->InputNodeHandle, ModifierChainName))
-			FHoudiniEngineUtils::AddModifierChain(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
+		if (!FUnrealObjectInputUtils::DoesModifierChainExist(InObject->InputNodeHandle, ModifierChainName))
+			FUnrealObjectInputUtils::AddModifierChain(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
 		else
-			FHoudiniEngineUtils::SetModifierChainNodeToConnectTo(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
+			FUnrealObjectInputUtils::SetModifierChainNodeToConnectTo(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
 
 		// Make sure that material overrides modifier exists and is correctly configured for this component's input node
-		if (FUnrealObjectInputModifier* MatOverridesModifier = FHoudiniEngineUtils::FindFirstModifierOfType(InObject->InputNodeHandle, ModifierChainName, EUnrealObjectInputModifierType::MaterialOverrides))
+		if (FUnrealObjectInputModifier* MatOverridesModifier = FUnrealObjectInputUtils::FindFirstModifierOfType(InObject->InputNodeHandle, ModifierChainName, EUnrealObjectInputModifierType::MaterialOverrides))
 		{
 			FUnrealObjectInputMaterialOverrides* const MatOverrides = static_cast<FUnrealObjectInputMaterialOverrides*>(MatOverridesModifier);
 			if (bImportAsReference)
@@ -2656,7 +2658,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMeshComponent(
 				}
 				else
 				{
-					FHoudiniEngineUtils::DestroyModifier(InObject->InputNodeHandle, ModifierChainName, MatOverridesModifier);
+					FUnrealObjectInputUtils::DestroyModifier(InObject->InputNodeHandle, ModifierChainName, MatOverridesModifier);
 				}
 			}
 			else
@@ -2670,28 +2672,28 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMeshComponent(
 			if (bImportAsReference)
 			{
 				if (bImportAsReferenceMaterialEnabled)
-					FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SKC, false);
+					FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SKC, false);
 			}
 			else
 			{
-				FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SKC, true);
+				FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SKC, true);
 			}
 		}
 
 		// Ensure that the physical material override modifier exists for this component's input node and is correctly configured
 		const HAPI_AttributeOwner PhysMatOverrideAttrOwner = bImportAsReference ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_PRIM;
-		if (FUnrealObjectInputModifier* PhysMatOverrideModifier = FHoudiniEngineUtils::FindFirstModifierOfType(InObject->InputNodeHandle, ModifierChainName, EUnrealObjectInputModifierType::PhysicalMaterialOverride))
+		if (FUnrealObjectInputModifier* PhysMatOverrideModifier = FUnrealObjectInputUtils::FindFirstModifierOfType(InObject->InputNodeHandle, ModifierChainName, EUnrealObjectInputModifierType::PhysicalMaterialOverride))
 		{
 			if (FUnrealObjectInputPhysicalMaterialOverride* const PhysMatOverride = static_cast<FUnrealObjectInputPhysicalMaterialOverride*>(PhysMatOverrideModifier))
 				PhysMatOverride->SetAttributeOwner(PhysMatOverrideAttrOwner);
 		}
 		else
 		{
-			FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputPhysicalMaterialOverride>(InObject->InputNodeHandle, ModifierChainName, SKC, PhysMatOverrideAttrOwner);
+			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputPhysicalMaterialOverride>(InObject->InputNodeHandle, ModifierChainName, SKC, PhysMatOverrideAttrOwner);
 		}
 
 		// Update all modifiers
-		FHoudiniEngineUtils::UpdateAllModifierChains(InObject->InputNodeHandle);
+		FUnrealObjectInputUtils::UpdateAllModifierChains(InObject->InputNodeHandle);
 	}
 
 	// Update this input object's OBJ NodeId
@@ -2739,7 +2741,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(
 	FString GCName = InObjNodeName + TEXT("_") + GeometryCollection->GetName();
 
 	// TODO: Add support for the new input sytem!
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	FUnrealObjectInputHandle GCInputNodeHandle;
 	HAPI_NodeId CreatedNodeId = -1;
 
@@ -2750,10 +2752,10 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(
 	if (bUseRefCountedInputSystem)
 	{
 		TSet<FUnrealObjectInputHandle> ReferencedNodes;
-		if (FHoudiniEngineUtils::GetReferencedNodes(InObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
+		if (FUnrealObjectInputUtils::GetReferencedNodes(InObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
 		{
 			const FUnrealObjectInputHandle Handle = ReferencedNodes.Array()[0];
-			FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
+			FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedNodeId);
 		}
 	}
 	else
@@ -2815,7 +2817,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollection(
 		FUnrealObjectInputOptions Options;
 		static constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier GeoInputRefNodeId(InObject, Options, bIsLeaf);
-		FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { GCInputNodeHandle }, InObject->InputNodeHandle);
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { GCInputNodeHandle }, InObject->InputNodeHandle);
 	}
 	else
 	{
@@ -2873,7 +2875,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 	if (!IsValid(GC))
 		return true;
 
-	bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	HAPI_NodeId CreatedNodeId = InObject->GetInputNodeId();
 	
 	// Marshall the GeometryCollection to Houdini
@@ -2941,10 +2943,10 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 		constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier GCCIdentifier(GCC, Options, bIsLeaf);
 		FUnrealObjectInputHandle Handle;
-		if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(GCCIdentifier, { InputNodeHandle }, Handle, true, bInputNodesCanBeDeleted))
+		if (!FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GCCIdentifier, { InputNodeHandle }, Handle, true, bInputNodesCanBeDeleted))
 			return false;
 
-		FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
+		FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedNodeId);
 		InObject->InputNodeHandle = Handle;
 	}
 	
@@ -3029,7 +3031,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	if (!IsValid(SM))
 		return true;
 
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	HAPI_NodeId CreatedNodeId = InObject->GetInputNodeId();
 
 	// Marshall the Static Mesh to Houdini
@@ -3096,21 +3098,21 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 		constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier SMCIdentifier(SMC, Options, bIsLeaf);
 		FUnrealObjectInputHandle Handle;
-		if (!FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(SMCIdentifier, {InputNodeHandle}, Handle, true, bInputNodesCanBeDeleted))
+		if (!FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(SMCIdentifier, {InputNodeHandle}, Handle, true, bInputNodesCanBeDeleted))
 			return false;
 		
-		FHoudiniEngineUtils::GetHAPINodeId(Handle, CreatedNodeId);
+		FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedNodeId);
 		InObject->InputNodeHandle = Handle;
 
 		// Create the output modifier chain if missing
 		const FName ModifierChainName(FUnrealObjectInputNode::OutputChainName);
-		if (!FHoudiniEngineUtils::DoesModifierChainExist(InObject->InputNodeHandle, ModifierChainName))
-			FHoudiniEngineUtils::AddModifierChain(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
+		if (!FUnrealObjectInputUtils::DoesModifierChainExist(InObject->InputNodeHandle, ModifierChainName))
+			FUnrealObjectInputUtils::AddModifierChain(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
 		else
-			FHoudiniEngineUtils::SetModifierChainNodeToConnectTo(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
+			FUnrealObjectInputUtils::SetModifierChainNodeToConnectTo(InObject->InputNodeHandle, ModifierChainName, CreatedNodeId);
 
 		// Make sure that material overrides modifier exists and is correctly configured for this component's input node
-		if (FUnrealObjectInputModifier* MatOverridesModifier = FHoudiniEngineUtils::FindFirstModifierOfType(InObject->InputNodeHandle, ModifierChainName, EUnrealObjectInputModifierType::MaterialOverrides))
+		if (FUnrealObjectInputModifier* MatOverridesModifier = FUnrealObjectInputUtils::FindFirstModifierOfType(InObject->InputNodeHandle, ModifierChainName, EUnrealObjectInputModifierType::MaterialOverrides))
 		{
 			FUnrealObjectInputMaterialOverrides* const MatOverrides = static_cast<FUnrealObjectInputMaterialOverrides*>(MatOverridesModifier);
 			if (bImportAsReference)
@@ -3122,7 +3124,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 				}
 				else
 				{
-					FHoudiniEngineUtils::DestroyModifier(InObject->InputNodeHandle, ModifierChainName, MatOverridesModifier);
+					FUnrealObjectInputUtils::DestroyModifier(InObject->InputNodeHandle, ModifierChainName, MatOverridesModifier);
 				}
 			}
 			else
@@ -3136,17 +3138,17 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 			if (bImportAsReference)
 			{
 				if (bImportAsReferenceMaterialEnabled)
-					FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SMC, false);
+					FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SMC, false);
 			}
 			else
 			{
-				FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SMC, true);
+				FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputMaterialOverrides>(InObject->InputNodeHandle, ModifierChainName, SMC, true);
 			}
 		}
 
 		// Ensure that the physical material override modifier exists for this component's input node and is correctly configured
 		const HAPI_AttributeOwner PhysMatOverrideAttrOwner = bImportAsReference ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_PRIM;
-		if (FUnrealObjectInputModifier* PhysMatOverrideModifier = FHoudiniEngineUtils::FindFirstModifierOfType(InObject->InputNodeHandle, ModifierChainName, EUnrealObjectInputModifierType::PhysicalMaterialOverride))
+		if (FUnrealObjectInputModifier* PhysMatOverrideModifier = FUnrealObjectInputUtils::FindFirstModifierOfType(InObject->InputNodeHandle, ModifierChainName, EUnrealObjectInputModifierType::PhysicalMaterialOverride))
 		{
 			FUnrealObjectInputPhysicalMaterialOverride* const PhysMatOverride = static_cast<FUnrealObjectInputPhysicalMaterialOverride*>(PhysMatOverrideModifier);
 			if (PhysMatOverride)
@@ -3154,11 +3156,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 		}
 		else
 		{
-			FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputPhysicalMaterialOverride>(InObject->InputNodeHandle, ModifierChainName, SMC, PhysMatOverrideAttrOwner);
+			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputPhysicalMaterialOverride>(InObject->InputNodeHandle, ModifierChainName, SMC, PhysMatOverrideAttrOwner);
 		}
 
 		// Update all modifiers
-		FHoudiniEngineUtils::UpdateAllModifierChains(InObject->InputNodeHandle);
+		FUnrealObjectInputUtils::UpdateAllModifierChains(InObject->InputNodeHandle);
 	}
 	
 	// Update this input object's OBJ NodeId
@@ -3267,7 +3269,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSplineComponent(
 
 	FString SplineName = InObjNodeName + TEXT("_") + InObject->GetName();
 
-	// const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	// const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	FUnrealObjectInputHandle InputNodeHandle;
 	HAPI_NodeId CreatedNodeId = InObject->GetInputNodeId();
 
@@ -3529,7 +3531,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 			// When using the ref counted input system: the nodes are created differently so we cannot just add attributes
 			// to the input node (it is likely a merge and not an input null). For the new system we add a modifier to
 			// the output modifier chain.
-			if (!FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled() || !CurComponent->InputNodeHandle.IsValid())
+			if (!FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled() || !CurComponent->InputNodeHandle.IsValid())
 			{
 				bool bNeedCommit = false;
 				if (FHoudiniEngineUtils::AddLevelPathAttribute(CurComponent->GetInputNodeId(), 0, Actor->GetLevel(), 1, HAPI_ATTROWNER_POINT))
@@ -3545,12 +3547,12 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 			else
 			{
 				const FName ChainName(FUnrealObjectInputNode::OutputChainName);
-				if (!FHoudiniEngineUtils::DoesModifierChainExist(CurComponent->InputNodeHandle, ChainName))
-					FHoudiniEngineUtils::AddModifierChain(CurComponent->InputNodeHandle, ChainName, CurComponent->GetInputNodeId());
-				if (!FHoudiniEngineUtils::FindFirstModifierOfType(CurComponent->InputNodeHandle, ChainName, EUnrealObjectInputModifierType::ActorAsReference))
-					FHoudiniEngineUtils::CreateAndAddModifier<FUnrealObjectInputActorAsReference>(CurComponent->InputNodeHandle, ChainName, Actor);
+				if (!FUnrealObjectInputUtils::DoesModifierChainExist(CurComponent->InputNodeHandle, ChainName))
+					FUnrealObjectInputUtils::AddModifierChain(CurComponent->InputNodeHandle, ChainName, CurComponent->GetInputNodeId());
+				if (!FUnrealObjectInputUtils::FindFirstModifierOfType(CurComponent->InputNodeHandle, ChainName, EUnrealObjectInputModifierType::ActorAsReference))
+					FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputActorAsReference>(CurComponent->InputNodeHandle, ChainName, Actor);
 
-				FHoudiniEngineUtils::UpdateModifiers(CurComponent->InputNodeHandle, ChainName);
+				FUnrealObjectInputUtils::UpdateModifiers(CurComponent->InputNodeHandle, ChainName);
 			}
 		}
 	}
@@ -3609,7 +3611,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBP(
 	}
 	else
 	{
-		const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+		const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 		// Now, commit all of this BP's component
 		TSet<FUnrealObjectInputHandle> ComponentHandles;
 		TArray<int32> CreatedNodeIds;
@@ -3629,7 +3631,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBP(
 			FUnrealObjectInputOptions Options;
 			static constexpr bool bIsLeaf = false;
 			FUnrealObjectInputIdentifier GeoInputRefNodeId(InObject, Options, bIsLeaf);
-			FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, ComponentHandles, InObject->InputNodeHandle);
+			FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, ComponentHandles, InObject->InputNodeHandle);
 
 			// Set the transform on the InputObject's geo object node
 			if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), InObject->Transform))
@@ -3736,7 +3738,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
 	FUnrealObjectInputHandle InputNodeHandle;
 	
 	HAPI_NodeId InputNodeId = InObject->GetInputNodeId();
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 
 	if (!FUnrealBrushTranslator::CreateInputNodeForBrush(InObject, BrushActor, ExcludeActors, InputNodeId, BrushName, bExportMaterialParameters, InputNodeHandle, bInputNodesCanBeDeleted))
 		return false;
@@ -4317,14 +4319,14 @@ bool FHoudiniInputTranslator::CreateInputNodeForReference(
 		// If the entry exists in the manager, the associated HAPI nodes are valid, and it is not marked as dirty, then
 		// return the existing entry
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId))
+			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
 			{
 				// Make sure the node cant be deleted if needed
 				if (!bInputNodesCanBeDeleted)
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
 
 				OutHandle = Handle;
 				InputNodeId = NodeId;
@@ -4332,10 +4334,10 @@ bool FHoudiniInputTranslator::CreateInputNodeForReference(
 			}
 		}
 		// If the entry does not exist, or is invalid, then we need create it
-		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 	}
 
 	const FString AssetReference =
@@ -4364,7 +4366,7 @@ bool FHoudiniInputTranslator::CreateInputNodeForReference(
 		// Record the node in the manager
 		const HAPI_NodeId ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, ObjectNodeId, nullptr, bInputNodesCanBeDeleted))
+		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, ObjectNodeId, nullptr, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
 	}
 
@@ -4387,7 +4389,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(
 	FString DataTableName = InNodeName + TEXT("_") + DataTable->GetName();
 	FUnrealObjectInputHandle DTInputNodeHandle;
 	HAPI_NodeId InputNodeId = -1;
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 
 	// Get the existing node id, if any
 	
@@ -4396,10 +4398,10 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(
 	if (bUseRefCountedInputSystem)
 	{
 		TSet<FUnrealObjectInputHandle> ReferencedNodes;
-		if (FHoudiniEngineUtils::GetReferencedNodes(InInputObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
+		if (FUnrealObjectInputUtils::GetReferencedNodes(InInputObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
 		{
 			const FUnrealObjectInputHandle Handle = ReferencedNodes.Array()[0];
-			FHoudiniEngineUtils::GetHAPINodeId(Handle, InputNodeId);
+			FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId);
 		}
 	}
 	else
@@ -4417,7 +4419,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(
 		FUnrealObjectInputOptions Options;
 		static constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier GeoInputRefNodeId(InInputObject, Options, bIsLeaf);
-		FHoudiniEngineUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { DTInputNodeHandle }, InInputObject->InputNodeHandle);
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { DTInputNodeHandle }, InInputObject->InputNodeHandle);
 	}
 	else
 	{
