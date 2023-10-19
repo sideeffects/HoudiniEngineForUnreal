@@ -42,6 +42,8 @@
 #include "Engine/MapBuildDataRegistry.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 
+#include "UnrealObjectInputRuntimeUtils.h"
+#include "UnrealObjectInputUtils.h"
 
 bool 
 FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(

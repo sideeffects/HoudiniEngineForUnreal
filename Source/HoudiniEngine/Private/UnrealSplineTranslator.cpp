@@ -32,6 +32,8 @@
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniSplineTranslator.h"
 #include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputUtils.h"
+#include "UnrealObjectInputRuntimeUtils.h"
 
 #include "Components/SplineComponent.h"
 
@@ -57,7 +59,7 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 	FUnrealObjectInputIdentifier Identifier;
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
 		// Creates this input's identifier and input options
@@ -73,15 +75,15 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 		Identifier = FUnrealObjectInputIdentifier(SplineComponent, Options, true);
 
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId) && FHoudiniEngineUtils::AreReferencedHAPINodesValid(Handle))
+			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId) && FUnrealObjectInputUtils::AreReferencedHAPINodesValid(Handle))
 			{
 				if (!bInputNodesCanBeDeleted)
 				{
 					// Make sure to prevent deletion of the input node if needed
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
 				}
 
 				OutHandle = Handle;
@@ -90,10 +92,10 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 			}
 		}
 
-		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
 		// To do that, we can simply continue this function
@@ -209,7 +211,7 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 	if (bUseRefCountedInputSystem)
 	{
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, CreatedInputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
+		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, CreatedInputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
 			OutHandle = Handle;
 	}
 

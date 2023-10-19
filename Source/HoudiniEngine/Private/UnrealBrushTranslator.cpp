@@ -35,6 +35,8 @@
 #include "Model.h"
 #include "Engine/Polys.h"
 #include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputUtils.h"
+#include "UnrealObjectInputRuntimeUtils.h"
 
 #include "HoudiniEngineRuntimeUtils.h"
 
@@ -70,7 +72,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	if (InputBrushObject->ShouldIgnoreThisInput())
 		return true;
 
-	const bool bUseRefCountedInputSystem = FHoudiniEngineRuntimeUtils::IsRefCountedInputSystemEnabled();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	FString FinalInputNodeName = NodeName;
 
 	FUnrealObjectInputIdentifier Identifier;
@@ -82,13 +84,13 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		const FUnrealObjectInputOptions Options(false, false, false, false, false);
 		Identifier = FUnrealObjectInputIdentifier(BrushActor, Options, true);
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FHoudiniEngineUtils::GetHAPINodeId(Handle, NodeId))
+			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
 			{
 				if (!bInputNodesCanBeDeleted)
-					FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
 
 				OutHandle = Handle;
 				InputNodeId = NodeId;
@@ -96,9 +98,9 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			}
 		}
 
-		FHoudiniEngineUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
-		if (FHoudiniEngineUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
-			FHoudiniEngineUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
+			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
 	}
 
 	HAPI_NodeId InputObjectNodeId = -1;
@@ -431,7 +433,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	if (bUseRefCountedInputSystem)
 	{
 		FUnrealObjectInputHandle Handle;
-		if (FHoudiniEngineUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId))
+		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId))
 			OutHandle = Handle;
 	}
 

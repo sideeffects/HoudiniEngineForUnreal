@@ -32,6 +32,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
+#include "UnrealObjectInputUtils.h"
 
 FUnrealObjectInputManagerImpl::FUnrealObjectInputManagerImpl()
 	: WorldOriginNodeId()
@@ -393,7 +394,7 @@ FUnrealObjectInputManagerImpl::EnsureParentsExist(
 	{
 		// Make sure we prevent node destruction if needed
 		if (!bInputNodesCanBeDeleted)
-			FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
+			FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
 
 		OutParentHandle = ParentHandle;
 		return true;
@@ -445,9 +446,9 @@ FUnrealObjectInputManagerImpl::EnsureParentsExist(
 
 	// Make sure we prevent node destruction if needed
 	if (!bInputNodesCanBeDeleted)
-		FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
+		FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
 	else
-		FHoudiniEngineUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
+		FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
 	
 	OutParentHandle = ParentHandle;
 
