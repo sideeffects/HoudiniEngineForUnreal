@@ -1169,28 +1169,9 @@ FHoudiniEngineCommands::CloseSessionSync()
 void
 FHoudiniEngineCommands::OpenNodeSync()
 {
-	//if (!FHoudiniEngine::Get().StopSession())
-	//{
-	//	// StopSession returns false only if Houdini is not initialized
-	//	HOUDINI_LOG_ERROR(TEXT("Failed to stop Session Sync - HAPI Not initialized"));
-	//	return;
-	//}
-
-	//// Add a slate notification
-	//FString Notification = TEXT("Stopping Houdini Session Sync...");
-	//FHoudiniEngineUtils::CreateSlateNotification(Notification);
-
-	//// ... and a log message
-	//HOUDINI_LOG_MESSAGE(TEXT("Stopping Houdini Session Sync."));
-
-	//// Stop Houdini Session sync if it is still running!
-	//FProcHandle PreviousHESS = FHoudiniEngine::Get().GetHESSProcHandle();
-	//if (FPlatformProcess::IsProcRunning(PreviousHESS))
-	//{
-	//	FPlatformProcess::TerminateProc(PreviousHESS, true);
-	//}
-	FGlobalTabmanager::Get()->TryInvokeTab(NodeSyncTabName);
-	return;
+	//FGlobalTabmanager::Get()->TryInvokeTab(NodeSyncTabName);
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	LevelEditorModule.GetLevelEditorTabManager()->TryInvokeTab(NodeSyncTabName);
 }
 
 void FHoudiniEngineCommands::OpenHoudiniToolsTab()

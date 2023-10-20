@@ -426,12 +426,6 @@ FHoudiniEngineEditor::RegisterEditorTabs()
 {
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
-	FGlobalTabmanager::Get()->RegisterTabSpawner(NodeSyncTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnNodeSyncTab))
-		.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "Houdini Node Sync"))
-		.SetTooltipText(LOCTEXT("FNodeSyncTitleTitleTooltip", "Houdini Node Sync"))
-		.SetMenuType(ETabSpawnerMenuType::Hidden)
-		.SetGroup(MenuStructure.GetLevelEditorCategory());
-
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
 
 	// If we have a valid LevelEditor tab manager, register now, just in case the tab manager is already active.
@@ -445,6 +439,12 @@ FHoudiniEngineEditor::RegisterEditorTabs()
 	// Be sure to also register during OnRegisterTabs() events, since it will be called whenever the LevelEditor tab manager changes.
 	OnLevelEditorRegisterTabsHandle = LevelEditorModule.OnRegisterTabs().AddRaw(this, &FHoudiniEngineEditor::RegisterLevelEditorTabs);
 	
+	//FGlobalTabmanager::Get()->RegisterTabSpawner(NodeSyncTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnNodeSyncTab))
+	//	.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "Houdini Node Sync"))
+	//	.SetTooltipText(LOCTEXT("FNodeSyncTitleTitleTooltip", "Houdini Node Sync"))
+	//	.SetMenuType(ETabSpawnerMenuType::Hidden)
+	//	.SetGroup(MenuStructure.GetLevelEditorCategory());
+
 	// FGlobalTabmanager::Get()->RegisterTabSpawner(HoudiniToolsTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnHoudiniToolsTab))
 	// 	.SetDisplayName(LOCTEXT("FHoudiniToolsTitle", "Houdini Tools"))
 	// 	.SetTooltipText(LOCTEXT("FHoudiniToolsTitleTooltip", "A shelf containing Houdini Digital Assets"))
@@ -455,13 +455,14 @@ FHoudiniEngineEditor::RegisterEditorTabs()
 void
 FHoudiniEngineEditor::UnRegisterEditorTabs()
 {
-	FGlobalTabmanager::Get()->UnregisterTabSpawner(NodeSyncTabName);
+	//FGlobalTabmanager::Get()->UnregisterTabSpawner(NodeSyncTabName);
 
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
 	const TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
 	if (LevelEditorTabManager.IsValid())
 	{
 		LevelEditorTabManager->UnregisterTabSpawner(HoudiniToolsTabName);
+		LevelEditorTabManager->UnregisterTabSpawner(NodeSyncTabName);
 	}
 	LevelEditorModule.OnRegisterTabs().Remove(OnLevelEditorRegisterTabsHandle);
 }
@@ -478,6 +479,12 @@ FHoudiniEngineEditor::RegisterLevelEditorTabs(TSharedPtr<FTabManager> LevelTabMa
 	LevelTabManager->RegisterTabSpawner(HoudiniToolsTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnHoudiniToolsTab))
 		.SetDisplayName(LOCTEXT("FHoudiniToolsTitle", "Houdini Tools"))
 		.SetTooltipText(LOCTEXT("FHoudiniToolsTitleTooltip", "A shelf containing Houdini Digital Assets"))
+		.SetMenuType(ETabSpawnerMenuType::Hidden)
+		.SetGroup(MenuStructure.GetLevelEditorCategory());
+
+	LevelTabManager->RegisterTabSpawner(NodeSyncTabName, FOnSpawnTab::CreateRaw(this, &FHoudiniEngineEditor::OnSpawnNodeSyncTab))
+		.SetDisplayName(LOCTEXT("FNodeSyncTitleTitle", "Houdini Node Sync"))
+		.SetTooltipText(LOCTEXT("FNodeSyncTitleTitleTooltip", "Houdini Node Sync"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden)
 		.SetGroup(MenuStructure.GetLevelEditorCategory());
 }
@@ -1991,9 +1998,12 @@ FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArgs& SpawnTabArgs)
 {
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 	.TabRole(ETabRole::NomadTab)
+	//.Icon(FHoudiniEngineStyle::Get()->GetBrush("HoudiniEngine.HoudiniEngineLogo"))
 	[
 		SNew(SHoudiniNodeSyncPanel)
 	];
+		
+	SpawnedTab->SetTabIcon(FHoudiniEngineStyle::Get()->GetBrush("HoudiniEngine.HoudiniEngineLogo"));
 
 	return SpawnedTab;
 }
@@ -2002,9 +2012,12 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnHoudiniToolsTab(const FSpawnTa
 {
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 	.TabRole(ETabRole::NomadTab)
+	//.Icon(FHoudiniEngineStyle::Get()->GetBrush("HoudiniEngine.HoudiniEngineLogo"))
 	[
 		SNew(SHoudiniToolsPanel)
 	];
+
+	SpawnedTab->SetTabIcon(FHoudiniEngineStyle::Get()->GetBrush("HoudiniEngine.HoudiniEngineLogo"));
 
 	return SpawnedTab;
 }

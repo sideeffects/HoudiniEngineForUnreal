@@ -2,15 +2,16 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "EditorSubsystem.h"
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniInput.h"
 
-#include "HoudiniEditorNodeSyncSubsystem.generated.h"
+#include "CoreMinimal.h"
+#include "EditorSubsystem.h"
+#include "Toolkits/AssetEditorModeUILayer.h"
 
+#include "HoudiniEditorNodeSyncSubsystem.generated.h"
 
 class USkeletalMesh;
 
@@ -78,13 +79,19 @@ public:
 };
 
 
-/**
- * Editor Susbsystem that creates a "Managed" Session HDA used to transfer assets between Houdini and Unreal
- */
+
 UCLASS()
-class HOUDINIENGINEEDITOR_API UHoudiniEditorNodeSyncSubsystem : public UEditorSubsystem
+class HOUDINIENGINEEDITOR_API UHoudiniEditorNodeSyncSubsystem : public UAssetEditorUISubsystem
 {
 	GENERATED_BODY()
+
+public:
+
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
+	
+	// Register layout for tab placement
+	virtual void RegisterLayoutExtensions(FLayoutExtender& Extender) override;
 
 public:
 
@@ -122,8 +129,6 @@ public:
 	FString FetchStatusDetails;
 
 	bool GetNodeSyncInput(UHoudiniInput*& OutInput);
-
-	//virtual void RegisterLayoutExtensions(FLayoutExtender& Extender) override;
 
 	bool GatherAllFetchNodeIds(
 		HAPI_NodeId UnrealFetchNodeId,

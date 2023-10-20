@@ -4,6 +4,7 @@
 #include "HoudiniEditorNodeSyncSubsystem.h"
 
 #include "HoudiniEngine.h"
+#include "HoudiniEngineCommands.h"
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineString.h"
@@ -21,12 +22,33 @@
 #include "UnrealSkeletalMeshTranslator.h"
 
 #include "Engine/SkeletalMesh.h"
-//#include "Toolkits/AssetEditorModeUILayer.h"
+#include "LevelEditor.h"
+
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "Engine/SkinnedAssetCommon.h"
 #endif
 
+void 
+UHoudiniEditorNodeSyncSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
+	LevelEditorModule.OnRegisterLayoutExtensions().AddUObject(this, &UHoudiniEditorNodeSyncSubsystem::RegisterLayoutExtensions);
+}
+
+void 
+UHoudiniEditorNodeSyncSubsystem::Deinitialize()
+{
+	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
+	LevelEditorModule.OnRegisterLayoutExtensions().RemoveAll(this);
+}
+
+void
+UHoudiniEditorNodeSyncSubsystem::RegisterLayoutExtensions(FLayoutExtender& Extender)
+{
+	//Extender.ExtendLayout(LevelEditorTabIds::PlacementBrowser, ELayoutExtensionPosition::After, FTabManager::FTab(HoudiniNodeSyncTabId, ETabState::ClosedTab));
+	Extender.ExtendLayout(_GetPlacementBrowserName(), ELayoutExtensionPosition::After, FTabManager::FTab(NodeSyncTabName, ETabState::ClosedTab));
+}
 
 bool 
 UHoudiniEditorNodeSyncSubsystem::CreateSessionIfNeeded()
@@ -1081,12 +1103,6 @@ UHoudiniEditorNodeSyncSubsystem::FetchStaticMeshFromHoudini(
 	return true;
 }
 
-/*
-void UHoudiniEditorNodeSyncSubsystem::RegisterLayoutExtensions(FLayoutExtender& Extender)
-{
-	Extender.ExtendLayout(LevelEditorTabIds::PlacementBrowser, ELayoutExtensionPosition::Before, FTabManager::FTab(UAssetEditorUISubsystem::TopLeftTabID, ETabState::ClosedTab));
-}
-*/
 
 FLinearColor
 UHoudiniEditorNodeSyncSubsystem::GetStatusColor(const EHoudiniNodeSyncStatus& Status)
