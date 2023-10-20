@@ -172,17 +172,42 @@ public:
 	FUnResampledPoint() = delete;
 	
 	FUnResampledPoint(const EHoudiniLandscapeSplineCurve& InSplineSelection);
+	FUnResampledPoint(const EHoudiniLandscapeSplineCurve& InSplineSelection, const FLandscapeSplineInterpPoint& InPoint);
 	
 	FVector GetSelectedPosition() const;
-	void CopySplinePoint(const FLandscapeSplineInterpPoint& InPoint);
+	FQuat CalculateRotationTo(const FUnResampledPoint& InNextPoint);
 	
 	FVector Center;
 	FVector Left;
 	FVector Right;
 	FVector FalloffLeft;
 	FVector FalloffRight;
+	FQuat Rotation;
 	float Alpha;
 	EHoudiniLandscapeSplineCurve SplineSelection;
+};
+
+
+/**
+ * Helper struct to record segment data, such as the segment length, unresampled points (spline points generated in UE),
+ * and global segment index (index in the output arrays of data sent to Houdini).
+ */
+struct FOrderedSegmentData
+{
+	TObjectPtr<ULandscapeSplineSegment> Segment;
+	float SegmentLength = 0.0f;
+	TArray<FUnResampledPoint> UnResampledPoints;
+	int32 GlobalSegmentIndex = INDEX_NONE;
+};
+
+/**
+ * Helper struct to record segments that are connected and have the same orientation.
+ */
+struct FConnectedSpline
+{
+	TArray<FOrderedSegmentData> OrderedSegments;
+	ULandscapeSplineControlPoint* Start;
+	ULandscapeSplineControlPoint* End;
 };
 
 
@@ -203,6 +228,32 @@ FLandscapeSplineControlPointAttributes::Init(const int32 InExpectedPointCount)
 	ControlPointEndFalloffs.Empty(ExpectedPointCount);
 }
 
+void
+ConvertAndSetRotation(const FRotator& InUnrealRotation, const int32 InArrayStartIndex, TArray<float>& OutQuatFloatArray)
+{
+	// Convert Unreal X-Forward to Houdini Z-Forward and Unreal Z-Up to Houdini Y-Up
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0)
+	static constexpr float HalfPI = UE_HALF_PI;
+#else
+	static constexpr float HalfPI = HALF_PI;
+#endif
+	const FQuat CPRot = InUnrealRotation.Quaternion() * FQuat(FVector::UpVector, -HalfPI);
+	if (InArrayStartIndex >= 0)
+	{
+		check(OutQuatFloatArray.IsValidIndex(InArrayStartIndex + 3));
+		OutQuatFloatArray[InArrayStartIndex + 0] = CPRot.X;
+		OutQuatFloatArray[InArrayStartIndex + 1] = CPRot.Z;
+		OutQuatFloatArray[InArrayStartIndex + 2] = CPRot.Y;
+		OutQuatFloatArray[InArrayStartIndex + 3] = -CPRot.W;
+	}
+	else
+	{
+		OutQuatFloatArray.Add(CPRot.X);
+		OutQuatFloatArray.Add(CPRot.Z);
+		OutQuatFloatArray.Add(CPRot.Y);	
+		OutQuatFloatArray.Add(-CPRot.W);
+	}
+}
 
 bool
 FLandscapeSplineControlPointAttributes::AddControlPointData(
@@ -214,12 +265,7 @@ FLandscapeSplineControlPointAttributes::AddControlPointData(
 	if (!IsValid(InControlPoint))
 		return false;
 
-	// Convert Unreal X-Forward to Houdini -Z-Forward and Unreal Z-Up to Houdini Y-Up
-	const FQuat CPRot = InControlPoint->Rotation.Quaternion() * FQuat(FVector::UpVector, FMath::DegreesToRadians(90.0f));
-	ControlPointRotations.Add(CPRot.X);
-	ControlPointRotations.Add(CPRot.Z);
-	ControlPointRotations.Add(CPRot.Y);
-	ControlPointRotations.Add(-CPRot.W);
+	ConvertAndSetRotation(InControlPoint->Rotation, -1, ControlPointRotations); 
 
 	const int32 ControlPointId = FHoudiniLandscapeRuntimeUtils::GetOrGenerateValidControlPointId(
 		InControlPoint, InControlPointIdMap, InNextControlPointId);
@@ -291,6 +337,19 @@ FUnResampledPoint::FUnResampledPoint(const EHoudiniLandscapeSplineCurve& InSplin
 {
 }
 
+FUnResampledPoint::FUnResampledPoint(const EHoudiniLandscapeSplineCurve& InSplineSelection, const FLandscapeSplineInterpPoint& InPoint)
+	: Center(InPoint.Center)
+	, Left(InPoint.Left)
+	, Right(InPoint.Right)
+	, FalloffLeft(InPoint.FalloffLeft)
+	, FalloffRight(InPoint.FalloffRight)
+	, Rotation(FQuat::Identity)
+	, Alpha(0.0f)
+	, SplineSelection(InSplineSelection)
+{
+	
+}
+
 
 FVector
 FUnResampledPoint::GetSelectedPosition() const
@@ -311,17 +370,14 @@ FUnResampledPoint::GetSelectedPosition() const
 	return Center;
 }
 
-
-void
-FUnResampledPoint::CopySplinePoint(const FLandscapeSplineInterpPoint& InPoint)
+FQuat
+FUnResampledPoint::CalculateRotationTo(const FUnResampledPoint& InNextPoint)
 {
-	Center = InPoint.Center;
-	Left = InPoint.Left;
-	Right = InPoint.Right;
-	FalloffLeft = InPoint.FalloffLeft;
-	FalloffRight = InPoint.FalloffRight;
+	const FVector ForwardVector = (InNextPoint.Center - Center).GetSafeNormal();
+	const FVector RightVector = (Right - Center).GetSafeNormal();
+	Rotation = FRotationMatrix::MakeFromXY(ForwardVector, RightVector).ToQuat();
+	return Rotation;
 }
-
 
 bool
 FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
@@ -897,6 +953,170 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesControlPoint
 }
 
 
+void FindConnectedSplines(const TArray<TObjectPtr<ULandscapeSplineSegment>>& InSegments, TArray<FConnectedSpline>& OutConnectedSplines)
+{
+	TArray<TObjectPtr<ULandscapeSplineSegment>> SegmentsToProcess = InSegments;
+	TSet<TObjectPtr<ULandscapeSplineSegment>> ProcessedSegments;
+	FConnectedSpline* CurrentSpline = nullptr;
+	while (SegmentsToProcess.Num() > 0)
+	{
+		const TObjectPtr<ULandscapeSplineSegment> Segment = SegmentsToProcess.Pop();
+		if (ProcessedSegments.Contains(Segment))
+			continue;
+
+		if (!CurrentSpline)
+		{
+			CurrentSpline = &OutConnectedSplines.AddDefaulted_GetRef();
+			FOrderedSegmentData SegmentData;
+			SegmentData.Segment = Segment;
+			CurrentSpline->OrderedSegments.Add(SegmentData);
+			CurrentSpline->Start = Segment->Connections[0].ControlPoint;
+			CurrentSpline->End = Segment->Connections[1].ControlPoint;
+
+			ProcessedSegments.Add(Segment);
+		}
+
+		// Follow the chain of connected from CurrentSpline->Start to the end
+		TObjectPtr<ULandscapeSplineSegment> LastSegment = Segment;
+		int32 ConnectionIdx = 0;
+		while (ConnectionIdx < CurrentSpline->Start->ConnectedSegments.Num())
+		{
+			const FLandscapeSplineConnection& Connection = CurrentSpline->Start->ConnectedSegments[ConnectionIdx];
+			ConnectionIdx++;
+			if (ProcessedSegments.Contains(Connection.Segment))
+				continue;
+			
+			if (Connection.Segment->Connections[1].ControlPoint == CurrentSpline->Start)
+			{
+				CurrentSpline->Start = Connection.Segment->Connections[0].ControlPoint;
+				ConnectionIdx = 0;
+				FOrderedSegmentData SegmentData;
+				SegmentData.Segment = Connection.Segment;
+				CurrentSpline->OrderedSegments.Insert(SegmentData, 0);
+				ProcessedSegments.Add(Connection.Segment);
+			}
+		}
+
+		// Follow the chain of connected from CurrentSpline->End to the end 
+		ConnectionIdx = 0;
+		while (ConnectionIdx < CurrentSpline->End->ConnectedSegments.Num())
+		{
+			const FLandscapeSplineConnection& Connection = CurrentSpline->End->ConnectedSegments[ConnectionIdx];
+			ConnectionIdx++;
+			if (ProcessedSegments.Contains(Connection.Segment))
+				continue;
+			
+			if (Connection.Segment->Connections[0].ControlPoint == CurrentSpline->End)
+			{
+				CurrentSpline->End = Connection.Segment->Connections[1].ControlPoint;
+				ConnectionIdx = 0;
+				FOrderedSegmentData SegmentData;
+				SegmentData.Segment = Connection.Segment;
+				CurrentSpline->OrderedSegments.Add(SegmentData);
+				ProcessedSegments.Add(Connection.Segment);
+			}
+		}
+
+		CurrentSpline = nullptr;
+	}
+}
+
+
+void PopulateUnResampledPointData(
+	TArray<FConnectedSpline>& InConnectedSplines,
+	const EHoudiniLandscapeSplineCurve InExportCurve,
+	const bool bInResampleSplines,
+	const float InSplineResolution,
+	int32& OutTotalNumPoints,
+	TArray<int32>& OutPerSegmentVertexCount)
+{
+	int32 NextGlobalSegmentIndex = 0;
+	int32 TotalNumPoints = 0;
+	for (FConnectedSpline& ConnectedSpline : InConnectedSplines)
+	{
+		// Determine total number of points for all segments
+		// Use helper structs to get keep the Center, Left and Right positions as well as the Alpha value and rotations
+		// along the spline
+		for (FOrderedSegmentData& SegmentData : ConnectedSpline.OrderedSegments)
+		{
+			SegmentData.GlobalSegmentIndex = NextGlobalSegmentIndex;
+			NextGlobalSegmentIndex++;
+			
+			SegmentData.SegmentLength = 0.0f;
+			if (!IsValid(SegmentData.Segment))
+			{
+				OutPerSegmentVertexCount.Add(0);
+				continue;
+			}
+
+			// Calculate segment length and number of points per segment
+			const TArray<FLandscapeSplineInterpPoint>& SegmentSplinePoints = SegmentData.Segment->GetPoints();
+			const int32 NumPointsInSegment = SegmentSplinePoints.Num();
+
+			// Initialize the unresampled points array and its first element
+			if (NumPointsInSegment > 0)
+			{
+				SegmentData.UnResampledPoints.Reserve(NumPointsInSegment);
+				SegmentData.UnResampledPoints.Emplace(InExportCurve, SegmentSplinePoints[0]);
+			}
+			// Populate the rest of the unresampled point array and calculate the rotations at each unresampled point
+			for (int32 VertIdx = 1; VertIdx < NumPointsInSegment; ++VertIdx)
+			{
+				FUnResampledPoint& Point0 = SegmentData.UnResampledPoints[VertIdx - 1];
+				FUnResampledPoint& Point1 = SegmentData.UnResampledPoints.Emplace_GetRef(
+					InExportCurve, SegmentSplinePoints[VertIdx]);
+
+				// Set rotations (first and last points use the control point's rotation)
+				if (VertIdx == 1)
+				{
+					ULandscapeSplineControlPoint const* const CP = SegmentData.Segment->Connections[0].ControlPoint;
+					if (IsValid(CP))
+						Point0.Rotation = CP->Rotation.Quaternion();
+					else
+						Point0.Rotation = FQuat::Identity;
+				}
+				else if (VertIdx == NumPointsInSegment - 1)
+				{
+					Point0.CalculateRotationTo(Point1);
+					ULandscapeSplineControlPoint const* const CP = SegmentData.Segment->Connections[1].ControlPoint;
+					if (IsValid(CP))
+						Point1.Rotation = CP->Rotation.Quaternion();
+					else
+						Point1.Rotation = FQuat::Identity;
+				}
+				else
+				{
+					Point0.CalculateRotationTo(Point1);
+				}
+			}
+
+			int32 NumPointsInResampledSegment = 0;
+			if (bInResampleSplines)
+			{
+				// Calculate the number of resampled points via SegmentLength / SplineResolution
+				for (int32 VertIdx = 1; VertIdx < NumPointsInSegment; ++VertIdx)
+				{
+					const FUnResampledPoint& Point0 = SegmentData.UnResampledPoints[VertIdx - 1];
+					const FUnResampledPoint& Point1 = SegmentData.UnResampledPoints[VertIdx];
+					SegmentData.SegmentLength += (Point1.GetSelectedPosition() - Point0.GetSelectedPosition()).Length();
+				}
+				NumPointsInResampledSegment = FMath::CeilToInt32(SegmentData.SegmentLength / InSplineResolution) + 1; 
+			}
+			else
+			{
+				// Not resampling, so just use the points as is
+				NumPointsInResampledSegment = NumPointsInSegment; 
+			}
+
+			// Record the number of (resampled) points we'll have in this spline/segment
+			TotalNumPoints += NumPointsInResampledSegment;
+			OutPerSegmentVertexCount.Add(NumPointsInResampledSegment);
+		}
+	}
+
+	OutTotalNumPoints = TotalNumPoints;
+}
+
 bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 	ULandscapeSplinesComponent* const InSplinesComponent,
 	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
@@ -922,291 +1142,272 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 	if (!FHoudiniEngineRuntimeUtils::GetLandscapeSplinesSegments(InSplinesComponent, Segments))
 		return false;
 
-	const int32 NumSegments = Segments.Num();
+	// We need to determine which segments are connected with the same orientation. That way we can output a more
+	// consistent / increasing point and vertex order per set of connected segments.
+	TArray<FConnectedSpline> ConnectedSplines;
+	FindConnectedSplines(Segments, ConnectedSplines);
+
+	const int32 TotalNumSegments = Segments.Num();
 	// Initialize arrays
-	OutSplinesData.VertexCounts.Empty(NumSegments);
-	OutSplinesData.SegmentPaintLayerNames.Empty(NumSegments);
-	OutSplinesData.SegmentRaiseTerrains.Empty(NumSegments);
-	OutSplinesData.SegmentLowerTerrains.Empty(NumSegments);
+	OutSplinesData.VertexCounts.Empty(TotalNumSegments);
+	OutSplinesData.SegmentPaintLayerNames.Empty(TotalNumSegments);
+	OutSplinesData.SegmentRaiseTerrains.Empty(TotalNumSegments);
+	OutSplinesData.SegmentLowerTerrains.Empty(TotalNumSegments);
 
 	// We only have to resample the splines if the spline resolution is different than the internal spline resolution
 	// on the landscape splines component.
 	const bool bResampleSplines = (InSplineResolution > 0.0f && InSplineResolution != InSplinesComponent->SplineResolution);
+	int32 TotalNumPoints = 0;
+	PopulateUnResampledPointData(ConnectedSplines, InExportCurve, bResampleSplines, InSplineResolution, TotalNumPoints, OutSplinesData.VertexCounts);
 
-	// Determine total number of points for all segments
-	TArray<float> SegmentLengths;
-	SegmentLengths.SetNum(NumSegments);
-	int32 NumPoints = 0;
-	for (int32 SegmentIdx = 0; SegmentIdx < NumSegments; ++SegmentIdx)
-	{
-		ULandscapeSplineSegment const* const Segment = Segments[SegmentIdx];
-		SegmentLengths[SegmentIdx] = 0.0f;
-		if (!IsValid(Segment))
-		{
-			OutSplinesData.VertexCounts.Add(0);
-			continue;
-		}
+	OutSplinesData.PointPositions.Empty(TotalNumPoints);
+	OutSplinesData.PointConnectionSocketNames.Empty(TotalNumPoints);
+	OutSplinesData.PointConnectionTangentLengths.Empty(TotalNumPoints);
+	OutSplinesData.ControlPointAttributes.Init(TotalNumPoints);
 
-		// Calculate segment length and number of points per segment
-		const TArray<FLandscapeSplineInterpPoint>& Points = Segment->GetPoints();
-		const int32 NumPointsInSegment = Points.Num();
-		int32 NumPointsInResampledSegment = 0;
-		if (bResampleSplines)
-		{
-			// Calculate the resampled points via SegmentLength / SplineResolution
-			for (int32 VertIdx = 1; VertIdx < NumPointsInSegment; ++VertIdx)
-			{
-				FUnResampledPoint Point0(InExportCurve);
-				FUnResampledPoint Point1(InExportCurve);
-				Point0.CopySplinePoint(Points[VertIdx - 1]);
-				Point1.CopySplinePoint(Points[VertIdx]);
-				SegmentLengths[SegmentIdx] += (Point1.GetSelectedPosition() - Point0.GetSelectedPosition()).Length();
-			}
-			NumPointsInResampledSegment = FMath::CeilToInt32(SegmentLengths[SegmentIdx] / InSplineResolution) + 1; 
-		}
-		else
-		{
-			// Not resampling, so just use the points as is
-			NumPointsInResampledSegment = NumPointsInSegment; 
-		}
-
-		// Record the number of (resampled) points we'll have in this spline/segment
-		NumPoints += NumPointsInResampledSegment;
-		OutSplinesData.VertexCounts.Add(NumPointsInResampledSegment);
-	}
-	OutSplinesData.PointPositions.Empty(NumPoints);
-	OutSplinesData.PointConnectionSocketNames.Empty(NumPoints);
-	OutSplinesData.PointConnectionTangentLengths.Empty(NumPoints);
-	OutSplinesData.ControlPointAttributes.Init(NumPoints);
-
-	// OutputPointIdx: The index of the current output point (across all segments). Range: [0, NumPoints).
+	// OutputPointIdx: The index of the current output point (across all segments). Range: [0, TotalNumPoints).
 	//				   Incremented in the inner ResampledSegmentVertIdx loop.
 	int32 OutputPointIdx = 0;
-	for (int32 SegmentIdx = 0; SegmentIdx < NumSegments; ++SegmentIdx)
+	for (const FConnectedSpline& ConnectedSpline : ConnectedSplines)
 	{
-		ULandscapeSplineSegment const* const Segment = Segments[SegmentIdx];
-		if (!IsValid(Segment))
+		const int32 NumSegments = ConnectedSpline.OrderedSegments.Num();
+		for (int32 SegmentIdx = 0; SegmentIdx < NumSegments; ++SegmentIdx)
 		{
-			// Create blank entries for this invalid segment
-			OutSplinesData.SegmentPaintLayerNames.AddDefaulted();
-			OutSplinesData.SegmentRaiseTerrains.AddDefaulted();
-			OutSplinesData.SegmentLowerTerrains.AddDefaulted();
-
-			continue;
-		}
-
-		const TArray<FLandscapeSplineInterpPoint>& SegmentPoints = Segment->GetPoints();
-		const int32 NumVertsInSegment = SegmentPoints.Num();
-		if (NumVertsInSegment <= 0)
-		{
-			// Create blank entries for this invalid segment
-			OutSplinesData.SegmentPaintLayerNames.AddDefaulted();
-			OutSplinesData.SegmentRaiseTerrains.AddDefaulted();
-			OutSplinesData.SegmentLowerTerrains.AddDefaulted();
-
-			continue;
-		}
-
-		// TODO: handle case NumVertsInSegment == 1
-		// Use helper structs to get keep the Center, Left and Right positions as well as the Alpha value along the spline
-		FUnResampledPoint UnResampledPoint0(InExportCurve);
-		FUnResampledPoint UnResampledPoint1(InExportCurve);
-		int32 UnResampledPointIndex = 1;
-		
-		UnResampledPoint0.CopySplinePoint(SegmentPoints[0]);
-		UnResampledPoint1.CopySplinePoint(SegmentPoints[1]);
-		// If we are resampling, calculate the Alpha value [0, 1] along the segment, with Point 0 at Alpha = 0.
-		if (bResampleSplines)
-			UnResampledPoint1.Alpha = (UnResampledPoint1.GetSelectedPosition() - UnResampledPoint0.GetSelectedPosition()).Length() / SegmentLengths[SegmentIdx];
-
-		// Loop for the number of resampled points we'll have for this segment (which could be equal to original number
-		// of points in segment if we are not resampling)
-		const int32 NumResampledVertsInSegment = OutSplinesData.VertexCounts[SegmentIdx];
-		for (int32 ResampledSegmentVertIdx = 0; ResampledSegmentVertIdx < NumResampledVertsInSegment; ++ResampledSegmentVertIdx, ++OutputPointIdx)
-		{
-			FVector ResampledPosition;
-
-			float CalculatedHalfWidth = 0;
-			float CalculatedSideFalloff = 0;
-			if (bResampleSplines)
+			const FOrderedSegmentData& SegmentData = ConnectedSpline.OrderedSegments[SegmentIdx];
+			if (!IsValid(SegmentData.Segment))
 			{
-				// Find P0 and P1: the unresampled points before and after the resampled point on the spline
-				const float Alpha = static_cast<float>(ResampledSegmentVertIdx) / (NumResampledVertsInSegment - 1.0f);
-				while (Alpha > UnResampledPoint1.Alpha && UnResampledPointIndex < NumVertsInSegment - 1)
-				{
-					UnResampledPoint0 = UnResampledPoint1;
-					UnResampledPointIndex++;
-					UnResampledPoint1.CopySplinePoint(SegmentPoints[UnResampledPointIndex]);
-					UnResampledPoint1.Alpha = UnResampledPoint0.Alpha + (UnResampledPoint1.GetSelectedPosition() - UnResampledPoint0.GetSelectedPosition()).Length() / SegmentLengths[SegmentIdx];
-				}
+				// Create blank entries for this invalid segment
+				OutSplinesData.SegmentPaintLayerNames.AddDefaulted();
+				OutSplinesData.SegmentRaiseTerrains.AddDefaulted();
+				OutSplinesData.SegmentLowerTerrains.AddDefaulted();
 
+				continue;
+			}
+
+			const TArray<FLandscapeSplineInterpPoint>& SegmentPoints = SegmentData.Segment->GetPoints();
+			const int32 NumVertsInSegment = SegmentPoints.Num();
+			if (NumVertsInSegment <= 0)
+			{
+				// Create blank entries for this invalid segment
+				OutSplinesData.SegmentPaintLayerNames.AddDefaulted();
+				OutSplinesData.SegmentRaiseTerrains.AddDefaulted();
+				OutSplinesData.SegmentLowerTerrains.AddDefaulted();
+
+				continue;
+			}
+
+			// TODO: handle case NumVertsInSegment == 1
+			int32 UnResampledPointIndex = 1;
+			
+			FUnResampledPoint UnResampledPoint0 = SegmentData.UnResampledPoints[0];
+			FUnResampledPoint UnResampledPoint1 = SegmentData.UnResampledPoints[1];
+			// If we are resampling, calculate the Alpha value [0, 1] along the segment, with Point 0 at Alpha = 0.
+			if (bResampleSplines)
+				UnResampledPoint1.Alpha = (UnResampledPoint1.GetSelectedPosition() - UnResampledPoint0.GetSelectedPosition()).Length() / SegmentData.SegmentLength;
+
+			// Loop for the number of resampled points we'll have for this segment (which could be equal to original number
+			// of points in segment if we are not resampling)
+			const int32 NumResampledVertsInSegment = OutSplinesData.VertexCounts[SegmentData.GlobalSegmentIndex];
+			for (int32 ResampledSegmentVertIdx = 0; ResampledSegmentVertIdx < NumResampledVertsInSegment; ++ResampledSegmentVertIdx, ++OutputPointIdx)
+			{
+				FVector ResampledPosition;
+				FRotator ResampledRotation;
+
+				float CalculatedHalfWidth = 0;
+				float CalculatedSideFalloff = 0;
+				if (bResampleSplines)
+				{
+					// Find P0 and P1: the unresampled points before and after the resampled point on the spline
+					const float Alpha = static_cast<float>(ResampledSegmentVertIdx) / (NumResampledVertsInSegment - 1.0f);
+					while (Alpha > UnResampledPoint1.Alpha && UnResampledPointIndex < NumVertsInSegment - 1)
+					{
+						UnResampledPoint0 = UnResampledPoint1;
+						UnResampledPointIndex++;
+						UnResampledPoint1 = SegmentData.UnResampledPoints[UnResampledPointIndex];
+						UnResampledPoint1.Alpha = UnResampledPoint0.Alpha + (UnResampledPoint1.GetSelectedPosition() - UnResampledPoint0.GetSelectedPosition()).Length() / SegmentData.SegmentLength;
+					}
+
+					if (ResampledSegmentVertIdx == 0)
+					{
+						// The first point is a control point and always the same as the unresampled spline's first point
+						ResampledPosition = UnResampledPoint0.GetSelectedPosition();
+						ResampledRotation = UnResampledPoint0.Rotation.Rotator();
+					}
+					else if (ResampledSegmentVertIdx == NumResampledVertsInSegment - 1)
+					{
+						// The last point is a control point and always the same as the unresampled spline's last point
+						ResampledPosition = UnResampledPoint1.GetSelectedPosition();
+						ResampledRotation = UnResampledPoint1.Rotation.Rotator();
+					}
+					else
+					{
+						// Calculate the [0, 1] value representing the position of the resampled point between P0 and P1
+						const float ResampleAlpha = (Alpha - UnResampledPoint0.Alpha) / (UnResampledPoint1.Alpha - UnResampledPoint0.Alpha);
+						// Lerp to calculate the resampled point's position
+						ResampledPosition = FMath::Lerp(
+							UnResampledPoint0.GetSelectedPosition(), UnResampledPoint1.GetSelectedPosition(), ResampleAlpha);
+
+						// Slerp to calculate the resampled point's rotation
+						ResampledRotation = FQuat::Slerp( 
+							UnResampledPoint0.Rotation, UnResampledPoint1.Rotation, ResampleAlpha).Rotator();
+
+						// On points that are not control points, the half-width should be half the distance between the
+						// Right and Left points going through the Center point
+						const FVector ResampledLeft = FMath::Lerp(
+						UnResampledPoint0.Left, UnResampledPoint1.Left, ResampleAlpha);
+						const FVector ResampledRight = FMath::Lerp(
+							UnResampledPoint0.Right, UnResampledPoint1.Right, ResampleAlpha);
+						CalculatedHalfWidth = ((ResampledPosition - ResampledRight) + (ResampledLeft - ResampledPosition)).Length() / 2.0;
+
+						const FVector ResampledLeftFalloff = FMath::Lerp(
+							UnResampledPoint0.FalloffLeft, UnResampledPoint1.FalloffLeft, ResampleAlpha);
+						const FVector ResampledRightFalloff = FMath::Lerp(
+							UnResampledPoint0.FalloffRight, UnResampledPoint1.FalloffRight, ResampleAlpha);
+						CalculatedSideFalloff = ((ResampledRightFalloff - ResampledRight).Length() 
+							+ (ResampledLeftFalloff - ResampledLeft).Length()) / 2.0;
+					}
+				}
+				else
+				{
+					// We are not resampling, so simply copy the unresampled position at this index
+					UnResampledPointIndex = ResampledSegmentVertIdx;
+					UnResampledPoint1 = SegmentData.UnResampledPoints[UnResampledPointIndex];
+					ResampledPosition = UnResampledPoint1.GetSelectedPosition();
+					ResampledRotation = UnResampledPoint1.Rotation.Rotator();
+
+					if (ResampledSegmentVertIdx > 0 && ResampledSegmentVertIdx < NumResampledVertsInSegment - 1)
+					{
+						const FLandscapeSplineInterpPoint& SegmentPoint = SegmentPoints[UnResampledPointIndex];
+						
+						// On points that are not control points, the half-width should be half the distance between the
+						// Right and Left points going through the Center point
+						CalculatedHalfWidth = ((SegmentPoint.Center - SegmentPoint.Right) + (SegmentPoint.Left - SegmentPoint.Center)).Length() / 2.0;
+						CalculatedSideFalloff = ((SegmentPoint.FalloffRight - SegmentPoint.Right).Length() 
+							+ (SegmentPoint.FalloffLeft - SegmentPoint.Left).Length()) / 2.0;
+					}
+				}
+				
 				if (ResampledSegmentVertIdx == 0)
 				{
-					// The first point is a control point and always the same as the unresampled spline's first point
-					ResampledPosition = UnResampledPoint0.GetSelectedPosition();
+					// First point is a control point, add the socket name
+					static constexpr int32 ConnectionIdx = 0;
+					OutSplinesData.PointConnectionSocketNames.Emplace(SegmentData.Segment->Connections[ConnectionIdx].SocketName.ToString());
+					OutSplinesData.PointConnectionTangentLengths.Add(SegmentData.Segment->Connections[ConnectionIdx].TangentLen);
+					ULandscapeSplineControlPoint const* const CPoint = SegmentData.Segment->Connections[ConnectionIdx].ControlPoint;
+					if (!IsValid(CPoint))
+					{
+						OutSplinesData.ControlPointAttributes.AddEmpty();
+					}
+					else
+					{
+						OutSplinesData.ControlPointAttributes.AddControlPointData(
+							CPoint, OutputPointIdx, InControlPointIdMap, InNextControlPointId);
+					}
 				}
 				else if (ResampledSegmentVertIdx == NumResampledVertsInSegment - 1)
 				{
-					// The last point is a control point and always the same as the unresampled spline's last point
-					ResampledPosition = UnResampledPoint1.GetSelectedPosition();
+					// Last point is a control point, add the socket name
+					static constexpr int32 ConnectionIdx = 1;
+					OutSplinesData.PointConnectionSocketNames.Emplace(SegmentData.Segment->Connections[ConnectionIdx].SocketName.ToString());
+					OutSplinesData.PointConnectionTangentLengths.Add(SegmentData.Segment->Connections[ConnectionIdx].TangentLen);
+					ULandscapeSplineControlPoint const* const CPoint = SegmentData.Segment->Connections[ConnectionIdx].ControlPoint;
+					if (!IsValid(CPoint))
+					{
+						OutSplinesData.ControlPointAttributes.AddEmpty();
+					}
+					else
+					{
+						OutSplinesData.ControlPointAttributes.AddControlPointData(
+							CPoint, OutputPointIdx, InControlPointIdMap, InNextControlPointId);
+					}
 				}
 				else
 				{
-					// Calculate the [0, 1] value representing the position of the resampled point between P0 and P1
-					const float ResampleAlpha = (Alpha - UnResampledPoint0.Alpha) / (UnResampledPoint1.Alpha - UnResampledPoint0.Alpha);
-					// Lerp to calculate the resampled point's position
-					ResampledPosition = FMath::Lerp(
-						UnResampledPoint0.GetSelectedPosition(), UnResampledPoint1.GetSelectedPosition(), ResampleAlpha);
-
-					// On points that are not control points, the half-width should be half the distance between the
-					// Right and Left points going through the Center point
-					const FVector ResampledLeft = FMath::Lerp(
-					UnResampledPoint0.Left, UnResampledPoint1.Left, ResampleAlpha);
-					const FVector ResampledRight = FMath::Lerp(
-						UnResampledPoint0.Right, UnResampledPoint1.Right, ResampleAlpha);
-					CalculatedHalfWidth = ((ResampledPosition - ResampledRight) + (ResampledLeft - ResampledPosition)).Length() / 2.0;
-
-					const FVector ResampledLeftFalloff = FMath::Lerp(
-						UnResampledPoint0.FalloffLeft, UnResampledPoint1.FalloffLeft, ResampleAlpha);
-					const FVector ResampledRightFalloff = FMath::Lerp(
-						UnResampledPoint0.FalloffRight, UnResampledPoint1.FalloffRight, ResampleAlpha);
-					CalculatedSideFalloff = ((ResampledRightFalloff - ResampledRight).Length() 
-						+ (ResampledLeftFalloff - ResampledLeft).Length()) / 2.0;
+					// for other points the socket names, tangent lengths and control point name attributes are empty
+					OutSplinesData.PointConnectionSocketNames.AddDefaulted();
+					OutSplinesData.PointConnectionTangentLengths.AddDefaulted();
+					OutSplinesData.ControlPointAttributes.AddEmpty();
+					// The control point width was calculated, set that manually
+					OutSplinesData.ControlPointAttributes.ControlPointHalfWidths.Last() = CalculatedHalfWidth / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+					OutSplinesData.ControlPointAttributes.ControlPointSideFalloffs.Last() = CalculatedSideFalloff / HAPI_UNREAL_SCALE_FACTOR_POSITION;
+					// We don't have calculated end-falloff values for non-control points, set to 0
+					OutSplinesData.ControlPointAttributes.ControlPointEndFalloffs.Last() = 0.0f;
+					// Set the calculated / resampled rotation
+					ConvertAndSetRotation(
+						ResampledRotation, OutSplinesData.ControlPointAttributes.ControlPointRotations.Num() - 4, OutSplinesData.ControlPointAttributes.ControlPointRotations);
 				}
-			}
-			else
-			{
-				// We are not resampling, so simply copy the unresampled position at this index
-				UnResampledPointIndex = ResampledSegmentVertIdx;
-				const FLandscapeSplineInterpPoint& SegmentPoint = SegmentPoints[UnResampledPointIndex];
-				UnResampledPoint1.CopySplinePoint(SegmentPoint);
-				ResampledPosition = UnResampledPoint1.GetSelectedPosition();
 
-				if (ResampledSegmentVertIdx > 0 && ResampledSegmentVertIdx < NumResampledVertsInSegment - 1)
-				{
-					// On points that are not control points, the half-width should be half the distance between the
-					// Right and Left points going through the Center point
-					CalculatedHalfWidth = ((SegmentPoint.Center - SegmentPoint.Right) + (SegmentPoint.Left - SegmentPoint.Center)).Length() / 2.0;
-					CalculatedSideFalloff = ((SegmentPoint.FalloffRight - SegmentPoint.Right).Length() 
-						+ (SegmentPoint.FalloffLeft - SegmentPoint.Left).Length()) / 2.0;
-				}
+				// Set the final point position
+				OutSplinesData.PointPositions.Add(ResampledPosition.X / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+				// Swap Y/Z
+				OutSplinesData.PointPositions.Add(ResampledPosition.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION);
+				OutSplinesData.PointPositions.Add(ResampledPosition.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION);
 			}
 			
-			if (ResampledSegmentVertIdx == 0)
+			// Extract general properties from the segment
+			OutSplinesData.SegmentPaintLayerNames.Emplace(SegmentData.Segment->LayerName.ToString());
+			OutSplinesData.SegmentRaiseTerrains.Add(SegmentData.Segment->bRaiseTerrain);
+			OutSplinesData.SegmentLowerTerrains.Add(SegmentData.Segment->bLowerTerrain);
+
+			// Extract the spline mesh configuration for the segment
+			const int32 NumMeshes = SegmentData.Segment->SplineMeshes.Num();
+			// Grow PerMeshSegmentData if needed
+			if (OutSplinesData.PerMeshSegmentData.Num() < NumMeshes)
 			{
-				// First point is a control point, add the socket name
-				OutSplinesData.PointConnectionSocketNames.Emplace(Segment->Connections[0].SocketName.ToString());
-				OutSplinesData.PointConnectionTangentLengths.Add(Segment->Connections[0].TangentLen);
-				ULandscapeSplineControlPoint const* const CPoint = Segment->Connections[0].ControlPoint;
-				if (!IsValid(CPoint))
+				OutSplinesData.PerMeshSegmentData.SetNum(NumMeshes);
+			}
+			for (int32 MeshIdx = 0; MeshIdx < NumMeshes; ++MeshIdx)
+			{
+				const FLandscapeSplineMeshEntry& SplineMeshEntry = SegmentData.Segment->SplineMeshes[MeshIdx];
+				FLandscapeSplineSegmentMeshData& SegmentMeshData = OutSplinesData.PerMeshSegmentData[MeshIdx];
+				// Initialize mesh per segment array if needed
+				if (SegmentMeshData.MeshRefs.IsEmpty())
 				{
-					OutSplinesData.ControlPointAttributes.AddEmpty();
+					SegmentMeshData.MeshRefs.SetNum(TotalNumSegments);
 				}
-				else
+
+				// Set mesh reference (if there is a valid mesh for this entry) 
+				if (IsValid(SplineMeshEntry.Mesh))
 				{
-					OutSplinesData.ControlPointAttributes.AddControlPointData(
-						CPoint, OutputPointIdx, InControlPointIdMap, InNextControlPointId);
+					SegmentMeshData.MeshRefs[SegmentData.GlobalSegmentIndex] = SplineMeshEntry.Mesh->GetPathName();
 				}
-			}
-			else if (ResampledSegmentVertIdx == NumResampledVertsInSegment - 1)
-			{
-				// Last point is a control point, add the socket name
-				OutSplinesData.PointConnectionSocketNames.Emplace(Segment->Connections[1].SocketName.ToString());
-				OutSplinesData.PointConnectionTangentLengths.Add(Segment->Connections[1].TangentLen);
-				ULandscapeSplineControlPoint const* const CPoint = Segment->Connections[1].ControlPoint;
-				if (!IsValid(CPoint))
+
+				// Material overrides: initialize the array to num material overrides
+				const int32 NumMaterialOverrides = SplineMeshEntry.MaterialOverrides.Num();
+				if (SegmentMeshData.MeshMaterialOverrideRefs.IsEmpty())
 				{
-					OutSplinesData.ControlPointAttributes.AddEmpty();
+					SegmentMeshData.MeshMaterialOverrideRefs.SetNum(NumMaterialOverrides);
 				}
-				else
+
+				// Set the material override refs
+				for (int32 MaterialOverrideIdx = 0; MaterialOverrideIdx < NumMaterialOverrides; ++MaterialOverrideIdx)
 				{
-					OutSplinesData.ControlPointAttributes.AddControlPointData(
-						CPoint, OutputPointIdx, InControlPointIdMap, InNextControlPointId);
-				}
-			}
-			else
-			{
-				// for other points the socket names, tangent lengths and control point name attributes are empty
-				OutSplinesData.PointConnectionSocketNames.AddDefaulted();
-				OutSplinesData.PointConnectionTangentLengths.AddDefaulted();
-				OutSplinesData.ControlPointAttributes.AddEmpty();
-				// The control point width was calculated, set that manually
-				OutSplinesData.ControlPointAttributes.ControlPointHalfWidths.Last() = CalculatedHalfWidth / HAPI_UNREAL_SCALE_FACTOR_POSITION;
-				OutSplinesData.ControlPointAttributes.ControlPointSideFalloffs.Last() = CalculatedSideFalloff / HAPI_UNREAL_SCALE_FACTOR_POSITION;
-				// We don't have calculated end-falloff values for non-control points, set to 0
-				OutSplinesData.ControlPointAttributes.ControlPointEndFalloffs.Last() = 0.0f;
-			}
+					TArray<FString>& MaterialOverrideRefs = SegmentMeshData.MeshMaterialOverrideRefs[MaterialOverrideIdx];
+					// Ensure there is enough space in the array for the segments 
+					if (MaterialOverrideRefs.Num() < TotalNumSegments)
+					{
+						MaterialOverrideRefs.SetNum(TotalNumSegments);
+					}
+					
+					UMaterialInterface const* const MaterialOverride = SplineMeshEntry.MaterialOverrides[MaterialOverrideIdx];
+					if (!IsValid(MaterialOverride))
+					{
+						MaterialOverrideRefs[SegmentData.GlobalSegmentIndex] = TEXT("");
+						continue;
+					}
 
-			// Set the final point position
-			OutSplinesData.PointPositions.Add(ResampledPosition.X / HAPI_UNREAL_SCALE_FACTOR_POSITION);
-			// Swap Y/Z
-			OutSplinesData.PointPositions.Add(ResampledPosition.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION);
-			OutSplinesData.PointPositions.Add(ResampledPosition.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION);
-		}
-		
-		// Extract general properties from the segment
-		OutSplinesData.SegmentPaintLayerNames.Emplace(Segment->LayerName.ToString());
-		OutSplinesData.SegmentRaiseTerrains.Add(Segment->bRaiseTerrain);
-		OutSplinesData.SegmentLowerTerrains.Add(Segment->bLowerTerrain);
-
-		// Extract the spline mesh configuration for the segment
-		const int32 NumMeshes = Segment->SplineMeshes.Num();
-		// Grow PerMeshSegmentData if needed
-		if (OutSplinesData.PerMeshSegmentData.Num() < NumMeshes)
-		{
-			OutSplinesData.PerMeshSegmentData.SetNum(NumMeshes);
-		}
-		for (int32 MeshIdx = 0; MeshIdx < NumMeshes; ++MeshIdx)
-		{
-			const FLandscapeSplineMeshEntry& SplineMeshEntry = Segment->SplineMeshes[MeshIdx];
-			FLandscapeSplineSegmentMeshData& SegmentMeshData = OutSplinesData.PerMeshSegmentData[MeshIdx];
-			// Initialize mesh per segment array if needed
-			if (SegmentMeshData.MeshRefs.IsEmpty())
-			{
-				SegmentMeshData.MeshRefs.SetNum(NumSegments);
-			}
-
-			// Set mesh reference (if there is a valid mesh for this entry) 
-			if (IsValid(SplineMeshEntry.Mesh))
-			{
-				SegmentMeshData.MeshRefs[SegmentIdx] = SplineMeshEntry.Mesh->GetPathName();
-			}
-
-			// Material overrides: initialize the array to num material overrides
-			const int32 NumMaterialOverrides = SplineMeshEntry.MaterialOverrides.Num();
-			if (SegmentMeshData.MeshMaterialOverrideRefs.IsEmpty())
-			{
-				SegmentMeshData.MeshMaterialOverrideRefs.SetNum(NumMaterialOverrides);
-			}
-
-			// Set the material override refs
-			for (int32 MaterialOverrideIdx = 0; MaterialOverrideIdx < NumMaterialOverrides; ++MaterialOverrideIdx)
-			{
-				TArray<FString>& MaterialOverrideRefs = SegmentMeshData.MeshMaterialOverrideRefs[MaterialOverrideIdx];
-				// Ensure there is enough space in the array for the segments 
-				if (MaterialOverrideRefs.Num() < NumSegments)
-				{
-					MaterialOverrideRefs.SetNum(NumSegments);
+					MaterialOverrideRefs[SegmentData.GlobalSegmentIndex] = MaterialOverride->GetPathName();
 				}
 				
-				UMaterialInterface const* const MaterialOverride = SplineMeshEntry.MaterialOverrides[MaterialOverrideIdx];
-				if (!IsValid(MaterialOverride))
+				// Initialize mesh scale per segment array if needed
+				if (SegmentMeshData.MeshScales.IsEmpty())
 				{
-					MaterialOverrideRefs[SegmentIdx] = TEXT("");
-					continue;
+					SegmentMeshData.MeshScales.SetNum(TotalNumSegments * 3);
 				}
-
-				MaterialOverrideRefs[SegmentIdx] = MaterialOverride->GetPathName();
+				SegmentMeshData.MeshScales[SegmentData.GlobalSegmentIndex * 3 + 0] = SplineMeshEntry.Scale.X;
+				SegmentMeshData.MeshScales[SegmentData.GlobalSegmentIndex * 3 + 1] = SplineMeshEntry.Scale.Z;
+				SegmentMeshData.MeshScales[SegmentData.GlobalSegmentIndex * 3 + 2] = SplineMeshEntry.Scale.Y;
 			}
-			
-			// Initialize mesh scale per segment array if needed
-			if (SegmentMeshData.MeshScales.IsEmpty())
-			{
-				SegmentMeshData.MeshScales.SetNum(NumSegments * 3);
-			}
-			SegmentMeshData.MeshScales[SegmentIdx * 3 + 0] = SplineMeshEntry.Scale.X;
-			SegmentMeshData.MeshScales[SegmentIdx * 3 + 1] = SplineMeshEntry.Scale.Z;
-			SegmentMeshData.MeshScales[SegmentIdx * 3 + 2] = SplineMeshEntry.Scale.Y;
 		}
 	}
 
