@@ -149,14 +149,8 @@ UHoudiniEditorNodeSyncSubsystem::InitNodeSyncInputIfNeeded()
 	NodeSyncInput = NewObject<UHoudiniInput>(
 		this, UHoudiniInput::StaticClass(), FName(*InputObjectName), RF_Transactional);
 
-	//NodeSyncInput->AddToRoot();
-
 	if (!IsValid(NodeSyncInput))
-	{
-		// TODO: Always call remove from root, even for failures! (use a lambda for returns)
-		NodeSyncInput->RemoveFromRoot();
 		return false;
-	}
 
 	// Set the default input options
 	// TODO: Fill those from the NodeSync UI?!
@@ -314,11 +308,7 @@ UHoudiniEditorNodeSyncSubsystem::SendToHoudini(const TArray<UObject*>& SelectedA
 		// Get the NodeSync input from the Editor Subsystem
 		UHoudiniInput* NSInput;
 		if (!GetNodeSyncInput(NSInput))
-		{
-			// TODO: Always call remove from root, even for failures! (use a lambda for returns)
-			//NSInput->RemoveFromRoot();
 			return;
-		}
 
 		// Default input options
 		NSInput->SetCanDeleteHoudiniNodes(false);
@@ -399,9 +389,6 @@ UHoudiniEditorNodeSyncSubsystem::SendToHoudini(const TArray<UObject*>& SelectedA
 					CurrentObjectNodeId, CreatedNodeIds[CreatedNodeIdx], ObjectName, ObjectMergeNodeId, CurrentObjectNodeId, true, FTransform::Identity, 1);
 			}
 		}
-
-		// TODO: Always call remove from root, even for failures! (use a lambda for returns)
-		//NSInput->RemoveFromRoot();
 	}
 
 	// Update status

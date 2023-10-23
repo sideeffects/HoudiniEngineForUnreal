@@ -147,6 +147,6 @@ private:
 	HAPI_NodeId object_node_id = -1;
 	//HAPI_NodeId network_node_id = -1;
 
-	//UPROPERTY()
+	UPROPERTY()
 	UHoudiniInput* NodeSyncInput;
 };
