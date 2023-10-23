@@ -1864,13 +1864,18 @@ FHoudiniLandscapeSplineTranslator::UpdateControlPointFromAttributes(
 	if (InAttributes.bHasPointRotationAttribute
 			&& InAttributes.PointRotations.IsValidIndex(InPointIndex * 4) && InAttributes.PointRotations.IsValidIndex(InPointIndex * 4 + 3))
 	{
-		// Convert Houdini Y-up to UE Z-up and also Houdini -Z-forward to UE X-forward
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0)
+		static constexpr float HalfPI = UE_HALF_PI;
+#else
+		static constexpr float HalfPI = HALF_PI;
+#endif
+		// Convert Houdini Y-up to UE Z-up and also Houdini Z-forward to UE X-forward
 		InPoint->Rotation = (InTransformToApply.TransformRotation({
 			InAttributes.PointRotations[InPointIndex * 4 + 0],
 			InAttributes.PointRotations[InPointIndex * 4 + 2],
 			InAttributes.PointRotations[InPointIndex * 4 + 1],
 			-InAttributes.PointRotations[InPointIndex * 4 + 3]
-		}) * FQuat(FVector::UpVector, FMath::DegreesToRadians(-90.0f))).Rotator();
+		}) * FQuat(FVector::UpVector, HalfPI)).Rotator();
 	}
 
 	// (Paint) layer name
