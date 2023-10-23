@@ -140,7 +140,7 @@ private:
 	static bool UpdateControlPointFromAttributes(
 		ULandscapeSplineControlPoint* InPoint,
 		const FLandscapeSplineCurveAttributes& InAttributes,
-		const FTransform& InWorldTransform,
+		const FTransform& InTransformToApply,
 		int32 InPointIndex);
 
 	static bool UpdateSegmentFromAttributes(
