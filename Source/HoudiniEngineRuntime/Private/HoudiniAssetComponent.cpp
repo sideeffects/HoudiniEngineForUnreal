@@ -1709,6 +1709,10 @@ UHoudiniAssetComponent::UpdatePostDuplicate()
 		if (!IsValid(NextChild))
 			continue;
 
+		// We don't want to remove components that were added in a Blueprint Template
+		if (NextChild->IsCreatedByConstructionScript())
+			continue;
+
 		USceneComponent * ComponentToRemove = nullptr;
 		if (NextChild->IsA<UStaticMeshComponent>()) 
 		{
