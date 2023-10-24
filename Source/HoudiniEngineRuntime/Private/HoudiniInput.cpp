@@ -2144,6 +2144,9 @@ UHoudiniInput::SetInputObjectAt(const EHoudiniInputType& InType, const int32& At
 
 	// Update the input object array with the newly created input object
 	(*InputObjectsPtr)[AtIndex] = NewInputObject;
+
+	// Mark the outer package as dirty, to ensure that the changes are saved when using OFPA / World partition
+	MarkPackageDirty();
 }
 
 void

@@ -1772,6 +1772,9 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		InInputObject->SetNeedsToTriggerUpdate(false);
 	}
 
+	// Mark the outer package as dirty, to ensure that the changes are saved when using OFPA / World partition
+	InInputObject->MarkPackageDirty();
+
 	return bSuccess;
 }
 
@@ -4441,7 +4444,12 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 
 	// Mark the input as changed if need so it will trigger an upload
 	if (bHasChanged)
+	{
 		InInput->MarkChanged(true);
+
+		// Mark the outer package as dirty, to ensure that the changes are saved when using OFPA / World partition
+		InInput->MarkPackageDirty();
+	}
 
 	return true;
 }
