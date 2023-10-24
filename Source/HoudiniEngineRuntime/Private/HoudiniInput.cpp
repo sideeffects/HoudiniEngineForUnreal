@@ -2414,11 +2414,11 @@ UHoudiniInput::IsTransformUIExpanded(const int32& AtIndex)
 };
 
 FTransform*
-UHoudiniInput::GetTransformOffset(const int32& AtIndex) 
+UHoudiniInput::GetTransformOffset(const int32& AtIndex)
 {
 	UHoudiniInputObject* InObject = GetHoudiniInputObjectAt(AtIndex);
 	if (InObject)
-		return &(InObject->Transform);
+		return &InObject->GetTransform();
 
 	return nullptr;
 }
@@ -2428,7 +2428,7 @@ UHoudiniInput::GetTransformOffset(const int32& AtIndex) const
 {
 	const UHoudiniInputObject* InObject = GetHoudiniInputObjectAt(AtIndex);
 	if (InObject)
-		return InObject->Transform;
+		return InObject->GetTransform();
 
 	return FTransform::Identity;
 }

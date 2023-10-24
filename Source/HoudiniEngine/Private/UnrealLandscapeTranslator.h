@@ -46,7 +46,8 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			bool bExportPerLayerData,
 			HAPI_NodeId& CreatedHeightfieldNodeId,
 			const FString &InputNodeNameStr,
-			const HAPI_NodeId& ParentNodeId);
+			const HAPI_NodeId& ParentNodeId,
+			bool bSetObjectTransformToWorldTransform);
 
 		static bool CreateHeightfieldFromLandscapeComponentArray(
 			ALandscapeProxy* LandscapeProxy,
@@ -54,7 +55,8 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			bool bExportPerLayerData,
 			HAPI_NodeId& CreatedHeightfieldNodeId,
 			const FString &InputNodeNameStr,
-			const HAPI_NodeId& ParentNodeId);
+			const HAPI_NodeId& ParentNodeId,
+			bool bSetObjectTransformToWorldTransform);
 	
 		static bool CreateHeightfieldFromLandscapeComponent(
 			ALandscapeProxy* LandscapeProxy, 
@@ -215,6 +217,7 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			const bool bExportNormalizedUVs,
 			const bool bExportLighting,
 			const bool bExportMaterials,
+			const bool bApplyWorldTransform,
 			const HAPI_NodeId& ParentNodeId);
 
 		// Extract data from the landscape
@@ -224,6 +227,7 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			const bool& bExportLighting,
 			const bool& bExportTileUVs,
 			const bool& bExportNormalizedUVs,
+			bool bApplyWorldTransform,
 			TArray<FVector3f>& LandscapePositionArray,
 			TArray<FVector3f>& LandscapeNormalArray,
 			TArray<FVector3f>& LandscapeUVArray,

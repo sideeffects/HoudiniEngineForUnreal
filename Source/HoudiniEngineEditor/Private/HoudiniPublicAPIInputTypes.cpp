@@ -435,7 +435,7 @@ UHoudiniPublicAPIGeoInput::CopyHoudiniInputObjectPropertiesToInputObject(UHoudin
 	// Copy the transform offset
 	if (SupportsTransformOffset())
 	{
-		SetInputObjectTransformOffset(InInputObjectIndex, InHoudiniInputObject->Transform);
+		SetInputObjectTransformOffset(InInputObjectIndex, InHoudiniInputObject->GetTransform());
 	}
 
 	return true;
@@ -457,9 +457,9 @@ UHoudiniPublicAPIGeoInput::CopyInputObjectPropertiesToHoudiniInputObject(const i
 		if (!GetInputObjectTransformOffset(InInputObjectIndex, Transform))
 			Transform = FTransform::Identity;
 
-		if (!InHoudiniInputObject->Transform.Equals(Transform))
+		if (!InHoudiniInputObject->GetTransform().Equals(Transform))
 		{
-			InHoudiniInputObject->Transform = Transform;
+			InHoudiniInputObject->SetTransform(Transform);
 			InHoudiniInputObject->MarkChanged(true);
 		}
 	}
@@ -1524,7 +1524,7 @@ bool UHoudiniPublicAPIGeometryCollectionInput::CopyHoudiniInputObjectPropertiesT
 		return false;
 
 	// Copy the transform offset
-	SetInputObjectTransformOffset(InInputObjectIndex, InHoudiniInputObject->Transform);
+	SetInputObjectTransformOffset(InInputObjectIndex, InHoudiniInputObject->GetTransform());
 
 	return true;
 }
@@ -1543,9 +1543,9 @@ bool UHoudiniPublicAPIGeometryCollectionInput::CopyInputObjectPropertiesToHoudin
 	if (!GetInputObjectTransformOffset(InInputObjectIndex, Transform))
 		Transform = FTransform::Identity;
 
-	if (!InHoudiniInputObject->Transform.Equals(Transform))
+	if (!InHoudiniInputObject->GetTransform().Equals(Transform))
 	{
-		InHoudiniInputObject->Transform = Transform;
+		InHoudiniInputObject->SetTransform(Transform);
 		InHoudiniInputObject->MarkChanged(true);
 	}
 
