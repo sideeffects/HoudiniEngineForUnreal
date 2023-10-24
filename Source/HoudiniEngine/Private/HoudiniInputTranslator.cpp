@@ -431,22 +431,6 @@ FHoudiniInputTranslator::DisconnectInput(UHoudiniInput* InputToDestroy, const EH
 		}
 	}
 
-	/*
-	if (InputType == EHoudiniInputType::Asset)
-	{
-		// TODO:
-		// If we're an asset input, just remove us from the downstream connection on the input HDA
-		// then reset this input's flag
-
-		// TODO: Check this? Clean our DS assets?? why?? likely uneeded
-		UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(InputToDestroy->GetOuter());
-		if (OuterHAC)
-			OuterHAC->ClearDownstreamHoudiniAsset();
-
-		InputToDestroy->SetInputNodeId(-1);
-	}
-	*/
-
 	return true;
 }
 
@@ -458,13 +442,6 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 
 	if (!InputToDestroy->CanDeleteHoudiniNodes())
 		return false;
-
-	/*
-	// If we're destroying an asset input, don't destroy anything as we don't want to destroy the input HDA
-	// a simple disconnect is sufficient
-	if (InputType == EHoudiniInputType::Asset)
-		return true;
-	*/
 
 	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	IUnrealObjectInputManager const* const Manager = bUseRefCountedInputSystem ? FUnrealObjectInputManager::Get() : nullptr;

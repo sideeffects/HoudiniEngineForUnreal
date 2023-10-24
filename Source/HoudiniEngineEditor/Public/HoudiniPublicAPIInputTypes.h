@@ -42,10 +42,8 @@ class UHoudiniSplineComponent;
  *
  * Each type of input has a derived class:
  *   - Geometry: UHoudiniPublicAPIGeoInput
- *   - Asset: UHoudiniPublicAPIAssetInput
  *   - Curve: UHoudiniPublicAPICurveInput
  *   - World: UHoudiniPublicAPIWorldInput
- *   - Landscape: UHoudiniPublicAPILandscapeInput
  *
  * Each instance of one of these classes represents the configuration of an input and wraps the actor/object/asset
  * used as the input. These instances are always treated as copies of the actual state of the HDA's input: changing
@@ -542,14 +540,15 @@ protected:
 
 /**
  * API wrapper input class for asset inputs. Derived from UHoudiniPublicAPIInput.
+ * H20: Deprecated! use World inputs instead
  */
-UCLASS(BlueprintType, Category="Houdini Engine | Public API | Inputs")
-class HOUDINIENGINEEDITOR_API UHoudiniPublicAPIAssetInput : public UHoudiniPublicAPIInput
+UCLASS(Deprecated, BlueprintType, Category="Houdini Engine | Public API | Inputs", meta = (DeprecationMessage = "Please use UHoudiniPublicAPIWorldInput instead."))
+class HOUDINIENGINEEDITOR_API UDEPRECATED_HoudiniPublicAPIAssetInput : public UHoudiniPublicAPIInput
 {
 	GENERATED_BODY()
 
 public:
-	UHoudiniPublicAPIAssetInput();
+	UDEPRECATED_HoudiniPublicAPIAssetInput();
 
 	virtual bool IsAcceptableObjectForInput_Implementation(UObject* InObject) const override;
 
@@ -617,14 +616,15 @@ protected:
 
 /**
  * API wrapper input class for landscape inputs. Derived from UHoudiniPublicAPIInput.
+ * H20: Deprecated! use World inputs instead
  */
-UCLASS(BlueprintType, Category="Houdini Engine | Public API | Inputs")
-class HOUDINIENGINEEDITOR_API UHoudiniPublicAPILandscapeInput : public UHoudiniPublicAPIInput
+UCLASS(Deprecated, BlueprintType, Category="Houdini Engine | Public API | Inputs", meta = (DeprecationMessage = "Please use UHoudiniPublicAPIWorldInput instead."))
+class HOUDINIENGINEEDITOR_API UDEPRECATED_HoudiniPublicAPILandscapeInput : public UHoudiniPublicAPIInput
 {
 	GENERATED_BODY()
 
 public:
-	UHoudiniPublicAPILandscapeInput();
+	UDEPRECATED_HoudiniPublicAPILandscapeInput();
 
 	/** DEPRECATED Indicates that the landscape input's source landscape should be updated instead of creating a new component */
 	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use Edit Layers instead."))
@@ -670,14 +670,15 @@ protected:
 
 /**
  * API wrapper input class for geometry collection inputs. Derived from UHoudiniPublicAPIInput.
+ * H20: Deprecated! use Geoemtry inputs instead
  */
-UCLASS(BlueprintType, Category="Houdini Engine | Public API | Inputs")
-class HOUDINIENGINEEDITOR_API UHoudiniPublicAPIGeometryCollectionInput : public UHoudiniPublicAPIInput
+UCLASS(Deprecated, BlueprintType, Category="Houdini Engine | Public API | Inputs", meta = (DeprecationMessage = "Please use UHoudiniPublicAPIGeoInput instead."))
+class HOUDINIENGINEEDITOR_API UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput : public UHoudiniPublicAPIInput
 {
 	GENERATED_BODY()
 
 public:
-	UHoudiniPublicAPIGeometryCollectionInput();
+	UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput();
 
 	/**
 	 * Set the transform offset of the specified input object InObject (must already have been set via SetInputObjects()).

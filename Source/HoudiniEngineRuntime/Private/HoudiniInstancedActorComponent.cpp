@@ -30,7 +30,6 @@
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniPluginSerializationVersion.h"
-#include "HoudiniCompatibilityHelpers.h"
 
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
@@ -78,33 +77,17 @@ UHoudiniInstancedActorComponent::Serialize(FArchive& Ar)
 	if (bLegacyComponent)
 	{
 		// Legacy serialization
-		// Either try to convert or skip depending on the setting value
-		const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
-		bool bEnableBackwardCompatibility = HoudiniRuntimeSettings->bEnableBackwardCompatibility;
-		if (bEnableBackwardCompatibility)
+		HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniInstancedActorComponent : serialization will be skipped."));
+
+		Super::Serialize(Ar);
+
+		// Skip v1 Serialized data
+		if (FLinker* Linker = Ar.GetLinker())
 		{
-			HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniInstancedActorComponent : converting v1 object to v2."));
-
-			Super::Serialize(Ar);
-
-			UHoudiniInstancedActorComponent_V1* CompatibilityIAC = NewObject<UHoudiniInstancedActorComponent_V1>();
-			CompatibilityIAC->Serialize(Ar);
-			CompatibilityIAC->UpdateFromLegacyData(this);
-		}
-		else
-		{
-			HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniInstancedActorComponent : serialization will be skipped."));
-
-			Super::Serialize(Ar);
-
-			// Skip v1 Serialized data
-			if (FLinker* Linker = Ar.GetLinker())
-			{
-				int32 const ExportIndex = this->GetLinkerIndex();
-				FObjectExport& Export = Linker->ExportMap[ExportIndex];
-				Ar.Seek(InitialOffset + Export.SerialSize);
-				return;
-			}
+			int32 const ExportIndex = this->GetLinkerIndex();
+			FObjectExport& Export = Linker->ExportMap[ExportIndex];
+			Ar.Seek(InitialOffset + Export.SerialSize);
+			return;
 		}
 	}
 	else

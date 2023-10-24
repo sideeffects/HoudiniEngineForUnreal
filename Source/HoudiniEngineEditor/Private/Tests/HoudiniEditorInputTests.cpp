@@ -75,7 +75,7 @@ bool HoudiniEditorInputTest_Mesh_Input::RunTest(const FString & Parameters)
 				InInputAssetWrapper->GetHoudiniAssetActor()->SetActorLabel(InputActorName);
 
 				// Sets the input to the curve
-				const TSubclassOf<UHoudiniPublicAPIInput> APIInputClass = UHoudiniPublicAPIAssetInput::StaticClass();
+				const TSubclassOf<UHoudiniPublicAPIInput> APIInputClass = UHoudiniPublicAPIWorldInput::StaticClass();
 
 				UHoudiniPublicAPIInput* AssetInput = InAssetWrapper->CreateEmptyInput(APIInputClass);
 				AssetInput->SetInputObjects({InInputAssetWrapper});
@@ -148,7 +148,7 @@ bool HoudiniEditorInputTest_Heightfield_Input::RunTest(const FString & Parameter
 				***/
 				
 				// Sets the input to the curve
-				const TSubclassOf<UHoudiniPublicAPIInput> APIInputClass = UHoudiniPublicAPIAssetInput::StaticClass();
+				const TSubclassOf<UHoudiniPublicAPIInput> APIInputClass = UHoudiniPublicAPIWorldInput::StaticClass();
 
 				UHoudiniPublicAPIInput* AssetInput = InAssetWrapper->CreateEmptyInput(APIInputClass);
 				AssetInput->SetInputObjects({InInputAssetWrapper});
@@ -252,7 +252,7 @@ bool HoudiniEditorInputTest_Curve_Input::RunTest(const FString & Parameters)
 				InAssetWrapperCurve->GetHoudiniAssetActor()->SetActorLabel(CurveActorName);
 
 				// Sets the input to the curve
-				const TSubclassOf<UHoudiniPublicAPIInput> APIInputClass = UHoudiniPublicAPIAssetInput::StaticClass();
+				const TSubclassOf<UHoudiniPublicAPIInput> APIInputClass = UHoudiniPublicAPICurveInput::StaticClass();
 
 				UHoudiniPublicAPIInput* AssetInput = InAssetWrapper->CreateEmptyInput(APIInputClass);
 				AssetInput->SetInputObjects({InAssetWrapperCurve});

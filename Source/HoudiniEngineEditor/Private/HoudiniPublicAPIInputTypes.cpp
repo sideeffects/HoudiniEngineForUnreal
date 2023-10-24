@@ -982,13 +982,13 @@ UHoudiniPublicAPICurveInput::ConvertAPIInputObjectAndAssignToInput(UObject* InAP
 }
 
 
-UHoudiniPublicAPIAssetInput::UHoudiniPublicAPIAssetInput()
+UDEPRECATED_HoudiniPublicAPIAssetInput::UDEPRECATED_HoudiniPublicAPIAssetInput()
 {
 	bKeepWorldTransform = true;
 }
 
 bool
-UHoudiniPublicAPIAssetInput::IsAcceptableObjectForInput_Implementation(UObject* InObject) const
+UDEPRECATED_HoudiniPublicAPIAssetInput::IsAcceptableObjectForInput_Implementation(UObject* InObject) const
 {
 	if (IsValid(InObject) && InObject->IsA<UHoudiniPublicAPIAssetWrapper>())
 	{
@@ -1002,7 +1002,7 @@ UHoudiniPublicAPIAssetInput::IsAcceptableObjectForInput_Implementation(UObject* 
 }
 
 bool
-UHoudiniPublicAPIAssetInput::PopulateFromHoudiniInput(UHoudiniInput const* const InInput)
+UDEPRECATED_HoudiniPublicAPIAssetInput::PopulateFromHoudiniInput(UHoudiniInput const* const InInput)
 {
 	if (!Super::PopulateFromHoudiniInput(InInput))
 		return false;
@@ -1011,7 +1011,7 @@ UHoudiniPublicAPIAssetInput::PopulateFromHoudiniInput(UHoudiniInput const* const
 }
 
 bool
-UHoudiniPublicAPIAssetInput::UpdateHoudiniInput(UHoudiniInput* const InInput) const
+UDEPRECATED_HoudiniPublicAPIAssetInput::UpdateHoudiniInput(UHoudiniInput* const InInput) const
 {
 	if (!Super::UpdateHoudiniInput(InInput))
 		return false;
@@ -1020,7 +1020,7 @@ UHoudiniPublicAPIAssetInput::UpdateHoudiniInput(UHoudiniInput* const InInput) co
 }
 
 UObject*
-UHoudiniPublicAPIAssetInput::ConvertInternalInputObject(UObject* InInternalInputObject)
+UDEPRECATED_HoudiniPublicAPIAssetInput::ConvertInternalInputObject(UObject* InInternalInputObject)
 {
 	// If InInternalInputObject is a Houdini Asset Component or Houdini Asset Actor, wrap it with the API and return
 	// wrapper.
@@ -1037,7 +1037,7 @@ UHoudiniPublicAPIAssetInput::ConvertInternalInputObject(UObject* InInternalInput
 }
 
 UObject*
-UHoudiniPublicAPIAssetInput::ConvertAPIInputObjectAndAssignToInput(UObject* InAPIInputObject, UHoudiniInput* InHoudiniInput, const int32 InInputIndex) const
+UDEPRECATED_HoudiniPublicAPIAssetInput::ConvertAPIInputObjectAndAssignToInput(UObject* InAPIInputObject, UHoudiniInput* InHoudiniInput, const int32 InInputIndex) const
 {
 	// If InAPIInputObject is an asset wrapper, extract the underlying HoudiniAssetComponent.
 	if (IsValid(InAPIInputObject) && InAPIInputObject->IsA<UHoudiniPublicAPIAssetWrapper>())
@@ -1115,7 +1115,7 @@ UHoudiniPublicAPIWorldInput::UpdateHoudiniInput(UHoudiniInput* const InInput) co
 }
 
 
-UHoudiniPublicAPILandscapeInput::UHoudiniPublicAPILandscapeInput()
+UDEPRECATED_HoudiniPublicAPILandscapeInput::UDEPRECATED_HoudiniPublicAPILandscapeInput()
 	: LandscapeExportType(EHoudiniLandscapeExportType::Heightfield)
 	, bLandscapeExportSelectionOnly(false)
 	, bLandscapeAutoSelectComponent(false)
@@ -1128,7 +1128,7 @@ UHoudiniPublicAPILandscapeInput::UHoudiniPublicAPILandscapeInput()
 }
 
 bool
-UHoudiniPublicAPILandscapeInput::PopulateFromHoudiniInput(UHoudiniInput const* const InInput)
+UDEPRECATED_HoudiniPublicAPILandscapeInput::PopulateFromHoudiniInput(UHoudiniInput const* const InInput)
 {
 	if (!Super::PopulateFromHoudiniInput(InInput))
 		return false;
@@ -1147,7 +1147,7 @@ UHoudiniPublicAPILandscapeInput::PopulateFromHoudiniInput(UHoudiniInput const* c
 }
 
 bool
-UHoudiniPublicAPILandscapeInput::UpdateHoudiniInput(UHoudiniInput* const InInput) const
+UDEPRECATED_HoudiniPublicAPILandscapeInput::UpdateHoudiniInput(UHoudiniInput* const InInput) const
 {
 	if (!Super::UpdateHoudiniInput(InInput))
 		return false;
@@ -1218,14 +1218,14 @@ UHoudiniPublicAPILandscapeInput::UpdateHoudiniInput(UHoudiniInput* const InInput
 	return true;
 }
 
-UHoudiniPublicAPIGeometryCollectionInput::UHoudiniPublicAPIGeometryCollectionInput()
+UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput()
 {
 	bKeepWorldTransform = false;
 	// TODO: This class is quite similar to UHoudiniPublicAPIGeoInput. Maybe some sort of inheritance would be beneficial?
 }
 
-bool UHoudiniPublicAPIGeometryCollectionInput::SetObjectTransformOffset_Implementation(UObject* InObject,
-											const FTransform& InTransform)
+bool UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::SetObjectTransformOffset_Implementation(UObject* InObject,
+	const FTransform& InTransform)
 {
 	// Ensure that InObject is valid and has already been added as input object
 	if (!IsValid(InObject))
@@ -1257,7 +1257,7 @@ bool UHoudiniPublicAPIGeometryCollectionInput::SetObjectTransformOffset_Implemen
 	return true;
 }
 
-bool UHoudiniPublicAPIGeometryCollectionInput::GetObjectTransformOffset_Implementation(UObject* InObject,
+bool UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::GetObjectTransformOffset_Implementation(UObject* InObject,
 	FTransform& OutTransform) const
 {
 	// Ensure that InObject is valid and has already been added as input object
@@ -1286,7 +1286,7 @@ bool UHoudiniPublicAPIGeometryCollectionInput::GetObjectTransformOffset_Implemen
 	return true;
 }
 
-bool UHoudiniPublicAPIGeometryCollectionInput::SetInputObjectTransformOffset_Implementation(
+bool UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::SetInputObjectTransformOffset_Implementation(
 	const int32 InInputObjectIndex, const FTransform& InTransform)
 {
 	if (!InputObjects.IsValidIndex(InInputObjectIndex))
@@ -1309,7 +1309,7 @@ bool UHoudiniPublicAPIGeometryCollectionInput::SetInputObjectTransformOffset_Imp
 	return true;
 }
 
-bool UHoudiniPublicAPIGeometryCollectionInput::GetInputObjectTransformOffset_Implementation(
+bool UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::GetInputObjectTransformOffset_Implementation(
 	const int32 InInputObjectIndex, FTransform& OutTransform) const
 {
 	if (!InputObjects.IsValidIndex(InInputObjectIndex))
@@ -1330,7 +1330,7 @@ bool UHoudiniPublicAPIGeometryCollectionInput::GetInputObjectTransformOffset_Imp
 }
 
 bool
-UHoudiniPublicAPIGeometryCollectionInput::GetInputObjectTransformOffsetArray_Implementation(TArray<FTransform>& OutInputObjectTransformOffsetArray) const
+UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::GetInputObjectTransformOffsetArray_Implementation(TArray<FTransform>& OutInputObjectTransformOffsetArray) const
 {
 	OutInputObjectTransformOffsetArray = InputObjectTransformOffsetArray;
 
@@ -1338,7 +1338,7 @@ UHoudiniPublicAPIGeometryCollectionInput::GetInputObjectTransformOffsetArray_Imp
 }
 
 bool
-UHoudiniPublicAPIGeometryCollectionInput::SetInputObjects_Implementation(const TArray<UObject*>& InObjects)
+UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::SetInputObjects_Implementation(const TArray<UObject*>& InObjects)
 {
 	const bool bSuccess = Super::SetInputObjects_Implementation(InObjects);
 
@@ -1362,7 +1362,7 @@ UHoudiniPublicAPIGeometryCollectionInput::SetInputObjects_Implementation(const T
 	return bSuccess;
 }
 
-bool UHoudiniPublicAPIGeometryCollectionInput::PopulateFromHoudiniInput(UHoudiniInput const* const InInput)
+bool UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::PopulateFromHoudiniInput(UHoudiniInput const* const InInput)
 {
 	const EHoudiniInputType InputType = GetInputType();
 	if (!IsValid(InInput))
@@ -1407,7 +1407,7 @@ bool UHoudiniPublicAPIGeometryCollectionInput::PopulateFromHoudiniInput(UHoudini
 	return true;
 }
 
-bool UHoudiniPublicAPIGeometryCollectionInput::UpdateHoudiniInput(UHoudiniInput* const InInput) const
+bool UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::UpdateHoudiniInput(UHoudiniInput* const InInput) const
 {
 	if (!IsValid(InInput))
 	{
@@ -1462,7 +1462,7 @@ bool UHoudiniPublicAPIGeometryCollectionInput::UpdateHoudiniInput(UHoudiniInput*
 }
 
 void
-UHoudiniPublicAPIGeometryCollectionInput::PostLoad()
+UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::PostLoad()
 {
 	Super::PostLoad();
 
@@ -1514,7 +1514,7 @@ UHoudiniPublicAPIGeometryCollectionInput::PostLoad()
 
 }
 
-bool UHoudiniPublicAPIGeometryCollectionInput::CopyHoudiniInputObjectPropertiesToInputObject(
+bool UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::CopyHoudiniInputObjectPropertiesToInputObject(
 	UHoudiniInputObject const* const InHoudiniInputObject, const int32 InInputObjectIndex)
 {
 	if (!Super::CopyHoudiniInputObjectPropertiesToInputObject(InHoudiniInputObject, InInputObjectIndex))
@@ -1529,7 +1529,7 @@ bool UHoudiniPublicAPIGeometryCollectionInput::CopyHoudiniInputObjectPropertiesT
 	return true;
 }
 
-bool UHoudiniPublicAPIGeometryCollectionInput::CopyInputObjectPropertiesToHoudiniInputObject(
+bool UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::CopyInputObjectPropertiesToHoudiniInputObject(
 	const int32 InInputObjectIndex, UHoudiniInputObject* const InHoudiniInputObject) const
 {
 	if (!Super::CopyInputObjectPropertiesToHoudiniInputObject(InInputObjectIndex, InHoudiniInputObject))

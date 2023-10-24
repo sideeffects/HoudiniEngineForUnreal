@@ -148,10 +148,6 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 
 	bPDGAsyncCommandletImportEnabled = false;
 
-	// Legacy settings
-	bEnableBackwardCompatibility = true;
-	bAutomaticLegacyHDARebuild = false;
-
 	// Curve inputs and editable output curves
 	bAddRotAndScaleAttributesOnCurves = false;
 	bUseLegacyInputCurves = true;

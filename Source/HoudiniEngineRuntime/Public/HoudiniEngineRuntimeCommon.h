@@ -66,11 +66,21 @@ enum class EHoudiniInputType : uint8
 	Invalid,
 
 	Geometry,
+
 	Curve,
+
+	/* @deprecated This was removed in Houdini 20 */
 	Asset,
+
+	/* @deprecated This was removed in Houdini 20 */
 	Landscape,
+
 	World,
+
+	/* @deprecated This was removed in Houdini 20 */
 	Skeletal,
+
+	/* @deprecated This was removed in Houdini 20 */
 	GeometryCollection,
 };
 

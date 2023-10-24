@@ -31,10 +31,8 @@
 #include "HoudiniParameter.h"
 #include "HoudiniParameterFloat.h"
 #include "HoudiniParameterChoice.h"
-#include "HoudiniRuntimeSettings.h"
-
 #include "HoudiniPluginSerializationVersion.h"
-#include "HoudiniCompatibilityHelpers.h"
+#include "HoudiniRuntimeSettings.h"
 
 #include "Runtime/Launch/Resources/Version.h"
 
@@ -63,33 +61,17 @@ UHoudiniHandleComponent::Serialize(FArchive& Ar)
 
 	if (bLegacyComponent)
 	{
-		const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
-		bool bEnableBackwardCompatibility = HoudiniRuntimeSettings->bEnableBackwardCompatibility;
+		HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniHandleComponent : serialized data will be skipped."));
 
-		if (bEnableBackwardCompatibility)
+		Super::Serialize(Ar);
+
+		// Skip v1 Serialized data
+		if (FLinker* Linker = Ar.GetLinker())
 		{
-			HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniHandleComponent : converting v1 object to v2."));
-
-			Super::Serialize(Ar);
-
-			UHoudiniHandleComponent_V1* CompatibilityHC = NewObject<UHoudiniHandleComponent_V1>();
-			CompatibilityHC->Serialize(Ar);
-			CompatibilityHC->UpdateFromLegacyData(this);
-		}
-		else
-		{
-			HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniHandleComponent : serialized data will be skipped."));
-
-			Super::Serialize(Ar);
-
-			// Skip v1 Serialized data
-			if (FLinker* Linker = Ar.GetLinker())
-			{
-				int32 const ExportIndex = this->GetLinkerIndex();
-				FObjectExport& Export = Linker->ExportMap[ExportIndex];
-				Ar.Seek(InitialOffset + Export.SerialSize);
-				return;
-			}
+			int32 const ExportIndex = this->GetLinkerIndex();
+			FObjectExport& Export = Linker->ExportMap[ExportIndex];
+			Ar.Seek(InitialOffset + Export.SerialSize);
+			return;
 		}
 	}
 	else

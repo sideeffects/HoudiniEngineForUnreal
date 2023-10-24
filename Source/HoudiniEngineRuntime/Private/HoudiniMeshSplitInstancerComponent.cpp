@@ -30,7 +30,6 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 #include "HoudiniPluginSerializationVersion.h"
-#include "HoudiniCompatibilityHelpers.h"
 
 #include "UObject/DevObjectVersion.h"
 #include "Serialization/CustomVersion.h"
@@ -76,33 +75,17 @@ UHoudiniMeshSplitInstancerComponent::Serialize(FArchive& Ar)
 	if (bLegacyComponent)
 	{
 		// Legacy serialization
-		// Either try to convert or skip depending on the setting value
-		const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
-		bool bEnableBackwardCompatibility = HoudiniRuntimeSettings->bEnableBackwardCompatibility;
-		if (bEnableBackwardCompatibility)
+		HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniMeshSplitInstancerComponent : serialization will be skipped."));
+
+		Super::Serialize(Ar);
+
+		// Skip v1 Serialized data
+		if (FLinker* Linker = Ar.GetLinker())
 		{
-			HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniMeshSplitInstancerComponent : converting v1 object to v2."));
-
-			Super::Serialize(Ar);
-
-			UHoudiniMeshSplitInstancerComponent_V1* CompatibilityMSIC = NewObject<UHoudiniMeshSplitInstancerComponent_V1>();
-			CompatibilityMSIC->Serialize(Ar);
-			CompatibilityMSIC->UpdateFromLegacyData(this);
-		}
-		else
-		{
-			HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniMeshSplitInstancerComponent : serialization will be skipped."));
-
-			Super::Serialize(Ar);
-
-			// Skip v1 Serialized data
-			if (FLinker* Linker = Ar.GetLinker())
-			{
-				int32 const ExportIndex = this->GetLinkerIndex();
-				FObjectExport& Export = Linker->ExportMap[ExportIndex];
-				Ar.Seek(InitialOffset + Export.SerialSize);
-				return;
-			}
+			int32 const ExportIndex = this->GetLinkerIndex();
+			FObjectExport& Export = Linker->ExportMap[ExportIndex];
+			Ar.Seek(InitialOffset + Export.SerialSize);
+			return;
 		}
 	}
 	else

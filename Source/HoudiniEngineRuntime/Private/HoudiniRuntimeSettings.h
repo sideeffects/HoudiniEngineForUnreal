@@ -40,7 +40,7 @@ UENUM()
 enum EHoudiniRuntimeSettingsSessionType
 {
 	// In process session.
-	HRSST_InProcess UMETA(Hidden),
+	HRSST_InProcess UMETA(Hidden, DisplayName = "In Process (experimental)"),
 
 	// TCP socket connection to Houdini Engine server.
 	HRSST_Socket UMETA(DisplayName = "TCP socket"),
@@ -193,6 +193,7 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		bool bStartAutomaticServer;
 
+		// The timeout (in ms) to be used when attempting to create a Houdini Engine Session
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		float AutomaticServerTimeout;
 
@@ -475,16 +476,6 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = "PDG Settings", Meta = (DisplayName = "Async Importer Enabled"))
 		bool bPDGAsyncCommandletImportEnabled;
 
-		//-------------------------------------------------------------------------------------------------------------
-		// Legacy
-		//-------------------------------------------------------------------------------------------------------------
-		// Whether to enable backward compatibility
-		UPROPERTY(GlobalConfig, EditAnywhere, Category = "Legacy", Meta = (DisplayName = "Enable backward compatibility with Version 1"))
-		bool bEnableBackwardCompatibility;
-
-		// Automatically rebuild legacy HAC
-		UPROPERTY(GlobalConfig, EditAnywhere, Category = "Legacy", meta = (DisplayName = "Automatically rebuild legacy Houdini Asset Components", EditCondition = "bEnableBackwardCompatibility"))
-		bool bAutomaticLegacyHDARebuild;
 
 		//-------------------------------------------------------------------------------------------------------------
 		// Houdini Tools Paths

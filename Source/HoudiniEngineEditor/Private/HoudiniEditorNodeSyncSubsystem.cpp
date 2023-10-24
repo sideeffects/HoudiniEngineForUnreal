@@ -239,6 +239,7 @@ UHoudiniEditorNodeSyncSubsystem::SendToHoudini(const TArray<UObject*>& SelectedA
 		SendStatusDetails = SendStatusMessage + "\nYou can start a Session-sync session by using the Open Session Sync entry in the Houdini Engine menu.";
 	}
 
+	/*
 	bool bUseInput = true;
 	if (!bUseInput)
 	{
@@ -292,6 +293,7 @@ UHoudiniEditorNodeSyncSubsystem::SendToHoudini(const TArray<UObject*>& SelectedA
 		}
 	}
 	else
+	*/
 	{
 		// Create the content node
 		// As as subnet, so it's able to contain multiple geos
@@ -404,23 +406,6 @@ UHoudiniEditorNodeSyncSubsystem::SendToHoudini(const TArray<UObject*>& SelectedA
 	FHoudiniEngineUtils::CreateSlateNotification(Notification);
 }
 
-void 
-UHoudiniEditorNodeSyncSubsystem::DumpSessionInfo()
-{
-    HOUDINI_LOG_MESSAGE(TEXT("network_node_id %i "), object_node_id);
-    
-    // Get the Display Geo's info
-    HAPI_GeoInfo DisplayHapiGeoInfo;
-    FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetDisplayGeoInfo(FHoudiniEngine::Get().GetSession(), object_node_id, &DisplayHapiGeoInfo))
-		return;
-
-    FString DisplayName;
-    FHoudiniEngineString HoudiniEngineString(DisplayHapiGeoInfo.nameSH);
-    HoudiniEngineString.ToFString(DisplayName);
-    
-    HOUDINI_LOG_MESSAGE(TEXT("DisplayGeo %s NodeID %i  PartCount %i "), *DisplayName, DisplayHapiGeoInfo.nodeId, DisplayHapiGeoInfo.partCount );
-}
 
 void 
 UHoudiniEditorNodeSyncSubsystem::Fetch()
@@ -430,6 +415,7 @@ UHoudiniEditorNodeSyncSubsystem::Fetch()
 
 	FetchFromHoudini(NodeSyncOptions.UnrealAssetName, NodeSyncOptions.UnrealAssetFolder);
 }
+
 
 void 
 UHoudiniEditorNodeSyncSubsystem::FetchFromHoudini(
@@ -932,7 +918,7 @@ UHoudiniEditorNodeSyncSubsystem::FetchStaticMeshFromHoudini(
     FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
     if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), InNodeId, &DisplayHapiGeoInfo))
     {
-        HOUDINI_LOG_MESSAGE(TEXT("GetDisplayGeoInfo FAILURE trying to get object_node_id %i "), InNodeId);
+        HOUDINI_LOG_MESSAGE(TEXT("GetDisplayGeoInfo FAILURE trying to get geo info for node %i "), InNodeId);
         return false;
     }
 

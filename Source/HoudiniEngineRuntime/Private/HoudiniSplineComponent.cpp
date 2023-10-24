@@ -34,16 +34,12 @@
 #include "HoudiniInputObject.h"
 #include "HoudiniPluginSerializationVersion.h"
 
-#include "Components/MeshComponent.h"
 #include "Algo/Reverse.h"
-
-#include "HoudiniPluginSerializationVersion.h"
-#include "HoudiniCompatibilityHelpers.h"
-
-#include "UObject/DevObjectVersion.h"
-#include "Serialization/CustomVersion.h"
-
+#include "Components/MeshComponent.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "Serialization/CustomVersion.h"
+#include "UObject/DevObjectVersion.h"
+
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	#include "UObject/Linker.h"
 #endif
@@ -66,35 +62,17 @@ UHoudiniSplineComponent::Serialize(FArchive& Ar)
 	if (bLegacyComponent)
 	{
 		// Legacy serialization
-		// Either try to convert or skip depending on HOUDINI_ENGINE_ENABLE_BACKWARD_COMPATIBILITY 
-		const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
-		bool bEnableBackwardCompatibility = HoudiniRuntimeSettings->bEnableBackwardCompatibility;
-		if (bEnableBackwardCompatibility)
+		HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniSplineComponent : serialization will be skipped."));
+
+		Super::Serialize(Ar);
+
+		// Skip v1 Serialized data
+		if (FLinker* Linker = Ar.GetLinker())
 		{
-			HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniSplineComponent : converting v1 object to v2."));
-
-			Super::Serialize(Ar);
-
-			UHoudiniSplineComponent_V1* CompatibilitySC = NewObject<UHoudiniSplineComponent_V1>();
-			CompatibilitySC->Serialize(Ar);
-			CompatibilitySC->UpdateFromLegacyData(this);
-
-			Construct(CompatibilitySC->CurveDisplayPoints);
-		}
-		else
-		{
-			HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniSplineComponent : serialization will be skipped."));
-
-			Super::Serialize(Ar);
-
-			// Skip v1 Serialized data
-			if (FLinker* Linker = Ar.GetLinker())
-			{
-				int32 const ExportIndex = this->GetLinkerIndex();
-				FObjectExport& Export = Linker->ExportMap[ExportIndex];
-				Ar.Seek(InitialOffset + Export.SerialSize);
-				return;
-			}
+			int32 const ExportIndex = this->GetLinkerIndex();
+			FObjectExport& Export = Linker->ExportMap[ExportIndex];
+			Ar.Seek(InitialOffset + Export.SerialSize);
+			return;
 		}
 	}
 	else

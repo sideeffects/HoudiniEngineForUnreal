@@ -50,7 +50,6 @@ class UHoudiniInput;
 class UHoudiniOutput;
 class UHoudiniHandleComponent;
 class UHoudiniPDGAssetLink;
-class UHoudiniAssetComponent_V1;
 
 UENUM()
 enum class EHoudiniStaticMeshMethod : uint8
@@ -115,8 +114,6 @@ public:
 	virtual ~UHoudiniAssetComponent();
 
 	virtual void Serialize(FArchive & Ar) override;
-
-	virtual bool ConvertLegacyData();
 
 	// Called after the C++ constructor and after the properties have been initialized, including those loaded from config.
 	// This is called before any serialization or other setup has happened.
@@ -816,9 +813,6 @@ protected:
 	// is no longer available.
 	UPROPERTY(Transient, DuplicateTransient)
 	bool bCachedIsPreview;
-
-	// Object used to convert V1 HAC to V2 HAC
-	UHoudiniAssetComponent_V1* Version1CompatibilityHAC;
 
 	// The last timestamp this component was ticked
 	// used to prioritize/limit the number of HAC processed per tick

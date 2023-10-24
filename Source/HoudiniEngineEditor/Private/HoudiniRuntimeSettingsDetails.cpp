@@ -70,7 +70,6 @@ FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder & DetailBu
 	DetailBuilder.EditCategory("GeneratedStaticMeshSettings", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("StaticMeshBuildSettings", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("PDG Settings", FText::GetEmpty(), ECategoryPriority::Important);
-	DetailBuilder.EditCategory("Legacy", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("HoudiniLocation", FText::GetEmpty(), ECategoryPriority::Important);
 
 	// Create Plugin Information category.

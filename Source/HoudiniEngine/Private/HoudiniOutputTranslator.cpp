@@ -99,18 +99,6 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	// Check if the HDA has been marked as not producing outputs
 	if (!HAC->bOutputless)
 	{
-		// Check if we want to convert legacy v1 data
-		const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
-		bool bEnableBackwardCompatibility = HoudiniRuntimeSettings->bEnableBackwardCompatibility;
-		if (bEnableBackwardCompatibility && HAC->Version1CompatibilityHAC)
-		{
-			// Do not reuse legacy outputs!
-			for (auto& OldOutput : HAC->Outputs)
-			{
-				ClearOutput(OldOutput);
-			}
-		}
-
 		TArray<UHoudiniOutput*> NewOutputs;
 		TArray<HAPI_NodeId> OutputNodes = HAC->GetOutputNodeIds();
 		TMap<HAPI_NodeId, int32> OutputNodeCookCounts = HAC->GetOutputNodeCookCounts();

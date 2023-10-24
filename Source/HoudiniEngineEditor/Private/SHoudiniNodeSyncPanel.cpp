@@ -78,7 +78,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 	TSharedPtr<SHorizontalBox> HoudiniLogoBox;
 	TSharedPtr<SExpandableArea> ImportOptionsArea;
 	TSharedPtr<SExpandableArea> FetchToWorldOptionsArea;
-
+	
 	ExportOptionsVBox = SNew(SVerticalBox);
 	LandscapeOptionsVBox = SNew(SVerticalBox);
 	LandscapeSplineOptionsVBox = SNew(SVerticalBox);
@@ -377,6 +377,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 			[
 				SNew(SBox)
 				.WidthOverride(160.f)
+				.IsEnabled(false)
 				[
 					SAssignNew(CheckBoxFetchToWorld, SCheckBox)
 					.Content()
@@ -429,6 +430,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 						[
 							SNew(SBox)
 							.WidthOverride(335.0f)
+							.IsEnabled(false)
 							[
 								SNew(STextBlock)
 								.Text(LOCTEXT("UnrealActorName", "Unreal Actor Name"))
@@ -438,6 +440,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 						.HAlign(HAlign_Right)
 						[
 							SNew(SEditableTextBox)
+							.IsEnabled(false)
 							.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 							.ToolTipText(LOCTEXT("UnrealActorNameTooltip", "Name of the generated Actor in unreal"))
 							.HintText(LOCTEXT("UnrealActorNameLabel", "Unreal Actor Name"))
@@ -469,6 +472,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 						[
 							SNew(SBox)
 							.WidthOverride(335.0f)
+							.IsEnabled(false)
 							[
 								SNew(STextBlock)
 								.Text(LOCTEXT("UnrealActorFolderLabel", "World Outliner Folder"))
@@ -478,6 +482,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 						.HAlign(HAlign_Right)
 						[
 							SNew(SEditableTextBox)
+							.IsEnabled(false)
 							.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 							.ToolTipText(LOCTEXT("UnrealActorFolderTooltip","Path to a world outliner folder that will contain the created Actor"))
 							.HintText(LOCTEXT("UnrealActorFolderLabel", "Unreal Actor World Outliner Folder"))
@@ -851,6 +856,9 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 					[IconBrush](){return IconBrush.Get();}
 		)));
 	}
+
+	// Disable FetchToWorld options
+	FetchToWorldOptionsArea->SetEnabled(false);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
