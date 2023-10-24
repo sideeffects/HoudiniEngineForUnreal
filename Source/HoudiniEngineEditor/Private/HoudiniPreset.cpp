@@ -402,7 +402,7 @@ FHoudiniPresetHelpers::UpdateFromGeometryInput(FHoudiniPresetInputValue& Value, 
 		if (IsValid(InputObj))
 		{
 			PresetObject.InputObject = InputObj->GetObject();
-			PresetObject.Transform = InputObj->Transform;
+			PresetObject.Transform = InputObj->GetTransform();
 		}
 		
 		Value.GeometryInputObjects.Add(PresetObject);
@@ -430,7 +430,7 @@ FHoudiniPresetHelpers::UpdateFromCurveInput(FHoudiniPresetInputValue& Value, con
 		FHoudiniPresetCurveInputObject PresetObject;
 		if (IsValid(InputObj))
 		{
-		 	PresetObject.Transform = InputObj->Transform;
+		 	PresetObject.Transform = InputObj->GetTransform();
 
 			const UHoudiniSplineComponent* CurveComponent = InputObj->GetCurveComponent();
 			if (IsValid(CurveComponent))
@@ -729,9 +729,9 @@ FHoudiniPresetHelpers::ApplyPresetGeometryInput(const FHoudiniPresetInputValue& 
 			
 			if (InputObject)
 			{
-				if (!InputObject->Transform.Equals(PresetObject.Transform))
+				if (!InputObject->GetTransform().Equals(PresetObject.Transform))
 				{
-					InputObject->Transform = PresetObject.Transform;
+					InputObject->SetTransform(PresetObject.Transform);
 					InputObject->MarkTransformChanged(true);
 				}
 			}
@@ -798,7 +798,7 @@ FHoudiniPresetHelpers::ApplyPresetCurveInput(const FHoudiniPresetInputValue& Pre
 
 		InputObj->Modify();
 		
-		InputObj->Transform = PresetObject.Transform;
+		InputObj->SetTransform(PresetObject.Transform);
 		InputObj->MarkTransformChanged(true);
 		
 		UHoudiniSplineComponent* SplineComponent = InputObj->GetCurveComponent();

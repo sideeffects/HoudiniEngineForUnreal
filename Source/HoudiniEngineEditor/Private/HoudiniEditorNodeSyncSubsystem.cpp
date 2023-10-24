@@ -326,6 +326,7 @@ UHoudiniEditorNodeSyncSubsystem::SendToHoudini(const TArray<UObject*>& SelectedA
 		for (int32 Idx = 0; Idx < SelectedAssets.Num(); Idx++)
 		{
 			TArray<int32> CreatedNodeIds;
+			TSet<FUnrealObjectInputHandle> Handles;
 			UObject* CurrentObject = SelectedAssets[Idx];
 			if (!IsValid(CurrentObject))
 				continue;
@@ -366,7 +367,7 @@ UHoudiniEditorNodeSyncSubsystem::SendToHoudini(const TArray<UObject*>& SelectedA
 
 			// Send the HoudiniInputObject to H
 			if (!FHoudiniInputTranslator::UploadHoudiniInputObject(
-				NSInput, CurrentInputObject, CurrentActorTransform, CreatedNodeIds, false))
+				NSInput, CurrentInputObject, CurrentActorTransform, CreatedNodeIds, Handles, false))
 			{
 				HOUDINI_LOG_WARNING(TEXT("HoudiniNodeSync: Failed to send %s to %s."), *CurrentInputObject->GetName(), *SendNodePath);
 

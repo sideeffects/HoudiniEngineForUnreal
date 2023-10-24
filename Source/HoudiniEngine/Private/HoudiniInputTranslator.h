@@ -123,7 +123,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		UHoudiniInput* InInput, 
 		UHoudiniInputObject* InInputObject, 
 		const FTransform& InActorTransform, 
-		TArray<int32>& OutCreatedNodeIds, 
+		TArray<int32>& OutCreatedNodeIds,
+		TSet<FUnrealObjectInputHandle>& OutHandles,
 		const bool& bInputNodesCanBeDeleted = true);
 	
 	// Upload transform for an input's InputObject
@@ -181,6 +182,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		UHoudiniInputLandscapeSplinesComponent* const InObject,
 		const FHoudiniInputObjectSettings& InInputSettings,
 		TArray<int32>& OutCreatedNodeIds,
+		TSet<FUnrealObjectInputHandle>& OutHandles,
 		const bool bInInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForLandscape(
@@ -188,6 +190,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		UHoudiniInputLandscape* InObject,
 		UHoudiniInput* InInput,
 		TArray<int32>& OutCreatedNodeIds,
+		TSet<FUnrealObjectInputHandle>& OutHandles,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool	HapiCreateInputNodeForLevelInstance(
@@ -196,6 +199,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FHoudiniInputObjectSettings& InInputSettings,
 		UHoudiniInput* InInput,
 		TArray<int32>& OutCreatedNodeIds,
+		TSet<FUnrealObjectInputHandle>& OutHandles,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForSkeletalMesh(
@@ -273,6 +277,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		AActor* const InActor,
 		const FTransform& InActorTransform,
 		TArray<int32>& OutCreatedNodeIds,
+		TSet<FUnrealObjectInputHandle>& OutHandles,
 		const bool& bInputNodesCanBeDeleted);
 
 	static bool	HapiCreateInputNodeForActor(
@@ -280,12 +285,14 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		UHoudiniInputActor* InObject,
 		const FTransform & InActorTransform,
 		TArray<int32>& OutCreatedNodeIds,
+		TSet<FUnrealObjectInputHandle>& OutHandles,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForBP(
 		UHoudiniInput* InInput,
 		UHoudiniInputBlueprint* InObject,
 		TArray<int32>& OutCreatedNodeIds,
+		TSet<FUnrealObjectInputHandle>& OutHandles,
 		const bool& bInputNodesCanBeDeleted = true);
 
 	static bool HapiCreateInputNodeForCamera(

@@ -62,6 +62,7 @@ class UModel;
 class UHoudiniInput;
 class UCameraComponent;
 class ALevelInstance;
+class UHoudiniInputActor;
 
 UENUM()
 enum class EHoudiniInputObjectType : uint8
@@ -110,7 +111,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputObject : public UObject
 public:
 
 	// Create the proper input object
-	static UHoudiniInputObject * CreateTypedInputObject(UObject * InObject, UObject* InOuter, const FString& InParamName, const FHoudiniInputObjectSettings& InInputSettings);
+	static UHoudiniInputObject * CreateTypedInputObject(UObject * InObject, UObject* InOuter, const FString& InParamName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor=nullptr);
 
 	//
 	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
@@ -123,6 +124,16 @@ public:
 
 	//
 	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings);
+
+	// Set the Transform of this input object. For geo inputs this is a transform offset, for actors the actor world
+	// transform and for scene components the component world transform.
+	void SetTransform(const FTransform& InTransform) { Transform = InTransform; }
+	const FTransform& GetTransform() const { return Transform; }
+	FTransform& GetTransform() { return Transform; }
+	
+	// Get the transform to use on the Obj node associated with this object in Houdini. The default implementation
+	// calls GetTransform().
+	virtual FTransform GetHoudiniObjectTransform() const { return GetTransform(); }
 
 	// Invalidate and ask for the deletion of this input object's node
 	virtual void InvalidateData();
@@ -220,10 +231,6 @@ public:
 	UPROPERTY()
 	TSoftObjectPtr<UObject> InputObject;
 
-	// The object's transform/transform offset
-	UPROPERTY()
-	FTransform Transform;
-
 	// The type of Object this input refers to
 	UPROPERTY()
 	EHoudiniInputObjectType Type;
@@ -273,6 +280,10 @@ protected:
 	// ref counted input system is enabled.
 	UPROPERTY()
 	bool bInputNodeHandleOverridesNodeIds;
+
+	// The object's transform/transform offset
+	UPROPERTY()
+	FTransform Transform;
 
 private:
 	// This input object's "main" (SOP) NodeId
@@ -389,11 +400,16 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputSceneComponent : public UHoudiniInpu
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor=nullptr);
 
 	//
 	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
-	
+
+	virtual void UpdateTransform();
+
+	// Get the cached world transform of this scene component relative to the cached transform of its owner actor.
+	FTransform GetTransformRelativeToOwner() const { return Transform.GetRelativeTransform(ActorTransform); }
+
 	// SceneComponent accessor
 	class USceneComponent* GetSceneComponent();
 
@@ -406,11 +422,24 @@ public:
 	// Return true if the component itself has been modified
 	virtual bool HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const;
 
+	virtual FTransform GetHoudiniObjectTransform() const override;
+
+	UHoudiniInputActor* GetParentInputActor() const { return ParentInputActor; }
+	
+protected:
+	void SetParentInputActor(UHoudiniInputActor* InParentInputActor) { ParentInputActor = InParentInputActor; }
+
 public:
 
 	// This component's parent Actor transform
 	UPROPERTY()
 	FTransform ActorTransform = FTransform::Identity;
+
+private:
+
+	// The input object of the parent actor of the component
+	UPROPERTY()
+	UHoudiniInputActor* ParentInputActor;
 };
 
 
@@ -426,7 +455,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputMeshComponent : public UHoudiniInput
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor=nullptr);
 
 	//
 	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
@@ -464,7 +493,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputInstancedMeshComponent : public UHou
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor=nullptr);
 
 	//
 	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
@@ -499,7 +528,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputSplineComponent : public UHoudiniInp
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor=nullptr);
 
 	//
 	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
@@ -544,7 +573,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputGeometryCollectionComponent : public
 
 public:
 	//
-	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor=nullptr);
 
 	//
 	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
@@ -564,7 +593,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputSkeletalMeshComponent : public UHoud
 
 public:
 	//
-	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor=nullptr);
 
 	//
 	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
@@ -640,7 +669,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputCameraComponent : public UHoudiniInp
 public:
 
 	//
-	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor=nullptr);
 
 	//
 	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
@@ -793,7 +822,7 @@ public:
 
 protected:
 
-	virtual bool UsesInputObjectNode() const override { return false; }
+	virtual bool UsesInputObjectNode() const override;
 
 	// The actor's components that can be sent as inputs
 	UPROPERTY()
@@ -875,6 +904,8 @@ public:
 	virtual bool ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings=nullptr) const override;
 
 	virtual bool HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
+
+	virtual FTransform GetHoudiniObjectTransform() const override;
 
 	// ALandscapeProxy accessor
 	ALandscapeProxy* GetLandscapeProxy() const;
@@ -1115,7 +1146,7 @@ public:
 
 protected:
 
-	virtual bool UsesInputObjectNode() const override { return false; }
+	virtual bool UsesInputObjectNode() const override;
 
 	// The BP's components that can be sent as inputs
 	UPROPERTY()
@@ -1267,7 +1298,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputLandscapeSplinesComponent : public U
 
 public:
 	//
-	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor=nullptr);
 
 	//
 	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
@@ -1318,7 +1349,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniInputSplineMeshComponent : public UHoudin
 
 public:
 	//
-	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor=nullptr);
 
 	//
 	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
