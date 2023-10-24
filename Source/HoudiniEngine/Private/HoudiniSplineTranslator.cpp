@@ -2123,7 +2123,10 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 			InHGPO.GeoId, InHGPO.PartId, true, 0, 0, 0, GenericAttributes))
 		{
 			for(auto Component : FoundOutputObject->OutputComponents)
-			    FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(Component, GenericAttributes);
+			{
+				FHoudiniEngineUtils::KeepOrClearComponentTags(Cast<UActorComponent>(Component), &InHGPO);
+				FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(Component, GenericAttributes);
+			}
 		}
 		
 		if (bReusedPreviousOutput)

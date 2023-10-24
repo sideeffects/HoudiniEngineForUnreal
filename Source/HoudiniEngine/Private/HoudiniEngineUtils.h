@@ -708,6 +708,29 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_PartId& InPartId,
 			const FHoudiniGenericAttribute& InPropertyAttribute);
 
+		// Helper functions to retrieve the default tag values from the actor CDO.
+		static TArray<FName> GetDefaultActorTags(const AActor* InActor);
+		// Helper functions to retrieve the default tag values from the component CDO.
+		static TArray<FName> GetDefaultComponentTags(const UActorComponent* InComponent);
+	
+		// Helper to add actor tags from the generic attributes and to the OutActorTags array.
+		// The ApplyTags* helpers are typically used during Bake phases to reapply tags since the structure
+		// of outputs typically change.
+		static void ApplyTagsToActorOnly(const TArray<FHoudiniGenericAttribute>& GenericPropertyAttributes, TArray<FName>& OutActorTags);
+		static void ApplyTagsToActorAndComponents(AActor* InActor, bool bKeepActorTags, const TArray<FHoudiniGenericAttribute>& GenericPropertyAttributes);
+
+		// Helpers to check whether KeepTags is enabled in any of the HGPOs
+		static bool IsKeepTagsEnabled(const TArray<FHoudiniGeoPartObject>& InHGPOs);
+		static bool IsKeepTagsEnabled(const FHoudiniGeoPartObject* InHGPO);
+	
+		// Helper to clear a component's tags based on the KeepTags settings in a set of HGPOs
+		static void KeepOrClearComponentTags(UActorComponent* ActorComponent, const TArray<FHoudiniGeoPartObject>& InHGPOs);
+		static void KeepOrClearComponentTags(UActorComponent* ActorComponent, const FHoudiniGeoPartObject* InHGPO);
+		static void KeepOrClearComponentTags(UActorComponent* ActorComponent, bool bKeepTags);
+	
+		// Helper to reset all the actor component's tags based on the KeepTags settings in a set of HGPOs
+		static void KeepOrClearActorTags(AActor* Actor, bool bApplyToActor, bool bApplyToComponents, const FHoudiniGeoPartObject* InHGPO);
+
 		/*
 		// Tries to update values for all the UProperty attributes to apply on the object.
 		static void ApplyUPropertyAttributesOnObject(

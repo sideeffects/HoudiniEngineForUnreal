@@ -1247,6 +1247,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 		return true;
 	}
 
+	const TArray<FHoudiniGeoPartObject>& HGPOs = InOutput->GetHoudiniGeoPartObjects();
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
 	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& OldBakedOutputObjects = InBakedOutputs[InOutputIndex].BakedOutputObjects;
 	TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> NewBakedOutputObjects;
@@ -1285,6 +1286,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 				    HoudiniAssetComponent,
 				    InOutputIndex,
 				    InAllOutputs,
+				    HGPOs,
 				    // InBakedOutputs,
 				    Pair.Key, 
 				    CurrentOutputObject, 
@@ -1309,6 +1311,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 			    BakeInstancerOutputToActors_IAC(
 				    HoudiniAssetComponent,
 				    InOutputIndex,
+				    HGPOs,
 				    Pair.Key, 
 				    CurrentOutputObject, 
 				    BakedOutputObject,
@@ -1329,6 +1332,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 					    InOutputIndex,
 					    InAllOutputs,
 					    // InBakedOutputs,
+					    HGPOs,
 					    Pair.Key, 
 					    CurrentOutputObject, 
 					    BakedOutputObject,
@@ -1357,7 +1361,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 					    HoudiniAssetComponent,
 					    InOutputIndex,
 					    InAllOutputs,
-					    // InBakedOutputs,
+					    HGPOs,
 					    Pair.Key, 
 					    CurrentOutputObject, 
 					    BakedOutputObject, 
@@ -1447,6 +1451,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
+	const TArray<FHoudiniGeoPartObject>& InHGPOs,
 	const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
 	FHoudiniBakedOutputObject& InBakedOutputObject,
@@ -1477,6 +1482,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	    UStaticMesh * StaticMesh = InISMC->GetStaticMesh();
 	    if (!IsValid(StaticMesh))
 		    return false;
+
+		// Find the HGPO that matches this output identifier
+		const FHoudiniGeoPartObject* FoundHGPO = nullptr;
+		FindHGPO(InOutputObjectIdentifier, InHGPOs, FoundHGPO);
 
 	    // Certain SMC materials may need to be duplicated if we didn't generate the mesh object.
 		// Map of duplicated overrides materials (oldTempMaterial , newBakedMaterial)
@@ -1619,6 +1628,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	    }
 	    */
 
+		// Store the initial tags that the FoundActor spawned with. 
+		// We will be adding additional tags from the HGPOs.
+		TArray<FName> ActorTags;
+
 	    // Should we create one actor with an ISMC or multiple actors with one SMC?
 	    bool bSpawnMultipleSMC = false;
 	    if (bSpawnMultipleSMC)
@@ -1650,6 +1663,9 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 					    continue;
 			    }
 
+		    	// Capture the current tags on the actor, in case we need to keep them.
+		    	ActorTags = FoundActor->Tags;
+
 			    const FString NewNameStr = MakeUniqueObjectNameIfNeeded(DesiredLevel, ActorFactory->NewActorClass, BakeActorName.ToString(), FoundActor);
 			    RenameAndRelabelActor(FoundActor, NewNameStr, false);
 
@@ -1662,6 +1678,14 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 
 			    // Copy properties from the existing component
 			    CopyPropertyToNewActorAndComponent(FoundActor, SMActor->GetStaticMeshComponent(), InISMC);
+
+		    	// Restore the actor tags, in case we want to keep them.
+		    	FHoudiniEngineUtils::KeepOrClearActorTags(FoundActor, true, true, FoundHGPO);
+		    	if (FoundHGPO)
+		    	{
+		    		FHoudiniEngineUtils::ApplyTagsToActorAndComponents(FoundActor, FHoudiniEngineUtils::IsKeepTagsEnabled(FoundHGPO), FoundHGPO->GenericPropertyAttributes);
+		    	}
+
 
 			    FHoudiniEngineBakedActor& OutputEntry = OutActors.Add_GetRef(FHoudiniEngineBakedActor(
 				    FoundActor,
@@ -1723,7 +1747,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 
 			    OutBakeStats.NotifyObjectsUpdated(FoundActor->GetClass()->GetName(), 1);
 		    }
-		    
+
+	    	// Capture the current actor tags, in case the user wants to keep them.
+	    	ActorTags = FoundActor->Tags;
+	    	
 		    // The folder is named after the original actor and contains all generated actors
 		    SetOutlinerFolderPath(FoundActor, InOutputObject, WorldOutlinerFolderPath);
 
@@ -1803,6 +1830,13 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		    // TODO: do we need to copy properties here, we duplicated the component
 		    // // Copy properties from the existing component
 		    // CopyPropertyToNewActorAndComponent(FoundActor, NewISMC, InISMC);
+
+	    	FHoudiniEngineUtils::KeepOrClearActorTags(FoundActor, true, false, FoundHGPO);
+			if (FoundHGPO)
+			{
+				// Add actor tags from generic property attributes
+				FHoudiniEngineUtils::ApplyTagsToActorOnly(FoundHGPO->GenericPropertyAttributes, FoundActor->Tags);
+			}
 
 		    if (bSpawnedActor)
 			    FoundActor->FinishSpawning(InTransform);
@@ -1932,6 +1966,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
+	const TArray<FHoudiniGeoPartObject>& InHGPOs,
 	const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
 	FHoudiniBakedOutputObject& InBakedOutputObject,
@@ -1962,6 +1997,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	    if (!IsValid(StaticMesh))
 		    return false;
 
+		// Find the HGPO that matches this output identifier
+		const FHoudiniGeoPartObject* FoundHGPO = nullptr;
+		FindHGPO(InOutputObjectIdentifier, InHGPOs, FoundHGPO);
+		
 	    UWorld* DesiredWorld = OwnerActor ? OwnerActor->GetWorld() : GWorld;
 	    const EPackageReplaceMode AssetPackageReplaceMode = bInReplaceAssets ?
 		    EPackageReplaceMode::ReplaceExistingAssets : EPackageReplaceMode::CreateNewAssets;
@@ -2167,6 +2206,14 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	    CopyPropertyToNewActorAndComponent(FoundActor, StaticMeshComponent, InSMC, bCopyWorldTransform);
 	    StaticMeshComponent->SetStaticMesh(BakedStaticMesh);
 
+		// Keep or clear existing actor tags
+		FHoudiniEngineUtils::KeepOrClearActorTags(FoundActor, true, false, FoundHGPO);
+		if (FoundHGPO)
+		{
+			// Add actor tags from generic property attributes
+			FHoudiniEngineUtils::ApplyTagsToActorOnly(FoundHGPO->GenericPropertyAttributes, FoundActor->Tags);
+		}
+
 	    if (DuplicatedSMCOverrideMaterials.Num() > 0)
 	    {
 			// If we have baked some temporary materials, make sure to update them on the new component
@@ -2212,10 +2259,12 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	return true;
 }
 
+
 bool
 FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
+	const TArray<FHoudiniGeoPartObject>& InHGPOs,
 	const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
 	FHoudiniBakedOutputObject& InBakedOutputObject,
@@ -2241,6 +2290,19 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 	    UObject* InstancedObject = InIAC->GetInstancedObject();
 	    if (!IsValid(InstancedObject))
 		    return false;
+
+		// Find the HGPO for this instanced output
+		bool FoundHGPO = false;
+		FHoudiniGeoPartObject InstancerHGPO;
+		for (const auto& curHGPO : InHGPOs)
+		{
+			if (InOutputObjectIdentifier.Matches(curHGPO))
+			{
+				InstancerHGPO = curHGPO;
+				FoundHGPO = true;
+				break;
+			}
+		}
 
 	    // Set the default object name to the 
 	    const FString DefaultObjectName = InstancedObject->GetName();
@@ -2387,7 +2449,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 
 	    // Empty and reserve enough space for new instanced actors
 	    InBakedOutputObject.InstancedActors.Empty(InIAC->GetInstancedActors().Num());
-
+		
 	    // Iterates on all the instances of the IAC
 	    for (AActor* CurrentInstancedActor : InIAC->GetInstancedActors())
 	    {
@@ -2399,9 +2461,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 
 		    FTransform CurrentTransform = CurrentInstancedActor->GetTransform();
 
-		    AActor* NewActor = FHoudiniInstanceTranslator::SpawnInstanceActor(CurrentTransform, DesiredLevel, InIAC, FName(NewNameStr));
-		    if (!IsValid(NewActor))
-			   continue;
+			// AActor* NewActor = FHoudiniInstanceTranslator::SpawnInstanceActor(CurrentTransform, DesiredLevel, InIAC, FName(NewNameStr));
+			AActor* NewActor = FHoudiniInstanceTranslator::SpawnInstanceActor(CurrentTransform, DesiredLevel, InIAC);
+			if (!IsValid(NewActor))
+				continue;
 
 		    // Explicitly set the actor label as there appears to be a bug in AActor::GetActorLabel() which sets the first
 		    // duplicate actor name to "name-1" (minus one) instead of leaving off the 0.
@@ -2414,7 +2477,13 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 					EditorUtilities::ECopyOptions::CallPostEditChangeProperty |
 					EditorUtilities::ECopyOptions::CallPostEditMove);
 
+			// BUG: CopyActorProperties are not copying properties for components (at least on Blueprint type actors).
 			EditorUtilities::CopyActorProperties(CurrentInstancedActor, NewActor, CopyOptions);
+
+			// TODO: Copy over component properties!
+
+			// Since we can't properly copy over component properties, the least we can do is apply actor and component tags
+			FHoudiniEngineUtils::ApplyTagsToActorAndComponents(NewActor, FHoudiniEngineUtils::IsKeepTagsEnabled(&InstancerHGPO), InstancerHGPO.GenericPropertyAttributes);
 
 			OutBakeStats.NotifyObjectsCreated(NewActor->GetClass()->GetName(), 1);
 
@@ -2463,6 +2532,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
 	// const TArray<FHoudiniBakedOutput>& InAllBakedOutputs,
+	const TArray<FHoudiniGeoPartObject>& InHGPOs,
 	const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
 	FHoudiniBakedOutputObject& InBakedOutputObject,
@@ -2493,6 +2563,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	    UStaticMesh * StaticMesh = InMSIC->GetStaticMesh();
 	    if (!IsValid(StaticMesh))
 		    return false;
+
+		// Find the HGPO that matches this output identifier
+		const FHoudiniGeoPartObject* FoundHGPO = nullptr;
+		FindHGPO(InOutputObjectIdentifier, InHGPOs, FoundHGPO);
 
 		// Certain SMC materials may need to be duplicated if we didn't generate the mesh object.
 		// Map of duplicated overrides materials (oldTempMaterial , newBakedMaterial)
@@ -2687,7 +2761,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 
 	    // Empty and reserve enough space in the baked components array for the new components
 	    InBakedOutputObject.InstancedComponents.Empty(InMSIC->GetInstances().Num());
-	    
+
 	    // Now add s SMC component for each of the SMC's instance
 	    for (UStaticMeshComponent* CurrentSMC : InMSIC->GetInstances())
 	    {
@@ -2732,7 +2806,18 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 		    // TODO: Do we need to copy properties here, we duplicated the component
 		    // // Copy properties from the existing component
 		    // CopyPropertyToNewActorAndComponent(FoundActor, NewSMC, CurrentSMC);
+	    	
 	    }
+
+		// We always have to set the tags _after_ any calls to CopyPropertyToNewActorAndComponent, since
+		// CopyPropertyToNewActorAndComponent is not able to enforce the KeepTags mechanism
+		
+		FHoudiniEngineUtils::KeepOrClearActorTags(FoundActor, true, false, FoundHGPO);
+		if (FoundHGPO)
+		{
+			// Add actor tags from generic property attributes
+			FHoudiniEngineUtils::ApplyTagsToActorOnly(FoundHGPO->GenericPropertyAttributes, FoundActor->Tags);
+		}
 
 	    if (bSpawnedActor)
 		    FoundActor->FinishSpawning(InTransform);
@@ -2999,6 +3084,8 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 			if (IsValid(SMActor))
 				SMC = SMActor->GetStaticMeshComponent();
 		}
+
+
 		
 		if (!IsValid(SMC))
 		{
@@ -3041,7 +3128,14 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 			SMC->SetStaticMesh(BakedSM);
 			OutBakedOutputObject.BakedComponent = FSoftObjectPath(SMC).ToString();
 		}
-		
+
+		FHoudiniEngineUtils::KeepOrClearActorTags(FoundActor, true, false, FoundHGPO);
+		if (FoundHGPO)
+		{
+			// Add actor tags from generic property attributes
+			FHoudiniEngineUtils::ApplyTagsToActorOnly(FoundHGPO->GenericPropertyAttributes, FoundActor->Tags);
+		}
+
 		OutBakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
 		OutBakedActorEntry = FHoudiniEngineBakedActor(
 			FoundActor, BakeActorName, WorldOutlinerFolderPath, InOutputIndex, InIdentifier, BakedSM, StaticMesh, SMC,

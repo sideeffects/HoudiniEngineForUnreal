@@ -134,6 +134,11 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		ClearAndRemoveOutputs(HAC, DeferredClearOutputs, true);
 	}
 
+	// At the moment we don't support controlling KeepTags separately for components and actors, so if we find any
+	// HGPOs with KeepTags set to true, we'll keep the tags on both actors and components. In the future we may
+	// want to control these separately.
+	bool bKeepTags = false; 
+	
 	// Look for details generic property attributes on the outputs,
 	// and try to apply them to the HAC.
 	// This can be used to preset some of the HDA's uproperty via attribute
@@ -149,9 +154,19 @@ FHoudiniOutputTranslator::UpdateOutputs(
 				HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX, 
 				GenericAttributes,
 				HAPI_ATTROWNER_DETAIL);
+			bKeepTags = bKeepTags || CurrentHGPO.bKeepTags;
 		}
 	}
 
+	if (bKeepTags == false)
+	{
+		if (AActor* HActor = HAC->GetOwner())
+		{
+			HActor->Tags.Empty();
+		}
+		HAC->ComponentTags.Empty();
+	}
+	
 	// Attempt to apply the attributes to the HAC if we have any
 	for (const auto& CurrentPropAttribute : GenericAttributes)
 	{
@@ -1651,6 +1666,26 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					currentHGPO.SetCustomPartName(CustomPartName);
 				else
 					currentHGPO.PartName = CurrentPartName;
+
+				FHoudiniEngineUtils::GetGenericPropertiesAttributes(
+					currentHGPO.GeoId, currentHGPO.PartId,
+					true, 0, 0, 0,
+					currentHGPO.GenericPropertyAttributes);
+
+				{
+					TArray<int> KeepTagData;
+					HAPI_AttributeInfo AttrInfoKeepTag;
+					FHoudiniApi::AttributeInfo_Init(&AttrInfoKeepTag);
+
+					currentHGPO.bKeepTags = false;
+					if (FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(currentHGPO.GeoId, currentHGPO.PartId, HAPI_UNREAL_ATTRIB_TAG_KEEP, AttrInfoKeepTag, KeepTagData, 1))
+					{
+						if (KeepTagData.Num() > 0)
+						{
+							currentHGPO.bKeepTags = KeepTagData[0] == 0 ? false : true; 
+						}
+					}
+				}
 
 				//
 				// Mesh Only - Extract split groups

@@ -496,7 +496,7 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 		return false;
 	}
 
-	// Handle Component Tags manually here
+	// Handle Actor and Component tags manually here
 	if (PropertyName.Contains("tag"))
 	{
 		// lambda to set the tag values
@@ -506,65 +506,87 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 				return false;
 
 			FName NameAttr = FName(*InPropertyAttribute.GetStringValue(AtIndex));
-			if (!FoundTags->Contains(NameAttr))
-				FoundTags->Add(NameAttr);
-			/*
-			for (int nIdx = 0; nIdx < InPropertyAttribute.AttributeCount; nIdx++)
-			{
-				FName NameAttr = FName(*InPropertyAttribute.GetStringValue(nIdx));
-				if (!FoundTags->Contains(NameAttr))
-					FoundTags->Add(NameAttr);
-			}
-			*/
+			FoundTags->AddUnique(NameAttr);
 			return true;
 		};
 
-		// Get the componentTags array
+		bool bApplyTagsToActor = false;
+		bool bApplyTagsToMainComponent = false;
+		bool bApplyTagsToAllComponents = false;
+
+		if (PropertyName.StartsWith("ActorTag"))
+		{
+			bApplyTagsToActor = true;
+		}
+		if (PropertyName.StartsWith("MainComponentTag"))
+		{
+			bApplyTagsToMainComponent = true;
+		}
+		if (PropertyName.StartsWith("ComponentTag"))
+		{
+			bApplyTagsToAllComponents = true;
+		}
+		if (PropertyName.StartsWith("Tag"))
+		{
+			bApplyTagsToActor = true;
+			bApplyTagsToAllComponents = true;
+		}
+
+		bool bSuccess = false;
+		// This is a component. Apply tags accordingly.
 		UActorComponent* AC = Cast<UActorComponent>(InObject);
 		if (IsValid(AC))
 		{
-			// On components, if Actor Tags weren't specified, just try to set the component's tag
-			if (!PropertyName.Contains("ActorTag"))
+			if (bApplyTagsToMainComponent || bApplyTagsToAllComponents)
 			{
-				return SetTags(&(AC->ComponentTags));
+				// The Main Component, in the context of a component, is simply the component itself.
+				bSuccess |= SetTags(&(AC->ComponentTags));
 			}
-			else
+
+			if (bApplyTagsToActor)
 			{
 				// Try to set Actor tags on this component's owner
 				AActor* Actor = AC->GetOwner();
-				if (!IsValid(Actor))
-					return false;
-				else
-					return SetTags(&(Actor->Tags));
+				if (IsValid(Actor))
+				{
+					bSuccess |= SetTags(&(Actor->Tags));
+				}
 			}
 		}
 
-		// If this is an Actor, get its Tags array
+		// If this is an Actor, apply tags accordingly
 		AActor* Actor = Cast<AActor>(InObject);
 		if (IsValid(Actor))
 		{
-			// On actors, if Components tags weren't specified, just try to set the actor's tag
-			if (!PropertyName.Contains("ComponentTag"))
+			if (bApplyTagsToActor)
 			{
-				return SetTags(&(Actor->Tags));
+				bSuccess |= SetTags(&(Actor->Tags));
 			}
-			else
+			if (bApplyTagsToAllComponents)
 			{
-				//  ComponentTags were specifically asked, try to set them on all actor component of this actors
-				bool bSuccess = false;
+				//  ComponentTags were specifically asked, try to set them on all actor component of this actors, including
+				// the root component.
 				for (auto& CurrentComponent : Actor->GetComponents())
 				{
 					if (!IsValid(CurrentComponent))
 						continue;
 
-					bSuccess &= SetTags(&(CurrentComponent->ComponentTags));
+					bSuccess |= SetTags(&(CurrentComponent->ComponentTags));
 				}
-
-				return bSuccess;
+				
 			}
-		}		
+			else if (bApplyTagsToMainComponent)
+			{
+				// The Main Component, in the context of an actor, is the root component.
+				bSuccess |= SetTags(&(Actor->GetRootComponent()->ComponentTags));
+			}
+		}
 
-		return false;
+		if (bSuccess)
+		{
+			// Return only if we were able to process this property 
+			return true;
+		}
 	}
 
 #if WITH_EDITOR

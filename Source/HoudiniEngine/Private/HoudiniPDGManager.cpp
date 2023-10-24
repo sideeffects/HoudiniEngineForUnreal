@@ -2056,6 +2056,12 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 					{
 						for(auto Component : OutputObject->OutputComponents)
 						{
+							if (UActorComponent* ActorComponent = Cast<UActorComponent>(Component))
+							{
+								// TODO: Add support for KeepTags attribute here, if needed.
+								ActorComponent->ComponentTags = FHoudiniEngineUtils::GetDefaultComponentTags(ActorComponent);
+							}
+							
 							// Update generic property attributes
 							FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
 								Component,

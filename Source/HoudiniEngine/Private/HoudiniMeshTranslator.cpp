@@ -1483,6 +1483,15 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 				MeshComponent = CreateOrUpdateMeshComponent(InOutput, InOuterComponent, OutputIdentifier, ComponentType, OutputObject, FoundHGPO, bCreated);
 				if (MeshComponent)
 				{
+					UActorComponent* ProxyComponent = Cast<UActorComponent>(OutputObject.ProxyComponent);
+					if (IsValid(ProxyComponent))
+					{
+						// If this static mesh component has a proxy component, it was likely refined from the proxy component.
+						// This means that if the user enabled KeepTags, tags would have accumulated on the Proxy component so
+						// we need to copy the proxy mesh component tags over to the static mesh.
+						MeshComponent->ComponentTags = ProxyComponent->ComponentTags;
+					}
+					
 					UpdateMeshComponent(
 						MeshComponent,
 						Mesh,
@@ -1687,8 +1696,9 @@ FHoudiniMeshTranslator::UpdateMeshComponent(UMeshComponent *InMeshComponent, UOb
 
 	if (bInApplyGenericProperties)
 	{
-		// Clear the component tags as generic properties only add them
-		InMeshComponent->ComponentTags.Empty();
+		// Clear the component tags, if permitted by HGPOs
+		FHoudiniEngineUtils::KeepOrClearComponentTags(InMeshComponent, InHGPO);
+		
 		// Update the property attributes on the component
 		TArray<FHoudiniGenericAttribute> PropertyAttributes;
 		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
