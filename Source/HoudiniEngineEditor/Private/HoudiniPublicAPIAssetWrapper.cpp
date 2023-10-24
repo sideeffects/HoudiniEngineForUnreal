@@ -4138,22 +4138,23 @@ UHoudiniPublicAPIAssetWrapper::CreateAndPopulateAPIInput(const UHoudiniInput* In
 			break;
 
 		// Deprecated input types
-		case EHoudiniInputType::Asset:
-			SetErrorMessage(TEXT("Asset inputs are now deprecated - using World Input instead."));
-			APIInputClass = UHoudiniPublicAPIWorldInput::StaticClass();
+		case EHoudiniInputType::Asset_DEPRECATED:
+			SetErrorMessage(TEXT("Asset inputs are now deprecated - use World Input instead."));
+			APIInputClass = UDEPRECATED_HoudiniPublicAPIAssetInput::StaticClass();
 			break;
-		case EHoudiniInputType::Landscape:
-			SetErrorMessage(TEXT("Landscape inputs are now deprecated - using World Input instead."));
-			APIInputClass = UHoudiniPublicAPIWorldInput::StaticClass();
+		case EHoudiniInputType::Landscape_DEPRECATED:
+			SetErrorMessage(TEXT("Landscape inputs are now deprecated - use World Input instead."));
+			APIInputClass = UDEPRECATED_HoudiniPublicAPILandscapeInput::StaticClass();
 			break;
-		case EHoudiniInputType::Skeletal:
+		case EHoudiniInputType::GeometryCollection_DEPRECATED:
+			SetErrorMessage(TEXT("Geometry Collection inputs are now deprecated - use Geometry Input instead."));
+			APIInputClass = UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput::StaticClass();
+			break;
+
+		case EHoudiniInputType::Skeletal_DEPRECATED:
 			SetErrorMessage(TEXT("Skeletal Mesh inputs are now deprecated - using Geometry Input instead."));
 			APIInputClass = UHoudiniPublicAPIGeoInput::StaticClass();
 			return false;
-		case EHoudiniInputType::GeometryCollection:
-			SetErrorMessage(TEXT("Geometry Collection inputs are now deprecated - using Geometry Input instead."));
-			APIInputClass = UHoudiniPublicAPIGeoInput::StaticClass();
-			break;
 
 
 		case EHoudiniInputType::Invalid:

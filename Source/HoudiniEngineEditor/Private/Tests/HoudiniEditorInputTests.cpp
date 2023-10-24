@@ -252,7 +252,7 @@ bool HoudiniEditorInputTest_Curve_Input::RunTest(const FString & Parameters)
 				InAssetWrapperCurve->GetHoudiniAssetActor()->SetActorLabel(CurveActorName);
 
 				// Sets the input to the curve
-				const TSubclassOf<UHoudiniPublicAPIInput> APIInputClass = UHoudiniPublicAPICurveInput::StaticClass();
+				const TSubclassOf<UHoudiniPublicAPIInput> APIInputClass = UHoudiniPublicAPIWorldInput::StaticClass();
 
 				UHoudiniPublicAPIInput* AssetInput = InAssetWrapper->CreateEmptyInput(APIInputClass);
 				AssetInput->SetInputObjects({InAssetWrapperCurve});

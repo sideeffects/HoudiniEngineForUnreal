@@ -40,11 +40,11 @@ static const EHoudiniInputType HoudiniInputTypeList[] =
 {
 	EHoudiniInputType::Geometry,
 	EHoudiniInputType::Curve,
-	EHoudiniInputType::Asset,
-	EHoudiniInputType::Landscape,
+	EHoudiniInputType::Asset_DEPRECATED,
+	EHoudiniInputType::Landscape_DEPRECATED,
 	EHoudiniInputType::World,
-	EHoudiniInputType::Skeletal,
-	EHoudiniInputType::GeometryCollection
+	EHoudiniInputType::Skeletal_DEPRECATED,
+	EHoudiniInputType::GeometryCollection_DEPRECATED
 };
 
 UENUM()

@@ -402,8 +402,8 @@ UHoudiniInput::Serialize(FArchive& Ar)
 	{
 		switch (Type)
 		{
-			case EHoudiniInputType::Skeletal:
-			case EHoudiniInputType::GeometryCollection:
+			case EHoudiniInputType::Skeletal_DEPRECATED:
+			case EHoudiniInputType::GeometryCollection_DEPRECATED:
 			{
 				TArray<UHoudiniInputObject*>* InputObjects = GetHoudiniInputObjectArray(Type);
 				if (InputObjects && InputObjects->Num() > 0)
@@ -417,8 +417,8 @@ UHoudiniInput::Serialize(FArchive& Ar)
 				Type = EHoudiniInputType::Geometry;
 			}
 
-			case EHoudiniInputType::Asset:
-			case EHoudiniInputType::Landscape:
+			case EHoudiniInputType::Asset_DEPRECATED:
+			case EHoudiniInputType::Landscape_DEPRECATED:
 			{
 				WorldInputObjects.Empty();
 				TArray<UHoudiniInputObject*>* InputObjects = GetHoudiniInputObjectArray(Type);
@@ -541,10 +541,10 @@ UHoudiniInput::GetBounds(UWorld * World)
 	}
 	break;
 
-	case EHoudiniInputType::Asset:
-	case EHoudiniInputType::Landscape:
-	case EHoudiniInputType::GeometryCollection:
-		HOUDINI_LOG_WARNING(TEXT("Still using legacy houdini input type!"));
+	case EHoudiniInputType::Asset_DEPRECATED:
+	case EHoudiniInputType::Landscape_DEPRECATED:
+	case EHoudiniInputType::GeometryCollection_DEPRECATED:
+		HOUDINI_LOG_WARNING(TEXT("An Input is still using legacy houdini input types!"));
 
 	case EHoudiniInputType::Invalid:
 	default:
@@ -560,10 +560,13 @@ UHoudiniInput::GetBounds(UWorld * World)
 bool
 UHoudiniInput::IsAssetInput() const
 {
-	if (Type == EHoudiniInputType::Asset)
+	if (Type == EHoudiniInputType::Asset_DEPRECATED)
 		return true;
 
 	if (Type != EHoudiniInputType::World)
+		return false;
+
+	if (!bDirectlyConnectHdas)
 		return false;
 
 	for (auto CurObj : *GetHoudiniInputObjectArray(Type))
@@ -578,7 +581,7 @@ UHoudiniInput::IsAssetInput() const
 bool
 UHoudiniInput::IsLandscapeInput() const
 {
-	if (Type == EHoudiniInputType::Landscape)
+	if (Type == EHoudiniInputType::Landscape_DEPRECATED)
 		return true;
 
 	if (Type != EHoudiniInputType::World)
@@ -705,24 +708,24 @@ UHoudiniInput::InputTypeToString(const EHoudiniInputType& InInputType)
 		break;
 
 
-		case EHoudiniInputType::Asset:
+		case EHoudiniInputType::Asset_DEPRECATED:
 		{
-			InputTypeStr = TEXT("Legacy Asset Input");
+			InputTypeStr = TEXT("(deprecated) Asset Input");
 		}
 		break;
-		case EHoudiniInputType::Landscape:
+		case EHoudiniInputType::Landscape_DEPRECATED:
 		{
-			InputTypeStr = TEXT("Legacy Landscape Input");
+			InputTypeStr = TEXT("(deprecated) Landscape Input");
 		}
 		break;
-		case EHoudiniInputType::Skeletal:
+		case EHoudiniInputType::Skeletal_DEPRECATED:
 		{
-			InputTypeStr = TEXT("Legacy Skeletal Mesh Input");
+			InputTypeStr = TEXT("(deprecated) Skeletal Mesh Input");
 		}
 		break;
-		case EHoudiniInputType::GeometryCollection:
+		case EHoudiniInputType::GeometryCollection_DEPRECATED:
 		{
-			InputTypeStr = TEXT("Legacy GeometryCollection Input");
+			InputTypeStr = TEXT("(deprecated) GeometryCollection Input");
 		}
 		break;
 	}
@@ -734,21 +737,21 @@ EHoudiniInputType
 UHoudiniInput::StringToInputType(const FString& InInputTypeString)
 {
 	// Note: Geometry is a prefix of GeometryCollection, so need to make sure to do GeometryCollection first!
-	if (InInputTypeString.StartsWith(TEXT("Legacy GeometryCollection"), ESearchCase::IgnoreCase))
+	if (InInputTypeString.StartsWith(TEXT("(deprecated) GeometryCollection"), ESearchCase::IgnoreCase))
 	{
-		return EHoudiniInputType::GeometryCollection;
+		return EHoudiniInputType::GeometryCollection_DEPRECATED;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("Legacy Asset"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("(deprecated) Asset"), ESearchCase::IgnoreCase))
 	{
-		return EHoudiniInputType::Asset;
+		return EHoudiniInputType::Asset_DEPRECATED;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("Legacy Landscape"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("(deprecated) Landscape"), ESearchCase::IgnoreCase))
 	{
-		return EHoudiniInputType::Landscape;
+		return EHoudiniInputType::Landscape_DEPRECATED;
 	}
-	else if (InInputTypeString.StartsWith(TEXT("Legacy Skeletal"), ESearchCase::IgnoreCase))
+	else if (InInputTypeString.StartsWith(TEXT("(deprecated) Skeletal"), ESearchCase::IgnoreCase))
 	{
-		return EHoudiniInputType::Skeletal;
+		return EHoudiniInputType::Skeletal_DEPRECATED;
 	}
 	else if (InInputTypeString.StartsWith(TEXT("Geometry"), ESearchCase::IgnoreCase))
 	{
@@ -877,8 +880,8 @@ UHoudiniInput::GetKeepWorldTransform() const
 			// Return default values corresponding to the input type:
 			if (Type == EHoudiniInputType::Curve
 				|| Type == EHoudiniInputType::Geometry
-				|| Type == EHoudiniInputType::Skeletal
-				|| Type == EHoudiniInputType::GeometryCollection)
+				|| Type == EHoudiniInputType::Skeletal_DEPRECATED
+				|| Type == EHoudiniInputType::GeometryCollection_DEPRECATED)
 			{
 				// NONE  for Geo, Curve and skeletal mesh IN
 				bReturn = false;
@@ -1726,16 +1729,16 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType)
 		return &WorldInputObjects;
 
 	// TODO: Deprecated arrays! remove after H20
-	case EHoudiniInputType::Asset:
+	case EHoudiniInputType::Asset_DEPRECATED:
 		return &AssetInputObjects;
 
-	case EHoudiniInputType::Landscape:
+	case EHoudiniInputType::Landscape_DEPRECATED:
 		return &LandscapeInputObjects;
 
-	case EHoudiniInputType::Skeletal:
+	case EHoudiniInputType::Skeletal_DEPRECATED:
 		return &SkeletalInputObjects;
 
-	case EHoudiniInputType::GeometryCollection:
+	case EHoudiniInputType::GeometryCollection_DEPRECATED:
 		return &GeometryCollectionInputObjects;
 
 	default:
@@ -1791,16 +1794,16 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType) const
 			return &WorldInputObjects;
 		
 		// TODO: Deprecated arrays! remove after H20
-		case EHoudiniInputType::Asset:
+		case EHoudiniInputType::Asset_DEPRECATED:
 			return &AssetInputObjects;
 
-		case EHoudiniInputType::Landscape:
+		case EHoudiniInputType::Landscape_DEPRECATED:
 			return &LandscapeInputObjects;
 
-		case EHoudiniInputType::Skeletal:
+		case EHoudiniInputType::Skeletal_DEPRECATED:
 			return &SkeletalInputObjects;
 
-		case EHoudiniInputType::GeometryCollection:
+		case EHoudiniInputType::GeometryCollection_DEPRECATED:
 			return &GeometryCollectionInputObjects;
 
 		default:
@@ -2580,7 +2583,7 @@ UHoudiniInput::SetUseLegacyInputCurve(const bool& InValue)
 bool 
 UHoudiniInput::HasLandscapeExportTypeChanged () const 
 {
-	if ((Type != EHoudiniInputType::Landscape) && (Type != EHoudiniInputType::World))
+	if ((Type != EHoudiniInputType::Landscape_DEPRECATED) && (Type != EHoudiniInputType::World))
 		return false;
 
 	return bLandscapeHasExportTypeChanged;
@@ -2589,7 +2592,7 @@ UHoudiniInput::HasLandscapeExportTypeChanged () const
 void 
 UHoudiniInput::SetHasLandscapeExportTypeChanged(const bool InChanged) 
 {
-	if ((Type != EHoudiniInputType::Landscape) && (Type != EHoudiniInputType::World))
+	if ((Type != EHoudiniInputType::Landscape_DEPRECATED) && (Type != EHoudiniInputType::World))
 		return;
 
 	bLandscapeHasExportTypeChanged = InChanged;

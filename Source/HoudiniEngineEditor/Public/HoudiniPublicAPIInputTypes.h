@@ -663,7 +663,7 @@ public:
 	virtual bool UpdateHoudiniInput(UHoudiniInput* const InInput) const override;
 
 protected:
-	virtual EHoudiniInputType GetInputType() const override { return EHoudiniInputType::Landscape; }
+	virtual EHoudiniInputType GetInputType() const override { return EHoudiniInputType::Landscape_DEPRECATED; }
 
 };
 

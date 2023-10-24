@@ -799,7 +799,8 @@ FHoudiniInputTranslator::UploadChangedInputs(UHoudiniAssetComponent * HAC)
 	if (!IsValid(HAC))
 		return false;
 
-	FHoudiniUnrealDataLayersCache DataLayerCache = FHoudiniUnrealDataLayersCache::MakeCache(HAC->GetWorld());
+	// Disabled, this seems to be unused and is fairly costly to run in large levels/worlds
+	//HoudiniUnrealDataLayersCache DataLayerCache = FHoudiniUnrealDataLayersCache::MakeCache(HAC->GetWorld());
 
 	//for (auto CurrentInput : HAC->Inputs)
 	for(int32 InputIdx = 0; InputIdx < HAC->GetNumInputs(); InputIdx++)
@@ -1167,7 +1168,7 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 			int32 InputNodeId = InInput->GetInputNodeId();
 			TArray<int32> PreviousInputObjectNodeIds = InInput->GetCreatedDataNodeIds();
 
-			if (InInput->GetInputType() == EHoudiniInputType::Asset)
+			if (InInput->GetInputType() == EHoudiniInputType::Asset_DEPRECATED)
 			{
 				UHoudiniAssetComponent * OuterHAC = Cast<UHoudiniAssetComponent>(InInput->GetOuter());
 				HAPI_NodeId  AssetId = OuterHAC->GetAssetId();
@@ -1263,7 +1264,7 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 		{
 			// Get the object merge connected to the merge node
 			HAPI_NodeId InputObjectMergeId = -1;
-			if (InInput->GetInputType() != EHoudiniInputType::Asset)
+			if (InInput->GetInputType() != EHoudiniInputType::Asset_DEPRECATED)
 				HOUDINI_CHECK_ERROR(FHoudiniApi::QueryNodeInput(
 					FHoudiniEngine::Get().GetSession(), InputNodeId, Idx, &InputObjectMergeId));
 
@@ -1272,7 +1273,7 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 				FHoudiniEngine::Get().GetSession(), InputNodeId, Idx));
 
 			// Destroy the object merge node, do not destroy other HDA (Asset input type)
-			if (InInput->GetInputType() != EHoudiniInputType::Asset)
+			if (InInput->GetInputType() != EHoudiniInputType::Asset_DEPRECATED)
 			{
 				HOUDINI_CHECK_ERROR(FHoudiniApi::DeleteNode(
 					FHoudiniEngine::Get().GetSession(), InputObjectMergeId));
@@ -3580,7 +3581,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent(
 
 	// If this object is in an Asset input, we need to set the InputNodeId directly
 	// to avoid creating extra merge nodes. World inputs should not do that!
-	bool bIsAssetInput = HoudiniInput->GetInputType() == EHoudiniInputType::Asset;
+	bool bIsAssetInput = HoudiniInput->GetInputType() == EHoudiniInputType::Asset_DEPRECATED;
 
 	if (InInputSettings.bImportAsReference) 
 	{

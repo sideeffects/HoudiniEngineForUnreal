@@ -2562,6 +2562,9 @@ FHoudiniInstanceTranslator::CreateOrUpdateMeshSplitInstancerComponent(
 	if (!MeshSplitComponent)
 		return false;
 
+	// Write a deprecation warning for mesh split instancer... 
+	HOUDINI_LOG_WARNING(TEXT("MeshSplitInstancers are deprecated in Houdini 20.0 - we recommand switching to attribute instancers and the unreal_split_attr attribute instead."));
+
 	MeshSplitComponent->SetStaticMesh(InstancedStaticMesh);
 	MeshSplitComponent->SetOverrideMaterials(InInstancerMaterials);
 	
