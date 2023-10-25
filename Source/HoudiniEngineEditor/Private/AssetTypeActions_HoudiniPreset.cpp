@@ -216,10 +216,6 @@ void FAssetTypeActions_HoudiniPreset::ExecuteEditToolProperties(
 		const UHoudiniPreset* HoudiniPreset = PresetPtr.Get();
 		const UHoudiniAsset* HoudiniAsset = PresetPtr->SourceHoudiniAsset;
 		const UHoudiniToolsPackageAsset* ToolsPackage = FHoudiniToolsEditor::FindOwningToolsPackage(HoudiniPreset);
-		if (!IsValid(ToolsPackage))
-		{
-			continue;
-		}
 
 		// Create, and populate, a new FHoudiniTool for this asset which is needed to launch the ToolPropertyEditor.
 		TSharedPtr<FHoudiniTool> HoudiniTool;
