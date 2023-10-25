@@ -50,6 +50,7 @@
 #include "HoudiniPublicAPI.h"
 #include "HoudiniPublicAPIBlueprintLib.h"
 #include "HoudiniPublicAPIInputTypes.h"
+#include <Selection.h>
 
 FHoudiniPublicAPIRampPoint::FHoudiniPublicAPIRampPoint()
 	: Position(0)
@@ -606,6 +607,18 @@ UHoudiniPublicAPIAssetWrapper::DeleteInstantiatedAsset_Implementation()
 	AHoudiniAssetActor* AssetActor = nullptr;
 	if (!GetValidHoudiniAssetActorWithError(AssetActor))
 		return false;
+
+	// If the Houdini Asset Actor, is selected in the Editor, Unreal will crash when saving a level.
+	USelection* Selection = GEditor->GetSelectedActors();
+	for (FSelectionIterator It(*Selection); It; ++It)
+	{
+		AActor* CurrentActor = Cast<AActor>(*It);
+		if (CurrentActor == AssetActor)
+		{
+			GEditor->SelectNone(true, true);
+			break;
+		}
+	}
 
 	// Unbind / unwrap the HDA actor
 	ClearHoudiniAssetObject();
