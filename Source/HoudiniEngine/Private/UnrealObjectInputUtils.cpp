@@ -588,8 +588,32 @@ FUnrealObjectInputUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputI
 		return false;
 
 	const HAPI_NodeId RefHAPINodeId = RefNodeId.GetHAPINodeId();
+
+	// Get currently connected inputs
+	TArray<HAPI_NodeId> PrevConnectedNodes;
+	HAPI_NodeInfo NodeInfo;
+	FHoudiniApi::NodeInfo_Init(&NodeInfo);
+	if (FHoudiniApi::GetNodeInfo(Session, RefHAPINodeId, &NodeInfo) == HAPI_RESULT_SUCCESS)
+	{
+		// There is no function in HAPI currently to directly get the number of _connected_ input nodes or to
+		// compose a list of the connected input nodes.
+		// Nodes with "infinite" inputs, such as the Merge SOP, always have NodeInfo.inputCount == 9999. So we
+		// stop iteration at the first disconnected input instead of visiting all 9999 possible indices.
+		for (int32 InputIndex = 0; InputIndex < NodeInfo.inputCount; ++InputIndex)
+		{
+			HAPI_NodeId ConnectedInputNodeId = -1;
+			if (FHoudiniApi::QueryNodeInput(Session, RefHAPINodeId, InputIndex, &ConnectedInputNodeId) != HAPI_RESULT_SUCCESS || ConnectedInputNodeId < 0)
+				break;
+			PrevConnectedNodes.Add(ConnectedInputNodeId);
+		}
+	}
+
+	// Connect referenced nodes
+	const TSet<FUnrealObjectInputBackLinkHandle>& ReferencedNodes = RefNode->GetReferencedNodes();
+	TSet<HAPI_NodeId> ConnectedNodeSet;
+	ConnectedNodeSet.Reserve(ReferencedNodes.Num());
 	int32 InputIndex = 0;
-	for (const FUnrealObjectInputHandle& Handle : RefNode->GetReferencedNodes())
+	for (const FUnrealObjectInputHandle& Handle : ReferencedNodes)
 	{
 		HAPI_NodeId NodeId = -1;
 		if (!GetHAPINodeId(Handle, NodeId))
@@ -601,7 +625,8 @@ FUnrealObjectInputUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputI
 			HOUDINI_LOG_WARNING(TEXT("[FUnrealObjectInputUtils::ConnectReferencedNodes] Failed to connected node input: %s"), *FHoudiniEngineUtils::GetErrorDescription());
 			continue;
 		}
-		// HAPI will automatically create a object_merge node, we need to set the xformtype to "Into specified object"
+		// HAPI will automatically create a object_merge node (we are expecting that NodeId and RefNodeId are never in
+		// the same network), we need to set the xformtype to "Into specified object"
 		HAPI_NodeId ConnectedNodeId = -1;
 		if (FHoudiniApi::QueryNodeInput(Session, RefHAPINodeId, InputIndex, &ConnectedNodeId) != HAPI_RESULT_SUCCESS)
 		{
@@ -613,35 +638,42 @@ FUnrealObjectInputUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputI
 
 		if (ConnectedNodeId < 0)
 		{
-			// No connected was made even though previous functions were successful!?
+			// No connection was made even though the previous functions were successful!?
 			continue;
 		}
 
+		ConnectedNodeSet.Add(ConnectedNodeId);
+		
 		// Set the transform value to "Into Specified Object"
 		// Set the transform object to the world origin null from the manager
 		SetObjectMergeXFormTypeToWorldOrigin(ConnectedNodeId);
 	}
 
-	// Disconnect input indices >= InputIndex
-	HAPI_NodeInfo NodeInfo;
-	FHoudiniApi::NodeInfo_Init(&NodeInfo);
-	if (FHoudiniApi::GetNodeInfo(Session, RefHAPINodeId, &NodeInfo) == HAPI_RESULT_SUCCESS)
+	// Disconnect previously connected nodes at indices >= FirstUnusedInputIndex
+	// Disconnect in reverse: inputs are consolidated on disconnect on "infinite" input nodes like the Merge SOP
+	const int32 FirstUnusedInputIndex = InputIndex; 
+	for (int32 InputIndexToDelete = PrevConnectedNodes.Num(); InputIndexToDelete >= FirstUnusedInputIndex; --InputIndexToDelete)
 	{
-		while (InputIndex < NodeInfo.inputCount)
-		{
-			// There is currently no way to get the number of _connected_ input nodes or a way to compose a list of the
-			// connected input nodes. So we query the node input at each index until we find an index without a
-			// connection.
-			HAPI_NodeId ConnectedInputNodeId = -1;
-			if (FHoudiniApi::QueryNodeInput(Session, RefHAPINodeId, InputIndex, &ConnectedInputNodeId) != HAPI_RESULT_SUCCESS || ConnectedInputNodeId < 0)
-				break;
-
-			HOUDINI_CHECK_ERROR(FHoudiniApi::DisconnectNodeInput(Session, RefHAPINodeId, InputIndex));
-
-			InputIndex++;
-		}
+		HOUDINI_CHECK_ERROR(FHoudiniApi::DisconnectNodeInput(Session, RefHAPINodeId, InputIndexToDelete));
 	}
 
+	// Delete nodes from previous connections that are no longer used (the object merge SOPs automatically created
+	// by HAPI) 
+	for (const HAPI_NodeId& NodeToDeleteId : PrevConnectedNodes)
+	{
+		if (ConnectedNodeSet.Contains(NodeToDeleteId))
+			continue;
+		// Check that the node is valid / still exists before attempting to delete the node
+		HAPI_NodeInfo NodeToDeleteInfo;
+		FHoudiniApi::NodeInfo_Init(&NodeToDeleteInfo);
+		if (FHoudiniApi::GetNodeInfo(Session, NodeToDeleteId, &NodeInfo) != HAPI_RESULT_SUCCESS)
+			continue;
+		bool bNodeIsValid = false;
+		if (FHoudiniApi::IsNodeValid(Session, NodeToDeleteId, NodeInfo.uniqueHoudiniNodeId, &bNodeIsValid) != HAPI_RESULT_SUCCESS || !bNodeIsValid)
+			continue;
+		HOUDINI_CHECK_ERROR(FHoudiniApi::DeleteNode(Session, NodeToDeleteId));
+	}
+	
 	return true;
 }
 
