@@ -180,53 +180,44 @@ FHoudiniDataLayerUtils::CreateDataLayerAsset(const FHoudiniPackageParams& Params
 }
 #endif
 
-FHoudiniUnrealDataLayersCache FHoudiniUnrealDataLayersCache::MakeCache(UWorld* World)
-{
-	FHoudiniUnrealDataLayersCache Cache;
 #if HOUDINI_ENABLE_DATA_LAYERS
-	AWorldDataLayers* WorldDataLayers = World->GetWorldDataLayers();
-	if (!IsValid(WorldDataLayers))
-		return Cache;
+TArray<FHoudiniUnrealDataLayerInfo>
+FHoudiniDataLayerUtils::GetDataLayerInfoForActor(AActor* Actor)
+{
+	TArray<FHoudiniUnrealDataLayerInfo> Results;
 
-	WorldDataLayers->ForEachDataLayer([&](class UDataLayerInstance* DataLayer)
-		{
-			FHoudiniUnrealDataLayerInfo Info;
-			Info.Name = DataLayer->GetDataLayerShortName();
+#if HOUDINI_ENABLE_DATA_LAYERS
+	TArray<const UDataLayerInstance*> DataLayerInstances =  Actor->GetDataLayerInstances();
 
-			int Id = Cache.DataLayerInfos.Num();
-			Cache.DataLayerInfos.Add(Info);
-
-			auto Actors = UDataLayerEditorSubsystem::Get()->GetActorsFromDataLayer(DataLayer);
-
-			for (auto Actor : Actors)
-			{
-				if (!Cache.ActorDataLayers.Contains(Actor))
-				{
-					Cache.ActorDataLayers.Add(Actor, TArray<int>());
-				}
-				Cache.ActorDataLayers[Actor].Add(Id);
-			}
-
-			return true;
-		});
+	for(const UDataLayerInstance * DataLayerInstance : DataLayerInstances)
+	{
+		FHoudiniUnrealDataLayerInfo Info = {};
+		Info.Name = DataLayerInstance->GetDataLayerShortName();
+		Results.Add(Info);
+	}
 #endif
-	return Cache;
+
+	return Results;
 
 }
+#endif
 
-
-bool FHoudiniUnrealDataLayersCache::CreateHapiGroups(AActor* Actor, HAPI_NodeId NodeId, HAPI_PartId PartId)
+bool
+FHoudiniDataLayerUtils::AddGroupsFromDataLayers(AActor* Actor, HAPI_NodeId NodeId, HAPI_PartId PartId)
 {
-	if (!ActorDataLayers.Contains(Actor))
-		return true;
+#if HOUDINI_ENABLE_DATA_LAYERS
+	TArray<FHoudiniUnrealDataLayerInfo> LayerInfos = GetDataLayerInfoForActor(Actor);
 
 	TArray<FName> GroupNames;
-	for (int LayerNumber : ActorDataLayers[Actor])
+	for (auto & LayerInfo : LayerInfos)
 	{
-		FString PrefixedName = FString(HOUDINI_DATA_LAYER_PREFIX) + FString("_") + DataLayerInfos[LayerNumber].Name;
+		FString PrefixedName = FString(HOUDINI_DATA_LAYER_PREFIX) + LayerInfo.Name;
 
 		GroupNames.Add(FName(PrefixedName));
 	}
 	bool bSuccess = FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, PartId, GroupNames);
 	return bSuccess;
+#else
+	return true;
+#endif
 }

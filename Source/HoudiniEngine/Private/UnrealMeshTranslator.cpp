@@ -3328,9 +3328,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 	if (IsValid(ParentActor))
 	{
-		FHoudiniUnrealDataLayersCache Cache = FHoudiniUnrealDataLayersCache::MakeCache(ParentActor->GetWorld());
-		Cache.CreateHapiGroups(ParentActor, NodeId, 0);
-
+		FHoudiniDataLayerUtils::AddGroupsFromDataLayers(ParentActor, NodeId, 0);
 		FHoudiniHLODLayerUtils::AddHLODAttributes(ParentActor, NodeId, 0);
 
 	}

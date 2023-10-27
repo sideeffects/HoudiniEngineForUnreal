@@ -35,6 +35,8 @@
 
 struct FHoudiniPackageParams;
 struct FHoudiniDataLayer;
+class AActor;
+class FName;
 
 // Determine if we can enable data layers or not. The public API still exists in all versions
 // to minimize the number of defines in the code.
@@ -45,6 +47,13 @@ struct FHoudiniDataLayer;
 #define HOUDINI_ENABLE_DATA_LAYERS (0)
 #endif
 
+struct FHoudiniUnrealDataLayerInfo
+{
+	// Information about he data layer being exported. Currently, just the name.
+	FString Name;
+};
+
+
 class HOUDINIENGINE_API FHoudiniDataLayerUtils
 {
 public:
@@ -54,34 +63,17 @@ public:
 
 	static TArray<FHoudiniDataLayer> GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId);
 
+	// Using this cache, create Houdini Groups for this Actor.
+	static bool AddGroupsFromDataLayers(AActor* Actor, HAPI_NodeId NodeId, HAPI_PartId PartId);
+
 #if HOUDINI_ENABLE_DATA_LAYERS
 	static void AddActorToLayer(const FHoudiniPackageParams& Params, AWorldDataLayers* WorldDataLayers, AActor* Actor, const FHoudiniDataLayer& Layer);
 	static UDataLayerAsset* CreateDataLayerAsset(const FHoudiniPackageParams& Params, const FString & LayerName);
+	static TArray<FHoudiniUnrealDataLayerInfo> GetDataLayerInfoForActor(AActor* Actor);
 #endif
-};
-
-class AActor;
-class FName;
 
 
-struct FHoudiniUnrealDataLayerInfo
-{
-	// Information about he data layer being exported. Currently, just the name.
-	FString Name;
-};
 
-struct FHoudiniUnrealDataLayersCache
-{
-	// There doesn't seem to be an efficient way to get a list of data layers for each actor in Unreal,
-	// you would have to go through each data layer and see if the actor is a member. So this struct is
-	// used to cache off the data layer information once so the information is available efficently.
 
-	TMap<AActor*, TArray<int> > ActorDataLayers;
-	TArray<FHoudiniUnrealDataLayerInfo> DataLayerInfos;
-
-	static FHoudiniUnrealDataLayersCache MakeCache(UWorld*);
-
-	// Using this cache, create Houdini Groups for this Actor.
-	bool CreateHapiGroups(AActor* Actor, HAPI_NodeId NodeId, HAPI_PartId PartId);
 };
 

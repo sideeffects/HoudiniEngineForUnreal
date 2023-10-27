@@ -799,9 +799,6 @@ FHoudiniInputTranslator::UploadChangedInputs(UHoudiniAssetComponent * HAC)
 	if (!IsValid(HAC))
 		return false;
 
-	// Disabled, this seems to be unused and is fairly costly to run in large levels/worlds
-	//HoudiniUnrealDataLayersCache DataLayerCache = FHoudiniUnrealDataLayersCache::MakeCache(HAC->GetWorld());
-
 	//for (auto CurrentInput : HAC->Inputs)
 	for(int32 InputIdx = 0; InputIdx < HAC->GetNumInputs(); InputIdx++)
 	{
