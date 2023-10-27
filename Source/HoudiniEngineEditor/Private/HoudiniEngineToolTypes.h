@@ -258,7 +258,10 @@ struct FHoudiniTool
 
 struct FHoudiniToolList
 {
+	// List of HoudiniTools
 	TArray<TSharedPtr<FHoudiniTool>> Tools;
+	// Set of unique packages collected from the tools in this list. 
+	TSet<TSoftObjectPtr<UHoudiniToolsPackageAsset>> Packages;
 };
 
 

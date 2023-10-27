@@ -187,6 +187,12 @@ public:
 	// Get the cached categorized tools
 	const TMap< FHoudiniToolCategory, TSharedPtr<FHoudiniToolList> >& GetCategorizedTools() const { return Categories; }
 
+	bool IsToolInCategory(const FHoudiniToolCategory& InCategory, TSharedPtr<FHoudiniTool> InHoudiniTool) const;
+
+	// Find the packages for the given category name in the cached categories.
+	TSet<TSoftObjectPtr<UHoudiniToolsPackageAsset>> FindPackagesContainingCategory(const FString& InCategoryName) const;
+	TSoftObjectPtr<UHoudiniToolsPackageAsset> FindFirstPackageContainingCategory(const FString& InCategoryName) const;
+
 	// External Data
 
 	// Read HDA description

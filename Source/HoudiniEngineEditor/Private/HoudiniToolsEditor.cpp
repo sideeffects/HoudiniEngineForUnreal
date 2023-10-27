@@ -1037,6 +1037,7 @@ FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePattern
 			}
 
 			CategoryTools->Tools.Add(HoudiniTool);
+			CategoryTools->Packages.Add(HoudiniTool->ToolsPackage);
 		}
 	};
 
@@ -1160,6 +1161,72 @@ FHoudiniToolsEditor::UpdateHoudiniToolListFromProject(bool bIgnoreExcludePattern
 			return LHS->Name.ToString() < RHS->Name.ToString();
 		});
 	}
+}
+
+bool
+FHoudiniToolsEditor::IsToolInCategory(
+	const FHoudiniToolCategory& InCategory,
+	TSharedPtr<FHoudiniTool> InHoudiniTool) const
+{
+	if (!Categories.Contains(InCategory))
+	{
+		return false;
+	}
+
+	const TSharedPtr<FHoudiniToolList> Tools = Categories.FindChecked(InCategory);
+	for (const TSharedPtr<FHoudiniTool> Tool : Tools->Tools)
+	{
+		if (Tool == InHoudiniTool)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+TSet<TSoftObjectPtr<UHoudiniToolsPackageAsset>>
+FHoudiniToolsEditor::FindPackagesContainingCategory(const FString& InCategoryName) const
+{
+	for(const TTuple<FHoudiniToolCategory, TSharedPtr<FHoudiniToolList>>& Entry : Categories)
+	{
+		const FHoudiniToolCategory& Category = Entry.Key;
+		const TSharedPtr<FHoudiniToolList> CategoryTools = Entry.Value;
+
+		if (Category.Name == InCategoryName)
+		{
+			return CategoryTools->Packages;
+		}
+	}
+
+	return {};
+}
+
+
+TSoftObjectPtr<UHoudiniToolsPackageAsset>
+FHoudiniToolsEditor::FindFirstPackageContainingCategory(const FString& InCategoryName) const
+{
+	TSet<TSoftObjectPtr<UHoudiniToolsPackageAsset>> CategoryPackages;
+	CategoryPackages = FindPackagesContainingCategory(InCategoryName);
+
+	TArray<TSoftObjectPtr<UHoudiniToolsPackageAsset>> SortedPackages = CategoryPackages.Array();
+	
+	SortedPackages.Sort([](const TSoftObjectPtr<UHoudiniToolsPackageAsset>& LHS, const TSoftObjectPtr<UHoudiniToolsPackageAsset>& RHS) -> bool
+	{
+		return LHS->GetPathName() < RHS->GetPathName();
+	});
+
+	// Return the first valid Tools package asset.
+	for (TSoftObjectPtr<UHoudiniToolsPackageAsset> PackagePtr : SortedPackages)
+	{
+		if (PackagePtr.IsValid())
+		{
+			return PackagePtr;
+		}
+	}
+
+	return TSoftObjectPtr<UHoudiniToolsPackageAsset>();
 }
 
 

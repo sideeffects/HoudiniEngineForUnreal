@@ -203,7 +203,8 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 
 		//void ModulesChangedCallback(FName ModuleName, EModuleChangeReason ReasonForChange);
 		//FDelegateHandle ModulesChangedHandle;
-	
+
+		// TODO: FHoudiniToolsEditor should be converted to an editor subsystem
 		FHoudiniToolsEditor& GetHoudiniTools() const { return *HoudiniToolsPtr; }
 
 	protected:

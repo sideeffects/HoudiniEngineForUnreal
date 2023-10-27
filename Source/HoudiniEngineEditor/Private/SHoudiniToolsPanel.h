@@ -143,6 +143,13 @@ class SHoudiniToolTileView : public STileView< TSharedPtr<FHoudiniTool> >
 		}
 };
 
+enum class ECategoryContentType: uint8
+{
+	Tools = 0,
+	NoToolsInCategory = 1,
+	NoVisibleToolsInCategory = 2
+};
+
 // A collapsible category containing a Tile view of houdini tools.
 class SHoudiniToolCategory : public SCompoundWidget
 {
@@ -171,6 +178,7 @@ public:
 		: _ShowEmptyCategory(true)
 		, _ShowHoudiniAssets(true)
 		, _ShowPresets(true)
+		, _ShowHiddenTools(true)
 		, _ViewMode(EHoudiniToolsViewMode::TileView)
 		, _IsVisible(true)
 	{}
@@ -178,13 +186,15 @@ public:
 	SLATE_EVENT( FOnGenerateRow, OnGenerateRow )
 	SLATE_EVENT( FOnMouseButtonClick, OnMouseButtonClick )
 	SLATE_EVENT( FOnMouseButtonDoubleClick, OnMouseButtonDoubleClick )
-	SLATE_EVENT( FOnContextMenuOpening, OnContextMenuOpening )
+	SLATE_EVENT( FOnContextMenuOpening, OnToolContextMenuOpening )
+	SLATE_EVENT( FOnContextMenuOpening, OnCategoryContextMenuOpening )
 	SLATE_EVENT( FOnToolSelectionChanged, OnToolSelectionChanged )
 	
 	SLATE_ATTRIBUTE( FText, CategoryLabel )
 	SLATE_ATTRIBUTE( bool, ShowEmptyCategory )
 	SLATE_ATTRIBUTE( bool, ShowHoudiniAssets )
 	SLATE_ATTRIBUTE( bool, ShowPresets )
+	SLATE_ATTRIBUTE( bool, ShowHiddenTools )
 	SLATE_ATTRIBUTE( EHoudiniToolCategoryType, CategoryType )
 	SLATE_ATTRIBUTE( TSharedPtr<FHoudiniToolList>, HoudiniToolsItemSource )
 	SLATE_ATTRIBUTE( EHoudiniToolsViewMode, ViewMode )
@@ -211,6 +221,10 @@ protected:
 	
 	void UpdateVisibleItems();
 
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	TSharedPtr<SWidget> HandleContextMenuOpening();
+
 	TSharedPtr<FBaseViewType> HoudiniToolsView;
 	
 	FString CategoryLabel;
@@ -220,7 +234,10 @@ protected:
 	TAttribute<bool> ShowEmptyCategory;
 	TAttribute<bool> ShowHoudiniAssets;
 	TAttribute<bool> ShowPresets;
+	TAttribute<bool> ShowHiddenTools;
 	TAttribute<bool> IsVisible;
+	TAttribute<FOnContextMenuOpening> ToolContextMenuOpening;
+	TAttribute<FOnContextMenuOpening> CategoryContextMenuOpening;
 	
 	TSharedPtr<FHoudiniTool> ActiveTool;
 
@@ -229,6 +246,10 @@ protected:
 	// may be removed in HoudiniTools but we don't want this widget to crash if that happens.
 	TSharedPtr<FHoudiniToolList> SourceEntries;
 	TArray< TSharedPtr<FHoudiniTool> > VisibleEntries;
+
+	// Use ECategoryContentType to set this switcher's index.
+	TSharedPtr<SWidgetSwitcher> CategoryContentSwitcher;
+	float TextWrapWidth;
 };
 
 
@@ -548,6 +569,17 @@ private:
 
 	void HandleRemoveFromFavorites() const;
 
+	void HandleEditUserCategory(const FString& CategoryName) const;
+
+	void HandleEditPackageCategory(const FString& CategoryName) const;
+
+	void HandleBrowseToCategoryPackage(const FString& CategoryName) const;
+
+	void HandleSaveToolsInCategory(const FString& CategoryName, const EHoudiniToolCategoryType CategoryType) const;
+
+	void HandleImportToolsIntoCategory(const FString& CategoryName, const EHoudiniToolCategoryType CategoryType) const;
+
+
 	static const FString SettingsIniSection;
 
 	/** Make a widget for the list view display */
@@ -564,13 +596,19 @@ private:
 	/** Handler for double clicking on a Houdini tool **/
 	void OnDoubleClickedListViewWidget( TSharedPtr<FHoudiniTool> ListItem );
 
+	// /** Return the appropriate context menu, depending on current Tools panel context **/
+	// TSharedPtr<SWidget> ConstructContextMenu(const FString& CategoryName, const EHoudiniToolCategoryType CategoryType);
+
 	/** Handler for the right click context menu on a Houdini tool **/
-	TSharedPtr< SWidget > ConstructHoudiniToolContextMenu();
+	TSharedPtr<SWidget> ConstructHoudiniToolContextMenu();
+
+	/** Context menu for right clicking on any empty area in a category */
+	TSharedPtr<SWidget> ConstructCategoryContextMenu(const FString& CategoryName, const EHoudiniToolCategoryType CategoryType);
 
 	/** Construct menu widget for the Actions popup button **/
-	TSharedPtr< SWidget > ConstructHoudiniToolsActionMenu();
+	TSharedPtr<SWidget> ConstructHoudiniToolsActionMenu();
 
-	TSharedPtr< SWidget > ConstructCategoryFilterMenu();
+	TSharedPtr<SWidget> ConstructCategoryFilterMenu();
 
 	/** Shows a Property Window for editing the properties of new HoudiniTools**/
 	void EditActiveHoudiniTool() const;
