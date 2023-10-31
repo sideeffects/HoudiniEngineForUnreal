@@ -202,22 +202,55 @@ FHoudiniDataLayerUtils::GetDataLayerInfoForActor(AActor* Actor)
 }
 #endif
 
-bool
-FHoudiniDataLayerUtils::AddGroupsFromDataLayers(AActor* Actor, HAPI_NodeId NodeId, HAPI_PartId PartId)
+HAPI_NodeId
+FHoudiniDataLayerUtils::AddGroupsFromDataLayers(AActor* Actor, HAPI_NodeId ParentNodeId, HAPI_NodeId InputNodeId)
 {
-#if HOUDINI_ENABLE_DATA_LAYERS
-	TArray<FHoudiniUnrealDataLayerInfo> LayerInfos = GetDataLayerInfoForActor(Actor);
+	HAPI_NodeId VexNodeId;
 
-	TArray<FName> GroupNames;
-	for (auto & LayerInfo : LayerInfos)
+	// Create a group node.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(),
+			ParentNodeId,
+			"attribwrangle",
+			"data_layers",
+			false,
+			&VexNodeId),
+		-1);
+
+	// Hook the new node up to the input node.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(FHoudiniEngine::Get().GetSession(), VexNodeId, 0, InputNodeId, 0), false);
+
+	SetVexCode(VexNodeId, Actor);
+
+	return VexNodeId;
+}
+
+bool
+FHoudiniDataLayerUtils::SetVexCode(HAPI_NodeId VexNodeId, AActor* Actor)
+{
+	auto DataLayers = FHoudiniDataLayerUtils::GetDataLayerInfoForActor(Actor);
+
+	FString VexCode;
+
+	for (auto& DataLayer : DataLayers)
 	{
-		FString PrefixedName = FString(HOUDINI_DATA_LAYER_PREFIX) + LayerInfo.Name;
+		FString PrefixedName = FString(HOUDINI_DATA_LAYER_PREFIX) + DataLayer.Name;
 
-		GroupNames.Add(FName(PrefixedName));
+		const FString VexLine = FString::Format(TEXT("setprimgroup(0,\"{0}\", @primnum,1);\n"), { PrefixedName });
+		VexCode += VexLine;
 	}
-	bool bSuccess = FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, PartId, GroupNames);
-	return bSuccess;
-#else
+	// Set the wrangle's class to prims
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), VexNodeId, "class", 0, 1), false);
+
+	// Set the snippet parameter to the VEXpression.
+	HAPI_ParmInfo ParmInfo;
+	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(VexNodeId, "snippet", ParmInfo);
+	if (ParmId != -1)
+	{
+		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), VexNodeId, TCHAR_TO_UTF8(*VexCode), ParmId, 0);
+	}
+	else
+	{
+		HOUDINI_LOG_WARNING(TEXT("Invalid Parameter: %s"), *FHoudiniEngineUtils::GetErrorDescription());
+	}
 	return true;
-#endif
 }

@@ -144,3 +144,46 @@ private:
 	/** The actor to get the actor and level path from. */
 	TObjectPtr<AActor> Actor;
 };
+
+
+/** Modifier for data layer groups */
+class HOUDINIENGINE_API FUnrealObjectInputDataLayer: public FUnrealObjectInputModifier
+{
+public:
+	FUnrealObjectInputDataLayer(FUnrealObjectInputNode& InOwner, AActor* InActor)
+		: FUnrealObjectInputModifier(InOwner), Actor(InActor) {}
+
+	static EUnrealObjectInputModifierType StaticGetType() { return EUnrealObjectInputModifierType::DataLayerGroups; }
+	virtual EUnrealObjectInputModifierType GetType() const override { return StaticGetType(); }
+
+	void SetActor(AActor* InActor);
+	AActor* GetActor() const { return Actor; }
+
+	virtual bool Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo) override;
+
+private:
+	HAPI_NodeId EnsureHAPINodeExists(const HAPI_NodeId InParentNetworkNodeId);
+
+	TObjectPtr<AActor> Actor;
+};
+
+/** Modifier for HLODs */
+class HOUDINIENGINE_API FUnrealObjectInputHLODAttributes : public FUnrealObjectInputModifier
+{
+public:
+	FUnrealObjectInputHLODAttributes(FUnrealObjectInputNode& InOwner, AActor* InActor)
+		: FUnrealObjectInputModifier(InOwner), Actor(InActor) {}
+
+	static EUnrealObjectInputModifierType StaticGetType() { return EUnrealObjectInputModifierType::HLODAttributes; }
+	virtual EUnrealObjectInputModifierType GetType() const override { return StaticGetType(); }
+
+	void SetActor(AActor* InActor);
+	AActor* GetActor() const { return Actor; }
+
+	virtual bool Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo) override;
+
+private:
+	HAPI_NodeId EnsureHAPINodeExists(const HAPI_NodeId InParentNetworkNodeId);
+
+	TObjectPtr<AActor> Actor;
+};

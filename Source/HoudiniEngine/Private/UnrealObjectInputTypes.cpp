@@ -1,14 +1,17 @@
 ﻿#include "UnrealObjectInputTypes.h"
+
+#include "HoudiniDataLayerUtils.h"
 #include "UnrealObjectInputManager.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniHLODLayerUtils.h"
 
 #include "GameFramework/Actor.h"
 #include "Components/MeshComponent.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialInterface.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-
+#include "WorldPartition/HLOD/HLODLayer.h"
 
 HAPI_NodeId
 EnsureHAPINodeExistsInternal(
@@ -489,6 +492,115 @@ s@{2} = "{3}";)";
 		HOUDINI_LOG_WARNING(TEXT("Invalid Parameter: %s"), *FHoudiniEngineUtils::GetErrorDescription());
 		return false;
 	}
+
+	return true;
+}
+
+void
+FUnrealObjectInputDataLayer::SetActor(AActor* const InActor)
+{
+	if (InActor == Actor)
+		return;
+
+	Actor = InActor;
+	MarkAsNeedsRebuild();
+}
+
+
+HAPI_NodeId
+FUnrealObjectInputDataLayer::EnsureHAPINodeExists(const HAPI_NodeId InParentNetworkNodeId)
+{
+	const FString OpTypeName(TEXT("attribwrangle"));
+	const FString NodeName(TEXT("unreal_data_layers"));
+	return EnsureHAPINodeExistsInternal(InParentNetworkNodeId, OpTypeName, NodeName, HAPINodeIds, 0);
+}
+
+
+bool
+FUnrealObjectInputDataLayer::Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo)
+{
+	// If we don't have a valid mesh component destroy the nodes and return false
+	if (!IsValid(Actor))
+	{
+		DestroyHAPINodes();
+		return false;
+	}
+
+	// Check that InNodeIdToConnectTo is valid
+	if (!InNodeIdToConnectTo.IsValid())
+		return false;
+
+	const HAPI_NodeId HAPINodeIdToConnectTo = InNodeIdToConnectTo.GetHAPINodeId();
+
+	// Check if we already have a valid node, if not create it
+	const HAPI_NodeId VexNodeId = EnsureHAPINodeExists(
+		FHoudiniEngineUtils::HapiGetParentNodeId(HAPINodeIdToConnectTo));
+	if (VexNodeId < 0)
+		return false;
+
+	const HAPI_Session * Session = FHoudiniEngine::Get().GetSession();
+
+	// Connect our input to InNodeIdToConnectTo's output
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+		Session, VexNodeId, 0, HAPINodeIdToConnectTo, 0), false);
+
+	FHoudiniDataLayerUtils::SetVexCode(VexNodeId, Actor);
+
+	return true;
+}
+
+
+void
+FUnrealObjectInputHLODAttributes::SetActor(AActor* const InActor)
+{
+	if (InActor == Actor)
+		return;
+
+	Actor = InActor;
+	MarkAsNeedsRebuild();
+}
+
+
+HAPI_NodeId
+FUnrealObjectInputHLODAttributes::EnsureHAPINodeExists(const HAPI_NodeId InParentNetworkNodeId)
+{
+	const FString OpTypeName(TEXT("attribwrangle"));
+	const FString NodeName(TEXT("unreal_hlod_attributes"));
+	return EnsureHAPINodeExistsInternal(InParentNetworkNodeId, OpTypeName, NodeName, HAPINodeIds, 0);
+}
+
+
+bool
+FUnrealObjectInputHLODAttributes::Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo)
+{
+	// If we don't have a valid mesh component destroy the nodes and return false
+	if (!IsValid(Actor))
+	{
+		DestroyHAPINodes();
+		return false;
+	}
+
+	// Check that InNodeIdToConnectTo is valid
+	if (!InNodeIdToConnectTo.IsValid())
+		return false;
+
+	const HAPI_NodeId HAPINodeIdToConnectTo = InNodeIdToConnectTo.GetHAPINodeId();
+
+	// Check if we already have a valid node, if not create it
+	const HAPI_NodeId VexNodeId = EnsureHAPINodeExists(FHoudiniEngineUtils::HapiGetParentNodeId(HAPINodeIdToConnectTo));
+
+	if (VexNodeId < 0)
+		return false;
+
+	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+
+	// Connect our input to InNodeIdToConnectTo's output
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(Session, VexNodeId, 0, HAPINodeIdToConnectTo, 0), false);
+
+	// Set the wrangle's class to prims
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(Session, VexNodeId, "class", 0, 1), false);
+
+	FHoudiniHLODLayerUtils::SetVexCode(VexNodeId, Actor);
 
 	return true;
 }

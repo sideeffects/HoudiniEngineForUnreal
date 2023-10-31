@@ -85,30 +85,52 @@ void FHoudiniHLODLayerUtils::ApplyHLODLayersToActor(const FHoudiniPackageParams&
 	}
 }
 
-bool FHoudiniHLODLayerUtils::AddHLODAttributes(AActor* Actor, HAPI_NodeId NodeId, HAPI_PartId PartId)
+void FHoudiniHLODLayerUtils::SetVexCode(HAPI_NodeId VexNodeId, AActor * Actor)
 {
-	UHLODLayer * Layer = Actor->GetHLODLayer();
+	UHLODLayer* Layer = Actor->GetHLODLayer();
+
+	// If there is no layer, just leave the empty node. Its not an error.
 	if (!Layer)
-		return false;
+		return;
 
 	FString LayerName = Layer->GetPathName();
 
-	HAPI_PartInfo Part;
-	FHoudiniApi::PartInfo_Init(&Part);
-	FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), NodeId, 0, &Part);
+	FString VexCode = FString::Format(TEXT("s@{0} = \"{1}\";\n"), { TEXT(HAPI_UNREAL_ATTRIB_HLOD_LAYER), LayerName });
 
-	HAPI_AttributeInfo AttributeInfo;
-	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-	AttributeInfo.count = Part.faceCount;
-	AttributeInfo.tupleSize = 1;
-	AttributeInfo.exists = true;
-	AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
-	AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
-	AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+	// Set the snippet parameter to the code.
+	HAPI_ParmInfo ParmInfo;
+	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(VexNodeId, "snippet", ParmInfo);
+	if (ParmId != -1)
+	{
+		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), VexNodeId, TCHAR_TO_UTF8(*VexCode), ParmId, 0);
+	}
+	else
+	{
+		HOUDINI_LOG_WARNING(TEXT("Invalid Parameter: %s"), *FHoudiniEngineUtils::GetErrorDescription());
+	}
+}
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), NodeId, PartId, HAPI_UNREAL_ATTRIB_HLOD_LAYER, &AttributeInfo), false);
+HAPI_NodeId FHoudiniHLODLayerUtils::AddHLODAttributes(AActor* Actor, HAPI_NodeId ParentNodeId, HAPI_NodeId InputNodeId)
+{
+	HAPI_NodeId VexNode = -1;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(LayerName,NodeId,PartId, HAPI_UNREAL_ATTRIB_HLOD_LAYER, AttributeInfo), false);
+	// Create a group node.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(),
+		ParentNodeId,
+		"attribwrangle",
+		"hlod_layers",
+		false,
+		&VexNode),
+		-1);
 
-	return true;
+	// Hook the new node up to the input node.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(FHoudiniEngine::Get().GetSession(), VexNode, 0, InputNodeId, 0), -1);
+
+	// Set the wrangle's class to prims
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), VexNode, "class", 0, 1), -1);
+
+	// Set the Vex code which will generate the attributes.
+	SetVexCode(VexNode, Actor);
+	
+	return VexNode;
 }
