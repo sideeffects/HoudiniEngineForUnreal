@@ -79,6 +79,11 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 			TSharedRef<SVerticalBox> InVerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
+		// Level Instance Export Options
+		static void AddLevelInstanceExportCheckboxes(
+			TSharedRef<SVerticalBox> InVerticalBox,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
+
 		static void AddCurveRotScaleAttributesCheckBox(
 			TSharedRef<SVerticalBox> InVerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);

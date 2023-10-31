@@ -42,6 +42,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniPackageParams.h"
 #include "HoudiniSplineComponentVisualizer.h"
+#include "UnrealObjectInputRuntimeUtils.h"
 
 #include "ActorTreeItem.h"
 #include "AssetRegistry/AssetData.h"
@@ -1045,6 +1046,95 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 			{
 				return CheckStateChangedPreferNanite(InInputs, NewState);
+			})
+		]
+	];
+}
+
+void
+FHoudiniInputDetails::AddLevelInstanceExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	// Lambda returning a CheckState from the input's current bExportLevelInstanceContent state
+	auto IsExportLevelInstanceContentEnabled = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->IsExportLevelInstanceContentEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	// Lambda for changing bIsExportLevelInstanceContent state
+	auto CheckStateChangedExportLevelInstanceContent = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		const bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->IsExportLevelInstanceContentEnabled() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Level Instance Content"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->IsExportLevelInstanceContentEnabled() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetExportLevelInstanceContent(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
+	};
+
+
+	TSharedPtr<SCheckBox> CheckBoxExportLevelInstanceContent;
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SAssignNew(CheckBoxExportLevelInstanceContent, SCheckBox)
+			.Content()
+			[
+				SNew( STextBlock )
+				.Text( LOCTEXT( "ExportLevelInstanceContent", "Export Level Instance Content" ) )
+				.ToolTipText( LOCTEXT( "ExportLevelInstanceContentCheckboxTip", "If enabled, level instance content will be sent to Houdini. Only supported in the new input system." ) )
+				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+			]
+			.IsChecked_Lambda([=]()
+			{
+				return IsExportLevelInstanceContentEnabled(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedExportLevelInstanceContent(InInputs, NewState);
+			})
+			.IsEnabled_Lambda([]()
+			{
+				// Exporting level instance content is only supported in the new input system
+				return FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 			})
 		]
 	];
@@ -2493,6 +2583,7 @@ FHoudiniInputDetails::AddExportOptions(
 			AddPackBeforeMergeCheckbox(ExportOptions_VerticalBox, InInputs);
 			AddExportAsReferenceCheckBoxes(ExportOptions_VerticalBox, InInputs);
 			AddExportCheckboxes(ExportOptions_VerticalBox, InInputs);
+			AddLevelInstanceExportCheckboxes(ExportOptions_VerticalBox, InInputs);
 			AddDirectlyConnectHdasCheckBox(ExportOptions_VerticalBox, InInputs);
 			AddUseLegacyInputCurvesCheckBox(ExportOptions_VerticalBox, InInputs);
 			AddUnrealSplineResolutionInput(ExportOptions_VerticalBox, InInputs);
