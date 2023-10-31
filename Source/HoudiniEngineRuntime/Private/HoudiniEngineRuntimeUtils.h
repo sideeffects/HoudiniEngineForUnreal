@@ -218,6 +218,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 
 #endif
 
+	static bool SetDefaultCollisionFlag(UObject* InObject, bool bUseDefaultCollision);
+
 	/**
 	// * Set the value on an UObject using reflection.
 	// * @param	Object			The object to copy the value into.

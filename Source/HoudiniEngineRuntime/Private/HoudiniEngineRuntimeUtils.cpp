@@ -654,7 +654,21 @@ void FHoudiniEngineRuntimeUtils::ForAllArchetypeInstances(UObject* InTemplateObj
 		Operation(Instance);
 	}
 }
+
 #endif
+
+
+bool
+FHoudiniEngineRuntimeUtils::SetDefaultCollisionFlag(UObject* InObject, bool bUseDefaultCollision)
+{
+	if(UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(InObject))
+	{
+		SMC->bUseDefaultCollision = bUseDefaultCollision;
+		return true;
+	}
+	return false;
+}
+
 
 FHoudiniStaticMeshGenerationProperties
 FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties()
