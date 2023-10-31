@@ -395,16 +395,27 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 		{
 			FString StringValue = InPropertyAttribute.GetStringValue(AtIndex);
 			FName Value = FName(*StringValue);
-
-			// Only set if the component has a valid BodySetup
-			if(IsValid(PC->GetBodySetup()))
-				PC->SetCollisionProfileName(Value);
-
-			// Patch the StaticMeshGenerationProperties on the HAC
-			UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InObject);
-			if (IsValid(HAC))
+			
+			if (Value == "Default")
 			{
-				HAC->StaticMeshGenerationProperties.DefaultBodyInstance.SetCollisionProfileName(Value);
+				// The "Default" collision profile can only be applied to StaticMesh components
+				FHoudiniEngineRuntimeUtils::SetDefaultCollisionFlag(PC, true);
+			}
+			else
+			{
+				// Only set if the component has a valid BodySetup
+				if(IsValid(PC->GetBodySetup()))
+				{
+					// NOTE: Setting to collision profile name will automatically disable the default collision flag
+					PC->SetCollisionProfileName(Value);
+				}
+
+				// Patch the StaticMeshGenerationProperties on the HAC
+				UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InObject);
+				if (IsValid(HAC))
+				{
+					HAC->StaticMeshGenerationProperties.DefaultBodyInstance.SetCollisionProfileName(Value);
+				}
 			}
 
 			return true;
