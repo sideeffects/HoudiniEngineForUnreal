@@ -38,7 +38,9 @@ public:
 
 	static void ApplyHLODLayersToActor(const FHoudiniPackageParams& Params, AActor* Actor, const TArray<FHoudiniHLODLayer>& Layers);
 
-	static bool AddHLODAttributes(AActor * Actor, HAPI_NodeId NodeId, HAPI_PartId PartId);
+	static HAPI_NodeId AddHLODAttributes(AActor * Actor, HAPI_NodeId ParentNodeId, HAPI_NodeId InputNodeId);
+
+	static void SetVexCode(HAPI_NodeId VexNodeId, AActor* Actor);
 
 private:
 	static void AddActorToHLOD(AActor* Actor, const FString& AssetRef);

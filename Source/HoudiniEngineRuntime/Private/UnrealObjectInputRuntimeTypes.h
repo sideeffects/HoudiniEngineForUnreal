@@ -414,7 +414,9 @@ enum class EUnrealObjectInputModifierType : uint8
 	Invalid,
 	MaterialOverrides,
 	PhysicalMaterialOverride,
-	ActorAsReference
+	ActorAsReference,
+	DataLayerGroups,
+	HLODAttributes
 };
 
 /** Represents a chain of FUnrealObjectInputModifiers, owned by a single FUnrealObjectInputNode. See FUnrealObjectInputModifier. */
@@ -912,3 +914,4 @@ T* FUnrealObjectInputNode::CreateAndAddModifier(const FName InChainName, Args...
 
 	return Modifier;
 }
+

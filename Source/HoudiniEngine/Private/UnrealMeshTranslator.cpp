@@ -3322,17 +3322,6 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			LightMapResolution, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
-	//---------------------------------------------------------------------------------------------------------------------
-	// DATA & HLOD LAYERS
-	//---------------------------------------------------------------------------------------------------------------------
-
-	if (IsValid(ParentActor))
-	{
-		FHoudiniDataLayerUtils::AddGroupsFromDataLayers(ParentActor, NodeId, 0);
-		FHoudiniHLODLayerUtils::AddHLODAttributes(ParentActor, NodeId, 0);
-
-	}
-
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// INPUT MESH NAME
 	//---------------------------------------------------------------------------------------------------------------------
@@ -3489,6 +3478,9 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			FHoudiniEngineUtils::AddLevelPathAttribute(NodeId, 0, ParentActor->GetLevel(), Part.faceCount);
 		}
 	}
+
+
+
 
 	// Commit the geo.
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(

@@ -34,6 +34,8 @@
 #include "HoudiniInput.h"
 
 #include "UnrealLandscapeTranslator.h"
+
+#include "HoudiniDataLayerUtils.h"
 #include "HoudiniGeoPartObject.h"
 
 #include "Landscape.h"
@@ -48,6 +50,7 @@
 #include "UnrealObjectInputRuntimeUtils.h"
 #include "UnrealObjectInputUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniHLODLayerUtils.h"
 #include "HoudiniLandscapeUtils.h"
 
 
@@ -291,7 +294,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	FString NodeName = InputNodeNameStr;
 
 	//--------------------------------------------------------------------------------------------------
-	// 1. Extracting the height data
+	// Extracting the height data
 	//--------------------------------------------------------------------------------------------------
 	TArray<uint16> HeightData;
 	int32 XSize, YSize;
@@ -300,7 +303,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 		return false;
 
 	//--------------------------------------------------------------------------------------------------
-	// 2. Convert the height uint16 data to float
+	// Convert the height uint16 data to float
 	//--------------------------------------------------------------------------------------------------
 	TArray<float> HeightfieldFloatValues;
 	HAPI_VolumeInfo HeightfieldVolumeInfo;
@@ -318,7 +321,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 		return false;
 
 	//--------------------------------------------------------------------------------------------------
-	// 3. Create the Heightfield Input Node
+	// Create the Heightfield Input Node
 	//-------------------------------------------------------------------------------------------------- 
 	HAPI_NodeId HeightFieldId = -1;
 	HAPI_NodeId HeightId = -1;
@@ -327,8 +330,9 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	if (!CreateHeightfieldInputNode(NodeName, XSize, YSize, HeightFieldId, HeightId, MaskId, MergeId, ParentNodeId))
 		return false;
 
+
 	//--------------------------------------------------------------------------------------------------
-	// 4. Set the HeightfieldData in Houdini
+	// Set the HeightfieldData in Houdini
 	//--------------------------------------------------------------------------------------------------    
 	// Set the Height volume's data
 	HAPI_PartId PartId = 0;
@@ -343,7 +347,14 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 		FHoudiniEngine::Get().GetSession(), HeightId), false);
 
 	//--------------------------------------------------------------------------------------------------
-	// 5. Extract and convert all the layers
+	// Add  Data Layers and HLODS
+	//--------------------------------------------------------------------------------------------------
+
+	int PrevNode = FHoudiniHLODLayerUtils::AddHLODAttributes(LandscapeProxy, ParentNodeId, HeightFieldId);
+	FHoudiniDataLayerUtils::AddGroupsFromDataLayers(LandscapeProxy, ParentNodeId, PrevNode);
+
+	//--------------------------------------------------------------------------------------------------
+	// Extract and convert all the layers
 	//--------------------------------------------------------------------------------------------------
 	ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
 	if (!LandscapeInfo)
@@ -371,6 +382,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
 	if(IsValid(Landscape))
 	{
+
 		//--------------------------------------------------------------------------------------------------
 		// Create heightfield input for each editable landscape layer
 		//--------------------------------------------------------------------------------------------------
@@ -477,7 +489,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 
 			// Apply attributes to the heightfield input node
 			ApplyAttributesToHeightfieldNode(LandscapeLayerNodeId, 0, LandscapeProxy);
-			
+
 			// Commit the volume's geo
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
 			FHoudiniEngine::Get().GetSession(), LandscapeLayerNodeId), false);
@@ -939,6 +951,7 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 			OutHandle = Handle;
 	}
 
+	// dfdf
 	return true;
 }
 

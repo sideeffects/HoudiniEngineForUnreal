@@ -412,7 +412,21 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 		// Ensure that the physical material override modifier exists for this component's input node
 		if (!FUnrealObjectInputUtils::FindFirstModifierOfType(Handle, InstancerChainName, EUnrealObjectInputModifierType::PhysicalMaterialOverride))
 			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputPhysicalMaterialOverride>(Handle, InstancerChainName, ISMC, HAPI_ATTROWNER_POINT);
-		
+
+		// Data layer Modifier
+		FUnrealObjectInputModifier* DataLayerModifier = FUnrealObjectInputUtils::FindFirstModifierOfType(Handle, InstancerChainName, EUnrealObjectInputModifierType::DataLayerGroups);
+		if (!DataLayerModifier)
+		{
+			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputDataLayer>(Handle, InstancerChainName, ISMC->GetOwner());
+		}
+
+		// HLODs
+		FUnrealObjectInputModifier* HLODModifier = FUnrealObjectInputUtils::FindFirstModifierOfType(Handle, InstancerChainName, EUnrealObjectInputModifierType::HLODAttributes);
+		if (!HLODModifier)
+		{
+			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputHLODAttributes>(Handle, InstancerChainName, ISMC->GetOwner());
+		}
+
 		// Update all modifiers
 		FUnrealObjectInputUtils::UpdateAllModifierChains(Handle);
 
