@@ -126,6 +126,12 @@ struct HOUDINIENGINERUNTIME_API FUnrealObjectInputOptions
 
 	/** Export landscape spline left and right curves. */
 	bool bExportLandscapeSplineLeftRightCurves;
+
+	/**
+	 * If enabled, level instances (and packed level actor) content is exported vs just exporting a single point
+	 * with attributes identifying the level instance / packed level actor.
+	 */
+	bool bExportLevelInstanceContent;
 };
 
 /** Function used by hashing containers to create a unique hash for this type of object. */

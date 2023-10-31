@@ -1063,6 +1063,7 @@ UHoudiniPublicAPIWorldInput::UHoudiniPublicAPIWorldInput()
 	bIsWorldInputBoundSelector = false;
 	bWorldInputBoundSelectorAutoUpdate = false;
 	UnrealSplineResolution = 50.0f;
+	bExportLevelInstanceContent = true;
 }
 
 bool
@@ -1092,6 +1093,7 @@ UHoudiniPublicAPIWorldInput::PopulateFromHoudiniInput(UHoudiniInput const* const
 	bIsWorldInputBoundSelector = InInput->IsWorldInputBoundSelector();
 	bWorldInputBoundSelectorAutoUpdate = InInput->GetWorldInputBoundSelectorAutoUpdates();
 	UnrealSplineResolution = InInput->GetUnrealSplineResolution();
+	bExportLevelInstanceContent = InInput->IsExportLevelInstanceContentEnabled();
 
 	return true;
 }
@@ -1109,6 +1111,7 @@ UHoudiniPublicAPIWorldInput::UpdateHoudiniInput(UHoudiniInput* const InInput) co
 	InInput->SetWorldInputBoundSelector(bIsWorldInputBoundSelector);
 	InInput->SetWorldInputBoundSelectorAutoUpdates(bWorldInputBoundSelectorAutoUpdate);
 	InInput->SetUnrealSplineResolution(UnrealSplineResolution);
+	InInput->SetExportLevelInstanceContent(bExportLevelInstanceContent);
 	InInput->MarkChanged(true);
 
 	return true;

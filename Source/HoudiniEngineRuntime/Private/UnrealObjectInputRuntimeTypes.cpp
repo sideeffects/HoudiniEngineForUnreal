@@ -105,6 +105,7 @@ FUnrealObjectInputOptions::FUnrealObjectInputOptions(
 		, LandscapeExportType(LandscapeExportType)
 		, bExportLandscapeSplineControlPoints(false)
 		, bExportLandscapeSplineLeftRightCurves(false)
+		, bExportLevelInstanceContent(true)
 {
 }
 
@@ -125,7 +126,8 @@ FUnrealObjectInputOptions::operator==(const FUnrealObjectInputOptions& InOther) 
 		&& bMainMeshIsNaniteFallbackMesh == InOther.bMainMeshIsNaniteFallbackMesh
 		&& LandscapeExportType == InOther.LandscapeExportType
 		&& bExportLandscapeSplineControlPoints == InOther.bExportLandscapeSplineControlPoints
-		&& bExportLandscapeSplineLeftRightCurves == InOther.bExportLandscapeSplineLeftRightCurves);
+		&& bExportLandscapeSplineLeftRightCurves == InOther.bExportLandscapeSplineLeftRightCurves
+		&& bExportLevelInstanceContent == InOther.bExportLevelInstanceContent);
 }
 
 

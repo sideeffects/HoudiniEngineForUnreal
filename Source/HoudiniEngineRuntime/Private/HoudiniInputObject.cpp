@@ -76,6 +76,8 @@
 	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #endif
 #include "LevelInstance/LevelInstanceActor.h"
+#include "PackedLevelActor/PackedLevelActor.h"
+#include "EngineUtils.h"
 
 
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -460,6 +462,14 @@ UHoudiniInputBlueprint::UHoudiniInputBlueprint(const FObjectInitializer& ObjectI
 	: Super(ObjectInitializer)
 	, LastUpdateNumComponentsAdded(0)
 	, LastUpdateNumComponentsRemoved(0)
+{
+
+}
+
+//
+UHoudiniInputPackedLevelActor::UHoudiniInputPackedLevelActor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, BlueprintInputObject(nullptr)
 {
 
 }
@@ -923,6 +933,10 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 			HoudiniInputObject = UHoudiniInputLevelInstance::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
+		case EHoudiniInputObjectType::PackedLevelActor:
+			HoudiniInputObject = UHoudiniInputPackedLevelActor::Create(InObject, InOuter, InName, InInputSettings);
+			break;
+
 		case EHoudiniInputObjectType::Invalid:
 		default:
 			break;
@@ -1091,6 +1105,24 @@ UHoudiniInputLevelInstance::Create(UObject* InObject, UObject* InOuter, const FS
 	HoudiniInputObject->Type = EHoudiniInputObjectType::LevelInstance;
 	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
+	return HoudiniInputObject;
+}
+
+
+UHoudiniInputObject *
+UHoudiniInputPackedLevelActor::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
+{
+	const FString InputObjectNameStr = "HoudiniInputObject_PackedLevelActor_" + InName;
+	const FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputPackedLevelActor::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputPackedLevelActor * HoudiniInputObject = NewObject<UHoudiniInputPackedLevelActor>(
+		InOuter, UHoudiniInputPackedLevelActor::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::PackedLevelActor;
+	HoudiniInputObject->Update(InObject, InInputSettings);
+	HoudiniInputObject->bHasChanged = true;
+
 	return HoudiniInputObject;
 }
 
@@ -2445,13 +2477,192 @@ UHoudiniInputActor::ShouldTrackComponent(UActorComponent const* InComponent, con
 void UHoudiniInputLevelInstance::Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings)
 {
 	Super::Update(InObject, InSettings);
+
+	NumActorsAddedLastUpdate = 0;
+	NumActorsRemovedLastUpdate = 0;
+	
+	if (!CachedInputSettings.bExportLevelInstanceContent)
+	{
+		NumActorsRemovedLastUpdate = TrackedActorObjects.Num();
+		TrackedActorObjects.Empty();
+		return;
+	}
+
+	// We are exporting level content, make sure our TrackedActorObjects set is up to date
+	ALevelInstance* const LevelInstance = GetLevelInstance();
+	if (!IsValid(LevelInstance))
+	{
+		NumActorsRemovedLastUpdate = TrackedActorObjects.Num();
+		TrackedActorObjects.Empty();
+		return;
+	}
+
+	UWorld* World = LevelInstance->GetWorldAsset().LoadSynchronous();
+	if (!IsValid(World))
+	{
+		NumActorsRemovedLastUpdate = TrackedActorObjects.Num();
+		TrackedActorObjects.Empty();
+		return;
+	}
+
+	// Identify current and new actors
+	TSet<AActor*> CurrentActors;
+	CurrentActors.Reserve(World->GetActorCount());
+	TSet<AActor*> NewActors;
+	for (TActorIterator<AActor> It(World); It; ++It)
+	{
+		AActor* const Actor = *It;
+		if (!IsValid(Actor))
+			continue;
+
+		CurrentActors.Emplace(Actor);
+		if (TrackedActorObjects.Contains(Actor))
+			continue;
+		NewActors.Add(Actor);
+	}
+
+	// Remove actors from tracked set that are no longer in level instance
+	TArray<TSoftObjectPtr<AActor>> Keys;
+	TrackedActorObjects.GetKeys(Keys);
+	for (TSoftObjectPtr<AActor>& Actor : Keys)
+	{
+		AActor const* const LoadedActor = Actor.LoadSynchronous();
+		if (IsValid(LoadedActor) && CurrentActors.Contains(LoadedActor))
+			continue;
+
+		TrackedActorObjects.Remove(Actor);
+		NumActorsRemovedLastUpdate++;
+	}
+
+	// Call Update on all tracked input objects (except for the new actors in NewActors: Update will be called in CreateTypeInputObject below)
+	for (const auto& Entry : TrackedActorObjects)
+	{
+		UHoudiniInputObject* const TrackedInputObject = Entry.Value;
+		if (!IsValid(TrackedInputObject))
+			continue;
+		TrackedInputObject->Update(Entry.Key.Get(), InSettings);
+	}
+
+	// Add / track new actors
+	for (AActor* const NewActor : NewActors)
+	{
+		if (!IsValid(NewActor))
+			continue;
+
+		UHoudiniInputObject* const InputObj = CreateTypedInputObject(NewActor, GetOuter(), NewActor->GetActorNameOrLabel(), InSettings);
+		if (!IsValid(InputObj))
+			continue;
+		TrackedActorObjects.Emplace(NewActor, InputObj);
+		NumActorsAddedLastUpdate++;
+	}
 }
 
 
 bool UHoudiniInputLevelInstance::HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const
 {
-	// Since we store positions as attributes, we need to update content after changes to the transform.
-	return bTransformChanged;
+	if (!InSettings.bExportLevelInstanceContent)
+	{
+		// Since we store positions as attributes, we need to update content after changes to the transform.
+		return bTransformChanged;
+	}
+
+	if (NumActorsAddedLastUpdate > 0 || NumActorsRemovedLastUpdate > 0)
+		return true;
+	
+	// If we are exporting content, we need to check the content of our tracked actors
+	for (const auto& Entry : TrackedActorObjects)
+	{
+		UHoudiniInputObject const* const Object = Entry.Value;
+		if (!IsValid(Object))
+			continue;
+
+		UHoudiniInputActor const* const ActorObject = Cast<UHoudiniInputActor>(Object);
+		if (!IsValid(ActorObject))
+			continue;
+
+		if (ActorObject->HasContentChanged(InSettings))
+			return true;
+	}
+
+	return false;
+}
+
+bool UHoudiniInputLevelInstance::HasTransformChanged() const
+{
+	if (bTransformChanged)
+		return true;
+	
+	for (const auto& Entry : TrackedActorObjects)
+	{
+		UHoudiniInputObject const* const Object = Entry.Value;
+		if (!IsValid(Object))
+			continue;
+
+		if (Object->HasTransformChanged())
+			return true;
+	}
+
+	return false;
+}
+
+void UHoudiniInputPackedLevelActor::Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings)
+{
+	Super::Update(InObject, InSettings);
+
+	UBlueprint* BPObject = nullptr;
+	APackedLevelActor const* PackedLevelActor = GetPackedLevelActor();
+
+#if WITH_EDITOR
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+	if (IsValid(PackedLevelActor))
+		BPObject = PackedLevelActor->GetRootBlueprint();
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+	if (IsValid(PackedLevelActor))
+	{
+		// From UE 5.3 APackedLevelActor::GetRootBlueprint()
+		UClass* Class = PackedLevelActor->GetClass();
+		while (Class->GetSuperClass() && !Class->GetSuperClass()->IsNative())
+		{
+			Class = Class->GetSuperClass();
+		}
+
+		BPObject = Cast<UBlueprint>(Class->ClassGeneratedBy);
+	}
+#else
+	if (IsValid(PackedLevelActor))
+		BPObject = PackedLevelActor->BlueprintAsset.LoadSynchronous();
+#endif
+#endif
+	
+	if (!IsValid(BPObject))
+	{
+		BlueprintInputObject = nullptr;
+		return;
+	}
+
+	if (!IsValid(BlueprintInputObject) || BPObject != BlueprintInputObject->GetBlueprint())
+	{
+		BlueprintInputObject = Cast<UHoudiniInputBlueprint>(CreateTypedInputObject(BPObject, this, BPObject->GetName(), InSettings));
+		return;
+	}
+
+	BlueprintInputObject->Update(BPObject, InSettings);
+}
+
+bool UHoudiniInputPackedLevelActor::HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const
+{
+	if (Super::HasContentChanged(InSettings))
+		return true;
+
+	if (!IsValid(BlueprintInputObject))
+		return false;
+
+	return BlueprintInputObject->HasContentChanged(InSettings);
+}
+
+APackedLevelActor* UHoudiniInputPackedLevelActor::GetPackedLevelActor() const
+{
+	return Cast<APackedLevelActor>(InputObject.LoadSynchronous());
 }
 
 bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const
@@ -2775,6 +2986,15 @@ UHoudiniInputBlueprint::Update(UObject* InObject, const FHoudiniInputObjectSetti
 				}
 			}
 
+			// Call Update on the remaining scene components (new components have Update called in CreateTypeInputObject below)
+			for (UHoudiniInputSceneComponent* const ComponentInputObject : BPComponents)
+			{
+				if (!IsValid(ComponentInputObject))
+					continue;
+				USceneComponent* const SceneComponent = ComponentInputObject->GetSceneComponent();
+				ComponentInputObject->Update(SceneComponent, InSettings);
+			}
+
 			if (NewComponents.Num() > 0)
 			{
 				for (USceneComponent* SceneComponent : NewComponents)
@@ -2886,6 +3106,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		if (InObject->IsA(ALandscapeProxy::StaticClass()))
 		{
 			return EHoudiniInputObjectType::Landscape;
+		}
+		else if (InObject->IsA(APackedLevelActor::StaticClass()))
+		{
+			return EHoudiniInputObjectType::PackedLevelActor;
 		}
 		else if (InObject->IsA(ALevelInstance::StaticClass()))
 		{
