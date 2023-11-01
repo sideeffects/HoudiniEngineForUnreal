@@ -397,7 +397,6 @@ FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bMainMeshIsNaniteFallbackMesh = bEffectiveMainMeshIsNaniteFallbackMesh;
 		// TODO: add a specific main mesh option?
-		Options.bMainMeshIsNaniteFallbackMesh = bInMainMeshIsNaniteFallbackMesh;
 		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InInputObject, Options, bIsLeaf));
 	}
 	
