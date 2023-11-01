@@ -180,7 +180,7 @@ FHoudiniDataLayerUtils::CreateDataLayerAsset(const FHoudiniPackageParams& Params
 }
 #endif
 
-#if HOUDINI_ENABLE_DATA_LAYERS
+
 TArray<FHoudiniUnrealDataLayerInfo>
 FHoudiniDataLayerUtils::GetDataLayerInfoForActor(AActor* Actor)
 {
@@ -200,7 +200,6 @@ FHoudiniDataLayerUtils::GetDataLayerInfoForActor(AActor* Actor)
 	return Results;
 
 }
-#endif
 
 HAPI_NodeId
 FHoudiniDataLayerUtils::AddGroupsFromDataLayers(AActor* Actor, HAPI_NodeId ParentNodeId, HAPI_NodeId InputNodeId)
