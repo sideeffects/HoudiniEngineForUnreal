@@ -6395,21 +6395,16 @@ FHoudiniEngineUtils::CreateGroupsFromTags(
 			FHoudiniEngine::Get().GetSession(),
 			NodeId, 0, HAPI_GROUPTYPE_PRIM, TagStr) )
 		{
-			// Commit the geo.
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), NodeId), false);
-
-			int count = FHoudiniApi::PartInfo_GetElementCountByGroupType(&PartInfo, HAPI_GROUPTYPE_PRIM);
-
 			// Set the group's Memberships
 			TArray<int> GroupArray;
-			GroupArray.SetNumUninitialized(count);
+			GroupArray.SetNumUninitialized(PartInfo.faceCount);
 			for (int32 n = 0; n < GroupArray.Num(); n++)
 				GroupArray[n] = 1;
 
 			if ( HAPI_RESULT_SUCCESS == FHoudiniApi::SetGroupMembership(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, PartId, HAPI_GROUPTYPE_PRIM, TagStr,
-				GroupArray.GetData(), 0, count) )
+				GroupArray.GetData(), 0, PartInfo.faceCount) )
 			{
 				NeedToCommitGeo = true;
 			}
