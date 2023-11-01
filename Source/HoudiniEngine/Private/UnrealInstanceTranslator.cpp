@@ -149,6 +149,19 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
 		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
 			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+
+		// Set OutCreatedNodeId to the current NodeId associated with Handle, since that is what we are replacing.
+		// (Option changes could mean that OutCreatedNodeId is associated with a completely different entry, albeit for
+		// the same asset, in the manager)
+		if (Handle.IsValid())
+		{
+			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, OutCreatedNodeId))
+				OutCreatedNodeId = -1;
+		}
+		else
+		{
+			OutCreatedNodeId = -1;
+		}
 	}
 	
 	// To create the instance properly (via packed prim), we need to:

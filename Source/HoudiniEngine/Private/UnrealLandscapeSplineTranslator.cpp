@@ -514,6 +514,19 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
 			FUnrealObjectInputUtils::GetHAPINodeId(IdentReferenceNode, OutCreatedInputNodeId);
 			return true;
 		}
+
+		// Set OutCreatedInputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
+		// (Option changes could mean that OutCreatedInputNodeId is associated with a completely different entry, albeit for
+		// the same asset, in the manager)
+		if (Handle.IsValid())
+		{
+			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, OutCreatedInputNodeId))
+				OutCreatedInputNodeId = -1;
+		}
+		else
+		{
+			OutCreatedInputNodeId = -1;
+		}
 	}
 
 	HAPI_NodeId PreviousInputNodeId = OutCreatedInputNodeId;

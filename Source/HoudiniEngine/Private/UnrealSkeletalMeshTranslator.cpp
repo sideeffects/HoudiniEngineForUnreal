@@ -184,7 +184,7 @@ FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 
 				HAPI_NodeId NewNodeId = -1;
 				FUnrealObjectInputHandle OptionHandle;
-				if (FUnrealObjectInputUtils::FindNodeViaManager(OptionIdentifier, OptionHandle) || !FUnrealObjectInputUtils::AreHAPINodesValid(OptionHandle))
+				if (FUnrealObjectInputUtils::FindNodeViaManager(OptionIdentifier, OptionHandle))
 				{
 					FUnrealObjectInputUtils::GetHAPINodeId(OptionHandle, NewNodeId);
 				}
@@ -217,6 +217,19 @@ FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			OutHandle = RefNodeHandle;
 			FUnrealObjectInputUtils::GetHAPINodeId(IdentReferenceNode, InputNodeId);
 			return true;
+		}
+
+		// Set InputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
+		// (Option changes could mean that InputNodeId is associated with a completely different entry, albeit for
+		// the same asset, in the manager)
+		if (Handle.IsValid())
+		{
+			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId))
+				InputNodeId = -1;
+		}
+		else
+		{
+			InputNodeId = -1;
 		}
 	}
 

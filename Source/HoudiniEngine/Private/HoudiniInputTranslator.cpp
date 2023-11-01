@@ -445,8 +445,17 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 	if (!InputToDestroy->CanDeleteHoudiniNodes())
 		return false;
 
+	// When using the new input system, get all HAPI NodeIds managed by the system as a set. Do not delete any nodes
+	// here if their ids are in the set. The manager will handle deletion of those nodes when needed.
 	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	IUnrealObjectInputManager const* const Manager = bUseRefCountedInputSystem ? FUnrealObjectInputManager::Get() : nullptr;
+	TSet<int32> ManagedNodeIdSet;
+	if (Manager)
+	{
+		TArray<int32> ManagedNodeIds;
+		Manager->GetAllHAPINodeIds(ManagedNodeIds);
+		ManagedNodeIdSet.Append(ManagedNodeIds);
+	}
 	
 	// Destroy the nodes created by all the input objects
 	TArray<int32> CreatedInputDataAssetIds = InputToDestroy->GetCreatedDataNodeIds();
@@ -458,27 +467,6 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 		{
 			if (!IsValid(CurInputObject))
 				continue;
-
-			if (bUseRefCountedInputSystem && Manager && CurInputObject->InputNodeHandle.IsValid())
-			{
-				// If the ref counted system is being used, and we have a valid input handle, remove the HAPI nodes
-				// associated with the handle from CreatedInputDataAssetIds so that we don't delete those nodes here:
-				// the manager will take care of their deletion when necessary.
-				ManagedHAPINodeIds.Reset();
-				if (Manager->GetHAPINodeIds(CurInputObject->InputNodeHandle.GetIdentifier(), ManagedHAPINodeIds)
-						&& !ManagedHAPINodeIds.IsEmpty())
-				{
-					for (const int32& NodeId : ManagedHAPINodeIds)
-					{
-						CreatedInputDataAssetIds.Remove(NodeId);
-
-						if (NodeId == CurInputObject->GetInputNodeId())
-							CurInputObject->SetInputNodeId(-1);
-						if (NodeId == CurInputObject->GetInputObjectNodeId())
-							CurInputObject->SetInputObjectNodeId(-1);
-					}
-				}
-			}
 
 			if (CurInputObject->Type == EHoudiniInputObjectType::HoudiniAssetComponent)
 			{
@@ -515,28 +503,7 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 								CreatedInputDataAssetIds.Remove(InputObjectNodeId);
 							continue;
 						}
-						
-						if (bUseRefCountedInputSystem && Manager && CurComponent->InputNodeHandle.IsValid())
-						{
-							// If the ref counted system is being used, and we have a valid input handle, remove the HAPI nodes
-							// associated with the handle from CreatedInputDataAssetIds so that we don't delete those nodes here:
-							// the manager will take care of their deletion when necessary.
-							ManagedHAPINodeIds.Reset();
-							if (Manager->GetHAPINodeIds(CurComponent->InputNodeHandle.GetIdentifier(), ManagedHAPINodeIds)
-									&& !ManagedHAPINodeIds.IsEmpty())
-							{
-								for (const int32& NodeId : ManagedHAPINodeIds)
-								{
-									CreatedInputDataAssetIds.Remove(NodeId);
 
-									if (NodeId == CurComponent->GetInputNodeId())
-										CurComponent->SetInputNodeId(-1);
-									if (NodeId == CurComponent->GetInputObjectNodeId())
-										CurComponent->SetInputObjectNodeId(-1);
-								}
-							}
-						}
-						
 						// No need to delete the nodes created for an asset component manually here,
 						// As they will be deleted when we clean up the CreateNodeIds array
 						CurComponent->SetInputNodeId(-1);
@@ -547,14 +514,14 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 			// As they will be deleted when we clean up the CreateNodeIds array
 
 			const int32 InputNodeId = CurInputObject->GetInputNodeId();
-			if (InputNodeId >= 0)
+			if (InputNodeId >= 0 && !ManagedNodeIdSet.Contains(InputNodeId))
 			{
 				FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), InputNodeId);
 				CurInputObject->SetInputNodeId(-1);
 			}
 
 			const int32 InputObjectNodeId = CurInputObject->GetInputObjectNodeId();
-			if(InputObjectNodeId >= 0)
+			if(InputObjectNodeId >= 0 && !ManagedNodeIdSet.Contains(InputObjectNodeId))
 			{
 				FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), InputObjectNodeId);
 				CurInputObject->SetInputObjectNodeId(-1);
@@ -584,7 +551,7 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 	// Destroy all the input assets
 	for (HAPI_NodeId AssetNodeId : CreatedInputDataAssetIds)
 	{
-		if (AssetNodeId < 0)
+		if (AssetNodeId < 0 || ManagedNodeIdSet.Contains(AssetNodeId))
 			continue;
 
 		FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), AssetNodeId);

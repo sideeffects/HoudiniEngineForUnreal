@@ -99,6 +99,19 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
 		// To do that, we can simply continue this function
+		
+		// Set CreatedInputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
+		// (Option changes could mean that CreatedInputNodeId is associated with a completely different entry, albeit for
+		// the same asset, in the manager)
+		if (Handle.IsValid())
+		{
+			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedInputNodeId))
+				CreatedInputNodeId = -1;
+		}
+		else
+		{
+			CreatedInputNodeId = -1;
+		}
 	}
 	
 	int32 NumberOfControlPoints = SplineComponent->GetNumberOfSplinePoints();
