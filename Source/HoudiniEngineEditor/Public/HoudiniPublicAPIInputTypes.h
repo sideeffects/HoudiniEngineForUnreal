@@ -594,6 +594,13 @@ public:
 	float UnrealSplineResolution;
 
 	/**
+	 * If enabled, level instances (and packed level actor) content is exported vs just exporting a single point
+	 * with attributes identifying the level instance / packed level actor.
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
+	bool bExportLevelInstanceContent;
+
+	/**
 	 * Setter for world input object array. If this is a bounds selector (#bIsWorldInputBoundSelector is true), then
 	 * this function always returns false (and sets nothing), in that case only #WorldInputBoundSelectorObjects can be
 	 * modified.

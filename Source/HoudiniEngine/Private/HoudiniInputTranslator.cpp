@@ -72,6 +72,8 @@
 #include "LevelInstance/LevelInstanceActor.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
+#include "PackedLevelActor/PackedLevelActor.h"
+#include "UObject/TextProperty.h"
 
 #if WITH_EDITOR
 	#include "Editor.h"
@@ -1688,6 +1690,21 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 			break;
 		}
 
+		case EHoudiniInputObjectType::PackedLevelActor:
+		{
+			UHoudiniInputPackedLevelActor* const InputPackedLevelActor = Cast<UHoudiniInputPackedLevelActor>(InInputObject);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForPackedLevelActor(
+				ObjBaseName,
+				InputPackedLevelActor,
+				InputSettings,
+				InInput,
+				OutCreatedNodeIds,
+				OutHandles,
+				bInputNodesCanBeDeleted);
+
+			break;
+		}
+
 		case EHoudiniInputObjectType::Brush:
 		{
 			UHoudiniInputBrush* InputBrush = Cast<UHoudiniInputBrush>(InInputObject);
@@ -1899,6 +1916,8 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 		case EHoudiniInputObjectType::Actor:
 		case EHoudiniInputObjectType::GeometryCollectionActor_Deprecated:
 		case EHoudiniInputObjectType::LandscapeSplineActor:
+		case EHoudiniInputObjectType::LevelInstance:
+		case EHoudiniInputObjectType::PackedLevelActor:
 		{
 			UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>(InInputObject);
 			if (!IsValid(InputActor))
@@ -1912,7 +1931,7 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 			if (InputActor->GetActor())
 				InputActor->SetTransform(InputActor->GetActor()->GetTransform());
 
-			if (FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled())
+			if (bUseRefCountedInputSystem)
 			{
 				const HAPI_NodeId ObjectNodeId = InputActor->GetInputObjectNodeId();
 				if (ObjectNodeId >= 0)
@@ -1939,10 +1958,6 @@ FHoudiniInputTranslator::UploadHoudiniInputTransform(
 			break;
 		}
 	
-		case EHoudiniInputObjectType::LevelInstance:
-		{
-			break;
-		}
 		case EHoudiniInputObjectType::Landscape:
 		{
 			//
@@ -2635,8 +2650,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMeshComponent(
 	// Create/update the node in the input manager
 	if (bUseRefCountedInputSystem)
 	{
-		FUnrealObjectInputOptions Options(
-			InInputSettings.bImportAsReference, InInputSettings.bImportAsReferenceRotScaleEnabled, false, false, false);
+		FUnrealObjectInputOptions Options = InputNodeHandle.GetIdentifier().GetOptions();
 		constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier SKCIdentifier(SKC, Options, bIsLeaf);
 		FUnrealObjectInputHandle Handle;
@@ -2941,8 +2955,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForGeometryCollectionComponent(
 	// Create/update the node in the input manager
 	if (bUseRefCountedInputSystem)
 	{
-		FUnrealObjectInputOptions Options(
-			InInputSettings.bImportAsReference, InInputSettings.bImportAsReferenceRotScaleEnabled, false, false, false);
+		FUnrealObjectInputOptions Options = InputNodeHandle.GetIdentifier().GetOptions();
 		constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier GCCIdentifier(GCC, Options, bIsLeaf);
 		FUnrealObjectInputHandle Handle;
@@ -3792,9 +3805,21 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 
 	if (FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled())
 	{
-		// We can use the default options since the UObject will be the HoudiniInputActorObject that is not shared
-		const FUnrealObjectInputOptions Options;
-		const FUnrealObjectInputIdentifier ActorInputNodeId(InObject, Options, false);
+		// Make a reference node for the actor
+		FUnrealObjectInputOptions Options(
+			InputSettings.bImportAsReference,
+			InputSettings.bImportAsReference && InputSettings.bImportAsReferenceRotScaleEnabled,
+			!InputSettings.bImportAsReference && InputSettings.bExportLODs,
+			!InputSettings.bImportAsReference && InputSettings.bExportSockets,
+			!InputSettings.bImportAsReference && InputSettings.bExportColliders,
+			!InputSettings.bImportAsReference && InputSettings.bPreferNaniteFallbackMesh);
+		if (!InputSettings.bImportAsReference)
+		{
+			Options.LandscapeExportType = InputSettings.LandscapeExportType;
+			Options.bExportLandscapeSplineControlPoints = InputSettings.bLandscapeSplinesExportControlPoints;
+			Options.bExportLandscapeSplineLeftRightCurves = InputSettings.bLandscapeSplinesExportLeftRightCurves;
+		}
+		const FUnrealObjectInputIdentifier ActorInputNodeId(Actor, Options, false);
 		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(ActorInputNodeId, Handles, InObject->InputNodeHandle);
 		if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), InObject->GetHoudiniObjectTransform()))
 			return false;
@@ -4002,24 +4027,146 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLevelInstance(
 	HAPI_NodeId InputNodeId = InObject->GetInputNodeId();
 	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 
-	if (!FUnrealLevelInstanceTranslator::AddLevelInstance(
-		LevelInstance, InInput, InputNodeId, LevelInstanceName, InputNodeHandle, bInputNodesCanBeDeleted))
-		return false;
+	// Sending the content is only supported in the new input system
+	if (InInputSettings.bExportLevelInstanceContent && bUseRefCountedInputSystem)
+	{
+		FUnrealObjectInputOptions LevelInstanceNodeOptions(
+			InInputSettings.bImportAsReference,
+			InInputSettings.bImportAsReference && InInputSettings.bImportAsReferenceRotScaleEnabled,
+			!InInputSettings.bImportAsReference && InInputSettings.bExportLODs,
+			!InInputSettings.bImportAsReference && InInputSettings.bExportSockets,
+			!InInputSettings.bImportAsReference && InInputSettings.bExportColliders,
+			!InInputSettings.bImportAsReference && InInputSettings.bPreferNaniteFallbackMesh);
+		if (!InInputSettings.bImportAsReference)
+		{
+			LevelInstanceNodeOptions.LandscapeExportType = InInputSettings.LandscapeExportType;
+			LevelInstanceNodeOptions.bExportLandscapeSplineControlPoints = InInputSettings.bLandscapeSplinesExportControlPoints;
+			LevelInstanceNodeOptions.bExportLandscapeSplineLeftRightCurves = InInputSettings.bLandscapeSplinesExportLeftRightCurves;
+		}
+		LevelInstanceNodeOptions.bExportLevelInstanceContent = true;
+		const FUnrealObjectInputIdentifier LevelInstanceId(LevelInstance->GetWorldAsset().LoadSynchronous(), LevelInstanceNodeOptions, false);
+		if (!FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(LevelInstanceId, InputNodeHandle))
+		{
+			// Process each actor in the level instance
+			TArray<int32> NodeIds;
+			TSet<FUnrealObjectInputHandle> Handles;
+			for (auto& Entry : InObject->GetTrackedActorObjects())
+			{
+				UHoudiniInputObject* const InputObject = Entry.Value;
+				if (!IsValid(InputObject))
+					continue;
 
-	FTransform Transform = InObject->GetHoudiniObjectTransform();
-	Transform.SetScale3D(FVector::OneVector);
+				UploadHoudiniInputObject(InInput, InputObject, FTransform::Identity, NodeIds, Handles, bInputNodesCanBeDeleted);
+			}
 
-	InObject->InputNodeHandle = InputNodeHandle;
+			// Create/Update the level instance' merge / reference node
+			FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(LevelInstanceId, Handles, InputNodeHandle);
+		}
+
+		// Make a reference node for the actor
+		const FUnrealObjectInputIdentifier ActorInputNodeId(LevelInstance, LevelInstanceNodeOptions, false);
+		// Create/update the input-specific merge node for this level instance, on which we can apply the actor transform
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(ActorInputNodeId, { InputNodeHandle }, InObject->InputNodeHandle);
+	}
+	else
+	{
+		if (!FUnrealLevelInstanceTranslator::AddLevelInstance(
+			LevelInstance, InInput, InputNodeId, LevelInstanceName, InputNodeHandle, bInputNodesCanBeDeleted))
+				return false;
+		InObject->InputNodeHandle = InputNodeHandle;
+	}
+
 	if (!bUseRefCountedInputSystem)
 	{
 		InObject->SetInputNodeId((int32)InputNodeId);
 		InObject->SetInputObjectNodeId((int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId));
 	}
 
-	if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), Transform))
+	if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), InObject->GetHoudiniObjectTransform()))
 		return false;
 
 	InObject->Update(LevelInstance, InInputSettings);
+
+	OutCreatedNodeIds.Add(InObject->GetInputObjectNodeId());
+	OutHandles.Add(InObject->InputNodeHandle);
+
+	return true;
+}
+
+bool
+FHoudiniInputTranslator::HapiCreateInputNodeForPackedLevelActor(
+	const FString& InObjNodeName,
+	UHoudiniInputPackedLevelActor* InObject,
+	const FHoudiniInputObjectSettings& InInputSettings,
+	UHoudiniInput* InInput,
+	TArray<int32>& OutCreatedNodeIds,
+	TSet<FUnrealObjectInputHandle>& OutHandles,
+	const bool& bInputNodesCanBeDeleted)
+{
+	if (!IsValid(InObject) || !IsValid(InInput))
+		return false;
+
+	APackedLevelActor* PackedLevelActor = InObject->GetPackedLevelActor();
+	if (!IsValid(PackedLevelActor))
+		return true;
+
+	FString LevelInstanceName = InObjNodeName + TEXT("_") + PackedLevelActor->GetActorLabel();
+	FUnrealObjectInputHandle InputNodeHandle;
+	HAPI_NodeId InputNodeId = InObject->GetInputNodeId();
+	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
+
+	// Sending the content is only supported in the new input system
+	if (InInputSettings.bExportLevelInstanceContent && bUseRefCountedInputSystem)
+	{
+		// Process the underlying BP of the packed level actor
+		UHoudiniInputBlueprint* const InputBP = InObject->GetBlueprintInputObject();
+		if (!IsValid(InputBP))
+			return false;
+		
+		TArray<int32> NodeIds;
+		TSet<FUnrealObjectInputHandle> Handles;
+		// Now, commit all of this BP's component
+		TSet<FUnrealObjectInputHandle> ComponentHandles;
+		for (UHoudiniInputSceneComponent* CurComponent : InputBP->GetComponents())
+		{
+			if (UploadHoudiniInputObject(InInput, CurComponent, FTransform::Identity, NodeIds, Handles, bInputNodesCanBeDeleted))
+				ComponentHandles.Add(CurComponent->InputNodeHandle);
+		}
+
+		// Make a reference node for the BP asset
+		FUnrealObjectInputOptions Options(
+			InInputSettings.bImportAsReference,
+			InInputSettings.bImportAsReference && InInputSettings.bImportAsReferenceRotScaleEnabled,
+			!InInputSettings.bImportAsReference && InInputSettings.bExportLODs,
+			!InInputSettings.bImportAsReference && InInputSettings.bExportSockets,
+			!InInputSettings.bImportAsReference && InInputSettings.bExportColliders,
+			!InInputSettings.bImportAsReference && InInputSettings.bPreferNaniteFallbackMesh);
+		Options.bExportLevelInstanceContent = true;
+		const FUnrealObjectInputIdentifier BPAssetNodeId(InputBP->GetBlueprint(), Options, false);
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(BPAssetNodeId, Handles, InputBP->InputNodeHandle);
+		
+		// Make a reference node for the actor
+		const FUnrealObjectInputIdentifier ActorInputNodeId(PackedLevelActor, Options, false);
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(ActorInputNodeId, { InputBP->InputNodeHandle }, InObject->InputNodeHandle);
+	}
+	else
+	{
+		if (!FUnrealLevelInstanceTranslator::AddLevelInstance(
+			PackedLevelActor, InInput, InputNodeId, LevelInstanceName, InputNodeHandle, bInputNodesCanBeDeleted))
+				return false;
+		InObject->InputNodeHandle = InputNodeHandle;
+	}
+
+	if (!bUseRefCountedInputSystem)
+	{
+		InObject->SetInputNodeId((int32)InputNodeId);
+		InObject->SetInputObjectNodeId((int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId));
+	}
+
+	if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), InObject->GetHoudiniObjectTransform()))
+		return false;
+
+	InObject->Update(PackedLevelActor, InInputSettings);
 
 	OutCreatedNodeIds.Add(InObject->GetInputObjectNodeId());
 	OutHandles.Add(InObject->InputNodeHandle);
@@ -4066,9 +4213,37 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 
 	if (bUseRefCountedInputSystem)
 	{
-		// We can use the default options since the UObject will be the HoudiniInputLandscapeObject that is not shared
-		const FUnrealObjectInputOptions Options;
-		const FUnrealObjectInputIdentifier LandscapeInputNodeId(InObject, Options, false);
+		// If we are exporting selected landscape components only, then merge the selected component nodes into a node
+		// represented by InObject: use default Options in this case, since the node is specific to this HAC and not
+		// shared.
+		//
+		// If we are exporting the full landscape, then merge the landscape data/component nodes into a merge/reference
+		// node associated with the Landscape actor itself: setting correct Options is required.
+		FUnrealObjectInputOptions Options;
+		UObject* InputObjectForId = nullptr;
+		const bool bExportSelectedComponentsOnly = InputSettings.bLandscapeExportSelectionOnly && InInput->GetLandscapeSelectedComponents().Num() > 0;
+		if (!bExportSelectedComponentsOnly)
+		{
+			Options = FUnrealObjectInputOptions(
+				InputSettings.bImportAsReference,
+				InputSettings.bImportAsReference && InputSettings.bImportAsReferenceRotScaleEnabled,
+				!InputSettings.bImportAsReference && InputSettings.bExportLODs,
+				!InputSettings.bImportAsReference && InputSettings.bExportSockets,
+				!InputSettings.bImportAsReference && InputSettings.bExportColliders,
+				!InputSettings.bImportAsReference && InputSettings.bPreferNaniteFallbackMesh);
+			if (!InputSettings.bImportAsReference)
+			{
+				Options.LandscapeExportType = InputSettings.LandscapeExportType;
+				Options.bExportLandscapeSplineControlPoints = InputSettings.bLandscapeSplinesExportControlPoints;
+				Options.bExportLandscapeSplineLeftRightCurves = InputSettings.bLandscapeSplinesExportLeftRightCurves;
+			}
+			InputObjectForId = Landscape;
+		}
+		else
+		{
+			InputObjectForId = InObject;
+		}
+		const FUnrealObjectInputIdentifier LandscapeInputNodeId(InputObjectForId, Options, false);
 		Handles.Add(InputNodeHandle);
 		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(LandscapeInputNodeId, Handles, InObject->InputNodeHandle);
 		if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), Transform))

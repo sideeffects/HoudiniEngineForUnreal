@@ -170,4 +170,9 @@ public:
 	UPROPERTY()
 	bool bExportPerEditLayerData;
 
+	// If enabled, level instances (and packed level actor) content is exported vs just exporting a single point
+	// with attributes identifying the level instance / packed level actor.
+	UPROPERTY()
+	bool bExportLevelInstanceContent;
+
 };

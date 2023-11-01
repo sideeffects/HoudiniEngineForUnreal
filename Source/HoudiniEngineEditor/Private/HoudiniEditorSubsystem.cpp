@@ -208,6 +208,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 		NodeSyncInput->SetKeepWorldTransform(true);
 		NodeSyncInput->SetPackBeforeMerge(false);
 		NodeSyncInput->SetUnrealSplineResolution(50.0f);
+		NodeSyncInput->SetExportLevelInstanceContent(true);
 
 		// default input options
 		NodeSyncInput->SetCanDeleteHoudiniNodes(false);

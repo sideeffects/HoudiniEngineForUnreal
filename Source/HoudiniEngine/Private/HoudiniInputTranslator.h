@@ -62,6 +62,7 @@ class UHoudiniInputBlueprint;
 class UHoudiniInputLandscapeSplinesComponent;
 class UHoudiniInputSplineMeshComponent;
 class UHoudiniInputLevelInstance;
+class UHoudiniInputPackedLevelActor;
 class FUnrealObjectInputHandle;
 class FUnrealObjectInputIdentifier;
 
@@ -200,6 +201,15 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		TArray<int32>& OutCreatedNodeIds,
 		TSet<FUnrealObjectInputHandle>& OutHandles,
 		const bool& bInputNodesCanBeDeleted = true);
+
+	static bool HapiCreateInputNodeForPackedLevelActor(
+		const FString& InObjNodeName,
+		UHoudiniInputPackedLevelActor* InObject,
+		const FHoudiniInputObjectSettings& InInputSettings,
+		UHoudiniInput* InInput,
+		TArray<int32>& OutCreatedNodeIds,
+		TSet<FUnrealObjectInputHandle>& OutHandles,
+		const bool& bInputNodesCanBeDeleted);
 
 	static bool HapiCreateInputNodeForSkeletalMesh(
 		const FString& InObjNodeName,

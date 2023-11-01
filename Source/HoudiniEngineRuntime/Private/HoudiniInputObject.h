@@ -62,6 +62,7 @@ class UModel;
 class UHoudiniInput;
 class UCameraComponent;
 class ALevelInstance;
+class APackedLevelActor;
 class UHoudiniInputActor;
 
 UENUM()
@@ -94,6 +95,7 @@ enum class EHoudiniInputObjectType : uint8
 	LandscapeSplinesComponent,
 	SplineMeshComponent,
 	LevelInstance,
+	PackedLevelActor,
 };
 
 
@@ -850,9 +852,25 @@ public:
 
 	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
-	virtual bool HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const;
+	virtual bool HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
+
+	virtual bool HasTransformChanged() const override;
 
 	ALevelInstance* GetLevelInstance() const;
+
+	virtual bool ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const override { return false; }
+
+	const TMap<TSoftObjectPtr<AActor>, UHoudiniInputObject*>& GetTrackedActorObjects() const { return TrackedActorObjects; }
+
+private:
+	UPROPERTY()
+	TMap<TSoftObjectPtr<AActor>, UHoudiniInputObject*> TrackedActorObjects;
+
+	UPROPERTY()
+	int32 NumActorsAddedLastUpdate;
+
+	UPROPERTY()
+	int32 NumActorsRemovedLastUpdate;
 
 };
 
@@ -1138,6 +1156,37 @@ protected:
 	// The number of components remove with the last call to Update
 	UPROPERTY()
 		int32 LastUpdateNumComponentsRemoved;
+};
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// APackedLevelActor input
+//-----------------------------------------------------------------------------------------------------------------------------
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputPackedLevelActor: public UHoudiniInputActor
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+
+	//
+
+	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
+
+	virtual bool HasContentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
+
+	APackedLevelActor* GetPackedLevelActor() const;
+
+	virtual bool ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const override { return false; }
+
+	UHoudiniInputBlueprint* GetBlueprintInputObject() const { return BlueprintInputObject; }
+	
+private:
+	UPROPERTY()
+	UHoudiniInputBlueprint* BlueprintInputObject;
+
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------

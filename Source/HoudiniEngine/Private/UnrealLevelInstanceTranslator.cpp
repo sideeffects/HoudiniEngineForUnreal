@@ -73,7 +73,8 @@ FUnrealLevelInstanceTranslator::CreateNodeForLevelInstance(
 
 	if (bUseRefCountedInputSystem)
 	{
-		const FUnrealObjectInputOptions Options(false, false, false, false, false);
+		FUnrealObjectInputOptions Options;
+		Options.bExportLevelInstanceContent = false;
 		Identifier = FUnrealObjectInputIdentifier(LevelInstance, Options, true);
 
 		FUnrealObjectInputHandle Handle;
@@ -94,6 +95,19 @@ FUnrealLevelInstanceTranslator::CreateNodeForLevelInstance(
 		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
 			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+
+		// Set InputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
+		// (Option changes could mean that InputNodeId is associated with a completely different entry, albeit for
+		// the same asset, in the manager)
+		if (Handle.IsValid())
+		{
+			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId))
+				InputNodeId = -1;
+		}
+		else
+		{
+			InputNodeId = -1;
+		}
 	}
 
 	HAPI_NodeId InputObjectNodeId = -1;
