@@ -436,7 +436,7 @@ FHoudiniSkeletalMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings & BuildSe
 		FHoudiniEngine::Get().GetSession(),
 		GeoId,
 		PartId,
-		"unreal_sk_import_scale",
+		HAPI_UNREAL_ATTRIB_SKELETON_IMPORT_SCALE,
 		HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL,
 		&UnrealSKImportScaleInfo);
 
@@ -449,7 +449,7 @@ FHoudiniSkeletalMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings & BuildSe
 		FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
 			GeoId,
 			PartId,
-			"unreal_sk_import_scale",
+			HAPI_UNREAL_ATTRIB_SKELETON_IMPORT_SCALE,
 			UnrealSKImportScaleInfo,
 			UnrealSKImportScaleArray,
 			UnrealSKImportScaleInfo.tupleSize);
@@ -868,7 +868,7 @@ FHoudiniSkeletalMeshTranslator::CreateOrUpdateSkeleton(SKBuildSettings & BuildSe
 			FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
 
 			TArray<FString> UnrealSkeletonData;
-			FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, "unreal_skeleton", UnrealSkeletonInfo, UnrealSkeletonData);
+			FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, HAPI_UNREAL_ATTRIB_SKELETON, UnrealSkeletonInfo, UnrealSkeletonData);
 			if (UnrealSkeletonData.Num() <= 0)
 			{
 				return nullptr;
@@ -1127,7 +1127,7 @@ FHoudiniSkeletalMeshTranslator::CreateSKAssetAndPackage(
 		FHoudiniEngine::Get().GetSession(),
 		GeoId,
 		PartId,
-		"unreal_skeleton",
+		HAPI_UNREAL_ATTRIB_SKELETON,
 		HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL,
 		&UnrealSkeletonInfo);
 

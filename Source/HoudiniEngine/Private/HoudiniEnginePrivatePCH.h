@@ -170,7 +170,7 @@
 #define HAPI_UNREAL_ATTRIB_LOD_SCREENSIZE					"lod_screensize"
 #define HAPI_UNREAL_ATTRIB_LOD_SCREENSIZE_PREFIX			"lod"
 #define HAPI_UNREAL_ATTRIB_LOD_SCREENSIZE_POSTFIX			"_screensize"
-#define HAPI_UNREAL_ATTRIB_TAG_PREFIX						"unreal_tag_"
+#define HAPI_UNREAL_ATTRIB_TAG_PREFIX						"unreal_uproperty_tag_"
 #define HAPI_UNREAL_ATTRIB_TAG_KEEP							"unreal_keep_tags"
 #define HAPI_UNREAL_ATTRIB_HLOD_LAYER                       "unreal_hlod_layer"
 
@@ -280,6 +280,9 @@
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_HALF_WIDTH						HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_PREFIX "half_width"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SIDE_FALLOFF					HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_PREFIX "side_falloff"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_END_FALLOFF 					HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_PREFIX "end_falloff"
+
+#define HAPI_UNREAL_ATTRIB_SKELETON                         "unreal_skeleton"
+#define HAPI_UNREAL_ATTRIB_SKELETON_IMPORT_SCALE            "unreal_sk_import_scale"
 
 #define HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX				"unreal_uproperty_"
 #define HAPI_UNREAL_ATTRIB_GENERIC_MAT_PARAM_PREFIX			"unreal_material_parameter_"

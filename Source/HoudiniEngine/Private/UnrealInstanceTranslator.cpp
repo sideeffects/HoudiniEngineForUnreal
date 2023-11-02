@@ -357,7 +357,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	int32 MatIdx = 0;
 	for (const FStaticMaterial& Mat : MeshMaterials)
 	{
-		FString MatName = MeshMaterials.Num() == 1 ? "unreal_material" : FString("unreal_material") + FString::FromInt(MatIdx);
+		FString MatName = MeshMaterials.Num() == 1 ? HAPI_UNREAL_ATTRIB_MATERIAL : FString(HAPI_UNREAL_ATTRIB_MATERIAL) + FString::FromInt(MatIdx);
 
 		// parm name is one indexed
 		ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MatNodeId, "name" + std::to_string(++MatIdx), ParmInfo);

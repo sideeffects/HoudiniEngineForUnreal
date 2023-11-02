@@ -138,7 +138,7 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 		HAPI_AttributeInfo UnrealSkeletonInfo;
 		FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
 		TArray<FString> UnrealSkeletonData;
-		FHoudiniEngineUtils::HapiGetAttributeDataAsString(HGPO.GeoId, HGPO.PartId, "unreal_skeleton", UnrealSkeletonInfo, UnrealSkeletonData);
+		FHoudiniEngineUtils::HapiGetAttributeDataAsString(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_SKELETON, UnrealSkeletonInfo, UnrealSkeletonData);
 		if (UnrealSkeletonData.Num() <= 0)
 		{
 			return false;
