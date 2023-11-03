@@ -31,11 +31,16 @@
 #include "UObject/Object.h"
 #include "UObject/WeakObjectPtr.h"
 #include "HoudiniEngineRuntimeCommon.h"
+#include "HoudiniInputTypes.h"
 
 // Houdini Engine forward declarations
 class FUnrealObjectInputModifier;
+struct FHoudiniInputObjectSettings;
+enum class EHoudiniInputObjectType : uint8;
 
 // UE forward declarations
+class UActorComponent;
+class ULandscapeComponent;
 
 
 /**
@@ -80,26 +85,53 @@ private:
  * A struct of options that are used by FUnrealObjectInputIdentifier to differentiate between variations of the
  * same object.
  */
-struct HOUDINIENGINERUNTIME_API FUnrealObjectInputOptions
+class HOUDINIENGINERUNTIME_API FUnrealObjectInputOptions
 {
-	FUnrealObjectInputOptions(
-		const bool bImportAsReference=false,
-		const bool bImportAsReferenceRotScaleEnabled=false,
-		const bool bExportLODs=false,
-		const bool bExportSockets=false,
-		const bool bExportColliders=false,
-		const bool bMainMeshIsNaniteFallbackMesh=false,
-		const EHoudiniLandscapeExportType LandscapeExportType=EHoudiniLandscapeExportType::Heightfield);
+public:
+	FUnrealObjectInputOptions();
+
+	/** Helper to make FUnrealObjectInputOptions for PackedLevelActors. */
+	static FUnrealObjectInputOptions MakeOptionsForPackedLevelActor(const FHoudiniInputObjectSettings& InInputSettings);
+	
+	/** Helper to make FUnrealObjectInputOptions for LevelInstance actors. */
+	static FUnrealObjectInputOptions MakeOptionsForLevelInstanceActor(const FHoudiniInputObjectSettings& InInputSettings);
+	
+	/** Helper to make FUnrealObjectInputOptions for Landscape actors. */
+	static FUnrealObjectInputOptions MakeOptionsForLandscapeActor(
+		const FHoudiniInputObjectSettings& InInputSettings, const TSet<ULandscapeComponent*>* InSelectedComponents=nullptr);
+	
+	/** Helper to make FUnrealObjectInputOptions for Landscape data. */
+	static FUnrealObjectInputOptions MakeOptionsForLandscapeData(
+		const FHoudiniInputObjectSettings& InInputSettings, const TSet<ULandscapeComponent*>* InSelectedComponents=nullptr);
+
+	/** Helper to make FUnrealObjectInputOptions for LandscapeSplineActors. */
+	static FUnrealObjectInputOptions MakeOptionsForLandscapeSplineActor(const FHoudiniInputObjectSettings& InInputSettings);
+	
+	/** Helper to make FUnrealObjectInputOptions for generic Actors. */
+	static FUnrealObjectInputOptions MakeOptionsForGenericActor(const FHoudiniInputObjectSettings& InInputSettings);
+
+	void SetSelectedComponents(const TSet<TWeakObjectPtr<UActorComponent>>& InSelectedComponents);
+	void SetSelectedComponents(TSet<TWeakObjectPtr<UActorComponent>>&& InSelectedComponents);
+
+	template <class T>
+	void SetSelectedComponents(const TSet<T*>& InSelectedComponents);
+
+	const TSet<TWeakObjectPtr<UActorComponent>>& GetSelectedComponents() const { return SelectedComponents; }
+
+	uint32 GetSelectedComponentsHash() const { return SelectedComponentsHash; }
+	
+	/** Return a suffix to apply to input node name's in Houdini that represent the current options selection. */
+	FString GenerateNodeNameSuffix() const;
 	
 	/** Return hash value for this object, used when using this object as a key inside hashing containers. */
 	uint32 GetTypeHash() const;
 
 	/** Hashing containers need the == operator. */
 	bool operator==(const FUnrealObjectInputOptions& InOther) const;
-
+	
 	/**
 	 * Indicates that all the input objects are imported to Houdini as references instead of actual geo
-	 * (for Geo/World/Asset input types only
+	 * (for Geo/World input types only)
 	 */
 	bool bImportAsReference;
 
@@ -118,8 +150,32 @@ struct HOUDINIENGINERUNTIME_API FUnrealObjectInputOptions
 	/** Use the Nanite fallback mesh for the main mesh, instead of the full Nanite mesh. */
 	bool bMainMeshIsNaniteFallbackMesh;
 
+	/** Indicates that material parameters should be exported as attributes */
+	bool bExportMaterialParameters;
+	
+	/** Set this to true to add rot and scale attributes on curve inputs. */
+	bool bAddRotAndScaleAttributesOnCurves;
+
+	/** Set this to true to use legacy (curve::1.0) input curves */
+	bool bUseLegacyInputCurves;
+
+	/** Resolution used when converting unreal splines to houdini curves */
+	float UnrealSplineResolution;
+
 	/** Indicates the export type if this input is a Landscape */
 	EHoudiniLandscapeExportType LandscapeExportType;
+
+	/** Is set to true when materials are to be exported. */
+	bool bLandscapeExportMaterials;
+
+	/** Is set to true when lightmap information export is desired. */
+	bool bLandscapeExportLighting;
+
+	/** Is set to true when uvs should be exported in [0,1] space. */
+	bool bLandscapeExportNormalizedUVs;
+
+	/** Is set to true when uvs should be exported for each tile separately. */
+	bool bLandscapeExportTileUVs;
 
 	/** Export landscape spline control points as a point cloud. */
 	bool bExportLandscapeSplineControlPoints;
@@ -127,11 +183,28 @@ struct HOUDINIENGINERUNTIME_API FUnrealObjectInputOptions
 	/** Export landscape spline left and right curves. */
 	bool bExportLandscapeSplineLeftRightCurves;
 
+	/** If enabled, target layers are exported per Edit Layer. */
+	bool bExportPerEditLayerData;
+
 	/**
 	 * If enabled, level instances (and packed level actor) content is exported vs just exporting a single point
 	 * with attributes identifying the level instance / packed level actor.
 	 */
 	bool bExportLevelInstanceContent;
+
+	/** Export selected components only. */
+	bool bExportSelectedComponentsOnly;
+
+protected:
+	/** Compute SelectedComponentsHash from SelectedComponents. */ 
+	void ComputeSelectedComponentsHash();
+	
+private:
+	/** The set of selected components. */
+	TSet<TWeakObjectPtr<UActorComponent>> SelectedComponents;
+
+	/** The computed hash of SelectedComponents. */
+	uint32 SelectedComponentsHash;
 };
 
 /** Function used by hashing containers to create a unique hash for this type of object. */
@@ -900,6 +973,22 @@ private:
 	FDelegateHandle OnUpdatedHandle;
 	FDelegateHandle OnDestroyedHandle;
 };
+
+
+template <class T>
+void FUnrealObjectInputOptions::SetSelectedComponents(const TSet<T*>& InSelectedComponents)
+{
+	static_assert(std::is_base_of<UActorComponent, T>::value, "T must derive from UActorComponent");
+
+	SelectedComponents.Empty(InSelectedComponents.Num());
+	for (T* const ActorComponent : InSelectedComponents)
+	{
+		if (!IsValid(ActorComponent))
+			continue;
+		SelectedComponents.Add(ActorComponent);
+	}
+	ComputeSelectedComponentsHash();
+}
 
 
 template <class T, class... Args>

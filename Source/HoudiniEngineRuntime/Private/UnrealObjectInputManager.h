@@ -33,7 +33,7 @@
 
 // #include "UnrealObjectInputManager.generated.h"
 
-struct FUnrealObjectInputOptions;
+class FUnrealObjectInputOptions;
 class FUnrealObjectInputHandle;
 class FUnrealObjectInputNode;
 

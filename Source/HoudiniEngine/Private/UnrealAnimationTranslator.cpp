@@ -73,15 +73,7 @@ bool FUnrealAnimationTranslator::CreateInputNodeForAnimation(
 
 	if (bUseRefCountedInputSystem)
 	{
-		bool bDefaultImportAsReference = false;
-		bool bDefaultImportAsReferenceRotScaleEnabled = false;
-		const FUnrealObjectInputOptions Options(
-			bDefaultImportAsReference,
-			bDefaultImportAsReferenceRotScaleEnabled,
-			false,
-			false,
-			false
-		);
+		const FUnrealObjectInputOptions Options;
 
 
 		return true;
@@ -116,15 +108,7 @@ FUnrealAnimationTranslator::HapiCreateInputNodeForAnimation(
 	if (bUseRefCountedInputSystem)
 	{
 		// Creates this input's identifier and input options
-		bool bDefaultImportAsReference = false;
-		bool bDefaultImportAsReferenceRotScaleEnabled = false;
-		const FUnrealObjectInputOptions Options(
-			bDefaultImportAsReference,
-			bDefaultImportAsReferenceRotScaleEnabled,
-			false,
-			false,
-			false);
-
+		const FUnrealObjectInputOptions Options;
 		Identifier = FUnrealObjectInputIdentifier(Animation, Options, true);
 
 		FUnrealObjectInputHandle Handle;

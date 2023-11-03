@@ -124,6 +124,7 @@ FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			ExportSockets,
 			ExportColliders,
 			bMainMeshIsNaniteFallbackMesh,
+			bExportMaterialParameters,
 			bForceCreateInputRefNode,
 			bSingleLeafNodeOnly,
 			IdentReferenceNode,
@@ -201,7 +202,7 @@ FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 					Options.bExportColliders,
 					!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders,
 					bInputNodesCanBeDeleted,
-					bExportMaterialParameters))
+					Options.bExportMaterialParameters))
 				{
 					return false;
 				}

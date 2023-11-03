@@ -63,15 +63,9 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 	if (bUseRefCountedInputSystem)
 	{
 		// Creates this input's identifier and input options
-		bool bDefaultImportAsReference = false;
-		bool bDefaultImportAsReferenceRotScaleEnabled = false;
-		const FUnrealObjectInputOptions Options(
-			bDefaultImportAsReference,
-			bDefaultImportAsReferenceRotScaleEnabled,
-			false,
-			false,
-			false);
-
+		FUnrealObjectInputOptions Options;
+		Options.UnrealSplineResolution = SplineResolution;
+		Options.bUseLegacyInputCurves = bInUseLegacyInputCurves;
 		Identifier = FUnrealObjectInputIdentifier(SplineComponent, Options, true);
 
 		FUnrealObjectInputHandle Handle;
@@ -88,7 +82,7 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 
 				OutHandle = Handle;
 				CreatedInputNodeId = NodeId;
-				//return true;
+				return true;
 			}
 		}
 
@@ -96,6 +90,19 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
 		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
 			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+
+		// Set CreatedInputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
+		// (Option changes could mean that CreatedInputNodeId is associated with a completely different entry, albeit for
+		// the same asset, in the manager)
+		if (Handle.IsValid())
+		{
+			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedInputNodeId))
+				CreatedInputNodeId = -1;
+		}
+		else
+		{
+			CreatedInputNodeId = -1;
+		}
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
 		// To do that, we can simply continue this function

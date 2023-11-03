@@ -115,16 +115,7 @@ bool FUnrealDataTableTranslator::CreateInputNodeForDataTable(
 
 	if (bUseRefCountedInputSystem)
 	{
-		bool bDefaultImportAsReference = false;
-		bool bDefaultImportAsReferenceRotScaleEnabled = false;
-		const FUnrealObjectInputOptions Options(
-			bDefaultImportAsReference,
-			bDefaultImportAsReferenceRotScaleEnabled,
-			false,
-			false,
-			false
-		);
-
+		const FUnrealObjectInputOptions Options;
 		Identifier = FUnrealObjectInputIdentifier(DataTable, Options, true);
 
 		FUnrealObjectInputHandle Handle;

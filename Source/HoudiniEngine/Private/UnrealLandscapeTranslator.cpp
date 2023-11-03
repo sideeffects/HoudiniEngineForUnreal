@@ -826,14 +826,26 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 	const FHoudiniInputObjectSettings& InputSettings = InInput->GetInputSettings();
 
 	const bool bApplyWorldTransformToMeshOrPointCloudData = !bUseRefCountedInputSystem;
-	const bool bSetObjectTransformToWorldTransform = !bUseRefCountedInputSystem;	
-	
+	const bool bSetObjectTransformToWorldTransform = !bUseRefCountedInputSystem;
+
+	bool bExportSelectionOnly = InputSettings.bLandscapeExportSelectionOnly;
+	bool bLandscapeAutoSelectComponent = InputSettings.bLandscapeAutoSelectComponent;
+
+	// Get selected components if bLandscapeExportSelectionOnly or bLandscapeAutoSelectComponent is true
+	TSet<ULandscapeComponent*> SelectedComponents;
+	if (bExportSelectionOnly)
+	{
+		InInput->UpdateLandscapeInputSelection();
+		SelectedComponents = InInput->GetLandscapeSelectedComponents();
+	}
+
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = -1;
 
 	if (bUseRefCountedInputSystem)
 	{
-		const FUnrealObjectInputOptions Options(false, false, false, false, false, false, ExportType);
+		const FUnrealObjectInputOptions Options = FUnrealObjectInputOptions::MakeOptionsForLandscapeData(
+			InputSettings, bExportSelectionOnly ? &SelectedComponents : nullptr);
 		Identifier = FUnrealObjectInputIdentifier(InLandscape, Options, true);
 
 		FUnrealObjectInputHandle Handle;
@@ -871,11 +883,8 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 
 		HAPI_NodeId GeoObjNodeId = -1;
 
-		std::string GeoNodeNameStr;
-		FHoudiniEngineUtils::ConvertUnrealString(InLandscape->GetName(), GeoNodeNameStr);
-
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
-			FHoudiniEngine::Get().GetSession(), ParentNodeId, "geo", GeoNodeNameStr.c_str(), true, &GeoObjNodeId), false);
+			FHoudiniEngine::Get().GetSession(), ParentNodeId, "geo", TCHAR_TO_ANSI(*FinalInputNodeName), true, &GeoObjNodeId), false);
 
 		ParentNodeId = GeoObjNodeId;
 
@@ -923,17 +932,6 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 				break;
 			}
 		}
-	}
-
-	bool bExportSelectionOnly = InputSettings.bLandscapeExportSelectionOnly;
-	bool bLandscapeAutoSelectComponent = InputSettings.bLandscapeAutoSelectComponent;
-
-	// Get selected components if bLandscapeExportSelectionOnly or bLandscapeAutoSelectComponent is true
-	TSet<ULandscapeComponent*> SelectedComponents = InInput->GetLandscapeSelectedComponents();
-	if (bExportSelectionOnly && SelectedComponents.Num() == 0)
-	{
-		InInput->UpdateLandscapeInputSelection();
-		SelectedComponents = InInput->GetLandscapeSelectedComponents();
 	}
 
 	bool bSuccess = false;
