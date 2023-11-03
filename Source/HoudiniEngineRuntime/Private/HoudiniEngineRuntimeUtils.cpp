@@ -37,6 +37,7 @@
 #include "LandscapeInfo.h"
 #include "LandscapeSplinesComponent.h"
 #include "Misc/Paths.h"
+#include "Components/StaticMeshComponent.h"
 #include "Runtime/Launch/Resources/Version.h"
 
 #if WITH_EDITOR
