@@ -156,6 +156,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			ExportSockets,
 			ExportColliders,
 			bMainMeshIsNaniteFallbackMesh,
+			bExportMaterialParameters,
 			bForceCreateInputRefNode,
 			bSingleLeafNodeOnly,
 			IdentReferenceNode,
@@ -233,7 +234,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 					Options.bExportColliders,
 					!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders,
 					bInputNodesCanBeDeleted,
-					bExportMaterialParameters))
+					Options.bExportMaterialParameters))
 				{
 					return false;
 				}
@@ -1375,6 +1376,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			ExportSockets,
 			ExportColliders,
 			bMainMeshIsNaniteFallback,
+			bExportMaterialParameters,
 			bForceReferenceInputNodeCreation,
 			bSingleLeafNodeOnly,
 			IdentReferenceNode,
@@ -1452,7 +1454,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 						!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders,
 						bInputNodesCanBeDeleted,
 						Options.bMainMeshIsNaniteFallbackMesh,
-						bExportMaterialParameters,
+						Options.bExportMaterialParameters,
 						bForceInputRefNodeCreation))
 				{
 					return false;

@@ -82,16 +82,9 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	if (bUseRefCountedInputSystem)
 	{
-		// Cretes this input's identifier and input options
-		bool bDefaultImportAsReference = false;
-		bool bDefaultImportAsReferenceRotScaleEnabled =false;
-		const FUnrealObjectInputOptions Options(
-			bDefaultImportAsReference,
-			bDefaultImportAsReferenceRotScaleEnabled,
-			false,
-			false,
-			false);
-
+		// Creates this input's identifier and input options
+		FUnrealObjectInputOptions Options;
+		Options.bExportMaterialParameters = bExportMaterialParameters;
 		Identifier = FUnrealObjectInputIdentifier(GeometryCollection, Options, true);
 
 		FUnrealObjectInputHandle Handle;

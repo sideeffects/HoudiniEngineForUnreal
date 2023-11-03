@@ -29,14 +29,38 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 #include "CoreMinimal.h"
-#include "Components/StaticMeshComponent.h"
+#include "Components/ActorComponent.h"
+#include "LandscapeComponent.h"
 #include "UObject/NameTypes.h"
 #include "UObject/Package.h"
 #include "Templates/Casts.h"
 #include "Misc/Paths.h"
 #include "Runtime/Launch/Resources/Version.h"
 
+#include "HoudiniInputObject.h"
+#include "HoudiniInputTypes.h"
 #include "UnrealObjectInputManager.h"
+
+
+// GetArrayHash from Core/Public/Templates/TypeHash.h is only available from UE5.3+ 
+template <typename T>
+uint32 _GetArrayHash(const T* Ptr, uint64 Size, uint32 PreviousHash = 0)
+{
+#if ENGINE_MAJOR_VERSION < 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 3)
+	uint32 Result = PreviousHash;
+	while (Size)
+	{
+		Result = HashCombineFast(Result, GetTypeHash(*Ptr));
+		++Ptr;
+		--Size;
+	}
+
+	return Result;
+#else
+	return GetArrayHash(Ptr, Size, PreviousHash);
+#endif
+}
+
 
 bool
 FUnrealObjectInputHAPINodeId::Set(const int32 InHAPINodeId, const int32 InUniqueHoudiniNodeId)
@@ -88,46 +112,317 @@ FUnrealObjectInputHAPINodeId::IsValid() const
 	return Manager->IsHAPINodeValid(*this);
 }
 
-FUnrealObjectInputOptions::FUnrealObjectInputOptions(
-	const bool bInImportAsReference,
-	const bool bInImportAsReferenceRotScaleEnabled,
-	const bool bInExportLODs,
-	const bool bInExportSockets,
-	const bool bInExportColliders,
-	const bool bMainMeshIsNaniteFallbackMesh,
-	const EHoudiniLandscapeExportType LandscapeExportType)
-		: bImportAsReference(bInImportAsReference)
-		, bImportAsReferenceRotScaleEnabled(bInImportAsReferenceRotScaleEnabled)
-		, bExportLODs(bInExportLODs)
-		, bExportSockets(bInExportSockets)
-		, bExportColliders(bInExportColliders)
-		, bMainMeshIsNaniteFallbackMesh(bMainMeshIsNaniteFallbackMesh)
-		, LandscapeExportType(LandscapeExportType)
-		, bExportLandscapeSplineControlPoints(false)
-		, bExportLandscapeSplineLeftRightCurves(false)
-		, bExportLevelInstanceContent(true)
+FUnrealObjectInputOptions::FUnrealObjectInputOptions()
+	: bImportAsReference(false)
+	, bImportAsReferenceRotScaleEnabled(false)
+	, bExportLODs(false)
+	, bExportSockets(false)
+	, bExportColliders(false)
+	, bMainMeshIsNaniteFallbackMesh(false)
+	, bExportMaterialParameters(false)
+	, bAddRotAndScaleAttributesOnCurves(false)
+	, bUseLegacyInputCurves(false)
+	, UnrealSplineResolution(0.0f)
+	, LandscapeExportType(EHoudiniLandscapeExportType::Heightfield)
+	, bLandscapeExportMaterials(false)
+	, bLandscapeExportLighting(false)
+	, bLandscapeExportNormalizedUVs(false)
+	, bLandscapeExportTileUVs(false)
+	, bExportLandscapeSplineControlPoints(false)
+	, bExportLandscapeSplineLeftRightCurves(false)
+	, bExportPerEditLayerData(false)
+	, bExportLevelInstanceContent(true)
+	, bExportSelectedComponentsOnly(false)
+	, SelectedComponents()
+	, SelectedComponentsHash(0)
 {
+}
+
+
+FUnrealObjectInputOptions
+FUnrealObjectInputOptions::MakeOptionsForPackedLevelActor(const FHoudiniInputObjectSettings& InInputSettings)
+{
+	FUnrealObjectInputOptions Options = MakeOptionsForGenericActor(InInputSettings);
+	Options.bExportLevelInstanceContent = InInputSettings.bExportLevelInstanceContent;
+	return Options;
+}
+
+
+FUnrealObjectInputOptions
+FUnrealObjectInputOptions::MakeOptionsForLevelInstanceActor(const FHoudiniInputObjectSettings& InInputSettings)
+{
+	FUnrealObjectInputOptions Options;
+	Options.bImportAsReference = InInputSettings.bImportAsReference;
+	Options.bImportAsReferenceRotScaleEnabled = Options.bImportAsReference && InInputSettings.bImportAsReferenceRotScaleEnabled;
+	if (!Options.bImportAsReference)
+	{
+		Options.bExportLODs = InInputSettings.bExportLODs;
+		Options.bExportSockets = InInputSettings.bExportSockets;
+		Options.bExportColliders = InInputSettings.bExportColliders;
+		Options.bMainMeshIsNaniteFallbackMesh = InInputSettings.bPreferNaniteFallbackMesh;
+		Options.bExportMaterialParameters = InInputSettings.bExportMaterialParameters;
+		Options.bUseLegacyInputCurves = InInputSettings.bUseLegacyInputCurves;
+		Options.UnrealSplineResolution = InInputSettings.UnrealSplineResolution;
+		Options.LandscapeExportType = InInputSettings.LandscapeExportType;
+		if (Options.LandscapeExportType != EHoudiniLandscapeExportType::Heightfield)
+		{
+			Options.bLandscapeExportMaterials = InInputSettings.bLandscapeExportMaterials;
+			Options.bLandscapeExportLighting = InInputSettings.bLandscapeExportLighting;
+			Options.bLandscapeExportNormalizedUVs = InInputSettings.bLandscapeExportNormalizedUVs;
+			Options.bLandscapeExportTileUVs = InInputSettings.bLandscapeExportTileUVs;
+		}
+		Options.bExportPerEditLayerData = InInputSettings.bExportPerEditLayerData;
+		Options.bExportLandscapeSplineControlPoints = InInputSettings.bLandscapeSplinesExportControlPoints;
+		Options.bExportLandscapeSplineLeftRightCurves = InInputSettings.bLandscapeSplinesExportLeftRightCurves;
+	}
+	Options.bExportLevelInstanceContent = InInputSettings.bExportLevelInstanceContent;
+
+	return Options;
+}
+
+
+FUnrealObjectInputOptions
+FUnrealObjectInputOptions::MakeOptionsForLandscapeActor(const FHoudiniInputObjectSettings& InInputSettings, const TSet<ULandscapeComponent*>* InSelectedComponents)
+{
+	FUnrealObjectInputOptions Options = MakeOptionsForLandscapeSplineActor(InInputSettings);
+	if (!Options.bImportAsReference)
+	{
+		Options.LandscapeExportType = InInputSettings.LandscapeExportType;
+		if (Options.LandscapeExportType != EHoudiniLandscapeExportType::Heightfield)
+		{
+			Options.bLandscapeExportMaterials = InInputSettings.bLandscapeExportMaterials;
+			Options.bLandscapeExportLighting = InInputSettings.bLandscapeExportLighting;
+			Options.bLandscapeExportNormalizedUVs = InInputSettings.bLandscapeExportNormalizedUVs;
+			Options.bLandscapeExportTileUVs = InInputSettings.bLandscapeExportTileUVs;
+		}
+		Options.bExportPerEditLayerData = InInputSettings.bExportPerEditLayerData;
+		Options.bExportSelectedComponentsOnly = InInputSettings.bLandscapeExportSelectionOnly;
+		if (Options.bExportSelectedComponentsOnly && InSelectedComponents)
+			Options.SetSelectedComponents(*InSelectedComponents);
+	}
+
+	return Options;
+}
+
+
+FUnrealObjectInputOptions
+FUnrealObjectInputOptions::MakeOptionsForLandscapeData(const FHoudiniInputObjectSettings& InInputSettings, const TSet<ULandscapeComponent*>* InSelectedComponents)
+{
+	FUnrealObjectInputOptions Options;
+	Options.bImportAsReference = InInputSettings.bImportAsReference;
+	Options.bImportAsReferenceRotScaleEnabled = Options.bImportAsReference && InInputSettings.bImportAsReferenceRotScaleEnabled;
+	if (!Options.bImportAsReference)
+	{
+		Options.LandscapeExportType = InInputSettings.LandscapeExportType;
+		if (Options.LandscapeExportType != EHoudiniLandscapeExportType::Heightfield)
+		{
+			Options.bLandscapeExportMaterials = InInputSettings.bLandscapeExportMaterials;
+			Options.bLandscapeExportLighting = InInputSettings.bLandscapeExportLighting;
+			Options.bLandscapeExportNormalizedUVs = InInputSettings.bLandscapeExportNormalizedUVs;
+			Options.bLandscapeExportTileUVs = InInputSettings.bLandscapeExportTileUVs;
+		}
+		Options.bExportPerEditLayerData = InInputSettings.bExportPerEditLayerData;
+		Options.bExportSelectedComponentsOnly = InInputSettings.bLandscapeExportSelectionOnly;
+		if (Options.bExportSelectedComponentsOnly && InSelectedComponents)
+			Options.SetSelectedComponents(*InSelectedComponents);
+	}
+
+	return Options;
+}
+
+
+FUnrealObjectInputOptions
+FUnrealObjectInputOptions::MakeOptionsForLandscapeSplineActor(const FHoudiniInputObjectSettings& InInputSettings)
+{
+	FUnrealObjectInputOptions Options = MakeOptionsForGenericActor(InInputSettings);
+	if (!Options.bImportAsReference)
+	{
+		Options.bExportLandscapeSplineControlPoints = InInputSettings.bLandscapeSplinesExportControlPoints;
+		Options.bExportLandscapeSplineLeftRightCurves = InInputSettings.bLandscapeSplinesExportLeftRightCurves;
+	}
+
+	return Options;
+}
+
+
+FUnrealObjectInputOptions
+FUnrealObjectInputOptions::MakeOptionsForGenericActor(const FHoudiniInputObjectSettings& InInputSettings)
+{
+	FUnrealObjectInputOptions Options;
+	Options.bImportAsReference = InInputSettings.bImportAsReference;
+	Options.bImportAsReferenceRotScaleEnabled = Options.bImportAsReference && InInputSettings.bImportAsReferenceRotScaleEnabled;
+	if (!Options.bImportAsReference)
+	{
+		Options.bExportLODs = InInputSettings.bExportLODs;
+		Options.bExportSockets = InInputSettings.bExportSockets;
+		Options.bExportColliders = InInputSettings.bExportColliders;
+		Options.bMainMeshIsNaniteFallbackMesh = InInputSettings.bPreferNaniteFallbackMesh;
+		Options.bExportMaterialParameters = InInputSettings.bExportMaterialParameters;
+		Options.bUseLegacyInputCurves = InInputSettings.bUseLegacyInputCurves;
+		Options.UnrealSplineResolution = InInputSettings.UnrealSplineResolution;
+	}
+	// Options.bExportLevelInstanceContent = InInputSettings.bExportLevelInstanceContent;
+
+	return Options;
+}
+
+
+void
+FUnrealObjectInputOptions::ComputeSelectedComponentsHash()
+{
+	if (SelectedComponents.Num() == 0)
+	{
+		SelectedComponentsHash = 0;
+		return;
+	}
+
+	TArray<TWeakObjectPtr<UActorComponent>> SelectedComponentsArray = SelectedComponents.Array();
+	SelectedComponentsArray.StableSort([](const TWeakObjectPtr<UActorComponent>& InLHS, const TWeakObjectPtr<UActorComponent>& InRHS)
+	{
+		return InLHS.Get() < InRHS.Get();
+	});
+	SelectedComponentsHash = _GetArrayHash(SelectedComponentsArray.GetData(), SelectedComponentsArray.Num());
+}
+
+
+void
+FUnrealObjectInputOptions::SetSelectedComponents(const TSet<TWeakObjectPtr<UActorComponent>>& InSelectedComponents)
+{
+	SelectedComponents = InSelectedComponents;
+	ComputeSelectedComponentsHash();
+}
+
+
+void
+FUnrealObjectInputOptions::SetSelectedComponents(TSet<TWeakObjectPtr<UActorComponent>>&& InSelectedComponents)
+{
+	SelectedComponents = InSelectedComponents;
+	ComputeSelectedComponentsHash();
+}
+
+
+FString
+FUnrealObjectInputOptions::GenerateNodeNameSuffix() const
+{
+	TArray<FString> NameParts;
+	if (bExportColliders)
+		NameParts.Add(TEXT("colliders"));
+	if (bExportLODs)
+		NameParts.Add(TEXT("lods"));
+	if (bExportSockets)
+		NameParts.Add(TEXT("sockets"));
+	if (bMainMeshIsNaniteFallbackMesh)
+		NameParts.Add(TEXT("nanite_fallback"));
+	if (bImportAsReference)
+		NameParts.Add(TEXT("reference"));
+	if (bImportAsReferenceRotScaleEnabled)
+		NameParts.Add(TEXT("reference_with_rot_scale"));
+	if (bExportLandscapeSplineControlPoints)
+		NameParts.Add(TEXT("control_points"));
+	if (bExportLandscapeSplineLeftRightCurves)
+		NameParts.Add(TEXT("left_right_curves"));
+	if (UnrealSplineResolution != 0)
+		NameParts.Add(FString::Printf(TEXT("spline_res_%.6f"), UnrealSplineResolution));
+	if (bExportMaterialParameters)
+		NameParts.Add(TEXT("material_params"));
+	if (bAddRotAndScaleAttributesOnCurves)
+		NameParts.Add(TEXT("curve_rot_scale"));
+	if (bUseLegacyInputCurves)
+		NameParts.Add(TEXT("legacy_curves"));
+	if (bLandscapeExportMaterials)
+		NameParts.Add(TEXT("landscape_materials"));
+	if (bLandscapeExportLighting)
+		NameParts.Add(TEXT("landscape_lighting"));
+	if (bLandscapeExportNormalizedUVs)
+		NameParts.Add(TEXT("landscape_normalized_uvs"));
+	if (bLandscapeExportTileUVs)
+		NameParts.Add(TEXT("landscape_tile_uvs"));
+	if (bExportPerEditLayerData)
+		NameParts.Add(TEXT("landscape_edit_layers"));
+	if (!bExportLevelInstanceContent)
+		NameParts.Add(TEXT("level_instance_ref"));
+	if (bExportSelectedComponentsOnly)
+	{
+		NameParts.Add(TEXT("selected_components"));
+		NameParts.Add(FString::Printf(TEXT("%u"),  SelectedComponentsHash));
+	}
+
+	switch (LandscapeExportType)
+	{
+		case EHoudiniLandscapeExportType::Heightfield:
+			break;
+		case EHoudiniLandscapeExportType::Mesh:
+			NameParts.Add(TEXT("landscape_mesh"));
+			break;
+		case EHoudiniLandscapeExportType::Points:
+			NameParts.Add(TEXT("landscape_points"));
+			break;
+	}
+
+	return FString::Join(NameParts, TEXT("_"));
 }
 
 uint32
 FUnrealObjectInputOptions::GetTypeHash() const
 {
-	return FCrc::MemCrc32(this, sizeof(*this));
+	static constexpr uint32 NumByteOptions = 18;
+	const uint8 ByteOptions[NumByteOptions] {
+		bImportAsReferenceRotScaleEnabled,
+		bExportLODs,
+		bExportSockets,
+		bExportColliders,
+		bMainMeshIsNaniteFallbackMesh,
+		bExportMaterialParameters,
+		bAddRotAndScaleAttributesOnCurves,
+		bUseLegacyInputCurves,
+		static_cast<uint8>(LandscapeExportType),
+		bLandscapeExportMaterials,
+		bLandscapeExportLighting,
+		bLandscapeExportNormalizedUVs,
+		bLandscapeExportTileUVs,
+		bExportLandscapeSplineControlPoints,
+		bExportLandscapeSplineLeftRightCurves,
+		bExportPerEditLayerData,
+		bExportLevelInstanceContent,
+		bExportSelectedComponentsOnly,
+	};
+	
+	const uint32 HashA = HashCombineFast(_GetArrayHash(ByteOptions, NumByteOptions), ::GetTypeHash(UnrealSplineResolution));
+	if (!bExportSelectedComponentsOnly)
+		return HashA;
+	
+	return HashCombineFast(HashA, SelectedComponentsHash);
 }
 
 bool
 FUnrealObjectInputOptions::operator==(const FUnrealObjectInputOptions& InOther) const
 {
-	return (bImportAsReference == InOther.bImportAsReference
-		&& bImportAsReferenceRotScaleEnabled == InOther.bImportAsReferenceRotScaleEnabled
-		&& bExportLODs == InOther.bExportLODs
-		&& bExportSockets == InOther.bExportSockets
-		&& bExportColliders == InOther.bExportColliders
-		&& bMainMeshIsNaniteFallbackMesh == InOther.bMainMeshIsNaniteFallbackMesh
-		&& LandscapeExportType == InOther.LandscapeExportType
-		&& bExportLandscapeSplineControlPoints == InOther.bExportLandscapeSplineControlPoints
-		&& bExportLandscapeSplineLeftRightCurves == InOther.bExportLandscapeSplineLeftRightCurves
-		&& bExportLevelInstanceContent == InOther.bExportLevelInstanceContent);
+	if (bImportAsReference != InOther.bImportAsReference ||
+		bImportAsReferenceRotScaleEnabled != InOther.bImportAsReferenceRotScaleEnabled ||
+		bExportLODs != InOther.bExportLODs ||
+		bExportSockets != InOther.bExportSockets ||
+		bExportColliders != InOther.bExportColliders ||
+		bMainMeshIsNaniteFallbackMesh != InOther.bMainMeshIsNaniteFallbackMesh ||
+		bExportMaterialParameters != InOther.bExportMaterialParameters ||
+		bAddRotAndScaleAttributesOnCurves != InOther.bAddRotAndScaleAttributesOnCurves ||
+		bUseLegacyInputCurves != InOther.bUseLegacyInputCurves ||
+		!FMath::IsNearlyEqual(UnrealSplineResolution, InOther.UnrealSplineResolution) ||
+		LandscapeExportType != InOther.LandscapeExportType ||
+		bLandscapeExportMaterials != InOther.bLandscapeExportMaterials ||
+		bLandscapeExportLighting != InOther.bLandscapeExportLighting ||
+		bLandscapeExportNormalizedUVs != InOther.bLandscapeExportNormalizedUVs ||
+		bLandscapeExportTileUVs != InOther.bLandscapeExportTileUVs ||
+		bExportLandscapeSplineControlPoints != InOther.bExportLandscapeSplineControlPoints ||
+		bExportLandscapeSplineLeftRightCurves != InOther.bExportLandscapeSplineLeftRightCurves ||
+		bExportPerEditLayerData != InOther.bExportPerEditLayerData ||
+		bExportLevelInstanceContent != InOther.bExportLevelInstanceContent ||
+		bExportSelectedComponentsOnly != InOther.bExportSelectedComponentsOnly)
+			return false;
+
+	if (!bExportSelectedComponentsOnly)
+		return true;
+
+	return SelectedComponents.Num() == InOther.SelectedComponents.Num() && SelectedComponents.Includes(InOther.SelectedComponents);
 }
 
 

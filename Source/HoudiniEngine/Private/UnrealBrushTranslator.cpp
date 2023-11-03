@@ -81,7 +81,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 
 	if (bUseRefCountedInputSystem)
 	{
-		const FUnrealObjectInputOptions Options(false, false, false, false, false);
+		const FUnrealObjectInputOptions Options;
 		Identifier = FUnrealObjectInputIdentifier(BrushActor, Options, true);
 		FUnrealObjectInputHandle Handle;
 		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))

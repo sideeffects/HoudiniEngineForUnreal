@@ -643,23 +643,15 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 		const FUnrealObjectInputOptions& Options = InIdentifier.GetOptions();
 		if (Type == EUnrealObjectInputNodeType::Reference)
 			NameParts.Add(TEXT("merge"));
-		if (Options.bExportColliders)
-			NameParts.Add(TEXT("colliders"));
-		if (Options.bExportLODs)
-			NameParts.Add(TEXT("lods"));
-		if (Options.bExportSockets)
-			NameParts.Add(TEXT("sockets"));
-		if (Options.bMainMeshIsNaniteFallbackMesh)
-			NameParts.Add(TEXT("nanite_fallback"));
-		if (Options.bImportAsReference)
-			NameParts.Add(TEXT("reference"));
-		if (Options.bImportAsReferenceRotScaleEnabled)
-			NameParts.Add(TEXT("reference_with_rot_scale"));
-		if (Options.bExportLandscapeSplineControlPoints)
-			NameParts.Add(TEXT("control_points"));
-		if (Options.bExportLandscapeSplineLeftRightCurves)
-			NameParts.Add(TEXT("left_right_curves"));
-		return FString::Join(NameParts, TEXT("_"));		
+
+		// Add part generated from Options 
+		const FString OptionsSuffix = Options.GenerateNodeNameSuffix();
+		if (!OptionsSuffix.IsEmpty())
+			NameParts.Add(OptionsSuffix);
+
+		// Add empty part so that name ends with _ so that numeric suffixes on name clashes are easier to see
+		NameParts.Add(TEXT(""));
+		return FString::Join(NameParts, TEXT("_"));
 	}
 	
 	// Get the object name, or for actors, get their label

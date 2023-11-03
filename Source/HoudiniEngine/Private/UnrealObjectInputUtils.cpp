@@ -327,24 +327,20 @@ FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 	const bool bInExportSockets,
 	const bool bInExportColliders,
 	const bool bInMainMeshIsNaniteFallbackMesh,
+	const bool bExportMaterialParameters,
 	const bool bForceCreateReferenceNode,
 	bool &bOutSingleLeafNodeOnly,
 	FUnrealObjectInputIdentifier& OutReferenceNode,
 	TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers)
 {
-	constexpr bool bDefaultImportAsReference = false;
-	constexpr bool bDefaultImportAsReferenceRotScaleEnabled = false;
-	constexpr bool bDefaultExportLODs = false;
-	constexpr bool bDefaultExportSockets = false;
-	constexpr bool bDefaultExportColliders = false;
-	constexpr bool bDefaultMainMeshIsNaniteFallbackMesh = false;
-	const FUnrealObjectInputOptions DefaultOptions(
-		bDefaultImportAsReference,
-		bDefaultImportAsReferenceRotScaleEnabled,
-		bDefaultExportLODs,
-		bDefaultExportSockets,
-		bDefaultExportColliders,
-		bDefaultMainMeshIsNaniteFallbackMesh);
+	FUnrealObjectInputOptions DefaultOptions;
+	DefaultOptions.bImportAsReference = false;
+	DefaultOptions.bImportAsReferenceRotScaleEnabled = false;
+	DefaultOptions.bExportLODs = false;
+	DefaultOptions.bExportSockets = false;
+	DefaultOptions.bExportColliders = false;
+	DefaultOptions.bMainMeshIsNaniteFallbackMesh = false;
+	DefaultOptions.bExportMaterialParameters = bExportMaterialParameters;
 
 	// The Nanite fallback mesh is only applicable if we are exporting the main mesh and/or LODs
 	const bool bEffectiveMainMeshIsNaniteFallbackMesh = bInMainMeshIsNaniteFallbackMesh && (bInExportMainMesh || bInExportLODs);
@@ -435,6 +431,7 @@ FUnrealObjectInputUtils::BuildLandscapeSplinesInputObjectIdentifiers(
 	const bool bInExportSplineCurves,
 	const bool bInExportControlPoints,
 	const bool bInExportLeftRightCurves,
+	const float InUnrealSplineResolution,
 	const bool bForceCreateReferenceNode,
 	bool &bOutSingleLeafNodeOnly,
 	FUnrealObjectInputIdentifier& OutReferenceNode,
@@ -456,6 +453,9 @@ FUnrealObjectInputUtils::BuildLandscapeSplinesInputObjectIdentifiers(
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportLandscapeSplineControlPoints = bInExportControlPoints;
 		Options.bExportLandscapeSplineLeftRightCurves = bInExportLeftRightCurves;
+		// Spline resolution only affects the curves, not the control point cloud
+		if (!bInExportControlPoints)
+			Options.UnrealSplineResolution = InUnrealSplineResolution;
 
 		constexpr bool bIsLeaf = true;
 		bOutSingleLeafNodeOnly = true;
@@ -470,6 +470,7 @@ FUnrealObjectInputUtils::BuildLandscapeSplinesInputObjectIdentifiers(
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportLandscapeSplineControlPoints = bInExportControlPoints;
 		Options.bExportLandscapeSplineLeftRightCurves = bInExportLeftRightCurves;
+		Options.UnrealSplineResolution = InUnrealSplineResolution;
 		
 		constexpr bool bIsLeaf = false;
 		OutReferenceNode = FUnrealObjectInputIdentifier(InSplinesComponent, Options, bIsLeaf);
@@ -481,8 +482,9 @@ FUnrealObjectInputUtils::BuildLandscapeSplinesInputObjectIdentifiers(
 	if (bInExportSplineCurves)
 	{
 		constexpr bool bIsLeaf = true;
-		const FUnrealObjectInputOptions Options = DefaultOptions;
+		FUnrealObjectInputOptions Options = DefaultOptions;
 		// TODO: add a specific spline curves option?
+		Options.UnrealSplineResolution = InUnrealSplineResolution;
 		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InSplinesComponent, Options, bIsLeaf));
 	}
 	
@@ -499,6 +501,7 @@ FUnrealObjectInputUtils::BuildLandscapeSplinesInputObjectIdentifiers(
 		constexpr bool bIsLeaf = true;
 		FUnrealObjectInputOptions Options = DefaultOptions;
 		Options.bExportLandscapeSplineLeftRightCurves = true;
+		Options.UnrealSplineResolution = InUnrealSplineResolution;
 		PerOptionIdentifiers.Add(FUnrealObjectInputIdentifier(InSplinesComponent, Options, bIsLeaf));
 	}
 
