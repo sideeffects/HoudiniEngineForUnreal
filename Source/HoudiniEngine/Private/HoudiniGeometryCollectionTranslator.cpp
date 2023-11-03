@@ -167,13 +167,12 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 			    FHoudiniGeometryCollectionTranslator::AppendStaticMesh(ComponentStaticMesh, SourceMaterials, ComponentTransform, GeometryCollection, true);
 
 			    RemoveAndDestroyComponent(OldComponent);
-			    
-			    GeometryCollectionPiece.InstancerOutput->OutputComponents.Empty();
-	    
+				
 			    // Sets the GeometryIndex, to identify which this piece is when dealing with the geometry collection
 			    int32 GeometryIndex = GeometryCollection->NumElements(FGeometryCollection::TransformGroup) - 1;
 			    GeometryCollectionPiece.GeometryIndex = GeometryIndex;
 			}
+			GeometryCollectionPiece.InstancerOutput->OutputComponents.Empty();
 		}
 		
 		GeometryCollection->InitializeMaterials();
@@ -227,9 +226,14 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 		check(OutputObject.OutputComponents.Num() < 2); // Multiple components not supported yet.
 		OutputObject.OutputComponents.Empty();
 		OutputObject.OutputComponents.Add(GeometryCollectionComponent);
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+		// Rebuild render data on the GeometryCollection itself otherwise the asset won't update in UE5.3
+		GeometryCollection->RebuildRenderData();
+#endif
 		
 		// Mark the render state dirty otherwise it won't appear until you move it
-	        GeometryCollectionComponent->MarkRenderStateDirty();
+		GeometryCollectionComponent->MarkRenderStateDirty();
 	}
 }
 
