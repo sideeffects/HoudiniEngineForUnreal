@@ -2973,12 +2973,11 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	if (!IsValid(StaticMesh))
 		return false;
 
-	if (InOutputObject.OutputComponents.IsEmpty())
-	    return false;
-
-	HOUDINI_CHECK_RETURN(InOutputObject.OutputComponents.Num() == 1, false);
+	HOUDINI_CHECK_RETURN(InOutputObject.OutputComponents.Num() == 1 || (InOutputObject.OutputComponents.IsEmpty() && InOutputObject.bIsImplicit), false);
 	
-	UStaticMeshComponent* InSMC = Cast<UStaticMeshComponent>(InOutputObject.OutputComponents[0]);
+	UStaticMeshComponent* InSMC = nullptr;
+	if (InOutputObject.OutputComponents.Num() >= 1)
+		InSMC = Cast<UStaticMeshComponent>(InOutputObject.OutputComponents[0]);
 	const bool bHasOutputSMC = IsValid(InSMC);
 	if (!bHasOutputSMC && !InOutputObject.bIsImplicit)
 		return false;
@@ -3202,12 +3201,11 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	if (!IsValid(SkeletalMesh))
 		return false;
 
-	if (InOutputObject.OutputComponents.IsEmpty())
-	    return false;
-
-	HOUDINI_CHECK_RETURN(InOutputObject.OutputComponents.Num() == 1, false);
-
-	USkeletalMeshComponent* InSKC = Cast<USkeletalMeshComponent>(InOutputObject.OutputComponents[0]);
+	HOUDINI_CHECK_RETURN(InOutputObject.OutputComponents.Num() == 1 || (InOutputObject.OutputComponents.IsEmpty() && InOutputObject.bIsImplicit), false);
+	
+	USkeletalMeshComponent* InSKC = nullptr;
+	if (InOutputObject.OutputComponents.Num() >= 1)
+		InSKC = Cast<USkeletalMeshComponent>(InOutputObject.OutputComponents[0]);
 	const bool bHasOutputSKC = IsValid(InSKC);
 	if (!bHasOutputSKC && !InOutputObject.bIsImplicit)
 		return false;
