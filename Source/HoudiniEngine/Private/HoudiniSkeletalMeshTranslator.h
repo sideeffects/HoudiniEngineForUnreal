@@ -93,7 +93,11 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshTranslator
         //-----------------------------------------------------------------------------------------------------------------------------
         void SetHoudiniGeoPartObject(const FHoudiniGeoPartObject& InHGPO) { HGPO = InHGPO; };
         void SetPackageParams(const FHoudiniPackageParams& InPackageParams, const bool& bUpdateHGPO = false);
-        void SetOutputObjects(TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects) { OutputObjects = InOutputObjects; };
+        void SetInputObjects(const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InInputObjects) { InputObjects = InInputObjects; };
+        void SetOutputObjects(const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects) { OutputObjects = InOutputObjects; };
+
+        // Current / Previous Output objects
+        TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> InputObjects;
 
         // New Output objects
         TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> OutputObjects;

@@ -649,6 +649,7 @@ FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 	{
 		FHoudiniSkeletalMeshTranslator SKMeshTranslator;
 		SKMeshTranslator.SetHoudiniGeoPartObject(InHGPO);
+		SKMeshTranslator.SetInputObjects(InOutputObjects);
 		SKMeshTranslator.SetOutputObjects(OutOutputObjects);
 		SKMeshTranslator.SetPackageParams(InPackageParams, true);
 
