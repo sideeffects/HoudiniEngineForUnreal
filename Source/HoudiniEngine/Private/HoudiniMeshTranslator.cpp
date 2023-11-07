@@ -359,8 +359,8 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 	bool bBuildSuccess = MeshBuilderModule.BuildSkeletalMesh(SkeletalMeshBuildParameters);
 
 	//We need to have a valid render data to create physic asset
-	BuildSettings.SKMesh->Build();
 	BuildSettings.SKMesh->CalculateInvRefMatrices();
+	BuildSettings.SKMesh->Build();
 	BuildSettings.SKMesh->MarkPackageDirty();
 	FAssetRegistryModule::AssetCreated(BuildSettings.SKMesh);
 
@@ -3019,6 +3019,14 @@ bool FHoudiniMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 		HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, "");
 	OutputObjectIdentifier.PartName = HGPO.PartName;
 
+	// If we don't already have an object for OutputObjectIdentifier in OutputObjects, then check in InputObjects and
+	// copy it from there. Otherwise create a new empty OutputObject in OutputObjects.
+	if (!OutputObjects.Contains(OutputObjectIdentifier))
+	{
+		FHoudiniOutputObject const* const InputObject = InputObjects.Find(OutputObjectIdentifier);
+		if (InputObject)
+			OutputObjects.Emplace(OutputObjectIdentifier, *InputObject);
+	}
 	FHoudiniOutputObject& OutputObject = OutputObjects.FindOrAdd(OutputObjectIdentifier);
 	USkeletalMesh* NewSkeletalMesh = CreateNewSkeletalMesh(OutputObjectIdentifier.SplitIdentifier);
 	USkeleton* NewSkeleton = CreateNewSkeleton(OutputObjectIdentifier.SplitIdentifier);
