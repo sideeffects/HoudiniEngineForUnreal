@@ -758,6 +758,9 @@ public:
 	// Returns true if the HGPO is fromn the same HF as us
 	const bool HeightfieldMatch(const FHoudiniGeoPartObject& InHGPO, const bool& bVolumeNameShouldMatch) const;
 
+	// Returns true if the HGPO is from the same Geo (output), ignoring the PartID
+	const bool GeoMatch(const FHoudiniGeoPartObject& InHGPO) const;
+
 	// Returns the output objects and their corresponding identifiers
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& GetOutputObjects() { return OutputObjects; };
 

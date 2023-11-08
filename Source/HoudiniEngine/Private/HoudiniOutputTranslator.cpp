@@ -1366,6 +1366,117 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			// Store all the sockets found for this geo's part
 			TArray<FHoudiniMeshSocket> GeoMeshSockets;
 
+			// Flags to track whether we think this Geo respresents either a
+			// motion clip or a skeletal mesh
+			bool bIsMotionClip = false;
+			bool bIsSkeletalMesh = false;
+
+			// ------------------
+			// Parts PrePass
+			// ------------------
+			
+			// Do a pre-pass to determine whether we're dealing a motion clip of a skeletal mesh
+			// MotionClip: requires motion clip attrs on the packed primitive and requires bones to be present inside that same packed prim.
+			// Skeletal Mesh: requires a packed prim containing a mesh with capture weights. Requires a packed prim with bones.
+			bool bHasMotionClipTopologyFrame = false;
+			bool bHasMotionClipAnimFrame = false;
+			
+			bool bHasPackedMeshWithCaptureWeights = false;
+			bool bHasPackedMeshWithBones = false;
+
+			// If haven't identified a motion clip or skeletal mesh after within these number of parts, give up.
+			constexpr int32 PrePassLimit = 4; 
+
+			// Iterate on this geo's parts
+			for (int32 PartId = 0; PartId < CurrentGeoInfo.PartCount && PartId < PrePassLimit; ++PartId)
+			{
+				// Get part information.
+				HAPI_PartInfo CurrentHapiPartInfo;
+				FHoudiniApi::PartInfo_Init(&CurrentHapiPartInfo);
+
+				// If the geo is templated, cook it manually
+				if (CurrentHapiGeoInfo.isTemplated && InOutputTemplatedGeos)
+				{
+					//HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
+					//FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, &CookOptions);
+					FHoudiniEngineUtils::HapiCookNode(CurrentHapiGeoInfo.nodeId, nullptr, true);
+				}
+
+				bool bPartInfoFailed = false;
+				if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(
+					FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, PartId, &CurrentHapiPartInfo))
+				{
+					bPartInfoFailed = true;
+
+					// If the geo is templated, attempt to cook it manually
+					if(CurrentHapiGeoInfo.isTemplated && InOutputTemplatedGeos)
+					{
+						//HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
+						//FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, nullptr);
+						FHoudiniEngineUtils::HapiCookNode(CurrentHapiGeoInfo.nodeId, nullptr, true);
+
+						HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
+							FHoudiniEngine::Get().GetSession(),
+							CurrentHapiGeoInfo.nodeId,
+							&GeoInfos[GeoIdx]));
+
+						if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetPartInfo(
+							FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, PartId, &CurrentHapiPartInfo))
+						{
+							// We managed to get the templated part infos after cooking
+							bPartInfoFailed = false;
+						}
+					}
+				}
+
+				if (bPartInfoFailed)
+				{
+					// Error retrieving part info.
+					HOUDINI_LOG_MESSAGE(
+						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d] unable to retrieve PartInfo - skipping."),
+						CurrentHapiObjectInfo.nodeId, *CurrentObjectName, CurrentHapiGeoInfo.nodeId, PartId);
+					continue;
+				}
+
+				// Convert/cache the part info
+				FHoudiniPartInfo CurrentPartInfo;
+				CachePartInfo(CurrentHapiPartInfo, CurrentPartInfo);
+
+				// Retrieve part name.
+				FString CurrentPartName = CurrentPartInfo.Name;
+
+				// Unsupported/Invalid part
+				if (CurrentPartInfo.Type == EHoudiniPartType::Invalid)
+					continue;
+
+				// Check to for motion clip topology frame
+				if ((CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER) && PartId == 0)
+				{
+					bHasMotionClipTopologyFrame = FHoudiniAnimationTranslator::IsMotionClipFrame(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, false);
+				}
+
+				// Check for the first motion clip anim frame 
+				if ((CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER) && PartId == 2)
+				{
+					bHasMotionClipAnimFrame = FHoudiniAnimationTranslator::IsMotionClipFrame(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, true);
+				}
+
+				if (bHasMotionClipTopologyFrame && bHasMotionClipAnimFrame)
+				{
+					// We have identified that this Geo data is likely a motion clip.
+					bIsMotionClip = true;
+					break;
+				}
+
+				// TODO: Check whether packed prim is a skeletal mesh.
+				
+			} // End of Parts pre-pass
+			
+
+			// ------------------
+			// Parts Processing
+			// ------------------
+			
 			// Iterate on this geo's parts
 			for (int32 PartId = 0; PartId < CurrentGeoInfo.PartCount; ++PartId)
 			{
@@ -1432,29 +1543,13 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				EHoudiniPartType CurrentPartType = EHoudiniPartType::Invalid;
 				EHoudiniInstancerType CurrentInstancerType = EHoudiniInstancerType::Invalid;
 
-				bool bTypeFound = false;
+				bool bInstancerTypeFound = bIsMotionClip || bIsSkeletalMesh;
 				bool bIsGeometryCollection = false;
-				bool bIsMotionClip = false;
-				bool bIsSkeletalMesh = false;
 
-				if (CurrentHapiPartInfo.type == HAPI_PARTTYPE_MESH)
-				{
-					//TODO
-					//bIsSkeletalMesh = IsThisGeometryASkeleton(...);
-					bTypeFound = false;
-				}
-
-				if (CurrentHapiPartInfo.type == HAPI_PARTTYPE_MESH && !bTypeFound)
-				{
-					//TODO IMPLEMENT
-					bIsMotionClip = FHoudiniAnimationTranslator::IsAnimationPart(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id);
-					bTypeFound = true;
-				}
-
-				if (CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER && !bTypeFound)
+				if (CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER && !bInstancerTypeFound)
 				{
 					bIsGeometryCollection = FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancerPart(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id);
-					bTypeFound = true;
+					bInstancerTypeFound = true;
 				}
 				
 				switch (CurrentHapiPartInfo.type)
@@ -1483,11 +1578,15 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 
 							if (bIsSkeletalMesh)
 							{
-								CurrentPartType = EHoudiniPartType::SkeletalMesh;
+								// We don't care about tracking Mesh objects for skeletal meshes.
+								// We just want to track the packed primitives, and extract the mesh data in the translator.
+								continue;
 							}
 							else if (bIsMotionClip)
 							{
-								CurrentPartType = EHoudiniPartType::AnimSequence;
+								// We don't care about tracking Mesh objects for motion clips.
+								// We just want to track the packed primitives, and extract the mesh data in the translator.
+								continue;
 							}
 							else if (CurrentHapiObjectInfo.isInstancer)
 							{
@@ -1575,8 +1674,13 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						CurrentPartType = EHoudiniPartType::Instancer;
 						if (bIsMotionClip)
 						{
-							CurrentPartType = EHoudiniPartType::AnimSequence;
-							CurrentInstancerType = EHoudiniInstancerType::Invalid;
+							CurrentPartType = EHoudiniPartType::MotionClip;
+							CurrentInstancerType = EHoudiniInstancerType::MotionClip;
+						}
+						else if (bIsSkeletalMesh)
+						{
+							CurrentPartType = EHoudiniPartType::SkeletalMesh;
+							CurrentInstancerType = EHoudiniInstancerType::SkeletalMesh;
 						}
 						else if (bIsGeometryCollection)
 						{
@@ -1602,8 +1706,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				}
 
 				// There are no vertices AND no points and this part is not a packed prim instancer
-				if ((CurrentPartInfo.VertexCount <= 0 && CurrentPartInfo.PointCount <= 0)
-					&& (CurrentPartType != EHoudiniPartType::Instancer || (CurrentInstancerType != EHoudiniInstancerType::PackedPrimitive && CurrentInstancerType != EHoudiniInstancerType::GeometryCollection)))
+				if ((CurrentPartInfo.VertexCount <= 0 && CurrentPartInfo.PointCount <= 0) &&
+					(CurrentPartType != EHoudiniPartType::Instancer || (CurrentInstancerType != EHoudiniInstancerType::PackedPrimitive && CurrentInstancerType != EHoudiniInstancerType::GeometryCollection)) &&
+					(CurrentPartType != EHoudiniPartType::MotionClip) &&
+					(CurrentPartType != EHoudiniPartType::SkeletalMesh))
 				{
 					HOUDINI_LOG_MESSAGE(
 						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] no points or vertices found - skipping."),
@@ -1859,14 +1965,19 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				//TArray<FString> BakeFolderOverrides;
 
 				// See if we have an existing output that matches this HGPO or if we need to create a new one
+				// We handle volumes, motion clips and skeletal meshes differently than other outputs types.
+				// These are treated as a single output that has multiple HGPOs
 				bool IsFoundOutputValid = false;
 				UHoudiniOutput ** FoundHoudiniOutput = nullptr;	
-				// We handle volumes differently than other outputs types, as a single HF output has multiple HGPOs
-				if (currentHGPO.Type != EHoudiniPartType::Volume)
+				if (currentHGPO.Type != EHoudiniPartType::Volume &&
+					currentHGPO.Type != EHoudiniPartType::MotionClip &&
+					currentHGPO.Type != EHoudiniPartType::SkeletalMesh
+					)
 				{
+					// Create single output per HGPO
 					// Look in the previous output if we have a match
 					FoundHoudiniOutput = InOldOutputs.FindByPredicate(
-						[currentHGPO](UHoudiniOutput* Output) { return Output ? Output->HasHoudiniGeoPartObject(currentHGPO) : false; });
+						[currentHGPO](UHoudiniOutput* Output) { return Output ? Output->GeoMatch(currentHGPO) : false; });
 
 					if (FoundHoudiniOutput && *FoundHoudiniOutput && currentHGPO.Type == EHoudiniPartType::Curve)
 					{
@@ -1885,9 +1996,17 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				}
 				else
 				{
+					// Collect HGPOs into a single output.
+					TFunction<bool(UHoudiniOutput*)> MatchFn = [currentHGPO](UHoudiniOutput* Output) -> bool { return Output ? Output->GeoMatch(currentHGPO) : false; };
+
+					if (currentHGPO.Type == EHoudiniPartType::Volume)
+					{
+						// Heightfields use a special match function
+						MatchFn = [currentHGPO](UHoudiniOutput* Output) { return Output ? Output->HeightfieldMatch(currentHGPO, true) : false; };
+					}
+					
 					// Look in the previous outputs if we have a match
-					FoundHoudiniOutput = InOldOutputs.FindByPredicate(
-						[currentHGPO](UHoudiniOutput* Output) { return Output ? Output->HeightfieldMatch(currentHGPO, true) : false; });
+					FoundHoudiniOutput = InOldOutputs.FindByPredicate(MatchFn);
 					
 					if (FoundHoudiniOutput && IsValid(*FoundHoudiniOutput))
 						IsFoundOutputValid = true;
@@ -1895,8 +2014,13 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					// If we dont have a match in the old maps, also look in the newly created outputs
 					if (!IsFoundOutputValid)
 					{
-						FoundHoudiniOutput = OutNewOutputs.FindByPredicate(
-							[currentHGPO](UHoudiniOutput* Output) { return Output ? Output->HeightfieldMatch(currentHGPO, false) : false; });
+						if (currentHGPO.Type == EHoudiniPartType::Volume)
+						{
+							// Heightfields use a special match function
+							MatchFn = [currentHGPO](UHoudiniOutput* Output) { return Output ? Output->HeightfieldMatch(currentHGPO, false) : false; };
+						}
+						
+						FoundHoudiniOutput = OutNewOutputs.FindByPredicate(MatchFn);
 
 						if (FoundHoudiniOutput && IsValid(*FoundHoudiniOutput))
 							IsFoundOutputValid = true;

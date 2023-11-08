@@ -928,6 +928,29 @@ UHoudiniOutput::HeightfieldMatch(const FHoudiniGeoPartObject& InHGPO, const bool
 	return false;
 }
 
+const bool UHoudiniOutput::GeoMatch(const FHoudiniGeoPartObject& InHGPO) const
+{
+	for (auto& currentHGPO : HoudiniGeoPartObjects)
+	{
+		// Asset/Object/Geo IDs should match
+		if (currentHGPO.AssetId != InHGPO.AssetId
+			|| currentHGPO.ObjectId != InHGPO.ObjectId
+			|| currentHGPO.GeoId != InHGPO.GeoId)
+		{
+			continue;
+		}
+
+		// if (currentHGPO.Type != InHGPO.Type)
+		// {
+		// 	continue;
+		// }
+
+		return true;
+	}
+
+	return false;
+}
+
 void 
 UHoudiniOutput::MarkAllHGPOsAsStale(const bool& bInStale)
 {
@@ -959,7 +982,7 @@ UHoudiniOutput::UpdateOutputType()
 	int32 InstancerCount = 0;
 	int32 DataTableCount = 0;
 	int32 LandscapeSplineCount = 0;
-	int32 AnimationCount = 0;
+	int32 AnimSequenceCount = 0;
 	int32 SkeletonCount = 0;
 
 	for (auto& HGPO : HoudiniGeoPartObjects)
@@ -984,8 +1007,8 @@ UHoudiniOutput::UpdateOutputType()
 		case EHoudiniPartType::LandscapeSpline:
 			LandscapeSplineCount++;
 			break;
-		case EHoudiniPartType::AnimSequence:
-			AnimationCount++;
+		case EHoudiniPartType::MotionClip:
+			AnimSequenceCount++;
 			break;
 		case EHoudiniPartType::SkeletalMesh:
 			SkeletonCount++;
@@ -1000,6 +1023,16 @@ UHoudiniOutput::UpdateOutputType()
 	{
 		// If we have a volume, we're a landscape
 		Type = EHoudiniOutputType::Landscape;
+	}
+	else if (AnimSequenceCount > 0)
+	{
+		// Anim sequence take precedence over instancers and meshes since it contains both
+		Type = EHoudiniOutputType::AnimSequence;
+	}
+	else if (SkeletonCount > 0)
+	{
+		// Skeletal Meshes take precedence over instancers and meshes since it contains both
+		Type = EHoudiniOutputType::Skeletal;
 	}
 	else if (InstancerCount > 0)
 	{
@@ -1026,15 +1059,6 @@ UHoudiniOutput::UpdateOutputType()
 	{
 		Type = EHoudiniOutputType::LandscapeSpline;
 	}
-	else if (AnimationCount > 0)
-	{
-		Type = EHoudiniOutputType::AnimSequence;
-	}
-	else if (SkeletonCount > 0)
-	{
-		Type = EHoudiniOutputType::Skeletal;
-	}
-
 	else
 	{
 		// No valid HGPO detected...

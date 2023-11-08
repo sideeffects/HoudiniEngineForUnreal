@@ -67,6 +67,9 @@ public:
 		IDetailCategoryBuilder& HouOutputCategory,
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 
+	void CreateAnimSequenceOutputWidget(IDetailCategoryBuilder& HouOutputCategory,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
+
 	void CreateCurveOutputWidget(
 		IDetailCategoryBuilder& HouOutputCategory,
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput);

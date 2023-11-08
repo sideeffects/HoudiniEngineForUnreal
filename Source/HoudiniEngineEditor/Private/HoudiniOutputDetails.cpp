@@ -78,6 +78,7 @@
 #include "ScopedTransaction.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "UnrealEdGlobals.h"
+#include "Animation/AnimSequence.h"
 #include "Editor/UnrealEdEngine.h"
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 
@@ -151,6 +152,11 @@ FHoudiniOutputDetails::CreateWidget(
 		case EHoudiniOutputType::LandscapeSpline:
 		{
 			FHoudiniOutputDetails::CreateLandscapeSplineOutputWidget(HouOutputCategory, MainOutput);
+			break;
+		}
+		case EHoudiniOutputType::AnimSequence:
+		{
+			FHoudiniOutputDetails::CreateAnimSequenceOutputWidget(HouOutputCategory, MainOutput);
 			break;
 		}
 		case EHoudiniOutputType::Skeletal:
@@ -804,6 +810,172 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 			CreateProxyMeshAndMaterialWidgets(
 				HouOutputCategory, InOutput, ProxyMesh, OutputIdentifier, HAC->BakeFolder.Path, HoudiniGeoPartObject);
 		}
+	}
+}
+
+void FHoudiniOutputDetails::CreateAnimSequenceOutputWidget(IDetailCategoryBuilder& HouOutputCategory,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput)
+{
+	if (!IsValidWeakPointer(InOutput))
+		return;
+
+	if (!IsValidWeakPointer(InOutput))
+		return;
+
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
+	int32 Idx = 1;
+	for (auto& IterObject : OutputObjects)
+	{
+		FHoudiniOutputObject& CurrentOutputObject = IterObject.Value;
+		
+	    if (UAnimSequence* AnimSequence = Cast<UAnimSequence>(CurrentOutputObject.OutputObject))
+	    {
+	    	if (!IsValid(AnimSequence))
+	    	{
+	    		continue;
+	    	}
+	    	FString Label = AnimSequence->GetName();
+	    	IDetailGroup& OutputGrp = HouOutputCategory.AddGroup(FName(Label), FText::FromString(Label), false, false);
+		    TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+		    TSharedPtr<SBorder> ThumbnailBorder;
+		    IDetailLayoutBuilder& DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
+		    TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+		    TSharedPtr< FAssetThumbnail > AnimThumbnail =
+			    MakeShareable(new FAssetThumbnail(AnimSequence, 64, 64, AssetThumbnailPool));
+
+		    OutputGrp.AddWidgetRow()
+		    .NameContent()
+		    [
+			    SNew(STextBlock)
+			    .Text(FText::FromString("Anim Sequence"))
+			    .Font(IDetailLayoutBuilder::GetDetailFont())
+		    ]
+		    .ValueContent()
+		    .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		    [
+			    VerticalBox
+		    ];
+
+		    VerticalBox->AddSlot()
+		    .Padding(0, 2)
+		    .AutoHeight()
+		    [
+			    SNew(SHorizontalBox)
+			    + SHorizontalBox::Slot()
+			    .Padding(0.0f, 0.0f, 2.0f, 0.0f)
+			    .AutoWidth()
+			    [
+				    SAssignNew(ThumbnailBorder, SBorder)
+					    .Padding(5.0f)
+					    .BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) AnimSequence)
+					    .OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) AnimSequence)
+				    [
+					    SNew(SBox)
+						    .WidthOverride(64)
+						    .HeightOverride(64)
+						    .ToolTipText(FText::FromString(AnimSequence->GetPathName()))
+					    [
+						    AnimThumbnail->MakeThumbnailWidget()
+					    ]
+				    ]
+			    ]
+			    + SHorizontalBox::Slot()
+			    .AutoWidth()
+			    .Padding(2.0f, 0.0f)
+			    .VAlign(VAlign_Center)
+			    [
+				    SNew(SVerticalBox)
+				    + SVerticalBox::Slot()
+				    .AutoHeight()
+				    .Padding(2.0f, 0.0f)
+				    .VAlign(VAlign_Center)
+				    [
+					    SNew(STextBlock)
+					    .Text(FText::FromName(AnimSequence->GetFName()))
+					    .Font(IDetailLayoutBuilder::GetDetailFont())
+				    ]
+				    + SVerticalBox::Slot()
+				    .AutoHeight()
+				    .Padding(2, 0)
+				    .VAlign(VAlign_Center)
+				    .HAlign(HAlign_Left)
+				    [
+					    PropertyCustomizationHelpers::MakeBrowseButton(
+						    FSimpleDelegate::CreateSP(
+							    this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) AnimSequence),
+						    TAttribute<FText>(LOCTEXT("HoudiniAnimSequenceBrowseButton", "Browse to this asset in the content browser")))
+				    ]
+			    ]
+		    ];
+
+		    // OutputGrp.AddWidgetRow()
+		    // .NameContent()
+		    // [
+			   //  SNew(STextBlock)
+			   //  .Text(FText::FromString("Row Struct"))
+			   //  .Font(IDetailLayoutBuilder::GetDetailFont())
+		    // ]
+		    // .ValueContent()
+		    // .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		    // [
+			   //  RSVerticalBox
+		    // ];
+		    //
+		    // RSVerticalBox->AddSlot()
+		    // .Padding(0, 2)
+		    // .AutoHeight()
+		    // [
+			   //  SNew(SHorizontalBox)
+			   //  + SHorizontalBox::Slot()
+			   //  .Padding(0.0f, 0.0f, 2.0f, 0.0f)
+			   //  .AutoWidth()
+			   //  [
+				  //   SAssignNew(RSThumbnailBorder, SBorder)
+				  //   .Padding(5.0f)
+				  //   .BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DT->RowStruct)
+				  //   .OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DT->RowStruct)
+				  //   [
+					 //    SNew(SBox)
+					 //    .WidthOverride(64)
+					 //    .HeightOverride(64)
+					 //    .ToolTipText(FText::FromName(DT->RowStruct->GetFName()))
+					 //    [
+						//     RSThumbnail->MakeThumbnailWidget()
+					 //    ]
+				  //   ]
+			   //  ]
+			   //  + SHorizontalBox::Slot()
+			   //  .AutoWidth()
+			   //  .Padding(2.0f, 0.0f)
+			   //  .VAlign(VAlign_Center)
+			   //  [
+				  //   SNew(SVerticalBox)
+				  //   + SVerticalBox::Slot()
+				  //   .AutoHeight()
+				  //   .Padding(2.0f, 0.0f)
+				  //   .VAlign(VAlign_Center)
+				  //   [
+					 //    SNew(STextBlock)
+					 //    .Text(FText::FromName(DT->RowStruct->GetFName()))
+					 //    .Font(IDetailLayoutBuilder::GetDetailFont())
+				  //   ]
+				  //   + SVerticalBox::Slot()
+				  //   .AutoHeight()
+				  //   .Padding(2.0f, 0.0f)
+				  //   .VAlign(VAlign_Center)
+				  //   .HAlign(HAlign_Left)
+				  //   [
+					 //    PropertyCustomizationHelpers::MakeBrowseButton(
+						//     FSimpleDelegate::CreateSP(
+						// 	    this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) DT->RowStruct),
+						//     TAttribute<FText>(LOCTEXT("HoudiniDataTableRowStructBrowseButton", "Browse to the generated Data Table's row struct in the content browser")))
+				  //   ]
+			   //  ]
+			   //  
+		    // ];
+
+		    OutputObjectThumbnailBorders.Add((UObject*) AnimSequence, ThumbnailBorder);
+	    }
 	}
 }
 
@@ -1582,7 +1754,6 @@ void FHoudiniOutputDetails::CreateGeometryCollectionWidgets(IDetailCategoryBuild
 	
 }
 
-
 void
 FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	IDetailCategoryBuilder& HouOutputCategory,
@@ -1620,7 +1791,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	IDetailGroup& StaticMeshGrp = HouOutputCategory.AddGroup(FName(*Label), FText::FromString(Label));
 	StaticMeshGrp.AddWidgetRow()
 	.NameContent()
-	[
+[
 		SNew(STextBlock)
 		.Text(LOCTEXT("BakeBaseName", "Bake Name"))
 		.Font(IDetailLayoutBuilder::GetDetailFont())

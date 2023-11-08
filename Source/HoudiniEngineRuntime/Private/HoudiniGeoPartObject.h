@@ -54,7 +54,7 @@ enum class EHoudiniPartType : uint8
 	DataTable,
 	LandscapeSpline,
 	SkeletalMesh,
-	AnimSequence
+	MotionClip
 };
 
 UENUM()
@@ -67,7 +67,8 @@ enum class EHoudiniInstancerType : uint8
 	AttributeInstancer,
 	OldSchoolAttributeInstancer,
 	GeometryCollection,
-	MotionClip 
+	SkeletalMesh,
+	MotionClip
 };
 
 USTRUCT()

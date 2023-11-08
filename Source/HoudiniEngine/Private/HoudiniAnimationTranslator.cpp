@@ -26,54 +26,83 @@
 
 #include "HoudiniAnimationTranslator.h"
 
-#include "UObject/TextProperty.h"
-
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniInputObject.h"
 
-#include "UnrealObjectInputRuntimeTypes.h"
-#include "UnrealObjectInputUtils.h"
-#include "UnrealObjectInputRuntimeUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
 
-#include "Engine/SkeletalMesh.h"
 #include "Animation/Skeleton.h"
 #include "Animation/AnimSequence.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 
-//static void FHoudiniAnimationTranslator::IsAnimationPart(void);
 
-bool FHoudiniAnimationTranslator::IsAnimationPart(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId)
+bool
+FHoudiniAnimationTranslator::IsMotionClipFrame(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, bool bRequiresLocalTransform)
 {
-	HAPI_AttributeInfo TransformInfo;
-	FHoudiniApi::AttributeInfo_Init(&TransformInfo);
 
-	HAPI_Result TransformInfoResult = FHoudiniApi::GetAttributeInfo(
-		FHoudiniEngine::Get().GetSession(),
-		GeoId, PartId,
-		"transform", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &TransformInfo);
+	auto GetAttrInfo = [](const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, const char* AttrName, HAPI_AttributeOwner AttrOwner) -> HAPI_AttributeInfo
+	{
+		HAPI_AttributeInfo AttrInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttrInfo);
+		HAPI_Result AttrInfoResult = FHoudiniApi::GetAttributeInfo(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId,
+			"time", HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM, &AttrInfo);
+		return AttrInfo;  
+	};
 
-	HAPI_AttributeInfo LocalTransformInfo;
-	FHoudiniApi::AttributeInfo_Init(&LocalTransformInfo);
+	if (!GetAttrInfo(GeoId, PartId, "time", HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM).exists)
+	{
+		return false;
+	}
 
-	HAPI_Result LocalTransformInfoResult = FHoudiniApi::GetAttributeInfo(
-		FHoudiniEngine::Get().GetSession(),
-		GeoId, PartId,
-		"localtransform", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &LocalTransformInfo);
+	if (!GetAttrInfo(GeoId, PartId, "clipinfo", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL).exists)
+	{
+		return false;
+	}
 
-	HAPI_AttributeInfo TimeInfo;
-	FHoudiniApi::AttributeInfo_Init(&TimeInfo);
+	// Check for attributes inside this packed prim:
+	// point attributes: localtransform, transform, path, name
+	
+	// Assume that there is only one part per instance. This is always true for now but may need to be looked at later.
+	int NumInstancedParts = 1;
+	TArray<HAPI_PartId> InstancedPartIds;
+	InstancedPartIds.SetNumZeroed(NumInstancedParts);
+	if ( FHoudiniApi::GetInstancedPartIds(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId,
+			InstancedPartIds.GetData(),
+			0, NumInstancedParts ) != HAPI_RESULT_SUCCESS )
+	{
+		return false;
+	}
 
-	HAPI_Result TimeInfoResult = FHoudiniApi::GetAttributeInfo(
-		FHoudiniEngine::Get().GetSession(),
-		GeoId, PartId,
-		"time", HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM, &TimeInfo);
+	HAPI_PartId InstancedPartId = InstancedPartIds[0];
+	if (bRequiresLocalTransform &&
+		!GetAttrInfo(GeoId, InstancedPartId, "localtransform", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT).exists)
+	{
+		return false;
+	}
 
+	if (!GetAttrInfo(GeoId, InstancedPartId, "transform", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT).exists)
+	{
+		return false;
+	}
 
+	if (!GetAttrInfo(GeoId, InstancedPartId, "path", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT).exists)
+	{
+		return false;
+	}
 
-	return TransformInfo.exists && LocalTransformInfo.exists && TimeInfo.exists;
+	if (!GetAttrInfo(GeoId, InstancedPartId, "name", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT).exists)
+	{
+		return false;
+	}
+	
 	return true;
 }
 
@@ -84,12 +113,9 @@ FHoudiniAnimationTranslator::CreateAnimSequenceFromOutput(
 	UObject* InOuterComponent)
 {
 
-	//Loop over hgpo in Output cand 
-	for (auto&& HGPO : InOutput->GetHoudiniGeoPartObjects())
-	{
-		CreateAnimationFromMotionClip(InOutput, HGPO, InPackageParams, InOuterComponent);
-	}
-	
+	//Loop over hgpo in Output cand
+	const TArray<FHoudiniGeoPartObject>& HGPOs = InOutput->GetHoudiniGeoPartObjects(); 
+	CreateAnimationFromMotionClip(InOutput, HGPOs, InPackageParams, InOuterComponent);
 }
 
 UAnimSequence*
@@ -113,10 +139,430 @@ FHoudiniAnimationTranslator::CreateNewAnimation(FHoudiniPackageParams& InPackage
 
 }
 
+HAPI_PartId FHoudiniAnimationTranslator::GetInstancedMeshPartID(const FHoudiniGeoPartObject& InstancerHGPO)
+{
+	constexpr int NumInstancedParts = 1;
+	TArray<HAPI_PartId> InstancedPartIds;
+	InstancedPartIds.SetNumZeroed(NumInstancedParts);
+	if (FHoudiniApi::GetInstancedPartIds(
+		FHoudiniEngine::Get().GetSession(), InstancerHGPO.GeoId, InstancerHGPO.PartId,
+		InstancedPartIds.GetData(), 0, NumInstancedParts) != HAPI_RESULT_SUCCESS)
+	{
+		return -1;
+	}
+
+	return InstancedPartIds[0];
+}
+
+FString FHoudiniAnimationTranslator::GetUnrealSkeletonPath(const TArray<FHoudiniGeoPartObject>& HGPOs)
+{
+	// Try to find the HAPI_UNREAL_SKELETALMESH attribute on the geometry
+	// We'll check both the topology frame and the first frame of the animation, just in case.
+
+	// First check on the primitives
+	const int NumHGPOs = FMath::Min(HGPOs.Num(), 2);
+	for (int i = 0; i < NumHGPOs; i++)
+	{
+		const FHoudiniGeoPartObject& InstancerHGPO = HGPOs[i];
+		
+		// First, check whether we have it anywhere on the packed prim (as a detail, prim or point attribute).
+		if (FHoudiniEngineUtils::HapiCheckAttributeExists(InstancerHGPO.GeoId, InstancerHGPO.PartId, HAPI_UNREAL_ATTRIB_SKELETON))
+		{
+			HAPI_AttributeInfo SkeletonAttrInfo;
+			FHoudiniApi::AttributeInfo_Init(&SkeletonAttrInfo);
+			TArray<FString> SkeletonAttrData;
+			FHoudiniEngineUtils::HapiGetAttributeDataAsString(InstancerHGPO.GeoId, InstancerHGPO.PartId, HAPI_UNREAL_ATTRIB_SKELETON, SkeletonAttrInfo, SkeletonAttrData);
+			if (SkeletonAttrData.Num() > 0)
+			{
+				return SkeletonAttrData[0];
+			}
+		}
+	}
+
+	// Check the content of the packed primitives
+	for (int i = 0; i < NumHGPOs; i++)
+	{
+		const FHoudiniGeoPartObject& InstancerHGPO = HGPOs[i];
+		
+		const HAPI_PartId MeshPartId = GetInstancedMeshPartID(InstancerHGPO);
+		if (MeshPartId < 0)
+		{
+			continue;
+		}
+
+		if (FHoudiniEngineUtils::HapiCheckAttributeExists(InstancerHGPO.GeoId, MeshPartId, HAPI_UNREAL_ATTRIB_SKELETON))
+		{
+			HAPI_AttributeInfo SkeletonAttrInfo;
+			FHoudiniApi::AttributeInfo_Init(&SkeletonAttrInfo);
+			TArray<FString> SkeletonAttrData;
+			FHoudiniEngineUtils::HapiGetAttributeDataAsString(InstancerHGPO.GeoId, MeshPartId, HAPI_UNREAL_ATTRIB_SKELETON, SkeletonAttrInfo, SkeletonAttrData);
+			if (SkeletonAttrData.Num() > 0)
+			{
+				return SkeletonAttrData[0];
+			}
+		}
+
+	}
+	
+	return FString();
+}
+
+bool
+FHoudiniAnimationTranslator::GetClipInfo(const FHoudiniGeoPartObject& InstancerHGPO, float& OutFrameRate)
+{
+	if (FHoudiniEngineUtils::HapiCheckAttributeExists(InstancerHGPO.GeoId, InstancerHGPO.PartId, "clipinfo", HAPI_ATTROWNER_DETAIL))
+	{
+		HAPI_AttributeInfo ClipAttrInfo;
+		FHoudiniApi::AttributeInfo_Init(&ClipAttrInfo);
+
+		HAPI_Result PointInfoResult = FHoudiniApi::GetAttributeInfo(
+			FHoudiniEngine::Get().GetSession(),
+			InstancerHGPO.GeoId, InstancerHGPO.PartId,
+			"clipinfo", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &ClipAttrInfo);
+
+		if (!ClipAttrInfo.exists)
+		{
+			return false;
+		}
+
+		TArray<HAPI_StringHandle> StringHandles;
+		StringHandles.SetNum(ClipAttrInfo.count);
+		
+		if (FHoudiniApi::GetAttributeDictionaryData(
+				FHoudiniEngine::Get().GetSession(),
+				InstancerHGPO.GeoId, InstancerHGPO.PartId,
+				"clipinfo",
+				&ClipAttrInfo,
+				&StringHandles[0],
+				0, ClipAttrInfo.count
+				) != HAPI_RESULT_SUCCESS)
+		{
+			return false;
+		}
+
+		int StringLength = 0;
+		if (FHoudiniApi::GetStringBufLength(
+				FHoudiniEngine::Get().GetSession(),
+				StringHandles[0],
+				&StringLength) != HAPI_RESULT_SUCCESS)
+		{
+			return false;
+		}
+		
+		if (StringLength == 0)
+		{
+			return false;
+		}
+
+		TArray<char> ClipInfoStrBuffer;
+		ClipInfoStrBuffer.SetNum(StringLength);
+		if (FHoudiniApi::GetString(
+				FHoudiniEngine::Get().GetSession(),
+				StringHandles[0],
+				&ClipInfoStrBuffer[0],
+				StringLength) != HAPI_RESULT_SUCCESS)
+		{
+			return false;
+		}
+
+		// At this point we have the clipinfo dict as a JSON string. Time to parse it! 
+		FString ClipInfoStr = FString(ANSI_TO_TCHAR(&ClipInfoStrBuffer[0]));
+
+		// Parse it as JSON
+		TSharedPtr<FJsonObject> JSONObject;
+		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( ClipInfoStr );
+		if (!FJsonSerializer::Deserialize(Reader, JSONObject) || !JSONObject.IsValid())
+		{
+			return false;
+		}
+		
+		if (!JSONObject.IsValid())
+		{
+			return false;
+		}
+
+		// We're only interested in the frame rate, for now.
+		JSONObject->TryGetNumberField(TEXT("rate"), OutFrameRate);
+	}
+
+	return true;
+}
 
 //Creates SkelatalMesh and Skeleton Assets and Packages, and adds them to OutputObjects
-bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* InOutput, const FHoudiniGeoPartObject& HGPO, const FHoudiniPackageParams& InPackageParams, UObject* InOuterComponent)
+bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* InOutput, const TArray<FHoudiniGeoPartObject>& HGPOs, const FHoudiniPackageParams& InPackageParams, UObject* InOuterComponent)
 {
+	if (HGPOs.Num() == 0)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Could not translate MotionClip. No Geo Part Objects."));
+		return false;
+	}
+
+	// Process the topology frame.
+	// Note: We require here that all the HGPO's that we receive in this function be packed primitives (instancers).
+
+	// Get the Mesh data for the
+	const FHoudiniGeoPartObject& TopologyHGPO = HGPOs[0];
+	const HAPI_PartId TopologyPartId = GetInstancedMeshPartID(TopologyHGPO);
+
+	if (TopologyPartId < 0)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Could not translate MotionClip. Invalid topology frame."));
+		return false;
+	}
+	
+	FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
+		TopologyHGPO.ObjectId, TopologyHGPO.GeoId, TopologyPartId, "");
+	OutputObjectIdentifier.PartName = TopologyHGPO.PartName;
+
+	FString SkeletonAssetPathName = GetUnrealSkeletonPath(HGPOs);
+	if (SkeletonAssetPathName.IsEmpty())
+	{
+		HOUDINI_LOG_WARNING(TEXT("Could not translate MotionClip. Empty Skeleton path."));
+		return false;
+	}
+
+	const FSoftObjectPath SkeletonAssetPath(SkeletonAssetPathName);
+	USkeleton* MySkeleton = nullptr;
+	MySkeleton = Cast<USkeleton>(SkeletonAssetPath.TryLoad());
+	if (!IsValid(MySkeleton))
+	{
+		HOUDINI_LOG_WARNING(TEXT("Could not translate MotionClip. Missing '%s' attribute."), *FString(HAPI_UNREAL_ATTRIB_SKELETON));
+		return false;
+	}
+
+	// Process the topology frame.
+	// Collect Bone names from motion clip topology frame
+	
+	HAPI_AttributeInfo BoneNameInfo;
+	FHoudiniApi::AttributeInfo_Init(&BoneNameInfo);
+	HAPI_Result AttributeInfoResult = FHoudiniApi::GetAttributeInfo(
+		FHoudiniEngine::Get().GetSession(),
+		TopologyHGPO.GeoId, TopologyPartId,
+		"name", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &BoneNameInfo);
+
+	TArray<FString> BoneNameData;
+	FHoudiniEngineUtils::HapiGetAttributeDataAsString(TopologyHGPO.GeoId, TopologyPartId, "name", BoneNameInfo, BoneNameData);
+	if (BoneNameData.Num() <= 0)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Could not translate MotionClip. Missing BoneName data."));
+		return false;
+	}
+
+	//Get unique Set of Bones
+	TSet<FName> BoneNames;
+	for (auto BoneString : BoneNameData)
+	{
+		BoneNames.Add(FName(BoneString));
+	}
+
+	// Process the packed primitives 
+	// Iterate over the packed primitives, retrieve each frame's anim data
+
+	// For each frame, we'll retrieve the world transforms of each bone, transform them into
+	// Unreal space, then compute the local transforms.
+
+	TMap <int, TMap <FName, FTransform>> FrameBoneTransformMap;  //For each frame, store bones and LOCAL transforms
+
+	// Per-bone tracks for Pos, Rot and Scale as needed by the AnimController. 
+	TMap <FName, TArray<FVector3f>> BonesPosTrack;
+	TMap <FName, TArray<FQuat4f>> BonesRotTrack;
+	TMap <FName, TArray<FVector3f>> BonesScaleTrack;
+
+	const int NumHGPOs = HGPOs.Num();
+	
+	for (int i = 1; i < NumHGPOs; i++)
+	{
+		const FHoudiniGeoPartObject& InstancerHGPO = HGPOs[i];
+		HAPI_PartId MeshPartId = GetInstancedMeshPartID(InstancerHGPO);
+		if (MeshPartId < 0)
+		{
+			continue;
+		}
+
+		const int GeoId = InstancerHGPO.GeoId;
+		const int PartId = MeshPartId;
+		const int FrameIndex = i - 1;
+
+		// Retrieve the WorldTransform for all the points in this Mesh (frame)
+		// Note, we need to retrieve "P" for the translation, and "transform" for the rotation/scale.
+
+		// Retrieve Position (World Space)
+		HAPI_AttributeInfo PointInfo;
+		FHoudiniApi::AttributeInfo_Init(&PointInfo);
+
+		HAPI_Result PointInfoResult = FHoudiniApi::GetAttributeInfo(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId,
+			HAPI_UNREAL_ATTRIB_POSITION, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &PointInfo);
+
+		TArray<FVector3f> PositionData;
+		PositionData.SetNum(PointInfo.count);  //dont need * PositionInfo.tupleSize, its already a vector container
+		FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, HAPI_UNREAL_ATTRIB_POSITION, &PointInfo, -1, (float*)&PositionData[0], 0, PointInfo.count);
+
+		// Retrieve Rotation matrix (World Space)
+		HAPI_AttributeInfo WorldTransformInfo;
+		FHoudiniApi::AttributeInfo_Init(&WorldTransformInfo);
+
+		HAPI_Result WorldTransformInfoResult = FHoudiniApi::GetAttributeInfo(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId,
+			"transform", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &WorldTransformInfo);
+		
+		TArray<float> WorldTransformData;
+		TArray<int> WorldTransformSizesFixedArray;
+		WorldTransformData.SetNum(WorldTransformInfo.count * WorldTransformInfo.tupleSize);
+		WorldTransformSizesFixedArray.SetNum(WorldTransformInfo.count);
+		HAPI_Result WorldTransformDataResult = FHoudiniApi::GetAttributeFloatArrayData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, "transform", &WorldTransformInfo, &WorldTransformData[0], WorldTransformInfo.count * WorldTransformInfo.tupleSize, &WorldTransformSizesFixedArray[0], 0, WorldTransformInfo.count);
+
+		//Build the World Space transforms for the bones
+		
+		TMap <FName, FTransform> BoneWSTransforms;
+
+		// Iterate over all the joints to collect and convert their transform data and collect them into per-bone tracks
+		
+		for (int BoneIndex = 0; BoneIndex < PointInfo.count; BoneIndex++ )
+		{
+			FString BoneString = BoneNameData[BoneIndex];
+			FName BoneName = FName(BoneString);
+			
+			//Read in 3x3 into Matrix, and append the translation
+			FMatrix M44Pose;  //this is unconverted houdini space
+			M44Pose.M[0][0] = WorldTransformData[9 * BoneIndex + 0];
+			M44Pose.M[0][1] = WorldTransformData[9 * BoneIndex + 1];
+			M44Pose.M[0][2] = WorldTransformData[9 * BoneIndex + 2];
+			M44Pose.M[0][3] = 0;
+			M44Pose.M[1][0] = WorldTransformData[9 * BoneIndex + 3];
+			M44Pose.M[1][1] = WorldTransformData[9 * BoneIndex + 4];
+			M44Pose.M[1][2] = WorldTransformData[9 * BoneIndex + 5];
+			M44Pose.M[1][3] = 0;
+			M44Pose.M[2][0] = WorldTransformData[9 * BoneIndex + 6];
+			M44Pose.M[2][1] = WorldTransformData[9 * BoneIndex + 7];
+			M44Pose.M[2][2] = WorldTransformData[9 * BoneIndex + 8];
+			M44Pose.M[2][3] = 0;
+			M44Pose.M[3][0] = PositionData[BoneIndex].X;
+			M44Pose.M[3][1] = PositionData[BoneIndex].Y;
+			M44Pose.M[3][2] = PositionData[BoneIndex].Z;
+			M44Pose.M[3][3] = 1;
+
+			FTransform PoseTransform = FTransform(M44Pose);//this is in Houdini Space
+			//Now convert to unreal
+			FQuat PoseQ = PoseTransform.GetRotation();
+			FQuat ConvertedPoseQ = FQuat(PoseQ.X, PoseQ.Z, PoseQ.Y, -PoseQ.W) * FQuat::MakeFromEuler({ 90.f, 0.f, 0.f });
+			//FQuat ConvertedPoseQ = FQuat::MakeFromEuler({ -90.f, 0.f, 0.f }) * FQuat(PoseQ.X, PoseQ.Z, PoseQ.Y, -PoseQ.W);
+			//FQuat ConvertedPoseQ = FQuat::MakeFromEuler({ 90.f, 0.f, 0.f }) * FQuat(PoseQ.X, PoseQ.Z, PoseQ.Y, -PoseQ.W);
+
+			FVector PoseT = PoseTransform.GetLocation();
+			FVector ConvertedPoseT = FVector(PoseT.X, PoseT.Z, PoseT.Y);
+			FVector PoseS = PoseTransform.GetScale3D();
+			FTransform UnrealPoseTransform = FTransform(ConvertedPoseQ, ConvertedPoseT * 100, PoseS * 100);
+			
+			BoneWSTransforms.Add(BoneName, UnrealPoseTransform);
+		}
+
+		// Convert the bones to local transforms, and append them to the bone tracks for the current frame
+		TMap<FName, FTransform> BoneTrack = FrameBoneTransformMap.FindOrAdd(FrameIndex);
+
+		const FReferenceSkeleton& RefSkeleton = MySkeleton->GetReferenceSkeleton();
+		for (auto& Elem : BoneWSTransforms)
+		{
+			const FName CurrentBoneName = Elem.Key;
+			const int32 BoneRefIndex = RefSkeleton.FindBoneIndex(CurrentBoneName);
+			FName ParentBoneName = CurrentBoneName;
+			if (BoneRefIndex > 0)
+			{
+				int32 ParentBoneIndex = 0;
+				ParentBoneIndex = RefSkeleton.GetParentIndex(BoneRefIndex);
+				ParentBoneName = RefSkeleton.GetBoneName(ParentBoneIndex);
+			}
+			if (!BoneWSTransforms.Contains(ParentBoneName))
+			{
+				continue;
+			}
+			FTransform ParentCSXform = *BoneWSTransforms.Find(ParentBoneName);
+			
+			FTransform BoneCSXform = Elem.Value;
+			FTransform BoneLXform = BoneCSXform * ParentCSXform.Inverse(); //Final
+
+			TArray<FVector3f>& KeyPosArray = BonesPosTrack.FindOrAdd(CurrentBoneName);
+			FVector Pos = BoneLXform.GetLocation();
+			KeyPosArray.Add(FVector3f(Pos));
+
+			TArray<FQuat4f>& KeyRotArray = BonesRotTrack.FindOrAdd(CurrentBoneName);
+			FQuat Q = BoneLXform.GetRotation();
+			KeyRotArray.Add(FQuat4f(Q));
+			
+			TArray<FVector3f>& KeyScaleArray = BonesScaleTrack.FindOrAdd(CurrentBoneName);
+			FVector Scale = BoneLXform.GetScale3D();
+			KeyScaleArray.Add(FVector3f(Scale));
+		}
+	}
+
+	FHoudiniOutputObject& OutputObject = InOutput->GetOutputObjects().FindOrAdd(OutputObjectIdentifier);
+	FHoudiniPackageParams PackageParams = InPackageParams;
+	UAnimSequence* NewAnimation = CreateNewAnimation(PackageParams, TopologyHGPO, OutputObjectIdentifier.SplitIdentifier);
+	OutputObject.OutputObject = NewAnimation;
+	OutputObject.bProxyIsCurrent = false;
+	
+	float FrameRate = 30;
+	GetClipInfo(TopologyHGPO, FrameRate);
+
+	NewAnimation->ResetAnimation();
+	NewAnimation->SetSkeleton(MySkeleton);
+	NewAnimation->ImportFileFramerate = FrameRate;
+	NewAnimation->ImportResampleFramerate = FrameRate;
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
+	// Initialize data model
+	IAnimationDataController& AnimController = NewAnimation->GetController();
+	AnimController.InitializeModel();
+
+	AnimController.OpenBracket(NSLOCTEXT("MyNamespace", "InitializeAnimation", "Initialize New Anim Sequence"));
+	{
+		// This line is to set actual frame rate
+		AnimController.SetFrameRate(FFrameRate(FrameRate, 1), true);
+
+		//AnimController.SetPlayLength(33.0f, true);
+		const int32 NumKeys = NumHGPOs-1;
+		AnimController.SetNumberOfFrames(NumKeys - 1);
+
+		//rgc
+		bool bShouldTransact = true;
+		for (const FName& Bone : BoneNames)  //loop over all bones
+		{
+			//QUESTION:  What to do if no tracks for bone? Skip?
+			//TODO Need to insert tracks for missing bones?
+			if (BonesPosTrack.Contains(Bone) && BonesRotTrack.Contains(Bone) && BonesScaleTrack.Contains(Bone))
+			{
+				AnimController.AddBoneCurve(Bone, bShouldTransact);
+				AnimController.SetBoneTrackKeys(Bone, *BonesPosTrack.Find(Bone), *BonesRotTrack.Find(Bone), *BonesScaleTrack.Find(Bone), bShouldTransact);
+			}
+			else
+			{
+				HOUDINI_LOG_ERROR(TEXT("Bone '%s' is missing from bone tracks."), Bone);
+			}
+		}
+		
+		AnimController.NotifyPopulated();
+	}
+	AnimController.CloseBracket();
+
+#endif
+
+	return true;
+}
+
+
+//Creates SkelatalMesh and Skeleton Assets and Packages, and adds them to OutputObjects
+bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip_DEPR(UHoudiniOutput* InOutput, const TArray<FHoudiniGeoPartObject>& HGPOs, const FHoudiniPackageParams& InPackageParams, UObject* InOuterComponent)
+{
+	if (HGPOs.Num() == 0)
+	{
+		return false;
+	}
+
+	// The first HGPO is the topology frame
+	const FHoudiniGeoPartObject& HGPO = HGPOs[0];
+	
 	FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
 		HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, "");
 	OutputObjectIdentifier.PartName = HGPO.PartName;
@@ -126,25 +572,28 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 	UAnimSequence* NewAnimation = CreateNewAnimation(PackageParams, HGPO, OutputObjectIdentifier.SplitIdentifier);
 	OutputObject.OutputObject = NewAnimation;
 	OutputObject.bProxyIsCurrent = false;
-
-
+	
 	FString SkeletonAssetPathString;
-	if (true)  //Panel NodeSync Settings Overrides unreal_skeleton  Attribute
+
+	bool bSkeletonExists = FHoudiniEngineUtils::HapiCheckAttributeExists(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_SKELETON);
+	if (bSkeletonExists)  //Panel NodeSync Settings Overrides unreal_skeleton  Attribute
 	{
-		SkeletonAssetPathString = TEXT("/Script/Engine.Skeleton'/Game/Characters/Mannequin_UE4/Meshes/SK_Mannequin_Skeleton.SK_Mannequin_Skeleton'");
-	}
-	else
-	{
-		HAPI_AttributeInfo UnrealSkeletonInfo;
-		FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
-		TArray<FString> UnrealSkeletonData;
-		FHoudiniEngineUtils::HapiGetAttributeDataAsString(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_SKELETON, UnrealSkeletonInfo, UnrealSkeletonData);
-		if (UnrealSkeletonData.Num() <= 0)
+		HAPI_AttributeInfo SkeletonAttrInfo;
+		FHoudiniApi::AttributeInfo_Init(&SkeletonAttrInfo);
+		TArray<FString> SkeletonAttrData;
+		FHoudiniEngineUtils::HapiGetAttributeDataAsString(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_SKELETON, SkeletonAttrInfo, SkeletonAttrData);
+		if (SkeletonAttrData.Num() <= 0)
 		{
 			return false;
 		}
 
-		SkeletonAssetPathString = UnrealSkeletonData[0];
+		SkeletonAssetPathString = SkeletonAttrData[0];
+	}
+	else
+	{
+		HOUDINI_LOG_ERROR(TEXT("Required attribute `unreal_skeleton` is missing"));
+		// SkeletonAssetPathString = TEXT("/Script/Engine.Skeleton'/Game/Characters/Mannequin_UE4/Meshes/SK_Mannequin_Skeleton.SK_Mannequin_Skeleton'");
+		return false;
 	}
 
 	const FSoftObjectPath SkeletonAssetPath(SkeletonAssetPathString);
@@ -154,9 +603,9 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 	{
 		return false;
 	}
-
-
-	//BoneNames-----------------------------------------------------------------------------------------------------------------
+	
+	// Collect Bone names from motion clip topology frame
+	
 	HAPI_AttributeInfo BoneNameInfo;
 	FHoudiniApi::AttributeInfo_Init(&BoneNameInfo);
 	HAPI_Result AttributeInfoResult = FHoudiniApi::GetAttributeInfo(
@@ -171,7 +620,7 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 		return false;
 	}
 
-	//Get unique Set of Bones
+	//Get unique set of bone names from the motion clip data
 	TSet<FName> BoneNames;
 	for (auto BoneString : BoneNameData)
 	{
@@ -223,73 +672,13 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 	LocalTransformSizesFixedArray.SetNum(LocalTransformInfo.count);
 	HAPI_Result LocalTransformDataResult = FHoudiniApi::GetAttributeFloatArrayData(FHoudiniEngine::Get().GetSession(), HGPO.GeoId, HGPO.PartId, "localtransform", &LocalTransformInfo, &LocalTransformData[0], LocalTransformInfo.count * LocalTransformInfo.tupleSize, &LocalTransformSizesFixedArray[0], 0, LocalTransformInfo.count);
 
-	////BoneNames---------------------------------------------------------------------------
-	//HAPI_AttributeInfo BoneNameInfo;
-	//FHoudiniApi::AttributeInfo_Init(&BoneNameInfo);
-	//HAPI_Result LocalTransformInfoResult = FHoudiniApi::GetAttributeInfo(
-	//	FHoudiniEngine::Get().GetSession(),
-	//	HGPO.GeoId, HGPO.PartId,
-	//	"name", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &BoneNameInfo);
-
-	//// Extract the StringHandles
-	//TArray<HAPI_StringHandle> BoneNameStringHandles;
-	//TArray<int> BoneNameSizesFixedArray;
-	////BoneNameSizesFixedArray.SetNum(BoneNameInfo.totalArrayElements);
-	////BoneNameStringHandles.Init(-1, BoneNameInfo.totalArrayElements);
-	//BoneNameSizesFixedArray.SetNum(BoneNameInfo.count);
-	//BoneNameStringHandles.Init(-1, BoneNameInfo.count * BoneNameInfo.tupleSize);
-
-	////LocalTransformData.SetNum(LocalTransformInfo.totalArrayElements);
-	////LocalTransformData.SetNum(LocalTransformInfo.count * LocalTransformInfo.tupleSize);
-	////LocalTransformSizesFixedArray.SetNum(LocalTransformInfo.count);
-	//HAPI_Result BoneNameResult = FHoudiniApi::GetAttributeStringArrayData(FHoudiniEngine::Get().GetSession(), HGPO.GeoId, HGPO.PartId, "name", &BoneNameInfo, &BoneNameStringHandles[0], BoneNameInfo.count * BoneNameInfo.tupleSize, &BoneNameSizesFixedArray[0], 0, BoneNameInfo.count);
-
 	TMap <FName, TArray<FVector3f>> PosMap;
 	TMap <FName, TArray<FQuat4f>> RotMap;
 	TMap <FName, TArray<FVector3f>> ScaleMap;
-	//TMap <FName, TArray<FTransform>> MatrixMap;  //
-
-
-	//FName BoneName = TEXT("pelvis");
-	TArray<FVector3f>PositionalKeys;
-	PositionalKeys.Add(FVector3f(0, 0, 0));
-	PositionalKeys.Add(FVector3f(0, 0, 10));
-	PositionalKeys.Add(FVector3f(0, 0, 20));
-	PositionalKeys.Add(FVector3f(0, 0, 30));
-	PositionalKeys.Add(FVector3f(0, 0, 40));
-	PositionalKeys.Add(FVector3f(0, 0, 50));
-	PositionalKeys.Add(FVector3f(0, 0, 60));
-	PositionalKeys.Add(FVector3f(0, 0, 70));
-	PositionalKeys.Add(FVector3f(0, 0, 80));
-	PositionalKeys.Add(FVector3f(0, 0, 90));
-	TArray<FQuat4f>RotationalKeys;
-	RotationalKeys.Add(FQuat4f(FRotator(00, 0, 0).Quaternion()));
-	RotationalKeys.Add(FQuat4f(FRotator(10, 0, 0).Quaternion()));
-	RotationalKeys.Add(FQuat4f(FRotator(20, 0, 0).Quaternion()));
-	RotationalKeys.Add(FQuat4f(FRotator(30, 0, 0).Quaternion()));
-	RotationalKeys.Add(FQuat4f(FRotator(40, 0, 0).Quaternion()));
-	RotationalKeys.Add(FQuat4f(FRotator(50, 0, 0).Quaternion()));
-	RotationalKeys.Add(FQuat4f(FRotator(60, 0, 0).Quaternion()));
-	RotationalKeys.Add(FQuat4f(FRotator(70, 0, 0).Quaternion()));
-	RotationalKeys.Add(FQuat4f(FRotator(80, 0, 0).Quaternion()));
-	RotationalKeys.Add(FQuat4f(FRotator(90, 0, 0).Quaternion()));
-	TArray<FVector3f> ScalingKeys;
-	ScalingKeys.Add(FVector3f(1, 1, 1));
-	ScalingKeys.Add(FVector3f(1, 1, 1));
-	ScalingKeys.Add(FVector3f(1, 1, 1));
-	ScalingKeys.Add(FVector3f(1, 1, 1));
-	ScalingKeys.Add(FVector3f(1, 1, 1));
-	ScalingKeys.Add(FVector3f(1, 1, 1));
-	ScalingKeys.Add(FVector3f(1, 1, 1));
-	ScalingKeys.Add(FVector3f(1, 1, 1));
-	ScalingKeys.Add(FVector3f(1, 1, 1));
-	ScalingKeys.Add(FVector3f(1, 1, 1));
-
-
 
 	//Build Matrix
 	int BoneCount = BoneNames.Num();
-	int FrameCount = LocalTransformData.Num() / (16 * BoneCount);
+	// int FrameCount = LocalTransformData.Num() / (16 * BoneCount);
 	int FrameIndex = 0;
 	int BoneCounter = 0;
 	TMap <int, TMap <FName, FTransform>> FrameBoneTransformMap;  //For each frame, store bone and transform
@@ -301,45 +690,31 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 
 	//TArray<FMatrix> MatrixData;
 	//BoneNameData has like 4147
-	for (int BoneIndex = 0; BoneIndex < BoneNameData.Num(); BoneIndex++)  //For each frame, store off matrix into BoneMatrixMap
+	const int32 StrideSize = BoneCount;
+	for (int BoneDataIndex = StrideSize; BoneDataIndex < BoneNameData.Num(); BoneDataIndex++)  //For each frame, store off matrix into BoneMatrixMap
 	{
-		FString BoneString = BoneNameData[BoneIndex];
+		FString BoneString = BoneNameData[BoneDataIndex];
 		FName BoneName = FName(BoneString);
 
 
 		//Read in 3x3 into Matrix, and append the translation
 		FMatrix M44Pose;  //this is unconverted houdini space
-		M44Pose.M[0][0] = WorldTransformData[9 * BoneIndex + 0];
-		M44Pose.M[0][1] = WorldTransformData[9 * BoneIndex + 1];
-		M44Pose.M[0][2] = WorldTransformData[9 * BoneIndex + 2];
+		M44Pose.M[0][0] = WorldTransformData[9 * BoneDataIndex + 0];
+		M44Pose.M[0][1] = WorldTransformData[9 * BoneDataIndex + 1];
+		M44Pose.M[0][2] = WorldTransformData[9 * BoneDataIndex + 2];
 		M44Pose.M[0][3] = 0;
-		M44Pose.M[1][0] = WorldTransformData[9 * BoneIndex + 3];
-		M44Pose.M[1][1] = WorldTransformData[9 * BoneIndex + 4];
-		M44Pose.M[1][2] = WorldTransformData[9 * BoneIndex + 5];
+		M44Pose.M[1][0] = WorldTransformData[9 * BoneDataIndex + 3];
+		M44Pose.M[1][1] = WorldTransformData[9 * BoneDataIndex + 4];
+		M44Pose.M[1][2] = WorldTransformData[9 * BoneDataIndex + 5];
 		M44Pose.M[1][3] = 0;
-		M44Pose.M[2][0] = WorldTransformData[9 * BoneIndex + 6];
-		M44Pose.M[2][1] = WorldTransformData[9 * BoneIndex + 7];
-		M44Pose.M[2][2] = WorldTransformData[9 * BoneIndex + 8];
+		M44Pose.M[2][0] = WorldTransformData[9 * BoneDataIndex + 6];
+		M44Pose.M[2][1] = WorldTransformData[9 * BoneDataIndex + 7];
+		M44Pose.M[2][2] = WorldTransformData[9 * BoneDataIndex + 8];
 		M44Pose.M[2][3] = 0;
-		M44Pose.M[3][0] = PositionData[BoneIndex].X;
-		M44Pose.M[3][1] = PositionData[BoneIndex].Y;
-		M44Pose.M[3][2] = PositionData[BoneIndex].Z;
+		M44Pose.M[3][0] = PositionData[BoneDataIndex].X;
+		M44Pose.M[3][1] = PositionData[BoneDataIndex].Y;
+		M44Pose.M[3][2] = PositionData[BoneDataIndex].Z;
 		M44Pose.M[3][3] = 1;
-
-		//FMatrix M44;
-		//int32 row = 0;
-		//int32 col = 0;
-		//for (int32 i = 0; i < 16; i++)
-		//{
-		//	M44.M[row][col] = LocalTransformData[16 * BoneIndex + i];  //now need world transform instead
-		//	col++;
-		//	if (col > 3)
-		//	{
-		//		row++;
-		//		col = 0;
-		//	}
-		//}
-		//MatrixData.Add(M44);
 
 		FTransform PoseTransform = FTransform(M44Pose);//this is in Houdini Space
 		//Now convert to unreal
@@ -358,8 +733,6 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 
 		TMap <FName, FTransform>& BoneTransformMap = FrameBoneTransformMap.FindOrAdd(FrameIndex);
 		BoneTransformMap.Add(BoneName, UnrealPoseTransform);
-
-		UE_LOG(LogTemp, Log, TEXT("Adding Frame %i Bone %s BoneCounter %i "), FrameIndex, *BoneName.ToString(), BoneCounter);
 
 		BoneCounter++;
 		if (BoneCounter > BoneCount - 1)
@@ -381,45 +754,40 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 	for (int Frame : Frames)
 	{
 		TMap <FName, FTransform>* BoneTransformMap = FrameBoneTransformMap.Find(Frame);
-		int BoneIndex = 0;
 		for (auto& Elem : *BoneTransformMap)
 		{
-			FName CurrentBoneName = Elem.Key;
-			FName BoneName = RefSkeleton.GetBoneName(BoneIndex);
-			int32 ParentBoneIndex = 0;
+			const FName CurrentBoneName = Elem.Key;
+			const int32 BoneRefIndex = RefSkeleton.FindBoneIndex(CurrentBoneName);
 			FName ParentBoneName = CurrentBoneName;
-			if (BoneIndex > 0)
+			if (BoneRefIndex > 0)
 			{
-				ParentBoneIndex = RefSkeleton.GetParentIndex(BoneIndex);
+				int32 ParentBoneIndex = 0;
+				ParentBoneIndex = RefSkeleton.GetParentIndex(BoneRefIndex);
 				ParentBoneName = RefSkeleton.GetBoneName(ParentBoneIndex);
 			}
+			if (!BoneTransformMap->Contains(ParentBoneName))
+			{
+				continue;
+			}
 			FTransform ParentCSXform = *BoneTransformMap->Find(ParentBoneName);
+			
 			FTransform BoneCSXform = Elem.Value;
 			FTransform BoneLXform = BoneCSXform * ParentCSXform.Inverse(); //Final
 			//Store
-			TArray<FTransform>& KeyTransformArray = BoneKeyMap.FindOrAdd(BoneName);
+			TArray<FTransform>& KeyTransformArray = BoneKeyMap.FindOrAdd(CurrentBoneName);
 			KeyTransformArray.Add(BoneLXform);
-			TArray<FVector3f>& KeyPosArray = BonePosMap.FindOrAdd(BoneName);
+			TArray<FVector3f>& KeyPosArray = BonePosMap.FindOrAdd(CurrentBoneName);
 			FVector Pos = BoneLXform.GetLocation();
 			KeyPosArray.Add(FVector3f(Pos));
-			TArray<FQuat4f>& KeyRotArray = BoneRotMap.FindOrAdd(BoneName);
+			TArray<FQuat4f>& KeyRotArray = BoneRotMap.FindOrAdd(CurrentBoneName);
 			FQuat Q = BoneLXform.GetRotation();
 			KeyRotArray.Add(FQuat4f(Q));
-			TArray<FVector3f>& KeyScaleArray = BoneScaleMap.FindOrAdd(BoneName);
+			TArray<FVector3f>& KeyScaleArray = BoneScaleMap.FindOrAdd(CurrentBoneName);
 			FVector Scale = BoneLXform.GetScale3D();
 			KeyScaleArray.Add(FVector3f(Scale));
-
-			BoneIndex++;
 		}
 	}
-
-
-	for (auto Bone : BoneNames)  //loop over all bones
-	{
-		PosMap.Add(Bone, PositionalKeys);
-		RotMap.Add(Bone, RotationalKeys);
-		ScaleMap.Add(Bone, ScalingKeys);
-	}
+	
 
 	const int32 FrameRate30 = 30;
 	NewAnimation->ResetAnimation();
@@ -446,8 +814,18 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 		bool bShouldTransact = true;
 		for (auto Bone : BoneNames)  //loop over all bones
 		{
-			AnimController.AddBoneCurve(Bone, bShouldTransact);
-			AnimController.SetBoneTrackKeys(Bone, *BonePosMap.Find(Bone), *BoneRotMap.Find(Bone), *BoneScaleMap.Find(Bone), bShouldTransact);
+			//QUESTION:  What to do if no tracks for bone? Skip?
+			//TODO Need to insert tracks for missing bones?
+			if (BonePosMap.Contains(Bone) && BoneRotMap.Contains(Bone) && BoneScaleMap.Contains(Bone))
+			{
+				AnimController.AddBoneCurve(Bone, bShouldTransact);
+
+				AnimController.SetBoneTrackKeys(Bone, *BonePosMap.Find(Bone), *BoneRotMap.Find(Bone), *BoneScaleMap.Find(Bone), bShouldTransact);
+			}
+			else
+			{
+				HOUDINI_LOG_WARNING(TEXT("Anim data is missing bone %s "), Bone);
+			}
 		}
 		
 		AnimController.NotifyPopulated();
