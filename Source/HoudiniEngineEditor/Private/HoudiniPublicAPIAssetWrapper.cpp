@@ -676,6 +676,79 @@ UHoudiniPublicAPIAssetWrapper::IsAutoCookingEnabled_Implementation() const
 }
 
 bool
+UHoudiniPublicAPIAssetWrapper::SetCookOnParameterOrInputChanges_Implementation(const bool bInSetEnabled)
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	if (HAC->bCookOnParameterChange == bInSetEnabled)
+		return false;
+
+	HAC->bCookOnParameterChange = bInSetEnabled;
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::IsCookOnParameterOrInputChangesEnabled_Implementation() const
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	return HAC->bCookOnParameterChange;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::SetCookOnTransformChange_Implementation(const bool bInSetEnabled)
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	if (HAC->bCookOnTransformChange == bInSetEnabled)
+		return false;
+
+	HAC->bCookOnTransformChange = bInSetEnabled;
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::IsCookOnTransformChangeEnabled_Implementation() const
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	return HAC->bCookOnTransformChange;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::SetCookOnAssetInputCook_Implementation(const bool bInSetEnabled)
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	if (HAC->bCookOnAssetInputCook == bInSetEnabled)
+		return false;
+
+	HAC->bCookOnAssetInputCook = bInSetEnabled;
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::IsCookOnAssetInputCookEnabled_Implementation() const
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	return HAC->bCookOnAssetInputCook;
+}
+
+
+bool
 UHoudiniPublicAPIAssetWrapper::SetFloatParameterValue_Implementation(FName InParameterTupleName, float InValue, int32 InAtIndex, bool bInMarkChanged)
 {
 	UHoudiniParameter* Param = FindValidParameterByName(InParameterTupleName);

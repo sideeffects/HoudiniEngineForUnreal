@@ -415,6 +415,42 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
 	bool IsAutoCookingEnabled() const;
 
+	/**
+	 * Enable or disable triggering of an auto-cook on parameter/input changes.
+	 * @param bInSetEnabled Whether or not to trigger an auto-cook on parameter/input changes.
+	 * @return true if the value was changed.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetCookOnParameterOrInputChanges(const bool bInSetEnabled);
+
+	/** Returns true if triggering a cook on parameter/input changes is enabled for this instantiated asset. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool IsCookOnParameterOrInputChangesEnabled() const;
+
+	/**
+	 * Enable or disable triggering of an auto-cook on transform changes.
+	 * @param bInSetEnabled Whether or not to trigger an auto-cook on transform changes.
+	 * @return true if the value was changed.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetCookOnTransformChange(const bool bInSetEnabled);
+
+	/** Returns true if triggering a cook on transform changes is enabled for this instantiated asset. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool IsCookOnTransformChangeEnabled() const;
+
+	/**
+	 * Enable or disable triggering of an auto-cook on asset input cooks.
+	 * @param bInSetEnabled Whether or not to trigger an auto-cook on asset input cooks.
+	 * @return true if the value was changed.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetCookOnAssetInputCook(const bool bInSetEnabled);
+
+	/** Returns true if triggering a cook on asset input cooks is enabled for this instantiated asset. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool IsCookOnAssetInputCookEnabled() const;
+
 	// Baking
 
 	/**
