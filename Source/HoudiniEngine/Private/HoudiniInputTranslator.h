@@ -361,6 +361,15 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const TArray<FString>& MaterialReferences = TArray<FString>());
 
 	//static bool HapiUpdateInputNodeTransform(const HAPI_NodeId InputNodeId, const FTransform& Transform);
-	
+
+	// Create a Merge SOP. If InInOutMergeNodeId is set to >= 0 then the node will be deleted, if valid, after the
+	// merge SOP is created. The inputs of the Merge SOP are set to InNodeIdsToConnect. 
+	static bool CreateMergeSOP(
+		HAPI_NodeId& InOutMergeNodeId,
+		const TArray<HAPI_NodeId>& InNodeIdsToConnect,
+		const FString& InMergeNodeName);
+
+	// Set InNodeIdsToConenct as the inputs of the Merge SOP InMergeNodeId.
+	static bool SetMergeSOPInputs(const HAPI_NodeId InMergeNodeId, const TArray<HAPI_NodeId>& InNodeIdsToConnect);
 };
 

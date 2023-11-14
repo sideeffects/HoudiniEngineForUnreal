@@ -693,6 +693,21 @@ UHoudiniInputLevelInstance::GetLevelInstance() const
 	return Cast<ALevelInstance>(InputObject.LoadSynchronous());
 }
 
+void
+UHoudiniInputLevelInstance::InvalidateData()
+{
+	// Invalidate data on the tracked actor objects
+	for (const auto& Entry : TrackedActorObjects)
+	{
+		UHoudiniInputObject* const TrackedObject = Entry.Value;
+		if (!IsValid(TrackedObject))
+			continue;
+		TrackedObject->InvalidateData();
+	}
+
+	Super::InvalidateData();
+}
+
 ALandscapeProxy*
 UHoudiniInputLandscape::GetLandscapeProxy() const
 {
@@ -2629,6 +2644,25 @@ bool UHoudiniInputPackedLevelActor::HasContentChanged(const FHoudiniInputObjectS
 APackedLevelActor* UHoudiniInputPackedLevelActor::GetPackedLevelActor() const
 {
 	return Cast<APackedLevelActor>(InputObject.LoadSynchronous());
+}
+
+void UHoudiniInputPackedLevelActor::InvalidateData()
+{
+	// Invalidate BP input object
+	if (IsValid(BlueprintInputObject))
+		BlueprintInputObject->InvalidateData();
+
+	Super::InvalidateData();
+}
+
+bool UHoudiniInputPackedLevelActor::ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const
+{
+	// Only track components when the old input system is being used: the old input system treats a packed level actor
+	// instance like a normal actor/world input
+	const bool bExportLevelInstanceContent = InSettings ? InSettings->bExportLevelInstanceContent : CachedInputSettings.bExportLevelInstanceContent;
+	if (!FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled() && bExportLevelInstanceContent)
+		return Super::ShouldTrackComponent(InComponent, InSettings);
+	return false;
 }
 
 bool UHoudiniInputLandscape::ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const

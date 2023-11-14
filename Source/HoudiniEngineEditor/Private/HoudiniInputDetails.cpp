@@ -1477,7 +1477,7 @@ FHoudiniInputDetails::AddLevelInstanceExportCheckboxes(TSharedRef< SVerticalBox 
 			[
 				SNew( STextBlock )
 				.Text( LOCTEXT( "ExportLevelInstanceContent", "Export Level Instance Content" ) )
-				.ToolTipText( LOCTEXT( "ExportLevelInstanceContentCheckboxTip", "If enabled, level instance content will be sent to Houdini. Only supported in the new input system." ) )
+				.ToolTipText( LOCTEXT( "ExportLevelInstanceContentCheckboxTip", "If enabled, level instance content will be sent to Houdini." ) )
 				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 			]
 			.IsChecked_Lambda([=]()
@@ -1487,11 +1487,6 @@ FHoudiniInputDetails::AddLevelInstanceExportCheckboxes(TSharedRef< SVerticalBox 
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 			{
 				return CheckStateChangedExportLevelInstanceContent(InInputs, NewState);
-			})
-			.IsEnabled_Lambda([]()
-			{
-				// Exporting level instance content is only supported in the new input system
-				return FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 			})
 		]
 	];
