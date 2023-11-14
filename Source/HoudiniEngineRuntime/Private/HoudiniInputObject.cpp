@@ -451,7 +451,16 @@ UHoudiniInputHoudiniAsset::GetHoudiniAssetComponent()
 AActor*
 UHoudiniInputActor::GetActor() const
 {
-	return Cast<AActor>(InputObject.LoadSynchronous());
+	AActor * Actor = Cast<AActor>(InputObject.LoadSynchronous());
+	if (!Actor)
+		return Actor;
+
+	// Ensure transforms are up to date. It will not be if using sub levels.
+	USceneComponent* RootComponent = Actor->GetRootComponent();
+	if (IsValid(RootComponent))
+		RootComponent->ConditionalUpdateComponentToWorld();
+
+	return Actor;
 }
 
 ALandscapeProxy*
