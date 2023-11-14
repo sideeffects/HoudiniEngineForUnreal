@@ -887,6 +887,8 @@ public:
 
 	const TMap<TSoftObjectPtr<AActor>, UHoudiniInputObject*>& GetTrackedActorObjects() const { return TrackedActorObjects; }
 
+	virtual void InvalidateData() override;
+
 private:
 	UPROPERTY()
 	TMap<TSoftObjectPtr<AActor>, UHoudiniInputObject*> TrackedActorObjects;
@@ -1204,9 +1206,11 @@ public:
 
 	APackedLevelActor* GetPackedLevelActor() const;
 
-	virtual bool ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const override { return false; }
+	virtual bool ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const override;
 
 	UHoudiniInputBlueprint* GetBlueprintInputObject() const { return BlueprintInputObject; }
+
+	virtual void InvalidateData() override;
 	
 private:
 	UPROPERTY()

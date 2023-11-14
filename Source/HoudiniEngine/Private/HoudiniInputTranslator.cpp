@@ -4049,12 +4049,39 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLevelInstance(
 	HAPI_NodeId InputNodeId = InObject->GetInputNodeId();
 	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 
-	// Sending the content is only supported in the new input system
-	if (InInputSettings.bExportLevelInstanceContent && bUseRefCountedInputSystem)
+	if (InInputSettings.bExportLevelInstanceContent)
 	{
-		const FUnrealObjectInputOptions LevelInstanceNodeOptions = FUnrealObjectInputOptions::MakeOptionsForLevelInstanceActor(InInputSettings);
-		const FUnrealObjectInputIdentifier LevelInstanceId(LevelInstance->GetWorldAsset().LoadSynchronous(), LevelInstanceNodeOptions, false);
-		if (!FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(LevelInstanceId, InputNodeHandle))
+		if (bUseRefCountedInputSystem)
+		{
+			const FUnrealObjectInputOptions LevelInstanceNodeOptions = FUnrealObjectInputOptions::MakeOptionsForLevelInstanceActor(InInputSettings);
+			const FUnrealObjectInputIdentifier LevelInstanceId(LevelInstance->GetWorldAsset().LoadSynchronous(), LevelInstanceNodeOptions, false);
+			if (!FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(LevelInstanceId, InputNodeHandle))
+			{
+				// Process each actor in the level instance
+				TArray<int32> NodeIds;
+				TSet<FUnrealObjectInputHandle> Handles;
+				for (auto& Entry : InObject->GetTrackedActorObjects())
+				{
+					UHoudiniInputObject* const InputObject = Entry.Value;
+					if (!IsValid(InputObject))
+						continue;
+
+					UploadHoudiniInputObject(InInput, InputObject, FTransform::Identity, NodeIds, Handles, bInputNodesCanBeDeleted);
+				}
+
+				// Create/Update the level instance' merge / reference node
+				FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(LevelInstanceId, Handles, InputNodeHandle);
+			}
+
+			// Make a reference node for the actor
+			const FUnrealObjectInputIdentifier ActorInputNodeId(LevelInstance, LevelInstanceNodeOptions, false);
+			// Create/update the input-specific merge node for this level instance, on which we can apply the actor transform
+			FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(ActorInputNodeId, { InputNodeHandle }, InObject->InputNodeHandle);
+
+			OutCreatedNodeIds.Add(InObject->GetInputObjectNodeId());
+			OutHandles.Add(InObject->InputNodeHandle);
+		}
+		else
 		{
 			// Process each actor in the level instance
 			TArray<int32> NodeIds;
@@ -4068,14 +4095,15 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLevelInstance(
 				UploadHoudiniInputObject(InInput, InputObject, FTransform::Identity, NodeIds, Handles, bInputNodesCanBeDeleted);
 			}
 
-			// Create/Update the level instance' merge / reference node
-			FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(LevelInstanceId, Handles, InputNodeHandle);
-		}
+			// Create a merge SOP and apply the level instance's transform to its object node
+			if (!CreateMergeSOP(InputNodeId, NodeIds, LevelInstance->GetActorNameOrLabel() + TEXT("_Merge")))
+				return false;
 
-		// Make a reference node for the actor
-		const FUnrealObjectInputIdentifier ActorInputNodeId(LevelInstance, LevelInstanceNodeOptions, false);
-		// Create/update the input-specific merge node for this level instance, on which we can apply the actor transform
-		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(ActorInputNodeId, { InputNodeHandle }, InObject->InputNodeHandle);
+			InObject->SetInputNodeId(InputNodeId);
+			InObject->SetInputObjectNodeId(FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId));
+
+			OutCreatedNodeIds.Add(InputNodeId);
+		}
 	}
 	else
 	{
@@ -4083,21 +4111,21 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLevelInstance(
 			LevelInstance, InInput, InputNodeId, LevelInstanceName, InputNodeHandle, bInputNodesCanBeDeleted))
 				return false;
 		InObject->InputNodeHandle = InputNodeHandle;
-	}
 
-	if (!bUseRefCountedInputSystem)
-	{
-		InObject->SetInputNodeId((int32)InputNodeId);
-		InObject->SetInputObjectNodeId((int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId));
+		if (!bUseRefCountedInputSystem)
+		{
+			InObject->SetInputNodeId((int32)InputNodeId);
+			InObject->SetInputObjectNodeId((int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId));
+		}
+
+		OutCreatedNodeIds.Add(InObject->GetInputObjectNodeId());
+		OutHandles.Add(InObject->InputNodeHandle);
 	}
 
 	if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), InObject->GetHoudiniObjectTransform()))
 		return false;
 
 	InObject->Update(LevelInstance, InInputSettings);
-
-	OutCreatedNodeIds.Add(InObject->GetInputObjectNodeId());
-	OutHandles.Add(InObject->InputNodeHandle);
 
 	return true;
 }
@@ -4124,32 +4152,54 @@ FHoudiniInputTranslator::HapiCreateInputNodeForPackedLevelActor(
 	HAPI_NodeId InputNodeId = InObject->GetInputNodeId();
 	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 
-	// Sending the content is only supported in the new input system
-	if (InInputSettings.bExportLevelInstanceContent && bUseRefCountedInputSystem)
+	if (InInputSettings.bExportLevelInstanceContent)
 	{
-		// Process the underlying BP of the packed level actor
-		UHoudiniInputBlueprint* const InputBP = InObject->GetBlueprintInputObject();
-		if (!IsValid(InputBP))
-			return false;
-		
-		TArray<int32> NodeIds;
-		TSet<FUnrealObjectInputHandle> Handles;
-		// Now, commit all of this BP's component
-		TSet<FUnrealObjectInputHandle> ComponentHandles;
-		for (UHoudiniInputSceneComponent* CurComponent : InputBP->GetComponents())
+		if (bUseRefCountedInputSystem)
 		{
-			if (UploadHoudiniInputObject(InInput, CurComponent, FTransform::Identity, NodeIds, Handles, bInputNodesCanBeDeleted))
-				ComponentHandles.Add(CurComponent->InputNodeHandle);
-		}
+			// Process the underlying BP of the packed level actor
+			UHoudiniInputBlueprint* const InputBP = InObject->GetBlueprintInputObject();
+			if (!IsValid(InputBP))
+				return false;
 
-		// Make a reference node for the BP asset
-		const FUnrealObjectInputOptions Options = FUnrealObjectInputOptions::MakeOptionsForPackedLevelActor(InInputSettings);
-		const FUnrealObjectInputIdentifier BPAssetNodeId(InputBP->GetBlueprint(), Options, false);
-		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(BPAssetNodeId, Handles, InputBP->InputNodeHandle);
+			TArray<int32> NodeIds;
+			TSet<FUnrealObjectInputHandle> Handles;
+			// Now, commit all of this BP's component
+			TSet<FUnrealObjectInputHandle> ComponentHandles;
+			for (UHoudiniInputSceneComponent* CurComponent : InputBP->GetComponents())
+			{
+				if (UploadHoudiniInputObject(InInput, CurComponent, FTransform::Identity, NodeIds, Handles, bInputNodesCanBeDeleted))
+				{
+					if (bUseRefCountedInputSystem)
+						ComponentHandles.Add(CurComponent->InputNodeHandle);
+				}
+			}
+
+			// Make a reference node for the BP asset
+			const FUnrealObjectInputOptions Options = FUnrealObjectInputOptions::MakeOptionsForPackedLevelActor(InInputSettings);
+			const FUnrealObjectInputIdentifier BPAssetNodeId(InputBP->GetBlueprint(), Options, false);
+			FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(BPAssetNodeId, Handles, InputBP->InputNodeHandle);
 		
-		// Make a reference node for the actor
-		const FUnrealObjectInputIdentifier ActorInputNodeId(PackedLevelActor, Options, false);
-		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(ActorInputNodeId, { InputBP->InputNodeHandle }, InObject->InputNodeHandle);
+			// Make a reference node for the actor
+			const FUnrealObjectInputIdentifier ActorInputNodeId(PackedLevelActor, Options, false);
+			FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(ActorInputNodeId, { InputBP->InputNodeHandle }, InObject->InputNodeHandle);
+			
+			if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), InObject->GetHoudiniObjectTransform()))
+				return false;
+
+			OutCreatedNodeIds.Add(InObject->GetInputObjectNodeId());
+			OutHandles.Add(InObject->InputNodeHandle);
+		}
+		else
+		{
+			// Clean up the old Input Node, if valid. This will happen if on the previous input upload "Export Level Instance Content"
+			// was disabled.
+			const HAPI_NodeId PrevObjectNodeId = InObject->GetInputObjectNodeId();
+			if (PrevObjectNodeId >= 0 && FHoudiniEngineUtils::IsHoudiniNodeValid(PrevObjectNodeId))
+				FHoudiniEngineUtils::DeleteHoudiniNode(PrevObjectNodeId);
+
+			if (!HapiCreateInputNodeForActor(InInput, InObject, FTransform::Identity, OutCreatedNodeIds, OutHandles, bInputNodesCanBeDeleted))
+				return false;
+		}
 	}
 	else
 	{
@@ -4157,21 +4207,20 @@ FHoudiniInputTranslator::HapiCreateInputNodeForPackedLevelActor(
 			PackedLevelActor, InInput, InputNodeId, LevelInstanceName, InputNodeHandle, bInputNodesCanBeDeleted))
 				return false;
 		InObject->InputNodeHandle = InputNodeHandle;
+		if (!bUseRefCountedInputSystem)
+		{
+			InObject->SetInputNodeId((int32)InputNodeId);
+			InObject->SetInputObjectNodeId((int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId));
+		}
+		
+		if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), InObject->GetHoudiniObjectTransform()))
+			return false;
+		
+		OutCreatedNodeIds.Add(InObject->GetInputObjectNodeId());
+		OutHandles.Add(InObject->InputNodeHandle);
 	}
-
-	if (!bUseRefCountedInputSystem)
-	{
-		InObject->SetInputNodeId((int32)InputNodeId);
-		InObject->SetInputObjectNodeId((int32)FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId));
-	}
-
-	if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), InObject->GetHoudiniObjectTransform()))
-		return false;
 
 	InObject->Update(PackedLevelActor, InInputSettings);
-
-	OutCreatedNodeIds.Add(InObject->GetInputObjectNodeId());
-	OutHandles.Add(InObject->InputNodeHandle);
 
 	return true;
 }
@@ -5084,6 +5133,128 @@ bool FHoudiniInputTranslator::UploadDataLayers(UHoudiniInput* InInput, FHoudiniU
 	return true;
 }
 
+bool
+FHoudiniInputTranslator::CreateMergeSOP(
+	HAPI_NodeId& InOutMergeNodeId,
+	const TArray<HAPI_NodeId>& InNodeIdsToConnect,
+	const FString& InMergeNodeName)
+{
+	HAPI_NodeId NodeId = -1;
+
+	// Create the merge node
+	if (FHoudiniEngineUtils::CreateNode(-1, TEXT("SOP/merge"), InMergeNodeName, true, &NodeId) != HAPI_RESULT_SUCCESS)
+		return false;
+
+	// If the previous node was valid, attempt to delete it
+	if (InOutMergeNodeId >= 0 && FHoudiniEngineUtils::IsHoudiniNodeValid(InOutMergeNodeId))
+	{
+		const HAPI_NodeId ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InOutMergeNodeId);
+		if (ObjectNodeId >= 0)
+			FHoudiniEngineUtils::DeleteHoudiniNode(ObjectNodeId);
+		else
+			FHoudiniEngineUtils::DeleteHoudiniNode(InOutMergeNodeId);
+	}
+
+	InOutMergeNodeId = NodeId;
+
+	if (!SetMergeSOPInputs(InOutMergeNodeId, InNodeIdsToConnect))
+		return false;
+
+	return true;
+}
+
+bool
+FHoudiniInputTranslator::SetMergeSOPInputs(const HAPI_NodeId InMergeNodeId, const TArray<HAPI_NodeId>& InNodeIdsToConnect)
+{
+	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(InMergeNodeId))
+		return false;
+
+	const HAPI_Session* const Session = FHoudiniEngine::Get().GetSession();
+
+	// Get currently connected inputs
+	TArray<HAPI_NodeId> PrevConnectedNodes;
+	HAPI_NodeInfo NodeInfo;
+	FHoudiniApi::NodeInfo_Init(&NodeInfo);
+	if (FHoudiniApi::GetNodeInfo(Session, InMergeNodeId, &NodeInfo) == HAPI_RESULT_SUCCESS)
+	{
+		// There is no function in HAPI currently to directly get the number of _connected_ input nodes or to
+		// compose a list of the connected input nodes.
+		// Nodes with "infinite" inputs, such as the Merge SOP, always have NodeInfo.inputCount == 9999. So we
+		// stop iteration at the first disconnected input instead of visiting all 9999 possible indices.
+		for (int32 InputIndex = 0; InputIndex < NodeInfo.inputCount; ++InputIndex)
+		{
+			HAPI_NodeId ConnectedInputNodeId = -1;
+			if (FHoudiniApi::QueryNodeInput(Session, InMergeNodeId, InputIndex, &ConnectedInputNodeId) != HAPI_RESULT_SUCCESS || ConnectedInputNodeId < 0)
+				break;
+			PrevConnectedNodes.Add(ConnectedInputNodeId);
+		}
+	}
+
+	// Connect referenced nodes
+	TSet<HAPI_NodeId> ConnectedNodeSet;
+	int32 InputIndex = 0;
+	for (const HAPI_NodeId& NodeId : InNodeIdsToConnect)
+	{
+		if (NodeId < 0)
+			continue;
+
+		// Connect the current input object to the merge node
+		if (FHoudiniApi::ConnectNodeInput(Session, InMergeNodeId, InputIndex, NodeId, 0) != HAPI_RESULT_SUCCESS)
+		{
+			HOUDINI_LOG_WARNING(TEXT("[FUnrealObjectInputUtils::ConnectReferencedNodes] Failed to connected node input: %s"), *FHoudiniEngineUtils::GetErrorDescription());
+			continue;
+		}
+		// HAPI will automatically create a object_merge node (we are expecting that NodeId and RefNodeId are never in
+		// the same network), we need to set the xformtype to "Into specified object"
+		HAPI_NodeId ConnectedNodeId = -1;
+		if (FHoudiniApi::QueryNodeInput(Session, InMergeNodeId, InputIndex, &ConnectedNodeId) != HAPI_RESULT_SUCCESS)
+		{
+			HOUDINI_LOG_WARNING(TEXT("[FUnrealObjectInputUtils::ConnectReferencedNodes] Failed to query connected node input: %s"), *FHoudiniEngineUtils::GetErrorDescription());
+			continue;
+
+		}
+		InputIndex++;
+
+		if (ConnectedNodeId < 0)
+		{
+			// No connection was made even though the previous functions were successful!?
+			continue;
+		}
+
+		ConnectedNodeSet.Add(ConnectedNodeId);
+		
+		// Set the transform value to "Into Specified Object"
+		// Set the transform object to the world origin null from the manager
+		FUnrealObjectInputUtils::SetObjectMergeXFormTypeToWorldOrigin(ConnectedNodeId);
+	}
+
+	// Disconnect previously connected nodes at indices >= FirstUnusedInputIndex
+	// Disconnect in reverse: inputs are consolidated on disconnect on "infinite" input nodes like the Merge SOP
+	const int32 FirstUnusedInputIndex = InputIndex; 
+	for (int32 InputIndexToDelete = PrevConnectedNodes.Num(); InputIndexToDelete >= FirstUnusedInputIndex; --InputIndexToDelete)
+	{
+		HOUDINI_CHECK_ERROR(FHoudiniApi::DisconnectNodeInput(Session, InMergeNodeId, InputIndexToDelete));
+	}
+
+	// Delete nodes from previous connections that are no longer used (the object merge SOPs automatically created
+	// by HAPI) 
+	for (const HAPI_NodeId& NodeToDeleteId : PrevConnectedNodes)
+	{
+		if (ConnectedNodeSet.Contains(NodeToDeleteId))
+			continue;
+		// Check that the node is valid / still exists before attempting to delete the node
+		HAPI_NodeInfo NodeToDeleteInfo;
+		FHoudiniApi::NodeInfo_Init(&NodeToDeleteInfo);
+		if (FHoudiniApi::GetNodeInfo(Session, NodeToDeleteId, &NodeInfo) != HAPI_RESULT_SUCCESS)
+			continue;
+		bool bNodeIsValid = false;
+		if (FHoudiniApi::IsNodeValid(Session, NodeToDeleteId, NodeInfo.uniqueHoudiniNodeId, &bNodeIsValid) != HAPI_RESULT_SUCCESS || !bNodeIsValid)
+			continue;
+		HOUDINI_CHECK_ERROR(FHoudiniApi::DeleteNode(Session, NodeToDeleteId));
+	}
+	
+	return true;
+}
 
 
 #undef LOCTEXT_NAMESPACE
