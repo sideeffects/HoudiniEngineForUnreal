@@ -287,6 +287,13 @@ protected:
 	UPROPERTY()
 	FTransform Transform;
 
+public:
+	// While the Transform property represents the transform, we need to keep a human readable version of the Rotation
+	// ie. not just a Quaternion, or the UI becomes non-sensical to humans, since converting too and from Roll,Pitch,Yaw
+	// and Quaternion ends up with different results.
+	UPROPERTY()
+	FRotator UserInputRotator;
+
 private:
 	// This input object's "main" (SOP) NodeId
 	UPROPERTY(Transient, DuplicateTransient, NonTransactional)

@@ -2429,7 +2429,29 @@ UHoudiniInput::GetTransformOffset(const int32& AtIndex)
 	return nullptr;
 }
 
-const FTransform
+void
+UHoudiniInput::SetUserInputAndTransformRotators(int AtIndex, const FRotator& Rotator)
+{
+	UHoudiniInputObject* InObject = GetHoudiniInputObjectAt(AtIndex);
+	if (!InObject)
+		return;
+
+	// Set both the User Input and the transform.
+	InObject->UserInputRotator = Rotator;
+	InObject->GetTransform().SetRotation(Rotator.Quaternion());
+}
+
+FRotator
+UHoudiniInput::GetUserInputRotator(int AtIndex) const
+{
+	const UHoudiniInputObject* InObject = GetHoudiniInputObjectAt(AtIndex);
+	if (InObject)
+		return InObject->UserInputRotator;
+
+	return FRotator::ZeroRotator;
+}
+
+FTransform
 UHoudiniInput::GetTransformOffset(const int32& AtIndex) const
 {
 	const UHoudiniInputObject* InObject = GetHoudiniInputObjectAt(AtIndex);
@@ -2458,21 +2480,21 @@ UHoudiniInput::GetPositionOffsetZ(int32 AtIndex) const
 }
 
 TOptional<float>
-UHoudiniInput::GetRotationOffsetRoll(int32 AtIndex) const
+UHoudiniInput::GetUserInputRoll(int32 AtIndex) const
 {
-	return GetTransformOffset(AtIndex).Rotator().Roll;
+	return GetUserInputRotator(AtIndex).Roll;
 }
 
 TOptional<float>
-UHoudiniInput::GetRotationOffsetPitch(int32 AtIndex) const
+UHoudiniInput::GetUserInputPitch(int32 AtIndex) const
 {
-	return GetTransformOffset(AtIndex).Rotator().Pitch;
+	return GetUserInputRotator(AtIndex).Pitch;
 }
 
 TOptional<float>
-UHoudiniInput::GetRotationOffsetYaw(int32 AtIndex) const
+UHoudiniInput::GetUserInputYaw(int32 AtIndex) const
 {
-	return GetTransformOffset(AtIndex).Rotator().Yaw;
+	return GetUserInputRotator(AtIndex).Yaw;
 }
 
 TOptional<float>
@@ -2500,6 +2522,8 @@ UHoudiniInput::SetTransformOffsetAt(const float& Value, const int32& AtIndex, co
 	if (!Transform)
 		return false;
 
+	FRotator UIRotator = GetUserInputRotator(AtIndex);
+
 	if (PosRotScaleIndex == 0)
 	{
 		FVector Position = Transform->GetLocation();
@@ -2510,34 +2534,34 @@ UHoudiniInput::SetTransformOffsetAt(const float& Value, const int32& AtIndex, co
 	}
 	else if (PosRotScaleIndex == 1)
 	{
-		FRotator Rotator = Transform->Rotator();
+	//	FRotator Rotator = Transform->Rotator();
 		switch (XYZIndex)
 		{
 			case 0:
 			{
-				if (Rotator.Roll == Value)
+				if (UIRotator.Roll == Value)
 					return false;
-				Rotator.Roll = Value;
+				UIRotator.Roll = Value;
 				break;
 			}
 
 			case 1:
 			{
-				if (Rotator.Pitch == Value)
+				if (UIRotator.Pitch == Value)
 					return false;
-				Rotator.Pitch = Value;
+				UIRotator.Pitch = Value;
 				break;
 			}
 
 			case 2:
 			{
-				if (Rotator.Yaw == Value)
+				if (UIRotator.Yaw == Value)
 					return false;
-				Rotator.Yaw = Value;
+				UIRotator.Yaw = Value;
 				break;
 			}
 		}
-		Transform->SetRotation(Rotator.Quaternion());
+		SetUserInputAndTransformRotators(AtIndex, UIRotator);
 	}
 	else if (PosRotScaleIndex == 2)
 	{

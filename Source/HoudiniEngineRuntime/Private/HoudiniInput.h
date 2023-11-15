@@ -188,22 +188,28 @@ public:
 
 	// Return the transform offset for a given input object
 	FTransform* GetTransformOffset(const int32& AtIndex);
-	const FTransform GetTransformOffset(const int32& AtIndex) const;
+	FTransform GetTransformOffset(const int32& AtIndex) const;
 
 	// Returns the position offset for a given input object
 	TOptional<float> GetPositionOffsetX(int32 AtIndex) const;
 	TOptional<float> GetPositionOffsetY(int32 AtIndex) const;
 	TOptional<float> GetPositionOffsetZ(int32 AtIndex) const;
 
-	// Returns the rotation offset for a given input object
-	TOptional<float> GetRotationOffsetRoll(int32 AtIndex) const;
-	TOptional<float> GetRotationOffsetPitch(int32 AtIndex) const;
-	TOptional<float> GetRotationOffsetYaw(int32 AtIndex) const;
-
 	// Returns the scale offset for a given input object
 	TOptional<float> GetScaleOffsetX(int32 AtIndex) const;
 	TOptional<float> GetScaleOffsetY(int32 AtIndex) const;
 	TOptional<float> GetScaleOffsetZ(int32 AtIndex) const;
+
+	// User input functions. We keep a user readable version of Roll, Pitch, Yaw that
+	// the user can edit rather than getting the Quaternion from the FTransform as
+	// converting Roll,Pitch,Yaw to and back from a Quaternion gets different results
+	// which is neither user friendly or particularly useable.
+	FRotator GetUserInputRotator(int AtIndex) const;
+	void SetUserInputAndTransformRotators(int AtIndex, const FRotator& Rotator);
+
+	TOptional<float> GetUserInputRoll(int32 AtIndex) const;
+	TOptional<float> GetUserInputPitch(int32 AtIndex) const;
+	TOptional<float> GetUserInputYaw(int32 AtIndex) const;
 
 	// Returns true if the object is one of our input object for the given type
 	bool ContainsInputObject(const UObject* InObject, const EHoudiniInputType& InType) const;

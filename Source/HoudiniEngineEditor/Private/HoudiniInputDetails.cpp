@@ -6839,7 +6839,7 @@ FHoudiniInputDetails::Helper_CreateGeometryInputObjectExpanded(
 	];
 
 	// Lambda for changing the transform values
-	auto ChangeTransformOffsetAt = [&](const float& Value, const int32& AtIndex, const int32& PosRotScaleIndex, const int32& XYZIndex, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+	auto ChangeTransformOffsetAt = [&](float Value, int32 AtIndex, int32 PosRotScaleIndex, int32 XYZIndex, bool DoChange, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
 	{
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
@@ -7015,13 +7015,13 @@ FHoudiniInputDetails::Helper_CreateGeometryInputObjectExpanded(
 			.bColorAxisLabels(true)
 			.Roll(TAttribute<TOptional<float>>::Create(
 				TAttribute<TOptional<float>>::FGetter::CreateUObject(
-					MainInput.Get(), &UHoudiniInput::GetRotationOffsetRoll, InObjectIdx)))
+					MainInput.Get(), &UHoudiniInput::GetUserInputRoll, InObjectIdx)))
 			.Pitch(TAttribute<TOptional<float>>::Create(
 				TAttribute<TOptional<float>>::FGetter::CreateUObject(
-					MainInput.Get(), &UHoudiniInput::GetRotationOffsetPitch, InObjectIdx)))
+					MainInput.Get(), &UHoudiniInput::GetUserInputPitch, InObjectIdx)))
 			.Yaw(TAttribute<TOptional<float>>::Create(
 				TAttribute<TOptional<float>>::FGetter::CreateUObject(
-					MainInput.Get(), &UHoudiniInput::GetRotationOffsetYaw, InObjectIdx)))
+					MainInput.Get(), &UHoudiniInput::GetUserInputYaw, InObjectIdx)))
 			.OnRollCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)
 				{ ChangeTransformOffsetAt(Val, InObjectIdx, 1, 0, true, InInputs); })
 			.OnPitchCommitted_Lambda([=](float Val, ETextCommit::Type TextCommitType)

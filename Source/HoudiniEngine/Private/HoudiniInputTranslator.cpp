@@ -1028,17 +1028,15 @@ FHoudiniInputTranslator::UpdateTransformOffset(UHoudiniInput* InInput)
 
 		// If the Input mesh has a Transform offset
 		FTransform TransformOffset = CurrentInputObject->GetHoudiniObjectTransform();
-		if (bIsRefCountedInputSystemEnabled || !TransformOffset.Equals(FTransform::Identity))
-		{
-			// Updating the Transform
-			HAPI_TransformEuler HapiTransform;
-			FHoudiniApi::TransformEuler_Init(&HapiTransform);
-			FHoudiniEngineUtils::TranslateUnrealTransform(TransformOffset, HapiTransform);
 
-			// Set the transform on the OBJ parent
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
-				FHoudiniEngine::Get().GetSession(), CurrentInputObject->GetInputObjectNodeId(), &HapiTransform), false);
-		}
+		// Updating the Transform
+		HAPI_TransformEuler HapiTransform;
+		FHoudiniApi::TransformEuler_Init(&HapiTransform);
+		FHoudiniEngineUtils::TranslateUnrealTransform(TransformOffset, HapiTransform);
+
+		// Set the transform on the OBJ parent
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
+			FHoudiniEngine::Get().GetSession(), CurrentInputObject->GetInputObjectNodeId(), &HapiTransform), false);
 	}
 
 	return true;
