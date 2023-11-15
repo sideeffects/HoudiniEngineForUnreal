@@ -58,6 +58,10 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 	friend struct FUnrealMeshTranslator;
 
 	public:
+
+		// Force deletes an Unreal Object without throwing up warning dialogs.
+		static void ForceDeleteObject(UObject* Object);
+
 		// Load libHAPI and return handle to it, also store location of loaded libHAPI in passed argument.
 		static void* LoadLibHAPI(FString& StoredLibHAPILocation);
 
@@ -913,10 +917,10 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// We check for a primitive attribute first, if the primitive attribute does not exist, we check for a
 		// detail attribute.
 		static bool GetBakeFolderAttribute(
-			const HAPI_NodeId& InGeoId,
+			const HAPI_NodeId InGeoId,
+			const HAPI_PartId InPartId,
 			FString& OutBakeFolder,
-			const HAPI_PartId& InPartId = 0,
-			const int32& InPrimIndex = 0);
+			const int32 InPrimIndex = 0);
 
 		// Helper function to access the bake output actor attribute (unreal_bake_actor)
 		static bool GetBakeActorAttribute(

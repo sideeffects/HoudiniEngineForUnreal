@@ -62,7 +62,6 @@ struct HOUDINIENGINE_API FHoudiniDataTableTranslator
 		FString& RowStructName);
 
 	static bool CreateRowStruct(const FHoudiniGeoPartObject& HGPO,
-		const FString& RowStructName,
 		UUserDefinedStruct*& NewStruct,
 		FGuid& DefaultPropId,
 		FHoudiniPackageParams PackageParams);
@@ -131,12 +130,10 @@ struct HOUDINIENGINE_API FHoudiniDataTableTranslator
 		int32 NumRows,
 		uint8* RowData);
 
-	static UDataTable* CreateAndSaveDataTable(const FHoudiniGeoPartObject& HGPO,
+	static UDataTable* CreateDataTable(const FHoudiniGeoPartObject& HGPO,
 		int32 NumRows,
 		const TArray<FString>& RowNames,
 		int32 StructSize,
-		const FString& DataTableFolder,
-		const FString& DataTableName,
 		UScriptStruct* RowStruct,
 		uint8* RowData,
 		FHoudiniPackageParams PackageParams);
@@ -152,4 +149,6 @@ private:
 
 	static bool IsValidType(const HAPI_AttributeInfo& AttribInfo,
 		const FProperty* Prop);
+
+	static void DeletePreviousOutput(UHoudiniOutput* CurOutput);
 };

@@ -33,8 +33,8 @@
 #include "Engine/SkeletalMesh.h"
 #include "PackageTools.h"
 #include "ObjectTools.h"
-#include "Engine/StaticMesh.h"
 #include "UObject/MetaData.h"
+#include "Engine/StaticMesh.h"
 #include "Animation/Skeleton.h"
 #include "Animation/AnimSequence.h"
 #include "FoliageType_InstancedStaticMesh.h"
@@ -386,25 +386,7 @@ FHoudiniPackageParams::CreatePackageForObject(FString& OutPackageName, int32 InB
 	return NewPackage;
 }
 
-// Fixes link error with the template function under
-void TemplateFixer()
-{
-	FHoudiniPackageParams PP;
-	UStaticMesh* SM = PP.CreateObjectAndPackage<UStaticMesh>();
-	USkeletalMesh* SK = PP.CreateObjectAndPackage<USkeletalMesh>();
-	UAnimSequence* Anim = PP.CreateObjectAndPackage<UAnimSequence>();
-	USkeleton* Skelly = PP.CreateObjectAndPackage<USkeleton>();
-	UHoudiniStaticMesh* HSM = PP.CreateObjectAndPackage<UHoudiniStaticMesh>();
-	UGeometryCollection* GC = PP.CreateObjectAndPackage<UGeometryCollection>();
-	UDataTable* DT = PP.CreateObjectAndPackage<UDataTable>();
-	UFoliageType_InstancedStaticMesh * ISM = PP.CreateObjectAndPackage<UFoliageType_InstancedStaticMesh>();
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
-	UDataLayerAsset* DLA = PP.CreateObjectAndPackage<UDataLayerAsset>();
-#endif
-}
-
-template<typename T>
-T* FHoudiniPackageParams::CreateObjectAndPackage(T * TemplateObject) const
+UObject* FHoudiniPackageParams::CreateObjectAndPackageFromClass(UClass* Class, UObject* TemplateObject) const
 {
 	// Create the package for the object
 	FString NewObjectName;
@@ -414,7 +396,7 @@ T* FHoudiniPackageParams::CreateObjectAndPackage(T * TemplateObject) const
 
 	const FString SanitizedObjectName = ObjectTools::SanitizeObjectName(NewObjectName);
 
-	T* ExistingTypedObject = FindObject<T>(Package, *NewObjectName);
+	UObject* ExistingTypedObject = StaticFindObject(Class, Package, *NewObjectName);
 	UObject* ExistingObject = FindObject<UObject>(Package, *NewObjectName);
 
 	if (IsValid(ExistingTypedObject))
@@ -443,7 +425,7 @@ T* FHoudiniPackageParams::CreateObjectAndPackage(T * TemplateObject) const
 		}
 	}
 
-	T* CreatedObject = NewObject<T>(Package, FName(*SanitizedObjectName), GetObjectFlags(), TemplateObject);
+	UObject* CreatedObject = NewObject<UObject>(Package, Class, FName(*SanitizedObjectName), GetObjectFlags(), TemplateObject);
 
 	// Add meta information to the new object in the package.
 	if (IsValid(CreatedObject))

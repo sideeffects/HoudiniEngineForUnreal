@@ -364,12 +364,45 @@ namespace
 
 };
 
+void
+FHoudiniDataTableTranslator::DeletePreviousOutput(UHoudiniOutput* CurOutput)
+{
+	// Delete tables first; deleting structures before tables leads to complaints from Unreal.
+	for (auto OutputObject : CurOutput->GetOutputObjects())
+	{
+		if (!IsValid(OutputObject.Value.OutputObject))
+			continue;
+
+		UObject* Object = OutputObject.Value.OutputObject;
+		if (Object->IsA<UDataTable>())
+		{
+
+			FHoudiniEngineUtils::ForceDeleteObject(Object);
+		}
+	}
+
+	// Add delete structures.
+	for (auto OutputObject : CurOutput->GetOutputObjects())
+	{
+		if (!IsValid(OutputObject.Value.OutputObject))
+			continue;
+
+		UObject* Object = OutputObject.Value.OutputObject;
+		if (Object->IsA<UUserDefinedStruct>() || Object->IsA<UUserDefinedStructEditorData>())
+		{
+			FHoudiniEngineUtils::ForceDeleteObject(Object);
+		}
+	}
+}
+
 bool
 FHoudiniDataTableTranslator::BuildDataTable(
 	FHoudiniGeoPartObject& HGPO,
 	UHoudiniOutput* CurOutput,
 	FHoudiniPackageParams& PackageParams)
 {
+	DeletePreviousOutput(CurOutput);
+
 	int32 GeoId = HGPO.GeoId;
 	int32 PartId = HGPO.PartId;
 
@@ -393,19 +426,35 @@ FHoudiniDataTableTranslator::BuildDataTable(
 		return false;
 	}
 
+	FString BakeFolder;
+	FHoudiniEngineUtils::GetBakeFolderAttribute(GeoId, PartId, BakeFolder);
+	if (BakeFolder.IsEmpty())
+	{
+		// HAPI_UNREAL_ATTRIB_OBJECT_PATH was previously documented, but it redundant. But support it anyway.
+
+		HAPI_AttributeInfo AttrInfo;
+		FHoudiniApi::AttributeInfo_Init(&AttrInfo);
+		TArray<FString> AttrData;
+
+		if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, HAPI_UNREAL_ATTRIB_OBJECT_PATH, AttrInfo, AttrData, 1, HAPI_ATTROWNER_INVALID, 0, 1) &&
+			AttrData.Num() == 1)
+		{
+			BakeFolder = AttrData[0];
+		}
+	}
+
+	FString OutputName;
+	FHoudiniEngineUtils::GetOutputNameAttribute(GeoId, PartId, OutputName, 0, 0);
+
 	TArray<FString> RowNames;
 	bool Status = FHoudiniDataTableTranslator::GenerateRowNames(GeoId, PartId, NumRows, RowNames);
 
 	HAPI_AttributeInfo AttribInfo;
 
-	FString DataTableName = "";
-	FString DataTableFolder = "";
-	Status = FHoudiniDataTableTranslator::SetOutputPath(GeoId, PartId, AttribInfo, DataTableName, DataTableFolder);
-
 	TArray<FString> AttribNames;
 	Status = FHoudiniDataTableTranslator::GetAttribNames(GeoId, PartId, NumAttributes, AttribOwner, AttribNames);
 
-	// Find the struct to use as the basis for the datatable.
+	// Find the struct to use as the basis for the data table.
 	AttribInfo.exists = false;
 	UScriptStruct* RowStruct = nullptr;
 	bool RowStructNeedsProps = true;
@@ -423,11 +472,28 @@ FHoudiniDataTableTranslator::BuildDataTable(
 	{
 		// Create the struct if it doesn't already exist
 
-		Status = FHoudiniDataTableTranslator::CreateRowStruct(HGPO, RowStructName, NewStruct, DefaultPropId, PackageParams);
+		Status = FHoudiniDataTableTranslator::CreateRowStruct(HGPO, NewStruct, DefaultPropId, PackageParams);
 		if (!Status)
 		{
 			return false;
 		}
+
+		FHoudiniOutputObjectIdentifier OutputID(HGPO.ObjectId, GeoId, PartId, HGPO.PartName + FString("_user_defined_struct"));
+		FHoudiniOutputObject& FoundOutputObject = CurOutput->GetOutputObjects().FindOrAdd(OutputID);
+		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = CurOutput->GetOutputObjects();
+		FoundOutputObject.OutputComponents.Empty();
+		FoundOutputObject.OutputObject = NewStruct;
+
+		if (!BakeFolder.IsEmpty())
+		{
+			FoundOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, BakeFolder);
+		}
+
+		if (!OutputName.IsEmpty())
+			FoundOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2, OutputName);
+
+		if (!RowStructName.IsEmpty())
+			FoundOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT, RowStructName);
 
 		RowStruct = NewStruct;
 		RowStruct->PreEditChange(nullptr);
@@ -563,12 +629,10 @@ FHoudiniDataTableTranslator::BuildDataTable(
 		return false;
 	}
 
-	UDataTable* Res = FHoudiniDataTableTranslator::CreateAndSaveDataTable(HGPO,
+	UDataTable* DataTable = FHoudiniDataTableTranslator::CreateDataTable(HGPO,
 		NumRows,
 		RowNames,
 		StructSize,
-		DataTableFolder,
-		DataTableName,
 		RowStruct,
 		RowData,
 		PackageParams);
@@ -576,9 +640,17 @@ FHoudiniDataTableTranslator::BuildDataTable(
 	FHoudiniOutputObjectIdentifier OutputID(HGPO.ObjectId, GeoId, PartId, HGPO.PartName);
 	FHoudiniOutputObject& FoundOutputObject = CurOutput->GetOutputObjects().FindOrAdd(OutputID);
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = CurOutput->GetOutputObjects();
-	check(FoundOutputObject.OutputComponents.Num() < 2); // Multiple components not supported yet.
 	FoundOutputObject.OutputComponents.Empty();
-	FoundOutputObject.OutputComponents.Add(Cast<UObject>(Res));
+	FoundOutputObject.OutputObject = DataTable;
+
+	// Cache any attributes we may need for baking.
+
+	if (!BakeFolder.IsEmpty())
+		FoundOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, BakeFolder);
+
+
+	if (!OutputName.IsEmpty())
+		FoundOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2, OutputName);
 
 	FMemory::Free(RowData);
 
@@ -670,7 +742,6 @@ FHoudiniDataTableTranslator::GetRowStructAttrib(int32 GeoId,
 
 bool
 FHoudiniDataTableTranslator::CreateRowStruct(const FHoudiniGeoPartObject& HGPO,
-	const FString& RowStructName,
 	UUserDefinedStruct*& NewStruct,
 	FGuid& DefaultPropId,
 	FHoudiniPackageParams PackageParams)
@@ -678,34 +749,32 @@ FHoudiniDataTableTranslator::CreateRowStruct(const FHoudiniGeoPartObject& HGPO,
 	PackageParams.ObjectId = HGPO.ObjectId;
 	PackageParams.GeoId = HGPO.GeoId;
 	PackageParams.PartId = HGPO.PartId;
-	// If no name specified, one will be automatically generated.
-	if (RowStructName != "")
-	{
-		FString RowStructFile = FPaths::GetBaseFilename(RowStructName, true);
-		FString RowStructPath = FPaths::GetPath(RowStructName);
-		PackageParams.ObjectName = RowStructFile;
-		PackageParams.NameOverride = RowStructFile;
-		PackageParams.FolderOverride = RowStructPath;
-		PackageParams.OverideEnabled = true;
-	}
-	else
-	{
-		PackageParams.ObjectName = MakeUniqueObjectName(nullptr, UScriptStruct::StaticClass()).ToString();
-	}
+	PackageParams.ObjectName = FString::Printf(TEXT("%s_%d_%d_%d_%s"), *PackageParams.HoudiniAssetName, 
+		PackageParams.ObjectId, PackageParams.GeoId, PackageParams.PartId, TEXT("rowstruct"));
+
+	// Make sure to delete the package di
 	FString PackageName = "";
-	UPackage* Pkg = PackageParams.CreatePackageForObject(PackageName);
-	if (!Pkg)
+	UPackage* Package = PackageParams.CreatePackageForObject(PackageName);
+	if (!Package)
 	{
 		HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::CreateRowStruct]: Failed to create package."));
 		return false;
 	}
-	if (PackageParams.OverideEnabled && !FHoudiniEngineUtils::DoesFolderExist(PackageParams.FolderOverride))
+
+	if (!Package->IsFullyLoaded())
 	{
-		HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::CreateRowStruct]: Invalid package path %s."), *RowStructName);
-		return false;
+		FlushAsyncLoading();
+		if (!Package->GetOuter())
+		{
+			Package->FullyLoad();
+		}
+		else
+		{
+			Package->GetOutermost()->FullyLoad();
+		}
 	}
 
-	NewStruct = FStructureEditorUtils::CreateUserDefinedStruct(Pkg, FName(PackageName), RF_Standalone | RF_Public);
+	NewStruct = FStructureEditorUtils::CreateUserDefinedStruct(Package, FName(PackageName), RF_Standalone | RF_Public);
 	TFieldIterator<FProperty> It(NewStruct);
 	DefaultPropId = FStructureEditorUtils::GetGuidForProperty(*It);
 
@@ -1200,12 +1269,10 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 }
 
 UDataTable*
-FHoudiniDataTableTranslator::CreateAndSaveDataTable(const FHoudiniGeoPartObject& HGPO,
+FHoudiniDataTableTranslator::CreateDataTable(const FHoudiniGeoPartObject& HGPO,
 	int32 NumRows,
 	const TArray<FString>& RowNames,
 	int32 StructSize,
-	const FString& DataTableFolder,
-	const FString& DataTableName,
 	UScriptStruct* RowStruct,
 	uint8* RowData,
 	FHoudiniPackageParams PackageParams)
@@ -1221,17 +1288,7 @@ FHoudiniDataTableTranslator::CreateAndSaveDataTable(const FHoudiniGeoPartObject&
 	PackageParams.ObjectId = HGPO.ObjectId;
 	PackageParams.GeoId = HGPO.GeoId;
 	PackageParams.PartId = HGPO.PartId;
-	// If no name specified, one will be automatically generated.
-	if (DataTableName != "")
-	{
-		PackageParams.ObjectName = DataTableName;
-		if (DataTableFolder != "")
-		{
-			PackageParams.FolderOverride = DataTableFolder;
-			PackageParams.NameOverride = DataTableName;
-			PackageParams.OverideEnabled = true;
-		}
-	}
+	PackageParams.SplitStr = "datatable";
 
 	CreatedDataTable = PackageParams.CreateObjectAndPackage<UDataTable>();
 	CreatedDataTable->PreEditChange(nullptr);
@@ -1249,6 +1306,9 @@ FHoudiniDataTableTranslator::CreateAndSaveDataTable(const FHoudiniGeoPartObject&
 #endif
 
 	CreatedDataTable->MarkPackageDirty();
+
+	// make sure package is loaded. I'm not sure why this is needed, since it was just created, but it is...
+	CreatedDataTable->GetPackage()->FullyLoad();
 
 	FAssetRegistryModule::AssetCreated(CreatedDataTable);
 

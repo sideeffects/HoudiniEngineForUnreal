@@ -1058,157 +1058,154 @@ FHoudiniOutputDetails::CreateDataTableOutputWidget(IDetailCategoryBuilder& HouOu
 	{
 		FHoudiniOutputObject& CurrentOutputObject = IterObject.Value;
 
-		for(auto Component : CurrentOutputObject.OutputComponents)
-		{
-		    if (UDataTable* DT = Cast<UDataTable>(Component))
-		    {
-			    FString DTIndex = "Data Table Output " + FString::FromInt(Idx++);
-			    IDetailGroup& DTOutputGrp = HouOutputCategory.AddGroup(FName(DTIndex), FText::FromString(DTIndex), false, false);
-			    TSharedRef<SVerticalBox> DTVerticalBox = SNew(SVerticalBox);
-			    TSharedRef<SVerticalBox> RSVerticalBox = SNew(SVerticalBox);
-			    TSharedPtr<SBorder> DTThumbnailBorder;
-			    TSharedPtr<SBorder> RSThumbnailBorder;
-			    IDetailLayoutBuilder& DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
-			    TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
-			    TSharedPtr< FAssetThumbnail > DTThumbnail =
-				    MakeShareable(new FAssetThumbnail(DT, 64, 64, AssetThumbnailPool));
-			    TSharedPtr< FAssetThumbnail > RSThumbnail =
-				    MakeShareable(new FAssetThumbnail(DT->RowStruct, 64, 64, AssetThumbnailPool));
+	    if (UDataTable* DT = Cast<UDataTable>(CurrentOutputObject.OutputObject))
+	    {
+		    FString DTIndex = "Data Table Output " + FString::FromInt(Idx++);
+		    IDetailGroup& DTOutputGrp = HouOutputCategory.AddGroup(FName(DTIndex), FText::FromString(DTIndex), false, false);
+		    TSharedRef<SVerticalBox> DTVerticalBox = SNew(SVerticalBox);
+		    TSharedRef<SVerticalBox> RSVerticalBox = SNew(SVerticalBox);
+		    TSharedPtr<SBorder> DTThumbnailBorder;
+		    TSharedPtr<SBorder> RSThumbnailBorder;
+		    IDetailLayoutBuilder& DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
+		    TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+		    TSharedPtr< FAssetThumbnail > DTThumbnail =
+			    MakeShareable(new FAssetThumbnail(DT, 64, 64, AssetThumbnailPool));
+		    TSharedPtr< FAssetThumbnail > RSThumbnail =
+			    MakeShareable(new FAssetThumbnail(DT->RowStruct, 64, 64, AssetThumbnailPool));
 
-			    DTOutputGrp.AddWidgetRow()
-			    .NameContent()
-			    [
-				    SNew(STextBlock)
-				    .Text(FText::FromString("Data Table"))
-				    .Font(IDetailLayoutBuilder::GetDetailFont())
-			    ]
-			    .ValueContent()
-			    .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-			    [
-				    DTVerticalBox
-			    ];
+		    DTOutputGrp.AddWidgetRow()
+		    .NameContent()
+		    [
+			    SNew(STextBlock)
+			    .Text(FText::FromString("Data Table"))
+			    .Font(IDetailLayoutBuilder::GetDetailFont())
+		    ]
+		    .ValueContent()
+		    .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		    [
+			    DTVerticalBox
+		    ];
 
-			    DTVerticalBox->AddSlot()
-			    .Padding(0, 2)
-			    .AutoHeight()
+		    DTVerticalBox->AddSlot()
+		    .Padding(0, 2)
+		    .AutoHeight()
+		    [
+			    SNew(SHorizontalBox)
+			    + SHorizontalBox::Slot()
+			    .Padding(0.0f, 0.0f, 2.0f, 0.0f)
+			    .AutoWidth()
 			    [
-				    SNew(SHorizontalBox)
-				    + SHorizontalBox::Slot()
-				    .Padding(0.0f, 0.0f, 2.0f, 0.0f)
-				    .AutoWidth()
-				    [
-					    SAssignNew(DTThumbnailBorder, SBorder)
-						    .Padding(5.0f)
-						    .BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DT)
-						    .OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DT)
-					    [
-						    SNew(SBox)
-							    .WidthOverride(64)
-							    .HeightOverride(64)
-							    .ToolTipText(FText::FromString(DT->GetPathName()))
-						    [
-							    DTThumbnail->MakeThumbnailWidget()
-						    ]
-					    ]
-				    ]
-				    + SHorizontalBox::Slot()
-				    .AutoWidth()
-				    .Padding(2.0f, 0.0f)
-				    .VAlign(VAlign_Center)
-				    [
-					    SNew(SVerticalBox)
-					    + SVerticalBox::Slot()
-					    .AutoHeight()
-					    .Padding(2.0f, 0.0f)
-					    .VAlign(VAlign_Center)
-					    [
-						    SNew(STextBlock)
-						    .Text(FText::FromName(DT->GetFName()))
-						    .Font(IDetailLayoutBuilder::GetDetailFont())
-					    ]
-					    + SVerticalBox::Slot()
-					    .AutoHeight()
-					    .Padding(2, 0)
-					    .VAlign(VAlign_Center)
-					    .HAlign(HAlign_Left)
-					    [
-						    PropertyCustomizationHelpers::MakeBrowseButton(
-							    FSimpleDelegate::CreateSP(
-								    this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) DT),
-							    TAttribute<FText>(LOCTEXT("HoudiniDataTableBrowseButton", "Browse to this generated Data Table in the content browser")))
-					    ]
-				    ]
-			    ];
-
-			    DTOutputGrp.AddWidgetRow()
-			    .NameContent()
-			    [
-				    SNew(STextBlock)
-				    .Text(FText::FromString("Row Struct"))
-				    .Font(IDetailLayoutBuilder::GetDetailFont())
-			    ]
-			    .ValueContent()
-			    .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-			    [
-				    RSVerticalBox
-			    ];
-
-			    RSVerticalBox->AddSlot()
-			    .Padding(0, 2)
-			    .AutoHeight()
-			    [
-				    SNew(SHorizontalBox)
-				    + SHorizontalBox::Slot()
-				    .Padding(0.0f, 0.0f, 2.0f, 0.0f)
-				    .AutoWidth()
-				    [
-					    SAssignNew(RSThumbnailBorder, SBorder)
+				    SAssignNew(DTThumbnailBorder, SBorder)
 					    .Padding(5.0f)
-					    .BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DT->RowStruct)
-					    .OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DT->RowStruct)
-					    [
-						    SNew(SBox)
+					    .BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DT)
+					    .OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DT)
+				    [
+					    SNew(SBox)
 						    .WidthOverride(64)
 						    .HeightOverride(64)
-						    .ToolTipText(FText::FromName(DT->RowStruct->GetFName()))
-						    [
-							    RSThumbnail->MakeThumbnailWidget()
-						    ]
+						    .ToolTipText(FText::FromString(DT->GetPathName()))
+					    [
+						    DTThumbnail->MakeThumbnailWidget()
 					    ]
 				    ]
-				    + SHorizontalBox::Slot()
-				    .AutoWidth()
+			    ]
+			    + SHorizontalBox::Slot()
+			    .AutoWidth()
+			    .Padding(2.0f, 0.0f)
+			    .VAlign(VAlign_Center)
+			    [
+				    SNew(SVerticalBox)
+				    + SVerticalBox::Slot()
+				    .AutoHeight()
 				    .Padding(2.0f, 0.0f)
 				    .VAlign(VAlign_Center)
 				    [
-					    SNew(SVerticalBox)
-					    + SVerticalBox::Slot()
-					    .AutoHeight()
-					    .Padding(2.0f, 0.0f)
-					    .VAlign(VAlign_Center)
+					    SNew(STextBlock)
+					    .Text(FText::FromName(DT->GetFName()))
+					    .Font(IDetailLayoutBuilder::GetDetailFont())
+				    ]
+				    + SVerticalBox::Slot()
+				    .AutoHeight()
+				    .Padding(2, 0)
+				    .VAlign(VAlign_Center)
+				    .HAlign(HAlign_Left)
+				    [
+					    PropertyCustomizationHelpers::MakeBrowseButton(
+						    FSimpleDelegate::CreateSP(
+							    this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) DT),
+						    TAttribute<FText>(LOCTEXT("HoudiniDataTableBrowseButton", "Browse to this generated Data Table in the content browser")))
+				    ]
+			    ]
+		    ];
+
+		    DTOutputGrp.AddWidgetRow()
+		    .NameContent()
+		    [
+			    SNew(STextBlock)
+			    .Text(FText::FromString("Row Struct"))
+			    .Font(IDetailLayoutBuilder::GetDetailFont())
+		    ]
+		    .ValueContent()
+		    .MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		    [
+			    RSVerticalBox
+		    ];
+
+		    RSVerticalBox->AddSlot()
+		    .Padding(0, 2)
+		    .AutoHeight()
+		    [
+			    SNew(SHorizontalBox)
+			    + SHorizontalBox::Slot()
+			    .Padding(0.0f, 0.0f, 2.0f, 0.0f)
+			    .AutoWidth()
+			    [
+				    SAssignNew(RSThumbnailBorder, SBorder)
+				    .Padding(5.0f)
+				    .BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DT->RowStruct)
+				    .OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DT->RowStruct)
+				    [
+					    SNew(SBox)
+					    .WidthOverride(64)
+					    .HeightOverride(64)
+					    .ToolTipText(FText::FromName(DT->RowStruct->GetFName()))
 					    [
-						    SNew(STextBlock)
-						    .Text(FText::FromName(DT->RowStruct->GetFName()))
-						    .Font(IDetailLayoutBuilder::GetDetailFont())
-					    ]
-					    + SVerticalBox::Slot()
-					    .AutoHeight()
-					    .Padding(2.0f, 0.0f)
-					    .VAlign(VAlign_Center)
-					    .HAlign(HAlign_Left)
-					    [
-						    PropertyCustomizationHelpers::MakeBrowseButton(
-							    FSimpleDelegate::CreateSP(
-								    this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) DT->RowStruct),
-							    TAttribute<FText>(LOCTEXT("HoudiniDataTableRowStructBrowseButton", "Browse to the generated Data Table's row struct in the content browser")))
+						    RSThumbnail->MakeThumbnailWidget()
 					    ]
 				    ]
-				    
-			    ];
+			    ]
+			    + SHorizontalBox::Slot()
+			    .AutoWidth()
+			    .Padding(2.0f, 0.0f)
+			    .VAlign(VAlign_Center)
+			    [
+				    SNew(SVerticalBox)
+				    + SVerticalBox::Slot()
+				    .AutoHeight()
+				    .Padding(2.0f, 0.0f)
+				    .VAlign(VAlign_Center)
+				    [
+					    SNew(STextBlock)
+					    .Text(FText::FromName(DT->RowStruct->GetFName()))
+					    .Font(IDetailLayoutBuilder::GetDetailFont())
+				    ]
+				    + SVerticalBox::Slot()
+				    .AutoHeight()
+				    .Padding(2.0f, 0.0f)
+				    .VAlign(VAlign_Center)
+				    .HAlign(HAlign_Left)
+				    [
+					    PropertyCustomizationHelpers::MakeBrowseButton(
+						    FSimpleDelegate::CreateSP(
+							    this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) DT->RowStruct),
+						    TAttribute<FText>(LOCTEXT("HoudiniDataTableRowStructBrowseButton", "Browse to the generated Data Table's row struct in the content browser")))
+				    ]
+			    ]
+			    
+		    ];
 
-			    OutputObjectThumbnailBorders.Add((UObject*) DT, DTThumbnailBorder);
-			    OutputObjectThumbnailBorders.Add((UObject*) DT->RowStruct, RSThumbnailBorder);
-		    }
+		    OutputObjectThumbnailBorders.Add((UObject*) DT, DTThumbnailBorder);
+		    OutputObjectThumbnailBorders.Add((UObject*) DT->RowStruct, RSThumbnailBorder);
 		}
 	}
 }
