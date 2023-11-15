@@ -663,7 +663,13 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 		// Set the fbx_custom_attributes as anim curves.
 		for (const auto& Entry : FbxCustomAttributes )
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 			FAnimationCurveIdentifier CurveId(FName(Entry.Key), ERawCurveTrackTypes::RCT_Float);
+#else
+			FSmartName NewName;
+			MySkeleton->AddSmartNameAndModify(USkeleton::AnimCurveMappingName, FName(Entry.Key), NewName);
+			FAnimationCurveIdentifier CurveId(NewName, ERawCurveTrackTypes::RCT_Float);
+#endif
 			if (Entry.Value.Num() && AnimController.AddCurve(CurveId))
 			{
 				

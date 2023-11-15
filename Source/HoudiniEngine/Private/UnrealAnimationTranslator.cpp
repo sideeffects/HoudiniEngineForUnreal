@@ -576,7 +576,11 @@ FUnrealAnimationTranslator::AddBoneTracksToNode(HAPI_NodeId& NewNodeId, UAnimSeq
 			for (const FFloatCurve& Curve : FloatCurves)
 			{
 				float Sample = Curve.Evaluate(SampleTime);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 				JSONObject->SetNumberField(Curve.GetName().ToString(), Sample);
+#else
+				JSONObject->SetNumberField(Curve.Name.DisplayName.ToString(), Sample);
+#endif
 			}
 			
 			FbxCustomAttributes[DataIndex] = FHoudiniEngineUtils::JSONToString(JSONObject);
