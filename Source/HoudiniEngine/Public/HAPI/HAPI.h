@@ -5580,9 +5580,11 @@ HAPI_DECL HAPI_GetAttributeStringArrayData( const HAPI_Session * session,
                                             int * sizes_fixed_array,
                                             int start, int sizes_fixed_length );
 
-/// @brief  Get attribute dictionary data. Note that the string handles
-///         returned are only valid until the next time this function
-///         is called.
+/// @brief  Get attribute dictionary data.
+/// 
+///         Dictionary data is serialized as JSON-encoded strings.
+///         Note that the string handles returned are only valid until the next 
+///         time this function is called.   
 ///
 /// @ingroup GeometryGetters Attributes
 ///
@@ -5632,10 +5634,12 @@ HAPI_DECL HAPI_GetAttributeDictionaryData( const HAPI_Session* session,
                                            int start,
                                            int length );
 
-/// @brief  Get array attribute string data.
+/// @brief  Get array attribute dictionary data.
 ///         Each entry in an array attribute can have varying array lengths.
 ///         Therefore the array values are returned as a flat array, with
 ///         another sizes array containing the lengths of each array entry.
+/// 
+///         Dictionary data is serialized as JSON-encoded strings.
 ///         Note that the string handles returned are only valid until
 ///         the next time this function is called.
 ///
@@ -7024,8 +7028,9 @@ HAPI_DECL HAPI_SetAttributeFloat64UniqueData(
         int start_index,
         int num_indices);
 
-/// @brief  Set attribute dictionary data.
-///
+/// @brief  Set attribute dictionary data. The dictionary data should 
+///         be provided as JSON-encoded strings.
+/// 
 /// @ingroup GeometrySetters Attributes
 ///
 /// @param[in]      session
@@ -7527,7 +7532,8 @@ HAPI_DECL HAPI_SetAttributeStringArrayData( const HAPI_Session * session,
                                             int start,
                                             int sizes_fixed_length );
 
-/// @brief  Set attribute dictionary array data.
+/// @brief  Set attribute dictionary array data. The dictionary data should 
+///         be provided as JSON-encoded strings.
 ///
 /// @ingroup GeometrySetters Attributes
 ///
@@ -7551,7 +7557,7 @@ HAPI_DECL HAPI_SetAttributeStringArrayData( const HAPI_Session * session,
 ///                 attribute that is being set.
 ///
 /// @param[in]      data_fixed_array
-///                 An array containing the string values of the attribute.
+///                 An array containing the dictionary values of the attribute.
 ///
 /// @param[in]      data_fixed_length
 ///                 The total size of the data array. The size can be no greater
