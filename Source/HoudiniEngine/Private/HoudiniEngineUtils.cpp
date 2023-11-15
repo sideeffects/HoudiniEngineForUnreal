@@ -5370,7 +5370,7 @@ bool FHoudiniEngineUtils::IsValidDataTable(const HAPI_NodeId& GeoId, const HAPI_
 	}
 	TArray<FString> AttribNames;
 	FHoudiniEngineString::SHArrayToFStringArray(AttribNameHandles, AttribNames);
-	for (auto&& Name : AttribNames)
+	for (const FString & Name : AttribNames)
 	{
 		if (Name.StartsWith(HAPI_UNREAL_ATTRIB_DATA_TABLE_PREFIX) && Name != HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWNAME && Name != HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT)
 		{
@@ -8152,10 +8152,10 @@ FHoudiniEngineUtils::GetBakeFolderAttribute(
 
 bool
 FHoudiniEngineUtils::GetBakeFolderAttribute(
-	const HAPI_NodeId& InGeoId,
+	const HAPI_NodeId InGeoId,
+	const HAPI_PartId InPartId,
 	FString& OutBakeFolder,
-	const HAPI_PartId& InPartId,
-	const int32& InPrimIndex)
+	const int32 InPrimIndex)
 {
 	constexpr int32 Count = 1;
 	TArray<FString> StringData;
@@ -8168,6 +8168,15 @@ FHoudiniEngineUtils::GetBakeFolderAttribute(
 				OutBakeFolder = StringData[0];
 				return true;
 			}
+		}
+	}
+
+	if (GetBakeFolderAttribute(InGeoId, HAPI_ATTROWNER_POINT, StringData, InPartId, 0, Count))
+	{
+		if (StringData.Num() > 0)
+		{
+			OutBakeFolder = StringData[0];
+			return true;
 		}
 	}
 
@@ -8551,6 +8560,33 @@ FHoudiniEngineUtils::HapiConnectNodeInput(const int32& InNodeId, const int32& In
 	}
 
 	return true;
+}
+
+
+void
+FHoudiniEngineUtils::ForceDeleteObject(UObject* Object)
+{
+	// This function came into existence to ensure Data Tables are fully deleted before recooking.
+	// Just normally destroying Data Tables doesn't remove some internal data, which causes problems
+	// when recreating a package with the same name.
+
+	if (!IsValid(Object))
+		return;
+
+	// Make sure object is loaded before we destroyed it.
+	if (IsValid(Object->GetPackage()) && !Object->GetPackage()->IsFullyLoaded()) 
+		Object->GetPackage()->FullyLoad();
+
+	// First we must nullify references, or DeleteSingleObject will do nothing.
+	TArray<UObject*> Objects = { Object };
+	ObjectTools::ForceReplaceReferences(nullptr, Objects);
+
+	// Now delete the object.
+	const bool bDeleteSucceeded = ObjectTools::DeleteSingleObject(Object, false);
+
+	// CollectGarbage so we don't get stale objects.
+	if (bDeleteSucceeded)
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
 }
 
 #undef LOCTEXT_NAMESPACE

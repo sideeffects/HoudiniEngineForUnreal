@@ -2930,7 +2930,7 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 
 	{
 		FString BakeFolder;
-		if (FHoudiniEngineUtils::GetBakeFolderAttribute(HGPO.GeoId, BakeFolder, HGPO.PartId, InPrimIndex))
+		if (FHoudiniEngineUtils::GetBakeFolderAttribute(HGPO.GeoId, HGPO.PartId, BakeFolder, InPrimIndex))
 		{
 			if (!BakeFolder.IsEmpty())
 			{

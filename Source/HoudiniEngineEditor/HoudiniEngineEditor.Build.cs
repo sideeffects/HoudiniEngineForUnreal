@@ -114,7 +114,8 @@ public class HoudiniEngineEditor : ModuleRules
                 "EditorSubsystem",
                 "GameProjectGeneration",
                 "ToolWidgets",
-                "EditorFramework"
+                "EditorFramework",
+				"DataLayerEditor"
             }
         );
 

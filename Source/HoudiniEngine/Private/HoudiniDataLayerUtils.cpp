@@ -34,7 +34,7 @@
 #include "WorldPartition/DataLayer/WorldDataLayers.h"
 #include "HoudiniPackageParams.h"
 #include "DataLayer/DataLayerEditorSubsystem.h"
-
+#include "WorldPartition/DataLayer/DataLayerAsset.h"
 #if WITH_EDITOR
 //#include "DataLayer/DataLayerEditorSubsystem.h"
 #endif

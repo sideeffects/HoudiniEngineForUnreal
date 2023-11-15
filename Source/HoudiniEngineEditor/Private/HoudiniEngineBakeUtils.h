@@ -32,6 +32,7 @@
 #include "LevelInstance/LevelInstanceActor.h"
 #include "Materials/MaterialExpression.h"
 
+class UDataTable;
 class ULevelInstanceComponent;
 class UHoudiniAssetComponent;
 class UHoudiniOutput;
@@ -528,7 +529,50 @@ public:
 		FHoudiniEngineOutputStats& OutBakeStats,
 		AActor* InFallbackActor=nullptr,
 		const FString& InFallbackWorldOutlinerFolder=TEXT(""));
-	
+
+	static UUserDefinedStruct * CreateBakedUserDefinedStruct(
+		UHoudiniOutput* CookedOutput,
+		const FHoudiniOutputObjectIdentifier& Identifier,
+		const UHoudiniAssetComponent* HoudiniAssetComponent,
+		FHoudiniBakedOutput& InBakedOutputs,
+		const FDirectoryPath& InBakeFolder,
+		bool bInReplaceActors,
+		bool bInReplaceAssets,
+		TArray<UPackage*>& OutPackagesToSave,
+		FHoudiniEngineOutputStats& OutBakeStats);
+
+	static UDataTable* CreateBakedDataTable(
+		UScriptStruct * UserDefinedStruct,
+		const FString & ObjectName,
+		UHoudiniOutput* CookedOutput,
+		const FHoudiniOutputObjectIdentifier& Identifier,
+		const UHoudiniAssetComponent* HoudiniAssetComponent,
+		FHoudiniBakedOutput& InBakedOutputs,
+		const FDirectoryPath& InBakeFolder,
+		bool bInReplaceActors,
+		bool bInReplaceAssets,
+		TArray<UPackage*>& OutPackagesToSave,
+		FHoudiniEngineOutputStats& OutBakeStats);
+
+
+	static bool BakeDataTables(
+		const UHoudiniAssetComponent* HoudiniAssetComponent,
+		int32 InOutputIndex,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		const FDirectoryPath& InBakeFolder,
+		const FDirectoryPath& InTempCookFolder,
+		bool bInReplaceActors,
+		bool bInReplaceAssets,
+		const TArray<FHoudiniEngineBakedActor>& InBakedActors,
+		TArray<FHoudiniEngineBakedActor>& OutActors,
+		TArray<UPackage*>& OutPackagesToSave,
+		TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
+		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
+		FHoudiniEngineOutputStats& OutBakeStats,
+		AActor* InFallbackActor = nullptr,
+		const FString& InFallbackWorldOutlinerFolder = TEXT(""));
+
 	static bool BakeHoudiniCurveOutputToActors(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
@@ -1015,4 +1059,9 @@ public:
 		UHoudiniAssetComponent* HoudiniAssetComponent, 
 		TArray<FHoudiniBakedOutput>& InBakedOutputs,
 		bool bReplaceActors);
+
+	static void DeleteBakedDataTableObjects(TArray<FHoudiniBakedOutput>& InBakedOutputs);
+
+	static UUserDefinedStruct * DuplicateUserDefinedStruct(UUserDefinedStruct* OldStruct, UPackage* Pacakge, FString& PackageName);
+
 };

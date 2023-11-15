@@ -30,9 +30,8 @@
 #include "UObject/ObjectMacros.h"
 #include "Engine/World.h"
 #include "Misc/Paths.h"
-
+#include "HoudiniDataLayerUtils.h"
 #include "HoudiniStringResolver.h"
-
 #include "HoudiniPackageParams.generated.h"
 
 class UStaticMesh;
@@ -101,7 +100,13 @@ public:
 	UPackage* CreatePackageForObject(FString& OutPackageName, int32 InBakeCounterStart=0) const;
 
 	// Helper function to create an object and its package
-	template<typename T> T* CreateObjectAndPackage(T * TemplateObject = nullptr) const;
+
+	UObject* CreateObjectAndPackageFromClass(UClass* Class, UObject* TemplateObject = nullptr) const;
+
+	template<typename T> T* CreateObjectAndPackage(T* TemplateObject = nullptr) const
+	{
+		return static_cast<T*>(CreateObjectAndPackageFromClass(T::StaticClass(), TemplateObject));
+	}
 
 	// The current cook/baking mode
 	UPROPERTY()
