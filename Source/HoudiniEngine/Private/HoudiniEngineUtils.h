@@ -642,6 +642,15 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_AttributeInfo& InAttributeInfo,
 			const TArray<int>& SizesFixedArray);
 
+		// Helper function to set attribute dict data for a FString array
+		// The data will be sent in chunks if too large for thrift
+		static HAPI_Result HapiSetAttributeDictionaryData(
+			const TArray<FString>& InStringArray,
+			const HAPI_NodeId& InNodeId,
+			const HAPI_PartId& InPartId,
+			const FString& InAttributeName,
+			const HAPI_AttributeInfo& InAttributeInfo);
+
 
 		// Helper function to set Heightfield data
 		// The data will be sent in chunks if too large for thrift
@@ -1235,6 +1244,13 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// (similar to the HAPI function, but allows for specifying a XformType for the created object merge when the two nodes aren't in the same subnet)
 		static bool HapiConnectNodeInput(const int32& InNodeId, const int32& InputIndex, const int32& InNodeIdToConnect, const int32& OutputIndex, const int32& InXFormType);
 
+
+		// -------------------------------------------------
+		// JSON Utilities
+		// -------------------------------------------------
+		static FString JSONToString(const TSharedPtr<FJsonObject>& JSONObject);
+		static bool JSONFromString(const ::FString& JSONString, TSharedPtr<FJsonObject>& OutJSONObject);
+
 	protected:
 		
 		// Computes the XX.YY.ZZZ version string using HAPI_Version
@@ -1255,3 +1271,4 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Trigger an update of the Blueprint Editor on the game thread
 		static void UpdateBlueprintEditor_Internal(UHoudiniAssetComponent* HAC);
 };
+

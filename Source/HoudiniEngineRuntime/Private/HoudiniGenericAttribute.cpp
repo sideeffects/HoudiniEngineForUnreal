@@ -1508,6 +1508,41 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 			return false;
 		}
 	}
+	else if (FSoftObjectProperty* SoftObjectProperty = CastField<FSoftObjectProperty>(InnerProperty))
+	{
+		// OBJECT PATH PROPERTY
+		const int32 TupleIndex = 0;
+		// If this is an array property, ensure it has enough space
+		// TODO: should we just set the array size to 1 for non-arrays or to the array size for arrays (once we support array attributes from Houdini)?
+		//		 vs just ensuring there is enough space (and then potentially leaving previous/old data behind?)
+		if (ArrayHelper.IsValid())
+			ArrayHelper->ExpandForIndex(TupleIndex);
+
+		FString Value = InGenericAttribute.GetStringValue(AtIndex + TupleIndex);
+		void* ValuePtr = nullptr;
+		if (ArrayHelper.IsValid())
+			ValuePtr = ArrayHelper->GetRawPtr(TupleIndex);
+		else
+			ValuePtr = InnerProperty->ContainerPtrToValuePtr<FString>(Container, TupleIndex);
+		
+		if (ValuePtr)
+		{
+			const FSoftObjectPtr SoftObjectPtr = SoftObjectProperty->GetPropertyValue(ValuePtr);
+			const FSoftObjectPath SoftObjectPath = SoftObjectPtr.ToSoftObjectPath();
+			const FString CurrentValue = SoftObjectPath.GetAssetPathString();
+			if (CurrentValue != Value)
+			{
+				OnPrePropertyChanged(SoftObjectProperty);
+				SoftObjectProperty->SetPropertyValue(ValuePtr, FSoftObjectPtr(FSoftObjectPath(Value)));
+				OnPropertyChanged(SoftObjectProperty);
+			}
+		}
+		else
+		{
+			HOUDINI_LOG_WARNING(TEXT("Could net get a valid value ptr for uproperty %s (Class %s)"), *InGenericAttribute.AttributeName, *PropertyClassName);
+			return false;
+		}
+	}
 	else
 	{
 		// Property was found, but is of an unsupported type

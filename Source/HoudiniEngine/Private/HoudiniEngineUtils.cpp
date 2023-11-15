@@ -92,6 +92,8 @@
 
 #include <vector>
 
+#include "Serialization/JsonSerializer.h"
+
 #if WITH_EDITOR
 	#include "EditorFramework/AssetImportData.h"
 	#include "EditorModeManager.h"
@@ -4270,6 +4272,58 @@ FHoudiniEngineUtils::HapiSetAttributeStringArrayData(
 
 	// ExtractRawString allocates memory using malloc, free it!
 	FreeRawStringMemory(StringDataArray);
+
+	return Result;
+}
+
+
+HAPI_Result
+FHoudiniEngineUtils::HapiSetAttributeDictionaryData(const TArray<FString>& JSONData,
+	const HAPI_NodeId& InNodeId, const HAPI_PartId& InPartId, const FString& InAttributeName,
+	const HAPI_AttributeInfo& InAttributeInfo)
+{
+	SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+
+	TArray<const char *> RawStringData;
+	for (const FString& Data : JSONData)
+	{
+		RawStringData.Add(FHoudiniEngineUtils::ExtractRawString(Data));
+	}
+
+	// Send strings in smaller chunks due to their potential size
+	int32 ChunkSize = (THRIFT_MAX_CHUNKSIZE / 100) / InAttributeInfo.tupleSize;
+	ChunkSize = 10;
+
+	HAPI_Result Result = HAPI_RESULT_FAILURE;
+	if (InAttributeInfo.count > ChunkSize)
+	{
+		// Set the attributes in chunks
+		for (int32 ChunkStart = 0; ChunkStart < InAttributeInfo.count; ChunkStart += ChunkSize)
+		{
+			const int32 CurCount = InAttributeInfo.count - ChunkStart > ChunkSize ? ChunkSize : InAttributeInfo.count - ChunkStart;
+	
+			Result = FHoudiniApi::SetAttributeDictionaryData(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+				&InAttributeInfo, RawStringData.GetData() + ChunkStart * InAttributeInfo.tupleSize,
+				ChunkStart, CurCount);
+	
+			if (Result != HAPI_RESULT_SUCCESS)
+				break;
+		}
+	}
+	else
+	{
+		// Set all the attribute values once
+		Result = FHoudiniApi::SetAttributeDictionaryData(
+			FHoudiniEngine::Get().GetSession(),
+			InNodeId, InPartId, TCHAR_TO_ANSI(*InAttributeName),
+			&InAttributeInfo, RawStringData.GetData(),
+			0, RawStringData.Num());
+	}
+
+	// ExtractRawString allocates memory using malloc, free it!
+	FreeRawStringMemory(RawStringData);
 
 	return Result;
 }
@@ -8559,5 +8613,28 @@ FHoudiniEngineUtils::HapiConnectNodeInput(const int32& InNodeId, const int32& In
 
 	return true;
 }
+
+
+FString
+FHoudiniEngineUtils::JSONToString(const TSharedPtr<FJsonObject>& JSONObject)
+{
+	FString OutputString;
+	const TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&OutputString);
+	FJsonSerializer::Serialize(JSONObject.ToSharedRef(), Writer);
+	return OutputString;
+}
+
+
+bool
+FHoudiniEngineUtils::JSONFromString(const FString& JSONString, TSharedPtr<FJsonObject>& OutJSONObject)
+{
+	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( JSONString );
+	if (!FJsonSerializer::Deserialize(Reader, OutJSONObject) || !OutJSONObject.IsValid())
+	{
+		return false;
+	}
+
+	return true;
+};
 
 #undef LOCTEXT_NAMESPACE
