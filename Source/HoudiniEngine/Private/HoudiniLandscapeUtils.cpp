@@ -675,11 +675,14 @@ FTransform FHoudiniLandscapeUtils::GetHeightFieldTransformInUnrealSpace(const FH
 	Result.SetLocation(VolumeInfo.Transform.GetLocation());
 
 	// Unreal has a X/Y resolution of 1m per point while Houdini is dependent on the height field's grid spacing
-	// Swap Y/Z axis from H to UE
+	// Swap Y/Z axis from H to UE. 
+	// NOTE: Ignore vertical scaling intentionally; the height field grid scale is also applied to the volume's scale.y
+	// received from HAPI, however the actual height values do not change. So we can ignore it.
+
 	FVector LandscapeScale;
 	LandscapeScale.X = VolumeInfo.Transform.GetScale3D().X * 2.0f;
 	LandscapeScale.Y = VolumeInfo.Transform.GetScale3D().Z * 2.0f;
-	LandscapeScale.Z = VolumeInfo.Transform.GetScale3D().Y * 2.0f;
+	LandscapeScale.Z = 1.0f;
 	LandscapeScale *= 100.0f;
 
 	Result.SetScale3D(LandscapeScale);
