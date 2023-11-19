@@ -4366,31 +4366,16 @@ FHoudiniInputTranslator::HapiCreateInputNodeForCamera(
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmFloatValue(
 		FHoudiniEngine::Get().GetSession(), CameraNodeId, "far", 0, InInputObject->OrthoFarClipPlane), false);
 
-	// Set the transform
+	// Set the transform - rotate by 90 degrees to align with where Houdini expects camera to be pointing.
+	FTransform RotationTransform(FQuat::MakeFromEuler(FVector(0.0, 0.0, 90.0)));
+	FTransform RotatedCamera = RotationTransform * Camera->GetComponentTransform();
 	HAPI_TransformEuler H_Transform;
 	FHoudiniApi::TransformEuler_Init(&H_Transform);
-	FHoudiniEngineUtils::TranslateUnrealTransform(Camera->GetComponentTransform(), H_Transform);
+	FHoudiniEngineUtils::TranslateUnrealTransform(RotatedCamera, H_Transform);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
 		FHoudiniEngine::Get().GetSession(), CameraNodeId, &H_Transform), false);
 	
-	// Update the component's transform
-	FTransform ComponentTransform = InInputObject->GetHoudiniObjectTransform();
-	if (FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled() || !ComponentTransform.Equals(FTransform::Identity))
-	{
-		// convert to HAPI_Transform
-		HAPI_TransformEuler HapiTransform;
-		FHoudiniApi::TransformEuler_Init(&HapiTransform);
-		FHoudiniEngineUtils::TranslateUnrealTransform(ComponentTransform, HapiTransform);
-
-		// Camera orientation need to be adjusted
-		HapiTransform.rotationEuler[1] += -90.0f;
-
-		// Set the transform on the OBJ parent
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
-			FHoudiniEngine::Get().GetSession(), CameraNodeId, &HapiTransform), false);
-	}
-
 	// Update this input's NodeId and ObjectNodeId
 	InInputObject->SetInputNodeId(-1);// (int32)CameraNodeId;
 	InInputObject->SetInputObjectNodeId((int32)CameraNodeId);
