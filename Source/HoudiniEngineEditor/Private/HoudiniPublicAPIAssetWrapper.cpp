@@ -2922,7 +2922,7 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(const int32 InI
 			}
 			break;
 		}
-	case EHoudiniOutputType::Curve:
+		case EHoudiniOutputType::Curve:
 			ObjectToBake = OutputObject->OutputComponents.Num() > 0 ? OutputObject->OutputComponents[0] : nullptr;
 			break;
 		case EHoudiniOutputType::Mesh:
@@ -2971,9 +2971,9 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(const int32 InI
 		*OutputObject,
 		HoudiniGeoPartObject,
 		HAC,
+		Output,
 		HAC->BakeFolder.Path,
 		HAC->TemporaryCookFolder.Path,
-		OutputType,
 		InLandscapeBakeType,
 		AllOutputs);
 

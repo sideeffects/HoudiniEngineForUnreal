@@ -157,6 +157,74 @@ HOUDINI_BAKING_DEFINE_LOG_CATEGORY();
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
+
+FHoudiniEngineBakeState::FHoudiniEngineBakeState(const int32 InNumOutputs, const TArray<FHoudiniBakedOutput>& InOldBakedOutputs)
+{
+	OldBakedOutputs = InOldBakedOutputs;
+	OldBakedOutputs.SetNum(InNumOutputs);
+	NewBakedOutputs.SetNum(InNumOutputs);
+}
+
+
+const FHoudiniBakedOutputObject*
+FHoudiniEngineBakeState::FindOldBakedOutputObject(const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier)
+{
+	check(OldBakedOutputs.IsValidIndex(InOutputIndex));
+	return OldBakedOutputs[InOutputIndex].BakedOutputObjects.Find(InIdentifier);
+}
+
+
+FHoudiniBakedOutputObject
+FHoudiniEngineBakeState::MakeNewBakedOutputObject(const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier, bool& bOutHasPreviousBakeData)
+{
+	FHoudiniBakedOutputObject NewBakedOutputObject;
+
+	if (FHoudiniBakedOutputObject const* const Entry = FindOldBakedOutputObject(InOutputIndex, InIdentifier))
+	{
+		bOutHasPreviousBakeData = true;
+		NewBakedOutputObject = *Entry;
+	}
+	else
+	{
+		bOutHasPreviousBakeData = false;
+	}
+
+	return NewBakedOutputObject;
+}
+
+
+const FHoudiniBakedOutputObject&
+FHoudiniEngineBakeState::FindNewBakedOutputObjectChecked(const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier)
+{
+	check(NewBakedOutputs.IsValidIndex(InOutputIndex));
+	return NewBakedOutputs[InOutputIndex].BakedOutputObjects.FindChecked(InIdentifier);
+}
+
+
+FHoudiniBakedOutputObject&
+FHoudiniEngineBakeState::FindOrAddNewBakedOutputObject(const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier)
+{
+	check(NewBakedOutputs.IsValidIndex(InOutputIndex));
+	return NewBakedOutputs[InOutputIndex].BakedOutputObjects.FindOrAdd(InIdentifier);
+}
+
+
+FHoudiniBakedOutputObject&
+FHoudiniEngineBakeState::SetNewBakedOutputObject(const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier, const FHoudiniBakedOutputObject& InBakedOutputObject)
+{
+	check(NewBakedOutputs.IsValidIndex(InOutputIndex));
+	return NewBakedOutputs[InOutputIndex].BakedOutputObjects.Emplace(InIdentifier, InBakedOutputObject);
+}
+
+
+FHoudiniBakedOutputObject&
+FHoudiniEngineBakeState::SetNewBakedOutputObject(const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier, FHoudiniBakedOutputObject&& InBakedOutputObject)
+{
+	check(NewBakedOutputs.IsValidIndex(InOutputIndex));
+	return NewBakedOutputs[InOutputIndex].BakedOutputObjects.Emplace(InIdentifier, InBakedOutputObject);
+}
+
+
 FHoudiniEngineBakedActor::FHoudiniEngineBakedActor()
 	: Actor(nullptr)
 	, OutputIndex(INDEX_NONE)
@@ -324,17 +392,13 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors(
 		Outputs.Add(HoudiniAssetComponent->GetOutputAt(OutputIdx));
 	}
 
-	// Get the previous bake objects and grow/shrink to match asset outputs
-	TArray<FHoudiniBakedOutput>& BakedOutputs = HoudiniAssetComponent->GetBakedOutputs();
-	// Ensure we have an entry for each output
-	if (BakedOutputs.Num() != NumOutputs)
-		BakedOutputs.SetNum(NumOutputs);
+	FHoudiniEngineBakeState BakeState(NumOutputs, HoudiniAssetComponent->GetBakedOutputs());
 
 	const TArray<FHoudiniEngineBakedActor> AllBakedActors;
-	return BakeHoudiniOutputsToActors(
+	const bool bSuccess = BakeHoudiniOutputsToActors(
 		HoudiniAssetComponent,
 		Outputs,
-		BakedOutputs,
+		BakeState,
 		HoudiniAssetComponent->GetComponentTransform(),
 		HoudiniAssetComponent->BakeFolder,
 		HoudiniAssetComponent->TemporaryCookFolder,
@@ -348,6 +412,11 @@ FHoudiniEngineBakeUtils::BakeHoudiniActorToActors(
 		InInstancerComponentTypesToBake,
 		InFallbackActor,
 		InFallbackWorldOutlinerFolder);
+
+	// Copy any relevant new / update data from the bake state to the HAC
+	HoudiniAssetComponent->GetBakedOutputs() = BakeState.GetNewBakedOutputs();
+
+	return bSuccess;
 }
 
 
@@ -397,7 +466,7 @@ bool
 FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 	UHoudiniAssetComponent* HoudiniAssetComponent,
 	const TArray<UHoudiniOutput*>& InOutputs,
-	TArray<FHoudiniBakedOutput>& InBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const FTransform& InParentTransform,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
@@ -418,22 +487,18 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 	FString Msg = FString::Format(*MsgTemplate, { 0, NumOutputs });
 	FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(Msg));
 
-	RemoveBakedLevelInstances(HoudiniAssetComponent, InBakedOutputs, bInReplaceActors);
+	RemoveBakedLevelInstances(HoudiniAssetComponent, InBakeState.GetOldBakedOutputs(), bInReplaceActors);
 
 	if (bInReplaceAssets)
 	{
 		// Make sure all old data tables are removed prior to baking. Data tables must be fully deleted
 		// before creating new data tables with the same new or Unreal gets very upset.
-		DeleteBakedDataTableObjects(InBakedOutputs);
+		DeleteBakedDataTableObjects(InBakeState.GetOldBakedOutputs());
 	}
 
 
 	TArray<FHoudiniEngineBakedActor> AllBakedActors = InBakedActors;
 	TArray<FHoudiniEngineBakedActor> NewBakedActors;
-
-	// Ensure that InBakedOutputs is the same size as InOutputs
-	if (InBakedOutputs.Num() != NumOutputs)
-		InBakedOutputs.SetNum(NumOutputs);
 
 	// Landscape layers needs to be cleared during baking, but only once. So keep track of which ones
 	// have been cleared.
@@ -476,7 +541,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 					HoudiniAssetComponent,
 					OutputIdx,
 					InOutputs,
-					InBakedOutputs,
+					InBakeState,
 					InBakeFolder,
 					InTempCookFolder,
 					bInReplaceActors,
@@ -506,7 +571,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 					HoudiniAssetComponent,
 					OutputIdx,
 					InOutputs,
-					InBakedOutputs,
+					InBakeState,
 					bInReplaceActors,
 					bInReplaceAssets,
 					InBakeFolder,
@@ -525,7 +590,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 					HoudiniAssetComponent,
 					OutputIdx,
 					InOutputs,
-					InBakedOutputs,
+					InBakeState,
 					InBakeFolder,
 					bInReplaceActors,
 					bInReplaceAssets,
@@ -543,7 +608,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 					HoudiniAssetComponent,
 					OutputIdx,
 					InOutputs,
-					InBakedOutputs,
+					InBakeState,
 					InBakeFolder,
 					InTempCookFolder,
 					bInReplaceActors,
@@ -565,7 +630,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 					HoudiniAssetComponent,
 					OutputIdx,
 					InOutputs,
-					InBakedOutputs,
+					InBakeState,
 					bInReplaceActors,
 					bInReplaceAssets,
 					InBakeFolder,
@@ -581,7 +646,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 				HoudiniAssetComponent,
 				OutputIdx,
 				InOutputs,
-				InBakedOutputs,
+				InBakeState,
 				InBakeFolder,
 				InTempCookFolder,
 				bInReplaceActors,
@@ -612,7 +677,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 	    FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 			HoudiniAssetComponent,
 			AlreadyBakedStaticMeshMap,
-			InBakedOutputs,
+			InBakeState,
 			InOutputs,
 			InBakeFolder,
 			InTempCookFolder,
@@ -640,7 +705,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 					HoudiniAssetComponent,
                     OutputIdx,
                     InOutputs,
-                    InBakedOutputs,
+                    InBakeState,
                     InParentTransform,
                     InBakeFolder,
                     InTempCookFolder,
@@ -671,7 +736,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 		TArray<FHoudiniEngineBakedActor> BakedLandscapeActors = FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 			HoudiniAssetComponent,
 			FName(InFallbackWorldOutlinerFolder), 
-			InOutputs, 
+			InOutputs,
+			InBakeState,
 			bInReplaceActors,
 			bInReplaceAssets,
 			InBakeFolder,
@@ -705,6 +771,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 		UHoudiniOutput* Output = InOutputs[BakedActor.OutputIndex];
 		FHoudiniOutputObject& OutputObject = Output->GetOutputObjects()[BakedActor.OutputObjectIdentifier];
 
+		const bool bHasPreviousBakeData = InBakeState.FindOldBakedOutputObject(BakedActor.OutputIndex, BakedActor.OutputObjectIdentifier) != nullptr;
+		
 		if (IsValid(BakedActor.Actor))
 		{
 			const EPackageReplaceMode AssetPackageReplaceMode = bInReplaceAssets
@@ -717,7 +785,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 				BakedActor.Actor->GetWorld(),
 				HoudiniAssetComponent, 
 				BakedActor.OutputObjectIdentifier,
-				OutputObject, 
+				OutputObject,
+				bHasPreviousBakeData,
 				"",
 				PackageParams, 
 				Resolver,
@@ -728,7 +797,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 			FHoudiniHLODLayerUtils::ApplyHLODLayersToActor(PackageParams, BakedActor.Actor, OutputObject.HLODLayers);
 		}
 	}
-
+	
 	OutNewActors = MoveTemp(NewBakedActors);
 
 	return true;
@@ -760,7 +829,7 @@ void
 FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 	UHoudiniAssetComponent* HoudiniAssetComponent,
 	TMap<UStaticMesh*, UStaticMesh*> AlreadyBakedStaticMeshMap,
-	TArray<FHoudiniBakedOutput>& InBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
@@ -776,12 +845,8 @@ FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 	// Remove previous bake if required.
 	if (bInReplaceAssets)
 	{
-		RemoveBakedFoliageInstances(HoudiniAssetComponent, InBakedOutputs);
+		RemoveBakedFoliageInstances(HoudiniAssetComponent, InBakeState.GetOldBakedOutputs());
 	}
-
-	// Ensure parity
-	if (InBakedOutputs.Num() != InAllOutputs.Num())
-		InBakedOutputs.SetNum(InAllOutputs.Num());
 
     // Create Foliage Types associated with each output.
     for(int InOutputIndex = 0; InOutputIndex < InAllOutputs.Num(); InOutputIndex++)
@@ -790,7 +855,7 @@ FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 			FoliageMap,
 			HoudiniAssetComponent,
 			InOutputIndex,
-			InBakedOutputs,
+			InBakeState,
 			InAllOutputs,
 			InBakeFolder,
 			InTempCookFolder,
@@ -828,7 +893,7 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 	TMap<UFoliageType*, UFoliageType*> & FoliageMap,
 	UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
-	TArray<FHoudiniBakedOutput>& InBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
@@ -842,7 +907,6 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		: EPackageReplaceMode::CreateNewAssets;
 
 	UHoudiniOutput* Output = InAllOutputs[InOutputIndex];
-	FHoudiniBakedOutput& BakedOutput = InBakedOutputs[InOutputIndex];
 
 	UWorld* DesiredWorld = Output ? Output->GetWorld() : GWorld;
 
@@ -859,6 +923,8 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 
 		if (FoliageMap.Contains(OutputObject->FoliageType))
 		    continue;
+
+		FHoudiniBakedOutputObject BakedObject;
 
 		UFoliageType* TargetFoliageType = nullptr;
 
@@ -877,9 +943,11 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 
 			FHoudiniPackageParams PackageParams;
 			FHoudiniAttributeResolver InstancerResolver;
+			bool bHasPreviousBakeData = false;
+			BakedObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, Identifier, bHasPreviousBakeData);
 			FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-				DesiredWorld, HoudiniAssetComponent, Identifier, *OutputObject, ObjectName,
-				PackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
+				DesiredWorld, HoudiniAssetComponent, Identifier, *OutputObject, bHasPreviousBakeData,
+				ObjectName, PackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
 			TargetFoliageType = DuplicateFoliageTypeAndCreatePackageIfNeeded(
 				OutputObject->FoliageType,
@@ -910,10 +978,9 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		}
 
 		// Store back output object.
-		FHoudiniBakedOutputObject BakedObject;
 		BakedObject.FoliageType = TargetFoliageType;
 		BakedObject.FoliageInstancePositions = InstancesPositions;
-		BakedOutput.BakedOutputObjects.Add(Identifier, BakedObject);
+		InBakeState.SetNewBakedOutputObject(InOutputIndex, Identifier, BakedObject);
     }
 	return;
 }
@@ -923,7 +990,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
-	TArray<FHoudiniBakedOutput>& InBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const FTransform& InTransform,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
@@ -946,10 +1013,6 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 	if (!IsValid(InOutput))
 		return false;
 
-	// Ensure we have the same number of baked outputs and asset outputs
-	if (InBakedOutputs.Num() != InAllOutputs.Num())
-		InBakedOutputs.SetNum(InAllOutputs.Num());
-
 	// Geometry collection instancers will be done on the geometry collection output component.
 	if (FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancer(InOutput))
 	{
@@ -958,8 +1021,6 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 
 	const TArray<FHoudiniGeoPartObject>& HGPOs = InOutput->GetHoudiniGeoPartObjects();
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
-	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& OldBakedOutputObjects = InBakedOutputs[InOutputIndex].BakedOutputObjects;
-	TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> NewBakedOutputObjects;
 
 	TArray<FHoudiniEngineBakedActor> AllBakedActors = InBakedActors;
 	TArray<FHoudiniEngineBakedActor> NewBakedActors;
@@ -970,10 +1031,6 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 	{
 		const FHoudiniOutputObjectIdentifier& Identifier = Pair.Key;
 		FHoudiniOutputObject& CurrentOutputObject = Pair.Value;
-		
-		FHoudiniBakedOutputObject& BakedOutputObject = NewBakedOutputObjects.Add(Identifier);
-		if (OldBakedOutputObjects.Contains(Identifier))
-			BakedOutputObject = OldBakedOutputObjects.FindChecked(Identifier);
 
 		if (CurrentOutputObject.bProxyIsCurrent)
 		{
@@ -995,11 +1052,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 				    HoudiniAssetComponent,
 				    InOutputIndex,
 				    InAllOutputs,
+				    InBakeState,
 				    HGPOs,
-				    // InBakedOutputs,
 				    Pair.Key, 
 				    CurrentOutputObject, 
-				    BakedOutputObject,
 				    InTransform,
 				    InBakeFolder,
 				    InTempCookFolder,
@@ -1023,7 +1079,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 				    HGPOs,
 				    Pair.Key, 
 				    CurrentOutputObject, 
-				    BakedOutputObject,
+				    InBakeState,
 				    InBakeFolder,
 				    bInReplaceActors, 
 				    bInReplaceAssets,
@@ -1040,11 +1096,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 					    HoudiniAssetComponent,
 					    InOutputIndex,
 					    InAllOutputs,
-					    // InBakedOutputs,
+					    InBakeState,
 					    HGPOs,
 					    Pair.Key, 
-					    CurrentOutputObject, 
-					    BakedOutputObject,
+					    CurrentOutputObject,
 					    InTransform,
 					    InBakeFolder,
 					    InTempCookFolder,
@@ -1070,10 +1125,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 					    HoudiniAssetComponent,
 					    InOutputIndex,
 					    InAllOutputs,
+					    InBakeState,
 					    HGPOs,
 					    Pair.Key, 
 					    CurrentOutputObject, 
-					    BakedOutputObject, 
 					    InBakeFolder,
 					    InTempCookFolder,
 					    bInReplaceActors, 
@@ -1119,10 +1174,9 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 					HoudiniAssetComponent,
 					InOutputIndex,
 					InAllOutputs,
-					// InBakedOutputs,
+					InBakeState,
 					Pair.Key,
 					CurrentOutputObject,
-					BakedOutputObject,
 					InBakeFolder,
 					InTempCookFolder,
 					bInReplaceActors,
@@ -1147,9 +1201,6 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 
 	}
 
-	// Update the cached baked output data
-	InBakedOutputs[InOutputIndex].BakedOutputObjects = NewBakedOutputObjects;
-
 	OutActors = MoveTemp(NewBakedActors);
 
 	return true;
@@ -1160,10 +1211,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const TArray<FHoudiniGeoPartObject>& InHGPOs,
 	const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
-	FHoudiniBakedOutputObject& InBakedOutputObject,
 	const FTransform& InTransform,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
@@ -1178,6 +1229,9 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	AActor* InFallbackActor,
 	const FString& InFallbackWorldOutlinerFolder)
 {
+	bool bHasPreviousBakeData = false;
+	FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, bHasPreviousBakeData);
+	
 	for(auto Component : InOutputObject.OutputComponents)
 	{
 	    UInstancedStaticMeshComponent * InISMC = Cast<UInstancedStaticMeshComponent>(Component);
@@ -1207,7 +1261,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	    // Determine if the incoming mesh is temporary
 	    // If not temporary set the ObjectName from its package. (Also use this as a fallback default)
 	    FString ObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(StaticMesh);
-	    UStaticMesh* PreviousStaticMesh = Cast<UStaticMesh>(InBakedOutputObject.GetBakedObjectIfValid());
+	    UStaticMesh* PreviousStaticMesh = Cast<UStaticMesh>(BakedOutputObject.GetBakedObjectIfValid());
 	    UStaticMesh* BakedStaticMesh = nullptr;
 
 	    // Construct PackageParams for the instancer itself. When baking to actor we technically won't create a stand-alone
@@ -1215,7 +1269,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	    FHoudiniPackageParams InstancerPackageParams;
 	    FHoudiniAttributeResolver InstancerResolver;
 	    FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-		    DesiredWorld, HoudiniAssetComponent, InOutputObjectIdentifier, InOutputObject, ObjectName,
+		    DesiredWorld, HoudiniAssetComponent, InOutputObjectIdentifier, InOutputObject, bHasPreviousBakeData, ObjectName,
 		    InstancerPackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
 	    FHoudiniPackageParams MeshPackageParams;
@@ -1231,6 +1285,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		    BakeFolderPath = InBakeFolder.Path;
 
 		    // See if we can find the mesh in the outputs
+	    	FHoudiniBakedOutputObject MeshBakedOutputObject;
 		    int32 MeshOutputIndex = INDEX_NONE;
 		    FHoudiniOutputObjectIdentifier MeshIdentifier;
 		    const bool bFoundMeshOutput = FindOutputObject(StaticMesh, EHoudiniOutputType::Mesh, InAllOutputs, MeshOutputIndex, MeshIdentifier);
@@ -1239,8 +1294,13 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 			    FHoudiniAttributeResolver MeshResolver;
 			    // Found the instanced mesh in the mesh outputs
 			    const FHoudiniOutputObject& MeshOutputObject = InAllOutputs[MeshOutputIndex]->GetOutputObjects().FindChecked(MeshIdentifier);
+
+				// Check if the mesh itself has previous bake data
+				bool bMeshHasPreviousBakeData = false;
+				MeshBakedOutputObject = InBakeState.MakeNewBakedOutputObject(MeshOutputIndex, MeshIdentifier, bMeshHasPreviousBakeData);
+	
 			    FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-				    DesiredWorld, HoudiniAssetComponent, MeshIdentifier, MeshOutputObject, ObjectName,
+				    DesiredWorld, HoudiniAssetComponent, MeshIdentifier, MeshOutputObject, bMeshHasPreviousBakeData, ObjectName,
 				    MeshPackageParams, MeshResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 			    // Update with resolved object name
 			    ObjectName = MeshPackageParams.ObjectName;
@@ -1251,6 +1311,9 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		    BakedStaticMesh = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 			    StaticMesh, PreviousStaticMesh, MeshPackageParams, InAllOutputs, InBakedActors, InTempCookFolder.Path,
 			    OutPackagesToSave, InOutAlreadyBakedStaticMeshMap, InOutAlreadyBakedMaterialsMap, OutBakeStats);
+
+			MeshBakedOutputObject.BakedObject = FSoftObjectPath(StaticMesh).ToString();
+	    	InBakeState.SetNewBakedOutputObject(MeshOutputIndex, MeshIdentifier, MeshBakedOutputObject);
 	    }
 
 		// We may need to duplicate materials overrides if they are temporary
@@ -1272,7 +1335,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		}
 
 	    // Update the baked object
-	    InBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
+	    BakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
 
 	    // Instancer name adds the split identifier (INSTANCERNUM_VARIATIONNUM)
 	    FString InstancerName = ObjectName + "_instancer";
@@ -1322,7 +1385,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	    FName BakeActorName;
 	    AActor* FoundActor = nullptr;
 	    bool bHasBakeActorName = false;
-	    if (!FindUnrealBakeActor(InOutputObject, InBakedOutputObject, InBakedActors, DesiredLevel, *InstancerName, bInReplaceActors, InFallbackActor, FoundActor, bHasBakeActorName, BakeActorName))
+	    if (!FindUnrealBakeActor(InOutputObject, BakedOutputObject, InBakedActors, DesiredLevel, *InstancerName, bInReplaceActors, InFallbackActor, FoundActor, bHasBakeActorName, BakeActorName))
 		    return false;
 
 	    /*
@@ -1362,7 +1425,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 
 			    FName BakeActorNameWithIndex = FName(BakeActorName.ToString() + "_instance_" + FString::FromInt(InstanceIdx), InstanceIdx);
 			    FoundActor = nullptr;
-			    if (!FindUnrealBakeActor(InOutputObject, InBakedOutputObject, InBakedActors, DesiredLevel, *InstancerName, bInReplaceActors, InFallbackActor, FoundActor, bHasBakeActorName, BakeActorName))
+			    if (!FindUnrealBakeActor(InOutputObject, BakedOutputObject, InBakedActors, DesiredLevel, *InstancerName, bInReplaceActors, InFallbackActor, FoundActor, bHasBakeActorName, BakeActorName))
 				    return false;
 
 			    if (!FoundActor)
@@ -1446,7 +1509,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 			    // If there is a previously baked component, and we are in replace mode, remove it
 			    if (bInReplaceAssets)
 			    {
-				    USceneComponent* InPrevComponent = Cast<USceneComponent>(InBakedOutputObject.GetBakedComponentIfValid());
+				    USceneComponent* InPrevComponent = Cast<USceneComponent>(BakedOutputObject.GetBakedComponentIfValid());
 				    if (IsValid(InPrevComponent) && InPrevComponent->GetOwner() == FoundActor)
 					    RemovePreviouslyBakedComponent(InPrevComponent);
 			    }
@@ -1510,7 +1573,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 			    return false;
 		    }
 
-		    InBakedOutputObject.BakedComponent = FSoftObjectPath(NewISMC).ToString();
+		    BakedOutputObject.BakedComponent = FSoftObjectPath(NewISMC).ToString();
 
 		    NewISMC->RegisterComponent();
 		    NewISMC->SetStaticMesh(BakedStaticMesh);
@@ -1550,7 +1613,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		    if (bSpawnedActor)
 			    FoundActor->FinishSpawning(InTransform);
 
-		    InBakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
+		    BakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
 		    FHoudiniEngineBakedActor& OutputEntry = OutActors.Add_GetRef(FHoudiniEngineBakedActor(
 			    FoundActor,
 			    BakeActorName,
@@ -1576,9 +1639,13 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		    const bool bInDestroyBakedInstancedActors = true;
 		    const bool bInDestroyBakedInstancedComponents = true;
 		    DestroyPreviousBakeOutput(
-			    InBakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
+			    BakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
 	    }
 	}
+
+	// Set the updated baked output data in the state
+	InBakeState.SetNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, BakedOutputObject);
+	
 	return true;
 }
 
@@ -1587,10 +1654,9 @@ bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
-	// const TArray<FHoudiniBakedOutput>& InAllBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
-	FHoudiniBakedOutputObject& InBakedOutputObject,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
 	bool bInReplaceActors,
@@ -1605,6 +1671,9 @@ bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
 	const FString& InFallbackWorldOutlinerFolder)
 {
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+	bool bHasPreviousBakeData = false;
+	FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, bHasPreviousBakeData);
+	
 	FString ObjectName;
 	UWorld* World = HoudiniAssetComponent->GetWorld();
 	const EPackageReplaceMode AssetPackageReplaceMode = bInReplaceAssets ?
@@ -1612,7 +1681,7 @@ bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
 	FHoudiniPackageParams InstancerPackageParams;
 	FHoudiniAttributeResolver InstancerResolver;
 	FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-		World, HoudiniAssetComponent, InOutputObjectIdentifier, InOutputObject, ObjectName,
+		World, HoudiniAssetComponent, InOutputObjectIdentifier, InOutputObject, bHasPreviousBakeData, ObjectName,
 		InstancerPackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
 	const FName OutlinerPath = GetOutlinerFolderPath(InOutputObject,
@@ -1651,7 +1720,7 @@ bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
 
 	BakedActor->SetActorLabel(BakedName);
 
-	InBakedOutputObject.LevelInstanceActors.Add(BakedActor->GetPathName());
+	BakedOutputObject.LevelInstanceActors.Add(BakedActor->GetPathName());
 
 	BakedActor->SetFolderPath(OutlinerPath);
 
@@ -1664,6 +1733,10 @@ bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
 	OutBakedActorEntry.Actor = BakedActor;
 	OutBakedActorEntry.ActorBakeName = FName(BakedActor->GetName());
 	OutBakedActorEntry.OutputObjectIdentifier = InOutputObjectIdentifier;
+
+	// Set the updated baked output object in the state
+	InBakeState.SetNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, BakedOutputObject);
+	
 	return true;
 #else
     return false;
@@ -1675,10 +1748,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const TArray<FHoudiniGeoPartObject>& InHGPOs,
 	const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
-	FHoudiniBakedOutputObject& InBakedOutputObject,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
 	bool bInReplaceActors,
@@ -1692,6 +1765,9 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	AActor* InFallbackActor,
 	const FString& InFallbackWorldOutlinerFolder)
 {
+	bool bHasPreviousBakeData = false;
+	FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, bHasPreviousBakeData);
+	
 	for(auto Component : InOutputObject.OutputComponents)
 	{
 	    UStaticMeshComponent* InSMC = Cast<UStaticMeshComponent>(Component);
@@ -1722,7 +1798,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	    // for baking from it.
 	    // If not temporary set the ObjectName from the its package. (Also use this as a fallback default)
 	    FString ObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(StaticMesh);
-	    UStaticMesh* PreviousStaticMesh = Cast<UStaticMesh>(InBakedOutputObject.GetBakedObjectIfValid());
+	    UStaticMesh* PreviousStaticMesh = Cast<UStaticMesh>(BakedOutputObject.GetBakedObjectIfValid());
 	    UStaticMesh* BakedStaticMesh = nullptr;
 
 	    // Package params for the instancer
@@ -1733,8 +1809,8 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	    // The resolver is then also configured with the package params for subsequent resolving (level_path etc)
 	    FHoudiniAttributeResolver InstancerResolver;
 	    FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-	    DesiredWorld, HoudiniAssetComponent,  InOutputObjectIdentifier, InOutputObject, ObjectName,
-	    InstancerPackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
+			DesiredWorld, HoudiniAssetComponent,  InOutputObjectIdentifier, InOutputObject, bHasPreviousBakeData, ObjectName,
+			InstancerPackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
 	    FHoudiniPackageParams MeshPackageParams;
 	    FString BakeFolderPath = FString();
@@ -1747,6 +1823,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	    else
 	    {
 		    // See if we can find the mesh in the outputs
+			FHoudiniBakedOutputObject MeshBakedOutputObject;
 		    int32 MeshOutputIndex = INDEX_NONE;
 		    FHoudiniOutputObjectIdentifier MeshIdentifier = InOutputObjectIdentifier;
 		    BakeFolderPath = InBakeFolder.Path;
@@ -1757,8 +1834,11 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 
 			    // Found the instanced mesh in the mesh outputs
 			    const FHoudiniOutputObject& MeshOutputObject = InAllOutputs[MeshOutputIndex]->GetOutputObjects().FindChecked(MeshIdentifier);
-			    FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-				    DesiredWorld, HoudiniAssetComponent, MeshIdentifier, MeshOutputObject, ObjectName,
+				bool bMeshHasPreviousBakeData = false;
+				MeshBakedOutputObject = InBakeState.MakeNewBakedOutputObject(MeshOutputIndex, MeshIdentifier, bMeshHasPreviousBakeData);
+
+		    	FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
+				    DesiredWorld, HoudiniAssetComponent, MeshIdentifier, MeshOutputObject, bMeshHasPreviousBakeData, ObjectName,
 				    MeshPackageParams, MeshResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 			    // Update with resolved object name
 			    ObjectName = MeshPackageParams.ObjectName;
@@ -1769,6 +1849,9 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 		    BakedStaticMesh = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 			    StaticMesh, PreviousStaticMesh, MeshPackageParams, InAllOutputs, InBakedActors, InTempCookFolder.Path,
 			    OutPackagesToSave, InOutAlreadyBakedStaticMeshMap, InOutAlreadyBakedMaterialsMap, OutBakeStats);
+
+	    	MeshBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
+			InBakeState.SetNewBakedOutputObject(MeshOutputIndex, MeshIdentifier, MeshBakedOutputObject);
 	    }
 
 		// We may need to duplicate materials overrides if they are temporary
@@ -1790,7 +1873,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 		}
 
 	    // Update the previous baked object
-	    InBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
+	    BakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
 
 	    // Instancer name adds the split identifier (INSTANCERNUM_VARIATIONNUM)
 	    FString InstancerName = ObjectName + "_instancer";
@@ -1839,7 +1922,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	    FName BakeActorName;
 	    AActor* FoundActor = nullptr;
 	    bool bHasBakeActorName = false;
-	    if (!FindUnrealBakeActor(InOutputObject, InBakedOutputObject, InBakedActors, DesiredLevel, *InstancerName, bInReplaceActors, InFallbackActor, FoundActor, bHasBakeActorName, BakeActorName))
+	    if (!FindUnrealBakeActor(InOutputObject, BakedOutputObject, InBakedActors, DesiredLevel, *InstancerName, bInReplaceActors, InFallbackActor, FoundActor, bHasBakeActorName, BakeActorName))
 		    return false;
 
 	    UStaticMeshComponent* StaticMeshComponent = nullptr;
@@ -1878,7 +1961,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 		    if (bInReplaceAssets && !bCreatedNewActor)
 		    {
 			    // Check if we have a previous bake component and that it belongs to FoundActor, if so, reuse it
-			    UStaticMeshComponent* PrevSMC = Cast<UStaticMeshComponent>(InBakedOutputObject.GetBakedComponentIfValid());
+			    UStaticMeshComponent* PrevSMC = Cast<UStaticMeshComponent>(BakedOutputObject.GetBakedComponentIfValid());
 			    if (IsValid(PrevSMC) && (PrevSMC->GetOwner() == FoundActor))
 			    {
 				    StaticMeshComponent = PrevSMC;
@@ -1905,7 +1988,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	    SetOutlinerFolderPath(FoundActor, InOutputObject, WorldOutlinerFolderPath);
 
 	    // Update the previous baked component
-	    InBakedOutputObject.BakedComponent = FSoftObjectPath(StaticMeshComponent).ToString();
+	    BakedOutputObject.BakedComponent = FSoftObjectPath(StaticMeshComponent).ToString();
 	    
 	    if (!IsValid(StaticMeshComponent))
 		    return false;
@@ -1938,7 +2021,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 			}
 	    }
 	    
-	    InBakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
+	    BakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
 	    FHoudiniEngineBakedActor OutputEntry(
 		    FoundActor,
 		    BakeActorName,
@@ -1962,9 +2045,13 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 		    const bool bInDestroyBakedInstancedActors = true;
 		    const bool bInDestroyBakedInstancedComponents = true;
 		    DestroyPreviousBakeOutput(
-			    InBakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
+			    BakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
 	    }
 	}
+
+	// Set the updated baked output object in the state
+	InBakeState.SetNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, BakedOutputObject);
+	
 	return true;
 }
 
@@ -1976,7 +2063,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 	const TArray<FHoudiniGeoPartObject>& InHGPOs,
 	const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
-	FHoudiniBakedOutputObject& InBakedOutputObject,
+	FHoudiniEngineBakeState& InBakeState,
 	const FDirectoryPath& InBakeFolder,
 	bool bInReplaceActors,
 	bool bInReplaceAssets,
@@ -1985,6 +2072,9 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 	TArray<UPackage*>& OutPackagesToSave,
 	FHoudiniEngineOutputStats& OutBakeStats)
 {
+	bool bHasPreviousBakeData = false;
+	FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, bHasPreviousBakeData);
+
 	for(auto Component : InOutputObject.OutputComponents)
 	{
 	    UHoudiniInstancedActorComponent* InIAC = Cast<UHoudiniInstancedActorComponent>(Component);
@@ -2024,7 +2114,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 	    FHoudiniAttributeResolver Resolver;
 	    UWorld* DesiredWorld = OwnerActor ? OwnerActor->GetWorld() : GWorld;
 	    FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-		    DesiredWorld, HoudiniAssetComponent, InOutputObjectIdentifier, InOutputObject, DefaultObjectName,
+		    DesiredWorld, HoudiniAssetComponent, InOutputObjectIdentifier, InOutputObject, bHasPreviousBakeData, DefaultObjectName,
 		    PackageParams, Resolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
 	    // By default spawn in the current level unless specified via the unreal_level_path attribute
@@ -2072,7 +2162,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 	    bool bHasBakeActorName = false;
 	    constexpr AActor* FallbackActor = nullptr;
 	    const FName DefaultBakeActorName = NAME_None;
-	    if (!FindUnrealBakeActor(InOutputObject, InBakedOutputObject, InBakedActors, DesiredLevel, DefaultBakeActorName, bInReplaceActors, FallbackActor, ParentToActor, bHasBakeActorName, DesiredParentBakeActorName))
+	    if (!FindUnrealBakeActor(InOutputObject, BakedOutputObject, InBakedActors, DesiredLevel, DefaultBakeActorName, bInReplaceActors, FallbackActor, ParentToActor, bHasBakeActorName, DesiredParentBakeActorName))
 	    {
 		    HOUDINI_LOG_ERROR(TEXT("Finding / processing unreal_bake_actor unexpectedly failed during bake."));
 		    return false;
@@ -2122,17 +2212,17 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 
 	    if (ParentToActor)
 	    {
-		    InBakedOutputObject.ActorBakeName = DesiredParentBakeActorName;
-		    InBakedOutputObject.Actor = FSoftObjectPath(ParentToActor).ToString();
+		    BakedOutputObject.ActorBakeName = DesiredParentBakeActorName;
+		    BakedOutputObject.Actor = FSoftObjectPath(ParentToActor).ToString();
 	    }
 	    
 	    // If we are baking in actor replacement mode, remove any previously baked instanced actors for this output
-	    if (bInReplaceActors && InBakedOutputObject.InstancedActors.Num() > 0)
+	    if (bInReplaceActors && BakedOutputObject.InstancedActors.Num() > 0)
 	    {
 		    UWorld* LevelWorld = DesiredLevel->GetWorld();
 		    if (IsValid(LevelWorld))
 		    {
-			    for (const FString& ActorPathStr : InBakedOutputObject.InstancedActors)
+			    for (const FString& ActorPathStr : BakedOutputObject.InstancedActors)
 			    {
 				    const FSoftObjectPath ActorPath(ActorPathStr);
 
@@ -2157,7 +2247,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 	    }
 
 	    // Empty and reserve enough space for new instanced actors
-	    InBakedOutputObject.InstancedActors.Empty(InIAC->GetInstancedActors().Num());
+	    BakedOutputObject.InstancedActors.Empty(InIAC->GetInstancedActors().Num());
 		
 	    // Iterates on all the instances of the IAC
 	    for (AActor* CurrentInstancedActor : InIAC->GetInstancedActors())
@@ -2202,7 +2292,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 		    if (ParentToActor)
 			    NewActor->AttachToActor(ParentToActor, FAttachmentTransformRules::KeepWorldTransform);
 
-		    InBakedOutputObject.InstancedActors.Add(FSoftObjectPath(NewActor).ToString());
+		    BakedOutputObject.InstancedActors.Add(FSoftObjectPath(NewActor).ToString());
 		    
 		    FHoudiniEngineBakedActor& OutputEntry = OutActors.Add_GetRef(FHoudiniEngineBakedActor(
 			    NewActor,
@@ -2229,9 +2319,13 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 		    const bool bInDestroyBakedInstancedActors = false;
 		    const bool bInDestroyBakedInstancedComponents = true;
 		    DestroyPreviousBakeOutput(
-			    InBakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
+			    BakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
 	    }
 	}
+
+	// Set the updated bake output object in the state
+	InBakeState.SetNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, BakedOutputObject);
+	
 	return true;
 }
 
@@ -2240,11 +2334,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
-	// const TArray<FHoudiniBakedOutput>& InAllBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const TArray<FHoudiniGeoPartObject>& InHGPOs,
 	const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
-	FHoudiniBakedOutputObject& InBakedOutputObject,
 	const FTransform& InTransform,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
@@ -2259,6 +2352,9 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	AActor* InFallbackActor,
 	const FString& InFallbackWorldOutlinerFolder)
 {
+	bool bHasPreviousBakeData = false;
+	FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, bHasPreviousBakeData);
+	
 	for(auto Component : InOutputObject.OutputComponents)
 	{
 	    UHoudiniMeshSplitInstancerComponent * InMSIC = Cast<UHoudiniMeshSplitInstancerComponent>(Component);
@@ -2289,7 +2385,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	    // for baking from it.
 	    // If not temporary set the ObjectName from the its package. (Also use this as a fallback default)
 	    FString ObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(StaticMesh);
-	    UStaticMesh* PreviousStaticMesh = Cast<UStaticMesh>(InBakedOutputObject.GetBakedObjectIfValid());
+	    UStaticMesh* PreviousStaticMesh = Cast<UStaticMesh>(BakedOutputObject.GetBakedObjectIfValid());
 	    UStaticMesh* BakedStaticMesh = nullptr;
 
 	    // See if the instanced static mesh is still a temporary Houdini created Static Mesh
@@ -2299,7 +2395,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	    // The resolver is then also configured with the package params for subsequent resolving (level_path etc)
 	    FHoudiniAttributeResolver InstancerResolver;
 	    FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-		    DesiredWorld, HoudiniAssetComponent, InOutputObjectIdentifier, InOutputObject, ObjectName,
+		    DesiredWorld, HoudiniAssetComponent, InOutputObjectIdentifier, InOutputObject, bHasPreviousBakeData, ObjectName,
 		    InstancerPackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 	    
 	    FHoudiniPackageParams MeshPackageParams;
@@ -2313,6 +2409,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	    {
 		    BakeFolderPath = InBakeFolder.Path;
 		    // Try to find the mesh in the outputs
+			FHoudiniBakedOutputObject MeshBakedOutputObject;
 		    int32 MeshOutputIndex = INDEX_NONE;
 		    FHoudiniOutputObjectIdentifier MeshIdentifier;
 		    const bool bFoundMeshOutput = FindOutputObject(StaticMesh, EHoudiniOutputType::Mesh, InAllOutputs, MeshOutputIndex, MeshIdentifier);
@@ -2322,8 +2419,11 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 
 			    // Found the mesh in the mesh outputs, is temporary
 			    const FHoudiniOutputObject& MeshOutputObject = InAllOutputs[MeshOutputIndex]->GetOutputObjects().FindChecked(MeshIdentifier);
+				bool bMeshHasPreviousBakeData = false;
+		    	MeshBakedOutputObject = InBakeState.MakeNewBakedOutputObject(MeshOutputIndex, MeshIdentifier, bMeshHasPreviousBakeData);
+
 			    FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-				    DesiredWorld, HoudiniAssetComponent, MeshIdentifier, MeshOutputObject, ObjectName,
+				    DesiredWorld, HoudiniAssetComponent, MeshIdentifier, MeshOutputObject, bMeshHasPreviousBakeData, ObjectName,
 				    MeshPackageParams, MeshResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
 			    // Update with resolved object name
@@ -2335,6 +2435,9 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 		    BakedStaticMesh = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 			    StaticMesh, PreviousStaticMesh, MeshPackageParams, InAllOutputs, InBakedActors, InTempCookFolder.Path,
 			    OutPackagesToSave, InOutAlreadyBakedStaticMeshMap, InOutAlreadyBakedMaterialsMap, OutBakeStats);
+
+			MeshBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
+	    	InBakeState.SetNewBakedOutputObject(MeshOutputIndex, MeshIdentifier, MeshBakedOutputObject);
 	    }
 
 		// We may need to duplicate materials overrides if they are temporary
@@ -2356,7 +2459,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 		}
 
 	    // Update the baked output
-	    InBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
+	    BakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
 
 	    // Instancer name adds the split identifier (INSTANCERNUM_VARIATIONNUM)
 	    FString InstancerName = ObjectName + "_instancer";
@@ -2406,7 +2509,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	    AActor* FoundActor = nullptr;
 	    bool bHasBakeActorName = false;
 	    bool bSpawnedActor = false;
-	    if (!FindUnrealBakeActor(InOutputObject, InBakedOutputObject, InBakedActors, DesiredLevel, *InstancerName, bInReplaceActors, InFallbackActor, FoundActor, bHasBakeActorName, BakeActorName))
+	    if (!FindUnrealBakeActor(InOutputObject, BakedOutputObject, InBakedActors, DesiredLevel, *InstancerName, bInReplaceActors, InFallbackActor, FoundActor, bHasBakeActorName, BakeActorName))
 		    return false;
 
 	    if (!FoundActor)
@@ -2440,7 +2543,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	    else
 	    {
 		    // If we are baking in replacement mode, remove the previous components (if they belong to FoundActor)
-		    for (const FString& PrevComponentPathStr : InBakedOutputObject.InstancedComponents)
+		    for (const FString& PrevComponentPathStr : BakedOutputObject.InstancedComponents)
 		    {
 			    const FSoftObjectPath PrevComponentPath(PrevComponentPathStr);
 
@@ -2469,7 +2572,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 		    RootComponent->SetWorldTransform(InTransform);
 
 	    // Empty and reserve enough space in the baked components array for the new components
-	    InBakedOutputObject.InstancedComponents.Empty(InMSIC->GetInstances().Num());
+	    BakedOutputObject.InstancedComponents.Empty(InMSIC->GetInstances().Num());
 
 	    // Now add s SMC component for each of the SMC's instance
 	    for (UStaticMeshComponent* CurrentSMC : InMSIC->GetInstances())
@@ -2486,7 +2589,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 
 		    OutBakeStats.NotifyObjectsCreated(NewSMC->GetClass()->GetName(), 1);
 		    
-		    InBakedOutputObject.InstancedComponents.Add(FSoftObjectPath(NewSMC).ToString());
+		    BakedOutputObject.InstancedComponents.Add(FSoftObjectPath(NewSMC).ToString());
 		    
 		    NewSMC->RegisterComponent();
 		    // NewSMC->SetupAttachment(nullptr);
@@ -2531,7 +2634,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	    if (bSpawnedActor)
 		    FoundActor->FinishSpawning(InTransform);
 
-	    InBakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
+	    BakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
 	    FHoudiniEngineBakedActor OutputEntry(
 		    FoundActor,
 		    BakeActorName,
@@ -2558,9 +2661,12 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 		    const bool bInDestroyBakedInstancedActors = true;
 		    const bool bInDestroyBakedInstancedComponents = false;
 		    DestroyPreviousBakeOutput(
-			    InBakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
+			    BakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
 	    }
 	}
+
+	InBakeState.SetNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, BakedOutputObject);
+	
 	return true;
 }
 
@@ -2651,7 +2757,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	const FHoudiniOutputObjectIdentifier& InIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
 	const TArray<FHoudiniGeoPartObject>& InHGPOs,
-	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& InOldBakedOutputObjects,
+	FHoudiniEngineBakeState& InBakeState,
 	const FDirectoryPath& InTempCookFolder,
 	const FDirectoryPath& InBakeFolder,
 	const bool bInReplaceActors,
@@ -2663,7 +2769,6 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
 	TArray<UPackage*>& OutPackagesToSave,
 	FHoudiniEngineOutputStats& OutBakeStats,
-	FHoudiniBakedOutputObject& OutBakedOutputObject,
 	bool& bOutBakedToActor,
 	FHoudiniEngineBakedActor& OutBakedActorEntry
 )
@@ -2673,10 +2778,8 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	UHoudiniOutput* const InOutput = InAllOutputs[InOutputIndex];
 	
 	// Initialize the baked output object entry (use the previous bake's data, if available).
-	if (InOldBakedOutputObjects.Contains(InIdentifier))
-		OutBakedOutputObject = InOldBakedOutputObjects.FindChecked(InIdentifier);
-	else
-		OutBakedOutputObject = FHoudiniBakedOutputObject();
+	bool bHasPreviousBakeData = false;
+	FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, InIdentifier, bHasPreviousBakeData);
 
 	UStaticMesh* StaticMesh = Cast<UStaticMesh>(InOutputObject.OutputObject);
 	if (!IsValid(StaticMesh))
@@ -2711,6 +2814,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 		InOutput,
 		InIdentifier,
 		InOutputObject,
+		bHasPreviousBakeData,
 		DefaultObjectName,
 		InBakeFolder,
 		bInReplaceAssets,
@@ -2723,7 +2827,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	// Bake the static mesh if it is still temporary
 	UStaticMesh* BakedSM = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 		StaticMesh,
-		Cast<UStaticMesh>(OutBakedOutputObject.GetBakedObjectIfValid()),
+		Cast<UStaticMesh>(BakedOutputObject.GetBakedObjectIfValid()),
 		PackageParams,
 		InAllOutputs,
 		InAllBakedActors,
@@ -2737,7 +2841,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 		return false;
 
 	// Record the baked object
-	OutBakedOutputObject.BakedObject = FSoftObjectPath(BakedSM).ToString();
+	BakedOutputObject.BakedObject = FSoftObjectPath(BakedSM).ToString();
 
 	if (bHasOutputSMC)
 	{
@@ -2763,7 +2867,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 		bool bHasBakeActorName = false;
 		if (!FindUnrealBakeActor(
 			InOutputObject,
-			OutBakedOutputObject,
+			BakedOutputObject,
 			InAllBakedActors,
 			DesiredLevel,
 			*(PackageParams.ObjectName),
@@ -2800,7 +2904,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 			if (bInReplaceAssets && !bCreatedNewActor)
 			{
 				// Check if we have a previous bake component and that it belongs to FoundActor, if so, reuse it
-				UStaticMeshComponent* PrevSMC = Cast<UStaticMeshComponent>(OutBakedOutputObject.GetBakedComponentIfValid());
+				UStaticMeshComponent* PrevSMC = Cast<UStaticMeshComponent>(BakedOutputObject.GetBakedComponentIfValid());
 				if (IsValid(PrevSMC) && (PrevSMC->GetOwner() == FoundActor))
 				{
 					SMC = PrevSMC;
@@ -2834,7 +2938,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 			constexpr bool bCopyWorldTransform = true;
 			CopyPropertyToNewActorAndComponent(FoundActor, SMC, InSMC, bCopyWorldTransform);
 			SMC->SetStaticMesh(BakedSM);
-			OutBakedOutputObject.BakedComponent = FSoftObjectPath(SMC).ToString();
+			BakedOutputObject.BakedComponent = FSoftObjectPath(SMC).ToString();
 		}
 
 		FHoudiniEngineUtils::KeepOrClearActorTags(FoundActor, true, false, FoundHGPO);
@@ -2844,7 +2948,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 			FHoudiniEngineUtils::ApplyTagsToActorOnly(FoundHGPO->GenericPropertyAttributes, FoundActor->Tags);
 		}
 
-		OutBakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
+		BakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
 		OutBakedActorEntry = FHoudiniEngineBakedActor(
 			FoundActor, BakeActorName, WorldOutlinerFolderPath, InOutputIndex, InIdentifier, BakedSM, StaticMesh, SMC,
 			PackageParams.BakeFolder, PackageParams);
@@ -2853,8 +2957,8 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	else
 	{
 		// Implicit object, no component and no actor
-		OutBakedOutputObject.BakedComponent = nullptr;
-		OutBakedOutputObject.Actor = nullptr;
+		BakedOutputObject.BakedComponent = nullptr;
+		BakedOutputObject.Actor = nullptr;
 		bOutBakedToActor = false;
 	}
 
@@ -2865,8 +2969,11 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 		constexpr bool bInDestroyBakedInstancedActors = true;
 		constexpr bool bInDestroyBakedInstancedComponents = true;
 		DestroyPreviousBakeOutput(
-			OutBakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
+			BakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
 	}
+
+	// Record bake data
+	InBakeState.SetNewBakedOutputObject(InOutputIndex, InIdentifier, MoveTemp(BakedOutputObject));
 
 	return true;
 }
@@ -2879,7 +2986,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	const FHoudiniOutputObjectIdentifier& InIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
 	const TArray<FHoudiniGeoPartObject>& InHGPOs,
-	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& InOldBakedOutputObjects,
+	FHoudiniEngineBakeState& InBakeState,
 	const FDirectoryPath& InTempCookFolder,
 	const FDirectoryPath& InBakeFolder,
 	const bool bInReplaceActors,
@@ -2891,7 +2998,6 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 	TArray<UPackage*>& OutPackagesToSave,
 	FHoudiniEngineOutputStats& OutBakeStats,
-	FHoudiniBakedOutputObject& OutBakedOutputObject,
 	bool& bOutBakedToActor,
 	FHoudiniEngineBakedActor& OutBakedActorEntry
 )
@@ -2901,10 +3007,8 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	UHoudiniOutput* const InOutput = InAllOutputs[InOutputIndex];
 
 	// Initialize the baked output object entry (use the previous bake's data, if available).
-	if (InOldBakedOutputObjects.Contains(InIdentifier))
-		OutBakedOutputObject = InOldBakedOutputObjects.FindChecked(InIdentifier);
-	else
-		OutBakedOutputObject = FHoudiniBakedOutputObject();
+	bool bHasPreviousBakeData = false;
+	FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, InIdentifier, bHasPreviousBakeData);
 
 	USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(InOutputObject.OutputObject);
 	if (!IsValid(SkeletalMesh))
@@ -2939,6 +3043,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 		InOutput,
 		InIdentifier,
 		InOutputObject,
+		bHasPreviousBakeData,
 		DefaultObjectName,
 		InBakeFolder,
 		bInReplaceAssets,
@@ -2951,7 +3056,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	// Bake the static mesh if it is still temporary
 	USkeletalMesh* BakedSK = FHoudiniEngineBakeUtils::DuplicateSkeletalMeshAndCreatePackageIfNeeded(
 		SkeletalMesh,
-		Cast<USkeletalMesh>(OutBakedOutputObject.GetBakedObjectIfValid()),
+		Cast<USkeletalMesh>(BakedOutputObject.GetBakedObjectIfValid()),
 		PackageParams,
 		InAllOutputs,
 		InAllBakedActors,
@@ -2965,7 +3070,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 		return false;
 
 	// Record the baked object
-	OutBakedOutputObject.BakedObject = FSoftObjectPath(BakedSK).ToString();
+	BakedOutputObject.BakedObject = FSoftObjectPath(BakedSK).ToString();
 
 	if (bHasOutputSKC)
 	{
@@ -2991,7 +3096,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 		bool bHasBakeActorName = false;
 		if (!FindUnrealBakeActor(
 			InOutputObject,
-			OutBakedOutputObject,
+			BakedOutputObject,
 			InAllBakedActors,
 			DesiredLevel,
 			*(PackageParams.ObjectName),
@@ -3024,7 +3129,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 			if (bInReplaceAssets && !bCreatedNewActor)
 			{
 				// Check if we have a previous bake component and that it belongs to FoundActor, if so, reuse it
-				USkeletalMeshComponent* PrevSKC = Cast<USkeletalMeshComponent>(OutBakedOutputObject.GetBakedComponentIfValid());
+				USkeletalMeshComponent* PrevSKC = Cast<USkeletalMeshComponent>(BakedOutputObject.GetBakedComponentIfValid());
 				if (IsValid(PrevSKC) && (PrevSKC->GetOwner() == FoundActor))
 				{
 					SKC = PrevSKC;
@@ -3058,10 +3163,10 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 			constexpr bool bCopyWorldTransform = true;
 			CopyPropertyToNewActorAndSkeletalComponent(FoundActor, SKC, InSKC, bCopyWorldTransform);
 			SKC->SetSkeletalMesh(BakedSK);
-			OutBakedOutputObject.BakedComponent = FSoftObjectPath(SKC).ToString();
+			BakedOutputObject.BakedComponent = FSoftObjectPath(SKC).ToString();
 		}
 
-		OutBakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
+		BakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
 		OutBakedActorEntry = FHoudiniEngineBakedActor(
 			FoundActor, BakeActorName, WorldOutlinerFolderPath, InOutputIndex, InIdentifier, BakedSK, SkeletalMesh, SKC,
 			PackageParams.BakeFolder, PackageParams);
@@ -3070,8 +3175,8 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	else
 	{
 		// Implicit object, no component and no actor
-		OutBakedOutputObject.BakedComponent = nullptr;
-		OutBakedOutputObject.Actor = nullptr;
+		BakedOutputObject.BakedComponent = nullptr;
+		BakedOutputObject.Actor = nullptr;
 		bOutBakedToActor = false;
 	}
 
@@ -3082,8 +3187,11 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 		constexpr bool bInDestroyBakedInstancedActors = true;
 		constexpr bool bInDestroyBakedInstancedComponents = true;
 		DestroyPreviousBakeOutput(
-			OutBakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
+			BakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
 	}
+
+	// Record bake data
+	InBakeState.SetNewBakedOutputObject(InOutputIndex, InIdentifier, MoveTemp(BakedOutputObject));
 
 	return true;
 }
@@ -3094,7 +3202,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
-	TArray<FHoudiniBakedOutput>& InBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
 	bool bInReplaceActors,
@@ -3122,13 +3230,6 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
 	const TArray<FHoudiniGeoPartObject>& HGPOs = InOutput->GetHoudiniGeoPartObjects();
 
-	// Get the previous bake objects
-	if (!InBakedOutputs.IsValidIndex(InOutputIndex))
-		InBakedOutputs.SetNum(InOutputIndex + 1);
-	
-	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& OldBakedOutputObjects = InBakedOutputs[InOutputIndex].BakedOutputObjects;
-	TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> NewBakedOutputObjects;
-
 	TArray<FHoudiniEngineBakedActor> AllBakedActors = InBakedActors;
 	TArray<FHoudiniEngineBakedActor> NewBakedActors;
 
@@ -3147,7 +3248,6 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 		
 		const FHoudiniOutputObject& OutputObject = Pair.Value;
 
-		FHoudiniBakedOutputObject BakedOutputObject;
 		bool bBakedToActor = false;
 		FHoudiniEngineBakedActor BakedActorEntry;
 		bool WasBaked = false;
@@ -3162,7 +3262,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 				Identifier,
 				OutputObject,
 				HGPOs,
-				OldBakedOutputObjects,
+				InBakeState,
 				InTempCookFolder,
 				InBakeFolder,
 				bInReplaceActors,
@@ -3174,7 +3274,6 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 				InOutAlreadyBakedMaterialsMap,
 				OutPackagesToSave,
 				OutBakeStats,
-				BakedOutputObject,
 				bBakedToActor,
 				BakedActorEntry);
 		}
@@ -3190,7 +3289,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 					Identifier,
 					OutputObject,
 					HGPOs,
-					OldBakedOutputObjects,
+					InBakeState,
 					InTempCookFolder,
 					InBakeFolder,
 					bInReplaceActors,
@@ -3202,20 +3301,15 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 					InOutAlreadyBakedMaterialsMap,
 					OutPackagesToSave,
 					OutBakeStats,
-					BakedOutputObject,
 					bBakedToActor,
 					BakedActorEntry);
 			}
 		}
 
-		if (WasBaked)
+		if (WasBaked && bBakedToActor)
 		{
-			NewBakedOutputObjects.Add(Identifier, BakedOutputObject);
-			if (bBakedToActor)
-			{
-				NewBakedActors.Add(BakedActorEntry);
-				AllBakedActors.Add(BakedActorEntry);
-			}
+			NewBakedActors.Add(BakedActorEntry);
+			AllBakedActors.Add(BakedActorEntry);
 		}
 	}
 	
@@ -3230,7 +3324,6 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 
 		const FHoudiniOutputObject& OutputObject = Pair.Value;
 
-		FHoudiniBakedOutputObject BakedOutputObject;
 		bool bBakedToActor = false;
 		FHoudiniEngineBakedActor BakedActorEntry;
 		bool WasBaked = false;
@@ -3245,7 +3338,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 				Identifier,
 				OutputObject,
 				HGPOs,
-				OldBakedOutputObjects,
+				InBakeState,
 				InTempCookFolder,
 				InBakeFolder,
 				bInReplaceActors,
@@ -3257,7 +3350,6 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 				InOutAlreadyBakedMaterialsMap,
 				OutPackagesToSave,
 				OutBakeStats,
-				BakedOutputObject,
 				bBakedToActor,
 				BakedActorEntry);
 		}
@@ -3273,7 +3365,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 					Identifier,
 					OutputObject,
 					HGPOs,
-					OldBakedOutputObjects,
+					InBakeState,
 					InTempCookFolder,
 					InBakeFolder,
 					bInReplaceActors,
@@ -3285,24 +3377,16 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 					InOutAlreadyBakedMaterialsMap,
 					OutPackagesToSave,
 					OutBakeStats,
-					BakedOutputObject,
 					bBakedToActor,
 					BakedActorEntry);
 			}
 		}
-		if (WasBaked)
+		if (WasBaked && bBakedToActor)
 		{
-			NewBakedOutputObjects.Add(Identifier, BakedOutputObject);
-			if (bBakedToActor)
-			{
-				NewBakedActors.Add(BakedActorEntry);
-				AllBakedActors.Add(BakedActorEntry);
-			}
+			NewBakedActors.Add(BakedActorEntry);
+			AllBakedActors.Add(BakedActorEntry);
 		}
 	}
-
-	// Update the cached baked output data
-	InBakedOutputs[InOutputIndex].BakedOutputObjects = NewBakedOutputObjects;
 
 	OutActors = MoveTemp(NewBakedActors);
 
@@ -3314,6 +3398,7 @@ bool FHoudiniEngineBakeUtils::ResolvePackageParams(
 	UHoudiniOutput* InOutput, 
 	const FHoudiniOutputObjectIdentifier& Identifier,
 	const FHoudiniOutputObject& InOutputObject,
+	const bool bInHasPreviousBakeData,
 	const FString& DefaultObjectName, 
 	const FDirectoryPath& InBakeFolder,
 	const bool bInReplaceAssets,
@@ -3333,7 +3418,7 @@ bool FHoudiniEngineBakeUtils::ResolvePackageParams(
 	// Configure FHoudiniAttributeResolver and fill the package params with resolved object name and bake folder.
 	// The resolver is then also configured with the package params for subsequent resolving (level_path etc)
 	FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-		DesiredWorld, HoudiniAssetComponent, Identifier, InOutputObject, DefaultObjectName,
+		DesiredWorld, HoudiniAssetComponent, Identifier, InOutputObject, bInHasPreviousBakeData, DefaultObjectName,
 		OutPackageParams, Resolver, InBakeFolder.Path, AssetPackageReplaceMode,
 		InHoudiniAssetName, InHoudiniAssetActorName);
 
@@ -3372,7 +3457,8 @@ UUserDefinedStruct * FHoudiniEngineBakeUtils::CreateBakedUserDefinedStruct(
 	UHoudiniOutput* CookedOutput,
 	const FHoudiniOutputObjectIdentifier& Identifier,
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
-	FHoudiniBakedOutput& BakedOutput,
+	const FHoudiniBakedOutput& InPreviousBakedOutput,
+	FHoudiniBakedOutput& InNewBakedOutput,
 	const FDirectoryPath& InBakeFolder,
 	bool bInReplaceActors,
 	bool bInReplaceAssets,
@@ -3382,6 +3468,10 @@ UUserDefinedStruct * FHoudiniEngineBakeUtils::CreateBakedUserDefinedStruct(
 	FHoudiniPackageParams PackageParams;
 
 	FHoudiniOutputObject& OutputObject =  CookedOutput->GetOutputObjects().FindOrAdd(Identifier);
+	FHoudiniBakedOutputObject BakedOutputObject;
+	const bool bHasPreviousBakeData = InPreviousBakedOutput.BakedOutputObjects.Contains(Identifier);
+	if (bHasPreviousBakeData)
+		BakedOutputObject = InPreviousBakedOutput.BakedOutputObjects.FindChecked(Identifier);
 
 	auto * UserStruct = Cast<UUserDefinedStruct>(OutputObject.OutputObject);
 
@@ -3392,6 +3482,7 @@ UUserDefinedStruct * FHoudiniEngineBakeUtils::CreateBakedUserDefinedStruct(
 		CookedOutput,
 		BakeIdentifier,
 		OutputObject,
+		bHasPreviousBakeData,
 		FString(""),
 		InBakeFolder,
 		bInReplaceAssets,
@@ -3413,8 +3504,6 @@ UUserDefinedStruct * FHoudiniEngineBakeUtils::CreateBakedUserDefinedStruct(
 		PackageParams.ObjectName += TEXT("_rowstruct");
 	}
 
-	FHoudiniBakedOutputObject& BakedOutputObject = BakedOutput.BakedOutputObjects.FindOrAdd(Identifier);
-
 	FString PackageName = PackageParams.GetPackagePath();
 	FString CreatedPackageName;
 	UPackage* Package = PackageParams.CreatePackageForObject(CreatedPackageName);
@@ -3422,6 +3511,8 @@ UUserDefinedStruct * FHoudiniEngineBakeUtils::CreateBakedUserDefinedStruct(
 	UUserDefinedStruct* BakedObject = DuplicateUserDefinedStruct(UserStruct, Package, CreatedPackageName);
 	BakedOutputObject.BakedObject = BakedObject->GetPathName();
 	OutPackagesToSave.Add(Package);
+
+	InNewBakedOutput.BakedOutputObjects.Emplace(Identifier, BakedOutputObject);
 
 	return BakedObject;
 }
@@ -3432,7 +3523,8 @@ UDataTable* FHoudiniEngineBakeUtils::CreateBakedDataTable(
 	UHoudiniOutput* CookedOutput,
 	const FHoudiniOutputObjectIdentifier& Identifier,
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
-	FHoudiniBakedOutput& BakedOutput,
+	const FHoudiniBakedOutput& InPreviousBakedOutput,
+	FHoudiniBakedOutput& InNewBakedOutput,
 	const FDirectoryPath& BakeFolder,
 	bool bInReplaceActors,
 	bool bInReplaceAssets,
@@ -3440,6 +3532,10 @@ UDataTable* FHoudiniEngineBakeUtils::CreateBakedDataTable(
 	FHoudiniEngineOutputStats& OutBakeStats)
 {
 	FHoudiniOutputObject& OutputObject = CookedOutput->GetOutputObjects().FindOrAdd(Identifier);
+	FHoudiniBakedOutputObject BakedOutputObject;
+	const bool bHasPreviousBakeData = InPreviousBakedOutput.BakedOutputObjects.Contains(Identifier);
+	if (bHasPreviousBakeData)
+		BakedOutputObject = InPreviousBakedOutput.BakedOutputObjects.FindChecked(Identifier);
 
 	FHoudiniPackageParams PackageParams;
 
@@ -3450,6 +3546,7 @@ UDataTable* FHoudiniEngineBakeUtils::CreateBakedDataTable(
 		CookedOutput,
 		BakeIdentifier,
 		OutputObject,
+		bHasPreviousBakeData,
 		FString(""),
 		BakeFolder,
 		bInReplaceAssets,
@@ -3482,9 +3579,8 @@ UDataTable* FHoudiniEngineBakeUtils::CreateBakedDataTable(
 	OutPackagesToSave.Add(BakedDataTable->GetPackage());
 	BakedDataTable->MarkPackageDirty();
 
-	FHoudiniBakedOutputObject& BakedOutputObject = BakedOutput.BakedOutputObjects.FindOrAdd(Identifier);
-
 	BakedOutputObject.BakedObject = BakedDataTable->GetPathName();
+	InNewBakedOutput.BakedOutputObjects.Emplace(Identifier, BakedOutputObject);
 
 	return BakedDataTable;
 }
@@ -3494,7 +3590,7 @@ FHoudiniEngineBakeUtils::BakeDataTables(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
-	TArray<FHoudiniBakedOutput>& InBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const FDirectoryPath& InBakeFolder,
 	const FDirectoryPath& InTempCookFolder,
 	bool bInReplaceActors,
@@ -3515,12 +3611,6 @@ FHoudiniEngineBakeUtils::BakeDataTables(
 	UHoudiniOutput* CookedOutput = InAllOutputs[InOutputIndex];
 	if (!IsValid(CookedOutput))
 		return false;
-
-	// Get the previous bake objects
-	if (!InBakedOutputs.IsValidIndex(InOutputIndex))
-		InBakedOutputs.SetNum(InOutputIndex + 1);
-
-	FHoudiniBakedOutput & BakedOutput = InBakedOutputs[InOutputIndex];
 
 	//----------------------------------------------------------------------------------------------------------
 	// See if we created a UserDefinedStruct during COOKING. If so, we must create a new version in the Bake folder
@@ -3549,7 +3639,8 @@ FHoudiniEngineBakeUtils::BakeDataTables(
 				CookedOutput,
 				It.Key,
 				HoudiniAssetComponent,
-				InBakedOutputs[InOutputIndex],
+				InBakeState.GetOldBakedOutputs()[InOutputIndex],
+				InBakeState.GetNewBakedOutputs()[InOutputIndex],
 				BakeFolder,
 				bInReplaceActors,
 				bInReplaceAssets,
@@ -3598,7 +3689,8 @@ FHoudiniEngineBakeUtils::BakeDataTables(
 				CookedOutput,
 				It.Key,
 				HoudiniAssetComponent,
-				InBakedOutputs[InOutputIndex],
+				InBakeState.GetOldBakedOutputs()[InOutputIndex],
+				InBakeState.GetNewBakedOutputs()[InOutputIndex],
 				BakeFolder,
 				bInReplaceActors,
 				bInReplaceAssets,
@@ -3621,7 +3713,7 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex, 
 	const TArray<UHoudiniOutput*>& InAllOutputs, 
-	TArray<FHoudiniBakedOutput>& InBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const FDirectoryPath& InBakeFolder, 
 	const FDirectoryPath& InTempCookFolder,
 	bool bInReplaceActors, 
@@ -3656,22 +3748,17 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
 	const TArray<FHoudiniGeoPartObject>& HGPOs = InOutput->GetHoudiniGeoPartObjects();
 
-	// Get the previous bake objects
-	if (!InBakedOutputs.IsValidIndex(InOutputIndex))
-		InBakedOutputs.SetNum(InOutputIndex + 1);
-
 	const FString GCOutputName = InOutput->GetName();
 	
-	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& OldBakedOutputObjects = InBakedOutputs[InOutputIndex].BakedOutputObjects;
-	TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> NewBakedOutputObjects;
-
 	// Map from old static mesh map to new baked static mesh
 	TMap<FSoftObjectPath, UStaticMesh*> OldToNewStaticMeshMap;
 	TMap<UMaterialInterface*, UMaterialInterface*> OldToNewMaterialMap;
 
 	// Need to make sure that all geometry collection meshes are generated before we generate the geometry collection.
-	for (auto & Output : InAllOutputs)
+	const int32 NumOutputs = InAllOutputs.Num();
+	for (int32 OutputIdx = 0; OutputIdx < NumOutputs; ++OutputIdx)
 	{
+		UHoudiniOutput const* const Output = InAllOutputs[OutputIdx];
 		if (!FHoudiniGeometryCollectionTranslator::IsGeometryCollectionMesh(Output))
 		{
 			continue;
@@ -3694,9 +3781,8 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 			}
 
 			// Add a new baked output object entry and update it with the previous bake's data, if available
-			FHoudiniBakedOutputObject& BakedOutputObject = NewBakedOutputObjects.Add(Identifier);
-			if (OldBakedOutputObjects.Contains(Identifier))
-				BakedOutputObject = OldBakedOutputObjects.FindChecked(Identifier);
+			bool bHasPreviousBakeData = false;
+			FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(OutputIdx, Identifier, bHasPreviousBakeData);
 			
 			const FString DefaultObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(StaticMesh);
 
@@ -3707,6 +3793,7 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 				InOutput,
 				Identifier,
 				OutputObject,
+				bHasPreviousBakeData,
 				DefaultObjectName,
 				InBakeFolder,
 				bInReplaceAssets,
@@ -3754,6 +3841,9 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 
 				OldToNewMaterialMap.Add(StaticMaterials[i].MaterialInterface, BakedStaticMaterials[i].MaterialInterface);
 			}
+
+			// Update baked output object entry in state
+			InBakeState.SetNewBakedOutputObject(OutputIdx, Identifier, BakedOutputObject);
 		}
 	}
 
@@ -3765,10 +3855,8 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 		const FHoudiniOutputObject& OutputObject = Pair.Value;
 
 		// Add a new baked output object entry and update it with the previous bake's data, if available
-		FHoudiniBakedOutputObject& BakedOutputObject = NewBakedOutputObjects.Add(Identifier);
-		if (OldBakedOutputObjects.Contains(Identifier))
-			BakedOutputObject = OldBakedOutputObjects.FindChecked(Identifier);
-
+		bool bHasPreviousBakeData = false;
+		FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, Identifier, bHasPreviousBakeData);
 
 		AGeometryCollectionActor* InGeometryCollectionActor = Cast<AGeometryCollectionActor>(OutputObject.OutputObject);
 
@@ -3806,6 +3894,7 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 			InOutput,
 			Identifier,
 			OutputObject,
+			bHasPreviousBakeData,
 			DefaultObjectName,
 			InBakeFolder,
 			bInReplaceAssets,
@@ -3932,10 +4021,9 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 				BakedOutputObject, bInDestroyBakedComponent, bInDestroyBakedInstancedActors, bInDestroyBakedInstancedComponents);
 		}
 
+		// Update baked output object entry in state
+		InBakeState.SetNewBakedOutputObject(InOutputIndex, Identifier, BakedOutputObject);
 	}
-
-	// Update the cached baked output data
-	InBakedOutputs[InOutputIndex].BakedOutputObjects = NewBakedOutputObjects;
 
 	OutActors = MoveTemp(NewBakedActors);
 
@@ -3947,7 +4035,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniCurveOutputToActors(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
-	TArray<FHoudiniBakedOutput>& InBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const FDirectoryPath& InBakeFolder,
 	bool bInReplaceActors,
 	bool bInReplaceAssets,
@@ -3976,15 +4064,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniCurveOutputToActors(
 
 	TArray<UPackage*> PackagesToSave;
 	
-	// Find the previous baked output data for this output index. If an entry
-	// does not exist, create entries up to and including this output index
-	if (!InBakedOutputs.IsValidIndex(InOutputIndex))
-		InBakedOutputs.SetNum(InOutputIndex + 1);
-
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = Output->GetOutputObjects();
-	FHoudiniBakedOutput& BakedOutput = InBakedOutputs[InOutputIndex];
-	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& OldBakedOutputObjects = BakedOutput.BakedOutputObjects;
-	TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> NewBakedOutputObjects;
 	
 	const TArray<FHoudiniGeoPartObject> & HGPOs = Output->GetHoudiniGeoPartObjects();
 
@@ -4005,9 +4085,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniCurveOutputToActors(
 			continue;
 		
 		const FHoudiniOutputObjectIdentifier& Identifier = Pair.Key;
-		FHoudiniBakedOutputObject& BakedOutputObject = NewBakedOutputObjects.Add(Identifier);
-		if (OldBakedOutputObjects.Contains(Identifier))
-			BakedOutputObject = OldBakedOutputObjects.FindChecked(Identifier);
+		bool bHasPreviousBakeData = false;
+		FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, Identifier, bHasPreviousBakeData);
 
 		// TODO: FIX ME!! May not work 100%
 		const FHoudiniGeoPartObject* FoundHGPO = nullptr;
@@ -4037,7 +4116,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniCurveOutputToActors(
 		FHoudiniAttributeResolver Resolver;
 		UWorld* const DesiredWorld = SplineComponent ? SplineComponent->GetWorld() : GWorld;
 		FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-			DesiredWorld, HoudiniAssetComponent, Identifier, OutputObject, DefaultObjectName,
+			DesiredWorld, HoudiniAssetComponent, Identifier, OutputObject, bHasPreviousBakeData, DefaultObjectName,
 			PackageParams, Resolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
 		FHoudiniEngineBakedActor OutputBakedActor;
@@ -4050,10 +4129,10 @@ FHoudiniEngineBakeUtils::BakeHoudiniCurveOutputToActors(
 
 		AllBakedActors.Add(OutputBakedActor);
 		NewBakedActors.Add(OutputBakedActor);
-	}
 
-	// Update the cached bake output results
-	BakedOutput.BakedOutputObjects = NewBakedOutputObjects;
+		// Update the cached bake output results
+		InBakeState.SetNewBakedOutputObject(InOutputIndex, Identifier, BakedOutputObject);
+	}
 
 	OutActors = MoveTemp(NewBakedActors);
 	
@@ -6553,6 +6632,8 @@ FHoudiniEngineBakeUtils::BakePDGWorkResultObject(
 	FString Key;
 	InNode->GetBakedWorkResultObjectOutputsKey(InWorkResultArrayIndex, InWorkResultObjectArrayIndex, Key);
 	FHoudiniPDGWorkResultObjectBakedOutput& BakedOutputContainer = InNode->GetBakedWorkResultObjectsOutputs().FindOrAdd(Key);
+	
+	FHoudiniEngineBakeState BakeState(Outputs.Num(), BakedOutputContainer.BakedOutputs);
 
 	UHoudiniAssetComponent* HoudiniAssetComponent = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InPDGAssetLink);
 	check(IsValid(HoudiniAssetComponent));
@@ -6561,7 +6642,7 @@ FHoudiniEngineBakeUtils::BakePDGWorkResultObject(
 	BakeHoudiniOutputsToActors(
 		HoudiniAssetComponent,
 		Outputs,
-		BakedOutputContainer.BakedOutputs,
+		BakeState,
 		WorkResultObjectActor->GetActorTransform(),
 		InPDGAssetLink->BakeFolder,
 		InPDGAssetLink->GetTemporaryCookFolder(),
@@ -6634,6 +6715,8 @@ FHoudiniEngineBakeUtils::BakePDGWorkResultObject(
 		WorkResultObject.SetAutoBakedSinceLastLoad(true);
 	
 	OutBakedActors = MoveTemp(WROBakedActors);
+
+	BakedOutputContainer.BakedOutputs = BakeState.GetNewBakedOutputs();
 	
 	// Ensure that the outer level (or actor in the case of OFPA) is marked as dirty so that references to the
 	// output actors / objects and baked actor results are saved

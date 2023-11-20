@@ -1065,6 +1065,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FHoudiniOutputObjectIdentifier& InIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
+	const bool bInHasPreviousBakeData,
 	const FString &InDefaultObjectName,
 	FHoudiniPackageParams& OutPackageParams,
 	FHoudiniAttributeResolver& OutResolver,
@@ -1147,6 +1148,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	OutResolver.LogCachedAttributesAndTokens();
 #endif
 
+	bool bUsedDefaultBakeName = !bHasBakeNameUIOverride;
 	if (!bInSkipObjectNameResolutionAndUseDefault)
 	{
 		// Resolve the object name
@@ -1155,13 +1157,17 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 		if (bHasBakeNameUIOverride)
 		{
 			ObjectName = InOutputObject.BakeName;
+			bUsedDefaultBakeName = false;
 		}
 		else
 		{
 			constexpr bool bForBake = true;
-			ObjectName = OutResolver.ResolveOutputName(bForBake);
+			ObjectName = OutResolver.ResolveOutputName(bForBake, &bUsedDefaultBakeName);
 			if (ObjectName.IsEmpty())
+			{
 				ObjectName = DefaultObjectName;
+				bUsedDefaultBakeName = true;
+			}
 		}
 		// Update the object name in the package params and also update its token
 		OutPackageParams.ObjectName = ObjectName;
@@ -1186,6 +1192,16 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 		// Log the final tokens
 		OutResolver.LogCachedAttributesAndTokens();
 #endif
+	}
+
+	// If the default bake name is being used, and we haven't baked this output identifier on this output before,
+	// then do not allow replacement bakes.
+	if (bUsedDefaultBakeName && !bInHasPreviousBakeData && OutPackageParams.ReplaceMode == EPackageReplaceMode::ReplaceExistingAssets)
+	{
+		HOUDINI_BAKING_WARNING(TEXT(
+			"[FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver] Disabling replace bake mode: "
+			"default bake name is being used with no previous bake output for the object."));
+		OutPackageParams.ReplaceMode = EPackageReplaceMode::CreateNewAssets;
 	}
 }
 

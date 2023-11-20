@@ -150,6 +150,59 @@ struct HOUDINIENGINEEDITOR_API FHoudiniEngineBakedActor
 	bool bPostBakeProcessPostponed = false;
 };
 
+// Helper class to keep track of various parts of baking state while baking outputs from a HAC.
+class FHoudiniEngineBakeState
+{
+public:
+
+	FHoudiniEngineBakeState() = delete;
+
+	// Initialize the bake state by the number of outputs and previous baked outputs.
+	FHoudiniEngineBakeState(const int32 InNumOutputs, const TArray<FHoudiniBakedOutput>& InOldBakedOutputs);
+
+	// Find an entry from OldBakedOutputs by index an identifier.
+	const FHoudiniBakedOutputObject* FindOldBakedOutputObject(
+		const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier);
+
+	// Make a new baked output object that is populated from the old entry with index and identifier. Does not add the
+	// new entry to NewBakedOutputs, use SetNewBakedOutputObject() for that.
+	FHoudiniBakedOutputObject MakeNewBakedOutputObject(
+		const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier, bool& bOutHasPreviousBakeData);
+
+	// Find an entry in NewBakedOutputs by index and identifier.
+	const FHoudiniBakedOutputObject& FindNewBakedOutputObjectChecked(
+		const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier);
+
+	// Find an entry in NewBakedOutputs by index and identifier.
+	FHoudiniBakedOutputObject& FindOrAddNewBakedOutputObject(
+		const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier);
+
+	// Set an entry in NewBakedOutputs by index and identifier.
+	FHoudiniBakedOutputObject& SetNewBakedOutputObject(
+		const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier, const FHoudiniBakedOutputObject& InBakedOutputObject);
+
+	// Set an entry in NewBakedOutputs by index and identifier.
+	FHoudiniBakedOutputObject& SetNewBakedOutputObject(
+		const int32 InOutputIndex, const FHoudiniOutputObjectIdentifier& InIdentifier, FHoudiniBakedOutputObject&& InBakedOutputObject);
+
+	// Get a const reference to OldBakedOutputs
+	const TArray<FHoudiniBakedOutput>& GetOldBakedOutputs() const { return OldBakedOutputs; }
+	// Get a reference to OldBakedOutputs
+	TArray<FHoudiniBakedOutput>& GetOldBakedOutputs() { return OldBakedOutputs; }
+
+	// Get a const reference to NewBakedOutputs
+	const TArray<FHoudiniBakedOutput>& GetNewBakedOutputs() const { return NewBakedOutputs; }
+	// Get a reference to NewBakedOutputs
+	TArray<FHoudiniBakedOutput>& GetNewBakedOutputs() { return NewBakedOutputs; }
+
+protected:
+	// Array of old / previous baked outputs
+	TArray<FHoudiniBakedOutput> OldBakedOutputs;
+	// Array of new  baked outputs
+	TArray<FHoudiniBakedOutput> NewBakedOutputs;
+};
+
+
 struct HOUDINIENGINEEDITOR_API FHoudiniEngineBakeUtils
 {
 public:
@@ -223,7 +276,7 @@ public:
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
-		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const FTransform& InTransform,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
@@ -243,11 +296,10 @@ public:
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const TArray<FHoudiniGeoPartObject>& InHGPOs,
-		// const TArray<FHoudiniBakedOutput>& InAllBakedOutputs,
 		const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 		const FHoudiniOutputObject& InOutputObject,
-		FHoudiniBakedOutputObject& InBakedOutputObject,
 		const FTransform& InTransform,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
@@ -268,7 +320,7 @@ public:
 		const TArray<FHoudiniGeoPartObject>& InHGPOs,
 		const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 		const FHoudiniOutputObject& InOutputObject,
-		FHoudiniBakedOutputObject& InBakedOutputObject,
+		FHoudiniEngineBakeState& InBakeState,
 		const FDirectoryPath& InBakeFolder,
 		bool bInReplaceActors,
 		bool bInReplaceAssets,
@@ -281,11 +333,10 @@ public:
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
-		// const TArray<FHoudiniBakedOutput>& InAllBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const TArray<FHoudiniGeoPartObject>& InHGPOs,
 		const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 		const FHoudiniOutputObject& InOutputObject,
-		FHoudiniBakedOutputObject& InBakedOutputObject,
 		const FTransform& InTransform,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
@@ -304,10 +355,10 @@ public:
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const TArray<FHoudiniGeoPartObject>& InHGPOs,
 		const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 		const FHoudiniOutputObject& InOutputObject,
-		FHoudiniBakedOutputObject& InBakedOutputObject,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
 		bool bInReplaceActors,
@@ -326,10 +377,9 @@ public:
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
-		// const TArray<FHoudiniBakedOutput>& InAllBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
 		const FHoudiniOutputObject& InOutputObject,
-		FHoudiniBakedOutputObject& InBakedOutputObject,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
 		bool bInReplaceActors,
@@ -443,7 +493,7 @@ public:
 	static bool BakeHoudiniOutputsToActors(
 		UHoudiniAssetComponent* HoudiniAssetComponent,
 		const TArray<UHoudiniOutput*>& InOutputs,
-		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const FTransform& InParentTransform,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
@@ -462,7 +512,7 @@ public:
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex, 
 		const TArray<UHoudiniOutput*>& InAllOutputs,
-		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
 		bool bInReplaceActors,
@@ -481,6 +531,7 @@ public:
 		UHoudiniOutput* InOutput, 
 		const FHoudiniOutputObjectIdentifier& Identifier,
 		const FHoudiniOutputObject& InOutputObject,
+		const bool bInHasPreviousBakeData,
 		const FString& DefaultObjectName, 
 		const FDirectoryPath& InBakeFolder,
 		const bool bInReplaceAssets,
@@ -493,7 +544,7 @@ public:
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex, 
 		const TArray<UHoudiniOutput*>& InAllOutputs,
-		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
 		bool bInReplaceActors,
@@ -511,7 +562,8 @@ public:
 		UHoudiniOutput* CookedOutput,
 		const FHoudiniOutputObjectIdentifier& Identifier,
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
-		FHoudiniBakedOutput& InBakedOutputs,
+		const FHoudiniBakedOutput& InPreviousBakedOutput,
+		FHoudiniBakedOutput& InNewBakedOutput,
 		const FDirectoryPath& InBakeFolder,
 		bool bInReplaceActors,
 		bool bInReplaceAssets,
@@ -524,7 +576,8 @@ public:
 		UHoudiniOutput* CookedOutput,
 		const FHoudiniOutputObjectIdentifier& Identifier,
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
-		FHoudiniBakedOutput& InBakedOutputs,
+		const FHoudiniBakedOutput& InPreviousBakedOutput,
+		FHoudiniBakedOutput& InNewBakedOutput,
 		const FDirectoryPath& InBakeFolder,
 		bool bInReplaceActors,
 		bool bInReplaceAssets,
@@ -536,7 +589,7 @@ public:
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
-		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
 		bool bInReplaceActors,
@@ -554,7 +607,7 @@ public:
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
-		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const FDirectoryPath& InBakeFolder,
 		bool bInReplaceActors,
 		bool bInReplaceAssets,
@@ -949,7 +1002,7 @@ public:
 		const FHoudiniOutputObjectIdentifier& InIdentifier,
 		const FHoudiniOutputObject& InOutputObject,
 		const TArray<FHoudiniGeoPartObject>& InHGPOs,
-		const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& InOldBakedOutputObjects,
+		FHoudiniEngineBakeState& InBakeState,
 		const FDirectoryPath& InTempCookFolder,
 		const FDirectoryPath& InBakeFolder,
 		const bool bInReplaceActors,
@@ -961,7 +1014,6 @@ public:
 		TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
 		TArray<UPackage*>& OutPackagesToSave,
 		FHoudiniEngineOutputStats& OutBakeStats,
-		FHoudiniBakedOutputObject& OutBakedOutputObject,
 		bool& bOutBakedToActor,
 		FHoudiniEngineBakedActor& OutBakedActorEntry);
 
@@ -973,7 +1025,7 @@ public:
 		const FHoudiniOutputObjectIdentifier& InIdentifier,
 		const FHoudiniOutputObject& InOutputObject,
 		const TArray<FHoudiniGeoPartObject>& InHGPOs,
-		const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& InOldBakedOutputObjects,
+		FHoudiniEngineBakeState& InBakeState,
 		const FDirectoryPath& InTempCookFolder,
 		const FDirectoryPath& InBakeFolder,
 		const bool bInReplaceActors,
@@ -985,7 +1037,6 @@ public:
 		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 		TArray<UPackage*>& OutPackagesToSave,
 		FHoudiniEngineOutputStats& OutBakeStats,
-		FHoudiniBakedOutputObject& OutBakedOutputObject,
 		bool& bOutBakedToActor,
 		FHoudiniEngineBakedActor& OutBakedActorEntry);
 
@@ -1009,7 +1060,7 @@ public:
 		TMap<UFoliageType*, UFoliageType*> & FoliageMap,
 	    UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
-		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
@@ -1021,7 +1072,7 @@ public:
 	static void BakeAllFoliageTypes(
 		UHoudiniAssetComponent* HoudiniAssetComponent,
 		TMap<UStaticMesh*, UStaticMesh*> AlreadyBakedStaticMeshMap,
-		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		const FDirectoryPath& InBakeFolder,
 		const FDirectoryPath& InTempCookFolder,
