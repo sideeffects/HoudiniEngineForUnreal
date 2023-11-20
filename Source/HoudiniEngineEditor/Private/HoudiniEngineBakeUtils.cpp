@@ -3385,9 +3385,12 @@ UUserDefinedStruct * FHoudiniEngineBakeUtils::CreateBakedUserDefinedStruct(
 
 	auto * UserStruct = Cast<UUserDefinedStruct>(OutputObject.OutputObject);
 
+	FHoudiniOutputObjectIdentifier BakeIdentifier = Identifier;
+	BakeIdentifier.SplitIdentifier = TEXT("rowstruct");
+	
 	if (!ResolvePackageParams(HoudiniAssetComponent,
 		CookedOutput,
-		Identifier,
+		BakeIdentifier,
 		OutputObject,
 		FString(""),
 		InBakeFolder,
@@ -3405,13 +3408,9 @@ UUserDefinedStruct * FHoudiniEngineBakeUtils::CreateBakedUserDefinedStruct(
 		// use the name verbatim from the user.
 		PackageParams.ObjectName = *OutputName;
 	}
-	else if ((OutputName = OutputObject.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2)))
+	else if (!PackageParams.ObjectName.IsEmpty() && !PackageParams.ObjectName.Contains(TEXT("rowstruct")))
 	{
-		PackageParams.ObjectName = *OutputName + FString("_rowstruct");
-	}
-	else
-	{
-		PackageParams.SplitStr = "rowstruct";
+		PackageParams.ObjectName += TEXT("_rowstruct");
 	}
 
 	FHoudiniBakedOutputObject& BakedOutputObject = BakedOutput.BakedOutputObjects.FindOrAdd(Identifier);
@@ -3444,9 +3443,12 @@ UDataTable* FHoudiniEngineBakeUtils::CreateBakedDataTable(
 
 	FHoudiniPackageParams PackageParams;
 
+	FHoudiniOutputObjectIdentifier BakeIdentifier = Identifier;
+	BakeIdentifier.SplitIdentifier = "datatable";
+
 	if (!ResolvePackageParams(HoudiniAssetComponent,
 		CookedOutput,
-		Identifier,
+		BakeIdentifier,
 		OutputObject,
 		FString(""),
 		BakeFolder,
@@ -3456,8 +3458,6 @@ UDataTable* FHoudiniEngineBakeUtils::CreateBakedDataTable(
 	{
 		return nullptr;
 	}
-
-	PackageParams.SplitStr = "datatable";
 
 	UDataTable* CookedDataTable = Cast<UDataTable>(OutputObject.OutputObject);
 
