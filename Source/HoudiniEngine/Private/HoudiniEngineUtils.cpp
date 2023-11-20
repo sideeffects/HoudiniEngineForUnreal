@@ -1039,17 +1039,21 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutput(
 	const FString &HoudiniAssetName,
 	const FString &HoudiniAssetActorName,
 	EPackageReplaceMode InReplaceMode,
-	bool bAutomaticallySetAttemptToLoadMissingPackages)
+	bool bAutomaticallySetAttemptToLoadMissingPackages,
+	const TOptional<FGuid>& InComponentGuid)
 {
 	OutPackageParams.GeoId = InIdentifier.GeoId;
 	OutPackageParams.ObjectId = InIdentifier.ObjectId;
 	OutPackageParams.PartId = InIdentifier.PartId;
+	OutPackageParams.SplitStr = InIdentifier.SplitIdentifier;
 	OutPackageParams.BakeFolder = BakeFolder;
 	OutPackageParams.PackageMode = EPackageMode::Bake;
 	OutPackageParams.ReplaceMode = InReplaceMode;
 	OutPackageParams.HoudiniAssetName = HoudiniAssetName;
 	OutPackageParams.HoudiniAssetActorName = HoudiniAssetActorName;
 	OutPackageParams.ObjectName = ObjectName;
+	if (InComponentGuid.IsSet())
+		OutPackageParams.ComponentGUID = InComponentGuid.GetValue();
 }
 
 void
@@ -1081,6 +1085,8 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	const FString DefaultBakeFolder = !InDefaultBakeFolder.IsEmpty() ? InDefaultBakeFolder :
 		FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
 
+	const bool bIsHACValid = IsValid(HoudiniAssetComponent);
+	
 	// If InHoudiniAssetName was specified, use that, otherwise use the name of the UHoudiniAsset used by the
 	// HoudiniAssetComponent
 	FString HoudiniAssetName(TEXT(""));
@@ -1088,7 +1094,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	{
 		HoudiniAssetName = InHoudiniAssetName;
 	}
-	else if (IsValid(HoudiniAssetComponent) && IsValid(HoudiniAssetComponent->GetHoudiniAsset()))
+	else if (bIsHACValid && IsValid(HoudiniAssetComponent->GetHoudiniAsset()))
 	{
 		HoudiniAssetName = HoudiniAssetComponent->GetHoudiniAsset()->GetName();
 	}
@@ -1099,12 +1105,17 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	{
 		HoudiniAssetActorName = InHoudiniAssetActorName;
 	}
-	else if (IsValid(HoudiniAssetComponent) && IsValid(HoudiniAssetComponent->GetOwner()))
+	else if (bIsHACValid && IsValid(HoudiniAssetComponent->GetOwner()))
 	{
 		HoudiniAssetActorName = HoudiniAssetComponent->GetOwner()->GetActorNameOrLabel();
 	}
 
-	const bool bHasBakeNameUIOverride = !InOutputObject.BakeName.IsEmpty(); 
+	// Get the HAC's GUID, if the HAC is valid
+	TOptional<FGuid> ComponentGuid;
+	if (bIsHACValid)
+		ComponentGuid = HoudiniAssetComponent->GetComponentGUID();
+
+	const bool bHasBakeNameUIOverride = !InOutputObject.BakeName.IsEmpty();
 	FillInPackageParamsForBakingOutput(
 		OutPackageParams,
 		InIdentifier,
@@ -1113,7 +1124,14 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 		HoudiniAssetName,
 		HoudiniAssetActorName,
 		InReplaceMode,
-		bAutomaticallySetAttemptToLoadMissingPackages);
+		bAutomaticallySetAttemptToLoadMissingPackages,
+		ComponentGuid);
+
+	// If ObjectName is empty and InDefaultObjectName are empty, generate a default via GetPackageName
+	const FString DefaultObjectName = OutPackageParams.ObjectName.IsEmpty() && InDefaultObjectName.IsEmpty()
+		? OutPackageParams.GetPackageName().TrimChar('_') : InDefaultObjectName;
+	if (OutPackageParams.ObjectName.IsEmpty())
+		OutPackageParams.ObjectName = DefaultObjectName;
 
 	const TMap<FString, FString>& CachedAttributes = InOutputObject.CachedAttributes;
 	TMap<FString, FString> Tokens = InOutputObject.CachedTokens;
@@ -1140,7 +1158,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 			constexpr bool bForBake = true;
 			ObjectName = OutResolver.ResolveOutputName(bForBake);
 			if (ObjectName.IsEmpty())
-				ObjectName = InDefaultObjectName;
+				ObjectName = DefaultObjectName;
 		}
 		// Update the object name in the package params and also update its token
 		OutPackageParams.ObjectName = ObjectName;

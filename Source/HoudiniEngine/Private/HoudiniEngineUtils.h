@@ -1173,7 +1173,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const FString &HoudiniAssetName,
 			const FString &HoudiniAssetActorName,
 			EPackageReplaceMode InReplaceMode=EPackageReplaceMode::ReplaceExistingAssets,
-			bool bAutomaticallySetAttemptToLoadMissingPackages=true);
+			bool bAutomaticallySetAttemptToLoadMissingPackages=true,
+			const TOptional<FGuid>& InComponentGuid=TOptional<FGuid>());
 
 		// Helper for populating FHoudiniPackageParams when baking. This includes configuring the resolver to
 		// resolve the object name and unreal_bake_folder and setting these resolved values on the PackageParams.
