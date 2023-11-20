@@ -4292,7 +4292,6 @@ FHoudiniEngineUtils::HapiSetAttributeDictionaryData(const TArray<FString>& JSOND
 
 	// Send strings in smaller chunks due to their potential size
 	int32 ChunkSize = (THRIFT_MAX_CHUNKSIZE / 100) / InAttributeInfo.tupleSize;
-	ChunkSize = 10;
 
 	HAPI_Result Result = HAPI_RESULT_FAILURE;
 	if (InAttributeInfo.count > ChunkSize)
