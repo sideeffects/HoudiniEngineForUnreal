@@ -225,6 +225,7 @@ public:
 		OutTokens.Add("pdg_workitem_index", ValueT( FString::FromInt(PDGWorkItemIndex) ));
 		OutTokens.Add("pdg_workresult_array_index", ValueT( FString::FromInt(PDGWorkResultArrayIndex) ));
 		OutTokens.Add("guid", ValueT( ComponentGUID.ToString() ));
+		OutTokens.Add("guid8", ValueT( ComponentGUID.ToString().Left(8) ));
 	}
 
 	template<typename ValueT>

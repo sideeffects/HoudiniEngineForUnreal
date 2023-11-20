@@ -172,7 +172,9 @@ FString FHoudiniAttributeResolver::ResolveOutputName(const bool bInForBake) cons
 		OutputAttribName = HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V1;
 	}
 
-	return ResolveAttribute(OutputAttribName, TEXT("{object_name}"));
+	// When baking add the component guid to the default value for object_name
+	const FString DefaultValue = bInForBake ? TEXT("{object_name}_{guid8}") : TEXT("{object_name}");
+	return ResolveAttribute(OutputAttribName, DefaultValue);
 }
 
 FString FHoudiniAttributeResolver::ResolveBakeFolder() const
