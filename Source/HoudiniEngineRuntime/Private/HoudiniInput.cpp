@@ -448,9 +448,9 @@ UHoudiniInput::GetBounds(UWorld * World)
 	bool bUseCachedBounds = UE::IsSavingPackage(nullptr) || World->IsGameWorld();
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
-	bUseCachedBounds |= IsGarbageCollectingAndLockingUObjectHashTables();
+	bUseCachedBounds |= IsGarbageCollecting() || IsGarbageCollectingAndLockingUObjectHashTables();
 #else
-	bUseCachedBounds |= IsGarbageCollecting();	
+	bUseCachedBounds |= IsGarbageCollecting();
 #endif
 
 	if (bUseCachedBounds)
