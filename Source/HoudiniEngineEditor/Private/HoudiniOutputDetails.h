@@ -94,7 +94,6 @@ public:
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
 		const TWeakObjectPtr<UStaticMesh>& StaticMesh,
 		FHoudiniOutputObjectIdentifier& OutputIdentifier,
-		const FString BakeFolder,
 		FHoudiniGeoPartObject& HoudiniGeoPartObject,
 		const bool& bIsProxyMeshCurrent);
 
@@ -103,7 +102,6 @@ public:
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
 		const TWeakObjectPtr<UHoudiniStaticMesh>& ProxyMesh,
 		FHoudiniOutputObjectIdentifier& OutputIdentifier,
-		const FString BakeFolder,
 		FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
 	void CreateCurveWidgets(
@@ -168,9 +166,9 @@ public:
 		const FHoudiniOutputObject& InOutputObject,
 		const FHoudiniGeoPartObject & HGPO,
 		const UObject* OutputOwner,
+		UHoudiniOutput* InOutput,
 		const FString & BakeFolder,
 		const FString & TempCookFolder,
-		const EHoudiniOutputType & Type,
 		const EHoudiniLandscapeOutputBakeType & LandscapeBakeType,
 		const TArray<UHoudiniOutput*>& InAllOutputs);
 

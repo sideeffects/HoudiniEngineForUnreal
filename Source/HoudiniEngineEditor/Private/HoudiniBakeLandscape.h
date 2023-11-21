@@ -33,6 +33,7 @@ struct FHoudiniPackageParams;
 struct FHoudiniAttributeResolver;
 struct FHoudiniEngineOutputStats;
 struct FHoudiniLandscapeSplineApplyLayerData;
+class FHoudiniEngineBakeState;
 class UWorld;
 class UPackage;
 class UHoudiniLandscapeTargetLayerOutput;
@@ -44,7 +45,7 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
-		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		bool bInReplaceActors,
 		bool bInReplaceAssets,
 		const FDirectoryPath& BakePath,
@@ -65,6 +66,7 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		const FName & OutlinerFolder,
 		const TArray<UHoudiniOutput*>& InOutputs, 
+		FHoudiniEngineBakeState& InBakeState,
 		bool bInReplaceActors,
 		bool bInReplaceAssets,
 		const FDirectoryPath& BakeFolder,
@@ -104,7 +106,7 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
-		TArray<FHoudiniBakedOutput>& InBakedOutputs,
+		FHoudiniEngineBakeState& InBakeState,
 		bool bInReplaceActors,
 		bool bInReplaceAssets,
 		const FDirectoryPath& BakePath,

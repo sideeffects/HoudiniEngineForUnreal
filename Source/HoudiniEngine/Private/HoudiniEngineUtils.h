@@ -1187,6 +1187,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const UHoudiniAssetComponent* HoudiniAssetComponent,
 			const FHoudiniOutputObjectIdentifier& InIdentifier,
 			const FHoudiniOutputObject& InOutputObject,
+			const bool bInHasPreviousBakeData,
 			const FString &InDefaultObjectName,
 			FHoudiniPackageParams& OutPackageParams,
 			FHoudiniAttributeResolver& OutResolver,

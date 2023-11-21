@@ -84,17 +84,28 @@ FString FHoudiniStringResolver::ResolveString(
 FString FHoudiniAttributeResolver::ResolveAttribute(
 	const FString& InAttrName,
 	const FString& InDefaultValue,
-	const bool bInUseDefaultIfAttrValueEmpty) const
+	const bool bInUseDefaultIfAttrValueEmpty,
+	bool* const bOutUsedDefaultValue) const
 {
 	if (!CachedAttributes.Contains(InAttrName))
 	{
+		if (bOutUsedDefaultValue)
+			*bOutUsedDefaultValue = true;
 		return ResolveString(InDefaultValue);
 	}
 	const FString AttrStr = CachedAttributes.FindChecked(InAttrName);
 	const FString AttrValue = ResolveString(AttrStr);
 	
 	if (bInUseDefaultIfAttrValueEmpty && AttrValue.IsEmpty())
+	{
+		if (bOutUsedDefaultValue)
+			*bOutUsedDefaultValue = true;
 		return ResolveString(InDefaultValue);
+	}
+
+	if (bOutUsedDefaultValue)
+		*bOutUsedDefaultValue = false;
+
 	return AttrValue;
 }
 
@@ -155,7 +166,7 @@ FString FHoudiniAttributeResolver::ResolveFullLevelPath() const
 	return FHoudiniEngineRuntimeUtils::JoinPaths(OutputFolder, LevelPathAttr);
 }
 
-FString FHoudiniAttributeResolver::ResolveOutputName(const bool bInForBake) const
+FString FHoudiniAttributeResolver::ResolveOutputName(const bool bInForBake, bool* const bOutUsedDefaultValue) const
 {
 	FString OutputAttribName;
 
@@ -174,7 +185,8 @@ FString FHoudiniAttributeResolver::ResolveOutputName(const bool bInForBake) cons
 
 	// When baking add the component guid to the default value for object_name
 	const FString DefaultValue = bInForBake ? TEXT("{object_name}_{guid8}") : TEXT("{object_name}");
-	return ResolveAttribute(OutputAttribName, DefaultValue);
+	static constexpr bool bUseDefaultIfAttrValueEmpty = false;
+	return ResolveAttribute(OutputAttribName, DefaultValue, bUseDefaultIfAttrValueEmpty, bOutUsedDefaultValue);
 }
 
 FString FHoudiniAttributeResolver::ResolveBakeFolder() const

@@ -186,7 +186,7 @@ FHoudiniLandscapeBake::BakeLandscape(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
-	TArray<FHoudiniBakedOutput>& InBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	bool bInReplaceActors,
 	bool bInReplaceAssets,
 	const FDirectoryPath& BakePath,
@@ -205,15 +205,7 @@ FHoudiniLandscapeBake::BakeLandscape(
 	if (!IsValid(Output))
 		return false;
 
-	// Find the previous baked output data for this output index. If an entry
-	// does not exist, create entries up to and including this output index
-	if (!InBakedOutputs.IsValidIndex(InOutputIndex))
-		InBakedOutputs.SetNum(InOutputIndex + 1);
-
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = Output->GetOutputObjects();
-	FHoudiniBakedOutput& BakedOutput = InBakedOutputs[InOutputIndex];
-	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& OldBakedOutputObjects = BakedOutput.BakedOutputObjects;
-	TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> NewBakedOutputObjects;
 	TArray<UPackage*> PackagesToSave;
 	TArray<UWorld*> LandscapeWorldsToUpdate;
 
@@ -226,9 +218,8 @@ FHoudiniLandscapeBake::BakeLandscape(
 	{
 		const FHoudiniOutputObjectIdentifier& ObjectIdentifier = Elem.Key;
 		FHoudiniOutputObject& OutputObject = Elem.Value;
-		FHoudiniBakedOutputObject& BakedOutputObject = NewBakedOutputObjects.Add(ObjectIdentifier);
-		if (OldBakedOutputObjects.Contains(ObjectIdentifier))
-			BakedOutputObject = OldBakedOutputObjects.FindChecked(ObjectIdentifier);
+		bool bHasPreviousBakeData = false;
+		FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, ObjectIdentifier, bHasPreviousBakeData);
 
 		// Populate the package params for baking this output object.
 		if (!IsValid(OutputObject.OutputObject))
@@ -246,6 +237,7 @@ FHoudiniLandscapeBake::BakeLandscape(
 			Output,
 			Elem.Key,
 			Elem.Value,
+			bHasPreviousBakeData,
 			FString(""),
 			BakePath,
 			bInReplaceAssets,
@@ -265,6 +257,8 @@ FHoudiniLandscapeBake::BakeLandscape(
 		FHoudiniLandscapeBake::BakeLandscapeLayer(PackageParams, *LayerOutput, bInReplaceActors, bInReplaceAssets, PackagesToSave, BakeStats, ClearedLayers);
 
 		LayerOutputs.Add(LayerOutput);
+
+		InBakeState.SetNewBakedOutputObject(InOutputIndex, ObjectIdentifier, BakedOutputObject);
 	}
 
 	// Once layers are baked, delete the cooked layers if they existed.
@@ -285,9 +279,6 @@ FHoudiniLandscapeBake::BakeLandscape(
 			FHoudiniLandscapeUtils::ApplyLocks(LayerOutput);
 	
 	}
-
-	// Update the cached baked output data
-	BakedOutput.BakedOutputObjects = NewBakedOutputObjects;
 
 	if (PackagesToSave.Num() > 0)
 	{
@@ -321,7 +312,8 @@ TArray<FHoudiniEngineBakedActor>
 FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	const FName & InFallbackWorldOutlinerFolder,
-	const TArray<UHoudiniOutput*>& InOutputs, 
+	const TArray<UHoudiniOutput*>& InOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	bool bInReplaceActors,
 	bool bInReplaceAssets,
 	const FDirectoryPath& BakeFolder,
@@ -350,6 +342,9 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 			if (!IsValid(LayerOutput->Landscape))
 				continue;
 
+			bool bHasPreviousBakeData = false;
+			FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(OutputIndex, Elem.Key, bHasPreviousBakeData);
+
 			FDirectoryPath BakePath;
 			BakePath.Path = LayerOutput->BakeFolder;
 
@@ -359,6 +354,7 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 				HoudiniOutput,
 				Elem.Key,
 				Elem.Value,
+				bHasPreviousBakeData,
 				FString(""), 
 				BakePath,
 				bInReplaceAssets,
@@ -398,6 +394,8 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 
 				FLandscapeInfoLayerSettings& LayerSettings = LandscapeInfo->Layers[Index];
 				LayerSettings.LayerInfoObj = BakedLayerInfo;
+
+				BakedOutputObject.LandscapeLayers.Emplace(BakedLayerInfo->LayerName, FSoftObjectPath(BakedLayerInfo).ToString());
 			}
 
 			LandscapeInfo->LandscapeActor->ForceLayersFullUpdate();
@@ -413,7 +411,7 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 				ALandscape* ExistingLandscape = FHoudiniEngineUtils::FindOrRenameInvalidActor<ALandscape>(
 						LayerOutput->Landscape->GetWorld(), LayerOutput->BakedLandscapeName, FoundActor);
 
-				if (ExistingLandscape && bInReplaceActors)
+				if (ExistingLandscape && PackageParams.ReplaceMode == EPackageReplaceMode::ReplaceExistingAssets)
 				{
 					// Even though we found an existing landscape with the desired type, we're just going to destroy/replace
 					// it for now.
@@ -448,6 +446,9 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 				Results.Add(BakeActor);
 				
 			}
+
+			// Set the updated baked output object in the state
+			InBakeState.SetNewBakedOutputObject(OutputIndex, Elem.Key, BakedOutputObject);
 		}
 	}
 
@@ -675,7 +676,7 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	const int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
-	TArray<FHoudiniBakedOutput>& InBakedOutputs,
+	FHoudiniEngineBakeState& InBakeState,
 	const bool bInReplaceActors,
 	const bool bInReplaceAssets,
 	const FDirectoryPath& BakePath,
@@ -697,15 +698,7 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 	if (!IsValid(Output) || Output->GetType() != EHoudiniOutputType::LandscapeSpline)
 		return false;
 
-	// Find the previous baked output data for this output index. If an entry
-	// does not exist, create entries up to and including this output index
-	if (!InBakedOutputs.IsValidIndex(InOutputIndex))
-		InBakedOutputs.SetNum(InOutputIndex + 1);
-
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = Output->GetOutputObjects();
-	FHoudiniBakedOutput& BakedOutput = InBakedOutputs[InOutputIndex];
-	const TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& OldBakedOutputObjects = BakedOutput.BakedOutputObjects;
-	TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> NewBakedOutputObjects;
 	TArray<UPackage*> PackagesToSave;
 	TArray<UWorld*> LandscapeWorldsToUpdate;
 
@@ -719,9 +712,8 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 	{
 		const FHoudiniOutputObjectIdentifier& ObjectIdentifier = Entry.Key;
 		FHoudiniOutputObject& OutputObject = Entry.Value;
-		FHoudiniBakedOutputObject& BakedOutputObject = NewBakedOutputObjects.Add(ObjectIdentifier);
-		if (OldBakedOutputObjects.Contains(ObjectIdentifier))
-			BakedOutputObject = OldBakedOutputObjects.FindChecked(ObjectIdentifier);
+		bool bHasPreviousBakeData = false;
+		FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, ObjectIdentifier, bHasPreviousBakeData);
 
 		// Populate the package params for baking this output object.
 		if (!IsValid(OutputObject.OutputObject))
@@ -739,6 +731,7 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 			Output,
 			ObjectIdentifier,
 			OutputObject,
+			bHasPreviousBakeData,
 			FString(""),
 			BakePath,
 			bInReplaceAssets,
@@ -810,13 +803,13 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 			FHoudiniClearedEditLayers& ClearedLandscapeLayers = ClearedLandscapeEditLayers.FindOrAdd(LayerOutput->Landscape);
 			BakeLandscapeSplinesLayer(PackageParams, *LayerOutput, ClearedLandscapeLayers, SegmentsToApplyToLayers);
 		}
+
+		// Save baked object entry in bake state
+		InBakeState.SetNewBakedOutputObject(InOutputIndex, ObjectIdentifier, BakedOutputObject);
 	}
 
 	// Apply segments to baked/reserved layers
 	FHoudiniLandscapeUtils::ApplySegmentsToLandscapeEditLayers(SegmentsToApplyToLayers);
-
-	// Update the cached baked output data
-	BakedOutput.BakedOutputObjects = NewBakedOutputObjects;
 
 	// Remove all output objects: since we don't duplicate anything the temp actors/segments
 	// essentially become the baked ones. We have also already removed all temp layers.
