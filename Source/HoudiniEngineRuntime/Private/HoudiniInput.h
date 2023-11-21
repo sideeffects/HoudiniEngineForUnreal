@@ -247,6 +247,7 @@ public:
 	bool IsLandscapeExportTileUVsEnabled() const { return InputSettings.bLandscapeExportTileUVs; }
 
 	bool IsPerLayerExportEnabled() const { return InputSettings.bExportPerEditLayerData; }
+	bool IsExportCombinedHeightOnlyEnabled() const { return InputSettings.bExportCombinedHeightOnly; }
 
 	bool IsExportLevelInstanceContentEnabled() const { return InputSettings.bExportLevelInstanceContent; }
 
@@ -303,6 +304,7 @@ public:
 	void SetInputNodeId(const int32& InCreatedNodeId)						{ InputNodeId = InCreatedNodeId; };
 	void SetUnrealSplineResolution(const float& InResolution)					{ InputSettings.UnrealSplineResolution = InResolution; };
 	void SetPerLayerExportEnabled(bool bOnOff) { InputSettings.bExportPerEditLayerData = bOnOff; }
+	void SetExportHeightOnly(bool bOnOff) { InputSettings.bExportCombinedHeightOnly = bOnOff; }
 	void SetExportLevelInstanceContent(bool bOnOff) { InputSettings.bExportLevelInstanceContent = bOnOff; }
 
 	virtual void SetCookOnCurveChange(const bool & bInCookOnCurveChanged)				{ bCookOnCurveChanged = bInCookOnCurveChanged; };
