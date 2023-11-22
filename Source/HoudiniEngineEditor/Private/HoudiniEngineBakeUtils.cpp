@@ -146,6 +146,7 @@
 	#include "Engine/SkinnedAssetCommon.h"
 #endif
 
+#include "Animation/Skeleton.h"
 #include "Engine/DataTable.h"
 #include "Kismet2/StructureEditorUtils.h"
 #include "UObject/TextProperty.h"
@@ -222,6 +223,21 @@ FHoudiniEngineBakeState::SetNewBakedOutputObject(const int32 InOutputIndex, cons
 {
 	check(NewBakedOutputs.IsValidIndex(InOutputIndex));
 	return NewBakedOutputs[InOutputIndex].BakedOutputObjects.Emplace(InIdentifier, InBakedOutputObject);
+}
+
+
+USkeleton*
+FHoudiniEngineBakeState::FindBakedSkeleton(USkeleton const* const InTempSkeleton, bool& bFoundEntry) const
+{
+	USkeleton* const* const BakedSkeleton = BakedSkeletons.Find(InTempSkeleton);
+	if (!BakedSkeleton)
+	{
+		bFoundEntry = false;
+		return nullptr;
+	}
+
+	bFoundEntry = true;
+	return *BakedSkeleton;
 }
 
 
@@ -3036,8 +3052,46 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	UWorld* DesiredWorld = InOutput ? InOutput->GetWorld() : GWorld;
 	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
 
-	FHoudiniPackageParams PackageParams;
+	FHoudiniPackageParams SkeletonPackageParams;
+	FHoudiniOutputObjectIdentifier SkeletonIdentifier = InIdentifier;
+	SkeletonIdentifier.SplitIdentifier = TEXT("skeleton");
+	if (!ResolvePackageParams(
+		InHoudiniAssetComponent,
+		InOutput,
+		SkeletonIdentifier,
+		InOutputObject,
+		bHasPreviousBakeData,
+		DefaultObjectName + TEXT("_skeleton"),
+		InBakeFolder,
+		bInReplaceAssets,
+		SkeletonPackageParams,
+		OutPackagesToSave))
+	{
+		return false;
+	}
+	// TODO: add an attribute for controlling the skeleton's bake name?
+	if (!SkeletonPackageParams.ObjectName.Contains(TEXT("skeleton"), ESearchCase::IgnoreCase))
+		SkeletonPackageParams.ObjectName += TEXT("_skeleton");
 
+	// Bake the skeleton if it is temporary
+	USkeleton* const Skeleton = SkeletalMesh->GetSkeleton();
+	USkeleton* BakedSkeleton = DuplicateSkeletonAndCreatePackageIfNeeded(
+		Skeleton,
+		BakedOutputObject.GetBakedSkeletonIfValid(),
+		SkeletonPackageParams,
+		InAllOutputs,
+		InAllBakedActors,
+		InTempCookFolder.Path,
+		OutPackagesToSave,
+		InBakeState.GetBakedSkeletons(),
+		OutBakeStats);
+
+	if (Skeleton != BakedSkeleton)
+		BakedOutputObject.BakedSkeleton = FSoftObjectPath(BakedSkeleton).ToString();
+	else
+		BakedOutputObject.BakedSkeleton = FSoftObjectPath(nullptr).ToString();
+
+	FHoudiniPackageParams PackageParams;
 	if (!ResolvePackageParams(
 		InHoudiniAssetComponent,
 		InOutput,
@@ -3053,7 +3107,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 		return false;
 	}
 
-	// Bake the static mesh if it is still temporary
+	// Bake the skeletal mesh if it is still temporary
 	USkeletalMesh* BakedSK = FHoudiniEngineBakeUtils::DuplicateSkeletalMeshAndCreatePackageIfNeeded(
 		SkeletalMesh,
 		Cast<USkeletalMesh>(BakedOutputObject.GetBakedObjectIfValid()),
@@ -3068,6 +3122,10 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 
 	if (!IsValid(BakedSK))
 		return false;
+
+	// Update the skeleton of the BakedSK if the skeleton was baked
+	if (BakedSK->GetSkeleton() != BakedSkeleton)
+		BakedSK->SetSkeleton(BakedSkeleton);
 
 	// Record the baked object
 	BakedOutputObject.BakedObject = FSoftObjectPath(BakedSK).ToString();
@@ -4869,6 +4927,124 @@ FHoudiniEngineBakeUtils::DuplicateSkeletalMeshAndCreatePackageIfNeeded(
 	return DuplicatedSkeletalMesh;
 }
 
+
+USkeleton* FHoudiniEngineBakeUtils::DuplicateSkeletonAndCreatePackageIfNeeded(
+	USkeleton* InSkeleton,
+	USkeleton const* InPreviousBakeSkeleton,
+	const FHoudiniPackageParams& PackageParams,
+	const TArray<UHoudiniOutput*>& InParentOutputs,
+	const TArray<FHoudiniEngineBakedActor>& InCurrentBakedActors,
+	const FString& InTemporaryCookFolder,
+	TArray<UPackage*>& OutCreatedPackages,
+	TMap<USkeleton*, USkeleton*>& InOutAlreadyBakedSkeletonMap,
+	FHoudiniEngineOutputStats& OutBakeStats)
+{
+	if (!IsValid(InSkeleton))
+		return nullptr;
+
+	const bool bIsTemporarySkeleton = IsObjectTemporary(InSkeleton, EHoudiniOutputType::Mesh, InParentOutputs, InTemporaryCookFolder);
+	if (!bIsTemporarySkeleton)
+	{
+		// The Skeletal Mesh is not a temporary one/already baked, we can simply reuse it
+		// instead of duplicating it
+		return InSkeleton;
+	}
+
+	USkeleton** AlreadyBakedSK = InOutAlreadyBakedSkeletonMap.Find(InSkeleton);
+	if (AlreadyBakedSK && IsValid(*AlreadyBakedSK))
+		return *AlreadyBakedSK;
+
+	// // Look for InSkeleton as the SourceObject in InCurrentBakedActors (it could have already been baked along with
+	// // a previous output: instancers etc)
+	// for (const FHoudiniEngineBakedActor& BakedActor : InCurrentBakedActors)
+	// {
+	// 	if (BakedActor.SourceObject == InSkeleton && IsValid(BakedActor.BakedObject)
+	// 		&& BakedActor.BakedObject->IsA(InSkeleton->GetClass()))
+	// 	{
+	// 		// We have found a bake result where InStaticMesh was the source object and we have a valid BakedObject
+	// 		// of a compatible class
+	// 		return Cast<USkeleton>(BakedActor.BakedObject);
+	// 	}
+	// }
+
+	// InSkeleton is temporary and we didn't find a baked version of it in our current bake output, we need to bake it
+
+	// If we have a previously baked skeletal mesh, get the bake counter from it so that both replace and increment
+	// is consistent with the bake counter
+	int32 BakeCounter = 0;
+	bool bPreviousBakeSkeletonValid = IsValid(InPreviousBakeSkeleton);
+	if (bPreviousBakeSkeletonValid)
+	{
+		bPreviousBakeSkeletonValid = PackageParams.MatchesPackagePathNameExcludingBakeCounter(InPreviousBakeSkeleton);
+		if (bPreviousBakeSkeletonValid)
+		{
+			PackageParams.GetBakeCounterFromBakedAsset(InPreviousBakeSkeleton, BakeCounter);
+		}
+	}
+	FString CreatedPackageName;
+	UPackage* SkeletonPackage = PackageParams.CreatePackageForObject(CreatedPackageName, BakeCounter);
+	if (!IsValid(SkeletonPackage))
+		return nullptr;
+	OutBakeStats.NotifyPackageCreated(1);
+	OutCreatedPackages.Add(SkeletonPackage);
+
+	// We need to be sure the package has been fully loaded before calling DuplicateObject
+	if (!SkeletonPackage->IsFullyLoaded())
+	{
+		FlushAsyncLoading();
+		if (!SkeletonPackage->GetOuter())
+		{
+			SkeletonPackage->FullyLoad();
+		}
+		else
+		{
+			SkeletonPackage->GetOutermost()->FullyLoad();
+		}
+	}
+
+	// If the a USkeleton with that name already exists then detach it from all of its components before replacing
+	// it so that its render resources can be safely replaced/updated, and then reattach it
+	USkeleton* DuplicatedSkeleton = nullptr;
+	USkeleton* ExistingSkeleton = FindObject<USkeleton>(SkeletonPackage, *CreatedPackageName);
+	bool bFoundExistingSkeleton = false;
+	if (IsValid(ExistingSkeleton))
+	{
+		DuplicatedSkeleton = DuplicateObject<USkeleton>(InSkeleton, SkeletonPackage, *CreatedPackageName);
+		bFoundExistingSkeleton = true;
+		OutBakeStats.NotifyObjectsReplaced(USkeleton::StaticClass()->GetName(), 1);
+	}
+	else
+	{
+		DuplicatedSkeleton = DuplicateObject<USkeleton>(InSkeleton, SkeletonPackage, *CreatedPackageName);
+		OutBakeStats.NotifyObjectsUpdated(USkeleton::StaticClass()->GetName(), 1);
+	}
+
+	if (!IsValid(DuplicatedSkeleton))
+		return nullptr;
+
+	InOutAlreadyBakedSkeletonMap.Add(InSkeleton, DuplicatedSkeleton);
+
+	// Add meta information.
+	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+		SkeletonPackage, DuplicatedSkeleton,
+		HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
+	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+		SkeletonPackage, DuplicatedSkeleton,
+		HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *CreatedPackageName);
+	// Baked object! this is not temporary anymore
+	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+		SkeletonPackage, DuplicatedSkeleton,
+		HAPI_UNREAL_PACKAGE_META_BAKED_OBJECT, TEXT("true"));
+
+	// Notify registry that we have created a new duplicate skeleton
+	if (!bFoundExistingSkeleton)
+		FAssetRegistryModule::AssetCreated(DuplicatedSkeleton);
+
+	// Dirty the skeleton package.
+	DuplicatedSkeleton->MarkPackageDirty();
+
+	return DuplicatedSkeleton;
+}
 
 
 UGeometryCollection* FHoudiniEngineBakeUtils::DuplicateGeometryCollectionAndCreatePackageIfNeeded(

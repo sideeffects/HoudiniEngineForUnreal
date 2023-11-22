@@ -195,11 +195,23 @@ public:
 	// Get a reference to NewBakedOutputs
 	TArray<FHoudiniBakedOutput>& GetNewBakedOutputs() { return NewBakedOutputs; }
 
+	// Get a const reference to BakedSkeletons
+	const TMap<USkeleton*, USkeleton*>& GetBakedSkeletons() const { return BakedSkeletons; }
+	// Get a reference to BakedSkeletons
+	TMap<USkeleton*, USkeleton*>& GetBakedSkeletons() { return BakedSkeletons; }
+	// Add a temp -> baked skeleton entry
+	void AddBakedSkeleton(USkeleton* InTempSkeleton, USkeleton* InBakedSkeleton) { BakedSkeletons.Add(InTempSkeleton, InBakedSkeleton); }
+	// Look for a baked skeleton for InTempSkeleton in BakedSkeletons map.
+	USkeleton* FindBakedSkeleton(USkeleton const* InTempSkeleton, bool& bFoundEntry) const;
+
 protected:
 	// Array of old / previous baked outputs
 	TArray<FHoudiniBakedOutput> OldBakedOutputs;
 	// Array of new  baked outputs
 	TArray<FHoudiniBakedOutput> NewBakedOutputs;
+
+	// Map of temp to baked Skeletons
+	TMap<USkeleton*, USkeleton*> BakedSkeletons; 
 };
 
 
@@ -416,7 +428,17 @@ public:
 		TMap<USkeletalMesh*, USkeletalMesh*>& InOutAlreadyBakedStaticMeshMap,
 		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 		FHoudiniEngineOutputStats& OutBakeStats);
-
+	
+	static USkeleton* DuplicateSkeletonAndCreatePackageIfNeeded(
+		USkeleton* InSkeleton,
+		USkeleton const* InPreviousBakeSkeleton,
+		const FHoudiniPackageParams& PackageParams,
+		const TArray<UHoudiniOutput*>& InParentOutputs,
+		const TArray<FHoudiniEngineBakedActor>& InCurrentBakedActors,
+		const FString& InTemporaryCookFolder,
+		TArray<UPackage*>& OutCreatedPackages,
+		TMap<USkeleton*, USkeleton*>& InOutAlreadyBakedSkeletonMap,
+		FHoudiniEngineOutputStats& OutBakeStats);
 
 	static UGeometryCollection * DuplicateGeometryCollectionAndCreatePackageIfNeeded(
 		UGeometryCollection * InGeometryCollection,

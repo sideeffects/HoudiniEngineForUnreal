@@ -1576,6 +1576,9 @@ bool FHoudiniSkeletalMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 	FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
 		HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, "");
 	OutputObjectIdentifier.PartName = HGPO.PartName;
+	// Hard-coded point and prim indices to 0 and 0
+	OutputObjectIdentifier.PointIndex = 0;
+	OutputObjectIdentifier.PrimitiveIndex = 0;
 
 	// If we don't already have an object for OutputObjectIdentifier in OutputObjects, then check in InputObjects and
 	// copy it from there. Otherwise create a new empty OutputObject in OutputObjects.
@@ -1586,6 +1589,25 @@ bool FHoudiniSkeletalMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 			OutputObjects.Emplace(OutputObjectIdentifier, *InputObject);
 	}
 	FHoudiniOutputObject& OutputObject = OutputObjects.FindOrAdd(OutputObjectIdentifier);
+
+	// Get non-generic supported attributes from OutputObjectIdentifier
+	OutputObject.CachedAttributes.Empty();
+	OutputObject.CachedTokens.Empty();
+	FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
+		HGPO, OutputObjectIdentifier.PointIndex, OutputObjectIdentifier.PrimitiveIndex, OutputObject.CachedAttributes, OutputObject.CachedTokens);
+
+	// Resolve our temp package params
+	const FHoudiniPackageParams InitialPackageParams = PackageParams;
+	FHoudiniAttributeResolver Resolver;
+	FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
+		InitialPackageParams,
+		IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
+		OuterComponent,
+		OutputObject.CachedAttributes,
+		OutputObject.CachedTokens,
+		PackageParams,
+		Resolver);
+
 	USkeletalMesh* NewSkeletalMesh = CreateNewSkeletalMesh(OutputObjectIdentifier.SplitIdentifier);
 	USkeleton* NewSkeleton = CreateNewSkeleton(OutputObjectIdentifier.SplitIdentifier);
 	OutputObject.OutputObject = NewSkeletalMesh;
@@ -1627,13 +1649,16 @@ bool FHoudiniSkeletalMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 USkeleton*
 FHoudiniSkeletalMeshTranslator::CreateNewSkeleton(const FString& InSplitIdentifier)
 {
-	FHoudiniPackageParams SkeltonPackageParams;
-	SkeltonPackageParams.GeoId = HGPO.GeoId;
-	SkeltonPackageParams.PartId = HGPO.PartId;
-	SkeltonPackageParams.ComponentGUID = PackageParams.ComponentGUID;
-	SkeltonPackageParams.HoudiniAssetName = PackageParams.HoudiniAssetName;
+	FHoudiniPackageParams SkeltonPackageParams = PackageParams;
+	// SkeltonPackageParams.GeoId = HGPO.GeoId;
+	// SkeltonPackageParams.PartId = HGPO.PartId;
+	// SkeltonPackageParams.ComponentGUID = PackageParams.ComponentGUID;
+	// SkeltonPackageParams.HoudiniAssetName = PackageParams.HoudiniAssetName;
 	SkeltonPackageParams.SplitStr = InSplitIdentifier;
-	SkeltonPackageParams.ObjectName = FString::Printf(TEXT("%s_%d_%d_%d_%sSkeleton"), *PackageParams.HoudiniAssetName, PackageParams.ObjectId, PackageParams.GeoId, PackageParams.PartId, *PackageParams.SplitStr);
+	if (SkeltonPackageParams.ObjectName.IsEmpty())
+		SkeltonPackageParams.ObjectName = FString::Printf(TEXT("%s_%d_%d_%d_%sSkeleton"), *PackageParams.HoudiniAssetName, PackageParams.ObjectId, PackageParams.GeoId, PackageParams.PartId, *PackageParams.SplitStr);
+	else
+		SkeltonPackageParams.ObjectName += TEXT("Skeleton");
 
 	USkeleton* NewSkeleton = SkeltonPackageParams.CreateObjectAndPackage<USkeleton>();
 	if (!IsValid(NewSkeleton))
@@ -1717,6 +1742,7 @@ FHoudiniSkeletalMeshTranslator::CreateAllSkeletalMeshesAndComponentsFromHoudiniO
 		CreateSkeletalMeshFromHoudiniGeoPartObject(
 			CurHGPO,
 			InPackageParams,
+			InOuterComponent,
 			OldOutputObjects,
 			NewOutputObjects);
 	}
@@ -1732,6 +1758,7 @@ bool
 FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshFromHoudiniGeoPartObject(
 	const FHoudiniGeoPartObject& InHGPO,
 	const FHoudiniPackageParams& InPackageParams,
+	UObject* InOuterComponent,
 	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects,
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutOutputObjects)
 {
@@ -1744,6 +1771,7 @@ FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshFromHoudiniGeoPartObject(
 	SKMeshTranslator.SetInputObjects(InOutputObjects);
 	SKMeshTranslator.SetOutputObjects(OutOutputObjects);
 	SKMeshTranslator.SetPackageParams(InPackageParams, true);
+	SKMeshTranslator.SetOuterComponent(InOuterComponent);
 	if (SKMeshTranslator.CreateSkeletalMesh_SkeletalMeshImportData())
 	{
 		// Copy the output objects/materials

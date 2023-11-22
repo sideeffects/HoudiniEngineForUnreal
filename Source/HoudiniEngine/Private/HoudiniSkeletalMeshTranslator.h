@@ -75,6 +75,7 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshTranslator
         static bool CreateSkeletalMeshFromHoudiniGeoPartObject(
             const FHoudiniGeoPartObject& InHGPO,
             const FHoudiniPackageParams& InPackageParams,
+            UObject* InOuterComponent,
             const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects,
             TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutOutputObjects);
 
@@ -95,6 +96,7 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshTranslator
         void SetPackageParams(const FHoudiniPackageParams& InPackageParams, const bool& bUpdateHGPO = false);
         void SetInputObjects(const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InInputObjects) { InputObjects = InInputObjects; };
         void SetOutputObjects(const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects) { OutputObjects = InOutputObjects; };
+        void SetOuterComponent(UObject* InOuterComponent) { OuterComponent = InOuterComponent; }
 
         // Current / Previous Output objects
         TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> InputObjects;
@@ -111,6 +113,9 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshTranslator
         
         // New Output objects
         //TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> OutputObjects;
+
+        // Outer object for attaching components to
+        UObject* OuterComponent = nullptr;
         
 
         USkeletalMesh* CreateNewSkeletalMesh(const FString& InSplitIdentifier);

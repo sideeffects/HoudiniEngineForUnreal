@@ -42,6 +42,7 @@ class ULandscapeLayerInfoObject;
 class ULandscapeSplinesComponent;
 class ULandscapeSplineControlPoint;
 class ULandscapeSplineSegment;
+class USkeleton;
 class ALandscapeSplineActor;
 struct FHoudiniDataLayer;
 
@@ -534,6 +535,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// Returns the ULandscapeLayerInfoObject, if valid and found in LandscapeLayers, otherwise nullptr
 		ULandscapeLayerInfoObject* GetLandscapeLayerInfoIfValid(const FName& InLayerName, const bool bInTryLoad=true) const;
 
+		// Returns BakedSkeleton if valid, otherwise nullptr
+		USkeleton* GetBakedSkeletonIfValid(bool bInTryLoad=true) const;
+
 		// The actor that the baked output was associated with
 		UPROPERTY()
 		FString Actor;
@@ -581,6 +585,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// For landscape splines, this is the landscape that contains the splines.
 		UPROPERTY()
 		FString Landscape;
+
+		// For skeletal meshes, this is the skeleton that was baked for the skeletal mesh.
+		UPROPERTY()
+		FString BakedSkeleton;
 };
 
 // Container to hold the map of baked objects. There should be one of
