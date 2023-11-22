@@ -59,7 +59,7 @@ struct SKBuildSettings
     FSkeletalMeshImportData SkeletalMeshImportData;
     bool bIsNewSkeleton = false;
     float ImportScale = 1.0f;
-	USkeletalMesh* SKMesh;
+	USkeletalMesh* SKMesh = nullptr;
 	UPackage* SKPackage = nullptr;
     USkeleton* Skeleton = nullptr;
     FString CurrentObjectName;
