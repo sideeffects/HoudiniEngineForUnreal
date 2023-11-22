@@ -3020,7 +3020,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 					    //---------------------------------------------------------------------------------------------------------------------
 					    if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
 					    {
-						    FVector4f Color = FLinearColor::White;
+						    FLinearColor Color = FLinearColor::White;
 						    if (bUseComponentOverrideColors && SMRenderData)
 						    {
 							    FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[InLODIndex];
@@ -3035,12 +3035,15 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 						    }
 						    else
 						    {
-							    Color = VertexInstanceColors.Get(VertexInstanceID);
+								// Convert from SRGB to Linear. Unfortunately UE only provides this via the FColor()
+								// structure, so we loose precision as we have to convert to 8-bit and back to 32-bit.
+								FLinearColor SRGBColor = VertexInstanceColors.Get(VertexInstanceID);
+								Color = SRGBColor.ToFColor(true).ReinterpretAsLinear();
 						    }
-						    RGBColors[Float3Index + 0] = Color[0];
-						    RGBColors[Float3Index + 1] = Color[1];
-						    RGBColors[Float3Index + 2] = Color[2];
-						    Alphas[VertexInstanceIdx] = Color[3];
+						    RGBColors[Float3Index + 0] = Color.R;
+						    RGBColors[Float3Index + 1] = Color.G;
+						    RGBColors[Float3Index + 2] = Color.B;
+						    Alphas[VertexInstanceIdx] = Color.A;
 					    }
 
 					    //--------------------------------------------------------------------------------------------------------------------- 
