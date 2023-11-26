@@ -233,9 +233,6 @@ public:
 	TArray<ULandscapeLayerInfoObject*> LayerInfoObjects;
 
 	UPROPERTY()
-	FString BakeOutlinerFolder;
-
-	UPROPERTY()
 	FString BakeFolder;
 
 	UPROPERTY()

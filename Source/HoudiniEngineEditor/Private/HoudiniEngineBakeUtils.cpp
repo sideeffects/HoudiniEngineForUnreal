@@ -1361,7 +1361,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 
 
 	    const FName WorldOutlinerFolderPath = GetOutlinerFolderPath(
-		    InOutputObject,
+			InstancerResolver,
 		    FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 
 	    // By default spawn in the current level unless specified via the unreal_level_path attribute
@@ -1458,7 +1458,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 			    RenameAndRelabelActor(FoundActor, NewNameStr, false);
 
 			    // The folder is named after the original actor and contains all generated actors
-			    SetOutlinerFolderPath(FoundActor, InOutputObject, WorldOutlinerFolderPath);
+			    SetOutlinerFolderPath(FoundActor, WorldOutlinerFolderPath);
 
 			    AStaticMeshActor* SMActor = Cast<AStaticMeshActor>(FoundActor);
 			    if (!IsValid(SMActor))
@@ -1540,7 +1540,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	    	ActorTags = FoundActor->Tags;
 	    	
 		    // The folder is named after the original actor and contains all generated actors
-		    SetOutlinerFolderPath(FoundActor, InOutputObject, WorldOutlinerFolderPath);
+		    SetOutlinerFolderPath(FoundActor, WorldOutlinerFolderPath);
 
 		    // Get/create the actor's root component
 		    const bool bCreateIfMissing = true;
@@ -1700,7 +1700,8 @@ bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
 		World, HoudiniAssetComponent, InOutputObjectIdentifier, InOutputObject, bHasPreviousBakeData, ObjectName,
 		InstancerPackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
-	const FName OutlinerPath = GetOutlinerFolderPath(InOutputObject,
+	const FName OutlinerPath = GetOutlinerFolderPath(
+		InstancerResolver,
 		FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 
 	if (!IsValid(LevelInstance))
@@ -1898,7 +1899,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 		InstancerName += "_" + InOutputObjectIdentifier.SplitIdentifier;
 
 	    const FName WorldOutlinerFolderPath = GetOutlinerFolderPath(
-		    InOutputObject, 
+			InstancerResolver,
 		    FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 
 	    // By default spawn in the current level unless specified via the unreal_level_path attribute
@@ -2001,7 +2002,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	    RenameAndRelabelActor(FoundActor, NewNameStr, false);
 
 	    // The folder is named after the original actor and contains all generated actors
-	    SetOutlinerFolderPath(FoundActor, InOutputObject, WorldOutlinerFolderPath);
+	    SetOutlinerFolderPath(FoundActor, WorldOutlinerFolderPath);
 
 	    // Update the previous baked component
 	    BakedOutputObject.BakedComponent = FSoftObjectPath(StaticMeshComponent).ToString();
@@ -2167,7 +2168,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 	    if (!DesiredLevel)
 		    return false;
 
-	    const FName WorldOutlinerFolderPath = GetOutlinerFolderPath(InOutputObject, *PackageParams.HoudiniAssetActorName);
+	    const FName WorldOutlinerFolderPath = GetOutlinerFolderPath(Resolver, *PackageParams.HoudiniAssetActorName);
 
 	    // Try to find the unreal_bake_actor, if specified. If we found the actor, we will attach the instanced actors
 	    // to it. If we did not find an actor, but unreal_bake_actor was set, then we create a new actor with that name
@@ -2302,7 +2303,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 
 			OutBakeStats.NotifyObjectsCreated(NewActor->GetClass()->GetName(), 1);
 
-		    SetOutlinerFolderPath(NewActor, InOutputObject, WorldOutlinerFolderPath);
+		    SetOutlinerFolderPath(NewActor, WorldOutlinerFolderPath);
 		    NewActor->SetActorTransform(CurrentTransform);
 
 		    if (ParentToActor)
@@ -2483,7 +2484,8 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 			InstancerName = InOutputObject.CachedAttributes[HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2];
 		InstancerName += "_" + InOutputObjectIdentifier.SplitIdentifier;
 
-		FName WorldOutlinerFolderPath = GetOutlinerFolderPath(InOutputObject, 
+		FName WorldOutlinerFolderPath = GetOutlinerFolderPath(
+			InstancerResolver,
 		    FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 
 	    // By default spawn in the current level unless specified via the unreal_level_path attribute
@@ -2579,7 +2581,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 		    OutBakeStats.NotifyObjectsUpdated(FoundActor->GetClass()->GetName(), 1);
 	    }
 	    // The folder is named after the original actor and contains all generated actors
-	    SetOutlinerFolderPath(FoundActor, InOutputObject, WorldOutlinerFolderPath);
+	    SetOutlinerFolderPath(FoundActor, WorldOutlinerFolderPath);
 
 	    // Get/create the actor's root component
 	    const bool bCreateIfMissing = true;
@@ -2825,7 +2827,9 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 
 	FHoudiniPackageParams PackageParams;
 
-	if (!ResolvePackageParams(
+	FHoudiniAttributeResolver Resolver;
+
+	if (!ResolvePackageParamsWithResolver(
 		InHoudiniAssetComponent,
 		InOutput,
 		InIdentifier,
@@ -2835,6 +2839,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 		InBakeFolder,
 		bInReplaceAssets,
 		PackageParams,
+		Resolver,
 		OutPackagesToSave))
 	{
 		return false;
@@ -2862,7 +2867,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	if (bHasOutputSMC)
 	{
 		const FName WorldOutlinerFolderPath = GetOutlinerFolderPath(
-			InOutputObject,
+			Resolver,
 			FName(InFallbackWorldOutlinerFolder.IsEmpty() ? PackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 
 		// Get the actor factory for the unreal_bake_actor_class attribute. If not set, use an empty actor.
@@ -2947,7 +2952,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 		// We need to make a unique name for the actor, renaming an object on top of another is a fatal error
 		const FString NewNameStr = MakeUniqueObjectNameIfNeeded(DesiredLevel, Factory->NewActorClass, BakeActorName.ToString(), FoundActor);
 		RenameAndRelabelActor(FoundActor, NewNameStr, false);
-		SetOutlinerFolderPath(FoundActor, InOutputObject, WorldOutlinerFolderPath);
+		SetOutlinerFolderPath(FoundActor, WorldOutlinerFolderPath);
 
 		if (IsValid(SMC))
 		{
@@ -3091,8 +3096,10 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	else
 		BakedOutputObject.BakedSkeleton = FSoftObjectPath(nullptr).ToString();
 
+	FHoudiniAttributeResolver Resolver;
+
 	FHoudiniPackageParams PackageParams;
-	if (!ResolvePackageParams(
+	if (!ResolvePackageParamsWithResolver(
 		InHoudiniAssetComponent,
 		InOutput,
 		InIdentifier,
@@ -3102,6 +3109,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 		InBakeFolder,
 		bInReplaceAssets,
 		PackageParams,
+		Resolver,
 		OutPackagesToSave))
 	{
 		return false;
@@ -3133,7 +3141,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	if (bHasOutputSKC)
 	{
 		const FName WorldOutlinerFolderPath = GetOutlinerFolderPath(
-			InOutputObject,
+			Resolver,
 			FName(InFallbackWorldOutlinerFolder.IsEmpty() ? PackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 
 		// Get the actor factory for the unreal_bake_actor_class attribute. If not set, use an empty actor.
@@ -3214,7 +3222,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 		// We need to make a unique name for the actor, renaming an object on top of another is a fatal error
 		const FString NewNameStr = MakeUniqueObjectNameIfNeeded(DesiredLevel, Factory->NewActorClass, BakeActorName.ToString(), FoundActor);
 		RenameAndRelabelActor(FoundActor, NewNameStr, false);
-		SetOutlinerFolderPath(FoundActor, InOutputObject, WorldOutlinerFolderPath);
+		SetOutlinerFolderPath(FoundActor, WorldOutlinerFolderPath);
 
 		if (IsValid(SKC))
 		{
@@ -3453,11 +3461,11 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(
 
 bool FHoudiniEngineBakeUtils::ResolvePackageParams(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
-	UHoudiniOutput* InOutput, 
+	UHoudiniOutput* InOutput,
 	const FHoudiniOutputObjectIdentifier& Identifier,
 	const FHoudiniOutputObject& InOutputObject,
 	const bool bInHasPreviousBakeData,
-	const FString& DefaultObjectName, 
+	const FString& DefaultObjectName,
 	const FDirectoryPath& InBakeFolder,
 	const bool bInReplaceAssets,
 	FHoudiniPackageParams& OutPackageParams,
@@ -3466,7 +3474,39 @@ bool FHoudiniEngineBakeUtils::ResolvePackageParams(
 	const FString& InHoudiniAssetActorName)
 {
 	FHoudiniAttributeResolver Resolver;
-	
+
+	return ResolvePackageParamsWithResolver(
+		HoudiniAssetComponent, 
+		InOutput, 
+		Identifier, 
+		InOutputObject, 
+		bInHasPreviousBakeData, 
+		DefaultObjectName, 
+		InBakeFolder, 
+		bInReplaceAssets, 
+		OutPackageParams, 
+		Resolver, 
+		OutPackagesToSave, 
+		InHoudiniAssetName,
+		InHoudiniAssetActorName);
+
+
+}
+bool FHoudiniEngineBakeUtils::ResolvePackageParamsWithResolver(
+	const UHoudiniAssetComponent* HoudiniAssetComponent,
+	UHoudiniOutput* InOutput, 
+	const FHoudiniOutputObjectIdentifier& Identifier,
+	const FHoudiniOutputObject& InOutputObject,
+	const bool bInHasPreviousBakeData,
+	const FString& DefaultObjectName, 
+	const FDirectoryPath& InBakeFolder,
+	const bool bInReplaceAssets,
+	FHoudiniPackageParams& OutPackageParams,
+	FHoudiniAttributeResolver& Resolver,
+	TArray<UPackage*>& OutPackagesToSave,
+	const FString& InHoudiniAssetName,
+	const FString& InHoudiniAssetActorName)
+{
 	UWorld* DesiredWorld = InOutput ? InOutput->GetWorld() : GWorld;
 	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
 
@@ -3947,7 +3987,9 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 
 		FHoudiniPackageParams PackageParams;
 
-		if (!ResolvePackageParams(
+		FHoudiniAttributeResolver Resolver;
+
+		if (!ResolvePackageParamsWithResolver(
 			HoudiniAssetComponent,
 			InOutput,
 			Identifier,
@@ -3957,13 +3999,14 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 			InBakeFolder,
 			bInReplaceAssets,
 			PackageParams,
+			Resolver,
 			OutPackagesToSave))
 		{
 			continue;
 		}
 
 		const FName WorldOutlinerFolderPath = GetOutlinerFolderPath(
-			OutputObject,
+			Resolver,
 			FName(InFallbackWorldOutlinerFolder.IsEmpty() ? PackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 		
 		// Bake the static mesh if it is still temporary
@@ -4052,7 +4095,7 @@ bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 		// We need to make a unique name for the actor, renaming an object on top of another is a fatal error
 		const FString NewNameStr = MakeUniqueObjectNameIfNeeded(DesiredLevel, AGeometryCollectionActor::StaticClass(), BakeActorName.ToString(), FoundActor);
 		RenameAndRelabelActor(FoundActor, NewNameStr, false);
-		SetOutlinerFolderPath(FoundActor, OutputObject, WorldOutlinerFolderPath);
+		SetOutlinerFolderPath(FoundActor, WorldOutlinerFolderPath);
 
 		if (IsValid(NewGCC))
 		{
@@ -5539,7 +5582,7 @@ FHoudiniEngineBakeUtils::BakeCurve(
 	}
 	
 	USplineComponent* NewSplineComponent = nullptr;
-	const FName OutlinerFolderPath = GetOutlinerFolderPath(InOutputObject, *(PackageParams.HoudiniAssetActorName));
+	const FName OutlinerFolderPath = GetOutlinerFolderPath(InResolver, *(PackageParams.HoudiniAssetActorName));
 	if (!BakeCurve(InHoudiniAssetComponent, SplineComponent, DesiredLevel, PackageParams, BakeActorName, FoundActor, NewSplineComponent, OutBakeStats, OutlinerFolderPath, FoundActor))
 		return false;
 
@@ -8218,22 +8261,19 @@ FHoudiniEngineBakeUtils::MakeUniqueObjectNameIfNeeded(UObject* InOuter, const UC
 }
 
 FName
-FHoudiniEngineBakeUtils::GetOutlinerFolderPath(const FHoudiniOutputObject& InOutputObject, FName InDefaultFolder)
+FHoudiniEngineBakeUtils::GetOutlinerFolderPath(const FHoudiniAttributeResolver& Resolver, FName DefaultFolder)
 {
-	const FString* FolderPathPtr = InOutputObject.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER);
-	if (FolderPathPtr && !FolderPathPtr->IsEmpty())
-		return FName(*FolderPathPtr);
-	else
-		return InDefaultFolder;
+	FString ResolvedString = Resolver.ResolveAttribute( HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER, DefaultFolder.ToString(), true);
+	return FName(ResolvedString);
 }
 
 bool
-FHoudiniEngineBakeUtils::SetOutlinerFolderPath(AActor* InActor, const FHoudiniOutputObject& InOutputObject, FName InDefaultFolder)
+FHoudiniEngineBakeUtils::SetOutlinerFolderPath(AActor* InActor, FName Folder)
 {
 	if (!IsValid(InActor))
 		return false;
 
-	InActor->SetFolderPath(GetOutlinerFolderPath(InOutputObject, InDefaultFolder));
+	InActor->SetFolderPath(Folder);
 	return true;
 }
 
