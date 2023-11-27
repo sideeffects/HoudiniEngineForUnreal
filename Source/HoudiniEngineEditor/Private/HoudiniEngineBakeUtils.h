@@ -584,6 +584,21 @@ public:
 		TArray<UPackage*>& OutPackagesToSave,
 		const FString& InHoudiniAssetName=TEXT(""),
 		const FString& InHoudiniAssetActorName=TEXT(""));
+
+	static bool ResolvePackageParamsWithResolver(
+		const UHoudiniAssetComponent* HoudiniAssetComponent,
+		UHoudiniOutput* InOutput,
+		const FHoudiniOutputObjectIdentifier& Identifier,
+		const FHoudiniOutputObject& InOutputObject,
+		const bool bInHasPreviousBakeData,
+		const FString& DefaultObjectName,
+		const FDirectoryPath& InBakeFolder,
+		const bool bInReplaceAssets,
+		FHoudiniPackageParams& OutPackageParams,
+		FHoudiniAttributeResolver & Resolver,
+		TArray<UPackage*>& OutPackagesToSave,
+		const FString& InHoudiniAssetName = TEXT(""),
+		const FString& InHoudiniAssetActorName = TEXT(""));
 	
 	static bool BakeGeometryCollectionOutputToActors(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
@@ -995,10 +1010,10 @@ public:
 	static FString MakeUniqueObjectNameIfNeeded(UObject* InOuter, const UClass* InClass, const FString& InName, UObject* InObjectThatWouldBeRenamed=nullptr);
 
 	// Helper for getting the actor folder path for the world outliner, based unreal_bake_outliner_folder
-	static FName GetOutlinerFolderPath(const FHoudiniOutputObject& InOutputObject, FName InDefaultFolder);
+	static FName GetOutlinerFolderPath(const FHoudiniAttributeResolver& Resolver, FName InDefaultFolder);
 
 	// Helper for setting the actor folder path in the world outliner
-	static bool SetOutlinerFolderPath(AActor* InActor, const FHoudiniOutputObject& InOutputObject, FName InDefaultFolder);
+	static bool SetOutlinerFolderPath(AActor* InActor, FName InDefaultFolder);
 
 	// Helper for destroying previous bake components/actors
 	static uint32 DestroyPreviousBakeOutput(

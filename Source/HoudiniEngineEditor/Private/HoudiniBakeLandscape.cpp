@@ -349,7 +349,8 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 			BakePath.Path = LayerOutput->BakeFolder;
 
 			FHoudiniPackageParams PackageParams;
-			FHoudiniEngineBakeUtils::ResolvePackageParams(
+			FHoudiniAttributeResolver Resolver;
+			FHoudiniEngineBakeUtils::ResolvePackageParamsWithResolver(
 				HoudiniAssetComponent,
 				HoudiniOutput,
 				Elem.Key,
@@ -359,6 +360,7 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 				BakePath,
 				bInReplaceAssets,
 				PackageParams,
+				Resolver,
 				OutPackagesToSave);
 
 			// Bake Material instance. 
@@ -422,13 +424,11 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 				BakeStats.NotifyPackageUpdated(1);
 
 				FHoudiniEngineUtils::SafeRenameActor(LayerOutput->Landscape, LayerOutput->BakedLandscapeName);
-
 				
-				FString WorldOutlinerFolder =
-					!LayerOutput->BakeOutlinerFolder.IsEmpty() ? LayerOutput->BakeOutlinerFolder : InFallbackWorldOutlinerFolder.ToString();
+				FName WorldOutlinerFolder =
+					FHoudiniEngineBakeUtils::GetOutlinerFolderPath(Resolver, InFallbackWorldOutlinerFolder);
 
-
-				if (!WorldOutlinerFolder.IsEmpty())
+				if (!WorldOutlinerFolder.ToString().IsEmpty())
 					LayerOutput->Landscape->SetFolderPath(FName(WorldOutlinerFolder));
 
 				FHoudiniEngineBakedActor BakeActor(

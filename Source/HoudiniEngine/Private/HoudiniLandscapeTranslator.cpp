@@ -142,6 +142,7 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 				Result->Landscape->SetLayerVisibility(EditLayerIndex, true);
 		}
 
+		OutputObj.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER, Part.BakeOutlinerFolder);
 	}
 
 
@@ -855,7 +856,6 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	Obj->BakedLandscapeName = Landscape.BakedName.ToString();
 	Obj->LayerInfoObjects = Landscape.CreatedLayerInfoObjects;
 	Obj->bCookedLayerRequiresBaking = OutputLandscape->bCanHaveLayersContent && (CookedLayerName != BakedLayerName);
-	Obj->BakeOutlinerFolder = Part.BakeOutlinerFolder;
 	Obj->BakeFolder = Part.BakeFolder;
 	Obj->MaterialInstance = Part.MaterialInstance;
 	Obj->bWriteLockedLayers = Part.bWriteLockedLayers;
