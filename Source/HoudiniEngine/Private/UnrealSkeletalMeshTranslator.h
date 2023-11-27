@@ -46,15 +46,31 @@ struct HOUDINIENGINE_API FUnrealSkeletalMeshTranslator
 			const bool& bInputNodesCanBeDeleted = true,
 			const bool& bExportMaterialParameters = false);
 
-		// Actually exports the skeletal mesh data (mesh, skeleton ... ) to the newly created input node - returns true on success
-		static bool SetSkeletalMeshDataOnNode(
+		// Actually exports the skeletal mesh data (mesh, skeleton ... ) using LOD's SourceModel to the newly created input node - returns true on success
+		static bool SetSkeletalMeshDataOnNodeFromSourceModel(
 			USkeletalMesh* SkeletalMesh,
 			USkeletalMeshComponent* SkeletalMeshComponent,
 			HAPI_NodeId& NewNodeId,
 			int32 LODIndex,
 			const bool& bAddLODGroup,
 			const bool bInExportMaterialParametersAsAttributes);
-		
+
+		static bool CreateSkeletalMeshBoneCaptureAttributes(
+			HAPI_NodeId InNodeId,
+			USkeletalMesh const* InSkeletalMesh,
+			const HAPI_PartInfo& PartInfo,
+			const TArray<int32>& BoneCaptureIndexArray,
+			const TArray<float>& BoneCaptureDataArray,
+			const TArray<int32>& SizesBoneCaptureIndexArray);
+
+		// Actually exports the skeletal mesh data (mesh, skeleton ... ) using the LOD's import data MeshDescription to the newly created input node - returns true on success
+		static bool SetSkeletalMeshDataOnNodeFromMeshDescription(
+			USkeletalMesh const* SkeletalMesh,
+			USkeletalMeshComponent const* SkeletalMeshComponent,
+			const HAPI_NodeId& NewNodeId,
+			int32 LODIndex,
+			bool bAddLODGroup,
+			bool bInExportMaterialParametersAsAttributes);
 
 		static bool CreateInputNodeForSkeletalMeshSockets(
 			USkeletalMesh* InSkeletalMesh,

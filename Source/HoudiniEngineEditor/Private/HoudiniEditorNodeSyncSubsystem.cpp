@@ -109,8 +109,16 @@ UHoudiniEditorNodeSyncSubsystem::SendSkeletalMeshToHoudini(
 
 	int32 LODIndex = 0;
 	HAPI_NodeId SKNodeId = InNodeId;
-	if (!FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNode(InSkelMesh, nullptr, SKNodeId, LODIndex, false, false))
+	static constexpr bool bUseMeshDescription = true;  // InSkelMesh->IsLODImportedDataBuildAvailable(LODIndex) && !InSkelMesh->IsLODImportedDataEmpty(LODIndex);
+	if (bUseMeshDescription)
+	{
+		if (!FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromMeshDescription(InSkelMesh, nullptr, SKNodeId, LODIndex, false, false))
+			return false;
+	}
+	else if (!FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(InSkelMesh, nullptr, SKNodeId, LODIndex, false, false))
+	{
 		return false;
+	}
 
 	// Set the display flag
 	FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), SKNodeId, 1);

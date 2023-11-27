@@ -50,6 +50,7 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "RawMesh.h"
+#include "SkeletalMeshAttributes.h"
 #include "StaticMeshAttributes.h"
 #include "StaticMeshResources.h"
 
@@ -2589,7 +2590,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 
 FString
-FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UMeshComponent* MeshComponent, UBodySetup* BodySetup)
+FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UMeshComponent const* const MeshComponent, UBodySetup const* const BodySetup)
 {
 	// If the ref counted input system is used, don't get the override from the component, this will be handled at the
 	// component level by the input system.
@@ -2612,24 +2613,252 @@ FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UMeshComponent* MeshCompone
 
 	return FString();
 }
+
 bool
 FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	const HAPI_NodeId& NodeId,
 	const FMeshDescription& MeshDescription,
-	const int32& InLODIndex,
-	const bool& bAddLODGroups,
-	bool bInExportMaterialParametersAsAttributes,
-	UStaticMesh* StaticMesh,
-	UStaticMeshComponent* StaticMeshComponent)
+	const int32 InLODIndex,
+	const bool bAddLODGroups,
+	const bool bInExportMaterialParametersAsAttributes,
+	UStaticMesh const* const StaticMesh,
+	UStaticMeshComponent const* const StaticMeshComponent)
+{
+	if (!IsValid(StaticMesh))
+		return false;
+
+	// ----------------------------------------------------------------------------------------------------------------
+	// Prepare the data we need for exporting the mesh via CreateAndPopulateMeshPartFromMeshDescription
+	// ----------------------------------------------------------------------------------------------------------------
+	
+	// Get the physical material path
+	FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh->GetBodySetup());
+	
+	// Grab the build scale
+	const FStaticMeshSourceModel &SourceModel = InLODIndex > 0 ? StaticMesh->GetSourceModel(InLODIndex) : StaticMesh->GetHiResSourceModel();
+	const FVector3f BuildScaleVector = (FVector3f)SourceModel.BuildSettings.BuildScale3D;
+
+	// Get the mesh attributes
+	FStaticMeshConstAttributes MeshConstAttributes(MeshDescription);
+	const int32 NumVertexInstances = MeshDescription.VertexInstances().Num();
+	
+	FStaticMeshRenderData const* const SMRenderData = StaticMesh->GetRenderData();
+
+	// Determine if have override colors on the static mesh component, if so prefer to use those
+	bool bUseComponentOverrideColors = false;
+	if (StaticMeshComponent &&
+		StaticMeshComponent->LODData.IsValidIndex(InLODIndex) &&
+		StaticMeshComponent->LODData[InLODIndex].OverrideVertexColors &&
+		SMRenderData &&
+		SMRenderData->LODResources.IsValidIndex(InLODIndex))
+	{
+		const FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[InLODIndex];
+		const FStaticMeshLODResources& RenderModel = SMRenderData->LODResources[InLODIndex];
+		const FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
+
+		if (RenderModel.WedgeMap.Num() > 0 && ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
+		{
+			// Use the wedge map if it is available as it is lossless.
+			if (RenderModel.WedgeMap.Num() == NumVertexInstances)
+			{
+				bUseComponentOverrideColors = true;
+			}
+		}
+	}
+
+	// Build a material interface array (by material index)
+	const TArray<FStaticMaterial>& StaticMaterials = StaticMesh->GetStaticMaterials();
+	TArray<UMaterialInterface*> Materials;
+	Materials.Reserve(StaticMaterials.Num());
+	for (const FStaticMaterial& StaticMaterial : StaticMaterials)
+	{
+		Materials.Add(StaticMaterial.MaterialInterface);
+	}
+
+	const int32 NumSections = StaticMesh->GetNumSections(InLODIndex);
+	const FMeshSectionInfoMap& SectionInfoMap = StaticMesh->GetSectionInfoMap();
+	TArray<uint16> SectionMaterialIndices;
+	SectionMaterialIndices.Reserve(NumSections);
+	for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+	{
+		SectionMaterialIndices.Add(SectionInfoMap.Get(InLODIndex, SectionIndex).MaterialIndex);
+	}
+
+	TOptional<float> LODScreenSize;
+#if ENGINE_MAJOR_VERSION < 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0)
+	const bool bIsLODScreenSizeAutoComputed = StaticMesh->bAutoComputeLODScreenSize;
+#else
+	const bool bIsLODScreenSizeAutoComputed = StaticMesh->IsLODScreenSizeAutoComputed();
+#endif
+	if (!bIsLODScreenSizeAutoComputed)
+		LODScreenSize = StaticMesh->GetSourceModel(InLODIndex).ScreenSize.Default;
+
+	// ----------------------------------------------------------------------------------------------------------------
+	// Export the mesh via CreateAndPopulateMeshPartFromMeshDescription
+	// ----------------------------------------------------------------------------------------------------------------
+
+	// If we are using override colors from the component, then don't export vertex colors in the
+	// CreateAndPopulateMeshPartFromMeshDescription function call and don't commit the geo: we'll add the override
+	// colors afterwards and then commit the geo.
+	const bool bExportVertexColors = !bUseComponentOverrideColors;
+	const bool bCommitGeo = !bUseComponentOverrideColors;
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::PartInfo_Init(&PartInfo);
+	if (!CreateAndPopulateMeshPartFromMeshDescription(
+			NodeId, MeshDescription, MeshConstAttributes, InLODIndex, bAddLODGroups, bInExportMaterialParametersAsAttributes,
+			StaticMesh, StaticMeshComponent, Materials, SectionMaterialIndices, BuildScaleVector, PhysicalMaterialPath,
+			bExportVertexColors, StaticMesh->GetLightMapResolution(), LODScreenSize, StaticMesh->NaniteSettings,
+			StaticMesh->GetAssetImportData(), bCommitGeo, PartInfo))
+	{
+		return false;
+	}
+
+	// ----------------------------------------------------------------------------------------------------------------
+	// Handle any StaticMesh(Component) specific data that is not handled by CreateAndPopulateMeshPartFromMeshDescription
+	// ----------------------------------------------------------------------------------------------------------------
+	
+	if (bUseComponentOverrideColors)
+	{
+		// RGBColors: 3 floats per vertex instance
+		TArray<float> RGBColors;
+		// Alphas: 1 float per vertex instance
+		TArray<float> Alphas;
+
+		const FPolygonArray& MDPolygons = MeshDescription.Polygons();
+		
+		RGBColors.SetNumUninitialized(NumVertexInstances * 3);
+		Alphas.SetNumUninitialized(NumVertexInstances);
+
+		int32 TriangleIdx = 0;
+		int32 VertexInstanceIdx = 0;
+		{
+			SCOPED_FUNCTION_LABELLED_TIMER("Fetching Vertex Data - SM Specific");
+			for (const FPolygonID &PolygonID : MDPolygons.GetElementIDs())
+			{
+				for (const FTriangleID& TriangleID : MeshDescription.GetPolygonTriangles(PolygonID))
+				{
+					for (int32 TriangleVertexIndex = 0; TriangleVertexIndex < 3; ++TriangleVertexIndex)
+					{
+						// Reverse the winding order for Houdini (but still start at 0)
+						const int32 WindingIdx = (3 - TriangleVertexIndex) % 3;
+						const FVertexInstanceID &VertexInstanceID = MeshDescription.GetTriangleVertexInstance(TriangleID, WindingIdx);
+
+						// Calculate the index of the first component of a vertex instance's value in an inline float array 
+						// representing vectors (3 float) per vertex instance
+						const int32 Float3Index = VertexInstanceIdx * 3;
+
+						//--------------------------------------------------------------------------------------------------------------------- 
+						// COLORS (Cd)
+						//---------------------------------------------------------------------------------------------------------------------
+						if (bUseComponentOverrideColors && SMRenderData)
+						{
+							FLinearColor Color = FLinearColor::White;
+							const FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[InLODIndex];
+							const FStaticMeshLODResources& RenderModel = SMRenderData->LODResources[InLODIndex];
+							const FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
+
+							const int32 Index = RenderModel.WedgeMap[VertexInstanceID];
+							if (Index != INDEX_NONE)
+								Color = ColorVertexBuffer.VertexColor(Index).ReinterpretAsLinear();
+
+							RGBColors[Float3Index + 0] = Color.R;
+							RGBColors[Float3Index + 1] = Color.G;
+							RGBColors[Float3Index + 2] = Color.B;
+							Alphas[VertexInstanceIdx] = Color.A;
+						}
+
+						VertexInstanceIdx++;
+					}
+
+					TriangleIdx++;
+				}
+			}
+		}
+
+		{
+			SCOPED_FUNCTION_LABELLED_TIMER("Transfering Data -- SM Specific");
+
+			//--------------------------------------------------------------------------------------------------------------------- 
+			// COLORS (Cd)
+			//---------------------------------------------------------------------------------------------------------------------
+			if (bUseComponentOverrideColors)
+			{
+				// Create attribute for colors.
+				HAPI_AttributeInfo AttributeInfoVertex;
+				FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+
+				AttributeInfoVertex.tupleSize = 3;
+				AttributeInfoVertex.count = RGBColors.Num() / AttributeInfoVertex.tupleSize;
+				AttributeInfoVertex.exists = true;
+				AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+				AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+				AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+					FHoudiniEngine::Get().GetSession(),
+					NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
+
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+					RGBColors, NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR, AttributeInfoVertex, true), false);
+
+				FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+				AttributeInfoVertex.tupleSize = 1;
+				AttributeInfoVertex.count = Alphas.Num();
+				AttributeInfoVertex.exists = true;
+				AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+				AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+				AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+					FHoudiniEngine::Get().GetSession(),
+					NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
+
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeFloatData(
+					Alphas, NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA, AttributeInfoVertex, true), false);
+			}
+		}
+	}
+
+	// ----------------------------------------------------------------------------------------------------------------
+	// Commit the geo
+	// ----------------------------------------------------------------------------------------------------------------
+	// Commit the geo.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+		FHoudiniEngine::Get().GetSession(), NodeId), false);
+
+	return true;
+}
+
+
+bool
+FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
+	const HAPI_NodeId& NodeId,
+	const FMeshDescription& MeshDescription,
+	const FStaticMeshConstAttributes& MeshDescriptionAttributes,
+	const int32 InLODIndex,
+	const bool bAddLODGroups,
+	const bool bInExportMaterialParametersAsAttributes,
+	UObject const* const Mesh,
+	UMeshComponent const* const MeshComponent,
+	const TArray<UMaterialInterface*>& MeshMaterials,
+	const TArray<uint16>& SectionMaterialIndices,
+	const FVector3f& BuildScaleVector,
+	const FString& PhysicalMaterialPath,
+	const bool bExportVertexColors,
+	const TOptional<int32> LightMapResolution,
+	const TOptional<float> LODScreenSize,
+	const TOptional<FMeshNaniteSettings> NaniteSettings,
+	UAssetImportData const* const ImportData,
+	const bool bCommitGeo,
+	HAPI_PartInfo& OutPartInfo)
 {
     SCOPED_FUNCTION_TIMER();
 
-	AActor* ParentActor = StaticMeshComponent ? StaticMeshComponent->GetOwner() : nullptr;
+	AActor* ParentActor = MeshComponent ? MeshComponent->GetOwner() : nullptr;
 
 	// Convert the Mesh using FMeshDescription
 	// Get references to the attributes we are interested in
 	// before sending to Houdini we'll check if each attribute is valid
-	FStaticMeshConstAttributes MeshDescriptionAttributes(MeshDescription);
 
 	TVertexAttributesConstRef<FVector3f> VertexPositions = MeshDescriptionAttributes.GetVertexPositions();
 	TVertexInstanceAttributesConstRef<FVector3f> VertexInstanceNormals = MeshDescriptionAttributes.GetVertexInstanceNormals();
@@ -2656,8 +2885,6 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		HOUDINI_LOG_ERROR(TEXT("Expected a triangulated mesh, but # VertexInstances (%d) != # Triangles * 3 (%d)"), MeshDescription.VertexInstances().Num(), NumTriangles * 3);
 		return false;
 	}
-
-	FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh->GetBodySetup());
 
 	// Determine which attributes we have
 	const bool bIsVertexPositionsValid = VertexPositions.IsValid();
@@ -2701,10 +2928,6 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		FHoudiniEngine::Get().GetSession(), NodeId, 0,
 		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
-	// Grab the build scale
-	const FStaticMeshSourceModel &SourceModel = InLODIndex > 0 ? StaticMesh->GetSourceModel(InLODIndex) : StaticMesh->GetHiResSourceModel();
-	FVector3f BuildScaleVector = (FVector3f)SourceModel.BuildSettings.BuildScale3D;
-
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// POSITION (P)
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -2739,30 +2962,6 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			StaticMeshVertices, NodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, AttributeInfoPoint), false);
 	}
 
-	bool bUseComponentOverrideColors = false;
-	FStaticMeshRenderData* SMRenderData = StaticMesh->GetRenderData();
-
-	// Determine if have override colors on the static mesh component, if so prefer to use those
-	if (StaticMeshComponent &&
-		StaticMeshComponent->LODData.IsValidIndex(InLODIndex) &&
-		StaticMeshComponent->LODData[InLODIndex].OverrideVertexColors &&
-		SMRenderData &&
-		SMRenderData->LODResources.IsValidIndex(InLODIndex))
-	{
-		FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[InLODIndex];
-		FStaticMeshLODResources& RenderModel = SMRenderData->LODResources[InLODIndex];
-		FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
-
-		if (RenderModel.WedgeMap.Num() > 0 && ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
-		{
-			// Use the wedge map if it is available as it is lossless.
-			if (RenderModel.WedgeMap.Num() == NumVertexInstances)
-			{
-				bUseComponentOverrideColors = true;
-			}
-		}
-	}
-
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// MATERIAL SLOT -> MATERIAL INTERFACE
 	//---------------------------------------------------------------------------------------------------------------------
@@ -2780,14 +2979,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	TArray<UMaterialInterface*> MaterialInterfaces;
 	TArray<int32> TriangleMaterialIndices;
 
-	const TArray<FStaticMaterial>& StaticMaterials = StaticMesh->GetStaticMaterials();
-
-	// If the static mesh component is valid, and we are not using the ref counted input system, get the materials via
+	// If the mesh component is valid, and we are not using the ref counted input system, get the materials via
 	// the component to account for overrides. For the ref counted input system the component will override the
 	// materials in its input node.
-	const bool bIsStaticMeshComponentValid = (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel());
+	const bool bIsMeshComponentValid = (IsValid(MeshComponent) && MeshComponent->IsValidLowLevel());
 	const bool bUsingRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
-	const int32 NumStaticMaterials = StaticMaterials.Num();
+	const int32 NumStaticMaterials = MeshMaterials.Num();
 	// If we find any invalid Material (null or pending kill), or we find a section below with an out of range MaterialIndex,
 	// then we will set UEDefaultMaterial at the invalid index
 	int32 UEDefaultMaterialIndex = INDEX_NONE;
@@ -2797,11 +2994,11 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		MaterialInterfaces.Reserve(NumStaticMaterials);
 		for (int32 MaterialIndex = 0; MaterialIndex < NumStaticMaterials; ++MaterialIndex)
 		{
-			const FStaticMaterial &MaterialInfo = StaticMaterials[MaterialIndex];
+			const FStaticMaterial &MaterialInfo = MeshMaterials[MaterialIndex];
 			UMaterialInterface *Material = nullptr;
-			if (bIsStaticMeshComponentValid && !bUsingRefCountedInputSystem)
+			if (bIsMeshComponentValid && !bUsingRefCountedInputSystem)
 			{
-				Material = StaticMeshComponent->GetMaterial(MaterialIndex);
+				Material = MeshComponent->GetMaterial(MaterialIndex);
 			}
 			else
 			{
@@ -2853,15 +3050,15 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		//}
 
 		// Get the material for the LOD and section via the section info map
-		if (StaticMesh->GetNumSections(InLODIndex) <= SectionIndex)
+		if (!SectionMaterialIndices.IsValidIndex(SectionIndex))
 		{
-			HOUDINI_LOG_ERROR(TEXT("Found more non-empty polygon groups in the mesh description for LOD %d than sections in the static mesh..."), InLODIndex);
+			HOUDINI_LOG_ERROR(TEXT("Found more non-empty polygon groups in the mesh description for LOD %d than sections in the mesh..."), InLODIndex);
 			return false;
 		}
 
 		// If the MaterialIndex referenced by this Section is out of range, fill MaterialInterfaces with UEDefaultMaterial
 		// up to and including MaterialIndex and log a warning
-		int32 MaterialIndex = StaticMesh->GetSectionInfoMap().Get(InLODIndex, SectionIndex).MaterialIndex;
+		int32 MaterialIndex = SectionMaterialIndices[SectionIndex];
 		if (!MaterialInterfaces.IsValidIndex(MaterialIndex))
 		{
 			if (!UEDefaultMaterial)
@@ -2927,7 +3124,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			Binormals.SetNumUninitialized(NumVertexInstances * 3);
 		}
 
-		if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
+		if (bExportVertexColors && bIsVertexInstanceColorsValid)
 		{
 			RGBColors.SetNumUninitialized(NumVertexInstances * 3);
 			Alphas.SetNumUninitialized(NumVertexInstances);
@@ -3018,28 +3215,13 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 					    //--------------------------------------------------------------------------------------------------------------------- 
 					    // COLORS (Cd)
 					    //---------------------------------------------------------------------------------------------------------------------
-					    if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
+					    if (bExportVertexColors && bIsVertexInstanceColorsValid)
 					    {
 						    FLinearColor Color = FLinearColor::White;
-						    if (bUseComponentOverrideColors && SMRenderData)
-						    {
-							    FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[InLODIndex];
-							    FStaticMeshLODResources& RenderModel = SMRenderData->LODResources[InLODIndex];
-							    FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
-
-							    int32 Index = RenderModel.WedgeMap[VertexInstanceID];
-							    if (Index != INDEX_NONE)
-							    {
-								    Color = ColorVertexBuffer.VertexColor(Index).ReinterpretAsLinear();
-							    }
-						    }
-						    else
-						    {
-								// Convert from SRGB to Linear. Unfortunately UE only provides this via the FColor()
-								// structure, so we loose precision as we have to convert to 8-bit and back to 32-bit.
-								FLinearColor SRGBColor = VertexInstanceColors.Get(VertexInstanceID);
-								Color = SRGBColor.ToFColor(true).ReinterpretAsLinear();
-						    }
+							// Convert from SRGB to Linear. Unfortunately UE only provides this via the FColor()
+							// structure, so we loose precision as we have to convert to 8-bit and back to 32-bit.
+							FLinearColor SRGBColor = VertexInstanceColors.Get(VertexInstanceID);
+							Color = SRGBColor.ToFColor(true).ReinterpretAsLinear();
 						    RGBColors[Float3Index + 0] = Color.R;
 						    RGBColors[Float3Index + 1] = Color.G;
 						    RGBColors[Float3Index + 2] = Color.B;
@@ -3182,7 +3364,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		    //--------------------------------------------------------------------------------------------------------------------- 
 		    // COLORS (Cd)
 		    //---------------------------------------------------------------------------------------------------------------------
-		    if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
+		    if (bExportVertexColors && bIsVertexInstanceColorsValid)
 		    {
 			    // Create attribute for colors.
 			    HAPI_AttributeInfo AttributeInfoVertex;
@@ -3272,7 +3454,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				    VectorMaterialParameters,
 				    TextureMaterialParameters,
 				    PhysicalMaterialPath,
-					StaticMesh->NaniteSettings);
+					NaniteSettings);
 
 			    if (!bAttributeSuccess)
 			    {
@@ -3319,9 +3501,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// LIGHTMAP RESOLUTION
 	//---------------------------------------------------------------------------------------------------------------------
+	if (LightMapResolution.IsSet())
 	{
-		int32 LightMapResolution = StaticMesh->GetLightMapResolution();
-
 		HAPI_AttributeInfo AttributeInfoLightMapResolution;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
 		AttributeInfoLightMapResolution.count = 1;
@@ -3336,7 +3517,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
-			LightMapResolution, NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
+			LightMapResolution.GetValue(), NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, AttributeInfoLightMapResolution), false);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -3344,7 +3525,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	//---------------------------------------------------------------------------------------------------------------------
 	{
 		// Create primitive attribute with mesh asset path
-		const FString MeshAssetPath = StaticMesh->GetPathName();
+		const FString MeshAssetPath = Mesh->GetPathName();
 
 		HAPI_AttributeInfo AttributeInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
@@ -3371,7 +3552,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 
 		// Create primitive attribute with mesh asset path
 		FString Filename;
-		if (UAssetImportData* ImportData = StaticMesh->AssetImportData)
+		if (IsValid(ImportData))
 		{
 			for (const auto& SourceFile : ImportData->SourceData.SourceFiles)
 			{
@@ -3443,7 +3624,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			NodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr,
 			GroupArray.GetData(), 0, Part.faceCount), false);
 
-		if (!StaticMesh->bAutoComputeLODScreenSize)
+		if (LODScreenSize.IsSet())
 		{
 			// Add the lodX_screensize attribute
 			FString LODAttributeName =
@@ -3463,22 +3644,22 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 				FHoudiniEngine::Get().GetSession(),
 				NodeId, 0, TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize), false);
 
-			float lodscreensize = (float)SourceModel.ScreenSize.Default;
+			const float LODScreenSizeValue = LODScreenSize.GetValue();
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
 				FHoudiniEngine::Get().GetSession(), NodeId, 0,
 				TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize,
-				&lodscreensize, 0, 1), false);
+				&LODScreenSizeValue, 0, 1), false);
 		}
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// COMPONENT AND ACTOR TAGS
 	//---------------------------------------------------------------------------------------------------------------------
-	if (IsValid(StaticMeshComponent))
+	if (IsValid(MeshComponent))
 	{
 		// Try to create groups for the static mesh component's tags
-		if (StaticMeshComponent->ComponentTags.Num() > 0
-			&& !FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, 0, StaticMeshComponent->ComponentTags))
+		if (MeshComponent->ComponentTags.Num() > 0
+			&& !FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, 0, MeshComponent->ComponentTags))
 			HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's tags!"));
 
 		if (IsValid(ParentActor))
@@ -3496,13 +3677,15 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		}
 	}
 
+	if (bCommitGeo)
+	{
+		// Commit the geo.
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+			FHoudiniEngine::Get().GetSession(), NodeId), false);
+	}
 
-
-
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), NodeId), false);
-
+	OutPartInfo = Part;
+	
 	return true;
 }
 

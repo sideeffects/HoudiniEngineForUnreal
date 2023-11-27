@@ -42,6 +42,7 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "SkeletalMeshAttributes.h"
 #include "Rendering/SkeletalMeshModel.h"
 
 
@@ -396,7 +397,18 @@ FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			}
 
 			// Set the skeletal mesh data for this lod on the input node
-			if (!FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNode(
+			static constexpr bool bUseMeshDescription = true;  // SkeletalMesh->IsLODImportedDataBuildAvailable(LODIndex) && !SkeletalMesh->IsLODImportedDataEmpty(LODIndex);
+			if (bUseMeshDescription)
+			{
+				// Use mesh description
+				if (!SetSkeletalMeshDataOnNodeFromMeshDescription(
+						SkeletalMesh, SkeletalMeshComponent, CurrentLODNodeId, LODIndex, DoExportLODs, bExportMaterialParameters))
+				{
+					HOUDINI_LOG_ERROR(TEXT("Failed to set the skeletal mesh data on the input node for %s LOD %d."), *InputNodeName, LODIndex);
+					continue;
+				}
+			}
+			else if (!FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 				SkeletalMesh, SkeletalMeshComponent, CurrentLODNodeId, LODIndex, DoExportLODs, bExportMaterialParameters))
 			{
 				HOUDINI_LOG_ERROR(TEXT("Failed to set the skeletal mesh data on the input node for %s LOD %d."), *InputNodeName, LODIndex);
@@ -639,7 +651,383 @@ FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 }
 
 bool
-FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNode(
+FUnrealSkeletalMeshTranslator::CreateSkeletalMeshBoneCaptureAttributes(
+	const HAPI_NodeId InNodeId,
+	USkeletalMesh const* const InSkeletalMesh,
+	const HAPI_PartInfo& PartInfo,
+	const TArray<int32>& BoneCaptureIndexArray,
+	const TArray<float>& BoneCaptureDataArray,
+	const TArray<int32>& SizesBoneCaptureIndexArray)
+{
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// Capt_Names
+	// Bone Names
+	//---------------------------------------------------------------------------------------------------------------------
+	const FReferenceSkeleton& RefSkeleton = InSkeletalMesh->GetRefSkeleton();
+
+	TArray<FTransform> ComponentSpaceTransforms;
+	GetComponentSpaceTransforms(ComponentSpaceTransforms, RefSkeleton);
+
+	TArray<FString> CaptNamesData;
+	TArray<int32> CaptParentsData;
+	TArray<float> XFormsData;
+
+	const int32 TotalBones = RefSkeleton.GetRawBoneNum();
+	TArray<float> CaptData;  //for pCaptData property
+	CaptData.SetNumZeroed(TotalBones * 20);
+	//CaptData.Init(0.0f, TotalBones * 20);
+
+	XFormsData.AddZeroed(16 * TotalBones);
+	CaptParentsData.AddUninitialized(TotalBones);
+	CaptNamesData.SetNum(TotalBones);
+
+	for (int32 BoneIndex = 0; BoneIndex < TotalBones; ++BoneIndex)
+	{
+		const FMeshBoneInfo& CurrentBone = RefSkeleton.GetRefBoneInfo()[BoneIndex];
+		const FTransform& LocalBoneTransform = RefSkeleton.GetRefBonePose()[BoneIndex];
+		FTransform& BoneTransform = ComponentSpaceTransforms[BoneIndex];
+
+		FTransform ScaleConversion = FTransform(FRotator(0.0, 0.0, 00), FVector(0.0, 0.0, 0.0), FVector(1, 1, -1));
+		FTransform FirstRotationConversion = FTransform(FRotator(0.0, 0, -90.0), FVector(0.0, 0.0, 0.0), FVector(1, 1, 1));
+		FTransform BoneTransformConverted = BoneTransform * ScaleConversion * FirstRotationConversion;
+
+		FTransform FinalTransform;
+		FinalTransform.SetTranslation(0.01f * BoneTransformConverted.GetTranslation());
+
+		FRotator StockRot = BoneTransformConverted.GetRotation().Rotator();
+		StockRot.Roll += 180;
+		FinalTransform.SetRotation(StockRot.Quaternion());
+
+		FMatrix M44 = FinalTransform.ToMatrixWithScale();
+		FMatrix M44Inverse = M44.Inverse();  //see pCaptData property
+
+		int32 row = 0;
+		int32 col = 0;
+		for (int32 i = 0; i < 16; i++)
+		{
+			XFormsData[16 * BoneIndex + i] = M44.M[row][col];
+			CaptData[20 * BoneIndex + i] = M44Inverse.M[row][col];
+			col++;
+			if (col > 3)
+			{
+				row++;
+				col = 0;
+			}
+		}
+		CaptData[20 * BoneIndex + 16] = 1.0f;//Top height
+		CaptData[20 * BoneIndex + 17] = 1.0f;//Bottom Height
+		CaptData[20 * BoneIndex + 18] = 1.0f;//Ratio of (top x radius of tube)/(bottom x radius of tube) adjusted for orientation
+		CaptData[20 * BoneIndex + 19] = 1.0f;//Ratio of (top z radius of tube)/(bottom z radius of tube) adjusted for orientation
+
+
+		CaptNamesData[BoneIndex] = CurrentBone.ExportName;
+		CaptParentsData[BoneIndex] = CurrentBone.ParentIndex;
+	}
+
+	HAPI_AttributeInfo CaptNamesInfo;
+	FHoudiniApi::AttributeInfo_Init(&CaptNamesInfo);
+	CaptNamesInfo.count = 1;
+	CaptNamesInfo.tupleSize = 1;
+	CaptNamesInfo.exists = true;
+	CaptNamesInfo.owner = HAPI_ATTROWNER_DETAIL;
+	CaptNamesInfo.storage = HAPI_STORAGETYPE_STRING_ARRAY;
+	CaptNamesInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
+	CaptNamesInfo.totalArrayElements = CaptNamesData.Num();
+	CaptNamesInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), InNodeId, 0,
+		"capt_names", &CaptNamesInfo), false);
+
+	TArray<int32> SizesFixedArray;
+	SizesFixedArray.Add(CaptNamesData.Num());
+	FHoudiniEngineUtils::HapiSetAttributeStringArrayData(CaptNamesData, InNodeId, 0, "capt_names", CaptNamesInfo, SizesFixedArray);
+
+	//boneCapture_pCaptPath-------------------------------------------------------------------
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), InNodeId, 0,
+		"boneCapture_pCaptPath", &CaptNamesInfo), false);
+
+	FHoudiniEngineUtils::HapiSetAttributeStringArrayData(CaptNamesData, InNodeId, 0, "boneCapture_pCaptPath", CaptNamesInfo, SizesFixedArray);
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// Capt_Parents
+	//---------------------------------------------------------------------------------------------------------------------
+	HAPI_AttributeInfo CaptParentsInfo;
+	FHoudiniApi::AttributeInfo_Init(&CaptParentsInfo);
+	CaptParentsInfo.count = 1;
+	CaptParentsInfo.tupleSize = 1;
+	CaptParentsInfo.exists = true;
+	CaptParentsInfo.owner = HAPI_ATTROWNER_DETAIL;
+	CaptParentsInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
+	CaptParentsInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
+	CaptParentsInfo.totalArrayElements = CaptParentsData.Num();
+	CaptParentsInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), InNodeId, 0,
+		"capt_parents", &CaptParentsInfo), false);
+
+	TArray<int32> SizesParentsArray;
+	SizesParentsArray.Add(CaptParentsData.Num());
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
+		FHoudiniEngine::Get().GetSession(), InNodeId,
+		0, "capt_parents", &CaptParentsInfo, CaptParentsData.GetData(),
+		CaptParentsData.Num(), SizesParentsArray.GetData(), 0, SizesParentsArray.Num()), false);
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// Capt_Xforms
+	//---------------------------------------------------------------------------------------------------------------------
+	HAPI_AttributeInfo CaptXFormsInfo;
+	FHoudiniApi::AttributeInfo_Init(&CaptXFormsInfo);
+	CaptXFormsInfo.count = 1;
+	CaptXFormsInfo.tupleSize = 16;
+	CaptXFormsInfo.exists = true;
+	CaptXFormsInfo.owner = HAPI_ATTROWNER_DETAIL;
+	CaptXFormsInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
+	CaptXFormsInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
+	CaptXFormsInfo.totalArrayElements = XFormsData.Num();
+	CaptXFormsInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), InNodeId, 0,
+		"capt_xforms", &CaptXFormsInfo), false);
+
+	TArray<int32> SizesXFormsArray;
+	SizesXFormsArray.Add(TotalBones);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
+		FHoudiniEngine::Get().GetSession(), InNodeId,
+		0, "capt_xforms", &CaptXFormsInfo, XFormsData.GetData(),
+		CaptXFormsInfo.totalArrayElements, SizesXFormsArray.GetData(), 0, CaptXFormsInfo.count), false);
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// boneCapture_pCaptData
+	//---------------------------------------------------------------------------------------------------------------------
+	HAPI_AttributeInfo CaptDataInfo;
+	FHoudiniApi::AttributeInfo_Init(&CaptDataInfo);
+	CaptDataInfo.count = 1;
+	CaptDataInfo.tupleSize = 20;  //The pCaptData property property contains exactly 20 floats
+	CaptDataInfo.exists = true;
+	CaptDataInfo.owner = HAPI_ATTROWNER_DETAIL;
+	CaptDataInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
+	CaptDataInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
+	CaptDataInfo.totalArrayElements = CaptData.Num(); //(bones * 20)
+	CaptDataInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), InNodeId, 0,
+		"boneCapture_pCaptData", &CaptDataInfo), false);
+
+	TArray<int32> SizesCaptDataArray;
+	SizesCaptDataArray.Add(TotalBones);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
+		FHoudiniEngine::Get().GetSession(), InNodeId,
+		0, "boneCapture_pCaptData", &CaptDataInfo, CaptData.GetData(),
+		CaptDataInfo.totalArrayElements, SizesCaptDataArray.GetData(), 0, CaptDataInfo.count), false);
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// boneCapture_data
+	//---------------------------------------------------------------------------------------------------------------------
+	HAPI_AttributeInfo BoneCaptureDataInfo;
+	FHoudiniApi::AttributeInfo_Init(&BoneCaptureDataInfo);
+	BoneCaptureDataInfo.count = PartInfo.pointCount;
+	BoneCaptureDataInfo.tupleSize = 1;
+	BoneCaptureDataInfo.exists = true;
+	BoneCaptureDataInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
+	BoneCaptureDataInfo.owner = HAPI_ATTROWNER_POINT;
+	BoneCaptureDataInfo.originalOwner = HAPI_ATTROWNER_POINT;
+	BoneCaptureDataInfo.totalArrayElements = BoneCaptureDataArray.Num();// Part.pointCount* InfluenceCount;
+	BoneCaptureDataInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), InNodeId, 0,
+		"boneCapture_data", &BoneCaptureDataInfo), false);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
+		FHoudiniEngine::Get().GetSession(), InNodeId,
+		0, "boneCapture_data", &BoneCaptureDataInfo, BoneCaptureDataArray.GetData(),
+		BoneCaptureDataInfo.totalArrayElements, SizesBoneCaptureIndexArray.GetData(), 0, SizesBoneCaptureIndexArray.Num()), false);
+
+	//--------------------------------------------------------------------------------------------------------------------- 
+	// bonecapture_index
+	//---------------------------------------------------------------------------------------------------------------------
+	HAPI_AttributeInfo BoneCaptureIndexInfo;
+	FHoudiniApi::AttributeInfo_Init(&BoneCaptureIndexInfo);
+	BoneCaptureIndexInfo.count = PartInfo.pointCount;
+	BoneCaptureIndexInfo.tupleSize = 1;
+	BoneCaptureIndexInfo.exists = true;
+	BoneCaptureIndexInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
+	BoneCaptureIndexInfo.owner = HAPI_ATTROWNER_POINT;
+	BoneCaptureIndexInfo.originalOwner = HAPI_ATTROWNER_POINT;
+	BoneCaptureIndexInfo.totalArrayElements = BoneCaptureIndexArray.Num();// Part.pointCount* InfluenceCount;
+	BoneCaptureIndexInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(), InNodeId, 0,
+		"boneCapture_index", &BoneCaptureIndexInfo), false);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
+		FHoudiniEngine::Get().GetSession(), InNodeId,
+		0, "boneCapture_index", &BoneCaptureDataInfo, BoneCaptureIndexArray.GetData(),
+		BoneCaptureIndexInfo.totalArrayElements, SizesBoneCaptureIndexArray.GetData(), 0, SizesBoneCaptureIndexArray.Num()), false);
+
+	return true;
+}
+
+
+bool
+FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromMeshDescription(
+	USkeletalMesh const* const SkeletalMesh,
+	USkeletalMeshComponent const* const SkeletalMeshComponent,
+	const HAPI_NodeId& NewNodeId,
+	const int32 LODIndex,
+	const bool bAddLODGroup,
+	const bool bInExportMaterialParametersAsAttributes)
+{
+	if (!IsValid(SkeletalMesh))
+		return false;
+
+	// ----------------------------------------------------------------------------------------------------------------
+	// Get the mesh description and prepare data for CreateAndPopulateMeshPartFromMeshDescription
+	// ----------------------------------------------------------------------------------------------------------------
+
+	// Get the mesh description for the LOD
+	FMeshDescription MeshDescription;
+#if ENGINE_MAJOR_VERSION < 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 3)
+	// Check first if we have bulk data available and non-empty.
+	if (SkeletalMesh->IsLODImportedDataBuildAvailable(LODIndex) && !SkeletalMesh->IsLODImportedDataEmpty(LODIndex))
+	{
+		FSkeletalMeshImportData SkeletalMeshImportData;
+		SkeletalMesh->LoadLODImportedData(LODIndex, SkeletalMeshImportData);
+		SkeletalMeshImportData.GetMeshDescription(MeshDescription);
+	}
+	else
+	{
+		// Fall back on the LOD model directly if no bulk data exists. When we commit
+		// the mesh description, we override using the bulk data. This can happen for older
+		// skeletal meshes, from UE 4.24 and earlier.
+		const FSkeletalMeshModel* SkeletalMeshModel = SkeletalMesh->GetImportedModel();
+		if (SkeletalMeshModel && SkeletalMeshModel->LODModels.IsValidIndex(LODIndex))
+		{
+			SkeletalMeshModel->LODModels[LODIndex].GetMeshDescription(MeshDescription, SkeletalMesh);
+		}
+	}
+#else
+	SkeletalMesh->GetMeshDescription(LODIndex, MeshDescription);
+#endif
+
+	const FSkeletalMeshConstAttributes MeshConstAttributes(MeshDescription);
+
+	// We don't have LightMapResolution or NaniteSettings for SKMesh
+	const TOptional<int32> LightMapResolution;
+	const TOptional<FMeshNaniteSettings> NaniteSettings;
+
+	// Get the LOD screen size
+	FSkeletalMeshLODInfo const* const LODInfo = SkeletalMesh->GetLODInfo(LODIndex);
+	TOptional<float> LODScreenSize;
+	if (LODInfo)
+		LODScreenSize = LODInfo->ScreenSize.Default;
+
+	// Default build scale
+	const FVector3f BuildScaleVector = FVector3f::OneVector;
+
+	// Get the physical material path override if configured
+	const FString PhysicalMaterialPath = FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(
+		SkeletalMeshComponent, SkeletalMesh->GetBodySetup());
+
+	// Build an array of MaterialInterfaces for the skeletal mesh's materials
+	const TArray<FSkeletalMaterial> SkeletalMaterials = SkeletalMesh->GetMaterials();
+	TArray<UMaterialInterface*> Materials;
+	Materials.Reserve(SkeletalMaterials.Num());
+	for (const FSkeletalMaterial& SkeletalMaterial : SkeletalMaterials)
+	{
+		Materials.Add(SkeletalMaterial.MaterialInterface);
+	}
+
+	// Build an array of section index to material index
+	const FSkeletalMeshLODModel& LodModel = SkeletalMesh->GetImportedModel()->LODModels[LODIndex];
+	const int32 NumSections = LodModel.Sections.Num();
+	TArray<uint16> SectionMaterialIndices;
+	SectionMaterialIndices.Reserve(NumSections);
+	for (const FSkelMeshSection& Section : LodModel.Sections)
+	{
+		SectionMaterialIndices.Add(Section.MaterialIndex);
+	}
+
+	static constexpr bool bUseComponentOverrideColors = false;
+
+	// ----------------------------------------------------------------------------------------------------------------
+	// Export the mesh via CreateAndPopulateMeshPartFromMeshDescription
+	// ----------------------------------------------------------------------------------------------------------------
+
+	// Do not commit the geo, we need to add some attributes after CreateAndPopulateMeshPartFromMeshDescription
+	const bool bExportVertexColors = !bUseComponentOverrideColors;
+	static constexpr bool bCommitGeo = false;
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::PartInfo_Init(&PartInfo);
+	if (!FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
+			NewNodeId, MeshDescription, MeshConstAttributes, LODIndex, bAddLODGroup, bInExportMaterialParametersAsAttributes,
+			SkeletalMesh, SkeletalMeshComponent, Materials, SectionMaterialIndices, BuildScaleVector, PhysicalMaterialPath,
+			bExportVertexColors, LightMapResolution, LODScreenSize, NaniteSettings,
+			SkeletalMesh->GetAssetImportData(), bCommitGeo, PartInfo))
+	{
+		return false;
+	}
+
+	// Get the bone capture / weight data
+	const FVertexArray& Vertices = MeshDescription.Vertices();
+	const int32 NumVertices = Vertices.Num();
+
+	const FSkinWeightsVertexAttributesConstRef VertexSkinWeights = MeshConstAttributes.GetVertexSkinWeights();
+	
+	TArray<int32> BoneCaptureIndexArray;
+	BoneCaptureIndexArray.Reserve(NumVertices * MAX_TOTAL_INFLUENCES);
+	TArray<float> BoneCaptureDataArray;
+	BoneCaptureDataArray.Reserve(NumVertices * MAX_TOTAL_INFLUENCES);
+	TArray<int32> SizesBoneCaptureIndexArray;
+	SizesBoneCaptureIndexArray.Reserve(NumVertices);
+
+	for (const FVertexID& VertexID : Vertices.GetElementIDs())
+	{
+		FVertexBoneWeightsConst VertexBoneWeights = VertexSkinWeights.Get(VertexID);
+		uint32 WeightCount = 0;
+		for (const UE::AnimationCore::FBoneWeight& BoneWeight : VertexBoneWeights)
+		{
+			// Get normalized weight
+			const float Weight = BoneWeight.GetWeight();
+			if (Weight > 0.0f)
+			{
+				BoneCaptureDataArray.Add(Weight);
+				const FBoneIndexType BoneIndex = BoneWeight.GetBoneIndex();
+				BoneCaptureIndexArray.Add(BoneIndex);
+				WeightCount++;
+			}
+		}
+		SizesBoneCaptureIndexArray.Add(WeightCount);
+	}
+
+	BoneCaptureIndexArray.Shrink();
+	BoneCaptureDataArray.Shrink();
+	SizesBoneCaptureIndexArray.Shrink();
+
+	if (!CreateSkeletalMeshBoneCaptureAttributes(
+			NewNodeId, SkeletalMesh, PartInfo, BoneCaptureIndexArray, BoneCaptureDataArray, SizesBoneCaptureIndexArray))
+	{
+		return false;
+	}
+	
+	// Commit the geo.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+		FHoudiniEngine::Get().GetSession(), NewNodeId), false);
+
+	return true;
+}
+
+
+bool
+FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 	USkeletalMesh* SkeletalMesh,
 	USkeletalMeshComponent* SkeletalMeshComponent,
 	HAPI_NodeId& NewNodeId,
@@ -1006,220 +1394,11 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNode(
 	if (!bAttributeSuccess)
 		return false;
 
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// Capt_Names
-	// Bone Names
-	//---------------------------------------------------------------------------------------------------------------------
-	const FReferenceSkeleton& RefSkeleton = SkeletalMesh->GetRefSkeleton();
-
-	TArray<FTransform> ComponentSpaceTransforms;
-	GetComponentSpaceTransforms(ComponentSpaceTransforms, RefSkeleton);
-
-	TArray<FString> CaptNamesData;
-	TArray<int32> CaptParentsData;
-	TArray<float> XFormsData;
-
-	int32 TotalBones = RefSkeleton.GetRawBoneNum();
-	TArray<float> CaptData;  //for pCaptData property
-	CaptData.SetNumZeroed(TotalBones * 20);
-	//CaptData.Init(0.0f, TotalBones * 20);
-
-	XFormsData.AddZeroed(16 * RefSkeleton.GetRawBoneNum());
-	CaptParentsData.AddUninitialized(RefSkeleton.GetRawBoneNum());
-	CaptNamesData.SetNum(RefSkeleton.GetRawBoneNum());
-
-	for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
+	if (!CreateSkeletalMeshBoneCaptureAttributes(
+			NewNodeId, SkeletalMesh, Part, BoneCaptureIndexArray, BoneCaptureDataArray, SizesBoneCaptureIndexArray))
 	{
-		const FMeshBoneInfo& CurrentBone = RefSkeleton.GetRefBoneInfo()[BoneIndex];
-		const FTransform& LocalBoneTransform = RefSkeleton.GetRefBonePose()[BoneIndex];
-		FTransform& BoneTransform = ComponentSpaceTransforms[BoneIndex];
-
-		FTransform ScaleConversion = FTransform(FRotator(0.0, 0.0, 00), FVector(0.0, 0.0, 0.0), FVector(1, 1, -1));
-		FTransform FirstRotationConversion = FTransform(FRotator(0.0, 0, -90.0), FVector(0.0, 0.0, 0.0), FVector(1, 1, 1));
-		FTransform BoneTransformConverted = BoneTransform * ScaleConversion * FirstRotationConversion;
-
-		FTransform FinalTransform;
-		FinalTransform.SetTranslation(0.01f * BoneTransformConverted.GetTranslation());
-
-		FRotator StockRot = BoneTransformConverted.GetRotation().Rotator();
-		StockRot.Roll += 180;
-		FinalTransform.SetRotation(StockRot.Quaternion());
-
-		FMatrix M44 = FinalTransform.ToMatrixWithScale();
-		FMatrix M44Inverse = M44.Inverse();  //see pCaptData property
-
-		int32 row = 0;
-		int32 col = 0;
-		for (int32 i = 0; i < 16; i++)
-		{
-			XFormsData[16 * BoneIndex + i] = M44.M[row][col];
-			CaptData[20 * BoneIndex + i] = M44Inverse.M[row][col];
-			col++;
-			if (col > 3)
-			{
-				row++;
-				col = 0;
-			}
-		}
-		CaptData[20 * BoneIndex + 16] = 1.0f;//Top height
-		CaptData[20 * BoneIndex + 17] = 1.0f;//Bottom Height
-		CaptData[20 * BoneIndex + 18] = 1.0f;//Ratio of (top x radius of tube)/(bottom x radius of tube) adjusted for orientation
-		CaptData[20 * BoneIndex + 19] = 1.0f;//Ratio of (top z radius of tube)/(bottom z radius of tube) adjusted for orientation
-
-
-		CaptNamesData[BoneIndex] = CurrentBone.ExportName;
-		CaptParentsData[BoneIndex] = CurrentBone.ParentIndex;
+		return false;
 	}
-
-	HAPI_AttributeInfo CaptNamesInfo;
-	FHoudiniApi::AttributeInfo_Init(&CaptNamesInfo);
-	CaptNamesInfo.count = 1;
-	CaptNamesInfo.tupleSize = 1;
-	CaptNamesInfo.exists = true;
-	CaptNamesInfo.owner = HAPI_ATTROWNER_DETAIL;
-	CaptNamesInfo.storage = HAPI_STORAGETYPE_STRING_ARRAY;
-	CaptNamesInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
-	CaptNamesInfo.totalArrayElements = CaptNamesData.Num();
-	CaptNamesInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-		"capt_names", &CaptNamesInfo), false);
-
-	TArray<int32> SizesFixedArray;
-	SizesFixedArray.Add(CaptNamesData.Num());
-	FHoudiniEngineUtils::HapiSetAttributeStringArrayData(CaptNamesData, NewNodeId, 0, "capt_names", CaptNamesInfo, SizesFixedArray);
-
-	//boneCapture_pCaptPath-------------------------------------------------------------------
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-		"boneCapture_pCaptPath", &CaptNamesInfo), false);
-
-	FHoudiniEngineUtils::HapiSetAttributeStringArrayData(CaptNamesData, NewNodeId, 0, "boneCapture_pCaptPath", CaptNamesInfo, SizesFixedArray);
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// Capt_Parents
-	//---------------------------------------------------------------------------------------------------------------------
-	HAPI_AttributeInfo CaptParentsInfo;
-	FHoudiniApi::AttributeInfo_Init(&CaptParentsInfo);
-	CaptParentsInfo.count = 1;
-	CaptParentsInfo.tupleSize = 1;
-	CaptParentsInfo.exists = true;
-	CaptParentsInfo.owner = HAPI_ATTROWNER_DETAIL;
-	CaptParentsInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
-	CaptParentsInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
-	CaptParentsInfo.totalArrayElements = CaptParentsData.Num();
-	CaptParentsInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-		"capt_parents", &CaptParentsInfo), false);
-
-	TArray<int32> SizesParentsArray;
-	SizesParentsArray.Add(CaptParentsData.Num());
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
-		FHoudiniEngine::Get().GetSession(), NewNodeId,
-		0, "capt_parents", &CaptParentsInfo, CaptParentsData.GetData(),
-		CaptParentsData.Num(), SizesParentsArray.GetData(), 0, SizesParentsArray.Num()), false);
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// Capt_Xforms
-	//---------------------------------------------------------------------------------------------------------------------
-	HAPI_AttributeInfo CaptXFormsInfo;
-	FHoudiniApi::AttributeInfo_Init(&CaptXFormsInfo);
-	CaptXFormsInfo.count = 1;
-	CaptXFormsInfo.tupleSize = 16;
-	CaptXFormsInfo.exists = true;
-	CaptXFormsInfo.owner = HAPI_ATTROWNER_DETAIL;
-	CaptXFormsInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
-	CaptXFormsInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
-	CaptXFormsInfo.totalArrayElements = XFormsData.Num();
-	CaptXFormsInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-		"capt_xforms", &CaptXFormsInfo), false);
-
-	TArray<int32> SizesXFormsArray;
-	SizesXFormsArray.Add(TotalBones);
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
-		FHoudiniEngine::Get().GetSession(), NewNodeId,
-		0, "capt_xforms", &CaptXFormsInfo, XFormsData.GetData(),
-		CaptXFormsInfo.totalArrayElements, SizesXFormsArray.GetData(), 0, CaptXFormsInfo.count), false);
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// boneCapture_pCaptData
-	//---------------------------------------------------------------------------------------------------------------------
-	HAPI_AttributeInfo CaptDataInfo;
-	FHoudiniApi::AttributeInfo_Init(&CaptDataInfo);
-	CaptDataInfo.count = 1;
-	CaptDataInfo.tupleSize = 20;  //The pCaptData property property contains exactly 20 floats
-	CaptDataInfo.exists = true;
-	CaptDataInfo.owner = HAPI_ATTROWNER_DETAIL;
-	CaptDataInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
-	CaptDataInfo.originalOwner = HAPI_ATTROWNER_DETAIL;
-	CaptDataInfo.totalArrayElements = CaptData.Num(); //(bones * 20)
-	CaptDataInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-		"boneCapture_pCaptData", &CaptDataInfo), false);
-
-	TArray<int32> SizesCaptDataArray;
-	SizesCaptDataArray.Add(TotalBones);
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
-		FHoudiniEngine::Get().GetSession(), NewNodeId,
-		0, "boneCapture_pCaptData", &CaptDataInfo, CaptData.GetData(),
-		CaptDataInfo.totalArrayElements, SizesCaptDataArray.GetData(), 0, CaptDataInfo.count), false);
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// boneCapture_data
-	//---------------------------------------------------------------------------------------------------------------------
-	HAPI_AttributeInfo BoneCaptureDataInfo;
-	FHoudiniApi::AttributeInfo_Init(&BoneCaptureDataInfo);
-	BoneCaptureDataInfo.count = Part.pointCount;
-	BoneCaptureDataInfo.tupleSize = 1;
-	BoneCaptureDataInfo.exists = true;
-	BoneCaptureDataInfo.owner = HAPI_ATTROWNER_POINT;
-	BoneCaptureDataInfo.storage = HAPI_STORAGETYPE_FLOAT_ARRAY;
-	BoneCaptureDataInfo.originalOwner = HAPI_ATTROWNER_POINT;
-	BoneCaptureDataInfo.totalArrayElements = BoneCaptureDataArray.Num();// Part.pointCount* InfluenceCount;
-	BoneCaptureDataInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-		"boneCapture_data", &BoneCaptureDataInfo), false);
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
-		FHoudiniEngine::Get().GetSession(), NewNodeId,
-		0, "boneCapture_data", &BoneCaptureDataInfo, BoneCaptureDataArray.GetData(),
-		BoneCaptureDataInfo.totalArrayElements, SizesBoneCaptureIndexArray.GetData(), 0, SizesBoneCaptureIndexArray.Num()), false);
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// bonecapture_index
-	//---------------------------------------------------------------------------------------------------------------------
-	HAPI_AttributeInfo BoneCaptureIndexInfo;
-	FHoudiniApi::AttributeInfo_Init(&BoneCaptureIndexInfo);
-	BoneCaptureIndexInfo.count = Part.pointCount;
-	BoneCaptureIndexInfo.tupleSize = 1;
-	BoneCaptureIndexInfo.exists = true;
-	BoneCaptureIndexInfo.owner = HAPI_ATTROWNER_POINT;
-	BoneCaptureIndexInfo.storage = HAPI_STORAGETYPE_INT_ARRAY;
-	BoneCaptureIndexInfo.originalOwner = HAPI_ATTROWNER_POINT;
-	BoneCaptureIndexInfo.totalArrayElements = BoneCaptureIndexArray.Num();// Part.pointCount* InfluenceCount;
-	BoneCaptureIndexInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_NONE;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-		"boneCapture_index", &BoneCaptureIndexInfo), false);
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
-		FHoudiniEngine::Get().GetSession(), NewNodeId,
-		0, "boneCapture_index", &BoneCaptureDataInfo, BoneCaptureIndexArray.GetData(),
-		BoneCaptureIndexInfo.totalArrayElements, SizesBoneCaptureIndexArray.GetData(), 0, SizesBoneCaptureIndexArray.Num()), false);
-
 
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// LOD GROUP AND SCREENSIZE

@@ -44,6 +44,7 @@ class UStaticMeshSocket;
 class UMaterialInterface;
 class FUnrealObjectInputHandle;
 class FHoudiniEngineIndexedStringMap;
+class FStaticMeshConstAttributes;
 struct FStaticMeshSourceModel;
 struct FStaticMeshLODResources;
 struct FMeshDescription;
@@ -79,15 +80,37 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			UStaticMesh* StaticMesh,
 			UStaticMeshComponent* StaticMeshComponent);
 
+		// Helper for converting mesh assets using FMeshDescription
+		static bool CreateAndPopulateMeshPartFromMeshDescription(
+			const HAPI_NodeId& NodeId,
+			const FMeshDescription& MeshDescription,
+			const FStaticMeshConstAttributes& MeshDescriptionAttributes,
+			int32 InLODIndex,
+			bool bAddLODGroups,
+			bool bInExportMaterialParametersAsAttributes,
+			UObject const* Mesh,
+			UMeshComponent const* MeshComponent,
+			const TArray<UMaterialInterface*>& MeshMaterials,
+			const TArray<uint16>& SectionMaterialIndices,
+			const FVector3f& BuildScaleVector,
+			const FString& PhysicalMaterialPath,
+			bool bExportVertexColors,
+			TOptional<int32> LightMapResolution,
+			TOptional<float> LODScreenSize,
+			TOptional<FMeshNaniteSettings> NaniteSettings,
+			UAssetImportData const* ImportData,
+			bool bCommitGeo,
+			HAPI_PartInfo& OutPartInfo);
+
 		// Convert the Mesh using FMeshDescription
 		static bool CreateInputNodeForMeshDescription(
 			const HAPI_NodeId& NodeId,
 			const FMeshDescription& MeshDescription,
-			const int32& LODIndex,
-			const bool&	DoExportLODs,
+			int32 InLODIndex,
+			bool bAddLODGroups,
 			bool bInExportMaterialParametersAsAttributes,
-			UStaticMesh* StaticMesh,
-			UStaticMeshComponent* StaticMeshComponent);
+			UStaticMesh const* StaticMesh,
+			UStaticMeshComponent const* StaticMeshComponent);
 
 		// Convert the Mesh using FRawMesh
 		static bool CreateInputNodeForRawMesh(
@@ -177,5 +200,5 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 
 		// Gets the simple physical Material path for the mesh component overrides or,
 		// if not set, from the body setup
-		static FString GetSimplePhysicalMaterialPath(UMeshComponent* MeshComponent, UBodySetup* BodySetup);
+		static FString GetSimplePhysicalMaterialPath(UMeshComponent const* MeshComponent, UBodySetup const* BodySetup);
 };
