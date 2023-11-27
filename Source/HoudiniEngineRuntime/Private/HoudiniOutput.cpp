@@ -43,6 +43,7 @@
 #include "LandscapeSplineActor.h"
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
+#include "Animation/Skeleton.h"
 #include "Templates/Tuple.h"
 
 
@@ -426,6 +427,7 @@ FHoudiniBakedOutputObject::FHoudiniBakedOutputObject()
 	, ActorBakeName(NAME_None)
 	, BakedObject()
 	, BakedComponent()
+	, BakedSkeleton()
 {
 }
 
@@ -435,6 +437,7 @@ FHoudiniBakedOutputObject::FHoudiniBakedOutputObject(AActor* InActor, FName InAc
 	, ActorBakeName(InActorBakeName)
 	, BakedObject(FSoftObjectPath(InBakeObject).ToString())
 	, BakedComponent(FSoftObjectPath(InBakedComponent).ToString())
+	, BakedSkeleton()
 {
 }
 
@@ -533,6 +536,23 @@ FHoudiniBakedOutputObject::GetLandscapeLayerInfoIfValid(const FName& InLayerName
 	return Cast<ULandscapeLayerInfoObject>(Object);
 }
 
+USkeleton*
+FHoudiniBakedOutputObject::GetBakedSkeletonIfValid(bool bInTryLoad) const
+{
+	const FSoftObjectPath SkeletonPath(BakedSkeleton);
+
+	if (!SkeletonPath.IsValid())
+		return nullptr;
+	
+	UObject* Object = SkeletonPath.ResolveObject();
+	if (!Object && bInTryLoad)
+		Object = SkeletonPath.TryLoad();
+
+	if (!IsValid(Object))
+		return nullptr;
+
+	return Cast<USkeleton>(Object);
+}
 
 UHoudiniOutput::UHoudiniOutput(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)

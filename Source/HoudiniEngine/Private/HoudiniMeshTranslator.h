@@ -194,7 +194,8 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		    const int32& GeoId, const int32& PartId, const int32& PrimIndex, UStaticMesh* StaticMesh);
 
 		// Copy supported (non-generic) attributes from the split by point/prim index.
-		void CopyAttributesFromHGPOForSplit(
+		static void CopyAttributesFromHGPOForSplit(
+			const FHoudiniGeoPartObject& InHGPO,
 			const int32 InPointIndex,
 			const int32 InPrimIndex,
 			TMap<FString, FString>& OutAttributes,

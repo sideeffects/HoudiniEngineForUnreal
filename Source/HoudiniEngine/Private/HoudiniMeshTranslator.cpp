@@ -2694,13 +2694,16 @@ FHoudiniMeshTranslator::UpdatePartLODScreensizeIfNeeded()
 USkeleton*
 FHoudiniMeshTranslator::CreateNewSkeleton(const FString& InSplitIdentifier)
 {
-	FHoudiniPackageParams SkeltonPackageParams;
-	SkeltonPackageParams.GeoId = HGPO.GeoId;
-	SkeltonPackageParams.PartId = HGPO.PartId;
-	SkeltonPackageParams.ComponentGUID = PackageParams.ComponentGUID;
-	SkeltonPackageParams.HoudiniAssetName = PackageParams.HoudiniAssetName;
+	FHoudiniPackageParams SkeltonPackageParams = PackageParams;
+	// SkeltonPackageParams.GeoId = HGPO.GeoId;
+	// SkeltonPackageParams.PartId = HGPO.PartId;
+	// SkeltonPackageParams.ComponentGUID = PackageParams.ComponentGUID;
+	// SkeltonPackageParams.HoudiniAssetName = PackageParams.HoudiniAssetName;
 	SkeltonPackageParams.SplitStr = InSplitIdentifier;
-	SkeltonPackageParams.ObjectName = FString::Printf(TEXT("%s_%d_%d_%d_%sSkeleton"), *PackageParams.HoudiniAssetName, PackageParams.ObjectId, PackageParams.GeoId, PackageParams.PartId, *PackageParams.SplitStr);
+	if (SkeltonPackageParams.ObjectName.IsEmpty())
+		SkeltonPackageParams.ObjectName = FString::Printf(TEXT("%s_%d_%d_%d_%sSkeleton"), *PackageParams.HoudiniAssetName, PackageParams.ObjectId, PackageParams.GeoId, PackageParams.PartId, *PackageParams.SplitStr);
+	else
+		SkeltonPackageParams.ObjectName += TEXT("Skeleton");
 
 	USkeleton* NewSkeleton = SkeltonPackageParams.CreateObjectAndPackage<USkeleton>();
 	if (!IsValid(NewSkeleton))
@@ -2841,12 +2844,12 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 }
 
 void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
-	const int32 InPointIndex, const int32 InPrimIndex, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens)
+	const FHoudiniGeoPartObject& InHGPO, const int32 InPointIndex, const int32 InPrimIndex, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens)
 {
 	// Get all the supported attributes from the HGPO
 	{
 		FString TempFolder;
-		if (FHoudiniEngineUtils::GetTempFolderAttribute(HGPO.GeoId, TempFolder, HGPO.PartId, InPrimIndex))
+		if (FHoudiniEngineUtils::GetTempFolderAttribute(InHGPO.GeoId, TempFolder, InHGPO.PartId, InPrimIndex))
 		{
 			if (!TempFolder.IsEmpty())
 			{
@@ -2858,7 +2861,7 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 
 	{
 		FString LevelPath;
-		if (FHoudiniEngineUtils::GetLevelPathAttribute(HGPO.GeoId, HGPO.PartId, LevelPath, InPointIndex, InPrimIndex))
+		if (FHoudiniEngineUtils::GetLevelPathAttribute(InHGPO.GeoId, InHGPO.PartId, LevelPath, InPointIndex, InPrimIndex))
 		{
 			if (!LevelPath.IsEmpty())
 			{
@@ -2870,7 +2873,7 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 
 	{
 		FString OutputName;
-		if (FHoudiniEngineUtils::GetOutputNameAttribute(HGPO.GeoId, HGPO.PartId, OutputName, InPointIndex, InPrimIndex))
+		if (FHoudiniEngineUtils::GetOutputNameAttribute(InHGPO.GeoId, InHGPO.PartId, OutputName, InPointIndex, InPrimIndex))
 		{
 			if (!OutputName.IsEmpty())
 			{
@@ -2882,7 +2885,7 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 
 	{
 		FString BakeName;
-		if (FHoudiniEngineUtils::GetBakeNameAttribute(HGPO.GeoId, HGPO.PartId, BakeName, InPointIndex, InPrimIndex))
+		if (FHoudiniEngineUtils::GetBakeNameAttribute(InHGPO.GeoId, InHGPO.PartId, BakeName, InPointIndex, InPrimIndex))
 		{
 			if (!BakeName.IsEmpty())
 			{
@@ -2894,7 +2897,7 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 
 	{
 		int32 TileValue;
-		if (FHoudiniEngineUtils::GetTileAttribute(HGPO.GeoId, HGPO.PartId, TileValue, InPointIndex, InPrimIndex))
+		if (FHoudiniEngineUtils::GetTileAttribute(InHGPO.GeoId, InHGPO.PartId, TileValue, InPointIndex, InPrimIndex))
 		{
 			if (TileValue >= 0)
 			{
@@ -2906,7 +2909,7 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 
 	{
 		FString BakeOutputActorName;
-		if (FHoudiniEngineUtils::GetBakeActorAttribute(HGPO.GeoId, HGPO.PartId, BakeOutputActorName, InPointIndex, InPrimIndex))
+		if (FHoudiniEngineUtils::GetBakeActorAttribute(InHGPO.GeoId, InHGPO.PartId, BakeOutputActorName, InPointIndex, InPrimIndex))
 		{
 			if (!BakeOutputActorName.IsEmpty())
 			{
@@ -2918,7 +2921,7 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 
 	{
 		FString BakeOutputActorClassName;
-		if (FHoudiniEngineUtils::GetBakeActorClassAttribute(HGPO.GeoId, HGPO.PartId, BakeOutputActorClassName, InPointIndex, InPrimIndex))
+		if (FHoudiniEngineUtils::GetBakeActorClassAttribute(InHGPO.GeoId, InHGPO.PartId, BakeOutputActorClassName, InPointIndex, InPrimIndex))
 		{
 			if (!BakeOutputActorClassName.IsEmpty())
 			{
@@ -2930,7 +2933,7 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 
 	{
 		FString BakeFolder;
-		if (FHoudiniEngineUtils::GetBakeFolderAttribute(HGPO.GeoId, HGPO.PartId, BakeFolder, InPrimIndex))
+		if (FHoudiniEngineUtils::GetBakeFolderAttribute(InHGPO.GeoId, InHGPO.PartId, BakeFolder, InPrimIndex))
 		{
 			if (!BakeFolder.IsEmpty())
 			{
@@ -2942,7 +2945,7 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 
 	{
 		FString BakeOutlinerFolder;
-		if (FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(HGPO.GeoId, HGPO.PartId, BakeOutlinerFolder, InPointIndex, InPrimIndex))
+		if (FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(InHGPO.GeoId, InHGPO.PartId, BakeOutlinerFolder, InPointIndex, InPrimIndex))
 		{
 			if (!BakeOutlinerFolder.IsEmpty())
 			{
@@ -2965,7 +2968,7 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 		PointIndex = AllSplitVertexLists[InSplitGroupName][FirstValidVertexIndex];
 	}
 
-	CopyAttributesFromHGPOForSplit(PointIndex, PrimIndex, OutAttributes, OutTokens);
+	CopyAttributesFromHGPOForSplit(HGPO, PointIndex, PrimIndex, OutAttributes, OutTokens);
 }
 
 void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
@@ -2974,7 +2977,7 @@ void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
 	const int32 PrimIndex = InOutputObjectIdentifier.PrimitiveIndex;
 	const int32 PointIndex = InOutputObjectIdentifier.PointIndex;
 
-	CopyAttributesFromHGPOForSplit(PointIndex, PrimIndex, OutAttributes, OutTokens);
+	CopyAttributesFromHGPOForSplit(HGPO, PointIndex, PrimIndex, OutAttributes, OutTokens);
 }
 
 
@@ -3018,6 +3021,9 @@ bool FHoudiniMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 	FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
 		HGPO.ObjectId, HGPO.GeoId, HGPO.PartId, "");
 	OutputObjectIdentifier.PartName = HGPO.PartName;
+	// Hard-coded point and prim indices to 0 and 0
+	OutputObjectIdentifier.PointIndex = 0;
+	OutputObjectIdentifier.PrimitiveIndex = 0;
 
 	// If we don't already have an object for OutputObjectIdentifier in OutputObjects, then check in InputObjects and
 	// copy it from there. Otherwise create a new empty OutputObject in OutputObjects.
@@ -3028,6 +3034,25 @@ bool FHoudiniMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 			OutputObjects.Emplace(OutputObjectIdentifier, *InputObject);
 	}
 	FHoudiniOutputObject& OutputObject = OutputObjects.FindOrAdd(OutputObjectIdentifier);
+
+	// Get non-generic supported attributes from OutputObjectIdentifier
+	OutputObject.CachedAttributes.Empty();
+	OutputObject.CachedTokens.Empty();
+	FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
+		HGPO, OutputObjectIdentifier.PointIndex, OutputObjectIdentifier.PrimitiveIndex, OutputObject.CachedAttributes, OutputObject.CachedTokens);
+
+	// Resolve our temp package params
+	const FHoudiniPackageParams InitialPackageParams = PackageParams;
+	FHoudiniAttributeResolver Resolver;
+	FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
+		InitialPackageParams,
+		IsValid(OuterComponent) ? OuterComponent->GetWorld() : nullptr,
+		OuterComponent,
+		OutputObject.CachedAttributes,
+		OutputObject.CachedTokens,
+		PackageParams,
+		Resolver);
+
 	USkeletalMesh* NewSkeletalMesh = CreateNewSkeletalMesh(OutputObjectIdentifier.SplitIdentifier);
 	USkeleton* NewSkeleton = CreateNewSkeleton(OutputObjectIdentifier.SplitIdentifier);
 	OutputObject.OutputObject = NewSkeletalMesh;
@@ -7072,7 +7097,7 @@ FHoudiniMeshTranslator::CreateNeededMaterials()
 	}
 	else
 	{
-		CopyAttributesFromHGPOForSplit(0, 0, Attributes, Tokens);
+		CopyAttributesFromHGPOForSplit(HGPO, 0, 0, Attributes, Tokens);
 	}
 	
 	FHoudiniEngineUtils::UpdatePackageParamsForTempOutputWithResolver(
