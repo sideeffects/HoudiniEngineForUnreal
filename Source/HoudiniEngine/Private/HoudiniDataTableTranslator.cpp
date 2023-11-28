@@ -1143,7 +1143,9 @@ FHoudiniDataTableTranslator::PopulateRowData(int32 GeoId,
 		if (!IsValidType(AttribInfo, Prop))
 		{
 			HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::PopulateRowData]: Incompatible types for column %s and attribute %s."), *Prop->GetAuthoredName(), *KV.Key);
-			return false;
+			HOUDINI_LOG_WARNING(TEXT("[FHoudiniDataTableTranslator::PopulateRowData]: --- skipping values for attribute %s ---"), *KV.Key);
+
+			continue;
 		}
 
 		void* Data = nullptr;
