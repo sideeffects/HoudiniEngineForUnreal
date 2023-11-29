@@ -341,7 +341,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 					FHoudiniMeshTranslator::CreateAllMeshesAndComponentsFromHoudiniOutput(
 						CurOutput,
 						InPackageParams,
-						EHoudiniStaticMeshMethod::RawMesh,
+						EHoudiniStaticMeshMethod::RawMesh_DEPRECATED,
 						bIsHACValid ? HAC->StaticMeshGenerationProperties : FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties(),
 						bIsHACValid ? HAC->StaticMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings(),
 						AllOutputMaterials,
