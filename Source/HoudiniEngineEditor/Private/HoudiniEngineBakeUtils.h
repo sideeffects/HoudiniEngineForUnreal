@@ -464,6 +464,7 @@ public:
 
 	static UFoliageType * DuplicateFoliageTypeAndCreatePackageIfNeeded(
 		UFoliageType* InFoliageType,
+		UFoliageType* InPreviousBakeFoliageType,
 		const FHoudiniPackageParams& PackageParams,
 		const TArray<UHoudiniOutput*>& InParentOutputs,
 		const TArray<FHoudiniEngineBakedActor>& InCurrentBakeResults,
@@ -701,7 +702,8 @@ public:
 	// Returns true if the object is a temporary, houdini-generated object
 	static bool IsObjectTemporary(
 		UObject* InObject,
-		const EHoudiniOutputType& InOutputType);
+		const EHoudiniOutputType& InOutputType,
+		const FGuid& InComponentGuid=FGuid());
 
 	// Returns true if the object is a temporary, houdini-generated object
 	static bool IsObjectTemporary(
@@ -714,7 +716,8 @@ public:
 		UObject* InObject,
 		const EHoudiniOutputType& InOutputType,
 		const TArray<UHoudiniOutput*>& InParentOutputs,
-		const FString& InTemporaryCookFolder);
+		const FString& InTemporaryCookFolder,
+		const FGuid& InComponentGuid=FGuid());
 
 	// Returns true if InObject is in InTemporaryCookFolder, 
 	// or in the default Temporary cook folder from the runtime settings.
@@ -1093,7 +1096,7 @@ public:
 		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 		FHoudiniEngineOutputStats& OutBakeStats);
 
-	static void BakeFoliageTypes(
+	static bool BakeFoliageTypes(
 		TMap<UFoliageType*, UFoliageType*> & FoliageMap,
 	    UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
@@ -1103,12 +1106,13 @@ public:
 		const FDirectoryPath& InTempCookFolder,
 		bool bInReplaceAssets,
 		const TArray<FHoudiniEngineBakedActor>& BakeResults,
+		const TMap<UStaticMesh*, UStaticMesh*>& InAlreadyBakedStaticMeshMap,
 		TArray<UPackage*>& OutPackagesToSave,
 		FHoudiniEngineOutputStats& OutBakeStats);
 
 	static void BakeAllFoliageTypes(
 		UHoudiniAssetComponent* HoudiniAssetComponent,
-		TMap<UStaticMesh*, UStaticMesh*> AlreadyBakedStaticMeshMap,
+		const TMap<UStaticMesh*, UStaticMesh*>& AlreadyBakedStaticMeshMap,
 		FHoudiniEngineBakeState& InBakeState,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		const FDirectoryPath& InBakeFolder,

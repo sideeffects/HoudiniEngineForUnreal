@@ -698,7 +698,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 			InBakeFolder,
 			InTempCookFolder,
 			bInReplaceAssets,
-			NewBakedActors,
+			AllBakedActors,
 			OutPackagesToSave,
 			OutBakeStats);
 
@@ -834,7 +834,10 @@ FHoudiniEngineBakeUtils::RemoveBakedFoliageInstances(UHoudiniAssetComponent* Hou
 					BakedObject.Value.FoliageType,
 					BakedObject.Value.FoliageInstancePositions);
 			}
-			BakedObject.Value.FoliageType = nullptr;
+			// Remember the foliage type in the previous bake data, but remove the instance positions (since
+			// that is what we cleared). We need the previous bake foliage type when baking in "replace existing assets"
+			// mode, so that we replace the correct increment.
+			// BakedObject.Value.FoliageType = nullptr;
 			BakedObject.Value.FoliageInstancePositions.Empty();
 
 		}
@@ -844,7 +847,7 @@ FHoudiniEngineBakeUtils::RemoveBakedFoliageInstances(UHoudiniAssetComponent* Hou
 void
 FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 	UHoudiniAssetComponent* HoudiniAssetComponent,
-	TMap<UStaticMesh*, UStaticMesh*> AlreadyBakedStaticMeshMap,
+	const TMap<UStaticMesh*, UStaticMesh*>& AlreadyBakedStaticMeshMap,
 	FHoudiniEngineBakeState& InBakeState,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
 	const FDirectoryPath& InBakeFolder,
@@ -877,21 +880,10 @@ FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 			InTempCookFolder,
 			bInReplaceAssets,
 			BakeResults,
+			AlreadyBakedStaticMeshMap,
 			OutPackagesToSave,
 			OutBakeStats);
     }
-
-	// Replace any mesh referenced in the cooked foliage with the new reference.
-	for (auto It : FoliageMap)
-	{
-		auto* CookedFoliageType = Cast<UFoliageType_InstancedStaticMesh>(It.Key);
-		auto* BakedFoliageType = Cast<UFoliageType_InstancedStaticMesh>(It.Value);
-		if (!CookedFoliageType || !BakedFoliageType)
-		    continue;
-
-		if (AlreadyBakedStaticMeshMap.Contains(CookedFoliageType->GetStaticMesh()))
-			BakedFoliageType->SetStaticMesh(AlreadyBakedStaticMeshMap[CookedFoliageType->GetStaticMesh()]);
-	}
 
 	// Remove all cooked existing foliage.
 	//FHoudiniFoliageTools::CleanupFoliageInstances(HoudiniAssetComponent);
@@ -900,11 +892,10 @@ FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 		auto* CookedFoliageType = Cast<UFoliageType_InstancedStaticMesh>(It.Key);
 		FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(World, CookedFoliageType);
 	}
-
 }
 
 
-void
+bool
 FHoudiniEngineBakeUtils::BakeFoliageTypes(
 	TMap<UFoliageType*, UFoliageType*> & FoliageMap,
 	UHoudiniAssetComponent* HoudiniAssetComponent,
@@ -915,6 +906,7 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 	const FDirectoryPath& InTempCookFolder,
 	bool bInReplaceAssets,
 	const TArray<FHoudiniEngineBakedActor>& BakeResults,
+	const TMap<UStaticMesh*, UStaticMesh*>& InAlreadyBakedStaticMeshMap,
 	TArray<UPackage*>& OutPackagesToSave,
 	FHoudiniEngineOutputStats& OutBakeStats)
 {
@@ -925,7 +917,6 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 	UHoudiniOutput* Output = InAllOutputs[InOutputIndex];
 
 	UWorld* DesiredWorld = Output ? Output->GetWorld() : GWorld;
-
 	auto & OutputObjects = Output->GetOutputObjects();
 
 	for (auto& Pair : OutputObjects)
@@ -941,6 +932,9 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		    continue;
 
 		FHoudiniBakedOutputObject BakedObject;
+
+		bool bHasPreviousBakeData = false;
+		BakedObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, Identifier, bHasPreviousBakeData);
 
 		UFoliageType* TargetFoliageType = nullptr;
 
@@ -959,14 +953,14 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 
 			FHoudiniPackageParams PackageParams;
 			FHoudiniAttributeResolver InstancerResolver;
-			bool bHasPreviousBakeData = false;
-			BakedObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, Identifier, bHasPreviousBakeData);
 			FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 				DesiredWorld, HoudiniAssetComponent, Identifier, *OutputObject, bHasPreviousBakeData,
-				ObjectName, PackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
+			ObjectName, PackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
+			UFoliageType* const PreviousBakeFoliageType = bHasPreviousBakeData ? BakedObject.FoliageType : nullptr;
 			TargetFoliageType = DuplicateFoliageTypeAndCreatePackageIfNeeded(
 				OutputObject->FoliageType,
+				PreviousBakeFoliageType,
 				PackageParams,
 				InAllOutputs,
 				BakeResults,
@@ -980,6 +974,14 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		}
 
 		check(IsValid(TargetFoliageType));
+
+		// Replace any mesh referenced in the cooked foliage with the new reference.
+		UFoliageType_InstancedStaticMesh* const CookedFoliageType = Cast<UFoliageType_InstancedStaticMesh>(OutputObject->FoliageType);
+		UFoliageType_InstancedStaticMesh* const BakedFoliageType = Cast<UFoliageType_InstancedStaticMesh>(TargetFoliageType);
+		if (CookedFoliageType && TargetFoliageType && InAlreadyBakedStaticMeshMap.Contains(CookedFoliageType->GetStaticMesh()))
+		{
+			BakedFoliageType->SetStaticMesh(InAlreadyBakedStaticMeshMap[CookedFoliageType->GetStaticMesh()]);
+		}
 
 		// Copy all cooked instances to reference the baked instances.
 		auto Instances = FHoudiniFoliageTools::GetAllFoliageInstances(DesiredWorld, OutputObject->FoliageType);
@@ -998,7 +1000,8 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		BakedObject.FoliageInstancePositions = InstancesPositions;
 		InBakeState.SetNewBakedOutputObject(InOutputIndex, Identifier, BakedObject);
     }
-	return;
+
+	return true;
 }
 
 bool
@@ -1290,7 +1293,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 
 	    FHoudiniPackageParams MeshPackageParams;
 	    FString BakeFolderPath = FString();
-	    const bool bIsTemporary = IsObjectTemporary(StaticMesh, EHoudiniOutputType::Mesh, InAllOutputs, InstancerPackageParams.TempCookFolder);
+	    const bool bIsTemporary = IsObjectTemporary(StaticMesh, EHoudiniOutputType::Mesh, InAllOutputs, InstancerPackageParams.TempCookFolder, InstancerPackageParams.ComponentGUID);
 	    if (!bIsTemporary)
 	    {
 		    // We can reuse the mesh
@@ -1328,7 +1331,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 			    StaticMesh, PreviousStaticMesh, MeshPackageParams, InAllOutputs, InBakedActors, InTempCookFolder.Path,
 			    OutPackagesToSave, InOutAlreadyBakedStaticMeshMap, InOutAlreadyBakedMaterialsMap, OutBakeStats);
 
-			MeshBakedOutputObject.BakedObject = FSoftObjectPath(StaticMesh).ToString();
+			MeshBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
 	    	InBakeState.SetNewBakedOutputObject(MeshOutputIndex, MeshIdentifier, MeshBakedOutputObject);
 	    }
 
@@ -1342,7 +1345,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 				continue;
 
 			// Only duplicate the material if it is temporary
-			if (IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InAllOutputs, InTempCookFolder.Path))
+			if (IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InAllOutputs, InTempCookFolder.Path, InstancerPackageParams.ComponentGUID))
 			{
 				UMaterialInterface* DuplicatedMaterial = BakeSingleMaterialToPackage(
 					MaterialInterface, InstancerPackageParams, OutPackagesToSave, InOutAlreadyBakedMaterialsMap, OutBakeStats);
@@ -1831,7 +1834,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 
 	    FHoudiniPackageParams MeshPackageParams;
 	    FString BakeFolderPath = FString();
-	    const bool bIsTemporary = IsObjectTemporary(StaticMesh, EHoudiniOutputType::Mesh, InAllOutputs, InstancerPackageParams.TempCookFolder);
+	    const bool bIsTemporary = IsObjectTemporary(StaticMesh, EHoudiniOutputType::Mesh, InAllOutputs, InstancerPackageParams.TempCookFolder, InstancerPackageParams.ComponentGUID);
 	    if (!bIsTemporary)
 	    {
 		    // We can reuse the mesh
@@ -1881,7 +1884,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 				continue;
 
 			// Only duplicate the material if it is temporary
-			if (IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InAllOutputs, InTempCookFolder.Path))
+			if (IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InAllOutputs, InTempCookFolder.Path, InstancerPackageParams.ComponentGUID))
 			{
 				UMaterialInterface* DuplicatedMaterial = BakeSingleMaterialToPackage(
 					MaterialInterface, InstancerPackageParams, OutPackagesToSave, InOutAlreadyBakedMaterialsMap, OutBakeStats);
@@ -2417,7 +2420,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 	    
 	    FHoudiniPackageParams MeshPackageParams;
 	    FString BakeFolderPath = FString();
-	    const bool bIsTemporary = IsObjectTemporary(StaticMesh, EHoudiniOutputType::Mesh, InAllOutputs, InstancerPackageParams.TempCookFolder);
+	    const bool bIsTemporary = IsObjectTemporary(StaticMesh, EHoudiniOutputType::Mesh, InAllOutputs, InstancerPackageParams.TempCookFolder, InstancerPackageParams.ComponentGUID);
 	    if (!bIsTemporary)
 	    {
 		    BakedStaticMesh = StaticMesh;
@@ -2467,7 +2470,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_MSIC(
 				continue;
 
 			// Only duplicate the material if it is temporary
-			if (IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InAllOutputs, InTempCookFolder.Path))
+			if (IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InAllOutputs, InTempCookFolder.Path, InstancerPackageParams.ComponentGUID))
 			{
 				UMaterialInterface* DuplicatedMaterial = BakeSingleMaterialToPackage(
 					MaterialInterface, InstancerPackageParams, OutPackagesToSave, InOutAlreadyBakedMaterialsMap, OutBakeStats);
@@ -2803,14 +2806,16 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	if (!IsValid(StaticMesh))
 		return false;
 
-	HOUDINI_CHECK_RETURN(InOutputObject.OutputComponents.Num() == 1 || (InOutputObject.OutputComponents.IsEmpty() && InOutputObject.bIsImplicit), false);
+	// Allow baking of static mesh output objects without components here: it could be complex collision meshes and
+	// meshes used in instancers / foliage
+	// HOUDINI_CHECK_RETURN(InOutputObject.OutputComponents.Num() == 1 || (InOutputObject.OutputComponents.IsEmpty() && InOutputObject.bIsImplicit), false);
 	
 	UStaticMeshComponent* InSMC = nullptr;
 	if (InOutputObject.OutputComponents.Num() >= 1)
 		InSMC = Cast<UStaticMeshComponent>(InOutputObject.OutputComponents[0]);
 	const bool bHasOutputSMC = IsValid(InSMC);
-	if (!bHasOutputSMC && !InOutputObject.bIsImplicit)
-		return false;
+	// if (!bHasOutputSMC && !InOutputObject.bIsImplicit)
+	// 	return false;
 
 	// Find the HGPO that matches this output identifier
 	const FHoudiniGeoPartObject* FoundHGPO = nullptr;
@@ -2994,7 +2999,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	}
 
 	// Record bake data
-	InBakeState.SetNewBakedOutputObject(InOutputIndex, InIdentifier, MoveTemp(BakedOutputObject));
+	InBakeState.SetNewBakedOutputObject(InOutputIndex, InIdentifier, BakedOutputObject);
 
 	return true;
 }
@@ -4481,6 +4486,7 @@ FHoudiniEngineBakeUtils::BakeStaticMesh(
 UFoliageType* 
 FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
 	UFoliageType* InFoliageType,
+	UFoliageType* InPreviousBakeFoliageType,
 	const FHoudiniPackageParams& PackageParams,
 	const TArray<UHoudiniOutput*>& InParentOutputs,
 	const TArray<FHoudiniEngineBakedActor>& InCurrentBakeResults,
@@ -4495,7 +4501,7 @@ FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
 	// The not a temporary one/already baked, we can simply reuse it
     // instead of duplicating it.
 
-	const bool bIsTemporary = IsObjectTemporary(InFoliageType, EHoudiniOutputType::Instancer, InParentOutputs, InTemporaryCookFolder);
+	const bool bIsTemporary = IsObjectTemporary(InFoliageType, EHoudiniOutputType::Instancer, InParentOutputs, InTemporaryCookFolder, PackageParams.ComponentGUID);
 	if (!bIsTemporary)
 	{
 		return InFoliageType;
@@ -4522,7 +4528,17 @@ FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
 
     // Not previously baked, so make a copy of the cooked asset.
 
+	// If we have a previously baked object, get the bake counter from it so that both replace and increment
+	// is consistent with the bake counter
 	int32 BakeCounter = 0;
+	bool bPreviousBakeObjectValid = IsValid(InPreviousBakeFoliageType);
+	if (bPreviousBakeObjectValid)
+	{
+		bPreviousBakeObjectValid = PackageParams.MatchesPackagePathNameExcludingBakeCounter(InPreviousBakeFoliageType);
+		if (bPreviousBakeObjectValid)
+			PackageParams.GetBakeCounterFromBakedAsset(InPreviousBakeFoliageType, BakeCounter);
+	}
+
 	FString CreatedPackageName;
 	UPackage* Package = PackageParams.CreatePackageForObject(CreatedPackageName, BakeCounter);
 	HOUDINI_CHECK_RETURN(IsValid(Package), nullptr);
@@ -4599,7 +4615,7 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 	if (!IsValid(InStaticMesh))
 		return nullptr;
 
-	const bool bIsTemporaryStaticMesh = IsObjectTemporary(InStaticMesh, EHoudiniOutputType::Mesh, InParentOutputs, InTemporaryCookFolder);
+	const bool bIsTemporaryStaticMesh = IsObjectTemporary(InStaticMesh, EHoudiniOutputType::Mesh, InParentOutputs, InTemporaryCookFolder, PackageParams.ComponentGUID);
 	if (!bIsTemporaryStaticMesh)
 	{
 		// The Static Mesh is not a temporary one/already baked, we can simply reuse it
@@ -4708,7 +4724,7 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 			continue;
 
 		// Only duplicate the material if it is temporary
-		if (IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InParentOutputs, InTemporaryCookFolder))
+		if (IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InParentOutputs, InTemporaryCookFolder, PackageParams.ComponentGUID))
 		{
 			UPackage * MaterialPackage = Cast<UPackage>(MaterialInterface->GetOuter());
 			if (IsValid(MaterialPackage))
@@ -4797,7 +4813,7 @@ FHoudiniEngineBakeUtils::DuplicateSkeletalMeshAndCreatePackageIfNeeded(
 	if (!IsValid(InSkeletalMesh))
 		return nullptr;
 
-	const bool bIsTemporarySkeletalMesh = IsObjectTemporary(InSkeletalMesh, EHoudiniOutputType::Mesh, InParentOutputs, InTemporaryCookFolder);
+	const bool bIsTemporarySkeletalMesh = IsObjectTemporary(InSkeletalMesh, EHoudiniOutputType::Mesh, InParentOutputs, InTemporaryCookFolder, PackageParams.ComponentGUID);
 	if (!bIsTemporarySkeletalMesh)
 	{
 		// The Skeletal Mesh is not a temporary one/already baked, we can simply reuse it
@@ -4908,7 +4924,7 @@ FHoudiniEngineBakeUtils::DuplicateSkeletalMeshAndCreatePackageIfNeeded(
 			continue;
 
 		// Only duplicate the material if it is temporary
-		if (IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InParentOutputs, InTemporaryCookFolder))
+		if (IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InParentOutputs, InTemporaryCookFolder, PackageParams.ComponentGUID))
 		{
 			UPackage* MaterialPackage = Cast<UPackage>(MaterialInterface->GetOuter());
 			if (IsValid(MaterialPackage))
@@ -4985,7 +5001,7 @@ USkeleton* FHoudiniEngineBakeUtils::DuplicateSkeletonAndCreatePackageIfNeeded(
 	if (!IsValid(InSkeleton))
 		return nullptr;
 
-	const bool bIsTemporarySkeleton = IsObjectTemporary(InSkeleton, EHoudiniOutputType::Mesh, InParentOutputs, InTemporaryCookFolder);
+	const bool bIsTemporarySkeleton = IsObjectTemporary(InSkeleton, EHoudiniOutputType::Mesh, InParentOutputs, InTemporaryCookFolder, PackageParams.ComponentGUID);
 	if (!bIsTemporarySkeleton)
 	{
 		// The Skeletal Mesh is not a temporary one/already baked, we can simply reuse it
@@ -5101,7 +5117,7 @@ UGeometryCollection* FHoudiniEngineBakeUtils::DuplicateGeometryCollectionAndCrea
 	if (!IsValid(InGeometryCollection))
 		return nullptr;
 
-	const bool bIsTemporaryStaticMesh = IsObjectTemporary(InGeometryCollection, EHoudiniOutputType::GeometryCollection, InParentOutputs, InTemporaryCookFolder);
+	const bool bIsTemporaryStaticMesh = IsObjectTemporary(InGeometryCollection, EHoudiniOutputType::GeometryCollection, InParentOutputs, InTemporaryCookFolder, PackageParams.ComponentGUID);
 	if (!bIsTemporaryStaticMesh)
 	{
 		// The output is not a temporary one/already baked, we can simply reuse it
@@ -6177,7 +6193,7 @@ FHoudiniEngineBakeUtils::IsObjectTemporary(
 		TempPath = InHAC->TemporaryCookFolder.Path;
 	}
 
-	return IsObjectTemporary(InObject, InOutputType, Outputs, TempPath);
+	return IsObjectTemporary(InObject, InOutputType, Outputs, TempPath, InHAC->GetComponentGUID());
 }
 
 bool 
@@ -6211,13 +6227,14 @@ FHoudiniEngineBakeUtils::IsObjectTemporary(
 	UObject* InObject,
 	const EHoudiniOutputType& InOutputType,
 	const TArray<UHoudiniOutput*>& InParentOutputs,
-	const FString& InTemporaryCookFolder)
+	const FString& InTemporaryCookFolder,
+	const FGuid& InComponentGuid)
 {
 	if (!IsValid(InObject))
 		return false;
 
 	// Check the object's meta-data first
-	if (IsObjectTemporary(InObject, InOutputType))
+	if (IsObjectTemporary(InObject, InOutputType, InComponentGuid))
 		return true;
 
 	// Previous IsObjectTemporary tests 
@@ -6242,7 +6259,8 @@ FHoudiniEngineBakeUtils::IsObjectTemporary(
 bool
 FHoudiniEngineBakeUtils::IsObjectTemporary(
 	UObject* InObject,
-	const EHoudiniOutputType& InOutputType)
+	const EHoudiniOutputType& InOutputType,
+	const FGuid& InComponentGuid)
 {
 	if (!IsValid(InObject))
 		return false;
@@ -6261,6 +6279,19 @@ FHoudiniEngineBakeUtils::IsObjectTemporary(
 			// The object has been baked, so not a temp object as well
 			if (MetaData->HasValue(InObject, HAPI_UNREAL_PACKAGE_META_BAKED_OBJECT))
 				return false;
+
+			// If InComponentGuid is valid, check that against HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID
+			if (InComponentGuid.IsValid())
+			{
+				const FString GuidStr = InComponentGuid.ToString();
+				// If the object has the HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID key but the value does not match GuidStr,
+				// then, while this is a temporary object, it was not generated by this HAC, so we should not bake it
+				if (MetaData->HasValue(InObject, HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID)
+						&& MetaData->GetValue(InObject, HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID) != GuidStr)
+				{
+					return false;
+				}
+			}
 		}
 	}
 
