@@ -2908,6 +2908,31 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 
 	++FoliageTypeCount;
 
+	// Set material overrides on the cooked foliage type
+	if (InstancerMaterials.Num() > 0)
+	{
+		UFoliageType_InstancedStaticMesh* const CookedMeshFoliageType = Cast<UFoliageType_InstancedStaticMesh>(CookedFoliageType);
+		if (IsValid(CookedMeshFoliageType))
+		{
+			UStaticMesh const* const FoliageMesh = CookedMeshFoliageType->GetStaticMesh();
+			const int32 MeshMaterialSlotCount = IsValid(FoliageMesh) ? FoliageMesh->GetStaticMaterials().Num() : 0;
+			const int32 MaterialOverrideSlotCount = FMath::Min(InstancerMaterials.Num(), MeshMaterialSlotCount);
+			for (int32 Idx = 0; Idx < MaterialOverrideSlotCount; ++Idx)
+			{
+				if (IsValid(InstancerMaterials[Idx]))
+				{
+					if (!CookedMeshFoliageType->OverrideMaterials.IsValidIndex(Idx))
+						CookedMeshFoliageType->OverrideMaterials.SetNum(Idx + 1);
+					CookedMeshFoliageType->OverrideMaterials[Idx] = InstancerMaterials[Idx];
+				}
+				else if (CookedMeshFoliageType->OverrideMaterials.IsValidIndex(Idx) && CookedMeshFoliageType->OverrideMaterials[Idx])
+				{
+					CookedMeshFoliageType->OverrideMaterials[Idx] = nullptr;
+				}
+			}
+		}
+	}
+	
 	FTransform HoudiniAssetTransform = ParentComponent->GetComponentTransform();
 	
 	TArray<FFoliageInstance> FoliageInstances;
@@ -2943,16 +2968,6 @@ FHoudiniInstanceTranslator::CreateOrUpdateFoliageInstances(
 	    {
 		    // TODO: This was due to a bug in UE4.22-20, check if still needed! 
 		    FoliageHISMC->BuildTreeIfOutdated(true, true);
-
-			if (InstancerMaterials.Num() > 0)
-			{
-				int32 MeshMaterialCount = InstancedStaticMesh ? InstancedStaticMesh->GetStaticMaterials().Num() : 1;
-				for (int32 Idx = 0; Idx < MeshMaterialCount; ++Idx)
-				{
-					if (InstancerMaterials.IsValidIndex(Idx) && IsValid(InstancerMaterials[Idx]))
-						FoliageHISMC->SetMaterial(Idx, InstancerMaterials[Idx]);
-				}
-			}
 
 	    	FHoudiniEngineUtils::KeepOrClearComponentTags(FoliageHISMC, &InstancerGeoPartObject);
 

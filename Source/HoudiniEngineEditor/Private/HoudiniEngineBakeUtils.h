@@ -470,6 +470,7 @@ public:
 		const TArray<FHoudiniEngineBakedActor>& InCurrentBakeResults,
 		const FString& InTemporaryCookFolder,
 		TMap<UFoliageType*, UFoliageType*>& InOutAlreadyBakedFoliageTypes,
+		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 		const TArray<FHoudiniEngineBakedActor>& InCurrentBakedActors,
 		TArray<UPackage*>& OutCreatedPackages,
 		FHoudiniEngineOutputStats& OutBakeStats);
@@ -1107,6 +1108,7 @@ public:
 		bool bInReplaceAssets,
 		const TArray<FHoudiniEngineBakedActor>& BakeResults,
 		const TMap<UStaticMesh*, UStaticMesh*>& InAlreadyBakedStaticMeshMap,
+		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 		TArray<UPackage*>& OutPackagesToSave,
 		FHoudiniEngineOutputStats& OutBakeStats);
 
@@ -1119,6 +1121,7 @@ public:
 		const FDirectoryPath& InTempCookFolder,
 		bool bInReplaceAssets,
 		const TArray<FHoudiniEngineBakedActor>& BakeResults,
+		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 		TArray<UPackage*>& OutPackagesToSave,
 		FHoudiniEngineOutputStats& OutBakeStats);
 

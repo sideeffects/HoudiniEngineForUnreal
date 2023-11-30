@@ -699,6 +699,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 			InTempCookFolder,
 			bInReplaceAssets,
 			AllBakedActors,
+			AlreadyBakedMaterialsMap,
 			OutPackagesToSave,
 			OutBakeStats);
 
@@ -854,6 +855,7 @@ FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 	const FDirectoryPath& InTempCookFolder,
 	bool bInReplaceAssets,
 	const TArray<FHoudiniEngineBakedActor>& BakeResults,
+	TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 	TArray<UPackage*>& OutPackagesToSave,
 	FHoudiniEngineOutputStats& OutBakeStats)
 {
@@ -881,6 +883,7 @@ FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 			bInReplaceAssets,
 			BakeResults,
 			AlreadyBakedStaticMeshMap,
+			InOutAlreadyBakedMaterialsMap,
 			OutPackagesToSave,
 			OutBakeStats);
     }
@@ -907,6 +910,7 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 	bool bInReplaceAssets,
 	const TArray<FHoudiniEngineBakedActor>& BakeResults,
 	const TMap<UStaticMesh*, UStaticMesh*>& InAlreadyBakedStaticMeshMap,
+	TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 	TArray<UPackage*>& OutPackagesToSave,
 	FHoudiniEngineOutputStats& OutBakeStats)
 {
@@ -936,12 +940,33 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		bool bHasPreviousBakeData = false;
 		BakedObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, Identifier, bHasPreviousBakeData);
 
-		UFoliageType* TargetFoliageType = nullptr;
+		UFoliageType* const UserFoliageType = IsValid(OutputObject->UserFoliageType)
+			? Cast<UFoliageType>(OutputObject->UserFoliageType)
+			: nullptr;
 
-		if (IsValid(OutputObject->UserFoliageType))
+		UFoliageType* TargetFoliageType = nullptr;
+		bool bUseUserFoliageType = false;
+		if (IsValid(UserFoliageType))
+		{
+			// The user specified a Foliage Type. Only use it directly if there are no differences between it and
+			// the cooked version. For example, if the user specified material overrides, or different values for
+			// foliage parameters, such as radius, then we need to bake a new foliage type.
+			if (FHoudiniFoliageTools::AreFoliageTypesEqual(UserFoliageType, OutputObject->FoliageType))
+			{
+				bUseUserFoliageType = true;
+			}
+			else
+			{
+				HOUDINI_LOG_WARNING(TEXT(
+					"Baking a new foliage type, since the cooked foliage type has been modified with respect to the "
+					"user specified foliage type %s"), *UserFoliageType->GetName());
+			}
+		}
+		
+		if (bUseUserFoliageType)
 		{
 		    // The user specified a Foliage Type, so store it.
-			TargetFoliageType = Cast<UFoliageType>(OutputObject->UserFoliageType);
+			TargetFoliageType = UserFoliageType;
 			FoliageMap.Add(OutputObject->FoliageType, TargetFoliageType);
 		}
 		else
@@ -966,6 +991,7 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 				BakeResults,
 				InTempCookFolder.Path,
 				FoliageMap,
+				InOutAlreadyBakedMaterialsMap,
 				BakeResults,
 				OutPackagesToSave,
 				OutBakeStats);
@@ -4492,6 +4518,7 @@ FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
 	const TArray<FHoudiniEngineBakedActor>& InCurrentBakeResults,
 	const FString& InTemporaryCookFolder,
 	TMap<UFoliageType*, UFoliageType*>& InOutAlreadyBakedFoliageTypes,
+	TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
 	const TArray<FHoudiniEngineBakedActor>& BakedResults,
 	TArray<UPackage*>& OutCreatedPackages,
 	FHoudiniEngineOutputStats& OutBakeStats)
@@ -4532,11 +4559,17 @@ FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
 	// is consistent with the bake counter
 	int32 BakeCounter = 0;
 	bool bPreviousBakeObjectValid = IsValid(InPreviousBakeFoliageType);
+	TArray<UMaterialInterface*> PreviousBakeMaterials;
 	if (bPreviousBakeObjectValid)
 	{
 		bPreviousBakeObjectValid = PackageParams.MatchesPackagePathNameExcludingBakeCounter(InPreviousBakeFoliageType);
 		if (bPreviousBakeObjectValid)
+		{
 			PackageParams.GetBakeCounterFromBakedAsset(InPreviousBakeFoliageType, BakeCounter);
+			UFoliageType_InstancedStaticMesh const* const PreviousBakeMeshFoliageType = Cast<UFoliageType_InstancedStaticMesh>(InPreviousBakeFoliageType);
+			if (IsValid(PreviousBakeMeshFoliageType))
+				PreviousBakeMaterials = PreviousBakeMeshFoliageType->OverrideMaterials;
+		}
 	}
 
 	FString CreatedPackageName;
@@ -4588,7 +4621,69 @@ FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
     FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(Package, DuplicatedFoliageType, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
 	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(Package, DuplicatedFoliageType, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *CreatedPackageName);
 	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(Package, DuplicatedFoliageType, HAPI_UNREAL_PACKAGE_META_BAKED_OBJECT, TEXT("true"));
+	
+	// See if we need to duplicate materials and textures.
+	UFoliageType_InstancedStaticMesh* const DuplicatedMeshFoliageType = Cast<UFoliageType_InstancedStaticMesh>(DuplicatedFoliageType);
+	const bool bIsMeshFoliageType = IsValid(DuplicatedMeshFoliageType);
+	TArray<UMaterialInterface*> DuplicatedMaterials;
+	TArray<UMaterialInterface*> Materials;
+	if (bIsMeshFoliageType)
+		Materials = DuplicatedMeshFoliageType->OverrideMaterials; 
+	for (int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx)
+	{
+		UMaterialInterface* const MaterialInterface = Materials[MaterialIdx];
 
+		// Only duplicate the material if it is temporary
+		if (IsValid(MaterialInterface) && IsObjectTemporary(MaterialInterface, EHoudiniOutputType::Invalid, InParentOutputs, InTemporaryCookFolder, PackageParams.ComponentGUID))
+		{
+			UPackage * MaterialPackage = Cast<UPackage>(MaterialInterface->GetOuter());
+			if (IsValid(MaterialPackage))
+			{
+				FString MaterialName;
+				if (FHoudiniEngineBakeUtils::GetHoudiniGeneratedNameFromMetaInformation(
+					Package, DuplicatedFoliageType, MaterialName))
+				{
+					MaterialName = MaterialName + "_Material" + FString::FromInt(MaterialIdx + 1);
+
+					// We only deal with materials.
+					if (!MaterialInterface->IsA(UMaterial::StaticClass()) && !MaterialInterface->IsA(UMaterialInstance::StaticClass()))
+					{
+						continue;
+					}
+					
+					UMaterialInterface * Material = MaterialInterface;
+
+					if (IsValid(Material))
+					{
+						// Look for a previous bake material at this index
+						UMaterialInterface* PreviousBakeMaterial = nullptr;
+						if (bPreviousBakeObjectValid && PreviousBakeMaterials.IsValidIndex(MaterialIdx))
+						{
+							PreviousBakeMaterial = PreviousBakeMaterials[MaterialIdx];
+						}
+						// Duplicate material resource.
+						UMaterialInterface * DuplicatedMaterial = FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
+							Material, PreviousBakeMaterial, MaterialName, PackageParams, OutCreatedPackages, InOutAlreadyBakedMaterialsMap,
+							OutBakeStats);
+
+						if (!IsValid(DuplicatedMaterial))
+							continue;
+
+						// Store duplicated material.
+						DuplicatedMaterials.Add(DuplicatedMaterial);
+						continue;
+					}
+				}
+			}
+		}
+		
+		// We can simply reuse the source material
+		DuplicatedMaterials.Add(Materials[MaterialIdx]);
+	}
+		
+	// Assign duplicated materials.
+	if (bIsMeshFoliageType)
+		DuplicatedMeshFoliageType->OverrideMaterials = DuplicatedMaterials;
 
 	if (!bFoundExisting)
 		FAssetRegistryModule::AssetCreated(DuplicatedFoliageType);

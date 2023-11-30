@@ -41,6 +41,7 @@
 #include "InstancedFoliageActor.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Spatial/PointHashGrid3.h"
+#include "Curves/RichCurve.h"
 
 #if WITH_EDITOR
 #include "EditorModeManager.h"
@@ -422,4 +423,138 @@ TArray<FFoliageAttachmentInfo> FHoudiniFoliageTools::GetAttachmentInfo(int GeoId
 	}
 
 	return Result;
+}
+
+bool FHoudiniFoliageTools::AreFoliageTypesEqual(UFoliageType const* InLhs, UFoliageType const* InRhs)
+{
+	if (!IsValid(InLhs) || !IsValid(InRhs))
+		return false;
+
+	// Check that the foliage types are of the same class
+	if (InLhs->GetClass() != InRhs->GetClass())
+		return false;
+
+	if (InLhs->Density != InRhs->Density ||
+			!FMath::IsNearlyEqual(InLhs->DensityAdjustmentFactor, InRhs->DensityAdjustmentFactor) ||
+			!FMath::IsNearlyEqual(InLhs->Radius, InRhs->Radius) ||
+			InLhs->bSingleInstanceModeOverrideRadius != InRhs->bSingleInstanceModeOverrideRadius ||
+			!FMath::IsNearlyEqual(InLhs->SingleInstanceModeRadius, InRhs->SingleInstanceModeRadius) ||
+			InLhs->Scaling != InRhs->Scaling ||
+			!IsIntervalNearlyEqual(InLhs->ScaleX, InRhs->ScaleX) ||
+			!IsIntervalNearlyEqual(InLhs->ScaleY, InRhs->ScaleY) ||
+			!IsIntervalNearlyEqual(InLhs->ScaleZ, InRhs->ScaleZ) ||
+			!IsIntervalNearlyEqual(InLhs->ZOffset, InRhs->ZOffset) ||
+			InLhs->AlignToNormal != InRhs->AlignToNormal ||
+			InLhs->AverageNormal != InRhs->AverageNormal ||
+			InLhs->AverageNormalSingleComponent != InRhs->AverageNormalSingleComponent ||
+			!FMath::IsNearlyEqual(InLhs->AlignMaxAngle, InRhs->AlignMaxAngle) ||
+			InLhs->RandomYaw != InRhs->RandomYaw ||
+			!FMath::IsNearlyEqual(InLhs->RandomPitchAngle, InRhs->RandomPitchAngle) ||
+			!IsIntervalNearlyEqual(InLhs->GroundSlopeAngle, InRhs->GroundSlopeAngle) ||
+			!IsIntervalNearlyEqual(InLhs->Height, InRhs->Height) ||
+			InLhs->LandscapeLayers != InRhs->LandscapeLayers ||
+			!FMath::IsNearlyEqual(InLhs->MinimumLayerWeight, InRhs->MinimumLayerWeight) ||
+			InLhs->ExclusionLandscapeLayers != InRhs->ExclusionLandscapeLayers ||
+			!FMath::IsNearlyEqual(InLhs->MinimumExclusionLayerWeight, InRhs->MinimumExclusionLayerWeight) ||
+			InLhs->CollisionWithWorld != InRhs->CollisionWithWorld ||
+			!InLhs->CollisionScale.Equals(InRhs->CollisionScale) ||
+			InLhs->AverageNormalSampleCount != InRhs->AverageNormalSampleCount ||
+			InLhs->MeshBounds != InRhs->MeshBounds ||
+			!InLhs->LowBoundOriginRadius.Equals(InRhs->LowBoundOriginRadius) ||
+			InLhs->Mobility != InRhs->Mobility ||
+			!IsIntervalEqual(InLhs->CullDistance, InRhs->CullDistance) ||
+			InLhs->CastShadow != InRhs->CastShadow ||
+			InLhs->bAffectDynamicIndirectLighting != InRhs->bAffectDynamicIndirectLighting ||
+			InLhs->bAffectDistanceFieldLighting != InRhs->bAffectDistanceFieldLighting ||
+			InLhs->bCastDynamicShadow != InRhs->bCastDynamicShadow ||
+			InLhs->bCastStaticShadow != InRhs->bCastStaticShadow ||
+			InLhs->bCastContactShadow != InRhs->bCastContactShadow ||
+			InLhs->bCastShadowAsTwoSided != InRhs->bCastShadowAsTwoSided ||
+			InLhs->bReceivesDecals != InRhs->bReceivesDecals ||
+			InLhs->bOverrideLightMapRes != InRhs->bOverrideLightMapRes ||
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 2)
+			InLhs->ShadowCacheInvalidationBehavior != InRhs->ShadowCacheInvalidationBehavior ||
+#endif
+			InLhs->OverriddenLightMapRes != InRhs->OverriddenLightMapRes ||
+			InLhs->LightmapType != InRhs->LightmapType ||
+			InLhs->bUseAsOccluder != InRhs->bUseAsOccluder ||
+			InLhs->bVisibleInRayTracing != InRhs->bVisibleInRayTracing ||
+			InLhs->bEvaluateWorldPositionOffset != InRhs->bEvaluateWorldPositionOffset ||
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0)
+			InLhs->WorldPositionOffsetDisableDistance != InRhs->WorldPositionOffsetDisableDistance ||
+#endif
+			InLhs->CustomNavigableGeometry != InRhs->CustomNavigableGeometry ||
+			InLhs->LightingChannels.bChannel0 != InRhs->LightingChannels.bChannel0 ||
+			InLhs->LightingChannels.bChannel1 != InRhs->LightingChannels.bChannel1 ||
+			InLhs->LightingChannels.bChannel2 != InRhs->LightingChannels.bChannel2 ||
+			InLhs->bRenderCustomDepth != InRhs->bRenderCustomDepth ||
+			InLhs->CustomDepthStencilWriteMask != InRhs->CustomDepthStencilWriteMask ||
+			InLhs->CustomDepthStencilValue != InRhs->CustomDepthStencilValue ||
+			InLhs->TranslucencySortPriority != InRhs->TranslucencySortPriority ||
+			!FMath::IsNearlyEqual(InLhs->CollisionRadius, InRhs->CollisionRadius) ||
+			!FMath::IsNearlyEqual(InLhs->ShadeRadius, InRhs->ShadeRadius) ||
+			InLhs->NumSteps != InRhs->NumSteps ||
+			!FMath::IsNearlyEqual(InLhs->InitialSeedDensity, InRhs->InitialSeedDensity) ||
+			!FMath::IsNearlyEqual(InLhs->AverageSpreadDistance, InRhs->AverageSpreadDistance) ||
+			!FMath::IsNearlyEqual(InLhs->SpreadVariance, InRhs->SpreadVariance) ||
+			InLhs->SeedsPerStep != InRhs->SeedsPerStep ||
+			InLhs->DistributionSeed != InRhs->DistributionSeed ||
+			!FMath::IsNearlyEqual(InLhs->MaxInitialSeedOffset, InRhs->MaxInitialSeedOffset) ||
+			InLhs->bCanGrowInShade != InRhs->bCanGrowInShade ||
+			InLhs->bSpawnsInShade != InRhs->bSpawnsInShade ||
+			!FMath::IsNearlyEqual(InLhs->MaxInitialAge, InRhs->MaxInitialAge) ||
+			!FMath::IsNearlyEqual(InLhs->MaxAge, InRhs->MaxAge) ||
+			!FMath::IsNearlyEqual(InLhs->OverlapPriority, InRhs->OverlapPriority) ||
+			!IsIntervalNearlyEqual(InLhs->ProceduralScale, InRhs->ProceduralScale))
+	{
+		return false;
+	}
+
+	constexpr uint8 NumVertexColorMaskChannels = static_cast<uint8>(EVertexColorMaskChannel::MAX_None);
+	for (uint8 Idx = 0; Idx < NumVertexColorMaskChannels; ++Idx)
+	{
+		const FFoliageVertexColorChannelMask& Lhs = InLhs->VertexColorMaskByChannel[Idx];
+		const FFoliageVertexColorChannelMask& Rhs = InRhs->VertexColorMaskByChannel[Idx];
+		if (Lhs.UseMask != Rhs.UseMask || Lhs.InvertMask != Rhs.InvertMask || Lhs.MaskThreshold != Rhs.MaskThreshold)
+			return false;
+	}
+	
+	FRichCurve const* const LhsScaleCurve = InLhs->ScaleCurve.GetRichCurveConst();
+	FRichCurve const* const RhsScaleCurve = InRhs->ScaleCurve.GetRichCurveConst();
+	if ((LhsScaleCurve == nullptr && RhsScaleCurve != nullptr) || (LhsScaleCurve != nullptr && RhsScaleCurve == nullptr))
+		return false;
+
+	if (!(*LhsScaleCurve == *RhsScaleCurve))
+		return false;
+
+	if (InLhs->DensityFalloff.bUseFalloffCurve != InRhs->DensityFalloff.bUseFalloffCurve)
+		return false;
+	if (InLhs->DensityFalloff.bUseFalloffCurve)
+	{
+		FRichCurve const* const LhsFalloffCurve = InLhs->DensityFalloff.FalloffCurve.GetRichCurveConst();
+		FRichCurve const* const RhsFalloffCurve = InRhs->DensityFalloff.FalloffCurve.GetRichCurveConst();
+		if ((LhsFalloffCurve == nullptr && RhsFalloffCurve != nullptr) || (LhsFalloffCurve != nullptr && RhsFalloffCurve == nullptr))
+			return false;
+		
+		if (!(*LhsFalloffCurve == *RhsFalloffCurve))
+			return false;
+	}
+
+	// Check the SM and override materials if this is a UFoliateType_InstancedStaticMesh
+	UFoliageType_InstancedStaticMesh const* const LhsSM = Cast<UFoliageType_InstancedStaticMesh>(InLhs);
+	UFoliageType_InstancedStaticMesh const* const RhsSM = Cast<UFoliageType_InstancedStaticMesh>(InRhs);
+	if (!IsValid(LhsSM) || !IsValid(RhsSM))
+		return true;
+
+	if (LhsSM->Mesh != RhsSM->Mesh ||
+			LhsSM->OverrideMaterials != RhsSM->OverrideMaterials ||
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0)
+			LhsSM->NaniteOverrideMaterials != RhsSM->NaniteOverrideMaterials ||
+#endif
+			LhsSM->ComponentClass != RhsSM->ComponentClass)
+	{
+		return false;
+	}
+
+	return true;
 }
