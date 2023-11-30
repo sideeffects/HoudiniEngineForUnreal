@@ -94,5 +94,26 @@ public:
 	// Get all attachment info for a part.
 	static TArray<FFoliageAttachmentInfo> GetAttachmentInfo(int GeoId, int PartId, int Count);
 
+	// Return true if the two foliage types are of the same class and all property values are the same.
+	static bool AreFoliageTypesEqual(UFoliageType const* InLhs, UFoliageType const* InRhs);
+
+	template<typename ElementType>
+	static bool IsIntervalEqual(const TInterval<ElementType>& InLhs, const TInterval<ElementType>& InRhs); 
+
+	template<typename ElementType>
+	static bool IsIntervalNearlyEqual(const TInterval<ElementType>& InLhs, const TInterval<ElementType>& InRhs); 
 };
 
+template<typename ElementType>
+bool FHoudiniFoliageTools::IsIntervalEqual(const TInterval<ElementType>& InLhs, const TInterval<ElementType>& InRhs)
+{
+	return InLhs.Min == InRhs.Min && InLhs.Max == InRhs.Max;
+}
+
+
+template<typename ElementType>
+bool FHoudiniFoliageTools::IsIntervalNearlyEqual(const TInterval<ElementType>& InLhs, const TInterval<ElementType>& InRhs)
+{
+	return FMath::IsNearlyEqual(InLhs.Min, InRhs.Min)
+		&& FMath::IsNearlyEqual(InLhs.Max, InRhs.Max);
+}
