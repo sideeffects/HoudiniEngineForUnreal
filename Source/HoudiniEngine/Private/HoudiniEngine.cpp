@@ -707,21 +707,25 @@ FHoudiniEngine::StartSession(HAPI_Session*& SessionPtr,
 			HOUDINI_LOG_MESSAGE(TEXT("Session type set to None, Cooking is disabled."));
 			// Disable session sync
 			bEnableSessionSync = false;
-			break;
 		}
+		break;
 
 		case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
+		{
 			// As of Unreal 4.19, InProcess sessions are not supported anymore
 			SessionResult = FHoudiniApi::CreateInProcessSession(SessionPtr);
 			// Disable session sync
 			bEnableSessionSync = false;
-			break;
+		}
+		break;
 
 		default:
+		{
 			HOUDINI_LOG_ERROR(TEXT("Unsupported Houdini Engine session type"));
 			// Disable session sync
 			bEnableSessionSync = false;
-			break;
+		}
+		break;
 	}
 
 	// Stop here if we used a none session
