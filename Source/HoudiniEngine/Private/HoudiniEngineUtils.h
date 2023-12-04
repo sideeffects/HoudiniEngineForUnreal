@@ -796,8 +796,6 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static bool CreateAttributesFromTags(
 			const HAPI_NodeId& NodeId, const HAPI_PartId& PartId, const TArray<FName>& Tags);
 
-		static bool GetUnrealTagAttributes(const HAPI_NodeId& GeoId, const HAPI_PartId& PartId, TArray<FName>& OutTags);
-
 		// Helper function to access the "unreal_level_path" attribute
 		static bool GetLevelPathAttribute(
 			const HAPI_NodeId& InGeoId,

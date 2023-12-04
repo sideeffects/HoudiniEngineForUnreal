@@ -31,6 +31,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniInput.h"
+#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniOutput.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterButton.h"
@@ -574,8 +575,8 @@ UHoudiniAssetComponent::NeedUpdate() const
 	if (!IsFullyLoaded())
 		return false;
 
-	// We must have a valid asset
-	if (!IsValid(HoudiniAsset))
+	// We must have a valid asset, unless we're a NodeSync component
+	if (!IsValid(HoudiniAsset) && !IsA<UHoudiniNodeSyncComponent>())
 		return false;
 
 	if (bForceNeedUpdate || bRecookRequested)

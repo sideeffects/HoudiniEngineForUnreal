@@ -1981,13 +1981,26 @@ FHoudiniEngineUtils::IsValidNodeId(HAPI_NodeId NodeId)
 */
 
 bool
-FHoudiniEngineUtils::GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString & NameString)
+FHoudiniEngineUtils::GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString& NameString)
 {
+	if (AssetNodeId < 0)
+		return false;
+
 	HAPI_AssetInfo AssetInfo;
 	if (FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetNodeId, &AssetInfo) == HAPI_RESULT_SUCCESS)
 	{
 		FHoudiniEngineString HoudiniEngineString(AssetInfo.nameSH);
 		return HoudiniEngineString.ToFString(NameString);
+	}
+	else
+	{
+		// If the node is not an asset, return the node name
+		HAPI_NodeInfo NodeInfo;
+		if (FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), AssetNodeId, &NodeInfo) == HAPI_RESULT_SUCCESS)
+		{
+			FHoudiniEngineString HoudiniEngineString(NodeInfo.nameSH);
+			return HoudiniEngineString.ToFString(NameString);
+		}
 	}
 
 	return false;
@@ -2078,21 +2091,31 @@ FHoudiniEngineUtils::HapiGetNodePath(const FHoudiniGeoPartObject& InHGPO, FStrin
 	FString NodePathTemp;
 	if (InHGPO.AssetId == InHGPO.GeoId)
 	{
+		HAPI_NodeId AssetNodeId = -1;
+
 		// This is a SOP asset, just return the asset name in this case
 		HAPI_AssetInfo AssetInfo;
 		FHoudiniApi::AssetInfo_Init(&AssetInfo);
 		if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
 			FHoudiniEngine::Get().GetSession(), InHGPO.AssetId, &AssetInfo))
 		{
-			HAPI_NodeInfo AssetNodeInfo;
-			FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
-			if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeInfo(
-				FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &AssetNodeInfo))
-			{				
-				if (FHoudiniEngineString::ToFString(AssetNodeInfo.nameSH, NodePathTemp))
-				{
-					OutPath = FString::Printf(TEXT("%s_%d"), *NodePathTemp, InHGPO.PartId);
-				}
+			// Get the asset info node id
+			AssetNodeId = AssetInfo.nodeId;
+		}
+		else
+		{
+			// Not an asset, just use the node id directly
+			AssetNodeId = InHGPO.AssetId;
+		}
+
+		HAPI_NodeInfo AssetNodeInfo;
+		FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeInfo(
+			FHoudiniEngine::Get().GetSession(), AssetNodeId, &AssetNodeInfo))
+		{
+			if (FHoudiniEngineString::ToFString(AssetNodeInfo.nameSH, NodePathTemp))
+			{
+				OutPath = FString::Printf(TEXT("%s_%d"), *NodePathTemp, InHGPO.PartId);
 			}
 		}
 	}
@@ -2359,8 +2382,8 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 	// Get the AssetInfo
 	HAPI_AssetInfo AssetInfo;
 	FHoudiniApi::AssetInfo_Init(&AssetInfo);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
+	bool bAssetInfoResult = HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
+		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo);
 
 	// Get the Asset NodeInfo
 	HAPI_NodeInfo AssetNodeInfo;
@@ -2370,7 +2393,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 
 	FString CurrentAssetName;
 	{
-		FHoudiniEngineString hapiSTR(AssetInfo.nameSH);
+		FHoudiniEngineString hapiSTR(bAssetInfoResult ? AssetInfo.nameSH : AssetNodeInfo.nameSH);
 		hapiSTR.ToFString(CurrentAssetName);
 	}
 
@@ -2430,11 +2453,11 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 		}
 	}
 
-	const bool bIsSopAsset = AssetInfo.nodeId != AssetInfo.objectNodeId;
+	const bool bIsSopAsset = bAssetInfoResult ? (AssetInfo.nodeId != AssetInfo.objectNodeId) : AssetNodeInfo.type == HAPI_NODETYPE_SOP;
 	bool bUseOutputFromSubnets = true;
 	if (bAssetHasChildren)
 	{
-		if (FHoudiniEngineUtils::ContainsSopNodes(AssetInfo.nodeId))
+		if (FHoudiniEngineUtils::ContainsSopNodes(bAssetInfoResult ? AssetInfo.nodeId : AssetNodeInfo.id))
 		{
 			// This HDA contains immediate SOP nodes. Don't look for subnets to output.
 			bUseOutputFromSubnets = false;
@@ -6577,42 +6600,6 @@ FHoudiniEngineUtils::SanitizeHAPIVariableName(FString& String)
 	return bHasChanged;
 }
 
-bool
-FHoudiniEngineUtils::GetUnrealTagAttributes(
-	const HAPI_NodeId& GeoId, const HAPI_PartId& PartId, TArray<FName>& OutTags)
-{
-	FString TagAttribBase = TEXT("unreal_tag_");
-	bool bAttributeFound = true;
-	int32 TagIdx = 0;
-	while (bAttributeFound)
-	{
-		FString CurrentTagAttr = TagAttribBase + FString::FromInt(TagIdx++);
-		bAttributeFound = HapiCheckAttributeExists(GeoId, PartId, TCHAR_TO_UTF8(*CurrentTagAttr), HAPI_ATTROWNER_PRIM);
-		if (!bAttributeFound)
-			break;
-
-		// found the unreal_tag_X attribute, get its value and add it to the array
-		FString TagValue = FString();
-
-		// Create an AttributeInfo
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		TArray<FString> StringData;
-		if (FHoudiniEngineUtils::HapiGetAttributeDataAsString(
-			GeoId, PartId, TCHAR_TO_UTF8(*CurrentTagAttr),
-			AttributeInfo, StringData, 1, HAPI_ATTROWNER_PRIM, 0, 1))
-		{
-			if (StringData.Num() > 0)
-				TagValue = StringData[0];
-		}
-
-		FName NameTag = *TagValue;
-		OutTags.Add(NameTag);
-	}
-
-	return true;
-}
-
 
 int32
 FHoudiniEngineUtils::GetGenericAttributeList(
@@ -7441,6 +7428,8 @@ FHoudiniEngineUtils::AddLevelPathAttribute(
 		HOUDINI_LOG_WARNING(
 			TEXT("Failed to upload unreal_level_path attribute for mesh: %s"),
 			*FHoudiniEngineUtils::GetErrorDescription());
+
+		return false;
 	}
 
 	return true;
@@ -7491,6 +7480,8 @@ FHoudiniEngineUtils::AddActorPathAttribute(
 		HOUDINI_LOG_WARNING(
 			TEXT("Failed to upload unreal_actor_path attribute for mesh: %s"),
 			*FHoudiniEngineUtils::GetErrorDescription());
+
+		return false;
 	}
 
 	return true;

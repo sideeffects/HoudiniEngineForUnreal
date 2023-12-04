@@ -1006,7 +1006,7 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("MergeSplineMeshComponents", "Merge Spline Mesh Components"))
-				.ToolTipText(LOCTEXT("MergeSplineMeshComponentsTip", "If enabled, when a spline mesh components from actor world input are merged into a single static mesh per actor."))
+				.ToolTipText(LOCTEXT("MergeSplineMeshComponentsTip", "If enabled, spline mesh components from world input Actors are merged into a single static mesh per actor."))
 				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 			.Visibility(EVisibility::Visible)

@@ -26,6 +26,8 @@
 
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniEngineRuntime.h"
+#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniPDGAssetLink.h"
 
@@ -46,6 +48,50 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer & ObjectInitiali
 
 	RootComponent = HoudiniAssetComponent;
 }
+
+
+void 
+AHoudiniAssetActor::SetNodeSyncActor(bool bNodeSyncActor)
+{
+	if (IsNodeSyncActor() == bNodeSyncActor)
+		return;
+
+	// Destroy the existing component
+	HoudiniAssetComponent->DestroyComponent();
+
+	if (bNodeSyncActor)
+	{
+		// Create a new NodeSyncComponent to replace it
+		HoudiniAssetComponent = NewObject<UHoudiniNodeSyncComponent>(this);
+		RootComponent = HoudiniAssetComponent;
+	
+		HoudiniAssetComponent->RegisterComponent();
+		//HoudiniAssetComponent->AttachToActor(this);
+		AddInstanceComponent(HoudiniAssetComponent);
+
+		FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
+	}
+	else
+	{
+		// Create a new HoudiniAssetComponent to replace it
+		HoudiniAssetComponent = NewObject<UHoudiniAssetComponent>(this);
+		RootComponent = HoudiniAssetComponent;
+
+		HoudiniAssetComponent->RegisterComponent();
+		//HoudiniAssetComponent->AttachToActor(this);
+		AddInstanceComponent(HoudiniAssetComponent);
+
+		FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
+	}
+}
+
+// Indicates if this Actor is a NodeSyncActor
+bool
+AHoudiniAssetActor::IsNodeSyncActor() const
+{
+	return HoudiniAssetComponent->IsA<UHoudiniNodeSyncComponent>();
+}
+
 
 UHoudiniAssetComponent *
 AHoudiniAssetActor::GetHoudiniAssetComponent() const

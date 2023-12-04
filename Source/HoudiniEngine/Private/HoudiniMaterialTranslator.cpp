@@ -860,15 +860,24 @@ FHoudiniMaterialTranslator::GetMaterialRelativePath(const HAPI_NodeId& InAssetId
 	// We want to get the asset node path so we can remove it from the material name
 	FString AssetNodeName = TEXT("");
 	{
+		HAPI_NodeId AssetNodeId = -1;
+
 		HAPI_AssetInfo AssetInfo;
 		FHoudiniApi::AssetInfo_Init(&AssetInfo);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
-			FHoudiniEngine::Get().GetSession(), InAssetId, &AssetInfo), false);
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
+			FHoudiniEngine::Get().GetSession(), InAssetId, &AssetInfo))
+		{
+			AssetNodeId = AssetInfo.nodeId;
+		}
+		else
+		{
+			AssetNodeId = InAssetId;
+		}
 
 		HAPI_NodeInfo AssetNodeInfo;
 		FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
-			FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &AssetNodeInfo), false);
+			FHoudiniEngine::Get().GetSession(), AssetNodeId, &AssetNodeInfo), false);
 
 		FHoudiniEngineString::ToFString(AssetNodeInfo.internalNodePathSH, AssetNodeName);
 	}
@@ -903,6 +912,7 @@ FHoudiniMaterialTranslator::CreatePackageForMaterial(
 	FString& OutMaterialName)
 {
 	FString MaterialDescriptor = TEXT("_material_") + FString::FromInt(InMaterialNodeId) + TEXT("_") + InMaterialName;
+	//FString MaterialDescriptor = TEXT("_material_") + FString::FromInt(InMaterialNodeId) + TEXT("_") + FString::FromInt(InPackageParams.PartId) + InPackageParams.SplitStr +  TEXT("_") + InMaterialName;
 
 	FHoudiniPackageParams MyPackageParams = InPackageParams;
 	if (!MyPackageParams.ObjectName.IsEmpty())

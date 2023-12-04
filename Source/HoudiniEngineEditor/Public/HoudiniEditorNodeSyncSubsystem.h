@@ -76,6 +76,9 @@ public:
 
 	UPROPERTY()
 	FString SkeletonAssetPath = "";	
+
+	UPROPERTY()
+	bool bAutoBake = false;
 };
 
 
@@ -135,11 +138,6 @@ public:
 private:
 
 	bool InitNodeSyncInputIfNeeded();
-
-	bool SendStaticMeshToHoudini(const HAPI_NodeId& InMeshNodeId, UStaticMesh* InMesh);
-	bool SendSkeletalMeshToHoudini(const HAPI_NodeId& InMeshNodeId, USkeletalMesh* InSkelMesh);
-	bool FetchSkeletalMeshFromHoudini(const HAPI_NodeId& InNodeId, const FString& InPackageName, const FString& InPackageFolder, const int32& MaxInfluences, const bool& ImportNormals);
-	bool FetchStaticMeshFromHoudini(const HAPI_NodeId& InNodeId, const FString& InPackageName, const FString& InPackageFolder);
 
 	UPROPERTY()
 	UHoudiniInput* NodeSyncInput;

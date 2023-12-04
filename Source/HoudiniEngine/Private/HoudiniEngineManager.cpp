@@ -36,6 +36,7 @@
 #include "HoudiniParameterTranslator.h"
 #include "HoudiniPDGManager.h"
 #include "HoudiniInputTranslator.h"
+#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniOutputTranslator.h"
 #include "HoudiniHandleTranslator.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
@@ -462,8 +463,9 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 	if (!IsValid(HAC))
 		return;
 
-	// No need to process component not tied to an asset
-	if (!HAC->GetHoudiniAsset())
+	bool bIsNodeSyncComponent = HAC->IsA<UHoudiniNodeSyncComponent>();
+	// No need to process a component not tied to an asset..
+	if (!bIsNodeSyncComponent && !HAC->GetHoudiniAsset())
 		return;
 
 	const EHoudiniAssetState AssetStateToProcess = HAC->GetAssetState();
@@ -538,26 +540,60 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			// Make sure we empty the nodes to cook array to avoid cook errors caused by stale nodes 
 			HAC->ClearOutputNodes();
 
-			FGuid TaskGuid;
-			FString HapiAssetName;
-			UHoudiniAsset* HoudiniAsset = HAC->GetHoudiniAsset();
-			if (StartTaskAssetInstantiation(HoudiniAsset, HAC->GetDisplayName(), TaskGuid, HapiAssetName))
+			if (bIsNodeSyncComponent)
 			{
-				// Update the HAC's state
-				HAC->SetAssetState(EHoudiniAssetState::Instantiating);
+				UHoudiniNodeSyncComponent* HNSC = Cast<UHoudiniNodeSyncComponent>(HAC);
 
-				// Update the Task GUID
-				HAC->HapiGUID = TaskGuid;
+				// Directly fetch the node
+				HAPI_NodeId FetchNodeId = -1;
+				bool bFetchOK = (HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeFromPath(
+					FHoudiniEngine::Get().GetSession(), -1, TCHAR_TO_ANSI(*HNSC->GetFetchNodePath()), &FetchNodeId));
 
-				// Update the HapiAssetName
-				HAC->HapiAssetName = HapiAssetName;
+				if (IsValid(HNSC) && bFetchOK)
+				{
+					// Set the new Asset ID
+					HAC->AssetId = FetchNodeId;
+
+					// Assign a unique name to the actor if needed
+					//FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(HAC);
+
+					// Reset the cook counter.
+					HAC->SetAssetCookCount(0);
+					HAC->ClearOutputNodes();
+
+					// Update the HAC's state
+					HAC->SetAssetState(EHoudiniAssetState::PreCook);
+				}
+				else
+				{
+					// We couldnt create the node, change the state back to NeedInstantiation
+					HAC->SetAssetState(EHoudiniAssetState::NeedInstantiation);
+				}
 			}
 			else
 			{
-				// If we couldnt instantiate the asset
-				// Change the state back to NeedInstantiating
-				HAC->SetAssetState(EHoudiniAssetState::NeedInstantiation);
+				FGuid TaskGuid;
+				FString HapiAssetName;
+				UHoudiniAsset* HoudiniAsset = HAC->GetHoudiniAsset();
+				if (StartTaskAssetInstantiation(HoudiniAsset, HAC->GetDisplayName(), TaskGuid, HapiAssetName))
+				{
+					// Update the HAC's state
+					HAC->SetAssetState(EHoudiniAssetState::Instantiating);
+
+					// Update the Task GUID
+					HAC->HapiGUID = TaskGuid;
+
+					// Update the HapiAssetName
+					HAC->HapiAssetName = HapiAssetName;
+				}
+				else
+				{
+					// If we couldnt instantiate the asset
+					// Change the state back to NeedInstantiation
+					HAC->SetAssetState(EHoudiniAssetState::NeedInstantiation);
+				}
 			}
+
 			break;
 		}
 
@@ -649,6 +685,18 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			bool bSuccess = HAC->bLastCookSuccess;
 			HAC->HandleOnPreOutputProcessing();
 			HAC->OnPreOutputProcessing();
+			
+			/*
+			// Always update cookcount even when not successful?
+			//if (bSuccess)
+			{
+				// Update the cook count on the HAC
+				// It's better to do it before processing, as changes could be done to the HAC while we're processing outputs
+				int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
+				HAC->SetAssetCookCount(CookCount);
+			}
+			*/
+
 			if (PostCook(HAC, bSuccess, HAC->GetAssetId()))
 			{
 				// Cook was successful, process the results
@@ -673,8 +721,9 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 		{
 			UpdateProcess(HAC);
 
-			int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
-			HAC->SetAssetCookCount(CookCount);
+			// This is too late to update the cook count, things might have changed since we asked for a cook
+			//int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
+			//HAC->SetAssetCookCount(CookCount);
 
 			HAC->HandleOnPostOutputProcessing();
 			HAC->OnPostOutputProcessing();
@@ -708,12 +757,22 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 				&& FHoudiniEngine::Get().IsSyncWithHoudiniCookEnabled()
 				&& HAC->GetAssetState() == EHoudiniAssetState::None)
 			{
+				bool bEnableLiveSync = true;
+				if (bIsNodeSyncComponent)
+				{
+					UHoudiniNodeSyncComponent* HNSC = Cast<UHoudiniNodeSyncComponent>(HAC);
+					bEnableLiveSync = HNSC ? HNSC->GetLiveSyncEnabled() : false;
+				}
+
 				int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
-				if (CookCount >= 0 && CookCount != HAC->GetAssetCookCount())
+				if (CookCount >= 0 && CookCount != HAC->GetAssetCookCount() && bEnableLiveSync)
 				{
 					// The cook count has changed on the Houdini side,
 					// this indicates that the user has changed something in Houdini so we need to trigger an update
 					HAC->SetAssetState(EHoudiniAssetState::PreCook);
+					
+					// Make sure to update the cookcount to prevent loop cooking
+					HAC->SetAssetCookCount(CookCount);
 				}
 			}
 			break;
@@ -721,8 +780,11 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::NeedRebuild:
 		{
-			StartTaskAssetRebuild(HAC->AssetId, HAC->HapiGUID);
-
+			if (!bIsNodeSyncComponent)
+			{
+				// Do not delete nodes for NodeSync components!
+				StartTaskAssetRebuild(HAC->AssetId, HAC->HapiGUID);
+			}
 			HAC->MarkAsNeedCook();
 			HAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
 			break;
@@ -730,19 +792,23 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::NeedDelete:
 		{
-			FGuid HapiDeletionGUID;
-			StartTaskAssetDelete(HAC->GetAssetId(), HapiDeletionGUID, true);
+			if (!bIsNodeSyncComponent)
+			{
+				// Do not delete nodes for NodeSync components!
+				FGuid HapiDeletionGUID;
+				StartTaskAssetDelete(HAC->GetAssetId(), HapiDeletionGUID, true);
 				//HAC->AssetId = -1;
+			}
 
 			// Update the HAC's state
 			HAC->SetAssetState(EHoudiniAssetState::Deleting);
 			break;
-		}		
+		}
 
 		case EHoudiniAssetState::Deleting:
 		{
 			break;
-		}		
+		}
 	}
 }
 

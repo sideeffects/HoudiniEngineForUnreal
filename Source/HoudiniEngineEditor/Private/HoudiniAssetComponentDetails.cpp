@@ -36,6 +36,7 @@
 #include "HoudiniInput.h"
 #include "HoudiniInputDetails.h"
 #include "HoudiniHandleDetails.h"
+#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniOutput.h"
 #include "HoudiniOutputDetails.h"
 #include "Widgets/Input/SButton.h"
@@ -275,7 +276,15 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	// TODO do the same for inputs
 	TMap<TWeakObjectPtr<UHoudiniAsset>, TArray<TWeakObjectPtr<UHoudiniAssetComponent>>> HoudiniAssetToHACs;
 	for (auto HAC : HoudiniAssetComponents)
-	{ 
+	{
+		// Add NodeSync component with a null Houdini Asset
+		if (HAC->IsA<UHoudiniNodeSyncComponent>())
+		{
+			TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& ValueRef = HoudiniAssetToHACs.FindOrAdd(nullptr);
+			ValueRef.Add(HAC);
+			continue;
+		}
+
 		TWeakObjectPtr<UHoudiniAsset> HoudiniAsset = HAC->GetHoudiniAsset();
 		if (!IsValidWeakPointer(HoudiniAsset))
 			continue;
@@ -305,6 +314,8 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			MultiSelectionIdentifier += TEXT(")");
 		}
 
+
+		bool bIsNodeSyncComponent = MainComponent->IsA<UHoudiniNodeSyncComponent>();
 		//
 		// 0. HOUDINI ASSET DETAILS
 		//
@@ -359,14 +370,34 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				MultiSelectedHACs.Add(NextHACWeakPtr);
 			}
 
-
 			HoudiniEngineDetails->CreateWidget(HouEngineCategory, MultiSelectedHACs);
+		}
+
+		if (bIsNodeSyncComponent)
+		{
+			// If we are working on a node sync component, display its specific options
+			FString HoudiniNodeSyncCategoryName = "Node Sync";
+			HoudiniNodeSyncCategoryName += MultiSelectionIdentifier;
+
+			TArray<TWeakObjectPtr<UHoudiniAssetComponent>> MultiSelectedHACs;
+			for (auto& NextHACWeakPtr : HACs)
+			{
+				if (!IsValidWeakPointer(NextHACWeakPtr))
+					continue;
+
+				MultiSelectedHACs.Add(NextHACWeakPtr);
+			}
+
+			// Create Houdini Engine details category
+			IDetailCategoryBuilder& HouNodeSyncCategory =
+				DetailBuilder.EditCategory(*HoudiniNodeSyncCategoryName, FText::FromString("Node Sync"), ECategoryPriority::Important);
+			HoudiniEngineDetails->CreateNodeSyncWidgets(HouNodeSyncCategory, MultiSelectedHACs);
 		}
 
 		//
 		//  1. PDG ASSET LINK (if available)
 		//
-		if (MainComponent->GetPDGAssetLink())
+		if (MainComponent->GetPDGAssetLink() && !bIsNodeSyncComponent)
 		{
 			FString PDGCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PDG);
 			PDGCatName += MultiSelectionIdentifier;
@@ -390,164 +421,172 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		// 2. PARAMETER DETAILS
 		//
 
-		// If we have selected more than one component that have different HDAs, 
-		// we need to create multiple categories one for each different HDA
-		FString ParamCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PARAMS);
-		ParamCatName += MultiSelectionIdentifier;
+		if (!bIsNodeSyncComponent)
+		{
+			// If we have selected more than one component that have different HDAs, 
+			// we need to create multiple categories one for each different HDA
+			FString ParamCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PARAMS);
+			ParamCatName += MultiSelectionIdentifier;
 
-		// Create the Parameters details category
-		IDetailCategoryBuilder & HouParameterCategory =
-			DetailBuilder.EditCategory(*ParamCatName, FText::GetEmpty(), ECategoryPriority::Important);
+			// Create the Parameters details category
+			IDetailCategoryBuilder& HouParameterCategory =
+				DetailBuilder.EditCategory(*ParamCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
-		// If we are running Houdini Engine Indie license, we need to display a special label.
-		if(bIsIndieLicense && MainComponent->GetNumParameters() > 0)
-			AddIndieLicenseRow(HouParameterCategory);
+			// If we are running Houdini Engine Indie license, we need to display a special label.
+			if (bIsIndieLicense && MainComponent->GetNumParameters() > 0)
+				AddIndieLicenseRow(HouParameterCategory);
 
-		// Iterate through the component's parameters
-		for (int32 ParamIdx = 0; ParamIdx < MainComponent->GetNumParameters(); ParamIdx++)
-		{	
-			// We only want to create root parameters here, they will recursively create child parameters.
-			UHoudiniParameter* CurrentParam = MainComponent->GetParameterAt(ParamIdx);
-			if (!IsValid(CurrentParam))
-				continue;
-			
-			// TODO: remove ? unneeded?
-			// ensure the parameter is actually owned by a HAC
-			/*const TWeakObjectPtr<UHoudiniAssetComponent> Owner = Cast<UHoudiniAssetComponent>(CurrentParam->GetOuter());
-			if (!Owner.IsValid())
-				continue;*/
-
-			// Build an array of edited parameter for multi edit
-			TArray<TWeakObjectPtr<UHoudiniParameter>> EditedParams;
-			EditedParams.Add(CurrentParam);
-
-			// Add the corresponding params in the other HAC
-			for (int LinkedIdx = 1; LinkedIdx < HACs.Num(); LinkedIdx++)
+			// Iterate through the component's parameters
+			for (int32 ParamIdx = 0; ParamIdx < MainComponent->GetNumParameters(); ParamIdx++)
 			{
-				UHoudiniParameter* LinkedParam = HACs[LinkedIdx]->GetParameterAt(ParamIdx);
-				if (!IsValid(LinkedParam))
+				// We only want to create root parameters here, they will recursively create child parameters.
+				UHoudiniParameter* CurrentParam = MainComponent->GetParameterAt(ParamIdx);
+				if (!IsValid(CurrentParam))
 					continue;
 
-				// Linked params should match the main param! If not try to find one that matches
-				if ( !LinkedParam->Matches(*CurrentParam) )
+				// TODO: remove ? unneeded?
+				// ensure the parameter is actually owned by a HAC
+				/*const TWeakObjectPtr<UHoudiniAssetComponent> Owner = Cast<UHoudiniAssetComponent>(CurrentParam->GetOuter());
+				if (!Owner.IsValid())
+					continue;*/
+
+					// Build an array of edited parameter for multi edit
+				TArray<TWeakObjectPtr<UHoudiniParameter>> EditedParams;
+				EditedParams.Add(CurrentParam);
+
+				// Add the corresponding params in the other HAC
+				for (int LinkedIdx = 1; LinkedIdx < HACs.Num(); LinkedIdx++)
 				{
-					LinkedParam = MainComponent->FindMatchingParameter(CurrentParam);
-					if (!IsValid(LinkedParam) || LinkedParam->IsChildParameter())
+					UHoudiniParameter* LinkedParam = HACs[LinkedIdx]->GetParameterAt(ParamIdx);
+					if (!IsValid(LinkedParam))
 						continue;
+
+					// Linked params should match the main param! If not try to find one that matches
+					if (!LinkedParam->Matches(*CurrentParam))
+					{
+						LinkedParam = MainComponent->FindMatchingParameter(CurrentParam);
+						if (!IsValid(LinkedParam) || LinkedParam->IsChildParameter())
+							continue;
+					}
+
+					EditedParams.Add(LinkedParam);
 				}
 
-				EditedParams.Add(LinkedParam);
+				ParameterDetails->CreateWidget(HouParameterCategory, EditedParams);
 			}
-
-			ParameterDetails->CreateWidget(HouParameterCategory, EditedParams);
 		}
 
-		/***   HOUDINI HANDLE DETAILS   ***/
-
-		// If we have selected more than one component that have different HDAs, 
-		// we need to create multiple categories one for each different HDA
-		FString HandleCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_HANDLES);
-		HandleCatName += MultiSelectionIdentifier;
-
-		// Create the Parameters details category
-		IDetailCategoryBuilder & HouHandleCategory =
-			DetailBuilder.EditCategory(*HandleCatName, FText::GetEmpty(), ECategoryPriority::Important);
-
-		// If we are running Houdini Engine Indie license, we need to display a special label.
-		if (bIsIndieLicense && MainComponent->GetNumHandles() > 0)
-			AddIndieLicenseRow(HouHandleCategory);
-
-		// Iterate through the component's Houdini handles
-		for (int32 HandleIdx = 0; HandleIdx < MainComponent->GetNumHandles(); ++HandleIdx) 
+		//
+		// 3. HANDLE DETAILS
+		//
+		if (!bIsNodeSyncComponent)
 		{
-			UHoudiniHandleComponent* CurrentHandleComponent = MainComponent->GetHandleComponentAt(HandleIdx);
+			// If we have selected more than one component that have different HDAs, 
+			// we need to create multiple categories one for each different HDA
+			FString HandleCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_HANDLES);
+			HandleCatName += MultiSelectionIdentifier;
 
-			if (!IsValid(CurrentHandleComponent))
-				continue;
+			// Create the Parameters details category
+			IDetailCategoryBuilder& HouHandleCategory =
+				DetailBuilder.EditCategory(*HandleCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
-			TArray<TWeakObjectPtr<UHoudiniHandleComponent>> EditedHandles;
-			EditedHandles.Add(CurrentHandleComponent);
+			// If we are running Houdini Engine Indie license, we need to display a special label.
+			if (bIsIndieLicense && MainComponent->GetNumHandles() > 0)
+				AddIndieLicenseRow(HouHandleCategory);
 
-			// Add the corresponding params in the other HAC
-			for (int LinkedIdx = 1; LinkedIdx < HACs.Num(); ++LinkedIdx) 
+			// Iterate through the component's Houdini handles
+			for (int32 HandleIdx = 0; HandleIdx < MainComponent->GetNumHandles(); ++HandleIdx)
 			{
-				UHoudiniHandleComponent* LinkedHandle = HACs[LinkedIdx]->GetHandleComponentAt(HandleIdx);
-				if (!IsValid(LinkedHandle))
+				UHoudiniHandleComponent* CurrentHandleComponent = MainComponent->GetHandleComponentAt(HandleIdx);
+
+				if (!IsValid(CurrentHandleComponent))
 					continue;
 
-				// Linked handles should match the main param, if not try to find one that matches
-				if (!LinkedHandle->Matches(*CurrentHandleComponent)) 
+				TArray<TWeakObjectPtr<UHoudiniHandleComponent>> EditedHandles;
+				EditedHandles.Add(CurrentHandleComponent);
+
+				// Add the corresponding params in the other HAC
+				for (int LinkedIdx = 1; LinkedIdx < HACs.Num(); ++LinkedIdx)
 				{
-					LinkedHandle = MainComponent->FindMatchingHandle(CurrentHandleComponent);
+					UHoudiniHandleComponent* LinkedHandle = HACs[LinkedIdx]->GetHandleComponentAt(HandleIdx);
 					if (!IsValid(LinkedHandle))
 						continue;
+
+					// Linked handles should match the main param, if not try to find one that matches
+					if (!LinkedHandle->Matches(*CurrentHandleComponent))
+					{
+						LinkedHandle = MainComponent->FindMatchingHandle(CurrentHandleComponent);
+						if (!IsValid(LinkedHandle))
+							continue;
+					}
+
+					EditedHandles.Add(LinkedHandle);
 				}
 
-				EditedHandles.Add(LinkedHandle);
+				FHoudiniHandleDetails::CreateWidget(HouHandleCategory, EditedHandles);
 			}
-
-			FHoudiniHandleDetails::CreateWidget(HouHandleCategory, EditedHandles);
 		}
 
-
 		//
-		// 3. INPUT DETAILS
+		// 5. INPUT DETAILS
 		//
-
-		// If we have selected more than one component that have different HDAs, 
-		// we need to create multiple categories one for each different HDA
-		FString InputCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_INPUTS);
-		InputCatName += MultiSelectionIdentifier;
-
-		// Create the input details category
-		IDetailCategoryBuilder & HouInputCategory =
-			DetailBuilder.EditCategory(*InputCatName, FText::GetEmpty(), ECategoryPriority::Important);
-
-		// If we are running Houdini Engine Indie license, we need to display a special label.
-		if (bIsIndieLicense && MainComponent->GetNumInputs() > 0)
-			AddIndieLicenseRow(HouInputCategory);
-		
-		// Iterate through the component's inputs
-		for (int32 InputIdx = 0; InputIdx < MainComponent->GetNumInputs(); InputIdx++)
+		if (!bIsNodeSyncComponent)
 		{
-			UHoudiniInput* CurrentInput = MainComponent->GetInputAt(InputIdx);
-			if (!IsValid(CurrentInput))
-				continue;
+			// If we have selected more than one component that have different HDAs, 
+			// we need to create multiple categories one for each different HDA
+			FString InputCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_INPUTS);
+			InputCatName += MultiSelectionIdentifier;
 
-			if (!MainComponent->IsInputTypeSupported(CurrentInput->GetInputType()))
-				continue;
+			// Create the input details category
+			IDetailCategoryBuilder& HouInputCategory =
+				DetailBuilder.EditCategory(*InputCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
-			// Object path parameter inputs are displayed by the ParameterDetails - skip them
-			if (CurrentInput->IsObjectPathParameter())
-				continue;
+			// If we are running Houdini Engine Indie license, we need to display a special label.
+			if (bIsIndieLicense && MainComponent->GetNumInputs() > 0)
+				AddIndieLicenseRow(HouInputCategory);
 
-			// Build an array of edited inputs for multi edit
-			TArray<TWeakObjectPtr<UHoudiniInput>> EditedInputs;
-			EditedInputs.Add(CurrentInput);
-
-			// Add the corresponding inputs in the other HAC
-			for (int LinkedIdx = 1; LinkedIdx < HACs.Num(); LinkedIdx++)
+			// Iterate through the component's inputs
+			for (int32 InputIdx = 0; InputIdx < MainComponent->GetNumInputs(); InputIdx++)
 			{
-				UHoudiniInput* LinkedInput = HACs[LinkedIdx]->GetInputAt(InputIdx);
-				if (!IsValid(LinkedInput))
+				UHoudiniInput* CurrentInput = MainComponent->GetInputAt(InputIdx);
+				if (!IsValid(CurrentInput))
 					continue;
 
-				// Linked params should match the main param! If not try to find one that matches
-				if (!LinkedInput->Matches(*CurrentInput))
+				if (!MainComponent->IsInputTypeSupported(CurrentInput->GetInputType()))
+					continue;
+
+				// Object path parameter inputs are displayed by the ParameterDetails - skip them
+				if (CurrentInput->IsObjectPathParameter())
+					continue;
+
+				// Build an array of edited inputs for multi edit
+				TArray<TWeakObjectPtr<UHoudiniInput>> EditedInputs;
+				EditedInputs.Add(CurrentInput);
+
+				// Add the corresponding inputs in the other HAC
+				for (int LinkedIdx = 1; LinkedIdx < HACs.Num(); LinkedIdx++)
 				{
-					LinkedInput = MainComponent->FindMatchingInput(CurrentInput);
+					UHoudiniInput* LinkedInput = HACs[LinkedIdx]->GetInputAt(InputIdx);
 					if (!IsValid(LinkedInput))
 						continue;
+
+					// Linked params should match the main param! If not try to find one that matches
+					if (!LinkedInput->Matches(*CurrentInput))
+					{
+						LinkedInput = MainComponent->FindMatchingInput(CurrentInput);
+						if (!IsValid(LinkedInput))
+							continue;
+					}
+
+					EditedInputs.Add(LinkedInput);
 				}
 
-				EditedInputs.Add(LinkedInput);
+				FHoudiniInputDetails::CreateWidget(HouInputCategory, EditedInputs);
 			}
-
-			FHoudiniInputDetails::CreateWidget(HouInputCategory, EditedInputs);
 		}
 
 		//
-		// 4. OUTPUT DETAILS
+		// 6. OUTPUT DETAILS
 		//
 
 		// If we have selected more than one component that have different HDAs, 

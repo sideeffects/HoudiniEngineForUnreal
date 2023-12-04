@@ -73,20 +73,20 @@ UHoudiniAssetActorFactory::PostSpawnActor(UObject * Asset, AActor * NewActor)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("PostSpawnActor %s, supplied Asset = 0x%0.8p"), *NewActor->GetActorNameOrLabel(), Asset);
 
-	UHoudiniAsset * HoudiniAsset = CastChecked<UHoudiniAsset>(Asset);
-	if (HoudiniAsset)
+	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Asset);
+	AHoudiniAssetActor * HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(NewActor);
+	UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
+	check(HoudiniAssetComponent);
+
+	FHoudiniEngineUtils::AddHoudiniLogoToComponent(HoudiniAssetComponent);
+
+	if (!HoudiniAssetActor->IsUsedForPreview())
 	{
-		AHoudiniAssetActor * HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(NewActor);
-		UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
-		check(HoudiniAssetComponent);
-
-		FHoudiniEngineUtils::AddHoudiniLogoToComponent(HoudiniAssetComponent);
-
-		if (!HoudiniAssetActor->IsUsedForPreview())
+		if (IsValid(HoudiniAsset))
 		{
 			HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
-			FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
-		}		
+		}
+		FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
 	}
 }
 

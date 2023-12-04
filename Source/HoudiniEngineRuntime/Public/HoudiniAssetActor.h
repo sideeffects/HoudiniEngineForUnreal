@@ -54,7 +54,14 @@ public:
 	bool IsUsedForPreview() const;
 	
 	// Gets the Houdini PDG asset link associated with this actor, if it has one.
-	UHoudiniPDGAssetLink* GetPDGAssetLink() const; 
+	UHoudiniPDGAssetLink* GetPDGAssetLink() const;
+
+	// Set the Houdini Actor to be a NodeSyncActor
+	void SetNodeSyncActor(bool bIsNodeSync);
+
+	// Indicates if this Actor is a NodeSyncActor
+	bool IsNodeSyncActor() const;
+
 
 #if WITH_EDITOR
 

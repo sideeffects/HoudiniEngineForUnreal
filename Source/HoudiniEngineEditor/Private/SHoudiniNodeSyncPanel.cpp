@@ -91,6 +91,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 	TSharedPtr<SCheckBox> CheckBoxUseOutputNodes;
 	TSharedPtr<SCheckBox> CheckBoxFetchToWorld;
 	TSharedPtr<SCheckBox> CheckBoxReplaceExisting;
+	TSharedPtr<SCheckBox> CheckBoxAutoBake;
 
 	// Get the session status
 	auto GetSessionSyncStatusAndColor = [](FString& OutStatus, FLinearColor& OutStatusColor)
@@ -377,7 +378,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 			[
 				SNew(SBox)
 				.WidthOverride(160.f)
-				.IsEnabled(false)
+				//.IsEnabled(false)
 				[
 					SAssignNew(CheckBoxFetchToWorld, SCheckBox)
 					.Content()
@@ -417,8 +418,37 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 				]
 				.BodyContent()
 				[
-					// UNREAL ACTOR NAME
 					SNew(SVerticalBox)
+					// AutoBake?
+					+ SVerticalBox::Slot()
+					.HAlign(HAlign_Left)
+					.AutoHeight()
+					.Padding(10.0f, 0.0f, 0.0f, 5.0f)
+					[
+						SNew(SBox)
+						.WidthOverride(160.f)
+						[
+							SAssignNew(CheckBoxAutoBake, SCheckBox)
+							.Content()
+							[
+								SNew(STextBlock).Text(LOCTEXT("AutoBake", "Auto Bake"))
+								.ToolTipText(LOCTEXT("AutoBakeToolTip", "If enabled, output data fetched to world will automatically be baked. If disabled, they will be created as temporary cooked data, and attached to a Houdini Node Sync Component."))
+								.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+							]
+							.IsChecked_Lambda([]()
+							{
+								UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+								return HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bAutoBake ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+							})
+							.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
+							{
+								const bool bNewState = (NewState == ECheckBoxState::Checked);
+								UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+								HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bAutoBake = bNewState;
+							})
+						]
+					]
+					// UNREAL ACTOR NAME
 					+ SVerticalBox::Slot()
 					.HAlign(HAlign_Left)
 					.AutoHeight()
@@ -430,7 +460,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 						[
 							SNew(SBox)
 							.WidthOverride(335.0f)
-							.IsEnabled(false)
+							//.IsEnabled(false)
 							[
 								SNew(STextBlock)
 								.Text(LOCTEXT("UnrealActorName", "Unreal Actor Name"))
@@ -440,7 +470,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 						.HAlign(HAlign_Right)
 						[
 							SNew(SEditableTextBox)
-							.IsEnabled(false)
+							//.IsEnabled(false)
 							.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 							.ToolTipText(LOCTEXT("UnrealActorNameTooltip", "Name of the generated Actor in unreal"))
 							.HintText(LOCTEXT("UnrealActorNameLabel", "Unreal Actor Name"))
@@ -472,7 +502,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 						[
 							SNew(SBox)
 							.WidthOverride(335.0f)
-							.IsEnabled(false)
+							//.IsEnabled(false)
 							[
 								SNew(STextBlock)
 								.Text(LOCTEXT("UnrealActorFolderLabel", "World Outliner Folder"))
@@ -482,7 +512,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 						.HAlign(HAlign_Right)
 						[
 							SNew(SEditableTextBox)
-							.IsEnabled(false)
+							//.IsEnabled(false)
 							.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 							.ToolTipText(LOCTEXT("UnrealActorFolderTooltip","Path to a world outliner folder that will contain the created Actor"))
 							.HintText(LOCTEXT("UnrealActorFolderLabel", "Unreal Actor World Outliner Folder"))
@@ -856,9 +886,6 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 					[IconBrush](){return IconBrush.Get();}
 		)));
 	}
-
-	// Disable FetchToWorld options
-	FetchToWorldOptionsArea->SetEnabled(false);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 

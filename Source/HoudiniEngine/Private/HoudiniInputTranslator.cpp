@@ -153,19 +153,13 @@ FHoudiniInputTranslator::BuildAllInputs(
 
 	// Start by getting the asset's info
 	HAPI_AssetInfo AssetInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
+	bool bAssetInfoSuccess = (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
+		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo));
 
 	// Get the number of geo (SOP) inputs
-	int32 InputCount = AssetInfo.geoInputCount;
-	/*
 	// It's best to update the input count even if the hda hasnt cooked
 	// as it can cause loaded geo inputs to disappear upon loading the level
-	if ( AssetInfo.hasEverCooked )
-	{
-		InputCount = AssetInfo.geoInputCount;
-	}
-	*/
+	int32 InputCount = bAssetInfoSuccess ? AssetInfo.geoInputCount : 0;
 
 	// Also look for object path parameters inputs
 	// Helper map to get the parameter index, given the parameter name

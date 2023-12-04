@@ -768,11 +768,6 @@ bool
 FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 {
 	HAPI_NodeId & AssetId = HAC->AssetId;
-	// Get the AssetInfo
-	HAPI_AssetInfo AssetInfo;
-	FHoudiniApi::AssetInfo_Init(&AssetInfo);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
 
 	// Retrieve information about each object contained within our asset.
 	TArray<HAPI_ObjectInfo> ObjectInfos;
@@ -1052,14 +1047,24 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	// Get the AssetInfo
 	HAPI_AssetInfo AssetInfo;
 	FHoudiniApi::AssetInfo_Init(&AssetInfo);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), false);
+	bool bAssetInfoSuccess = (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
+		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo));
 
 	// Get the Asset NodeInfo
 	HAPI_NodeInfo AssetNodeInfo;
 	FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
 		FHoudiniEngine::Get().GetSession(), AssetId, &AssetNodeInfo), false);
+
+	if (!bAssetInfoSuccess)
+	{
+		// IF we try to pull outputs from a non asset node, fix a few things
+		AssetInfo.nameSH = AssetNodeInfo.nameSH;
+		AssetInfo.nodeId = AssetNodeInfo.id;
+
+		// TODO: improve this?
+		AssetInfo.objectNodeId = (AssetNodeInfo.type == HAPI_NODETYPE_OBJ) ? AssetNodeInfo.id : AssetNodeInfo.parentId;
+	}
 
 	FString CurrentAssetName;
 	{

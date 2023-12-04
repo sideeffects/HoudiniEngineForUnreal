@@ -100,6 +100,10 @@ public:
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
+	static void CreateNodeSyncWidgets(
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
+
 	static void CreateInstallInfoWindow();
 
 	static FReply ShowCookLog(const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACS);
