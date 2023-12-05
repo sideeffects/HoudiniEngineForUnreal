@@ -788,30 +788,37 @@ TArray<ULandscapeLayerInfoObject*> FHoudiniLandscapeUtils::CreateTargetLayerInfo
 
 			ULandscapeLayerInfoObject* Layer = nullptr;
 
-			if (PartsForLandscape.Contains(TargetLayerName) &&
-				!PartsForLandscape[TargetLayerName]->LayerInfoObjectName.IsEmpty())
+			if (PartsForLandscape.Contains(TargetLayerName))
 			{
-				// Load an existing layer object if the user specified it.
-				Layer = LoadObject<ULandscapeLayerInfoObject>(
-					nullptr, *PartsForLandscape[TargetLayerName]->LayerInfoObjectName, nullptr, LOAD_None, nullptr);
-			}
-			else
-			{
-				// Normally we create packages with a name based off geo/part ids. But this doesn't make sense here
-				// as we're creating a layer info based off the material and name of the landscape.
-				ALandscape * ParentLandscape = LandscapeProxy->GetLandscapeActor();
-				FString PackageName = ParentLandscape->GetName() + FString("_") + TargetLayerName;
-				FString PackagePath = LayerPackageParams.GetPackagePath();
-				UPackage* Package = nullptr;
-				Layer = FindOrCreateLandscapeLayerInfoObject(TargetLayerName, PackagePath, PackageName, Package);
-				CreatedPackages.Add(Package);
+				if (!PartsForLandscape[TargetLayerName]->LayerInfoObjectName.IsEmpty())
+				{
+					// Load an existing layer object if the user specified it.
+					Layer = LoadObject<ULandscapeLayerInfoObject>(
+						nullptr, *PartsForLandscape[TargetLayerName]->LayerInfoObjectName, nullptr, LOAD_None, nullptr);
+				}
+				else
+				{
+					// Normally we create packages with a name based off geo/part ids. But this doesn't make sense here
+					// as we're creating a layer info based off the material and name of the landscape.
+					ALandscape * ParentLandscape = LandscapeProxy->GetLandscapeActor();
+					FString PackageName = ParentLandscape->GetName() + FString("_") + TargetLayerName;
+					FString PackagePath = LayerPackageParams.GetPackagePath();
+					UPackage* Package = nullptr;
+					Layer = FindOrCreateLandscapeLayerInfoObject(TargetLayerName, PackagePath, PackageName, Package);
+					if (IsValid(Layer))
+					{
+						Results.Add(Layer);
+						CreatedPackages.Add(Package);
+					}
+
+				}
 			}
 
 			if (IsValid(Layer))
 			{
-				Results.Add(Layer);
+				LandscapeProxy->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(Layer));
 			}
-			LandscapeProxy->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(Layer));
+
 		}
 	}
 
