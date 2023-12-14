@@ -4621,7 +4621,7 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
 	const FString& GroupName,
 	const TArray<int32>& FullVertexList,
 	TArray<int32>& NewVertexList,
-	TArray<int32>& AllVertexList,
+	TArray<int32>& UsedVertices,
 	TArray<int32>& AllFaceList,
 	TArray<int32>& AllGroupFaceIndices,
 	int32& FirstValidVertex,
@@ -4671,11 +4671,11 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
 		}
 
 		// Mark these vertex indices as used.
-		if (AllVertexList.IsValidIndex(LastVertexIdx))
+		if (UsedVertices.IsValidIndex(LastVertexIdx))
 		{
-			AllVertexList[FirstVertexIdx] = 1;
-			AllVertexList[SecondVertexIdx] = 1;
-			AllVertexList[LastVertexIdx] = 1;
+			UsedVertices[FirstVertexIdx] = 1;
+			UsedVertices[SecondVertexIdx] = 1;
+			UsedVertices[LastVertexIdx] = 1;
 		}
 
 		// Mark this face as used.

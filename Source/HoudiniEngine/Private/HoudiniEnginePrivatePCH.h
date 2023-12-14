@@ -355,6 +355,7 @@
 
 #define HAPI_UNREAL_GROUP_INVISIBLE_COLLISION_PREFIX		TEXT("collision_geo")
 #define HAPI_UNREAL_GROUP_RENDERED_COLLISION_PREFIX			TEXT("rendered_collision_geo")
+#define HAPI_UNREAL_GROUP_RENDERED_PREFIX			        TEXT("rendered")
 
 #define HAPI_UNREAL_GROUP_INVISIBLE_UCX_COLLISION_PREFIX	TEXT("collision_geo_ucx")
 #define HAPI_UNREAL_GROUP_RENDERED_UCX_COLLISION_PREFIX		TEXT("rendered_collision_geo_ucx")
