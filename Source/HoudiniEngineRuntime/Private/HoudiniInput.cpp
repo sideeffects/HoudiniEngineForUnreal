@@ -454,6 +454,10 @@ UHoudiniInput::GetBounds(UWorld * World)
 {
 	FBox BoxBounds(ForceInitToZero);
 
+	// Prevent crash when World is null
+	if (!IsValid(World))
+		return BoxBounds;
+
 	// Return the cached bounds to prevent crashing when trying to access the input objects during GC/ saving
 	// Fixes #126804
 	//
