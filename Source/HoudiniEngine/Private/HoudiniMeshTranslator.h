@@ -41,6 +41,7 @@
 
 //#include "HoudiniMeshTranslator.generated.h"
 
+struct FHoudiniGroupedMeshPrimitives;
 class UStaticMesh;
 class USkeletalMesh;
 class USkeleton;
@@ -89,6 +90,81 @@ enum class EHoudiniSplitType : uint8
 	InvisibleSimpleCollider
 };
 
+
+enum EHoudiniCollisionType
+{
+	None,
+	MainMesh,
+	CustomComplex,
+	Simple,
+	SimpleBox,
+	SimpleSphere,
+	SimpleCapsule,
+	Kdop10x,
+	Kdop10y,
+	Kdop10z,
+	Kdop18,
+	Kdop26
+};
+
+
+struct FHoudiniGroupedMeshPrimitives
+{
+	// Groups of primitives to be used for FHoudiniSplitGroupMesh.
+
+	TArray<int32> VertexList;
+	TArray<float> Normals;
+	TArray<float> TangentU;
+	TArray<float> TangentV;
+	TArray<uint32> Indices;
+	TArray<uint32> PartIndices;
+	TArray<TArray<float>> UVSets;
+	TArray<float> Colors;
+	TArray<float> Alphas;
+	TArray<int32> FaceMaterialIndices;
+	TArray<int32> FaceSmoothingMasks;
+	TArray<int32> NeededVertices;
+	FString SplitGroupName;
+	int SplitId = 0;
+	bool bRendered = false;
+	bool bIsLOD = false;
+	EHoudiniCollisionType CollisionType;
+	FString ComplexCollisionOwner;
+	FString StaticMeshName;
+};
+
+struct FHoudiniSplitGroupMesh
+{
+	// This structure defines a static mesh to be built using primitives grouped by Houdini groups.
+	// The name of the group in Houdini determines whether the groups are used for the static mesh's
+	// main mesh, collisions or lods;
+
+	// All grouped primitives used by this mesh.
+	TArray<FHoudiniGroupedMeshPrimitives> SplitMeshData;
+
+	// Index into the group array for LODs. LOD 0 is the main mesh, if present.
+	TArray<int> LODRenders;
+
+	// Index into the group array for main meshes.
+	TArray<int> SimpleCollisions;
+
+	// If this mesh is to be used a custom complex collider, this is its name.
+	FString CustomCollisionOwner;
+
+	// Static Mesh generated.
+	UStaticMesh* UnrealStaticMesh = nullptr;
+	UHoudiniStaticMesh * HoudiniStaticMesh = nullptr;
+	// Output identifier.
+	FHoudiniOutputObjectIdentifier OutputObjectIdentifier;
+
+};
+
+struct FHoudiniMeshToBuild
+{
+	// All meshes output from a single output node.
+	TMap<FString, FHoudiniSplitGroupMesh> Meshes;
+};
+
 struct HOUDINIENGINE_API FHoudiniMeshTranslator
 {
 	public:
@@ -101,7 +177,8 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		static bool CreateAllMeshesAndComponentsFromHoudiniOutput(
 			UHoudiniOutput* InOutput,
 			const FHoudiniPackageParams& InPackageParams,
-			const EHoudiniStaticMeshMethod& InStaticMeshMethod,
+			EHoudiniStaticMeshMethod InStaticMeshMethod,
+			bool bSplitMeshSupport,
 			const FHoudiniStaticMeshGenerationProperties& InSMGenerationProperties,
 			const FMeshBuildSettings& InMeshBuildSettings,
 			const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials,
@@ -119,7 +196,8 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials,
 			UObject* const InOuterComponent,
 			const bool& InForceRebuild,
-			const EHoudiniStaticMeshMethod& InStaticMeshMethod,
+			EHoudiniStaticMeshMethod InStaticMeshMethod,
+			bool bSplitMeshSupport,
 			const FHoudiniStaticMeshGenerationProperties& InSMGenerationProperties,
 			const FMeshBuildSettings& InMeshBuildSettings,
 			bool bInTreatExistingMaterialsAsUpToDate = false);
@@ -242,6 +320,8 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		// Legacy function using RawMesh for static Mesh creation
 		bool CreateStaticMesh_RawMesh();
 
+		bool CreateStaticMeshesFromSplitGroups();
+
 		bool CreateSkeletalMesh_SkeletalMeshImportData();
 
 		// Indicates the update is forced
@@ -249,9 +329,11 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		int32 DefaultMeshSmoothing;
 
 	protected:
-\
+
 		// Create a UHoudiniStaticMesh
 		bool CreateHoudiniStaticMesh();
+
+		bool CreateHoudiniStaticMeshesFromSplitGroups();
 
 		// Helper to make and populate a FHoudiniOutputObjectIdentifier from the current HGPO and the given
 		// InSplitGroupName and InSplitType.
@@ -316,10 +398,11 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			int32 MatIndex,
 			TArray<FStaticMaterial>& FoundStaticMaterials);
 
+		UStaticMesh* CreateNewUnrealStaticMesh(const FString& InMeshIdentifierString);
+		
 		USkeletalMesh* CreateNewSkeletalMesh(const FString& InSplitIdentifier);
 		USkeleton* CreateNewSkeleton(const FString& InSplitIdentifier);
 
-		UStaticMesh* CreateNewStaticMesh(const FString& InMeshIdentifierString);
 
 		UStaticMesh* FindExistingStaticMesh(const FHoudiniOutputObjectIdentifier& InIdentifier);
 
@@ -378,8 +461,8 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		static bool AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStaticMeshComponent * StaticMeshComponent, 
 			TArray<AActor*>& HoudiniCreatedSocketActors, TArray<AActor*>& HoudiniAttachedSocketActors);
 
-
 		static bool HasFracturePieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
+
 	protected:
 
 		// Data cache for this translator
@@ -501,7 +584,6 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		TArray<float> PartLODScreensize;
 		HAPI_AttributeInfo AttribInfoLODScreensize;
 
-
 		// When building a mesh, if an associated material already exists, treat
 		// it as up to date, regardless of the MaterialInfo.bHasChanged flag
 		bool bTreatExistingMaterialsAsUpToDate;
@@ -509,6 +591,53 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		// Default properties to be used when generating Static Meshes
 		FHoudiniStaticMeshGenerationProperties StaticMeshGenerationProperties;
 
+		// Whether or not to do timing.
+		bool bDoTiming = false;
+
 		// Default Mesh Build settings to be used when generating Static Meshes
 		FMeshBuildSettings StaticMeshBuildSettings;
+
+		// The following functions are refactored versions of code used for generating meshes using
+		// mesh descriptions. They are used by the split mesh generation code.
+		////////////////////////////////////////////////////////////////////////////////////////
+		
+		void BuildMeshDescription(FMeshDescription *MeshDesc, FHoudiniGroupedMeshPrimitives & SplitMeshData);
+
+		void ProcessMaterials(UStaticMesh* FoundStaticMesh, FHoudiniGroupedMeshPrimitives& SplitMeshData);
+
+		void PullMeshData(FHoudiniGroupedMeshPrimitives& SplitMeshData, UStaticMesh* FoundStaticMesh, int LODIndex, bool bReadTangents);
+
+		void SetPhysicsMaterialFromHGPO(UBodySetup * BodySetup);
+		
+		FHoudiniMeshToBuild ScanOutputForMeshesToBuild();
+
+		void ClassifySplitGroup(FHoudiniGroupedMeshPrimitives & SplitMeshData);
+
+		FKAggregateGeom BuildAggregateCollision(FHoudiniSplitGroupMesh& Mesh);
+
+		void RemovePreviousOutputs();
+
+		UStaticMesh * CreateStaticMesh(const FString & Name, int NumLODs);
+
+		void AddDefaultMesh(FHoudiniMeshToBuild & MeshesToBuild, const FString & Name);
+
+		bool CreateStaticMeshFromSplitGroups(const FString & Name, FHoudiniSplitGroupMesh & Mesh);
+
+		bool CreateHoudiniStaticMeshFromSplitGroups(const FString& Name, FHoudiniSplitGroupMesh& Mesh,
+			TMap<HAPI_NodeId, UMaterialInterface*> & MapHoudiniMatIdToUnrealInterface,
+			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> & MapHoudiniMatAttributesToUnrealInterface,
+			TMap<UHoudiniStaticMesh*, TMap<UMaterialInterface*, int32>> & MapUnrealMaterialInterfaceToUnrealIndexPerMesh);
+
+		void UpdateSplitGroups();
+
+		bool ParseSplitToken(FString& Name, const FString& Token);
+
+		void BuildHoudiniMesh(const FString & SplitGroupName, UHoudiniStaticMesh *FoundStaticMesh);
+
+		void ProcessMaterialsForHSM(
+					const FString& SplitGroupName, 
+					UHoudiniStaticMesh* FoundStaticMesh,
+					TMap<HAPI_NodeId, UMaterialInterface*> & MapHoudiniMatIdToUnrealInterface,
+					TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> & MapHoudiniMatAttributesToUnrealInterface,
+					TMap<UHoudiniStaticMesh*, TMap<UMaterialInterface*, int32>> & MapUnrealMaterialInterfaceToUnrealIndexPerMesh);
 };
