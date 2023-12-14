@@ -1770,7 +1770,7 @@ FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 	{
 		switch (InStaticMeshMethod)
 		{
-			case EHoudiniStaticMeshMethod::RawMesh:
+			case EHoudiniStaticMeshMethod::RawMesh_DEPRECATED:
 				CurrentTranslator.CreateStaticMesh_RawMesh();
 				break;
 

@@ -729,7 +729,7 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 				FHoudiniMeshTranslator::CreateAllMeshesAndComponentsFromHoudiniOutput(
 					CurOutput,
 					PackageParams,
-					HAC->StaticMeshMethod != EHoudiniStaticMeshMethod::UHoudiniStaticMesh ? HAC->StaticMeshMethod : EHoudiniStaticMeshMethod::RawMesh,
+					HAC->StaticMeshMethod != EHoudiniStaticMeshMethod::UHoudiniStaticMesh ? HAC->StaticMeshMethod : EHoudiniStaticMeshMethod::RawMesh_DEPRECATED,
 					HAC->StaticMeshGenerationProperties,
 					HAC->StaticMeshBuildSettings,
 					AllOutputMaterials,
