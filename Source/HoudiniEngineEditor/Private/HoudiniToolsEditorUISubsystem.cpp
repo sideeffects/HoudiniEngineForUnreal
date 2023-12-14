@@ -27,14 +27,12 @@
 #include "HoudiniToolsEditorUISubsystem.h"
 
 #include "HoudiniEngineCommands.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
+
+#include "LevelEditor.h"
+#include "Misc/Attribute.h"
 #include "Modules/ModuleManager.h"
 #include "Styling/AppStyle.h"
-#include "LevelEditor.h"
-
-// #include "WorkspaceMenuStructure.h"
-// #include "WorkspaceMenuStructureModule.h"
-#include "Misc/Attribute.h"
-
 
 #define LOCTEXT_NAMESPACE "HoudiniToolsEditorUISubsystem"
 
