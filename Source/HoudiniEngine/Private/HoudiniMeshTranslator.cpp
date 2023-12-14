@@ -8851,7 +8851,7 @@ FHoudiniMeshTranslator::CreateStaticMesh(const FString & MeshName, int NumLODs)
 	UStaticMesh* StaticMesh = CreateNewUnrealStaticMesh(MeshName);
 
 	if (!IsValid(StaticMesh))
-		return false;
+		return nullptr;
 
 	int NeededNumberOfLODs = 1;
 
