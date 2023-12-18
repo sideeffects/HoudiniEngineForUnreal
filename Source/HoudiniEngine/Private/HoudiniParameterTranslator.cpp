@@ -75,6 +75,8 @@
 bool 
 FHoudiniParameterTranslator::UpdateParameters(UHoudiniAssetComponent* HAC)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UpdateParameters);
+
 	if (!IsValid(HAC))
 		return false;
 

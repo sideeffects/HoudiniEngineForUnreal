@@ -830,6 +830,8 @@ FHoudiniEngine::SessionSyncConnect(
 bool
 FHoudiniEngine::InitializeHAPISession()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngine::InitializeHAPISession);
+
 	// The HAPI stubs needs to be initialized
 	if (!FHoudiniApi::IsHAPIInitialized())
 	{

@@ -3452,7 +3452,7 @@ FHoudiniEngineUtils::HapiSetAttributeFloatData(
 	const HAPI_AttributeInfo& InAttributeInfo,
 	bool bAttemptRunLengthEncoding)
 {
-    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+    H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -3538,7 +3538,7 @@ FHoudiniEngineUtils::HapiSetAttributeFloatUniqueData(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-	SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+	H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -3559,7 +3559,7 @@ FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-	SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+	H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -3581,7 +3581,7 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 	const HAPI_AttributeInfo& InAttributeInfo,
 	bool bAttemptRunLengthEncoding)
 {
-    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+    H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -3690,7 +3690,7 @@ FHoudiniEngineUtils::HapiSetAttributeInt8Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+    H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -3750,7 +3750,7 @@ FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+    H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -3795,7 +3795,7 @@ FHoudiniEngineUtils::HapiSetAttributeInt16Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+    H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	if (InShortData.Num() != InAttributeInfo.count * InAttributeInfo.tupleSize)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -3812,7 +3812,7 @@ FHoudiniEngineUtils::HapiSetAttributeInt16Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+    H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -3896,7 +3896,7 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+    H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -4028,7 +4028,7 @@ FHoudiniEngineUtils::HapiSetAttributeDoubleData(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+    H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	if (InAttributeInfo.count <= 0 || InAttributeInfo.tupleSize < 1)
 		return HAPI_RESULT_INVALID_ARGUMENT;
@@ -4071,7 +4071,7 @@ FHoudiniEngineUtils::HapiSetVertexList(
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId)
 {
-    SCOPED_FUNCTION_TIMER();
+    H_SCOPED_FUNCTION_TIMER();
 
 	int32 ListNum = InVertexListData.Num();
 	if (ListNum < 1)
@@ -4110,7 +4110,7 @@ FHoudiniEngineUtils::HapiSetFaceCounts(
 	const HAPI_NodeId& InNodeId,
 	const HAPI_PartId& InPartId)
 {
-    SCOPED_FUNCTION_TIMER();
+    H_SCOPED_FUNCTION_TIMER();
 
 	int32 FaceCountsNum = InFaceCounts.Num();
 	if (FaceCountsNum < 1)
@@ -4171,7 +4171,7 @@ FHoudiniEngineUtils::HapiSetAttributeStringMap(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
-    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+    H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	FHoudiniEngineRawStrings IndexedRawStrings = InIndexedStringMap.GetRawStrings();
 	TArray<int> IndexArray = InIndexedStringMap.GetIds();
@@ -4192,7 +4192,7 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo )
 {
-    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+    H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	TArray<const char *> StringDataArray;
 	for (const auto& CurrentString : InStringArray)
@@ -4247,7 +4247,7 @@ FHoudiniEngineUtils::HapiSetAttributeStringArrayData(
 	const HAPI_AttributeInfo& InAttributeInfo,
 	const TArray<int>& SizesFixedArray)
 {
-    SCOPED_FUNCTION_LABELLED_TIMER(InAttributeName);
+    H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
 
 	TArray<const char*> StringDataArray;
 	for (const auto& CurrentString : InStringArray)
@@ -4309,7 +4309,7 @@ FHoudiniEngineUtils::HapiSetHeightFieldData(
 	const TArray<float>& InFloatValues,
 	const FString& InHeightfieldName)
 {
-    SCOPED_FUNCTION_TIMER();
+    H_SCOPED_FUNCTION_TIMER();
 
 	int32 NumValues = InFloatValues.Num();
 	if (NumValues < 1)
@@ -4356,7 +4356,7 @@ FHoudiniEngineUtils::HapiGetHeightFieldData(
 	const HAPI_PartId& InPartId,
 	TArray<float>& OutFloatValues)
 {
-    SCOPED_FUNCTION_TIMER();
+    H_SCOPED_FUNCTION_TIMER();
 
 	int32 NumValues = OutFloatValues.Num();
 	if (NumValues < 1)

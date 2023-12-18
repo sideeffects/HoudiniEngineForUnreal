@@ -749,6 +749,8 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 bool 
 FHoudiniEngineManager::StartTaskAssetInstantiation(UHoudiniAsset* HoudiniAsset, const FString& DisplayName, FGuid& OutTaskGUID, FString& OutHAPIAssetName)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::StartTaskAssetInstantiation);
+
 	// Make sure we have a valid session before attempting anything
 	if (!FHoudiniEngine::Get().GetSession())
 		return false;
@@ -1035,6 +1037,8 @@ FHoudiniEngineManager::StartTaskAssetCooking(
 bool
 FHoudiniEngineManager::UpdateCooking(UHoudiniAssetComponent* HAC, EHoudiniAssetState& NewState)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::UpdateCooking);
+
 	check(HAC);
 
 	// Will return true if the asset's state need to be updated
@@ -1121,6 +1125,7 @@ FHoudiniEngineManager::UpdateCooking(UHoudiniAssetComponent* HAC, EHoudiniAssetS
 bool
 FHoudiniEngineManager::PreCook(UHoudiniAssetComponent* HAC)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PreCook);
 
 	// Remove all Cooked (layers) before cooking so we don't received cooked data in Houdini
 	// if a landscape is input back to the HDA.
@@ -1185,6 +1190,8 @@ FHoudiniEngineManager::PreCook(UHoudiniAssetComponent* HAC)
 bool
 FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSuccess, const HAPI_NodeId& TaskAssetId)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook);
+
 	// Get the HAC display name for the logs
 	FString DisplayName = HAC->GetDisplayName();
 
@@ -1384,6 +1391,8 @@ FHoudiniEngineManager::StartTaskAssetDelete(const HAPI_NodeId& InNodeId, FGuid& 
 bool
 FHoudiniEngineManager::UpdateTaskStatus(FGuid& OutTaskGUID, FHoudiniEngineTaskInfo& OutTaskInfo)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::UpdateTaskStatus);
+
 	if (!OutTaskGUID.IsValid())
 		return false;
 	
@@ -1467,6 +1476,8 @@ FHoudiniEngineManager::IsCookingEnabledForHoudiniAsset(UHoudiniAssetComponent* H
 void 
 FHoudiniEngineManager::BuildStaticMeshesForAllHoudiniStaticMeshes(UHoudiniAssetComponent* HAC)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::BuildStaticMeshesForAllHoudiniStaticMeshes);
+
 	if (!IsValid(HAC))
 	{
 		HOUDINI_LOG_ERROR(TEXT("FHoudiniEngineManager::BuildStaticMeshesForAllHoudiniStaticMeshes called with HAC=nullptr"));
@@ -1507,6 +1518,8 @@ FHoudiniEngineManager::BuildStaticMeshesForAllHoudiniStaticMeshes(UHoudiniAssetC
 bool
 FHoudiniEngineManager::SyncHoudiniViewportToUnreal()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::SyncHoudiniViewportToUnreal);
+
 	if (!FHoudiniEngine::Get().IsSyncHoudiniViewportEnabled())
 		return false;
 
@@ -1611,6 +1624,8 @@ FHoudiniEngineManager::SyncHoudiniViewportToUnreal()
 bool
 FHoudiniEngineManager::SyncUnrealViewportToHoudini()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::SyncUnrealViewportToHoudini);
+
 	if (!FHoudiniEngine::Get().IsSyncUnrealViewportEnabled())
 		return false;
 

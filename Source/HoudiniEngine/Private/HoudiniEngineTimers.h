@@ -26,67 +26,16 @@
 
 #pragma once
 
-// Use these macros to specify a scoped timer, eg.
-//
-// void myFunc()
-// {
-//  SCOPED_FUNCTION_TIMER();
-//  ... code ...
-// }
-//
-// or use SCOPED_FUNCTION_LABELLED_TIMER() to embed an FString label.
-//
-// Set FHoudiniEngineScopedTimer::OutputLevel to control how deep your want to recurse into
-// nested timers.
-//
-// Results are printed to the log. Timings are printed out when the timers are descoped, so
-// they appear in reverse order. You might find doing something like
-//
-// tac Project.log  | grep "Timer:"
-//
-// easier to view.
+// Adds a new cpu profile event with the name of the function
+#define H_SCOPED_FUNCTION_TIMER() \
+				TRACE_CPUPROFILER_EVENT_SCOPE_STR(__FUNCTION__)
 
-#define SCOPED_FUNCTION_CONCAT(A, B) SCOPED_FUNCTION_CONCAT_INNER(A, B)
-#define SCOPED_FUNCTION_CONCAT_INNER(A, B) A##B
-#define SCOPED_FUNCTION_UNIQUE_NAME(__NAME) SCOPED_FUNCTION_CONCAT(__NAME, __LINE__)
-#define SCOPED_FUNCTION_TIMER() \
-    FHoudiniEngineScopedTimer SCOPED_FUNCTION_UNIQUE_NAME(__scopedTimer)(__FUNCTION__, FString(""))
-#define SCOPED_FUNCTION_LABELLED_TIMER(__LABEL) \
-    FHoudiniEngineScopedTimer SCOPED_FUNCTION_UNIQUE_NAME(__scopedTimer) (__FUNCTION__, __LABEL)
+// Adds a new cpu profile event with the name of an FString
+#define H_SCOPED_FUNCTION_DYNAMIC_LABEL(__LABEL) \
+				TRACE_CPUPROFILER_EVENT_SCOPE_STR(__LABEL.GetCharArray().GetData())
 
-// FHoudiniEngineTimer simple timer class wrapper
-class FHoudiniEngineTimer
-{
-public:
-    // Starts the timer
-    void Start();
-
-    // Stops the timer, returns delta time since Start();
-    double Stop();
-private:
-    double StartTime = 0.0f;
-    double StopTime = 0.0f;
-};
-
-// FHoudiniEngineScopedTimer scopeed time class.
-class FHoudiniEngineScopedTimer
-{
-public:
-    FHoudiniEngineScopedTimer(const char* Name, const FString& Label);
-    ~FHoudiniEngineScopedTimer();
-
-    // Set OutputLevel to control how deep to print out nested timers. 0 will output no information,
-    // 1 will input 1 level, 2 two levels, ... INT_MAX all levels.
-
-    static int GetOutputLevelLevel();
-
-private:
-    FString Label;
-    FString TimerName;
-    FHoudiniEngineTimer Timer;
-    int DetailLevel;
-
-    static int thread_local CurrentDepth;
-};
-
+// Adds a new cpu profile event with a static label. For some reason, adding __FUNCTION__
+// fails to compile on Mac.
+#define H_SCOPED_FUNCTION_STATIC_LABEL(__LABEL) \
+				TRACE_CPUPROFILER_EVENT_SCOPE_STR(__LABEL)
 
