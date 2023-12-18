@@ -2732,7 +2732,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		int32 TriangleIdx = 0;
 		int32 VertexInstanceIdx = 0;
 		{
-			SCOPED_FUNCTION_LABELLED_TIMER("Fetching Vertex Data - SM Specific");
+			H_SCOPED_FUNCTION_STATIC_LABEL("Fetching Vertex Data - SM Specific");
 			for (const FPolygonID &PolygonID : MDPolygons.GetElementIDs())
 			{
 				for (const FTriangleID& TriangleID : MeshDescription.GetPolygonTriangles(PolygonID))
@@ -2776,7 +2776,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		}
 
 		{
-			SCOPED_FUNCTION_LABELLED_TIMER("Transfering Data -- SM Specific");
+			H_SCOPED_FUNCTION_STATIC_LABEL("Transfering Data -- SM Specific");
 
 			//--------------------------------------------------------------------------------------------------------------------- 
 			// COLORS (Cd)
@@ -2852,7 +2852,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 	const bool bCommitGeo,
 	HAPI_PartInfo& OutPartInfo)
 {
-    SCOPED_FUNCTION_TIMER();
+    H_SCOPED_FUNCTION_TIMER();
 
 	AActor* ParentActor = MeshComponent ? MeshComponent->GetOwner() : nullptr;
 
@@ -3140,7 +3140,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 		int32 TriangleIdx = 0;
 		int32 VertexInstanceIdx = 0;
 		{
-            SCOPED_FUNCTION_LABELLED_TIMER("Fetching Vertex Data");
+			H_SCOPED_FUNCTION_STATIC_LABEL("Fetching Vertex Data");
 		    for (const FPolygonID &PolygonID : MDPolygons.GetElementIDs())
 		    {
 			    for (const FTriangleID& TriangleID : MeshDescription.GetPolygonTriangles(PolygonID))
@@ -3256,7 +3256,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 		// Now transfer valid vertex instance attributes to Houdini vertex attributes
 
 		{
-            SCOPED_FUNCTION_LABELLED_TIMER("Transfering Data");
+			H_SCOPED_FUNCTION_STATIC_LABEL("Transfering Data");
 		    //--------------------------------------------------------------------------------------------------------------------- 
 		    // UVS (uvX)
 		    //--------------------------------------------------------------------------------------------------------------------- 
@@ -3548,7 +3548,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 	// INPUT SOURCE FILE
 	//---------------------------------------------------------------------------------------------------------------------
 	{
-        SCOPED_FUNCTION_LABELLED_TIMER(HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE);
+		H_SCOPED_FUNCTION_STATIC_LABEL(HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE);
 
 		// Create primitive attribute with mesh asset path
 		FString Filename;
@@ -3759,7 +3759,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	TMap<FString, TArray<float>> & OutVectorMaterialParameters,
     TMap<FString, FHoudiniEngineIndexedStringMap>& OutTextureMaterialParameters)
 {
-    SCOPED_FUNCTION_TIMER();
+    H_SCOPED_FUNCTION_TIMER();
 
 	// Get the default material
 	UMaterialInterface* DefaultMaterialInterface = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
@@ -3776,7 +3776,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	UMaterialInterface* MaterialInterface = nullptr;
 	if (Materials.Num() > 0)
 	{
-        SCOPED_FUNCTION_LABELLED_TIMER("Grather Materials");
+		H_SCOPED_FUNCTION_STATIC_LABEL("Grather Materials");
 
 		// We have materials.
 		for (int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); MaterialIdx++)
@@ -3897,7 +3897,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 
     // Set all materials per face
     {
-        SCOPED_FUNCTION_LABELLED_TIMER("Materials");
+		H_SCOPED_FUNCTION_STATIC_LABEL("Materials");
         OutStaticMeshFaceMaterials.Reset(PerSlotMaterialList.Num(), FaceMaterialIndices.Num());
         for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
         {
@@ -3915,7 +3915,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 
 	// Add scalar parameters
 	{
-        SCOPED_FUNCTION_LABELLED_TIMER("ScalarParams");
+		H_SCOPED_FUNCTION_STATIC_LABEL("ScalarParams");
 	    for (auto& Pair : ScalarParams)
         {
             auto & Entries = OutScalarMaterialParameters[Pair.Key];
@@ -3936,7 +3936,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 
 	// Add vector parameters.
 	{
-        SCOPED_FUNCTION_LABELLED_TIMER("VectorParams");
+		H_SCOPED_FUNCTION_STATIC_LABEL("VectorParams");
         for (auto& Pair : VectorParams)
         {
             auto& Entries = OutVectorMaterialParameters[Pair.Key];
@@ -3960,7 +3960,7 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 
 	// Add texture params.
 	{
-        SCOPED_FUNCTION_LABELLED_TIMER("TextureParams");
+		H_SCOPED_FUNCTION_STATIC_LABEL("TextureParams");
 
 	    for (auto& Pair : TextureParams)
         {
@@ -4511,7 +4511,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
     const TOptional<FString> PhysicalMaterial,
 	const TOptional<FMeshNaniteSettings> InNaniteSettings)
 {
-    SCOPED_FUNCTION_TIMER();
+    H_SCOPED_FUNCTION_TIMER();
 
 	if (NodeId < 0)
 		return false;
