@@ -1638,9 +1638,11 @@ FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(
 	NewSplineComponent->ClearSplinePoints();
 	NewSplineComponent->bEditableWhenInherited = false;
  
+	ESplinePointType::Type SplinePointType = bIsLinear ? ESplinePointType::Linear : ESplinePointType::Curve;
 	for (int32 n = 0; n < CurvePoints.Num(); ++n) 
 	{
 		NewSplineComponent->AddSplinePoint(CurvePoints[n], ESplineCoordinateSpace::Local);
+		NewSplineComponent->SetSplinePointType(n, SplinePointType);
 	}
 
 	bool bHasScales = CurveScales.Num() == CurvePoints.Num();
@@ -1657,21 +1659,9 @@ FHoudiniSplineTranslator::CreateOutputUnrealSplineComponent(
 	{
 		for (int32 n = 0; n < CurvePoints.Num(); ++n)
 		{
-			NewSplineComponent->SetRotationAtSplinePoint(n, CurveRotations[n].Rotation(), ESplineCoordinateSpace::Local, false);
+			NewSplineComponent->SetRotationAtSplinePoint(n, FRotator::MakeFromEuler(CurveRotations[n]), ESplineCoordinateSpace::Local, false);
 		}
 	}
-
-	if (bIsLinear)
-	{
-		for (int32 n = 0; n < CurvePoints.Num(); ++n)
-			NewSplineComponent->SetSplinePointType(n, ESplinePointType::Linear);
-	}
-	else 
-	{
-		for (int32 n = 0; n < CurvePoints.Num(); ++n)
-			NewSplineComponent->SetSplinePointType(n, ESplinePointType::Curve);
-	}
-
 
 	NewSplineComponent->SetClosedLoop(bIsClosed);
 
@@ -1728,8 +1718,8 @@ FHoudiniSplineTranslator::UpdateOutputUnrealSplineComponent(
 	if (bHasRotations)
 	{
 		for (int32 n = 0; n < CurvePoints.Num(); ++n)
-		{
-			EditedSplineComponent->SetRotationAtSplinePoint(n, CurveRotations[n].Rotation(), ESplineCoordinateSpace::Local, false);
+		{			
+			EditedSplineComponent->SetRotationAtSplinePoint(n, FRotator::MakeFromEuler(CurveRotations[n]), ESplineCoordinateSpace::Local, false);
 		}
 	}
 
