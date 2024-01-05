@@ -1288,42 +1288,68 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 			continue;
 		
 		UObject* NewStaticMesh = NewOutputObj.Value.OutputObject;
-		UObject* NewProxyMesh = NewOutputObj.Value.ProxyObject;
+		UObject* NewProxyMesh = NewOutputObj.Value.ProxyObject;	
 
 		UObject* OldStaticMesh = FoundOldOutputObj->OutputObject;
 		if (IsValid(OldStaticMesh))
 		{
-			// If a proxy was created for an existing static mesh, keep the existing static
-			// mesh (will be hidden)
+			bool bPreventOldOutputDeletion = false;
+			
+			// If a proxy was created for an existing static mesh, keep the existing static mesh (will be hidden)
 			if (NewProxyMesh && NewOutputObj.Value.bProxyIsCurrent)
 			{
-				// Remove it from the old map to avoid its destruction
-				OldOutputObjects.Remove(OutputIdentifier);
+				bPreventOldOutputDeletion = true;
 			}
 			else if (NewStaticMesh && NewStaticMesh == OldStaticMesh)
 			{
-				// Remove it from the old map to avoid its destruction
-				OldOutputObjects.Remove(OutputIdentifier);
+				bPreventOldOutputDeletion = true;
 			}
+
+			if(bPreventOldOutputDeletion)
+				FoundOldOutputObj->OutputObject = nullptr;
 		}
 		
 		UObject* OldProxyMesh = FoundOldOutputObj->ProxyObject;
 		if (IsValid(OldProxyMesh))
 		{
+			bool bPreventOldOutputDeletion = false;
+
 			// If a new static mesh was created for a proxy, keep the proxy (will be hidden)
 			// ... unless we want to explicitly destroy proxies
 			if (NewStaticMesh && !bInDestroyProxies)
 			{
-				// Remove it from the old map to avoid its destruction
-				OldOutputObjects.Remove(OutputIdentifier);
+				bPreventOldOutputDeletion = true;
 			}
 			else if (NewProxyMesh && (NewProxyMesh == OldProxyMesh))
 			{
-				// Remove it from the old map to avoid its destruction
-				OldOutputObjects.Remove(OutputIdentifier);
+				bPreventOldOutputDeletion = true;
+			}
+
+			if (bPreventOldOutputDeletion)
+			{
+				FoundOldOutputObj->ProxyObject = nullptr;
+
+				// Also try to reuse the ProxyComponent
+				if (!IsValid(NewOutputObj.Value.ProxyComponent))
+				{
+					NewOutputObj.Value.ProxyComponent = FoundOldOutputObj->ProxyComponent;
+					FoundOldOutputObj->ProxyComponent = nullptr;
+				}
+				else if (NewOutputObj.Value.ProxyComponent == FoundOldOutputObj->ProxyComponent)
+				{
+					FoundOldOutputObj->ProxyComponent = nullptr;
+				}
 			}
 		}
-	}	
+
+		/*
+		if (bPreventOldOutputDeletion)
+		{
+			// Remove this output object from the old map to avoid its destruction
+			OldOutputObjects.Remove(OutputIdentifier);
+		}
+		*/
+	}
 
 	// The old map now only contains unused/stale Meshes/Components, delete them
 	for (auto& OldPair : OldOutputObjects)
@@ -8697,8 +8723,11 @@ FHoudiniMeshTranslator::CreateOrUpdateMeshComponent(
 	{
 		MeshComponent = Cast<UMeshComponent>(OutputObject.ProxyComponent);
 	} 
-	else if (OutputObject.OutputComponents.Num() > 0) 
+	else 
 	{
+		if (OutputObject.OutputComponents.Num() <= 0)
+			OutputObject.OutputComponents.SetNumZeroed(1);
+
 		MeshComponent = Cast<UMeshComponent>(OutputObject.OutputComponents[0]);
 	}
 
@@ -10075,7 +10104,7 @@ FHoudiniMeshTranslator::CreateStaticMesh(const FString & MeshName, int NumLODs)
 bool
 FHoudiniMeshTranslator::CreateStaticMeshesFromSplitGroups()
 {
-	RemovePreviousOutputs();
+	//RemovePreviousOutputs();
 
 	//-----------------------------------------------------------------------------------------------------------------------------------------------
 	// Pull various settings before creating the mesh
@@ -10401,7 +10430,7 @@ void FHoudiniMeshTranslator::UpdateSplitGroups()
 bool
 FHoudiniMeshTranslator::CreateHoudiniStaticMeshesFromSplitGroups()
 {
-	RemovePreviousOutputs();
+	//RemovePreviousOutputs();
 
 	//-----------------------------------------------------------------------------------------------------------------------------------------------
 	// Pull various settings before creating the mesh
