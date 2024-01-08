@@ -7598,11 +7598,11 @@ FHoudiniEngineUtils::CreateSlateNotification(
 FString
 FHoudiniEngineUtils::GetHoudiniEnginePluginDir()
 {
-	FString EnginePluginDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine");
+	FString EnginePluginDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/");
 	if (FPaths::FileExists(EnginePluginDir + "HoudiniEngine.uplugin"))
 		return EnginePluginDir;
 
-	FString ProjectPluginDir = FPaths::ProjectPluginsDir() / TEXT("Runtime/HoudiniEngine");
+	FString ProjectPluginDir = FPaths::ProjectPluginsDir() / TEXT("Runtime/HoudiniEngine/");
 	if (FPaths::DirectoryExists(ProjectPluginDir + "HoudiniEngine.uplugin"))
 		return ProjectPluginDir;
 
