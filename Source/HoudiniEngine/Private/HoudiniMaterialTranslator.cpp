@@ -3502,7 +3502,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 				ExpressionTextureSample->Desc = GeneratingParameterNameEmissiveTexture;
 				ExpressionTextureSample->ParameterName = *GeneratingParameterNameEmissiveTexture;
 				ExpressionTextureSample->Texture = TextureEmissive;
-				ExpressionTextureSample->SamplerType = SAMPLERTYPE_Color;
+				ExpressionTextureSample->SamplerType = SAMPLERTYPE_LinearGrayscale;
 
 				// Add expression.
 				_AddMaterialExpression(Material, ExpressionTextureSample);

@@ -3139,53 +3139,53 @@ FHoudiniEngineUtils::GetLicenseType(FString & LicenseType)
 
 	switch (LicenseTypeValue)
 	{
-	case HAPI_LICENSE_NONE:
-	{
-		LicenseType = TEXT("No License Acquired");
-		break;
-	}
+		case HAPI_LICENSE_NONE:
+		{
+			LicenseType = TEXT("No License Acquired");
+			break;
+		}
 
-	case HAPI_LICENSE_HOUDINI_ENGINE:
-	{
-		LicenseType = TEXT("Houdini Engine");
-		break;
-	}
+		case HAPI_LICENSE_HOUDINI_ENGINE:
+		{
+			LicenseType = TEXT("Houdini Engine");
+			break;
+		}
 
-	case HAPI_LICENSE_HOUDINI:
-	{
-		LicenseType = TEXT("Houdini");
-		break;
-	}
+		case HAPI_LICENSE_HOUDINI:
+		{
+			LicenseType = TEXT("Houdini");
+			break;
+		}
 
-	case HAPI_LICENSE_HOUDINI_FX:
-	{
-		LicenseType = TEXT("Houdini FX");
-		break;
-	}
+		case HAPI_LICENSE_HOUDINI_FX:
+		{
+			LicenseType = TEXT("Houdini FX");
+			break;
+		}
 
-	case HAPI_LICENSE_HOUDINI_ENGINE_INDIE:
-	{
-		LicenseType = TEXT("Houdini Engine Indie");
-		break;
-	}
+		case HAPI_LICENSE_HOUDINI_ENGINE_INDIE:
+		{
+			LicenseType = TEXT("Houdini Engine Indie");
+			break;
+		}
 
-	case HAPI_LICENSE_HOUDINI_INDIE:
-	{
-		LicenseType = TEXT("Houdini Indie");
-		break;
-	}
+		case HAPI_LICENSE_HOUDINI_INDIE:
+		{
+			LicenseType = TEXT("Houdini Indie");
+			break;
+		}
 
-	case HAPI_LICENSE_HOUDINI_ENGINE_UNITY_UNREAL:
-	{
-		LicenseType = TEXT("Houdini Engine for Unity/Unreal");
-		break;
-	}
+		case HAPI_LICENSE_HOUDINI_ENGINE_UNITY_UNREAL:
+		{
+			LicenseType = TEXT("Houdini Engine for Unity/Unreal");
+			break;
+		}
 
-	case HAPI_LICENSE_MAX:
-	default:
-	{
-		return false;
-	}
+		case HAPI_LICENSE_MAX:
+		default:
+		{
+			return false;
+		}
 	}
 
 	return true;
@@ -7598,12 +7598,12 @@ FHoudiniEngineUtils::CreateSlateNotification(
 FString
 FHoudiniEngineUtils::GetHoudiniEnginePluginDir()
 {
-	FString EnginePluginDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine");
-	if (FPaths::DirectoryExists(EnginePluginDir))
+	FString EnginePluginDir = FPaths::EnginePluginsDir() / TEXT("Runtime/HoudiniEngine/");
+	if (FPaths::FileExists(EnginePluginDir + "HoudiniEngine.uplugin"))
 		return EnginePluginDir;
 
-	FString ProjectPluginDir = FPaths::ProjectPluginsDir() / TEXT("Runtime/HoudiniEngine");
-	if (FPaths::DirectoryExists(ProjectPluginDir))
+	FString ProjectPluginDir = FPaths::ProjectPluginsDir() / TEXT("Runtime/HoudiniEngine/");
+	if (FPaths::FileExists(ProjectPluginDir + "HoudiniEngine.uplugin"))
 		return ProjectPluginDir;
 
 	TSharedPtr<IPlugin> HoudiniPlugin = IPluginManager::Get().FindPlugin(TEXT("HoudiniEngine"));

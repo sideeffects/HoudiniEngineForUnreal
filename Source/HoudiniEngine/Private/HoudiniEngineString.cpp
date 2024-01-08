@@ -327,40 +327,32 @@ void FHoudiniEngineIndexedStringMap::Reset(int ExpectedStringCount, int Expected
 
 void FHoudiniEngineRawStrings::CreateRawStrings(const TArray<FString>& Strings)
 {
-    RawStrings.SetNumZeroed(Strings.Num());
-    Buffer.SetNum(0);
+	RawStrings.SetNumZeroed(Strings.Num());
+	Buffer.SetNum(0);
 
-    // Calculate buffer size up front.
-    int BufferSize = 0;
-    for (int Id = 0; Id < Strings.Num(); Id++)
-    {
-        const FString& Str = Strings[Id];
+	// Calculate buffer size up front.
+	int BufferSize = 0;
+	for (int Id = 0; Id < Strings.Num(); Id++)
+	{
+		const FString& Str = Strings[Id];
+		const char* TempString = TCHAR_TO_UTF8(*Str);
 
-		//const auto Utf8String = StringCast<UTF8CHAR>(*Str);
-		//const char* TempString = (const char*)Utf8String.Get();
-		std::string ConvertedString = TCHAR_TO_UTF8(*Str);
-		const char* TempString = ConvertedString.c_str();
+		int TempStringLen = strlen(TempString);
+		BufferSize += TempStringLen + 1;
+	}
 
-        int TempStringLen = strlen(TempString);
-        BufferSize += TempStringLen + 1;
-    }
+	Buffer.SetNum(BufferSize);
+	int StringStart = 0;
+	for (int Id = 0; Id < Strings.Num(); Id++)
+	{
+		const FString& Str = Strings[Id];
+		const char* TempString = TCHAR_TO_UTF8(*Str);
 
-    Buffer.SetNum(BufferSize);
-    int StringStart = 0;
-    for (int Id = 0; Id < Strings.Num(); Id++)
-    {
-        const FString& Str = Strings[Id];
-
-		//const auto Utf8String = StringCast<UTF8CHAR>(*Str);
-		//const char* TempString = (const char*)Utf8String.Get();
-		std::string ConvertedString = TCHAR_TO_UTF8(*Str);
-		const char* TempString = ConvertedString.c_str();
-
-        RawStrings[Id] = &Buffer[StringStart];
-        int TempStringLen = strlen(TempString);
-        FMemory::Memcpy(&Buffer[StringStart], TempString, TempStringLen + 1);
-        StringStart += TempStringLen + 1;
-    }
+		RawStrings[Id] = &Buffer[StringStart];
+		int TempStringLen = strlen(TempString);
+		FMemory::Memcpy(&Buffer[StringStart], TempString, TempStringLen + 1);
+		StringStart += TempStringLen + 1;
+	}
 }
 
 bool FHoudiniEngineIndexedStringMap::HasEntries()
