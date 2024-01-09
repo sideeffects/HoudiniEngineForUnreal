@@ -170,11 +170,11 @@ public:
 
 	// If enabled, target layers are exported per Edit Layer.
 	UPROPERTY()
-	bool bExportPerEditLayerData;
+	bool bExportEditLayers;
 
 	// Export paint layers.
 	UPROPERTY()
-	bool bExportCombinedHeightOnly;
+	bool bExportPaintLayers;
 
 	// If enabled, level instances (and packed level actor) content is exported vs just exporting a single point
 	// with attributes identifying the level instance / packed level actor.

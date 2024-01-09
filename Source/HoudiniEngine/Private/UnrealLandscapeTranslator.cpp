@@ -281,8 +281,8 @@ FUnrealLandscapeTranslator::CreateMeshOrPointsFromLandscape(
 bool 
 FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	ALandscapeProxy* LandscapeProxy,
-	bool bExportCombinedHeightOnly,
-	bool bExportPerLayerData,
+	bool bExportEditLayers,
+	bool bExportPaintLayers,
 	HAPI_NodeId& CreatedHeightfieldNodeId, 
 	const FString& InputNodeNameStr,
 	const HAPI_NodeId& ParentNodeId,
@@ -377,13 +377,10 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	//--------------------------------------------------------------------------------------------------
 	// Send target layer data to Houdini.
 	//--------------------------------------------------------------------------------------------------
-	ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
-	if (!LandscapeInfo)
-		return false;
 
-	if (!bExportCombinedHeightOnly)
+	if (bExportPaintLayers)
 	{
-		if (!SendTargetLayersToHoudini(LandscapeProxy, HeightFieldId, PartId, MergeId, MaskId, bExportPerLayerData, HeightfieldVolumeInfo, XSize, YSize, MergeInputIndex))
+		if (!SendTargetLayersToHoudini(LandscapeProxy, HeightFieldId, PartId, MergeId, MaskId, bExportEditLayers, HeightfieldVolumeInfo, XSize, YSize, MergeInputIndex))
 			return false;
 	}
 
@@ -394,7 +391,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 
 	// We need a valid landscape actor to get the edit layers
 	ALandscape* Landscape = LandscapeProxy->GetLandscapeActor();
-	if(IsValid(Landscape) && !bExportCombinedHeightOnly)
+	if(IsValid(Landscape) && bExportEditLayers)
 	{
 		HAPI_VolumeInfo LayerVolumeInfo;
 		FHoudiniApi::VolumeInfo_Init(&HeightfieldVolumeInfo);
@@ -955,8 +952,8 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 			// Export the whole landscape and its layer as a single heightfield node
 			bSuccess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 				InLandscape,
-				InInput->IsExportCombinedHeightOnlyEnabled(),
-				InInput->IsPerLayerExportEnabled(), 
+				InInput->IsEditLayerExportEnabled(),
+				InInput->IsPaintLayerExportEnabled(), 
 				InputNodeId, 
 				FinalInputNodeName, 
 				ParentNodeId,
@@ -966,7 +963,7 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 			bSuccess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(
 				InLandscape, 
 				SelectedComponents, 
-				InInput->IsPerLayerExportEnabled(), 
+				InInput->IsPaintLayerExportEnabled(),
 				InputNodeId, 
 				FinalInputNodeName, 
 				ParentNodeId,
@@ -2509,6 +2506,8 @@ bool FUnrealLandscapeTranslator::SendCombinedTargetLayersToHoudini(
 	int32 YSize,
 	int32 & OutMergeInputIndex)
 {
+	// This function sends the combined target (paint) layers to Houdini.
+	// "Combined" means that all target layers in all edit layers are combined.
 
 	ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
 	if (!LandscapeInfo)
@@ -2588,8 +2587,9 @@ bool FUnrealLandscapeTranslator::SendAllEditLayerTargetLayersToHoudini(
 	int32 XSize,
 	int32 YSize,
 	int32& OutMergeInputIndex)
-
 {
+	// This function sends the Target (paint) layer for each Edit Layer separately to Houdini.
+
 	ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
 	if (!LandscapeInfo)
 		return false;

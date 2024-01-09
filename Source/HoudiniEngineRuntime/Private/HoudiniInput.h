@@ -246,8 +246,8 @@ public:
 	bool IsLandscapeExportNormalizedUVsEnabled() const { return InputSettings.bLandscapeExportNormalizedUVs; }
 	bool IsLandscapeExportTileUVsEnabled() const { return InputSettings.bLandscapeExportTileUVs; }
 
-	bool IsPerLayerExportEnabled() const { return InputSettings.bExportPerEditLayerData; }
-	bool IsExportCombinedHeightOnlyEnabled() const { return InputSettings.bExportCombinedHeightOnly; }
+	bool IsEditLayerExportEnabled() const { return InputSettings.bExportEditLayers; }
+	bool IsPaintLayerExportEnabled() const { return InputSettings.bExportPaintLayers; }
 
 	bool IsExportLevelInstanceContentEnabled() const { return InputSettings.bExportLevelInstanceContent; }
 
@@ -303,8 +303,8 @@ public:
 	void SetCurvePointSelectionUseAbsRotation(const bool & bInCurvePointSelectionUseAbsRotation)	{ bCurvePointSelectionUseAbsRotation = bInCurvePointSelectionUseAbsRotation;}
 	void SetInputNodeId(const int32& InCreatedNodeId)						{ InputNodeId = InCreatedNodeId; };
 	void SetUnrealSplineResolution(const float& InResolution)					{ InputSettings.UnrealSplineResolution = InResolution; };
-	void SetPerLayerExportEnabled(bool bOnOff) { InputSettings.bExportPerEditLayerData = bOnOff; }
-	void SetExportHeightOnly(bool bOnOff) { InputSettings.bExportCombinedHeightOnly = bOnOff; }
+	void SetEditLayerExportEnabled(bool bOnOff) { InputSettings.bExportEditLayers = bOnOff; }
+	void SetPaintLayerExportEanbled(bool bOnOff) { InputSettings.bExportPaintLayers = bOnOff; }
 	void SetExportLevelInstanceContent(bool bOnOff) { InputSettings.bExportLevelInstanceContent = bOnOff; }
 
 	virtual void SetCookOnCurveChange(const bool & bInCookOnCurveChanged)				{ bCookOnCurveChanged = bInCookOnCurveChanged; };
