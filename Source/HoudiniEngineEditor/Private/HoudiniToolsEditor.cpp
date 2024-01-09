@@ -1174,7 +1174,7 @@ FHoudiniToolsEditor::IsToolInCategory(
 	}
 
 	const TSharedPtr<FHoudiniToolList> Tools = Categories.FindChecked(InCategory);
-	for (const TSharedPtr<FHoudiniTool> Tool : Tools->Tools)
+	for (const TSharedPtr<FHoudiniTool>& Tool : Tools->Tools)
 	{
 		if (Tool == InHoudiniTool)
 		{
