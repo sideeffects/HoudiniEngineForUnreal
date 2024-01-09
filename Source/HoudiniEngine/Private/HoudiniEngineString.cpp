@@ -311,7 +311,6 @@ void FHoudiniEngineIndexedStringMap::SetString(int Index, const FString& Value)
 
 FHoudiniEngineRawStrings FHoudiniEngineIndexedStringMap::GetRawStrings() const
 {
-
     FHoudiniEngineRawStrings Results;
     Results.CreateRawStrings(Strings);
     return Results;
@@ -335,7 +334,8 @@ void FHoudiniEngineRawStrings::CreateRawStrings(const TArray<FString>& Strings)
 	for (int Id = 0; Id < Strings.Num(); Id++)
 	{
 		const FString& Str = Strings[Id];
-		const char* TempString = TCHAR_TO_UTF8(*Str);
+		std::string ConvertedString = TCHAR_TO_UTF8(*Str);
+		const char* TempString = ConvertedString.c_str();
 
 		int TempStringLen = strlen(TempString);
 		BufferSize += TempStringLen + 1;
@@ -346,7 +346,8 @@ void FHoudiniEngineRawStrings::CreateRawStrings(const TArray<FString>& Strings)
 	for (int Id = 0; Id < Strings.Num(); Id++)
 	{
 		const FString& Str = Strings[Id];
-		const char* TempString = TCHAR_TO_UTF8(*Str);
+		std::string ConvertedString = TCHAR_TO_UTF8(*Str);
+		const char* TempString = ConvertedString.c_str();
 
 		RawStrings[Id] = &Buffer[StringStart];
 		int TempStringLen = strlen(TempString);
