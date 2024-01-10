@@ -117,11 +117,11 @@
 #define HAPI_UNREAL_ATTRIB_POSITION						HAPI_ATTRIB_POSITION
 #define HAPI_UNREAL_ATTRIB_ROTATION						"rot"
 #define HAPI_UNREAL_ATTRIB_SCALE						"scale"
-#define HAPI_UNREAL_ATTRIB_UNIFORM_SCALE					"pscale"
+#define HAPI_UNREAL_ATTRIB_UNIFORM_SCALE				"pscale"
 #define HAPI_UNREAL_ATTRIB_BBOX_MIN						"unreal_bbox_min"
 #define HAPI_UNREAL_ATTRIB_BBOX_MAX						"unreal_bbox_max"
 #define HAPI_UNREAL_ATTRIB_COLOR						HAPI_ATTRIB_COLOR
-#define HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR					"unreal_lightmap_color"
+#define HAPI_UNREAL_ATTRIB_LIGHTMAP_COLOR				"unreal_lightmap_color"
 #define HAPI_UNREAL_ATTRIB_ALPHA						"Alpha"
 #define HAPI_UNREAL_ATTRIB_UV							HAPI_ATTRIB_UV
 #define HAPI_UNREAL_ATTRIB_NORMAL						HAPI_ATTRIB_NORMAL
@@ -405,6 +405,8 @@
 
 #define HAPI_UNREAL_PARAM_MAP_DIFFUSE_COLOR_SPACE		"basecolor_textureColorSpace"
 
+#define HAPI_UNREAL_PARAM_MAP_DIFFUSE_USE_POINT_COLOR    "basecolor_usePointColor"
+
 // Materials Normal.
 #define HAPI_UNREAL_PARAM_MAP_NORMAL_OGL				"ogl_normalmap"
 
@@ -420,11 +422,11 @@
 #define HAPI_UNREAL_PARAM_MAP_NORMAL_COLOR_SPACE		"normalTexColorSpace"
 
 // Materials Specular.
-#define HAPI_UNREAL_PARAM_COLOR_SPECULAR_OGL			"ogl_spec"
+#define HAPI_UNREAL_PARAM_COLOR_SPECULAR_OGL			"ogl_reflect"           //"ogl_spec"
 #define HAPI_UNREAL_PARAM_COLOR_SPECULAR				"reflect"
 
-#define HAPI_UNREAL_PARAM_MAP_SPECULAR_OGL				"ogl_specmap"
-#define HAPI_UNREAL_PARAM_MAP_SPECULAR_OGL_ENABLED		"ogl_use_specmap"
+#define HAPI_UNREAL_PARAM_MAP_SPECULAR_OGL				"ogl_reflect_map"       //"ogl_specmap"
+#define HAPI_UNREAL_PARAM_MAP_SPECULAR_OGL_ENABLED		"ogl_use_reflect_map"   //"ogl_use_specmap"
 
 #define HAPI_UNREAL_PARAM_MAP_SPECULAR					"reflect_texture"
 #define HAPI_UNREAL_PARAM_MAP_SPECULAR_ENABLED			"reflect_useTexture"
