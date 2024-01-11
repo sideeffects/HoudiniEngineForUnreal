@@ -1428,14 +1428,22 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 			TSubclassOf<UMeshComponent> ComponentType = UHoudiniStaticMeshComponent::StaticClass();
 			const FHoudiniGeoPartObject *FoundHGPO = nullptr;
 			bool bCreated = false;
-			UMeshComponent *MeshComponent = CreateOrUpdateMeshComponent(InOutput, InOuterComponent, OutputIdentifier, ComponentType, OutputObject, FoundHGPO, bCreated);
+			UMeshComponent *MeshComponent = CreateOrUpdateMeshComponent(
+				InOutput, 
+				InOuterComponent, 
+				OutputIdentifier, 
+				ComponentType, 
+				OutputObject, 
+				FoundHGPO,
+				bCreated);
 			if (MeshComponent)
 			{
 				UHoudiniStaticMeshComponent *HSMC = Cast<UHoudiniStaticMeshComponent>(MeshComponent);
 				UpdateMeshComponent(
 					MeshComponent,
 					Mesh,
-					OutputIdentifier, 
+					OutputIdentifier,
+					OutputObject,
 					FoundHGPO, 
 					InOutput->HoudiniCreatedSocketActors, 
 					InOutput->HoudiniAttachedSocketActors,
@@ -1499,6 +1507,7 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 						MeshComponent,
 						Mesh,
 						OutputIdentifier,
+						OutputObject,
 						FoundHGPO,
 						InOutput->HoudiniCreatedSocketActors,
 						InOutput->HoudiniAttachedSocketActors,
@@ -1532,6 +1541,7 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 						MeshComponent,
 						Mesh,
 						OutputIdentifier,
+						OutputObject,
 						FoundHGPO,
 						InOutput->HoudiniCreatedSocketActors,
 						InOutput->HoudiniAttachedSocketActors,
@@ -1574,8 +1584,14 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 }
 
 void
-FHoudiniMeshTranslator::UpdateMeshComponent(UMeshComponent *InMeshComponent, UObject* InMesh, const FHoudiniOutputObjectIdentifier &InOutputIdentifier, 
-	const FHoudiniGeoPartObject *InHGPO, TArray<AActor*> &HoudiniCreatedSocketActors, TArray<AActor*> &HoudiniAttachedSocketActors,
+FHoudiniMeshTranslator::UpdateMeshComponent(
+	UMeshComponent *InMeshComponent, 
+	UObject* InMesh, 
+	const FHoudiniOutputObjectIdentifier &InOutputIdentifier,
+	const FHoudiniOutputObject& OutputObject,
+	const FHoudiniGeoPartObject *InHGPO, 
+	TArray<AActor*> &HoudiniCreatedSocketActors, 
+	TArray<AActor*> &HoudiniAttachedSocketActors,
 	bool bInApplyGenericProperties)
 {
 	UStaticMeshComponent* const SMC = Cast<UStaticMeshComponent>(InMeshComponent);
@@ -1591,7 +1607,7 @@ FHoudiniMeshTranslator::UpdateMeshComponent(UMeshComponent *InMeshComponent, UOb
 	
 	// Update collision/visibility
 	EHoudiniSplitType SplitType = GetSplitTypeFromSplitName(InOutputIdentifier.SplitIdentifier);
-	if (SplitType == EHoudiniSplitType::InvisibleComplexCollider)
+	if (SplitType == EHoudiniSplitType::InvisibleComplexCollider || OutputObject.bIsInvisibleCollisionMesh)
 	{
 		// Invisible complex collider should not be seen
 		InMeshComponent->SetVisibility(false);
@@ -9870,17 +9886,15 @@ void FHoudiniMeshTranslator::ClassifySplitGroup(FHoudiniGroupedMeshPrimitives& S
 			}
 			else
 			{
-				// collision_geo means "create a second UStaticMesh and use it as a custom collision.
+				// collision_geo could mean two things. It could mean "create a second UStaticMesh and use it as a custom collision".
+				// But if the user specified "collision_geo" without specifying a rendered_collision_geo then we follow a slightly
+				// different path and create a static mesh with the collision geo but mark the component invisible in-game.
+				//
+				// For now, mark it was as Complex Collision and it will be post-processed.
 
 				SplitMeshData.CollisionType = EHoudiniCollisionType::CustomComplex;
 				SplitMeshData.ComplexCollisionOwner = Name;
-
-				// We're creating an extra UStaticMesh which will be used for collision only. But still build render data
-				// otherwise Unreal freaks out.
 				SplitMeshData.bRendered = true;
-
-				// Append an identifier to the name so that split groups are unique.
-				Name += TEXT("_complex");
 			}
 		}
 	}
@@ -9923,11 +9937,8 @@ FHoudiniMeshToBuild FHoudiniMeshTranslator::ScanOutputForMeshesToBuild()
 	{
 		FHoudiniGroupedMeshPrimitives SplitMeshData;
 		SplitMeshData.SplitGroupName = HGPO.SplitGroups[Index];
-
 		ClassifySplitGroup(SplitMeshData);
-
 		SplitMeshes.Add(SplitMeshData);
-
 		AllSplitGroups.Add(SplitMeshData.SplitGroupName);
 	}
 
@@ -9937,9 +9948,44 @@ FHoudiniMeshToBuild FHoudiniMeshTranslator::ScanOutputForMeshesToBuild()
 
 	FHoudiniMeshToBuild MeshesToBuild;
 
-	for(auto SplitMesh : SplitMeshes)
+	// Go though all split groups and create a FHoudiniSplitGroupMesh entry for each named static mesh. Ignore custom collisions as we need to
+	// some custom processing below.
+	for(auto & SplitMesh : SplitMeshes)
 	{
-		FHoudiniSplitGroupMesh & Mesh = MeshesToBuild.Meshes.FindOrAdd(SplitMesh.StaticMeshName);
+		if (SplitMesh.CollisionType != EHoudiniCollisionType::CustomComplex)
+			MeshesToBuild.Meshes.FindOrAdd(SplitMesh.StaticMeshName);
+	}
+
+	// Now go through each complex collision. There are two cases:
+	// 1. There is a static mesh already with this name, in which case we generate a second static mesh and link it as a custom complex collision
+	//	or
+	// 2. There is no static mesh already with this name. So we just create ONE static mesh and do some processing when we create the components to make it invisible.
+
+	for (auto& SplitMesh : SplitMeshes)
+	{
+		if (SplitMesh.CollisionType == EHoudiniCollisionType::CustomComplex)
+		{
+			if (MeshesToBuild.Meshes.Contains(SplitMesh.StaticMeshName))
+			{
+				// case 1 above
+				SplitMesh.StaticMeshName += TEXT("custom_complex");
+				SplitMesh.bRendered = true;
+				MeshesToBuild.Meshes.FindOrAdd(SplitMesh.StaticMeshName);
+			}
+			else
+			{
+				// case 2 above
+				auto & Mesh =  MeshesToBuild.Meshes.FindOrAdd(SplitMesh.StaticMeshName);
+				SplitMesh.ComplexCollisionOwner.Empty();
+				Mesh.bIsVisible = false;
+			}
+		}
+	}
+
+	for (auto& SplitMesh : SplitMeshes)
+	{
+		auto& Mesh = MeshesToBuild.Meshes.FindOrAdd(SplitMesh.StaticMeshName);
+
 		int Index = Mesh.SplitMeshData.Num();
 		Mesh.SplitMeshData.Add(SplitMesh);
 
@@ -9948,9 +9994,9 @@ FHoudiniMeshToBuild FHoudiniMeshTranslator::ScanOutputForMeshesToBuild()
 			Mesh.LODRenders.Add(Index);
 		}
 
-		bool bIsSimple =	(SplitMesh.CollisionType != EHoudiniCollisionType::None) && 
-							(SplitMesh.CollisionType != EHoudiniCollisionType::CustomComplex) &&
-							(SplitMesh.CollisionType != EHoudiniCollisionType::MainMesh);
+		bool bIsSimple = (SplitMesh.CollisionType != EHoudiniCollisionType::None) && 
+						 (SplitMesh.CollisionType != EHoudiniCollisionType::CustomComplex) &&
+						 (SplitMesh.CollisionType != EHoudiniCollisionType::MainMesh);
 
 		if (bIsSimple)
 		{
@@ -9967,7 +10013,6 @@ FHoudiniMeshToBuild FHoudiniMeshTranslator::ScanOutputForMeshesToBuild()
 				HOUDINI_LOG_ERROR(TEXT("More than one custom group was found %s %d %d %s, ignoring -- skipping."),
 					*HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *SplitMesh.SplitGroupName);
 			}
-
 		}
 	}
 
@@ -10176,6 +10221,9 @@ FHoudiniMeshTranslator::CreateStaticMeshFromSplitGroups(const FString& MeshName,
 	InputObjects.Remove(SplitMeshData.OutputObjectIdentifier);
 	OutputObject->bProxyIsCurrent = false;
 	OutputObject->OutputObject = SplitMeshData.UnrealStaticMesh;
+	OutputObject->bIsInvisibleCollisionMesh = !SplitMeshData.bIsVisible;
+
+
 
 	if (SplitMeshData.UnrealStaticMesh->GetNumSourceModels() != NumLODs)
 	{

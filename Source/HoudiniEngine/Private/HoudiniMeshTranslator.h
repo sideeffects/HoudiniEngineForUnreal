@@ -151,6 +151,8 @@ struct FHoudiniSplitGroupMesh
 	// If this mesh is to be used a custom complex collider, this is its name.
 	FString CustomCollisionOwner;
 
+	bool bIsVisible = true;
+
 	// Static Mesh generated.
 	UStaticMesh* UnrealStaticMesh = nullptr;
 	UHoudiniStaticMesh * HoudiniStaticMesh = nullptr;
@@ -438,8 +440,14 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		static UMeshComponent* CreateMeshComponent(UObject *InOuterComponent, const TSubclassOf<UMeshComponent>& InComponentType);
 
 		// Helper to update an existing mesh component
-		static void UpdateMeshComponent(UMeshComponent *InMeshComponent, UObject *InMesh, const FHoudiniOutputObjectIdentifier &InOutputIdentifier,
-			const FHoudiniGeoPartObject *InHGPO, TArray<AActor*> & HoudiniCreatedSocketActors, TArray<AActor*> & HoudiniAttachedSocketActors,
+		static void UpdateMeshComponent(
+			UMeshComponent *InMeshComponent, 
+			UObject *InMesh, 
+			const FHoudiniOutputObjectIdentifier &InOutputIdentifier,
+			const FHoudiniOutputObject & OutputObject,
+			const FHoudiniGeoPartObject *InHGPO, 
+			TArray<AActor*> & HoudiniCreatedSocketActors, 
+			TArray<AActor*> & HoudiniAttachedSocketActors,
 			bool bInApplyGenericProperties=true);
 
 		// Helper to create or update a mesh component for a UStaticMesh or proxy mesh output
