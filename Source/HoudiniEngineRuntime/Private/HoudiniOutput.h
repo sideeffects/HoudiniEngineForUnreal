@@ -665,6 +665,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		UPROPERTY()
 		bool bIsImplicit = false;
 
+		// When creating an invisible collision mesh we need to make tweaks to the component.
+		UPROPERTY()
+		bool bIsInvisibleCollisionMesh = false;
+
 		// Is this mesh a part of a geometry collection?
 		UPROPERTY()
 		bool bIsGeometryCollectionPiece = false;
