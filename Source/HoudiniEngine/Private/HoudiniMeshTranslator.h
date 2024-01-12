@@ -72,7 +72,7 @@ enum class EHoudiniSplitType : uint8
 };
 
 
-enum EHoudiniCollisionType
+enum class EHoudiniCollisionType : uint8
 {
 	None,
 	MainMesh,
