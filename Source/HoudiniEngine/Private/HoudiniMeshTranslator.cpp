@@ -8888,8 +8888,13 @@ FHoudiniMeshTranslator::RemovePreviousOutputs()
 		{
 			RemoveAndDestroyComponent(Component);
 		}
-
 		FoundOutputObject->OutputComponents.Empty();
+
+		if(IsValid(FoundOutputObject->ProxyComponent))
+		{
+			RemoveAndDestroyComponent(FoundOutputObject->ProxyComponent);
+			FoundOutputObject->ProxyComponent = nullptr;
+		}
 	}
 	InputObjects.Empty();
 }
