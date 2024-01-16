@@ -1083,7 +1083,7 @@ FHoudiniEngineCommands::OpenSessionSync()
 		while (!FHoudiniEngine::Get().SessionSyncConnect(SessionType, ServerPipeName, ServerHost, ServerPort))
 		{
 			// Houdini might not be done loading, sleep for one second 
-			FPlatformProcess::Sleep(1);
+			FPlatformProcess::Sleep(.5f);
 
             // Check for license error
             int32 HESSReturnCode;
