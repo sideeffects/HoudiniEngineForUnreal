@@ -636,9 +636,13 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 		NameParts.Reserve(4);
 
 		// Get the object name, or for actors, get their label
-		FString ObjectName = IsValid(Actor) ? Actor->GetActorNameOrLabel() : InIdentifier.GetObject()->GetName();
+		/*FString ObjectName = IsValid(Actor) ? Actor->GetActorNameOrLabel() : InIdentifier.GetObject()->GetName();
+		FHoudiniEngineUtils::SanitizeHAPIVariableName(ObjectName);*/
 
-		NameParts.Add(InIdentifier.GetObject()->GetName());
+		FString ObjectName = InIdentifier.GetObject()->GetName();
+		FHoudiniEngineUtils::SanitizeHAPIVariableName(ObjectName);
+
+		NameParts.Add(ObjectName);
 
 		const FUnrealObjectInputOptions& Options = InIdentifier.GetOptions();
 		if (Type == EUnrealObjectInputNodeType::Reference)
@@ -655,10 +659,14 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 	}
 	
 	// Get the object name, or for actors, get their label
+	FString ObjectName;
 	if (IsValid(Actor))
-		return Actor->GetActorNameOrLabel();
+		ObjectName = Actor->GetActorNameOrLabel();
 	else
-		return FPaths::GetBaseFilename(InIdentifier.GetNormalizedObjectPath().ToString());
+		ObjectName = FPaths::GetBaseFilename(InIdentifier.GetNormalizedObjectPath().ToString());
+
+	FHoudiniEngineUtils::SanitizeHAPIVariableName(ObjectName);
+	return ObjectName;
 }
 
 bool

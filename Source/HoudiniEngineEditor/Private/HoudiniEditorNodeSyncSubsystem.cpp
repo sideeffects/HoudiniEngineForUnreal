@@ -232,6 +232,7 @@ UHoudiniEditorNodeSyncSubsystem::SendToHoudini(const TArray<UObject*>& SelectedA
 
 		// Create a geo node for this object in the content node
 		FString ObjectName = CurrentObject->GetName();
+		FHoudiniEngineUtils::SanitizeHAPIVariableName(ObjectName);
 
 		// If the object is an Actor, prefer its label over the object name
 		AActor* CurrentActor = Cast<AActor>(CurrentObject);
