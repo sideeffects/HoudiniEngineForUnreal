@@ -65,6 +65,8 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	// Marshall the Static Mesh to Houdini
 	int32 SMNodeId = -1;
 	FString ISMCName = InNodeName + TEXT("_") + ISMC->GetName();
+	FHoudiniEngineUtils::SanitizeHAPIVariableName(ISMCName);
+
 	FUnrealObjectInputHandle SMNodeHandle;
 	bool bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 		SM,

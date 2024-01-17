@@ -133,6 +133,7 @@ UHoudiniEditorSubsystem::SendToHoudini(const TArray<UObject*>& SelectedAssets)
 
 			object_node_id = UnrealContentNode;
 		}
+		FHoudiniEngineUtils::SanitizeHAPIVariableName(ObjectName);
 
 		FString SendNodePath = HoudiniEditorSubsystem->NodeSync.SendNodePath;
 				
