@@ -1375,3 +1375,49 @@ void FHoudiniLandscapeUtils::ApplyLocks(UHoudiniLandscapeTargetLayerOutput* Outp
 	FLandscapeLayer* UnrealEditLayer = Output->Landscape->GetLayer(EditLayerIndex);
 	UnrealEditLayer->bLocked = true;
 }
+
+bool
+FHoudiniLandscapeUtils::NormalizePaintLayers(TArray<float>& Data, bool bNormalize)
+{
+	if (Data.Num() == 0)
+		return false;
+
+	float MaxValue = Data[0];
+	bool bExceedsRange = false;
+
+	// Scan data to see if any value exceeds 1.0, while keeping track of the max values.
+	for(float & Value : Data)
+	{
+		MaxValue = FMath::Max(Value, MaxValue);
+
+		if (Value > 1.0)
+		{
+			bExceedsRange = true;
+		}
+	}
+
+	if (!bExceedsRange)
+		return false;
+
+	if (bNormalize)
+	{
+		for (float & Value : Data)
+		{
+			if (Value < 0.0f)
+				Value = 0.0f;
+			else
+				Value = Value / MaxValue;
+		}
+	}
+	else
+	{
+		// If value exceeded range and not normalizing, clamp
+		for (float & Value : Data)
+		{
+			Value = FMath::Clamp(Value, 0.0f, 1.0f);
+		}
+
+	}
+	return true;
+
+}

@@ -259,6 +259,17 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 		PartData.bLockLayer = LockValue != 0;
 
 		//-----------------------------------------------------------------------------------------------------------------------------
+		// HAPI_UNREAL_ATTRIB_LANDSCAPE_NORMALIZE
+		//-----------------------------------------------------------------------------------------------------------------------------
+
+		int NormalizeValue = 0;
+		FHoudiniEngineUtils::HapiGetFirstAttributeValueAsInteger(PartObj.GeoId, PartObj.PartId,
+			HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_NORMALIZE,
+			HAPI_ATTROWNER_INVALID,
+			NormalizeValue);
+		PartData.bNormalizePaintLayers = NormalizeValue != 0;
+
+		//-----------------------------------------------------------------------------------------------------------------------------
 		// unreal_landscape_editlayer_subtractive
 		//-----------------------------------------------------------------------------------------------------------------------------
 
@@ -403,7 +414,7 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 		int NonWeightBlend = HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_OFF;
 
 		TSet<FString> NonWeightBlendedLayers = FHoudiniLandscapeUtils::GetNonWeightBlendedLayerNames(PartObj);
-		if (NonWeightBlendedLayers.Contains(PartData.UnrealLayerName))
+		if (NonWeightBlendedLayers.Contains(PartData.TargetLayerName))
 			NonWeightBlend = HAPI_UNREAL_LANDSCAPE_LAYER_NOWEIGHTBLEND_ON;
 
 		FHoudiniEngineUtils::HapiGetFirstAttributeValueAsInteger(
@@ -775,12 +786,20 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		int XDiff = 1 + Extents.Max.X - Extents.Min.X;
 		int YDiff = 1 + Extents.Max.Y - Extents.Min.Y;
 		int Dest = 0;
+
+		bool bExceededRange = FHoudiniLandscapeUtils::NormalizePaintLayers(HeightFieldData.Values, Part.bNormalizePaintLayers);
+
+		if (bExceededRange)
+			HOUDINI_LOG_WARNING(TEXT("Target layer %s contains values outside the range 0 to 1."), *Part.TargetLayerName);
+
 		for (int Y = 0; Y < YDiff; Y++)
 		{
 			for (int X = 0; X < XDiff; X++)
 			{
 				int Src = Y + X * YDiff;
-				Values[Dest++] = static_cast<uint8>(HeightFieldData.Values[Src] * 255);
+
+				float Value = HeightFieldData.Values[Src];
+				Values[Dest++] = static_cast<uint8>(Value * 255);
 			}
 		}
 

@@ -218,6 +218,7 @@
 
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_WRITE_LOCKED_LAYERS    "unreal_landscape_write_locked_layer"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LOCK_LAYERS            "unreal_landscape_lock_layer"
+#define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_NORMALIZE        "unreal_landscape_layer_normalize"
 
 #define HAPI_UNREAL_ATTRIB_CREATE_DATA_LAYERS               "unreal_create_data_layers"
 

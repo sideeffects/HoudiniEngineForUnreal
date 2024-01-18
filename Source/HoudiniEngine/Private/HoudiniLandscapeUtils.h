@@ -169,6 +169,9 @@ struct FHoudiniHeightFieldPartData
     // PropertyAttributes
     TArray<FHoudiniGenericAttribute> PropertyAttributes;
 
+    // Whether or not to normalize paint layers that fall outside of the range 0 to 1.
+    bool bNormalizePaintLayers = false;
+
 };
 
 struct FHoudiniUnrealLandscapeTarget
@@ -329,4 +332,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
     // Apply the segments to the specified edit layers per landscape.
     static bool ApplySegmentsToLandscapeEditLayers(
         const TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& InSegmentsToApplyToLayers);
+
+    static bool NormalizePaintLayers(TArray<float> & Data, bool bNormalize);
+
 };
