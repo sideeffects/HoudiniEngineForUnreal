@@ -36,6 +36,10 @@ UHoudiniPublicAPIInput::UHoudiniPublicAPIInput()
 {
 	bKeepWorldTransform = false;
 	bImportAsReference = false;
+	bImportAsReferenceRotScaleEnabled = true;
+	bImportAsReferenceBboxEnabled = true;
+	bImportAsReferenceMaterialEnabled = true;
+	bExportMaterialParameters = false;
 }
 
 bool
@@ -99,6 +103,10 @@ UHoudiniPublicAPIInput::PopulateFromHoudiniInput(UHoudiniInput const* const InIn
 
 	bKeepWorldTransform = InInput->GetKeepWorldTransform();
 	bImportAsReference = InInput->GetImportAsReference();
+	bImportAsReferenceRotScaleEnabled = InInput->GetImportAsReferenceRotScaleEnabled();
+	bImportAsReferenceBboxEnabled = InInput->GetImportAsReferenceBboxEnabled();
+	bImportAsReferenceMaterialEnabled = InInput->GetImportAsReferenceMaterialEnabled();
+	bExportMaterialParameters = InInput->GetExportMaterialParameters();
 
 	const TArray<UHoudiniInputObject*>* SrcInputObjectsPtr = InInput->GetHoudiniInputObjectArray(InputType);
 	if (SrcInputObjectsPtr && SrcInputObjectsPtr->Num() > 0)
@@ -170,6 +178,26 @@ UHoudiniPublicAPIInput::UpdateHoudiniInput(UHoudiniInput* const InInput) const
 	if (InInput->GetImportAsReference() != bImportAsReference)
 	{
 		InInput->SetImportAsReference(bImportAsReference);
+		bAnyChanges = true;
+	}
+	if (InInput->GetImportAsReferenceRotScaleEnabled() != bImportAsReferenceRotScaleEnabled)
+	{
+		InInput->SetImportAsReferenceRotScaleEnabled(bImportAsReferenceRotScaleEnabled);
+		bAnyChanges = true;
+	}
+	if (InInput->GetImportAsReferenceBboxEnabled() != bImportAsReferenceBboxEnabled)
+	{
+		InInput->SetImportAsReferenceBboxEnabled(bImportAsReferenceBboxEnabled);
+		bAnyChanges = true;
+	}
+	if (InInput->GetImportAsReferenceMaterialEnabled() != bImportAsReferenceMaterialEnabled)
+	{
+		InInput->SetImportAsReferenceMaterialEnabled(bImportAsReferenceMaterialEnabled);
+		bAnyChanges = true;
+	}
+	if (InInput->GetExportMaterialParameters() != bExportMaterialParameters)
+	{
+		InInput->SetExportMaterialParameters(bExportMaterialParameters);
 		bAnyChanges = true;
 	}
 
@@ -283,11 +311,14 @@ UHoudiniPublicAPIInput::ConvertAPIInputObjectAndAssignToInput(UObject* InAPIInpu
 
 UHoudiniPublicAPIGeoInput::UHoudiniPublicAPIGeoInput()
 {
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
 	bKeepWorldTransform = false;
 	bPackBeforeMerge = false;
 	bExportLODs = false;
 	bExportSockets = false;
 	bExportColliders = false;
+	bPreferNaniteFallbackMesh = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bPreferNaniteFallbackMesh : false;
 }
 
 bool
@@ -854,6 +885,7 @@ UHoudiniPublicAPICurveInput::UpdateHoudiniInput(UHoudiniInput* const InInput) co
 		InInput->SetCookOnCurveChange(bCookOnCurveChanged);
 		bAnyChanges = true;
 	}
+
 	if (InInput->IsAddRotAndScaleAttributesEnabled() != bAddRotAndScaleAttributesOnCurves)
 	{
 		InInput->SetAddRotAndScaleAttributes(bAddRotAndScaleAttributesOnCurves);
@@ -1059,11 +1091,17 @@ UDEPRECATED_HoudiniPublicAPIAssetInput::ConvertAPIInputObjectAndAssignToInput(UO
 
 UHoudiniPublicAPIWorldInput::UHoudiniPublicAPIWorldInput()
 {
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
 	bKeepWorldTransform = true;
 	bIsWorldInputBoundSelector = false;
 	bWorldInputBoundSelectorAutoUpdate = false;
-	UnrealSplineResolution = 50.0f;
+	UnrealSplineResolution = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->MarshallingSplineResolution : 50.0f;
+	bPreferNaniteFallbackMesh = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bPreferNaniteFallbackMesh : false;
 	bExportLevelInstanceContent = true;
+	bDirectlyConnectHdas = true;
+	bExportEditLayers = true;
+	bExportPaintLayers = true;
 }
 
 bool
@@ -1090,10 +1128,14 @@ UHoudiniPublicAPIWorldInput::PopulateFromHoudiniInput(UHoudiniInput const* const
 		WorldInputBoundSelectorObjects = *BoundSelectorObjectArray;
 	else
 		WorldInputBoundSelectorObjects.Empty();
+
 	bIsWorldInputBoundSelector = InInput->IsWorldInputBoundSelector();
 	bWorldInputBoundSelectorAutoUpdate = InInput->GetWorldInputBoundSelectorAutoUpdates();
 	UnrealSplineResolution = InInput->GetUnrealSplineResolution();
 	bExportLevelInstanceContent = InInput->IsExportLevelInstanceContentEnabled();
+	bDirectlyConnectHdas = InInput->GetDirectlyConnectHdas();
+	bExportEditLayers = InInput->IsEditLayerExportEnabled();
+	bExportPaintLayers = InInput->IsPaintLayerExportEnabled();
 
 	return true;
 }
@@ -1103,16 +1145,77 @@ UHoudiniPublicAPIWorldInput::UpdateHoudiniInput(UHoudiniInput* const InInput) co
 {
 	if (!Super::UpdateHoudiniInput(InInput))
 		return false;
-	
-	InInput->SetBoundSelectorObjectsNumber(WorldInputBoundSelectorObjects.Num());
+
+	bool bAnyChanges = false;
 	TArray<AActor*>* const BoundSelectorObjectArray = InInput->GetBoundSelectorObjectArray();
 	if (BoundSelectorObjectArray)
-		*BoundSelectorObjectArray = WorldInputBoundSelectorObjects;
-	InInput->SetWorldInputBoundSelector(bIsWorldInputBoundSelector);
-	InInput->SetWorldInputBoundSelectorAutoUpdates(bWorldInputBoundSelectorAutoUpdate);
-	InInput->SetUnrealSplineResolution(UnrealSplineResolution);
-	InInput->SetExportLevelInstanceContent(bExportLevelInstanceContent);
-	InInput->MarkChanged(true);
+	{
+		if (BoundSelectorObjectArray->Num() != WorldInputBoundSelectorObjects.Num())
+		{
+			InInput->SetBoundSelectorObjectsNumber(WorldInputBoundSelectorObjects.Num());
+			bAnyChanges = true;
+		}
+
+		bool bNeedToUpdateBoundObjects = false;
+		for (int Idx = 0; Idx < WorldInputBoundSelectorObjects.Num(); Idx++)
+		{
+			if ((*BoundSelectorObjectArray)[Idx] != WorldInputBoundSelectorObjects[Idx])
+				bNeedToUpdateBoundObjects = true;
+		}
+
+		if (bNeedToUpdateBoundObjects)
+		{
+			*BoundSelectorObjectArray = WorldInputBoundSelectorObjects;
+			bAnyChanges = true;
+		}
+	}
+
+	if (InInput->IsWorldInputBoundSelector() != bIsWorldInputBoundSelector)
+	{
+		InInput->SetWorldInputBoundSelector(bIsWorldInputBoundSelector);
+		bAnyChanges = true;
+	}
+
+	if (InInput->GetWorldInputBoundSelectorAutoUpdates() != bWorldInputBoundSelectorAutoUpdate)
+	{
+		InInput->SetWorldInputBoundSelectorAutoUpdates(bWorldInputBoundSelectorAutoUpdate);
+		bAnyChanges = true;
+	}
+
+	if (InInput->GetUnrealSplineResolution() != UnrealSplineResolution)
+	{
+		InInput->SetUnrealSplineResolution(UnrealSplineResolution);
+		bAnyChanges = true;
+	}
+
+	if (InInput->IsExportLevelInstanceContentEnabled() != bExportLevelInstanceContent)
+	{
+		InInput->SetExportLevelInstanceContent(bExportLevelInstanceContent);
+		bAnyChanges = true;
+	}
+	
+	if (InInput->GetDirectlyConnectHdas() != bDirectlyConnectHdas)
+	{
+		InInput->SetDirectlyConnectHdas(bDirectlyConnectHdas);
+		bAnyChanges = true;
+	}
+
+	if (InInput->IsEditLayerExportEnabled() != bExportEditLayers)
+	{
+		InInput->SetEditLayerExportEnabled(bExportEditLayers);
+		bAnyChanges = true;
+	}
+
+	if (InInput->IsPaintLayerExportEnabled() != bExportPaintLayers)
+	{
+		InInput->SetPaintLayerExportEanbled(bExportPaintLayers);
+		bAnyChanges = true;
+	}
+
+	if (bAnyChanges)
+	{
+		InInput->MarkChanged(true);
+	}	
 
 	return true;
 }

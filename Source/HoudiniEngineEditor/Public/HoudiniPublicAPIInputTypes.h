@@ -67,10 +67,38 @@ public:
 
 	/**
 	 * Indicates that all the input objects are imported to Houdini as references instead of actual geo
-	 * (for Geo/World/Asset input types only)
+	 * (for Geo/World input types only)
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
 	bool bImportAsReference;
+
+	/**
+	 * Indicates whether or not to add the rot / scale attributes for reference imports
+	 * (for Geo/World input types only)
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
+	bool bImportAsReferenceRotScaleEnabled;
+	
+	/**
+	 * Indicates whether or not to add bounding box attributes for reference imports
+	 * (for Geo/World input types only)
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
+	bool bImportAsReferenceBboxEnabled;
+		
+	/**
+	 * Indicates whether or not to add material attributes for reference imports
+	 * (for Geo/World input types only)
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
+	bool bImportAsReferenceMaterialEnabled;
+
+	/**
+	 * Indicates whether or not to export the detailled materials parameters with the input data
+	 * (for Geo/World input types only)
+	 */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
+	bool bExportMaterialParameters;
 
 	/** Returns true if InObject is acceptable for this input type.
 	 * @param InObject The object to check for acceptance as an input object on this input.
@@ -598,6 +626,26 @@ public:
 	 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
 	bool bExportLevelInstanceContent;
+
+	/**
+	* If enabled, HDA used as inputs objects will be directly connected to this HDAs input in Houdini
+	*/
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
+	bool bDirectlyConnectHdas;
+
+	/**
+	* If enabled, Edit Layers data will be exported with Landscapes.
+	* If Edit Layers are not needed, disabling this will improve performance
+	*/
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
+	bool bExportEditLayers;
+
+	/**
+	* If enabled, Paint Layers data will be exported with Landscapes.
+	* If Paint Layers are not needed, disabling this will improve performance
+	*/
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
+	bool bExportPaintLayers;
 
 	/**
 	 * Setter for world input object array. If this is a bounds selector (#bIsWorldInputBoundSelector is true), then

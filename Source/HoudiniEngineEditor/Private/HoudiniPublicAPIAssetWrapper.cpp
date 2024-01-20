@@ -237,7 +237,11 @@ UHoudiniPublicAPIAssetWrapper::SetTemporaryCookFolder_Implementation(const FDire
 		return false;
 
 	if (HAC->TemporaryCookFolder.Path != InDirectoryPath.Path)
+	{
 		HAC->TemporaryCookFolder = InDirectoryPath;
+		HAC->Modify();
+	}
+
 	return true;
 }
 
@@ -260,7 +264,11 @@ UHoudiniPublicAPIAssetWrapper::SetBakeFolder_Implementation(const FDirectoryPath
 		return false;
 
 	if (HAC->BakeFolder.Path != InDirectoryPath.Path)
+	{
 		HAC->BakeFolder = InDirectoryPath;
+		HAC->Modify();
+	}
+
 	return true;
 }
 
@@ -300,7 +308,12 @@ UHoudiniPublicAPIAssetWrapper::SetAutoBakeEnabled_Implementation(const bool bInA
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	HAC->SetBakeAfterNextCook(bInAutoBakeEnabled ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled);
+	EHoudiniBakeAfterNextCook bAutoBake = bInAutoBakeEnabled ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled;
+	if (HAC->GetBakeAfterNextCook() != bAutoBake)
+	{
+		HAC->SetBakeAfterNextCook(bAutoBake);
+		HAC->Modify();
+	}
 
 	return true;
 }
@@ -322,7 +335,11 @@ UHoudiniPublicAPIAssetWrapper::SetBakeMethod_Implementation(const EHoudiniEngine
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	HAC->HoudiniEngineBakeOption = InBakeMethod;
+	if (HAC->HoudiniEngineBakeOption != InBakeMethod)
+	{
+		HAC->HoudiniEngineBakeOption = InBakeMethod;
+		HAC->Modify();
+	}
 
 	return true;
 }
@@ -368,7 +385,11 @@ UHoudiniPublicAPIAssetWrapper::SetRecenterBakedActors_Implementation(const bool 
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	HAC->bRecenterBakedActors = bInRecenterBakedActors;
+	if (HAC->bRecenterBakedActors != bInRecenterBakedActors)
+	{
+		HAC->bRecenterBakedActors = bInRecenterBakedActors;
+		HAC->Modify();
+	}
 
 	return true;
 }
@@ -390,7 +411,11 @@ UHoudiniPublicAPIAssetWrapper::SetReplacePreviousBake_Implementation(const bool 
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	HAC->bReplacePreviousBake = bInReplacePreviousBake;
+	if (HAC->bReplacePreviousBake != bInReplacePreviousBake)
+	{
+		HAC->bReplacePreviousBake = bInReplacePreviousBake;
+		HAC->Modify();
+	}
 
 	return true;
 }
@@ -662,6 +687,8 @@ UHoudiniPublicAPIAssetWrapper::SetAutoCookingEnabled_Implementation(const bool b
 		return false;
 
 	HAC->SetCookingEnabled(bInSetEnabled);
+	HAC->Modify();
+
 	return true;
 }
 
@@ -676,6 +703,33 @@ UHoudiniPublicAPIAssetWrapper::IsAutoCookingEnabled_Implementation() const
 }
 
 bool
+UHoudiniPublicAPIAssetWrapper::SetDoNotGenerateOutputs_Implementation(const bool bInSetEnabled)
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	if (HAC->bOutputless == bInSetEnabled)
+		return false;
+
+	HAC->bOutputless = bInSetEnabled;
+	HAC->Modify();
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::IsDoNotGenerateOutputsEnabled_Implementation() const
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	return HAC->bOutputless;
+}
+
+
+bool
 UHoudiniPublicAPIAssetWrapper::SetCookOnParameterOrInputChanges_Implementation(const bool bInSetEnabled)
 {
 	UHoudiniAssetComponent* HAC = nullptr;
@@ -686,6 +740,8 @@ UHoudiniPublicAPIAssetWrapper::SetCookOnParameterOrInputChanges_Implementation(c
 		return false;
 
 	HAC->bCookOnParameterChange = bInSetEnabled;
+	HAC->Modify();
+
 	return true;
 }
 
@@ -710,6 +766,8 @@ UHoudiniPublicAPIAssetWrapper::SetCookOnTransformChange_Implementation(const boo
 		return false;
 
 	HAC->bCookOnTransformChange = bInSetEnabled;
+	HAC->Modify();
+
 	return true;
 }
 
@@ -734,6 +792,8 @@ UHoudiniPublicAPIAssetWrapper::SetCookOnAssetInputCook_Implementation(const bool
 		return false;
 
 	HAC->bCookOnAssetInputCook = bInSetEnabled;
+	HAC->Modify();
+
 	return true;
 }
 
@@ -3208,7 +3268,12 @@ UHoudiniPublicAPIAssetWrapper::SetPDGAutoBakeEnabled_Implementation(const bool b
 	if (!GetValidHoudiniPDGAssetLinkWithError(AssetLink))
 		return false;
 
-	AssetLink->bBakeAfterAllWorkResultObjectsLoaded = bInAutoBakeEnabled;
+	if (AssetLink->bBakeAfterAllWorkResultObjectsLoaded != bInAutoBakeEnabled)
+	{
+		AssetLink->bBakeAfterAllWorkResultObjectsLoaded = bInAutoBakeEnabled;
+		if(AssetLink->GetOuter())
+			AssetLink->GetOuter()->Modify();
+	}
 
 	return true;
 }
@@ -3230,7 +3295,12 @@ UHoudiniPublicAPIAssetWrapper::SetPDGAutoBakeNodesWithFailedWorkItemsEnabled_Imp
 	if (!GetValidHoudiniPDGAssetLinkWithError(AssetLink))
 		return false;
 
-	AssetLink->SetAutoBakeNodesWithFailedWorkItemsEnabled(bInEnabled);
+	if (AssetLink->IsAutoBakeNodesWithFailedWorkItemsEnabled() != bInEnabled)
+	{
+		AssetLink->SetAutoBakeNodesWithFailedWorkItemsEnabled(bInEnabled);
+		if(AssetLink->GetOuter())
+			AssetLink->GetOuter()->Modify();
+	}
 
 	return true;
 }
@@ -3252,7 +3322,12 @@ UHoudiniPublicAPIAssetWrapper::SetPDGBakeMethod_Implementation(const EHoudiniEng
 	if (!GetValidHoudiniPDGAssetLinkWithError(AssetLink))
 		return false;
 
-	AssetLink->HoudiniEngineBakeOption = InBakeMethod;
+	if (AssetLink->HoudiniEngineBakeOption != InBakeMethod)
+	{
+		AssetLink->HoudiniEngineBakeOption = InBakeMethod;
+		if(AssetLink->GetOuter())
+			AssetLink->GetOuter()->Modify();
+	}
 
 	return true;
 }
@@ -3276,7 +3351,12 @@ UHoudiniPublicAPIAssetWrapper::SetPDGBakeSelection_Implementation(const EPDGBake
 	if (!GetValidHoudiniPDGAssetLinkWithError(AssetLink))
 		return false;
 
-	AssetLink->PDGBakeSelectionOption = InBakeSelection;
+	if (AssetLink->PDGBakeSelectionOption != InBakeSelection)
+	{
+		AssetLink->PDGBakeSelectionOption = InBakeSelection;
+		if(AssetLink->GetOuter())
+			AssetLink->GetOuter()->Modify();
+	}
 
 	return true;
 }
@@ -3300,7 +3380,12 @@ UHoudiniPublicAPIAssetWrapper::SetPDGRecenterBakedActors_Implementation(const bo
 	if (!GetValidHoudiniPDGAssetLinkWithError(AssetLink))
 		return false;
 
-	AssetLink->bRecenterBakedActors = bInRecenterBakedActors;
+	if (AssetLink->bRecenterBakedActors != bInRecenterBakedActors)
+	{
+		AssetLink->bRecenterBakedActors = bInRecenterBakedActors;
+		if(AssetLink->GetOuter())
+			AssetLink->GetOuter()->Modify();
+	}
 
 	return true;
 }
@@ -3322,7 +3407,12 @@ UHoudiniPublicAPIAssetWrapper::SetPDGBakingReplacementMode_Implementation(const 
 	if (!GetValidHoudiniPDGAssetLinkWithError(AssetLink))
 		return false;
 
-	AssetLink->PDGBakePackageReplaceMode = InBakingReplacementMode;
+	if (AssetLink->PDGBakePackageReplaceMode != InBakingReplacementMode)
+	{
+		AssetLink->PDGBakePackageReplaceMode = InBakingReplacementMode;
+		if(AssetLink->GetOuter())
+			AssetLink->GetOuter()->Modify();
+	}
 
 	return true;
 }

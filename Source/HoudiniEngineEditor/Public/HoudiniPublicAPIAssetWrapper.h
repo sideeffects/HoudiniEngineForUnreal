@@ -415,6 +415,19 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
 	bool IsAutoCookingEnabled() const;
 
+
+	/**
+	 * Enable or disable DoNotGenerateOutput
+	 * @param bInSetEnabled Whether or not to enable "Do Not Generate Outputs"
+	 * @return true if the value was changed.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetDoNotGenerateOutputs(const bool bInSetEnabled);
+
+	/** Returns true if "Do Not Generate Outputs" is enabled for this instantiated asset. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool IsDoNotGenerateOutputsEnabled() const;
+
 	/**
 	 * Enable or disable triggering of an auto-cook on parameter/input changes.
 	 * @param bInSetEnabled Whether or not to trigger an auto-cook on parameter/input changes.
