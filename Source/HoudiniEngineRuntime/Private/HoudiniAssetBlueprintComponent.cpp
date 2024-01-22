@@ -80,7 +80,7 @@ UHoudiniAssetBlueprintComponent::UHoudiniAssetBlueprintComponent(const FObjectIn
 	bEnableProxyStaticMeshRefinementByTimerOverride = false;
 	bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = false;
 	bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = false;
-	StaticMeshMethod = EHoudiniStaticMeshMethod::RawMesh_DEPRECATED;
+	bUseDeprecatedRawMeshSupport = false;
 
 	// Set default mobility to Movable
 	Mobility = EComponentMobility::Movable;

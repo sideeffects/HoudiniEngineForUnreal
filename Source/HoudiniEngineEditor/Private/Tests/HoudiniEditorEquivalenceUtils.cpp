@@ -99,7 +99,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniAssetComponent *
 	// We change the temporary cook folder to organize the tests. Do not test this.
 	// Result &= TestExpressionError(IsEquivalent(A->TemporaryCookFolder, B->TemporaryCookFolder), Header, "TemporaryCookFolder");
 	// Result &= TestExpressionError(IsEquivalent(A->BakeFolder, B->BakeFolder), Header, "BakeFolder");
-	Result &= TestExpressionError(A->StaticMeshMethod == B->StaticMeshMethod, Header, "StaticMeshMethod");
+	Result &= TestExpressionError(A->bUseDeprecatedRawMeshSupport == B->bUseDeprecatedRawMeshSupport, Header, "bUseDeprecatedRawMeshSupport");
 	Result &= TestExpressionError(IsEquivalent(A->StaticMeshGenerationProperties, B->StaticMeshGenerationProperties), Header, "StaticMeshGenerationProperties");
 	Result &= TestExpressionError(IsEquivalent(A->StaticMeshBuildSettings, B->StaticMeshBuildSettings), Header, "StaticMeshBuildSettings");
 	Result &= TestExpressionError(A->bOverrideGlobalProxyStaticMeshSettings == B->bOverrideGlobalProxyStaticMeshSettings, Header, "bOverrideGlobalProxyStaticMeshSettings");

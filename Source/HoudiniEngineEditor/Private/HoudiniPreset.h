@@ -533,7 +533,7 @@ public:
 
 	
 	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere)
-	EHoudiniStaticMeshMethod StaticMeshGenerationMethod;
+	bool bUseDeprecatedRawMeshSupport;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	FHoudiniStaticMeshGenerationProperties StaticMeshGenerationProperties;
