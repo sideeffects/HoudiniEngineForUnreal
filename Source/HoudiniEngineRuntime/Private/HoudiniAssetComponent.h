@@ -553,9 +553,9 @@ public:
 	UPROPERTY()
 	FDirectoryPath BakeFolder;
 	
-	// The method used to create Static Meshes
+	// Whether or not to create Unreal Meshes using Unreal's raw mesh system. This option is deprecated.
 	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 0))
-	EHoudiniStaticMeshMethod StaticMeshMethod;
+	bool bUseDeprecatedRawMeshSupport = true;
 
 	// Whether or not to support multiple mesh outputs on one HDA output.
 	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 0))
