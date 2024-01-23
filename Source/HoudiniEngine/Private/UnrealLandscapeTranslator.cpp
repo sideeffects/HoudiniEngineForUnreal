@@ -2606,7 +2606,9 @@ bool FUnrealLandscapeTranslator::SendAllEditLayerTargetLayersToHoudini(
 			FHoudiniExtents Extents = FHoudiniLandscapeUtils::GetLandscapeExtents(LandscapeProxy);
 			TArray<uint8_t> LayerData = FHoudiniLandscapeUtils::GetLayerData(Landscape, Extents, EditLayerName, TargetLayerName);
 
-			FLinearColor Color = Landscape->GetLandscapeInfo()->GetLayerInfoByName(TargetLayerName)->LayerUsageDebugColor;
+			ULandscapeLayerInfoObject * LayerInfoObject = Landscape->GetLandscapeInfo()->GetLayerInfoByName(TargetLayerName);
+
+			FLinearColor Color = LayerInfoObject ? LayerInfoObject->LayerUsageDebugColor : FLinearColor::White;
 
 			TArray<float> CurrentLayerFloatData;
 			if (!ConvertLandscapeLayerDataToHeightfieldData(LayerData, XSize, YSize, Color, CurrentLayerFloatData))
