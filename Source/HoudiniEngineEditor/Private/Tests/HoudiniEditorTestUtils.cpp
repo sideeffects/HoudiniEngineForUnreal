@@ -1304,7 +1304,7 @@ bool FHoudiniEditorTestUtils::CreateSessionIfInvalid(const FName& SessionPipeNam
 }
 
 bool FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(
-	FHoudiniAutomationTest* Test, const FName& SessionPipeName, const TFunction<void()>& OnSuccess,
+	FAutomationTestBase* Test, const FName& SessionPipeName, const TFunction<void()>& OnSuccess,
 	const TFunction<void()>& OnFail, const int8 NumRetries, const double TimeBetweenRetriesSeconds)
 {
 	// Check if a valid session already exists, or try to create one
