@@ -1707,12 +1707,6 @@ FHoudiniSkeletalMeshTranslator::CreateAllSkeletalMeshesAndComponentsFromHoudiniO
 	if (!IsValid(InOutput))
 		return false;
 
-	if (!IsValid(InPackageParams.OuterPackage))
-		return false;
-
-	if (!IsValid(InOuterComponent))
-		return false;
-
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> NewOutputObjects;
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> OldOutputObjects = InOutput->GetOutputObjects();
 	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& AssignementMaterials = InOutput->GetAssignementMaterials();

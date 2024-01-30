@@ -475,22 +475,10 @@ UHoudiniEditorNodeSyncSubsystem::FetchFromHoudini(
 			PackageParams.ReplaceMode = EPackageReplaceMode::CreateNewAssets;
 		}
 
-		// 5. Create the static meshes in the outputs
+		// 5. Create all the objects using the outputs
 		const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
 		const FMeshBuildSettings& MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
-		if (!HoudiniGeoImporter->CreateStaticMeshes(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
-			return FailImportAndReturn();
-
-		// 6. Create the curves in the outputs
-		if (!HoudiniGeoImporter->CreateCurves(NewOutputs, PackageParams))
-			return FailImportAndReturn();
-
-		// 7. Create the landscapes in the outputs
-		if (!HoudiniGeoImporter->CreateLandscapes(NewOutputs, PackageParams))
-			return FailImportAndReturn();
-
-		// 8. Create the instancers in the outputs
-		if (!HoudiniGeoImporter->CreateInstancers(NewOutputs, PackageParams))
+		if (!HoudiniGeoImporter->CreateObjectsFromOutputs(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
 			return FailImportAndReturn();
 
 		// Get our result object and "finalize" them
