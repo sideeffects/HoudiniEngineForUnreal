@@ -34,7 +34,7 @@ class UDataTable;
 
 struct HOUDINIENGINE_API FHoudiniDataTableTranslator
 {
-	static bool BuildDataTable(const FHoudiniGeoPartObject& HGPO,
+	static bool BuildDataTable(FHoudiniGeoPartObject& HGPO,
 		UHoudiniOutput* CurOutput,
 		FHoudiniPackageParams& PackageParams);
 

@@ -106,7 +106,7 @@ FHoudiniAnimationTranslator::IsMotionClipFrame(const HAPI_NodeId& GeoId, const H
 	return true;
 }
 
-bool 
+void 
 FHoudiniAnimationTranslator::CreateAnimSequenceFromOutput(
 	UHoudiniOutput* InOutput,
 	const FHoudiniPackageParams& InPackageParams,
@@ -115,7 +115,7 @@ FHoudiniAnimationTranslator::CreateAnimSequenceFromOutput(
 
 	//Loop over hgpo in Output cand
 	const TArray<FHoudiniGeoPartObject>& HGPOs = InOutput->GetHoudiniGeoPartObjects(); 
-	return CreateAnimationFromMotionClip(InOutput, HGPOs, InPackageParams, InOuterComponent);
+	CreateAnimationFromMotionClip(InOutput, HGPOs, InPackageParams, InOuterComponent);
 }
 
 UAnimSequence*

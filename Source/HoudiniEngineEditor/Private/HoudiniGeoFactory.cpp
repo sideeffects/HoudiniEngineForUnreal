@@ -239,13 +239,25 @@ UHoudiniGeoFactory::Import(UClass* InClass, UPackage* InParent, const FString & 
 	if (!BGEOImporter->BuildOutputsForNode(NodeId, DummyOldOutputs, NewOutputs))
 		return FailImportAndReturnNull();
 
-	// 5. Create all the objects using the outputs
+	// 5. Create the static meshes in the outputs
 	const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
 	const FMeshBuildSettings& MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
-	if (!BGEOImporter->CreateObjectsFromOutputs(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
+	if (!BGEOImporter->CreateStaticMeshes(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
 		return FailImportAndReturnNull();
 
-	// 6. Delete the created node in Houdini
+	// 6. Create the curves in the outputs
+	if (!BGEOImporter->CreateCurves(NewOutputs, PackageParams))
+		return FailImportAndReturnNull();
+
+	// 7. Create the landscape in the outputs
+	if (!BGEOImporter->CreateLandscapes(NewOutputs, PackageParams))
+		return FailImportAndReturnNull();
+
+	// 8. Create the instancers in the outputs
+	if (!BGEOImporter->CreateInstancers(NewOutputs, PackageParams))
+		return FailImportAndReturnNull();
+
+	// 9. Delete the created  node in Houdini
 	if (!BGEOImporter->DeleteCreatedNode(NodeId))
 	{
 		// Not good, but not fatal..

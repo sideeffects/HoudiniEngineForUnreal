@@ -38,10 +38,6 @@
 #include "HoudiniLandscapeTranslator.h"
 #include "HoudiniInstanceTranslator.h"
 #include "HoudiniSplineTranslator.h"
-#include "HoudiniDataTableTranslator.h"
-#include "HoudiniSkeletalMeshTranslator.h"
-#include "HoudiniAnimationTranslator.h"
-#include "HoudiniGeometryCollectionTranslator.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniEngineRuntimeUtils.h"
 
@@ -66,6 +62,17 @@ UHoudiniGeoImporter::UHoudiniGeoImporter(const FObjectInitializer & ObjectInitia
 	, FileExtension()
 	, BakeRootFolder(TEXT("/Game/HoudiniEngine/Bake/"))
 {
+	/*
+	SourceFilePath = FString();
+
+	AbsoluteFilePath = FString();
+	AbsoluteFileDirectory = FString();
+	FileName = FString();
+	FileExtension = FString();
+
+	OutputFilename = FString();
+	BakeRootFolder = TEXT("/Game/HoudiniEngine/Bake/");
+	*/
 }
 
 bool
@@ -156,109 +163,14 @@ UHoudiniGeoImporter::BuildOutputsForNode(
 	return BuildAllOutputsForNode(InNodeId, this, InOldOutputs, OutNewOutputs, bInAddOutputsToRootSet, bInUseOutputNodes);
 }
 
-bool UHoudiniGeoImporter::CreateObjectsFromOutputs(
-	const TArray<UHoudiniOutput*>& InOutputs,
-	FHoudiniPackageParams InPackageParams,
-	const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
-	const FMeshBuildSettings& InMeshBuildSettings,
-	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* OutInstancedOutputPartData)
-{
-	//
-	// This isn't ideal but the reason we do this is because previously each 
-	// method we call (i.e. CreateCurves) would filter the outputs we pass in.
-	// This way, we loop through the array of outputs only once.
-	//
-	// The reason we cannot have methods for individual outputs is that some
-	// output types, like curves, are merged together into a single blueprint.
-	//
-	TArray<UHoudiniOutput*> MeshOutputs;
-	TArray<UHoudiniOutput*> CurveOutputs;
-	TArray<UHoudiniOutput*> LandscapeOutputs;
-	TArray<UHoudiniOutput*> LandscapeSplineOutputs;
-	TArray<UHoudiniOutput*> InstancerOutputs;
-	TArray<UHoudiniOutput*> DataTableOutputs;
-	TArray<UHoudiniOutput*> SkeletalOutputs;
-	TArray<UHoudiniOutput*> GeometryCollectionOutputs;
-	TArray<UHoudiniOutput*> AnimSequenceOutputs;
-
-	for (UHoudiniOutput* const Output : InOutputs)
-	{
-		switch (Output->GetType())
-		{
-		case EHoudiniOutputType::Mesh:
-			MeshOutputs.Add(Output);
-			break;
-		case EHoudiniOutputType::Curve:
-			CurveOutputs.Add(Output);
-			break;
-		case EHoudiniOutputType::Landscape:
-			LandscapeOutputs.Add(Output);
-			break;
-		case EHoudiniOutputType::LandscapeSpline:
-			LandscapeSplineOutputs.Add(Output);
-			break;
-		case EHoudiniOutputType::Instancer:
-			InstancerOutputs.Add(Output);
-			break;
-		case EHoudiniOutputType::DataTable:
-			DataTableOutputs.Add(Output);
-			break;
-		case EHoudiniOutputType::Skeletal:
-			SkeletalOutputs.Add(Output);
-			break;
-		case EHoudiniOutputType::GeometryCollection:
-			GeometryCollectionOutputs.Add(Output);
-			break;
-		case EHoudiniOutputType::AnimSequence:
-			AnimSequenceOutputs.Add(Output);
-			break;
-		}
-	}
-
-	if (!CreateStaticMeshes(MeshOutputs, InPackageParams, InStaticMeshGenerationProperties, InMeshBuildSettings))
-		return false;
-
-	if (!CreateCurves(CurveOutputs, InPackageParams))
-		return false;
-
-	if (!CreateLandscapes(LandscapeOutputs, InPackageParams))
-		return false;
-
-	if (OutInstancedOutputPartData)
-	{
-		if (!CreateInstancerOutputPartData(InstancerOutputs, *OutInstancedOutputPartData))
-			return false;
-	}
-	else
-	{
-		if (!CreateInstancers(InstancerOutputs, InPackageParams))
-			return false;
-	}
-
-	if (!CreateDataTables(DataTableOutputs, InPackageParams))
-		return false;
-
-	if (!CreateSkeletalMeshes(SkeletalOutputs, InPackageParams))
-		return false;
-
-	if (!CreateGeometryCollections(GeometryCollectionOutputs, InPackageParams))
-		return false;
-
-	if (!CreateAnimSequences(AnimSequenceOutputs, InPackageParams))
-		return false;
-
-	return true;
-}
-
 bool
 UHoudiniGeoImporter::CreateStaticMeshes(
-	const TArray<UHoudiniOutput*>& InOutputs,
-	FHoudiniPackageParams InPackageParams,
+	TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams,
 	const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 	const FMeshBuildSettings& InMeshBuildSettings)
 {
 	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials;
-	for (UHoudiniOutput* const CurOutput : InOutputs)
+	for (auto& CurOutput : InOutputs)
 	{
 		if (CurOutput->GetType() != EHoudiniOutputType::Mesh)
 			continue;
@@ -280,11 +192,31 @@ UHoudiniGeoImporter::CreateStaticMeshes(
 			if (CurHGPO.Type != EHoudiniPartType::Mesh)
 				continue;
 
-			FHoudiniPackageParams PackageParams = GetPackageParamsForHGPO(CurHGPO, InPackageParams);
+			// Check for a unreal_output_name if we are in bake mode
+			FHoudiniPackageParams PackageParams(InPackageParams);
+			if (PackageParams.PackageMode == EPackageMode::Bake)
+			{
+				TArray<FString> OutputNames;
+				if (FHoudiniEngineUtils::GetOutputNameAttribute(CurHGPO.GeoId, CurHGPO.PartId, OutputNames, 0, 1))
+				{
+					if (OutputNames.Num() > 0 && !OutputNames[0].IsEmpty())
+					{
+						PackageParams.ObjectName = OutputNames[0];
+					}
+				}
+				// Could have prim attribute unreal_bake_folder override
+				TArray<FString> BakeFolderNames;
+				if (FHoudiniEngineUtils::GetBakeFolderAttribute(CurHGPO.GeoId, BakeFolderNames, CurHGPO.PartId, 0, 1))
+				{
+					if (BakeFolderNames.Num() > 0 && !BakeFolderNames[0].IsEmpty())
+					{
+						PackageParams.BakeFolder = BakeFolderNames[0];
+					}
+				}
+			}
 
 			UObject* const OuterComponent = nullptr;
 			constexpr bool bForceRebuild = true;
-			constexpr bool bSplitMeshSupport = false;
 			FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 				CurHGPO,
 				PackageParams,
@@ -296,7 +228,7 @@ UHoudiniGeoImporter::CreateStaticMeshes(
 				OuterComponent,
 				bForceRebuild,
 				EHoudiniStaticMeshMethod::RawMesh_DEPRECATED,
-				bSplitMeshSupport,
+				false,
 				InStaticMeshGenerationProperties,
 				InMeshBuildSettings);
 
@@ -336,23 +268,87 @@ UHoudiniGeoImporter::CreateStaticMeshes(
 	return true;
 }
 
+
 bool
-UHoudiniGeoImporter::CreateCurves(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
+UHoudiniGeoImporter::CreateCurves(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
 {
-	if (InOutputs.IsEmpty())
+	TArray<UHoudiniOutput*> CurveOutputs;
+	CurveOutputs.Reserve(InOutputs.Num());
+	for (auto& CurOutput : InOutputs)
 	{
-		return true;
+		if (CurOutput->GetType() != EHoudiniOutputType::Curve)
+			continue;
+
+		CurveOutputs.Add(CurOutput);
+		break;
 	}
+
+	if (CurveOutputs.Num() <= 0)
+		return true;
 
 	FString Notification = TEXT("BGEO Importer: Creating Curves...");
 	FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Notification));
 
-	FHoudiniPackageParams PackageParams = GetPackageParamsForType(
-		InOutputs,
-		InPackageParams,
-		EHoudiniOutputType::Curve,
-		EHoudiniPartType::Curve);
+	// Look for the first unreal_output_name attribute on the curve outputs and use that
+	// for ObjectName
+	FHoudiniPackageParams PackageParams(InPackageParams);
+	for (auto& CurOutput : CurveOutputs)
+	{
+		bool bFoundOutputName = false;
+		bool bFoundBakeFolder = PackageParams.PackageMode != EPackageMode::Bake;
+		bool bFoundTempFolder = false;
+		for (auto& HGPO : CurOutput->GetHoudiniGeoPartObjects())
+		{
+			if (HGPO.Type != EHoudiniPartType::Curve)
+				continue;
 
+			if (!bFoundOutputName)
+			{
+				TArray<FString> Strings;
+				if (FHoudiniEngineUtils::GetOutputNameAttribute(HGPO.GeoId, HGPO.PartId, Strings, 0, 1))
+				{
+					if (Strings.Num() > 0 && !Strings[0].IsEmpty())
+					{
+						PackageParams.ObjectName = Strings[0];
+						bFoundOutputName = true;
+					}
+				}
+			}
+
+			if (!bFoundTempFolder)
+			{
+				FString TempFolder;
+				if (FHoudiniEngineUtils::GetTempFolderAttribute(HGPO.GeoId, TempFolder, HGPO.PartId))
+				{
+					if (!TempFolder.IsEmpty())
+					{
+						PackageParams.TempCookFolder = TempFolder;
+						bFoundTempFolder = true;
+					}
+				}
+			}
+
+			if (!bFoundBakeFolder)
+			{
+				TArray<FString> Strings;
+				if (FHoudiniEngineUtils::GetBakeFolderAttribute(HGPO.GeoId, Strings, HGPO.PartId, 0, 1))
+				{
+					if (Strings.Num() > 0 && !Strings[0].IsEmpty())
+					{
+						PackageParams.BakeFolder = Strings[0];
+						bFoundBakeFolder = true;
+					}
+				}
+			}
+			
+			if (bFoundOutputName && bFoundBakeFolder && bFoundTempFolder)
+				break;
+		}
+
+		if (bFoundOutputName && bFoundBakeFolder && bFoundTempFolder)
+			break;
+	}
+	
 	// Create a Package for the BP
 	PackageParams.ObjectName = TEXT("BP_") + PackageParams.ObjectName;
 	PackageParams.ReplaceMode = EPackageReplaceMode::CreateNewAssets;
@@ -373,24 +369,22 @@ UHoudiniGeoImporter::CreateCurves(const TArray<UHoudiniOutput*>& InOutputs, FHou
 	USceneComponent* OuterComponent =
 		NewObject<USceneComponent>(OuterActor, USceneComponent::GetDefaultSceneRootVariableName());
 
-	for (UHoudiniOutput* const CurOutput : InOutputs)
+	for (auto& CurOutput : CurveOutputs)
 	{
-		check(CurOutput->GetType() == EHoudiniOutputType::Curve);
-
 		// Output curve
 		FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(CurOutput, OuterComponent);
-
+		
 		// Prepare an ActorComponent array for AddComponentsToBlueprint()
 		TArray<UActorComponent*> OutputComp;
 		for (auto CurOutputPair : CurOutput->GetOutputObjects())
 		{
-			for (auto Component : CurOutputPair.Value.OutputComponents)
+			for(auto Component : CurOutputPair.Value.OutputComponents)
 			{
-				UActorComponent* CurObj = Cast<UActorComponent>(Component);
-				if (!IsValid(CurObj))
-					continue;
+			    UActorComponent* CurObj = Cast<UActorComponent>(Component);
+			    if (!IsValid(CurObj))
+				    continue;
 
-				OutputComp.Add(CurObj);
+			    OutputComp.Add(CurObj);
 			}
 		}
 
@@ -414,16 +408,20 @@ UHoudiniGeoImporter::CreateCurves(const TArray<UHoudiniOutput*>& InOutputs, FHou
 	return true;
 }
 
+
 bool
-UHoudiniGeoImporter::CreateLandscapes(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
+UHoudiniGeoImporter::CreateLandscapes(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
 {
-	if (InOutputs.IsEmpty())
+	for (auto& CurOutput : InOutputs)
 	{
-		return true;
+		if (CurOutput->GetType() != EHoudiniOutputType::Landscape)
+			continue;
+
+		HOUDINI_LOG_WARNING(TEXT("Importing a landscape directly from BGEOs is not currently supported."));
+		return false;
 	}
 
-	HOUDINI_LOG_WARNING(TEXT("Importing a landscape directly from BGEOs is not currently supported."));
-	return false;
+	return true;
 
 	/*
 	// Before processing any of the output,
@@ -494,35 +492,108 @@ UHoudiniGeoImporter::CreateLandscapes(const TArray<UHoudiniOutput*>& InOutputs, 
 
 
 bool
-UHoudiniGeoImporter::CreateLandscapeSplines(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
+UHoudiniGeoImporter::CreateLandscapeSplines(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
 {
-	if (InOutputs.IsEmpty())
+	for (UHoudiniOutput const* const CurOutput : InOutputs)
 	{
-		return true;
+		if (!IsValid(CurOutput))
+			continue;
+		
+		if (CurOutput->GetType() != EHoudiniOutputType::LandscapeSpline)
+			continue;
+
+		HOUDINI_LOG_WARNING(TEXT("Importing landscape splines directly from BGEOs is not currently supported."));
+		return false;
 	}
 
-	HOUDINI_LOG_WARNING(TEXT("Importing landscape splines directly from BGEOs is not currently supported."));
-	return false;
+	return true;
 }
 
 
 bool
-UHoudiniGeoImporter::CreateInstancers(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
+UHoudiniGeoImporter::CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams)
 {
-	if (InOutputs.IsEmpty())
+	bool HasInstancer = false;
+	for (auto& CurOutput : InOutputs)
 	{
-		return true;
+		if (CurOutput->GetType() != EHoudiniOutputType::Instancer)
+			continue;
+
+		HasInstancer = true;
+		break;
 	}
+
+	if (!HasInstancer)
+		return true;
 
 	FString Notification = TEXT("BGEO Importer: Creating Instancers...");
 	FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Notification));
 
-	FHoudiniPackageParams PackageParams = GetPackageParamsForType(
-		InOutputs,
-		InPackageParams,
-		EHoudiniOutputType::Instancer,
-		EHoudiniPartType::Instancer);
+	// Look for the first unreal_output_name attribute on the instancer outputs and use that
+	// for ObjectName
+	FHoudiniPackageParams PackageParams(InPackageParams);
+	for (auto& CurOutput : InOutputs)
+	{
+		if (CurOutput->GetType() != EHoudiniOutputType::Instancer)
+			continue;
 
+		bool bFoundOutputName = false;
+		bool bFoundBakeFolder = PackageParams.PackageMode != EPackageMode::Bake;
+		bool bFoundTempFolder = false;
+		for (auto& HGPO : CurOutput->GetHoudiniGeoPartObjects())
+		{
+			if (HGPO.Type != EHoudiniPartType::Instancer)
+				continue;
+
+			if (!bFoundOutputName)
+			{
+				TArray<FString> Strings;
+				if (FHoudiniEngineUtils::GetOutputNameAttribute(HGPO.GeoId, HGPO.PartId, Strings, 0, 1))
+				{
+					if (Strings.Num() > 0 && !Strings[0].IsEmpty())
+					{
+						PackageParams.ObjectName = Strings[0];
+						bFoundOutputName = true;
+						break;
+					}
+				}
+			}
+			
+			if (!bFoundTempFolder)
+			{
+				FString TempFolder;
+				if (FHoudiniEngineUtils::GetTempFolderAttribute(HGPO.GeoId, TempFolder, HGPO.PartId))
+				{
+					if (!TempFolder.IsEmpty())
+					{
+						PackageParams.TempCookFolder = TempFolder;
+						bFoundTempFolder = true;
+					}
+				}
+			}
+
+			if (!bFoundBakeFolder)
+			{
+				TArray<FString> Strings;
+				if (FHoudiniEngineUtils::GetBakeFolderAttribute(HGPO.GeoId, Strings, HGPO.PartId, 0, 1))
+				{
+					if (Strings.Num() > 0 && !Strings[0].IsEmpty())
+					{
+						PackageParams.BakeFolder = Strings[0];
+						bFoundBakeFolder = true;
+						break;
+					}
+				}
+			}
+
+			if (bFoundOutputName && bFoundBakeFolder && bFoundTempFolder)
+				break;
+		}
+
+		if (bFoundOutputName && bFoundBakeFolder && bFoundTempFolder)
+			break;
+	}
+	
 	// Create a Package for the BP
 	PackageParams.ObjectName = TEXT("BP_") + PackageParams.ObjectName;
 	PackageParams.ReplaceMode = EPackageReplaceMode::CreateNewAssets;
@@ -546,19 +617,20 @@ UHoudiniGeoImporter::CreateInstancers(const TArray<UHoudiniOutput*>& InOutputs, 
 	for (auto& CurOutput : InOutputs)
 	{
 		// Transfer all the instancer components to the BP
-		check(CurOutput->GetType() == EHoudiniOutputType::Instancer)
+		if (CurOutput->GetType() != EHoudiniOutputType::Instancer)
+			continue;
 
 		// Prepare an ActorComponent array for AddComponentsToBlueprint()
 		TArray<UActorComponent*> OutputComp;
 		for (auto CurOutputPair : CurOutput->GetOutputObjects())
 		{
-			for (auto Component : CurOutputPair.Value.OutputComponents)
+			for(auto Component : CurOutputPair.Value.OutputComponents)
 			{
-				UActorComponent* CurObj = Cast<UActorComponent>(Component);
-				if (!IsValid(CurObj))
-					continue;
+			    UActorComponent* CurObj = Cast<UActorComponent>(Component);
+			    if (!IsValid(CurObj))
+				    continue;
 
-				OutputComp.Add(CurObj);
+			    OutputComp.Add(CurObj);
 			}
 		}
 
@@ -582,188 +654,14 @@ UHoudiniGeoImporter::CreateInstancers(const TArray<UHoudiniOutput*>& InOutputs, 
 }
 
 bool
-UHoudiniGeoImporter::CreateDataTables(
-	const TArray<UHoudiniOutput*>& InOutputs,
-	FHoudiniPackageParams InPackageParams)
-{
-	if (InOutputs.IsEmpty())
-	{
-		return true;
-	}
-
-	for (UHoudiniOutput* const CurOutput : InOutputs)
-	{
-		check(CurOutput->GetType() == EHoudiniOutputType::DataTable);
-
-		FString Notification = TEXT("BGEO Importer: Creating Data Tables...");
-		FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Notification));
-
-		for (const FHoudiniGeoPartObject& CurHGPO : CurOutput->GetHoudiniGeoPartObjects())
-		{
-			if (CurHGPO.Type != EHoudiniPartType::DataTable)
-			{
-				continue;
-			}
-
-			// Check for a unreal_output_name if we are in bake mode
-			FHoudiniPackageParams PackageParams = GetPackageParamsForHGPO(CurHGPO, InPackageParams);
-
-			if (!FHoudiniDataTableTranslator::BuildDataTable(CurHGPO, CurOutput, PackageParams))
-			{
-				return false;
-			}
-		}
-
-		// Add all output objects
-		for (auto& CurOutputPair : CurOutput->GetOutputObjects())
-		{
-			UObject* const CurObj = CurOutputPair.Value.OutputObject;
-			if (!IsValid(CurObj))
-			{
-				continue;
-			}
-
-			OutputObjects.Add(CurObj);
-		}
-	}
-
-	return true;
-}
-
-bool
-UHoudiniGeoImporter::CreateSkeletalMeshes(
-	const TArray<UHoudiniOutput*>& InOutputs,
-	FHoudiniPackageParams InPackageParams)
-{
-	if (InOutputs.IsEmpty())
-	{
-		return true;
-	}
-
-	FString Notification = TEXT("BGEO Importer: Creating Skeletal Meshes...");
-	FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Notification));
-
-	FHoudiniPackageParams PackageParams = GetPackageParamsForType(
-		InOutputs,
-		InPackageParams,
-		EHoudiniOutputType::Skeletal,
-		EHoudiniPartType::SkeletalMeshShape); // TODO(alexanderk): What about EHoudiniPartType::SkeletalMeshPose?
-
-	for (UHoudiniOutput* const CurOutput : InOutputs)
-	{
-		check(CurOutput->GetType() == EHoudiniOutputType::Skeletal);
-
-		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputMaterials;
-		UObject* const OuterComponent = nullptr;
-		if (!FHoudiniSkeletalMeshTranslator::CreateAllSkeletalMeshesAndComponentsFromHoudiniOutput(CurOutput, PackageParams, OutputMaterials, OuterComponent))
-		{
-			return false;
-		}
-
-		// Add all output objects
-		for (auto& CurOutputPair : CurOutput->GetOutputObjects())
-		{
-			UObject* const CurObj = CurOutputPair.Value.OutputObject;
-			if (!IsValid(CurObj))
-			{
-				continue;
-			}
-
-			OutputObjects.Add(CurObj);
-		}
-
-		// Do the same for materials
-		for (auto& CurOutputPair : OutputMaterials)
-		{
-			UObject* CurObj = CurOutputPair.Value;
-			if (!IsValid(CurObj))
-			{
-				continue;
-			}
-
-			OutputObjects.Add(CurObj);
-		}
-	}
-
-	return true;
-}
-
-bool
-UHoudiniGeoImporter::CreateGeometryCollections(
-	const TArray<UHoudiniOutput*>& InOutputs,
-	FHoudiniPackageParams InPackageParams)
-{
-	if (InOutputs.IsEmpty())
-	{
-		return true;
-	}
-
-	// TODO(alexanderk)
-	// FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(...);
-	
-	return true;
-}
-
-bool
-UHoudiniGeoImporter::CreateAnimSequences(
-	const TArray<UHoudiniOutput*>& InOutputs,
-	FHoudiniPackageParams InPackageParams)
-{
-	if (InOutputs.IsEmpty())
-	{
-		return true;
-	}
-
-	FString Notification = TEXT("BGEO Importer: Creating Animation Sequences...");
-	FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Notification));
-
-	// Look for the first unreal_output_name attribute on the animation sequence outputs and use that
-	// for ObjectName
-	FHoudiniPackageParams PackageParams = GetPackageParamsForType(
-		InOutputs,
-		InPackageParams,
-		EHoudiniOutputType::AnimSequence,
-		EHoudiniPartType::MotionClip);
-
-	for (UHoudiniOutput* const CurOutput : InOutputs)
-	{
-		check(CurOutput->GetType() == EHoudiniOutputType::AnimSequence);
-
-		UObject* const OuterComponent = nullptr;
-		if (!FHoudiniAnimationTranslator::CreateAnimSequenceFromOutput(CurOutput, PackageParams, OuterComponent))
-		{
-			return false;
-		}
-
-		// Add all output objects
-		for (auto& CurOutputPair : CurOutput->GetOutputObjects())
-		{
-			UObject* const CurObj = CurOutputPair.Value.OutputObject;
-			if (!IsValid(CurObj))
-			{
-				continue;
-			}
-
-			OutputObjects.Add(CurObj);
-		}
-	}
-
-	return true;
-}
-
-bool
 UHoudiniGeoImporter::CreateInstancerOutputPartData(
-	const TArray<UHoudiniOutput*>& InOutputs,
+	TArray<UHoudiniOutput*>& InOutputs,
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>& OutInstancedOutputPartData)
 {
-	if (InOutputs.IsEmpty())
+	for (auto& CurOutput : InOutputs)
 	{
-		return true;
-	}
-
-	for (UHoudiniOutput* const CurOutput : InOutputs)
-	{
-		check(CurOutput->GetType() == EHoudiniOutputType::Instancer)
+		if (CurOutput->GetType() != EHoudiniOutputType::Instancer)
+			continue;
 
 		for (auto& HGPO : CurOutput->GetHoudiniGeoPartObjects())
 		{
@@ -878,9 +776,29 @@ UHoudiniGeoImporter::ImportBGEOFile(
 	const FMeshBuildSettings& MeshBuildSettings =
 		InMeshBuildSettings ? *InMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 		
-	if (!CreateObjectsFromOutputs(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
+	if (!CreateStaticMeshes(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
 		return CleanUpAndReturn(false);
 
+	// 6. Create the static meshes in the outputs
+	if (!CreateCurves(NewOutputs, PackageParams))
+		return CleanUpAndReturn(false);
+
+	// 7. Create the landscape in the outputs
+	if (!CreateLandscapes(NewOutputs, PackageParams))
+		return CleanUpAndReturn(false);
+
+	// 8. Create the landscape splines in the outputs
+	if (!CreateLandscapeSplines(NewOutputs, PackageParams))
+		return CleanUpAndReturn(false);
+
+	// 9. Create the instancers in the outputs
+	if (!CreateInstancers(NewOutputs, PackageParams))
+		return CleanUpAndReturn(false);
+
+	// 10. Delete the created  node in Houdini
+	if (!DeleteCreatedNode(NodeId))
+		return CleanUpAndReturn(false);
+	
 	// Clean up and return true
 	return CleanUpAndReturn(true);
 }
@@ -1143,108 +1061,4 @@ UHoudiniGeoImporter::BuildAllOutputsForNode(
 	}
 
 	return true;
-}
-
-FHoudiniPackageParams
-UHoudiniGeoImporter::GetPackageParamsForType(
-	const TArray<UHoudiniOutput*>& InOutputs,
-	FHoudiniPackageParams InPackageParams,
-	const EHoudiniOutputType InOutputType,
-	const EHoudiniPartType InPartType)
-{
-	// Look for the first unreal_output_name attribute for the desired output
-	// type and use that for ObjectName
-	for (const UHoudiniOutput* const CurOutput : InOutputs)
-	{
-		if (CurOutput->GetType() != InOutputType)
-		{
-			continue;
-		}
-
-		bool bFoundOutputName = false;
-		bool bFoundBakeFolder = InPackageParams.PackageMode != EPackageMode::Bake;
-		bool bFoundTempFolder = false;
-		for (const FHoudiniGeoPartObject& HGPO : CurOutput->GetHoudiniGeoPartObjects())
-		{
-			if (HGPO.Type != InPartType)
-			{
-				continue;
-			}
-
-			if (!bFoundOutputName)
-			{
-				FString OutputName;
-				if (FHoudiniEngineUtils::GetOutputNameAttribute(HGPO.GeoId, HGPO.PartId, OutputName))
-				{
-					if (!OutputName.IsEmpty())
-					{
-						InPackageParams.ObjectName = OutputName;
-						bFoundOutputName = true;
-					}
-				}
-			}
-
-			if (!bFoundTempFolder)
-			{
-				FString TempFolder;
-				if (FHoudiniEngineUtils::GetTempFolderAttribute(HGPO.GeoId, TempFolder, HGPO.PartId))
-				{
-					if (!TempFolder.IsEmpty())
-					{
-						InPackageParams.TempCookFolder = TempFolder;
-						bFoundTempFolder = true;
-					}
-				}
-			}
-
-			if (!bFoundBakeFolder)
-			{
-				FString BakeFolder;
-				if (FHoudiniEngineUtils::GetBakeFolderAttribute(HGPO.GeoId, HGPO.PartId, BakeFolder))
-				{
-					if (!BakeFolder.IsEmpty())
-					{
-						InPackageParams.BakeFolder = BakeFolder;
-						bFoundBakeFolder = true;
-					}
-				}
-			}
-
-			if (bFoundOutputName && bFoundBakeFolder && bFoundTempFolder)
-			{
-				return InPackageParams;
-			}
-		}
-	}
-
-	return InPackageParams;
-}
-
-FHoudiniPackageParams
-UHoudiniGeoImporter::GetPackageParamsForHGPO(
-	const FHoudiniGeoPartObject& InHGPO,
-	FHoudiniPackageParams InPackageParams)
-{
-	// Check for a unreal_output_name if we are in bake mode
-	if (InPackageParams.PackageMode == EPackageMode::Bake)
-	{
-		FString OutputName;
-		if (FHoudiniEngineUtils::GetOutputNameAttribute(InHGPO.GeoId, InHGPO.PartId, OutputName))
-		{
-			if (!OutputName.IsEmpty())
-			{
-				InPackageParams.ObjectName = OutputName;
-			}
-		}
-		// Could have prim attribute unreal_bake_folder override
-		FString BakeFolder;
-		if (FHoudiniEngineUtils::GetBakeFolderAttribute(InHGPO.GeoId, InHGPO.PartId, BakeFolder))
-		{
-			if (!BakeFolder.IsEmpty())
-			{
-				InPackageParams.BakeFolder = BakeFolder;
-			}
-		}
-	}
-	return InPackageParams;
 }
