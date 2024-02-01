@@ -53,7 +53,8 @@ enum class EHoudiniPartType : uint8
 	Volume,
 	DataTable,
 	LandscapeSpline,
-	SkeletalMesh,
+	SkeletalMeshShape, // Rest Geometry for the skeletal mesh
+	SkeletalMeshPose,  // Capture Pose for the skeletal mesh 
 	MotionClip
 };
 
@@ -360,6 +361,9 @@ public:
 	//
 	UPROPERTY()
 	int32 VolumeTileIndex;
+
+	UPROPERTY()
+	FString InstancerName;
 
 	// Is set to true when referenced object is visible.
 	UPROPERTY()

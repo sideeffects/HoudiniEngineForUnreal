@@ -8668,7 +8668,166 @@ FHoudiniEngineUtils::JSONFromString(const FString& JSONString, TSharedPtr<FJsonO
 	}
 
 	return true;
-};
+}
+
+void
+FHoudiniEngineUtils::ConvertHoudiniComponentSpaceTransform(
+	const float* RotationData,
+	const FVector3f& PositionData,
+	FTransform& OutUnrealTransform)
+{
+	//Read in 3x3 into Matrix, and append the translation
+	FMatrix M44Pose;  //this is unconverted houdini space
+	M44Pose.M[0][0] = RotationData[0];
+	M44Pose.M[0][1] = RotationData[1];
+	M44Pose.M[0][2] = RotationData[2];
+	M44Pose.M[0][3] = 0;
+	M44Pose.M[1][0] = RotationData[3];
+	M44Pose.M[1][1] = RotationData[4];
+	M44Pose.M[1][2] = RotationData[5];
+	M44Pose.M[1][3] = 0;
+	M44Pose.M[2][0] = RotationData[6];
+	M44Pose.M[2][1] = RotationData[7];
+	M44Pose.M[2][2] = RotationData[8];
+	M44Pose.M[2][3] = 0;
+	M44Pose.M[3][0] = PositionData.X;
+	M44Pose.M[3][1] = PositionData.Y;
+	M44Pose.M[3][2] = PositionData.Z;
+	M44Pose.M[3][3] = 1;
+
+	const FTransform PoseTransform = FTransform(M44Pose); //this is in Houdini Space
+
+	//Now convert to unreal
+	const FQuat PoseQ = PoseTransform.GetRotation();
+	const FQuat ConvertedPoseQ = FQuat(PoseQ.X, PoseQ.Z, PoseQ.Y, -PoseQ.W) * FQuat::MakeFromEuler({ 90.f, 0.f, 0.f });
+
+	const FVector PoseT = PoseTransform.GetLocation();
+	const FVector ConvertedPoseT = FVector(PoseT.X, PoseT.Z, PoseT.Y);
+	const FVector PoseS = PoseTransform.GetScale3D();
+	OutUnrealTransform = FTransform(ConvertedPoseQ, ConvertedPoseT * 100, PoseS * 100);
+}
+
+
+bool
+FHoudiniEngineUtils::UpdateMeshPartUVSets(
+	const int GeoId,
+	const int PartId,
+	const bool& bRemoveUnused,
+	TArray<TArray<float>>& OutPartUVSets,
+	TArray<HAPI_AttributeInfo>& OutAttribInfoUVSets)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("FHoudiniEngineUtils::UpdateMeshPartUVSets"));
+
+	// Only Retrieve uvs if necessary
+	if (OutPartUVSets.Num() > 0)
+		return true;
+
+	OutPartUVSets.SetNum(MAX_STATIC_TEXCOORDS);
+	OutAttribInfoUVSets.SetNum(MAX_STATIC_TEXCOORDS);
+
+	// The second UV set should be called uv2, but we will still check if need to look for a uv1 set.
+	// If uv1 exists, we'll look for uv, uv1, uv2 etc.. if not we'll look for uv, uv2, uv3 etc..
+	bool bUV1Exists = FHoudiniEngineUtils::HapiCheckAttributeExists(GeoId, PartId, "uv1");
+
+	// Retrieve UVs.
+	for (int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
+	{
+		FString UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
+		if (TexCoordIdx > 0)
+			UVAttributeName += FString::Printf(TEXT("%d"), bUV1Exists ? TexCoordIdx : TexCoordIdx + 1);
+
+		FHoudiniApi::AttributeInfo_Init(&OutAttribInfoUVSets[TexCoordIdx]);
+		FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+			GeoId, PartId, TCHAR_TO_ANSI(*UVAttributeName),
+			OutAttribInfoUVSets[TexCoordIdx], OutPartUVSets[TexCoordIdx], 2);
+	}
+
+	// Also look for 16.5 uvs (attributes with a Texture type) 
+	// For that, we'll have to iterate through ALL the attributes and check their types
+	TArray< FString > FoundAttributeNames; 
+	TArray< HAPI_AttributeInfo > FoundAttributeInfos;
+		
+	for (int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
+	{
+		FHoudiniEngineUtils::HapiGetAttributeOfType(
+			GeoId, PartId, (HAPI_AttributeOwner)AttrIdx, 
+			HAPI_ATTRIBUTE_TYPE_TEXTURE, FoundAttributeInfos, FoundAttributeNames);
+	}
+
+	if (FoundAttributeInfos.Num() <= 0)
+		return true;
+
+	// We found some additionnal uv attributes
+	int32 AvailableIdx = 0;
+	for (int32 attrIdx = 0; attrIdx < FoundAttributeInfos.Num(); attrIdx++)
+	{
+		// Ignore the old uvs
+		if (FoundAttributeNames[attrIdx] == TEXT("uv")
+			|| FoundAttributeNames[attrIdx] == TEXT("uv1")
+			|| FoundAttributeNames[attrIdx] == TEXT("uv2")
+			|| FoundAttributeNames[attrIdx] == TEXT("uv3")
+			|| FoundAttributeNames[attrIdx] == TEXT("uv4")
+			|| FoundAttributeNames[attrIdx] == TEXT("uv5")
+			|| FoundAttributeNames[attrIdx] == TEXT("uv6")
+			|| FoundAttributeNames[attrIdx] == TEXT("uv7")
+			|| FoundAttributeNames[attrIdx] == TEXT("uv8"))
+			continue;
+
+		HAPI_AttributeInfo CurrentAttrInfo = FoundAttributeInfos[attrIdx];
+		if (!CurrentAttrInfo.exists)
+			continue;
+
+		// Look for the next available index in the return arrays
+		for (; AvailableIdx < OutAttribInfoUVSets.Num(); AvailableIdx++)
+		{
+			if (!OutAttribInfoUVSets[AvailableIdx].exists)
+				break;
+		}
+
+		// We are limited to MAX_STATIC_TEXCOORDS uv sets!
+		// If we already have too many uv sets, skip the rest
+		if ((AvailableIdx >= MAX_STATIC_TEXCOORDS) || (AvailableIdx >= OutAttribInfoUVSets.Num()))
+		{
+			HOUDINI_LOG_WARNING(TEXT("Too many UV sets found. Unreal only supports %d , skipping the remaining uv sets."), (int32)MAX_STATIC_TEXCOORDS);
+			break;
+		}
+
+		// Force the tuple size to 2 ?
+		CurrentAttrInfo.tupleSize = 2;
+
+		// Add the attribute infos we found
+		OutAttribInfoUVSets[AvailableIdx] = CurrentAttrInfo;
+
+		// Allocate sufficient buffer for the attribute's data.
+		OutPartUVSets[AvailableIdx].SetNumUninitialized(CurrentAttrInfo.count * CurrentAttrInfo.tupleSize);
+
+		// Get the texture coordinates
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeFloatData(
+			FHoudiniEngine::Get().GetSession(),
+			GeoId, PartId, TCHAR_TO_UTF8(*(FoundAttributeNames[attrIdx])),
+			&OutAttribInfoUVSets[AvailableIdx], -1,
+			&OutPartUVSets[AvailableIdx][0], 0, CurrentAttrInfo.count))
+		{
+			// Something went wrong when trying to access the uv values, invalidate this set
+			OutAttribInfoUVSets[AvailableIdx].exists = false;
+		}
+	}
+
+	// Remove unused UV sets
+	if (bRemoveUnused)
+	{
+		for (int32 Idx = OutPartUVSets.Num() - 1; Idx >= 0; Idx--)
+		{
+			if (OutPartUVSets[Idx].Num() > 0)
+				continue;
+
+			OutPartUVSets.RemoveAt(Idx);
+		}
+	}
+
+	return true;
+}
+
 
 void
 FHoudiniEngineUtils::ForceDeleteObject(UObject* Object)

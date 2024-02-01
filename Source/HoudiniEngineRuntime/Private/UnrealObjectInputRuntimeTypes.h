@@ -110,6 +110,21 @@ public:
 	/** Helper to make FUnrealObjectInputOptions for generic Actors. */
 	static FUnrealObjectInputOptions MakeOptionsForGenericActor(const FHoudiniInputObjectSettings& InInputSettings);
 
+	void SetBoolOptions(const TMap<FName, bool>& InBoolOptions) { BoolOptions = InBoolOptions; ComputeBoolOptionsHash(); }
+	void AddBoolOption(const FName InBoolOption, const bool bInValue) { BoolOptions.Add(InBoolOption, bInValue); ComputeBoolOptionsHash(); }
+	bool RemoveBoolOption(const FName InBoolOptionToRemove)
+	{
+		if (BoolOptions.Remove(InBoolOptionToRemove) <= 0)
+			return false;
+
+		ComputeBoolOptionsHash();
+		return true;
+	}
+	
+	const TMap<FName, bool>& GetBoolOptions() const { return BoolOptions; }
+
+	uint32 GetBoolOptionsHash() const { return BoolOptionsHash; }
+
 	void SetSelectedComponents(const TSet<TWeakObjectPtr<UActorComponent>>& InSelectedComponents);
 	void SetSelectedComponents(TSet<TWeakObjectPtr<UActorComponent>>&& InSelectedComponents);
 
@@ -196,10 +211,19 @@ public:
 	bool bExportSelectedComponentsOnly;
 
 protected:
+	/** Compute BoolOptionsHash from BoolOptions. */ 
+	void ComputeBoolOptionsHash();
+
 	/** Compute SelectedComponentsHash from SelectedComponents. */ 
 	void ComputeSelectedComponentsHash();
 	
 private:
+	/** Boolean options for the input object. */
+	TMap<FName, bool> BoolOptions;
+
+	/** The computed hash of BoolOptions. */
+	uint32 BoolOptionsHash;
+
 	/** The set of selected components. */
 	TSet<TWeakObjectPtr<UActorComponent>> SelectedComponents;
 

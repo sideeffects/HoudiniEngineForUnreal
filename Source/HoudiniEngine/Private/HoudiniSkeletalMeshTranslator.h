@@ -42,6 +42,20 @@
 class USkeletalMesh;
 class USkeleton;
 
+
+struct FHoudiniSkeletalMeshParts
+{
+    const FHoudiniGeoPartObject* HGPOShapeInstancer = nullptr;
+	const FHoudiniGeoPartObject* HGPOShapeMesh = nullptr;
+	const FHoudiniGeoPartObject* HGPOPoseInstancer = nullptr;
+	const FHoudiniGeoPartObject* HGPOPoseMesh = nullptr;
+
+    const FHoudiniGeoPartObject* GetMainHGPO() const { return HGPOShapeInstancer; }
+
+    bool IsValid() const { return HGPOShapeInstancer && HGPOShapeMesh && HGPOPoseInstancer && HGPOPoseMesh; }
+};
+
+
 struct SKBuildSettings
 {
     FSkeletalMeshImportData SkeletalMeshImportData;
@@ -51,8 +65,9 @@ struct SKBuildSettings
     UPackage* SKPackage = nullptr;
     USkeleton* Skeleton = nullptr;
     FString CurrentObjectName;
-    HAPI_NodeId GeoId = -1;
-    HAPI_NodeId PartId = -1;
+    // HAPI_NodeId GeoId = -1;
+    // HAPI_NodeId PartId = -1;
+    FHoudiniSkeletalMeshParts SKParts;
     bool ImportNormals = false;
     bool OverwriteSkeleton = false;
     FString SkeletonAssetPath = "";
@@ -62,9 +77,21 @@ struct SKBuildSettings
 
 struct HOUDINIENGINE_API FHoudiniSkeletalMeshTranslator
 {
-    public:        
+    public:
     
-        // 
+        // Check whether the packed primitive is skeleton Rest Geometry
+        static bool IsRestGeometryInstancer(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, FString& OutBaseName);
+        static bool IsRestGeometryMesh(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
+
+        // Check whether the packed primitive is skeleton Rest Geometry
+        static bool IsCapturePoseInstancer(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, FString& OutBaseName);
+        static bool IsCapturePoseMesh(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
+
+protected:
+        // Helper to IsRestGeometry* / IsCapturePose* functions
+        static HAPI_AttributeInfo GetAttrInfo(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, const char* AttrName, HAPI_AttributeOwner AttrOwner);
+
+public:
         static bool CreateAllSkeletalMeshesAndComponentsFromHoudiniOutput(
             UHoudiniOutput* InOutput,
             const FHoudiniPackageParams& InPackageParams,
@@ -73,26 +100,29 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshTranslator
 
         //
         static bool CreateSkeletalMeshFromHoudiniGeoPartObject(
-            const FHoudiniGeoPartObject& InHGPO,
+            const FHoudiniSkeletalMeshParts& SKParts,
             const FHoudiniPackageParams& InPackageParams,
             UObject* InOuterComponent,
-            const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects,
-            TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutOutputObjects);
+            const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>&
+            InOutputObjects, TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>&
+            OutOutputObjects);
 
         bool CreateSkeletalMesh_SkeletalMeshImportData();        
 
         static void ExportSkeletalMeshAssets(UHoudiniOutput* InOutput);
-        static bool HasSkeletalMeshData(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
+        // static bool HasSkeletalMeshData(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
         static void LoadImportData(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
-        static void CreateSKAssetAndPackage(SKBuildSettings& BuildSettings, const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, FString PackageName, int MaxInfluences = 1, bool ImportNormals = false);
+        static void CreateSKAssetAndPackage(SKBuildSettings& BuildSettings, const FHoudiniSkeletalMeshParts& InSKParts, FString PackageName, int MaxInfluences = 1, bool ImportNormals = false);
         static void BuildSKFromImportData(SKBuildSettings& BuildSettings, TArray<FSkeletalMaterial>& Materials);
-        static void SKImportData(SKBuildSettings& BuildSettings);
-        static USkeleton* CreateOrUpdateSkeleton(SKBuildSettings& BuildSettings);
+        static bool SKImportData(SKBuildSettings& BuildSettings);
+        static void UpdateBuildSettings(SKBuildSettings& BuildSettings);
+
+        static bool FindAttributeOnSkeletalMeshShapeParts(const FHoudiniSkeletalMeshParts& InSKParts, const char* Attribute, HAPI_NodeId& OutGeoId, HAPI_PartId& OutPartId);
 
         //-----------------------------------------------------------------------------------------------------------------------------
         // MUTATORS
         //-----------------------------------------------------------------------------------------------------------------------------
-        void SetHoudiniGeoPartObject(const FHoudiniGeoPartObject& InHGPO) { HGPO = InHGPO; };
+        void SetHoudiniSkeletalMeshParts(const FHoudiniSkeletalMeshParts& InSKParts) { SKParts = InSKParts; };
         void SetPackageParams(const FHoudiniPackageParams& InPackageParams, const bool& bUpdateHGPO = false);
         void SetInputObjects(const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InInputObjects) { InputObjects = InInputObjects; };
         void SetOutputObjects(const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects) { OutputObjects = InOutputObjects; };
@@ -106,8 +136,8 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshTranslator
 
     protected:
 
-        // The HoudiniGeoPartObject we're working on
-        FHoudiniGeoPartObject HGPO;        
+        // The HoudiniGeoPartObjects we're working on
+        FHoudiniSkeletalMeshParts SKParts;
         // Structure that handles cooking/baking package creation parameters
         FHoudiniPackageParams PackageParams;
         
@@ -119,5 +149,5 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshTranslator
         
 
         USkeletalMesh* CreateNewSkeletalMesh(const FString& InSplitIdentifier);
-        USkeleton* CreateNewSkeleton(const FString& InSplitIdentifier);
+        USkeleton* CreateNewSkeleton(const FString& InSplitIdentifier) const;
 };

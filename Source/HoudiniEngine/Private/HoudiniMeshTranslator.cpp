@@ -663,28 +663,30 @@ FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 		return true;
 	}
 
-	// Handle Skeletal Meshes here
-	if (FHoudiniSkeletalMeshTranslator::HasSkeletalMeshData(InHGPO.GeoId, InHGPO.PartId))
-	{
-		FHoudiniSkeletalMeshTranslator SKMeshTranslator;
-		SKMeshTranslator.SetHoudiniGeoPartObject(InHGPO);
-		SKMeshTranslator.SetInputObjects(InOutputObjects);
-		SKMeshTranslator.SetOutputObjects(OutOutputObjects);
-		SKMeshTranslator.SetPackageParams(InPackageParams, true);
-
-		if (SKMeshTranslator.CreateSkeletalMesh_SkeletalMeshImportData())
-		{
-			// Copy the output objects/materials
-			OutOutputObjects = SKMeshTranslator.OutputObjects;
-			//AssignmentMaterialMap = SKMT.OutputAssignmentMaterials;
-
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
+	// NOTE: We can't handle skeletal meshes here. Skeletal meshes now consist of multiple HGPOs and we have to
+	// aggregate the HGPO that belong to the same Skeletal Mesh and process them as a single unit.
+	// // Handle Skeletal Meshes here
+	// if (FHoudiniSkeletalMeshTranslator::HasSkeletalMeshData(InHGPO.GeoId, InHGPO.PartId))
+	// {
+	// 	FHoudiniSkeletalMeshTranslator SKMeshTranslator;
+	// 	SKMeshTranslator.SetHoudiniSkeletalMeshParts(InHGPO);
+	// 	SKMeshTranslator.SetInputObjects(InOutputObjects);
+	// 	SKMeshTranslator.SetOutputObjects(OutOutputObjects);
+	// 	SKMeshTranslator.SetPackageParams(InPackageParams, true);
+	//
+	// 	if (SKMeshTranslator.CreateSkeletalMesh_SkeletalMeshImportData())
+	// 	{
+	// 		// Copy the output objects/materials
+	// 		OutOutputObjects = SKMeshTranslator.OutputObjects;
+	// 		//AssignmentMaterialMap = SKMT.OutputAssignmentMaterials;
+	//
+	// 		return true;
+	// 	}
+	// 	else
+	// 	{
+	// 		return false;
+	// 	}
+	// }
 
 	// Create a new mesh translator to handle the output data creation
 	FHoudiniMeshTranslator CurrentTranslator;
@@ -1226,112 +1228,7 @@ FHoudiniMeshTranslator::UpdatePartUVSetsIfNeeded(const bool& bRemoveUnused)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("FHoudiniMeshTranslator::UpdatePartUVSetsIfNeeded"));
 
-	// Only Retrieve uvs if necessary
-	if (PartUVSets.Num() > 0)
-		return true;
-
-	PartUVSets.SetNum(MAX_STATIC_TEXCOORDS);
-	AttribInfoUVSets.SetNum(MAX_STATIC_TEXCOORDS);
-
-	// The second UV set should be called uv2, but we will still check if need to look for a uv1 set.
-	// If uv1 exists, we'll look for uv, uv1, uv2 etc.. if not we'll look for uv, uv2, uv3 etc..
-	bool bUV1Exists = FHoudiniEngineUtils::HapiCheckAttributeExists(HGPO.GeoId, HGPO.PartId, "uv1");
-
-	// Retrieve UVs.
-	for (int32 TexCoordIdx = 0; TexCoordIdx < MAX_STATIC_TEXCOORDS; ++TexCoordIdx)
-	{
-		FString UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
-		if (TexCoordIdx > 0)
-			UVAttributeName += FString::Printf(TEXT("%d"), bUV1Exists ? TexCoordIdx : TexCoordIdx + 1);
-
-		FHoudiniApi::AttributeInfo_Init(&AttribInfoUVSets[TexCoordIdx]);
-		FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
-			HGPO.GeoId, HGPO.PartId, TCHAR_TO_ANSI(*UVAttributeName),
-			AttribInfoUVSets[TexCoordIdx], PartUVSets[TexCoordIdx], 2);
-	}
-
-	// Also look for 16.5 uvs (attributes with a Texture type) 
-	// For that, we'll have to iterate through ALL the attributes and check their types
-	TArray< FString > FoundAttributeNames; 
-	TArray< HAPI_AttributeInfo > FoundAttributeInfos;
-		
-	for (int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
-	{
-		FHoudiniEngineUtils::HapiGetAttributeOfType(
-			HGPO.GeoId, HGPO.PartId, (HAPI_AttributeOwner)AttrIdx, 
-			HAPI_ATTRIBUTE_TYPE_TEXTURE, FoundAttributeInfos, FoundAttributeNames);
-	}
-
-	if (FoundAttributeInfos.Num() <= 0)
-		return true;
-
-	// We found some additionnal uv attributes
-	int32 AvailableIdx = 0;
-	for (int32 attrIdx = 0; attrIdx < FoundAttributeInfos.Num(); attrIdx++)
-	{
-		// Ignore the old uvs
-		if (FoundAttributeNames[attrIdx] == TEXT("uv")
-			|| FoundAttributeNames[attrIdx] == TEXT("uv1")
-			|| FoundAttributeNames[attrIdx] == TEXT("uv2")
-			|| FoundAttributeNames[attrIdx] == TEXT("uv3")
-			|| FoundAttributeNames[attrIdx] == TEXT("uv4")
-			|| FoundAttributeNames[attrIdx] == TEXT("uv5")
-			|| FoundAttributeNames[attrIdx] == TEXT("uv6")
-			|| FoundAttributeNames[attrIdx] == TEXT("uv7")
-			|| FoundAttributeNames[attrIdx] == TEXT("uv8"))
-			continue;
-
-		HAPI_AttributeInfo CurrentAttrInfo = FoundAttributeInfos[attrIdx];
-		if (!CurrentAttrInfo.exists)
-			continue;
-
-		// Look for the next available index in the return arrays
-		for (; AvailableIdx < AttribInfoUVSets.Num(); AvailableIdx++)
-		{
-			if (!AttribInfoUVSets[AvailableIdx].exists)
-				break;
-		}
-
-		// We are limited to MAX_STATIC_TEXCOORDS uv sets!
-		// If we already have too many uv sets, skip the rest
-		if ((AvailableIdx >= MAX_STATIC_TEXCOORDS) || (AvailableIdx >= AttribInfoUVSets.Num()))
-		{
-			HOUDINI_LOG_WARNING(TEXT("Too many UV sets found. Unreal only supports %d , skipping the remaining uv sets."), (int32)MAX_STATIC_TEXCOORDS);
-			break;
-		}
-
-		// Force the tuple size to 2 ?
-		CurrentAttrInfo.tupleSize = 2;
-
-		// Add the attribute infos we found
-		AttribInfoUVSets[AvailableIdx] = CurrentAttrInfo;
-
-		// Allocate sufficient buffer for the attribute's data.
-		PartUVSets[AvailableIdx].SetNumUninitialized(CurrentAttrInfo.count * CurrentAttrInfo.tupleSize);
-
-		// Get the texture coordinates
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			HGPO.GeoId, HGPO.PartId, TCHAR_TO_UTF8(*(FoundAttributeNames[attrIdx])),
-			&AttribInfoUVSets[AvailableIdx], -1,
-			&PartUVSets[AvailableIdx][0], 0, CurrentAttrInfo.count))
-		{
-			// Something went wrong when trying to access the uv values, invalidate this set
-			AttribInfoUVSets[AvailableIdx].exists = false;
-		}
-	}
-
-	// Remove unused UV sets
-	if (bRemoveUnused)
-	{
-		for (int32 Idx = PartUVSets.Num() - 1; Idx >= 0; Idx--)
-		{
-			if (PartUVSets[Idx].Num() > 0)
-				continue;
-
-			PartUVSets.RemoveAt(Idx);
-		}
-	}
+	FHoudiniEngineUtils::UpdateMeshPartUVSets(HGPO.GeoId, HGPO.PartId, bRemoveUnused, PartUVSets, AttribInfoUVSets);
 
 	return true;
 }

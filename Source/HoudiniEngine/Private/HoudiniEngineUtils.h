@@ -1255,6 +1255,28 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static FString JSONToString(const TSharedPtr<FJsonObject>& JSONObject);
 		static bool JSONFromString(const ::FString& JSONString, TSharedPtr<FJsonObject>& OutJSONObject);
 
+		// -------------------------------------------------
+		// Transform Utilities
+		// -------------------------------------------------
+		// Convert Houdini component space transform to a UE component space transform
+		static void ConvertHoudiniComponentSpaceTransform(
+			const float* RotationData,
+			const FVector3f& PositionData,
+			FTransform& OutUnrealTransform
+		);
+
+		// -------------------------------------------------
+		// Mesh Attribute Utilities
+		// -------------------------------------------------
+
+		// Retrieve Houdini UV sets from the given Mesh part GeoId/PartId.
+		static bool UpdateMeshPartUVSets(
+			const int GeoId,
+			const int PartId,
+			const bool& bRemoveUnused,
+			TArray<TArray<float>>& OutPartUVSets,
+			TArray<HAPI_AttributeInfo>& OutAttribInfoUVSets);
+
 	protected:
 		
 		// Computes the XX.YY.ZZZ version string using HAPI_Version

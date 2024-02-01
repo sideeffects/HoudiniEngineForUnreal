@@ -51,7 +51,7 @@ FHoudiniAnimationTranslator::IsMotionClipFrame(const HAPI_NodeId& GeoId, const H
 		HAPI_Result AttrInfoResult = FHoudiniApi::GetAttributeInfo(
 			FHoudiniEngine::Get().GetSession(),
 			GeoId, PartId,
-			"time", HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM, &AttrInfo);
+			AttrName, AttrOwner, &AttrInfo);
 		return AttrInfo;  
 	};
 
@@ -388,8 +388,7 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 
 	// Process the topology frame.
 	// Note: We require here that all the HGPO's that we receive in this function be packed primitives (instancers).
-
-	// Get the Mesh data for the
+	
 	const FHoudiniGeoPartObject& TopologyHGPO = HGPOs[0];
 	const HAPI_PartId TopologyPartId = GetInstancedMeshPartID(TopologyHGPO);
 

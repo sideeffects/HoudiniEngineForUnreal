@@ -960,10 +960,25 @@ const bool UHoudiniOutput::GeoMatch(const FHoudiniGeoPartObject& InHGPO) const
 			continue;
 		}
 
-		// if (currentHGPO.Type != InHGPO.Type)
-		// {
-		// 	continue;
-		// }
+		return true;
+	}
+
+	return false;
+}
+
+const bool UHoudiniOutput::InstancerNameMatch(const FHoudiniGeoPartObject& InHGPO) const
+{
+	for (auto& currentHGPO : HoudiniGeoPartObjects)
+	{
+		// Asset/Object/Geo IDs should match
+		if (currentHGPO.AssetId != InHGPO.AssetId
+			|| currentHGPO.ObjectId != InHGPO.ObjectId
+			|| currentHGPO.GeoId != InHGPO.GeoId
+			|| currentHGPO.InstancerName != InHGPO.InstancerName
+			)
+		{
+			continue;
+		}
 
 		return true;
 	}
@@ -1030,7 +1045,10 @@ UHoudiniOutput::UpdateOutputType()
 		case EHoudiniPartType::MotionClip:
 			AnimSequenceCount++;
 			break;
-		case EHoudiniPartType::SkeletalMesh:
+		case EHoudiniPartType::SkeletalMeshPose:
+			SkeletonCount++;
+			break;
+		case EHoudiniPartType::SkeletalMeshShape:
 			SkeletonCount++;
 			break;
 		default:

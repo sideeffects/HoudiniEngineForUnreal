@@ -770,6 +770,10 @@ public:
 	// Returns true if the HGPO is from the same Geo (output), ignoring the PartID
 	const bool GeoMatch(const FHoudiniGeoPartObject& InHGPO) const;
 
+	// Returns true if the HGPO is from the same Geo (output), ignoring the PartID but including the InstancerName property.
+	// This is useful if multiple HGPOs need be to grouped together in a single Output Object, such as Skeletal Mesh parts.
+	const bool InstancerNameMatch(const FHoudiniGeoPartObject& InHGPO) const;
+
 	// Returns the output objects and their corresponding identifiers
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& GetOutputObjects() { return OutputObjects; };
 

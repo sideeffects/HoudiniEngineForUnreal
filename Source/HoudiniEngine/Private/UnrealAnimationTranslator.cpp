@@ -459,8 +459,9 @@ FUnrealAnimationTranslator::AddBoneTracksToNode(HAPI_NodeId& NewNodeId, UAnimSeq
 
 	//read animation data
 	UAnimSequence* AnimSequence = CastChecked<UAnimSequence>(Animation);
-	USkeleton* Skeleton = Animation->GetSkeleton();
+	const USkeleton* Skeleton = Animation->GetSkeleton();
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+	const FString SkeletonPathName = Skeleton->GetPathName();
 	//
 	const IAnimationDataModel* DataModel = Animation->GetDataModel();
 	TArray<const FAnimatedBoneAttribute*> CustomAttributes;
@@ -772,7 +773,7 @@ FUnrealAnimationTranslator::AddBoneTracksToNode(HAPI_NodeId& NewNodeId, UAnimSeq
 				}
 				BoneNames.Add(MeshBoneInfo.Name.ToString());
 				BonePaths.Add(GetBonePathForBone(RefSkeleton, BoneRefIndex));
-				UnrealSkeletonPaths.Add(Skeleton->GetFName().ToString());
+				UnrealSkeletonPaths.Add(SkeletonPathName);
 			}
 			else
 			{
@@ -891,11 +892,11 @@ FUnrealAnimationTranslator::AddBoneTracksToNode(HAPI_NodeId& NewNodeId, UAnimSeq
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 		FHoudiniEngine::Get().GetSession(),
-		NewNodeId, 0, "unreal_skeleton", &UnrealSkeletonInfo), false);
+		NewNodeId, 0, HAPI_UNREAL_ATTRIB_SKELETON, &UnrealSkeletonInfo), false);
 
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetAttributeStringData(
-		UnrealSkeletonPaths, NewNodeId, 0, "unreal_skeleton", UnrealSkeletonInfo), false);
+		UnrealSkeletonPaths, NewNodeId, 0, HAPI_UNREAL_ATTRIB_SKELETON, UnrealSkeletonInfo), false);
 
 
 	//--------------------------------------------------------------------------------------------------------------------- 

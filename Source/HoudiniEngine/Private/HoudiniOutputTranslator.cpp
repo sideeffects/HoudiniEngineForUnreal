@@ -1392,16 +1392,75 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			// Skeletal Mesh: requires a packed prim containing a mesh with capture weights. Requires a packed prim with bones.
 			bool bHasMotionClipTopologyFrame = false;
 			bool bHasMotionClipAnimFrame = false;
+
+			auto GetInstancedMeshPartIdFn = [](const HAPI_NodeId GeoId, const HAPI_PartId PartId) -> HAPI_PartId
+			{
+				{
+					constexpr int NumInstancedParts = 1;
+					TArray<HAPI_PartId> InstancedPartIds;
+					InstancedPartIds.SetNumZeroed(NumInstancedParts);
+					if (FHoudiniApi::GetInstancedPartIds(
+						FHoudiniEngine::Get().GetSession(), GeoId, PartId,
+						InstancedPartIds.GetData(), 0, NumInstancedParts) != HAPI_RESULT_SUCCESS)
+					{
+						return -1;
+					}
+
+					return InstancedPartIds[0];
+				}
+			};
+
+			struct S_SkelMeshParts
+			{
+				S_SkelMeshParts()
+					: ShapeInstancerPartId(-1)
+					, PoseInstancerPartId(-1)
+					, ShapeMeshPartId(-1)
+					, PoseMeshPartId(-1)
+				{}
+				
+				int32 ShapeInstancerPartId;
+				int32 PoseInstancerPartId;
+				int32 ShapeMeshPartId;
+				int32 PoseMeshPartId;
+			};
 			
-			bool bHasPackedMeshWithCaptureWeights = false;
-			bool bHasPackedMeshWithBones = false;
+			// Track shapes / skeleton parts so that we can pair them when building skeletal mesh outputs.
+			TMap<FString, S_SkelMeshParts> SkelMeshParts;
+			// Names of valid / complete skeletal meshes (both Rest Geometry and Packed Primitives are present). 
+			TSet<FString> ValidSkelMeshNames;
+			// Track the base name for the given PartId
+			TMap<HAPI_PartId, FString> PartIdBaseNameMap;
+			TMap<HAPI_PartId, EHoudiniPartType> PartIdPartTypeMap;
+			// Track the output associate with each skeletal mesh base name
+			TMap<FString, UHoudiniOutput*> SkeletalMeshOutputs;
+
+			auto FindSkeletalMeshPartType = [&PartIdPartTypeMap](const HAPI_PartId PartId) -> EHoudiniPartType
+			{
+				if (PartIdPartTypeMap.Contains(PartId))
+				{
+					return PartIdPartTypeMap.FindChecked(PartId);
+				}
+				return EHoudiniPartType::Invalid;
+			};
 
 			// If haven't identified a motion clip or skeletal mesh after within these number of parts, give up.
-			constexpr int32 PrePassLimit = 4; 
+			constexpr int32 PrePassLimit = 4;
 
 			// Iterate on this geo's parts
-			for (int32 PartId = 0; PartId < CurrentGeoInfo.PartCount && PartId < PrePassLimit; ++PartId)
+			for (int32 PartId = 0; PartId < CurrentGeoInfo.PartCount; ++PartId)
 			{
+				if (PartId >= PrePassLimit)
+				{
+					if (SkelMeshParts.Num() == 0)
+					{
+						// if we haven't found a trace of skeletal mesh inputs at this point, abort the prepass.
+						break;
+					}
+					// If we have identified packed prims as skeletal mesh inputs, continue inspecting all packed prims
+					// in case we have more skeletal mesh parts
+				}
+				
 				// Get part information.
 				HAPI_PartInfo CurrentHapiPartInfo;
 				FHoudiniApi::PartInfo_Init(&CurrentHapiPartInfo);
@@ -1461,6 +1520,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				if (CurrentPartInfo.Type == EHoudiniPartType::Invalid)
 					continue;
 
+				// ------------------
+				// Motion Clip checks
+				// ------------------
+
 				// Check to for motion clip topology frame
 				if ((CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER) && PartId == 0)
 				{
@@ -1480,8 +1543,66 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					break;
 				}
 
-				// TODO: Check whether packed prim is a skeletal mesh.
-				
+				// ------------------
+				// Skeletal Mesh checks
+				// ------------------
+				if ((CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER))
+				{
+					// Try to collect all the parts needed for a skeletal mesh.
+					// Check for skeletal mesh Rest Geometry (Shape, in Houdini terms))
+					FString BaseName;
+					if (FHoudiniSkeletalMeshTranslator::IsRestGeometryInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, BaseName))
+					{
+						PartIdBaseNameMap.Add(PartId, BaseName);
+						S_SkelMeshParts& SkelParts = SkelMeshParts.FindOrAdd(BaseName);
+						if (SkelParts.ShapeInstancerPartId == INDEX_NONE)
+						{
+							// Set the shape parts
+							SkelParts.ShapeInstancerPartId = PartId;
+							PartIdPartTypeMap.Add(PartId, EHoudiniPartType::SkeletalMeshShape);
+							SkelParts.ShapeMeshPartId = GetInstancedMeshPartIdFn(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id);
+							if (SkelParts.ShapeMeshPartId >= 0)
+							{
+								PartIdBaseNameMap.Add(SkelParts.ShapeMeshPartId, BaseName);
+								PartIdPartTypeMap.Add(SkelParts.ShapeMeshPartId, EHoudiniPartType::SkeletalMeshShape);
+							}
+							// Do we have the pose parts?
+							if (SkelParts.PoseInstancerPartId >= 0 && SkelParts.PoseMeshPartId >= 0)
+							{
+								// We already have a Capture Pose that matches the base name of this Rest Geometry.
+								// This means that we have at least one valid skeletal mesh.
+								bIsSkeletalMesh = true;
+								ValidSkelMeshNames.Add(BaseName);
+							}
+						}
+					}
+					// Check for skeletal mesh Capture Pose
+					else if (FHoudiniSkeletalMeshTranslator::IsCapturePoseInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, BaseName))
+					{
+						PartIdBaseNameMap.Add(PartId, BaseName);
+						S_SkelMeshParts& SkelParts = SkelMeshParts.FindOrAdd(BaseName);
+						if (SkelParts.PoseInstancerPartId == INDEX_NONE)
+						{
+							// Set the Pose parts
+							SkelParts.PoseInstancerPartId = PartId;
+							PartIdPartTypeMap.Add(PartId, EHoudiniPartType::SkeletalMeshPose);
+							SkelParts.PoseMeshPartId = GetInstancedMeshPartIdFn(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id);
+							if (SkelParts.PoseMeshPartId >= 0)
+							{
+								PartIdBaseNameMap.Add(SkelParts.PoseMeshPartId, BaseName);
+								PartIdPartTypeMap.Add(SkelParts.PoseMeshPartId, EHoudiniPartType::SkeletalMeshPose);
+							}
+							// Do we have the Shape parts?
+							if (SkelParts.ShapeInstancerPartId >= 0 && SkelParts.ShapeMeshPartId >= 0)
+							{
+								// We already have Rest Geometry that matches the base name of this Capture Pose.
+								// This means that we have at least one valid skeletal mesh.
+								bIsSkeletalMesh = true;
+								ValidSkelMeshNames.Add(BaseName);
+							}
+						}
+					}
+				}
 			} // End of Parts pre-pass
 			
 
@@ -1540,6 +1661,23 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					continue;
 				}
 
+				FString SkeletalMeshBaseName;
+				if (bIsSkeletalMesh)
+				{
+					// If this PartId is NOT part of a valid skeletal mesh, skip it.
+					if (!PartIdBaseNameMap.Contains(PartId))
+					{
+						continue;
+					}
+					SkeletalMeshBaseName = PartIdBaseNameMap.FindChecked(PartId);
+					if (!ValidSkelMeshNames.Contains(SkeletalMeshBaseName))
+					{
+						continue;
+					}
+					// At this point we have a valid skeletal mesh BaseName for this PartId which we can use to
+					// track output objects and collect the HGPOs.
+				}
+
 				// Convert/cache the part info
 				FHoudiniPartInfo CurrentPartInfo;
 				CachePartInfo(CurrentHapiPartInfo, CurrentPartInfo);
@@ -1590,9 +1728,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 
 							if (bIsSkeletalMesh)
 							{
-								// We don't care about tracking Mesh objects for skeletal meshes.
-								// We just want to track the packed primitives, and extract the mesh data in the translator.
-								continue;
+								CurrentPartType = FindSkeletalMeshPartType(CurrentHapiPartInfo.id);
 							}
 							else if (bIsMotionClip)
 							{
@@ -1654,8 +1790,14 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 
 					case HAPI_PARTTYPE_CURVE:
 					{
+						if (bIsSkeletalMesh)
+						{
+							// The Capture Pose mesh is reported by HAPI to be a Curve part type, so be sure to intercept
+							// it here
+							CurrentPartType = FindSkeletalMeshPartType(CurrentHapiPartInfo.id);
+						}
 						// Make sure that this curve is not an an attribute instancer!
-						if (FHoudiniEngineUtils::IsAttributeInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, CurrentInstancerType))
+						else if (FHoudiniEngineUtils::IsAttributeInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, CurrentInstancerType))
 						{
 							// Mark the part as an instancer it as an instancer
 							CurrentPartType = EHoudiniPartType::Instancer;
@@ -1691,7 +1833,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						}
 						else if (bIsSkeletalMesh)
 						{
-							CurrentPartType = EHoudiniPartType::SkeletalMesh;
+							CurrentPartType = FindSkeletalMeshPartType(CurrentHapiPartInfo.id);
 							CurrentInstancerType = EHoudiniInstancerType::SkeletalMesh;
 						}
 						else if (bIsGeometryCollection)
@@ -1721,7 +1863,9 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				if ((CurrentPartInfo.VertexCount <= 0 && CurrentPartInfo.PointCount <= 0) &&
 					(CurrentPartType != EHoudiniPartType::Instancer || (CurrentInstancerType != EHoudiniInstancerType::PackedPrimitive && CurrentInstancerType != EHoudiniInstancerType::GeometryCollection)) &&
 					(CurrentPartType != EHoudiniPartType::MotionClip) &&
-					(CurrentPartType != EHoudiniPartType::SkeletalMesh))
+					(CurrentPartType != EHoudiniPartType::SkeletalMeshPose) &&
+					(CurrentPartType != EHoudiniPartType::SkeletalMeshShape)
+					)
 				{
 					HOUDINI_LOG_MESSAGE(
 						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] no points or vertices found - skipping."),
@@ -1970,6 +2114,13 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				}
 				currentHGPO.CurveInfo = CurrentCurveInfo;
 
+				if (CurrentPartType == EHoudiniPartType::SkeletalMeshPose || CurrentPartType == EHoudiniPartType::SkeletalMeshShape)
+				{
+					// Set the instancer name to the skeletal skeletal mesh base name so that we can use this
+					// to group multiple HGPOs together into a single output (based on the Instancer name).
+					currentHGPO.InstancerName = SkeletalMeshBaseName;
+				}
+
 
 				// TODO:
 				// DONE? bake folders are handled out of this loop?
@@ -1983,7 +2134,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				UHoudiniOutput ** FoundHoudiniOutput = nullptr;	
 				if (currentHGPO.Type != EHoudiniPartType::Volume &&
 					currentHGPO.Type != EHoudiniPartType::MotionClip &&
-					currentHGPO.Type != EHoudiniPartType::SkeletalMesh
+					currentHGPO.Type != EHoudiniPartType::SkeletalMeshPose &&
+					currentHGPO.Type != EHoudiniPartType::SkeletalMeshShape
 					)
 				{
 					// Create single output per HGPO
@@ -2005,6 +2157,27 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 
 					if (FoundHoudiniOutput && IsValid(*FoundHoudiniOutput))
 						IsFoundOutputValid = true;
+				}
+				else if (currentHGPO.Type == EHoudiniPartType::SkeletalMeshPose || currentHGPO.Type == EHoudiniPartType::SkeletalMeshShape)
+				{
+					// Each "complete" skeletal mesh (2 packed prims) will result in a single output.
+					// Collect HGPOs that match the skeletal mesh BaseName into a single output.
+					TFunction<bool(UHoudiniOutput*)> MatchFn = [currentHGPO](UHoudiniOutput* Output) -> bool { return Output ? Output->InstancerNameMatch(currentHGPO) : false; };
+
+					// Look in the previous outputs if we have a match
+					FoundHoudiniOutput = InOldOutputs.FindByPredicate(MatchFn);
+
+					if (FoundHoudiniOutput && IsValid(*FoundHoudiniOutput))
+						IsFoundOutputValid = true;
+
+					// If we dont have a match in the old maps, also look in the newly created outputs
+					if (!IsFoundOutputValid)
+					{
+						FoundHoudiniOutput = OutNewOutputs.FindByPredicate(MatchFn);
+
+						if (FoundHoudiniOutput && IsValid(*FoundHoudiniOutput))
+							IsFoundOutputValid = true;
+					}
 				}
 				else
 				{
