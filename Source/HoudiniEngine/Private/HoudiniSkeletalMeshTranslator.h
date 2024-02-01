@@ -65,8 +65,6 @@ struct SKBuildSettings
     UPackage* SKPackage = nullptr;
     USkeleton* Skeleton = nullptr;
     FString CurrentObjectName;
-    // HAPI_NodeId GeoId = -1;
-    // HAPI_NodeId PartId = -1;
     FHoudiniSkeletalMeshParts SKParts;
     bool ImportNormals = false;
     bool OverwriteSkeleton = false;
@@ -88,36 +86,48 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshTranslator
         static bool IsCapturePoseMesh(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
 
 protected:
+
         // Helper to IsRestGeometry* / IsCapturePose* functions
         static HAPI_AttributeInfo GetAttrInfo(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, const char* AttrName, HAPI_AttributeOwner AttrOwner);
 
 public:
+        
+        // Creates all skeletal mesh assets and component for a given HoudiniOutput
         static bool CreateAllSkeletalMeshesAndComponentsFromHoudiniOutput(
             UHoudiniOutput* InOutput,
             const FHoudiniPackageParams& InPackageParams,
             const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials,
             UObject* InOuterComponent);
 
-        //
+        // Creates a skeletal mesh assets and component for a given HoudiniOutput
         static bool CreateSkeletalMeshFromHoudiniGeoPartObject(
             const FHoudiniSkeletalMeshParts& SKParts,
             const FHoudiniPackageParams& InPackageParams,
             UObject* InOuterComponent,
-            const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>&
-            InOutputObjects, TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>&
-            OutOutputObjects);
+            const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects, 
+            TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutOutputObjects);
 
+        // Creates a skeletal mesh by using FSkeletalMeshImportData
+        // Creates SkelatalMesh and Skeleton Assets and Packages, and adds them to OutputObjects
         bool CreateSkeletalMesh_SkeletalMeshImportData();        
 
-        static void ExportSkeletalMeshAssets(UHoudiniOutput* InOutput);
-        // static bool HasSkeletalMeshData(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
-        static void LoadImportData(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
-        static void CreateSKAssetAndPackage(SKBuildSettings& BuildSettings, const FHoudiniSkeletalMeshParts& InSKParts, FString PackageName, int MaxInfluences = 1, bool ImportNormals = false);
+        // Builds Skeletal Mesh and Skeleton Assets from FSkeletalMeshImportData
         static void BuildSKFromImportData(SKBuildSettings& BuildSettings, TArray<FSkeletalMaterial>& Materials);
-        static bool SKImportData(SKBuildSettings& BuildSettings);
+
+        // Fills the FSkeletalMeshImportData with data from HAPI
+        static bool FillSkeletalMeshImportData(SKBuildSettings& BuildSettings, const FHoudiniPackageParams& InPackageParams);
+
+        //
         static void UpdateBuildSettings(SKBuildSettings& BuildSettings);
 
         static bool FindAttributeOnSkeletalMeshShapeParts(const FHoudiniSkeletalMeshParts& InSKParts, const char* Attribute, HAPI_NodeId& OutGeoId, HAPI_PartId& OutPartId);
+
+        static bool CreateSkeletalMeshMaterials(
+            const FHoudiniGeoPartObject& InShapeMeshHGPO,
+            const HAPI_PartInfo& InShapeMeshPartInfo,
+            const FHoudiniPackageParams& InPackageParams,
+            TArray<int32>& OutPerFaceUEMaterialIds,
+            FSkeletalMeshImportData& OutImportData);
 
         //-----------------------------------------------------------------------------------------------------------------------------
         // MUTATORS

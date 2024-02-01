@@ -39,6 +39,8 @@
 #include "Factories/FbxSkeletalMeshImportData.h"
 #include "IMeshBuilderModule.h"
 #include "ImportUtils/SkeletalMeshImportUtils.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInterface.h"
 #include "Math/UnrealMathUtility.h"
 #include "Rendering/SkeletalMeshLODImporterData.h"
 #include "Rendering/SkeletalMeshModel.h"
@@ -120,6 +122,8 @@ ProcessImportMeshSkeleton(
 	return true;
 }
 
+
+
 // Raw data bone.
 struct FBoneTracker
 {
@@ -127,6 +131,8 @@ struct FBoneTracker
 	int32 OrigIndex = 0;
 	int32 NewIndex = 0;
 };
+
+
 
 void
 AddChildren(
@@ -156,6 +162,8 @@ AddChildren(
 		AddChildren(OutSortedBones, i, RefBonesBinary);
 	}
 }
+
+
 
 //Resorts Bones By Their ParentIndex
 void
@@ -233,10 +241,13 @@ SortBonesByParent(FSkeletalMeshImportData & SkeletalMeshImportData)
 	}
 }
 
+
+
 //Builds Skeletal Mesh and Skeleton Assets from FSkeletalMeshImportData
 void
 FHoudiniSkeletalMeshTranslator::BuildSKFromImportData(
-	SKBuildSettings & BuildSettings, TArray<FSkeletalMaterial>&Materials)
+	SKBuildSettings & BuildSettings,
+	TArray<FSkeletalMaterial>&Materials)
 {
 	FSkeletalMeshImportData& SkeletalMeshImportData = BuildSettings.SkeletalMeshImportData;
 	SkeletalMeshImportData.NumTexCoords = BuildSettings.NumTexCoords;
@@ -268,6 +279,12 @@ FHoudiniSkeletalMeshTranslator::BuildSKFromImportData(
 		MaterialInterface = Cast<UMaterialInterface>(
 			StaticLoadObject(UMaterialInterface::StaticClass(),
 				nullptr, *SkeletalImportMaterial.MaterialImportName, nullptr, LOAD_NoWarn, nullptr));
+
+		if (!IsValid(MaterialInterface))
+		{
+			MaterialInterface = Cast<UMaterialInterface>(SkeletalImportMaterial.Material);
+		}
+
 		FSkeletalMaterial SkeletalMaterial;
 		SkeletalMaterial.MaterialInterface = MaterialInterface;
 		BuildSettings.SKMesh->GetMaterials().Add(SkeletalMaterial);
@@ -347,6 +364,8 @@ FHoudiniSkeletalMeshTranslator::BuildSKFromImportData(
 		SkeletalMeshImportData.Influences.Num());
 }
 
+
+
 //swap y and z
 FVector3f
 ConvertDir(FVector3f Vector)
@@ -358,69 +377,7 @@ ConvertDir(FVector3f Vector)
 	return Out;
 }
 
-// bool
-// FHoudiniSkeletalMeshTranslator::HasSkeletalMeshData(const HAPI_NodeId & GeoId, const HAPI_NodeId & PartId)
-// {
-// 	HAPI_AttributeInfo CaptNamesInfo;
-// 	FHoudiniApi::AttributeInfo_Init(&CaptNamesInfo);
-// 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeInfo(
-// 		FHoudiniEngine::Get().GetSession(),
-// 		GeoId,
-// 		PartId,
-// 		"capt_names",
-// 		HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL,
-// 		&CaptNamesInfo), false);
-//
-// 	return CaptNamesInfo.exists;
-// }
 
-/*
-//Populates FSkeletalMeshImportData from HAPI
-void
-FHoudiniSkeletalMeshTranslator::LoadImportData(const HAPI_NodeId & GeoId, const HAPI_NodeId & PartId)
-{
-	HOUDINI_LOG_MESSAGE(TEXT("LoadImportData"));
-
-	TArray<FString> OutputNames;
-	FHoudiniEngineUtils::GetOutputNameAttribute(GeoId, PartId, OutputNames, 0, 1);
-
-	TArray<FString> AllBakeFolders;
-	FHoudiniEngineUtils::GetBakeFolderAttribute(GeoId, AllBakeFolders, PartId, 0, 1);
-
-	//----------------------------------------------------------------------------------------
-	// PackageName
-	//----------------------------------------------------------------------------------------	
-	// HAPI_AttributeInfo UnrealSKPackageInfo;
-	// FHoudiniApi::AttributeInfo_Init(&UnrealSKPackageInfo);
-	// HAPI_Result UnrealSKPackageInfoResult = FHoudiniApi::GetAttributeInfo(
-	//		FHoudiniEngine::Get().GetSession(),
-	//		GeoId, PartId,
-	//		"unreal_sk_package_path", HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, &UnrealSKPackageInfo);
-
-	// if (UnrealSKPackageInfo.exists == false)
-	// {
-	//		return;  //no package path set
-	// }
-	// TArray<FString> UnrealSkPackageData;
-	// FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, "unreal_sk_package_path", UnrealSKPackageInfo, UnrealSkPackageData);
-
-	if (OutputNames.Num() <= 0)
-		return;
-
-	if (AllBakeFolders.Num() <= 0)
-		return;
-
-	SKBuildSettings skBuildSettings;
-	FHoudiniSkeletalMeshTranslator::CreateSKAssetAndPackage(skBuildSettings, GeoId, PartId, AllBakeFolders[0] + OutputNames[0]);
-
-	// TODO: ?? Why twice?
-	TArray<FSkeletalMaterial> Materials;
-	FSkeletalMaterial Mat;
-	Materials.Add(Mat);
-	Materials.Add(Mat);
-	FHoudiniSkeletalMeshTranslator::BuildSKFromImportData(skBuildSettings, Materials);
-}
-*/
 
 void
 FHoudiniSkeletalMeshTranslator::UpdateBuildSettings(SKBuildSettings & BuildSettings)
@@ -468,109 +425,111 @@ FHoudiniSkeletalMeshTranslator::UpdateBuildSettings(SKBuildSettings & BuildSetti
 	}
 	BuildSettings.ImportScale = UnrealSKImportScale;
 	
-// 	USkeleton* MySkeleton = nullptr;
-//
-// 	//BuildSettings.bIsNewSkeleton = !UnrealSkeletonInfo.exists;
-// 	//
-// 	//if ((BuildSettings.OverwriteSkeleton) && (!BuildSettings.SkeletonAssetPath.IsEmpty()))  //Panel NodeSync Settings Overrides unreal_skeleton  Attribute
-// 	//{
-// 	//	BuildSettings.bIsNewSkeleton = false;
-// 	//}
-//
-//
-// 	//if ((UnrealSkeletonInfo.exists == false) && (!IsValid(BuildSettings.Skeleton)))
-// 	if (BuildSettings.bIsNewSkeleton)
-// 	{
-// 		//use the pre-created new asset 
-// 		if (IsValid(BuildSettings.Skeleton))
-// 		{
-// 			MySkeleton = BuildSettings.Skeleton;
-// 		}
-// 		else
-// 		{
-// 			FHoudiniPackageParams SkeltonPackageParams;
-// 			SkeltonPackageParams.GeoId = GeoId;
-// 			SkeltonPackageParams.PartId = PartId;
-// 			//SkeltonPackageParams.ComponentGUID = PackageParams.ComponentGUID;
-// 			//PackageParams.ObjectName = BuildSettings.CurrentObjectName + "Skeleton";
-// 			SkeltonPackageParams.ObjectName = BuildSettings.SKMesh->GetName() + "Skeleton";
-// 			MySkeleton = SkeltonPackageParams.CreateObjectAndPackage<USkeleton>();
-//
-// 			if (!IsValid(MySkeleton))
-// 				return nullptr;
-// 		}
-//
-// 		// Free any RHI resources for existing mesh before we re-create in place.
-// 		MySkeleton->PreEditChange(nullptr);
-// 		
-// 	}
-// 	else
-// 	{
-// 		// Use existing skeleton asset
-// 		MySkeleton = BuildSettings.Skeleton;
-// 		if (!IsValid(MySkeleton))
-// 			return nullptr;
-//
-// 		// Free any RHI resources for existing mesh before we re-create in place.
-// 		MySkeleton->PreEditChange(nullptr);
-//
-// 		FString SkeletonAssetPathString;
-// 		if ((BuildSettings.OverwriteSkeleton) && (!BuildSettings.SkeletonAssetPath.IsEmpty()))
-// 		{
-// 			// NodeSync Settings can possibly override the unreal_skeleton attribute
-// 			SkeletonAssetPathString = BuildSettings.SkeletonAssetPath;
-// 		}
-// 		else
-// 		{
-// 			// Get the unreal_skeleton string attribute
-// 			HAPI_AttributeInfo UnrealSkeletonInfo;
-// 			FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
-//
-// 			TArray<FString> UnrealSkeletonData;
-// 			FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, HAPI_UNREAL_ATTRIB_SKELETON, UnrealSkeletonInfo, UnrealSkeletonData);
-// 			if (UnrealSkeletonData.Num() <= 0)
-// 			{
-// 				return nullptr;
-// 			}
-//
-// 			SkeletonAssetPathString = UnrealSkeletonData[0];
-// 		}
-//
-// 		const FSoftObjectPath SkeletonAssetPath(SkeletonAssetPathString);
-// 		MySkeleton = Cast<USkeleton>(SkeletonAssetPath.TryLoad());
-// 		if (!IsValid(MySkeleton))
-// 		{
-// 			return nullptr;
-// 		}
-//
-// 		BuildSettings.Skeleton = MySkeleton;
-//
-// 		const TArray<FTransform>& RawRefBonePose = MySkeleton->GetReferenceSkeleton().GetRawRefBonePose();
-//
-// 		// TODO: Add additional bones from the Capture Pose.
-//
-// 		int32 BoneIdx = 0;
-// 		SkeletalMeshImportData.RefBonesBinary.SetNum(MySkeleton->GetReferenceSkeleton().GetRefBoneInfo().Num());
-// 		for (FMeshBoneInfo BoneInfo : MySkeleton->GetReferenceSkeleton().GetRefBoneInfo())
-// 		{
-// 			SkeletalMeshImportData::FBone Bone;
-// 			Bone.Name = BoneInfo.Name.ToString();
-// 			Bone.ParentIndex = BoneInfo.ParentIndex;
-//
-// 			SkeletalMeshImportData::FJointPos JointPos;
-// 			JointPos.Transform = RawRefBonePose.IsValidIndex(BoneIdx) ? FTransform3f(RawRefBonePose[BoneIdx]) : FTransform3f();
-// 			Bone.BonePos = JointPos;
-//
-// 			if (SkeletalMeshImportData.RefBonesBinary.IsValidIndex(BoneIdx))
-// 				SkeletalMeshImportData.RefBonesBinary[BoneIdx] = Bone;
-//
-// 			BoneIdx++;
-// 		}
-// 	}
-//
-// 	
-//
-// 	return MySkeleton;
+/*
+	USkeleton* MySkeleton = nullptr;
+
+	//BuildSettings.bIsNewSkeleton = !UnrealSkeletonInfo.exists;
+	//
+	//if ((BuildSettings.OverwriteSkeleton) && (!BuildSettings.SkeletonAssetPath.IsEmpty()))  //Panel NodeSync Settings Overrides unreal_skeleton  Attribute
+	//{
+	//	BuildSettings.bIsNewSkeleton = false;
+	//}
+
+
+	//if ((UnrealSkeletonInfo.exists == false) && (!IsValid(BuildSettings.Skeleton)))
+	if (BuildSettings.bIsNewSkeleton)
+	{
+		//use the pre-created new asset 
+		if (IsValid(BuildSettings.Skeleton))
+		{
+			MySkeleton = BuildSettings.Skeleton;
+		}
+		else
+		{
+			FHoudiniPackageParams SkeltonPackageParams;
+			SkeltonPackageParams.GeoId = GeoId;
+			SkeltonPackageParams.PartId = PartId;
+			//SkeltonPackageParams.ComponentGUID = PackageParams.ComponentGUID;
+			//PackageParams.ObjectName = BuildSettings.CurrentObjectName + "Skeleton";
+			SkeltonPackageParams.ObjectName = BuildSettings.SKMesh->GetName() + "Skeleton";
+			MySkeleton = SkeltonPackageParams.CreateObjectAndPackage<USkeleton>();
+
+			if (!IsValid(MySkeleton))
+				return nullptr;
+		}
+
+		// Free any RHI resources for existing mesh before we re-create in place.
+		MySkeleton->PreEditChange(nullptr);
+		
+	}
+	else
+	{
+		// Use existing skeleton asset
+		MySkeleton = BuildSettings.Skeleton;
+		if (!IsValid(MySkeleton))
+			return nullptr;
+
+		// Free any RHI resources for existing mesh before we re-create in place.
+		MySkeleton->PreEditChange(nullptr);
+
+		FString SkeletonAssetPathString;
+		if ((BuildSettings.OverwriteSkeleton) && (!BuildSettings.SkeletonAssetPath.IsEmpty()))
+		{
+			// NodeSync Settings can possibly override the unreal_skeleton attribute
+			SkeletonAssetPathString = BuildSettings.SkeletonAssetPath;
+		}
+		else
+		{
+			// Get the unreal_skeleton string attribute
+			HAPI_AttributeInfo UnrealSkeletonInfo;
+			FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
+
+			TArray<FString> UnrealSkeletonData;
+			FHoudiniEngineUtils::HapiGetAttributeDataAsString(GeoId, PartId, HAPI_UNREAL_ATTRIB_SKELETON, UnrealSkeletonInfo, UnrealSkeletonData);
+			if (UnrealSkeletonData.Num() <= 0)
+			{
+				return nullptr;
+			}
+
+			SkeletonAssetPathString = UnrealSkeletonData[0];
+		}
+
+		const FSoftObjectPath SkeletonAssetPath(SkeletonAssetPathString);
+		MySkeleton = Cast<USkeleton>(SkeletonAssetPath.TryLoad());
+		if (!IsValid(MySkeleton))
+		{
+			return nullptr;
+		}
+
+		BuildSettings.Skeleton = MySkeleton;
+
+		const TArray<FTransform>& RawRefBonePose = MySkeleton->GetReferenceSkeleton().GetRawRefBonePose();
+
+		// TODO: Add additional bones from the Capture Pose.
+
+		int32 BoneIdx = 0;
+		SkeletalMeshImportData.RefBonesBinary.SetNum(MySkeleton->GetReferenceSkeleton().GetRefBoneInfo().Num());
+		for (FMeshBoneInfo BoneInfo : MySkeleton->GetReferenceSkeleton().GetRefBoneInfo())
+		{
+			SkeletalMeshImportData::FBone Bone;
+			Bone.Name = BoneInfo.Name.ToString();
+			Bone.ParentIndex = BoneInfo.ParentIndex;
+
+			SkeletalMeshImportData::FJointPos JointPos;
+			JointPos.Transform = RawRefBonePose.IsValidIndex(BoneIdx) ? FTransform3f(RawRefBonePose[BoneIdx]) : FTransform3f();
+			Bone.BonePos = JointPos;
+
+			if (SkeletalMeshImportData.RefBonesBinary.IsValidIndex(BoneIdx))
+				SkeletalMeshImportData.RefBonesBinary[BoneIdx] = Bone;
+
+			BoneIdx++;
+		}
+	}
+
+	
+
+	return MySkeleton;
+*/
 }
 
 
@@ -598,83 +557,9 @@ FHoudiniSkeletalMeshTranslator::FindAttributeOnSkeletalMeshShapeParts(const FHou
 }
 
 
-//Creates and populates an FSkeletalMeshImportData by reading Houdini Attribute Data
-//then calls BuildSKFromImportData to create sk mesh from it
-void
-FHoudiniSkeletalMeshTranslator::CreateSKAssetAndPackage(
-	SKBuildSettings & BuildSettings,
-	const FHoudiniSkeletalMeshParts& InSKParts, 
-	FString PackageName,
-	int MaxInfluences,
-	bool ImportNormals)
-{
-	FString SKMeshName = FPackageName::GetShortName(PackageName);
-
-	//UPackage* Package = CreatePackage(nullptr, *PackageName);
-	UPackage* Package = CreatePackage(*PackageName);
-	Package->FullyLoad();
-
-	USkeletalMesh* NewMesh = nullptr;
-	NewMesh = NewObject<USkeletalMesh>(Package, FName(*SKMeshName), RF_Public | RF_Standalone | RF_MarkAsRootSet);
-
-	// TODO: ------------------------------------------------------------------------------------
-	// TODO: Update this for the new packed-prim skeletal mesh structure
-	// TODO: ------------------------------------------------------------------------------------
-	
-	const FHoudiniGeoPartObject& MainHGPO = *InSKParts.GetMainHGPO();
-
-	//Unreal Skeleton------------------------------------------------------------------------------------
-	HAPI_AttributeInfo UnrealSkeletonInfo;
-	FHoudiniApi::AttributeInfo_Init(&UnrealSkeletonInfo);
-	HAPI_Result UnrealSkeletonInfoResult = FHoudiniApi::GetAttributeInfo(
-		FHoudiniEngine::Get().GetSession(),
-		MainHGPO.GeoId,
-		MainHGPO.PartId,
-		HAPI_UNREAL_ATTRIB_SKELETON,
-		HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL,
-		&UnrealSkeletonInfo);
-
-	USkeleton* MySkeleton = nullptr;
-
-	BuildSettings.bIsNewSkeleton = !UnrealSkeletonInfo.exists;
-	if ((BuildSettings.OverwriteSkeleton) && (!BuildSettings.SkeletonAssetPath.IsEmpty()))
-	{
-		//NodeSync Settings overrides the unreal_skeleton attribute
-		BuildSettings.bIsNewSkeleton = false;
-	}
-
-	if (BuildSettings.bIsNewSkeleton)
-	{
-		FString SkeltonPackageName = PackageName + "Skeleton";
-		FString SkeletonName = FPackageName::GetShortName(SkeltonPackageName);
-
-		UPackage* SkeletonPackage = CreatePackage(*SkeltonPackageName);
-		SkeletonPackage->FullyLoad();
-
-		USkeleton* NewSkeleton = nullptr;
-		NewSkeleton = NewObject<USkeleton>(SkeletonPackage, FName(*SkeletonName), RF_Public | RF_Standalone | RF_MarkAsRootSet);
-		BuildSettings.Skeleton = NewSkeleton;
-	}
-
-	//Skeleton
-	BuildSettings.ImportNormals = ImportNormals;
-	BuildSettings.SKParts = InSKParts;
-	BuildSettings.SKMesh = NewMesh;
-	BuildSettings.SKPackage = Package;
-	FHoudiniSkeletalMeshTranslator::UpdateBuildSettings(BuildSettings);
-	SKImportData(BuildSettings);
-
-	//Materials
-	//TArray<FSkeletalMaterial> Materials;
-	//FSkeletalMaterial Mat;
-	//Materials.Add(Mat);
-	//Materials.Add(Mat);
-
-	//BuildSKFromImportData(BuildSettings, Materials);
-}
 
 bool
-FHoudiniSkeletalMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
+FHoudiniSkeletalMeshTranslator::FillSkeletalMeshImportData(SKBuildSettings& BuildSettings, const FHoudiniPackageParams& InPackageParams)
 {
 	const FHoudiniGeoPartObject& ShapeMeshHGPO = *BuildSettings.SKParts.HGPOShapeMesh;
 	const FHoudiniGeoPartObject& PoseMeshHGPO = *BuildSettings.SKParts.HGPOPoseMesh;
@@ -839,69 +724,17 @@ FHoudiniSkeletalMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 	//-----------------------------------------------------------------------------------
 	// Materials
 	//-----------------------------------------------------------------------------------
-	HAPI_AttributeInfo MaterialInfo;
-	FHoudiniApi::AttributeInfo_Init(&MaterialInfo);
-	HAPI_Result MaterialInfoResult = FHoudiniApi::GetAttributeInfo(
-		FHoudiniEngine::Get().GetSession(),
-		ShapeGeoId,
-		ShapePartId,
-		HAPI_UNREAL_ATTRIB_MATERIAL,
-		HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM,
-		&MaterialInfo);
-
-	TArray<FString> MaterialNamesData;
-	if (MaterialInfo.exists && MaterialInfo.count > 0)
+	TArray<int32> PerFaceUEMaterialIds;
+	TArray<UMaterialInterface*> UniqueMaterials;
+	if (!FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshMaterials(
+		ShapeMeshHGPO,
+		ShapeMeshPartInfo,
+		InPackageParams,
+		PerFaceUEMaterialIds,
+		SkeletalMeshImportData))
 	{
-		// Extract the StringHandles
-		TArray<HAPI_StringHandle> MaterialStringHandles;
-		MaterialStringHandles.SetNumUninitialized(MaterialInfo.count * MaterialInfo.tupleSize);
-		HAPI_Result MaterialDataResult = FHoudiniApi::GetAttributeStringData(
-			FHoudiniEngine::Get().GetSession(),
-			ShapeGeoId,
-			ShapePartId,
-			HAPI_UNREAL_ATTRIB_MATERIAL,
-			&MaterialInfo,
-			&MaterialStringHandles[0],
-			0,
-			MaterialInfo.count);
-
-		// Set the output data size
-		MaterialNamesData.SetNum(MaterialStringHandles.Num());
-
-		// Convert the StringHandles to FString.
-		// using a map to minimize the number of HAPI calls
-		FHoudiniEngineString::SHArrayToFStringArray(MaterialStringHandles, MaterialNamesData);
-
-		//Set unique material names onto FSkeletalMeshImportData
-		TSet<FString> UniqueMaterialNames;
-		for (FString MaterialName : MaterialNamesData)
-		{
-			UniqueMaterialNames.Add(MaterialName);
-		}
-
-		for (FString MaterialName : UniqueMaterialNames)
-		{
-			SkeletalMeshImportData::FMaterial SKMIDMaterial;
-			SKMIDMaterial.MaterialImportName = MaterialName;
-			SkeletalMeshImportData.Materials.Add(SKMIDMaterial);
-		}
-
-		int32 NumFaces = MaterialInfo.count;
-		TArray<int32> PartFaceMaterialIds;
-		PartFaceMaterialIds.SetNum(NumFaces);
-
-		if (NumFaces > 0)
-		{
-			HAPI_Bool bSingleFaceMaterial = false;
-			HAPI_Result GetMaterialNodeIdsOnFacesResult = FHoudiniApi::GetMaterialNodeIdsOnFaces(
-				FHoudiniEngine::Get().GetSession(),
-				ShapeGeoId,
-				ShapePartId,
-				&bSingleFaceMaterial,
-				&PartFaceMaterialIds[0],
-				0,
-				NumFaces);
-		}
+		// Unable to retrieve materials, should we use default Houdini one?
+		HOUDINI_LOG_ERROR(TEXT("Creating Skeletal Mesh : unable to load/create materials"));
 	}
 
 	//-----------------------------------------------------------------------------------
@@ -1000,8 +833,7 @@ FHoudiniSkeletalMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 		SkeletalMeshImportData.Wedges.Add(Wedge);
 		Triangle.WedgeIndex[face_idx] = count;
 		Triangle.SmoothingGroups = 255;
-		Triangle.MatIndex = 0;
-
+		Triangle.MatIndex = PerFaceUEMaterialIds.IsEmpty() ? 0 : PerFaceUEMaterialIds[face_id];
 
 		// Store normal for each vertex of face
 		FVector3f ConvertedNormal;
@@ -1113,22 +945,49 @@ FHoudiniSkeletalMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 	HAPI_AttributeInfo PoseNameInfo;
 	FHoudiniApi::AttributeInfo_Init(&PoseNameInfo);
 
-	// TODO: Fix the name attribute on Curve HGPOs (unHAPI BUG)
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInfo(
+	bool bNameHackNeeded = false;
+	if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAttributeInfo(
 		FHoudiniEngine::Get().GetSession(),
 		PoseGeoId,
 		PosePartId,
-		"namehack",
+		"name",
 		HAPI_AttributeOwner::HAPI_ATTROWNER_POINT,
 		&PoseNameInfo))
 	{
-		HOUDINI_LOG_ERROR(TEXT("Error Creating Skeletal Mesh: Could not retrieve 'name' attribute info Capture Pose."));
-		return false;
+		BoneNameData.SetNum(PoseNameInfo.count);
+
+		if (!FHoudiniEngineUtils::HapiGetAttributeDataAsStringFromInfo(
+			PoseGeoId,
+			PosePartId,
+			"name",
+			PoseNameInfo,
+			BoneNameData,
+			0,
+			PoseNameInfo.count))
+		{
+			HOUDINI_LOG_ERROR(TEXT("Error Creating Skeletal Mesh: Missing 'name' attribute on Capture Pose."));
+			bNameHackNeeded = true;
+		}
 	}
 
-	BoneNameData.SetNum(PoseNameInfo.count);
+	if(bNameHackNeeded)
+	{
+		// TODO: Fix the name attribute on Curve HGPOs (unHAPI BUG)
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInfo(
+			FHoudiniEngine::Get().GetSession(),
+			PoseGeoId,
+			PosePartId,
+			"namehack",
+			HAPI_AttributeOwner::HAPI_ATTROWNER_POINT,
+			&PoseNameInfo))
+		{
+			HOUDINI_LOG_ERROR(TEXT("Error Creating Skeletal Mesh: Could not retrieve 'name' attribute info Capture Pose."));
+			return false;
+		}
 
-	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsStringFromInfo(
+		BoneNameData.SetNum(PoseNameInfo.count);
+
+		if (!FHoudiniEngineUtils::HapiGetAttributeDataAsStringFromInfo(
 			PoseGeoId,
 			PosePartId,
 			"namehack",
@@ -1136,9 +995,10 @@ FHoudiniSkeletalMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 			BoneNameData,
 			0,
 			PoseNameInfo.count))
-	{
-		HOUDINI_LOG_ERROR(TEXT("Error Creating Skeletal Mesh: Missing 'name' attribute on Capture Pose."));
-		return false;
+		{
+			HOUDINI_LOG_ERROR(TEXT("Error Creating Skeletal Mesh: Missing 'name' attribute on Capture Pose."));
+			return false;
+		}
 	}
 
 	//-----------------------------------------------------------------------------------
@@ -1379,20 +1239,6 @@ FHoudiniSkeletalMeshTranslator::SKImportData(SKBuildSettings& BuildSettings)
 	return true;
 }
 
-/*
-void
-FHoudiniSkeletalMeshTranslator::ExportSkeletalMeshAssets(UHoudiniOutput * InOutput)
-{
-	// Iterate on all of the output's HGPO, creating meshes as we go
-	for (const FHoudiniGeoPartObject& CurHGPO : InOutput->HoudiniGeoPartObjects)
-	{
-		if (FHoudiniSkeletalMeshTranslator::HasSkeletalMeshData(CurHGPO.GeoId, CurHGPO.PartId))
-		{
-			FHoudiniSkeletalMeshTranslator::LoadImportData(CurHGPO.GeoId, CurHGPO.PartId);
-		}
-	}
-}
-*/
 
 
 //Creates SkelatalMesh and Skeleton Assets and Packages, and adds them to OutputObjects
@@ -1504,7 +1350,6 @@ bool FHoudiniSkeletalMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 		FAssetRegistryModule::AssetCreated(SkeletalMeshAsset);
 	}
 
-
 	//FHoudiniOutputObject* FoundOutputObject;
 	//FHoudiniOutputObject NewOutputObject;
 	//FoundOutputObject = &OutputObjects.Add(OutputObjectIdentifier, NewOutputObject);
@@ -1532,7 +1377,7 @@ bool FHoudiniSkeletalMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 	
 	FHoudiniSkeletalMeshTranslator::UpdateBuildSettings(skBuildSettings);
 
-	const bool Result = SKImportData(skBuildSettings);
+	const bool Result = FillSkeletalMeshImportData(skBuildSettings, PackageParams);
 	if (!Result)
 	{
 		return false;
@@ -1542,6 +1387,7 @@ bool FHoudiniSkeletalMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 
 	return true;
 }
+
 
 
 USkeleton*
@@ -1574,6 +1420,8 @@ FHoudiniSkeletalMeshTranslator::CreateNewSkeleton(const FString& InSplitIdentifi
 	return NewSkeleton;
 }
 
+
+
 USkeletalMesh*
 FHoudiniSkeletalMeshTranslator::CreateNewSkeletalMesh(const FString& InSplitIdentifier)
 {
@@ -1590,6 +1438,8 @@ FHoudiniSkeletalMeshTranslator::CreateNewSkeletalMesh(const FString& InSplitIden
 
 	return NewSkeletalMesh;
 }
+
+
 
 void
 FHoudiniSkeletalMeshTranslator::SetPackageParams(const FHoudiniPackageParams& InPackageParams, const bool& bUpdateHGPO)
@@ -1610,9 +1460,6 @@ FHoudiniSkeletalMeshTranslator::SetPackageParams(const FHoudiniPackageParams& In
 bool
 FHoudiniSkeletalMeshTranslator::IsRestGeometryInstancer(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, FString& OutBaseName)
 {
-	
-
-
 	// Rest Geometry packed prim name must end with '.shp'
 	HAPI_AttributeInfo NameAttrInfo; 
 	TArray<FString> NameData;
@@ -1657,6 +1504,7 @@ FHoudiniSkeletalMeshTranslator::IsRestGeometryInstancer(const HAPI_NodeId& GeoId
 }
 
 
+
 bool
 FHoudiniSkeletalMeshTranslator::IsRestGeometryMesh(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId)
 {
@@ -1667,6 +1515,7 @@ FHoudiniSkeletalMeshTranslator::IsRestGeometryMesh(const HAPI_NodeId& GeoId, con
 	
 	return true;
 }
+
 
 
 bool
@@ -1728,6 +1577,7 @@ FHoudiniSkeletalMeshTranslator::IsCapturePoseInstancer(const HAPI_NodeId& GeoId,
 }
 
 
+
 bool
 FHoudiniSkeletalMeshTranslator::IsCapturePoseMesh(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId)
 {
@@ -1745,20 +1595,21 @@ FHoudiniSkeletalMeshTranslator::IsCapturePoseMesh(const HAPI_NodeId& GeoId, cons
 }
 
 
+
 HAPI_AttributeInfo
 FHoudiniSkeletalMeshTranslator::GetAttrInfo(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId,
 	const char* AttrName, HAPI_AttributeOwner AttrOwner)
 {
-	// auto GetAttrInfo = [](const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, const char* AttrName, HAPI_AttributeOwner AttrOwner) -> HAPI_AttributeInfo
-	// {
 	HAPI_AttributeInfo AttrInfo;
 	FHoudiniApi::AttributeInfo_Init(&AttrInfo);
 	HAPI_Result AttrInfoResult = FHoudiniApi::GetAttributeInfo(
 		FHoudiniEngine::Get().GetSession(),
 		GeoId, PartId,
 		AttrName, AttrOwner, &AttrInfo);
+
 	return AttrInfo;
 }
+
 
 
 bool
@@ -1848,6 +1699,7 @@ FHoudiniSkeletalMeshTranslator::CreateAllSkeletalMeshesAndComponentsFromHoudiniO
 }
 
 
+
 bool
 FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshFromHoudiniGeoPartObject(
 	const FHoudiniSkeletalMeshParts& SKParts,
@@ -1876,6 +1728,211 @@ FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshFromHoudiniGeoPartObject(
 	}
 	
 	return false;
+}
+
+
+
+bool
+FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshMaterials(
+	const FHoudiniGeoPartObject& InShapeMeshHGPO,
+	const HAPI_PartInfo& InShapeMeshPartInfo,
+	const FHoudiniPackageParams& InPackageParams,
+	TArray<int32>& OutPerFaceUEMaterialIds,
+	FSkeletalMeshImportData& OutImportData)
+{
+	int32 NumFaces = InShapeMeshPartInfo.faceCount;
+
+	// Default Houdini material.
+	UMaterialInterface* DefaultMaterial = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
+
+	//
+	// Starts with Unreal materials
+	// 
+	TArray<FString> UnrealMatPerFaceMatNames;
+	UnrealMatPerFaceMatNames.SetNum(NumFaces);
+
+	HAPI_AttributeInfo UnrealMaterialInfo;
+	FHoudiniApi::AttributeInfo_Init(&UnrealMaterialInfo);
+	if (!FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+		InShapeMeshHGPO.GeoId, InShapeMeshHGPO.PartId,
+		HAPI_UNREAL_ATTRIB_MATERIAL, UnrealMaterialInfo, UnrealMatPerFaceMatNames,
+		0, HAPI_ATTROWNER_PRIM, 0, NumFaces))
+	{
+		// Unable to read the unreal materials, empty the array
+		UnrealMatPerFaceMatNames.Empty();
+	}
+
+	// Unique UnrealMaterials
+	TMap<FString, int32> UniqueUnrealMaterialsIndices;
+	for (int32 FaceIdx = 0; FaceIdx < UnrealMatPerFaceMatNames.Num(); ++FaceIdx)
+	{
+		FString CurrentMatString = UnrealMatPerFaceMatNames[FaceIdx];
+		if (CurrentMatString.IsEmpty())
+			CurrentMatString = TEXT("default");
+
+		if (UniqueUnrealMaterialsIndices.Contains(CurrentMatString))
+			continue;
+
+		UMaterialInterface* MaterialInterface = nullptr;
+		if (UnrealMatPerFaceMatNames[FaceIdx].IsEmpty())
+		{
+			MaterialInterface = DefaultMaterial;
+		}
+		else
+		{
+			MaterialInterface = Cast<UMaterialInterface>(
+				StaticLoadObject(UMaterialInterface::StaticClass(),
+					nullptr, *UnrealMatPerFaceMatNames[FaceIdx], nullptr, LOAD_NoWarn, nullptr));
+		}
+
+		if (!IsValid(MaterialInterface))
+		{
+			// Error loading the material.
+			HOUDINI_LOG_MESSAGE(
+				TEXT("Creating SKeletal Mesh: Object [%d %s], Geo [%d], Part [%d %s] unable to load material %s"),
+				InShapeMeshHGPO.ObjectId, *InShapeMeshHGPO.ObjectName, InShapeMeshHGPO.GeoId, InShapeMeshHGPO.PartId, *InShapeMeshHGPO.PartName, *UnrealMatPerFaceMatNames[FaceIdx]);
+
+			continue;
+
+			MaterialInterface = nullptr;
+		}
+
+		SkeletalMeshImportData::FMaterial CurrentMat;
+		CurrentMat.Material = MaterialInterface;
+		CurrentMat.MaterialImportName = CurrentMatString;
+
+		int32 OutIndex = OutImportData.Materials.Add(CurrentMat);
+		UniqueUnrealMaterialsIndices.Add(CurrentMatString, OutIndex);//MatIdx++);		
+	}
+
+	// If we have material overrides - no need to create Houdini materials	
+	bool bHasUnrealMaterial = OutImportData.Materials.Num() > 0;
+	if (bHasUnrealMaterial)
+	{
+		// Convert the face materials ids
+		OutPerFaceUEMaterialIds.SetNum(NumFaces);
+		for (int32 FaceIdx = 0; FaceIdx < NumFaces; FaceIdx++)
+		{
+			FString CurrentMatString = UnrealMatPerFaceMatNames[FaceIdx];
+			if (CurrentMatString.IsEmpty())
+				CurrentMatString = TEXT("default");
+
+			OutPerFaceUEMaterialIds[FaceIdx] = UniqueUnrealMaterialsIndices[CurrentMatString];
+		}
+
+		// Success!
+		return true;
+	}
+
+
+	// No unreal_material overrides - try Houdini Materials
+	TArray<int32> HoudiniMatPerFaceMaterialIds;
+	HoudiniMatPerFaceMaterialIds.SetNum(NumFaces);
+
+	// Map MaterialID to Material Index
+	TMap<int32, int32> UniqueHoudiniMaterialsIndices;
+
+	// Unique Houdini Material IDs
+	TArray<int32> UniqueHoudiniMaterialIds;
+	// Unique Houdini Material Infos
+	TArray<HAPI_MaterialInfo> UniqueHoudiniMaterialInfos;
+
+	// Get the Houdini materials IDs per face	
+	bool bSingleHoudiniMaterial = false;
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialNodeIdsOnFaces(
+		FHoudiniEngine::Get().GetSession(),
+		InShapeMeshHGPO.GeoId, InShapeMeshHGPO.PartId, &bSingleHoudiniMaterial,
+		&HoudiniMatPerFaceMaterialIds[0], 0, NumFaces))
+	{
+		// No Houdini materials set on the faces - empty the array
+		HoudiniMatPerFaceMaterialIds.Empty();
+		bSingleHoudiniMaterial = false;
+	}
+	else
+	{
+		// Fill the unique material IDs array
+		if (!bSingleHoudiniMaterial)
+		{
+			// No material overrides, simply update the unique material array
+			for (int32 MaterialIdx = 0; MaterialIdx < HoudiniMatPerFaceMaterialIds.Num(); ++MaterialIdx)
+				UniqueHoudiniMaterialIds.AddUnique(HoudiniMatPerFaceMaterialIds[MaterialIdx]);
+		}
+		else
+		{
+			UniqueHoudiniMaterialIds.AddUnique(HoudiniMatPerFaceMaterialIds[0]);
+			UniqueHoudiniMaterialsIndices.Add(HoudiniMatPerFaceMaterialIds[0], 0);
+		}
+
+		// Remove the invalid material ID from the unique array
+		UniqueHoudiniMaterialIds.RemoveSingle(-1);
+
+		// Get the unique material infos
+		UniqueHoudiniMaterialInfos.SetNum(UniqueHoudiniMaterialIds.Num());
+		for (int32 MaterialIdx = 0; MaterialIdx < UniqueHoudiniMaterialInfos.Num(); MaterialIdx++)
+		{
+			FHoudiniApi::MaterialInfo_Init(&UniqueHoudiniMaterialInfos[MaterialIdx]);
+
+			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(
+				FHoudiniEngine::Get().GetSession(),
+				UniqueHoudiniMaterialIds[MaterialIdx],
+				&UniqueHoudiniMaterialInfos[MaterialIdx]))
+			{
+				// Error retrieving material face assignments.				
+				HOUDINI_LOG_MESSAGE(
+					TEXT("Creating SKeletal Mesh: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve material info for material %d"),
+					InShapeMeshHGPO.ObjectId, *InShapeMeshHGPO.ObjectName, InShapeMeshHGPO.GeoId, InShapeMeshHGPO.PartId, *InShapeMeshHGPO.PartName, UniqueHoudiniMaterialIds[MaterialIdx]);
+				
+				continue;
+			}
+		}
+	}
+
+	// If we have dont have houdini materials - no need to continue	
+	bool bHasHoudiniMaterial = HoudiniMatPerFaceMaterialIds.Num() > 0 && UniqueHoudiniMaterialIds.Num() > 0;
+	if (!bHasHoudiniMaterial)
+		return false;
+
+	TArray<UPackage*> MaterialAndTexturePackages;
+	/*FHoudiniPackageParams FinalPackageParams(InPackageParams);
+	FinalPackageParams.OverideEnabled = false;*/
+
+	// Input Material Map
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> InputAssignmentMaterials;
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputAssignmentMaterials;
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> ReplacementMaterials;
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials;
+	FHoudiniMaterialTranslator::CreateHoudiniMaterials(
+		InShapeMeshHGPO.GeoId,
+		InPackageParams,//FinalPackageParams,
+		UniqueHoudiniMaterialIds,
+		UniqueHoudiniMaterialInfos,
+		InputAssignmentMaterials,
+		AllOutputMaterials,
+		OutputAssignmentMaterials,
+		MaterialAndTexturePackages,
+		false,
+		true);
+
+	// Convert the face material ids to indices in the unique array
+	OutPerFaceUEMaterialIds.SetNum(NumFaces);
+	for (int32 FaceIdx = 0; FaceIdx < NumFaces; FaceIdx++)
+	{
+		// First material is the default one - so increment the indices to account for it
+		OutPerFaceUEMaterialIds[FaceIdx] = UniqueHoudiniMaterialsIndices[HoudiniMatPerFaceMaterialIds[FaceIdx]] + 1;
+	}
+
+	// Add the created material to the skeletal mesh's ImportData
+	for (auto& CurMat : OutputAssignmentMaterials)
+	{
+
+		SkeletalMeshImportData::FMaterial SKMIDMaterial;
+		SKMIDMaterial.MaterialImportName = CurMat.Value->GetPathName();
+		SKMIDMaterial.Material = CurMat.Value;
+		OutImportData.Materials.Add(SKMIDMaterial);
+	}
+
+	// Success!
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

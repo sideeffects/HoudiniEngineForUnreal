@@ -28,27 +28,50 @@
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 
-#include "HoudiniAssetComponentDetails.h"
-#include "HoudiniMeshTranslator.h"
-#include "HoudiniInstanceTranslator.h"
-#include "HoudiniAssetComponent.h"
-#include "HoudiniEngine.h"
-#include "HoudiniEngineUtils.h"
-#include "HoudiniEngineBakeUtils.h"
-#include "HoudiniEngineEditor.h"
-#include "HoudiniEngineEditorUtils.h"
-#include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniEngineEditorPrivatePCH.h"
-#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAsset.h"
+#include "HoudiniAssetComponent.h"
+#include "HoudiniAssetComponentDetails.h"
+#include "HoudiniEngine.h"
+#include "HoudiniEngineBakeUtils.h"
+#include "HoudiniEngineCommands.h"
+#include "HoudiniEngineEditor.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
+#include "HoudiniEngineEditorUtils.h"
+#include "HoudiniEngineOutputStats.h"
+#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniInstanceTranslator.h"
+#include "HoudiniMeshTranslator.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniStaticMesh.h"
-#include "HoudiniEngineCommands.h"
 
+#include "Animation/AnimSequence.h"
+#include "Animation/Skeleton.h"
+#include "Components/SplineComponent.h"
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
+#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+#include "Editor/UnrealEd/Public/AssetThumbnail.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Engine/DataTable.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/SkeletalMesh.h"
 #include "IDetailGroup.h"
+#include "Landscape.h"
+#include "LandscapeProxy.h"
+#include "LandscapeSplineActor.h"
+#include "LandscapeSplinesComponent.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "Particles/ParticleSystem.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "SAssetDropTarget.h"
+#include "ScopedTransaction.h"
+#include "Sound/SoundBase.h"
+#include "UnrealEdGlobals.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
@@ -57,30 +80,10 @@
 #include "Widgets/Input/SRotatorInputBox.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Editor/UnrealEd/Public/AssetThumbnail.h"
-#include "SAssetDropTarget.h"
-#include "Engine/DataTable.h"
-#include "Engine/StaticMesh.h"
-#include "Components/SplineComponent.h"
-#include "Materials/Material.h"
-#include "Materials/MaterialInstance.h"
-#include "Materials/MaterialInstanceConstant.h"
-#include "Sound/SoundBase.h"
-#include "Engine/SkeletalMesh.h"
-#include "Particles/ParticleSystem.h"
-//#include "Landscape.h"
-#include "HoudiniEngineOutputStats.h"
-#include "Landscape.h"
-#include "LandscapeProxy.h"
-#include "LandscapeSplineActor.h"
-#include "LandscapeSplinesComponent.h"
-#include "Materials/MaterialInstance.h"
-#include "ScopedTransaction.h"
-#include "PhysicsEngine/BodySetup.h"
-#include "UnrealEdGlobals.h"
-#include "Animation/AnimSequence.h"
-#include "Editor/UnrealEdEngine.h"
-#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
+	#include "Engine/SkinnedAssetCommon.h"
+#endif
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 	#include "GeometryCollection/GeometryCollectionActor.h"
@@ -162,7 +165,7 @@ FHoudiniOutputDetails::CreateWidget(
 		case EHoudiniOutputType::Skeletal:
 		default: 
 		{
-			FHoudiniOutputDetails::CreateDefaultOutputWidget(HouOutputCategory, MainOutput);
+			FHoudiniOutputDetails::CreateSkeletalOutputWidget(HouOutputCategory, MainOutput);
 			break;
 		}
 	}
@@ -809,6 +812,64 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 			// If we only have a proxy mesh, then show the proxy widget
 			CreateProxyMeshAndMaterialWidgets(
 				HouOutputCategory, InOutput, ProxyMesh, OutputIdentifier, HoudiniGeoPartObject);
+		}
+	}
+}
+
+
+void
+FHoudiniOutputDetails::CreateSkeletalOutputWidget(
+	IDetailCategoryBuilder& HouOutputCategory,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput)
+{
+	if (!IsValidWeakPointer(InOutput))
+		return;
+
+	const TWeakObjectPtr<UHoudiniAssetComponent>& HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
+	if (!IsValidWeakPointer(HAC))
+		return;
+
+	// Go through this output's object
+	int32 OutputObjIdx = 0;
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
+	for (auto& IterObject : OutputObjects)
+	{
+		USkeletalMesh* SkelMesh = Cast<USkeletalMesh>(IterObject.Value.OutputObject);
+		USkeleton* Skeleton = Cast<USkeleton>(IterObject.Value.OutputObject);
+
+		if ((!IsValid(SkelMesh)) && (!IsValid(Skeleton)))
+			continue;
+
+		/*
+		// Do not display geometry collection static meshes.
+		if (IterObject.Value.bIsGeometryCollectionPiece)
+			continue;
+			*/
+
+		FHoudiniOutputObjectIdentifier& OutputIdentifier = IterObject.Key;
+
+		// Find the corresponding HGPO in the output
+		FHoudiniGeoPartObject HoudiniGeoPartObject;
+		for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
+		{
+			if (!OutputIdentifier.Matches(curHGPO))
+				continue;
+
+			HoudiniGeoPartObject = curHGPO;
+			break;
+		}
+		
+		// Get the skeleton from the SkelMesh if needed
+		if (!IsValid(Skeleton))
+		{
+			Skeleton = SkelMesh->GetSkeleton();
+		}
+
+		if (IsValid(SkelMesh))
+		{
+			// If we have a Skeletal mesh, display its widget unless the proxy is more recent
+			CreateSkeletalMeshAndMaterialWidgets(
+				HouOutputCategory, InOutput, SkelMesh, Skeleton, OutputIdentifier, HoudiniGeoPartObject);
 		}
 	}
 }
@@ -4399,4 +4460,576 @@ FHoudiniOutputDetails::OnRevertBakeNameToDefault(const TWeakObjectPtr<UHoudiniOu
 
 	FoundOutputObject->BakeName = FString();
 }
+
+
+void
+FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
+	IDetailCategoryBuilder& HouOutputCategory,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+	const TWeakObjectPtr<USkeletalMesh>& SkelMesh,
+	const TWeakObjectPtr<USkeleton>& Skeleton,
+	FHoudiniOutputObjectIdentifier& OutputIdentifier,
+	FHoudiniGeoPartObject& HoudiniGeoPartObject)
+{
+	if (!IsValidWeakPointer(SkelMesh) && !IsValidWeakPointer(Skeleton))
+		return;
+
+
+	const TWeakObjectPtr<UHoudiniAssetComponent>& OwningHAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
+
+	FHoudiniOutputObject* FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+	FString BakeName = FoundOutputObject ? FoundOutputObject->BakeName : FString();
+
+	// Get thumbnail pool for this builder.
+	IDetailLayoutBuilder& DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+
+	// TODO: GetBakingBaseName!
+	FString SkelLabel = Skeleton->GetName();
+	if (HoudiniGeoPartObject.bHasCustomPartName)
+		SkelLabel = HoudiniGeoPartObject.PartName;
+
+	// Create thumbnail for this mesh.
+	TSharedPtr<FAssetThumbnail> SkeletonThumbnail =
+		MakeShareable(new FAssetThumbnail(Skeleton.Get(), 64, 64, AssetThumbnailPool));
+	TSharedPtr<SBorder> SkeletonThumbnailBorder;
+
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+
+	IDetailGroup& SkeletonGrp = HouOutputCategory.AddGroup(FName(*SkelLabel), FText::FromString(SkelLabel));
+	/*SkeletonGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("BakeBaseName", "Bake Name"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.FillWidth(1)
+		[
+			SNew(SEditableTextBox)
+			.Text(FText::FromString(BakeName))
+			.HintText(LOCTEXT("BakeNameHintText", "Input bake name to override default"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.OnTextCommitted_Lambda([OutputIdentifier, InOutput](const FText& Val, ETextCommit::Type TextCommitType)
+			{
+				if (!IsValidWeakPointer(InOutput))
+					return;
+
+				FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
+				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+			})
+			.ToolTipText(LOCTEXT("BakeNameTip", "The base name of the baked asset"))
+		]
+	
+		+ SHorizontalBox::Slot()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.ToolTipText(LOCTEXT("RevertNameOverride", "Revert bake name override"))
+			.ButtonStyle(_GetEditorStyle(), "NoBorder")
+			.ContentPadding(0)
+			.Visibility(EVisibility::Visible)
+			.OnClicked_Lambda([InOutput, OutputIdentifier]()
+			{
+				FHoudiniOutputDetails::OnRevertBakeNameToDefault(InOutput, OutputIdentifier);
+				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+				return FReply::Handled();
+			})
+			[
+				SNew(SImage)
+				.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
+			]
+		]
+	];
+	*/
+
+	// Add details on the Skeleton ?
+	EHoudiniSplitType SplitType = FHoudiniMeshTranslator::GetSplitTypeFromSplitName(OutputIdentifier.SplitIdentifier);
+	FString SkeletonLabel = TEXT("Skeleton");
+
+	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
+	SkeletonGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString(SkeletonLabel))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		VerticalBox
+	];
+
+	VerticalBox->AddSlot()
+	.Padding(0, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0.0f, 0.0f, 2.0f, 0.0f)
+		.AutoWidth()
+		[
+			SAssignNew(SkeletonThumbnailBorder, SBorder)
+			.Padding(5.0f)
+			.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&)Skeleton)
+			.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) Skeleton)
+			[
+				SNew(SBox)
+				.WidthOverride(64)
+				.HeightOverride(64)
+				.ToolTipText(FText::FromString(Skeleton->GetPathName()))
+				[
+					SkeletonThumbnail->MakeThumbnailWidget()
+				]
+			]
+		]
+
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			[
+				SNew(SHorizontalBox)
+				/*
+				+ SHorizontalBox::Slot()
+				.MaxWidth(120.0f)
+				[
+					SNew(SButton)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("BakeOutputMesh", "Bake Output"))
+					.IsEnabled(true)
+					.OnClicked_Lambda([BakeName, Skeleton, OutputIdentifier, InOutput, OwningHAC]()
+					{
+						if (!Skeleton.IsValid() || !InOutput.IsValid())
+							return FReply::Handled();
+
+						FHoudiniOutputObject* const FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+						if (!FoundOutputObject)
+							return FReply::Handled();
+
+						TArray<UHoudiniOutput*> AllOutputs;
+						FString TempCookFolder;
+						FString BakeFolder;
+						if (OwningHAC.IsValid())
+						{
+							AllOutputs.Reserve(OwningHAC->GetNumOutputs());
+							OwningHAC->GetOutputs(AllOutputs);
+
+							TempCookFolder = OwningHAC->TemporaryCookFolder.Path;
+							BakeFolder = OwningHAC->BakeFolder.Path;
+						}
+
+						FHoudiniGeoPartObject HoudiniGeoPartObject;
+						for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
+						{
+							if (!OutputIdentifier.Matches(curHGPO))
+								continue;
+
+							HoudiniGeoPartObject = curHGPO;
+							break;
+						}
+
+						FHoudiniOutputDetails::OnBakeOutputObject(
+							BakeName,
+							Skeleton.Get(),
+							OutputIdentifier,
+							*FoundOutputObject,
+							HoudiniGeoPartObject,
+							OwningHAC.Get(),
+							InOutput.Get(),
+							BakeFolder,
+							TempCookFolder,
+							EHoudiniLandscapeOutputBakeType::InValid,
+							AllOutputs);
+
+						return FReply::Handled();
+					})
+					.ToolTipText(LOCTEXT("HoudiniSkeletonBakeButton", "Bake this output object to a Skeleton in the Bake folder."))
+				]
+				*/
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(2.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				[
+					PropertyCustomizationHelpers::MakeBrowseButton(
+						FSimpleDelegate::CreateSP(
+							this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)Skeleton),
+						TAttribute<FText>(LOCTEXT("HoudiniSkelMeshBrowseButton", "Browse to this generated Skeleton in the content browser")))
+				]
+			]
+		]
+	];
+
+	// Store thumbnail for this mesh.
+	OutputObjectThumbnailBorders.Add(Skeleton, SkeletonThumbnailBorder);	
+
+	// SKEL MESH
+	if (!IsValidWeakPointer(SkelMesh))
+		return;
+
+	// TODO: GetBakingBaseName!
+	FString SkelMeshLabel = SkelMesh->GetName();
+	if (HoudiniGeoPartObject.bHasCustomPartName)
+		SkelMeshLabel = HoudiniGeoPartObject.PartName;
+
+	// Create thumbnail for this mesh.
+	TSharedPtr<FAssetThumbnail> SkelMeshThumbnail =
+		MakeShareable(new FAssetThumbnail(SkelMesh.Get(), 64, 64, AssetThumbnailPool));
+	TSharedPtr<SBorder> SkelMeshThumbnailBorder;
+
+	TSharedRef<SVerticalBox> SKMVerticalBox = SNew(SVerticalBox);
+
+	/*
+	SkeletonGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("BakeBaseName", "Bake Name"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.FillWidth(1)
+		[
+			SNew(SEditableTextBox)
+			.Text(FText::FromString(BakeName))
+			.HintText(LOCTEXT("BakeNameHintText", "Input bake name to override default"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.OnTextCommitted_Lambda([OutputIdentifier, InOutput](const FText& Val, ETextCommit::Type TextCommitType)
+			{
+				if (!IsValidWeakPointer(InOutput))
+					return;
+
+				FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
+				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+			})
+			.ToolTipText(LOCTEXT("BakeNameTip", "The base name of the baked asset"))
+		]
+	
+		+ SHorizontalBox::Slot()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.ToolTipText(LOCTEXT("RevertNameOverride", "Revert bake name override"))
+			.ButtonStyle(_GetEditorStyle(), "NoBorder")
+			.ContentPadding(0)
+			.Visibility(EVisibility::Visible)
+			.OnClicked_Lambda([InOutput, OutputIdentifier]()
+			{
+				FHoudiniOutputDetails::OnRevertBakeNameToDefault(InOutput, OutputIdentifier);
+				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+				return FReply::Handled();
+			})
+			[
+				SNew(SImage)
+				.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
+			]
+		]
+	];
+	*/
+
+	// Add details on the SkelMesh colliders
+	FString SKMLabel = TEXT("Skeletal Mesh");
+
+	/*
+	// Indicate that this mesh is instanced
+	if (HoudiniGeoPartObject.bIsInstanced)
+	{
+		MeshLabel += TEXT("\n(instanced)");
+	}
+
+	if (HoudiniGeoPartObject.bIsTemplated)
+	{
+		MeshLabel += TEXT("\n(templated)");
+	}
+	*/
+	SkeletonGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString(SKMLabel))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SKMVerticalBox
+	];
+
+	SKMVerticalBox->AddSlot()
+	.Padding(0, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(0.0f, 0.0f, 2.0f, 0.0f)
+		.AutoWidth()
+		[
+			SAssignNew(SkelMeshThumbnailBorder, SBorder)
+			.Padding(5.0f)
+			.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&)SkelMesh)
+			.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) SkelMesh)
+			[
+				SNew(SBox)
+				.WidthOverride(64)
+				.HeightOverride(64)
+				.ToolTipText(FText::FromString(SkelMesh->GetPathName()))
+				[
+					SkelMeshThumbnail->MakeThumbnailWidget()
+				]
+			]
+		]
+
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			[
+				SNew(SHorizontalBox)
+				/*
+				+ SHorizontalBox::Slot()
+				.MaxWidth(120.0f)
+				[
+					SNew(SButton)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("BakeOutputMesh", "Bake Output"))
+					.IsEnabled(true)
+					.OnClicked_Lambda([BakeName, SkelMesh, OutputIdentifier, InOutput, OwningHAC]()
+					{
+						if (!SkelMesh.IsValid() || !InOutput.IsValid())
+							return FReply::Handled();
+
+						FHoudiniOutputObject* const FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+						if (!FoundOutputObject)
+							return FReply::Handled();
+
+						TArray<UHoudiniOutput*> AllOutputs;
+						FString TempCookFolder;
+						FString BakeFolder;
+						if (OwningHAC.IsValid())
+						{
+							AllOutputs.Reserve(OwningHAC->GetNumOutputs());
+							OwningHAC->GetOutputs(AllOutputs);
+
+							TempCookFolder = OwningHAC->TemporaryCookFolder.Path;
+							BakeFolder = OwningHAC->BakeFolder.Path;
+						}
+
+						FHoudiniGeoPartObject HoudiniGeoPartObject;
+						for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
+						{
+							if (!OutputIdentifier.Matches(curHGPO))
+								continue;
+
+							HoudiniGeoPartObject = curHGPO;
+							break;
+						}
+
+						FHoudiniOutputDetails::OnBakeOutputObject(
+							BakeName,
+							SkelMesh.Get(),
+							OutputIdentifier,
+							*FoundOutputObject,
+							HoudiniGeoPartObject,
+							OwningHAC.Get(),
+							InOutput.Get(),
+							BakeFolder,
+							TempCookFolder,
+							EHoudiniLandscapeOutputBakeType::InValid,
+							AllOutputs);
+
+						return FReply::Handled();
+					})
+					.ToolTipText(LOCTEXT("HoudiniSkelMeshBakeButton", "Bake this output object to a Skeletal Mesh in the Bake folder."))
+				]
+				*/
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(2.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				[
+					PropertyCustomizationHelpers::MakeBrowseButton(
+						FSimpleDelegate::CreateSP(
+							this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)SkelMesh),
+						TAttribute<FText>(LOCTEXT("HoudiniSkelMeshBrowseButton", "Browse to this generated Skeletal Mesh in the content browser")))
+				]
+			]
+		]
+	];
+
+	// Store thumbnail for this mesh.
+	OutputObjectThumbnailBorders.Add(SkelMesh, SkelMeshThumbnailBorder);
+
+	// We need to add material box for each material present in this static mesh.	
+	auto& SkelMeshMaterials = SkelMesh->GetMaterials();
+	for (int32 MaterialIdx = 0; MaterialIdx < SkelMeshMaterials.Num(); ++MaterialIdx)
+	{
+		UMaterialInterface* MaterialInterface = SkelMeshMaterials[MaterialIdx].MaterialInterface;
+		TSharedPtr< SBorder > MaterialThumbnailBorder;
+		TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
+
+		FString MaterialName, MaterialPathName;
+		if (IsValid(MaterialInterface)
+			&& IsValid(MaterialInterface->GetOuter()))
+		{
+			MaterialName = MaterialInterface->GetName();
+			MaterialPathName = MaterialInterface->GetPathName();
+		}
+		else
+		{
+			MaterialInterface = nullptr;
+			MaterialName = TEXT("Material (invalid)") + FString::FromInt(MaterialIdx);
+			MaterialPathName = TEXT("Material (invalid)") + FString::FromInt(MaterialIdx);
+		}
+
+		// Create thumbnail for this material.
+		TSharedPtr< FAssetThumbnail > MaterialInterfaceThumbnail =
+			MakeShareable(new FAssetThumbnail(MaterialInterface, 64, 64, AssetThumbnailPool));
+
+		SKMVerticalBox->AddSlot()
+		.Padding(0, 2)
+		[
+			/*SNew(SAssetDropTarget)
+			.OnAreAssetsAcceptableForDrop(this, false)
+			.OnAssetsDropped(
+				this, &FHoudiniOutputDetails::OnMaterialInterfaceDropped, SkelMesh, InOutput, MaterialIdx)*/
+			SNew(SBox)
+			[
+				SAssignNew(HorizontalBox, SHorizontalBox)
+			]
+		];
+
+		HorizontalBox->AddSlot()
+		.Padding(0.0f, 0.0f, 2.0f, 0.0f)
+		.AutoWidth()
+		[
+			SAssignNew(MaterialThumbnailBorder, SBorder)
+			.Padding(5.0f)
+			.BorderImage(
+				this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, (const TWeakObjectPtr<UObject>&)SkelMesh, MaterialIdx)
+			.OnMouseDoubleClick(
+				this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&)MaterialInterface)
+			[
+				SNew(SBox)
+				.WidthOverride(64)
+				.HeightOverride(64)
+				.ToolTipText(FText::FromString(MaterialPathName))
+				[
+					MaterialInterfaceThumbnail->MakeThumbnailWidget()
+				]
+			]
+		];
+
+		// Store thumbnail for this mesh and material index.
+		{
+			TPairInitializer<const TWeakObjectPtr<USkeletalMesh>&, int32> Pair(SkelMesh, MaterialIdx);
+			MaterialInterfaceThumbnailBorders.Add(Pair, MaterialThumbnailBorder);
+		}
+
+		// ComboBox and buttons
+		TSharedPtr<SVerticalBox> ComboAndButtonBox;
+		HorizontalBox->AddSlot()
+		.FillWidth(1.0f)
+		.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+		[
+			SAssignNew(ComboAndButtonBox, SVerticalBox)
+		];
+
+		// Add Combo box
+		TSharedPtr<SComboButton> AssetComboButton;
+		ComboAndButtonBox->AddSlot()
+		.VAlign(VAlign_Center)
+		.FillHeight(1.0f)
+		[
+			SNew(SVerticalBox) + SVerticalBox::Slot().VAlign(VAlign_Center).FillHeight(1.0f)
+			[
+				SAssignNew(AssetComboButton, SComboButton)
+				.ButtonStyle(_GetEditorStyle(), "PropertyEditor.AssetComboStyle")
+				.ForegroundColor(_GetEditorStyle().GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+				.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent,
+					TWeakObjectPtr<UMaterialInterface>(MaterialInterface), (const TWeakObjectPtr<UObject>&)SkelMesh, InOutput, MaterialIdx)
+				.ContentPadding(2.0f)
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.TextStyle(_GetEditorStyle(), "PropertyEditor.AssetClass")
+					.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+					.Text(FText::FromString(MaterialName))
+				]
+			]
+		];
+
+		// Create tooltip.
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Asset"), FText::FromString(MaterialName));
+		FText MaterialTooltip = FText::Format(
+			LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
+
+		// Add buttons
+		TSharedPtr<SHorizontalBox> ButtonBox;
+		ComboAndButtonBox->AddSlot()
+		.FillHeight(1.0f)
+		[
+			SAssignNew(ButtonBox, SHorizontalBox)
+		];
+
+		// Use CB selection arrow button
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			PropertyCustomizationHelpers::MakeUseSelectedButton(
+				FSimpleDelegate::CreateSP(
+					this, &FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface,
+					(const TWeakObjectPtr<UObject>&)SkelMesh, InOutput, MaterialIdx),
+					TAttribute< FText >(LOCTEXT("UseSelectedAssetFromContentBrowser", "Use Selected Asset from Content Browser")))
+		];
+
+		// Browse CB button
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			PropertyCustomizationHelpers::MakeBrowseButton(
+				FSimpleDelegate::CreateSP(
+					this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)MaterialInterface), TAttribute< FText >(MaterialTooltip))
+		];
+
+		// Store combo button for this mesh and index.
+		{
+			TPairInitializer<const TWeakObjectPtr<USkeletalMesh>&, int32> Pair(SkelMesh, MaterialIdx);
+			MaterialInterfaceComboButtons.Add(Pair, AssetComboButton);
+		}
+	}
+}
+
+
 #undef LOCTEXT_NAMESPACE

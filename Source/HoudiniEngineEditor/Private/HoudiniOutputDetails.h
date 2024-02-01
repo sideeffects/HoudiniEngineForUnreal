@@ -48,6 +48,7 @@ class AGeometryCollectionActor;
 class ALandscapeSplineActor;
 class SBorder;
 class SComboButton;
+class USkeletalMesh;
 
 struct FHoudiniGeoPartObject;
 struct FHoudiniOutputObjectIdentifier;
@@ -64,6 +65,10 @@ public:
 		const TArray<TWeakObjectPtr<UHoudiniOutput>>& InOutputs);
 
 	void CreateMeshOutputWidget(
+		IDetailCategoryBuilder& HouOutputCategory,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
+
+	void CreateSkeletalOutputWidget(
 		IDetailCategoryBuilder& HouOutputCategory,
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 
@@ -104,6 +109,14 @@ public:
 		IDetailCategoryBuilder& HouOutputCategory,
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
 		const TWeakObjectPtr<UHoudiniStaticMesh>& ProxyMesh,
+		FHoudiniOutputObjectIdentifier& OutputIdentifier,
+		FHoudiniGeoPartObject& HoudiniGeoPartObject);
+
+	void CreateSkeletalMeshAndMaterialWidgets(
+		IDetailCategoryBuilder& HouOutputCategory,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+		const TWeakObjectPtr<USkeletalMesh>& SkelMesh,
+		const TWeakObjectPtr<USkeleton>& Skeleton,
 		FHoudiniOutputObjectIdentifier& OutputIdentifier,
 		FHoudiniGeoPartObject& HoudiniGeoPartObject);
 

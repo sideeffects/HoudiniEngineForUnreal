@@ -36,7 +36,7 @@
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniMaterialTranslator.h"
 #include "HoudiniAssetActor.h"
-
+#include "HoudiniInstanceTranslator.h"
 #include "HoudiniStaticMesh.h"
 #include "HoudiniStaticMeshComponent.h"
 #include "HoudiniSkeletalMeshTranslator.h"
@@ -459,6 +459,46 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 						{
 							SKMC->SetSkeletalMesh(SKMesh);
 						}
+
+						// TODO: we're currently unable to retrieve point position on the SK mesh/pose? 
+						/*
+						// Skeletal Mesh need to get their transform set separtely from the shape instancer's point transform
+						//if (FoundHGPO != nullptr)
+						for (auto& CurHGPO : InOutput->HoudiniGeoPartObjects)
+						{
+							// Retrieve Position
+							HAPI_AttributeInfo PointInfo;
+							FHoudiniApi::AttributeInfo_Init(&PointInfo);
+
+							HAPI_Result PointInfoResult = FHoudiniApi::GetAttributeInfo(
+								FHoudiniEngine::Get().GetSession(),
+								CurHGPO.GeoId, CurHGPO.PartId,
+								HAPI_UNREAL_ATTRIB_POSITION, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &PointInfo);
+
+							TArray<FVector3f> PositionData;
+							PositionData.SetNum(PointInfo.count);  //dont need * PositionInfo.tupleSize, its already a vector container
+							FHoudiniApi::GetAttributeFloatData(
+								FHoudiniEngine::Get().GetSession(),
+								CurHGPO.GeoId, CurHGPO.PartId, HAPI_UNREAL_ATTRIB_POSITION, &PointInfo, -1, (float*)&PositionData[0], 0, PointInfo.count);
+
+							if (PositionData.Num() > 0)
+							{
+								SKMC->SetRelativeLocation(FVector3d(FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector3f(PositionData[0])));
+							}
+
+						}
+						else
+						{
+							TArray<FTransform> Transforms;
+							for (auto& CurHGPO : InOutput->HoudiniGeoPartObjects)
+							{
+								if (FHoudiniInstanceTranslator::HapiGetInstanceTransforms(CurHGPO, Transforms))
+								{
+									SKMC->SetRelativeTransform(Transforms[0]);
+								}
+							}
+						}
+						*/
 					}
 				}
 			}
@@ -7401,11 +7441,18 @@ FHoudiniMeshTranslator::CreateOrUpdateMeshComponent(
 			|| curHGPO.SplitGroups.Contains(InOutputIdentifier.SplitIdentifier))
 		{
 			OutFoundHGPO = &curHGPO;
+			break;
+		}
+
+		if (InOutput->GetType() == EHoudiniOutputType::Skeletal)
+		{
+			OutFoundHGPO = &curHGPO;
+			break;
 		}
 	}
 
-	// No need to create a component for instanced meshes!
-	if (OutFoundHGPO && OutFoundHGPO->bIsInstanced)
+	// No need to create a component for instanced static meshes!
+	if (OutFoundHGPO && OutFoundHGPO->bIsInstanced)// && InOutput->GetType() != EHoudiniOutputType::Skeletal)
 		return nullptr;
 
 	bool bIsProxyComponent = InComponentType == UHoudiniStaticMeshComponent::StaticClass();

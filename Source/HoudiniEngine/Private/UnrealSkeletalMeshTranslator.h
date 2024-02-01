@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "Engine/SkeletalMesh.h"
 #include "HAPI/HAPI_Common.h"
 
 #include "CoreMinimal.h"
@@ -54,8 +55,22 @@ struct HOUDINIENGINE_API FUnrealSkeletalMeshTranslator
 			const bool& bInputNodesCanBeDeleted = true,
 			const bool& bExportMaterialParameters = false);
 
-		// Actually exports the skeletal mesh data (mesh, skeleton ... ) using LOD's SourceModel to the newly created input node - returns true on success
-		static bool SetSkeletalMeshDataOnNodeFromSourceModel(
+		// Create nodes for the mesh data only: mesh, LODs, colliders, sockets.
+		static bool CreateInputNodesForSkeletalMesh(
+			USkeletalMesh* Mesh,
+			HAPI_NodeId& InputObjectNodeId,
+			const FString& InputNodeName,
+			FUnrealObjectInputHandle& OutHandle,
+			class USkeletalMeshComponent* SkeletalMeshComponent = nullptr,
+			const bool& ExportAllLODs = false,
+			const bool& ExportSockets = false,
+			const bool& ExportColliders = false,
+			const bool& ExportMainMesh = true,
+			const bool& bInputNodesCanBeDeleted = true,
+			const bool& bExportMaterialParameters = false);
+
+		// Actually exports the skeletal mesh data (mesh, skeleton ... ) to the newly created input node - returns true on success
+		static bool SetSkeletalMeshDataOnNode(
 			USkeletalMesh* SkeletalMesh,
 			USkeletalMeshComponent* SkeletalMeshComponent,
 			HAPI_NodeId& NewNodeId,
@@ -84,4 +99,13 @@ struct HOUDINIENGINE_API FUnrealSkeletalMeshTranslator
 			USkeletalMesh* InSkeletalMesh,
 			const HAPI_NodeId& InParentNodeId,
 			HAPI_NodeId& OutSocketsNodeId);
+
+		static bool CreateInputNodeForCapturePose(
+			USkeletalMesh* InSkeletalMesh,
+			const HAPI_NodeId InParentNodeId,
+			const FString& InInputNodeName,
+			HAPI_NodeId& InOutSkeletonNodeId,
+			FUnrealObjectInputHandle& OutHandle,
+			const bool bInputNodesCanBeDeleted=true);
+
 };
