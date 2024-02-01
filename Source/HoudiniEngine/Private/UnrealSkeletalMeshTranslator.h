@@ -26,7 +26,6 @@
 
 #pragma once
 
-#include "Engine/SkeletalMesh.h"
 #include "HAPI/HAPI_Common.h"
 
 #include "CoreMinimal.h"
@@ -69,8 +68,8 @@ struct HOUDINIENGINE_API FUnrealSkeletalMeshTranslator
 			const bool& bInputNodesCanBeDeleted = true,
 			const bool& bExportMaterialParameters = false);
 
-		// Actually exports the skeletal mesh data (mesh, skeleton ... ) to the newly created input node - returns true on success
-		static bool SetSkeletalMeshDataOnNode(
+		// Actually exports the skeletal mesh data (mesh, skeleton ... ) using LOD's SourceModel to the newly created input node - returns true on success
+		static bool SetSkeletalMeshDataOnNodeFromSourceModel(
 			USkeletalMesh* SkeletalMesh,
 			USkeletalMeshComponent* SkeletalMeshComponent,
 			HAPI_NodeId& NewNodeId,
