@@ -57,6 +57,9 @@ struct FLandscapeSplineSegmentMeshAttributes
 	/** Mesh scale. */
 	bool bHasMeshScaleAttribute = false;
 	TArray<float> MeshScale;
+
+	bool bHasMeshCenterAdjustAttribute = false;
+	TArray<float> CenterAdjust;
 };
 
 
@@ -1234,6 +1237,24 @@ FHoudiniLandscapeSplineTranslator::CopySegmentMeshAttributesFromHoudini(
 		if (SegmentAttributes.bHasMeshScaleAttribute)
 			bFoundDataForMeshIndex = true;
 
+		// center adjust
+		static constexpr int32 MeshCenterAdjustTupleSize = 2;
+		const FString MeshCenterAdjustAttrName = FString::Printf(
+			TEXT("%s%s"), *AttrNamePrefix, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH_CENTER_ADJUST_SUFFIX));
+		HAPI_AttributeInfo MeshCenterAdjustAttrInfo;
+		SegmentAttributes.bHasMeshCenterAdjustAttribute = FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(
+			InNodeId,
+			InPartId,
+			TCHAR_TO_ANSI(*MeshCenterAdjustAttrName),
+			MeshCenterAdjustAttrInfo,
+			SegmentAttributes.CenterAdjust,
+			MeshCenterAdjustTupleSize,
+			InAttrOwner,
+			InStartIndex,
+			InCount);
+		if (SegmentAttributes.bHasMeshCenterAdjustAttribute)
+			bFoundDataForMeshIndex = true;
+
 		// material overrides
 		const FString MaterialAttrNamePrefix = AttrNamePrefix + TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH_MATERIAL_OVERRIDE_SUFFIX);
 		SegmentAttributes.MeshMaterialOverrideRefs.Reset();
@@ -2059,6 +2080,23 @@ FHoudiniLandscapeSplineTranslator::UpdateSegmentFromAttributes(
 				PerVertexAttributes->MeshScale[1]);
 		}
 
+		// Center Adjust
+		if (PerVertexAttributes && PerVertexAttributes->bHasMeshCenterAdjustAttribute
+				&& PerVertexAttributes->CenterAdjust.IsValidIndex(InVertexIndex * 2)
+				&& PerVertexAttributes->CenterAdjust.IsValidIndex(InVertexIndex * 2 + 1))
+		{
+			const int32 ValueIdx = InVertexIndex * 2;
+			SplineMeshEntry.CenterAdjust = FVector2D(
+				PerVertexAttributes->CenterAdjust[ValueIdx + 0],
+				PerVertexAttributes->CenterAdjust[ValueIdx + 1]);
+		}
+		else if (PerPrimAttributes && PerPrimAttributes->bHasMeshCenterAdjustAttribute && PerPrimAttributes->CenterAdjust.IsValidIndex(2))
+		{
+			SplineMeshEntry.CenterAdjust = FVector2D(
+				PerVertexAttributes->CenterAdjust[0],
+				PerVertexAttributes->CenterAdjust[1]);
+		}
+		
 		// Each segment static mesh can have multiple material overrides
 		// Determine the max from the number of vertex/point material override attributes and the number of prim
 		// material override attributes
