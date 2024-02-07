@@ -1255,6 +1255,9 @@ FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 			SourceUVArrays[UVLayerIdx] = InstanceUVs.GetRawArray(UVLayerIdx);
 		}
 
+		// Dont forgot to set the numbers of UV layers on the GC!
+		GeometryCollection->SetNumUVLayers(NumUVLayers);
+
 		// target vertex information
 		TManagedArray<FVector3f>& TargetVertex = GeometryCollection->Vertex;
 		TManagedArray<FVector3f>& TargetTangentU = GeometryCollection->TangentU;
@@ -1320,7 +1323,7 @@ FHoudiniGeometryCollectionTranslator::AppendStaticMesh(
 				for (int32 LayerIdx = 0; LayerIdx < SplitVertex.Key.UVs.Num(); ++LayerIdx)
 				{
 					GeometryCollection->ModifyUV(CurrentVertex, LayerIdx) = SplitVertex.Key.UVs[LayerIdx];
-				}				
+				}
 #else
 				TargetUVs[CurrentVertex] = SplitVertex.Key.UVs;
 #endif

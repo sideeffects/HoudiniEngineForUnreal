@@ -184,7 +184,8 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			FHoudiniEngineIndexedStringMap& OutStaticMeshFaceMaterials,
 			TMap<FString, TArray<float>>& OutScalarMaterialParameters,
 			TMap<FString, TArray<float>>& OutVectorMaterialParameters,
-			TMap<FString, FHoudiniEngineIndexedStringMap>& OutTextureMaterialParameters);
+			TMap<FString, FHoudiniEngineIndexedStringMap>& OutTextureMaterialParameters,
+			TMap<FString, TArray<int8>>& OutBoolMaterialParameters);
 
 		// Create and set mesh material attribute and material (scalar, vector and texture) parameters attributes
 		static bool CreateHoudiniMeshAttributes(
@@ -195,6 +196,7 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 		    const TMap<FString, TArray<float>>& ScalarMaterialParameters,
 		    const TMap<FString, TArray<float>>& VectorMaterialParameters,
 			const TMap<FString, FHoudiniEngineIndexedStringMap>& TextureMaterialParameters,
+			const TMap<FString, TArray<int8>>& BoolMaterialParameters,
 		    const TOptional<FString> PhysicalMaterial = TOptional<FString>(),
 			const TOptional<FMeshNaniteSettings> InNaniteSettings = TOptional<FMeshNaniteSettings>());
 

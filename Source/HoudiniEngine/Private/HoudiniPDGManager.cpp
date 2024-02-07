@@ -578,26 +578,29 @@ FHoudiniPDGManager::DirtyTOPNode(UTOPNode* InTOPNode)
 // 	}
 // }
 
-void
+bool
 FHoudiniPDGManager::CookTOPNode(UTOPNode* InTOPNode)
 {
 	if (!IsValid(InTOPNode))
-		return;
+		return false;
 		
 	if (!FHoudiniEngine::Get().GetSession())
-		return;
+		return false;
 
 	if (InTOPNode->NodeState == EPDGNodeState::Cooking || InTOPNode->AnyWorkItemsPending())
 	{
 		HOUDINI_LOG_WARNING(TEXT("PDG Cook TOP Node - %s is already/still cooking, ignoring 'Cook TOP Node' request."), *(InTOPNode->NodePath));
-		return;
+		return false;
 	}
 
 	if (HAPI_RESULT_SUCCESS != FHoudiniApi::CookPDG(
 		FHoudiniEngine::Get().GetSession(), InTOPNode->NodeId, 0, 0))
 	{
 		HOUDINI_LOG_ERROR(TEXT("PDG Cook TOP Node - Failed to cook %s!"), *(InTOPNode->NodeName));
+		return false;
 	}
+
+	return true;
 }
 
 
@@ -620,7 +623,7 @@ FHoudiniPDGManager::DirtyAll(UTOPNetwork* InTOPNet)
 }
 
 
-void
+bool
 FHoudiniPDGManager::CookOutput(UTOPNetwork* InTOPNet)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniPDGManager::CookOutput);
@@ -630,10 +633,10 @@ FHoudiniPDGManager::CookOutput(UTOPNetwork* InTOPNet)
 	//UHoudiniPDGAssetLink::ResetTOPNetworkWorkItemTally(InTOPNet);
 
 	if (!IsValid(InTOPNet))
-		return;
+		return false;
 	
 	if (!FHoudiniEngine::Get().GetSession())
-		return;
+		return false;
 
 	bool bAlreadyCooking = InTOPNet->AnyWorkItemsPending();
 
@@ -644,7 +647,7 @@ FHoudiniPDGManager::CookOutput(UTOPNetwork* InTOPNet)
             FHoudiniEngine::Get().GetSession(), InTOPNet->NodeId, &GraphContextId))
 		{
 			HOUDINI_LOG_ERROR(TEXT("PDG Cook Output - Failed to get %s's graph context ID!"), *(InTOPNet->NodeName));
-			return;
+			return false;
 		}
 
 		int32 PDGState = -1;
@@ -652,7 +655,7 @@ FHoudiniPDGManager::CookOutput(UTOPNetwork* InTOPNet)
             FHoudiniEngine::Get().GetSession(), GraphContextId, &PDGState))
 		{
 			HOUDINI_LOG_ERROR(TEXT("PDG Cook Output - Failed to get %s's PDG state."), *(InTOPNet->NodeName));
-			return;
+			return false;
 		}
 		bAlreadyCooking = ((HAPI_PDG_State) PDGState == HAPI_PDG_STATE_COOKING);
 	}
@@ -660,7 +663,7 @@ FHoudiniPDGManager::CookOutput(UTOPNetwork* InTOPNet)
 	if (bAlreadyCooking)
 	{
 		HOUDINI_LOG_WARNING(TEXT("PDG Cook Output - %s is already/still cooking, ignoring 'Cook Output' request."), *(InTOPNet->NodeName));
-		return;
+		return false;
 	}
 
 	// TODO: ???
@@ -669,7 +672,10 @@ FHoudiniPDGManager::CookOutput(UTOPNetwork* InTOPNet)
 		FHoudiniEngine::Get().GetSession(), InTOPNet->NodeId, 0, 0))
 	{
 		HOUDINI_LOG_ERROR(TEXT("PDG Cook Output - Failed to cook %s's output!"), *(InTOPNet->NodeName));
+		return false;
 	}
+
+	return true;
 }
 
 

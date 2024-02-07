@@ -407,6 +407,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		TMap<FString, TArray<float>> ScalarMaterialParameters;
 		TMap<FString, TArray<float>> VectorMaterialParameters;
 		TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
+		TMap<FString, TArray<int8>> BoolMaterialParameters;
 
 		bool bAttributeSuccess = false;
 		if (bInExportMaterialParametersAsAttributes)
@@ -414,8 +415,13 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			// Create attributes for the material and all its parameters
 			// Get material attribute data, and all material parameters data
 			FUnrealMeshTranslator::CreateFaceMaterialArray(
-				Materials, MaterialIndices, OutMaterials,
-				ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
+				Materials,
+				MaterialIndices,
+				OutMaterials,
+				ScalarMaterialParameters,
+				VectorMaterialParameters,
+				TextureMaterialParameters,
+				BoolMaterialParameters);
 		}
 		else
 		{
@@ -433,7 +439,8 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			OutMaterials,
 			ScalarMaterialParameters,
 			VectorMaterialParameters,
-			TextureMaterialParameters);
+			TextureMaterialParameters,
+			BoolMaterialParameters);
 
 		if (!bAttributeSuccess)
 			return false;

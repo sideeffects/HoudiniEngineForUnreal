@@ -1560,17 +1560,23 @@ protected:
 		int32& OutNodeIndex,
 		UTOPNode*& OutNode) const;
 
+
+	//
+	// TSoftObjectPtr seems to potentially cause race conditions when running the UE test framework
+	// Switching to TWeakObjectPtr seem to solve the issue:
+	//
+
 	/** The wrapped Houdini Asset object (not the uasset, an AHoudiniAssetActor or UHoudiniAssetComponent). */
 	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
-	TSoftObjectPtr<UObject> HoudiniAssetObject;
+	TWeakObjectPtr<UObject> HoudiniAssetObject;
 
 	/** The wrapped AHoudiniAssetActor (derived from HoudiniAssetObject when calling WrapHoudiniAssetObject()). */
 	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
-	TSoftObjectPtr<AHoudiniAssetActor> CachedHoudiniAssetActor;
+	TWeakObjectPtr<AHoudiniAssetActor> CachedHoudiniAssetActor;
 
 	/** The wrapped UHoudiniAssetComponent (derived from HoudiniAssetObject when calling WrapHoudiniAssetObject()). */
 	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
-	TSoftObjectPtr<UHoudiniAssetComponent> CachedHoudiniAssetComponent;
+	TWeakObjectPtr<UHoudiniAssetComponent> CachedHoudiniAssetComponent;
 
 	/**
 	 * Delegate that is broadcast when entering the PreInstantiation state: the HDA's default parameter definitions are

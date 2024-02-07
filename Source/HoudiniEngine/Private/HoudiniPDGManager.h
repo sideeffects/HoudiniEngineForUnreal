@@ -88,7 +88,7 @@ public:
 		bool bInZeroWorkItemTallys=false);
 
 	// Cook the specified TOP node.
-	static void CookTOPNode(UTOPNode* InTOPNode);
+	static bool CookTOPNode(UTOPNode* InTOPNode);
 
 	// Dirty the specified TOP node and clear its work item results.
 	static void DirtyTOPNode(UTOPNode* InTOPNode);
@@ -101,7 +101,7 @@ public:
 	static void DirtyAll(UTOPNetwork* InTOPNet);
 
 	// Cook the output TOP node of the currently selected TOP network.
-	static void CookOutput(UTOPNetwork* InTOPNet);
+	static bool CookOutput(UTOPNetwork* InTOPNet);
 
 	// Pause the PDG cook of the currently selected TOP network
 	static void PauseCook(UTOPNetwork* InTOPNet);

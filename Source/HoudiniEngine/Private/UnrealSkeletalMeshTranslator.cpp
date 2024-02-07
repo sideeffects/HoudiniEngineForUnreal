@@ -1526,6 +1526,7 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 	TMap<FString, TArray<float>> ScalarMaterialParameters;
 	TMap<FString, TArray<float>> VectorMaterialParameters;
 	TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
+	TMap<FString, TArray<int8>> BoolMaterialParameters;
 
 	bool bAttributeSuccess = false;
 	FString PhysicalMaterialPath = FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(
@@ -1535,8 +1536,13 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 		// Create attributes for the material and all its parameters
 		// Get material attribute data, and all material parameters data
 		FUnrealMeshTranslator::CreateFaceMaterialArray(
-			MaterialInterfaces, TriangleMaterialIndices, StaticMeshFaceMaterials,
-			ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
+			MaterialInterfaces,
+			TriangleMaterialIndices,
+			StaticMeshFaceMaterials,
+			ScalarMaterialParameters,
+			VectorMaterialParameters,
+			TextureMaterialParameters,
+			BoolMaterialParameters);
 	}
 	else
 	{
@@ -1555,6 +1561,7 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 		ScalarMaterialParameters,
 		VectorMaterialParameters,
 		TextureMaterialParameters,
+		BoolMaterialParameters,
 		PhysicalMaterialPath);
 
 	if (!bAttributeSuccess)

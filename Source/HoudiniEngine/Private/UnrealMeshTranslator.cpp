@@ -1534,6 +1534,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 		TMap<FString, TArray<float>> ScalarMaterialParameters;
 		TMap<FString, TArray<float>> VectorMaterialParameters;
         TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
+		TMap<FString, TArray<int8>> BoolMaterialParameters;
 
 		bool bAttributeSuccess = false;
 		FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh->GetBodySetup());
@@ -1542,8 +1543,13 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			// Create attributes for the material and all its parameters
 			// Get material attribute data, and all material parameters data
 			FUnrealMeshTranslator::CreateFaceMaterialArray(
-				MaterialInterfaces, RawMesh.FaceMaterialIndices, StaticMeshFaceMaterials,
-				ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
+				MaterialInterfaces,
+				RawMesh.FaceMaterialIndices,
+				StaticMeshFaceMaterials,
+				ScalarMaterialParameters, 
+				VectorMaterialParameters,
+				TextureMaterialParameters,
+				BoolMaterialParameters);
 		}
 		else
 		{
@@ -1562,6 +1568,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 			ScalarMaterialParameters,
 			VectorMaterialParameters,
 			TextureMaterialParameters,
+			BoolMaterialParameters,
 			PhysicalMaterialPath,
 			StaticMesh->NaniteSettings);
 
@@ -2336,6 +2343,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			TMap<FString, TArray<float>> ScalarMaterialParameters;
 			TMap<FString, TArray<float>> VectorMaterialParameters;
             TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
+			TMap<FString, TArray<int8>> BoolMaterialParameters;
 
 			bool bAttributeSuccess = false;
 			FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh->GetBodySetup());
@@ -2344,8 +2352,13 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				// Create attributes for the material and all its parameters
 				// Get material attribute data, and all material parameters data
 				FUnrealMeshTranslator::CreateFaceMaterialArray(
-					MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials,
-					ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
+					MaterialInterfaces, 
+					TriangleMaterialIndices,
+					TriangleMaterials,
+					ScalarMaterialParameters,
+					VectorMaterialParameters,
+					TextureMaterialParameters,
+					BoolMaterialParameters);
 			}
 			else
 			{
@@ -2364,6 +2377,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				ScalarMaterialParameters,
 				VectorMaterialParameters,
 				TextureMaterialParameters,
+				BoolMaterialParameters,
 				PhysicalMaterialPath,
 				StaticMesh->NaniteSettings);
 
@@ -3426,15 +3440,21 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 			    TMap<FString, TArray<float>> ScalarMaterialParameters;
 			    TMap<FString, TArray<float>> VectorMaterialParameters;
                 TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
+				TMap<FString, TArray<int8>>BoolMaterialParameters;
 
-			    bool bAttributeSuccess = false;
-			    if (bInExportMaterialParametersAsAttributes)
-			    {
-				    // Create attributes for the material and all its parameters
-				    // Get material attribute data, and all material parameters data
-				    FUnrealMeshTranslator::CreateFaceMaterialArray(
-					    MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials,
-					    ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
+				bool bAttributeSuccess = false;
+				if (bInExportMaterialParametersAsAttributes)
+				{
+					// Create attributes for the material and all its parameters
+					// Get material attribute data, and all material parameters data
+					FUnrealMeshTranslator::CreateFaceMaterialArray(
+						MaterialInterfaces,
+						TriangleMaterialIndices, 
+						TriangleMaterials,
+						ScalarMaterialParameters, 
+						VectorMaterialParameters, 
+						TextureMaterialParameters,
+						BoolMaterialParameters);
 			    }
 			    else
 			    {
@@ -3453,6 +3473,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 				    ScalarMaterialParameters,
 				    VectorMaterialParameters,
 				    TextureMaterialParameters,
+					BoolMaterialParameters,
 				    PhysicalMaterialPath,
 					NaniteSettings);
 
@@ -3757,7 +3778,8 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	FHoudiniEngineIndexedStringMap& OutStaticMeshFaceMaterials,
 	TMap<FString, TArray<float>> & OutScalarMaterialParameters,
 	TMap<FString, TArray<float>> & OutVectorMaterialParameters,
-    TMap<FString, FHoudiniEngineIndexedStringMap>& OutTextureMaterialParameters)
+    TMap<FString, FHoudiniEngineIndexedStringMap>& OutTextureMaterialParameters,
+	TMap<FString, TArray<int8>>& OutBoolMaterialParameters)
 {
     H_SCOPED_FUNCTION_TIMER();
 
@@ -3772,11 +3794,12 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 	TMap<FString, TArray<float>> ScalarParams;
 	TMap<FString, TArray<FLinearColor>> VectorParams;
 	TMap<FString, TArray<FString>> TextureParams;
+	TMap<FString, TArray<int8>> BoolParams;
 
 	UMaterialInterface* MaterialInterface = nullptr;
 	if (Materials.Num() > 0)
 	{
-		H_SCOPED_FUNCTION_STATIC_LABEL("Grather Materials");
+		H_SCOPED_FUNCTION_STATIC_LABEL("Gather Materials");
 
 		// We have materials.
 		for (int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); MaterialIdx++)
@@ -3878,6 +3901,31 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
 				}
 			}
 
+			// Collect all bool parameters in this material
+			{
+				TArray<FMaterialParameterInfo> MaterialBoolParamInfos;
+				TArray<FGuid> MaterialBoolParamGuids;
+				MaterialInterface->GetAllStaticSwitchParameterInfo(MaterialBoolParamInfos, MaterialBoolParamGuids);
+
+				for (auto& CurBoolParam : MaterialBoolParamInfos)
+				{
+					FString CurBoolParamName = ParamPrefix + CurBoolParam.Name.ToString();
+					bool CurBool = false;
+					FGuid CurExprValue;
+					MaterialInterface->GetStaticSwitchParameterValue(CurBoolParam, CurBool, CurExprValue);
+
+					if (!BoolParams.Contains(CurBoolParamName))
+					{
+						TArray<int8> CurArray;
+						CurArray.SetNumZeroed(Materials.Num());
+
+						BoolParams.Add(CurBoolParamName, CurArray);
+						OutBoolMaterialParameters.Add(CurBoolParamName);
+					}
+
+					BoolParams[CurBoolParamName][MaterialIdx] = CurBool ? 1 : 0;
+				}
+			}		
 		}
 	}
 	else
@@ -3975,6 +4023,27 @@ FUnrealMeshTranslator::CreateFaceMaterialArray(
                 }
             }
         }
+	}
+
+	// Add bool params.
+	{
+		H_SCOPED_FUNCTION_STATIC_LABEL("BoolParams");
+		for (auto& Pair : BoolParams)
+		{
+			auto& Entries = OutBoolMaterialParameters[Pair.Key];
+			Entries.SetNum(FaceMaterialIndices.Num());
+			int Index = 0;
+			for (int32 FaceIdx = 0; FaceIdx < FaceMaterialIndices.Num(); ++FaceIdx)
+			{
+				int32 FaceMaterialIdx = FaceMaterialIndices[FaceIdx];
+				if (PerSlotMaterialList.IsValidIndex(FaceMaterialIdx))
+				{
+					const auto& Value = Pair.Value[FaceMaterialIdx];
+					Entries[Index++] = Value;
+				}
+			}
+			check(Index == Entries.Num());
+		}
 	}
 }
 
@@ -4508,6 +4577,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	const TMap<FString, TArray<float>>& ScalarMaterialParameters,
 	const TMap<FString, TArray<float>>& VectorMaterialParameters,
     const TMap<FString, FHoudiniEngineIndexedStringMap>& TextureMaterialParameters,
+	const TMap<FString, TArray<int8>>& BoolMaterialParameters,
     const TOptional<FString> PhysicalMaterial,
 	const TOptional<FMeshNaniteSettings> InNaniteSettings)
 {
@@ -4625,6 +4695,36 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
             if (HAPI_RESULT_SUCCESS
                 != FHoudiniEngineUtils::HapiSetAttributeStringMap(				
 				StringMap, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
+			{
+				bSuccess = false;
+			}
+		}
+	}
+
+	// Add bool material parameter attributes
+	for (auto& Pair : BoolMaterialParameters)
+	{
+		FString CurMaterialParamAttribName = FString(HAPI_UNREAL_ATTRIB_MATERIAL) + "_parameter_" + Pair.Key;
+		FHoudiniEngineUtils::SanitizeHAPIVariableName(CurMaterialParamAttribName);
+
+		// Create attribute for material parameter.
+		HAPI_AttributeInfo AttributeInfoMaterialParameter;
+		FHoudiniApi::AttributeInfo_Init(&AttributeInfoMaterialParameter);
+		AttributeInfoMaterialParameter.tupleSize = 1;
+		AttributeInfoMaterialParameter.count = Count;
+		AttributeInfoMaterialParameter.exists = true;
+		AttributeInfoMaterialParameter.owner = HAPI_ATTROWNER_PRIM;
+		AttributeInfoMaterialParameter.storage = HAPI_STORAGETYPE_INT8;
+		AttributeInfoMaterialParameter.originalOwner = HAPI_ATTROWNER_INVALID;
+
+		// Create the new attribute
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::AddAttribute(
+			FHoudiniEngine::Get().GetSession(),
+			NodeId, PartId, TCHAR_TO_ANSI(*CurMaterialParamAttribName), &AttributeInfoMaterialParameter))
+		{
+			// The New attribute has been successfully created, set its value
+			if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiSetAttributeInt8Data(
+				Pair.Value, NodeId, PartId, CurMaterialParamAttribName, AttributeInfoMaterialParameter))
 			{
 				bSuccess = false;
 			}

@@ -3192,9 +3192,7 @@ UHoudiniPublicAPIAssetWrapper::PDGCookOutputsForNetwork_Implementation(const FSt
 	if (!GetValidTOPNetworkByPathWithError(InNetworkRelativePath, NetworkIndex, TOPNet))
 		return false;
 
-	FHoudiniPDGManager::CookOutput(TOPNet);
-
-	return true;
+	return FHoudiniPDGManager::CookOutput(TOPNet);
 }
 
 bool
@@ -3206,9 +3204,7 @@ UHoudiniPublicAPIAssetWrapper::PDGCookNode_Implementation(const FString& InNetwo
 	if (!GetValidTOPNodeByPathWithError(InNetworkRelativePath, InNodeRelativePath, NetworkIndex, NodeIndex, TOPNode))
 		return false;
 
-	FHoudiniPDGManager::CookTOPNode(TOPNode);
-
-	return true;
+	return FHoudiniPDGManager::CookTOPNode(TOPNode);
 }
 
 bool

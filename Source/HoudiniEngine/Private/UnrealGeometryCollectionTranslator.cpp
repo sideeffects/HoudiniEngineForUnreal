@@ -729,6 +729,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 			TMap<FString, TArray<float>> ScalarMaterialParameters;
 			TMap<FString, TArray<float>> VectorMaterialParameters;
             TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
+			TMap<FString, TArray<int8>> BoolMaterialParameters;
 
 			bool bAttributeSuccess = false;
 			if (bInExportMaterialParametersAsAttributes)
@@ -736,8 +737,13 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 				// Create attributes for the material and all its parameters
 				// Get material attribute data, and all material parameters data
 				FUnrealMeshTranslator::CreateFaceMaterialArray(
-                                        MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials,
-                                        ScalarMaterialParameters, VectorMaterialParameters, TextureMaterialParameters);
+					MaterialInterfaces,
+					TriangleMaterialIndices,
+					TriangleMaterials,
+					ScalarMaterialParameters,
+					VectorMaterialParameters,
+					TextureMaterialParameters,
+					BoolMaterialParameters);
 			}
 			else
 			{
@@ -755,7 +761,8 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 				TriangleMaterials,
 				ScalarMaterialParameters,
 				VectorMaterialParameters,
-				TextureMaterialParameters);
+				TextureMaterialParameters,
+				BoolMaterialParameters);
 
 			if (!bAttributeSuccess)
 			{
