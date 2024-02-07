@@ -245,9 +245,7 @@ SortBonesByParent(FSkeletalMeshImportData & SkeletalMeshImportData)
 
 //Builds Skeletal Mesh and Skeleton Assets from FSkeletalMeshImportData
 void
-FHoudiniSkeletalMeshTranslator::BuildSKFromImportData(
-	SKBuildSettings & BuildSettings,
-	TArray<FSkeletalMaterial>&Materials)
+FHoudiniSkeletalMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSettings)
 {
 	FSkeletalMeshImportData& SkeletalMeshImportData = BuildSettings.SkeletalMeshImportData;
 	SkeletalMeshImportData.NumTexCoords = BuildSettings.NumTexCoords;
@@ -1334,6 +1332,29 @@ bool FHoudiniSkeletalMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 		}
 		// Notify the asset registry of new asset
 		FAssetRegistryModule::AssetCreated(SkeletonAsset);
+
+		const FHoudiniGeoPartObject& PoseInstancerHGPO = *SKParts.HGPOPoseInstancer;
+
+		// Create the output object
+		FHoudiniOutputObjectIdentifier SkeletonOutputObjectIdentifier(
+			PoseInstancerHGPO.ObjectId, PoseInstancerHGPO.GeoId, PoseInstancerHGPO.PartId, "");
+		SkeletonOutputObjectIdentifier.PartName = MainHGPO.PartName;
+		// Hard-coded point and prim indices to 0 and 0
+		SkeletonOutputObjectIdentifier.PointIndex = 0;
+		SkeletonOutputObjectIdentifier.PrimitiveIndex = 0;
+
+		// If we don't already have an object for SkeletonOutputObjectIdentifier in OutputObjects, then check in InputObjects and
+		// copy it from there. Otherwise create a new empty OutputObject in OutputObjects.
+		if (!OutputObjects.Contains(SkeletonOutputObjectIdentifier))
+		{
+			FHoudiniOutputObject const* const InputObject = InputObjects.Find(SkeletonOutputObjectIdentifier);
+			if (InputObject)
+				OutputObjects.Emplace(SkeletonOutputObjectIdentifier, *InputObject);
+		}
+		FHoudiniOutputObject& SkeletonOutputObject = OutputObjects.FindOrAdd(SkeletonOutputObjectIdentifier);
+
+		SkeletonOutputObject.OutputObject = SkeletonAsset;
+		SkeletonOutputObject.bProxyIsCurrent = false;
 	}
 	
 	USkeletalMesh* SkeletalMeshAsset = CreateNewSkeletalMesh(OutputObjectIdentifier.SplitIdentifier);
@@ -1368,22 +1389,16 @@ bool FHoudiniSkeletalMeshTranslator::CreateSkeletalMesh_SkeletalMeshImportData()
 	skBuildSettings.SKMesh = SkeletalMeshAsset;
 	skBuildSettings.bIsNewSkeleton = bIsNewSkeleton;
 	skBuildSettings.Skeleton = SkeletonAsset;
-
-	// ???
-	TArray<FSkeletalMaterial> Materials;
-	FSkeletalMaterial Mat;
-	Materials.Add(Mat);
-	Materials.Add(Mat);
 	
 	FHoudiniSkeletalMeshTranslator::UpdateBuildSettings(skBuildSettings);
 
-	const bool Result = FillSkeletalMeshImportData(skBuildSettings, PackageParams);
-	if (!Result)
+	const bool bResult = FillSkeletalMeshImportData(skBuildSettings, PackageParams);
+	if (!bResult)
 	{
 		return false;
 	}
-	
-	FHoudiniSkeletalMeshTranslator::BuildSKFromImportData(skBuildSettings, Materials);
+
+	FHoudiniSkeletalMeshTranslator::BuildSKFromImportData(skBuildSettings);
 
 	return true;
 }
@@ -1406,7 +1421,6 @@ FHoudiniSkeletalMeshTranslator::CreateNewSkeleton(const FString& InSplitIdentifi
 
 	const FString PackagePath = FPaths::Combine(AssetPath, PackageName);
 	const FSoftObjectPath SkeletonAssetPath(PackagePath);
-	USkeleton* MySkeleton = Cast<USkeleton>(SkeletonAssetPath.TryLoad() );
 	
 	if (USkeleton* ExistingSkeleton = LoadObject<USkeleton>(nullptr, *PackagePath) )
 	{
@@ -1616,16 +1630,10 @@ bool
 FHoudiniSkeletalMeshTranslator::CreateAllSkeletalMeshesAndComponentsFromHoudiniOutput(
 	UHoudiniOutput* InOutput,
 	const FHoudiniPackageParams& InPackageParams,
-	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials,
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials,
 	UObject* InOuterComponent)
 {
 	if (!IsValid(InOutput))
-		return false;
-
-	if (!IsValid(InPackageParams.OuterPackage))
-		return false;
-
-	if (!IsValid(InOuterComponent))
 		return false;
 
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> NewOutputObjects;
@@ -1687,9 +1695,20 @@ FHoudiniSkeletalMeshTranslator::CreateAllSkeletalMeshesAndComponentsFromHoudiniO
 		InPackageParams,
 		InOuterComponent,
 		OldOutputObjects,
-		NewOutputObjects))
+		NewOutputObjects,
+		AssignementMaterials,
+		ReplacementMaterials,
+		InAllOutputMaterials))
 	{
 		return false;
+	}
+
+	for (auto& CurMat : AssignementMaterials)
+	{
+		// Adds the newly generated materials to the output materials array
+		// This is to avoid recreating those same materials again
+		if (!InAllOutputMaterials.Contains(CurMat.Key))
+			InAllOutputMaterials.Add(CurMat);
 	}
 
 	return FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
@@ -1706,7 +1725,10 @@ FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshFromHoudiniGeoPartObject(
 	const FHoudiniPackageParams& InPackageParams,
 	UObject* InOuterComponent,
 	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects,
-	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutOutputObjects)
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutOutputObjects,
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& AssignmentMaterialMap,
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& ReplacementMaterialMap,
+	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials)
 {
 	// Make sure this is indeed a Skeletal Mesh
 	if (!FHoudiniSkeletalMeshTranslator::IsRestGeometryMesh(SKParts.HGPOShapeMesh->GeoId, SKParts.HGPOShapeMesh->PartId))
@@ -1718,11 +1740,14 @@ FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshFromHoudiniGeoPartObject(
 	SKMeshTranslator.SetOutputObjects(OutOutputObjects);
 	SKMeshTranslator.SetPackageParams(InPackageParams, true);
 	SKMeshTranslator.SetOuterComponent(InOuterComponent);
+	SKMeshTranslator.SetInputAssignmentMaterials(AssignmentMaterialMap);
+	SKMeshTranslator.SetReplacementMaterials(AssignmentMaterialMap);
+	SKMeshTranslator.SetAllOutputMaterials(InAllOutputMaterials);
 	if (SKMeshTranslator.CreateSkeletalMesh_SkeletalMeshImportData())
 	{
 		// Copy the output objects/materials
 		OutOutputObjects = SKMeshTranslator.OutputObjects;
-		//AssignmentMaterialMap = SKMT.OutputAssignmentMaterials;
+		AssignmentMaterialMap = SKMeshTranslator.OutputAssignmentMaterials;
 
 		return true;
 	}
@@ -1896,12 +1921,7 @@ FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshMaterials(
 	/*FHoudiniPackageParams FinalPackageParams(InPackageParams);
 	FinalPackageParams.OverideEnabled = false;*/
 
-	// Input Material Map
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> InputAssignmentMaterials;
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputAssignmentMaterials;
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> ReplacementMaterials;
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials;
-	FHoudiniMaterialTranslator::CreateHoudiniMaterials(
+	if (!FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		InShapeMeshHGPO.GeoId,
 		InPackageParams,//FinalPackageParams,
 		UniqueHoudiniMaterialIds,
@@ -1911,7 +1931,10 @@ FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshMaterials(
 		OutputAssignmentMaterials,
 		MaterialAndTexturePackages,
 		false,
-		true);
+		true))
+	{
+		return false;
+	}
 
 	// Convert the face material ids to indices in the unique array
 	OutPerFaceUEMaterialIds.SetNum(NumFaces);

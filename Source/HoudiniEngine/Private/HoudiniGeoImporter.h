@@ -34,110 +34,148 @@ class UHoudiniOutput;
 
 struct FHoudiniPackageParams;
 struct FHoudiniStaticMeshGenerationProperties;
+struct FHoudiniGeoPartObject;
 struct FMeshBuildSettings;
+struct FHoudiniOutputObjectIdentifier;
+struct FHoudiniInstancedOutputPartData;
+
+enum class EHoudiniOutputType : uint8;
+enum class EHoudiniPartType : uint8;
 
 UCLASS()
 class HOUDINIENGINE_API UHoudiniGeoImporter : public UObject
 {
-public:
-
 	GENERATED_UCLASS_BODY()
 
-	public:
-		
-		void SetBakeRootFolder(const FString& InFolder) { BakeRootFolder = InFolder; };
-		void SetOutputFilename(const FString& InOutFilename) { OutputFilename = InOutFilename; };
+public:
+	
+	void SetBakeRootFolder(const FString& InFolder) { BakeRootFolder = InFolder; };
+	void SetOutputFilename(const FString& InOutFilename) { OutputFilename = InOutFilename; };
 
-		TArray<UObject*>& GetOutputObjects() { return OutputObjects; };
+	TArray<UObject*>& GetOutputObjects() { return OutputObjects; };
 
-		// BEGIN: Static API
-		// Open a BGEO file: create a file node in HAPI and cook it
-		static bool OpenBGEOFile(const FString& InBGEOFile, HAPI_NodeId& OutNodeId, bool bInUseWorldComposition=false);
+	// BEGIN: Static API
+	// Open a BGEO file: create a file node in HAPI and cook it
+	static bool OpenBGEOFile(const FString& InBGEOFile, HAPI_NodeId& OutNodeId, bool bInUseWorldComposition=false);
 
-		// Cook the file node specified by the valid NodeId.
-		static bool CookFileNode(const HAPI_NodeId& InNodeId);
+	// Cook the file node specified by the valid NodeId.
+	static bool CookFileNode(const HAPI_NodeId& InNodeId);
 
-		// Extract the outputs for a given node ID
-		static bool BuildAllOutputsForNode(
-			const HAPI_NodeId& InNodeId, 
-			UObject* InOuter, 
-			TArray<UHoudiniOutput*>& InOldOutputs, 
-			TArray<UHoudiniOutput*>& OutNewOutputs, 
-			bool bInAddOutputsToRootSet = false,
-			bool bInUseOutputNodes = true);
+	// Extract the outputs for a given node ID
+	static bool BuildAllOutputsForNode(
+		const HAPI_NodeId& InNodeId, 
+		UObject* InOuter, 
+		TArray<UHoudiniOutput*>& InOldOutputs, 
+		TArray<UHoudiniOutput*>& OutNewOutputs, 
+		bool bInAddOutputsToRootSet = false,
+		bool bInUseOutputNodes = true);
 
-		// Delete the HAPI node and remove InOutputs from the root set.
-		static bool CloseBGEOFile(const HAPI_NodeId& InNodeId);
-		// END: Static API
+	// Delete the HAPI node and remove InOutputs from the root set.
+	static bool CloseBGEOFile(const HAPI_NodeId& InNodeId);
+	// END: Static API
 
-		// Import the BGEO file
-		bool ImportBGEOFile(
-			const FString& InBGEOFile, 
-			UObject* InParent, 
-			const FHoudiniPackageParams* InPackageParams=nullptr,
-			const FHoudiniStaticMeshGenerationProperties* InStaticMeshGenerationProperties=nullptr,
-			const FMeshBuildSettings* InMeshBuildSettings=nullptr);
+	// Import the BGEO file
+	bool ImportBGEOFile(
+		const FString& InBGEOFile, 
+		UObject* InParent, 
+		const FHoudiniPackageParams* InPackageParams=nullptr,
+		const FHoudiniStaticMeshGenerationProperties* InStaticMeshGenerationProperties=nullptr,
+		const FMeshBuildSettings* InMeshBuildSettings=nullptr);
 
-		// 1. Start a HE session if needed
-		static bool AutoStartHoudiniEngineSessionIfNeeded();
-		
-		// 2. Update our file members fromn the input file path
-		bool SetFilePath(const FString& InFilePath);
-		
-		// 3. Creates a new file node and loads the bgeo file in HAPI
-		bool LoadBGEOFileInHAPI(HAPI_NodeId& NodeId);
+	// 1. Start a HE session if needed
+	static bool AutoStartHoudiniEngineSessionIfNeeded();
+	
+	// 2. Update our file members fromn the input file path
+	bool SetFilePath(const FString& InFilePath);
+	
+	// 3. Creates a new file node and loads the bgeo file in HAPI
+	bool LoadBGEOFileInHAPI(HAPI_NodeId& NodeId);
 
-		// 3.2 (alternative) Uses an object merge node to load the geo data in HAPI (used for node sync fetch)
-		bool MergeGeoFromNode(const FString& InNodePath, HAPI_NodeId& OutNodeId);
+	// 3.2 (alternative) Uses an object merge node to load the geo data in HAPI (used for node sync fetch)
+	bool MergeGeoFromNode(const FString& InNodePath, HAPI_NodeId& OutNodeId);
 
-		// 4. Extract the outputs for a given node ID
-		bool BuildOutputsForNode(
-			const HAPI_NodeId& InNodeId,
-			TArray<UHoudiniOutput*>& InOldOutputs, 
-			TArray<UHoudiniOutput*>& OutNewOutputs,
-			bool bInUseOutputNodes = true);
+	// 4. Extract the outputs for a given node ID
+	bool BuildOutputsForNode(
+		const HAPI_NodeId& InNodeId,
+		TArray<UHoudiniOutput*>& InOldOutputs, 
+		TArray<UHoudiniOutput*>& OutNewOutputs,
+		bool bInUseOutputNodes = true);
 
-		// 5. Creates the static meshes object found in the output
-		bool CreateStaticMeshes(
-			TArray<UHoudiniOutput*>& InOutputs,
-			FHoudiniPackageParams InPackageParams,
-			const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
-			const FMeshBuildSettings& InMeshBuildSettings);
+	// 5. Create objects using outputs
+	bool CreateObjectsFromOutputs(
+		TArray<UHoudiniOutput*>& InOutputs,
+		FHoudiniPackageParams InPackageParams,
+		const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
+		const FMeshBuildSettings& InMeshBuildSettings,
+		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* OutInstancedOutputPartData = nullptr);
 
-		// 6. Create the output curves
-		bool CreateCurves(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
-		// 7. Create the output landscapes
-		bool CreateLandscapes(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
-		// 8. Create the output landscape splines
-		bool CreateLandscapeSplines(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
-		// 9. Create the output instancers
-		bool CreateInstancers(TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
-		// 10. Clean up the created node
-		static bool DeleteCreatedNode(const HAPI_NodeId& InNodeId);
+	// 6. Clean up the created node
+	static bool DeleteCreatedNode(const HAPI_NodeId& InNodeId);
 
-		static bool CreateInstancerOutputPartData(
-			TArray<UHoudiniOutput*>& InOutputs,
-			TMap<struct FHoudiniOutputObjectIdentifier, struct FHoudiniInstancedOutputPartData>& OutInstancedOutputPartData);
+private:
 
-	private:
+	static FHoudiniPackageParams GetPackageParamsForType(
+		const TArray<UHoudiniOutput*>& InOutputs,
+		FHoudiniPackageParams InPackageParams,
+		const EHoudiniOutputType InOutputType,
+		const EHoudiniPartType InPartType);
 
-		// Path to the file we're currently loading
-		FString SourceFilePath;
+	static FHoudiniPackageParams GetPackageParamsForHGPO(
+		const FHoudiniGeoPartObject& InHGPO,
+		FHoudiniPackageParams InPackageParams);
 
-		// Absolute Path to the file
-		FString AbsoluteFilePath;
-		FString AbsoluteFileDirectory;
+	/** @param InOutputs Must all have type EHoudiniOutput::Mesh. */
+	bool CreateStaticMeshes(
+		const TArray<UHoudiniOutput*>& InOutputs,
+		FHoudiniPackageParams InPackageParams,
+		const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
+		const FMeshBuildSettings& InMeshBuildSettings);
 
-		// Input File Name / Extension
-		FString FileName;
-		FString FileExtension;
+	/** @param InOutputs Must all have type EHoudiniOutput::Curve. */
+	bool CreateCurves(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 
-		// Output filename, if empty, will be set to the input filename
-		FString OutputFilename;
-		// Root Folder for storing the created files
-		FString BakeRootFolder;
+	/** @param InOutputs Must all have type EHoudiniOutput::Landscape. */
+	bool CreateLandscapes(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 
-		// Output Objects
-		TArray<UObject*> OutputObjects;
+	/** @param InOutputs Must all have type EHoudiniOutput::LandscapeSpline. */
+	bool CreateLandscapeSplines(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 
+	/** @param InInstancerOutputs Must all have type EHoudiniOutput::Instancer. */
+	bool CreateInstancers(
+		TArray<UHoudiniOutput*>& InAllOutputs,
+		const TArray<UHoudiniOutput*>& InInstancerOutputs, 
+		FHoudiniPackageParams InPackageParams);
+
+	/** @param InOutputs Must all have type EHoudiniOutput::Instancer. */
+	static bool CreateInstancerOutputPartData(
+		const TArray<UHoudiniOutput*>& InOutputs,
+		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>& OutInstancedOutputPartData);
+
+	/** @param InOutputs Must all have type EHoudiniOutput::DataTable. */
+	bool CreateDataTables(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
+
+	/** @param InOutputs Must all have type EHoudiniOutput::Skeletal. */
+	bool CreateSkeletalMeshes(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
+
+	/** @param InOutputs Must all have type EHoudiniOutput::AnimSequence. */
+	bool CreateAnimSequences(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
+
+	// Path to the file we're currently loading
+	FString SourceFilePath;
+
+	// Absolute Path to the file
+	FString AbsoluteFilePath;
+	FString AbsoluteFileDirectory;
+
+	// Input File Name / Extension
+	FString FileName;
+	FString FileExtension;
+
+	// Output filename, if empty, will be set to the input filename
+	FString OutputFilename;
+	// Root Folder for storing the created files
+	FString BakeRootFolder;
+
+	// Output Objects
+	TArray<UObject*> OutputObjects;
 };

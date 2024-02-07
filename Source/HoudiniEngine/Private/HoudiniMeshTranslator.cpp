@@ -175,9 +175,6 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 	if (!IsValid(InOutput))
 		return false;
 
-	if (!IsValid(InOuterComponent))
-		return false;
-
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> OldOutputObjects = InOutput->GetOutputObjects();
 
 	// Remove Static Meshes and their components from the old map 
@@ -293,6 +290,15 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 		StaleComponents.Empty();
 	}
 	*/
+
+	// Exit early if we have no component to update
+	if (!IsValid(InOuterComponent))
+	{
+		// Assign the new output objects to the output
+		InOutput->SetOutputObjects(InNewOutputObjects);
+
+		return true;
+	}
 
 	// Now create/update the new static mesh components
 	for (auto& NewPair : InNewOutputObjects)
@@ -5907,13 +5913,6 @@ FHoudiniMeshTranslator::CreateNeededMaterials()
 		MaterialAndTexturePackages,
 		false, 
 		bTreatExistingMaterialsAsUpToDate);
-
-	/*
-	// Save the created packages if needed
-	// DPT: deactivated, only dirty for now, as we'll save them when saving the world.
-	if (MaterialAndTexturePackages.Num() > 0)
-		FEditorFileUtils::PromptForCheckoutAndSave(MaterialAndTexturePackages, true, false);
-	*/
 
 	if (bMaterialOverrideNeedsCreateInstance && PartFaceMaterialOverrides.Num() > 0)
 	{

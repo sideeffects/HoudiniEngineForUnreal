@@ -88,12 +88,6 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 			return;
 		}
 	
-		FString AssetName = ParentComponent->GetOwner()->GetName() + "_" + GCName;
-		FString ActorName = AssetName + "_Actor";
-		
-		// Initialize GC, GC Actor, GC Component
-		FTransform AssetTransform = ParentComponent->GetOwner()->GetTransform();
-	
 		UGeometryCollection* GeometryCollection = GCData.PackParams.CreateObjectAndPackage<UGeometryCollection>();
 		if (!IsValid(GeometryCollection))
 			return;
@@ -102,24 +96,37 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 		if (!GeometryCollection->SizeSpecificData.Num()) 
 			GeometryCollection->SizeSpecificData.Add(FGeometryCollectionSizeSpecificData());
 
-		AGeometryCollectionActor * GeometryCollectionActor = Cast<AGeometryCollectionActor>(OutputObject.OutputObject);
-		
-		if (!GeometryCollectionActor)
-			GeometryCollectionActor = CreateNewGeometryActor(InWorld, ActorName, AssetTransform);
-	
-		if (!IsValid(GeometryCollectionActor))
-			return;
-	
-		UGeometryCollectionComponent*  GeometryCollectionComponent = GeometryCollectionActor->GetGeometryCollectionComponent();
-		if (!IsValid(GeometryCollectionComponent))
-			return;
-	
-		GeometryCollectionActor->GetGeometryCollectionComponent()->SetRestCollection(GeometryCollection);
-	
-		UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(HoudiniOutput);
-		if (IsValid(HAC))
+		UGeometryCollectionComponent* GeometryCollectionComponent = nullptr;
+		FTransform ActorTransform;
+		if (IsValid(ParentComponent->GetOwner()))
 		{
-			GeometryCollectionActor->AttachToComponent(HAC, FAttachmentTransformRules::KeepWorldTransform);
+			FString AssetName = ParentComponent->GetOwner()->GetName() + "_" + GCName;
+			FString ActorName = AssetName + "_Actor";
+
+			AGeometryCollectionActor* GeometryCollectionActor = Cast<AGeometryCollectionActor>(OutputObject.OutputObject);
+
+			// Initialize GC, GC Actor, GC Component
+			FTransform AssetTransform = ParentComponent->GetOwner()->GetTransform();
+
+			if (!GeometryCollectionActor)
+				GeometryCollectionActor = CreateNewGeometryActor(InWorld, ActorName, AssetTransform);
+
+			if (!IsValid(GeometryCollectionActor))
+				return;
+
+			GeometryCollectionComponent = GeometryCollectionActor->GetGeometryCollectionComponent();
+			if (!IsValid(GeometryCollectionComponent))
+				return;
+
+			GeometryCollectionActor->GetGeometryCollectionComponent()->SetRestCollection(GeometryCollection);
+
+			UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(HoudiniOutput);
+			if (IsValid(HAC))
+			{
+				GeometryCollectionActor->AttachToComponent(HAC, FAttachmentTransformRules::KeepWorldTransform);
+			}
+
+			ActorTransform = ParentComponent->GetOwner()->GetTransform();
 		}
 		
 		// Mark relevant stuff dirty
@@ -131,8 +138,6 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 		{
 			OuterPackage->MarkPackageDirty();
 		}
-		
-		const FTransform ActorTransform(ParentComponent->GetOwner()->GetTransform());
 	
 		// Used to get the number of levels
 		// Pair of <FractureIndex, ClusterIndex>
@@ -222,18 +227,24 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 		ApplyGeometryCollectionAttributes(GeometryCollection, FirstPiece);
 	
 		// Set output object
-		OutputObject.OutputObject = GeometryCollectionActor;
+		OutputObject.OutputObject = GeometryCollection;
 		check(OutputObject.OutputComponents.Num() < 2); // Multiple components not supported yet.
 		OutputObject.OutputComponents.Empty();
-		OutputObject.OutputComponents.Add(GeometryCollectionComponent);
+		if (IsValid(GeometryCollectionComponent))
+		{
+			OutputObject.OutputComponents.Add(GeometryCollectionComponent);
+		}
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 		// Rebuild render data on the GeometryCollection itself otherwise the asset won't update in UE5.3
 		GeometryCollection->RebuildRenderData();
 #endif
 		
-		// Mark the render state dirty otherwise it won't appear until you move it
-		GeometryCollectionComponent->MarkRenderStateDirty();
+		if (IsValid(GeometryCollectionComponent))
+		{
+			// Mark the render state dirty otherwise it won't appear until you move it
+			GeometryCollectionComponent->MarkRenderStateDirty();
+		}
 	}
 }
 

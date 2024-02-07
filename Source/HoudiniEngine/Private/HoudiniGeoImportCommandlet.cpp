@@ -539,25 +539,9 @@ int32 UHoudiniGeoImportCommandlet::ImportBGEO(
 	const FMeshBuildSettings& MeshBuildSettings =
 		InMeshBuildSettings ? *InMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 	
-	HOUDINI_LOG_DISPLAY(TEXT("Create Static Meshes"));
-	if (!GeoImporter->CreateStaticMeshes(OutOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
+	HOUDINI_LOG_DISPLAY(TEXT("Creating Objects from Outputs"));
+	if (!GeoImporter->CreateObjectsFromOutputs(OutOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings, OutInstancedOutputPartData))
 		return CleanUpAndExit(1);
-
-	//// 6. Create the landscape in the outputs
-	//if (!GeoImporter->CreateLandscapes(NewOutputs, Outer, PackageParams))
-	//	return CleanUpAndExit(1);
-
-	// 7. Create the instancers in the outputs
-	if (OutInstancedOutputPartData)
-	{
-		if (!GeoImporter->CreateInstancerOutputPartData(OutOutputs, *OutInstancedOutputPartData))
-			return CleanUpAndExit(1);
-	}
-	else
-	{
-		if (!GeoImporter->CreateInstancers(OutOutputs, PackageParams))
-			return CleanUpAndExit(1);
-	}
 
 	if (OutGenericAttributes)
 	{
