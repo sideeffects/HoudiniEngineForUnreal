@@ -101,6 +101,14 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
 	void RestartSession();
 
+
+	// Houdini UI
+
+	/** Opens the current scene in Houdini */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	void OpenInHoudini();
+
+
 	// Assets
 
 	/**
