@@ -41,6 +41,7 @@
 #include "HoudiniInstanceTranslator.h"
 #include "HoudiniLandscapeTranslator.h"
 #include "HoudiniDataTableTranslator.h"
+#include "HoudiniHLODLayerUtils.h"
 #include "HoudiniLandscapeSplineTranslator.h"
 #include "HoudiniPDGAssetLink.h"
 #include "HoudiniOutputTranslator.h"
@@ -517,6 +518,18 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 		FEditorDelegates::RefreshAllBrowsers.Broadcast();
 	}
 	*/
+
+	for (auto& CurrentOutput : InOutputs)
+	{
+		for (auto& It : CurrentOutput->OutputObjects)
+		{
+			FHoudiniOutputObjectIdentifier& Id = It.Key;
+			FHoudiniOutputObject& Obj = It.Value;
+
+			Obj.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(Id.GeoId, Id.PartId);
+			Obj.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(Id.GeoId, Id.PartId);
+		}
+	}
 
 	if (CreatedPackages.Num() > 0)
 	{

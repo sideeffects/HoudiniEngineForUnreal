@@ -64,7 +64,7 @@ bool FHoudiniEditorTestOutput::RunTest(const FString & Parameters)
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
 	// Load the HDA into a new map and kick start the cook. We do an initial cook to make sure the parameters are available.
-	static UHoudiniAssetComponent* NewHAC = FHoudiniEditorUnitTestUtils::LoadHDAIntoNewMap(TEXT("/Game/TestHDAs/Outputs/Test_Outputs"), FTransform::Identity);
+	static UHoudiniAssetComponent* NewHAC = FHoudiniEditorUnitTestUtils::LoadHDAIntoNewMap(TEXT("/Game/TestHDAs/Outputs/Test_Outputs"), FTransform::Identity, false);
 
 	// Now create the test context. This should be the last step before the tests start as it starts the timeout timer. Note
 	// the context live in a SharedPtr<> because each part of the test, in AddCommand(), are executed asyncronously

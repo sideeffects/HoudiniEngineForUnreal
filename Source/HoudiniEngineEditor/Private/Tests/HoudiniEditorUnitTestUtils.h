@@ -29,6 +29,7 @@
 #include "CoreMinimal.h"
 #include "HoudiniEditorAssetStateSubsystem.h"
 #include "HoudiniEditorTestUtils.h"
+#include "HoudiniEngineBakeUtils.h"
 #include "HoudiniOutput.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
@@ -55,7 +56,9 @@ class UHoudiniAssetComponent;
 
 struct FHoudiniEditorUnitTestUtils
 {
-	static UHoudiniAssetComponent* LoadHDAIntoNewMap(const FString& PackageName, const FTransform& Transform);
+	static UHoudiniAssetComponent* LoadHDAIntoNewMap(const FString& PackageName, const FTransform& Transform, bool bOpenWorld);
+
+	static FString GetAbsolutePathOfProjectFile(const FString & Object);
 
 	// Helper function to returns components from an output.
 	template<typename COMPONENT_TYPE>
@@ -75,6 +78,23 @@ struct FHoudiniEditorUnitTestUtils
 						Results.Add(Out);
 					}
 				}
+			}
+		}
+		return  Results;
+	}
+
+	// Helper function to returns components from a baked output.
+	template<typename COMPONENT_TYPE>
+	static TArray<COMPONENT_TYPE*>  GetOutputsWithComponent(const TArray<FHoudiniEngineBakedActor>& Outputs)
+	{
+		TArray<COMPONENT_TYPE*> Results;
+
+		for (const FHoudiniEngineBakedActor & Output : Outputs)
+		{
+			if (IsValid(Output.BakedComponent) && Output.BakedComponent->GetClass() == COMPONENT_TYPE::StaticClass())
+			{
+				COMPONENT_TYPE* Out = Cast<COMPONENT_TYPE>(Output.BakedComponent);
+				Results.Add(Out);
 			}
 		}
 		return  Results;
@@ -156,7 +176,14 @@ struct FHoudiniTestContext
 		Test = CurrentTest;
 	}
 
+	// Starts cooking the HDA asynchrously.
 	void StartCookingHDA();
+
+	// Starts cooking the Selected top network in the HDA asynchronously.
+	void StartCookingSelectedTOPNetwork();
+
+	// Bakes the top network. Synchronous, returns the baked actors.
+	TArray<FHoudiniEngineBakedActor> BakeSelectedTopNetwork();
 
 	double MaxTime = 15.0f;						// Max time (seconds) this test can run.
 	double TimeStarted = 0.0f;					// Time this test started. Used to test for timeout.
@@ -165,6 +192,8 @@ struct FHoudiniTestContext
 	UHoudiniAssetComponent* HAC = nullptr;		// HAC being tested
 	TMap<FString, FString> Data;				// Use this to pass data between different tests.
 	bool bCookInProgress = false;
+	bool bPDGCookInProgress = false;
+	bool bPDGPostCookDelegateCalled = false;
 };
 
 class FHoudiniLatentTestCommand : public FFunctionLatentCommand

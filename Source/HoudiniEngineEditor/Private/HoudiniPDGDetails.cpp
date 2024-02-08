@@ -2090,28 +2090,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 				FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(InPDGAssetLink.Get(), InPDGAssetLink->PDGBakeSelectionOption, InPDGAssetLink->PDGBakePackageReplaceMode, InPDGAssetLink->bRecenterBakedActors);
 		}
 		break;
-		//
-		// case EHoudiniEngineBakeOption::ToFoliage:
-		// {
-		// 	if (InPDGAssetLink->bIsReplace)
-		// 		FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithFoliage(InPDGAssetLink);
-		// 	else
-		// 		FHoudiniEngineBakeUtils::BakeHoudiniActorToFoliage(InPDGAssetLink);
-		// }
-		// break;
-		//
-		// case EHoudiniEngineBakeOption::ToWorldOutliner:
-		// {
-		// 	if (InPDGAssetLink->bIsReplace)
-		// 	{
-		// 		// Todo
-		// 	}
-		// 	else
-		// 	{
-		// 		//Todo
-		// 	}
-		// }
-		// break;
+
 		}
 		
 		return FReply::Handled();	

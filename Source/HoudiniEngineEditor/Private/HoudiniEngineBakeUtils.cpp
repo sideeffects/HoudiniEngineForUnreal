@@ -7346,44 +7346,47 @@ FHoudiniEngineBakeUtils::BakePDGTOPNetworkOutputsKeepActors(
 	return bSuccess;
 }
 
-bool
-FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(UHoudiniPDGAssetLink* InPDGAssetLink, const EPDGBakeSelectionOption InBakeSelectionOption, const EPDGBakePackageReplaceModeOption InPDGBakePackageReplaceMode, bool bInRecenterBakedActors)
+bool FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(
+	UHoudiniPDGAssetLink* InPDGAssetLink,
+	EPDGBakeSelectionOption InBakeSelectionOption,
+	EPDGBakePackageReplaceModeOption InPDGBakePackageReplaceMode,
+	bool bInRecenterBakedActors,
+	TArray<UPackage*>& PackagesToSave,
+	FHoudiniEngineOutputStats& BakeStats,
+	TArray<FHoudiniEngineBakedActor>& BakedActors)
 {
 	if (!IsValid(InPDGAssetLink))
 		return false;
 
-	TArray<UPackage*> PackagesToSave;
-	FHoudiniEngineOutputStats BakeStats;
-	TArray<FHoudiniEngineBakedActor> BakedActors;
 	const bool bBakeBlueprints = false;
 	const bool bIsAutoBake = false;
 
 	bool bSuccess = true;
-	switch(InBakeSelectionOption)
+	switch (InBakeSelectionOption)
 	{
-		case EPDGBakeSelectionOption::All:
-			for (UTOPNetwork* Network : InPDGAssetLink->AllTOPNetworks)
+	case EPDGBakeSelectionOption::All:
+		for (UTOPNetwork* Network : InPDGAssetLink->AllTOPNetworks)
+		{
+			if (!IsValid(Network))
+				continue;
+
+			for (UTOPNode* Node : Network->AllTOPNodes)
 			{
-				if (!IsValid(Network))
+				if (!IsValid(Node))
 					continue;
-				
-				for (UTOPNode* Node : Network->AllTOPNodes)
-				{
-					if (!IsValid(Node))
-						continue;
-					
-					bSuccess &= BakePDGTOPNodeOutputsKeepActors(InPDGAssetLink, Node, bBakeBlueprints, bIsAutoBake, InPDGBakePackageReplaceMode, BakedActors, PackagesToSave, BakeStats);
-				}
+
+				bSuccess &= BakePDGTOPNodeOutputsKeepActors(InPDGAssetLink, Node, bBakeBlueprints, bIsAutoBake, InPDGBakePackageReplaceMode, BakedActors, PackagesToSave, BakeStats);
 			}
-			break;
+		}
+		break;
 
-		case EPDGBakeSelectionOption::SelectedNetwork:
-			bSuccess = BakePDGTOPNetworkOutputsKeepActors(InPDGAssetLink, InPDGAssetLink->GetSelectedTOPNetwork(), bBakeBlueprints, bIsAutoBake, InPDGBakePackageReplaceMode, BakedActors, PackagesToSave, BakeStats);
-			break;
+	case EPDGBakeSelectionOption::SelectedNetwork:
+		bSuccess = BakePDGTOPNetworkOutputsKeepActors(InPDGAssetLink, InPDGAssetLink->GetSelectedTOPNetwork(), bBakeBlueprints, bIsAutoBake, InPDGBakePackageReplaceMode, BakedActors, PackagesToSave, BakeStats);
+		break;
 
-		case EPDGBakeSelectionOption::SelectedNode:
-			bSuccess = BakePDGTOPNodeOutputsKeepActors(InPDGAssetLink, InPDGAssetLink->GetSelectedTOPNode(), bBakeBlueprints, bIsAutoBake, InPDGBakePackageReplaceMode, BakedActors, PackagesToSave, BakeStats);
-			break;
+	case EPDGBakeSelectionOption::SelectedNode:
+		bSuccess = BakePDGTOPNodeOutputsKeepActors(InPDGAssetLink, InPDGAssetLink->GetSelectedTOPNode(), bBakeBlueprints, bIsAutoBake, InPDGBakePackageReplaceMode, BakedActors, PackagesToSave, BakeStats);
+		break;
 	}
 
 	SaveBakedPackages(PackagesToSave);
@@ -7391,26 +7394,26 @@ FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(UHoudiniPDGAssetLink*
 	// Recenter and select the baked actors
 	if (GEditor && BakedActors.Num() > 0)
 		GEditor->SelectNone(false, true);
-	
+
 	for (const FHoudiniEngineBakedActor& Entry : BakedActors)
 	{
 		if (!IsValid(Entry.Actor))
 			continue;
-		
+
 		if (bInRecenterBakedActors)
 			CenterActorToBoundingBoxCenter(Entry.Actor);
 
 		if (GEditor)
 			GEditor->SelectActor(Entry.Actor, true, false);
 	}
-	
+
 	if (GEditor && BakedActors.Num() > 0)
 		GEditor->NoteSelectionChange();
 
 	{
 		const FString FinishedTemplate = TEXT("Baking finished. Created {0} packages. Updated {1} packages.");
-		FString Msg = FString::Format(*FinishedTemplate, { BakeStats.NumPackagesCreated, BakeStats.NumPackagesUpdated } );
-		FHoudiniEngine::Get().FinishTaskSlateNotification( FText::FromString(Msg) );
+		FString Msg = FString::Format(*FinishedTemplate, { BakeStats.NumPackagesCreated, BakeStats.NumPackagesUpdated });
+		FHoudiniEngine::Get().FinishTaskSlateNotification(FText::FromString(Msg));
 	}
 
 	// Broadcast that the bake is complete
@@ -7419,6 +7422,28 @@ FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(UHoudiniPDGAssetLink*
 	return bSuccess;
 }
 
+bool
+FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(
+	UHoudiniPDGAssetLink* InPDGAssetLink, 
+	EPDGBakeSelectionOption InBakeSelectionOption, 
+	EPDGBakePackageReplaceModeOption InPDGBakePackageReplaceMode, 
+	bool bInRecenterBakedActors)
+{
+	TArray<UPackage*> PackagesToSave;
+	FHoudiniEngineOutputStats BakeStats;
+	TArray<FHoudiniEngineBakedActor> BakedActors;
+
+	bool bSuccess = BakePDGAssetLinkOutputsKeepActors(
+		InPDGAssetLink,
+		InBakeSelectionOption,
+		InPDGBakePackageReplaceMode,
+		bInRecenterBakedActors,
+		PackagesToSave,
+		BakeStats,
+		BakedActors);
+
+	return bSuccess;
+}
 bool
 FHoudiniEngineBakeUtils::BakeBlueprintsFromBakedActors(
 	const TArray<FHoudiniEngineBakedActor>& InBakedActors, 
