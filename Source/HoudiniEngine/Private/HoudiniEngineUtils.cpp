@@ -3287,9 +3287,6 @@ FHoudiniEngineUtils::UpdateEditorProperties_Internal(TArray<UObject*> ObjectsToU
     // LayoutBuilder.ForceRefreshDetails();
 	// However, the above code should only be called during UI functions... for now, the following works:
 
-	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	PropertyEditorModule.NotifyCustomizationModuleChanged();
-
 #if WITH_EDITOR	
 	if (!bInForceFullUpdate)
 	{
@@ -3340,9 +3337,6 @@ FHoudiniEngineUtils::UpdateEditorProperties_Internal(TArray<UObject*> ObjectsToU
 		// Get the property editor module
 		FPropertyEditorModule& PropertyModule =
 			FModuleManager::Get().GetModuleChecked< FPropertyEditorModule >("PropertyEditor");
-
-		// This will actually force a refresh of all the details view
-		//PropertyModule.NotifyCustomizationModuleChanged();
 
 		TArray<UObject*> SelectedActors;
 		for (auto Actor : AllActors)
@@ -3407,40 +3401,15 @@ FHoudiniEngineUtils::UpdateEditorProperties_Internal(TArray<UObject*> ObjectsToU
 				GUnrealEd->UpdateFloatingPropertyWindows();
 		}
 	}
-	else
-	{
-		// TODO: Do we need to do Blueprint Editor updates here or can we confine it to "post output processing"?
-		
-	}
-
-	/*
-	// Reset the full update flag
-	if (bNeedFullUpdate)
-		HAC->SetEditorPropertiesNeedFullUpdate(false);
-	*/
 
 	return;
 #endif
 }
 
-void FHoudiniEngineUtils::UpdateBlueprintEditor_Internal(UHoudiniAssetComponent* HAC)
+
+void
+FHoudiniEngineUtils::UpdateBlueprintEditor_Internal(UHoudiniAssetComponent* HAC)
 {
-	//UHoudiniAssetComponent* HACTemplate = HAC->GetCachedTemplate();
-	//UBlueprintGeneratedClass* OwnerBPClass = Cast<UBlueprintGeneratedClass>(HACTemplate->GetOuter());
-	//if (!OwnerBPClass)
-	//	return;
-
-	///*
-	//FBlueprintEditor* BlueprintEditor = static_cast<FBlueprintEditor*>(FAssetEditorManager::Get().FindEditorForAsset(OwnerBPClass->ClassGeneratedBy, false));
-	//if (!BlueprintEditor)
-	//	return;
-	//*/
-
-	//// Close the mesh editor to prevent crashing. Reopen it after the mesh has been built.
-	//UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
-	//FBlueprintEditor* BlueprintEditor = static_cast<FBlueprintEditor*>(AssetEditorSubsystem->FindEditorForAsset(OwnerBPClass->ClassGeneratedBy, false));
-	//if (!BlueprintEditor)
-	//	return;
 	FBlueprintEditor* BlueprintEditor = FHoudiniEngineRuntimeUtils::GetBlueprintEditor(HAC);
 	if (!BlueprintEditor)
 		return;
@@ -3459,6 +3428,8 @@ void FHoudiniEngineUtils::UpdateBlueprintEditor_Internal(UHoudiniAssetComponent*
 			
 	// Also somehow reselect ?
 }
+
+
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeFloatData(
 	const TArray<float>& InFloatData,
@@ -3474,6 +3445,7 @@ FHoudiniEngineUtils::HapiSetAttributeFloatData(
     return FHoudiniEngineUtils::HapiSetAttributeFloatData(InFloatData.GetData(), InNodeId, InPartId, InAttributeName,
                                                           InAttributeInfo, bAttemptRunLengthEncoding);
 }
+
 
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeFloatData(
@@ -3513,7 +3485,6 @@ FHoudiniEngineUtils::HapiSetAttributeFloatData(
 			return HAPI_RESULT_SUCCESS;
 		}
 	}
-
 
 	int32 ChunkSize = THRIFT_MAX_CHUNKSIZE / InAttributeInfo.tupleSize;
 	if (InAttributeInfo.count > ChunkSize)

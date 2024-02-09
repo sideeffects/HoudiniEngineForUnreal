@@ -81,13 +81,13 @@ FHoudiniEngineScheduler::TaskDescription(
 		Args.Add(TEXT("AssetName"), FText::FromString(ActorName));
 		Args.Add(TEXT("AssetStatus"), FText::FromString(StatusString));
 		TaskInfo.StatusText =
-			FText::Format(NSLOCTEXT("TaskDescription", "TaskDescriptionProgress", "({AssetName}) : ({AssetStatus})"), Args);
+			FText::Format(NSLOCTEXT("TaskDescription", "TaskDescriptionProgress", "{AssetName} :\n{AssetStatus}"), Args);
 	}
 	else
 	{
 		Args.Add(TEXT("AssetStatus"), FText::FromString(StatusString));
 		TaskInfo.StatusText =
-			FText::Format(NSLOCTEXT("TaskDescription", "TaskDescriptionProgress", "({AssetStatus})"), Args);
+			FText::Format(NSLOCTEXT("TaskDescription", "TaskDescriptionProgress", "{AssetStatus}"), Args);
 	}
 }
 

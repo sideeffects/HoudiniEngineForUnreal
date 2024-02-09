@@ -137,7 +137,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 
 	EnableEditorAutoSave(nullptr);
 
-	FHoudiniEngine::Get().TickPersistentNotification(DeltaTime);
+	FHoudiniEngine::Get().TickCookingNotification(DeltaTime);
 
 	if (bMustStopTicking)
 	{
@@ -245,9 +245,6 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 	// Process all the components in the list
 	for(UHoudiniAssetComponent* CurrentComponent : ComponentsToProcess)
 	{
-		// Tick the notification manager
-		//FHoudiniEngine::Get().TickPersistentNotification(0.0f);
-
 		double dNow = FPlatformTime::Seconds();
 		if (dProcessTimeLimit > 0.0
 			&& dNow - dProcessStartTime > dProcessTimeLimit)
@@ -302,9 +299,6 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 		bool bKeepProcessing = true;
 		while (bKeepProcessing)
 		{
-			// Tick the notification manager
-			FHoudiniEngine::Get().TickPersistentNotification(0.0f);
-
 			// See if we should start the default "first" session
 			AutoStartFirstSessionIfNeeded(CurrentComponent);
 
@@ -403,9 +397,6 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 		if (bOffsetZeroed)
 			bOffsetZeroed = false;
 	}
-
-	// Tick the notification manager
-	FHoudiniEngine::Get().TickPersistentNotification(0.0f);
 
 	return true;
 }
@@ -960,11 +951,6 @@ FHoudiniEngineManager::UpdateInstantiating(UHoudiniAssetComponent* HAC, EHoudini
 		// Assign a unique name to the actor if needed
 		FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(HAC);
 
-		// TODO: Create default preset buffer.
-		/*TArray< char > DefaultPresetBuffer;
-		if (!FHoudiniEngineUtils::GetAssetPreset(TaskInfo.AssetId, DefaultPresetBuffer))
-			DefaultPresetBuffer.Empty();*/
-
 		// Reset the cook counter.
 		HAC->SetAssetCookCount(0);
 		HAC->ClearOutputNodes();
@@ -1175,18 +1161,6 @@ FHoudiniEngineManager::UpdateCooking(UHoudiniAssetComponent* HAC, EHoudiniAssetS
 	NewState = EHoudiniAssetState::PostCook;
 	HAC->bLastCookSuccess = bSuccess;
 
-	//if (PostCook(HAC, bSuccess, TaskInfo.AssetId))
-	//{
-	//	// Cook was successfull, process the results
-	//	NewState = EHoudiniAssetState::PreProcess;
-	//	HAC->BroadcastCookFinished();
-	//}
-	//else
-	//{
-	//	// Cook failed, skip output processing
-	//	NewState = EHoudiniAssetState::None;
-	//}
-
 	return true;
 }
 
@@ -1278,7 +1252,7 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 	bool bNeedsToTriggerViewportUpdate = false;
 	if (bCookSuccess)
 	{
-		FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString("Processing outputs..."), false);
+		FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nProcessing outputs..."), false);
 
 		// Set new asset id.
 		HAC->AssetId = TaskAssetId;
@@ -1316,7 +1290,7 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 		// Since we have new asset, we need to update bounds.
 		HAC->UpdateBounds();
 
-		FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString("Finished processing outputs"), true);
+		FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nFinished processing outputs"), true);
 
 		// Trigger a details panel update
 		FHoudiniEngineUtils::UpdateEditorProperties(HAC, true);
@@ -1333,13 +1307,6 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 
 		if (bHasHoudiniStaticMeshOutput)
 			bNeedsToTriggerViewportUpdate = true;
-	}
-	else
-	{
-		// TODO: Create parameters inputs and handles inputs.
-		//CreateParameters();
-		//CreateInputs();
-		//CreateHandles();
 	}
 
 	// Cache the current cook counts of the nodes so that we can more reliable determine
@@ -1466,13 +1433,7 @@ FHoudiniEngineManager::UpdateTaskStatus(FGuid& OutTaskGUID, FHoudiniEngineTaskIn
 		return false;
 	}
 
-	// Check whether we want to display Slate cooking and instantiation notifications.
-	bool bDisplaySlateCookingNotifications = false;
-	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
-	if (HoudiniRuntimeSettings)
-		bDisplaySlateCookingNotifications = HoudiniRuntimeSettings->bDisplaySlateCookingNotifications;
-
-	if (EHoudiniEngineTaskState::None != OutTaskInfo.TaskState && bDisplaySlateCookingNotifications)
+	if (EHoudiniEngineTaskState::None != OutTaskInfo.TaskState)
 	{
 		FHoudiniEngine::Get().UpdateCookingNotification(OutTaskInfo.StatusText, false);
 	}
@@ -1480,32 +1441,35 @@ FHoudiniEngineManager::UpdateTaskStatus(FGuid& OutTaskGUID, FHoudiniEngineTaskIn
 	switch (OutTaskInfo.TaskState)
 	{
 		case EHoudiniEngineTaskState::Aborted:
-		case EHoudiniEngineTaskState::Success:
 		case EHoudiniEngineTaskState::FinishedWithError:
 		case EHoudiniEngineTaskState::FinishedWithFatalError:
 		{
 			// If the current task is finished
 			// Terminate the slate notification if they exist and delete/invalidate the task
-			if (bDisplaySlateCookingNotifications)
-			{
-				FHoudiniEngine::Get().UpdateCookingNotification(OutTaskInfo.StatusText, true);
-			}
-
+			FHoudiniEngine::Get().UpdateCookingNotification(OutTaskInfo.StatusText, true);
 			FHoudiniEngine::Get().RemoveTaskInfo(OutTaskGUID);
 			OutTaskGUID.Invalidate();
 		}
 		break;
 
-		case EHoudiniEngineTaskState::Working:
+		
+		case EHoudiniEngineTaskState::Success:
 		{
-			// The current task is still running, simply update the current notification
-			if (bDisplaySlateCookingNotifications)
-			{
-				FHoudiniEngine::Get().UpdateCookingNotification(OutTaskInfo.StatusText, false);
-			}
+			// End the task
+			FHoudiniEngine::Get().RemoveTaskInfo(OutTaskGUID);
+			OutTaskGUID.Invalidate();
+
+			// Do not terminate cooking/processing notifications
+			if (OutTaskInfo.TaskType == EHoudiniEngineTaskType::AssetCooking || OutTaskInfo.TaskType == EHoudiniEngineTaskType::AssetProcess)
+				break;
+
+			// Terminate the current notification
+			FHoudiniEngine::Get().UpdateCookingNotification(OutTaskInfo.StatusText, false);
+
 		}
 		break;
-	
+		
+		case EHoudiniEngineTaskState::Working:
 		case EHoudiniEngineTaskState::None:
 		default:
 		{

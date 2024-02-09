@@ -142,14 +142,11 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 		bool UpdateTaskSlateNotification(const FText& InText);
 		bool FinishTaskSlateNotification(const FText& InText);
 
-		// Only update persistent notification if cooking notification has been enabled in the settings.
+		// Update persistent cooking notification if enabled in the settings.
 		bool UpdateCookingNotification(const FText& InText, const bool bExpireAndFade);
 
-		// Update persistent notification irrespective of any notification enable/disable settings. 
-		bool UpdatePersistentNotification(const FText& InText, const bool bExpireAndFade);
-
-		// If the time since last persistent notification has expired, fade out the persistent notification.
-		void TickPersistentNotification(float DeltaTime);
+		// Update the time since the last persistent cooking notification update
+		void TickCookingNotification(float DeltaTime);
 
 		void SetHapiNotificationStartedTime(const double& InTime) { HapiNotificationStarted = InTime; };
 
@@ -340,9 +337,9 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 		/** Notification used by this component. **/
 		TWeakPtr<class SNotificationItem> NotificationPtr;
 
-		/** Persistent notification. **/
+		/** Persistent cooking notification. **/
 		bool bPersistentAllowExpiry;
-		TWeakPtr<class SNotificationItem> PersistentNotificationPtr;
+		TWeakPtr<class SNotificationItem> CookingNotificationPtr;
 		float TimeSinceLastPersistentNotification;
 	
 		/** Used to delay notification updates for HAPI asynchronous work. **/
