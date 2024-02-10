@@ -3544,22 +3544,23 @@ UHoudiniInputObject::GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>
 	{
 		// Has changed, needs to be recreated
 		OutChangedObjects.Add(this);
-
 		return true;
 	}
 	
 	if (UsesInputObjectNode())
 	{
-		if (GetInputObjectNodeId() >= 0)
+		// Do not use InputObjectNodeId directly here! 
+		// This can cause issues when dealing with InputActors
+		int32 InObjNodeId = GetInputObjectNodeId();
+		if (InObjNodeId >= 0)
 		{
 			// No changes, keep it
-			OutNodeIdsOfUnchangedValidObjects.Add(InputObjectNodeId);
+			OutNodeIdsOfUnchangedValidObjects.Add(InObjNodeId);
 		}
 		else
 		{
 			// Needs, but does not have, a current HAPI input node
 			OutChangedObjects.Add(this);
-
 			return true;
 		}
 	}
