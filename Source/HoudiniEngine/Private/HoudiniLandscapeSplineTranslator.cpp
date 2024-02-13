@@ -686,7 +686,23 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 	TArray<int32> CurvePointCounts;
 	CurvePointCounts.SetNumZeroed(NumCurves);
 	FHoudiniApi::GetCurveCounts(Session, CurveNodeId, CurvePartId, CurvePointCounts.GetData(), 0, NumCurves);
+
+	// Bug #134941: Unreal may crash when there are a large number of control points. At least output a warning.
+	for(int Index = 0; Index <  CurvePointCounts.Num(); Index++)
+	{
+		int NumPoints = CurvePointCounts[Index];
+
+		if (NumPoints > 1000)
+		{
+			HOUDINI_LOG_ERROR(TEXT(
+						"A landscape spline contains more than 1000 control points. "
+						"This may lead to instability when saving levels in Unreal, limiting the number of points to 1000. "
+						"Consider splitting splines inside Houdini."));
+			CurvePointCounts[Index] = 1000;
+		}
+	}
 	
+
 	// Extract all target landscapes refs as prim attributes
 	TArray<FString> LandscapeRefs;
 	HAPI_AttributeInfo AttrLandscapeRefs;
