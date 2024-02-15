@@ -2599,13 +2599,18 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 	*/
 
 	// Query the bounds for all our inputs
-	for (auto & CurInput : Inputs) 
+	// Bug: 134158: For some reason using inputs in this manner during cooking will crash the cooker
+	// when using World Partition. So ignore inputs during cooking.
+	if (!IsRunningCookCommandlet())
 	{
+		for (auto & CurInput : Inputs) 
+		{
 		if (!IsValid(CurInput))
 			continue;
 
 		BoxBounds += CurInput->GetBounds(this->GetHACWorld());
-	}
+		}
+	} 
 
 	// Query the bounds for all input parameters
 	for (auto & CurParam : Parameters) 
