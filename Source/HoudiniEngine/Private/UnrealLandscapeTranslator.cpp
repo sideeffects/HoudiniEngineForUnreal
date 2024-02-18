@@ -285,7 +285,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	bool bExportPaintLayers,
 	HAPI_NodeId& CreatedHeightfieldNodeId, 
 	const FString& InputNodeNameStr,
-	const HAPI_NodeId& ParentNodeId,
+	HAPI_NodeId ParentNodeId,
 	const bool bSetObjectTransformToWorldTransform) 
 {
   	if (!LandscapeProxy)
@@ -351,8 +351,11 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	// Add Data Layers and HLODS
 	//--------------------------------------------------------------------------------------------------
 
-	int PrevNode = FHoudiniHLODLayerUtils::AddHLODAttributes(LandscapeProxy, ParentNodeId, HeightFieldId);
-	FHoudiniDataLayerUtils::AddGroupsFromDataLayers(LandscapeProxy, ParentNodeId, PrevNode);
+	if (ParentNodeId != -1)
+	{
+		int PrevNode = FHoudiniHLODLayerUtils::AddHLODAttributes(LandscapeProxy, ParentNodeId, HeightFieldId);
+		FHoudiniDataLayerUtils::AddGroupsFromDataLayers(LandscapeProxy, ParentNodeId, PrevNode);
+	}
 
 	//--------------------------------------------------------------------------------------------------
 	// Define merge lambda, used below.
@@ -1382,7 +1385,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldInputNode(
 	HAPI_NodeId& HeightNodeId, 
 	HAPI_NodeId& MaskNodeId, 
 	HAPI_NodeId& MergeNodeId,
-	const HAPI_NodeId& ParentNodeId)
+	HAPI_NodeId ParentNodeId)
 {
 	// Make sure the Heightfield node doesnt already exists
 	if (HeightfieldNodeId != -1)
