@@ -1404,6 +1404,8 @@ FUnrealLandscapeTranslator::SetHeightfieldData(
 	const HAPI_VolumeInfo& VolumeInfo,
 	const FString& HeightfieldName)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FUnrealLandscapeTranslator::SetHeightfieldData);
+
 	// Cook the node to get proper infos on it
 	if(!FHoudiniEngineUtils::HapiCookNode(VolumeNodeId, nullptr, true))
 		return false;
@@ -1411,7 +1413,7 @@ FUnrealLandscapeTranslator::SetHeightfieldData(
 	// Read the geo/part/volume info from the volume node
 	HAPI_GeoInfo GeoInfo;
 	FHoudiniApi::GeoInfo_Init(&GeoInfo);
-	//FMemory::Memset< HAPI_GeoInfo >(GeoInfo, 0);
+
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(
 		FHoudiniEngine::Get().GetSession(),
 		VolumeNodeId, &GeoInfo), false);
