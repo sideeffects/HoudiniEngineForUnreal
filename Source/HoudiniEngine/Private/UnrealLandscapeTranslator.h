@@ -46,7 +46,7 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			bool bExportPerLayerData,
 			HAPI_NodeId& CreatedHeightfieldNodeId,
 			const FString &InputNodeNameStr,
-			const HAPI_NodeId& ParentNodeId,
+			HAPI_NodeId ParentNodeId,
 			bool bSetObjectTransformToWorldTransform);
 
 		static bool CreateHeightfieldFromLandscapeComponentArray(
@@ -149,7 +149,7 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			HAPI_NodeId& HeightNodeId,
 			HAPI_NodeId& MaskNodeId,
 			HAPI_NodeId& MergeNodeId,
-			const HAPI_NodeId& ParentNodeId);
+			HAPI_NodeId ParentNodeId);
 
 		// Set the volume float value for a heightfield
 		static bool SetHeightfieldData(
