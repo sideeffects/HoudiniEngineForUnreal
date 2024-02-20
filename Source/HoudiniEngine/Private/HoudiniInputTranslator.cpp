@@ -4474,9 +4474,7 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 	if (!IsValid(InInput))
 		return false;
 
-
 	EHoudiniInputType WorldType = InInput->GetInputType();
-
 	if (WorldType != EHoudiniInputType::World)
 		return false;
 
@@ -4533,13 +4531,21 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 			continue;
 		}
 
+		// If we send our input objects as references, we should recreate the whole input node for 
+		// a transform change (as the transform is stored as a point attribute, not as a geo/object transform)
+		bool bImportAsRef = InInput->GetImportAsReference();
+
 		// We'll keep track of whether the actor transform changed so that
 		// we can mark all the components as having changed transforms -- everything
 		// needs to be updated.
 		bool bActorTransformChanged = false;
 		if (ActorObject->HasActorTransformChanged())
 		{
-			ActorObject->MarkTransformChanged(true);
+			if (bImportAsRef)
+				ActorObject->MarkChanged(true);
+			else
+				ActorObject->MarkTransformChanged(true);
+
 			bHasChanged = true;
 			bActorTransformChanged = true;
 		}	
@@ -4558,7 +4564,11 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 		{
 			if (bActorTransformChanged || CurActorComp->HasComponentTransformChanged())
 			{
-				CurActorComp->MarkTransformChanged(true);
+				if (bImportAsRef)
+					CurActorComp->MarkChanged(true);
+				else
+					CurActorComp->MarkTransformChanged(true);
+
 				bHasChanged = true;
 			}
 

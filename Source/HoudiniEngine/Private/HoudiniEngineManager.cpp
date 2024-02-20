@@ -724,6 +724,9 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::None:
 		{
+			// Update world inputs if we have any
+			FHoudiniInputTranslator::UpdateWorldInputs(HAC);
+
 			// Do nothing unless the HAC has been updated
 			if (HAC->NeedUpdate())
 			{
@@ -739,9 +742,6 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			{
 				FHoudiniOutputTranslator::UpdateChangedOutputs(HAC);
 			}
-
-			// Update world inputs if we have any
-			FHoudiniInputTranslator::UpdateWorldInputs(HAC);
 
 			// See if we need to get an update from Session Sync
 			if(FHoudiniEngine::Get().IsSessionSyncEnabled() 
