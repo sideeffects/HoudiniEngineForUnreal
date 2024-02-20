@@ -123,13 +123,13 @@ struct FHoudiniPresetRampFloatPoint
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	float Position;
+	float Position = 0.0f;
 	
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	float Value;
+	float Value = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	EHoudiniRampInterpolationType Interpolation;
+	EHoudiniRampInterpolationType Interpolation = EHoudiniRampInterpolationType::LINEAR;
 };
 
 USTRUCT(BlueprintType)
@@ -138,13 +138,13 @@ struct FHoudiniPresetRampColorPoint
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	float Position;
+	float Position = 0.0f;
 	
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	FLinearColor Value;
+	FLinearColor Value = FLinearColor::White;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	EHoudiniRampInterpolationType Interpolation;
+	EHoudiniRampInterpolationType Interpolation = EHoudiniRampInterpolationType::LINEAR;
 };
 
 USTRUCT(BlueprintType)
@@ -182,7 +182,7 @@ struct FHoudiniPresetGeometryInputObject : public FHoudiniPresetBase
 	TSoftObjectPtr<UObject> InputObject;
 	
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	FTransform Transform;
+	FTransform Transform = FTransform::Identity;
 };
 
 USTRUCT(BlueprintType)
@@ -193,7 +193,7 @@ struct FHoudiniPresetCurveInputObject : public FHoudiniPresetBase
 	FHoudiniPresetCurveInputObject();
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	FTransform Transform;
+	FTransform Transform = FTransform::Identity;
 	
 	// Curve Spline Component
 
@@ -228,41 +228,41 @@ struct FHoudiniPresetCurveInputObject : public FHoudiniPresetBase
 	TArray<FTransform> CurvePoints;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bClosed;
+	bool bClosed = false;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bReversed;
+	bool bReversed = false;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	int32 CurveOrder;
+	int32 CurveOrder = 2;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bIsHoudiniSplineVisible;
+	bool bIsHoudiniSplineVisible = true;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	EHoudiniCurveType CurveType;
+	EHoudiniCurveType CurveType = EHoudiniCurveType::Polygon;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	EHoudiniCurveMethod CurveMethod;
+	EHoudiniCurveMethod CurveMethod = EHoudiniCurveMethod::CVs;
 
 	// Only used for new HAPI curve / breakpoints
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	EHoudiniCurveBreakpointParameterization CurveBreakpointParameterization;
+	EHoudiniCurveBreakpointParameterization CurveBreakpointParameterization = EHoudiniCurveBreakpointParameterization::Uniform;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bIsOutputCurve;
+	bool bIsOutputCurve = false;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bCookOnCurveChanged;
+	bool bCookOnCurveChanged = true;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bIsLegacyInputCurve;
+	bool bIsLegacyInputCurve = false;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bIsInputCurve;
+	bool bIsInputCurve = false;
 	
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bIsEditableOutputCurve;
+	bool bIsEditableOutputCurve = false;
 };
 
 
@@ -278,45 +278,45 @@ struct FHoudiniPresetInputValue : public FHoudiniPresetBase
 	// Export Options
 	
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bKeepWorldTransform;
+	bool bKeepWorldTransform = true;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bPackGeometryBeforeMerging;
+	bool bPackGeometryBeforeMerging = false;
 	
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bExportInputAsReference;
+	bool bExportInputAsReference = false;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bExportLODs;
+	bool bExportLODs = false;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bExportSockets;
+	bool bExportSockets = false;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bExportColliders;
+	bool bExportColliders = false;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bExportMaterialParameters;
+	bool bExportMaterialParameters = false;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bMergeSplineMeshComponents;
+	bool bMergeSplineMeshComponents = false;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bPreferNaniteFallbackMesh;
+	bool bPreferNaniteFallbackMesh = false;
 	
 	// Input properties
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	EHoudiniInputType InputType;
+	EHoudiniInputType InputType = EHoudiniInputType::Geometry;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	bool bIsParameterInput;
+	bool bIsParameterInput = false;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	FString ParameterName;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	int32 InputIndex;
+	int32 InputIndex = -1;
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<FHoudiniPresetGeometryInputObject> GeometryInputObjects;
