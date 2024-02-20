@@ -4191,13 +4191,19 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 								if (FoundMaterial)
 									MaterialInterface = *FoundMaterial;
 
-								// See if we have a replacement material and use it on the mesh instead
-								UMaterialInterface * const *ReplacementMaterialInterface = ReplacementMaterials.Find(DefaultMatIdentifier);
-								if (ReplacementMaterialInterface && *ReplacementMaterialInterface)
-									MaterialInterface = *ReplacementMaterialInterface;
+								if (MaterialInterface)
+								{
+									// Make sure this material is in the assignments before replacing it.
+									OutputAssignmentMaterials.Add(MaterialIdentifier, MaterialInterface);
 
-								// Map the Houdini ID to the unreal one
-								MapHoudiniMatIdToUnrealInterface.Add(MaterialId, MaterialInterface);
+									// See if we have a replacement material and use it on the mesh instead
+									UMaterialInterface* const* ReplacementMaterialInterface = ReplacementMaterials.Find(DefaultMatIdentifier);
+									if (ReplacementMaterialInterface && *ReplacementMaterialInterface)
+										MaterialInterface = *ReplacementMaterialInterface;
+
+									// Map the Houdini ID to the unreal one
+									MapHoudiniMatIdToUnrealInterface.Add(MaterialId, MaterialInterface);
+								}
 							}
 						}
 					}

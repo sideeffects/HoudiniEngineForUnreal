@@ -4423,9 +4423,6 @@ FHoudiniOutputDetails::OnRefineClicked(const TWeakObjectPtr<UObject> ObjectToRef
 	// For now, refine all the selection
 	FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshes(true, true);
 
-	if (InOutput.IsValid())
-		FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
-	
 	return FReply::Handled();
 }
 
