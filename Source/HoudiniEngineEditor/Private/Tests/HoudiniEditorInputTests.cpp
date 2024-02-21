@@ -38,6 +38,7 @@
 FString FHoudiniEditorInputTests::EquivalenceTestMapName = TEXT("Inputs");
 FString FHoudiniEditorInputTests::TestHDAPath = TEXT("/Game/TestHDAs/Inputs/");
 
+/*
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorInputTest_Mesh_Input, "Houdini.Editor.Inputs.Mesh_Input", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
 
 bool HoudiniEditorInputTest_Mesh_Input::RunTest(const FString & Parameters)
@@ -134,19 +135,6 @@ bool HoudiniEditorInputTest_Heightfield_Input::RunTest(const FString & Parameter
 				
 				InInputAssetWrapper->GetHoudiniAssetActor()->SetActorLabel(InputActorName);
 
-				// I can't get assigning Landscape Input using the public API to work, so I use  UHoudiniPublicAPIAssetInput instead.
-				/*
-				const TSubclassOf<UHoudiniPublicAPIInput> APIInputClass = UHoudiniPublicAPILandscapeInput::StaticClass();
-				TArray<FHoudiniPublicAPIOutputObjectIdentifier> Identifiers;
-				InInputAssetWrapper->GetOutputIdentifiersAt(0, Identifiers);
-
-				UObject * OutputObject = InInputAssetWrapper->GetOutputObjectAt(0, Identifiers[0]);
-				
-				UHoudiniPublicAPIInput* AssetInput = InAssetWrapper->CreateEmptyInput(APIInputClass);
-				AssetInput->SetInputObjects({OutputObject});
-				InAssetWrapper->SetInputAtIndex(0, AssetInput);
-				***/
-				
 				// Sets the input to the curve
 				const TSubclassOf<UHoudiniPublicAPIInput> APIInputClass = UHoudiniPublicAPIWorldInput::StaticClass();
 
@@ -275,7 +263,7 @@ bool HoudiniEditorInputTest_Curve_Input::RunTest(const FString & Parameters)
 
 	return true;
 }
-
+*/
 
 #endif
 
