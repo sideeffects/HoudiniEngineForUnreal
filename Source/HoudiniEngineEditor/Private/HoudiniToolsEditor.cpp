@@ -466,7 +466,12 @@ FHoudiniToolsEditor::FindOwningToolsPackage(const UObject* Object)
 {
 	if (!IsValid(Object))
 		return nullptr;
-	
+
+	// No need to load/find Tools package while cooking or running a commandlet
+	// This would only generate unneeded warnings
+	if (IsRunningCommandlet() || IsRunningCookCommandlet() || GIsCookerLoadingPackage)
+		return nullptr;
+
 	FString CurrentPath = FPaths::GetPath(Object->GetPathName());
 
 	// Define a depth limit to break out of the loop, in case something
@@ -880,8 +885,13 @@ FHoudiniToolsEditor::PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& Houdini
 
 UHoudiniToolsPackageAsset* FHoudiniToolsEditor::LoadHoudiniToolsPackage(const FString& PackageBasePath)
 {
+	// No need to load/find Tools package while cooking or running a commandlet
+	// This would only generate unneeded warnings
+	if (IsRunningCommandlet() || IsRunningCookCommandlet() || GIsCookerLoadingPackage)
+		return nullptr;
+
 	const FString PkgPath = FPaths::Combine(PackageBasePath, FString::Format(TEXT("{0}.{0}"), { FHoudiniToolsRuntimeUtils::GetPackageUAssetName() }) );
-	return LoadObject<UHoudiniToolsPackageAsset>(nullptr, *PkgPath);
+	return LoadObject<UHoudiniToolsPackageAsset>(nullptr, *PkgPath);	
 }
 
 bool FHoudiniToolsEditor::ExcludeToolFromPackageCategory(UObject* Object, const FString& CategoryName, bool bAddCategoryIfMissing)

@@ -328,6 +328,11 @@ FHoudiniToolsRuntimeUtils::SelectionTypeToString(const EHoudiniToolSelectionType
 UHoudiniToolsPackageAsset*
 FHoudiniToolsRuntimeUtils::LoadHoudiniToolsPackage(const FString& PackageBasePath)
 {
+	// No need to load/find Tools package while cooking or running a commandlet
+	// This would only generate unneeded warnings
+	if (IsRunningCommandlet() || IsRunningCookCommandlet() || GIsCookerLoadingPackage)
+		return nullptr;
+
 	const FString PkgPath = FPaths::Combine(PackageBasePath, FString::Format(TEXT("{0}.{0}"), { GetPackageUAssetName() }) );
 	return LoadObject<UHoudiniToolsPackageAsset>(nullptr, *PkgPath);
 }
@@ -338,7 +343,12 @@ FHoudiniToolsRuntimeUtils::FindOwningToolsPackage(const UHoudiniAsset* HoudiniAs
 {
 	if (!IsValid(HoudiniAsset))
 		return nullptr;
-	
+
+	// No need to load/find Tools package while cooking or running a commandlet
+	// This would only generate unneeded warnings
+	if (IsRunningCommandlet() || IsRunningCookCommandlet() || GIsCookerLoadingPackage)
+		return nullptr;
+
 	FString CurrentPath = FPaths::GetPath(HoudiniAsset->GetPathName());
 
 	// Define a depth limit to break out of the loop, in case something
