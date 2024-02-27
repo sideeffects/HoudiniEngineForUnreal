@@ -1650,6 +1650,9 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 
 	if (FloatData.Num() > 0)
 	{
+		// If a nanite percent triangles attribute was found, we propably also want to set the fallback target to PercentTriangles
+		StaticMesh->NaniteSettings.FallbackTarget = ENaniteFallbackTarget::PercentTriangles;
+
 		StaticMesh->NaniteSettings.FallbackPercentTriangles = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
 	}
 
@@ -1670,6 +1673,9 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 
 	if (FloatData.Num() > 0)
 	{
+		// If a fb relative error attribute was found, we propably also want to set the fallback target to RelativeError
+		StaticMesh->NaniteSettings.FallbackTarget = ENaniteFallbackTarget::RelativeError;
+
 		StaticMesh->NaniteSettings.FallbackRelativeError = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
 	}
 
