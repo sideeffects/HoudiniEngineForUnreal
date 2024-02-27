@@ -29,6 +29,7 @@
 #include "HAPI/HAPI_Common.h"
 #include "CoreMinimal.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniEngineBakeUtils.h"
 #include "HoudiniEngineOutputStats.h"
 #include "HoudiniOutput.h"
 
@@ -47,16 +48,14 @@ public:
 		UHoudiniAssetComponent * HAC, 
 		const TArray<FHoudiniEngineBakedActor> & BakedActors,
 		const FString& BakeFolder,
-		TArray<UPackage*> PackagesToSave,
-		FHoudiniEngineOutputStats BakeStats);
+		FHoudiniBakedObjectData& BakedObjectData);
 
 protected:
 	static ILevelInstanceInterface* CreateLevelInstance(
 		const FHoudiniLevelInstanceParams& Params, 
 		TArray<AActor*>& Actors,
 		const FString & BakeFolder,
-		TArray<UPackage*> PackagesToSave,
-		FHoudiniEngineOutputStats BakeStats);
+		FHoudiniBakedObjectData& BakedObjectData);
 
 	static const UHoudiniOutput* GetHoudiniObject(const FHoudiniOutputObjectIdentifier Id, const TArray<UHoudiniOutput*>& CookedOutputs);
 

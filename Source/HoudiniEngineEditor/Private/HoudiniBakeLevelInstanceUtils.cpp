@@ -37,8 +37,7 @@ ILevelInstanceInterface * FHoudiniBakeLevelInstanceUtils::CreateLevelInstance(
 	const FHoudiniLevelInstanceParams& Params, 
 	TArray<AActor*> & Actors,
 	const FString& BakeFolder,
-	TArray<UPackage*> PackagesToSave,
-	FHoudiniEngineOutputStats BakeStats)
+	FHoudiniBakedObjectData& BakedObjectData)
 {
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
     ULevelInstanceSubsystem* LevelInstanceSubsystem = 
@@ -101,8 +100,7 @@ FHoudiniBakeLevelInstanceUtils::CreateLevelInstances(
 	UHoudiniAssetComponent * HAC, 
 	const TArray<FHoudiniEngineBakedActor>& BakedActors,
 	const FString& BakeFolder,
-	TArray<UPackage*> PackagesToSave,
-	FHoudiniEngineOutputStats BakeStats)
+	FHoudiniBakedObjectData& BakedObjectData)
 {
 	TArray<UHoudiniOutput*> CookedOutputs;
 	HAC->GetOutputs(CookedOutputs);
@@ -141,7 +139,7 @@ FHoudiniBakeLevelInstanceUtils::CreateLevelInstances(
 
 	for(auto & It : ActorsPerInstance)
 	{
-		CreateLevelInstance(It.Key, It.Value, BakeFolder, PackagesToSave, BakeStats);
+		CreateLevelInstance(It.Key, It.Value, BakeFolder, BakedObjectData);
 	}
 	return true;
 

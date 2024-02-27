@@ -4346,7 +4346,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 
 	const EHoudiniOutputType Type = InOutput->GetType();
 
-	FHoudiniEngineOutputStats BakeStats;
+	FHoudiniBakedObjectData BakeOutputs;
 
 	switch (Type) 
 	{
@@ -4360,7 +4360,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 				TMap<UStaticMesh*, UStaticMesh*> AlreadyBakedStaticMeshMap;
 				TMap<UMaterialInterface *, UMaterialInterface *> AlreadyBakedMaterialsMap;
 				UStaticMesh* DuplicatedMesh = FHoudiniEngineBakeUtils::BakeStaticMesh(
-					StaticMesh, PackageParams, InAllOutputs, TempCookFolderPath, AlreadyBakedStaticMeshMap, AlreadyBakedMaterialsMap, BakeStats);
+					StaticMesh, PackageParams, InAllOutputs, TempCookFolderPath, AlreadyBakedStaticMeshMap, AlreadyBakedMaterialsMap);
 
 				BakedObjectEntry.Actor.Empty();
 				BakedObjectEntry.BakedComponent.Empty();
@@ -4376,7 +4376,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 				AActor* BakedActor;
 				USplineComponent* BakedSplineComponent;
 				FHoudiniEngineBakeUtils::BakeCurve(
-					HAC, SplineComponent, GWorld->GetCurrentLevel(), PackageParams, FName(PackageParams.ObjectName), BakedActor, BakedSplineComponent, BakeStats);
+					HAC, SplineComponent, GWorld->GetCurrentLevel(), PackageParams, FName(PackageParams.ObjectName), BakedActor, BakedSplineComponent, BakeOutputs);
 
 				BakedObjectEntry.Actor = FSoftObjectPath(BakedActor).ToString();
 				BakedObjectEntry.BakedComponent = FSoftObjectPath(BakedSplineComponent).ToString();
@@ -4389,7 +4389,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 			ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(BakedOutputObject);
 			if (Landscape)
 			{
-				FHoudiniEngineBakeUtils::BakeHeightfield(Landscape, PackageParams, LandscapeBakeType, BakeStats);
+				FHoudiniEngineBakeUtils::BakeHeightfield(Landscape, PackageParams, LandscapeBakeType, BakeOutputs);
 				BakedObjectEntry.Actor.Empty();
 				BakedObjectEntry.BakedComponent.Empty();
 				BakedObjectEntry.BakedObject.Empty();
@@ -4410,7 +4410,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 
 	{
 		const FString FinishedTemplate = TEXT("Baking finished. Created {0} packages. Updated {1} packages.");
-		FString Msg = FString::Format(*FinishedTemplate, { BakeStats.NumPackagesCreated, BakeStats.NumPackagesUpdated } );
+		FString Msg = FString::Format(*FinishedTemplate, { BakeOutputs.BakeStats.NumPackagesCreated, BakeOutputs.BakeStats.NumPackagesUpdated } );
 		FHoudiniEngine::Get().FinishTaskSlateNotification( FText::FromString(Msg) );
 	}
 

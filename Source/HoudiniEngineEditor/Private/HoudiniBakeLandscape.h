@@ -25,13 +25,14 @@
 */
 
 #pragma once
+#include "HoudiniEngineBakeUtils.h"
 
+struct FHoudiniBakeSettings;
 struct FHoudiniEngineBakedActor;
 struct FHoudiniOutputObject;
 struct FHoudiniBakedOutputObject;
 struct FHoudiniPackageParams;
 struct FHoudiniAttributeResolver;
-struct FHoudiniEngineOutputStats;
 struct FHoudiniLandscapeSplineApplyLayerData;
 class FHoudiniEngineBakeState;
 class UWorld;
@@ -46,20 +47,16 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		FHoudiniEngineBakeState& InBakeState,
-		bool bInReplaceActors,
-		bool bInReplaceAssets,
+		const FHoudiniBakeSettings& BakeSettings,
 		const FDirectoryPath& BakePath,
-		FHoudiniEngineOutputStats& BakeStats,
 		TMap<ALandscape*, FHoudiniClearedEditLayers>& ClearedLayers,
-		TArray<UPackage*>& OutPackagesToSave);
+		FHoudiniBakedObjectData& BakedObjectData);
 
 	static bool BakeLandscapeLayer(
 		FHoudiniPackageParams& PackageParams, 
 		UHoudiniLandscapeTargetLayerOutput& LayerOutput,
-		bool bInReplaceActors,
-		bool bInReplaceAssets,
-		TArray<UPackage*>& OutPackagesToSave,
-		FHoudiniEngineOutputStats& BakeStats,
+		const FHoudiniBakeSettings& BakeSettings,
+		FHoudiniBakedObjectData& BakedObjectData,
 		FHoudiniClearedEditLayers& ClearedLayers);
 
 	static TArray<FHoudiniEngineBakedActor>  MoveCookedToBakedLandscapes(
@@ -67,24 +64,20 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		const FName & OutlinerFolder,
 		const TArray<UHoudiniOutput*>& InOutputs, 
 		FHoudiniEngineBakeState& InBakeState,
-		bool bInReplaceActors,
-		bool bInReplaceAssets,
+		const FHoudiniBakeSettings& BakeSettings,
 		const FDirectoryPath& BakeFolder,
-		TArray<UPackage*>& OutPackagesToSave,
-		FHoudiniEngineOutputStats& BakeStats);
+		FHoudiniBakedObjectData& BakedObjectData);
 
 	static ULandscapeLayerInfoObject* CreateBakedLandscapeLayerInfoObject(
 		const FHoudiniPackageParams& PackageParams, 
 		ALandscape* Landscape, 
 		ULandscapeLayerInfoObject* LandscapeLayerInfoObject,
-		TArray<UPackage*>& OutPackagesToSave,
-		FHoudiniEngineOutputStats& BakeStats);
+		FHoudiniBakedObjectData& BakedObjectData);
 
 	static void BakeMaterials(
 		const UHoudiniLandscapeTargetLayerOutput & Layer,
 		const FHoudiniPackageParams& PackageParams,
-		TArray<UPackage*>& OutPackagesToSave,
-		FHoudiniEngineOutputStats& BakeStats);
+		FHoudiniBakedObjectData& BakedObjectData);
 
 	static void MoveToBakeFolder();
 
@@ -93,8 +86,7 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		UObjectType* CookedObject,
 		const FHoudiniPackageParams& PackageParams,
 		const FString& ObjectName,
-		TArray<UPackage*>& OutPackagesToSave,
-		FHoudiniEngineOutputStats& BakeStats);
+		FHoudiniBakedObjectData& BakedObjectData);
 
 	static bool BakeLandscapeSplinesLayer(
 		FHoudiniPackageParams& PackageParams,
@@ -107,11 +99,9 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		FHoudiniEngineBakeState& InBakeState,
-		bool bInReplaceActors,
-		bool bInReplaceAssets,
+		const FHoudiniBakeSettings& BakeSettings,
 		const FDirectoryPath& BakePath,
-		FHoudiniEngineOutputStats& BakeStats,
 		TMap<ALandscape*, FHoudiniClearedEditLayers>& ClearedLandscapeEditLayers,
-		TArray<UPackage*>& OutPackagesToSave);
+		FHoudiniBakedObjectData& BakedObjectData);
 };
 

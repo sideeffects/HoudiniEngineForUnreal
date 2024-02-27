@@ -529,12 +529,14 @@ FHoudiniEngineCommands::BakeAllAssets()
 		{
 			// if (FHoudiniEngineBakeUtils::ReplaceWithBlueprint(HoudiniAssetComponent) != nullptr)
 			// 	bSuccess = true;
-			FHoudiniEngineOutputStats BakeStats;
-			TArray<UPackage*> PackagesToSave;
-			TArray<UBlueprint*> Blueprints;
-			const bool bInReplaceAssets = true;
-			bSuccess = FHoudiniEngineBakeUtils::BakeBlueprints(HoudiniAssetComponent, bInReplaceAssets, HoudiniAssetComponent->bRecenterBakedActors, BakeStats, Blueprints, PackagesToSave);
-			FHoudiniEngineBakeUtils::SaveBakedPackages(PackagesToSave);
+			FHoudiniBakedObjectData BakeOutputs;
+			FHoudiniBakeSettings BakeOptions;
+			BakeOptions.bReplaceActors = true;
+			BakeOptions.bReplaceAssets = true;
+			BakeOptions.bRecenterBakedActors = HoudiniAssetComponent->bRecenterBakedActors;
+
+			bSuccess = FHoudiniEngineBakeUtils::BakeBlueprints(HoudiniAssetComponent, BakeOptions, BakeOutputs);
+			FHoudiniEngineBakeUtils::SaveBakedPackages(BakeOutputs.PackagesToSave);
 			
 			if (bSuccess)
 			{
@@ -549,7 +551,7 @@ FHoudiniEngineCommands::BakeAllAssets()
 						FActorSpawnParameters SpawnParams;
 						SpawnParams.OverrideLevel = Level;
 						FTransform Transform = HoudiniAssetComponent->GetComponentTransform();
-						for (UBlueprint* Blueprint : Blueprints)
+						for (UBlueprint* Blueprint : BakeOutputs.Blueprints)
 						{
 							if (!IsValid(Blueprint))
 								continue;
@@ -567,9 +569,11 @@ FHoudiniEngineCommands::BakeAllAssets()
 			// TODO: this used to have a way to not select in v1
 			// if (FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithActors(HoudiniAssetComponent))
 			// 	bSuccess = true;
-			const bool bReplaceActors = true;
-			const bool bReplaceAssets = true;
-			if (FHoudiniEngineBakeUtils::BakeHoudiniActorToActors(HoudiniAssetComponent, bReplaceActors, bReplaceAssets, HoudiniAssetComponent->bRecenterBakedActors))
+			FHoudiniBakeSettings BakeOptions;
+			BakeOptions.bReplaceActors = true;
+			BakeOptions.bReplaceAssets = true;
+			BakeOptions.bRecenterBakedActors = HoudiniAssetComponent->bRecenterBakedActors;
+			if (FHoudiniEngineBakeUtils::BakeHDAToActors(HoudiniAssetComponent, BakeOptions))
 			{
 				bSuccess = true;
 				FHoudiniEngineBakeUtils::DeleteBakedHoudiniAssetActor(HoudiniAssetComponent);
@@ -815,12 +819,17 @@ FHoudiniEngineCommands::BakeSelection()
 			// 	BakedCount++;
 			// if (FHoudiniEngineBakeUtils::ReplaceWithBlueprint(HoudiniAssetComponent) != nullptr)
 			// 	bSuccess = true;
-			FHoudiniEngineOutputStats BakeStats;
-			TArray<UPackage*> PackagesToSave;
-			TArray<UBlueprint*> Blueprints;
+			FHoudiniBakedObjectData BakeOutputs;
+
 			const bool bReplaceAssets = true;
-			const bool bSuccess = FHoudiniEngineBakeUtils::BakeBlueprints(HoudiniAssetComponent, bReplaceAssets, HoudiniAssetComponent->bRecenterBakedActors, BakeStats, Blueprints, PackagesToSave);
-			FHoudiniEngineBakeUtils::SaveBakedPackages(PackagesToSave);
+
+			FHoudiniBakeSettings BakeOptions;
+			BakeOptions.bReplaceActors = true;
+			BakeOptions.bReplaceAssets = true;
+			BakeOptions.bRecenterBakedActors = HoudiniAssetComponent->bRecenterBakedActors;
+
+			const bool bSuccess = FHoudiniEngineBakeUtils::BakeBlueprints(HoudiniAssetComponent, BakeOptions, BakeOutputs);
+			FHoudiniEngineBakeUtils::SaveBakedPackages(BakeOutputs.PackagesToSave);
 			
 			if (bSuccess)
 			{
@@ -834,7 +843,7 @@ FHoudiniEngineCommands::BakeSelection()
 						FActorSpawnParameters SpawnParams;
 						SpawnParams.OverrideLevel = Level;
 						FTransform Transform = HoudiniAssetComponent->GetComponentTransform();
-						for (UBlueprint* Blueprint : Blueprints)
+						for (UBlueprint* Blueprint : BakeOutputs.Blueprints)
 						{
 							if (!IsValid(Blueprint))
 								continue;
