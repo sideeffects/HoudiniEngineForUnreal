@@ -407,6 +407,13 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 
 		}
 
+		// if the SizeInfo is invalid, print errors and exit.
+		if (PartData.SizeInfo.Validate())
+		{
+			HOUDINI_LOG_ERROR(TEXT("Skipping part %s as it has generated invalid Unreal size info."), *PartObj.VolumeName );
+			continue;
+		}
+
 		//-----------------------------------------------------------------------------------------------------------------------------
 		// Weight blend.
 		//-----------------------------------------------------------------------------------------------------------------------------
@@ -1175,3 +1182,30 @@ FHoudiniLandscapeTranslator::CalcHeightFieldsArrayGlobalZMinZMax(
 		}
 	}
 }
+bool FHoudiniLandscapeCreationInfo::Validate()
+{
+	bool bError = false;
+
+	if (this->NumQuadsPerSection == 0)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Error creating landscape, NumQuadsPerSection is zero"));
+		bError = true;
+	}
+	if (this->NumSectionsPerComponent == 0)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Error creating landscape, NumSectionsPerComponent is zero"));
+		bError = true;
+	}
+	if (this->UnrealSize.X == 0)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Error creating landscape, X Size is zero"));
+		bError = true;
+	}
+	if (this->UnrealSize.Y == 0)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Error creating landscape, Y Size is zero"));
+		bError = true;
+	}
+	return bError;
+}
+

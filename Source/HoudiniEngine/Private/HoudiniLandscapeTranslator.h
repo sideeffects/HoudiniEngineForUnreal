@@ -47,6 +47,8 @@ struct FHoudiniLandscapeCreationInfo
 	int NumSectionsPerComponent = 0;
 	int NumQuadsPerSection = 0;
 	int WorldPartitionGridSize = 4;
+
+	bool Validate();
 };
 
 struct HOUDINIENGINE_API FHoudiniLandscapeTranslator
