@@ -46,14 +46,6 @@ UHoudiniAssetComponent* FHoudiniEditorUnitTestUtils::LoadHDAIntoNewMap(
 	return HAC;
 }
 
-bool FHoudiniEditorUnitTestUtils::IsHDAIdle(UHoudiniAssetComponent* HAC)
-{
-	if (HAC->NeedUpdate())
-		return false;
-
-	return 	HAC->GetAssetState() == EHoudiniAssetState::None;
-}
-
 AActor* FHoudiniEditorUnitTestUtils::GetActorWithName(UWorld* World, FString& Name)
 {
 	if (!IsValid(World))
@@ -77,15 +69,22 @@ bool FHoudiniLatentTestCommand::Update()
 	double DeltaTime = FPlatformTime::Seconds() - Context->TimeStarted;
 	if (DeltaTime > Context->MaxTime)
 	{
-		Context->Test->AddError(TEXT("Test timed out."));
+		Context->Test->AddError(FString::Printf(TEXT("***************** Test timed out After %.2f seconds*************"), DeltaTime));
 		return true;
 	}
 
 	if (Context->bCookInProgress && IsValid(Context->HAC))
 	{
-		if (!FHoudiniEditorUnitTestUtils::IsHDAIdle(Context->HAC))
+		if (Context->bPostOutputDelegateCalled)
+		{
+			HOUDINI_LOG_MESSAGE(TEXT("Cook Finished after %.2f seconds"), DeltaTime);
+			Context->bCookInProgress = false;
+			Context->bPostOutputDelegateCalled = false;
+		}
+		else
+		{
 			return false;
-		Context->bCookInProgress = false;
+		}
 	}
 
 	if (Context->bPDGCookInProgress)
@@ -94,6 +93,7 @@ bool FHoudiniLatentTestCommand::Update()
 		// else wait for it be set.
 		if (Context->bPDGPostCookDelegateCalled)
 		{
+			HOUDINI_LOG_MESSAGE(TEXT("PDG Cook Finished after %.2f seconds"), DeltaTime);
 			Context->bPDGCookInProgress = false;
 			Context->bPDGPostCookDelegateCalled = false;
 		}
@@ -111,6 +111,7 @@ void FHoudiniTestContext::StartCookingHDA()
 {
 	HAC->MarkAsNeedCook();
 	bCookInProgress = true;
+	bPostOutputDelegateCalled = false;
 }
 
 void FHoudiniTestContext::StartCookingSelectedTOPNetwork()
@@ -136,6 +137,7 @@ TArray<FHoudiniEngineBakedActor> FHoudiniTestContext::BakeSelectedTopNetwork()
 	UHoudiniPDGAssetLink * PDGAssetLink = HAC->GetPDGAssetLink();
 
 	FHoudiniBakedObjectData BakeOutputs;
+	BakeOutputs;
 	TArray<FHoudiniEngineBakedActor> BakedActors;
 
 	FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(
@@ -156,6 +158,57 @@ FString FHoudiniEditorUnitTestUtils::GetAbsolutePathOfProjectFile(const FString&
 	FPaths::MakePlatformFilename(File);
 	return File;
 
+}
+
+UHoudiniParameter* FHoudiniEditorUnitTestUtils::GetTypedParameter(UHoudiniAssetComponent* HAC, UClass* Class, const char* Name)
+{
+	FString ParamName = Name;
+	UHoudiniParameter * Parameter = HAC->FindParameterByName(FString(ParamName));
+	if (!Parameter)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Could not find parameter called %s. Dumping Parameters:"), *ParamName);
+		for(int Index = 0; Index < HAC->GetNumParameters(); Index++)
+		{
+			UHoudiniParameter * Param = HAC->GetParameterAt(Index);
+			HOUDINI_LOG_ERROR(TEXT("Parameter %d name=%s label=%s class=%s"), 
+				Index, *Param->GetParameterName(), *Param->GetParameterLabel(), *Param->GetClass()->GetName());
+		}
+		return nullptr;
+	}
+
+	if (!Parameter->IsA(Class))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Parameter '%s' is of wrong type. IsA '%s' expected '%s'"), *ParamName, *Parameter->GetClass()->GetName(), *Class->GetName());
+		return nullptr;
+	}
+	return Parameter;
+
+}
+
+FHoudiniTestContext::FHoudiniTestContext(
+	FAutomationTestBase* CurrentTest, 
+	const FString & HDAName,
+	const FTransform& Transform,
+	bool bOpenWorld)
+{
+	Test = CurrentTest;
+
+	// Load the HDA into a new map and kick start the cook. We do an initial cook to make sure the parameters are available.
+	HAC = FHoudiniEditorUnitTestUtils::LoadHDAIntoNewMap(HDAName, Transform, true);
+	this->bCookInProgress = true;
+	this->bPostOutputDelegateCalled = true;
+	OutputDelegateHandle = HAC->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniAssetComponent* _HAC, bool  bSuccess)
+	{
+		this->bPostOutputDelegateCalled = true;
+	});
+
+	// Set time last so we don't include instantiation time.
+	TimeStarted = FPlatformTime::Seconds();
+}
+
+FHoudiniTestContext::~FHoudiniTestContext()
+{
+	HAC->GetOnPostOutputProcessingDelegate().Remove(OutputDelegateHandle);
 }
 
 #endif

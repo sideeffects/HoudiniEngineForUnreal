@@ -66,25 +66,30 @@ bool FHoudiniEditorTestsDataLayers::RunTest(const FString& Parameters)
 	/// Make sure we have a Houdini Session before doing anything.
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
-	// Load the HDA into a new map and kick start the cook. We do an initial cook to make sure the parameters are available.
-	static UHoudiniAssetComponent* NewHAC = FHoudiniEditorUnitTestUtils::LoadHDAIntoNewMap(TEXT("/Game/TestHDAs/PDG/PDGHarness"), FTransform::Identity, true);
+	FString HDAName = TEXT("/Game/TestHDAs/PDG/PDGHarness");
 
 	// Now create the test context. This should be the last step before the tests start as it starts the timeout timer. Note
 	// the context live in a SharedPtr<> because each part of the test, in AddCommand(), are executed asyncronously
 	// after the test returns.
 
-	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this));
-	Context->HAC = NewHAC;
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, HDAName, FTransform::Identity, true));
 	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
 	Context->HAC->bEnableProxyStaticMeshOverride = false;
-	Context->StartCookingHDA();
 
-	// HDA Path and kick PDG Cook.
+	// HDA Path and kick Cook.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
 		FString HDAPath = FHoudiniEditorUnitTestUtils::GetAbsolutePathOfProjectFile(TEXT("TestHDAS/DataLayers/CreateMeshWithDataLayer.hda"));
+		HOUDINI_LOG_MESSAGE(TEXT("Resolved HDA to %s"), *HDAPath);
 
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "hda_path", HDAPath, 0);
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	// kick PDG Cook.
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
 		Context->StartCookingSelectedTOPNetwork();
 		return true;
 	}));
@@ -92,7 +97,23 @@ bool FHoudiniEditorTestsDataLayers::RunTest(const FString& Parameters)
 	// Bake and check results.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
-		auto & Results = Context->HAC->GetPDGAssetLink()->GetSelectedTOPNode()->WorkResult;
+		UHoudiniPDGAssetLink * AssetLink = Context->HAC->GetPDGAssetLink();
+		UTOPNetwork * Network = AssetLink->GetTOPNetwork(0);
+		HOUDINI_TEST_NOT_NULL(Network);
+
+		UTOPNode * Node = nullptr;
+		for(UTOPNode * It : Network->AllTOPNodes)
+		{
+			if (It->NodeName == "HE_OUT_X")
+			{
+				Node = It;
+				break;
+			}
+		}
+		HOUDINI_TEST_NOT_NULL(Node);
+
+		auto & Results = Node->WorkResult;
+
 
 		// We should have one work result. Check this before baking.
 		HOUDINI_TEST_EQUAL_ON_FAIL(Results.Num(), 1, return true);
