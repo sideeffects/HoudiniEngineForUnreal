@@ -810,11 +810,13 @@ FHoudiniPDGManager::UpdatePDGContexts()
 
 			int32 PDGEventCount = 0;
 			int32 RemainingPDGEventCount = 0;
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetPDGEvents(
-				FHoudiniEngine::Get().GetSession(), CurrentContextID, PDGEventInfos.GetData(),
-				MaxNumberOfPDGEvents, &PDGEventCount, &RemainingPDGEventCount))
+
+			HAPI_Result Result = FHoudiniApi::GetPDGEvents(FHoudiniEngine::Get().GetSession(), 
+				CurrentContextID, PDGEventInfos.GetData(),  MaxNumberOfPDGEvents, &PDGEventCount, &RemainingPDGEventCount);
+
+			if (Result != HAPI_RESULT_SUCCESS)
 			{
-				HOUDINI_LOG_ERROR(TEXT("Failed to get PDG events"));
+				HOUDINI_LOG_ERROR(TEXT("Failed to get PDG events, error code: %d"), Result);
 				continue;
 			}
 
