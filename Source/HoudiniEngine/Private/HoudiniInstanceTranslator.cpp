@@ -69,6 +69,7 @@
 	#include "LevelEditorViewport.h"
 	#include "MeshPaintHelpers.h"
 #endif
+#include "HoudiniFoliageUtils.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -223,7 +224,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(
 			for(auto & OutputComponent : OutputObject.Value.OutputComponents)
 			{
 				if (OutputComponent)
-			        FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(OutputComponent->GetWorld(), OutputObject.Value.FoliageType);
+					FHoudiniFoliageUtils::RemoveFoliageTypeFromWorld(OutputComponent->GetWorld(), OutputObject.Value.FoliageType);
 			}
 		}
 

@@ -78,6 +78,7 @@
 #include "Engine/UserDefinedStruct.h"
 #include "HoudiniHLODLayerUtils.h"
 #include "HoudiniAnimationTranslator.h"
+#include "HoudiniFoliageUtils.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -90,6 +91,8 @@ FHoudiniOutputTranslator::UpdateOutputs(
 {
 	if (!IsValid(HAC))
 		return false;
+
+	RemovePreviousOutputs(HAC);
 
 	// Outputs that should be cleared, but only AFTER new output processing have taken place.
 	// This is needed for landscape resizing where the new landscape needs to copy data from the original landscape
@@ -698,6 +701,22 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	}
 
 	return true;
+}
+
+void
+FHoudiniOutputTranslator::RemovePreviousOutputs(UHoudiniAssetComponent* HAC)
+{
+	for(auto Output : HAC->Outputs)
+	{
+		auto & InputObjects = Output->OutputObjects;
+		for (auto It : InputObjects)
+		{
+			FHoudiniOutputObject* FoundOutputObject = &It.Value;
+			FoundOutputObject->DestroyCookedData();
+		}
+		InputObjects.Empty();
+	}
+	HAC->Outputs.Empty();
 }
 
 bool
@@ -2776,7 +2795,7 @@ FHoudiniOutputTranslator::ClearOutput(UHoudiniOutput* Output)
                 {
 				    if (IsValid(OutputObject.Value.World))
 				    {
-					    FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(OutputObject.Value.World, OutputObject.Value.FoliageType);
+						FHoudiniFoliageUtils::RemoveFoliageTypeFromWorld(OutputObject.Value.World, OutputObject.Value.FoliageType);
 				    }
 					else
 				    {

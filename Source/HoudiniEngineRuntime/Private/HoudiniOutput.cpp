@@ -45,6 +45,7 @@
 #include "LandscapeSplineSegment.h"
 #include "Animation/Skeleton.h"
 #include "Templates/Tuple.h"
+#include "HoudiniFoliageUtils.h"
 
 
 FHoudiniMaterialIdentifier::FHoudiniMaterialIdentifier(
@@ -1290,3 +1291,83 @@ void FHoudiniClearedEditLayers::Add(FString& EditLayer, FString& TargetLayer)
 
 	EditLayers[EditLayer].TargetLayers.Add(TargetLayer);
 };
+
+void DestroyComponent(UObject * Component)
+{
+	if (Component == nullptr || !IsValid(Component))
+		return;
+
+	USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
+	if (IsValid(SceneComponent))
+	{
+		// Remove from the HoudiniAssetActor
+		if (SceneComponent->GetOwner())
+			SceneComponent->GetOwner()->RemoveOwnedComponent(SceneComponent);
+
+		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+		SceneComponent->UnregisterComponent();
+		SceneComponent->DestroyComponent();
+	}
+}
+
+void FHoudiniOutputObject::DestroyCookedData()
+{
+	//--------------------------------------------------------------------------------------------------------------------
+	// Destroy all components
+	//--------------------------------------------------------------------------------------------------------------------
+
+	TArray<UObject*> ComponentsToDestroy;
+
+	for (auto Component : OutputComponents)
+	{
+		if (IsValid(Component))
+			ComponentsToDestroy.Add(Component);
+	}
+	OutputComponents.Empty();
+
+	if (IsValid(ProxyComponent))
+		ComponentsToDestroy.Add(ProxyComponent);
+
+	ProxyComponent = nullptr;
+
+	for(UObject* Component : ComponentsToDestroy)
+	{
+		USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
+		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+		SceneComponent->UnregisterComponent();
+		SceneComponent->DestroyComponent();
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------
+	// Destroy all objects
+	//--------------------------------------------------------------------------------------------------------------------
+
+	if (IsValid(OutputObject))
+		OutputObject->ConditionalBeginDestroy();
+
+	OutputObject = nullptr;
+
+	if (IsValid(ProxyObject))
+		ProxyObject->ConditionalBeginDestroy();
+	ProxyObject = nullptr;
+
+	//--------------------------------------------------------------------------------------------------------------------
+	// Remove Foliage creating during cooking; we just need to move it from the world, and all the instances will be deleted.
+	//--------------------------------------------------------------------------------------------------------------------
+
+	if (IsValid(FoliageType))
+	{
+		FHoudiniFoliageUtils::RemoveFoliageTypeFromWorld(World, FoliageType);
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------
+	// Remove actors
+	//--------------------------------------------------------------------------------------------------------------------
+
+	for (auto Actor : OutputActors)
+	{
+		Actor->Destroy();
+	}
+	OutputActors.Empty();
+}
+

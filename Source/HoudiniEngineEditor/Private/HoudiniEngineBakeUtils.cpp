@@ -152,6 +152,7 @@
 #include "UObject/TextProperty.h"
 #include "UObject/UObjectGlobals.h"
 #include "UserDefinedStructure/UserDefinedStructEditorData.h"
+#include "HoudiniFoliageUtils.h"
 
 
 HOUDINI_BAKING_DEFINE_LOG_CATEGORY();
@@ -870,7 +871,7 @@ FHoudiniEngineBakeUtils::BakeAllFoliageTypes(
 	for (auto It : FoliageMap)
 	{
 		auto* CookedFoliageType = Cast<UFoliageType_InstancedStaticMesh>(It.Key);
-		FHoudiniFoliageTools::RemoveFoliageTypeFromWorld(World, CookedFoliageType);
+		FHoudiniFoliageUtils::RemoveFoliageTypeFromWorld(World, CookedFoliageType);
 	}
 }
 

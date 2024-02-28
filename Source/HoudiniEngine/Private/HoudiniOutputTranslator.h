@@ -103,4 +103,7 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 	static void ClearOutput(UHoudiniOutput* Output);
 
 	static bool GetCustomPartNameFromAttribute(const HAPI_NodeId & NodeId, const HAPI_PartId & PartId, FString & OutCustomPartName);
+
+	static void RemovePreviousOutputs(UHoudiniAssetComponent* HAC);
+
 };

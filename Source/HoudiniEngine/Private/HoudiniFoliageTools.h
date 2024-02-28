@@ -79,8 +79,6 @@ public:
 	// Return all FFoliageInfo which reference the FoliageType in the given world.
 	static TArray<FFoliageInfo*> GetAllFoliageInfo(UWorld * World, UFoliageType * FoliageType);
 
-	// Removed Foliage Type from world
-	static void RemoveFoliageTypeFromWorld(UWorld * World, UFoliageType * FoliageType);
 
 	// Remove all instances using this Foliage Type from the world
 	static void RemoveInstancesFromWorld(UWorld* World, UFoliageType* FoliageType);
