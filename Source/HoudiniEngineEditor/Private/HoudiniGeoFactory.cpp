@@ -144,7 +144,9 @@ UHoudiniGeoFactory::CanReimport(UObject * Obj, TArray<FString>& OutFilenames)
 
 	if (ImportData)
 	{
-		if (FPaths::GetExtension(ImportData->GetFirstFilename()).Contains(TEXT("bgeo")))
+		FString FileExtension = FPaths::GetExtension(ImportData->GetFirstFilename());
+		if (FileExtension.Contains(TEXT("bgeo"))
+			|| FileExtension.Contains(TEXT("sc")))
 		{
 			ImportData->ExtractFilenames(OutFilenames);
 			return true;
