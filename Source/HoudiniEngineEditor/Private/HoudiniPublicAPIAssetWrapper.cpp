@@ -340,6 +340,52 @@ UHoudiniPublicAPIAssetWrapper::GetBakeMethod_Implementation(EHoudiniEngineBakeOp
 }
 
 bool
+UHoudiniPublicAPIAssetWrapper::SetStaticMeshMethod_Implementation(const EHoudiniStaticMeshMethod InStaticMeshMethod)
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	HAC->StaticMeshMethod = InStaticMeshMethod;
+
+	return true;
+}
+
+bool UHoudiniPublicAPIAssetWrapper::GetStaticMeshMethod_Implementation(EHoudiniStaticMeshMethod& OutStaticMeshMethod)
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	OutStaticMeshMethod = HAC->StaticMeshMethod;
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::SetMeshBuildSettings_Implementation(const FMeshBuildSettings InMeshBuildSettings)
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	HAC->StaticMeshBuildSettings = InMeshBuildSettings;
+
+	return true;
+}
+
+bool UHoudiniPublicAPIAssetWrapper::GetMeshBuildSettings_Implementation(FMeshBuildSettings& OutMeshBuildSettings)
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	OutMeshBuildSettings = HAC->StaticMeshBuildSettings;
+
+	return true;
+}
+
+bool
 UHoudiniPublicAPIAssetWrapper::SetRemoveOutputAfterBake_Implementation(const bool bInRemoveOutputAfterBake)
 {
 	UHoudiniAssetComponent* HAC = nullptr;
