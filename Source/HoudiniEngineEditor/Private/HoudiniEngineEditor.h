@@ -34,6 +34,7 @@
 #include "Templates/SharedPointer.h"
 #include "Framework/Commands/UICommandList.h"
 #include "Brushes/SlateDynamicImageBrush.h"
+#include "IAssetTools.h"
 
 
 class FExtender;
@@ -399,6 +400,9 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 
 		// Delegate handle for LevelEditorModule::OnRegisterTabs
 		FDelegateHandle OnLevelEditorRegisterTabsHandle;
+
+		// Delegate handle for AssetTools::IsNameAllowed
+		FIsNameAllowed OnIsNameAllowed;
 
 		// List of actors that HandleOnDeleteActorsBegin marked to _not_ be deleted. This
 		// is used to re-select these actors in HandleOnDeleteActorsEnd.

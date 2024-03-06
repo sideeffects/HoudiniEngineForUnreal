@@ -33,6 +33,7 @@
 #include "Modules/ModuleManager.h"
 #include "UObject/Object.h"
 #include "HoudiniToolsEditor.h"
+#include "HoudiniToolsRuntimeUtils.h"
 
 #include "HoudiniToolsPackageAssetFactory.generated.h"
 
@@ -79,6 +80,15 @@ public:
 			ToolsPackage = NewObject<UHoudiniToolsPackageAsset>(InParent, Class, Name, Flags);
 			FHoudiniToolsEditor::PopulatePackageWithDefaultData(ToolsPackage);
 		}
+		FString DefaultName = FHoudiniToolsRuntimeUtils::GetPackageUAssetName();
+
+		if (Name != DefaultName)
+		{
+			// Rename it immediately
+			ToolsPackage->Rename(*DefaultName);
+		}
+
+
 		return ToolsPackage;
 	}
 

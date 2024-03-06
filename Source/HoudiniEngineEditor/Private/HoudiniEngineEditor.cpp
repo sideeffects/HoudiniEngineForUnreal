@@ -52,6 +52,7 @@
 #include "HoudiniSplineComponentVisualizer.h"
 #include "HoudiniToolsEditor.h"
 #include "HoudiniToolsPackageAsset.h"
+#include "HoudiniToolsRuntimeUtils.h"
 #include "SHoudiniToolsPanel.h"
 #include "SHoudiniNodeSyncPanel.h"
 #include "UnrealMeshTranslator.h"
@@ -1722,6 +1723,21 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 
 	OnDeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddLambda([this](){ this->HandleOnDeleteActorsBegin(); });
 	OnDeleteActorsEnd = FEditorDelegates::OnDeleteActorsEnd.AddLambda([this](){ this-> HandleOnDeleteActorsEnd(); });
+
+
+	// Add a rename prevention filter to HodiniToolsPackage
+	OnIsNameAllowed.BindLambda([](const FString& Name, FText* OutErrorMessage) -> bool
+		{
+			if (Name != FHoudiniToolsRuntimeUtils::GetPackageUAssetName())
+			{
+				*OutErrorMessage = FText::FromString("Renaming a HoudiniToolsPackage to anything but \"HoudiniToolsPackage\" is not supported.");
+				return false;
+			}
+
+			return true;
+		});
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+	AssetToolsModule.Get().RegisterIsNameAllowedDelegate("HoudiniToolsPackage", OnIsNameAllowed);
 }
 
 void
@@ -1744,6 +1760,16 @@ FHoudiniEngineEditor::UnregisterEditorDelegates()
 
 	if (OnDeleteActorsEnd.IsValid())
 		FEditorDelegates::OnDeleteActorsEnd.Remove(OnDeleteActorsEnd);
+
+	// Unregister the ToolsPackage rename delegate
+	if (OnIsNameAllowed.IsBound())
+	{
+		FAssetToolsModule* AssetToolsModule = FModuleManager::GetModulePtr<FAssetToolsModule>("AssetTools");
+		if (AssetToolsModule)
+			AssetToolsModule->Get().UnregisterIsNameAllowedDelegate("HoudiniToolsPackage");
+
+		OnIsNameAllowed.Unbind();
+	}	
 }
 
 FString 

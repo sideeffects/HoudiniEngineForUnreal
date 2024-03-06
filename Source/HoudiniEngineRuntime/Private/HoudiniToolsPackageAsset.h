@@ -46,8 +46,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniToolsPackageAsset : public UObject
 	GENERATED_BODY()
 public:
 	// Package data, typically extracted from imported JSON data.
-
 	UHoudiniToolsPackageAsset();
+
+	// Rename override - prevents renaming tools package
+	virtual bool Rename(const TCHAR* NewName/* =nullptr */, UObject* NewOuter=nullptr, ERenameFlags Flags=REN_None) override;
 	
 	// Category names mapped to string patterns that will be used to determine whether
 	// HDAs in this package is assigned to the respective category.
