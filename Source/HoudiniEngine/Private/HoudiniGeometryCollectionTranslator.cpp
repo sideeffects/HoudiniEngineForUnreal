@@ -14,6 +14,8 @@
 #include "GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollection/GeometryCollectionObject.h"
 #include "GeometryCollection/GeometryCollectionActor.h"
+#include "GeometryCollection/GeometryCollectionConvexUtility.h"
+#include "GeometryCollection/GeometryCollectionEngineSizeSpecificUtility.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "MaterialDomain.h"
 #endif
@@ -233,6 +235,14 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 		if (IsValid(GeometryCollectionComponent))
 		{
 			OutputObject.OutputComponents.Add(GeometryCollectionComponent);
+		}
+
+		// See if we need to force the generation of convex hull data for the GC
+		if (GeometryCollection::SizeSpecific::UsesImplicitCollisionType(GeometryCollection->SizeSpecificData, EImplicitTypeEnum::Chaos_Implicit_Convex)
+			&& !FGeometryCollectionConvexUtility::HasConvexHullData(GeometryCollection->GetGeometryCollection().Get()))
+		{
+			GeometryCollection::SizeSpecific::SetImplicitCollisionType(GeometryCollection->SizeSpecificData, EImplicitTypeEnum::Chaos_Implicit_Box, EImplicitTypeEnum::Chaos_Implicit_Convex);
+			GeometryCollection->CreateSimulationData();
 		}
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
@@ -960,20 +970,11 @@ FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
 					for (int32 i = 0; i < Data.Num(); i++)
 					{
 						int32 Result = Data[i];
-						// 0 = None, 1 = Box, 2 = Sphere, 3 = Capsule, 4 = Level Set
+						// 0 Box 1 Sphere, 2 Capsule. 3 Level Set, 4 None, 5 Convex
 						EImplicitTypeEnum ImplicitType = EImplicitTypeEnum::Chaos_Implicit_None;
-						if (Result == 0)
+						if (Result >= 0 && Result < (int32)EImplicitTypeEnum::Chaos_Max)
 						{
-							ImplicitType = EImplicitTypeEnum::Chaos_Implicit_None;
-						}
-						else if (Result > (int32)EImplicitTypeEnum::Chaos_Implicit_None)
-						{
-							// Keep indexing if after none
 							ImplicitType = (EImplicitTypeEnum)(Result);
-						}
-						else if (Result < (int32)EImplicitTypeEnum::Chaos_Max)
-						{
-							ImplicitType = (EImplicitTypeEnum)(Result - 1);
 						}
 					
 						GCSizeSpecData.CollisionShapes[i].ImplicitType = ImplicitType;
