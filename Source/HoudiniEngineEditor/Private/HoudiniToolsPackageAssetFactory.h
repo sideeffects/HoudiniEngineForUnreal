@@ -82,7 +82,7 @@ public:
 		}
 		FString DefaultName = FHoudiniToolsRuntimeUtils::GetPackageUAssetName();
 
-		if (Name != DefaultName)
+		if (Name.ToString() != DefaultName)
 		{
 			// Rename it immediately
 			ToolsPackage->Rename(*DefaultName);
