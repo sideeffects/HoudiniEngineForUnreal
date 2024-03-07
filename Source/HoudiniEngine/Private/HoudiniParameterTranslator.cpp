@@ -1329,6 +1329,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 	HoudiniParameter->SetDisabled(ParmInfo.disabled);
 	HoudiniParameter->SetSpare(ParmInfo.spare);
 	HoudiniParameter->SetJoinNext(ParmInfo.joinNext);
+	HoudiniParameter->SetLabelVisible(!ParmInfo.labelNone);
 
 	HoudiniParameter->SetTagCount(ParmInfo.tagCount);
 	HoudiniParameter->SetIsChildOfMultiParm(ParmInfo.isChildOfMultiParm);

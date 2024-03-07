@@ -45,6 +45,7 @@
 #define HAPI_UNREAL_DESIRED_ROW_FULL_WIDGET_WIDTH               310
 #define HAPI_UNREAL_DESIRED_SETTINGS_ROW_VALUE_WIDGET_WIDTH     350
 #define HAPI_UNREAL_DESIRED_SETTINGS_ROW_FULL_WIDGET_WIDTH      400
+#define HAPI_UNREAL_PADDING_HORIZONTAL_JOIN                     10
 
  // URL used for bug reporting.
 #define HAPI_UNREAL_BUG_REPORT_URL								TEXT("https://www.sidefx.com/bugs/submit/")

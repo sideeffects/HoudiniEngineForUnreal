@@ -269,6 +269,39 @@ public:
 		virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 };
 
+/**
+ * Widget used to wrap parameter controls, optionally with content attached to the name slot.
+ * 
+ * This is used to support displaying a label next to a parameter widget when horizontally joining.
+ * We use it because using the name content slot provided by Unreal only allows us to place one name
+ * widget and one content widget in the details view.
+ */
+class SHoudiniLabelledParameter : public SHorizontalBox
+{
+public:
+
+	SLATE_BEGIN_ARGS(SHoudiniLabelledParameter)
+		: _Content()
+		{}
+
+		SLATE_DEFAULT_SLOT(FArguments, Content)
+		SLATE_NAMED_SLOT(FArguments, NameContent)
+
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs);
+	void SetContent(TSharedRef<SWidget> InContent);
+	void SetNameContent(TSharedRef<SWidget> InNameContent);
+
+private:
+	// Controls the padding on the content slot.
+	// We only want padding if there is a non-null widget is attached to the Name slot.
+	bool bEnableContentPadding;
+
+	// Current padding used on the content slot.
+	TAttribute<FMargin> ContentPadding;
+};
+
 UCLASS()
 class UHoudiniFloatRampCurve : public UCurveFloat 
 {
@@ -303,86 +336,86 @@ class UHoudiniColorRampCurve : public UCurveLinearColor
 class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails, ESPMode::NotThreadSafe>
 {
 	public:
+		/**
+		 * @param InJoinedParams Array of horizontally joined parameters, where each element is an
+		 *                       array of linked parameters. Not all widgets support being joined
+		 *                       horizontally. Use @ref ShouldJoinNext to determine if a widget can
+		 *                       be joined.
+		 */
 		void CreateWidget(
 			IDetailCategoryBuilder & HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams);
+			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams);
+
+		void CreateJoinableWidget(
+			IDetailCategoryBuilder& HouParameterCategory,
+			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
+			TArray<FDetailWidgetRow*>& OutRows);
 
 		void CreateWidgetInt(
-			IDetailCategoryBuilder & HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-			TArray<FDetailWidgetRow*>& OutRows);
+			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetFloat(
-			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-			TArray<FDetailWidgetRow*>& OutRows);
+			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetString(
 			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-			TArray<FDetailWidgetRow*>& OutRows);
+			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetColor(
-			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-			TArray<FDetailWidgetRow*>& OutRows);
+			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetButton(
-			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-			TArray<FDetailWidgetRow*>& OutRows);
+			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetButtonStrip(
-			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-			TArray<FDetailWidgetRow*>& OutRows);
+			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetLabel(
-			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-			TArray<FDetailWidgetRow*>& OutRows);
+			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetToggle(
-			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-			TArray<FDetailWidgetRow*>& OutRows);
+			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetFile(
-			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-			TArray<FDetailWidgetRow*>& OutRows);
+			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetChoice(
-			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-			TArray<FDetailWidgetRow*>& OutRows);
+			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetSeparator(
-			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-			const bool bInIsEnabled,
-			TArray<FDetailWidgetRow*>& OutRows);
+			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 		void CreateWidgetFolderList(
 			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 			TArray<FDetailWidgetRow*>& OutRows);
 		void CreateWidgetFolder(
 			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 			TArray<FDetailWidgetRow*>& OutRows);
 		void CreateWidgetMultiParm(
 			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 			TArray<FDetailWidgetRow*>& OutRows);
 		void CreateWidgetOperatorPath(
 			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 			TArray<FDetailWidgetRow*>& OutRows);
 		void CreateWidgetFloatRamp(
 			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 			TArray<FDetailWidgetRow*>& OutRows);
 		void CreateWidgetColorRamp(
 			IDetailCategoryBuilder& HouParameterCategory,
-			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 			TArray<FDetailWidgetRow*>& OutRows);
 
 		void CreateTabEndingRow(IDetailCategoryBuilder & HouParameterCategory);
 		
 
 		void HandleUnsupportedParmType(
-			IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams
-		);
+			IDetailCategoryBuilder & HouParameterCategory,
+			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams);
 
 
 		static FText GetParameterTooltip(const TWeakObjectPtr<UHoudiniParameter>& InParam);
@@ -424,6 +457,8 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 		// Create a delete event for a color ramp parameter
 		static void CreateColorRampParameterDeleteEvent(UHoudiniParameterRampColor* InParam, const int32 &InDeleteIndex);
 
+		/** Determines if @ref CreateWidget expects this parameter to be joined. */
+		static bool ShouldJoinNext(const UHoudiniParameter& InParam);
 
 	private:
 
@@ -441,13 +476,26 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 		// Private helper functions for widget creation
 		//
 
+
+		TSharedPtr<SCustomizedBox> CreateCustomizedBox(
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
+		TSharedPtr<STextBlock> CreateNameTextBlock(
+			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		// Creates the default name widget, the parameter will then fill the value after
 		void CreateNameWidget(FDetailWidgetRow* Row, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams, bool WithLabel);
 
 		// Creates the default name widget, with an extra checkbox for disabling the the parameter update
 		void CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams, bool WithLabel);
 
-		FDetailWidgetRow* CreateNestedRow(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, bool bDecreaseChildCount = true); //
+		// Needs to be called for all parameters, not just when we need a row.
+		// This is because we adjust folder stack here.
+		// In the future, folder structure should really be seperated from details customization.
+		FDetailWidgetRow* CreateNestedRow(
+			IDetailCategoryBuilder& HouParameterCategory,
+			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
+			bool bDecreaseChildCount = true);
 
 		void CreateFolderHeaderUI(IDetailCategoryBuilder& HouParameterCategory, FDetailWidgetRow* HeaderRow, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams); //
 
@@ -461,11 +509,12 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 			const TWeakObjectPtr<UHoudiniParameterFolder>& InParam,
 			TArray<FDetailWidgetRow*>& OutRows);
 
-
 		void CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizontalBox> HorizontalBox, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams); //
 	
 		// Create the UI for ramp's curve editor.
-		FDetailWidgetRow* CreateWidgetRampCurveEditor(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams); //
+		FDetailWidgetRow* CreateWidgetRampCurveEditor(
+			IDetailCategoryBuilder& HouParameterCategory,
+			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams);
 
 		// Create the UI for ramp's stop points.
 		void CreateWidgetRampPoints(IDetailCategoryBuilder& CategoryBuilder, FDetailWidgetRow* Row, UHoudiniParameter* InParameter,
@@ -474,6 +523,16 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 		void PruneStack();
 
 		void RemoveTabDividers(IDetailCategoryBuilder& HouParameterCategory, const TWeakObjectPtr<UHoudiniParameter>& InParam);
+
+		static bool IsLabelVisible(const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+		static bool UsesWholeRow(const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
+		/** 
+		 * In Houdini, some widgets try to occupy all available space on a row (i.e. separators)
+		 * while other types (i.e. toggles) use only the minimum space they require.
+		 * @returns true if the widget should occupy all available space, false otherwise.
+		 */
+		static bool ShouldWidgetFill(EHoudiniParameterType ParameterType);
 
 		static void AddMetaDataToAllDescendants(
 			const TSharedRef<SWidget> AncestorWidget,

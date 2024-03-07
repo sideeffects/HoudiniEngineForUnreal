@@ -111,6 +111,7 @@ public:
 	virtual bool IsDefault() const { return true; };
 	virtual bool IsSpare() const { return bIsSpare; };
 	virtual bool GetJoinNext() const { return bJoinNext; };
+	virtual bool IsLabelVisible() const { return bIsLabelVisible; };
 	virtual bool IsAutoUpdate() const { return bAutoUpdate; };
 
 	virtual int32 GetTagCount() const { return TagCount; };
@@ -155,6 +156,7 @@ public:
 	virtual void SetDefault(const bool& InIsDefault) { bIsDefault = InIsDefault; };
 	virtual void SetSpare(const bool& InIsSpare) { bIsSpare = InIsSpare; };
 	virtual void SetJoinNext(const bool& InJoinNext) { bJoinNext = InJoinNext; };
+	virtual void SetLabelVisible(const bool& bInIsLabelVisible) { bIsLabelVisible = bInIsLabelVisible; };
 
 	virtual void SetTagCount(const uint32& InTagCount) { TagCount = InTagCount; };
 	virtual void SetValueIndex(const uint32& InValueIndex) { ValueIndex = InValueIndex; };
@@ -266,6 +268,10 @@ protected:
 	// 
 	UPROPERTY()
 	bool bJoinNext;
+
+	// Whether the label should be displayed.
+	UPROPERTY()
+	bool bIsLabelVisible;
 
 	// 
 	UPROPERTY()

@@ -98,6 +98,14 @@
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
+// Copied from SDetailSingleItemRow.cpp
+namespace DetailWidgetConstants
+{
+const FMargin LeftRowPadding(20.0f, 0.0f, 10.0f, 0.0f);
+const FMargin RightRowPadding(12.0f, 0.0f, 2.0f, 0.0f);
+}
+
+
 int32 
 SCustomizedButton::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect,
 	FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
@@ -1836,15 +1844,22 @@ FHoudiniParameterDetails::Debug()
 }
 
 void
-FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
+FHoudiniParameterDetails::CreateWidget(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams)
 {
 	// Uncomment this to debug printf the state of the Stack.
 	//Debug();
 
-	if (InParams.Num() <= 0)
+	if (InJoinedParams.IsEmpty())
 		return;
 
-	const TWeakObjectPtr<UHoudiniParameter>& InParam = InParams[0];
+	const auto& FirstLinkedParams = InJoinedParams[0];
+
+	if (FirstLinkedParams.IsEmpty())
+		return;
+
+	const TWeakObjectPtr<UHoudiniParameter>& InParam = FirstLinkedParams[0];
 	if (!IsValidWeakPointer(InParam))
 		return;
 
@@ -1881,126 +1896,53 @@ FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCate
 	switch (InParam->GetParameterType())
 	{
 		case EHoudiniParameterType::Float:
-		{				
-			CreateWidgetFloat(HouParameterCategory, InParams, Rows);
-		}
-		break;
-
 		case EHoudiniParameterType::Int:
-		{
-			CreateWidgetInt(HouParameterCategory, InParams, Rows);
-		}
-		break;
-
 		case EHoudiniParameterType::String:
-		{
-			CreateWidgetString(HouParameterCategory, InParams, Rows);
-		}
-		break;
-
 		case EHoudiniParameterType::IntChoice:
 		case EHoudiniParameterType::StringChoice:
-		{
-			CreateWidgetChoice(HouParameterCategory, InParams, Rows);
-		}
-		break;
-
 		case EHoudiniParameterType::Separator:
-		{
-			TArray<TWeakObjectPtr<UHoudiniParameterSeparator>> SepParams;
-			if (CastParameters<UHoudiniParameterSeparator>(InParams, SepParams))
-			{
-				bool bEnabled = InParams.IsValidIndex(0) ? !SepParams[0]->IsDisabled() : true;
-				CreateWidgetSeparator(HouParameterCategory, InParams, bEnabled, Rows);
-			}
-		}
-		break;
-
 		case EHoudiniParameterType::Color:
-		{
-			CreateWidgetColor(HouParameterCategory, InParams, Rows);
-		}
-		break;
-
 		case EHoudiniParameterType::Button:
-		{
-			CreateWidgetButton(HouParameterCategory, InParams, Rows);
-		}
-		break;
-
 		case EHoudiniParameterType::ButtonStrip:
-		{
-			CreateWidgetButtonStrip(HouParameterCategory, InParams, Rows);
-		}
-		break;
-
 		case EHoudiniParameterType::Label:
-		{
-			CreateWidgetLabel(HouParameterCategory, InParams, Rows);
-		}
-		break;
-
 		case EHoudiniParameterType::Toggle:
-		{
-			CreateWidgetToggle(HouParameterCategory, InParams, Rows);
-		}
-		break;
-
 		case EHoudiniParameterType::File:
 		case EHoudiniParameterType::FileDir:
 		case EHoudiniParameterType::FileGeo:
 		case EHoudiniParameterType::FileImage:
-		{
-			CreateWidgetFile(HouParameterCategory, InParams, Rows);
-		}
+			CreateJoinableWidget(HouParameterCategory, InJoinedParams, Rows);
 		break;
 
 		case EHoudiniParameterType::FolderList:
-		{
-			CreateWidgetFolderList(HouParameterCategory, InParams, Rows);
-		}
+			CreateWidgetFolderList(HouParameterCategory, InJoinedParams, Rows);
 		break;
 
 		case EHoudiniParameterType::Folder:
-		{
-			CreateWidgetFolder(HouParameterCategory, InParams, Rows);
-		}
+			CreateWidgetFolder(HouParameterCategory, InJoinedParams, Rows);
 		break;
 
 		case EHoudiniParameterType::MultiParm:
-		{
-			CreateWidgetMultiParm(HouParameterCategory, InParams, Rows);
-		}
+			CreateWidgetMultiParm(HouParameterCategory, InJoinedParams, Rows);
 		break;
 
 		case EHoudiniParameterType::FloatRamp:
-		{
-			CreateWidgetFloatRamp(HouParameterCategory, InParams, Rows);
-		}
+			CreateWidgetFloatRamp(HouParameterCategory, InJoinedParams, Rows);
 		break;
 
 		case EHoudiniParameterType::ColorRamp:
-		{
-			CreateWidgetColorRamp(HouParameterCategory, InParams, Rows);
-		}
+			CreateWidgetColorRamp(HouParameterCategory, InJoinedParams, Rows);
 		break;
 
 		case EHoudiniParameterType::Input:
-		{
-			CreateWidgetOperatorPath(HouParameterCategory, InParams, Rows);
-		}
+			CreateWidgetOperatorPath(HouParameterCategory, InJoinedParams, Rows);
 		break;
 
 		case EHoudiniParameterType::Invalid:
-		{
-			HandleUnsupportedParmType(HouParameterCategory, InParams);
-		}
+			HandleUnsupportedParmType(HouParameterCategory, InJoinedParams);
 		break;
 
 		default:
-		{
-			HandleUnsupportedParmType(HouParameterCategory, InParams);
-		}
+			HandleUnsupportedParmType(HouParameterCategory, InJoinedParams);
 		break;
 	}
 	
@@ -2025,14 +1967,192 @@ FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCate
 		}
 	}
 
-	// Remove a divider lines recurrsively if current parameter hits the end of a tabs
-	RemoveTabDividers(HouParameterCategory, InParam);
+	// Remove a divider lines recurrsively if last joined parameter hits the end of a tab
+	{
+		const auto& LastLinkedParams = InJoinedParams.Last();
+		if (LastLinkedParams.IsEmpty())
+			return;
+
+		const TWeakObjectPtr<UHoudiniParameter>& LastParam = LastLinkedParams[0];
+		if (!IsValidWeakPointer(InParam))
+			return;
+
+		RemoveTabDividers(HouParameterCategory, LastParam);
+	}
 }
 
-void 
-FHoudiniParameterDetails::CreateTabEndingRow(IDetailCategoryBuilder & HouParameterCategory) 
+void FHoudiniParameterDetails::CreateJoinableWidget(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
-	FDetailWidgetRow & Row = HouParameterCategory.AddCustomRow(FText::GetEmpty());
+	if (InJoinedParams.IsEmpty())
+		return;
+
+	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InJoinedParams);
+
+	if (!Row)
+		return;
+
+	OutRows.Add(Row);
+
+	const bool bIsJoined = InJoinedParams.Num() > 1;
+	const bool bUseWholeRow = bIsJoined || UsesWholeRow(InJoinedParams[0]);
+	FDetailWidgetDecl& Slot = (bUseWholeRow ? Row->WholeRowContent() : Row->ValueContent());
+
+	// For the sake of simplicity we always have a container to hold joinable parameters, even when
+	// not horizontally joining. We only want to use the customized box (for indentation of nested
+	// widgets) when we are horizontally joining.
+	TSharedPtr<SHorizontalBox> HorizontalJoinBox;
+	if (bIsJoined)
+	{
+		HorizontalJoinBox = CreateCustomizedBox(InJoinedParams[0]);
+	}
+	else
+	{
+		SAssignNew(HorizontalJoinBox, SHorizontalBox);
+	}
+
+	if (!HorizontalJoinBox.IsValid())
+	{
+		return;
+	}
+
+	Slot.Widget = HorizontalJoinBox.ToSharedRef();
+
+	for (const auto& LinkedParams : InJoinedParams)
+	{
+		if (LinkedParams.IsEmpty())
+		{
+			continue;
+		}
+
+		const auto& Param = LinkedParams[0];
+
+		if (!IsValidWeakPointer(Param))
+		{
+			continue;
+		}
+
+		// The directory won't parse if parameter ids are -1
+		if (Param->GetParmId() < 0)
+		{
+			continue;
+		}
+
+		TSharedRef LabelledParameter = SNew(SHoudiniLabelledParameter);
+		LabelledParameter->SetEnabled(!Param->IsDisabled());
+
+		const bool bUseLabel = IsLabelVisible(LinkedParams);
+
+		// We only need a custom solution for displaying the name text block when horizontally
+		// joining multiple parameters. Otherwise, we can use Unreal's provided columns in the
+		// details panel.
+		TSharedPtr<STextBlock> TextBlock = CreateNameTextBlock(LinkedParams);
+		if (bIsJoined)
+		{
+			if (TextBlock.IsValid() && bUseLabel)
+			{
+				LabelledParameter->SetNameContent(TextBlock.ToSharedRef());
+			}
+
+			if (!Param->ShouldDisplay())
+			{
+				LabelledParameter->SetVisibility(EVisibility::Hidden);
+			}
+		}
+		else if (bUseLabel)
+		{
+			TSharedPtr<SCustomizedBox> CustomizedBox = CreateCustomizedBox(LinkedParams);
+
+			if (CustomizedBox.IsValid() && TextBlock.IsValid())
+			{
+				TextBlock->SetEnabled(!Param->IsDisabled());
+				CustomizedBox->AddSlot()
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Left)
+					.AttachWidget(TextBlock.ToSharedRef());
+				Row->NameContent().Widget = CustomizedBox.ToSharedRef();
+			}
+		}
+
+		// Attach our labelled parameter widget to the horizontal box containg all joined parameters
+		// on this row.
+		{
+			SHorizontalBox::FScopedWidgetSlotArguments SlotArguments = HorizontalJoinBox->AddSlot();
+			if (!ShouldWidgetFill(Param->GetParameterType()))
+			{
+				// Make widget occupy minimum required space
+				SlotArguments.AutoWidth();
+			}
+			if (Param->GetJoinNext())
+			{
+				// If there is a parameter to the right, add some padding in between
+				SlotArguments.Padding(0.f, 0.f, HAPI_UNREAL_PADDING_HORIZONTAL_JOIN, 0.f);
+			}
+			SlotArguments.AttachWidget(LabelledParameter);
+		}
+
+		switch (Param->GetParameterType())
+		{
+		case EHoudiniParameterType::Int:
+			CreateWidgetInt(LabelledParameter, LinkedParams);
+			break;
+
+		case EHoudiniParameterType::Float:
+			CreateWidgetFloat(LabelledParameter, LinkedParams);
+			break;
+
+		case EHoudiniParameterType::String:
+			CreateWidgetString(HouParameterCategory, LabelledParameter, LinkedParams);
+			break;
+
+		case EHoudiniParameterType::IntChoice:
+		case EHoudiniParameterType::StringChoice:
+			CreateWidgetChoice(LabelledParameter, LinkedParams);
+			break;
+
+		case EHoudiniParameterType::Separator:
+			CreateWidgetSeparator(LabelledParameter, LinkedParams);
+			break;
+
+		case EHoudiniParameterType::Color:
+			CreateWidgetColor(LabelledParameter, LinkedParams);
+			break;
+
+		case EHoudiniParameterType::Button:
+			CreateWidgetButton(LabelledParameter, LinkedParams);
+			break;
+
+		case EHoudiniParameterType::ButtonStrip:
+			CreateWidgetButtonStrip(LabelledParameter, LinkedParams);
+			break;
+
+		case EHoudiniParameterType::Label:
+			CreateWidgetLabel(LabelledParameter, LinkedParams);
+			break;
+
+		case EHoudiniParameterType::Toggle:
+			CreateWidgetToggle(LabelledParameter, LinkedParams);
+			break;
+
+		case EHoudiniParameterType::File:
+		case EHoudiniParameterType::FileDir:
+		case EHoudiniParameterType::FileGeo:
+		case EHoudiniParameterType::FileImage:
+			CreateWidgetFile(LabelledParameter, LinkedParams);
+			break;
+
+		default:
+			break;
+		}
+	}
+}
+
+void
+FHoudiniParameterDetails::CreateTabEndingRow(IDetailCategoryBuilder& HouParameterCategory)
+{
+	FDetailWidgetRow& Row = HouParameterCategory.AddCustomRow(FText::GetEmpty());
 	TSharedPtr<SCustomizedBox> TabEndingRow = SNew(SCustomizedBox);
 
 	TabEndingRow->DividerLinePositions = DividerLinePositions;
@@ -2044,30 +2164,51 @@ FHoudiniParameterDetails::CreateTabEndingRow(IDetailCategoryBuilder & HouParamet
 	Row.WholeRowWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 }
 
-void
-FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams, bool WithLabel)
+TSharedPtr<SCustomizedBox>
+FHoudiniParameterDetails::CreateCustomizedBox(
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	if (InParams.Num() <= 0)
-		return;
+		return nullptr;
 
 	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
 	if (!IsValidWeakPointer(MainParam))
-		return;
+		return nullptr;
 
-	if (!Row)
-		return;
+	TSharedPtr<SCustomizedBox> CustomizedBox = SNew(SCustomizedBox);
 
-	TSharedRef< SCustomizedBox > HorizontalBox = SNew(SCustomizedBox);
-	
-	HorizontalBox->DividerLinePositions = DividerLinePositions;
-	HorizontalBox->SetHoudiniParameter(InParams);
-	HorizontalBox->AddIndentation(MainParam.Get(), AllMultiParms, AllFoldersAndFolderLists);
-	
+	CustomizedBox->DividerLinePositions = DividerLinePositions;
+	CustomizedBox->SetHoudiniParameter(InParams);
+	CustomizedBox->AddIndentation(MainParam.Get(), AllMultiParms, AllFoldersAndFolderLists);
 
-	if (MainParam->IsDirectChildOfMultiParm()) 
+	if (MainParam->IsDirectChildOfMultiParm())
 	{
-		FString ParameterLabelStr = MainParam->GetParameterLabel();
+		// If it is head of an multiparm instance
+		if (MainParam->GetChildIndex() == 0)
+		{
+			CreateWidgetMultiParmObjectButtons(CustomizedBox, InParams);
+		}
+	}
 
+
+	return CustomizedBox;
+}
+
+TSharedPtr<STextBlock>
+FHoudiniParameterDetails::CreateNameTextBlock(
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
+{
+	if (InParams.Num() <= 0)
+		return nullptr;
+
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
+		return nullptr;
+
+	FString ParameterLabelString = MainParam->GetParameterLabel();
+
+	if (MainParam->IsDirectChildOfMultiParm())
+	{
 		// If it is head of an multiparm instance
 		if (MainParam->GetChildIndex() == 0)
 		{
@@ -2077,38 +2218,42 @@ FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, const TArray<T
 				MultiParmInstanceIndices[MainParam->GetParentParmId()] += 1;
 				CurrentMultiParmInstanceIndex = MultiParmInstanceIndices[MainParam->GetParentParmId()];
 			}
-			ParameterLabelStr += TEXT(" (") + FString("") + FString::FromInt(CurrentMultiParmInstanceIndex + 1) + TEXT(")");
-
-			CreateWidgetMultiParmObjectButtons(HorizontalBox, InParams);
+			ParameterLabelString += TEXT(" (") + FString::FromInt(CurrentMultiParmInstanceIndex + 1) + TEXT(")");
 		}
-
-
-		const FText & FinalParameterLabelText = WithLabel ? FText::FromString(ParameterLabelStr) : FText::GetEmpty();
-		HorizontalBox->AddSlot()
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Left)
-		[
-			SNew(STextBlock)
-			.Text(FinalParameterLabelText)
-			.ToolTipText(GetParameterTooltip(MainParam))
-			.Font(_GetEditorStyle().GetFontStyle(MainParam->IsDefault() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")))
-		];
 	}
-	else 
+
+	return SNew(STextBlock)
+		.Text(FText::FromString(ParameterLabelString))
+		.ToolTipText(GetParameterTooltip(MainParam))
+		.Font(_GetEditorStyle().GetFontStyle(
+			MainParam->IsDefault()
+			? TEXT("PropertyWindow.NormalFont")
+			: TEXT("PropertyWindow.BoldFont")));
+}
+
+void
+FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, bool WithLabel)
+{
+	if (!Row)
+		return;
+
+	TSharedPtr<SCustomizedBox> HorizontalBox = CreateCustomizedBox(InParams);
+	TSharedPtr<STextBlock> TextBlock = CreateNameTextBlock(InParams);
+
+	if (!HorizontalBox.IsValid())
+		return;
+	
+	if (TextBlock.IsValid())
 	{
-		const FText & FinalParameterLabelText = WithLabel ? FText::FromString(MainParam->GetParameterLabel()) : FText::GetEmpty();
 		HorizontalBox->AddSlot()
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Left)
 		[
-			SNew(STextBlock)
-			.Text(FinalParameterLabelText)
-			.ToolTipText(GetParameterTooltip(MainParam))
-			.Font(_GetEditorStyle().GetFontStyle(MainParam->IsDefault() ? TEXT("PropertyWindow.NormalFont") : TEXT("PropertyWindow.BoldFont")))
+			TextBlock.ToSharedRef()
 		];
 	}
 
-	Row->NameWidget.Widget = HorizontalBox;
+	Row->NameWidget.Widget = HorizontalBox.ToSharedRef();
 }
 
 void
@@ -2332,14 +2477,41 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, 
 }
 
 FDetailWidgetRow*
-FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, bool bDecreaseChildCount)
+FHoudiniParameterDetails::CreateNestedRow(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
+	bool bDecreaseChildCount)
 {
+	if (InJoinedParams.IsEmpty())
+		return nullptr;
+
+	const auto& InParams = InJoinedParams[0];
+
 	if (InParams.Num() <= 0)
 		return nullptr;
 
 	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
 	if (!IsValidWeakPointer(MainParam))
 		return nullptr;
+
+	bool bShouldDisplayRow = false;
+
+	// Only display the row if, among all joined params, at least one is visible.
+	for (const auto& LinkedParams : InJoinedParams)
+	{
+		if (LinkedParams.Num() <= 0)
+			continue;
+
+		const TWeakObjectPtr<UHoudiniParameter>& Param = LinkedParams[0];
+		if (!IsValidWeakPointer(Param))
+			continue;
+
+		if (Param->ShouldDisplay())
+		{
+			bShouldDisplayRow = true;
+			break;
+		}
+	}
 
 	// Created row for the current parameter (if there is not a row created, do not show the parameter).
 	FDetailWidgetRow* Row = nullptr;
@@ -2369,7 +2541,7 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 		const TWeakObjectPtr<UHoudiniParameterMultiParm>& ParentMultiParm = AllMultiParms[ParentMultiParmId];
 
 		// The parent multiparm is visible.
-		if (ParentMultiParm.IsValid() && ParentMultiParm->IsShown() && MainParam->ShouldDisplay())
+		if (ParentMultiParm.IsValid() && ParentMultiParm->IsShown() && bShouldDisplayRow)
 		{
 			if (MainParam->GetParameterType() != EHoudiniParameterType::FolderList)
 			{
@@ -2423,8 +2595,6 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 				if (AllFoldersAndFolderLists.Contains(ParentFolderId))
 					ParentFolder = Cast<UHoudiniParameterFolder>(AllFoldersAndFolderLists[ParentFolderId]);
 
-				bool bShouldDisplayRow = MainParam->ShouldDisplay();
-
 				// This row should be shown if its parent folder is shown.
 				if (ParentFolder)
 					bShouldDisplayRow &= (ParentFolder->IsTab() && ParentFolder->IsChosen()) || (!ParentFolder->IsTab() && ParentFolder->IsExpanded());
@@ -2442,7 +2612,7 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 			// prune the stack finally
 			if (bDecreaseChildCount)
 			{
-				CurrentLayerFolderQueue[0]->GetChildCounter() -= 1;
+				CurrentLayerFolderQueue[0]->GetChildCounter() -= InJoinedParams.Num();
 
 				if (CurrentLayerFolderQueue[0]->GetChildCounter() < 1)
 					PruneStack();
@@ -2451,7 +2621,7 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 		// If this parameter is in the root dir, just create a row.
 		else
 		{
-			if (MainParam->ShouldDisplay())
+			if (bShouldDisplayRow)
 			{
 				if (MainParam->GetParameterType() != EHoudiniParameterType::FolderList)
 				{
@@ -2462,9 +2632,6 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 			}
 		}
 	}
-
-	if (!MainParam->IsVisible())
-		return nullptr;
 
 	if (Row)
 		CurrentTabEndingRow = nullptr;
@@ -2478,23 +2645,29 @@ FHoudiniParameterDetails::CreateNestedRow(IDetailCategoryBuilder & HouParameterC
 }
 
 void
-FHoudiniParameterDetails::HandleUnsupportedParmType(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
+FHoudiniParameterDetails::HandleUnsupportedParmType(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams)
 {
+	if (InJoinedParams.IsEmpty())
+		return;
+
+	const auto& InParams = InJoinedParams[0];
+
 	if (InParams.Num() < 1)
 		return;
 
 	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
 	if (!IsValidWeakPointer(MainParam))
 		return;
-	
-	CreateNestedRow(HouParameterCategory, InParams);
+
+	CreateNestedRow(HouParameterCategory, InJoinedParams);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetFloat(
-	IDetailCategoryBuilder & HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows)
+	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterFloat>> FloatParams;
 	if (!CastParameters<UHoudiniParameterFloat>(InParams, FloatParams))
@@ -2506,15 +2679,6 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 	const TWeakObjectPtr<UHoudiniParameterFloat>& MainParam = FloatParams[0];
 	if (!IsValidWeakPointer(MainParam))
 		return;
-
-	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
-
-	if (!Row)
-		return;
-
-	// Create the standard parameter name widget.
-	CreateNameWidget(Row, InParams, true);
 
 	// Helper function to find a unit from a string (name or abbreviation) 
 	auto ParmUnit = FUnitConversion::UnitFromString(*(MainParam->GetUnit()));
@@ -2843,22 +3007,17 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 		}
 	}
 
-	Row->ValueWidget.Widget =VerticalBox;
-
-	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
-
-	OutRows.Add(Row);
+	LabelledParameter->SetContent(VerticalBox);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetInt(
-	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows)
+	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterInt>> IntParams;
 	if (!CastParameters<UHoudiniParameterInt>(InParams, IntParams))
+		return;
 
 	if (IntParams.Num() <= 0)
 		return;
@@ -2866,15 +3025,6 @@ FHoudiniParameterDetails::CreateWidgetInt(
 	const TWeakObjectPtr<UHoudiniParameterInt>& MainParam = IntParams[0];
 	if (!IsValidWeakPointer(MainParam))
 		return;
-
-	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
-
-	if (!Row)
-		return;
-
-	// Create the standard parameter name widget.
-	CreateNameWidget(Row, InParams, true);
 
 	TSharedRef< SVerticalBox > VerticalBox = SNew(SVerticalBox);
 
@@ -3040,18 +3190,14 @@ FHoudiniParameterDetails::CreateWidgetInt(
 		*/
 	}
 
-	Row->ValueWidget.Widget = VerticalBox;
-	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
-
-	OutRows.Add(Row);
+	LabelledParameter->SetContent(VerticalBox);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetString(
 	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows)
+	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterString>> StringParams;
 	if (!CastParameters<UHoudiniParameterString>(InParams, StringParams))
@@ -3064,18 +3210,10 @@ FHoudiniParameterDetails::CreateWidgetString(
 	if (!IsValidWeakPointer(MainParam))
 		return;
 
-	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
-
-	if (!Row)
-		return;
-
 	bool bIsMultiLine = false;
 	bool bIsUnrealRef = false;
 	UClass* UnrealRefClass = UObject::StaticClass();
 
-	// Create the standard parameter name widget.
-	CreateNameWidget(Row, InParams, true);
 	TSharedRef< SVerticalBox > VerticalBox = SNew(SVerticalBox);
 
 	TMap<FString, FString>& Tags = MainParam->GetTags();
@@ -3454,18 +3592,13 @@ FHoudiniParameterDetails::CreateWidgetString(
 		
 	}
 
-	Row->ValueWidget.Widget = VerticalBox;
-	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
-
-	OutRows.Add(Row);
+	LabelledParameter->SetContent(VerticalBox);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetColor(
-	IDetailCategoryBuilder & HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows)
+	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterColor>> ColorParams;
 	if (!CastParameters<UHoudiniParameterColor>(InParams, ColorParams))
@@ -3477,14 +3610,6 @@ FHoudiniParameterDetails::CreateWidgetColor(
 	const TWeakObjectPtr<UHoudiniParameterColor>& MainParam = ColorParams[0];
 	if (!IsValidWeakPointer(MainParam))
 		return;
-		// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
-
-	if (!Row)
-		return;
-
-	// Create the standard parameter name widget.
-	CreateNameWidget(Row, InParams, true);
 
 	bool bHasAlpha = (MainParam->GetTupleSize() == 4);
 
@@ -3541,18 +3666,13 @@ FHoudiniParameterDetails::CreateWidgetColor(
 			})
 	];
 
-	Row->ValueWidget.Widget = VerticalBox;
-	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
-
-	OutRows.Add(Row);
+	LabelledParameter->SetContent(VerticalBox);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetButton(
-	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows) 
+	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterButton>> ButtonParams;
 	if (!CastParameters<UHoudiniParameterButton>(InParams, ButtonParams))
@@ -3564,15 +3684,6 @@ FHoudiniParameterDetails::CreateWidgetButton(
 	const TWeakObjectPtr<UHoudiniParameterButton>& MainParam = ButtonParams[0];
 	if (!IsValidWeakPointer(MainParam))
 		return;
-
-	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
-
-	if (!Row)
-		return;
-
-	// Create the standard parameter name widget.
-	CreateNameWidget(Row, InParams, true);
 
 	FText ParameterLabelText = FText::FromString(MainParam->GetParameterLabel());
 	FText ParameterTooltip = GetParameterTooltip(MainParam);
@@ -3603,17 +3714,13 @@ FHoudiniParameterDetails::CreateWidgetButton(
 		}))
 	];
 
-	Row->ValueWidget.Widget = HorizontalBox;
-	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
-
-	OutRows.Add(Row);
+	LabelledParameter->SetContent(HorizontalBox);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetButtonStrip(
-	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,TArray<FDetailWidgetRow*>& OutRows)
+	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterButtonStrip>> ButtonStripParams;
 	if (!CastParameters<UHoudiniParameterButtonStrip>(InParams, ButtonStripParams))
@@ -3624,15 +3731,6 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(
 
 	const TWeakObjectPtr<UHoudiniParameterButtonStrip>& MainParam = ButtonStripParams[0];
 	if (!IsValidWeakPointer(MainParam))
-		return;
-
-	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
-
-	// Create the standard parameter name widget.
-	CreateNameWidget(Row, InParams, true);
-
-	if (!Row)
 		return;
 
 	auto OnButtonStateChanged = [MainParam, ButtonStripParams](ECheckBoxState NewState, int32 Idx) 
@@ -3698,19 +3796,13 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(
 		Button->SetColorAndOpacity(BgColor);
 	}
 
-	Row->ValueWidget.Widget = HorizontalBox;
-	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	Row->ValueWidget.MaxDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
-
-	OutRows.Add(Row);
+	LabelledParameter->SetContent(HorizontalBox);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetLabel(
-	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows) 
+	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterLabel>> LabelParams;
 	if (!CastParameters<UHoudiniParameterLabel>(InParams, LabelParams))
@@ -3723,18 +3815,9 @@ FHoudiniParameterDetails::CreateWidgetLabel(
 	if (!IsValidWeakPointer(MainParam))
 		return;
 
-	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 
-	if (!Row)
-		return;
-
-	// Create the standard parameter name widget.
-	CreateNameWidget(Row, InParams, true);
-
-	TSharedRef <SVerticalBox> VerticalBox = SNew(SVerticalBox);
-
-	for (int32 Index = 0; Index < MainParam->GetTupleSize(); ++Index) 
+	for (int32 Index = 0; Index < MainParam->GetTupleSize(); ++Index)
 	{
 		FString NextLabelString = MainParam->GetStringAtIndex(Index);
 		FText ParameterLabelText = FText::FromString(NextLabelString);
@@ -3742,24 +3825,21 @@ FHoudiniParameterDetails::CreateWidgetLabel(
 		TSharedPtr<STextBlock> TextBlock;
 
 		// Add Label UI.
-		VerticalBox->AddSlot().Padding(1, 2, 4, 2)
+		VerticalBox->AddSlot().Padding(1, 2, 16, 2)
 		[
-			SAssignNew(TextBlock, STextBlock).Text(ParameterLabelText)
+			SAssignNew(TextBlock, STextBlock)
+			.Text(ParameterLabelText)
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		];
 	}
 
-	Row->ValueWidget.Widget = VerticalBox;
-	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
-
-	OutRows.Add(Row);
+	LabelledParameter->SetContent(VerticalBox);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetToggle(
-	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows) 
+	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterToggle>> ToggleParams;
 	if (!CastParameters<UHoudiniParameterToggle>(InParams, ToggleParams))
@@ -3771,15 +3851,6 @@ FHoudiniParameterDetails::CreateWidgetToggle(
 	const TWeakObjectPtr<UHoudiniParameterToggle>& MainParam = ToggleParams[0];
 	if (!IsValidWeakPointer(MainParam))
 		return;
-
-	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
-
-	if (!Row)
-		return;
-
-	// Create the standard parameter name widget.
-	CreateNameWidget(Row, InParams, true);
 
 	FText ParameterLabelText = FText::FromString(MainParam->GetParameterLabel());
 
@@ -3848,28 +3919,16 @@ FHoudiniParameterDetails::CreateWidgetToggle(
 				.IsChecked_Lambda([IsToggleCheckedLambda, Index]() {
 					return IsToggleCheckedLambda(Index);
 				})
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(ParameterLabelText)
-					.ToolTipText(GetParameterTooltip(MainParam))
-					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-				]
 			];
 	}
 
-	Row->ValueWidget.Widget = VerticalBox;
-	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
-
-	OutRows.Add(Row);
+	LabelledParameter->SetContent(VerticalBox);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetFile(
-	IDetailCategoryBuilder & HouParameterCategory, 
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows) 
+	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterFile>> FileParams;
 	if (!CastParameters<UHoudiniParameterFile>(InParams, FileParams))
@@ -3881,15 +3940,6 @@ FHoudiniParameterDetails::CreateWidgetFile(
 	const TWeakObjectPtr<UHoudiniParameterFile>& MainParam = FileParams[0];
 	if (!IsValidWeakPointer(MainParam))
 		return;
-
-	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
-
-	if (!Row)
-		return;
-
-	// Create the standard parameter name widget.
-	CreateNameWidget(Row, InParams, true);
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 
@@ -4018,19 +4068,14 @@ FHoudiniParameterDetails::CreateWidgetFile(
 
 	}
 
-	Row->ValueWidget.Widget = VerticalBox;
-	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
-
-	OutRows.Add(Row);
+	LabelledParameter->SetContent(VerticalBox);
 }
 
 
 void
 FHoudiniParameterDetails::CreateWidgetChoice(
-	IDetailCategoryBuilder & HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows)
+	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterChoice>> ChoiceParams;
 	if (!CastParameters<UHoudiniParameterChoice>(InParams, ChoiceParams))
@@ -4042,15 +4087,6 @@ FHoudiniParameterDetails::CreateWidgetChoice(
 	const TWeakObjectPtr<UHoudiniParameterChoice>& MainParam = ChoiceParams[0];
 	if (!IsValidWeakPointer(MainParam))
 		return;
-
-	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
-
-	if (!Row)
-		return;
-
-	// Create the standard parameter name widget.
-	CreateNameWidget(Row, InParams, true);
 
 	// Lambda for changing the parameter value
 	auto ChangeSelectionLambda = [ChoiceParams](TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType) 
@@ -4120,22 +4156,13 @@ FHoudiniParameterDetails::CreateWidgetChoice(
 		]
 	];
 
-	if ( ComboBox.IsValid() )
-		ComboBox->SetEnabled( !MainParam->IsDisabled() );
-
-	Row->ValueWidget.Widget = HorizontalBox;
-	Row->ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
-	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
-
-	OutRows.Add(Row);
+	LabelledParameter->SetContent(HorizontalBox);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetSeparator(
-	IDetailCategoryBuilder & HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	const bool bInIsEnabled,
-	TArray<FDetailWidgetRow*>& OutRows)
+	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
 	if (InParams.Num() <= 0)
 		return;
@@ -4144,28 +4171,25 @@ FHoudiniParameterDetails::CreateWidgetSeparator(
 	if (!IsValidWeakPointer(MainParam))
 		return;
 
-	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
-
-	if (!Row)
-		return;
-
 	TSharedRef<SCustomizedBox> HorizontalBox = SNew(SCustomizedBox);
 
 	HorizontalBox->DividerLinePositions = DividerLinePositions;
 	HorizontalBox->SetHoudiniParameter(InParams);
 
-	Row->WholeRowWidget.Widget = HorizontalBox;
-
-	OutRows.Add(Row);
+	LabelledParameter->SetContent(HorizontalBox);
 }
 
 void
 FHoudiniParameterDetails::CreateWidgetOperatorPath(
 	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows) 
+	const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
+	if (InJoinedParams.IsEmpty())
+		return;
+
+	const auto& InParams = InJoinedParams[0];
+
 	TArray<TWeakObjectPtr<UHoudiniParameterOperatorPath>> OperatorPathParams;
 	if (!CastParameters<UHoudiniParameterOperatorPath>(InParams, OperatorPathParams))
 		return;
@@ -4200,7 +4224,7 @@ FHoudiniParameterDetails::CreateWidgetOperatorPath(
 	}
 
 	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
+	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InJoinedParams);
 	if (!Row)
 		return;
 
@@ -4217,9 +4241,14 @@ FHoudiniParameterDetails::CreateWidgetOperatorPath(
 void
 FHoudiniParameterDetails::CreateWidgetFloatRamp(
 	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows) 
+	const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
+	if (InJoinedParams.IsEmpty())
+		return;
+
+	const auto& InParams = InJoinedParams[0];
+
 	if (InParams.Num() < 1)
 		return;
 
@@ -4375,13 +4404,13 @@ FHoudiniParameterDetails::CreateWidgetFloatRamp(
 	// }
 
 	//*****Float Ramp*****//
-	if (MainParam->GetParameterType() == EHoudiniParameterType::FloatRamp) 
+	if (MainParam->GetParameterType() == EHoudiniParameterType::FloatRamp)
 	{
 		UHoudiniParameterRampFloat* FloatRampParameter = Cast<UHoudiniParameterRampFloat>(MainParam);
-		if (FloatRampParameter) 
+		if (FloatRampParameter)
 		{
 			CurrentRampFloat = FloatRampParameter;
-			FDetailWidgetRow *Row = CreateWidgetRampCurveEditor(HouParameterCategory, InParams);
+			FDetailWidgetRow* Row = CreateWidgetRampCurveEditor(HouParameterCategory, InJoinedParams);
 			CreateWidgetRampPoints(HouParameterCategory, Row, FloatRampParameter, InParams);
 			//FloatRampParameter->SetDefaultValues();
 
@@ -4393,9 +4422,14 @@ FHoudiniParameterDetails::CreateWidgetFloatRamp(
 void
 FHoudiniParameterDetails::CreateWidgetColorRamp(
 	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 	TArray<FDetailWidgetRow*>& OutRows)
 {
+	if (InJoinedParams.IsEmpty())
+		return;
+
+	const auto& InParams = InJoinedParams[0];
+
 	if (InParams.Num() < 1)
 		return;
 
@@ -4541,10 +4575,10 @@ FHoudiniParameterDetails::CreateWidgetColorRamp(
 	if (MainParam->GetParameterType() == EHoudiniParameterType::ColorRamp)
 	{
 		UHoudiniParameterRampColor* RampColor = Cast<UHoudiniParameterRampColor>(MainParam);
-		if (RampColor) 
+		if (RampColor)
 		{
 			CurrentRampColor = RampColor;
-			FDetailWidgetRow *Row = CreateWidgetRampCurveEditor(HouParameterCategory, InParams);
+			FDetailWidgetRow* Row = CreateWidgetRampCurveEditor(HouParameterCategory, InJoinedParams);
 			CreateWidgetRampPoints(HouParameterCategory, Row, RampColor, InParams);
 			//RampColor->SetDefaultValues();
 
@@ -4556,17 +4590,24 @@ FHoudiniParameterDetails::CreateWidgetColorRamp(
 
 
 FDetailWidgetRow*
-FHoudiniParameterDetails::CreateWidgetRampCurveEditor(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
+FHoudiniParameterDetails::CreateWidgetRampCurveEditor(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams)
 {
+	if (InJoinedParams.IsEmpty())
+		return nullptr;
+
+	const auto& InParams = InJoinedParams[0];
+
 	if (InParams.Num() <= 0)
 		return nullptr;
 
 	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
 	if (!IsValidWeakPointer(MainParam))
 		return nullptr;
-	
+
 	// Create a new detail row
-	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InParams);
+	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InJoinedParams);
 	if (!Row)
 		return nullptr;
 
@@ -5764,12 +5805,17 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 		GridPanel->SetEnabled(!MainColorRampParameter->IsDisabled());	
 }
 
-void 
+void
 FHoudiniParameterDetails::CreateWidgetFolderList(
 	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 	TArray<FDetailWidgetRow*>& OutRows)
 {
+	if (InJoinedParams.IsEmpty())
+		return;
+
+	const auto& InParams = InJoinedParams[0];
+
 	TArray<TWeakObjectPtr<UHoudiniParameterFolderList>> FolderListParams;
 	if (!CastParameters<UHoudiniParameterFolderList>(InParams, FolderListParams))
 		return;
@@ -5809,8 +5855,8 @@ FHoudiniParameterDetails::CreateWidgetFolderList(
 
 		// CreateNestedRow does not actually create a row for tabs, it is responsible to prune the folder stack.
 		// ( CreateWidgetTab will be responsible to create a row according to the visibility of its outer level folders )
-		FDetailWidgetRow* TabRow = CreateNestedRow(HouParameterCategory, InParams, false);
-		
+		FDetailWidgetRow* TabRow = CreateNestedRow(HouParameterCategory, InJoinedParams, false);
+
 		OutRows.Add(TabRow);
 	}
 
@@ -5823,9 +5869,14 @@ FHoudiniParameterDetails::CreateWidgetFolderList(
 void
 FHoudiniParameterDetails::CreateWidgetFolder(
 	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 	TArray<FDetailWidgetRow*>& OutRows)
 {
+	if (InJoinedParams.IsEmpty())
+		return;
+
+	const auto& InParams = InJoinedParams[0];
+
 	TArray<TWeakObjectPtr<UHoudiniParameterFolder>> FolderParams;
 	if (!CastParameters<UHoudiniParameterFolder>(InParams, FolderParams))
 		return;
@@ -5915,7 +5966,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(
 			// If the parent multiparm is shown.
 			if (ParentMultiParm->IsShown())
 			{
-				FDetailWidgetRow* FolderHeaderRow = CreateNestedRow(HouParameterCategory, InParams, false);
+				FDetailWidgetRow* FolderHeaderRow = CreateNestedRow(HouParameterCategory, InJoinedParams, false);
 				CreateFolderHeaderUI(HouParameterCategory, FolderHeaderRow, InParams);
 
 				OutRows.Add(FolderHeaderRow);
@@ -5964,7 +6015,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(
 				if (ParentFolderVisible)
 				{
 					// Add the folder header UI.
-					FDetailWidgetRow* FolderHeaderRow = CreateNestedRow(HouParameterCategory, InParams, false);
+					FDetailWidgetRow* FolderHeaderRow = CreateNestedRow(HouParameterCategory, InJoinedParams, false);
 					CreateFolderHeaderUI(HouParameterCategory, FolderHeaderRow, InParams);
 
 					OutRows.Add(FolderHeaderRow);
@@ -5993,7 +6044,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(
 					return;
 
 				// Create Folder header under root.
-				FDetailWidgetRow* FolderRow = CreateNestedRow(HouParameterCategory, InParams, false);
+				FDetailWidgetRow* FolderRow = CreateNestedRow(HouParameterCategory, InJoinedParams, false);
 				CreateFolderHeaderUI(HouParameterCategory, FolderRow, InParams);
 				OutRows.Add(FolderRow);
 
@@ -6295,9 +6346,14 @@ void FHoudiniParameterDetails::CreateWidgetTab(
 void
 FHoudiniParameterDetails::CreateWidgetMultiParm(
 	IDetailCategoryBuilder& HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
-	TArray<FDetailWidgetRow*>& OutRows) 
+	const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
+	if (InJoinedParams.IsEmpty())
+		return;
+
+	const auto& InParams = InJoinedParams[0];
+
 	TArray<TWeakObjectPtr<UHoudiniParameterMultiParm>> MultiParmParams;
 	if (!CastParameters<UHoudiniParameterMultiParm>(InParams, MultiParmParams))
 		return;
@@ -6313,9 +6369,9 @@ FHoudiniParameterDetails::CreateWidgetMultiParm(
 	AllMultiParms.Add(MainParam->GetParmId(), MainParam);
 
 	// Create a new detail row
-	FDetailWidgetRow * Row = CreateNestedRow(HouParameterCategory, InParams);
+	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InJoinedParams);
 
-	if (!Row) 
+	if (!Row)
 	{
 		MainParam->SetIsShown(false);
 		return;
@@ -6985,6 +7041,20 @@ FHoudiniParameterDetails::CreateColorRampParameterDeleteEvent(UHoudiniParameterR
 	InParam->ModificationEvents.Add(DeleteEvent);
 }
 
+bool
+FHoudiniParameterDetails::ShouldJoinNext(const UHoudiniParameter& InParam)
+{
+	switch (InParam.GetParameterType())
+	{
+	// Special case where we do not want to support joining a widget that is joinable in Houdini.
+	// For example, input parameter widget is a much larger widget in Unreal than in Houdini.
+	case EHoudiniParameterType::Input:
+		return false;
+	default:
+		return InParam.GetJoinNext();
+	}
+}
+
 void 
 FHoudiniParameterDetails::CreateFloatRampParameterInsertEvent(UHoudiniParameterRampFloat* InParam,
 	const float& InPosition, const float& InValue, const EHoudiniRampInterpolationType &InInterp) 
@@ -7614,6 +7684,70 @@ FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameter
 	}
 }
 
+bool FHoudiniParameterDetails::IsLabelVisible(
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
+{
+	if (InParams.Num() <= 0)
+		return false;
+
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
+		return false;
+
+	switch (MainParam->GetParameterType())
+	{
+	case EHoudiniParameterType::Separator:
+	case EHoudiniParameterType::Button:
+		return false;
+	default:
+		return MainParam->IsLabelVisible();
+	}
+}
+
+bool FHoudiniParameterDetails::UsesWholeRow(const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
+{
+	if (InParams.Num() <= 0)
+		return false;
+
+	const TWeakObjectPtr<UHoudiniParameter>& MainParam = InParams[0];
+	if (!IsValidWeakPointer(MainParam))
+		return false;
+
+	switch (MainParam->GetParameterType())
+	{
+	case EHoudiniParameterType::Separator:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool FHoudiniParameterDetails::ShouldWidgetFill(EHoudiniParameterType ParameterType)
+{
+	switch (ParameterType)
+	{
+	case EHoudiniParameterType::IntChoice:
+	case EHoudiniParameterType::StringChoice:
+	case EHoudiniParameterType::Color:
+	case EHoudiniParameterType::Button:
+	case EHoudiniParameterType::ButtonStrip:
+	case EHoudiniParameterType::Label:
+	case EHoudiniParameterType::Toggle:
+		return false;
+
+	case EHoudiniParameterType::Int:
+	case EHoudiniParameterType::Float:
+	case EHoudiniParameterType::String:
+	case EHoudiniParameterType::Separator:
+	case EHoudiniParameterType::File:
+	case EHoudiniParameterType::FileDir:
+	case EHoudiniParameterType::FileGeo:
+	case EHoudiniParameterType::FileImage:
+	default:
+		return true;
+	}
+}
+
 void FHoudiniParameterDetails::AddMetaDataToAllDescendants(const TSharedRef<SWidget> AncestorWidget, const FString& UniqueName, uint32& Index)
 {
 	// Important: We use GetAllChildren and not GetChildren. 
@@ -7632,5 +7766,52 @@ void FHoudiniParameterDetails::AddMetaDataToAllDescendants(const TSharedRef<SWid
 		Child->AddMetadata(MakeShared<FHoudiniParameterWidgetMetaData>(UniqueName, Index++));
 	}
 }
+
+void SHoudiniLabelledParameter::Construct(const FArguments& InArgs)
+{
+	bEnableContentPadding = InArgs._NameContent.Widget != SNullWidget::NullWidget;
+
+	ContentPadding = TAttribute<FMargin>::CreateLambda(
+		[this]()
+		{
+			return bEnableContentPadding
+				? DetailWidgetConstants::RightRowPadding
+				: FMargin();
+		});
+
+	SHorizontalBox::Construct(
+		SHorizontalBox::FArguments()
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		[
+			InArgs._NameContent.Widget
+		]
+
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.Padding(ContentPadding)
+		[
+			InArgs._Content.Widget
+		]);
+}
+
+void SHoudiniLabelledParameter::SetContent(TSharedRef<SWidget> InContent)
+{
+	GetSlot(1)
+	[
+		InContent
+	];
+}
+
+void SHoudiniLabelledParameter::SetNameContent(TSharedRef<SWidget> InNameContent)
+{
+	bEnableContentPadding = InNameContent != SNullWidget::NullWidget;
+	GetSlot(0)
+	[
+		InNameContent
+	];
+}
+
 
 #undef LOCTEXT_NAMESPACE
