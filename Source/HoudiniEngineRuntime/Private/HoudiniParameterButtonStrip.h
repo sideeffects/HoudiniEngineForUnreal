@@ -44,25 +44,46 @@ public:
 		UObject* InOuter,
 		const FString& InParamName);
 
-	UPROPERTY()
-	int32 Count;
+	// Accessor
+	bool GetValueAt(const uint32 Index) const
+	{
+		return Labels.IsValidIndex(Index) ? (Value >> Index) & 1 : false;
+	}
+
+	FString* GetStringLabelAt(const uint32 Index)
+	{
+		return Labels.IsValidIndex(Index) ? &(Labels[Index]) : nullptr;
+	}
+
+	const FString* GetStringLabelAt(const uint32 Index) const
+	{
+		return Labels.IsValidIndex(Index) ? &(Labels[Index]) : nullptr;
+	}
+
+	int32* GetValuesPtr() { return reinterpret_cast<int32*>(&Value); }
+
+	bool IsDefault() const override { return DefaultValue == Value; }
+
+	// Mutators
+	bool SetValueAt(const bool InValue, const uint32 Index);
+
+	void SetValue(const uint32 InValue) { Value = InValue; }
+
+	void SetNumberOfValues(const uint32 InNumValues) { Labels.SetNum(InNumValues); }
+
+	uint32 GetNumValues() const { return Labels.Num(); }
+
+	void SetDefaultValues() { DefaultValue = Value; }
+
+protected:
 
 	UPROPERTY()
 	TArray<FString> Labels;
 
+	// Values of this property - implemented as int bitmasks.
 	UPROPERTY()
-	TArray<int32> Values;
+	uint32 Value;
 
-
-	void InitializeLabels(const int32 & InSize) { Labels.SetNumZeroed(InSize);  Values.SetNumZeroed(InSize); Count = InSize; };
-
-	bool SetValueAt(const int32 & InIdx, int32 InVal);
-
-
-	FString * GetStringLabelAt(const int32 & InIndex);
-
-	int32* GetValuesPtr() { return Values.Num() > 0 ? &Values[0] : nullptr; };
-
-
-
+	UPROPERTY()
+	uint32 DefaultValue;
 };

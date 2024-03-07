@@ -27,7 +27,7 @@
 #pragma once
 
 #include "HoudiniParameter.h"
-#include "Styling/SlateTypes.h"
+
 #include "HoudiniParameterToggle.generated.h"
 
 UCLASS()

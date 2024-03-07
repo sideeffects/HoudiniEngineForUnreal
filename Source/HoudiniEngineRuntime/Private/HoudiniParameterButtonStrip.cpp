@@ -46,29 +46,22 @@ UHoudiniParameterButtonStrip::Create(
 
 	HoudiniAssetParameter->SetParameterType(EHoudiniParameterType::ButtonStrip);
 
-	HoudiniAssetParameter->Count = 0;
-
 	return HoudiniAssetParameter;
 }
 
-FString * 
-UHoudiniParameterButtonStrip::GetStringLabelAt(const int32 & InIndex) 
+bool UHoudiniParameterButtonStrip::SetValueAt(const bool InValue, const uint32 Index)
 {
-	if (!Labels.IsValidIndex(InIndex))
-		return nullptr;
-
-	return &(Labels[InIndex]);
-}
-
-bool 
-UHoudiniParameterButtonStrip::SetValueAt(const int32 & InIdx, int32 InVal) 
-{
-	if (!Values.IsValidIndex(InIdx))
+	if (!Labels.IsValidIndex(Index))
+	{
 		return false;
+	}
 
-	if (Values[InIdx] == InVal)
+	if (InValue == GetValueAt(Index))
+	{
 		return false;
+	}
 
-	Values[InIdx] = InVal;
+	Value ^= (1U << Index);
+
 	return true;
 }

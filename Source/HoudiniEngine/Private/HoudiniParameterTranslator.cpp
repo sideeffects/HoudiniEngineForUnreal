@@ -1471,7 +1471,30 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 			if (IsValid(HoudiniParameterButtonStrip)) 
 			{
 				HoudiniParameterButtonStrip->SetValueIndex(ParmInfo.intValuesIndex);
-				HoudiniParameterButtonStrip->Count = ParmInfo.choiceCount;
+
+				// Stop if we don't want to update the value
+				if (bUpdateValue)
+				{
+					if (bHasValidNodeId)
+					{
+						if (FHoudiniApi::GetParmIntValues(
+							FHoudiniEngine::Get().GetSession(), InNodeId,
+							HoudiniParameterButtonStrip->GetValuesPtr(),
+							ParmInfo.intValuesIndex, 1) != HAPI_RESULT_SUCCESS)
+						{
+							return false;
+						}
+					}
+					else if (DefaultIntValues && DefaultIntValues->IsValidIndex(ParmInfo.intValuesIndex))
+					{
+						HoudiniParameterButtonStrip->SetValue(
+							(*DefaultIntValues)[ParmInfo.intValuesIndex]);
+					}
+					else
+					{
+						return false;
+					}
+				}
 			}
 
 			if (bFullUpdate && ParmInfo.choiceCount > 0)
@@ -1503,7 +1526,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 					return false;
 				}
 				
-				HoudiniParameterButtonStrip->InitializeLabels(ParmInfo.choiceCount);
+				HoudiniParameterButtonStrip->SetNumberOfValues(ParmInfo.choiceCount);
 
 				for (int32 ChoiceIdx = 0; ChoiceIdx < ParmChoices.Num(); ++ChoiceIdx)
 				{
@@ -1514,30 +1537,6 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 						if (!HoudiniEngineString.ToFString(*ButtonLabel))
 							return false;
 					}
-				}
-
-				if (bHasValidNodeId)
-				{
-					if (FHoudiniApi::GetParmIntValues(
-						FHoudiniEngine::Get().GetSession(), InNodeId,
-						HoudiniParameterButtonStrip->GetValuesPtr(),
-						ParmInfo.intValuesIndex, ParmInfo.choiceCount) != HAPI_RESULT_SUCCESS)
-					{
-						return false;
-					}
-				}
-				else if (DefaultIntValues && DefaultIntValues->IsValidIndex(ParmInfo.intValuesIndex) &&
-					DefaultIntValues->IsValidIndex(ParmInfo.intValuesIndex + ParmInfo.choiceCount - 1))
-				{
-					for (int32 Index = 0; Index < ParmInfo.choiceCount; ++Index)
-					{
-						HoudiniParameterButtonStrip->SetValueAt(
-							Index, (*DefaultIntValues)[ParmInfo.intValuesIndex + Index]);
-					}
-				}
-				else
-				{
-					return false;
 				}
 			}
 		}
@@ -2823,8 +2822,8 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValues(
 				FHoudiniEngine::Get().GetSession(),
 				ButtonStripParam->GetNodeId(),
-				ButtonStripParam->Values.GetData(),
-				ButtonStripParam->GetValueIndex(), ButtonStripParam->Count), false);
+				ButtonStripParam->GetValuesPtr(),
+				ButtonStripParam->GetValueIndex(), 1), false);
 		}
 		break;
 

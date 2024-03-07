@@ -1389,16 +1389,24 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterButtonS
 		return true;
 	}
 
-	Result &= TestExpressionError(A->Count == B->Count, Header, "Count");
-	Result &= TestExpressionError(A->Labels.Num() == B->Labels.Num(), Header, "Labels.Num");
-	for (int i = 0; i < FMath::Min(A->Labels.Num(), B->Labels.Num()); i++)
+	Result &= TestExpressionError(A->GetNumValues() == B->GetNumValues(), Header, "NumValues");
+	for (uint32 i = 0; i < FMath::Min(A->GetNumValues(), B->GetNumValues()); i++)
 	{
-		Result &= TestExpressionError(A->Labels[i].Equals(B->Labels[i]), Header, "Labels");
+		const FString* LabelA = A->GetStringLabelAt(i);
+		const FString* LabelB = B->GetStringLabelAt(i);
+
+		if (!LabelA || !LabelB)
+		{
+			Result = false;
+			continue;
+		}
+
+		Result &= TestExpressionError(LabelA->Equals(*LabelB), Header, "Labels");
 	}
-	Result &= TestExpressionError(A->Values.Num() == B->Values.Num(), Header, "Values.Num");
-	for (int i = 0; i < FMath::Min(A->Values.Num(), B->Values.Num()); i++)
+
+	for (uint32 i = 0; i < FMath::Min(A->GetNumValues(), B->GetNumValues()); i++)
 	{
-		Result &= TestExpressionError(A->Values[i] == B->Values[i], Header, "Values");
+		Result &= TestExpressionError(A->GetValueAt(i) == B->GetValueAt(i), Header, "Values");
 	}
 
 	return Result;

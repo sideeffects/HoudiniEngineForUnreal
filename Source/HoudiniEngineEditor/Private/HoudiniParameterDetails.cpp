@@ -3644,7 +3644,6 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(
 			LOCTEXT("HoudiniParameterButtonStripChange", "Houdini Parameter Button Strip: Changing value"),
 			MainParam->GetOuter(), true);
 		*/
-		int32 StateInt = NewState == ECheckBoxState::Checked ? 1 : 0;
 		bool bChanged = false;
 
 		for (auto & NextParam : ButtonStripParams)
@@ -3652,11 +3651,7 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(
 			if (!IsValidWeakPointer(NextParam))
 				continue;
 
-			if (!NextParam->Values.IsValidIndex(Idx))
-				continue;
-
-			//NextParam->Modify();
-			if (NextParam->SetValueAt(Idx, StateInt)) 
+			if (NextParam->SetValueAt(NewState == ECheckBoxState::Checked, Idx)) 
 			{
 				NextParam->MarkChanged(true);
 				bChanged = true;
@@ -3675,13 +3670,11 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 	FLinearColor BgColor(0.53f, 0.81f, 0.82f, 1.0f);   // Sky Blue Backgroud color
 
-	for (int32 Idx = 0; Idx < MainParam->Count; ++Idx) 
+	for (uint32 Idx = 0; Idx < MainParam->GetNumValues(); ++Idx) 
 	{
-		if (!MainParam->Values.IsValidIndex(Idx) || !MainParam->Labels.IsValidIndex(Idx))
-			continue;
-
-		bool bPressed = MainParam->Values[Idx] > 0;
-		FText LabelText = FText::FromString(MainParam->Labels[Idx]);
+		bool bPressed = MainParam->GetValueAt(Idx);
+		const FString* LabelString = MainParam->GetStringLabelAt(Idx);
+		FText LabelText = LabelString ? FText::FromString(*LabelString) : FText();
 
 		TSharedPtr<SCheckBox> Button;
 
