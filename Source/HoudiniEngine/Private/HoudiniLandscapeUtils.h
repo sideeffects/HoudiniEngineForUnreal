@@ -266,7 +266,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
     static FHoudiniHeightFieldPartData* GetPartWithHeightData(TMap<FString, FHoudiniHeightFieldPartData*>& Parts);
 
-    static FTransform GetHeightFieldTransformInUnrealSpace(const FHoudiniVolumeInfo& VolumeInfo);
+    static FTransform GetHeightFieldTransformInUnrealSpace(const FHoudiniVolumeInfo& VolumeInfo, const FIntPoint& UnrealDimensions);
 
     static UMaterialInterface* AssignGraphicsMaterialsToLandscape(
 				ALandscapeProxy* LandscapeProxy, 
@@ -290,7 +290,10 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
     static FHoudiniExtents GetExtents(const ALandscape* TargetLandscape, const FHoudiniHeightFieldData& HeightFieldData);
 
-	static FHoudiniHeightFieldData FetchVolumeInUnrealSpace(const FHoudiniGeoPartObject& HeightField, bool bTransposeData);
+	static FHoudiniHeightFieldData FetchVolumeInUnrealSpace(
+			const FHoudiniGeoPartObject& HeightField, 
+            const FIntPoint & UnrealLandscapeDimensions, 
+            bool bTransposeData);
 
     static FIntPoint GetVolumeDimensionsInUnrealSpace(const FHoudiniGeoPartObject& HeightField);
 

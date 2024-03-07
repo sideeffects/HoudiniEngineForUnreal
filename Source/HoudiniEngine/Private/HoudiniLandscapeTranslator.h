@@ -43,7 +43,7 @@ struct FHoudiniUnrealLandscapeTarget;
 
 struct FHoudiniLandscapeCreationInfo
 {
-	FIntPoint UnrealSize;
+	FIntPoint UnrealGridDimensions;
 	int NumSectionsPerComponent = 0;
 	int NumQuadsPerSection = 0;
 	int WorldPartitionGridSize = 4;

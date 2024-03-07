@@ -45,7 +45,7 @@ class UHoudiniAssetComponent;
 //  The tests that end with "ON_FAIL" can be used to specify a statement to be executed on failure,
 //  for example a continue, break or return statement.
 
-#define HOUDINI_TEST_EQUAL(A,B)	TestEqual(#A, A, B)
+#define HOUDINI_TEST_EQUAL(A,...)	TestEqual(#A, A, __VA_ARGS__)
 #define HOUDINI_TEST_EQUAL_ON_FAIL(A,B,_FAIL)	if (!TestEqual(#A, A, B)) _FAIL;
 #define HOUDINI_TEST_NOT_EQUAL(A,B)	TestNotEqual(#A, A, B)
 #define HOUDINI_TEST_NOT_EQUAL_ON_FAIL(A,B,_FAIL)	if (!TestNotEqual(#A, A, B)) _FAIL;
@@ -191,6 +191,11 @@ struct FHoudiniTestContext
 	// Starts cooking the Selected top network in the HDA asynchronously.
 	void StartCookingSelectedTOPNetwork();
 
+	void WaitForTicks(int Count);
+
+	//  Check if the context is valid. This will be false if, for example, the HDA failed to load.
+	bool IsValid();
+
 	// Bakes the top network. Synchronous, returns the baked actors.
 	TArray<FHoudiniEngineBakedActor> BakeSelectedTopNetwork();
 
@@ -204,6 +209,7 @@ struct FHoudiniTestContext
 	bool bPostOutputDelegateCalled = false;
 	bool bPDGCookInProgress = false;
 	bool bPDGPostCookDelegateCalled = false;
+	int WaitTickFrame = 0;
 
 private:
 	FDelegateHandle OutputDelegateHandle;

@@ -272,8 +272,8 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
 
 	Info.NumSectionsPerComponent = 1;
 	Info.NumQuadsPerSection = 1;
-	Info.UnrealSize.X = -1;
-	Info.UnrealSize.Y = -1;
+	Info.UnrealGridDimensions.X = -1;
+	Info.UnrealGridDimensions.Y = -1;
 
 	// Unreal's default sizes
 	int32 SectionSizes[] = { 7, 15, 31, 63, 127, 255 };
@@ -363,8 +363,8 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
 	if (!bFoundMatch)
 	{
 		// Using default size just to not crash..
-		Info.UnrealSize.X = 512;
-		Info.UnrealSize.Y = 512;
+		Info.UnrealGridDimensions.X = 512;
+		Info.UnrealGridDimensions.Y = 512;
 		Info.NumSectionsPerComponent = 1;
 		Info.NumQuadsPerSection = 511;
 		ComponentsCountX = 1;
@@ -375,8 +375,8 @@ FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
 		// Calculating the desired size
 		int32 QuadsPerComponent = Info.NumSectionsPerComponent * Info.NumQuadsPerSection;
 
-		Info.UnrealSize.X = ComponentsCountX * QuadsPerComponent + 1;
-		Info.UnrealSize.Y = ComponentsCountY * QuadsPerComponent + 1;
+		Info.UnrealGridDimensions.X = ComponentsCountX * QuadsPerComponent + 1;
+		Info.UnrealGridDimensions.Y = ComponentsCountY * QuadsPerComponent + 1;
 	}
 
 	return bFoundMatch;
@@ -499,7 +499,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		// up World Partition. 
 		//---------------------------------------------------------------------------------------------------------------------------------
 
-		FTransform LocalHeightFieldTransform = GetHeightFieldTransformInUnrealSpace(PartForSizing->HeightField->VolumeInfo);
+		FTransform LocalHeightFieldTransform = GetHeightFieldTransformInUnrealSpace(PartForSizing->HeightField->VolumeInfo, PartForSizing->SizeInfo.UnrealGridDimensions);
 
 		if (PartForSizing->TileInfo.IsSet())
 		{
@@ -548,7 +548,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		//---------------------------------------------------------------------------------------------------------------------------------
 
 		PartForSizing->CachedData = MakeUnique<FHoudiniHeightFieldData>(
-								FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(*PartForSizing->HeightField, true));
+								FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(*PartForSizing->HeightField, PartForSizing->SizeInfo.UnrealGridDimensions, true));
 
 		FHoudiniLandscapeUtils::AdjustLandscapeTransformToLayerHeight(*LandscapeActor, *PartForSizing, *PartForSizing->CachedData);
 
@@ -578,7 +578,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		Output.BakedName = FName(LandscapeActorName);
 		Output.CreatedLayerInfoObjects = CreateLayerInfoObjects;
 		Output.bWasCreated = true;
-		Output.Dimensions = PartForSizing->SizeInfo.UnrealSize;
+		Output.Dimensions = PartForSizing->SizeInfo.UnrealGridDimensions;
 		Result.TargetLandscapes.Add(Output);
 		Result.CreatedPackages = CreatedPackages;
 	}
@@ -604,7 +604,7 @@ void FHoudiniLandscapeUtils::CreateDefaultHeightField(ALandscape* LandscapeActor
 	// Create an height field of zeros.
 
 	TArray<uint16> Values;
-	int NumPoints = (Info.UnrealSize.X + 1) * (Info.UnrealSize.Y + 1);
+	int NumPoints = (Info.UnrealGridDimensions.X + 1) * (Info.UnrealGridDimensions.Y + 1);
 	Values.SetNumUninitialized(NumPoints);
 	uint16 ZeroHeight = LandscapeDataAccess::GetTexHeight(0.0f);
 	for (int Index = 0; Index < NumPoints; Index++)
@@ -622,7 +622,7 @@ void FHoudiniLandscapeUtils::CreateDefaultHeightField(ALandscape* LandscapeActor
 	// Now call the UE Import() function to actually create the layer
 	LandscapeActor->Import(
 		LandscapeActor->GetLandscapeGuid(),
-		0, 0, Info.UnrealSize.X, Info.UnrealSize.Y,
+		0, 0, Info.UnrealGridDimensions.X, Info.UnrealGridDimensions.Y,
 		Info.NumSectionsPerComponent,
 		Info.NumQuadsPerSection,
 		HeightMapDataPerLayers,
@@ -666,22 +666,22 @@ FHoudiniHeightFieldPartData* FHoudiniLandscapeUtils::GetPartWithHeightData(TMap<
 		return nullptr;
 }
 
-FTransform FHoudiniLandscapeUtils::GetHeightFieldTransformInUnrealSpace(const FHoudiniVolumeInfo& VolumeInfo)
+FTransform FHoudiniLandscapeUtils::GetHeightFieldTransformInUnrealSpace(const FHoudiniVolumeInfo& VolumeInfo, const FIntPoint & UnrealDimensions)
 {
 	FTransform Result;
 	Result.SetIdentity();
 
-
 	Result.SetLocation(VolumeInfo.Transform.GetLocation());
 
 	// Unreal has a X/Y resolution of 1m per point while Houdini is dependent on the height field's grid spacing
-	// Swap Y/Z axis from H to UE. 
-	// NOTE: Ignore vertical scaling intentionally; the height field grid scale is also applied to the volume's scale.y
-	// received from HAPI, however the actual height values do not change. So we can ignore it.
+	// Swap Y/Z axis from H to UE. We must also take into account that the landscape may have been resized.
 
 	FVector LandscapeScale;
-	LandscapeScale.X = VolumeInfo.Transform.GetScale3D().X * 2.0f;
-	LandscapeScale.Y = VolumeInfo.Transform.GetScale3D().Z * 2.0f;
+	LandscapeScale.X = VolumeInfo.Transform.GetScale3D().X * 2.0f * (VolumeInfo.YLength - 1) / (UnrealDimensions.X - 1);
+	LandscapeScale.Y = VolumeInfo.Transform.GetScale3D().Z * 2.0f * (VolumeInfo.XLength - 1) / (UnrealDimensions.Y - 1);
+
+	// NOTE: Ignore vertical scaling intentionally; the height field grid scale is also applied to the volume's scale.y
+	// received from HAPI, however the actual height values do not change. So we can ignore it.
 	LandscapeScale.Z = 1.0f;
 	LandscapeScale *= 100.0f;
 
@@ -696,6 +696,7 @@ FTransform FHoudiniLandscapeUtils::GetHeightFieldTransformInUnrealSpace(const FH
 	// Only rotate if the rotator is far from zero
 	if (!Rotator.IsNearlyZero())
 		Result.SetRotation(FQuat(Rotator));
+
 	return Result;
 
 }
@@ -968,11 +969,14 @@ FHoudiniLandscapeUtils::GetVolumeDimensionsInUnrealSpace(const FHoudiniGeoPartOb
 	return Dimension;
 }
 
-FHoudiniHeightFieldData FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(const FHoudiniGeoPartObject& HeightField, bool bTansposeData)
+FHoudiniHeightFieldData FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(
+	const FHoudiniGeoPartObject& HeightField, 
+	const FIntPoint& UnrealLandscapeDimensions, 
+	bool bTansposeData)
 {
 	FHoudiniHeightFieldData Result;
-	Result.Transform = GetHeightFieldTransformInUnrealSpace(HeightField.VolumeInfo);
 	Result.Dimensions = GetVolumeDimensionsInUnrealSpace(HeightField);
+	Result.Transform = GetHeightFieldTransformInUnrealSpace(HeightField.VolumeInfo, UnrealLandscapeDimensions);
 
 	TArray<float> HoudiniValues;
 	HoudiniValues.SetNumZeroed(Result.GetNumPoints());
