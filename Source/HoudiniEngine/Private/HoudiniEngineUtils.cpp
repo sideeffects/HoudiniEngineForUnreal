@@ -3259,7 +3259,8 @@ void FHoudiniEngineUtils::UpdateBlueprintEditor(UHoudiniAssetComponent* HAC)
 void
 FHoudiniEngineUtils::UpdateEditorProperties_Internal(const bool bInForceFullUpdate)
 {
-#if WITH_EDITOR	
+#if WITH_EDITOR
+#define HOUDINI_USE_DETAILS_FOCUS_HACK 0
 
 	// TODO: As an optimization, it might be worth adding an extra parameter to control if we 
 	// update floating property windows. We need to do this whenever we update something visible in
@@ -3272,7 +3273,7 @@ FHoudiniEngineUtils::UpdateEditorProperties_Internal(const bool bInForceFullUpda
 	if (!bInForceFullUpdate)
 	{
 		// bNeedFullUpdate is false only when small changes (parameters value) have been made
-		// We do not reselect the actor to avoid loosing the currently selected parameter
+		// We do not refresh the details view to avoid loosing the currently selected parameter
 		return;
 	}
 
@@ -3304,11 +3305,136 @@ FHoudiniEngineUtils::UpdateEditorProperties_Internal(const bool bInForceFullUpda
 			continue;
 		}
 
+#if HOUDINI_USE_DETAILS_FOCUS_HACK
+		//
+		// Unreal does not maintain focus on the currently focused widget after refreshing the 
+		// details view. Since we are constantly refreshing the details view when tweaking 
+		// parameters, users cannot navigate the UI via keyboard.
+		//
+		// HACK: Attach meta data to parameter widgets to make them identifiable. Before triggering
+		//       a refresh, save the meta data of the currently focused widget. Then restore focus
+		//       on the newly created widget using this meta data.
+		//
+
+		TSharedPtr<FHoudiniParameterWidgetMetaData> ParameterWidgetMetaData = 
+			GetFocusedParameterWidgetMetaData(DetailsView);
+#endif // HOUDINI_USE_DETAILS_FOCUS_HACK
+
 		DetailsView->ForceRefresh();
+
+#if HOUDINI_USE_DETAILS_FOCUS_HACK
+		if (ParameterWidgetMetaData.IsValid())
+		{
+			FocusUsingParameterWidgetMetaData(
+				DetailsView.ToSharedRef(),
+				*ParameterWidgetMetaData);
+		}
+#endif // HOUDINI_USE_DETAILS_FOCUS_HACK
 	}
-#endif
+#endif // WITH_EDITOR
 }
 
+TSharedPtr<FHoudiniParameterWidgetMetaData> 
+FHoudiniEngineUtils::GetFocusedParameterWidgetMetaData(TSharedPtr<IDetailsView> DetailsView)
+{
+#if WITH_EDITOR
+	if (!DetailsView.IsValid())
+	{
+		return nullptr;
+	}
+
+	TSharedPtr<SWidget> FocusedWidget = FSlateApplication::Get().GetKeyboardFocusedWidget();
+
+	if (FocusedWidget.IsValid())
+	{
+		// Before we grab the meta data of the focused widget, we want to make sure that it is
+		// inside our details view. To do this, check if any of its ancestors are the current
+		// details view.
+		for (auto Widget = FocusedWidget; Widget.IsValid(); Widget = Widget->GetParentWidget())
+		{
+			if (Widget == DetailsView)
+			{
+				return FocusedWidget->GetMetaData<FHoudiniParameterWidgetMetaData>();
+			}
+		}
+	}
+#endif // WITH_EDITOR
+
+	return nullptr;
+}
+
+bool 
+FHoudiniEngineUtils::FocusUsingParameterWidgetMetaData(
+	TSharedRef<SWidget> AncestorWidget, 
+	const FHoudiniParameterWidgetMetaData& ParameterWidgetMetaData)
+{
+#if WITH_EDITOR
+	//
+	// HACK: Manually tick the widget before accessing its children. We need to do this because
+	//       refreshing a details view will only mark the child detail tree as dirty, without
+	//       actually adding the newly created widgets as children.
+	//
+	//       - See SDetailsViewBase::RefreshTree which requests the refresh.
+	//       - See STableViewBase::Tick which actually does the refresh.
+	//
+	//       As a result, Slate cannot construct a path to the new widgets we wish to focus, since
+	//       before the tick, the widgets in our detail rows do not have a parent.
+	//
+	//       Unfortunately there doesn't seem to be a way to subscribe to a "post tick" event in
+	//       Slate, so we resort to manually ticking these widgets.
+	//
+	//       We could also manually tick the entire Slate application, however we cannot control the
+	//       delta time this way and this introduces a delay before the new widget is re-focused.
+	//
+	//       We use cached widget geometry with the hope that it is correct.
+	//
+	AncestorWidget->Tick(AncestorWidget->GetTickSpaceGeometry(), 0.f, 0.f);
+
+	// Important: We use GetAllChildren and not GetChildren. 
+	// Widgets might choose to not expose some of their children via GetChildren.
+	FChildren* const Children = AncestorWidget->GetAllChildren();
+
+	for (int32 i = 0; i < Children->Num(); ++i)
+	{
+		const TSharedRef<SWidget> Child = Children->GetChildAt(i);
+		const TSharedPtr ChildMetaData = Child->GetMetaData<FHoudiniParameterWidgetMetaData>();
+
+		if (ChildMetaData.IsValid() && ParameterWidgetMetaData == *ChildMetaData)
+		{
+			TSharedPtr<SWidget> WidgetToSelect = Child;
+
+			//
+			// Try focus the desired widget.
+			// - If this fails, it is possible that Slate cannot construct a path to it.
+			// - However, usually the parent can be focused. 
+			// - Thus we go over all ancestors to try focus them.
+			//
+			// TODO: Explore the possibility of constructing the path to the widget manually.
+			//       Maybe this would allow focusing widgets that currently cannot not be focused.
+			//
+			while (WidgetToSelect.IsValid())
+			{
+				if (FSlateApplication::Get().SetKeyboardFocus(WidgetToSelect))
+				{
+					return true;
+				}
+
+				WidgetToSelect = Child->GetParentWidget();
+			}
+
+			return false; // Failed to reselect keyboard focused widget!
+
+		}
+
+		if (FocusUsingParameterWidgetMetaData(Child, ParameterWidgetMetaData))
+		{
+			return true;
+		}
+	}
+#endif // WITH_EDITOR
+
+	return false;
+}
 
 void
 FHoudiniEngineUtils::UpdateBlueprintEditor_Internal(UHoudiniAssetComponent* HAC)
@@ -3331,7 +3457,6 @@ FHoudiniEngineUtils::UpdateBlueprintEditor_Internal(UHoudiniAssetComponent* HAC)
 			
 	// Also somehow reselect ?
 }
-
 
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeFloatData(

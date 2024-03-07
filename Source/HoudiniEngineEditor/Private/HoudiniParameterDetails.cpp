@@ -1876,30 +1876,32 @@ FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCate
 		CurrentRampColor = nullptr;
 	}
 
+	TArray<FDetailWidgetRow*> Rows;
+
 	switch (InParam->GetParameterType())
 	{
 		case EHoudiniParameterType::Float:
 		{				
-			CreateWidgetFloat(HouParameterCategory, InParams);
+			CreateWidgetFloat(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
 		case EHoudiniParameterType::Int:
 		{
-			CreateWidgetInt(HouParameterCategory, InParams);
+			CreateWidgetInt(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
 		case EHoudiniParameterType::String:
 		{
-			CreateWidgetString(HouParameterCategory, InParams);
+			CreateWidgetString(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
 		case EHoudiniParameterType::IntChoice:
 		case EHoudiniParameterType::StringChoice:
 		{
-			CreateWidgetChoice(HouParameterCategory, InParams);
+			CreateWidgetChoice(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
@@ -1909,38 +1911,38 @@ FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCate
 			if (CastParameters<UHoudiniParameterSeparator>(InParams, SepParams))
 			{
 				bool bEnabled = InParams.IsValidIndex(0) ? !SepParams[0]->IsDisabled() : true;
-				CreateWidgetSeparator(HouParameterCategory, InParams, bEnabled);
+				CreateWidgetSeparator(HouParameterCategory, InParams, bEnabled, Rows);
 			}
 		}
 		break;
 
 		case EHoudiniParameterType::Color:
 		{
-			CreateWidgetColor(HouParameterCategory, InParams);	
+			CreateWidgetColor(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
 		case EHoudiniParameterType::Button:
 		{
-			CreateWidgetButton(HouParameterCategory, InParams);
+			CreateWidgetButton(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
 		case EHoudiniParameterType::ButtonStrip:
 		{
-			CreateWidgetButtonStrip(HouParameterCategory, InParams);
+			CreateWidgetButtonStrip(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
 		case EHoudiniParameterType::Label:
 		{
-			CreateWidgetLabel(HouParameterCategory, InParams);
+			CreateWidgetLabel(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
 		case EHoudiniParameterType::Toggle:
 		{
-			CreateWidgetToggle(HouParameterCategory, InParams);
+			CreateWidgetToggle(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
@@ -1949,43 +1951,43 @@ FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCate
 		case EHoudiniParameterType::FileGeo:
 		case EHoudiniParameterType::FileImage:
 		{
-			CreateWidgetFile(HouParameterCategory, InParams);
+			CreateWidgetFile(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
-		case EHoudiniParameterType::FolderList: 
-		{	
-			CreateWidgetFolderList(HouParameterCategory, InParams);
-		}
-		break;
-
-		case EHoudiniParameterType::Folder: 
+		case EHoudiniParameterType::FolderList:
 		{
-			CreateWidgetFolder(HouParameterCategory, InParams);
+			CreateWidgetFolderList(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
-		case EHoudiniParameterType::MultiParm: 
+		case EHoudiniParameterType::Folder:
 		{
-			CreateWidgetMultiParm(HouParameterCategory, InParams);
+			CreateWidgetFolder(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
-		case EHoudiniParameterType::FloatRamp: 
+		case EHoudiniParameterType::MultiParm:
 		{
-			CreateWidgetFloatRamp(HouParameterCategory, InParams);
+			CreateWidgetMultiParm(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
-		case EHoudiniParameterType::ColorRamp: 
+		case EHoudiniParameterType::FloatRamp:
 		{
-			CreateWidgetColorRamp(HouParameterCategory, InParams);
+			CreateWidgetFloatRamp(HouParameterCategory, InParams, Rows);
+		}
+		break;
+
+		case EHoudiniParameterType::ColorRamp:
+		{
+			CreateWidgetColorRamp(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
 		case EHoudiniParameterType::Input:
 		{
-			CreateWidgetOperatorPath(HouParameterCategory, InParams);
+			CreateWidgetOperatorPath(HouParameterCategory, InParams, Rows);
 		}
 		break;
 
@@ -2001,10 +2003,30 @@ FHoudiniParameterDetails::CreateWidget(IDetailCategoryBuilder & HouParameterCate
 		}
 		break;
 	}
+	
+	uint32 MetaDataIndex = 0;
+	for (FDetailWidgetRow* const Row : Rows)
+	{
+		if (!Row)
+		{
+			continue;
+		}
+
+		// Add meta data to all possible slots in the row
+		const TSharedRef<SWidget> Widgets[] = {
+			Row->ExtensionWidget.Widget,
+			Row->NameWidget.Widget,
+			Row->WholeRowWidget.Widget,
+			Row->ValueWidget.Widget };
+
+		for (auto Widget : Widgets)
+		{
+			AddMetaDataToAllDescendants(Widget, InParam->GetParameterName(), MetaDataIndex);
+		}
+	}
 
 	// Remove a divider lines recurrsively if current parameter hits the end of a tabs
 	RemoveTabDividers(HouParameterCategory, InParam);
-
 }
 
 void 
@@ -2471,7 +2493,8 @@ FHoudiniParameterDetails::HandleUnsupportedParmType(IDetailCategoryBuilder & Hou
 void
 FHoudiniParameterDetails::CreateWidgetFloat(
 	IDetailCategoryBuilder & HouParameterCategory,
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams )
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterFloat>> FloatParams;
 	if (!CastParameters<UHoudiniParameterFloat>(InParams, FloatParams))
@@ -2824,10 +2847,15 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 
 	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
+
+	OutRows.Add(Row);
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
+FHoudiniParameterDetails::CreateWidgetInt(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterInt>> IntParams;
 	if (!CastParameters<UHoudiniParameterInt>(InParams, IntParams))
@@ -3016,10 +3044,14 @@ FHoudiniParameterDetails::CreateWidgetInt(IDetailCategoryBuilder & HouParameterC
 	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
 
+	OutRows.Add(Row);
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
+FHoudiniParameterDetails::CreateWidgetString(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterString>> StringParams;
 	if (!CastParameters<UHoudiniParameterString>(InParams, StringParams))
@@ -3426,10 +3458,14 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
 
+	OutRows.Add(Row);
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetColor(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
+FHoudiniParameterDetails::CreateWidgetColor(
+	IDetailCategoryBuilder & HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterColor>> ColorParams;
 	if (!CastParameters<UHoudiniParameterColor>(InParams, ColorParams))
@@ -3508,10 +3544,15 @@ FHoudiniParameterDetails::CreateWidgetColor(IDetailCategoryBuilder & HouParamete
 	Row->ValueWidget.Widget = VerticalBox;
 	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
+
+	OutRows.Add(Row);
 }
 
-void 
-FHoudiniParameterDetails::CreateWidgetButton(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
+void
+FHoudiniParameterDetails::CreateWidgetButton(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows) 
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterButton>> ButtonParams;
 	if (!CastParameters<UHoudiniParameterButton>(InParams, ButtonParams))
@@ -3565,10 +3606,14 @@ FHoudiniParameterDetails::CreateWidgetButton(IDetailCategoryBuilder & HouParamet
 	Row->ValueWidget.Widget = HorizontalBox;
 	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
+
+	OutRows.Add(Row);
 }
 
-void 
-FHoudiniParameterDetails::CreateWidgetButtonStrip(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
+void
+FHoudiniParameterDetails::CreateWidgetButtonStrip(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,TArray<FDetailWidgetRow*>& OutRows)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterButtonStrip>> ButtonStripParams;
 	if (!CastParameters<UHoudiniParameterButtonStrip>(InParams, ButtonStripParams))
@@ -3664,10 +3709,15 @@ FHoudiniParameterDetails::CreateWidgetButtonStrip(IDetailCategoryBuilder & HouPa
 	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 	Row->ValueWidget.MaxDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
+
+	OutRows.Add(Row);
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetLabel(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
+FHoudiniParameterDetails::CreateWidgetLabel(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows) 
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterLabel>> LabelParams;
 	if (!CastParameters<UHoudiniParameterLabel>(InParams, LabelParams))
@@ -3708,10 +3758,15 @@ FHoudiniParameterDetails::CreateWidgetLabel(IDetailCategoryBuilder & HouParamete
 	Row->ValueWidget.Widget = VerticalBox;
 	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
+
+	OutRows.Add(Row);
 }
 
-void 
-FHoudiniParameterDetails::CreateWidgetToggle(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
+void
+FHoudiniParameterDetails::CreateWidgetToggle(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows) 
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterToggle>> ToggleParams;
 	if (!CastParameters<UHoudiniParameterToggle>(InParams, ToggleParams))
@@ -3814,9 +3869,14 @@ FHoudiniParameterDetails::CreateWidgetToggle(IDetailCategoryBuilder & HouParamet
 	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
 
+	OutRows.Add(Row);
 }
 
-void FHoudiniParameterDetails::CreateWidgetFile(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
+void
+FHoudiniParameterDetails::CreateWidgetFile(
+	IDetailCategoryBuilder & HouParameterCategory, 
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows) 
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterFile>> FileParams;
 	if (!CastParameters<UHoudiniParameterFile>(InParams, FileParams))
@@ -3968,11 +4028,16 @@ void FHoudiniParameterDetails::CreateWidgetFile(IDetailCategoryBuilder & HouPara
 	Row->ValueWidget.Widget = VerticalBox;
 	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
+
+	OutRows.Add(Row);
 }
 
 
 void
-FHoudiniParameterDetails::CreateWidgetChoice(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
+FHoudiniParameterDetails::CreateWidgetChoice(
+	IDetailCategoryBuilder & HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterChoice>> ChoiceParams;
 	if (!CastParameters<UHoudiniParameterChoice>(InParams, ChoiceParams))
@@ -4069,10 +4134,15 @@ FHoudiniParameterDetails::CreateWidgetChoice(IDetailCategoryBuilder & HouParamet
 	Row->ValueWidget.MinDesiredWidth( HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH );
 	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
 
+	OutRows.Add(Row);
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetSeparator(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, const bool& InIsEnabled)
+FHoudiniParameterDetails::CreateWidgetSeparator(
+	IDetailCategoryBuilder & HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	const bool bInIsEnabled,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
 	if (InParams.Num() <= 0)
 		return;
@@ -4093,10 +4163,15 @@ FHoudiniParameterDetails::CreateWidgetSeparator(IDetailCategoryBuilder & HouPara
 	HorizontalBox->SetHoudiniParameter(InParams);
 
 	Row->WholeRowWidget.Widget = HorizontalBox;
+
+	OutRows.Add(Row);
 }
 
-void 
-FHoudiniParameterDetails::CreateWidgetOperatorPath(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams) 
+void
+FHoudiniParameterDetails::CreateWidgetOperatorPath(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows) 
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterOperatorPath>> OperatorPathParams;
 	if (!CastParameters<UHoudiniParameterOperatorPath>(InParams, OperatorPathParams))
@@ -4142,10 +4217,15 @@ FHoudiniParameterDetails::CreateWidgetOperatorPath(IDetailCategoryBuilder & HouP
 	FHoudiniInputDetails::CreateWidget(HouParameterCategory, EditedInputs, Row);
 
 	Row->ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
+
+	OutRows.Add(Row);
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetFloatRamp(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams) 
+FHoudiniParameterDetails::CreateWidgetFloatRamp(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows) 
 {
 	if (InParams.Num() < 1)
 		return;
@@ -4311,12 +4391,17 @@ FHoudiniParameterDetails::CreateWidgetFloatRamp(IDetailCategoryBuilder & HouPara
 			FDetailWidgetRow *Row = CreateWidgetRampCurveEditor(HouParameterCategory, InParams);
 			CreateWidgetRampPoints(HouParameterCategory, Row, FloatRampParameter, InParams);
 			//FloatRampParameter->SetDefaultValues();
+
+			OutRows.Add(Row);
 		}
 	}
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetColorRamp(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
+FHoudiniParameterDetails::CreateWidgetColorRamp(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
 	if (InParams.Num() < 1)
 		return;
@@ -4469,6 +4554,8 @@ FHoudiniParameterDetails::CreateWidgetColorRamp(IDetailCategoryBuilder & HouPara
 			FDetailWidgetRow *Row = CreateWidgetRampCurveEditor(HouParameterCategory, InParams);
 			CreateWidgetRampPoints(HouParameterCategory, Row, RampColor, InParams);
 			//RampColor->SetDefaultValues();
+
+			OutRows.Add(Row);
 		}
 	}
 
@@ -4626,7 +4713,7 @@ FHoudiniParameterDetails::CreateWidgetRampCurveEditor(IDetailCategoryBuilder & H
 }
 
 
-void 
+void
 FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& CategoryBuilder, FDetailWidgetRow* Row, UHoudiniParameter* InParameter, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
 {
 	if (!Row || !InParameter)
@@ -5685,7 +5772,10 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 }
 
 void 
-FHoudiniParameterDetails::CreateWidgetFolderList(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
+FHoudiniParameterDetails::CreateWidgetFolderList(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterFolderList>> FolderListParams;
 	if (!CastParameters<UHoudiniParameterFolderList>(InParams, FolderListParams))
@@ -5728,6 +5818,7 @@ FHoudiniParameterDetails::CreateWidgetFolderList(IDetailCategoryBuilder & HouPar
 		// ( CreateWidgetTab will be responsible to create a row according to the visibility of its outer level folders )
 		FDetailWidgetRow* TabRow = CreateNestedRow(HouParameterCategory, InParams, false);
 		
+		OutRows.Add(TabRow);
 	}
 
 	// When see a folder list, go depth first search at this step.
@@ -5737,7 +5828,10 @@ FHoudiniParameterDetails::CreateWidgetFolderList(IDetailCategoryBuilder & HouPar
 
 
 void
-FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
+FHoudiniParameterDetails::CreateWidgetFolder(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterFolder>> FolderParams;
 	if (!CastParameters<UHoudiniParameterFolder>(InParams, FolderParams))
@@ -5771,7 +5865,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 					ParentFolderQueue[0]->GetChildCounter() -= 1;
 			}
 
-			CreateWidgetTabUIElements(HouParameterCategory, MainParam);
+			CreateWidgetTabUIElements(HouParameterCategory, MainParam, OutRows);
 
 			PruneStack();
 
@@ -5830,12 +5924,14 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 			{
 				FDetailWidgetRow* FolderHeaderRow = CreateNestedRow(HouParameterCategory, InParams, false);
 				CreateFolderHeaderUI(HouParameterCategory, FolderHeaderRow, InParams);
+
+				OutRows.Add(FolderHeaderRow);
 			}
 		}
 		// Case 1-2: The folder IS tabs.
 		else 
 		{
-			CreateWidgetTab(HouParameterCategory, MainParam, ParentMultiParm->IsShown());
+			CreateWidgetTab(HouParameterCategory, MainParam, ParentMultiParm->IsShown(), OutRows);
 		}
 
 		// Push the folder to the queue if it is not a tab folder
@@ -5877,6 +5973,8 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 					// Add the folder header UI.
 					FDetailWidgetRow* FolderHeaderRow = CreateNestedRow(HouParameterCategory, InParams, false);
 					CreateFolderHeaderUI(HouParameterCategory, FolderHeaderRow, InParams);
+
+					OutRows.Add(FolderHeaderRow);
 				}
 
 				MainParam->SetIsContentShown(bExpanded);
@@ -5887,7 +5985,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 			{
 				bExpanded &= MainParam->IsChosen();
 
-				CreateWidgetTab(HouParameterCategory, MainParam, ParentFolderVisible);
+				CreateWidgetTab(HouParameterCategory, MainParam, ParentFolderVisible, OutRows);
 			}
 		}
 		// Case 2-2: The folder is in the root.
@@ -5904,6 +6002,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 				// Create Folder header under root.
 				FDetailWidgetRow* FolderRow = CreateNestedRow(HouParameterCategory, InParams, false);
 				CreateFolderHeaderUI(HouParameterCategory, FolderRow, InParams);
+				OutRows.Add(FolderRow);
 
 				if (FolderStack.Num() == 0) // This should not happen
 					return;
@@ -5917,7 +6016,7 @@ FHoudiniParameterDetails::CreateWidgetFolder(IDetailCategoryBuilder & HouParamet
 			else
 			{
 				// Tabs in root is always visible
-				CreateWidgetTab(HouParameterCategory, MainParam, true); 
+				CreateWidgetTab(HouParameterCategory, MainParam, true, OutRows); 
 			}
 		}	
 	}
@@ -6000,8 +6099,6 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(IDetailCategoryBuilder& HouParame
 			
 			FHoudiniEngineUtils::UpdateEditorProperties(true);
 
-			HouParameterCategory.GetParentLayout().ForceRefreshDetails();
-
 			return FReply::Handled();
 		})
 		[
@@ -6053,7 +6150,11 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(IDetailCategoryBuilder& HouParame
 
 }
 
-void FHoudiniParameterDetails::CreateWidgetTabUIElements(IDetailCategoryBuilder& HouParameterCategory, const TWeakObjectPtr<UHoudiniParameterFolder>& InFolder)
+void
+FHoudiniParameterDetails::CreateWidgetTabUIElements(
+	IDetailCategoryBuilder& HouParameterCategory, 
+	const TWeakObjectPtr<UHoudiniParameterFolder>& InFolder,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
 	UHoudiniParameterFolder* const Folder = InFolder.Get();
 	TArray<UHoudiniParameterFolder*>& FolderQueue = FolderStack.Last();
@@ -6115,7 +6216,7 @@ void FHoudiniParameterDetails::CreateWidgetTabUIElements(IDetailCategoryBuilder&
 						NextFolder->SetChosen(false);
 				}
 
-				HouParameterCategory.GetParentLayout().ForceRefreshDetails();
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 			}
 
 			return FReply::Handled();
@@ -6136,11 +6237,11 @@ void FHoudiniParameterDetails::CreateWidgetTabUIElements(IDetailCategoryBuilder&
 			[
 				SAssignNew(CurCustomizedButton, SCustomizedButton)
 				.OnClicked_Lambda(OnTabClickedLambda)
-			.Content()
-			[
-				SNew(STextBlock)
-				.Text(FText::FromString(FolderLabelString))
-			]
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(FolderLabelString))
+				]
 			];
 
 		CurCustomizedButton->bChosen = bChosen;
@@ -6159,9 +6260,15 @@ void FHoudiniParameterDetails::CreateWidgetTabUIElements(IDetailCategoryBuilder&
 
 	// Clear the temporary tabs
 	CurrentTabs.Empty();
+
+	OutRows.Add(&Row);
 }
 
-void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParameterCategory, const TWeakObjectPtr<UHoudiniParameterFolder>& InFolder, const bool& bIsShown)
+void FHoudiniParameterDetails::CreateWidgetTab(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TWeakObjectPtr<UHoudiniParameterFolder>& InFolder,
+	const bool bIsShown,
+	TArray<FDetailWidgetRow*>& OutRows)
 {
 	if (!InFolder.IsValid() || !CurrentFolderList)
 		return;
@@ -6189,11 +6296,14 @@ void FHoudiniParameterDetails::CreateWidgetTab(IDetailCategoryBuilder & HouParam
 	if (CurrentFolderListSize > 1)
 		return;
 
-	CreateWidgetTabUIElements(HouParameterCategory, InFolder);
+	CreateWidgetTabUIElements(HouParameterCategory, InFolder, OutRows);
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetMultiParm(IDetailCategoryBuilder & HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams) 
+FHoudiniParameterDetails::CreateWidgetMultiParm(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<FDetailWidgetRow*>& OutRows) 
 {
 	TArray<TWeakObjectPtr<UHoudiniParameterMultiParm>> MultiParmParams;
 	if (!CastParameters<UHoudiniParameterMultiParm>(InParams, MultiParmParams))
@@ -6366,6 +6476,8 @@ FHoudiniParameterDetails::CreateWidgetMultiParm(IDetailCategoryBuilder & HouPara
 
 	Row->ValueWidget.Widget = HorizontalBox;
 	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
+
+	OutRows.Add(Row);
 }
 
 void
@@ -7506,6 +7618,25 @@ FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameter
 				}
 			}
 		}
+	}
+}
+
+void FHoudiniParameterDetails::AddMetaDataToAllDescendants(const TSharedRef<SWidget> AncestorWidget, const FString& UniqueName, uint32& Index)
+{
+	// Important: We use GetAllChildren and not GetChildren. 
+	// Widgets might choose to not expose some of their children via GetChildren.
+	FChildren* const Children = AncestorWidget->GetAllChildren();
+
+	if (!Children)
+	{
+		return;
+	}
+
+	for (int32 i = 0; i < Children->Num(); ++i)
+	{
+		const TSharedRef<SWidget> Child = Children->GetChildAt(i);
+		AddMetaDataToAllDescendants(Child, UniqueName, Index);
+		Child->AddMetadata(MakeShared<FHoudiniParameterWidgetMetaData>(UniqueName, Index++));
 	}
 }
 

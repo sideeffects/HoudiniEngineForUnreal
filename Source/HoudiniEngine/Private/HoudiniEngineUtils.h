@@ -53,6 +53,26 @@ enum class EHoudiniCurveType : int8;
 enum class EHoudiniCurveMethod : int8;
 enum class EHoudiniInstancerType : uint8;
 
+class FHoudiniParameterWidgetMetaData : public ISlateMetaData
+{
+public:
+	SLATE_METADATA_TYPE(FHoudiniParameterWidgetMetaData, ISlateMetaData)
+
+	FHoudiniParameterWidgetMetaData(const FString& UniqueName, const uint32 Index)
+		: UniqueName(UniqueName)
+		, Index(Index)
+	{
+	}
+
+	bool operator==(const FHoudiniParameterWidgetMetaData& Other) const
+	{
+		return UniqueName == Other.UniqueName && Index == Other.Index;
+	}
+
+	const FString UniqueName;
+	const uint32 Index;
+};
+
 struct HOUDINIENGINE_API FHoudiniEngineUtils
 {
 	friend struct FUnrealMeshTranslator;
@@ -1288,5 +1308,33 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// Trigger an update of the Blueprint Editor on the game thread
 		static void UpdateBlueprintEditor_Internal(UHoudiniAssetComponent* HAC);
+
+	private:
+
+		/** 
+		 * Gets FHoudiniParameterWidgetMetaData from focused widget if it exists and has DetailsView
+		 * as a parent.
+		 *
+		 * @see UpdateEditorProperties_Internal
+		 * @see FocusUsingParameterWidgetMetaData
+		 */
+		static TSharedPtr<FHoudiniParameterWidgetMetaData> GetFocusedParameterWidgetMetaData(
+			TSharedPtr<IDetailsView> DetailsView);
+
+		/**
+		 * Sets user focus on a descendant widget that has matching parameter widget metadata.
+		 *
+		 * This is used for a hack needed to maintain user focus on parameter widgets after the
+		 * Details panel is forcibly refreshed.
+		 *
+		 * @param AncestorWidget All descendant widgets will be searched for matching metadata.
+		 * @param ParameterWidgetMetaData Should be unique to the widget which we want to select.
+		 * @return true if a widget was successfully selected, false otherwise.
+		 *
+		 * @see UpdateEditorProperties_Internal
+		 */
+		static bool FocusUsingParameterWidgetMetaData(
+			TSharedRef<SWidget> AncestorWidget,
+			const FHoudiniParameterWidgetMetaData& ParameterWidgetMetaData);
 };
 
