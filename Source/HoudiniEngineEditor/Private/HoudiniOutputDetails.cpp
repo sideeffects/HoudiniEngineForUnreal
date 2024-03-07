@@ -313,7 +313,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 				if (InOutput.IsValid())
 				{
 					FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
-					FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+					FHoudiniEngineUtils::UpdateEditorProperties(true);
 				}
 			})
 		]
@@ -466,7 +466,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 							}
 
 							if (InOutput.IsValid())
-								FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+								FHoudiniEngineUtils::UpdateEditorProperties(true);
 						})
 					[
 						SNew(STextBlock)
@@ -1464,7 +1464,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 				if (InOutput.IsValid())
 				{
 					FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
-					FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+					FHoudiniEngineUtils::UpdateEditorProperties(true);
 				}
 			})
 		]
@@ -1591,7 +1591,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 				}
 
 				FHoudiniEngineEditorUtils::ReselectSelectedActors();
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 			}
 			else if (*NewChoiceStr == "Curve")
 			{
@@ -1606,7 +1606,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 				}
 
 				FHoudiniEngineEditorUtils::ReselectSelectedActors();
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 			}
 		})
 		[
@@ -1643,7 +1643,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 				FHoudiniEngineEditorUtils::ReselectSelectedActors();
 
 				if (InOutput.IsValid())
-					FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+					FHoudiniEngineUtils::UpdateEditorProperties(true);
 			})
 			.IsChecked_Lambda([UnrealSpline]()
 			{
@@ -1872,7 +1872,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 					return;
 
 				FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 			})
 			.ToolTipText( LOCTEXT( "BakeNameTip", "The base name of the baked asset") )
 		]
@@ -1890,7 +1890,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 			.OnClicked_Lambda([InOutput, OutputIdentifier]() 
 			{
 				FHoudiniOutputDetails::OnRevertBakeNameToDefault(InOutput, OutputIdentifier);
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 				return FReply::Handled();
 			})
 			[
@@ -2291,7 +2291,7 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 			.OnTextCommitted_Lambda([OutputIdentifier, InOutput](const FText& Val, ETextCommit::Type TextCommitType)
 			{
 				FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 			})
 			.ToolTipText(LOCTEXT("BakeNameTip", "The base name of the baked asset"))
 		]
@@ -2308,7 +2308,7 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 			.OnClicked_Lambda([InOutput, OutputIdentifier]()
 			{
 				FHoudiniOutputDetails::OnRevertBakeNameToDefault(InOutput, OutputIdentifier);
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 				return FReply::Handled();
 			})
 			[
@@ -2819,7 +2819,7 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 		}
 	}
 
-	FHoudiniEngineUtils::UpdateEditorProperties(HoudiniOutput->GetOuter(), true);
+	FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 	if (GEditor)
 		GEditor->RedrawAllViewports();
@@ -2894,7 +2894,7 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 	}
 	*/
 
-	FHoudiniEngineUtils::UpdateEditorProperties(InHoudiniOutput->GetOuter(), true);
+	FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 	if (GEditor)
 		GEditor->RedrawAllViewports();
@@ -3153,7 +3153,7 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 		}
 	}
 
-	FHoudiniEngineUtils::UpdateEditorProperties(HoudiniOutput->GetOuter(), true);
+	FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 	/*
 	if(GUnrealEd)
@@ -3278,7 +3278,7 @@ FHoudiniOutputDetails::OnMaterialInterfaceDropped(
 	}
 	*/
 
-	FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+	FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 	if (GEditor)
 		GEditor->RedrawAllViewports();
@@ -3427,7 +3427,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 		InOutputToUpdate.MarkChanged(true);
 
 		if (InOutput.IsValid())
-			FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+			FHoudiniEngineUtils::UpdateEditorProperties(true);
 	};
 
 	// Lambda for adding new geometry input objects
@@ -3448,7 +3448,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 		InOutputToUpdate.MarkChanged(true);
 
 		if (InOutput.IsValid())
-			FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+			FHoudiniEngineUtils::UpdateEditorProperties(true);
 	};
 
 	// Lambda for updating a variation
@@ -3462,7 +3462,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 		InOutputToUpdate.MarkChanged(true);
 
 		if (InOutput.IsValid())
-			FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+			FHoudiniEngineUtils::UpdateEditorProperties(true);
 	};
 
 	// Lambda for changing the transform offset values
@@ -3480,7 +3480,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 			GEditor->RedrawAllViewports();
 
 		if (InOutput.IsValid())
-			FHoudiniEngineUtils::UpdateEditorProperties(InOutput.Get(), true);
+			FHoudiniEngineUtils::UpdateEditorProperties(true);
 	};
 
 	// Get this output's OutputObject
@@ -3917,7 +3917,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 							.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, CurInstanceOutput, InOutput]()
 							{
 								ChangeTransformOffsetUniformlyAt(0.0f, 0);
-								FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+								FHoudiniEngineUtils::UpdateEditorProperties(true);
 								return FReply::Handled();
 							})
 						]
@@ -4024,7 +4024,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 							.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, InOutput]()
 							{
 								ChangeTransformOffsetUniformlyAt(0.0f, 1);
-								FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+								FHoudiniEngineUtils::UpdateEditorProperties(true);
 								return FReply::Handled();
 							})
 						]
@@ -4132,7 +4132,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 								
 								InstanceOutput->SwitchUniformScaleLock();
 								
-								FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+								FHoudiniEngineUtils::UpdateEditorProperties(true);
 								return FReply::Handled();
 							})
 						]
@@ -4151,7 +4151,7 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 							.OnClicked_Lambda([ChangeTransformOffsetUniformlyAt, InOutput]()
 							{
 								ChangeTransformOffsetUniformlyAt(1.0f, 2);
-								FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+								FHoudiniEngineUtils::UpdateEditorProperties(true);
 								return FReply::Handled();
 							})
 						]
@@ -4423,6 +4423,9 @@ FHoudiniOutputDetails::OnRefineClicked(const TWeakObjectPtr<UObject> ObjectToRef
 	// For now, refine all the selection
 	FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshes(true, true);
 
+	if (InOutput.IsValid())
+		FHoudiniEngineUtils::UpdateEditorProperties(true);
+	
 	return FReply::Handled();
 }
 
@@ -4520,7 +4523,7 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 					return;
 
 				FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 			})
 			.ToolTipText(LOCTEXT("BakeNameTip", "The base name of the baked asset"))
 		]
@@ -4538,7 +4541,7 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 			.OnClicked_Lambda([InOutput, OutputIdentifier]()
 			{
 				FHoudiniOutputDetails::OnRevertBakeNameToDefault(InOutput, OutputIdentifier);
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 				return FReply::Handled();
 			})
 			[
@@ -4718,7 +4721,7 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 					return;
 
 				FHoudiniOutputDetails::OnBakeNameCommitted(Val, TextCommitType, InOutput, OutputIdentifier);
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 			})
 			.ToolTipText(LOCTEXT("BakeNameTip", "The base name of the baked asset"))
 		]
@@ -4736,7 +4739,7 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 			.OnClicked_Lambda([InOutput, OutputIdentifier]()
 			{
 				FHoudiniOutputDetails::OnRevertBakeNameToDefault(InOutput, OutputIdentifier);
-				FHoudiniEngineUtils::UpdateEditorProperties(InOutput->GetOuter(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 				return FReply::Handled();
 			})
 			[

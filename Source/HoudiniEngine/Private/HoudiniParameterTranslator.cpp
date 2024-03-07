@@ -105,7 +105,7 @@ FHoudiniParameterTranslator::UpdateParameters(UHoudiniAssetComponent* HAC)
 		HAC->Parameters = NewParameters;
 
 		// Update the details panel after the parameter changes/updates
-		FHoudiniEngineUtils::UpdateEditorProperties(HAC, true);
+		FHoudiniEngineUtils::UpdateEditorProperties(true);
 	}
 
 
@@ -213,7 +213,7 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(UHoudiniAssetComponent* HAC)
 		HAC->Parameters = NewParameters;
 
 		// Update the details panel after the parameter changes/updates
-		FHoudiniEngineUtils::UpdateEditorProperties(HAC, true);
+		FHoudiniEngineUtils::UpdateEditorProperties(true);
 	}
 
 	return true;

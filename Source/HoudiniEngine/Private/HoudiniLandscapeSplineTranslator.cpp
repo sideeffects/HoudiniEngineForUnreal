@@ -403,7 +403,7 @@ FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(
 	// saves the level.
 	InOutput->MarkPackageDirty();
 
-	FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+	FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 	return true;
 }

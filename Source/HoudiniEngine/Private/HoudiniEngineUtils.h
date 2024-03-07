@@ -407,12 +407,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Triggers an update the details panel
 		// Will use an AsyncTask if we're not in the game thread
 		// NOTE: Prefer using IDetailLayoutBuilder::ForceRefreshDetails() instead.
-		static void UpdateEditorProperties(UObject* InObjectToUpdate, const bool& InForceFullUpdate);
-
-		// Triggers an update the details panel
-		// Will use an AsyncTask if we're not in the game thread
-		// NOTE: Prefer using IDetailLayoutBuilder::ForceRefreshDetails() instead.
-		static void UpdateEditorProperties(TArray<UObject*> InObjectsToUpdate, const bool& InForceFullUpdate);
+		static void UpdateEditorProperties(const bool bInForceFullUpdate);
 
 		// Triggers an update the details panel
 		static void UpdateBlueprintEditor(UHoudiniAssetComponent* HAC);
@@ -1289,10 +1284,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 #endif
 
 		// Triggers an update the details panel
-		//static void UpdateEditorProperties_Internal(UObject* ObjectToUpdate, const bool& bInForceFullUpdate);
-
-		// Triggers an update the details panel
-		static void UpdateEditorProperties_Internal(TArray<UObject*> ObjectsToUpdate, const bool& bInForceFullUpdate);
+		static void UpdateEditorProperties_Internal(const bool bInForceFullUpdate);
 
 		// Trigger an update of the Blueprint Editor on the game thread
 		static void UpdateBlueprintEditor_Internal(UHoudiniAssetComponent* HAC);

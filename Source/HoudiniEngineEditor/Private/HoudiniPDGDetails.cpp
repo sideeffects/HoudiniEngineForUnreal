@@ -2100,7 +2100,7 @@ FHoudiniPDGDetails::RefreshUI(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGA
 	InPDGAssetLink->UpdateWorkItemTally();
 
 	// Update the editor properties
-	FHoudiniEngineUtils::UpdateEditorProperties(InPDGAssetLink.Get(), InFullUpdate);
+	FHoudiniEngineUtils::UpdateEditorProperties(InFullUpdate);
 }
 
 void 

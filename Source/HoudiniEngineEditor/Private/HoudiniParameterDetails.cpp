@@ -1026,7 +1026,7 @@ SHoudiniFloatRampCurveEditor::OnMouseButtonUp(const FGeometry& MyGeometry, const
 
 	if (bNeedToRefreshEditor)
 	{
-		FHoudiniEngineUtils::UpdateEditorProperties(MainParam, true);
+		FHoudiniEngineUtils::UpdateEditorProperties(true);
 	}
 
 	return Reply;
@@ -1295,7 +1295,7 @@ UHoudiniFloatRampCurve::OnCurveChanged(const TArray<FRichCurveEditInfo>& Changed
 
 	if (bNeedUpdateEditor)
 	{
-		FHoudiniEngineUtils::UpdateEditorProperties(MainParam, true);
+		FHoudiniEngineUtils::UpdateEditorProperties(true);
 	}
 
 }
@@ -1781,7 +1781,7 @@ UHoudiniColorRampCurve::OnColorRampCurveChanged(bool bModificationOnly)
 
 	if (bNeedUpdateEditor)
 	{
-		FHoudiniEngineUtils::UpdateEditorProperties(MainParam, true);
+		FHoudiniEngineUtils::UpdateEditorProperties(true);
 	}
 }
 
@@ -2724,7 +2724,7 @@ FHoudiniParameterDetails::CreateWidgetFloat(
 							CurParam->SwitchUniformLock();
 						}
 
-						FHoudiniEngineUtils::UpdateEditorProperties(MainParam.Get(), true);
+						FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 						return FReply::Handled();
 					})
@@ -3110,7 +3110,7 @@ FHoudiniParameterDetails::CreateWidgetString( IDetailCategoryBuilder & HouParame
 				Transaction.Cancel();
 			}
 
-			FHoudiniEngineUtils::UpdateEditorProperties(StringParams[0].Get(), false);
+			FHoudiniEngineUtils::UpdateEditorProperties(false);
 		};
 
 		auto RevertToDefault = [](const int32& TupleIndex, const TArray<TWeakObjectPtr<UHoudiniParameterString>>& StringParams)
@@ -4970,7 +4970,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 			if (!(MainRampColor->IsAutoUpdate() && bCookingEnabled))
 			{
-				FHoudiniEngineUtils::UpdateEditorProperties(MainRampColor.Get(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 			}
 		}
 	};
@@ -5031,7 +5031,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 			if (!(MainRampFloat->IsAutoUpdate() && bCookingEnabled))
 			{
-				FHoudiniEngineUtils::UpdateEditorProperties(MainRampFloat.Get(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 			}
 		}
 		else
@@ -5084,7 +5084,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 
 			if (!(MainRampColor->IsAutoUpdate() && bCookingEnabled))
 			{
-				FHoudiniEngineUtils::UpdateEditorProperties(MainRampColor.Get(), true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 			}
 		}
 	};
@@ -5308,7 +5308,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 				}
 
 				if (!(MainRampFloat->IsAutoUpdate() && bCookingEnabled))
-					FHoudiniEngineUtils::UpdateEditorProperties(MainRampFloat.Get(), true);
+					FHoudiniEngineUtils::UpdateEditorProperties(true);
 			}
 		}
 		else if (MainRampColor.IsValid() && MainRampColorPoint.IsValid())
@@ -5413,7 +5413,7 @@ FHoudiniParameterDetails::CreateWidgetRampPoints(IDetailCategoryBuilder& Categor
 				}
 
 				if (!(MainRampColor->IsAutoUpdate() && bCookingEnabled))
-					FHoudiniEngineUtils::UpdateEditorProperties(MainRampColor.Get(), true);
+					FHoudiniEngineUtils::UpdateEditorProperties(true);
 			}
 		}
 	};
@@ -5998,7 +5998,7 @@ FHoudiniParameterDetails::CreateFolderHeaderUI(IDetailCategoryBuilder& HouParame
 			
 			MainParam->ExpandButtonClicked();
 			
-			FHoudiniEngineUtils::UpdateEditorProperties(MainParam.Get(), true);
+			FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 			HouParameterCategory.GetParentLayout().ForceRefreshDetails();
 

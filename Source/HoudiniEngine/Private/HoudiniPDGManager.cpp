@@ -1351,7 +1351,7 @@ FHoudiniPDGManager::RefreshPDGAssetLinkUI(UHoudiniPDGAssetLink* InAssetLink)
 	AActor* ActorOwner = HAC->GetOwner();
 	if (ActorOwner != nullptr && ActorOwner->IsSelected())
 	{
-		FHoudiniEngineUtils::UpdateEditorProperties(HAC, true);
+		FHoudiniEngineUtils::UpdateEditorProperties(true);
 	}
 }
 

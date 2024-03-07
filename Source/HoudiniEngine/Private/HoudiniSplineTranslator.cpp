@@ -2235,7 +2235,7 @@ FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(UHoudiniOutput* InOu
 
 	InOutput->SetOutputObjects(NewOutputObjects);
 
-	FHoudiniEngineUtils::UpdateEditorProperties(InOutput, true);
+	FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 	return true;
 }

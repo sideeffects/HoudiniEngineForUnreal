@@ -1886,7 +1886,7 @@ FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshesNotifyDone(const u
 	}
 
 	// Update details to display the new inputs
-	FHoudiniEngineUtils::UpdateEditorProperties(nullptr, true);
+	FHoudiniEngineUtils::UpdateEditorProperties(true);
 }
 
 void

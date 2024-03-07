@@ -475,7 +475,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 		{
 			// Trigger a details panel update if the Houdini asset actor is selected
 			if (HAC->IsOwnerSelected())
-				FHoudiniEngineUtils::UpdateEditorProperties(HAC, true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 			// Finished refreshing UI of one HDA.
 			FHoudiniEngine::Get().RefreshUIDisplayedWhenPauseCooking();
@@ -644,7 +644,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			if(!bCookStarted)
 			{
 				// Just refresh editor properties?
-				FHoudiniEngineUtils::UpdateEditorProperties(HAC, true);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 				// TODO: Check! update state?
 				HAC->SetAssetState(EHoudiniAssetState::None);
@@ -1293,7 +1293,7 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 		FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nFinished processing outputs"), true);
 
 		// Trigger a details panel update
-		FHoudiniEngineUtils::UpdateEditorProperties(HAC, true);
+		FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 		// If any outputs have HoudiniStaticMeshes, and if timer based refinement is enabled on the HAC,
 		// set the RefineMeshesTimer and ensure BuildStaticMeshesForAllHoudiniStaticMeshes is bound to
