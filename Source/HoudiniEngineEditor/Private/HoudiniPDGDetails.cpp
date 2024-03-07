@@ -63,6 +63,38 @@
 
 #define HOUDINI_ENGINE_UI_SECTION_PDG_BAKE 2
 
+namespace
+{
+bool 
+IsTextAndTooltipLexicographicallyBefore(
+	const TSharedPtr<FTextAndTooltip>& Left,
+	const TSharedPtr<FTextAndTooltip>& Right)
+{
+	// If we don't trim the whitespace, then all strings with
+	// padded spaces will end up at the start.
+	return Left->Text.TrimStart() < Right->Text.TrimStart();
+}
+
+FString
+FormatTOPNodeName(
+	const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink,
+	FString TOPNodeName)
+{
+	if (InPDGAssetLink->bUseTOPOutputFilter &&
+		TOPNodeName.StartsWith(InPDGAssetLink->TOPOutputFilter))
+	{
+		TOPNodeName.RemoveFromStart(InPDGAssetLink->TOPOutputFilter);
+		TOPNodeName.Append(" (Output)");
+	}
+	else if (InPDGAssetLink->bUseTOPNodeFilter &&
+				TOPNodeName.StartsWith(InPDGAssetLink->TOPNodeFilter))
+	{
+		TOPNodeName.RemoveFromStart(InPDGAssetLink->TOPNodeFilter);
+	}
+	return TOPNodeName;
+}
+}
+
 void 
 FHoudiniPDGDetails::CreateWidget(
 	IDetailCategoryBuilder& HouPDGCategory,
@@ -916,6 +948,8 @@ FHoudiniPDGDetails::AddTOPNetworkWidget(
 			}
 		}
 
+		Algo::Sort(TOPNetworksPtr, &IsTextAndTooltipLexicographicallyBefore);
+
 		if(TOPNetworksPtr.Num() <= 0)
 			TOPNetworksPtr.Add(MakeShareable(new FTextAndTooltip(INDEX_NONE, "----")));
 
@@ -1392,10 +1426,20 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 					continue;
 				
 				TOPNodesPtr.Add(MakeShareable(new FTextAndTooltip(
-                    Idx,
-                    FHoudiniEngineEditorUtils::GetNodeNamePaddedByPathDepth(Node->NodeName, Node->NodePath),
-                    Node->NodePath
-                )));
+					Idx,
+					FHoudiniEngineEditorUtils::GetNodeNamePaddedByPathDepth(
+						FormatTOPNodeName(InPDGAssetLink, Node->NodeName),
+						Node->NodePath),
+					Node->NodePath
+				)));
+			}
+
+			// We only want to sort the range after the empty selection.
+			// That is, we always want "- Select -" at the top of the combobox.
+			{
+				const auto TOPNodesView = 
+					TArrayView<TSharedPtr<FTextAndTooltip>>(TOPNodesPtr).RightChop(1);
+				Algo::Sort(TOPNodesView, &IsTextAndTooltipLexicographicallyBefore);
 			}
 		}
 
@@ -1496,7 +1540,8 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 					.Text_Lambda([InPDGAssetLink, ComboBoxTOPNode, Options = TOPNodesPtr]()
 					{
 						if (IsValidWeakPointer(InPDGAssetLink))
-							return FText::FromString(InPDGAssetLink->GetSelectedTOPNodeName());
+							return FText::FromString(FormatTOPNodeName(
+								InPDGAssetLink, InPDGAssetLink->GetSelectedTOPNodeName()));
 						else
 							return FText();
 					})
