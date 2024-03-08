@@ -135,5 +135,7 @@ public:
 	static void UpdateHoudiniAssetThumbnail(UHoudiniAsset* HoudiniAsset);
 	static void UpdateAssetThumbnailFromImageData(UObject* Asset, const FHImageData& ImageData, const float MarginPct=0.2f);
 
+	static bool ShowToolsPackageRenameConfirmDialog();
+
 #endif
 };

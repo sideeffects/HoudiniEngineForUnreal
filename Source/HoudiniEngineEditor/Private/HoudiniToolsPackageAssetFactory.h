@@ -85,8 +85,15 @@ public:
 		FString DefaultName = FHoudiniToolsRuntimeUtils::GetPackageUAssetName();
 		if (Name.ToString() != DefaultName)
 		{
-			HOUDINI_LOG_ERROR(TEXT("Naming a HoudiniToolsPackage to anything but \"HoudiniToolsPackage\" disables it - rename aborted."));
-			ToolsPackage->Rename(*DefaultName);
+			if (!FHoudiniToolsRuntimeUtils::ShowToolsPackageRenameConfirmDialog())
+			{
+				ToolsPackage->Rename(*DefaultName);
+			}
+			else
+			{
+				// Dont rename back, but add a warning in the logs...
+				HOUDINI_LOG_WARNING(TEXT("Renaming a HoudiniToolsPackage to anything but \"HoudiniToolsPackage\" disables it."));
+			}
 		}
 
 

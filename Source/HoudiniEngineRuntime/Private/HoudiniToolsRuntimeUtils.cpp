@@ -44,6 +44,8 @@
 #include "Modules/ModuleManager.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+#include "Misc/MessageDialog.h"
+#include "GenericPlatform/GenericPlatformMisc.h"
 
 #include "ObjectTools.h"
 
@@ -984,6 +986,20 @@ FHoudiniToolsRuntimeUtils::UpdateAssetThumbnailFromImageData(UObject* Asset, con
 	}
 }
 
+bool
+FHoudiniToolsRuntimeUtils::ShowToolsPackageRenameConfirmDialog()
+{
+	FText WarningMessage(LOCTEXT("Warning_ToolsPackageRename", "Naming a HoudiniToolsPackage to anything but \"HoudiniToolsPackage\" disables it - Are you sure you want to proceed with the rename?"));
+	EAppReturnType::Type ReturnType = FMessageDialog::Open(EAppMsgType::YesNo, WarningMessage);// , & MessageTitle);
+	if (ReturnType == EAppReturnType::Yes)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
 
 #endif
 
