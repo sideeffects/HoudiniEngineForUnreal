@@ -1724,7 +1724,11 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 	OnDeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddLambda([this](){ this->HandleOnDeleteActorsBegin(); });
 	OnDeleteActorsEnd = FEditorDelegates::OnDeleteActorsEnd.AddLambda([this](){ this-> HandleOnDeleteActorsEnd(); });
 
-
+	/*
+	//
+	// COMMENTED OUT! Unreal actually calls the delegate for all class, not just the specified owner
+	// so this actually prevents renaming for everything... 
+	//
 	// Add a rename prevention filter to HodiniToolsPackage
 	OnIsNameAllowed.BindLambda([](const FString& Name, FText* OutErrorMessage) -> bool
 		{
@@ -1738,6 +1742,7 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 		});
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
 	AssetToolsModule.Get().RegisterIsNameAllowedDelegate("HoudiniToolsPackage", OnIsNameAllowed);
+	*/
 }
 
 void
@@ -1760,7 +1765,8 @@ FHoudiniEngineEditor::UnregisterEditorDelegates()
 
 	if (OnDeleteActorsEnd.IsValid())
 		FEditorDelegates::OnDeleteActorsEnd.Remove(OnDeleteActorsEnd);
-
+	
+	/*
 	// Unregister the ToolsPackage rename delegate
 	if (OnIsNameAllowed.IsBound())
 	{
@@ -1770,6 +1776,7 @@ FHoudiniEngineEditor::UnregisterEditorDelegates()
 
 		OnIsNameAllowed.Unbind();
 	}	
+	*/
 }
 
 FString 

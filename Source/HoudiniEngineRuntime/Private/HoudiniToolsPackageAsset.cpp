@@ -119,7 +119,12 @@ UHoudiniToolsPackageAsset::Rename(const TCHAR* InName, UObject* NewOuter, ERenam
 #if WITH_EDITOR
 	// Warn if the name is incorrect
 	if (InName != FHoudiniToolsRuntimeUtils::GetPackageUAssetName())
-		HOUDINI_LOG_ERROR(TEXT("Renaming a HoudiniToolsPackage to anything but \"HoudiniToolsPackage\" will disable it."));
+	{
+		// Error out and prevent the renaming
+		HOUDINI_LOG_ERROR(TEXT("Renaming a HoudiniToolsPackage to anything but \"HoudiniToolsPackage\" disables it - rename aborted."));
+
+		return Super::Rename(*FHoudiniToolsRuntimeUtils::GetPackageUAssetName(), NewOuter, Flags);
+	}		
 #endif
 
 	bool bSuccess = Super::Rename(InName, NewOuter, Flags);

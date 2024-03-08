@@ -80,11 +80,12 @@ public:
 			ToolsPackage = NewObject<UHoudiniToolsPackageAsset>(InParent, Class, Name, Flags);
 			FHoudiniToolsEditor::PopulatePackageWithDefaultData(ToolsPackage);
 		}
-		FString DefaultName = FHoudiniToolsRuntimeUtils::GetPackageUAssetName();
 
+		// If the name is not "HoudiniToolsPackage", rename it immediately
+		FString DefaultName = FHoudiniToolsRuntimeUtils::GetPackageUAssetName();
 		if (Name.ToString() != DefaultName)
 		{
-			// Rename it immediately
+			HOUDINI_LOG_ERROR(TEXT("Naming a HoudiniToolsPackage to anything but \"HoudiniToolsPackage\" disables it - rename aborted."));
 			ToolsPackage->Rename(*DefaultName);
 		}
 
