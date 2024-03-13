@@ -69,6 +69,13 @@ UHoudiniPublicAPI::RestartSession_Implementation()
 		FHoudiniEngineCommands::CreateSession();
 }
 
+void
+UHoudiniPublicAPI::OpenInHoudini_Implementation()
+{
+	if (IsSessionValid())
+		FHoudiniEngineCommands::OpenInHoudini();
+}
+
 UHoudiniPublicAPIAssetWrapper*
 UHoudiniPublicAPI::InstantiateAsset_Implementation(
 	UHoudiniAsset* InHoudiniAsset,
