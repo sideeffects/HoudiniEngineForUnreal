@@ -290,7 +290,7 @@ void FHoudiniMeshTranslator::BuildSKFromImportData(SKBuildSettings& BuildSetting
 		SortBonesByParent(SkeletalMeshImportData);//only sort if new skeleton
 	}
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 4
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
 	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	BuildSettings.SKMesh->SaveLODImportedData(0, SkeletalMeshImportData);  //Import the ImportData
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
