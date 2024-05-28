@@ -119,10 +119,11 @@ protected:
 
 	// Data conversion functions.
 	template<typename DataType> static void ConvertFromRawData(const FHoudiniRawAttributeData& RawData, DataType* Data, size_t Count);
-	template<typename DataType> static void ConvertToRawData(FHoudiniRawAttributeData& RawData, const DataType* Data, size_t Count);
+	template<typename DataType> static void ConvertToRawData(HAPI_StorageType StorageType, FHoudiniRawAttributeData& RawData, const DataType* Data, size_t Count);
 
 	template<typename SrcType, typename DestType> static void Convert(const SrcType* SourceData, DestType* DestData, int Count);
 	static FString ToString(int32 Number);
+	static FString ToString(int64 Number);
 	static FString ToString(float Number);
 	static FString ToString(double Number);
 	static double ToDouble(const FString& Str);

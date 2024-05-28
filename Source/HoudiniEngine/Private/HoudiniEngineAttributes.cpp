@@ -111,6 +111,11 @@ FString FHoudiniHapiAccessor::ToString(int32 Number)
 	return FString::Printf(TEXT("%d"), Number);
 }
 
+FString FHoudiniHapiAccessor::ToString(int64 Number)
+{
+	return FString::Printf(TEXT("%lld"), Number);
+}
+
 FString FHoudiniHapiAccessor::ToString(float Number)
 {
 	return FString::Printf(TEXT("%f"), Number);
@@ -202,52 +207,52 @@ void FHoudiniHapiAccessor::ConvertFromRawData(const FHoudiniRawAttributeData & R
 }
 
 template<typename DataType>
-void FHoudiniHapiAccessor::ConvertToRawData(FHoudiniRawAttributeData& RawData, const DataType* Data, size_t IndexCount)
+void FHoudiniHapiAccessor::ConvertToRawData(HAPI_StorageType StorageType, FHoudiniRawAttributeData& RawData, const DataType* Data, size_t IndexCount)
 {
-	if constexpr (std::is_same_v<DataType, uint8>)
+	switch(StorageType)
 	{
+	case HAPI_STORAGETYPE_UINT8:
 		RawData.RawDataUint8.SetNum(IndexCount);
 		Convert(Data, RawData.RawDataUint8.GetData(), IndexCount);
-	}
-	else if constexpr (std::is_same_v<DataType, int8>)
-	{
+		break;
+
+	case HAPI_STORAGETYPE_INT8:
 		RawData.RawDataInt8.SetNum(IndexCount);
 		Convert(Data, RawData.RawDataInt8.GetData(), IndexCount);
-	}
-	else if constexpr (std::is_same_v<DataType, int16>)
-	{
+		break;
+
+	case HAPI_STORAGETYPE_INT16:
 		RawData.RawDataInt16.SetNum(IndexCount);
 		Convert(Data, RawData.RawDataInt16.GetData(), IndexCount);
-	}
-	else if constexpr (std::is_same_v<DataType, int>)
-	{
+		break;
+
+	case HAPI_STORAGETYPE_INT:
 		RawData.RawDataInt.SetNum(IndexCount);
 		Convert(Data, RawData.RawDataInt.GetData(), IndexCount);
-	}
-	else if constexpr (std::is_same_v<DataType, int64>)
-	{
+		break;
+
+	case HAPI_STORAGETYPE_INT64:
 		RawData.RawDataInt64.SetNum(IndexCount);
 		Convert(Data, RawData.RawDataInt64.GetData(), IndexCount);
-	}
-	else if constexpr (std::is_same_v<DataType, float>)
-	{
+		break;
+
+	case HAPI_STORAGETYPE_FLOAT:
 		RawData.RawDataFloat.SetNum(IndexCount);
 		Convert(Data, RawData.RawDataFloat.GetData(), IndexCount);
-	}
-	else if constexpr (std::is_same_v<DataType, double>)
-	{
+		break;
+
+	case HAPI_STORAGETYPE_FLOAT64:
 		RawData.RawDataDouble.SetNum(IndexCount);
 		Convert(Data, RawData.RawDataDouble.GetData(), IndexCount);
-	}
-	else if constexpr (std::is_same_v<DataType, FString>)
-	{
+		break;
+
+	case HAPI_STORAGETYPE_STRING:
 		RawData.RawDataStrings.SetNum(IndexCount);
 		Convert(Data, RawData.RawDataStrings.GetData(), IndexCount);
+	default:
+		break;
 	}
-	else
-	{
-		// no data.
-	}
+
 }
 
 
@@ -301,7 +306,7 @@ template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeDataViaSessio
 	if (StorageType == AttributeInfo.storage)
 	{
 		// No conversion is necessary so fetch the data directly.
-		FetchHapiData(Session, AttributeInfo, Results, IndexStart, IndexCount);
+		HOUDINI_CHECK_ERROR_RETURN(FetchHapiData(Session, AttributeInfo, Results, IndexStart, IndexCount), false);
 	}
 	else
 	{
@@ -546,7 +551,7 @@ bool FHoudiniHapiAccessor::SetAttributeDataViaSession(const HAPI_Session* Sessio
 		// Fetch data in Hapi format then convert it.
 		FHoudiniRawAttributeData RawData;
 
-		ConvertToRawData(RawData, Data, IndexCount * AttributeInfo.tupleSize);
+		ConvertToRawData(AttributeInfo.storage, RawData, Data, IndexCount * AttributeInfo.tupleSize);
 		if (!SetRawAttributeData(Session, AttributeInfo, RawData, StartIndex, IndexCount))
 			return false;
 
@@ -983,49 +988,52 @@ template<typename DataType> bool FHoudiniHapiAccessor::SetAttributeUniqueData(co
 {
 	HAPI_Result Result = HAPI_RESULT_FAILURE;
 
-	if constexpr (std::is_same_v<DataType, float>)
+	FHoudiniRawAttributeData RawData;
+	ConvertToRawData(AttributeInfo.storage, RawData, &Data, 1);
+
+	switch(AttributeInfo.storage)
 	{
-		Result = FHoudiniApi::SetAttributeFloatUniqueData( FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
-			&Data, AttributeInfo.tupleSize,0, AttributeInfo.count);
-	}
-	else if constexpr (std::is_same_v<DataType, double>)
-	{
+	case HAPI_STORAGETYPE_FLOAT:
+		Result = FHoudiniApi::SetAttributeFloatUniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
+			RawData.RawDataFloat.GetData(), AttributeInfo.tupleSize, 0, AttributeInfo.count);
+		break;
+
+	case HAPI_STORAGETYPE_FLOAT64:
 		Result = FHoudiniApi::SetAttributeFloat64UniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
-			&Data, AttributeInfo.tupleSize, 0, AttributeInfo.count);
-	}
-	else if constexpr (std::is_same_v<DataType, int>)
-	{
-		Result = FHoudiniApi::SetAttributeIntUniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
-			&Data, AttributeInfo.tupleSize, 0, AttributeInfo.count);
-	}
-	else if constexpr (std::is_same_v<DataType, int8>)
-	{
+			RawData.RawDataDouble.GetData(), AttributeInfo.tupleSize, 0, AttributeInfo.count);
+		break;
+
+	case HAPI_STORAGETYPE_INT8:
 		Result = FHoudiniApi::SetAttributeInt8UniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
-			&Data, AttributeInfo.tupleSize, 0, AttributeInfo.count);
-	}
-	else if constexpr (std::is_same_v<DataType, int16>)
-	{
-		Result = FHoudiniApi::SetAttributeInt16UniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
-			&Data, AttributeInfo.tupleSize, 0, AttributeInfo.count);
-	}
-	else if constexpr (std::is_same_v<DataType, uint8>)
-	{
+			RawData.RawDataInt8.GetData(), AttributeInfo.tupleSize, 0, AttributeInfo.count);
+		break;
+
+	case HAPI_STORAGETYPE_UINT8:
 		Result = FHoudiniApi::SetAttributeUInt8UniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
-			&Data, AttributeInfo.tupleSize, 0, AttributeInfo.count);
-	}
-	else if constexpr (std::is_same_v<DataType, int64>)
-	{
+			RawData.RawDataUint8.GetData(), AttributeInfo.tupleSize, 0, AttributeInfo.count);
+		break;
+
+	case HAPI_STORAGETYPE_INT16:
+		Result = FHoudiniApi::SetAttributeInt16UniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
+			RawData.RawDataInt16.GetData(), AttributeInfo.tupleSize, 0, AttributeInfo.count);
+		break;
+
+	case HAPI_STORAGETYPE_INT:
+		Result = FHoudiniApi::SetAttributeIntUniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
+			RawData.RawDataInt.GetData(), AttributeInfo.tupleSize, 0, AttributeInfo.count);
+		break;
+
+	case HAPI_STORAGETYPE_INT64:
 		Result = FHoudiniApi::SetAttributeInt64UniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
-			&Data, AttributeInfo.tupleSize, 0, AttributeInfo.count);
-	}
-	else if constexpr (std::is_same_v<DataType, FString>)
-	{
+			RawData.RawDataInt64.GetData(), AttributeInfo.tupleSize, 0, AttributeInfo.count);
+		break;
+
+	case HAPI_STORAGETYPE_STRING:
 		Result = FHoudiniApi::SetAttributeStringUniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
-			TCHAR_TO_ANSI(*Data), 1, 0, AttributeInfo.count);
-	}
-	else
-	{
-		return HAPI_STORAGETYPE_INVALID;
+			TCHAR_TO_ANSI(*RawData.RawDataStrings[0]), 1, 0, AttributeInfo.count);
+		break;
+	default:
+		Result = HAPI_RESULT_FAILURE;
 	}
 	return Result == HAPI_RESULT_SUCCESS;
 

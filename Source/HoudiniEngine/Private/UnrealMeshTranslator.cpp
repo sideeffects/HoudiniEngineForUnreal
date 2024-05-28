@@ -3420,6 +3420,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 
 			    if (!bAttributeSuccess)
 			    {
+					HOUDINI_LOG_ERROR(TEXT("Failed to Create Mesh Attributes."));
 				    return false;
 			    }
 		    }
