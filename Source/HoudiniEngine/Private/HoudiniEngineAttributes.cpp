@@ -282,19 +282,52 @@ struct FHoudiniAttributeGetTask : public  FHoudiniAttributeTask
 	}
 };
 
-int FHoudiniHapiAccessor::CalculateNumberOfSessions() const
+int FHoudiniHapiAccessor::CalculateNumberOfSessions(const HAPI_AttributeInfo& AttributeInfo) const
 {
-	// Calculate number of sessions to use. TODO: Do not use multiple sessions if the data size is small, perhaps
-	// less than a few mbs.
-	int NumSessions = FHoudiniEngine::Get().GetNumSessions();
-	if (NumSessions == 0)
-		return 0;
-
-	if (bAllowMultiThreading)
-		return NumSessions;
-	else
+	// GetStringBatchSize does not seem to function correctly with multisession. Arrays are slower with more than one session.
+	if (AttributeInfo.storage == HAPI_STORAGETYPE_STRING || IsHapiArrayType(AttributeInfo.storage))
 		return 1;
 
+	int NumSessions = FHoudiniEngine::Get().GetNumSessions();
+
+	if (!bAllowMultiThreading)
+		NumSessions = 1;
+
+	return NumSessions;
+}
+
+int FHoudiniHapiAccessor::CalculateNumberOfTasks(const HAPI_AttributeInfo& AttributeInfo) const
+{
+	// By default assume one task per session.
+	int64 NumSessions = CalculateNumberOfSessions(AttributeInfo);
+	int64 NumTasks = NumSessions;
+
+	// Check to see if each session has too much data.
+	int64 TotalSize = GetHapiSize(AttributeInfo.storage) * AttributeInfo.tupleSize * AttributeInfo.count;
+	int64 SizePerSession = TotalSize / NumTasks;
+
+	constexpr int ThriftChunkSize = THRIFT_MAX_CHUNKSIZE;
+
+	int64 MaxSize = ThriftChunkSize;
+
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	if (HoudiniRuntimeSettings->SessionType == EHoudiniRuntimeSettingsSessionType::HRSST_MemoryBuffer)
+	{
+
+		constexpr int64 OverheadSize = 1 * 1024 * 1024;
+		MaxSize = HoudiniRuntimeSettings->SharedMemoryBufferSize * 1024 * 1024 - OverheadSize;
+		if (MaxSize < 0)
+		{
+			HOUDINI_LOG_ERROR(TEXT("Shared memory buffer size is too small."));
+			return 0;
+		}
+	}
+
+	if (SizePerSession > MaxSize)
+	{
+		NumTasks = (TotalSize + MaxSize - 1) / MaxSize;
+	}
+	return NumTasks;
 }
 
 template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int IndexStart, int IndexCount) const
@@ -358,6 +391,77 @@ bool FHoudiniHapiAccessor::GetAttributeData(const HAPI_AttributeInfo& AttributeI
 }
 
 
+template<typename TaskType>
+bool FHoudiniHapiAccessor::ExecuteTasksWithSessions(TArray<TaskType> & Tasks, int NumSessions)
+{
+	// Create a pool of all available sessions.
+	TArray<const HAPI_Session*> AvailableSessions;
+	TSet< TaskType* > ActiveTasks;
+
+	for (int Session = 0; Session < NumSessions; Session++)
+	{
+		const HAPI_Session* SessionToAdd = FHoudiniEngine::Get().GetSession(Session);
+		AvailableSessions.Add(SessionToAdd);
+	}
+
+	// No sessions.
+	if (AvailableSessions.IsEmpty())
+		return false;
+
+	for (int NextTaskToSTart = 0; NextTaskToSTart < Tasks.Num(); NextTaskToSTart++)
+	{
+		// Allocate sessions to tasks. We cannot assign a session to multiple tasks at the same
+		// time or there will be conflicts. So grab a free session from the pool
+
+		auto& Task = Tasks[NextTaskToSTart];
+
+		if (AvailableSessions.IsEmpty())
+		{
+			// This should never happen.
+			HOUDINI_LOG_ERROR(TEXT("Internal Error. No Available Houdini Sessions"));
+			return false;
+		}
+		else
+		{
+			Task.GetTask().Session = AvailableSessions.Pop();
+		}
+
+		Task.StartBackgroundTask();
+		ActiveTasks.Add(&Task);
+
+		if (AvailableSessions.IsEmpty())
+		{
+			// We have to wait for a free session.
+			bool bFreedSessions = false;
+			while (!bFreedSessions)
+			{
+				for (auto It : ActiveTasks)
+				{
+					auto& ActiveTask = It;
+					if (ActiveTask->IsDone())
+					{
+						ActiveTasks.Remove(ActiveTask);
+						AvailableSessions.Add(ActiveTask->GetTask().Session);
+						bFreedSessions = true;
+						break;
+
+					}
+				}
+			}
+		}
+	}
+
+	// Wait for completion of all tasks
+	bool bSuccess = true;
+	for (int Task = 0; Task < Tasks.Num(); Task++)
+	{
+		Tasks[Task].EnsureCompletion();
+		bSuccess &= Tasks[Task].GetTask().bSuccess;
+	}
+	return bSuccess;
+}
+
+
 template<typename DataType>
 bool FHoudiniHapiAccessor::GetAttributeDataMultiSession(const HAPI_AttributeInfo& AttributeInfo, DataType * Results, int IndexStart, int IndexCount)
 {
@@ -371,47 +475,28 @@ bool FHoudiniHapiAccessor::GetAttributeDataMultiSession(const HAPI_AttributeInfo
 	if (IndexCount == -1)
 		IndexCount = AttributeInfo.count;
 
-	int NumSessions = CalculateNumberOfSessions();
-	if (IsHapiArrayType(AttributeInfo.storage))
-	{
-		if (!bCanBeArray)
-			return false;
-
-		NumSessions = 1;
-	}
-
-	if constexpr (std::is_same_v<DataType, FString>)
-	{
-		// GetStringBatchSize does not seem to function correctly with multisession.
-		NumSessions = 1;
-	}
-
+	int NumTasks = CalculateNumberOfTasks(AttributeInfo);
+	int NumSessions = CalculateNumberOfSessions(AttributeInfo);
 	// Task array.
 	TArray<FAsyncTask<FHoudiniAttributeGetTask<DataType>>> Tasks;
-	Tasks.SetNum(NumSessions);
+	Tasks.SetNum(NumTasks);
 
-	for(int Session = 0; Session < NumSessions; Session++)
+	for(int TaskId = 0; TaskId < NumTasks; TaskId++)
 	{
 		// Fill a task, one per session.
-		FHoudiniAttributeGetTask<DataType> & Task = Tasks[Session].GetTask();
+		FHoudiniAttributeGetTask<DataType> & Task = Tasks[TaskId].GetTask();
 
-		int StartOffset = IndexCount * Session / NumSessions;
-		int EndOffset = IndexCount * (Session + 1) / NumSessions;
+		int StartOffset = IndexCount * TaskId / NumTasks;
+		int EndOffset = IndexCount * (TaskId + 1) / NumTasks;
 		Task.Accessor = this;
 		Task.StorageInfo = &AttributeInfo;
 		Task.RawIndex = StartOffset + IndexStart;
 		Task.Results = Results + StartOffset * AttributeInfo.tupleSize;
 		Task.Count = EndOffset - StartOffset;
-		Task.Session = FHoudiniEngine::Get().GetSession(Session);
-		Tasks[Session].StartBackgroundTask();
+		Task.Session = nullptr;
 	}
 
-	bool bSuccess = true;
-	for(int Task = 0; Task < Tasks.Num(); Task++)
-	{
-		Tasks[Task].EnsureCompletion();
-		bSuccess &= Tasks[Task].GetTask().bSuccess;
-	}
+	bool bSuccess = ExecuteTasksWithSessions(Tasks, NumSessions);
 
 	return bSuccess;
 }
@@ -446,33 +531,30 @@ bool FHoudiniHapiAccessor::SetAttributeDataMultiSession(const HAPI_AttributeInfo
 	if (IndexCount == -1)
 		IndexCount = AttributeInfo.count;
 
-	// Task array.
-	int NumSessions = CalculateNumberOfSessions(); 
-	TArray<FAsyncTask<FHoudiniAttributeSetTask<DataType>>> Tasks;
-	Tasks.SetNum(NumSessions);
+	int NumTasks = CalculateNumberOfTasks(AttributeInfo);
+	int NumSessions = CalculateNumberOfSessions(AttributeInfo);
 
-	for (int Session = 0; Session < NumSessions; Session++)
+	// Task array.
+	TArray<FAsyncTask<FHoudiniAttributeSetTask<DataType>>> Tasks;
+	Tasks.SetNum(NumTasks);
+
+	for (int TaskId = 0; TaskId < NumTasks; TaskId++)
 	{
 		// Fill a task, one per session.
-		FHoudiniAttributeSetTask<DataType>& Task = Tasks[Session].GetTask();
+		FHoudiniAttributeSetTask<DataType>& Task = Tasks[TaskId].GetTask();
 
-		int StartOffset = IndexCount * Session / NumSessions;
-		int EndOffset = IndexCount * (Session + 1) / NumSessions;
+		int StartOffset = IndexCount * TaskId / NumTasks;
+		int EndOffset = IndexCount * (TaskId + 1) / NumTasks;
 		Task.Accessor = this;
 		Task.StorageInfo = &AttributeInfo;
 		Task.RawIndex = StartOffset + IndexStart;
 		Task.Input = Data + StartOffset * AttributeInfo.tupleSize;
 		Task.Count = EndOffset - StartOffset;
-		Task.Session = FHoudiniEngine::Get().GetSession(Session);
-		Tasks[Session].StartBackgroundTask();
+		Task.Session = nullptr;
 	}
 
-	bool bSuccess = true;
-	for (int Task = 0; Task < Tasks.Num(); Task++)
-	{
-		Tasks[Task].EnsureCompletion();
-		bSuccess &= Tasks[Task].GetTask().bSuccess;
-	}
+	bool bSuccess = ExecuteTasksWithSessions(Tasks, NumSessions);
+
 	return bSuccess;
 }
 
@@ -636,14 +718,13 @@ HAPI_Result FHoudiniHapiAccessor::FetchHapiData(const HAPI_Session* Session, con
 HAPI_Result FHoudiniHapiAccessor::FetchHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, FString* Data, int IndexStart, int IndexCount) const
 {
 	HAPI_AttributeInfo TempAttributeInfo = AttributeInfo;
-	FString* UnrealStrings = static_cast<FString*>(Data);
 	TArray<HAPI_StringHandle> StringHandles;
 	StringHandles.SetNum(IndexCount);
 
 	HAPI_Result Result = FHoudiniApi::GetAttributeStringData(Session, NodeId, PartId, AttributeName, &TempAttributeInfo, StringHandles.GetData(), IndexStart, IndexCount);
 
 	if (Result == HAPI_RESULT_SUCCESS)
-		FHoudiniEngineString::SHArrayToFStringArray(StringHandles, UnrealStrings, Session);
+		FHoudiniEngineString::SHArrayToFStringArray(StringHandles, Data, Session);
 	return Result;
 }
 
@@ -1167,6 +1248,31 @@ bool FHoudiniHapiAccessor::IsHapiArrayType(HAPI_StorageType StorageType)
 			return true;
 	default:
 			return false;
+	}
+}
+
+int64 FHoudiniHapiAccessor::GetHapiSize(HAPI_StorageType StorageType)
+{
+	switch (StorageType)
+	{
+	case HAPI_STORAGETYPE_UINT8:
+		return sizeof(uint8);
+	case HAPI_STORAGETYPE_INT8:
+		return sizeof(int8);
+	case HAPI_STORAGETYPE_INT16:
+		return sizeof(int16);
+	case HAPI_STORAGETYPE_INT64:
+		return sizeof(int64);
+	case HAPI_STORAGETYPE_INT:
+		return sizeof(int32);
+	case HAPI_STORAGETYPE_FLOAT:
+		return sizeof(float);
+	case HAPI_STORAGETYPE_FLOAT64:
+		return sizeof(int64);
+	case HAPI_STORAGETYPE_STRING:
+		return sizeof(int); // Use int for string handles.
+	default:
+		return 1;
 	}
 }
 

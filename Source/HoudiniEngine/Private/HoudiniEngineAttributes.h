@@ -83,8 +83,8 @@ protected:
 	//
 	// Internal functions.
 
-	int CalculateNumberOfSessions() const;
-
+	int CalculateNumberOfTasks(const HAPI_AttributeInfo& AttributeInfo) const;
+	int CalculateNumberOfSessions(const HAPI_AttributeInfo& AttributeInfo) const;
 
 	template<typename DataType> bool GetAttributeDataMultiSession(const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int First, int Count);
 	template<typename DataType> bool SetAttributeDataMultiSession(const HAPI_AttributeInfo& AttributeInfo, const DataType* Data, int First, int Count) const;
@@ -129,16 +129,18 @@ protected:
 	static double ToDouble(const FString& Str);
 	static int ToInt(const FString& Str);
 
-
+	// Raw functions fetch data before/after any type conversion.
 	bool GetRawAttributeData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, FHoudiniRawAttributeData& Data);
 	bool GetRawAttributeData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, FHoudiniRawAttributeData& Data, int Start, int Count) const;
 	bool SetRawAttributeData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, FHoudiniRawAttributeData& Data, int IndexStart, int IndexCount) const;
 
-	template<typename DataType>
-	static HAPI_StorageType GetHapiType();
+	template<typename DataType> static HAPI_StorageType GetHapiType();
+	static  int64 GetHapiSize(HAPI_StorageType StorageType);
 
 	static bool IsHapiArrayType(HAPI_StorageType);
 
+	template<typename TaskType>
+	static bool ExecuteTasksWithSessions(TArray<TaskType>& Tasks, int NumSessions);
 };
 
 
