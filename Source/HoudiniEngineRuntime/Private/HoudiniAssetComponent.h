@@ -175,6 +175,8 @@ public:
 	EHoudiniAssetState GetAssetState() const { return AssetState; };
 //	FString GetAssetStateAsString() const { return FHoudiniEngineRuntimeUtils::EnumToString(TEXT("EHoudiniAssetState"), GetAssetState()); };
 
+	virtual FString GetHoudiniAssetName() const;
+
 	EHoudiniAssetStateResult GetAssetStateResult() const { return AssetStateResult; };
 	FGuid GetHapiGUID() const { return HapiGUID; };
 	FString GetHapiAssetName() const { return HapiAssetName; };

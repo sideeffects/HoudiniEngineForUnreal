@@ -1099,11 +1099,11 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	{
 		HoudiniAssetName = InHoudiniAssetName;
 	}
-	else if (bIsHACValid && IsValid(HoudiniAssetComponent->GetHoudiniAsset()))
+	else if (bIsHACValid)
 	{
-		HoudiniAssetName = HoudiniAssetComponent->GetHoudiniAsset()->GetName();
+		HoudiniAssetName = HoudiniAssetComponent->GetHoudiniAssetName();
 	}
-	
+
 	// If InHoudiniAssetActorName was specified, use that, otherwise use the name of the owner of HoudiniAssetComponent
 	FString HoudiniAssetActorName(TEXT(""));
 	if (!InHoudiniAssetActorName.IsEmpty())
@@ -1113,7 +1113,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	else if (bIsHACValid && IsValid(HoudiniAssetComponent->GetOwner()))
 	{
 		HoudiniAssetActorName = HoudiniAssetComponent->GetOwner()->GetActorNameOrLabel();
-	}
+	}	
 
 	// Get the HAC's GUID, if the HAC is valid
 	TOptional<FGuid> ComponentGuid;
@@ -4546,7 +4546,7 @@ FHoudiniEngineUtils::AddHoudiniLogoToComponent(UHoudiniAssetComponent* HAC)
 	if (!HoudiniLogoSM)
 		return false;
 
-	UStaticMeshComponent * HoudiniLogoSMC = NewObject< UStaticMeshComponent >(
+	UStaticMeshComponent * HoudiniLogoSMC = NewObject<UStaticMeshComponent>(
 		HAC, UStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
 
 	if (!HoudiniLogoSMC)

@@ -207,7 +207,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	PackageParams.TempCookFolder = HAC->GetTemporaryCookFolderOrDefault();
 
 	PackageParams.OuterPackage = HAC->GetComponentLevel();
-	PackageParams.HoudiniAssetName = HAC->GetHoudiniAsset() ? HAC->GetHoudiniAsset()->GetName() : FString();
+	PackageParams.HoudiniAssetName = HAC->GetHoudiniAssetName();
 	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
 	PackageParams.ComponentGUID = HAC->GetComponentGUID();
 	PackageParams.ObjectName = FString();
@@ -729,7 +729,7 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 	PackageParams.TempCookFolder = HAC->GetTemporaryCookFolderOrDefault();
 
 	PackageParams.OuterPackage = HAC->GetComponentLevel();
-	PackageParams.HoudiniAssetName = HAC->GetHoudiniAsset() ? HAC->GetHoudiniAsset()->GetName() : FString();
+	PackageParams.HoudiniAssetName = HAC->GetHoudiniAssetName();
 	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
 	PackageParams.ComponentGUID = HAC->GetComponentGUID();
 	PackageParams.ObjectName = FString();
@@ -2437,7 +2437,7 @@ FHoudiniOutputTranslator::UpdateChangedOutputs(UHoudiniAssetComponent* HAC)
 	PackageParams.TempCookFolder = HAC->GetTemporaryCookFolderOrDefault();
 
 	PackageParams.OuterPackage = HAC->GetComponentLevel();
-	PackageParams.HoudiniAssetName = HAC->GetHoudiniAsset() ? HAC->GetHoudiniAsset()->GetName() : FString();
+	PackageParams.HoudiniAssetName = HAC->GetHoudiniAssetName();
 	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
 	PackageParams.ComponentGUID = HAC->GetComponentGUID();
 	PackageParams.ObjectName = FString();

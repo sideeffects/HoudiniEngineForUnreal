@@ -56,6 +56,8 @@ public:
 
 	virtual bool IsValidComponent() const override;
 
+	virtual FString GetHoudiniAssetName() const override;
+
 	void SetHoudiniAssetState(EHoudiniAssetState InNewState) { SetAssetState(InNewState); };
 
 	void SetFetchNodePath(const FString& InNodePath) { FetchNodePath = InNodePath; };

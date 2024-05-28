@@ -320,6 +320,12 @@ UHoudiniAssetComponent::GetHoudiniAsset() const
 }
 
 FString
+UHoudiniAssetComponent::GetHoudiniAssetName() const
+{
+	return IsValid(HoudiniAsset) ? HoudiniAsset->GetName() : TEXT("");
+}
+
+FString
 UHoudiniAssetComponent::GetDisplayName() const
 {
 	return GetOwner() ? GetOwner()->GetActorNameOrLabel() : GetName();

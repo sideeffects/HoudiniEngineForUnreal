@@ -4410,7 +4410,8 @@ FHoudiniEngineBakeUtils::BakeBlueprints(
 		EHoudiniInstancerComponentType::InstancedStaticMeshComponent,
 		EHoudiniInstancerComponentType::MeshSplitInstancerComponent,
 		EHoudiniInstancerComponentType::FoliageAsHierarchicalInstancedStaticMeshComponent,
-		EHoudiniInstancerComponentType::GeoemtryCollectionComponent,
+		EHoudiniInstancerComponentType::GeometryCollectionComponent/*,
+		EHoudiniInstancerComponentType::InstancedActorComponent*/
 	};
 
 
@@ -4439,7 +4440,7 @@ FHoudiniEngineBakeUtils::BakeBlueprints(
 	bBakeSuccess = BakeBlueprintsFromBakedActors(
 		TempActors,
 		BakeSettings,
-		IsValid(HoudiniAssetComponent->GetHoudiniAsset()) ? HoudiniAssetComponent->GetHoudiniAsset()->GetName() : FString(), 
+		HoudiniAssetComponent->GetHoudiniAssetName(), 
 		bIsOwnerActorValid ? OwnerActor->GetActorNameOrLabel() : FString(),
 		HoudiniAssetComponent->BakeFolder,
 		&BakedOutputs,
@@ -4667,6 +4668,47 @@ FHoudiniEngineBakeUtils::DuplicateFoliageTypeAndCreatePackageIfNeeded(
 }
 
 
+/*
+UStaticMesh*
+FHoudiniEngineBakeUtils::DuplicateStaticMesh(UStaticMesh* SourceStaticMesh, UObject* Outer, const FName Name)
+{
+	//
+	// Copied from FDatasmithImporterUtils::DuplicateStaticMesh
+	// 
+	
+	// Since static mesh can be quite heavy, remove source models for cloning to reduce useless work.
+	// Will be reinserted on the new duplicated asset or restored on the SourceStaticMesh if bIgnoreBulkData is true.
+	TArray<FStaticMeshSourceModel> SourceModels = SourceStaticMesh->MoveSourceModels();
+	FStaticMeshSourceModel HiResSourceModel = SourceStaticMesh->MoveHiResSourceModel();
+
+	// Temporary flag to skip Postload during DuplicateObject
+	SourceStaticMesh->SetFlags(RF_ArchetypeObject);
+
+	// Duplicate is used only to move our object from its temporary package into its final package replacing any asset
+	// already at that location. This function also takes care of fixing internal dependencies among the object's children.
+	// Since Duplicate has some rather heavy consequence, like calling PostLoad and doing all kind of stuff on an object
+	// that is not even fully initialized yet, we might want to find an alternative way of moving our objects in future
+	// releases but keep it for the current release cycle.
+	UStaticMesh* DuplicateMesh = ::DuplicateObject<UStaticMesh>(SourceStaticMesh, Outer, Name);
+
+	// Get rid of our temporary flag
+	SourceStaticMesh->ClearFlags(RF_ArchetypeObject);
+	DuplicateMesh->ClearFlags(RF_ArchetypeObject);
+	DuplicateMesh->GetHiResSourceModel().CreateSubObjects(DuplicateMesh);
+
+	// The source mesh is stripped from it's source model, it is not buildable anymore.
+	// -> MarkPendingKill to avoid use-after-move crash in the StaticMesh::Build()
+	SourceStaticMesh->MarkAsGarbage();
+
+	// Apply source models to the duplicated mesh
+	DuplicateMesh->SetSourceModels(MoveTemp(SourceModels));
+	DuplicateMesh->SetHiResSourceModel(MoveTemp(HiResSourceModel));
+
+	return DuplicateMesh;
+}
+*/
+
+
 UStaticMesh * 
 FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 	UStaticMesh * InStaticMesh,
@@ -4744,6 +4786,7 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 		}
 	}
 
+	FString ObjectName = PackageParams.ObjectName;
 	// If the a UStaticMesh with that name already exists then detach it from all of its components before replacing
 	// it so that its render resources can be safely replaced/updated, and then reattach it
 	UStaticMesh * DuplicatedStaticMesh = nullptr;
@@ -4753,12 +4796,14 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 	{
 		FStaticMeshComponentRecreateRenderStateContext SMRecreateContext(ExistingMesh);	
 		DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(InStaticMesh, MeshPackage, *CreatedPackageName);
+		//DuplicatedStaticMesh = FHoudiniEngineBakeUtils::DuplicateStaticMesh(InStaticMesh, MeshPackage, *CreatedPackageName);
 		bFoundExistingMesh = true;
 		BakedObjectData.BakeStats.NotifyObjectsReplaced(UStaticMesh::StaticClass()->GetName(), 1);
 	}
 	else
 	{
 		DuplicatedStaticMesh = DuplicateObject<UStaticMesh>(InStaticMesh, MeshPackage, *CreatedPackageName);
+		//DuplicatedStaticMesh = FHoudiniEngineBakeUtils::DuplicateStaticMesh(InStaticMesh, MeshPackage, *CreatedPackageName);
 		BakedObjectData.BakeStats.NotifyObjectsUpdated(UStaticMesh::StaticClass()->GetName(), 1);
 	}
 	
@@ -4783,7 +4828,10 @@ FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 
 	// See if we need to duplicate materials and textures.
 	TArray<FStaticMaterial>DuplicatedMaterials;
-	TArray<FStaticMaterial>& Materials = DuplicatedStaticMesh->GetStaticMaterials();
+	TArray<FStaticMaterial> Materials;
+	if(InStaticMesh->GetStaticMaterials().Num() > 0)
+		Materials = InStaticMesh->GetStaticMaterials();
+
 	for (int32 MaterialIdx = 0; MaterialIdx < Materials.Num(); ++MaterialIdx)
 	{
 		UMaterialInterface* MaterialInterface = Materials[MaterialIdx].MaterialInterface;
@@ -7189,7 +7237,8 @@ FHoudiniEngineBakeUtils::BakePDGTOPNodeOutputsKeepActors(
 		InstancerComponentTypesToBake.Add(EHoudiniInstancerComponentType::InstancedStaticMeshComponent);
 		InstancerComponentTypesToBake.Add(EHoudiniInstancerComponentType::MeshSplitInstancerComponent);
 		InstancerComponentTypesToBake.Add(EHoudiniInstancerComponentType::FoliageAsHierarchicalInstancedStaticMeshComponent);
-		InstancerComponentTypesToBake.Add(EHoudiniInstancerComponentType::GeoemtryCollectionComponent);
+		InstancerComponentTypesToBake.Add(EHoudiniInstancerComponentType::GeometryCollectionComponent);
+		//InstancerComponentTypesToBake.Add(EHoudiniInstancerComponentType::InstancedActorComponent);
 	}
 	
 	const int32 NumWorkResults = InNode->WorkResult.Num();

@@ -741,16 +741,43 @@ UHoudiniEditorNodeSyncSubsystem::FetchFromHoudini()
 				return;
 			};
 
-			// Create a new HoudiniAssetActor
-			// Get the asset Factory
-			UActorFactory* Factory = GEditor->FindActorFactoryForActorClass(AHoudiniAssetActor::StaticClass());
-			if (!Factory)
-				return FailImportAndReturn();
+			UWorld* World = GEditor->GetEditorWorldContext().World();
+			if (NodeSyncOptions.bReplaceExisting)
+			{
+				// See if an Actor already exist for this node path
+				AHoudiniAssetActor* FoundActor = nullptr;
+				for (TActorIterator<AHoudiniAssetActor> ActorIt(World, AHoudiniAssetActor::StaticClass(), EActorIteratorFlags::OnlyActiveLevels); ActorIt; ++ActorIt)
+				{
+					FoundActor = *ActorIt;
+					if (!FoundActor)
+						continue;
 
-			// Spawn in the current world/level
-			ULevel* LevelToSpawnIn = GEditor->GetEditorWorldContext().World()->GetCurrentLevel();
-			CreatedActor = Factory->CreateActor(nullptr, LevelToSpawnIn, FHoudiniEngineEditorUtils::GetDefaulAssetSpawnTransform());
-			if (!CreatedActor)
+					UHoudiniNodeSyncComponent* FoundHNSC = Cast<UHoudiniNodeSyncComponent>(FoundActor->GetHoudiniAssetComponent());
+					if (!IsValid(FoundHNSC))
+						continue;
+
+					if (FoundHNSC->GetFetchNodePath() != CurrentFetchNodePath)
+						continue;
+
+					// Re-use the found actor
+					CreatedActor = FoundActor;
+				}
+			}
+
+			if (!IsValid(CreatedActor))
+			{
+				// We need to create a new HoudiniAssetActor
+				// Get the asset Factory
+				UActorFactory* Factory = GEditor->FindActorFactoryForActorClass(AHoudiniAssetActor::StaticClass());
+				if (!Factory)
+					return FailImportAndReturn();
+
+				// Spawn in the current world/level
+				ULevel* LevelToSpawnIn = World->GetCurrentLevel();
+				CreatedActor = Factory->CreateActor(nullptr, LevelToSpawnIn, FHoudiniEngineEditorUtils::GetDefaulAssetSpawnTransform());
+			}
+
+			if (!IsValid(CreatedActor))
 				return FailImportAndReturn();
 		
 			// Ensure spawn was successful
@@ -795,7 +822,14 @@ UHoudiniEditorNodeSyncSubsystem::FetchFromHoudini()
 			HNSC->bReplacePreviousBake = NodeSyncOptions.bReplaceExisting;
 			HNSC->BakeFolder.Path = NodeSyncOptions.UnrealAssetFolder;
 
-			HACActor->SetActorLabel(NodeSyncOptions.GetUnrealActorLabel(PathIdx));
+			// Make sure we the actor has a unique name/label
+			FString ActorNameAndLabel = NodeSyncOptions.GetUnrealActorLabel(PathIdx);
+			// Try to find an existing actor of the desired name - make our name unique if we find one
+			AActor* NamedActor = FHoudiniEngineUtils::FindActorInWorldByLabelOrName<AActor>(World, ActorNameAndLabel);
+			if(NamedActor == nullptr)
+				HACActor->SetActorLabel(NodeSyncOptions.GetUnrealActorLabel(PathIdx));
+			else if(NamedActor != HACActor)
+				FHoudiniEngineUtils::RenameToUniqueActor(HACActor, NodeSyncOptions.GetUnrealActorLabel(PathIdx));
 
 			// Get its transform
 			FTransform FetchTransform;

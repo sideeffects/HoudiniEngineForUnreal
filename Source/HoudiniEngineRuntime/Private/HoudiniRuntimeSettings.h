@@ -183,31 +183,35 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		TEnumAsByte<enum EHoudiniRuntimeSettingsSessionType> SessionType;
 
+		// The number of threaded sessions to be used to send/receive data (default: 1)
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session, meta = (ClampMin = "1", ClampMax = "128"))
 		int32 NumSessions;
 
+		// The name of the machine that hosts the houdini server (default: localhost)
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		FString ServerHost;
 
+		// The port to be used for a TCP socket session (default: 9090)
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		int32 ServerPort;
 
-		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
+		// The name of the server used for Name Pipe or Shared Memory buffer session (default: hapi)
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session, meta = (DisplayName = "Server Name"))
 		FString ServerPipeName;
 
-		// The size (in MB) of the Memory buffer used for shared memory buffer sessions
+		// The size (in MB) of the Memory buffer used for shared memory buffer sessions (default: 500)
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		int64 SharedMemoryBufferSize;
 
-		// Indicates if the shared memory buffer session use a cyclic (ring) buffer. If disabled, the buffer will be of fixed size.
+		// Indicates if the shared memory buffer session use a cyclic (ring) buffer. If disabled, the buffer will be of fixed size. (default: enabled)
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		bool bSharedMemoryBufferCyclic;
 
-		// Whether to automatically start a HARS process
+		// Automatically try to start a HARS process matching the current session settings when restarting the session (default: enabled)
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		bool bStartAutomaticServer;
 
-		// The timeout (in ms) to be used when attempting to create a Houdini Engine Session
+		// The timeout (in ms) to be used when attempting to create a Houdini Engine Session (default: 3000)
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		float AutomaticServerTimeout;
 

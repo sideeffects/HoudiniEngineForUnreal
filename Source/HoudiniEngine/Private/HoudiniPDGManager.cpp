@@ -1703,7 +1703,7 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 		if (HAC)
 		{
 			PackageParams.OuterPackage = HAC->GetComponentLevel();
-			PackageParams.HoudiniAssetName = HAC->GetHoudiniAsset() ? HAC->GetHoudiniAsset()->GetName() : FString();
+			PackageParams.HoudiniAssetName = HAC->GetHoudiniAssetName();
 			PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
 			PackageParams.ComponentGUID = HAC->GetComponentGUID();
 

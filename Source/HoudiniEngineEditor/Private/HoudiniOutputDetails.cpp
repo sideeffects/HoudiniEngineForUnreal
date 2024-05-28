@@ -4433,7 +4433,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 		}
 	}
 	
-	const FString HoudiniAssetName = IsValid(HAC->GetHoudiniAsset()) ? HAC->GetHoudiniAsset()->GetName() : TEXT("");
+	const FString HoudiniAssetName = HAC->GetHoudiniAssetName();
 	const FString HoudiniAssetActorName = IsValid(HAC->GetOwner()) ? HAC->GetOwner()->GetActorNameOrLabel() : TEXT("");
 	const bool bAutomaticallySetAttemptToLoadMissingPackages = true;
 	const bool bSkipObjectNameResolutionAndUseDefault = !InBakeName.IsEmpty();  // If InBakeName is set use it as is for the object name

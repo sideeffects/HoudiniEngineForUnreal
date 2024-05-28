@@ -262,7 +262,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		{
 			MultiSelectionIdentifier = TEXT("(");
 			if (MainComponent->GetHoudiniAsset())
-				MultiSelectionIdentifier += MainComponent->GetHoudiniAsset()->GetName();
+				MultiSelectionIdentifier += MainComponent->GetHoudiniAssetName();
 			MultiSelectionIdentifier += TEXT(")");
 		}
 

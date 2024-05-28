@@ -230,9 +230,8 @@ FHoudiniParameterTranslator::BuildAllParameters(
 	const UHoudiniAsset* InHoudiniAsset,
 	const FString& InHoudiniAssetName)
 {
-	const bool bIsAssetValid = IsValid(InHoudiniAsset);
-	
 	// Ensure the asset has a valid node ID
+	const bool bIsAssetValid = IsValid(InHoudiniAsset);	
 	if (AssetId < 0 && !bIsAssetValid)
 	{	
 		return false;

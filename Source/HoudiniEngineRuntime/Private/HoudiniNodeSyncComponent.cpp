@@ -61,3 +61,21 @@ UHoudiniNodeSyncComponent::IsValidComponent() const
 {
 	return true;
 }
+
+FString
+UHoudiniNodeSyncComponent::GetHoudiniAssetName() const
+{
+	if (FetchNodePath.IsEmpty())
+		return FString();
+
+	// Extract the node name from our fetch node path
+	int32 FoundPos = -1;
+	if (FetchNodePath.FindLastChar(TEXT('/'), FoundPos))
+	{
+		return FetchNodePath.RightChop(FoundPos + 1);
+	}
+	else
+	{
+		return FetchNodePath;
+	}
+}
