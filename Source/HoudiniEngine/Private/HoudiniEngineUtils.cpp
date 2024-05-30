@@ -136,53 +136,7 @@ FHoudiniEngineUtils::PackageGUIDComponentNameLength = 12;
 const int32
 FHoudiniEngineUtils::PackageGUIDItemNameLength = 8;
 
-template <typename DataType>
-TArray<int> RunLengthEncode(const DataType* Data, int TupleSize, int Count, const float MaxCompressionRatio = 0.25f)
-{
-	// Run length encode the data.
-    // If this function returns an empty array it means the desired compression ratio could not be met.
 
-    auto CompareTuple = [TupleSize] (const DataType* StartA, const DataType* StartB)
-    {
-        for (int Index = 0; Index < TupleSize; Index++)
-        {
-            if (StartA[Index] != StartB[Index])
-                return false;
-        }
-        return true;
-    };
-
-    TArray<int> EncodedData;
-    if (Count == 0)
-        return EncodedData;
-
-	// Guess of size needed.
-    EncodedData.Reserve(static_cast<int>(MaxCompressionRatio * Count));
-
-	// The first run always begins on element zero.
-    int Start = 0;
-    EncodedData.Add(Start);
-
-	// Created a run length encoded array based off the input data. eg.
-    // [ 0, 0, 0, 1, 1, 2, 3 ] will return [ 0, 3, 5, 6]
-
-    for(int Index = 0; Index < Count * TupleSize; Index += TupleSize)
-    {
-        if (!CompareTuple(&Data[Start], &Data[Index]))
-        {
-		    // The value changed, so start a new run
-            Start = Index;
-            EncodedData.Add(Start / TupleSize);
-        }
-    }
-
-    // Check we've made a decent compression ratio. If not return an empty array.
-    float Ratio = float(EncodedData.Num() / float(Count));
-    if (Ratio > MaxCompressionRatio)
-        EncodedData.SetNum(0);
-
-    return EncodedData;
-}
 
 // Maximum size of the data that can be sent via thrift
 //#define THRIFT_MAX_CHUNKSIZE			100 * 1024 * 1024 // This is supposedly the current limit in thrift, but still seems to be too large

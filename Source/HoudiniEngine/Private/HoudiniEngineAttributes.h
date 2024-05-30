@@ -42,6 +42,8 @@ struct FHoudiniHapiAccessor
 	bool bAllowTypeConversion = true;
 	bool bAllowMultiThreading = true;
 	bool bCanBeArray = false;
+	bool bCanRunLengthEncode = true;
+	int MinElementsForRunLengthEncoding = 100 * 1000;
 
 	// Initialization functions. use these functions to initialize the accessor.
 	FHoudiniHapiAccessor(HAPI_NodeId NodeId, HAPI_NodeId PartId, const char* Name);
@@ -89,33 +91,13 @@ protected:
 	template<typename DataType> bool GetAttributeDataMultiSession(const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int First, int Count);
 	template<typename DataType> bool SetAttributeDataMultiSession(const HAPI_AttributeInfo& AttributeInfo, const DataType* Data, int First, int Count) const;
 
-	// Internal functions for actually getting data from HAPI.
-	HAPI_Result FetchHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, uint8* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, int8* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, int16* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, int* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, int64* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, float* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, double* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, FString* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiDataArray(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, uint8* Data, int* Sizes, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiDataArray(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, int8* Data, int* Sizes, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiDataArray(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, int16* Data, int* Sizes, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiDataArray(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, int* Data, int* Sizes, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiDataArray(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, int64* Data, int* Sizes, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiDataArray(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, float* Data, int* Sizes, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiDataArray(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, double* Data, int* Sizes, int IndexStart, int IndexCount) const;
-	HAPI_Result FetchHapiDataArray(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, FString* Data, int* Sizes, int IndexStart, int IndexCount) const;
+	// Internal functions for actually getting data from HAPI.No type conversion is performed.
 
-	// Internal functions for sending data to HAPI.
-	HAPI_Result SendHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const uint8* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result SendHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const int8* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result SendHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const int16* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result SendHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const int* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result SendHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const int64* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result SendHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const float* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result SendHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const double* Data, int IndexStart, int IndexCount) const;
-	HAPI_Result SendHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const FString* Data, int IndexStart, int IndexCount) const;
+	template<typename DataType> HAPI_Result FetchHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, DataType* Data, int IndexStart, int IndexCount) const;
+	template<typename DataType> HAPI_Result FetchHapiDataArray(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, DataType* Data, int* Sizes, int IndexStart, int IndexCount) const;
+
+	// Internal functions for sending data to HAPI. No type conversion is performed.
+	template<typename DataType> HAPI_Result SendHapiData(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const DataType* Data, int StartIndex, int IndexCount) const;
 
 	// Data conversion functions.
 	template<typename DataType> static void ConvertFromRawData(const FHoudiniRawAttributeData& RawData, DataType* Data, size_t Count);
@@ -141,6 +123,10 @@ protected:
 
 	template<typename TaskType>
 	static bool ExecuteTasksWithSessions(TArray<TaskType>& Tasks, int NumSessions);
+
+	template<typename DataType>
+	HAPI_Result SendHapiDataRunLengthEncoded(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const DataType* Data, int StartIndex, int IndexCount) const;
+
 };
 
 
