@@ -3488,6 +3488,8 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 	// INPUT MESH NAME
 	//---------------------------------------------------------------------------------------------------------------------
 	{
+		H_SCOPED_FUNCTION_STATIC_LABEL(HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME);
+
 		// Create primitive attribute with mesh asset path
 		const FString MeshAssetPath = Mesh->GetPathName();
 
@@ -3561,10 +3563,12 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 	*/
 
 	//--------------------------------------------------------------------------------------------------------------------- 
-	// LOD GROUP AND SCREENSIZE
+	// LOD GROUP AND SCREEN SIZE
 	//---------------------------------------------------------------------------------------------------------------------
 	if (bAddLODGroups)
 	{
+		H_SCOPED_FUNCTION_STATIC_LABEL("LOD GROUP AND SCREEN SIZE");
+
 		// LOD Group
 		const char * LODGroupStr = "";
 		{
@@ -3621,6 +3625,8 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 	//---------------------------------------------------------------------------------------------------------------------
 	if (IsValid(MeshComponent))
 	{
+		H_SCOPED_FUNCTION_STATIC_LABEL("COMPONENT AND ACTOR TAGS");
+
 		// Try to create groups for the static mesh component's tags
 		if (MeshComponent->ComponentTags.Num() > 0
 			&& !FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, 0, MeshComponent->ComponentTags))
@@ -3643,6 +3649,9 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 
 	if (bCommitGeo)
 	{
+
+		H_SCOPED_FUNCTION_STATIC_LABEL("COMIT GEO");
+
 		// Commit the geo.
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
 			FHoudiniEngine::Get().GetSession(), NodeId), false);

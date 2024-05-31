@@ -467,7 +467,7 @@ bool FHoudiniHapiAccessor::GetAttributeDataMultiSession(const HAPI_AttributeInfo
 {
 	// This is the actual main function for getting data.
 
-	H_SCOPED_FUNCTION_DYNAMIC_LABEL(FString::Printf(TEXT("FHoudiniAttributeAccessor::Get (%s)"), ANSI_TO_TCHAR(AttributeName)));
+	H_SCOPED_FUNCTION_DYNAMIC_LABEL(FString::Printf(TEXT("FHoudiniAttributeAccessor::GetAttributeDataMultiSession (%s)"), ANSI_TO_TCHAR(AttributeName)));
 
 	if (!AttributeInfo.exists)
 		return false;
@@ -528,6 +528,8 @@ bool FHoudiniHapiAccessor::SetAttributeData(const HAPI_AttributeInfo& AttributeI
 template<typename DataType>
 bool FHoudiniHapiAccessor::SetAttributeDataMultiSession(const HAPI_AttributeInfo& AttributeInfo, const DataType* Data, int IndexStart, int IndexCount) const
 {
+	H_SCOPED_FUNCTION_DYNAMIC_LABEL(FString::Printf(TEXT("FHoudiniAttributeAccessor::SetAttributeDataMultiSession (%s)"), ANSI_TO_TCHAR(AttributeName)));
+
 	if (IndexCount == -1)
 		IndexCount = AttributeInfo.count;
 
@@ -689,6 +691,8 @@ HAPI_Result FHoudiniHapiAccessor::SendHapiData(const HAPI_Session* Session, cons
 template<typename DataType>
 bool FHoudiniHapiAccessor::SetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const DataType* Data, int StartIndex, int IndexCount) const
 {
+	H_SCOPED_FUNCTION_DYNAMIC_LABEL(FString::Printf(TEXT("FHoudiniAttributeAccessor::SetAttributeDataMultiSession (%s)"), ANSI_TO_TCHAR(AttributeName)));
+
 	if (IndexCount == 0)
 		return true;
 
