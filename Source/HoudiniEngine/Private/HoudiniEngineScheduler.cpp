@@ -228,6 +228,24 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask & Task)
 			break;
 		}
 
+		if (Result == HAPI_RESULT_FAILURE)
+		{
+			// There was an error while getting the status - likely we've lost the session.
+			// Log an error and ensure we break cleanly in that case
+			HOUDINI_LOG_ERROR(TEXT("Unable to instantiate asset: %s - session failed"), *Task.ActorName);
+
+			EHoudiniEngineTaskState TaskStateResult = EHoudiniEngineTaskState::FinishedWithFatalError;
+
+			AddResponseMessageTaskInfo(
+				static_cast<HAPI_Result>(Result),
+				EHoudiniEngineTaskType::AssetInstantiation,
+				TaskStateResult,
+				AssetId, Task,
+				TEXT("Unable to instantiate the asset: session failed."));
+
+			return;
+		}
+
 		static const double NotificationUpdateFrequency = 0.5;
 		if ((FPlatformTime::Seconds() - LastUpdateTime) >= NotificationUpdateFrequency)
 		{
@@ -350,6 +368,25 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask & Task)
 					GlobalTaskResult = EHoudiniEngineTaskState::FinishedWithError;
 
 				break;
+			}
+
+			if (Result == HAPI_RESULT_FAILURE)
+			{
+				// There was an error while getting the status - likely we've lost the session.
+				// Log an error and ensure we break cleanly in that case
+				HOUDINI_LOG_ERROR(TEXT("Unable to cook asset: %s - session failed"), *Task.ActorName);
+				GlobalTaskResult = EHoudiniEngineTaskState::FinishedWithFatalError;
+
+				// There was an error while cooking.
+				AddResponseMessageTaskInfo(
+					HAPI_RESULT_FAILURE,
+					EHoudiniEngineTaskType::AssetCooking,
+					EHoudiniEngineTaskState::FinishedWithFatalError,
+					AssetId,
+					Task,
+					TEXT("Unable to cook - session failed"));
+
+				return;
 			}
 
 			static const double NotificationUpdateFrequency = 0.5;
