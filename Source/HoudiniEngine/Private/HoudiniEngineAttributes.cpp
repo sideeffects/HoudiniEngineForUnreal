@@ -1019,6 +1019,17 @@ HAPI_StorageType FHoudiniHapiAccessor::GetHapiType()
 	}
 }
 
+template<> bool FHoudiniHapiAccessor::GetAttributeData(HAPI_AttributeOwner Owner, TArray<FVector3f>& Results, int IndexStart, int IndexCount)
+{
+	HAPI_AttributeInfo AttrInfo;
+	if (!GetInfo(AttrInfo, Owner))
+		return false;
+
+	Results.SetNum(AttrInfo.tupleSize * AttrInfo.count);
+
+	return GetAttributeData(AttrInfo, (float *)Results.GetData(), IndexStart, IndexCount);
+}
+
 template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeData(HAPI_AttributeOwner Owner, TArray<DataType>& Results, int IndexStart, int IndexCount)
 {
 	HAPI_AttributeInfo AttrInfo;

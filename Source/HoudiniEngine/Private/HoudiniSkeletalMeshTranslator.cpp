@@ -585,73 +585,30 @@ FHoudiniSkeletalMeshTranslator::FillSkeletalMeshImportData(SKBuildSettings& Buil
 
 	HAPI_PartInfo ShapeMeshPartInfo;
 	FHoudiniApi::PartInfo_Init(&ShapeMeshPartInfo);
-
-	FHoudiniApi::GetPartInfo(
-		FHoudiniEngine::Get().GetSession(),
-		ShapeGeoId,
-		ShapePartId,
-		&ShapeMeshPartInfo
-		);
+	FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), ShapeGeoId, ShapePartId, &ShapeMeshPartInfo);
 
 	HAPI_PartInfo PoseMeshPartInfo;
 	FHoudiniApi::PartInfo_Init(&PoseMeshPartInfo);
-
-	FHoudiniApi::GetPartInfo(
-		FHoudiniEngine::Get().GetSession(),
-		PoseGeoId,
-		PosePartId,
-		&PoseMeshPartInfo
-		);
+	FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), PoseGeoId, PosePartId, &PoseMeshPartInfo);
 
 	//-----------------------------------------------------------------------------------
 	// Rest Geometry Points
 	//-----------------------------------------------------------------------------------
-	HAPI_AttributeInfo PositionInfo;
-	FHoudiniApi::AttributeInfo_Init(&PositionInfo);
-
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInfo(
-		FHoudiniEngine::Get().GetSession(),
-		ShapeGeoId,
-		ShapePartId,
-		HAPI_UNREAL_ATTRIB_POSITION,
-		HAPI_AttributeOwner::HAPI_ATTROWNER_POINT,
-		&PositionInfo))
-	{
-		HOUDINI_LOG_ERROR(TEXT("Error Creating Skeletal Mesh : No Points Info"));
-		return false;
-	}
-
-	if (PositionInfo.count <= 0)
-	{
-		HOUDINI_LOG_ERROR(TEXT("Error Creating Skeletal Mesh : No Points Info"));
-		return false;
-	}
 
 	TArray<FVector3f> PositionData;
-	// we dont need to multiply by tupleSize, its already a vector container
-	PositionData.SetNum(PositionInfo.count);
-
-	//FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId, HAPI_UNREAL_ATTRIB_POSITION, PositionInfo, PositionData);
-	FHoudiniApi::GetAttributeFloatData(
-		FHoudiniEngine::Get().GetSession(),
-		ShapeGeoId,
-		ShapePartId,
-		HAPI_UNREAL_ATTRIB_POSITION,
-		&PositionInfo,
-		-1,
-		(float*)&PositionData[0],
-		0,
-		PositionInfo.count);
+	FHoudiniHapiAccessor Accessor;
+	Accessor.Init(ShapeGeoId, ShapePartId, HAPI_UNREAL_ATTRIB_POSITION);
+	bool bSuccess = Accessor.GetAttributeData(HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, PositionData);
 
 	// we dont need to multiply by tupleSize, its already a vector container
-	SkeletalMeshImportData.Points.SetNum(PositionInfo.count);
-	int32 c = 0;
+	SkeletalMeshImportData.Points.SetNum(PositionData.Num());
+	int32 Index = 0;
 	for (FVector3f Point : PositionData)
 	{
 		//flip x and z
-		SkeletalMeshImportData.Points[c] = FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector3f(Point);
-		SkeletalMeshImportData.PointToRawMap.Add(c);
-		c++;
+		SkeletalMeshImportData.Points[Index] = FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector3f(Point);
+		SkeletalMeshImportData.PointToRawMap.Add(Index);
+		Index++;
 	}
 
 	//-----------------------------------------------------------------------------------
@@ -660,56 +617,31 @@ FHoudiniSkeletalMeshTranslator::FillSkeletalMeshImportData(SKBuildSettings& Buil
 	
 	TArray<TArray<float>> PartUVSets;
 	TArray<HAPI_AttributeInfo> AttribInfoUVSets;
-
-	FHoudiniEngineUtils::UpdateMeshPartUVSets(ShapeGeoId, ShapePartId, true,
-		PartUVSets, AttribInfoUVSets);
+	FHoudiniEngineUtils::UpdateMeshPartUVSets(ShapeGeoId, ShapePartId, true, PartUVSets, AttribInfoUVSets);
 
 	//-----------------------------------------------------------------------------------
 	// Normals
 	//-----------------------------------------------------------------------------------
-	HAPI_AttributeInfo NormalInfo;
-	FHoudiniApi::AttributeInfo_Init(&NormalInfo);
 
-	HAPI_Result NormalInfoResult = FHoudiniApi::GetAttributeInfo(
-		FHoudiniEngine::Get().GetSession(),
-		ShapeGeoId,
-		ShapePartId,
-		HAPI_UNREAL_ATTRIB_NORMAL,
-		HAPI_AttributeOwner::HAPI_ATTROWNER_VERTEX,
-		&NormalInfo);
-
-	bool bUseComputedNormals = !BuildSettings.ImportNormals;
 	TArray<FVector3f> NormalData;
-	if (NormalInfo.exists && NormalInfo.count > 0)
-	{
-		//we dont need to multiply by tupleSize, its already a vector container
-		NormalData.SetNum(NormalInfo.count);
+	bool bUseComputedNormals = !BuildSettings.ImportNormals;
 
-		//FHoudiniEngineUtils::HapiGetAttributeDataAsFloat(GeoId, PartId, HAPI_UNREAL_ATTRIB_POSITION, PositionInfo, PositionData);
-		FHoudiniApi::GetAttributeFloatData(
-			FHoudiniEngine::Get().GetSession(),
-			ShapeGeoId,
-			ShapePartId,
-			HAPI_UNREAL_ATTRIB_NORMAL,
-			&NormalInfo,
-			-1,
-			(float*)&NormalData[0],
-			0,
-			NormalInfo.count);
-	}
-	else
+	if (!bUseComputedNormals)
 	{
-		//Use Computed Normals
-		bUseComputedNormals = true;
+		Accessor.Init(ShapeGeoId, ShapePartId, HAPI_UNREAL_ATTRIB_NORMAL);
+		bSuccess = Accessor.GetAttributeData(HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, NormalData);
+		if (!bSuccess || NormalData.IsEmpty())
+			bUseComputedNormals =  true;
 	}
 
 	//-----------------------------------------------------------------------------------
 	// Vertex Colors
 	//-----------------------------------------------------------------------------------
+
 	HAPI_AttributeInfo ColorInfo;
 	TArray<float> ColorData;
 
-	FHoudiniHapiAccessor Accessor(ShapeGeoId, ShapePartId, HAPI_UNREAL_ATTRIB_COLOR);
+	Accessor.Init(ShapeGeoId, ShapePartId, HAPI_UNREAL_ATTRIB_COLOR);
 	Accessor.GetInfo(ColorInfo, HAPI_ATTROWNER_INVALID);
 	bool bColorInfoExists = Accessor.GetAttributeData(ColorInfo, ColorData);
 
@@ -1004,29 +936,23 @@ FHoudiniSkeletalMeshTranslator::FillSkeletalMeshImportData(SKBuildSettings& Buil
 	//-----------------------------------------------------------------------------------
 	// Capture Pose - Rotation Data
 	//-----------------------------------------------------------------------------------
-	
+
+	Accessor.Init(PoseGeoId, PosePartId, "transform");
 	HAPI_AttributeInfo PoseRotationInfo;
-	FHoudiniApi::AttributeInfo_Init(&PoseRotationInfo);
-	
-	constexpr int RotationStride = 9;
-	
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInfo(
-		FHoudiniEngine::Get().GetSession(),
-		PoseGeoId,
-		PosePartId,
-		"transform",
-		HAPI_AttributeOwner::HAPI_ATTROWNER_POINT,
-		&PoseRotationInfo))
+	if (!Accessor.GetInfo(PoseRotationInfo, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT))
 	{
-		HOUDINI_LOG_ERROR(TEXT("Error Creating Skeletal Mesh: Missing 'transform' attribute on Capture Pose."));
+		HOUDINI_LOG_ERROR(TEXT("Error Creating Skeletal Mesh: Missing 'transform' point attribute on Capture Pose."));
 		return false;
 	}
-	
-	BoneRotationData.SetNum(PoseRotationInfo.count * RotationStride);
-	Accessor.Init(PoseGeoId, PosePartId, HAPI_UNREAL_ATTRIB_TANGENTU);
-
-	if (!Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, TangentData))
+	if (PoseRotationInfo.tupleSize != 9)
 	{
+		HOUDINI_LOG_ERROR(TEXT("Error Creating Skeletal Mesh: Tuple size is not 9 on transform attribute."));
+		return false;
+	}
+
+	if (!Accessor.GetAttributeData(PoseRotationInfo, BoneRotationData))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Error Creating Skeletal Mesh:  Failed to fetch rotation data."));
 		return false;
 	}
 
@@ -1157,7 +1083,7 @@ FHoudiniSkeletalMeshTranslator::FillSkeletalMeshImportData(SKBuildSettings& Buil
 	//if not fbx imported, these indexes match CaptNamesAltData sorting
 	TArray<float> BoneCaptureData;
 	Accessor.Init(ShapeGeoId, ShapePartId, "boneCapture");
-	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, BoneCaptureData);
+	bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, BoneCaptureData);
 
 	struct FBoneCaptureData
 	{
