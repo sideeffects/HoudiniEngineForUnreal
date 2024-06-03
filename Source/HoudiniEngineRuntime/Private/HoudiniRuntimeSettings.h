@@ -200,7 +200,8 @@ protected:
 		FString ServerPipeName;
 
 		// The size (in MB) of the Memory buffer used for shared memory buffer sessions (default: 500)
-		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
+		// Value are clamped between 1MB - 128GB and UI between 1MB and 16GB
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session, meta = (ClampMin = "1", ClampMax = "131072", UIMin = "1", UIMax = "16384"))
 		int64 SharedMemoryBufferSize;
 
 		// Indicates if the shared memory buffer session use a cyclic (ring) buffer. If disabled, the buffer will be of fixed size. (default: enabled)

@@ -701,6 +701,14 @@ FHoudiniEngine::StartSession(
 		FHoudiniApi::SessionInfo_Init(&SessionInfo);
 		SessionInfo.sharedMemoryBufferSize = ServerOptions.sharedMemoryBufferSize;
 		SessionInfo.sharedMemoryBufferType = ServerOptions.sharedMemoryBufferType;
+
+		// Make sure memory buffer size make sense (between 1MB and 128GB)
+		if ((SessionInfo.sharedMemoryBufferSize < 1) || (SessionInfo.sharedMemoryBufferSize > 131072))
+		{
+			HOUDINI_LOG_ERROR(TEXT("Invalid Shared Memory Buffer size!"));
+			SessionResult = HAPI_RESULT_FAILURE;
+			break;
+		}
 		
 		SessionResult = FHoudiniApi::CreateThriftSharedMemorySession(
 			&Sessions[Index], TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
