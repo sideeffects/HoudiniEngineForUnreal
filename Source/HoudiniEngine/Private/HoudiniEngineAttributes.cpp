@@ -1025,7 +1025,12 @@ template<> bool FHoudiniHapiAccessor::GetAttributeData(HAPI_AttributeOwner Owner
 	if (!GetInfo(AttrInfo, Owner))
 		return false;
 
-	Results.SetNum(AttrInfo.tupleSize * AttrInfo.count);
+	if (AttrInfo.tupleSize != 3)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Tried to get a Vector3f, but tuple size is not 3"));
+		return false;
+	}
+	Results.SetNum(AttrInfo.count);
 
 	return GetAttributeData(AttrInfo, (float *)Results.GetData(), IndexStart, IndexCount);
 }
