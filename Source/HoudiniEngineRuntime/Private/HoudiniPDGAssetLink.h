@@ -548,10 +548,6 @@ public:
 	// Notification that this TOP node has been dirtied.
 	void OnDirtyNode();
 
-	// More cached landscape data
-	UPROPERTY()
-	TSet<FString> ClearedLandscapeLayers_DEPRECATED;
-
     // Keep track of cleared layers
 	UPROPERTY()
 	FHoudiniClearedEditLayers ClearedLayers;

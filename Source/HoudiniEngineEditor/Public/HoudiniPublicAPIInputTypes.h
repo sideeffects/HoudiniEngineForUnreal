@@ -141,16 +141,7 @@ public:
 	virtual bool UpdateHoudiniInput(UHoudiniInput* const InInput) const;
 
 protected:
-	/**
-	 * Copy any properties we need from the UHoudiniInputObject InSrc for the the input object it wraps.
-	 * @param InInputObject The UHoudiniInputObject to copy from.
-	 * @param InObject The input object to copy per-object properties for.
-	 * @return false if the copy failed, for example if InSrc is invalid or of incompatible type.
-	 * @deprecated Use CopyHoudiniInputObjectPropertiesToInputObject instead.
-	 */
-	UE_DEPRECATED("1.1.0", "Use CopyHoudiniInputObjectPropertiesToInputObject instead.")
-	virtual bool CopyHoudiniInputObjectProperties(UHoudiniInputObject const* const InInputObject, UObject* const InObject);
-
+	
 	/**
 	 * Copy any properties we need from the UHoudiniInputObject InInputObject for the the input object it wraps.
 	 * @param InHoudiniInputObject The UHoudiniInputObject to copy from.
@@ -158,16 +149,6 @@ protected:
 	 * @return false if the copy failed, for example if InSrc is invalid or of incompatible type.
 	 */
 	virtual bool CopyHoudiniInputObjectPropertiesToInputObject(UHoudiniInputObject const* const InHoudiniInputObject, const int32 InInputObjectIndex);
-
-	/**
-	 * Copy any properties for InObject from this input wrapper to InInputObject.
-	 * @param InObject The input object to copy per-object properties for.
-	 * @param InInputObject The Houdini input object to copy the properties to.
-	 * @return false if the copy failed, for example if InSrc is invalid or of incompatible type.
-	 * @deprecated Use CopyInputObjectPropertiesToHoudiniInputObject instead.
-	 */
-	UE_DEPRECATED("1.1.0", "Use CopyInputObjectPropertiesToHoudiniInputObject instead.")
-	virtual bool CopyPropertiesToHoudiniInputObject(UObject* const InObject, UHoudiniInputObject* const InInputObject) const;
 
 	/**
 	 * Copy any properties for InInputObjectIndex from this input wrapper to InHoudiniInputObject.
@@ -241,26 +222,6 @@ public:
 	bool bPreferNaniteFallbackMesh;
 
 	/**
-	 * Set the transform offset of the specified input object InObject (must already have been set via SetInputObjects()).
-	 * @param InObject The input object to set a transform offset for.
-	 * @param InTransform The transform offset to set.
-	 * @return true if the object was found and the transform offset set.
-	 */
-	UE_DEPRECATED("1.1.0", "Use SetInputObjectTransformOffset instead.")
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(AutoCreateRefTerm="InTransform", DeprecatedFunction, DeprecationMessage="Use SetInputObjectTransformOffset instead."))
-	bool SetObjectTransformOffset(UObject* InObject, const FTransform& InTransform);
-
-	/**
-	 * Get the transform offset of the specified input object InObject (must already have been set via SetInputObjects()).
-	 * @param InObject The input object to get a transform offset for.
-	 * @param OutTransform The transform offset that was fetched.
-	 * @return true if the object was found and the transform offset fetched.
-	 */
-	UE_DEPRECATED("1.1.0", "Use GetInputObjectTransformOffset instead.")
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(DeprecatedFunction, DeprecationMessage="Use GetInputObjectTransformOffset instead."))
-	bool GetObjectTransformOffset(UObject* InObject, FTransform& OutTransform) const;
-
-	/**
 	 * Set the transform offset of the input object at the specified index in InputObjects (must already have been set via SetInputObjects()).
 	 * @param InInputObjectIndex The input object index to set a transform offset for.
 	 * @param InTransform The transform offset to set.
@@ -310,11 +271,6 @@ protected:
 	virtual bool CopyInputObjectPropertiesToHoudiniInputObject(const int32 InInputObjectIndex, UHoudiniInputObject* const InHoudiniInputObject) const override;
 
 	virtual EHoudiniInputType GetInputType() const override { return EHoudiniInputType::Geometry; }
-
-	/** Per-Input-Object data: the transform offset per input object. */
-	UE_DEPRECATED("1.1.0", "Use InputObjectTransformOffsetArray via SetInputObjectTransformOffset and GetInputObjectTransformOffset instead")
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use InputObjectTransformOffsetArray instead"))
-	TMap<UObject*, FTransform> InputObjectTransformOffsets_DEPRECATED;
 
 private:
 	/** Transform offset per input object (by input object array index). */
@@ -567,33 +523,6 @@ protected:
 
 
 /**
- * API wrapper input class for asset inputs. Derived from UHoudiniPublicAPIInput.
- * H20: Deprecated! use World inputs instead
- */
-UCLASS(Deprecated, BlueprintType, Category="Houdini Engine | Public API | Inputs", meta = (DeprecationMessage = "Please use UHoudiniPublicAPIWorldInput instead."))
-class HOUDINIENGINEEDITOR_API UDEPRECATED_HoudiniPublicAPIAssetInput : public UHoudiniPublicAPIInput
-{
-	GENERATED_BODY()
-
-public:
-	UDEPRECATED_HoudiniPublicAPIAssetInput();
-
-	virtual bool IsAcceptableObjectForInput_Implementation(UObject* InObject) const override;
-
-	virtual bool PopulateFromHoudiniInput(UHoudiniInput const* const InInput) override;
-
-	virtual bool UpdateHoudiniInput(UHoudiniInput* const InInput) const override;
-
-protected:
-	virtual EHoudiniInputType GetInputType() const override { return EHoudiniInputType::World; }
-
-	virtual UObject* ConvertInternalInputObject(UObject* InInternalInputObject) override;
-
-	virtual UObject* ConvertAPIInputObjectAndAssignToInput(UObject* InAPIInputObject, UHoudiniInput* InHoudiniInput, const int32 InInputIndex) const override;
-};
-
-
-/**
  * API wrapper input class for world inputs. Derived from UHoudiniPublicAPIGeoInput.
  */
 UCLASS(BlueprintType, Category="Houdini Engine | Public API | Inputs")
@@ -668,143 +597,4 @@ public:
 protected:
 	virtual EHoudiniInputType GetInputType() const override { return EHoudiniInputType::World; }
 
-};
-
-
-/**
- * API wrapper input class for landscape inputs. Derived from UHoudiniPublicAPIInput.
- * H20: Deprecated! use World inputs instead
- */
-UCLASS(Deprecated, BlueprintType, Category="Houdini Engine | Public API | Inputs", meta = (DeprecationMessage = "Please use UHoudiniPublicAPIWorldInput instead."))
-class HOUDINIENGINEEDITOR_API UDEPRECATED_HoudiniPublicAPILandscapeInput : public UHoudiniPublicAPIInput
-{
-	GENERATED_BODY()
-
-public:
-	UDEPRECATED_HoudiniPublicAPILandscapeInput();
-
-	/** DEPRECATED Indicates that the landscape input's source landscape should be updated instead of creating a new component */
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use Edit Layers instead."))
-	bool bUpdateInputLandscape_DEPRECATED;
-
-	/** Indicates if the landscape should be exported as heightfield, mesh or points */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
-	EHoudiniLandscapeExportType LandscapeExportType;
-
-	/** Is set to true when landscape input is set to selection only. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
-	bool bLandscapeExportSelectionOnly;
-
-	/** Is set to true when the automatic selection of landscape component is active */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
-	bool bLandscapeAutoSelectComponent;
-
-	/** Is set to true when materials are to be exported. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
-	bool bLandscapeExportMaterials;
-
-	/** Is set to true when lightmap information export is desired. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
-	bool bLandscapeExportLighting;
-
-	/** Is set to true when uvs should be exported in [0,1] space. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
-	bool bLandscapeExportNormalizedUVs;
-
-	/** Is set to true when uvs should be exported for each tile separately. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
-	bool bLandscapeExportTileUVs;
-
-	virtual bool PopulateFromHoudiniInput(UHoudiniInput const* const InInput) override;
-
-	virtual bool UpdateHoudiniInput(UHoudiniInput* const InInput) const override;
-
-protected:
-	virtual EHoudiniInputType GetInputType() const override { return EHoudiniInputType::Landscape_DEPRECATED; }
-
-};
-
-
-/**
- * API wrapper input class for geometry collection inputs. Derived from UHoudiniPublicAPIInput.
- * H20: Deprecated! use Geoemtry inputs instead
- */
-UCLASS(Deprecated, BlueprintType, Category="Houdini Engine | Public API | Inputs", meta = (DeprecationMessage = "Please use UHoudiniPublicAPIGeoInput instead."))
-class HOUDINIENGINEEDITOR_API UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput : public UHoudiniPublicAPIInput
-{
-	GENERATED_BODY()
-
-public:
-	UDEPRECATED_HoudiniPublicAPIGeometryCollectionInput();
-
-	/**
-	 * Set the transform offset of the specified input object InObject (must already have been set via SetInputObjects()).
-	 * @param InObject The input object to set a transform offset for.
-	 * @param InTransform The transform offset to set.
-	 * @return true if the object was found and the transform offset set.
-	 */
-	UE_DEPRECATED("1.1.0", "Use SetInputObjectTransformOffset instead.")
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(AutoCreateRefTerm="InTransform", DeprecatedFunction, DeprecationMessage="Use SetInputObjectTransformOffset instead."))
-	bool SetObjectTransformOffset(UObject* InObject, const FTransform& InTransform);
-
-	/**
-	 * Get the transform offset of the specified input object InObject (must already have been set via SetInputObjects()).
-	 * @param InObject The input object to get a transform offset for.
-	 * @param OutTransform The transform offset that was fetched.
-	 * @return true if the object was found and the transform offset fetched.
-	 */
-	UE_DEPRECATED("1.1.0", "Use GetInputObjectTransformOffset instead.")
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(DeprecatedFunction, DeprecationMessage="Use GetInputObjectTransformOffset instead."))
-	bool GetObjectTransformOffset(UObject* InObject, FTransform& OutTransform) const;
-
-	/**
-	 * Set the transform offset of the input object at the specified index in InputObjects (must already have been set via SetInputObjects()).
-	 * @param InInputObjectIndex The input object index to set a transform offset for.
-	 * @param InTransform The transform offset to set.
-	 * @return true if the index is valid and the transform offset set.
-	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs", Meta=(AutoCreateRefTerm="InTransform"))
-	bool SetInputObjectTransformOffset(const int32 InInputObjectIndex, const FTransform& InTransform);
-
-	/**
-	 * Get the transform offset of the input object at the specified index in InputObjects (must already have been set via SetInputObjects()).
-	 * @param InInputObjectIndex The input object index to get a transform offset for.
-	 * @param OutTransform The transform offset that was fetched.
-	 * @return true if the index is valid and the was transform offset fetched.
-	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs")
-	bool GetInputObjectTransformOffset(const int32 InInputObjectIndex, FTransform& OutTransform) const;
-
-	/**
-	 * Get the array of input object transforms.
-	 * @param OutInputObjectTransformOffsetArray The output array.
-	 * @return false if the input type does not support input object transform offsets. See SupportsTransformOffset.
-	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini Engine | Public API | Inputs")
-	bool GetInputObjectTransformOffsetArray(TArray<FTransform>& OutInputObjectTransformOffsetArray) const;
-
-	virtual bool SetInputObjects_Implementation(const TArray<UObject*>& InObjects) override;
-
-	virtual bool PopulateFromHoudiniInput(UHoudiniInput const* const InInput) override;
-
-	virtual bool UpdateHoudiniInput(UHoudiniInput* const InInput) const override;
-
-	virtual void PostLoad() override;
-
-protected:
-	virtual bool CopyHoudiniInputObjectPropertiesToInputObject(UHoudiniInputObject const* const InHoudiniInputObject, const int32 InInputObjectIndex) override;
-
-	virtual bool CopyInputObjectPropertiesToHoudiniInputObject(const int32 InInputObjectIndex, UHoudiniInputObject* const InHoudiniInputObject) const override;
-
-	virtual EHoudiniInputType GetInputType() const override { return EHoudiniInputType::Geometry; }
-
-	/** Per-Input-Object data: the transform offset per input object. */
-	UE_DEPRECATED("1.1.0", "Use InputObjectTransformOffsetArray via SetInputObjectTransformOffset and GetInputObjectTransformOffset instead")
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use InputObjectTransformOffsetArray instead"))
-	TMap<UObject*, FTransform> InputObjectTransformOffsets_DEPRECATED;
-	
-private:
-	/** Transform offset per input object (by input object array index). */
-	UPROPERTY()
-	TArray<FTransform> InputObjectTransformOffsetArray;
 };

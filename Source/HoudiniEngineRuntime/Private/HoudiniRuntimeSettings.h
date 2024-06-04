@@ -280,16 +280,6 @@ protected:
 		bool bEnableDeprecatedInstanceVariations;
 
 		//-------------------------------------------------------------------------------------------------------------
-		// Parameter options.
-		//-------------------------------------------------------------------------------------------------------------
-
-		/* Deprecated!
-		// Forces the treatment of ramp parameters as multiparms.
-		UPROPERTY(GlobalConfig, EditAnywhere, Category = Parameters)
-		bool bTreatRampParametersAsMultiparms;
-		*/
-
-		//-------------------------------------------------------------------------------------------------------------
 		// Geometry Marshalling
 		//-------------------------------------------------------------------------------------------------------------
 

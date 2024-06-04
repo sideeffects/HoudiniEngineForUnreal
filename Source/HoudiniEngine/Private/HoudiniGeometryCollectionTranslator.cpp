@@ -291,25 +291,6 @@ FHoudiniGeometryCollectionTranslator::CreateGeometryCollectionComponent(UObject 
 	GeometryCollectionComponent->OnComponentCreated();
 	GeometryCollectionComponent->RegisterComponent();
 	
-	/* 
-	// UE5 DEPRECATED
-	bool HasDebugDrawComponent = false;
-	if (OuterSceneComponent->GetOwner()->FindComponentByClass(UGeometryCollectionDebugDrawComponent::StaticClass()))
-	{
-		HasDebugDrawComponent = true;
-	}		
-
-	if (!HasDebugDrawComponent)
-	{
-		// AAAA
-		UGeometryCollectionDebugDrawComponent * GeometryCollectionDrawComponent = NewObject<UGeometryCollectionDebugDrawComponent>(Outer, UGeometryCollectionDebugDrawComponent::StaticClass(), NAME_None, RF_Transactional);
-
-		GeometryCollectionDrawComponent->CreationMethod = EComponentCreationMethod::Instance;
-		GeometryCollectionDrawComponent->RegisterComponent();
-		GeometryCollectionDrawComponent->OnComponentCreated();
-	}	
-	*/
-	
 	return GeometryCollectionComponent;
 }
 
@@ -323,17 +304,6 @@ FHoudiniGeometryCollectionTranslator::RemoveAndDestroyComponent(UObject* InCompo
 	USceneComponent* SceneComponent = Cast<USceneComponent>(InComponent);
 	if (IsValid(SceneComponent))
 	{
-		/*
-		// UE5: DEPRECATED
-		if (SceneComponent->IsA(UGeometryCollectionComponent::StaticClass()))
-		{
-			UActorComponent * DebugDrawComponent = SceneComponent->GetOwner()->FindComponentByClass(UGeometryCollectionDebugDrawComponent::StaticClass());
-			if (DebugDrawComponent)
-			{
-				RemoveAndDestroyComponent(DebugDrawComponent);
-			}
-		}
-		*/
 		// Remove from the HoudiniAssetActor
 		if (SceneComponent->GetOwner())
 			SceneComponent->GetOwner()->RemoveOwnedComponent(SceneComponent);

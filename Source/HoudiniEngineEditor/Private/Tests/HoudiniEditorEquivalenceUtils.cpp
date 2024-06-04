@@ -381,13 +381,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 	// Result &= TestExpressionError(A->bStaticMeshChanged == B->bStaticMeshChanged, Header, "bStaticMeshChanged");
 
 	// Skip EDITORONLYDATA (for simplicity)
-
-	Result &= TestExpressionError(A->AssetInputObjects.Num() == B->AssetInputObjects.Num(), Header, "AssetInputObjects.Num");
-	for (int i = 0; i < FMath::Min(A->AssetInputObjects.Num(), B->AssetInputObjects.Num()); i++)
-	{
-		Result &= TestExpressionError(IsEquivalent(A->AssetInputObjects[i], B->AssetInputObjects[i]), Header, "AssetInputObjects");
-	}
-
 	Result &= TestExpressionError(A->bInputAssetConnectedInHoudini == B->bInputAssetConnectedInHoudini, Header, "bInputAssetConnectedInHoudini");
 	
 	Result &= TestExpressionError(A->CurveInputObjects.Num() == B->CurveInputObjects.Num(), Header, "CurveInputObjects.Num");
@@ -402,12 +395,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 
 	Result &= TestExpressionError(InputSettingsA.bUseLegacyInputCurves == InputSettingsB.bUseLegacyInputCurves, Header, "bUseLegacyInputCurves");
 	
-	Result &= TestExpressionError(A->LandscapeInputObjects.Num() == B->LandscapeInputObjects.Num(), Header, "LandscapeInputObjects.Num");
-	for (int i = 0; i < FMath::Min(A->LandscapeInputObjects.Num(), B->LandscapeInputObjects.Num()); i++)
-	{
-		Result &= TestExpressionError(IsEquivalent(A->LandscapeInputObjects[i], B->LandscapeInputObjects[i]), Header, "LandscapeInputObjects");
-	}
-
 	// Result &= TestExpressionError(A->bLandscapeHasExportTypeChanged == B->bLandscapeHasExportTypeChanged, Header, "bLandscapeHasExportTypeChanged");
 
 	Result &= TestExpressionError(A->WorldInputObjects.Num() == B->WorldInputObjects.Num(), Header, "WorldInputObjects.Num");
@@ -425,12 +412,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 	Result &= TestExpressionError(A->bIsWorldInputBoundSelector == B->bIsWorldInputBoundSelector, Header, "bIsWorldInputBoundSelector");
 	Result &= TestExpressionError(A->bWorldInputBoundSelectorAutoUpdate == B->bWorldInputBoundSelectorAutoUpdate, Header, "bWorldInputBoundSelectorAutoUpdate");
 	Result &= TestExpressionError(FMath::IsNearlyEqual(InputSettingsA.UnrealSplineResolution, InputSettingsB.UnrealSplineResolution, FLOAT_TOLERANCE), Header, "UnrealSplineResolution");
-
-	Result &= TestExpressionError(A->SkeletalInputObjects.Num() == B->SkeletalInputObjects.Num(), Header, "SkeletalInputObjects.Num");
-	for (int i = 0; i < FMath::Min(A->SkeletalInputObjects.Num(), B->SkeletalInputObjects.Num()); i++)
-	{
-		Result &= TestExpressionError(IsEquivalent(A->SkeletalInputObjects[i], B->SkeletalInputObjects[i]), Header, "SkeletalInputObjects");
-	}
 
 	// Skip LastInsertedInputs
 	// Skip LastUndoDeletedInputs

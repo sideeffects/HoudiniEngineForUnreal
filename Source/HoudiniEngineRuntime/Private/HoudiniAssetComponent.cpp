@@ -223,7 +223,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	}
 	
 	bNoProxyMeshNextCookRequested = false;
-	bBakeAfterNextCook_DEPRECATED = false;
 	BakeAfterNextCook = EHoudiniBakeAfterNextCook::Disabled;
 
 #if WITH_EDITORONLY_DATA
@@ -1132,47 +1131,14 @@ UHoudiniAssetComponent::PostLoad()
 	// !!! Do not update rendering while loading, do it when setting up the render state
 	// UpdateRenderingInformation();
 
-	// Handle FHoudiniOutputObjects which have the old single component and migrate it to an array.
-	bool bFoundDeprecatedComponent = false;
-	for(auto Output : Outputs)
-	{
-	    if (!IsValid(Output))
-	        continue;
-
-	    for(auto& It : Output->GetOutputObjects())
-	    {
-			FHoudiniOutputObject& OutputObject = It.Value;
-			if (OutputObject.OutputComponent_DEPRECATED != nullptr)
-			{
-			    OutputObject.OutputComponents.Add(OutputObject.OutputComponent_DEPRECATED);
-				OutputObject.OutputComponent_DEPRECATED = nullptr;
-				bFoundDeprecatedComponent = true;
-			}
-	    }
-	}
-
-	if (bFoundDeprecatedComponent)
-	{
-		// User should see this message once when loading an old asset.
-		HOUDINI_LOG_MESSAGE(TEXT("Upgraded deprecated single component in FHoudiniOutputObject"));
-	}
 #if WITH_EDITORONLY_DATA
 	auto MaxValue = StaticEnum<EHoudiniEngineBakeOption>()->GetMaxEnumValue() - 1;
-
 	if (static_cast<int>(HoudiniEngineBakeOption) > MaxValue)
 	{
 		HOUDINI_LOG_WARNING(TEXT("Invalid Bake Type found, setting to To Actor. Possibly Foliage, which is deprecated, use the unreal_foliage attribute instead."));
 		HoudiniEngineBakeOption = EHoudiniEngineBakeOption::ToActor;
 	}
 #endif
-
-	// Handle deprecated bBakeAfterNextCook: default value is false, so if it is true in PostLoad then it was saved
-	// as true (pre-deprecation)
-	if (bBakeAfterNextCook_DEPRECATED)
-	{
-		bBakeAfterNextCook_DEPRECATED = false;
-		BakeAfterNextCook = EHoudiniBakeAfterNextCook::Always;
-	}
 }
 
 void

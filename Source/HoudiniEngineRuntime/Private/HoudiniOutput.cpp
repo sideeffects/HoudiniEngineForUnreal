@@ -590,52 +590,6 @@ void
 UHoudiniOutput::PostLoad()
 {
 	Super::PostLoad();
-
-	// If the deprecated AssignementMaterials map is not empty and AssignementMaterialsById is empty, then migrate
-	// the data from AssignementMaterials_DEPRECATED to AssignementMaterialsById.
-	if (AssignementMaterials_DEPRECATED.Num() > 0 && AssignmentMaterialsById.Num() <= 0)
-	{
-		for (const auto& MaterialEntry : AssignementMaterials_DEPRECATED)
-		{
-			const FString& MatPath = MaterialEntry.Key;
-			UMaterialInterface* const Material = MaterialEntry.Value;
-
-			// We are simply using the material path only here instead of trying to determine whether an instance
-			// was created or what the parameters were: the old map didn't encode that information in the key, and
-			// was used before we could generate multiple instances (with different parameters) from one material.
-			// An assumption we make is that if we cannot load the material from MatPath, then MathPath represents
-			// a Houdini material node path
-			UMaterialInterface const* const MaterialFromMatPath = Cast<UMaterialInterface>(
-				StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MatPath, nullptr, LOAD_NoWarn, nullptr));
-			const bool bIsLikelyHoudiniMaterial = MaterialFromMatPath == nullptr;
-			const FHoudiniMaterialIdentifier MatId(MatPath, bIsLikelyHoudiniMaterial);
-			AssignmentMaterialsById.Add(MatId, Material);
-		}
-	}
-	AssignementMaterials_DEPRECATED.Empty();
-
-	// If the deprecated ReplacementMaterials map is not empty and ReplacementMaterialsById is empty, then migrate
-	// the data from ReplacementMaterials_DEPRECATED to ReplacementMaterialsById.
-	if (ReplacementMaterials_DEPRECATED.Num() > 0 && ReplacementMaterialsById.Num() <= 0)
-	{
-		for (const auto& MaterialEntry : ReplacementMaterials_DEPRECATED)
-		{
-			const FString& MatPath = MaterialEntry.Key;
-			UMaterialInterface* const Material = MaterialEntry.Value;
-
-			// We are simply using the material path only here instead of trying to determine whether an instance
-			// was created or what the parameters were: the old map didn't encode that information in the key, and
-			// was used before we could generate multiple instances (with different parameters) from one material.
-			// An assumption we make is that if we cannot load the material from MatPath, then MathPath represents
-			// a Houdini material node path
-			UMaterialInterface const* const MaterialFromMatPath = Cast<UMaterialInterface>(
-				StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MatPath, nullptr, LOAD_NoWarn, nullptr));
-			const bool bIsLikelyHoudiniMaterial = MaterialFromMatPath == nullptr;
-			const FHoudiniMaterialIdentifier MatId(MatPath, bIsLikelyHoudiniMaterial);
-			ReplacementMaterialsById.Add(MatId, Material);
-		}
-	}
-	ReplacementMaterials_DEPRECATED.Empty();
 }
 
 

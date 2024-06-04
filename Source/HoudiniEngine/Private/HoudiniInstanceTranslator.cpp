@@ -3480,8 +3480,10 @@ FHoudiniInstanceTranslator::IsSplitInstancer(const int32& InGeoId, const int32& 
 	if (!bSplitMeshInstancer)
 		return false;
 
-	TArray<int32> IntData;
+	// Add deprecation warning for 20.0
+	HOUDINI_LOG_WARNING(TEXT("MeshSplitInstancers are deprecated in Houdini 20.0 - we recommand switching to attribute instancers and the unreal_split_attr attribute instead."));
 
+	TArray<int32> IntData;
 	FHoudiniHapiAccessor Accessor(InGeoId, InPartId, HAPI_UNREAL_ATTRIB_SPLIT_INSTANCES);
 	bool bSuccess = Accessor.GetAttributeData(Owner, IntData, 0, 1);
 

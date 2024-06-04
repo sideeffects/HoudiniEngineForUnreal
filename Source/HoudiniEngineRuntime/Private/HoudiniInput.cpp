@@ -82,11 +82,6 @@ UHoudiniInput::UHoudiniInput()
 	, bIsObjectPathParameter(false)
 	, bHasChanged(false)
 	, bPackBeforeMerge(false)
-	, bExportLODs_DEPRECATED(false)
-	, bExportSockets_DEPRECATED(false)
-	, bPreferNaniteFallbackMesh_DEPRECATED(false)
-	, bExportColliders_DEPRECATED(false)
-	, bExportMaterialParameters_DEPRECATED(false)
 	, bDirectlyConnectHdas(true)
 	, bExportOptionsMenuExpanded(false)
 	, bGeometryInputsMenuExpanded(true)
@@ -100,11 +95,8 @@ UHoudiniInput::UHoudiniInput()
 	, bStaticMeshChanged(false)
 	, bInputAssetConnectedInHoudini(false)
 	, DefaultCurveOffset(0.f)
-	, bAddRotAndScaleAttributesOnCurves_DEPRECATED(false)
-	, bUseLegacyInputCurves_DEPRECATED(false)
 	, bIsWorldInputBoundSelector(false)
 	, bWorldInputBoundSelectorAutoUpdate(false)
-	, UnrealSplineResolution_DEPRECATED(0.0f)
 	, bCanDeleteHoudiniNodes(true)
 {
 	Name = TEXT("");
@@ -113,21 +105,8 @@ UHoudiniInput::UHoudiniInput()
 
 	// Geometry inputs always have one null default object
 	GeometryInputObjects.Add(nullptr);
-	GeometryCollectionInputObjects.Add(nullptr);
 
 	InputSettings.KeepWorldTransform = GetDefaultXTransformType();
-	
-	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	KeepWorldTransform_DEPRECATED = GetDefaultXTransformType();
-	
-	UnrealSplineResolution_DEPRECATED = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->MarshallingSplineResolution : 50.0f;
-
-	bAddRotAndScaleAttributesOnCurves_DEPRECATED = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bAddRotAndScaleAttributesOnCurves : false;
-	bUseLegacyInputCurves_DEPRECATED = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bUseLegacyInputCurves : false;
-
-	bPreferNaniteFallbackMesh_DEPRECATED = HoudiniRuntimeSettings && HoudiniRuntimeSettings->bPreferNaniteFallbackMesh;
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 #if WITH_EDITORONLY_DATA
 	bLandscapeUIAdvancedIsExpanded = false;
@@ -363,34 +342,7 @@ UHoudiniInput::Serialize(FArchive& Ar)
 	Ar.UsingCustomVersion(FHoudiniCustomSerializationVersion::GUID);
 	if (Ar.CustomVer(FHoudiniCustomSerializationVersion::GUID) < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INPUT_OBJECT_SETTINGS_STRUCT)
 	{
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
-		// Copy the _DEPRECATED input settings to the InputSettings struct
-		InputSettings.KeepWorldTransform = KeepWorldTransform_DEPRECATED;
-		InputSettings.bImportAsReference = bImportAsReference_DEPRECATED;
-		InputSettings.bImportAsReferenceRotScaleEnabled = bImportAsReferenceRotScaleEnabled_DEPRECATED;
-		InputSettings.bImportAsReferenceBboxEnabled = bImportAsReferenceBboxEnabled_DEPRECATED;
-		InputSettings.bImportAsReferenceMaterialEnabled = bImportAsReferenceMaterialEnabled_DEPRECATED;
-		InputSettings.bExportLODs = bExportLODs_DEPRECATED;
-		InputSettings.bExportSockets = bExportSockets_DEPRECATED;
-		InputSettings.bPreferNaniteFallbackMesh = bPreferNaniteFallbackMesh_DEPRECATED;
-		InputSettings.bExportColliders = bExportColliders_DEPRECATED;
-		InputSettings.bExportMaterialParameters = bExportMaterialParameters_DEPRECATED;
-		InputSettings.bAddRotAndScaleAttributesOnCurves = bAddRotAndScaleAttributesOnCurves_DEPRECATED;
-		InputSettings.bUseLegacyInputCurves = bUseLegacyInputCurves_DEPRECATED;
-		InputSettings.UnrealSplineResolution = UnrealSplineResolution_DEPRECATED;
-		InputSettings.LandscapeExportType = LandscapeExportType_DEPRECATED;
-		InputSettings.bLandscapeExportSelectionOnly = bLandscapeExportSelectionOnly_DEPRECATED;
-		InputSettings.bLandscapeAutoSelectComponent = bLandscapeAutoSelectComponent_DEPRECATED;
-		InputSettings.bLandscapeExportMaterials = bLandscapeExportMaterials_DEPRECATED;
-		InputSettings.bLandscapeExportLighting = bLandscapeExportLighting_DEPRECATED;
-		InputSettings.bLandscapeExportNormalizedUVs = bLandscapeExportNormalizedUVs_DEPRECATED;
-		InputSettings.bLandscapeExportTileUVs = bLandscapeExportTileUVs_DEPRECATED;
-		InputSettings.bLandscapeAutoSelectSplines = bLandscapeAutoSelectSplines_DEPRECATED;
-		InputSettings.bLandscapeSplinesExportControlPoints = bLandscapeSplinesExportControlPoints_DEPRECATED;
-		InputSettings.bLandscapeSplinesExportLeftRightCurves = bLandscapeSplinesExportLeftRightCurves_DEPRECATED;
-		InputSettings.bLandscapeSplinesExportSplineMeshComponents = bLandscapeSplinesExportSplineMeshComponents_DEPRECATED;
-		InputSettings.bMergeSplineMeshComponents = bMergeSplineMeshComponents_DEPRECATED;
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+		HOUDINI_LOG_WARNING(TEXT("Loading a deprecated input - its input settings will be lost"));
 	}
 	
 	// On load, change the input selection from old input types to
@@ -403,47 +355,24 @@ UHoudiniInput::Serialize(FArchive& Ar)
 			case EHoudiniInputType::Skeletal_DEPRECATED:
 			case EHoudiniInputType::GeometryCollection_DEPRECATED:
 			{
-				TArray<UHoudiniInputObject*>* InputObjects = GetHoudiniInputObjectArray(Type);
-				if (InputObjects && InputObjects->Num() > 0)
-				{
-					GeometryInputObjects.Empty();
-					for (auto CurObj : *InputObjects)
-						GeometryInputObjects.Add(CurObj);
-				}
-
+				HOUDINI_LOG_WARNING(TEXT("Loading a deprecated input - its input objects will be lost"));
 				// Change to a geometry input
 				Type = EHoudiniInputType::Geometry;
+				break;
 			}
 
 			case EHoudiniInputType::Asset_DEPRECATED:
 			case EHoudiniInputType::Landscape_DEPRECATED:
 			{
-				WorldInputObjects.Empty();
-				TArray<UHoudiniInputObject*>* InputObjects = GetHoudiniInputObjectArray(Type);
-				if (InputObjects && InputObjects->Num() > 0)
-				{
-					WorldInputObjects.Empty();
-					for (auto CurObj : *InputObjects)
-						WorldInputObjects.Add(CurObj);
-				}
-
+				HOUDINI_LOG_WARNING(TEXT("Loading a deprecated input - its input objects will be lost"));
 				// Change to a world input
 				Type = EHoudiniInputType::World;
+				break;
 			}
 
 			default:
 				break;
 		}
-
-		// Clean legacy input object arrays
-		if(AssetInputObjects.Num() > 0)
-			AssetInputObjects.Empty();
-		if (LandscapeInputObjects.Num() > 0)
-			LandscapeInputObjects.Empty();
-		if (GeometryCollectionInputObjects.Num() > 0)
-			GeometryCollectionInputObjects.Empty();
-		if (SkeletalInputObjects.Num() > 0)
-			SkeletalInputObjects.Empty();
 	}
 }
 
@@ -546,8 +475,6 @@ UHoudiniInput::GetBounds(UWorld * World)
 	case EHoudiniInputType::Asset_DEPRECATED:
 	case EHoudiniInputType::Landscape_DEPRECATED:
 	case EHoudiniInputType::GeometryCollection_DEPRECATED:
-		HOUDINI_LOG_WARNING(TEXT("An Input is still using legacy houdini input types!"));
-
 	case EHoudiniInputType::Invalid:
 	default:
 		break;
@@ -562,9 +489,6 @@ UHoudiniInput::GetBounds(UWorld * World)
 bool
 UHoudiniInput::IsAssetInput() const
 {
-	if (Type == EHoudiniInputType::Asset_DEPRECATED)
-		return true;
-
 	if (Type != EHoudiniInputType::World)
 		return false;
 
@@ -583,9 +507,6 @@ UHoudiniInput::IsAssetInput() const
 bool
 UHoudiniInput::IsLandscapeInput() const
 {
-	if (Type == EHoudiniInputType::Landscape_DEPRECATED)
-		return true;
-
 	if (Type != EHoudiniInputType::World)
 		return false;
 
@@ -709,25 +630,12 @@ UHoudiniInput::InputTypeToString(const EHoudiniInputType& InInputType)
 		}
 		break;
 
-
 		case EHoudiniInputType::Asset_DEPRECATED:
-		{
-			InputTypeStr = TEXT("(deprecated) Asset Input");
-		}
-		break;
 		case EHoudiniInputType::Landscape_DEPRECATED:
-		{
-			InputTypeStr = TEXT("(deprecated) Landscape Input");
-		}
-		break;
 		case EHoudiniInputType::Skeletal_DEPRECATED:
-		{
-			InputTypeStr = TEXT("(deprecated) Skeletal Mesh Input");
-		}
-		break;
 		case EHoudiniInputType::GeometryCollection_DEPRECATED:
 		{
-			InputTypeStr = TEXT("(deprecated) GeometryCollection Input");
+			InputTypeStr = TEXT("(deprecated) INVALID INPUT");
 		}
 		break;
 	}
@@ -738,24 +646,7 @@ UHoudiniInput::InputTypeToString(const EHoudiniInputType& InInputType)
 EHoudiniInputType
 UHoudiniInput::StringToInputType(const FString& InInputTypeString)
 {
-	// Note: Geometry is a prefix of GeometryCollection, so need to make sure to do GeometryCollection first!
-	if (InInputTypeString.StartsWith(TEXT("(deprecated) GeometryCollection"), ESearchCase::IgnoreCase))
-	{
-		return EHoudiniInputType::GeometryCollection_DEPRECATED;
-	}
-	else if (InInputTypeString.StartsWith(TEXT("(deprecated) Asset"), ESearchCase::IgnoreCase))
-	{
-		return EHoudiniInputType::Asset_DEPRECATED;
-	}
-	else if (InInputTypeString.StartsWith(TEXT("(deprecated) Landscape"), ESearchCase::IgnoreCase))
-	{
-		return EHoudiniInputType::Landscape_DEPRECATED;
-	}
-	else if (InInputTypeString.StartsWith(TEXT("(deprecated) Skeletal"), ESearchCase::IgnoreCase))
-	{
-		return EHoudiniInputType::Skeletal_DEPRECATED;
-	}
-	else if (InInputTypeString.StartsWith(TEXT("Geometry"), ESearchCase::IgnoreCase))
+	if (InInputTypeString.StartsWith(TEXT("Geometry"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::Geometry;
 	}
@@ -880,17 +771,14 @@ UHoudiniInput::GetKeepWorldTransform() const
 		case EHoudiniXformType::Auto:
 		{
 			// Return default values corresponding to the input type:
-			if (Type == EHoudiniInputType::Curve
-				|| Type == EHoudiniInputType::Geometry
-				|| Type == EHoudiniInputType::Skeletal_DEPRECATED
-				|| Type == EHoudiniInputType::GeometryCollection_DEPRECATED)
+			if (Type == EHoudiniInputType::Curve || Type == EHoudiniInputType::Geometry)
 			{
-				// NONE  for Geo, Curve and skeletal mesh IN
+				// NONE  for Geo, and Curve IN
 				bReturn = false;
 			}
 			else
 			{
-				// INTO THIS OBJECT for Asset, Landscape and World IN
+				// INTO THIS OBJECT for World IN
 				bReturn = true;
 			}
 			break;
@@ -1211,12 +1099,9 @@ UHoudiniInput * UHoudiniInput::DuplicateAndCopyState(UObject * DestOuter, bool b
 
 void UHoudiniInput::CopyStateFrom(UHoudiniInput* InInput, bool bCopyAllProperties, bool bInCanDeleteHoudiniNodes)
 {
-
 	// Preserve the current input objects before the copy to ensure we don't lose 
-	// access to input objects and have them end up in the garbage.
-	
+	// access to input objects and have them end up in the garbage.	
 	TMap<EHoudiniInputType, TArray<UHoudiniInputObject*>*> PrevInputObjectsMap;
-
 	for(EHoudiniInputType InputType : HoudiniInputTypeList)
 	{
 		PrevInputObjectsMap.Add(InputType, GetHoudiniInputObjectArray(InputType));
@@ -1260,7 +1145,6 @@ void UHoudiniInput::CopyStateFrom(UHoudiniInput* InInput, bool bCopyAllPropertie
 	// The CopyInputs() will properly duplicate inputs where necessary.
 
 	// Copy states of Input Objects that correspond to the current type.
-
 	for(auto& Entry : PrevInputObjectsMap)
 	{
 		EHoudiniInputType InputType = Entry.Key;
@@ -1274,7 +1158,6 @@ void UHoudiniInput::CopyStateFrom(UHoudiniInput* InInput, bool bCopyAllPropertie
 			CopyInputs(*ToInputObjects, *FromInputObjects, bInCanDeleteHoudiniNodes);
 		}
 	}
-
 }
 
 void UHoudiniInput::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes)
@@ -1287,21 +1170,7 @@ void UHoudiniInput::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes)
 		InputObject->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
 	}
 
-	for(UHoudiniInputObject* InputObject : AssetInputObjects)
-	{
-		if (!InputObject)
-			continue;
-		InputObject->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
-	}
-
 	for(UHoudiniInputObject* InputObject : CurveInputObjects)
-	{
-		if (!InputObject)
-			continue;
-		InputObject->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
-	}
-
-	for(UHoudiniInputObject* InputObject : LandscapeInputObjects)
 	{
 		if (!InputObject)
 			continue;
@@ -1314,33 +1183,10 @@ void UHoudiniInput::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes)
 			continue;
 		InputObject->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
 	}
-
-	for(UHoudiniInputObject* InputObject : GeometryCollectionInputObjects)
-	{
-		if (!InputObject)
-			continue;
-		InputObject->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
-	}
 }
 
 void UHoudiniInput::InvalidateData()
 {
-	/*
-	// If valid, mark our input node for deletion
-	if (InputNodeId >= 0)
-	{
-		// .. but if we're an asset input, don't delete the node as InputNodeId
-		// is set to the input HDA's node ID!
-		if (Type != EHoudiniInputType::Asset)
-		{
-			if (bCanDeleteHoudiniNodes)
-				MarkInputNodeAsPendingDelete();
-		}
-		
-		InputNodeId = -1;
-	}
-	*/
-
 	for(UHoudiniInputObject* InputObject : GeometryInputObjects)
 	{
 		if (!InputObject)
@@ -1348,21 +1194,7 @@ void UHoudiniInput::InvalidateData()
 		InputObject->InvalidateData();
 	}
 
-	for(UHoudiniInputObject* InputObject : AssetInputObjects)
-	{
-		if (!InputObject)
-			continue;
-		InputObject->InvalidateData();
-	}
-
 	for(UHoudiniInputObject* InputObject : CurveInputObjects)
-	{
-		if (!InputObject)
-			continue;
-		InputObject->InvalidateData();
-	}
-
-	for(UHoudiniInputObject* InputObject : LandscapeInputObjects)
 	{
 		if (!InputObject)
 			continue;
@@ -1384,13 +1216,6 @@ void UHoudiniInput::InvalidateData()
 				CreatedDataNodeIds.Remove(ObjInputNodeId);
 		}
 
-		InputObject->InvalidateData();
-	}
-
-	for(UHoudiniInputObject* InputObject : GeometryCollectionInputObjects)
-	{
-		if (!InputObject)
-			continue;
 		InputObject->InvalidateData();
 	}
 
@@ -1728,25 +1553,10 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType)
 	case EHoudiniInputType::World:
 		return &WorldInputObjects;
 
-	// TODO: Deprecated arrays! remove after H20
-	case EHoudiniInputType::Asset_DEPRECATED:
-		return &AssetInputObjects;
-
-	case EHoudiniInputType::Landscape_DEPRECATED:
-		return &LandscapeInputObjects;
-
-	case EHoudiniInputType::Skeletal_DEPRECATED:
-		return &SkeletalInputObjects;
-
-	case EHoudiniInputType::GeometryCollection_DEPRECATED:
-		return &GeometryCollectionInputObjects;
-
 	default:
 	case EHoudiniInputType::Invalid:
 		return nullptr;
 	}
-
-	//return nullptr;
 }
 
 TArray<AActor*>*
@@ -1760,8 +1570,6 @@ UHoudiniInput::GetBoundSelectorObjectArray()
 		default:
 			return nullptr;
 	}
-
-	//return nullptr;
 }
 
 const TArray<AActor*>*
@@ -1775,8 +1583,6 @@ UHoudiniInput::GetBoundSelectorObjectArray() const
 		default:
 			return nullptr;
 	}
-	
-	//return nullptr;
 }
 
 const TArray<UHoudiniInputObject*>*
@@ -1793,25 +1599,14 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType) const
 		case EHoudiniInputType::World:
 			return &WorldInputObjects;
 		
-		// TODO: Deprecated arrays! remove after H20
 		case EHoudiniInputType::Asset_DEPRECATED:
-			return &AssetInputObjects;
-
 		case EHoudiniInputType::Landscape_DEPRECATED:
-			return &LandscapeInputObjects;
-
 		case EHoudiniInputType::Skeletal_DEPRECATED:
-			return &SkeletalInputObjects;
-
 		case EHoudiniInputType::GeometryCollection_DEPRECATED:
-			return &GeometryCollectionInputObjects;
-
-		default:
 		case EHoudiniInputType::Invalid:
+		default:
 			return nullptr;
 	}
-
-	//return nullptr;
 }
 
 UHoudiniInputObject*
@@ -2607,7 +2402,7 @@ UHoudiniInput::SetUseLegacyInputCurve(const bool& InValue)
 bool 
 UHoudiniInput::HasLandscapeExportTypeChanged () const 
 {
-	if ((Type != EHoudiniInputType::Landscape_DEPRECATED) && (Type != EHoudiniInputType::World))
+	if (Type != EHoudiniInputType::World)
 		return false;
 
 	return bLandscapeHasExportTypeChanged;
@@ -2616,7 +2411,7 @@ UHoudiniInput::HasLandscapeExportTypeChanged () const
 void 
 UHoudiniInput::SetHasLandscapeExportTypeChanged(const bool InChanged) 
 {
-	if ((Type != EHoudiniInputType::Landscape_DEPRECATED) && (Type != EHoudiniInputType::World))
+	if (Type != EHoudiniInputType::World)
 		return;
 
 	bLandscapeHasExportTypeChanged = InChanged;
@@ -2806,12 +2601,12 @@ void UHoudiniInput::ForAllHoudiniInputObjects(TFunctionRef<void(UHoudiniInputObj
 
 TArray<const TArray<UHoudiniInputObject*>*> UHoudiniInput::GetAllObjectArrays() const
 {
-	return { &GeometryInputObjects, &CurveInputObjects, &WorldInputObjects, &SkeletalInputObjects, &LandscapeInputObjects, &AssetInputObjects, &GeometryCollectionInputObjects };
+	return { &GeometryInputObjects, &CurveInputObjects, &WorldInputObjects };
 }
 
 TArray<TArray<UHoudiniInputObject*>*> UHoudiniInput::GetAllObjectArrays()
 {
-	return { &GeometryInputObjects, &CurveInputObjects, &WorldInputObjects, &SkeletalInputObjects, &LandscapeInputObjects, &AssetInputObjects, &GeometryCollectionInputObjects };
+	return { &GeometryInputObjects, &CurveInputObjects, &WorldInputObjects };
 }
 
 void UHoudiniInput::ForAllHoudiniInputObjectArrays(TFunctionRef<void(const TArray<UHoudiniInputObject*>&)> Fn) const

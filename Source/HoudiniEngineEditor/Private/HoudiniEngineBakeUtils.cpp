@@ -6659,24 +6659,19 @@ void FHoudiniEngineBakeUtils::CopyPropertyToNewGeometryCollectionActorAndCompone
 		return;
 
 	// Copy properties to new actor
-	//UStaticMeshComponent* OtherSMC_NonConst = const_cast<UStaticMeshComponent*>(StaticMeshComponent);
 	NewGCC->ChaosSolverActor = InGCC->ChaosSolverActor;
-	
 	NewGCC->InitializationFields = InGCC->InitializationFields;
-	//NewGCC->Simulating = InGCC->Simulating;
 	NewGCC->InitializationState = InGCC->InitializationState;
 	NewGCC->ObjectType= InGCC->ObjectType;
 	NewGCC->EnableClustering = InGCC->EnableClustering;
 	NewGCC->ClusterGroupIndex = InGCC->ClusterGroupIndex;
 	NewGCC->MaxClusterLevel = InGCC->MaxClusterLevel;
 	NewGCC->DamageThreshold = InGCC->DamageThreshold;
-	// NewGCC->ClusterConnectionType = InGCC->ClusterConnectionType; // DEPRECATED.
 	NewGCC->CollisionGroup = InGCC->CollisionGroup;
 	NewGCC->CollisionSampleFraction = InGCC->CollisionSampleFraction;
 	NewGCC->InitialVelocityType = InGCC->InitialVelocityType;
 	NewGCC->InitialLinearVelocity = InGCC->InitialLinearVelocity;
 	NewGCC->InitialAngularVelocity = InGCC->InitialAngularVelocity;
-//	NewGCC->PhysicalMaterialOverride = InGCC->PhysicalMaterialOverride;
 	
 	if (IsValid(NewActor))
 		NewActor->SetActorHiddenInGame(InGCC->bHiddenInGame);

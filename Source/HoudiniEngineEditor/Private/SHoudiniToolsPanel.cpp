@@ -4742,11 +4742,6 @@ SHoudiniToolsPanel::HandleToolChanged()
 	RequestPanelRefresh();
 }
 
-FText
-SHoudiniToolsPanel::OnGetSelectedDirText() const
-{
-	return FText::FromString(CurrentHoudiniToolDir);
-}
 
 void
 SHoudiniToolsPanel::ForEachCategory(const TFunctionRef<bool(SHoudiniToolCategory*)>& ForEachCategoryFunc) const

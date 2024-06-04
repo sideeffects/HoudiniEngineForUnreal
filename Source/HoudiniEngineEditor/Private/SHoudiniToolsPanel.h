@@ -531,8 +531,6 @@ public:
 
 	bool IsActiveHoudiniToolEditable() const;
 
-	FText OnGetSelectedDirText() const;
-
 	// Iterate over all the category widgets until the lambda returns false.
 	void ForEachCategory(const TFunctionRef<bool(SHoudiniToolCategory*)>& ForEachCategoryFunc) const;
 
@@ -646,11 +644,6 @@ private:
 
 	// Temporary button style for testing. Remove when done.
 	FButtonStyle DGB_HelpButtonStyle;
-
-	// DEPRECATED
-	TArray< TSharedPtr < FString > > HoudiniToolDirArray;
-	// DEPRECATED
-	FString CurrentHoudiniToolDir;
 
 	TSharedPtr<SVerticalBox> CategoriesContainer;
 	bool bRefreshPanelRequested;

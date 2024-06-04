@@ -504,50 +504,9 @@ protected:
 	//-------------------------------------------------------------------------------------------------------------------------
 	// General Input options
 
-	// Is set to true when this input's Transform Type is set to NONE, 2 will use the input's default value
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	EHoudiniXformType KeepWorldTransform_DEPRECATED;
-
 	// Indicates that the geometry must be packed before merging it into the input
 	UPROPERTY()
 	bool bPackBeforeMerge;
-
-	// Indicates that all the input objects are imported to Houdini as references instead of actual geo
-	// (for Geo/World/Asset input types only)
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bImportAsReference_DEPRECATED = false;
-
-	// Indicates that whether or not to add the rot / scale attributes for reference imports
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bImportAsReferenceRotScaleEnabled_DEPRECATED = true;
-
-	// Indicates whether or not to add bbox attributes for reference imports
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bImportAsReferenceBboxEnabled_DEPRECATED = true;
-
-	// Indicates whether or not to add material attributes for reference imports
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bImportAsReferenceMaterialEnabled_DEPRECATED = true;
-	
-	// Indicates that all LODs in the input should be marshalled to Houdini
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bExportLODs_DEPRECATED;
-
-	// Indicates that all sockets in the input should be marshalled to Houdini
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bExportSockets_DEPRECATED;
-
-	// Override property for preferring the Nanite fallback mesh when using a Nanite geometry as input
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bPreferNaniteFallbackMesh_DEPRECATED;
-
-	// Indicates that all colliders in the input should be marshalled to Houdini
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bExportColliders_DEPRECATED;
-
-	// Indicates that material parameters should be exported as attributes
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bExportMaterialParameters_DEPRECATED;
 
 	// Indicates whether HDAs are directly connected in Houdini
 	UPROPERTY()
@@ -611,10 +570,6 @@ protected:
 	//-------------------------------------------------------------------------------------------------------------------------
 	// Asset inputs
 	
-	// TODO: deprecated: usded only for deserialization!
-	UPROPERTY()
-	TArray<UHoudiniInputObject*> AssetInputObjects;
-
 	// Is set to true if the asset input is actually connected inside Houdini.
 	UPROPERTY()
 	bool bInputAssetConnectedInHoudini;
@@ -627,21 +582,9 @@ protected:
 	// Offset used when using muiltiple curves
 	UPROPERTY()
 	float DefaultCurveOffset;
-
-	// Set this to true to add rot and scale attributes on curve inputs.
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bAddRotAndScaleAttributesOnCurves_DEPRECATED;
-
-	// Set this to true to use legacy (curve::1.0) input curves
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bUseLegacyInputCurves_DEPRECATED;
 	
 	//-------------------------------------------------------------------------------------------------------------------------
 	// Landscape inputs
-
-	// TODO: deprecated: usded only for deserialization!
-	UPROPERTY()
-	TArray<UHoudiniInputObject*> LandscapeInputObjects;
 
 	UPROPERTY()
 	bool bLandscapeHasExportTypeChanged = false;
@@ -663,26 +606,9 @@ protected:
 	UPROPERTY()
 	bool bWorldInputBoundSelectorAutoUpdate;
 
-	// Resolution used when converting unreal splines to houdini curves
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	float UnrealSplineResolution_DEPRECATED;
-
-	//-------------------------------------------------------------------------------------------------------------------------
-	// Skeletal Inputs
-
-	// TODO: deprecated: usded only for deserialization!
-	UPROPERTY()
-	TArray<UHoudiniInputObject*> SkeletalInputObjects;
-
-	//-------------------------------------------------------------------------------------------------------------------------
-	// GeometryCollection inputs
-	// TODO: deprecated: usded only for deserialization!
-	UPROPERTY()
-	TArray<UHoudiniInputObject*> GeometryCollectionInputObjects;
-
 	// A cache of the selected landscape components so that it is saved across levels
 	UPROPERTY()
-	TSet< ULandscapeComponent * > LandscapeSelectedComponents;
+	TSet<ULandscapeComponent*> LandscapeSelectedComponents;
 
 	// The node ids of InputNodeIds previously used by this input that are pending delete
 	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
@@ -743,72 +669,18 @@ public:
 	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
 	TArray<UHoudiniInputObject*> LastUndoDeletedInputs;
 
-
-	// Indicates that the landscape input's source landscape should be updated instead of creating a new component
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use Edit Layers instead."))
-	bool bUpdateInputLandscape_DEPRECATED;
-
-	// Indicates if the landscape should be exported as heightfield, mesh or points
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	EHoudiniLandscapeExportType LandscapeExportType_DEPRECATED = EHoudiniLandscapeExportType::Heightfield;
-
-	// Is set to true when landscape input is set to selection only.
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bLandscapeExportSelectionOnly_DEPRECATED = false;
-
 	// Is set to true when layer visibility is controlled by the plugin.
 	UPROPERTY()
 	bool bLandscapeControlVisiblity = false;
-
-	// Is set to true when the automatic selection of landscape component is active
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bLandscapeAutoSelectComponent_DEPRECATED = false;
-
-	// Is set to true when materials are to be exported.
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bLandscapeExportMaterials_DEPRECATED = false;
-
-	// Is set to true when lightmap information export is desired.
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bLandscapeExportLighting_DEPRECATED = false;
-
-	// Is set to true when uvs should be exported in [0,1] space.
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bLandscapeExportNormalizedUVs_DEPRECATED = false;
-
-	// Is set to true when uvs should be exported for each tile separately.
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bLandscapeExportTileUVs_DEPRECATED = false;
 
 	UPROPERTY()
 	bool bCanDeleteHoudiniNodes = true;
 
 protected:
 
-	// If true, also export a landscape's splines
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bLandscapeAutoSelectSplines_DEPRECATED = false;
-
 	// If true, then the landscape spline export options menu is expanded
 	UPROPERTY()
 	bool bLandscapeSplinesExportOptionsMenuExpanded = false;
-	
-	// If true, send a separate control point cloud of the landscape splines control points.
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bLandscapeSplinesExportControlPoints_DEPRECATED = false;
-
-	// If true, export left and right curves as well
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bLandscapeSplinesExportLeftRightCurves_DEPRECATED = false;
-
-	// If true, export the spline mesh components of landscape splines
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bLandscapeSplinesExportSplineMeshComponents_DEPRECATED = false;
-
-	// If true, the deformed meshes of all spline mesh components of an actor are merged into temporary input mesh.
-	// If false, the meshes are sent individually.
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use the InputSettings struct/accessors instead."))
-	bool bMergeSplineMeshComponents_DEPRECATED = true;
 
 	// Various input settings, such as bExportLODs, bExportSockets etc.
 	UPROPERTY()

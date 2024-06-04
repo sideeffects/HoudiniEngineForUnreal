@@ -646,9 +646,6 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		UPROPERTY()
 		TArray<TSoftObjectPtr<AActor>> OutputActors;
 
-		UPROPERTY()
-        UObject* OutputComponent_DEPRECATED = nullptr;
-
 		// Proxy object
 		UPROPERTY()
 		UObject* ProxyObject = nullptr;
@@ -908,16 +905,8 @@ protected:
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutput> InstancedOutputs;
 
 	// The material assignments for this output
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use AssignmentMaterialsById instead"))
-	TMap<FString, UMaterialInterface*> AssignementMaterials_DEPRECATED;
-
-	// The material assignments for this output
 	UPROPERTY()
 	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AssignmentMaterialsById;
-
-	// The material replacements for this output
-	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use ReplacementMaterialsById instead"))
-	TMap<FString, UMaterialInterface*> ReplacementMaterials_DEPRECATED;
 
 	// The material replacements for this output
 	UPROPERTY()
