@@ -293,6 +293,15 @@ FHoudiniEngine::ShutdownModule()
 	}
 	*/
 
+	/*
+	// Stop Houdini Session sync if it is still running!
+	FProcHandle PreviousHESS = GetHESSProcHandle();
+	if (FPlatformProcess::IsProcRunning(PreviousHESS))
+	{
+		FPlatformProcess::TerminateProc(PreviousHESS, true);
+	}
+	*/
+
 #if WITH_EDITOR
 	// Unregister settings.
 	ISettingsModule * SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
@@ -858,7 +867,9 @@ FHoudiniEngine::SessionSyncConnect(
 	const int32 NumSessions,
 	const FString& ServerPipeName,
 	const FString& ServerHost,
-	const int32 ServerPort)
+	const int32 ServerPort,
+	const int64 BufferSize,
+	const bool BufferCyclic)
 {
 	// HAPI needs to be initialized
 	if (!FHoudiniApi::IsHAPIInitialized())
@@ -921,8 +932,8 @@ FHoudiniEngine::SessionSyncConnect(
 		// Try to connect to an existing pipe session first
 		HAPI_SessionInfo SessionInfo;
 		FHoudiniApi::SessionInfo_Init(&SessionInfo);
-		SessionInfo.sharedMemoryBufferSize = HoudiniRuntimeSettings->SharedMemoryBufferSize;
-		SessionInfo.sharedMemoryBufferType = HoudiniRuntimeSettings->bSharedMemoryBufferCyclic ? HAPI_THRIFT_SHARED_MEMORY_RING_BUFFER : HAPI_THRIFT_SHARED_MEMORY_FIXED_LENGTH_BUFFER;
+		SessionInfo.sharedMemoryBufferSize = BufferSize;
+		SessionInfo.sharedMemoryBufferType = BufferCyclic ? HAPI_THRIFT_SHARED_MEMORY_RING_BUFFER : HAPI_THRIFT_SHARED_MEMORY_FIXED_LENGTH_BUFFER;
 
 		Sessions.Empty(NumSessions);
 		for (int32 i = 0; i < NumSessions; ++i)

@@ -130,7 +130,9 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 			const int32 NumSessions,
 			const FString& ServerPipeName,
 			const FString& ServerHost,
-			const int32 ServerPort);
+			const int32 ServerPort,
+			const int64 BufferSize,
+			const bool BufferCyclic);
 
 		// Stops the current session
 		bool StopSession();

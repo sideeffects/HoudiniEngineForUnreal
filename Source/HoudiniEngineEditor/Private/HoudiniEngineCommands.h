@@ -310,9 +310,11 @@ protected:
 
 	// Start and connect to Session Sync
 	static bool StartAndConnectToSessionSync(
-		EHoudiniRuntimeSettingsSessionType SessionType,
+		const EHoudiniRuntimeSettingsSessionType SessionType,
 		const FString& ServerPipeName,
-		int32 ServerPort);
+		const int32 ServerPort,
+		const int64 BufferSize,
+		const bool BufferCyclic);
 
 	// Delegate that is set up to refined proxy meshes post save world (it removes itself afterwards)
 	static FDelegateHandle OnPostSaveWorldRefineProxyMeshesHandle;

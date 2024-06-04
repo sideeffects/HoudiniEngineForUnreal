@@ -1051,7 +1051,9 @@ FHoudiniEngineCommands::OpenSessionSync(bool bWaitForCompletion)
 	EHoudiniRuntimeSettingsSessionType SessionType = HoudiniRuntimeSettings->SessionType;
 	FString ServerPipeName = HoudiniRuntimeSettings->ServerPipeName;
 	int32 ServerPort = HoudiniRuntimeSettings->ServerPort;
-	
+	int64 BufferSize = HoudiniRuntimeSettings->SharedMemoryBufferSize;
+	bool BufferCyclic = HoudiniRuntimeSettings->bSharedMemoryBufferCyclic;
+
 	FString SessionSyncArgs = TEXT("-hess=");
 	if (SessionType == EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe)
 	{
@@ -1062,6 +1064,15 @@ FHoudiniEngineCommands::OpenSessionSync(bool bWaitForCompletion)
 	{
 		// Add the -hess=port:9090 argument
 		SessionSyncArgs += TEXT("port:") + FString::FromInt(ServerPort);
+	}
+	else if (SessionType == EHoudiniRuntimeSettingsSessionType::HRSST_MemoryBuffer)
+	{
+		// -hess=shared:TYPE:SIZE:NAME
+		// TYPE specifies the shared memory buffer type. (ring, fixed).
+		// SIZE specifies the size of the shared memory buffer in megabytes (MB).
+		// NAME specifies the name of the shared memory. Different sessions must have a unique name.
+		FString BufferType = BufferCyclic ? TEXT("ring") : TEXT("fixed");
+		SessionSyncArgs += TEXT("shared:") + BufferType + TEXT(":") + FString::FromInt(BufferSize) + TEXT(":") + ServerPipeName;
 	}
 	else
 	{
@@ -1141,22 +1152,24 @@ FHoudiniEngineCommands::OpenSessionSync(bool bWaitForCompletion)
 
 	if (!bWaitForCompletion)
 	{
-		Async(EAsyncExecution::TaskGraphMainThread, [SessionType, ServerPipeName, ServerPort]()
+		Async(EAsyncExecution::TaskGraphMainThread, [SessionType, ServerPipeName, ServerPort, BufferSize, BufferCyclic]()
 		{
-			StartAndConnectToSessionSync(SessionType, ServerPipeName, ServerPort);
+			StartAndConnectToSessionSync(SessionType, ServerPipeName, ServerPort, BufferSize, BufferCyclic);
 		});
 	}
 	else
 	{
-		StartAndConnectToSessionSync(SessionType, ServerPipeName, ServerPort);
+		StartAndConnectToSessionSync(SessionType, ServerPipeName, ServerPort, BufferSize, BufferCyclic);
 	}
 }
 
 bool
 FHoudiniEngineCommands::StartAndConnectToSessionSync(
-	EHoudiniRuntimeSettingsSessionType SessionType, 
+	const EHoudiniRuntimeSettingsSessionType SessionType, 
 	const FString& ServerPipeName, 
-	int32 ServerPort)
+	const int32 ServerPort,
+	const int64 BufferSize,
+	const bool BufferCyclic)
 {
 	// Use a timeout to avoid waiting indefinitely for H to start in session sync mode
 	const double Timeout = 180.0; // 3min
@@ -1165,7 +1178,7 @@ FHoudiniEngineCommands::StartAndConnectToSessionSync(
 	const FString ServerHost = TEXT("localhost");
 	constexpr int32 NumSessions = 1;
 	while (!FHoudiniEngine::Get().SessionSyncConnect(
-		SessionType, NumSessions, ServerPipeName, ServerHost, ServerPort))
+		SessionType, NumSessions, ServerPipeName, ServerHost, ServerPort, BufferSize, BufferCyclic))
 	{
 		// Houdini might not be done loading, sleep for one second 
 		FPlatformProcess::Sleep(.5f);
