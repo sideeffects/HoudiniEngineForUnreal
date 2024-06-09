@@ -65,7 +65,9 @@ struct FHoudiniHapiAccessor
 	template<typename DataType> bool GetAttributeData(HAPI_AttributeOwner Owner, int MaxTuples, TArray<DataType>& Results, int IndexStart = 0, int IndexCount = -1);
 	template<typename DataType> bool GetAttributeData(HAPI_AttributeOwner Owner, int MaxTuples, DataType* Results, int IndexStart = 0, int IndexCount = -1);
 	template<typename DataType> bool GetAttributeFirstValue(HAPI_AttributeOwner Owner, DataType & Result);
+	template<typename DataType> bool GetAttributeArrayData(HAPI_AttributeOwner Owner, TArray<DataType>& InStringArray, TArray<int>& SizesFixedArray, int IndexStart = 0, int IndexCount = -1);
 
+	template<typename DataType> bool GetAttributeArrayData(const HAPI_AttributeInfo& AttributeInfo, TArray<DataType>& InStringArray, TArray<int>& SizesFixedArray, int IndexStart = 0, int IndexCount = -1);
 	template<typename DataType> bool GetAttributeData(const HAPI_AttributeInfo& AttributeInfo, TArray<DataType>& Results, int IndexStart =0, int IndexCount =-1);
 	template<typename DataType> bool GetAttributeData(const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int IndexStart, int IndexCount);
 	template<typename DataType> bool GetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int IndexStart, int IndexCount) const;
@@ -120,6 +122,8 @@ protected:
 	static  int64 GetHapiSize(HAPI_StorageType StorageType);
 
 	static bool IsHapiArrayType(HAPI_StorageType);
+	static HAPI_StorageType GetTypeWithoutArray(HAPI_StorageType StorageType);
+
 
 	template<typename TaskType>
 	static bool ExecuteTasksWithSessions(TArray<TaskType>& Tasks, int NumSessions);

@@ -336,9 +336,8 @@ template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeDataViaSessio
 		return true;
 
 	HAPI_StorageType StorageType = GetHapiType<DataType>();
-	if (StorageType == AttributeInfo.storage)
+	if (StorageType == GetTypeWithoutArray(AttributeInfo.storage))
 	{
-		// No conversion is necessary so fetch the data directly.
 		HOUDINI_CHECK_ERROR_RETURN(FetchHapiData(Session, AttributeInfo, Results, IndexStart, IndexCount), false);
 	}
 	else
@@ -352,6 +351,38 @@ template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeDataViaSessio
 	}
 	return true;
 }
+
+template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeArrayData(HAPI_AttributeOwner Owner, TArray<DataType>& Data, TArray<int>& Sizes, int IndexStart, int IndexCount)
+{
+	 const HAPI_Session * Session = FHoudiniEngine::Get().GetSession();
+
+	 HAPI_AttributeInfo AttrInfo;
+	 if (!GetInfo(AttrInfo, Owner))
+		 return false;
+
+	return GetAttributeArrayData(AttrInfo, Data, Sizes, IndexStart, IndexCount);
+
+
+}
+
+
+template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeArrayData(const HAPI_AttributeInfo& AttributeInfo, TArray<DataType>& DataArray, TArray<int>& Sizes,int IndexStart, int IndexCount)
+{
+	if (IndexCount == -1)
+		IndexCount = AttributeInfo.count;
+
+	if (!IsHapiArrayType(AttributeInfo.storage))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Not an array storage types"));
+		return false;
+	}
+	DataArray.SetNum(AttributeInfo.totalArrayElements);
+	Sizes.SetNum(IndexCount);
+
+	HAPI_Result Result = FetchHapiDataArray(FHoudiniEngine::Get().GetSession(), AttributeInfo, DataArray.GetData(), Sizes.GetData(), IndexStart, IndexCount);
+	return Result == HAPI_RESULT_SUCCESS;
+}
+
 
 template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeData(const HAPI_AttributeInfo& AttributeInfo, TArray<DataType>& Results, int IndexStart, int IndexCount)
 {
@@ -1305,6 +1336,14 @@ int64 FHoudiniHapiAccessor::GetHapiSize(HAPI_StorageType StorageType)
 	}
 }
 
+HAPI_StorageType FHoudiniHapiAccessor::GetTypeWithoutArray(HAPI_StorageType StorageType)
+{
+	if (StorageType >= HAPI_STORAGETYPE_INT_ARRAY && StorageType <= HAPI_STORAGETYPE_DICTIONARY_ARRAY)
+		return static_cast<HAPI_StorageType>(StorageType - HAPI_STORAGETYPE_INT_ARRAY);
+	else
+		return StorageType;
+}
+
 
 #define IMPLEMENT_HOUDINI_ACCESSOR(DATA_TYPE)\
 	template bool FHoudiniHapiAccessor::GetAttributeFirstValue(HAPI_AttributeOwner Owner, DATA_TYPE& Result);\
@@ -1317,7 +1356,8 @@ int64 FHoudiniHapiAccessor::GetHapiSize(HAPI_StorageType StorageType)
 	template bool FHoudiniHapiAccessor::SetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const DATA_TYPE* Data, int IndexStart, int IndexCount) const;\
 	template bool FHoudiniHapiAccessor::SetAttributeData(const HAPI_AttributeInfo& AttributeInfo, const TArray<DATA_TYPE>& Data);\
 	template bool FHoudiniHapiAccessor::SetAttributeUniqueData(const HAPI_AttributeInfo& AttributeInfo, const DATA_TYPE& Data);\
-	template bool FHoudiniHapiAccessor::SetAttributeArrayData(const HAPI_AttributeInfo& InAttributeInfo, TArray<DATA_TYPE>& InStringArray, const TArray<int>& SizesFixedArray);
+	template bool FHoudiniHapiAccessor::SetAttributeArrayData(const HAPI_AttributeInfo& InAttributeInfo, TArray<DATA_TYPE>& InStringArray, const TArray<int>& SizesFixedArray);\
+	template bool FHoudiniHapiAccessor::GetAttributeArrayData(HAPI_AttributeOwner Owner, TArray<DATA_TYPE>& StringArray, TArray<int>& SizesFixedArray, int IndexStart, int IndexCount);
 
 IMPLEMENT_HOUDINI_ACCESSOR(uint8);
 IMPLEMENT_HOUDINI_ACCESSOR(int8);

@@ -7919,44 +7919,6 @@ FHoudiniEngineUtils::JSONFromString(const FString& JSONString, TSharedPtr<FJsonO
 }
 
 
-void
-FHoudiniEngineUtils::ConvertHoudiniComponentSpaceTransform(
-	const float* RotationData,
-	const FVector3f& PositionData,
-	FTransform& OutUnrealTransform)
-{
-	//Read in 3x3 into Matrix, and append the translation
-	FMatrix M44Pose;  //this is unconverted houdini space
-	M44Pose.M[0][0] = RotationData[0];
-	M44Pose.M[0][1] = RotationData[1];
-	M44Pose.M[0][2] = RotationData[2];
-	M44Pose.M[0][3] = 0;
-	M44Pose.M[1][0] = RotationData[3];
-	M44Pose.M[1][1] = RotationData[4];
-	M44Pose.M[1][2] = RotationData[5];
-	M44Pose.M[1][3] = 0;
-	M44Pose.M[2][0] = RotationData[6];
-	M44Pose.M[2][1] = RotationData[7];
-	M44Pose.M[2][2] = RotationData[8];
-	M44Pose.M[2][3] = 0;
-	M44Pose.M[3][0] = PositionData.X;
-	M44Pose.M[3][1] = PositionData.Y;
-	M44Pose.M[3][2] = PositionData.Z;
-	M44Pose.M[3][3] = 1;
-
-	const FTransform PoseTransform = FTransform(M44Pose); //this is in Houdini Space
-
-	//Now convert to unreal
-	const FQuat PoseQ = PoseTransform.GetRotation();
-	const FQuat ConvertedPoseQ = FQuat(PoseQ.X, PoseQ.Z, PoseQ.Y, -PoseQ.W) * FQuat::MakeFromEuler({ 90.f, 0.f, 0.f });
-
-	const FVector PoseT = PoseTransform.GetLocation();
-	const FVector ConvertedPoseT = FVector(PoseT.X, PoseT.Z, PoseT.Y);
-	const FVector PoseS = PoseTransform.GetScale3D();
-	OutUnrealTransform = FTransform(ConvertedPoseQ, ConvertedPoseT * 100, PoseS * 100);
-}
-
-
 bool
 FHoudiniEngineUtils::UpdateMeshPartUVSets(
 	const int GeoId,
@@ -8104,6 +8066,35 @@ FHoudiniEngineUtils::ForceDeleteObject(UObject* Object)
 	// CollectGarbage so we don't get stale objects.
 	if (bDeleteSucceeded)
 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
+}
+
+TArray<FString> FHoudiniEngineUtils::GetAttributeNames(const HAPI_Session* Session, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+{
+	HAPI_PartInfo PartInfo;
+	TArray<FString> Results;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPartInfo(Session, NodeId, PartId, &PartInfo), Results);
+
+	TArray<HAPI_StringHandle> StringHandles;
+	StringHandles.SetNum(PartInfo.attributeCounts[Owner]);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAttributeNames(Session, NodeId, PartId, Owner, StringHandles.GetData(), StringHandles.Num()), Results);
+
+	FHoudiniEngineString::SHArrayToFStringArray(StringHandles, Results, Session);
+
+	return Results;
+}
+
+TMap< HAPI_AttributeOwner, TArray<FString>> FHoudiniEngineUtils::GetAllAttributeNames(const HAPI_Session* Session, HAPI_NodeId NodeId, HAPI_PartId PartId)
+{
+	TMap< HAPI_AttributeOwner, TArray<FString>> Results;
+
+	Results.Add(HAPI_AttributeOwner::HAPI_ATTROWNER_VERTEX, GetAttributeNames(Session, NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_VERTEX));
+	Results.Add(HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, GetAttributeNames(Session, NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT));
+	Results.Add(HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM, GetAttributeNames(Session, NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM));
+	Results.Add(HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, GetAttributeNames(Session, NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL));
+
+	return Results;
 }
 
 
