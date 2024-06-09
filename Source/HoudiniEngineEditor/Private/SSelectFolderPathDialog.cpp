@@ -31,6 +31,7 @@
 #include "Internationalization/Internationalization.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
+#include "Widgets/Text/STextBlock.h" 
 #include "HoudiniEngineEditorPrivatePCH.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
