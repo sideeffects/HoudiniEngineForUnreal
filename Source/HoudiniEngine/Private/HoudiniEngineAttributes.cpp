@@ -313,10 +313,9 @@ int FHoudiniHapiAccessor::CalculateNumberOfTasks(const HAPI_AttributeInfo& Attri
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 	if (HoudiniRuntimeSettings->SessionType == EHoudiniRuntimeSettingsSessionType::HRSST_MemoryBuffer)
 	{
-
 		constexpr int64 OverheadSize = 1 * 1024 * 1024;
 		MaxSize = HoudiniRuntimeSettings->SharedMemoryBufferSize * 1024 * 1024 - OverheadSize;
-		if (MaxSize < 0)
+		if (MaxSize <= 0)
 		{
 			HOUDINI_LOG_ERROR(TEXT("Shared memory buffer size is too small."));
 			return 0;

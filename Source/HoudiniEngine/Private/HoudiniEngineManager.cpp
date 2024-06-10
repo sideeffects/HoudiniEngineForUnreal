@@ -65,6 +65,14 @@ static TAutoConsoleVariable<float> CVarHoudiniEngineTickTimeLimit(
 	TEXT("1.0: Default\n")
 );
 
+static TAutoConsoleVariable<float> CVarHoudiniEngineLiveSyncTickTime(
+	TEXT("HoudiniEngine.LiveSyncTickTime"),
+	1.0,
+	TEXT("Frequency at which to look for update when using Session Sync.\n")
+	TEXT("<= 0.0: No Limit\n")
+	TEXT("1.0: Default\n")
+);
+
 FHoudiniEngineManager::FHoudiniEngineManager()
 	: CurrentIndex(0)
 	, ComponentCount(0)
@@ -677,17 +685,6 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			HAC->HandleOnPreOutputProcessing();
 			HAC->OnPreOutputProcessing();
 			
-			/*
-			// Always update cookcount even when not successful?
-			//if (bSuccess)
-			{
-				// Update the cook count on the HAC
-				// It's better to do it before processing, as changes could be done to the HAC while we're processing outputs
-				int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
-				HAC->SetAssetCookCount(CookCount);
-			}
-			*/
-
 			if (PostCook(HAC, bSuccess, HAC->GetAssetId()))
 			{
 				// Cook was successful, process the results
@@ -711,10 +708,6 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 		case EHoudiniAssetState::Processing:
 		{
 			UpdateProcess(HAC);
-
-			// This is too late to update the cook count, things might have changed since we asked for a cook
-			//int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
-			//HAC->SetAssetCookCount(CookCount);
 
 			HAC->HandleOnPostOutputProcessing();
 			HAC->OnPostOutputProcessing();
@@ -744,26 +737,35 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			}
 
 			// See if we need to get an update from Session Sync
-			if(FHoudiniEngine::Get().IsSessionSyncEnabled() 
+			bool bEnableLiveSync = FHoudiniEngine::Get().IsSessionSyncEnabled()
 				&& FHoudiniEngine::Get().IsSyncWithHoudiniCookEnabled()
-				&& HAC->GetAssetState() == EHoudiniAssetState::None)
-			{
-				bool bEnableLiveSync = true;
-				if (bIsNodeSyncComponent)
-				{
-					UHoudiniNodeSyncComponent* HNSC = Cast<UHoudiniNodeSyncComponent>(HAC);
-					bEnableLiveSync = HNSC ? HNSC->GetLiveSyncEnabled() : false;
-				}
+				&& HAC->GetAssetState() == EHoudiniAssetState::None;
 
-				int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
-				if (CookCount >= 0 && CookCount != HAC->GetAssetCookCount() && bEnableLiveSync)
+			if (bIsNodeSyncComponent)
+			{
+				UHoudiniNodeSyncComponent* HNSC = Cast<UHoudiniNodeSyncComponent>(HAC);
+				bEnableLiveSync = HNSC ? HNSC->GetLiveSyncEnabled() : false;
+			}
+
+			if(bEnableLiveSync)
+			{
+				double dNow = FPlatformTime::Seconds();
+				double dLiveSyncTick = CVarHoudiniEngineLiveSyncTickTime.GetValueOnAnyThread();
+				if ((dNow - HAC->LastLiveSyncPingTime) > dLiveSyncTick)
 				{
-					// The cook count has changed on the Houdini side,
-					// this indicates that the user has changed something in Houdini so we need to trigger an update
-					HAC->SetAssetState(EHoudiniAssetState::PreCook);
-					
-					// Make sure to update the cookcount to prevent loop cooking
-					HAC->SetAssetCookCount(CookCount);
+					// Update the last live sync ping time for this component
+					HAC->LastLiveSyncPingTime = dNow;
+
+					int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
+					if (CookCount >= 0 && CookCount != HAC->GetAssetCookCount())
+					{
+						// The cook count has changed on the Houdini side,
+						// this indicates that the user has changed something in Houdini so we need to trigger an update
+						HAC->SetAssetState(EHoudiniAssetState::PreCook);
+
+						// Make sure to update the cookcount to prevent loop cooking
+						HAC->SetAssetCookCount(CookCount);
+					}
 				}
 			}
 			break;
@@ -1314,7 +1316,7 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 	const TArray<int32> OutputNodes = HAC->GetOutputNodeIds();
 	for (int32 NodeId : OutputNodes)
 	{
-		int32 NodeCookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
+		int32 NodeCookCount = FHoudiniEngineUtils::HapiGetCookCount(NodeId);
 		HAC->SetOutputNodeCookCount(NodeId, NodeCookCount);
 	}
 

@@ -6969,59 +6969,14 @@ FHoudiniEngineUtils::CreateNode(
 int32
 FHoudiniEngineUtils::HapiGetCookCount(const HAPI_NodeId& InNodeId)
 {
+	// To reduce the "cost" of the call on big HDAs - limit or search to non bypassed SOP/OBJ nodes
 	int32 CookCount = -1;
-
-	FHoudiniApi::GetTotalCookCount(
+	if (HAPI_RESULT_FAILURE == FHoudiniApi::GetTotalCookCount(
 		FHoudiniEngine::Get().GetSession(),
-		InNodeId, HAPI_NODETYPE_ANY, HAPI_NODEFLAGS_ANY, true, &CookCount);
-
-	/*
-	// TODO:
-	// Use HAPI_GetCookingTotalCount() when available
-	HAPI_NodeInfo NodeInfo;
-	FHoudiniApi::NodeInfo_Init(&NodeInfo);
-
-	int32 CookCount = -1;
-	HAPI_Result Result = FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), InNodeId, &NodeInfo);
-	
-	if (Result != HAPI_RESULT_FAILURE)
+		InNodeId, HAPI_NODETYPE_OBJ | HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_NON_BYPASS, true, &CookCount))
 	{
-		if (NodeInfo.type != HAPI_NODETYPE_OBJ)
-		{
-			// For SOP assets, get the cook count straight from the Asset Node
-			CookCount = NodeInfo.totalCookCount;
-		}
-		else
-		{
-			// For OBJ nodes, get the cook count from the display geos
-			// Retrieve information about each object contained within our asset.
-			TArray< HAPI_ObjectInfo > ObjectInfos;
-			if (!FHoudiniEngineUtils::HapiGetObjectInfos(InNodeId, ObjectInfos))
-				return false;
-
-			for (auto CurrentHapiObjectInfo : ObjectInfos)
-			{
-				// Get the Display Geo's info				
-				HAPI_GeoInfo DisplayHapiGeoInfo;
-				FHoudiniApi::GeoInfo_Init(&DisplayHapiGeoInfo);
-				if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetDisplayGeoInfo(
-					FHoudiniEngine::Get().GetSession(), CurrentHapiObjectInfo.nodeId, &DisplayHapiGeoInfo))
-				{
-					continue;
-				}
-
-				HAPI_NodeInfo DisplayNodeInfo;
-				FHoudiniApi::NodeInfo_Init(&DisplayNodeInfo);
-				if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), DisplayHapiGeoInfo.nodeId, &DisplayNodeInfo))
-				{
-					continue;
-				}
-
-				CookCount += DisplayNodeInfo.totalCookCount;
-			}
-		}
+		return -1;
 	}
-	*/
 
 	return CookCount;
 }

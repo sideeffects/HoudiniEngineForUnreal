@@ -259,11 +259,10 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	Bounds = FBox(ForceInitToZero);
 
 	LastTickTime = 0.0;
+	LastLiveSyncPingTime = 0.0;
 
 	// Initialize the default SM Build settings with the plugin's settings default values
 	StaticMeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
-	
-	
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
