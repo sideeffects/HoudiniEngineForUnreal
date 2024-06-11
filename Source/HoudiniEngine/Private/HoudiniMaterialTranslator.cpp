@@ -59,6 +59,7 @@
 	#include "MaterialShared.h"
 #endif
 #include "Engine/Texture2D.h"
+#include "Factories/MaterialFactoryNew.h"
 #include "Serialization/BufferWriter.h"
 
 #if WITH_EDITOR
@@ -277,6 +278,7 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InMaterials,
 	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials,
 	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& OutMaterials,
+	TArray<UMaterialInterface*>& OutMaterialArray,
 	TArray<UPackage*>& OutPackages,
 	const bool& bForceRecookAll,
 	bool bInTreatExistingMaterialsAsUpToDate,
@@ -308,6 +310,8 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 	// Factory to create materials.
 	UMaterialFactoryNew * MaterialFactory = NewObject<UMaterialFactoryNew>();
 	MaterialFactory->AddToRoot();
+
+	OutMaterialArray.SetNumZeroed(InUniqueMaterialIds.Num());
 
 	for (int32 MaterialIdx = 0; MaterialIdx < InUniqueMaterialIds.Num(); MaterialIdx++)
 	{
@@ -380,6 +384,7 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 			// If the cached material exists and is up to date, we can reuse it.
 			if (bCanReuseExistingMaterial)
 			{
+				OutMaterialArray[MaterialIdx] = Material;
 				OutMaterials.Add(MaterialIdentifier, Material);
 				continue;
 			}
@@ -408,6 +413,8 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 
 		if (!IsValid(Material))
 			continue;
+
+		OutMaterialArray[MaterialIdx] = Material;
 
 		// Get the asset name from the package params
 		FString AssetName = InPackageParams.HoudiniAssetName.IsEmpty() ? TEXT("HoudiniAsset") : InPackageParams.HoudiniAssetName;

@@ -176,6 +176,7 @@ public:
 		const TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& InMaterials,
 		const TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& InAllOutputMaterials,
 		TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& OutMaterials,
+		TArray<UMaterialInterface *> & OutMaterialArray,
 		TArray<UPackage*>& OutPackages,
 		const bool& bForceRecookAll,
 		bool bInTreatExistingMaterialsAsUpToDate=false,

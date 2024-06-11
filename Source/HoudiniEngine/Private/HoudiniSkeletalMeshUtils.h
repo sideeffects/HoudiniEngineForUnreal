@@ -68,16 +68,45 @@ struct FHoudiniSkinWeights
 	int NumVertices = 0;
 };
 
+struct FHoudiniSkeletalMeshMaterial
+{
+	FString OverridePath; // valid if using unreal_material
+	HAPI_NodeId NodeId; // valid if using a houdini material
+	FString AssetPath;	// asset path of material to use.
+	int Slot; // material slot numer. may be derived from OverridePath.
+};
+
+
+struct FHoudiniSkeletalMeshMaterialSettings
+{
+	TArray< FHoudiniSkeletalMeshMaterial> Materials;
+	TArray<int> MaterialIds;
+	HAPI_NodeId GeoNodeId = -1;
+};
+
 struct HOUDINIENGINE_API FHoudiniSkeletalMeshUtils
 {
 	static FHoudiniSkeleton ConstructSkeleton(HAPI_NodeId PoseNodeId, HAPI_PartId PosePartId);
 
 	static FHoudiniSkinWeights ConstructSkinWeights(HAPI_NodeId NodeId, HAPI_PartId PartId, FHoudiniSkeleton& Skeleton);
 
+
+	static FHoudiniSkeletalMeshMaterialSettings GetHoudiniMaterials(HAPI_NodeId NodeId, HAPI_PartId PartId, int NumFaces);
+
+	static bool CreateHoudiniMaterial(
+		FHoudiniSkeletalMeshMaterialSettings& SkeletalFaceMaterials,
+			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> InputAssignmentMaterials, 
+			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials, 
+			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputAssignmentMaterials,
+			const FHoudiniPackageParams& InPackageParams);
+
+	static FHoudiniSkeletalMeshMaterialSettings GetMaterialOverrides(HAPI_NodeId NodeId, HAPI_PartId PartId);
+
 protected:
 	static FMatrix ConstructHoudiniMatrix(const float Rotation[], const float Position[]);
 
 	static FTransform HoudiniToUnrealMatrix(const FMatrix & Matrix);
+
 
 
 

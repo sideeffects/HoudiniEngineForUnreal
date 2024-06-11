@@ -1403,196 +1403,48 @@ FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshMaterials(
 	TArray<int32>& OutPerFaceUEMaterialIds,
 	FSkeletalMeshImportData& OutImportData)
 {
-	int32 NumFaces = InShapeMeshPartInfo.faceCount;
+	// Get material information from unreal_material.
+	FHoudiniSkeletalMeshMaterialSettings MeshSettings = FHoudiniSkeletalMeshUtils::GetMaterialOverrides(InShapeMeshHGPO.GeoId, InShapeMeshHGPO.PartId);
 
-	// Default Houdini material.
-	UMaterialInterface* DefaultMaterial = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
-
-	//
-	// Starts with Unreal materials
-	// 
-	TArray<FString> UnrealMatPerFaceMatNames;
-	UnrealMatPerFaceMatNames.SetNum(NumFaces);
-
-	HAPI_AttributeInfo UnrealMaterialInfo;
-	FHoudiniApi::AttributeInfo_Init(&UnrealMaterialInfo);
-
-	FHoudiniHapiAccessor Accessor(InShapeMeshHGPO.GeoId, InShapeMeshHGPO.PartId, HAPI_UNREAL_ATTRIB_MATERIAL);
-	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, UnrealMatPerFaceMatNames, 0, NumFaces);
-
-	if (!bSuccess)
+	// If no unreal material, try to use houdini materials.
+	if (MeshSettings.Materials.IsEmpty())
 	{
-		// Unable to read the unreal materials, empty the array
-		UnrealMatPerFaceMatNames.Empty();
-	}
+		MeshSettings = FHoudiniSkeletalMeshUtils::GetHoudiniMaterials(InShapeMeshHGPO.GeoId, InShapeMeshHGPO.PartId, InShapeMeshPartInfo.faceCount);
 
-	// Unique UnrealMaterials
-	TMap<FString, int32> UniqueUnrealMaterialsIndices;
-	for (int32 FaceIdx = 0; FaceIdx < UnrealMatPerFaceMatNames.Num(); ++FaceIdx)
-	{
-		FString CurrentMatString = UnrealMatPerFaceMatNames[FaceIdx];
-		if (CurrentMatString.IsEmpty())
-			CurrentMatString = TEXT("default");
-
-		if (UniqueUnrealMaterialsIndices.Contains(CurrentMatString))
-			continue;
-
-		UMaterialInterface* MaterialInterface = nullptr;
-		if (UnrealMatPerFaceMatNames[FaceIdx].IsEmpty())
+		if (!MeshSettings.Materials.IsEmpty())
 		{
-			MaterialInterface = DefaultMaterial;
-		}
-		else
-		{
-			MaterialInterface = Cast<UMaterialInterface>(
-				StaticLoadObject(UMaterialInterface::StaticClass(),
-					nullptr, *UnrealMatPerFaceMatNames[FaceIdx], nullptr, LOAD_NoWarn, nullptr));
-		}
-
-		if (!IsValid(MaterialInterface))
-		{
-			// Error loading the material.
-			HOUDINI_LOG_MESSAGE(
-				TEXT("Creating SKeletal Mesh: Object [%d %s], Geo [%d], Part [%d %s] unable to load material %s"),
-				InShapeMeshHGPO.ObjectId, *InShapeMeshHGPO.ObjectName, InShapeMeshHGPO.GeoId, InShapeMeshHGPO.PartId, *InShapeMeshHGPO.PartName, *UnrealMatPerFaceMatNames[FaceIdx]);
-
-			continue;
-		}
-
-		SkeletalMeshImportData::FMaterial CurrentMat;
-		CurrentMat.Material = MaterialInterface;
-		CurrentMat.MaterialImportName = CurrentMatString;
-
-		int32 OutIndex = OutImportData.Materials.Add(CurrentMat);
-		UniqueUnrealMaterialsIndices.Add(CurrentMatString, OutIndex);//MatIdx++);		
-	}
-
-	// If we have material overrides - no need to create Houdini materials	
-	bool bHasUnrealMaterial = OutImportData.Materials.Num() > 0;
-	if (bHasUnrealMaterial)
-	{
-		// Convert the face materials ids
-		OutPerFaceUEMaterialIds.SetNum(NumFaces);
-		for (int32 FaceIdx = 0; FaceIdx < NumFaces; FaceIdx++)
-		{
-			FString CurrentMatString = UnrealMatPerFaceMatNames[FaceIdx];
-			if (CurrentMatString.IsEmpty())
-				CurrentMatString = TEXT("default");
-
-			OutPerFaceUEMaterialIds[FaceIdx] = UniqueUnrealMaterialsIndices[CurrentMatString];
-		}
-
-		// Success!
-		return true;
-	}
-
-
-	// No unreal_material overrides - try Houdini Materials
-	TArray<int32> HoudiniMatPerFaceMaterialIds;
-	HoudiniMatPerFaceMaterialIds.SetNum(NumFaces);
-
-	// Map MaterialID to Material Index
-	TMap<int32, int32> UniqueHoudiniMaterialsIndices;
-
-	// Unique Houdini Material IDs
-	TArray<int32> UniqueHoudiniMaterialIds;
-	// Unique Houdini Material Infos
-	TArray<HAPI_MaterialInfo> UniqueHoudiniMaterialInfos;
-
-	// Get the Houdini materials IDs per face	
-	bool bSingleHoudiniMaterial = false;
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialNodeIdsOnFaces(
-		FHoudiniEngine::Get().GetSession(),
-		InShapeMeshHGPO.GeoId, InShapeMeshHGPO.PartId, &bSingleHoudiniMaterial,
-		&HoudiniMatPerFaceMaterialIds[0], 0, NumFaces))
-	{
-		// No Houdini materials set on the faces - empty the array
-		HoudiniMatPerFaceMaterialIds.Empty();
-		bSingleHoudiniMaterial = false;
-	}
-	else
-	{
-		// Fill the unique material IDs array
-		if (!bSingleHoudiniMaterial)
-		{
-			// No material overrides, simply update the unique material array
-			for (int32 MaterialIdx = 0; MaterialIdx < HoudiniMatPerFaceMaterialIds.Num(); ++MaterialIdx)
-				UniqueHoudiniMaterialIds.AddUnique(HoudiniMatPerFaceMaterialIds[MaterialIdx]);
-		}
-		else
-		{
-			UniqueHoudiniMaterialIds.AddUnique(HoudiniMatPerFaceMaterialIds[0]);
-			UniqueHoudiniMaterialsIndices.Add(HoudiniMatPerFaceMaterialIds[0], 0);
-		}
-
-		// Remove the invalid material ID from the unique array
-		UniqueHoudiniMaterialIds.RemoveSingle(-1);
-
-		// Get the unique material infos
-		UniqueHoudiniMaterialInfos.SetNum(UniqueHoudiniMaterialIds.Num());
-		for (int32 MaterialIdx = 0; MaterialIdx < UniqueHoudiniMaterialInfos.Num(); MaterialIdx++)
-		{
-			FHoudiniApi::MaterialInfo_Init(&UniqueHoudiniMaterialInfos[MaterialIdx]);
-
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(
-				FHoudiniEngine::Get().GetSession(),
-				UniqueHoudiniMaterialIds[MaterialIdx],
-				&UniqueHoudiniMaterialInfos[MaterialIdx]))
-			{
-				// Error retrieving material face assignments.				
-				HOUDINI_LOG_MESSAGE(
-					TEXT("Creating SKeletal Mesh: Object [%d %s], Geo [%d], Part [%d %s] unable to retrieve material info for material %d"),
-					InShapeMeshHGPO.ObjectId, *InShapeMeshHGPO.ObjectName, InShapeMeshHGPO.GeoId, InShapeMeshHGPO.PartId, *InShapeMeshHGPO.PartName, UniqueHoudiniMaterialIds[MaterialIdx]);
-				
-				continue;
-			}
+			bool bCreatedMaterials = FHoudiniSkeletalMeshUtils::CreateHoudiniMaterial(MeshSettings,
+				InputAssignmentMaterials, OutputAssignmentMaterials, AllOutputMaterials, InPackageParams);
+			if (!bCreatedMaterials)
+				return false;
 		}
 	}
 
-	// If we have dont have houdini materials - no need to continue	
-	bool bHasHoudiniMaterial = HoudiniMatPerFaceMaterialIds.Num() > 0 && UniqueHoudiniMaterialIds.Num() > 0;
-	if (!bHasHoudiniMaterial)
-		return false;
-
-	TArray<UPackage*> MaterialAndTexturePackages;
-	/*FHoudiniPackageParams FinalPackageParams(InPackageParams);
-	FinalPackageParams.OverideEnabled = false;*/
-
-	if (!FHoudiniMaterialTranslator::CreateHoudiniMaterials(
-		InShapeMeshHGPO.GeoId,
-		InPackageParams,//FinalPackageParams,
-		UniqueHoudiniMaterialIds,
-		UniqueHoudiniMaterialInfos,
-		InputAssignmentMaterials,
-		AllOutputMaterials,
-		OutputAssignmentMaterials,
-		MaterialAndTexturePackages,
-		false,
-		true,
-		false))
+	// If there are no materials, create one empty one, which will be assigned the default material.
+	if (MeshSettings.Materials.IsEmpty())
 	{
-		return false;
+		MeshSettings.MaterialIds.SetNumZeroed(InShapeMeshPartInfo.faceCount);
+		MeshSettings.Materials.SetNum(1);
+
 	}
 
-	// Convert the face material ids to indices in the unique array
-	OutPerFaceUEMaterialIds.SetNum(NumFaces);
-	for (int32 FaceIdx = 0; FaceIdx < NumFaces; FaceIdx++)
+	for (auto& Material : MeshSettings.Materials)
 	{
-		// First material is the default one - so increment the indices to account for it
-		OutPerFaceUEMaterialIds[FaceIdx] = UniqueHoudiniMaterialsIndices[HoudiniMatPerFaceMaterialIds[FaceIdx]];
-	}
-
-	// Add the created material to the skeletal mesh's ImportData
-	for (auto& CurMat : OutputAssignmentMaterials)
-	{
-
 		SkeletalMeshImportData::FMaterial SKMIDMaterial;
-		SKMIDMaterial.MaterialImportName = CurMat.Value->GetPathName();
-		SKMIDMaterial.Material = CurMat.Value;
+
+		FString MaterialAssetPath = Material.AssetPath;
+		SKMIDMaterial.Material = nullptr;
+		if (!MaterialAssetPath.IsEmpty())
+			SKMIDMaterial.Material = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MaterialAssetPath, nullptr, LOAD_NoWarn, nullptr));
+
+		if (!IsValid(SKMIDMaterial.Material.Get()))
+			SKMIDMaterial.Material = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
+
+		SKMIDMaterial.MaterialImportName = MaterialAssetPath;
 		OutImportData.Materials.Add(SKMIDMaterial);
 	}
+	OutPerFaceUEMaterialIds = MoveTemp(MeshSettings.MaterialIds);
 
-	// Success!
 	return true;
 }
 

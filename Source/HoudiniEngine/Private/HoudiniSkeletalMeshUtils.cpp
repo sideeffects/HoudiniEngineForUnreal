@@ -54,6 +54,7 @@
 #include <functional>
 
 #include "Chaos/ChaosPerfTest.h"
+#include "Internationalization/Regex.h"
 
 FMatrix
 FHoudiniSkeletalMeshUtils::ConstructHoudiniMatrix(const float RotationData[], const float PositionData[])
@@ -313,3 +314,179 @@ FHoudiniSkinWeights FHoudiniSkeletalMeshUtils::ConstructSkinWeights(HAPI_NodeId 
 	return SkinWeights;
 }
 
+
+FHoudiniSkeletalMeshMaterialSettings FHoudiniSkeletalMeshUtils::GetMaterialOverrides(HAPI_NodeId NodeId, HAPI_PartId PartId)
+{
+	// Fetch attributes and check its valid
+	TArray<FString> AttributeData;
+	FHoudiniHapiAccessor Accessor(NodeId, PartId, HAPI_UNREAL_ATTRIB_MATERIAL);
+	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, AttributeData);
+	if (!bSuccess || AttributeData.IsEmpty())
+		return {};
+
+	// Find all unique material overrides and create a FHoudiniSkeletalMeshMaterial per material.
+
+	TMap<FString, FHoudiniSkeletalMeshMaterial> UniqueMaterials;
+	int NextFreeSlot = 0;
+	for(FString & Attribute : AttributeData)
+	{
+		if (!UniqueMaterials.Contains(Attribute))
+		{
+			FHoudiniSkeletalMeshMaterial Material;
+			Material.OverridePath = Attribute;
+			Material.AssetPath = Attribute;
+			Material.Slot = NextFreeSlot++;
+
+			// see if  there is a slot override. The name will begin the [0], [1], etc.
+			if (Material.OverridePath.StartsWith("["))
+			{
+				FRegexPattern NumberPattern(TEXT("\\[(\\d+)\\]"));
+				FRegexMatcher Matcher(NumberPattern, Material.OverridePath);
+				if (Matcher.FindNext())
+				{
+					int32 BeginIndex = Matcher.GetCaptureGroupBeginning(1);
+					int32 EndIndex = Matcher.GetCaptureGroupEnding(1);
+					FString MatchedNumber = Material.OverridePath.Mid(BeginIndex, EndIndex - BeginIndex);
+					if (MatchedNumber.IsNumeric())
+					{
+						Material.Slot = FCString::Atoi(*MatchedNumber);
+						Material.AssetPath = Material.OverridePath.Mid(EndIndex + 1);
+						Attribute = Material.AssetPath;
+					}
+				}
+			}
+
+			UniqueMaterials.Add(Attribute, Material);
+		}
+	}
+
+	// Store all unique materials in the results, sorting by slot.
+	FHoudiniSkeletalMeshMaterialSettings Result;
+	for(auto & It : UniqueMaterials)
+	{
+		Result.Materials.Add(It.Value);
+	}
+	Result.Materials.Sort([](const FHoudiniSkeletalMeshMaterial & A, const FHoudiniSkeletalMeshMaterial & B) { return A.Slot < B.Slot; } );
+
+	// Create per-face indexes into the material array
+	TMap<FString, int> AttributeToMaterialIndex;
+	for(int Index = 0; Index < Result.Materials.Num(); Index++)
+	{
+		AttributeToMaterialIndex.Add(Result.Materials[Index].AssetPath, Index);
+	}
+
+	Result.MaterialIds.SetNum(AttributeData.Num());
+	for (int Index = 0; Index < AttributeData.Num(); Index++)
+	{
+		Result.MaterialIds[Index] = AttributeToMaterialIndex[AttributeData[Index]];
+	}
+	return Result;
+}
+
+FHoudiniSkeletalMeshMaterialSettings FHoudiniSkeletalMeshUtils::GetHoudiniMaterials(HAPI_NodeId NodeId, HAPI_PartId PartId, int NumFaces)
+{
+	TArray<HAPI_NodeId> MaterialNodes;
+	MaterialNodes.SetNum(NumFaces);
+
+	bool bSingleMaterial = false;
+
+	HAPI_Result HapiResult = FHoudiniApi::GetMaterialNodeIdsOnFaces(
+			FHoudiniEngine::Get().GetSession(),
+			NodeId, PartId, &bSingleMaterial, MaterialNodes.GetData(), 0, NumFaces);
+
+	if (HapiResult != HAPI_RESULT_SUCCESS)
+		return {};
+
+	FHoudiniSkeletalMeshMaterialSettings Result;
+
+	TMap<HAPI_NodeId, int > UniqueMaterials;
+
+	if (bSingleMaterial)
+	{
+		FHoudiniSkeletalMeshMaterial Material;
+		Material.NodeId = MaterialNodes[0];
+		Material.Slot = 0;
+		UniqueMaterials.Add(MaterialNodes[0], 0);
+		Result.Materials.Add(Material);
+	}
+	else
+	{
+		for(int Index = 0; Index < MaterialNodes.Num(); Index++)
+		{
+			if (!UniqueMaterials.Contains(NodeId))
+			{
+				FHoudiniSkeletalMeshMaterial Material;
+				Material.NodeId = MaterialNodes[Index];
+				Material.Slot = Result.Materials.Num();
+				UniqueMaterials.Add(NodeId, Index);
+				Result.Materials.Add(Material);
+			}
+		}
+	}
+
+	Result.MaterialIds.SetNum(NumFaces);
+	for(int FaceId = 0; FaceId < NumFaces; FaceId++)
+	{
+		Result.MaterialIds[FaceId] = UniqueMaterials[MaterialNodes[FaceId]];
+	}
+
+	Result.GeoNodeId = NodeId;
+	return Result;
+
+}
+
+bool FHoudiniSkeletalMeshUtils::CreateHoudiniMaterial(
+	FHoudiniSkeletalMeshMaterialSettings& SkeletalFaceMaterials,
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> InputAssignmentMaterials,
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials,
+	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputAssignmentMaterials,
+	const FHoudiniPackageParams& InPackageParams)
+{
+	TArray<int> UniqueHoudiniMaterialIds;
+
+	TArray<HAPI_MaterialInfo> UniqueHoudiniMaterialInfos;
+	UniqueHoudiniMaterialInfos.SetNum(SkeletalFaceMaterials.Materials.Num());
+	UniqueHoudiniMaterialIds.SetNum(SkeletalFaceMaterials.Materials.Num());
+
+	// Fetch all material infos.
+	for(int Index = 0; Index < SkeletalFaceMaterials.Materials.Num(); Index++)
+	{
+		UniqueHoudiniMaterialIds[Index] = SkeletalFaceMaterials.Materials[Index].NodeId;
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetMaterialInfo(FHoudiniEngine::Get().GetSession(), 
+			SkeletalFaceMaterials.Materials[Index].NodeId, &UniqueHoudiniMaterialInfos[Index]), false);
+	}
+
+	// Create materials.
+
+	TArray<UPackage*> MaterialAndTexturePackages;
+	FHoudiniPackageParams PackageParams = InPackageParams;
+	TArray<UMaterialInterface*> OutMaterialArray;
+
+	if (!FHoudiniMaterialTranslator::CreateHoudiniMaterials(
+		SkeletalFaceMaterials.GeoNodeId,
+		InPackageParams,
+		UniqueHoudiniMaterialIds,
+		UniqueHoudiniMaterialInfos,
+		InputAssignmentMaterials,
+		AllOutputMaterials,
+		OutputAssignmentMaterials,
+		OutMaterialArray,
+		MaterialAndTexturePackages,
+		false,
+		true,
+		false))
+	{
+		return false;
+	}
+
+	// Set output materials.
+
+	if (OutMaterialArray.Num() != SkeletalFaceMaterials.Materials.Num())
+		return false;
+
+	for(int Index = 0; Index < SkeletalFaceMaterials.Materials.Num(); Index++)
+	{
+		SkeletalFaceMaterials.Materials[Index].AssetPath = OutMaterialArray[Index]->GetPathName();
+	}
+	return true;
+}
