@@ -1055,7 +1055,7 @@ FHoudiniSkeletalMeshTranslator::CreateNewSkeleton(const FString& InSplitIdentifi
 	const FString PackagePath = FPaths::Combine(AssetPath, PackageName);
 	const FSoftObjectPath SkeletonAssetPath(PackagePath);
 	
-	if (USkeleton* ExistingSkeleton = LoadObject<USkeleton>(nullptr, *PackagePath) )
+	if (USkeleton* ExistingSkeleton = LoadObject<USkeleton>(nullptr, *PackagePath, nullptr, LOAD_NoWarn) )
 	{
 		ExistingSkeleton->PreEditChange( nullptr );
 	}
