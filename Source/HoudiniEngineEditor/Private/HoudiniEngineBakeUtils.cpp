@@ -586,7 +586,24 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 			break;
 
 			case EHoudiniOutputType::Skeletal:
-				break;
+			{
+				FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputToActors(
+					HoudiniAssetComponent,
+					OutputIdx,
+					InOutputs,
+					InBakeState,
+					InBakeFolder,
+					InTempCookFolder,
+					BakeSettings,
+					AllBakedActors,
+					OutputBakedActors,
+					BakedObjectData,
+					AlreadyBakedStaticMeshMap,
+					AlreadyBakedMaterialsMap,
+					InFallbackActor,
+					InFallbackWorldOutlinerFolder);
+			}
+			break;
 
 			case EHoudiniOutputType::Curve:
 			{
@@ -3274,6 +3291,141 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	return true;
 }
 
+
+bool
+FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputToActors(
+	const UHoudiniAssetComponent* HoudiniAssetComponent,
+	int32 InOutputIndex,
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	FHoudiniEngineBakeState& InBakeState,
+	const FDirectoryPath& InBakeFolder,
+	const FDirectoryPath& InTempCookFolder,
+	const FHoudiniBakeSettings& BakeSettings,
+	const TArray<FHoudiniEngineBakedActor>& InBakedActors,
+	TArray<FHoudiniEngineBakedActor>& OutActors,
+	FHoudiniBakedObjectData& BakedObjectData,
+	TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
+	TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
+	AActor* InFallbackActor,
+	const FString& InFallbackWorldOutlinerFolder)
+{
+	// Check that index is not negative
+	if (InOutputIndex < 0)
+		return false;
+
+	if (!InAllOutputs.IsValidIndex(InOutputIndex))
+		return false;
+
+	UHoudiniOutput* InOutput = InAllOutputs[InOutputIndex];
+	if (!IsValid(InOutput))
+		return false;
+
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
+	const TArray<FHoudiniGeoPartObject>& HGPOs = InOutput->GetHoudiniGeoPartObjects();
+
+	TArray<FHoudiniEngineBakedActor> AllBakedActors = InBakedActors;
+	TArray<FHoudiniEngineBakedActor> NewBakedActors;
+
+	//DAMIEN - Do we need to do something with this
+	TMap<USkeletalMesh*, USkeletalMesh*> AlreadyBakedSkeletalMeshMap;
+
+	// We need to bake invisible complex colliders first, since they are static meshes themselves but are referenced
+	// by the main static mesh
+	for (auto& Pair : OutputObjects)
+	{
+		const FHoudiniOutputObjectIdentifier& Identifier = Pair.Key;
+
+		const EHoudiniSplitType SplitType = FHoudiniMeshTranslator::GetSplitTypeFromSplitName(Identifier.SplitIdentifier);
+		if (SplitType != EHoudiniSplitType::InvisibleComplexCollider)
+			continue;
+
+		const FHoudiniOutputObject& OutputObject = Pair.Value;
+
+		bool bBakedToActor = false;
+		FHoudiniEngineBakedActor BakedActorEntry;
+		bool WasBaked = false;
+
+		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(OutputObject.OutputObject);
+		if (IsValid(SkeletalMesh))
+		{
+			WasBaked = BakeSkeletalMeshOutputObjectToActor(
+				HoudiniAssetComponent,
+				InOutputIndex,
+				InAllOutputs,
+				Identifier,
+				OutputObject,
+				HGPOs,
+				InBakeState,
+				InTempCookFolder,
+				InBakeFolder,
+				BakeSettings,
+				InFallbackActor,
+				InFallbackWorldOutlinerFolder,
+				AllBakedActors,
+				AlreadyBakedSkeletalMeshMap,
+				InOutAlreadyBakedMaterialsMap,
+				BakedObjectData,
+				bBakedToActor,
+				BakedActorEntry);
+		}
+
+		if (WasBaked && bBakedToActor)
+		{
+			NewBakedActors.Add(BakedActorEntry);
+			AllBakedActors.Add(BakedActorEntry);
+		}
+	}
+
+	// Now bake the other output objects
+	for (auto& Pair : OutputObjects)
+	{
+		const FHoudiniOutputObjectIdentifier& Identifier = Pair.Key;
+
+		const EHoudiniSplitType SplitType = FHoudiniMeshTranslator::GetSplitTypeFromSplitName(Identifier.SplitIdentifier);
+		if (SplitType == EHoudiniSplitType::InvisibleComplexCollider)
+			continue;
+
+		const FHoudiniOutputObject& OutputObject = Pair.Value;
+
+		bool bBakedToActor = false;
+		FHoudiniEngineBakedActor BakedActorEntry;
+		bool WasBaked = false;
+
+		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(OutputObject.OutputObject);
+		if (IsValid(SkeletalMesh))
+		{
+			WasBaked = BakeSkeletalMeshOutputObjectToActor(
+				HoudiniAssetComponent,
+				InOutputIndex,
+				InAllOutputs,
+				Identifier,
+				OutputObject,
+				HGPOs,
+				InBakeState,
+				InTempCookFolder,
+				InBakeFolder,
+				BakeSettings,
+				InFallbackActor,
+				InFallbackWorldOutlinerFolder,
+				AllBakedActors,
+				AlreadyBakedSkeletalMeshMap,
+				InOutAlreadyBakedMaterialsMap,
+				BakedObjectData,
+				bBakedToActor,
+				BakedActorEntry);
+		}
+		
+		if (WasBaked && bBakedToActor)
+		{
+			NewBakedActors.Add(BakedActorEntry);
+			AllBakedActors.Add(BakedActorEntry);
+		}
+	}
+
+	OutActors = MoveTemp(NewBakedActors);
+
+	return true;
+}
 
 bool 
 FHoudiniEngineBakeUtils::BakeStaticMeshOutputToActors(

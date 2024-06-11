@@ -550,6 +550,22 @@ public:
 		AActor* InFallbackActor=nullptr,
 		const FString& InFallbackWorldOutlinerFolder="");
 
+	static bool BakeSkeletalMeshOutputToActors(
+		const UHoudiniAssetComponent* HoudiniAssetComponent,
+		int32 InOutputIndex,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		FHoudiniEngineBakeState& InBakeState,
+		const FDirectoryPath& InBakeFolder,
+		const FDirectoryPath& InTempCookFolder,
+		const FHoudiniBakeSettings& BakeSettings,
+		const TArray<FHoudiniEngineBakedActor>& InBakedActors,
+		TArray<FHoudiniEngineBakedActor>& OutActors,
+		FHoudiniBakedObjectData& BakedObjectData,
+		TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
+		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
+		AActor* InFallbackActor = nullptr,
+		const FString& InFallbackWorldOutlinerFolder = "");
+
 	static bool ResolvePackageParams(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		UHoudiniOutput* InOutput, 
