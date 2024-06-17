@@ -467,7 +467,7 @@ HAPI_DECL HAPI_StartPerformanceMonitorProfile( const HAPI_Session * session,
 ///		    written to.  Use the Performance Monitor file extension,
 ///		    .hperf, in the file name (i.e. /path/to/myProfile.hperf).
 ///
-HAPI_DECL HAPI_StopPerformanceMonitorProfile( const HAPI_Session *session, 
+HAPI_DECL HAPI_StopPerformanceMonitorProfile( const HAPI_Session * session, 
 					      int profile_id, 
 					      const char * file_path );
 
