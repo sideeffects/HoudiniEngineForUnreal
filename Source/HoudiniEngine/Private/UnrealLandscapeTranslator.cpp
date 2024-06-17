@@ -311,12 +311,15 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	// components.
 	FTransform LandscapeTransform = FHoudiniEngineRuntimeUtils::CalculateHoudiniLandscapeTransform(LandscapeProxy);
 
+	FTransform LandscapeActorTransform = LandscapeProxy->GetLandscapeActor()->GetActorTransform();
+	LandscapeTransform.SetScale3D(FVector::One());
+
 	FVector CenterOffset = FVector::ZeroVector;
 	if (!ConvertLandscapeDataToHeightFieldData(
 		HeightData, 
 		XSize, YSize, 
 		Min, Max, 
-		LandscapeProxy->GetLandscapeActor()->GetActorTransform(),
+		LandscapeTransform,
 		HeightfieldFloatValues, 
 		HeightfieldVolumeInfo))
 	{
@@ -1306,7 +1309,7 @@ FUnrealLandscapeTranslator::ConvertLandscapeDataToHeightFieldData(
 	HapiTransform.position[0] = 0.0f;
 	HapiTransform.position[2] = 0.0f;
 
-	FVector Scale = LandscapeActorTransform.GetScale3D() / 100.0f;
+	FVector Scale = LandscapeActorTransform.GetScale3D();
 	HapiTransform.scale[0] = Scale.Y * 0.5f * HoudiniXSize;
 	HapiTransform.scale[1] = Scale.X * 0.5f * HoudiniYSize;
 	HapiTransform.scale[2] = 0.5f;
