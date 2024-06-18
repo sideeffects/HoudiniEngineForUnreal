@@ -1269,7 +1269,7 @@ FUnrealLandscapeTranslator::ConvertLandscapeDataToHeightFieldData(
 
 	// Spacing used to convert from uint16 to meters
 	double ZSpacing = 512.0 / ((double)UINT16_MAX);
-	ZSpacing *= ((double)LandscapeActorTransform.GetScale3D().Z / 100.0);
+	ZSpacing *= ((double)LandscapeActorTransform.GetScale3D().Z);
 
 	// Center value in meters (Landscape ranges from [-255:257] meters at default scale
 	double ZCenterOffset = 32767;
