@@ -2089,7 +2089,8 @@ FHoudiniEngineCommands::DumpGenericAttribute(const TArray<FString>& Args)
 		UObject* FoundPropertyObject = nullptr;
 		void* Container = nullptr;
 		FEditPropertyChain FoundPropertyChain;
-		FHoudiniGenericAttribute::FindPropertyOnObject(ObjectToParse, FString(), FoundPropertyChain, FoundProperty, FoundPropertyObject, Container, true);
+		bool bExactPropertyFound = false;
+		FHoudiniGenericAttribute::FindPropertyOnObject(ObjectToParse, FString(), FoundPropertyChain, FoundProperty, FoundPropertyObject, Container, bExactPropertyFound, true);
 
 		HOUDINI_LOG_MESSAGE(TEXT("------------------------------------------------------------------------------------------------------------"));
 		HOUDINI_LOG_MESSAGE(TEXT(" "));

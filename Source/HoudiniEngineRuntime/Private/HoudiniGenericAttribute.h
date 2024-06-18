@@ -149,6 +149,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttribute
 		FProperty*& OutFoundProperty,
 		UObject*& OutFoundPropertyObject,
 		void*& OutContainer,
+		bool& OutExactPropertyFound,
 		bool bDumpAttributes);
 
 	// Modifies the value of a found Property
