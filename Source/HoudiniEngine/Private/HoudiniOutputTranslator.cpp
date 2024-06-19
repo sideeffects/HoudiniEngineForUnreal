@@ -292,7 +292,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	TArray<UPackage*> CreatedPackages;
 	for (int32 OutputIdx = 0; OutputIdx < NumOutputs; OutputIdx++)
 	{
-		UHoudiniOutput* CurOutput = HAC->GetOutputAt(OutputIdx);
+		UHoudiniOutput* CurOutput = HAC->Outputs[OutputIdx];
 		if (!IsValid(CurOutput))
 			continue;
 
@@ -489,7 +489,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 
 		case EHoudiniOutputType::Skeletal:
 		{
-			FHoudiniSkeletalMeshTranslator::CreateAllSkeletalMeshesAndComponentsFromHoudiniOutput(
+			FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshOutputs(
 				CurOutput, PackageParams, AllOutputMaterials, OuterComponent);
 
 			NumVisibleOutputs++;
@@ -1397,7 +1397,6 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			// Flags to track whether we think this Geo respresents either a
 			// motion clip or a skeletal mesh
 			bool bIsMotionClip = false;
-			bool bIsSkeletalMesh = false;
 
 			// ------------------
 			// Parts PrePass
@@ -1409,108 +1408,39 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			bool bHasMotionClipTopologyFrame = false;
 			bool bHasMotionClipAnimFrame = false;
 
-			auto GetInstancedMeshPartIdFn = [](const HAPI_NodeId GeoId, const HAPI_PartId PartId) -> HAPI_PartId
-			{
-				{
-					constexpr int NumInstancedParts = 1;
-					TArray<HAPI_PartId> InstancedPartIds;
-					InstancedPartIds.SetNumZeroed(NumInstancedParts);
-					if (FHoudiniApi::GetInstancedPartIds(
-						FHoudiniEngine::Get().GetSession(), GeoId, PartId,
-						InstancedPartIds.GetData(), 0, NumInstancedParts) != HAPI_RESULT_SUCCESS)
-					{
-						return -1;
-					}
+			//---------------------------------------------------------------------------------------------------------------------------------------
+			// Fetch all part infos. In addition, cook templated geos if needed
+			//---------------------------------------------------------------------------------------------------------------------------------------
 
-					return InstancedPartIds[0];
-				}
-			};
+			TArray<HAPI_PartInfo> HapiPartInfos;
+			TArray<FHoudiniPartInfo> PartInfos;
+			HapiPartInfos.SetNum(CurrentGeoInfo.PartCount);
+			PartInfos.SetNum(HapiPartInfos.Num());
 
-			struct S_SkelMeshParts
-			{
-				S_SkelMeshParts()
-					: ShapeInstancerPartId(-1)
-					, PoseInstancerPartId(-1)
-					, ShapeMeshPartId(-1)
-					, PoseMeshPartId(-1)
-				{}
-				
-				int32 ShapeInstancerPartId;
-				int32 PoseInstancerPartId;
-				int32 ShapeMeshPartId;
-				int32 PoseMeshPartId;
-			};
-			
-			// Track shapes / skeleton parts so that we can pair them when building skeletal mesh outputs.
-			TMap<FString, S_SkelMeshParts> SkelMeshParts;
-			// Names of valid / complete skeletal meshes (both Rest Geometry and Packed Primitives are present). 
-			TSet<FString> ValidSkelMeshNames;
-			// Track the base name for the given PartId
-			TMap<HAPI_PartId, FString> PartIdBaseNameMap;
-			TMap<HAPI_PartId, EHoudiniPartType> PartIdPartTypeMap;
-			// Track the output associate with each skeletal mesh base name
-			TMap<FString, UHoudiniOutput*> SkeletalMeshOutputs;
-
-			auto FindSkeletalMeshPartType = [&PartIdPartTypeMap](const HAPI_PartId PartId) -> EHoudiniPartType
-			{
-				if (PartIdPartTypeMap.Contains(PartId))
-				{
-					return PartIdPartTypeMap.FindChecked(PartId);
-				}
-				return EHoudiniPartType::Invalid;
-			};
-
-			// If haven't identified a motion clip or skeletal mesh after within these number of parts, give up.
-			constexpr int32 PrePassLimit = 4;
-
-			// Iterate on this geo's parts
 			for (int32 PartId = 0; PartId < CurrentGeoInfo.PartCount; ++PartId)
 			{
-				if (PartId >= PrePassLimit)
-				{
-					if (SkelMeshParts.Num() == 0)
-					{
-						// if we haven't found a trace of skeletal mesh inputs at this point, abort the prepass.
-						break;
-					}
-					// If we have identified packed prims as skeletal mesh inputs, continue inspecting all packed prims
-					// in case we have more skeletal mesh parts
-				}
-				
 				// Get part information.
-				HAPI_PartInfo CurrentHapiPartInfo;
+				HAPI_PartInfo& CurrentHapiPartInfo = HapiPartInfos[PartId];
 				FHoudiniApi::PartInfo_Init(&CurrentHapiPartInfo);
 
 				// If the geo is templated, cook it manually
 				if (CurrentHapiGeoInfo.isTemplated && InOutputTemplatedGeos)
-				{
-					//HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-					//FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, &CookOptions);
 					FHoudiniEngineUtils::HapiCookNode(CurrentHapiGeoInfo.nodeId, nullptr, true);
-				}
 
 				bool bPartInfoFailed = false;
-				if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(
-					FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, PartId, &CurrentHapiPartInfo))
+				if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, PartId, &CurrentHapiPartInfo))
 				{
 					bPartInfoFailed = true;
 
-					// If the geo is templated, attempt to cook it manually
-					if(CurrentHapiGeoInfo.isTemplated && InOutputTemplatedGeos)
+					// If the geo is templated, attempt to cook it manually.
+					if (CurrentHapiGeoInfo.isTemplated && InOutputTemplatedGeos)
 					{
-						//HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-						//FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, nullptr);
 						FHoudiniEngineUtils::HapiCookNode(CurrentHapiGeoInfo.nodeId, nullptr, true);
 
-						HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
-							FHoudiniEngine::Get().GetSession(),
-							CurrentHapiGeoInfo.nodeId,
-							&GeoInfos[GeoIdx]));
+						HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, &GeoInfos[GeoIdx]));
 
-						if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetPartInfo(
-							FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, PartId, &CurrentHapiPartInfo))
+						if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, PartId, &CurrentHapiPartInfo))
 						{
-							// We managed to get the templated part infos after cooking
 							bPartInfoFailed = false;
 						}
 					}
@@ -1519,26 +1449,24 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				if (bPartInfoFailed)
 				{
 					// Error retrieving part info.
-					HOUDINI_LOG_MESSAGE(
-						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d] unable to retrieve PartInfo - skipping."),
+					HOUDINI_LOG_MESSAGE(TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d] unable to retrieve PartInfo - skipping."),
 						CurrentHapiObjectInfo.nodeId, *CurrentObjectName, CurrentHapiGeoInfo.nodeId, PartId);
-					continue;
+					CurrentHapiPartInfo.type = HAPI_PartType::HAPI_PARTTYPE_INVALID;
 				}
 
 				// Convert/cache the part info
-				FHoudiniPartInfo CurrentPartInfo;
+				FHoudiniPartInfo& CurrentPartInfo = PartInfos[PartId];
 				CachePartInfo(CurrentHapiPartInfo, CurrentPartInfo);
+			}
 
-				// Retrieve part name.
-				FString CurrentPartName = CurrentPartInfo.Name;
+			//---------------------------------------------------------------------------------------------------------------------------------------
+			//// Motion Clip checks. Note this currentrly assumes one part/motion clip per geo.
+			//---------------------------------------------------------------------------------------------------------------------------------------
 
-				// Unsupported/Invalid part
-				if (CurrentPartInfo.Type == EHoudiniPartType::Invalid)
-					continue;
-
-				// ------------------
-				// Motion Clip checks
-				// ------------------
+			for (int32 PartId = 0; PartId < CurrentGeoInfo.PartCount; ++PartId)
+			{
+				HAPI_PartInfo& CurrentHapiPartInfo = HapiPartInfos[PartId];
+				FHoudiniPartInfo& CurrentPartInfo = PartInfos[PartId];
 
 				// Check to for motion clip topology frame
 				if ((CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER) && PartId == 0)
@@ -1558,166 +1486,112 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					bIsMotionClip = true;
 					break;
 				}
+			}
 
-				// ------------------
-				// Skeletal Mesh checks
-				// ------------------
+
+			//---------------------------------------------------------------------------------------------------------------------------------------
+			// Skeletal Mesh checks. Try to collect all the parts needed for a skeletal mesh.
+			//---------------------------------------------------------------------------------------------------------------------------------------
+
+			struct FHoudiniSkeletalMeshParts
+			{
+				int32 ShapeInstancerPartId = -1;
+				int32 PoseInstancerPartId = -1;
+				int32 ShapeMeshPartId = -1;
+				int32 PoseMeshPartId = -1;
+			};
+
+			// Track shapes / skeleton parts so that we can pair them when building skeletal mesh outputs.
+			TMap<FString, FHoudiniSkeletalMeshParts> SkelMeshParts;
+
+			// Names of valid / complete skeletal meshes (both Rest Geometry and Packed Primitives are present). 
+			TSet<FString> ValidSkelMeshNames;
+			// Track the base name for the given PartId
+			TMap<HAPI_PartId, FString> PartIdBaseNameMap;
+			// Track the output associate with each skeletal mesh base name
+			TMap<FString, UHoudiniOutput*> SkeletalMeshOutputs;
+
+
+			TArray<EHoudiniPartType> SkeletalMeshPartIds;
+			SkeletalMeshPartIds.Init(EHoudiniPartType::Invalid, CurrentGeoInfo.PartCount);
+
+			for (int32 PartId = 0; PartId < CurrentGeoInfo.PartCount; ++PartId)
+			{
+				HAPI_PartInfo& CurrentHapiPartInfo = HapiPartInfos[PartId];
+
 				if (CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER)
 				{
-					// Try to collect all the parts needed for a skeletal mesh.
+
 					// Check for skeletal mesh Rest Geometry (Shape, in Houdini terms))
 					FString BaseName;
-					if (FHoudiniSkeletalMeshTranslator::IsRestGeometryInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, BaseName))
+
+					int32 ShapeMeshPartId = INDEX_NONE;
+					if (FHoudiniSkeletalMeshTranslator::IsRestShapeInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, BaseName, ShapeMeshPartId))
 					{
 						PartIdBaseNameMap.Add(PartId, BaseName);
-						S_SkelMeshParts& SkelParts = SkelMeshParts.FindOrAdd(BaseName);
+						FHoudiniSkeletalMeshParts& SkelParts = SkelMeshParts.FindOrAdd(BaseName);
 						if (SkelParts.ShapeInstancerPartId == INDEX_NONE)
 						{
 							// Set the shape parts
 							SkelParts.ShapeInstancerPartId = PartId;
-							PartIdPartTypeMap.Add(PartId, EHoudiniPartType::SkeletalMeshShape);
-							SkelParts.ShapeMeshPartId = GetInstancedMeshPartIdFn(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id);
-							if (SkelParts.ShapeMeshPartId >= 0)
-							{
-								PartIdBaseNameMap.Add(SkelParts.ShapeMeshPartId, BaseName);
-								PartIdPartTypeMap.Add(SkelParts.ShapeMeshPartId, EHoudiniPartType::SkeletalMeshShape);
-							}
-							// Do we have the pose parts?
-							if (SkelParts.PoseInstancerPartId >= 0 && SkelParts.PoseMeshPartId >= 0)
-							{
-								// We already have a Capture Pose that matches the base name of this Rest Geometry.
-								// This means that we have at least one valid skeletal mesh.
-								bIsSkeletalMesh = true;
-								ValidSkelMeshNames.Add(BaseName);
-							}
+							SkelParts.ShapeMeshPartId = ShapeMeshPartId;
+							PartIdBaseNameMap.Add(PartId, BaseName);
+							PartIdBaseNameMap.Add(ShapeMeshPartId, BaseName);
+							SkeletalMeshPartIds[PartId] = EHoudiniPartType::SkeletalMeshShape;
+							SkeletalMeshPartIds[ShapeMeshPartId] = EHoudiniPartType::SkeletalMeshShape;
+							ValidSkelMeshNames.Add(BaseName);
+
 						}
 					}
 					// Check for skeletal mesh Capture Pose
-					else if (FHoudiniSkeletalMeshTranslator::IsCapturePoseInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, BaseName))
+
+					int32 PoseCurveId = INDEX_NONE;
+
+					if (FHoudiniSkeletalMeshTranslator::IsCapturePoseInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, BaseName, PoseCurveId))
 					{
 						PartIdBaseNameMap.Add(PartId, BaseName);
-						S_SkelMeshParts& SkelParts = SkelMeshParts.FindOrAdd(BaseName);
+						FHoudiniSkeletalMeshParts& SkelParts = SkelMeshParts.FindOrAdd(BaseName);
 						if (SkelParts.PoseInstancerPartId == INDEX_NONE)
 						{
 							// Set the Pose parts
 							SkelParts.PoseInstancerPartId = PartId;
-							PartIdPartTypeMap.Add(PartId, EHoudiniPartType::SkeletalMeshPose);
-							SkelParts.PoseMeshPartId = GetInstancedMeshPartIdFn(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id);
-							if (SkelParts.PoseMeshPartId >= 0)
-							{
-								PartIdBaseNameMap.Add(SkelParts.PoseMeshPartId, BaseName);
-								PartIdPartTypeMap.Add(SkelParts.PoseMeshPartId, EHoudiniPartType::SkeletalMeshPose);
-							}
-							// Do we have the Shape parts?
-							if (SkelParts.ShapeInstancerPartId >= 0 && SkelParts.ShapeMeshPartId >= 0)
-							{
-								// We already have Rest Geometry that matches the base name of this Capture Pose.
-								// This means that we have at least one valid skeletal mesh.
-								bIsSkeletalMesh = true;
-								ValidSkelMeshNames.Add(BaseName);
-							}
-/*
-							else
-							{
-								// Even with only a skeleton - consider this a skel mesh
-								bIsSkeletalMesh = true;
-								ValidSkelMeshNames.Add(BaseName);
-							}
-*/
+							SkelParts.PoseMeshPartId = PoseCurveId;
+							PartIdBaseNameMap.Add(PartId, BaseName);
+							PartIdBaseNameMap.Add(PoseCurveId, BaseName);
+							SkeletalMeshPartIds[PartId] = EHoudiniPartType::SkeletalMeshPose;
+							SkeletalMeshPartIds[PoseCurveId] = EHoudiniPartType::SkeletalMeshPose;
+							ValidSkelMeshNames.Add(BaseName);
 						}
 					}
 				}
-			} // End of Parts pre-pass
-			
+			} 
 
-			// ------------------
+
+			//---------------------------------------------------------------------------------------------------------------------------------------
 			// Parts Processing
-			// ------------------
-			
+			//---------------------------------------------------------------------------------------------------------------------------------------
+
 			// Iterate on this geo's parts
 			for (int32 PartId = 0; PartId < CurrentGeoInfo.PartCount; ++PartId)
 			{
 				// Get part information.
-				HAPI_PartInfo CurrentHapiPartInfo;
-				FHoudiniApi::PartInfo_Init(&CurrentHapiPartInfo);
-
-				// If the geo is templated, cook it manually
-				if (CurrentHapiGeoInfo.isTemplated && InOutputTemplatedGeos)
-				{
-					//HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-					//FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, &CookOptions);
-					FHoudiniEngineUtils::HapiCookNode(CurrentHapiGeoInfo.nodeId, nullptr, true);
-				}
-
-				bool bPartInfoFailed = false;
-				if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(
-					FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, PartId, &CurrentHapiPartInfo))
-				{
-					bPartInfoFailed = true;
-
-					// If the geo is templated, attempt to cook it manually
-					if(CurrentHapiGeoInfo.isTemplated && InOutputTemplatedGeos)
-					{
-						//HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-						//FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, nullptr);
-						FHoudiniEngineUtils::HapiCookNode(CurrentHapiGeoInfo.nodeId, nullptr, true);
-
-						HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
-							FHoudiniEngine::Get().GetSession(),
-							CurrentHapiGeoInfo.nodeId,
-							&GeoInfos[GeoIdx]));
-
-						if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetPartInfo(
-							FHoudiniEngine::Get().GetSession(), CurrentHapiGeoInfo.nodeId, PartId, &CurrentHapiPartInfo))
-						{
-							// We managed to get the templated part infos after cooking
-							bPartInfoFailed = false;
-						}
-					}
-				}
-
-				if (bPartInfoFailed)
-				{
-					// Error retrieving part info.
-					HOUDINI_LOG_MESSAGE(
-						TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d] unable to retrieve PartInfo - skipping."),
-						CurrentHapiObjectInfo.nodeId, *CurrentObjectName, CurrentHapiGeoInfo.nodeId, PartId);
-					continue;
-				}
-
-				FString SkeletalMeshBaseName;
-				if (bIsSkeletalMesh)
-				{
-					// If this PartId is NOT part of a valid skeletal mesh, skip it.
-					if (!PartIdBaseNameMap.Contains(PartId))
-					{
-						continue;
-					}
-					SkeletalMeshBaseName = PartIdBaseNameMap.FindChecked(PartId);
-					if (!ValidSkelMeshNames.Contains(SkeletalMeshBaseName))
-					{
-						continue;
-					}
-					// At this point we have a valid skeletal mesh BaseName for this PartId which we can use to
-					// track output objects and collect the HGPOs.
-				}
-
-				// Convert/cache the part info
-				FHoudiniPartInfo CurrentPartInfo;
-				CachePartInfo(CurrentHapiPartInfo, CurrentPartInfo);
-
-				// Retrieve part name.
-				FString CurrentPartName = CurrentPartInfo.Name;
+				HAPI_PartInfo CurrentHapiPartInfo = HapiPartInfos[PartId];
+				FHoudiniPartInfo CurrentPartInfo = PartInfos[PartId];
 
 				// Unsupported/Invalid part
 				if (CurrentPartInfo.Type == EHoudiniPartType::Invalid)
 					continue;
 
+
+				// Retrieve part name.
+				FString CurrentPartName = CurrentPartInfo.Name;
+
+
 				// Update part/instancer type from the part infos
 				EHoudiniPartType CurrentPartType = EHoudiniPartType::Invalid;
 				EHoudiniInstancerType CurrentInstancerType = EHoudiniInstancerType::Invalid;
 
-				bool bInstancerTypeFound = bIsMotionClip || bIsSkeletalMesh;
+				bool bInstancerTypeFound = bIsMotionClip || (SkeletalMeshPartIds[PartId] != EHoudiniPartType::Invalid);
 				bool bIsGeometryCollection = false;
 
 				if (CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER && !bInstancerTypeFound)
@@ -1725,8 +1599,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					bIsGeometryCollection = FHoudiniGeometryCollectionTranslator::IsGeometryCollectionInstancerPart(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id);
 					bInstancerTypeFound = true;
 				}
-				
-				
+
 				switch (CurrentHapiPartInfo.type)
 				{
 					case HAPI_PARTTYPE_BOX:
@@ -1749,63 +1622,64 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						}
 						else
 						{
-							CurrentPartType = EHoudiniPartType::Mesh;
+							CurrentPartType = SkeletalMeshPartIds[PartId];
 
-							if (bIsSkeletalMesh)
+							if (CurrentPartType == EHoudiniPartType::Invalid)
 							{
-								CurrentPartType = FindSkeletalMeshPartType(CurrentHapiPartInfo.id);
-							}
-							else if (bIsMotionClip)
-							{
-								// We don't care about tracking Mesh objects for motion clips.
-								// We just want to track the packed primitives, and extract the mesh data in the translator.
-								continue;
-							}
-							else if (CurrentHapiObjectInfo.isInstancer)
-							{
-								if (FHoudiniEngineUtils::IsAttributeInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, CurrentInstancerType))
+								CurrentPartType = EHoudiniPartType::Mesh;
+
+								if (bIsMotionClip)
 								{
-									// That part is actually an attribute instancer
-									CurrentPartType = EHoudiniPartType::Instancer;
-									// Instancer type is set by IsAttributeInstancer
+									// We don't care about tracking Mesh objects for motion clips.
+									// We just want to track the packed primitives, and extract the mesh data in the translator.
+									continue;
 								}
-								else
+								else if (CurrentHapiObjectInfo.isInstancer)
 								{
-									// That part is actually an instancer
-									CurrentPartType = EHoudiniPartType::Instancer;
-									CurrentInstancerType = EHoudiniInstancerType::ObjectInstancer;
-								}
-								
-							}
-							else if (CurrentHapiPartInfo.vertexCount <= 0 && CurrentHapiPartInfo.pointCount <= 0)
-							{
-								// No points, no vertices, we're likely invalid
-								CurrentPartType = EHoudiniPartType::Invalid;
-								HOUDINI_LOG_MESSAGE(
-									TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] is a mesh with no points or vertices - skipping."),
-									CurrentHapiObjectInfo.nodeId, *CurrentObjectName, CurrentHapiGeoInfo.nodeId, PartId, *CurrentPartName);
-							}
-							else if (CurrentHapiPartInfo.vertexCount <= 0)
-							{
-								// This is not an instancer, we do not have vertices, but we have points
-								// Maybe this is a point cloud with attribute override instancing
-								if(FHoudiniEngineUtils::IsAttributeInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, CurrentInstancerType))
-								{
-									// Mark it as an instancer
-									CurrentPartType = EHoudiniPartType::Instancer;
-									// Instancer type is set by IsAttributeInstancer
-									//CurrentInstancerType = EHoudiniInstancerType::OldSchoolAttributeInstancer;
-								}
-								else
-								{
-									// No vertices, not an instancer, just a point cloud
-									if (FHoudiniEngineUtils::IsValidDataTable(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+									if (FHoudiniEngineUtils::IsAttributeInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, CurrentInstancerType))
 									{
-										CurrentPartType = EHoudiniPartType::DataTable;
+										// That part is actually an attribute instancer
+										CurrentPartType = EHoudiniPartType::Instancer;
+										// Instancer type is set by IsAttributeInstancer
 									}
 									else
 									{
-										CurrentPartType = EHoudiniPartType::Invalid;
+										// That part is actually an instancer
+										CurrentPartType = EHoudiniPartType::Instancer;
+										CurrentInstancerType = EHoudiniInstancerType::ObjectInstancer;
+									}
+									
+								}
+								else if (CurrentHapiPartInfo.vertexCount <= 0 && CurrentHapiPartInfo.pointCount <= 0)
+								{
+									// No points, no vertices, we're likely invalid
+									CurrentPartType = EHoudiniPartType::Invalid;
+									HOUDINI_LOG_MESSAGE(
+										TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s] is a mesh with no points or vertices - skipping."),
+										CurrentHapiObjectInfo.nodeId, *CurrentObjectName, CurrentHapiGeoInfo.nodeId, PartId, *CurrentPartName);
+								}
+								else if (CurrentHapiPartInfo.vertexCount <= 0)
+								{
+									// This is not an instancer, we do not have vertices, but we have points
+									// Maybe this is a point cloud with attribute override instancing
+									if(FHoudiniEngineUtils::IsAttributeInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, CurrentInstancerType))
+									{
+										// Mark it as an instancer
+										CurrentPartType = EHoudiniPartType::Instancer;
+										// Instancer type is set by IsAttributeInstancer
+										//CurrentInstancerType = EHoudiniInstancerType::OldSchoolAttributeInstancer;
+									}
+									else
+									{
+										// No vertices, not an instancer, just a point cloud
+										if (FHoudiniEngineUtils::IsValidDataTable(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+										{
+											CurrentPartType = EHoudiniPartType::DataTable;
+										}
+										else
+										{
+											CurrentPartType = EHoudiniPartType::Invalid;
+										}
 									}
 								}
 							}
@@ -1815,19 +1689,17 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 
 					case HAPI_PARTTYPE_CURVE:
 					{
-						if (bIsSkeletalMesh)
+						if (SkeletalMeshPartIds[PartId] == EHoudiniPartType::SkeletalMeshPose)
 						{
 							// The Capture Pose mesh is reported by HAPI to be a Curve part type, so be sure to intercept
 							// it here
-							CurrentPartType = FindSkeletalMeshPartType(CurrentHapiPartInfo.id);
+							CurrentPartType = EHoudiniPartType::SkeletalMeshPose;
 						}
 						// Make sure that this curve is not an an attribute instancer!
 						else if (FHoudiniEngineUtils::IsAttributeInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, CurrentInstancerType))
 						{
 							// Mark the part as an instancer it as an instancer
 							CurrentPartType = EHoudiniPartType::Instancer;
-							// Instancer type is set by IsAttributeInstancer
-							//CurrentInstancerType = EHoudiniInstancerType::OldSchoolAttributeInstancer;
 						}
 						else if (FHoudiniEngineUtils::IsValidDataTable(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
 						{
@@ -1856,9 +1728,9 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 							CurrentPartType = EHoudiniPartType::MotionClip;
 							CurrentInstancerType = EHoudiniInstancerType::MotionClip;
 						}
-						else if (bIsSkeletalMesh)
+						else if (SkeletalMeshPartIds[PartId] != EHoudiniPartType::Invalid)
 						{
-							CurrentPartType = FindSkeletalMeshPartType(CurrentHapiPartInfo.id);
+							CurrentPartType = SkeletalMeshPartIds[PartId];
 							CurrentInstancerType = EHoudiniInstancerType::SkeletalMesh;
 						}
 						else if (bIsGeometryCollection)
@@ -1912,10 +1784,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				// that don't have any mesh, just points! Those would be be considered "invalid" parts but
 				// could still have valid sockets!
 				TArray<FHoudiniMeshSocket> PartMeshSockets;
-				FHoudiniEngineUtils::AddMeshSocketsToArray_DetailAttribute(
-					CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, PartMeshSockets, CurrentHapiPartInfo.isInstanced);
-				FHoudiniEngineUtils::AddMeshSocketsToArray_Group(
-					CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, PartMeshSockets, CurrentHapiPartInfo.isInstanced);
+				FHoudiniEngineUtils::AddMeshSocketsToArray_DetailAttribute(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, PartMeshSockets, CurrentHapiPartInfo.isInstanced);
+				FHoudiniEngineUtils::AddMeshSocketsToArray_Group(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, PartMeshSockets, CurrentHapiPartInfo.isInstanced);
 
 				// Ignore invalid parts
 				if (CurrentPartType == EHoudiniPartType::Invalid)
@@ -2031,14 +1901,12 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					else
 					{
 						// We need to get the primitive group names from HAPI
-						int32 GroupCount = 0;
 						TArray<FString> GroupNames;
 						if (!FHoudiniEngineUtils::HapiGetGroupNames(
 							CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id,
 							HAPI_GROUPTYPE_PRIM, CurrentHapiPartInfo.isInstanced,
 							GroupNames))
 						{
-							GroupCount = 0;
 							GroupNames.Empty();
 						}
 
@@ -2148,8 +2016,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 
 				if (CurrentPartType == EHoudiniPartType::SkeletalMeshPose || CurrentPartType == EHoudiniPartType::SkeletalMeshShape)
 				{
-					// Set the instancer name to the skeletal skeletal mesh base name so that we can use this
-					// to group multiple HGPOs together into a single output (based on the Instancer name).
+					FString SkeletalMeshBaseName = PartIdBaseNameMap.FindChecked(PartId);
 					currentHGPO.InstancerName = SkeletalMeshBaseName;
 				}
 
@@ -2170,25 +2037,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					currentHGPO.Type != EHoudiniPartType::SkeletalMeshShape
 					)
 				{
-					// Create single output per HGPO
-					// Look in the previous output if we have a match
-					FoundHoudiniOutput = InOldOutputs.FindByPredicate(
-						[currentHGPO](UHoudiniOutput* Output) { return Output ? Output->GeoMatch(currentHGPO) : false; });
-
-					if (FoundHoudiniOutput && *FoundHoudiniOutput && currentHGPO.Type == EHoudiniPartType::Curve)
-					{
-						// Curve hacks!!
-						// If we're dealing with a curve, editable and non-editable curves are interpreted very
-						// differently so we have to apply an IsEditable comparison as well.
-						if ((*FoundHoudiniOutput)->IsEditableNode() != currentHGPO.bIsEditable)
-						{
-							// The IsEditable property is different. We can't reuse this output!
-							FoundHoudiniOutput = nullptr;
-						}
-					}
-
-					if (FoundHoudiniOutput && IsValid(*FoundHoudiniOutput))
-						IsFoundOutputValid = true;
+					// Create single output per HGPO. never reuse old outputs, as its deprecated anyway
+					FoundHoudiniOutput = nullptr;
 				}
 				else if (currentHGPO.Type == EHoudiniPartType::SkeletalMeshPose || currentHGPO.Type == EHoudiniPartType::SkeletalMeshShape)
 				{

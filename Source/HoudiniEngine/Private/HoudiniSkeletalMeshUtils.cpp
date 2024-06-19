@@ -57,7 +57,7 @@
 #include "Internationalization/Regex.h"
 
 FMatrix
-FHoudiniSkeletalMeshUtils::ConstructHoudiniMatrix(const float RotationData[], const float PositionData[])
+FHoudiniSkeletalMeshUtils::MakeMatrixFromHoudiniData(const float RotationData[], const float PositionData[])
 {
 	FMatrix M44Pose;  //this is unconverted houdini space, stored in an Unreal FMatrix.
 	M44Pose.M[0][0] = RotationData[0];
@@ -95,7 +95,7 @@ FTransform FHoudiniSkeletalMeshUtils::HoudiniToUnrealMatrix(const FMatrix& Matri
 	return Transform;
 }
 
-FHoudiniSkeleton FHoudiniSkeletalMeshUtils::ConstructSkeleton(HAPI_NodeId NodeId, HAPI_PartId PartId)
+FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HAPI_PartId PartId)
 {
 	FHoudiniSkeleton Result;
 
@@ -110,7 +110,7 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::ConstructSkeleton(HAPI_NodeId NodeId
 
 	if (ParentChild.IsEmpty())
 	{
-		HOUDINI_LOG_ERROR(TEXT("No __bone_id found on skeleton"));
+		HOUDINI_LOG_ERROR(TEXT("No name found on skeleton"));
 		return {};
 	}
 
@@ -159,7 +159,7 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::ConstructSkeleton(HAPI_NodeId NodeId
 		if (!Result.HoudiniBoneMap.Contains(ParentChildBoneNumbers[Index]))
 		{
 			Node->HoudiniBoneNumber = ParentChildBoneNumbers[Index];
-			Result.HoudiniBoneMap.Add(ParentChildBoneNumbers[Index], Node->Name);
+			Result.HoudiniBoneMap.Add(Node->HoudiniBoneNumber, Node->Name);
 		}
 	}
 
@@ -180,7 +180,7 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::ConstructSkeleton(HAPI_NodeId NodeId
 		FHoudiniSkeletonBone* BOne = &Result.Bones[Index];
 		int PointIndex = BoneNamesToPointIndex[BOne->Name];
 
-		BOne->HoudiniGlobalMatrix = ConstructHoudiniMatrix(&RotationData[PointIndex * 9], &PositionData[PointIndex * 3]);
+		BOne->HoudiniGlobalMatrix = MakeMatrixFromHoudiniData(&RotationData[PointIndex * 9], &PositionData[PointIndex * 3]);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------
@@ -189,9 +189,17 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::ConstructSkeleton(HAPI_NodeId NodeId
 
 	for(int Index = 0; Index < ParentChild.Num(); Index+= 2)
 	{
-		FHoudiniSkeletonBone* Parent = Result.BoneMap[ParentChild[Index]];
-		FHoudiniSkeletonBone* Child = Result.BoneMap[ParentChild[Index + 1]];
+		const FString & ParentName = ParentChild[Index];
+		const FString& ChildName = ParentChild[Index + 1];
 
+		FHoudiniSkeletonBone* Parent = Result.BoneMap[ParentName];
+		FHoudiniSkeletonBone* Child = Result.BoneMap[ChildName];
+
+		if (!Parent || !Child)
+		{
+			HOUDINI_LOG_ERROR(TEXT("Missing bone names: %s or %s "), *ParentName, *ChildName);
+			return {};
+		}
 		Child->Parent = Parent;
 		Parent->Children.Add(Child);
 	}
@@ -236,7 +244,7 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::ConstructSkeleton(HAPI_NodeId NodeId
 	return Result;
 }
 
-FHoudiniSkinWeights FHoudiniSkeletalMeshUtils::ConstructSkinWeights(HAPI_NodeId NodeId, HAPI_PartId PartId, FHoudiniSkeleton& Skeleton)
+FHoudiniInfluences FHoudiniSkeletalMeshUtils::FetchInfluences(HAPI_NodeId NodeId, HAPI_PartId PartId, FHoudiniSkeleton& Skeleton)
 {
 	HAPI_AttributeInfo BoneCaptureInfo;
 	TArray<float> BoneCaptureData;
@@ -254,7 +262,7 @@ FHoudiniSkinWeights FHoudiniSkeletalMeshUtils::ConstructSkinWeights(HAPI_NodeId 
 
 	const int MaxInfluences = 4; // TODO: Support more than 4.
 
-	FHoudiniSkinWeights SkinWeights;
+	FHoudiniInfluences SkinWeights;
 	SkinWeights.NumInfluences = FMath::Min(MaxInfluences, HoudiniInfluencesPerVertex);
 	SkinWeights.NumVertices = BoneCaptureData.Num() / (2 * HoudiniInfluencesPerVertex);
 	SkinWeights.Influences.SetNum(SkinWeights.NumInfluences * SkinWeights.NumVertices);
@@ -490,3 +498,28 @@ bool FHoudiniSkeletalMeshUtils::CreateHoudiniMaterial(
 	}
 	return true;
 }
+
+
+void FHoudiniSkeletalMeshUtils::AddBonesToUnrealSkeleton(FReferenceSkeletonModifier & RefSkeletonModifier, const FHoudiniSkeletonBone * Bone)
+{
+
+	int ParentId = INDEX_NONE;
+	if (Bone->Parent)
+		ParentId = RefSkeletonModifier.FindBoneIndex(FName(Bone->Parent->Name));
+
+	FMeshBoneInfo RootBoneInfo(FName(Bone->Name), Bone->Name, ParentId);
+	RefSkeletonModifier.Add(RootBoneInfo, Bone->UnrealLocalMatrix);
+
+	for(auto & Child : Bone->Children)
+		AddBonesToUnrealSkeleton(RefSkeletonModifier, Child);
+}
+
+
+bool FHoudiniSkeletalMeshUtils::AddBonesToUnrealSkeleton(USkeleton* UnrealSkeleton, const FHoudiniSkeleton* HoudiniSkeleton)
+{
+	FReferenceSkeletonModifier RefSkeletonModifier(UnrealSkeleton);
+
+	AddBonesToUnrealSkeleton(RefSkeletonModifier, HoudiniSkeleton->Root);
+	return true;
+}
+

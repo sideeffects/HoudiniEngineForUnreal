@@ -688,7 +688,7 @@ UHoudiniGeoImporter::CreateSkeletalMeshes(
 
 		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputMaterials;
 		UObject* const OuterComponent = nullptr;
-		if (!FHoudiniSkeletalMeshTranslator::CreateAllSkeletalMeshesAndComponentsFromHoudiniOutput(CurOutput, PackageParams, OutputMaterials, OuterComponent))
+		if (!FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshOutputs(CurOutput, PackageParams, OutputMaterials, OuterComponent))
 		{
 			return false;
 		}

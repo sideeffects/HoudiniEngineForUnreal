@@ -833,49 +833,49 @@ FHoudiniOutputDetails::CreateSkeletalOutputWidget(
 	if (!IsValidWeakPointer(HAC))
 		return;
 
-	// Go through this output's object
-	int32 OutputObjIdx = 0;
+	// See if we have a Skeletal Mesh and/or skeleton.
+	USkeletalMesh* SkelMesh = nullptr;
+	USkeleton* Skeleton = nullptr;
+	FHoudiniOutputObjectIdentifier OutputIdentifier;
+
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
 	for (auto& IterObject : OutputObjects)
 	{
-		USkeletalMesh* SkelMesh = Cast<USkeletalMesh>(IterObject.Value.OutputObject);
-		USkeleton* Skeleton = Cast<USkeleton>(IterObject.Value.OutputObject);
-
-		if ((!IsValid(SkelMesh)) && (!IsValid(Skeleton)))
-			continue;
-
-		/*
-		// Do not display geometry collection static meshes.
-		if (IterObject.Value.bIsGeometryCollectionPiece)
-			continue;
-			*/
-
-		FHoudiniOutputObjectIdentifier& OutputIdentifier = IterObject.Key;
-
-		// Find the corresponding HGPO in the output
-		FHoudiniGeoPartObject HoudiniGeoPartObject;
-		for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
+		if (!SkelMesh)
 		{
-			if (!OutputIdentifier.Matches(curHGPO))
-				continue;
+			SkelMesh = Cast<USkeletalMesh>(IterObject.Value.OutputObject);
+			OutputIdentifier = IterObject.Key;
+		}
+		if (!Skeleton)
+		{
+			Skeleton = Cast<USkeleton>(IterObject.Value.OutputObject);
 
+			if (SkelMesh == nullptr)
+				OutputIdentifier = IterObject.Key;
+		}
+	}
+
+	if ((!IsValid(SkelMesh)) && (!IsValid(Skeleton)))
+			return;
+
+	// Find the corresponding HGPO in the output
+	FHoudiniGeoPartObject HoudiniGeoPartObject;
+	for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
+	{
+		if (OutputIdentifier.Matches(curHGPO))
+		{
 			HoudiniGeoPartObject = curHGPO;
 			break;
 		}
-		
-		// Get the skeleton from the SkelMesh if needed
-		if (!IsValid(Skeleton))
-		{
-			Skeleton = SkelMesh->GetSkeleton();
-		}
-
-		if (IsValid(SkelMesh))
-		{
-			// If we have a Skeletal mesh, display its widget unless the proxy is more recent
-			CreateSkeletalMeshAndMaterialWidgets(
-				HouOutputCategory, InOutput, SkelMesh, Skeleton, OutputIdentifier, HoudiniGeoPartObject);
-		}
 	}
+
+	if (!IsValid(Skeleton))
+	{
+		Skeleton = SkelMesh->GetSkeleton();
+	}
+
+	// If we have a Skeletal mesh, display its widget unless the proxy is more recent
+	CreateSkeletalMeshAndMaterialWidgets(HouOutputCategory, InOutput, SkelMesh, Skeleton, OutputIdentifier, HoudiniGeoPartObject);
 }
 
 void FHoudiniOutputDetails::CreateAnimSequenceOutputWidget(IDetailCategoryBuilder& HouOutputCategory,
@@ -4612,7 +4612,14 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 
 	// TODO: GetBakingBaseName!
-	FString SkelLabel = Skeleton->GetName();
+	FString SkelLabel;
+
+	if (Skeleton.IsValid())
+		SkelLabel = Skeleton->GetName();
+
+	if (SkelMesh.IsValid())
+		SkelLabel = SkelMesh->GetName();
+
 	if (HoudiniGeoPartObject.bHasCustomPartName)
 		SkelLabel = HoudiniGeoPartObject.PartName;
 
@@ -4681,7 +4688,7 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 
 	// Add details on the Skeleton ?
 	EHoudiniSplitType SplitType = FHoudiniMeshTranslator::GetSplitTypeFromSplitName(OutputIdentifier.SplitIdentifier);
-	FString SkeletonLabel = TEXT("Skeleton");
+	FString SkeletonLabel = TEXT("Skeletal");
 
 	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
 	SkeletonGrp.AddWidgetRow()

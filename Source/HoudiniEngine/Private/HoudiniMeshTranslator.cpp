@@ -709,30 +709,7 @@ FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 		return true;
 	}
 
-	// NOTE: We can't handle skeletal meshes here. Skeletal meshes now consist of multiple HGPOs and we have to
-	// aggregate the HGPO that belong to the same Skeletal Mesh and process them as a single unit.
-	// // Handle Skeletal Meshes here
-	// if (FHoudiniSkeletalMeshTranslator::HasSkeletalMeshData(InHGPO.GeoId, InHGPO.PartId))
-	// {
-	// 	FHoudiniSkeletalMeshTranslator SKMeshTranslator;
-	// 	SKMeshTranslator.SetHoudiniSkeletalMeshParts(InHGPO);
-	// 	SKMeshTranslator.SetInputObjects(InOutputObjects);
-	// 	SKMeshTranslator.SetOutputObjects(OutOutputObjects);
-	// 	SKMeshTranslator.SetPackageParams(InPackageParams, true);
-	//
-	// 	if (SKMeshTranslator.CreateSkeletalMesh_SkeletalMeshImportData())
-	// 	{
-	// 		// Copy the output objects/materials
-	// 		OutOutputObjects = SKMeshTranslator.OutputObjects;
-	// 		//AssignmentMaterialMap = SKMT.OutputAssignmentMaterials;
-	//
-	// 		return true;
-	// 	}
-	// 	else
-	// 	{
-	// 		return false;
-	// 	}
-	// }
+
 
 	// Create a new mesh translator to handle the output data creation
 	FHoudiniMeshTranslator CurrentTranslator;
