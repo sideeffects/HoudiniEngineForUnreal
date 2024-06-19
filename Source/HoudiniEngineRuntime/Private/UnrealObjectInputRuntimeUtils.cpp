@@ -1,4 +1,4 @@
-﻿#include "UnrealObjectInputRuntimeUtils.h"
+#include "UnrealObjectInputRuntimeUtils.h"
 
 #include "HoudiniRuntimeSettings.h"
 #include "UnrealObjectInputRuntimeTypes.h"

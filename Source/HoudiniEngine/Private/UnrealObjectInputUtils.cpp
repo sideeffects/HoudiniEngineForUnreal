@@ -1,4 +1,4 @@
-﻿#include "UnrealObjectInputUtils.h"
+#include "UnrealObjectInputUtils.h"
 
 #include "UObject/Object.h"
 #include "LandscapeSplinesComponent.h"

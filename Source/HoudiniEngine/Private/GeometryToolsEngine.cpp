@@ -1,4 +1,4 @@
-﻿#include "GeometryToolsEngine.h"
+#include "GeometryToolsEngine.h"
 
 #include <cwchar>
 

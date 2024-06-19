@@ -1,4 +1,4 @@
-﻿/*
+/*
 * Copyright (c) <2023> Side Effects Software Inc.
 * All rights reserved.
 *

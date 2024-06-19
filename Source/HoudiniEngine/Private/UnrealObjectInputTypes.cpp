@@ -1,4 +1,4 @@
-﻿#include "UnrealObjectInputTypes.h"
+#include "UnrealObjectInputTypes.h"
 
 #include "HoudiniDataLayerUtils.h"
 #include "UnrealObjectInputManager.h"
