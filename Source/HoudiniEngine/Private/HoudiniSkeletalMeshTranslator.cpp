@@ -311,7 +311,7 @@ FHoudiniSkeletalMeshTranslator::CreateUnrealData(FHoudiniSkeletalMeshBuildSettin
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
 	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	BuildSettings.SKMesh->SaveLODImportedData(ImportLODModelIndex, SkeletalMeshImportData);
+	BuildSettings.SKMesh->SaveLODImportedData(ImportLODModelIndex, ImportData);
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 #endif
 
