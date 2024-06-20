@@ -61,7 +61,7 @@ struct FHoudiniSkeletalMeshParts
 	const FHoudiniGeoPartObject* HGPOPoseMesh = nullptr;
 
     const FHoudiniGeoPartObject* GetShapeInstancer() const { return HGPOShapeInstancer; }
-    bool HasSkinnedMesh() const { return HGPOShapeInstancer && HGPOShapeMesh; }
+    bool HasRestShape() const { return HGPOShapeInstancer && HGPOShapeMesh; }
     bool HasSkeleton() const { return HGPOPoseInstancer && HGPOPoseMesh; }
 
 };
@@ -70,16 +70,12 @@ struct FHoudiniSkeletalMeshParts
 struct FHoudiniSkeletalMeshBuildSettings
 {
     FSkeletalMeshImportData SkeletalMeshImportData;
-    bool bIsNewSkeleton = false;
     float ImportScale = 1.0f;
     USkeletalMesh* SKMesh = nullptr;
     UPackage* SKPackage = nullptr;
     USkeleton* Skeleton = nullptr;
     FString CurrentObjectName;
     bool ImportNormals = false;
-    bool OverwriteSkeleton = false;
-    FString SkeletonAssetPath = "";
-
 };
 
 
@@ -108,7 +104,6 @@ protected:
         const FHoudiniSkeletalMeshParts& SKParts,
         const FHoudiniPackageParams& InPackageParams,
         UObject* InOuterComponent,
-        const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects,
         TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutOutputObjects,
         TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& AssignmentMaterialMap,
         TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& ReplacementMaterialMap,

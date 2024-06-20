@@ -1,3 +1,4 @@
+
 /*
 * Copyright (c) <2021> Side Effects Software Inc.
 * All rights reserved.
@@ -867,11 +868,6 @@ FHoudiniOutputDetails::CreateSkeletalOutputWidget(
 			HoudiniGeoPartObject = curHGPO;
 			break;
 		}
-	}
-
-	if (!IsValid(Skeleton))
-	{
-		Skeleton = SkelMesh->GetSkeleton();
 	}
 
 	// If we have a Skeletal mesh, display its widget unless the proxy is more recent
@@ -4687,130 +4683,134 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 	*/
 
 	// Add details on the Skeleton ?
-	EHoudiniSplitType SplitType = FHoudiniMeshTranslator::GetSplitTypeFromSplitName(OutputIdentifier.SplitIdentifier);
-	FString SkeletonLabel = TEXT("Skeletal");
 
-	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
-	SkeletonGrp.AddWidgetRow()
-	.NameContent()
-	[
-		SNew(STextBlock)
-		.Text(FText::FromString(SkeletonLabel))
-		.Font(IDetailLayoutBuilder::GetDetailFont())
-	]
-	.ValueContent()
-	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-	[
-		VerticalBox
-	];
+	if (IsValid(Skeleton.Get()))
+	{
+		EHoudiniSplitType SplitType = FHoudiniMeshTranslator::GetSplitTypeFromSplitName(OutputIdentifier.SplitIdentifier);
+		FString SkeletonLabel = TEXT("Skeletal");
 
-	VerticalBox->AddSlot()
-	.Padding(0, 2)
-	.AutoHeight()
-	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.Padding(0.0f, 0.0f, 2.0f, 0.0f)
-		.AutoWidth()
+		UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
+		SkeletonGrp.AddWidgetRow()
+		.NameContent()
 		[
-			SAssignNew(SkeletonThumbnailBorder, SBorder)
-			.Padding(5.0f)
-			.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&)Skeleton)
-			.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) Skeleton)
+			SNew(STextBlock)
+			.Text(FText::FromString(SkeletonLabel))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		[
+			VerticalBox
+		];
+
+		VerticalBox->AddSlot()
+		.Padding(0, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(0.0f, 0.0f, 2.0f, 0.0f)
+			.AutoWidth()
 			[
-				SNew(SBox)
-				.WidthOverride(64)
-				.HeightOverride(64)
-				.ToolTipText(FText::FromString(Skeleton->GetPathName()))
+				SAssignNew(SkeletonThumbnailBorder, SBorder)
+				.Padding(5.0f)
+				.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&)Skeleton)
+				.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) Skeleton)
 				[
-					SkeletonThumbnail->MakeThumbnailWidget()
+					SNew(SBox)
+					.WidthOverride(64)
+					.HeightOverride(64)
+					.ToolTipText(FText::FromString(Skeleton->GetPathName()))
+					[
+						SkeletonThumbnail->MakeThumbnailWidget()
+					]
 				]
 			]
-		]
 
-		+ SHorizontalBox::Slot()
-		.FillWidth(1.0f)
-		.Padding(0.0f, 4.0f, 4.0f, 4.0f)
-		.VAlign(VAlign_Center)
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+			.VAlign(VAlign_Center)
 			[
-				SNew(SHorizontalBox)
-				/*
-				+ SHorizontalBox::Slot()
-				.MaxWidth(120.0f)
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
 				[
-					SNew(SButton)
+					SNew(SHorizontalBox)
+					/*
+					+ SHorizontalBox::Slot()
+					.MaxWidth(120.0f)
+					[
+						SNew(SButton)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.Text(LOCTEXT("BakeOutputMesh", "Bake Output"))
+						.IsEnabled(true)
+						.OnClicked_Lambda([BakeName, Skeleton, OutputIdentifier, InOutput, OwningHAC]()
+						{
+							if (!Skeleton.IsValid() || !InOutput.IsValid())
+								return FReply::Handled();
+
+							FHoudiniOutputObject* const FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+							if (!FoundOutputObject)
+								return FReply::Handled();
+
+							TArray<UHoudiniOutput*> AllOutputs;
+							FString TempCookFolder;
+							FString BakeFolder;
+							if (OwningHAC.IsValid())
+							{
+								AllOutputs.Reserve(OwningHAC->GetNumOutputs());
+								OwningHAC->GetOutputs(AllOutputs);
+
+								TempCookFolder = OwningHAC->TemporaryCookFolder.Path;
+								BakeFolder = OwningHAC->BakeFolder.Path;
+							}
+
+							FHoudiniGeoPartObject HoudiniGeoPartObject;
+							for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
+							{
+								if (!OutputIdentifier.Matches(curHGPO))
+									continue;
+
+								HoudiniGeoPartObject = curHGPO;
+								break;
+							}
+
+							FHoudiniOutputDetails::OnBakeOutputObject(
+								BakeName,
+								Skeleton.Get(),
+								OutputIdentifier,
+								*FoundOutputObject,
+								HoudiniGeoPartObject,
+								OwningHAC.Get(),
+								InOutput.Get(),
+								BakeFolder,
+								TempCookFolder,
+								EHoudiniLandscapeOutputBakeType::InValid,
+								AllOutputs);
+
+							return FReply::Handled();
+						})
+						.ToolTipText(LOCTEXT("HoudiniSkeletonBakeButton", "Bake this output object to a Skeleton in the Bake folder."))
+					]
+					*/
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(2.0f, 0.0f)
 					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("BakeOutputMesh", "Bake Output"))
-					.IsEnabled(true)
-					.OnClicked_Lambda([BakeName, Skeleton, OutputIdentifier, InOutput, OwningHAC]()
-					{
-						if (!Skeleton.IsValid() || !InOutput.IsValid())
-							return FReply::Handled();
-
-						FHoudiniOutputObject* const FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
-						if (!FoundOutputObject)
-							return FReply::Handled();
-
-						TArray<UHoudiniOutput*> AllOutputs;
-						FString TempCookFolder;
-						FString BakeFolder;
-						if (OwningHAC.IsValid())
-						{
-							AllOutputs.Reserve(OwningHAC->GetNumOutputs());
-							OwningHAC->GetOutputs(AllOutputs);
-
-							TempCookFolder = OwningHAC->TemporaryCookFolder.Path;
-							BakeFolder = OwningHAC->BakeFolder.Path;
-						}
-
-						FHoudiniGeoPartObject HoudiniGeoPartObject;
-						for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
-						{
-							if (!OutputIdentifier.Matches(curHGPO))
-								continue;
-
-							HoudiniGeoPartObject = curHGPO;
-							break;
-						}
-
-						FHoudiniOutputDetails::OnBakeOutputObject(
-							BakeName,
-							Skeleton.Get(),
-							OutputIdentifier,
-							*FoundOutputObject,
-							HoudiniGeoPartObject,
-							OwningHAC.Get(),
-							InOutput.Get(),
-							BakeFolder,
-							TempCookFolder,
-							EHoudiniLandscapeOutputBakeType::InValid,
-							AllOutputs);
-
-						return FReply::Handled();
-					})
-					.ToolTipText(LOCTEXT("HoudiniSkeletonBakeButton", "Bake this output object to a Skeleton in the Bake folder."))
-				]
-				*/
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(2.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					PropertyCustomizationHelpers::MakeBrowseButton(
-						FSimpleDelegate::CreateSP(
-							this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)Skeleton),
-						TAttribute<FText>(LOCTEXT("HoudiniSkelMeshBrowseButton", "Browse to this generated Skeleton in the content browser")))
+					[
+						PropertyCustomizationHelpers::MakeBrowseButton(
+							FSimpleDelegate::CreateSP(
+								this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)Skeleton),
+							TAttribute<FText>(LOCTEXT("HoudiniSkelMeshBrowseButton", "Browse to this generated Skeleton in the content browser")))
+					]
 				]
 			]
-		]
-	];
+		];
 
-	// Store thumbnail for this mesh.
-	OutputObjectThumbnailBorders.Add(Skeleton, SkeletonThumbnailBorder);	
+		// Store thumbnail for this mesh.
+		OutputObjectThumbnailBorders.Add(Skeleton, SkeletonThumbnailBorder);	
+	}
 
 	// SKEL MESH
 	if (!IsValidWeakPointer(SkelMesh))

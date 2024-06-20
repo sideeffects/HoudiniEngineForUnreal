@@ -223,22 +223,6 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HA
 	// Convert Houdini matrices to Unreal matrix, and calculate the local matrices(which is what Unreal wants).
 	//--------------------------------------------------------------------------------------------------------------------
 
-	std::function<void(FHoudiniSkeletonBone*, FHoudiniSkeletonBone*)> ConstructGlobalMatrices = [&](FHoudiniSkeletonBone * Node, const FHoudiniSkeletonBone* Parent) -> void
-	{
-
-		FTransform ParentUnrealMatrix = FTransform::Identity;
-		if (Parent != nullptr)
-		{
-			ParentUnrealMatrix = Parent->UnrealGlobalMatrix;
-		}
-		Node->UnrealGlobalMatrix = HoudiniToUnrealMatrix(Node->HoudiniGlobalMatrix);
-		Node->UnrealLocalMatrix = Node->UnrealGlobalMatrix * ParentUnrealMatrix.Inverse();
-		for(auto Child : Node->Children)
-		{
-			ConstructGlobalMatrices(Child, Node);
-		}
-	};
-
 	ConstructGlobalMatrices(Result.Root, nullptr);
 
 	return Result;
@@ -523,3 +507,98 @@ bool FHoudiniSkeletalMeshUtils::AddBonesToUnrealSkeleton(USkeleton* UnrealSkelet
 	return true;
 }
 
+FHoudiniSkeleton FHoudiniSkeletalMeshUtils::UnrealToHoudiniSkeleton(USkeleton * UnrealSkeleton)
+{
+	FHoudiniSkeleton HoudiniSkeleton;
+
+	const FReferenceSkeleton& RefSkeleton = UnrealSkeleton->GetReferenceSkeleton();
+
+	TArray<FTransform> RefPose = RefSkeleton.GetRefBonePose();
+
+	int32 BoneCount = RefSkeleton.GetNum();
+
+	HoudiniSkeleton.Bones.SetNum(BoneCount);
+
+	for (int32 BoneIndex = 0; BoneIndex < BoneCount; ++BoneIndex)
+	{
+		FString BoneName = RefSkeleton.GetBoneName(BoneIndex).ToString();
+		int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+		FTransform & BoneTransform = RefPose[BoneIndex];
+
+		HoudiniSkeleton.BoneMap.Add(BoneName, &HoudiniSkeleton.Bones[BoneIndex]);
+		auto & ThisBone = HoudiniSkeleton.Bones[BoneIndex];
+		ThisBone.Name = BoneName;
+		ThisBone.UnrealGlobalMatrix = BoneTransform;
+		if (ParentIndex != INDEX_NONE)
+		{
+			ThisBone.Parent = &HoudiniSkeleton.Bones[ParentIndex];
+			ThisBone.Children.Add(&HoudiniSkeleton.Bones[ParentIndex]);
+		}
+		else
+		{
+			ThisBone.Parent = nullptr;
+			HoudiniSkeleton.Root = &ThisBone;
+		}
+	}
+
+	ConstructGlobalMatrices(HoudiniSkeleton.Root, nullptr);
+	return HoudiniSkeleton;
+}
+
+void FHoudiniSkeletalMeshUtils::ConstructGlobalMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent) 
+{
+
+	FTransform ParentUnrealMatrix = FTransform::Identity;
+	if (Parent != nullptr)
+	{
+		ParentUnrealMatrix = Parent->UnrealGlobalMatrix;
+	}
+	Node->UnrealGlobalMatrix = HoudiniToUnrealMatrix(Node->HoudiniGlobalMatrix);
+	Node->UnrealLocalMatrix = Node->UnrealGlobalMatrix * ParentUnrealMatrix.Inverse();
+	for (auto Child : Node->Children)
+	{
+		ConstructGlobalMatrices(Child, Node);
+	}
+}
+
+bool FHoudiniSkeletalMeshUtils::RemapInfluences(FHoudiniInfluences& Influences, const FHoudiniSkeleton& NewSkeleton)
+{
+	bool bErrors = false;
+
+	for(FHoudiniSkinInfluence& Influence : Influences.Influences)
+	{
+		if (Influence.Bone == nullptr)
+			continue;
+
+		const FString & BoneName = Influence.Bone->Name;
+		auto Bone = NewSkeleton.BoneMap.Find(BoneName);
+		if (Bone)
+		{
+			Influence.Bone = *Bone;
+		}
+		else
+		{
+			// we can't find the bone, try using an ancestor.
+			FHoudiniSkeletonBone* Ancestor  = NewSkeleton.Root;
+			FHoudiniSkeletonBone* Search = Influence.Bone->Parent;
+			while(Search)
+			{
+				auto Candidate = NewSkeleton.BoneMap.Find(Search->Name);
+				if (Candidate != nullptr)
+				{
+					Ancestor = *Candidate;
+					break;
+				}
+				else
+				{
+					Search = Search->Parent;					
+				}
+
+			}
+			
+			HOUDINI_LOG_WARNING(TEXT("Could not find bone in unreal skeleton %s. Using %s."), *BoneName, *Ancestor->Name);
+			bErrors = true;
+		}
+	}
+	return bErrors;
+}

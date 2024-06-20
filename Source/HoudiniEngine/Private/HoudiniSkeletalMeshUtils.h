@@ -60,6 +60,8 @@ struct FHoudiniSkeleton
 
 struct FHoudiniSkinInfluence
 {
+	// Don't be tempted to store a string here, there are tens of millions of these in an import.
+	// Keep this class simple.
 	FHoudiniSkeletonBone * Bone = nullptr;
 	float Weight = 0.0f;
 };
@@ -89,6 +91,8 @@ struct FHoudiniSkeletalMeshMaterialSettings
 
 struct HOUDINIENGINE_API FHoudiniSkeletalMeshUtils
 {
+	static FHoudiniSkeleton UnrealToHoudiniSkeleton(USkeleton * Skeleton);
+
 	static FHoudiniSkeleton FetchSkeleton(HAPI_NodeId PoseNodeId, HAPI_PartId PosePartId);
 
 	static FHoudiniInfluences FetchInfluences(HAPI_NodeId NodeId, HAPI_PartId PartId, FHoudiniSkeleton& Skeleton);
@@ -108,13 +112,13 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshUtils
 
 	static void AddBonesToUnrealSkeleton(FReferenceSkeletonModifier& RefSkeletonModifier, const FHoudiniSkeletonBone* Bone);
 
+	static bool RemapInfluences(FHoudiniInfluences & Influences, const FHoudiniSkeleton & NewSkeleton);
+
 protected:
 	static FMatrix MakeMatrixFromHoudiniData(const float Rotation[], const float Position[]);
 
 	static FTransform HoudiniToUnrealMatrix(const FMatrix & Matrix);
 
-
-
-
+	static void ConstructGlobalMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent);
 };
 
