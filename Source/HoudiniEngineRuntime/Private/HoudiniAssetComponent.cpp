@@ -2062,6 +2062,11 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 	if (!IsValid(this->GetHACWorld()))
 		return BoxBounds;
 
+	// Return an empty Box if it is being destroyed
+	// This can cause random ensure to trigger when deleting HACs
+	if (IsBeingDestroyed() || HasAnyFlags(RF_BeginDestroyed | RF_FinishDestroyed))
+		return BoxBounds;
+
 	/*
 	// Commented out: Creates incorrect focus bounds..
 	// Query the bounds for all output objects
