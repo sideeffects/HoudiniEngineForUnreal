@@ -188,7 +188,7 @@ public:
 // optimal performance.)
 //#define GTE_NO_LOGGER
 
-namespace gte
+namespace houdini::gte
 {
 
 class GTE_IMPEXP Logger
@@ -257,17 +257,17 @@ private:
 #define LogAssert(condition, message) \
     if (!(condition)) \
     { \
-        gte::Logger(__FILE__, __FUNCTION__, __LINE__, message).Assertion(); \
+        houdini::gte::Logger(__FILE__, __FUNCTION__, __LINE__, message).Assertion(); \
     }
 
 #define LogError(message) \
-    gte::Logger(__FILE__, __FUNCTION__, __LINE__, message).Error()
+    houdini::gte::Logger(__FILE__, __FUNCTION__, __LINE__, message).Error()
 
 #define LogWarning(message) \
-    gte::Logger(__FILE__, __FUNCTION__, __LINE__, message).Warning()
+    houdini::gte::Logger(__FILE__, __FUNCTION__, __LINE__, message).Warning()
 
 #define LogInformation(message) \
-    gte::Logger(__FILE__, __FUNCTION__, __LINE__, message).Information()
+    houdini::gte::Logger(__FILE__, __FUNCTION__, __LINE__, message).Information()
 
 #else
 
@@ -292,7 +292,7 @@ private:
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.3 (2018/10/05)
 
-namespace gte
+namespace houdini::gte
 {
 
 template <int N, typename Real>
@@ -981,7 +981,7 @@ Vector<N - 1, Real> Project(Vector<N, Real> const& v, int reject)
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.2 (2018/10/04)
 
-namespace gte
+namespace houdini::gte
 {
 
 // Template alias for convenience.
@@ -1368,7 +1368,7 @@ IntrinsicsVector3<Real>::IntrinsicsVector3(int numVectors,
 // the radius.  The hypersphere is a circle for dimension 2 or a sphere for
 // dimension 3.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <int N, typename Real>
@@ -1488,7 +1488,7 @@ bool Hypersphere<N, Real>::operator>=(Hypersphere const& hypersphere) const
 // X = C + y[0]*U[0] + y[1]*U[1].  This point is inside or on the
 // box whenever |y[i]| <= e[i] for all i.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <int N, typename Real>
@@ -1646,7 +1646,7 @@ bool OrientedBox<N, Real>::operator>=(OrientedBox const& box) const
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.0 (2016/06/19)
 
-namespace gte
+namespace houdini::gte
 {
 
 template <int N, bool Ordered>
@@ -1724,7 +1724,7 @@ bool FeatureKey<N, Ordered>::operator==(FeatureKey const& key) const
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.1 (2018/05/22)
 
-namespace gte
+namespace houdini::gte
 {
     template <bool Ordered>
     class EdgeKey : public FeatureKey<2, Ordered>
@@ -1791,7 +1791,7 @@ namespace gte
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.1 (2018/05/22)
 
-namespace gte
+namespace houdini::gte
 {
     template <bool Ordered>
     class TriangleKey : public FeatureKey<3, Ordered>
@@ -1925,7 +1925,7 @@ namespace gte
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.1 (2017/01/02)
 
-namespace gte
+namespace houdini::gte
 {
 
 class GTE_IMPEXP ETManifoldMesh
@@ -2071,7 +2071,7 @@ protected:
 // unit-length direction vector, and t is any real number.  The user must
 // ensure that D is unit length.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <int N, typename Real>
@@ -2188,7 +2188,7 @@ bool Line<N, Real>::operator>=(Line const& line) const
 // much smaller N, in which case you can modify PrecisionCalculator to use the
 // BSPrecision(int32_t,int32_t,int32_t,bool) constructors.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <typename Real>
@@ -2513,7 +2513,7 @@ int PrimalQuery3<Real>::ToCircumsphere(Vector3<Real> const& test, int v0,
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.0 (2016/06/19)
 
-namespace gte
+namespace houdini::gte
 {
 
 // A template class to provide 2D array access that conforms to row-major
@@ -2744,7 +2744,7 @@ Real const& LexicoArray2<false, Real, NumRows, NumCols>::operator()(int r, int c
 // nonnull pointers for C and Y and pass K to numCols.  In all cases, pass
 // N to numRows.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <typename Real>
@@ -3022,7 +3022,7 @@ void GaussianElimination<Real>::Set(int numElements, Real const* source,
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.2 (2018/10/05)
 
-namespace gte
+namespace houdini::gte
 {
 
 template <int NumRows, int NumCols, typename Real>
@@ -3983,7 +3983,7 @@ Real& Matrix<NumRows, NumCols, Real>::Table::operator[](int i)
 // For information on range-based for-loops, see
 // http://en.cppreference.com/w/cpp/language/range-for
 
-namespace gte
+namespace houdini::gte
 {
 
 // The function gte::reverse supports reverse iteration in range-based
@@ -4051,7 +4051,7 @@ ReversalObject<ReverseIterator> reverse(Iterable&& range)
 
 // Wrappers around platform-specific low-level library calls.
 
-namespace gte
+namespace houdini::gte
 {
 
 void Memcpy(void* target, void const* source, size_t count);
@@ -4163,7 +4163,7 @@ void Memcpy(wchar_t* target, wchar_t const* source, size_t count);
 // matrices of the decomposigion, and comperr is the computation E =
 // U^T*A*V - S.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <typename Real>
@@ -4693,7 +4693,7 @@ void SingularValueDecomposition<Real>::GetUColumn(int index,
         }
 
         // Apply the Givens rotations.
-        for (auto const& givens : gte::reverse(mLGivens))
+        for (auto const& givens : houdini::gte::reverse(mLGivens))
         {
             Real& xr0 = x[givens.index0];
             Real& xr1 = x[givens.index1];
@@ -4766,7 +4766,7 @@ void SingularValueDecomposition<Real>::GetVColumn(int index,
         }
 
         // Apply the Givens rotations.
-        for (auto const& givens : gte::reverse(mRGivens))
+        for (auto const& givens : houdini::gte::reverse(mRGivens))
         {
             Real& xr0 = x[givens.index0];
             Real& xr1 = x[givens.index1];
@@ -5218,7 +5218,7 @@ SingularValueDecomposition<Real>::GivensRotation::GivensRotation(int inIndex0,
 // vector, c is the plane constant, and X is any point on the plane.  The user
 // must ensure that the normal vector is unit length.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <int N, typename Real>
@@ -5384,7 +5384,7 @@ bool Hyperplane<N, Real>::operator>=(Hyperplane const& hyperplane) const
 //    float      | BSRational   |  2882
 //    double     | BSRational   | 21688
 
-namespace gte
+namespace houdini::gte
 {
 
 template <typename InputType, typename ComputeType>
@@ -5790,7 +5790,7 @@ void ConvexHull3<InputType, ComputeType>::Update(int i)
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.2 (2018/10/04)
 
-namespace gte
+namespace houdini::gte
 {
 
 // Template alias for convenience.
@@ -6075,7 +6075,7 @@ IntrinsicsVector2<Real>::IntrinsicsVector2(int numVectors,
 // much smaller N, in which case you can modify PrecisionCalculator to use the
 // BSPrecision(int32_t,int32_t,int32_t,bool) constructors.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <typename Real>
@@ -6527,7 +6527,7 @@ typename PrimalQuery2<Real>::OrderType PrimalQuery2<Real>::ToLineExtended(
 //    float      | BSRational   |  214
 //    double     | BSRational   | 1587
 
-namespace gte
+namespace houdini::gte
 {
 
 template <typename InputType, typename ComputeType>
@@ -6936,7 +6936,7 @@ void ConvexHull2<InputType, ComputeType>::GetTangent(int j0, int j1, int j2, int
 // See GeometricTools/GTEngine/Samples/Geometrics/MinimumAreaBox2 for an
 // example of how to use the code.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <typename InputType, typename ComputeType>
@@ -7661,7 +7661,7 @@ void MinimumAreaBox2<InputType, ComputeType>::ConvertTo(Box const& minBox,
 // See GeometricTools/GTEngine/Samples/Geometrics/MinimumVolumeBox3 for an
 // example of how to use the code.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <typename InputType, typename ComputeType>
@@ -9408,7 +9408,7 @@ void MinimumVolumeBox3<InputType, ComputeType>::ConvertTo(Box const& minBox,
 // These functions are convenient for some applications.  The classes
 // BSNumber, BSRational and IEEEBinary16 have implementations that
 // (for now) use typecasting to call the 'float' or 'double' versions.
-namespace gte
+namespace houdini::gte
 {
     inline float atandivpi(float x)
     {
@@ -9524,7 +9524,7 @@ namespace gte
 
 // Type traits to support std::enable_if conditional compilation for
 // numerical computations.
-namespace gte
+namespace houdini::gte
 {
     // The trait is_arbitrary_precision<T> for type T of float, double or
     // long double generates is_arbitrary_precision<T>::value of false.  The
@@ -9568,7 +9568,7 @@ namespace gte
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.1 (2018/10/05)
 
-namespace gte
+namespace houdini::gte
 {
 
 // Distance and closest-point queries.
@@ -9619,7 +9619,7 @@ public:
 //   ModelType::Fit(std::vector<ObservationType> const& observations,
 //       std::vector<size_t> const& indices);
 
-namespace gte
+namespace houdini::gte
 {
 
 template <typename Real, typename ModelType, typename ObservationType>
@@ -9816,7 +9816,7 @@ bool ApprQuery<Real, ModelType, ObservationType>::RANSAC(
 // implemented by class NISymmetricEigensolver3x3.  The code does not use
 // GTEngine objects.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <typename Real>
@@ -10590,7 +10590,7 @@ void NISymmetricEigensolver3x3<Real>::ComputeEigenvector1(Real a00, Real a01,
 // The mParameters value is a line with (P,D) = (origin,direction).  The
 // error for S = (x0,y0,z0) is (S-P)^T*(I - D*D^T)*(S-P).
 
-namespace gte
+namespace houdini::gte
 {
 
 template <typename Real>
@@ -10775,7 +10775,7 @@ bool ApprOrthogonalLine3<Real>::Fit(
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.1 (2018/10/05)
 
-namespace gte
+namespace houdini::gte
 {
 
 template <int N, typename Real>
@@ -10846,7 +10846,7 @@ DCPQuery<Real, Vector<N, Real>, Line<N, Real>>::operator()(
 // vector for the segment, and |t| <= e.  The value e = |P1 - P0|/2 is the
 // extent (or radius or half-length) of the segment.
 
-namespace gte
+namespace houdini::gte
 {
 
 template <int N, typename Real>
@@ -10988,7 +10988,7 @@ bool Segment<N, Real>::operator>=(Segment const& segment) const
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.1 (2018/10/05)
 
-namespace gte
+namespace houdini::gte
 {
 
 template <int N, typename Real>
@@ -11083,7 +11083,7 @@ DCPQuery<Real, Vector<N, Real>, Segment<N, Real>>::operator()(
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.0 (2016/06/19)
 
-namespace gte
+namespace houdini::gte
 {
 
 // A capsule is the set of points that are equidistant from a segment, the
@@ -11194,7 +11194,7 @@ bool Capsule<N, Real>::operator>=(Capsule const& capsule) const
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.1 (2018/10/05)
 
-namespace gte
+namespace houdini::gte
 {
 
 // Compute the axis of the capsule segment using least-squares fitting.  The
@@ -11477,13 +11477,13 @@ bool MergeContainers(Capsule3<Real> const& capsule0,
 // ----------------------------------------------
 
 template<typename Real>
-gte::Vector3<Real> Convert(const FVector& Vec)
+houdini::gte::Vector3<Real> Convert(const FVector& Vec)
 {
-	return gte::Vector3<Real>({ Vec.X, Vec.Y, Vec.Z });
+	return houdini::gte::Vector3<Real>({ Vec.X, Vec.Y, Vec.Z });
 }
 
 template<typename Real>
-FVector Convert(const gte::Vector3<Real>& Vec)
+FVector Convert(const houdini::gte::Vector3<Real>& Vec)
 {
 	return FVector(Vec[0], Vec[1], Vec[2]);
 }

@@ -13,7 +13,7 @@
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.0 (2016/06/19)
 
-using namespace gte;
+using namespace houdini::gte;
 
 Logger::Logger(char const* file, char const* function, int line,
     std::string const& message)
@@ -152,7 +152,7 @@ std::set<Logger::Listener*> Logger::msListeners;
 // http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
 // File Version: 3.0.0 (2016/06/19)
 
-namespace gte
+namespace houdini::gte
 {
 
 void Memcpy(void* target, void const* source, size_t count)
