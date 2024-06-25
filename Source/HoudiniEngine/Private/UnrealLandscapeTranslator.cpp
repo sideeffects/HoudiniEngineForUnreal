@@ -319,7 +319,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 		HeightData, 
 		XSize, YSize, 
 		Min, Max, 
-		LandscapeTransform,
+		LandscapeActorTransform.GetScale3D(),
 		HeightfieldFloatValues, 
 		HeightfieldVolumeInfo))
 	{
@@ -491,7 +491,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 			//--------------------------------------------------------------------------------------------------
 			TArray<float> LayerHeightFloatData;
 			if (!ConvertLandscapeDataToHeightFieldData(
-				LayerHeightData, XSize, YSize, Min, Max, LandscapeTransform,
+				LayerHeightData, XSize, YSize, Min, Max, LandscapeActorTransform.GetScale3D(),
 				LayerHeightFloatData, LayerVolumeInfo))
 				return false;
 
@@ -650,7 +650,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponent(
 
 	FVector CenterOffset = FVector::ZeroVector;
 	if ( !ConvertLandscapeDataToHeightFieldData(
-		HeightData, XSize, YSize, Min, Max, LandscapeComponentTransform,
+		HeightData, XSize, YSize, Min, Max, LandscapeComponentTransform.GetScale3D(),
 		HeightfieldFloatValues, HeightfieldVolumeInfo) )
 		return false;
 
@@ -787,7 +787,7 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscape(
 	TArray<float> HeightfieldFloatValues;
 	
 	if (!ConvertLandscapeDataToHeightFieldData(
-		HeightData, XSize, YSize, Min, Max, LandscapeTransform,
+		HeightData, XSize, YSize, Min, Max, LandscapeTransform.GetScale3D(),
 		HeightfieldFloatValues, HeightfieldVolumeInfo))
 		return false;
 
@@ -1233,7 +1233,7 @@ FUnrealLandscapeTranslator::ConvertLandscapeDataToHeightFieldData(
 	int32 YSize,
 	FVector Min,
 	FVector Max,
-	const FTransform& LandscapeActorTransform,
+	const FVector3d & LandscapeActorScale,
 	TArray<float>& HeightfieldFloatValues,
 	HAPI_VolumeInfo& HeightfieldVolumeInfo)
 {
@@ -1269,7 +1269,7 @@ FUnrealLandscapeTranslator::ConvertLandscapeDataToHeightFieldData(
 
 	// Spacing used to convert from uint16 to meters
 	double ZSpacing = 512.0 / ((double)UINT16_MAX);
-	ZSpacing *= ((double)LandscapeActorTransform.GetScale3D().Z);
+	ZSpacing *= LandscapeActorScale.Z / 100.0;
 
 	// Center value in meters (Landscape ranges from [-255:257] meters at default scale
 	double ZCenterOffset = 32767;
@@ -1309,12 +1309,11 @@ FUnrealLandscapeTranslator::ConvertLandscapeDataToHeightFieldData(
 	HapiTransform.position[0] = 0.0f;
 	HapiTransform.position[2] = 0.0f;
 
-	FVector Scale = LandscapeActorTransform.GetScale3D();
-	HapiTransform.scale[0] = Scale.Y * 0.5f * HoudiniXSize;
-	HapiTransform.scale[1] = Scale.X * 0.5f * HoudiniYSize;
+	HapiTransform.scale[0] = LandscapeActorScale.Y * 0.5f * HoudiniXSize / 100.0f;
+	HapiTransform.scale[1] = LandscapeActorScale.X * 0.5f * HoudiniYSize / 100.0f;
 	HapiTransform.scale[2] = 0.5f;
 	if (bUseDefaultUE4Scaling)
-			HapiTransform.scale[2] *= Scale.Z;
+			HapiTransform.scale[2] *= LandscapeActorScale.Z;
 
 	HapiTransform.shear[0] = 0.0f;
 	HapiTransform.shear[1] = 0.0f;

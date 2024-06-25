@@ -134,7 +134,7 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			int32 YSize,
 			FVector Min,
 			FVector Max,
-			const FTransform& LandscapeActorTransform,
+			const FVector3d& LandscapeActorScale,
 			TArray<float>& HeightfieldFloatValues,
 			HAPI_VolumeInfo& HeightfieldVolumeInfo);
 
