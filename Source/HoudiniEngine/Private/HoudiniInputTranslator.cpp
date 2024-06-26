@@ -2766,36 +2766,49 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActorReference(
 	// Material Reference String Array Attribute
 	if (InInputSettings.bImportAsReferenceMaterialEnabled)
 	{
-		/*
-		
-		// TODO
-
 		// Create point attribute info.
 		HAPI_AttributeInfo AttributeInfoPoint;
 		FHoudiniApi::AttributeInfo_Init(&AttributeInfoPoint);
-		AttributeInfoPoint.count = 1;
+		AttributeInfoPoint.count = NumPoints;
 		AttributeInfoPoint.tupleSize = 1;
 		AttributeInfoPoint.exists = true;
 		AttributeInfoPoint.owner = HAPI_ATTROWNER_POINT;
 		AttributeInfoPoint.storage = HAPI_STORAGETYPE_STRING;
 		AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
 
+		int32 MaxNumMaterials = 0;
+		for (int32 CompIdx = 0; CompIdx < ComponentMaterials.Num(); CompIdx++)
+		{
+			if (ComponentMaterials[CompIdx].Num() > MaxNumMaterials)
+				MaxNumMaterials = ComponentMaterials[CompIdx].Num();
+		}
+
 		// We set it to be multiple string attributes rather than a single string array attribute to not conflict
 		// with any existing HDA's that use the attribute name unreal_material
-		for (int i = 0; i < MaterialReferences.Num(); ++i)
+		for (int32 MatIdx = 0; MatIdx < MaxNumMaterials; MatIdx++)
 		{
 			FString AttributeName = HAPI_UNREAL_ATTRIB_MATERIAL;
-			if (i > 0)
-				AttributeName.AppendInt(i);
+			if (MatIdx > 0)
+				AttributeName.AppendInt(MatIdx);
+
+			// Create an array for the current Material 
+			TArray<FString> CurrentMaterials;
+			CurrentMaterials.SetNum(ComponentMaterials.Num());
+			for (int32 CompIdx = 0; CompIdx < ComponentMaterials.Num(); CompIdx++)
+			{
+				if (ComponentMaterials[CompIdx].IsValidIndex(MatIdx))
+					CurrentMaterials[CompIdx] = ComponentMaterials[CompIdx][MatIdx];
+				else
+					CurrentMaterials[CompIdx] = FString();
+			}
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
 				TCHAR_TO_ANSI(*AttributeName), &AttributeInfoPoint), false);
 
 			FHoudiniHapiAccessor Accessor(NewNodeId, 0, TCHAR_TO_ANSI(*AttributeName));
-			HOUDINI_CHECK_RETURN(Accessor.SetAttributeUniqueData(AttributeInfoPoint, MaterialReferences[i]), false);
+			HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoPoint, CurrentMaterials), false);
 		}
-		*/
 	}
 
 	// Unreal Reference String Attribute
