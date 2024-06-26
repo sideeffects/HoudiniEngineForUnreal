@@ -350,28 +350,18 @@ UHoudiniInput::Serialize(FArchive& Ar)
 	// Move the selected objects to the appropriate array
 	if (Ar.IsLoading()) 
 	{
-		switch (Type)
+		int32 IntType = (int32)Type;
+		if ((IntType == 6) || (IntType == 7))
 		{
-			case EHoudiniInputType::Skeletal_DEPRECATED:
-			case EHoudiniInputType::GeometryCollection_DEPRECATED:
-			{
-				HOUDINI_LOG_WARNING(TEXT("Loading a deprecated input - its input objects will be lost"));
-				// Change to a geometry input
-				Type = EHoudiniInputType::Geometry;
-				break;
-			}
-
-			case EHoudiniInputType::Asset_DEPRECATED:
-			case EHoudiniInputType::Landscape_DEPRECATED:
-			{
-				HOUDINI_LOG_WARNING(TEXT("Loading a deprecated input - its input objects will be lost"));
-				// Change to a world input
-				Type = EHoudiniInputType::World;
-				break;
-			}
-
-			default:
-				break;
+			// Deprecated Skeletal or geometry input - Change to a geometry input
+			HOUDINI_LOG_WARNING(TEXT("Loading a deprecated input - its input objects will be lost"));
+			Type = EHoudiniInputType::Geometry;
+		}
+		else if ((IntType == 3) || (IntType == 4))
+		{
+			// Deprecated Landscape or Asset input - Change to a world input
+			HOUDINI_LOG_WARNING(TEXT("Loading a deprecated input - its input objects will be lost"));
+			Type = EHoudiniInputType::World;
 		}
 	}
 }
@@ -472,9 +462,6 @@ UHoudiniInput::GetBounds(UWorld * World)
 	}
 	break;
 
-	case EHoudiniInputType::Asset_DEPRECATED:
-	case EHoudiniInputType::Landscape_DEPRECATED:
-	case EHoudiniInputType::GeometryCollection_DEPRECATED:
 	case EHoudiniInputType::Invalid:
 	default:
 		break;
@@ -630,10 +617,13 @@ UHoudiniInput::InputTypeToString(const EHoudiniInputType& InInputType)
 		}
 		break;
 
-		case EHoudiniInputType::Asset_DEPRECATED:
-		case EHoudiniInputType::Landscape_DEPRECATED:
-		case EHoudiniInputType::Skeletal_DEPRECATED:
-		case EHoudiniInputType::GeometryCollection_DEPRECATED:
+		case EHoudiniInputType::Invalid:
+		{
+			InputTypeStr = TEXT("INVALID INPUT");
+		}
+		break;
+
+		default:
 		{
 			InputTypeStr = TEXT("(deprecated) INVALID INPUT");
 		}
@@ -1598,11 +1588,7 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType) const
 
 		case EHoudiniInputType::World:
 			return &WorldInputObjects;
-		
-		case EHoudiniInputType::Asset_DEPRECATED:
-		case EHoudiniInputType::Landscape_DEPRECATED:
-		case EHoudiniInputType::Skeletal_DEPRECATED:
-		case EHoudiniInputType::GeometryCollection_DEPRECATED:
+
 		case EHoudiniInputType::Invalid:
 		default:
 			return nullptr;

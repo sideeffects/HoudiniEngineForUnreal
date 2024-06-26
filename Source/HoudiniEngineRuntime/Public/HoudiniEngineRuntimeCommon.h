@@ -70,25 +70,23 @@ enum class EHoudiniLandscapeOutputBakeType : uint8
 UENUM()
 enum class EHoudiniInputType : uint8
 {
-	Invalid,
+	Invalid = 0,
 
-	Geometry,
+	Geometry = 1,
 
-	Curve,
+	Curve = 2,
 
-	/* @deprecated This was removed in Houdini 20 */
-	Asset_DEPRECATED,
+	/* Asset = 3 - deprecated in Houdini 20 */
+	
+	/* Landscape = 4 - deprecated in Houdini 20 */
+	
+	World = 5
 
-	/* @deprecated This was removed in Houdini 20 */
-	Landscape_DEPRECATED,
+	/* Skeletal = 6 - deprecated in Houdini 20 */
 
-	World,
+	/* Geometry Collection = 7 - deprecated in Houdini 20 */
 
-	/* @deprecated This was removed in Houdini 20 */
-	Skeletal_DEPRECATED,
-
-	/* @deprecated This was removed in Houdini 20 */
-	GeometryCollection_DEPRECATED,
+	// !! The next input type should be 8 !!
 };
 
 UENUM()

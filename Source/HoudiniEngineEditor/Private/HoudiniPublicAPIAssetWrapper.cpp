@@ -4326,11 +4326,8 @@ UHoudiniPublicAPIAssetWrapper::CreateAndPopulateAPIInput(const UHoudiniInput* In
 			break;
 
 		// Deprecated input types
-		case EHoudiniInputType::Asset_DEPRECATED:
-		case EHoudiniInputType::Landscape_DEPRECATED:
-		case EHoudiniInputType::GeometryCollection_DEPRECATED:
-		case EHoudiniInputType::Skeletal_DEPRECATED:
 		case EHoudiniInputType::Invalid:
+		default:
 			SetErrorMessage(FString::Printf(TEXT("GetInputAtIndex: Invalid input type %d"), InputType));
 			return false;
 	}

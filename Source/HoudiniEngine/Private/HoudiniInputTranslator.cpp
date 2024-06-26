@@ -1125,7 +1125,10 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 		{
 			int32 InputNodeId = InInput->GetInputNodeId();
 			TArray<int32> PreviousInputObjectNodeIds = InInput->GetCreatedDataNodeIds();
-			if (InInput->GetInputType() == EHoudiniInputType::Asset_DEPRECATED)
+	
+			// TODO: CHECK THIS - remive ?
+			//if (InInput->GetInputType() == EHoudiniInputType::Asset_DEPRECATED)
+			if (InInput->IsAssetInput())
 			{
 				UHoudiniAssetComponent * OuterHAC = Cast<UHoudiniAssetComponent>(InInput->GetOuter());
 				HAPI_NodeId  AssetId = OuterHAC->GetAssetId();
@@ -1221,7 +1224,10 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 		{
 			// Get the object merge connected to the merge node
 			HAPI_NodeId InputObjectMergeId = -1;
-			if (InInput->GetInputType() != EHoudiniInputType::Asset_DEPRECATED)
+			
+			// TODO: CHECK THIS - remove if?!
+			//if (InInput->GetInputType() != EHoudiniInputType::Asset_DEPRECATED)
+			if (!InInput->IsAssetInput())
 				HOUDINI_CHECK_ERROR(FHoudiniApi::QueryNodeInput(
 					FHoudiniEngine::Get().GetSession(), InputNodeId, Idx, &InputObjectMergeId));
 
@@ -1229,8 +1235,10 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 			HOUDINI_CHECK_ERROR(FHoudiniApi::DisconnectNodeInput(
 				FHoudiniEngine::Get().GetSession(), InputNodeId, Idx));
 
+			// TODO: CHECK THIS - remove if?!
 			// Destroy the object merge node, do not destroy other HDA (Asset input type)
-			if (InInput->GetInputType() != EHoudiniInputType::Asset_DEPRECATED)
+			//if (InInput->GetInputType() != EHoudiniInputType::Asset_DEPRECATED)
+			if (!InInput->IsAssetInput())
 			{
 				HOUDINI_CHECK_ERROR(FHoudiniApi::DeleteNode(
 					FHoudiniEngine::Get().GetSession(), InputObjectMergeId));
@@ -3971,7 +3979,10 @@ FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent(
 
 	// If this object is in an Asset input, we need to set the InputNodeId directly
 	// to avoid creating extra merge nodes. World inputs should not do that!
-	bool bIsAssetInput = HoudiniInput->GetInputType() == EHoudiniInputType::Asset_DEPRECATED;
+
+	// TODO: CHECK ME!
+	//bool bIsAssetInput = HoudiniInput->GetInputType() == EHoudiniInputType::Asset_DEPRECATED;
+	bool bIsAssetInput = HoudiniInput->IsAssetInput();
 
 	if (InInputSettings.bImportAsReference) 
 	{
