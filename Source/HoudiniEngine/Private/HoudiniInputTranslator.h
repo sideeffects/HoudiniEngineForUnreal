@@ -335,6 +335,11 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted);
 
+	static bool HapiCreateInputNodeForActorReference(
+		UHoudiniInputActor* InActorObject,
+		const FHoudiniInputObjectSettings& InInputSettings,
+		const bool& bInputNodesCanBeDeleted);
+
 	// HAPI: Create an input node for reference
 	static bool CreateInputNodeForReference(
 		const HAPI_NodeId InParentNodeId,
