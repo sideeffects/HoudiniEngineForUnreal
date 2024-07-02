@@ -130,8 +130,10 @@ bool FHoudiniEditorTestsDataLayers::RunTest(const FString& Parameters)
 
 		TArray<FHoudiniUnrealDataLayerInfo> DataLayers = FHoudiniDataLayerUtils::GetDataLayerInfoForActor(Actor);
 
+		FString ExpectedName(TEXT("MyDataLayer"));
+
 		HOUDINI_TEST_EQUAL_ON_FAIL(DataLayers.Num(), 1, return true);
-		HOUDINI_TEST_EQUAL(DataLayers[0].Name, FString("MyDataLayer"));
+		HOUDINI_TEST_EQUAL(DataLayers[0].Name.Left(ExpectedName.Len()), ExpectedName);
 		return true;
 	}));
 

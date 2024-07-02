@@ -63,7 +63,7 @@ bool FHoudiniEditorTestInstancesActors::RunTest(const FString& Parameters)
 	{
 
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "instance_object", "/Script/Engine.StaticMesh'/Game/TestObjects/SM_Cube.SM_Cube'", 0);
-		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", true, 100);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
 
 		Context->StartCookingHDA();
 		return true;
@@ -186,7 +186,7 @@ bool FHoudiniEditorTestBakingInstanceActors::RunTest(const FString& Parameters)
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "instance_object", "/Script/Engine.Blueprint'/Game/TestObjects/BP_Cube.BP_Cube'" ,0);
-		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", true, 100);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
 
 		Context->StartCookingHDA();
 		return true;
@@ -314,7 +314,7 @@ bool FHoudiniEditorTestBakingSplitInstanceMeshes::RunTest(const FString& Paramet
 	{
 
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "instance_object", "/Script/Engine.StaticMesh'/Game/TestObjects/SM_Cube.SM_Cube'", 0);
-		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", true, 100);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "split_instance_meshes", true, 0);
 		Context->StartCookingHDA();
 		return true;
@@ -554,7 +554,7 @@ bool FHoudiniEditorTestInstancesHSM::RunTest(const FString& Parameters)
 	{
 
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "instance_object", "/Script/Engine.StaticMesh'/Game/TestObjects/SM_LODs.SM_LODs'", 0);
-		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", true, 100);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
 
 		Context->StartCookingHDA();
 		return true;
