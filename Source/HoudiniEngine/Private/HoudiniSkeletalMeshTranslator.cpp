@@ -253,7 +253,12 @@ FHoudiniSkeletalMeshTranslator::CreateUnrealData(FHoudiniSkeletalMeshBuildSettin
 
 	int32 SkeletalDepth = 0;
 	FReferenceSkeleton& RefSkeleton = BuildSettings.SKMesh->GetRefSkeleton();
-	SkeletalMeshImportUtils::ProcessImportMeshSkeleton(Skeleton, RefSkeleton, SkeletalDepth, ImportData);
+	bool bSuccess = SkeletalMeshImportUtils::ProcessImportMeshSkeleton(Skeleton, RefSkeleton, SkeletalDepth, ImportData);
+	if (!bSuccess)
+	{
+		HOUDINI_LOG_ERROR(TEXT("SkeletalMeshImportUtils::ProcessImportMeshSkeleton() failed."));
+		return;
+	}
 
 	for (SkeletalMeshImportData::FMaterial SkeletalImportMaterial : ImportData.Materials)
 	{
@@ -343,7 +348,12 @@ FHoudiniSkeletalMeshTranslator::CreateUnrealData(FHoudiniSkeletalMeshBuildSettin
 		Skeleton = NewObject<USkeleton>(BuildSettings.SKPackage, *ObjectName, RF_Public | RF_Standalone);
 		Skeleton->MarkPackageDirty();
 	}
-	Skeleton->MergeAllBonesToBoneTree(BuildSettings.SKMesh);
+	bSuccess = Skeleton->MergeAllBonesToBoneTree(BuildSettings.SKMesh);
+	if (!bSuccess)
+	{
+		HOUDINI_LOG_ERROR(TEXT("MergeAllBonesToBoneTree() failed."));
+		return;
+	}
 
 	BuildSettings.SKMesh->SetSkeleton(Skeleton);
 	UE_LOG(LogTemp, Log, TEXT("SkeletalMeshImportData:	Materials %i Points %i Wedges %i Faces %i Influences %i"), 
@@ -522,18 +532,18 @@ FHoudiniSkeletalMeshTranslator::GetSkeletalMeshMeshData(HAPI_NodeId ShapeGeoId, 
 bool
 FHoudiniSkeletalMeshTranslator::SetSkeletalMeshImportDataInfluences(
 	FSkeletalMeshImportData& SkeletalMeshImportData,
-	const FHoudiniInfluences& SkinWeights,
+	const FHoudiniInfluences& Influences,
 	const FHoudiniPackageParams& PackageParams)
 {
-	for (int32 PointIndex = 0; PointIndex < SkinWeights.NumVertices; PointIndex++)
+	for (int32 PointIndex = 0; PointIndex < Influences.NumVertices; PointIndex++)
 	{
-		for (int Influence = 0; Influence < SkinWeights.NumInfluences; Influence++)
+		for (int Influence = 0; Influence < Influences.NumInfluences; Influence++)
 		{
-			const FHoudiniSkinInfluence& SkinInfluence = SkinWeights.Influences[PointIndex * SkinWeights.NumInfluences + Influence];
+			const FHoudiniSkinInfluence& SkinInfluence = Influences.Influences[PointIndex * Influences.NumInfluences + Influence];
 
 			SkeletalMeshImportData::FRawBoneInfluence UnrealInfluence;
 			UnrealInfluence.VertexIndex = PointIndex;
-			UnrealInfluence.BoneIndex = SkinInfluence.Bone ? SkinInfluence.Bone->Id : 0;
+			UnrealInfluence.BoneIndex = SkinInfluence.Bone ? SkinInfluence.Bone->UnrealBoneNumber : 0;
 			UnrealInfluence.Weight = SkinInfluence.Weight;
 			SkeletalMeshImportData.Influences.Add(UnrealInfluence);
 		}
@@ -720,7 +730,7 @@ FHoudiniSkeletalMeshTranslator::SetSkeletalMeshImportDataSkeleton(
 		SkeletalMeshImportData::FBone NewBone;
 		NewBone.Name = Bone.Name;
 		NewBone.Flags = 0;
-		NewBone.ParentIndex = Bone.Parent ? Bone.Parent->Id : -1;
+		NewBone.ParentIndex = Bone.Parent ? Bone.Parent->UnrealBoneNumber : -1;
 		NewBone.NumChildren = Bone.Children.Num();
 
 		SkeletalMeshImportData::FJointPos JointPos;
@@ -752,8 +762,8 @@ FHoudiniSkeletalMeshTranslator::CreateSkeletalMeshImportData(
 {
 	bool bSuccess = true;
 	bSuccess &= SetSkeletalMeshImportDataMesh(SkeletalMeshImportData, Mesh, PackageParams);
-	bSuccess &= SetSkeletalMeshImportDataInfluences(SkeletalMeshImportData, SkinWeights, PackageParams);
 	bSuccess &= SetSkeletalMeshImportDataSkeleton(SkeletalMeshImportData, Skeleton, PackageParams);
+	bSuccess &= SetSkeletalMeshImportDataInfluences(SkeletalMeshImportData, SkinWeights, PackageParams);
 	return bSuccess;
 }
 
@@ -816,7 +826,11 @@ bool FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshParts()
 	}
 
 	FHoudiniSkeleton SkeletonFromHoudini = FHoudiniSkeletalMeshUtils::FetchSkeleton(SKParts.HGPOPoseMesh->GeoId, SKParts.HGPOPoseMesh->PartId);
-
+	if (SkeletonFromHoudini.Bones.Num() == 0)
+	{
+		HOUDINI_LOG_ERROR(TEXT("No skeleton found on skeletal mesh export."));
+		return false;
+	}
 	// If we don't have a skeleton asset yet, create one now.
 	if (!SkeletonAsset)
 	{
