@@ -333,6 +333,8 @@ FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 	FUnrealObjectInputIdentifier& OutReferenceNode,
 	TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers);
+
 	FUnrealObjectInputOptions DefaultOptions;
 	DefaultOptions.bImportAsReference = false;
 	DefaultOptions.bImportAsReferenceRotScaleEnabled = false;
@@ -687,6 +689,8 @@ FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(
 	const bool bInConnectReferencedNodes,
 	const bool& bInputNodesCanBeDeleted)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode);
+
 	// Identifier must be valid and for a reference node
 	if (!InIdentifier.IsValid() || InIdentifier.GetNodeType() != EUnrealObjectInputNodeType::Reference)
 		return false;

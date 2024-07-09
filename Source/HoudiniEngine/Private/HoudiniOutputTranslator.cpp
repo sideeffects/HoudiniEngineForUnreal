@@ -787,6 +787,8 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 bool
 FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateLoadedOutputs);
+
 	HAPI_NodeId & AssetId = HAC->AssetId;
 
 	// Retrieve information about each object contained within our asset.
@@ -1002,6 +1004,8 @@ FHoudiniOutputTranslator::UploadChangedEditableOutput(
 	UHoudiniAssetComponent* HAC,
 	const bool& bInForceUpdate) 
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UploadChangedEditableOutput);
+
 	if (!IsValid(HAC))
 		return false;
 
@@ -2273,9 +2277,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 bool
 FHoudiniOutputTranslator::UpdateChangedOutputs(UHoudiniAssetComponent* HAC)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateChangedOutputs);
+
 	if (!IsValid(HAC))
 		return false;
-
 
 	UObject* OuterComponent = HAC;
 

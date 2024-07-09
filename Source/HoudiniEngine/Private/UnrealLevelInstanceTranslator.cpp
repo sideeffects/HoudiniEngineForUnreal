@@ -164,7 +164,8 @@ bool FUnrealLevelInstanceTranslator::AddStringPointAttribute(HAPI_NodeId NodeId,
 	FHoudiniHapiAccessor Accessor(NodeId, 0, Name);
 	HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfo, Data), false);
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), NodeId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NodeId), false);
+
 	return true;
 }
 
@@ -184,11 +185,13 @@ bool FUnrealLevelInstanceTranslator::AddFloatPointAttribute(HAPI_NodeId NodeId, 
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(),NodeId,0,Name, &AttributeInfo), false);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(), NodeId, 0, Name, &AttributeInfo, Data, 0, Count), false);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), NodeId), false);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NodeId), false);
+
 	return true;
 }
 
-void FUnrealLevelInstanceTranslator::CreateAttributeData(HAPI_NodeId NodeId, ALevelInstance * LevelInstance)
+void FUnrealLevelInstanceTranslator::CreateAttributeData(HAPI_NodeId NodeId, ALevelInstance* LevelInstance)
 {
 	constexpr int NumInstances = 1;
 	TArray<float> Positions;
@@ -220,8 +223,7 @@ void FUnrealLevelInstanceTranslator::CreateAttributeData(HAPI_NodeId NodeId, ALe
 	AddStringPointAttribute(NodeId, HAPI_UNREAL_ATTRIB_ACTOR_PATH, ActorPaths);
 	AddStringPointAttribute(NodeId, HAPI_UNREAL_ATTRIB_LEVEL_INSTANCE_NAME, ActorLevels);
 
-	FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), NodeId);
-
+	FHoudiniEngineUtils::HapiCommitGeo(NodeId);
 }
 
 

@@ -635,6 +635,11 @@ public:
 
 	UPROPERTY()
 	bool bLandscapeUseTempLayers;
+
+	// Indicates whether or not this component should update the editor's UI
+	// This is to prevent successive calls of the function for the same HDAs 
+	UPROPERTY(Transient, DuplicateTransient)
+	bool bNeedToUpdateEditorProperties;
 #endif
 
 protected:

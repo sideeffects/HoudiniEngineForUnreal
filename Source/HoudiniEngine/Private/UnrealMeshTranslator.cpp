@@ -96,6 +96,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	const bool& bExportMaterialParameters /*= false*/,
 	const bool& bForceReferenceInputNodeCreation /*= false*/)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh);
+
 	// If we don't have a static mesh there's nothing to do.
 	if (!IsValid(StaticMesh))
 		return false;
@@ -1035,8 +1037,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
 		OutSocketsNodeId, 0, HAPI_GROUPTYPE_POINT, SocketGroupStr, GroupArray.GetData(), 0, NumSockets), false);
 
 	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), OutSocketsNodeId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(OutSocketsNodeId), false);
 
 	return true;
 }
@@ -1743,8 +1744,7 @@ FUnrealMeshTranslator::CreateInputNodeForRawMesh(
 	}
 
 	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), NodeId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NodeId), false);
 
 	return true;
 }
@@ -2554,8 +2554,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	}
 
 	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), NodeId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NodeId), false);
 
 	return true;
 }
@@ -2584,6 +2583,8 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	UStaticMesh const* const StaticMesh,
 	UStaticMeshComponent const* const StaticMeshComponent)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FUnrealMeshTranslator::CreateInputNodeForMeshDescription);
+
 	if (!IsValid(StaticMesh))
 		return false;
 
@@ -2782,9 +2783,7 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	// ----------------------------------------------------------------------------------------------------------------
 	// Commit the geo
 	// ----------------------------------------------------------------------------------------------------------------
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), NodeId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NodeId), false);
 
 	return true;
 }
@@ -2812,6 +2811,8 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 	const bool bCommitGeo,
 	HAPI_PartInfo& OutPartInfo)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription);
+
     H_SCOPED_FUNCTION_TIMER();
 
 	AActor* ParentActor = MeshComponent ? MeshComponent->GetOwner() : nullptr;
@@ -3649,12 +3650,8 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 
 	if (bCommitGeo)
 	{
-
-		H_SCOPED_FUNCTION_STATIC_LABEL("COMIT GEO");
-
 		// Commit the geo.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-			FHoudiniEngine::Get().GetSession(), NodeId), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NodeId), false);
 	}
 
 	OutPartInfo = Part;
@@ -4512,8 +4509,7 @@ FUnrealMeshTranslator::CreateInputNodeForCollider(
 		ColliderFaceCounts, ColliderNodeId, 0), false);
 
 	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), ColliderNodeId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(ColliderNodeId), false);
 
 	OutNodeId = ColliderNodeId;
 

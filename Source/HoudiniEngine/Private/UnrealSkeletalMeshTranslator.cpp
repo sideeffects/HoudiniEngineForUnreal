@@ -1152,8 +1152,7 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromMeshDescription(
 	}
 	
 	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), NewNodeId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NewNodeId), false);
 
 	return true;
 }
@@ -1598,8 +1597,7 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 	}
 
 	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), NewNodeId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NewNodeId), false);
 
 	return true;
 }
@@ -1915,8 +1913,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodeForSkeletalMeshSockets(
 		OutSocketsNodeId, 0, HAPI_GROUPTYPE_POINT, SocketGroupStr, GroupArray.GetData(), 0, NumSockets), false);
 
 	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), OutSocketsNodeId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(OutSocketsNodeId), false);
 
 	return true;
 }
@@ -2252,8 +2249,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodeForCapturePose(
 	//----------------------------------------
 	// End of capture pose translation
 	//----------------------------------------
-
-	FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), NewNodeId);
+	FHoudiniEngineUtils::HapiCommitGeo(NewNodeId);
 	
 	{
 		FUnrealObjectInputHandle Handle;

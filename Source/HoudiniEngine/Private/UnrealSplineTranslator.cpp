@@ -211,7 +211,7 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 	if (NeedToCommit) 
 	{
 		// We successfully added tags to the geo, so we need to commit the changes
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), CreatedInputNodeId))
+		if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiCommitGeo(CreatedInputNodeId))
 			HOUDINI_LOG_WARNING(TEXT("Could not create groups for the spline input's tags!"));
 
 		// And cook it with refinement enabled

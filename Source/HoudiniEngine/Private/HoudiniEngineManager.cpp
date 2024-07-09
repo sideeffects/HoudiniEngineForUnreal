@@ -354,6 +354,15 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 			// Update the tick time for this component
 			CurrentComponent->LastTickTime = dNow;
 		}
+
+		// See if we need to update this HDA's details panel
+		if (CurrentComponent->bNeedToUpdateEditorProperties)
+		{
+			// Only do an update if the HAC is selected
+			if(CurrentComponent->IsOwnerSelected())
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
+			CurrentComponent->bNeedToUpdateEditorProperties = false;
+		}
 	}
 
 	// Handle Asset delete
@@ -483,7 +492,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 		{
 			// Trigger a details panel update if the Houdini asset actor is selected
 			if (HAC->IsOwnerSelected())
-				FHoudiniEngineUtils::UpdateEditorProperties(true);
+				HAC->bNeedToUpdateEditorProperties = true;
 
 			// Finished refreshing UI of one HDA.
 			FHoudiniEngine::Get().RefreshUIDisplayedWhenPauseCooking();
@@ -652,7 +661,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			if(!bCookStarted)
 			{
 				// Just refresh editor properties?
-				FHoudiniEngineUtils::UpdateEditorProperties(true);
+				HAC->bNeedToUpdateEditorProperties = true;
 
 				// TODO: Check! update state?
 				HAC->SetAssetState(EHoudiniAssetState::None);
@@ -881,6 +890,8 @@ FHoudiniEngineManager::StartTaskAssetInstantiation(UHoudiniAsset* HoudiniAsset, 
 bool 
 FHoudiniEngineManager::UpdateInstantiating(UHoudiniAssetComponent* HAC, EHoudiniAssetState& NewState )
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::UpdateInstantiating);
+
 	check(HAC);
 
 	// Will return true if the asset's state need to be updated
@@ -1059,6 +1070,8 @@ FHoudiniEngineManager::StartTaskAssetCooking(
 	bool bOutputTemplateGeos,
 	FGuid& OutTaskGUID)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::StartTaskAssetCooking);
+
 	// Make sure we have a valid session before attempting anything
 	if (!FHoudiniEngine::Get().GetSession())
 		return false;
@@ -1294,8 +1307,8 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 
 		FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nFinished processing outputs"), true);
 
-		// Trigger a details panel update
-		FHoudiniEngineUtils::UpdateEditorProperties(true);
+		// Indicate we want to trigger a details panel update
+		HAC->bNeedToUpdateEditorProperties = true;
 
 		// If any outputs have HoudiniStaticMeshes, and if timer based refinement is enabled on the HAC,
 		// set the RefineMeshesTimer and ensure BuildStaticMeshesForAllHoudiniStaticMeshes is bound to
@@ -1328,8 +1341,8 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 
 	if (bNeedsToTriggerViewportUpdate && GEditor)
 	{
-		// We need to manually update the vieport with HoudiniMeshProxies
-		// if not, modification made in H with the two way debugger wont be visible in Unreal until the vieports gets focus
+		// We need to manually update the viewport with HoudiniMeshProxies
+		// if not, modification made in H with the two way debugger wont be visible in Unreal until the viewports gets focus
 		GEditor->RedrawAllViewports(false);
 	}
 
@@ -1361,6 +1374,8 @@ FHoudiniEngineManager::UpdateProcess(UHoudiniAssetComponent* HAC)
 bool
 FHoudiniEngineManager::StartTaskAssetRebuild(const HAPI_NodeId& InAssetId, FGuid& OutTaskGUID)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::StartTaskAssetRebuild);
+
 	// Check this HAC doesn't already have a running task
 	if (OutTaskGUID.IsValid())
 		return false;
@@ -1389,6 +1404,8 @@ FHoudiniEngineManager::StartTaskAssetRebuild(const HAPI_NodeId& InAssetId, FGuid
 bool
 FHoudiniEngineManager::StartTaskAssetDelete(const HAPI_NodeId& InNodeId, FGuid& OutTaskGUID, bool bShouldDeleteParent)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::StartTaskAssetDelete);
+
 	if (InNodeId < 0)
 		return false;
 

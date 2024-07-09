@@ -42,6 +42,8 @@
 void 
 FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(UHoudiniOutput* InOutput)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData);
+
 	TSet<ALandscape*> LandscapesToDelete;
 	TArray<FHoudiniOutputObjectIdentifier> OutputObjectsToDelete;
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();

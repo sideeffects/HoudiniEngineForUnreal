@@ -445,7 +445,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			return false;
 	}
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), InputNodeId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(InputNodeId), false);
 
 	{
 		FUnrealObjectInputHandle Handle;

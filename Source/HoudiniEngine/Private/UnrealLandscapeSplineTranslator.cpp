@@ -838,7 +838,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplines(
 	if (bNeedToCommit) 
 	{
 		// We successfully added tags to the geo, so we need to commit the changes
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), OutNodeId))
+		if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiCommitGeo(OutNodeId))
 			HOUDINI_LOG_WARNING(TEXT("Could not create groups for the landscape spline input's tags!"));
 
 		// And cook it with refinement disabled (we want to strictly keep the control points and segments as they are)
@@ -952,7 +952,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesControlPoint
 	if (bNeedToCommit) 
 	{
 		// We successfully added tags to the geo, so we need to commit the changes
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), OutNodeId))
+		if (HAPI_RESULT_SUCCESS != FHoudiniEngineUtils::HapiCommitGeo(OutNodeId))
 			HOUDINI_LOG_WARNING(TEXT("Could not commit landscape spline control point geo!"));
 
 		HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();

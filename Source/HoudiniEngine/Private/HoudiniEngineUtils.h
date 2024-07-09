@@ -98,6 +98,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// if bWaitForCompletion is true, this call will be blocking until the cook is finished
 		static bool HapiCookNode(const HAPI_NodeId& InNodeId, HAPI_CookOptions* InCookOptions = nullptr, const bool& bWaitForCompletion = false);
 
+		// Wrapper for CommitGeo - adds a profiler scope wrapper
+		static HAPI_Result HapiCommitGeo(const HAPI_NodeId& InNodeId);
+
 		// Return a specified HAPI status string.
 		static const FString GetStatusString(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity);
 

@@ -252,10 +252,8 @@ FUnrealGeometryCollectionTranslator::SetGeometryCollectionAttributesForPart(
 		HOUDINI_CHECK_RETURN(Accessor.SetAttributeUniqueData(AttributeInfo, InName), false);
 	}
 
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-                FHoudiniEngine::Get().GetSession(), InNodeId), false);
-	
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(InNodeId), false);
+
 	return true;
 }
 
@@ -886,8 +884,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 		AddGeometryCollectionDetailAttributes(GeometryCollectionObject, GeometryNodeId, Part.id, Part, InName, GeometryCollectionComponent);
 
 		// Commit the geo.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-                        FHoudiniEngine::Get().GetSession(), GeometryNodeId), false);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(GeometryNodeId), false);
 
 		// Connect the LOD node to the merge node.
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
