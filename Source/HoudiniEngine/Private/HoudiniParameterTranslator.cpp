@@ -1609,7 +1609,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 
 		case EHoudiniParameterType::ColorRamp:
 		{
-			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UpdateParameterFromInfo__ColorRamp;
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UpdateParameterFromInfo__ColorRamp);
 			UHoudiniParameterRampColor* HoudiniParameterRampColor = Cast<UHoudiniParameterRampColor>(HoudiniParameter);
 			if (IsValid(HoudiniParameterRampColor))
 			{
