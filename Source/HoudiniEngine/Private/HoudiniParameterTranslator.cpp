@@ -104,8 +104,10 @@ FHoudiniParameterTranslator::UpdateParameters(UHoudiniAssetComponent* HAC)
 		// Replace with the new parameters
 		HAC->Parameters = NewParameters;
 
+#if WITH_EDITORONLY_DATA
 		// Indicate we want to update the details panel after the parameter changes/updates
 		HAC->bNeedToUpdateEditorProperties = true;
+#endif
 	}
 
 
@@ -216,8 +218,10 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(UHoudiniAssetComponent* HAC)
 		// Simply replace with the new parameters
 		HAC->Parameters = NewParameters;
 
+#if WITH_EDITORONLY_DATA
 		// Indicate we want to update the details panel after the parameter changes/updates
 		HAC->bNeedToUpdateEditorProperties = true;
+#endif
 	}
 
 	return true;

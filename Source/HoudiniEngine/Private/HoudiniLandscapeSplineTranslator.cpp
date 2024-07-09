@@ -408,8 +408,10 @@ FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(
 	// saves the level.
 	InOutput->MarkPackageDirty();
 
+#if WITH_EDITORONLY_DATA
 	if(IsValid(HAC) && HAC->IsOwnerSelected())
 		HAC->bNeedToUpdateEditorProperties = true;
+#endif
 
 	return true;
 }

@@ -354,7 +354,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 			// Update the tick time for this component
 			CurrentComponent->LastTickTime = dNow;
 		}
-
+#if WITH_EDITORONLY_DATA
 		// See if we need to update this HDA's details panel
 		if (CurrentComponent->bNeedToUpdateEditorProperties)
 		{
@@ -363,6 +363,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 				FHoudiniEngineUtils::UpdateEditorProperties(true);
 			CurrentComponent->bNeedToUpdateEditorProperties = false;
 		}
+#endif
 	}
 
 	// Handle Asset delete
@@ -490,9 +491,11 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 		// Refresh UI when pause cooking
 		if (!FHoudiniEngine::Get().HasUIFinishRefreshingWhenPausingCooking()) 
 		{
+#if WITH_EDITORONLY_DATA
 			// Trigger a details panel update if the Houdini asset actor is selected
 			if (HAC->IsOwnerSelected())
 				HAC->bNeedToUpdateEditorProperties = true;
+#endif
 
 			// Finished refreshing UI of one HDA.
 			FHoudiniEngine::Get().RefreshUIDisplayedWhenPauseCooking();
@@ -660,8 +663,10 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			
 			if(!bCookStarted)
 			{
+#if WITH_EDITORONLY_DATA
 				// Just refresh editor properties?
 				HAC->bNeedToUpdateEditorProperties = true;
+#endif
 
 				// TODO: Check! update state?
 				HAC->SetAssetState(EHoudiniAssetState::None);
@@ -1307,8 +1312,10 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 
 		FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nFinished processing outputs"), true);
 
+#if WITH_EDITORONLY_DATA
 		// Indicate we want to trigger a details panel update
 		HAC->bNeedToUpdateEditorProperties = true;
+#endif
 
 		// If any outputs have HoudiniStaticMeshes, and if timer based refinement is enabled on the HAC,
 		// set the RefineMeshesTimer and ensure BuildStaticMeshesForAllHoudiniStaticMeshes is bound to

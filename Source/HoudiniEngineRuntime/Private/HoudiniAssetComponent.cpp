@@ -238,6 +238,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	bReplacePreviousBake = false;
 	ActorBakeOption = EHoudiniEngineActorBakeOption::OneActorPerComponent;
 	bAllowPlayInEditorRefinement = false;
+	bNeedToUpdateEditorProperties = false;
 #endif
 
 	//
@@ -263,8 +264,6 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 
 	// Initialize the default SM Build settings with the plugin's settings default values
 	StaticMeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
-
-	bNeedToUpdateEditorProperties = false;
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
