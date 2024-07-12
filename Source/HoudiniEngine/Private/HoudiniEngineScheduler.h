@@ -28,6 +28,7 @@
 
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
+#include "HAL/Event.h"
 #include "HAL/Runnable.h"
 #include "HAL/RunnableThread.h"
 #include "Misc/SingleThreadRunnable.h"
@@ -101,6 +102,9 @@ private:
 
 	// Synchronization primitive. 
 	FCriticalSection CriticalSection;
+
+	// Event to wake up thread when tasks become available. 
+	FEventRef WakeUpEvent;
 
 	// List of scheduled tasks. 
 	FHoudiniEngineTask* Tasks;
