@@ -39,11 +39,11 @@ const float
 FHoudiniEngineScheduler::UpdateFrequency = 0.1f;
 
 FHoudiniEngineScheduler::FHoudiniEngineScheduler()
-	: Tasks(nullptr)
+	: WakeUpEvent(FEventRef(EEventMode::AutoReset))
+	, Tasks(nullptr)
 	, PositionWrite(0u)
 	, PositionRead(0u)
 	, bStopping(false)
-	, WakeUpEvent(FEventRef(EEventMode::AutoReset))
 {
 	//  Make sure size is power of two.
 	TaskCount = FPlatformMath::RoundUpToPowerOfTwo(FHoudiniEngineScheduler::InitialTaskSize);

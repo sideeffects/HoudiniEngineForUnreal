@@ -562,6 +562,13 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
 	bool GetReplacePreviousBake() const;
 
+	/**
+	 * Gets all generated Actors which are the result of a bake.
+	 * @return array of scene actors from bake action.
+	*/
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	TArray<AActor*> GetBakedOutputActors();
+
 	// Parameters
 
 	/**
