@@ -270,7 +270,7 @@ public:
 		FHoudiniBakedObjectData& BakedObjectData,
 		FName InOverrideFolderPath=NAME_None,
 		AActor* InActor=nullptr,
-		UActorFactory* InActorFactory=nullptr);
+		TSubclassOf<AActor> BakeActorClass = nullptr);
 
 	static bool BakeCurve(
 		UHoudiniAssetComponent const* const InHoudiniAssetComponent,
