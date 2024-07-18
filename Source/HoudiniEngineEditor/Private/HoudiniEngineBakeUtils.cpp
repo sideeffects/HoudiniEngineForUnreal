@@ -5731,10 +5731,12 @@ FHoudiniEngineBakeUtils::BakeCurve(
 {
 	if (!IsValid(InActor))
 	{
-		UActorFactory* Factory;
+		UActorFactory* Factory = nullptr;
 		if (IsValid(BakeActorClass))
 		{
 			Factory = GEditor->FindActorFactoryForActorClass(BakeActorClass);
+			if (!Factory)
+				Factory = GEditor->FindActorFactoryByClass(UActorFactoryClass::StaticClass());
 		}
 		else
 		{
