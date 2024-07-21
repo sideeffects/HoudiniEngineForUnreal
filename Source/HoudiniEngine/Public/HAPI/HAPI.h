@@ -2685,6 +2685,7 @@ HAPI_DECL HAPI_CreateHeightfieldInputVolumeNode(    const HAPI_Session * session
 ///                 The cook options. Pass in NULL to use the global
 ///                 cook options that you specified when calling
 ///                 ::HAPI_Initialize().
+///                 <!-- default NULL -->
 ///
 HAPI_DECL HAPI_CookNode( const HAPI_Session * session,
                          HAPI_NodeId node_id,
