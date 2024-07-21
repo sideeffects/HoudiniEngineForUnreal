@@ -205,9 +205,10 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static bool GetOutputIndex(const HAPI_NodeId& InNodeId, int32& OutOutputIndex);
 
 		static bool GatherAllAssetOutputs(
-			const HAPI_NodeId& InAssetId,
-			const bool bUseOutputNodes,
-			const bool bOutputTemplatedGeos,
+			HAPI_NodeId InAssetId,
+			bool bUseOutputNodes,
+			bool bOutputTemplatedGeos,
+			bool bGatherEditableCurves,
 			TArray<HAPI_NodeId>& OutOutputNodes); 
 
 		// Get the immediate output geo infos for the given Geometry object network.

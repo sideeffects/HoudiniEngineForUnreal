@@ -1135,17 +1135,18 @@ UHoudiniGeoImporter::BuildAllOutputsForNode(
 	TArray<UHoudiniOutput*>& InOldOutputs,
 	TArray<UHoudiniOutput*>& OutNewOutputs,
 	bool bInAddOutputsToRootSet,
-	bool bInUseOutputNodes)
+	bool bInUseOutputNodes,
+	bool bGatherEditableCurves)
 {
 	bool bOutputTemplateGeos = false;
 
 	// Gather output nodes for the HAC
 	TArray<int32> OutputNodes;
-	FHoudiniEngineUtils::GatherAllAssetOutputs(InNodeId, bInUseOutputNodes, bOutputTemplateGeos, OutputNodes);
+	FHoudiniEngineUtils::GatherAllAssetOutputs(InNodeId, bInUseOutputNodes, bOutputTemplateGeos, bGatherEditableCurves, OutputNodes);
 
 	// TArray<UHoudiniOutput*> OldOutputs;	
 	TMap<HAPI_NodeId, int32> OutputNodeCookCount;
-	if (!FHoudiniOutputTranslator::BuildAllOutputs(InNodeId, InOuter, OutputNodes, OutputNodeCookCount, InOldOutputs, OutNewOutputs, bOutputTemplateGeos, bInUseOutputNodes))
+	if (!FHoudiniOutputTranslator::BuildAllOutputs(InNodeId, InOuter, OutputNodes, OutputNodeCookCount, InOldOutputs, OutNewOutputs, bOutputTemplateGeos, bInUseOutputNodes, bGatherEditableCurves))
 	{
 		// Couldn't create the package
 		HOUDINI_LOG_ERROR(TEXT("Houdini GEO Importer: Failed to process the File SOP's outputs!"));

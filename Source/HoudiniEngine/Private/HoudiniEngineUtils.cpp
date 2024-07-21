@@ -2323,9 +2323,10 @@ bool FHoudiniEngineUtils::GetOutputIndex(const HAPI_NodeId& InNodeId, int32& Out
 
 bool
 FHoudiniEngineUtils::GatherAllAssetOutputs(
-	const HAPI_NodeId& AssetId,
-	const bool bUseOutputNodes,
-	const bool bOutputTemplatedGeos,
+	HAPI_NodeId AssetId,
+	bool bUseOutputNodes,
+	bool bOutputTemplatedGeos,
+	bool bGatherEditableCurves,
 	TArray<HAPI_NodeId>& OutOutputNodes)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs);
@@ -2404,7 +2405,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 				continue;
 
 			// We only handle editable curves for now
-			if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE)
+			if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE || !bGatherEditableCurves)
 				continue;
 
 			// Add this geo to the geo info array

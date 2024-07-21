@@ -70,8 +70,9 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 		const TMap<HAPI_NodeId, int32>& OutputNodeCookCounts,
 		TArray<UHoudiniOutput*>& InOldOutputs,
 		TArray<UHoudiniOutput*>& OutNewOutputs,
-		const bool& InOutputTemplatedGeos,
-		const bool& InUseOutputNodes);
+		bool InOutputTemplatedGeos,
+		bool InUseOutputNodes,
+		bool bGatherEditableCurves);
 
 	static bool UpdateChangedOutputs(
 		UHoudiniAssetComponent* HAC);

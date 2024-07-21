@@ -642,7 +642,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			{
 				// Gather output nodes for the HAC
 				TArray<int32> OutputNodes;
-				FHoudiniEngineUtils::GatherAllAssetOutputs(HAC->GetAssetId(), HAC->bUseOutputNodes, HAC->bOutputTemplateGeos, OutputNodes);
+				FHoudiniEngineUtils::GatherAllAssetOutputs(HAC->GetAssetId(), HAC->bUseOutputNodes, HAC->bOutputTemplateGeos, HAC->bEnableCurveEditing, OutputNodes);
 				HAC->SetOutputNodeIds(OutputNodes);
 				
 				FGuid TaskGUID = HAC->GetHapiGUID();
