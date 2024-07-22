@@ -378,7 +378,8 @@ template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeArrayData(con
 	DataArray.SetNum(AttributeInfo.totalArrayElements);
 	Sizes.SetNum(IndexCount);
 
-	HAPI_Result Result = FetchHapiDataArray(FHoudiniEngine::Get().GetSession(), AttributeInfo, DataArray.GetData(), Sizes.GetData(), IndexStart, IndexCount);
+	const HAPI_Int64* Hapi64Data = reinterpret_cast<const HAPI_Int64*>(DataArray.GetData()); // worked around for some Linux variations.
+	HAPI_Result Result = FetchHapiDataArray(FHoudiniEngine::Get().GetSession(), AttributeInfo, Hapi64Data, Sizes.GetData(), IndexStart, IndexCount);
 	return Result == HAPI_RESULT_SUCCESS;
 }
 
@@ -644,7 +645,8 @@ HAPI_Result FHoudiniHapiAccessor::SendHapiData(const HAPI_Session* Session, cons
 			}
 			else if constexpr (std::is_same_v<DataType, int64>)
 			{
-				Result = FHoudiniApi::SetAttributeInt64UniqueData(Session, NodeId, PartId, AttributeName, &AttributeInfo, TupleValues, AttributeInfo.tupleSize, RLEStart, RLECount);
+				const HAPI_Int64* Hapi64Data = reinterpret_cast<const HAPI_Int64*>(TupleValues); // worked around for some Linux variations.
+				Result = FHoudiniApi::SetAttributeInt64UniqueData(Session, NodeId, PartId, AttributeName, &AttributeInfo, Hapi64Data, AttributeInfo.tupleSize, RLEStart, RLECount);
 			}
 			else if constexpr (std::is_same_v<DataType, FString>)
 			{
@@ -790,7 +792,8 @@ HAPI_Result FHoudiniHapiAccessor::FetchHapiData(const HAPI_Session* Session, con
 	}
 	else if constexpr (std::is_same_v<DataType, int64>)
 	{
-		Result = FHoudiniApi::GetAttributeInt64Data(Session, NodeId, PartId, AttributeName, &TempAttributeInfo, -1, Data, IndexStart, IndexCount);
+		HAPI_Int64* Hapi64Data = reinterpret_cast<HAPI_Int64*>(Data); // worked around for some Linux variations.
+		Result = FHoudiniApi::GetAttributeInt64Data(Session, NodeId, PartId, AttributeName, &TempAttributeInfo, -1, Hapi64Data, IndexStart, IndexCount);
 	}
 	else if constexpr (std::is_same_v<DataType, FString>)
 	{
@@ -841,7 +844,8 @@ HAPI_Result FHoudiniHapiAccessor::FetchHapiDataArray(const HAPI_Session* Session
 	}
 	else if constexpr (std::is_same_v<DataType, int64>)
 	{
-		Result = FHoudiniApi::GetAttributeInt64ArrayData(Session, NodeId, PartId, AttributeName, &TempAttributeInfo, Data, TempAttributeInfo.totalArrayElements, Sizes, IndexStart, IndexCount);
+		HAPI_Int64* Hapi64Data = reinterpret_cast<HAPI_Int64*>(Data); // worked around for some Linux variations.
+		Result = FHoudiniApi::GetAttributeInt64ArrayData(Session, NodeId, PartId, AttributeName, &TempAttributeInfo, Hapi64Data, TempAttributeInfo.totalArrayElements, Sizes, IndexStart, IndexCount);
 	}
 	else if constexpr (std::is_same_v<DataType, FString>)
 	{
@@ -1164,10 +1168,12 @@ template<typename DataType> bool FHoudiniHapiAccessor::SetAttributeUniqueData(co
 		break;
 
 	case HAPI_STORAGETYPE_INT64:
+	{
+		HAPI_Int64* Hapi64Data = reinterpret_cast<HAPI_Int64*>(RawData.RawDataInt64.GetData()); // worked around for some Linux variations.
 		Result = FHoudiniApi::SetAttributeInt64UniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
-			RawData.RawDataInt64.GetData(), AttributeInfo.tupleSize, 0, AttributeInfo.count);
+			Hapi64Data, AttributeInfo.tupleSize, 0, AttributeInfo.count);
 		break;
-
+	}
 	case HAPI_STORAGETYPE_STRING:
 		Result = FHoudiniApi::SetAttributeStringUniqueData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
 			TCHAR_TO_ANSI(*RawData.RawDataStrings[0]), 1, 0, AttributeInfo.count);
@@ -1225,7 +1231,7 @@ bool FHoudiniHapiAccessor::SetAttributeDictionary(const HAPI_AttributeInfo& InAt
 }
 
 template<typename DataType>
-bool FHoudiniHapiAccessor::SetAttributeArrayData(const HAPI_AttributeInfo& AttributeInfo, TArray<DataType>& DataArray, const TArray<int>& SizesFixedArray)
+bool FHoudiniHapiAccessor::SetAttributeArrayData(const HAPI_AttributeInfo& AttributeInfo, const TArray<DataType>& DataArray, const TArray<int>& SizesFixedArray)
 {
 	HAPI_Result Result = HAPI_RESULT_FAILURE;
 
@@ -1262,8 +1268,9 @@ bool FHoudiniHapiAccessor::SetAttributeArrayData(const HAPI_AttributeInfo& Attri
 	}
 	else if constexpr (std::is_same_v<DataType, int64>)
 	{
+		const HAPI_Int64 * Hapi64Data = reinterpret_cast<const HAPI_Int64*>(DataArray.GetData()); // worked around for some Linux variations.
 		Result = FHoudiniApi::SetAttributeInt64ArrayData(FHoudiniEngine::Get().GetSession(), NodeId, PartId, AttributeName, &AttributeInfo,
-			DataArray.GetData(), DataArray.Num(), SizesFixedArray.GetData(), 0, SizesFixedArray.Num());
+			Hapi64Data, DataArray.Num(), SizesFixedArray.GetData(), 0, SizesFixedArray.Num());
 	}
 	else if constexpr (std::is_same_v<DataType, FString>)
 	{
@@ -1355,7 +1362,7 @@ HAPI_StorageType FHoudiniHapiAccessor::GetTypeWithoutArray(HAPI_StorageType Stor
 	template bool FHoudiniHapiAccessor::SetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const DATA_TYPE* Data, int IndexStart, int IndexCount) const;\
 	template bool FHoudiniHapiAccessor::SetAttributeData(const HAPI_AttributeInfo& AttributeInfo, const TArray<DATA_TYPE>& Data);\
 	template bool FHoudiniHapiAccessor::SetAttributeUniqueData(const HAPI_AttributeInfo& AttributeInfo, const DATA_TYPE& Data);\
-	template bool FHoudiniHapiAccessor::SetAttributeArrayData(const HAPI_AttributeInfo& InAttributeInfo, TArray<DATA_TYPE>& InStringArray, const TArray<int>& SizesFixedArray);\
+	template bool FHoudiniHapiAccessor::SetAttributeArrayData(const HAPI_AttributeInfo& InAttributeInfo, const TArray<DATA_TYPE>& InStringArray, const TArray<int>& SizesFixedArray);\
 	template bool FHoudiniHapiAccessor::GetAttributeArrayData(HAPI_AttributeOwner Owner, TArray<DATA_TYPE>& StringArray, TArray<int>& SizesFixedArray, int IndexStart, int IndexCount);
 
 IMPLEMENT_HOUDINI_ACCESSOR(uint8);

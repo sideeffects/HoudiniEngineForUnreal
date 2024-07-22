@@ -79,7 +79,7 @@ struct FHoudiniHapiAccessor
 	template<typename DataType> bool SetAttributeData(const HAPI_AttributeInfo& AttributeInfo, const DataType* Data, int First = 0, int Count = -1) const;
 	template<typename DataType> bool SetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const DataType* Data, int First = 0, int Count = -1) const;
 	template<typename DataType> bool SetAttributeUniqueData(const HAPI_AttributeInfo& AttributeInfo, const DataType & Data);
-	template<typename DataType> bool SetAttributeArrayData(const HAPI_AttributeInfo& InAttributeInfo, TArray<DataType>& InStringArray, const TArray<int>& SizesFixedArray);
+	template<typename DataType> bool SetAttributeArrayData(const HAPI_AttributeInfo& InAttributeInfo, const TArray<DataType>& InStringArray, const TArray<int>& SizesFixedArray);
 	bool SetAttributeStringMap(const HAPI_AttributeInfo& AttributeInfo, const FHoudiniEngineIndexedStringMap& InIndexedStringMap);
 	bool SetAttributeDictionary(const HAPI_AttributeInfo& InAttributeInfo, const TArray<FString>& JSONData);
 
