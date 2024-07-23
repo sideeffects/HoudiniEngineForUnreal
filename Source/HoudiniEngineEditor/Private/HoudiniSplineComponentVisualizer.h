@@ -42,6 +42,11 @@ struct HHoudiniSplineVisProxy : public HComponentVisProxy
 	HHoudiniSplineVisProxy(const UActorComponent * InComponent) 
 		: HComponentVisProxy(InComponent, HPP_Wireframe)
 	{}
+
+	virtual EMouseCursor::Type GetMouseCursor() override
+	{
+		return EMouseCursor::CardinalCross;
+	}
 };
 
 /** Proxy for a spline control point. **/
@@ -68,7 +73,7 @@ struct HHoudiniSplineCurveSegmentVisProxy : public HHoudiniSplineVisProxy
 	int32 DisplayPointIndex;
 };
 
-class FHoudiniSplineComponentVisualizerCommands : public TCommands< FHoudiniSplineComponentVisualizerCommands > 
+class FHoudiniSplineComponentVisualizerCommands : public TCommands< FHoudiniSplineComponentVisualizerCommands> 
 {
 	public:
 		FHoudiniSplineComponentVisualizerCommands();
@@ -102,26 +107,39 @@ class FHoudiniSplineComponentVisualizer : public FComponentVisualizer
 		virtual void OnRegister() override;
 
 		virtual void DrawVisualization(
-			const UActorComponent * Component, const FSceneView * View,
+			const UActorComponent * Component,
+			const FSceneView * View,
 			FPrimitiveDrawInterface * PDI) override;
 
 		virtual bool VisProxyHandleClick(
-			FEditorViewportClient* InViewportClient, HComponentVisProxy* VisProxy,
+			FEditorViewportClient* InViewportClient,
+			HComponentVisProxy* VisProxy,
 			const FViewportClick& Click) override;
 
-		virtual bool GetWidgetLocation(const FEditorViewportClient* ViewportClient, FVector& OutLocation) const override;
+		virtual bool GetWidgetLocation(
+			const FEditorViewportClient* ViewportClient, FVector& OutLocation) const override;
+
 		virtual bool IsVisualizingArchetype() const override;
 
 		virtual void EndEditing() override;
 
 		virtual bool HandleInputDelta(
-			FEditorViewportClient* ViewportClient, FViewport* Viewport,
-			FVector& DeltaTranslate, FRotator& DeltaRotate,
+			FEditorViewportClient* ViewportClient, 
+			FViewport* Viewport,
+			FVector& DeltaTranslate, 
+			FRotator& DeltaRotate,
 			FVector& DeltaScale) override;
 
-		virtual bool HandleInputKey(FEditorViewportClient * ViewportClient, FViewport * Viewport, FKey Key, EInputEvent Event) override;
+		virtual bool HandleInputKey(
+			FEditorViewportClient* ViewportClient,
+			FViewport* Viewport,
+			FKey Key,
+			EInputEvent Event) override;
 
 		virtual TSharedPtr<SWidget> GenerateContextMenu() const override;
+
+		virtual bool GetCustomInputCoordinateSystem(
+			const FEditorViewportClient* ViewportClient, FMatrix& OutMatrix) const override;
 
 	protected:
 
