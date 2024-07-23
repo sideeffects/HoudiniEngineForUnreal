@@ -36,7 +36,7 @@ class UHoudiniHandleComponent;
 
 struct HOUDINIENGINE_API FHoudiniHandleTranslator 
 {
-	static bool UpdateHandles(UHoudiniAssetComponent* HAC);
+	static bool BuildHandles(UHoudiniAssetComponent* HAC);
 
 
 	static bool BuildAllHandles(const HAPI_NodeId& AssetId, 
@@ -49,6 +49,8 @@ struct HOUDINIENGINE_API FHoudiniHandleTranslator
 	static HAPI_RSTOrder GetHapiRSTOrder(const TSharedPtr<FString> & StrPtr);
 
 	static HAPI_XYZOrder GetHapiXYZOrder(const TSharedPtr<FString> & StrPtr);
+
+	static void UpdateHandlesIfNeeded(UHoudiniAssetComponent* HAC);
 
 	static void UpdateTransformParameters(UHoudiniHandleComponent* HandleComponent);
 

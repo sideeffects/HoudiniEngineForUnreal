@@ -38,6 +38,11 @@ struct HHoudiniHandleVisProxy : public HComponentVisProxy
 {
 	DECLARE_HIT_PROXY();
 	HHoudiniHandleVisProxy(const UActorComponent * InComponent);
+
+	virtual EMouseCursor::Type GetMouseCursor() override
+	{
+		return EMouseCursor::CardinalCross;
+	}
 };
 
 // Define commands for our component visualizer
@@ -90,11 +95,11 @@ public:
 		HComponentVisProxy* VisProxy,
 		const FViewportClick& Click) override;
 
-	virtual void EndEditing();
+	virtual void EndEditing() override;
 
 	// Returns location of a gizmo widget.
 	virtual bool GetWidgetLocation(
-		const FEditorViewportClient *, FVector & OutLocation) const override;
+		const FEditorViewportClient* ViewportClient, FVector& OutLocation) const override;
 
 	//
 	virtual bool GetCustomInputCoordinateSystem(
@@ -102,12 +107,12 @@ public:
 
 	// Handle input change.
 	virtual bool HandleInputDelta(
-		FEditorViewportClient*, FViewport*, FVector& DeltaTranslate,
-		FRotator & DeltaRotate, FVector& DeltaScale) override;
+		FEditorViewportClient* ViewportClient,
+		FViewport* Viewport,
+		FVector& DeltaTranslate,
+		FRotator& DeltaRotate,
+		FVector& DeltaScale) override;
 
-	//
-	virtual bool HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
-	
 	//
 	void SetEditedComponent(UHoudiniHandleComponent* InComponent) { EditedComponent = InComponent; };
 

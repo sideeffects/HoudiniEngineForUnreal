@@ -100,12 +100,7 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(
 	const FLinearColor& ActiveColor = ColorMapActive[AssetId];
 	const FLinearColor& InactiveColor = ColorMapInactive[AssetId];
 
-	bool IsActive = EditedComponent != nullptr;
-	if (IsActive)
-	{
-		UHoudiniAssetComponent* EditedComponentParent = Cast<UHoudiniAssetComponent>(EditedComponent->GetOuter());
-		IsActive &= EditedComponentParent && EditedComponentParent->GetAssetId() == HAC->GetAssetId();
-	}
+	bool IsSelected = (EditedComponent == Component) || (Component->IsSelected());
 
 	// Draw point and set hit box for it.
 	PDI->SetHitProxy(new HHoudiniHandleVisProxy(HandleComponent));
@@ -113,7 +108,7 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(
 		static const float GrabHandleSizeActive = 24.0f;
 		static const float GrabHandleSizeInactive = 18.0f;
 
-		PDI->DrawPoint(HandleComponent->GetComponentTransform().GetLocation(), IsActive ? ActiveColor : InactiveColor, IsActive ? GrabHandleSizeActive : GrabHandleSizeInactive, SDPG_Foreground);
+		PDI->DrawPoint(HandleComponent->GetComponentTransform().GetLocation(), IsSelected ? ActiveColor : InactiveColor, IsSelected ? GrabHandleSizeActive : GrabHandleSizeInactive, SDPG_Foreground);
 	}
 
 	if (HandleComponent->HandleType == EHoudiniHandleType::Bounder)
@@ -122,7 +117,7 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(
 		FTransform BoxTransform = HandleComponent->GetComponentTransform();
 		const double BoxRad = 50.0;
 		const FBox Box(FVector3d(-BoxRad, -BoxRad, -BoxRad), FVector3d(BoxRad, BoxRad, BoxRad));
-		DrawWireBox(PDI, BoxTransform.ToMatrixWithScale(), Box, IsActive ? ActiveColor : InactiveColor, SDPG_Foreground);
+		DrawWireBox(PDI, BoxTransform.ToMatrixWithScale(), Box, IsSelected ? ActiveColor : InactiveColor, SDPG_Foreground);
 	}
 	
 	PDI->SetHitProxy(nullptr);
@@ -145,17 +140,7 @@ FHoudiniHandleComponentVisualizer::DrawVisualizationHUD(
 	if (!HandleComponent)
 		return;
 
-	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(HandleComponent->GetOuter());
-	if (!HAC)
-		return;
-
-	int32 AssetId = HAC->GetAssetId();
-	bool IsActive = EditedComponent != nullptr;
-	if (IsActive)
-	{
-		UHoudiniAssetComponent* EditedComponentParent = Cast<UHoudiniAssetComponent>(EditedComponent->GetOuter());
-		IsActive &= EditedComponentParent && EditedComponentParent->GetAssetId() == HAC->GetAssetId();
-	}
+	bool IsSelected = (EditedComponent == Component) || (Component->IsSelected());
 
 	// Get the Handle location in screen space
 	FVector Location = HandleComponent->GetComponentTransform().GetLocation();
@@ -174,7 +159,7 @@ FHoudiniHandleComponentVisualizer::DrawVisualizationHUD(
 	DrawPositionX += 24.0f;
 
 	// Get the active/inactive color for that handle
-	const FLinearColor& Color = IsActive ? FLinearColor::White : FLinearColor::Gray;
+	const FLinearColor& Color = IsSelected ? FLinearColor::White : FLinearColor::Gray;
 
 	// Get the handle name and type
 	FString Text = HandleComponent->GetHandleName();
@@ -211,7 +196,7 @@ FHoudiniHandleComponentVisualizer::VisProxyHandleClick(
 	if (VisProxy && VisProxy->Component.IsValid())
 	{
 		const UHoudiniHandleComponent * Component =
-			CastChecked< const UHoudiniHandleComponent >(VisProxy->Component.Get());
+			CastChecked<const UHoudiniHandleComponent>(VisProxy->Component.Get());
 
 		const TArray<UHoudiniHandleParameter*> &XformParms = Component->XformParms;
 
@@ -219,7 +204,6 @@ FHoudiniHandleComponentVisualizer::VisProxyHandleClick(
 			return bEditing;
 
 		EditedComponent = const_cast<UHoudiniHandleComponent *>(Component);
-
 		if (Component)
 		{
 			if (VisProxy->IsA(HHoudiniHandleVisProxy::StaticGetType()))
@@ -283,8 +267,11 @@ FHoudiniHandleComponentVisualizer::GetCustomInputCoordinateSystem(
 
 bool
 FHoudiniHandleComponentVisualizer::HandleInputDelta(
-	FEditorViewportClient * ViewportClient, FViewport * Viewport,
-	FVector& DeltaTranslate, FRotator & DeltaRotate, FVector& DeltaScale)
+	FEditorViewportClient* ViewportClient,
+	FViewport* Viewport,
+	FVector& DeltaTranslate,
+	FRotator& DeltaRotate,
+	FVector& DeltaScale)
 {
 	if (!EditedComponent)
 		return false;
@@ -305,23 +292,6 @@ FHoudiniHandleComponentVisualizer::HandleInputDelta(
 	}
 
 	return true;
-}
-
-bool
-FHoudiniHandleComponentVisualizer::HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
-{
-	if (EditedComponent)
-	{
-		if (Key == EKeys::LeftMouseButton && Event == IE_Released)
-		{
-			if (GEditor)
-				GEditor->RedrawLevelEditingViewports(true);
-
-			FHoudiniHandleTranslator::UpdateTransformParameters(EditedComponent);
-		}
-
-	}
-	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

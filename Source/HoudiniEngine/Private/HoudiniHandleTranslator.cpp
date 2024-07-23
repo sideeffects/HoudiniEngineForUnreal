@@ -41,18 +41,15 @@
 
 
 bool
-FHoudiniHandleTranslator::UpdateHandles(UHoudiniAssetComponent* HAC) 
+FHoudiniHandleTranslator::BuildHandles(UHoudiniAssetComponent* HAC) 
 {
 	if (!IsValid(HAC))
 		return false;
 
 	TArray<UHoudiniHandleComponent*> NewHandles;
-
 	if (FHoudiniHandleTranslator::BuildAllHandles(HAC->GetAssetId(), HAC, HAC->HandleComponents, NewHandles)) 
 	{
-		
 		HAC->HandleComponents = NewHandles;
-
 	}
 
 	return true;
@@ -250,10 +247,9 @@ FHoudiniHandleTranslator::BuildAllHandles(
 			FTransform UnrealXform;
 			FHoudiniEngineUtils::TranslateHapiTransform(HapiEulerXform, UnrealXform);
 
-			//HandleComponent->SetRelativeTransform(UnrealXform);
+			HandleComponent->SetRelativeTransform(UnrealXform);
 
 			NewHandles.Add(HandleComponent);
-
 		}
 	}
 
@@ -318,7 +314,7 @@ FHoudiniHandleTranslator::GetHapiXYZOrder(const TSharedPtr<FString> & StrPtr)
 
 
 void 
-FHoudiniHandleTranslator::UpdateTransformParameters(UHoudiniHandleComponent* HandleComponent) 
+FHoudiniHandleTranslator::UpdateTransformParameters(UHoudiniHandleComponent* HandleComponent)
 {
 	if (!IsValid(HandleComponent))
 		return;
@@ -326,17 +322,16 @@ FHoudiniHandleTranslator::UpdateTransformParameters(UHoudiniHandleComponent* Han
 	if (!HandleComponent->CheckHandleValid())
 		return;
 
-	TArray<UHoudiniHandleParameter*> &XformParms = HandleComponent->XformParms;
-
+	TArray<UHoudiniHandleParameter*>& XformParms = HandleComponent->XformParms;
 	if (XformParms.Num() < (int32)EXformParameter::COUNT)
 		return;
 
+	FTransform NewTransform = HandleComponent->GetRelativeTransform();
 	HAPI_Transform HapiXform;
 	FHoudiniApi::Transform_Init(&HapiXform);
-	FHoudiniEngineUtils::TranslateUnrealTransform(HandleComponent->GetRelativeTransform(), HapiXform);
+	FHoudiniEngineUtils::TranslateUnrealTransform(NewTransform, HapiXform);
 
-	const HAPI_Session * Session = FHoudiniEngine::Get().GetSession();
-
+	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
 	float HapiMatrix[16];
 	FHoudiniApi::ConvertTransformQuatToMatrix(Session, &HapiXform, HapiMatrix);
 
@@ -367,4 +362,23 @@ FHoudiniHandleTranslator::UpdateTransformParameters(UHoudiniHandleComponent* Han
 	*XformParms[int32(EXformParameter::SX)] = HapiEulerXform.scale[0];
 	*XformParms[int32(EXformParameter::SY)] = HapiEulerXform.scale[1];
 	*XformParms[int32(EXformParameter::SZ)] = HapiEulerXform.scale[2];
+
+	HandleComponent->LastSentTransform = NewTransform;
+	HandleComponent->bNeedToUpdateTransform = false;
+}
+
+void
+FHoudiniHandleTranslator::UpdateHandlesIfNeeded(UHoudiniAssetComponent* HAC)
+{
+	if (!IsValid(HAC))
+		return;
+
+	for (auto& CurHandle : HAC->HandleComponents)
+	{
+		if (!CurHandle)
+			continue;
+
+		if (CurHandle->IsTransformUpdateNeeded())
+			FHoudiniHandleTranslator::UpdateTransformParameters(CurHandle);
+	}
 }

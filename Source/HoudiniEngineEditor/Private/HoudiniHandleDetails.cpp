@@ -46,12 +46,10 @@
 void
 FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, const TArray<TWeakObjectPtr<UHoudiniHandleComponent>> &InHandles)
 {
-
 	if (InHandles.Num() <= 0)
 		return;
 
 	const TWeakObjectPtr<UHoudiniHandleComponent>& MainHandle = InHandles[0];
-
 	if (!IsValidWeakPointer(MainHandle))
 		return;
 
@@ -66,7 +64,6 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 	CreateNameWidget(Row);
 
 	// Create value widget
-
 	TSharedRef<SVerticalBox> ValueWidgetVerticalBox = SNew(SVerticalBox);
 
 	// Translate
