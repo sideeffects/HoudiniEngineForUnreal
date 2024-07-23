@@ -4070,8 +4070,11 @@ FHoudiniParameterDetails::CreateWidgetMultiParm(
 
 	CreateNameWidget(Row, InParams, true);
 
-	auto OnInstanceValueChangedLambda = [MainParam](int32 InValue) 
+	auto OnInstanceValueChangedLambda = [MainParam](int32 InValue, ETextCommit::Type CommitType)
 	{
+		if (CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+			return;
+
 		if (InValue < 0)
 			return;
 
@@ -4082,17 +4085,17 @@ FHoudiniParameterDetails::CreateWidgetMultiParm(
 	// Add multiparm UI.
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 	TSharedPtr< SNumericEntryBox< int32 > > NumericEntryBox;
-	int32 NumericalCount = MainParam->MultiParmInstanceCount;
+
 	HorizontalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
 			SAssignNew(NumericEntryBox, SNumericEntryBox< int32 >)
 			.AllowSpin(true)
 
 		.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-		.OnValueChanged(SNumericEntryBox<int32>::FOnValueChanged::CreateLambda([OnInstanceValueChangedLambda](int32 InValue) {
-				OnInstanceValueChangedLambda(InValue);
+		.OnValueCommitted(SNumericEntryBox<int32>::FOnValueCommitted::CreateLambda([OnInstanceValueChangedLambda](int32 InValue, ETextCommit::Type CommitType) {
+				OnInstanceValueChangedLambda(InValue, CommitType);
 		}))
-		.Value(NumericalCount)
+		.Value(MainParam->MultiParmInstanceCount)
 		];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
