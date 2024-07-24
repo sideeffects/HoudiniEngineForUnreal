@@ -532,6 +532,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// Returns the ULandscapeLayerInfoObject, if valid and found in LandscapeLayers, otherwise nullptr
 		ULandscapeLayerInfoObject* GetLandscapeLayerInfoIfValid(const FName& InLayerName, const bool bInTryLoad=true) const;
 
+		// Returns the Generated Landscape Actor if valid
+		ALandscape* GetLandscapeIfValid(bool bInTryLoad=true) const;
+
 		// Returns BakedSkeleton if valid, otherwise nullptr
 		USkeleton* GetBakedSkeletonIfValid(bool bInTryLoad=true) const;
 

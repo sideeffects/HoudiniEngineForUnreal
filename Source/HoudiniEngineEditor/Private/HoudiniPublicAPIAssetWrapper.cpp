@@ -51,6 +51,9 @@
 #include "HoudiniPublicAPIBlueprintLib.h"
 #include "HoudiniPublicAPIInputTypes.h"
 #include <Selection.h>
+#include "Landscape.h"
+#include "LandscapeInfo.h"
+#include "LandscapeStreamingProxy.h"
 
 FHoudiniPublicAPIRampPoint::FHoudiniPublicAPIRampPoint()
 	: Position(0)
@@ -451,10 +454,23 @@ UHoudiniPublicAPIAssetWrapper::GetBakedOutputActors_Implementation()
 		for (const auto& BakedPair : BakedOutput.BakedOutputObjects) 
 		{
 			AActor* Actor = BakedPair.Value.GetActorIfValid(true);
-			if (!Actor)
-				continue;
+			if (Actor)
+				OutputActors.Add(Actor);
 
-			OutputActors.Add(Actor);
+			// Get valid Landscape and Proxies
+			if (ALandscape* BakedLandscape = BakedPair.Value.GetLandscapeIfValid(true)) 
+			{
+				OutputActors.Add(Cast<AActor>(BakedLandscape));
+
+				if (ULandscapeInfo* LandscapeInfo = BakedLandscape->GetLandscapeInfo())
+				{
+					for (const TWeakObjectPtr<ALandscapeStreamingProxy>& WeakProxy : LandscapeInfo->StreamingProxies) 
+					{
+						if (ALandscapeStreamingProxy* Proxy = WeakProxy.Get())
+							OutputActors.Add(Cast<AActor>(Proxy));
+					}
+				}
+			}
 		}
 	}
 
