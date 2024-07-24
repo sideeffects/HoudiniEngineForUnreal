@@ -181,7 +181,7 @@ TArray<FFoliageInstance> FHoudiniFoliageTools::GetAllFoliageInstances(UWorld* In
     return Results;
 }
 
-void FHoudiniFoliageTools::SpawnFoliageInstances(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& InstancesToPlace, const TArray<FFoliageAttachmentInfo>& AttachmentInfo)
+TArray<AInstancedFoliageActor*> FHoudiniFoliageTools::SpawnFoliageInstances(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& InstancesToPlace, const TArray<FFoliageAttachmentInfo>& AttachmentInfo)
 {
 	// This code is largely cribbed from SpawnFoliageInstance() in UE5's FoliageEdMode.cpp. It has UI specific functionality removed.
 
@@ -189,6 +189,7 @@ void FHoudiniFoliageTools::SpawnFoliageInstances(UWorld* InWorld, UFoliageType* 
 	const bool bSpawnInCurrentLevel = true;
 	ULevel* CurrentLevel = InWorld->GetCurrentLevel();
 	const bool bCreate = true;
+	TSet<AInstancedFoliageActor*> FoliageActors;
 	for (int Index = 0; Index < InstancesToPlace.Num(); Index++)
 	{
 		const FFoliageInstance& PlacedInstance = InstancesToPlace[Index];
@@ -196,6 +197,7 @@ void FHoudiniFoliageTools::SpawnFoliageInstances(UWorld* InWorld, UFoliageType* 
 		if (AInstancedFoliageActor* IFA = AInstancedFoliageActor::Get(InWorld, bCreate, LevelHint, PlacedInstance.Location))
 		{
 			PerIFAInstances.FindOrAdd(IFA).Add(Index);
+			FoliageActors.Add(IFA);
 		}
 	}
 
@@ -228,6 +230,8 @@ void FHoudiniFoliageTools::SpawnFoliageInstances(UWorld* InWorld, UFoliageType* 
 		    FoliageInfo->Refresh(true, false);
 		}
 	}
+
+	return FoliageActors.Array();
 }
 
 void

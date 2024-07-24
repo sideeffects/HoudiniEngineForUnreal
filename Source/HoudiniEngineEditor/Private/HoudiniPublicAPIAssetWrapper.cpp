@@ -455,6 +455,9 @@ UHoudiniPublicAPIAssetWrapper::GetBakedOutputActors_Implementation()
 				continue;
 
 			OutputActors.Add(Actor);
+
+			// Get valid Foliage Actors
+			OutputActors.Append(BakedPair.Value.GetFoliageActorsIfValid(true));
 		}
 	}
 

@@ -1000,7 +1000,7 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		// Copy all cooked instances to reference the baked instances.
 		auto Instances = FHoudiniFoliageTools::GetAllFoliageInstances(DesiredWorld, OutputObject->FoliageType);
 
-		FHoudiniFoliageTools::SpawnFoliageInstances(DesiredWorld, TargetFoliageType, Instances, {});
+		TArray<AInstancedFoliageActor*> FoliageActors = FHoudiniFoliageTools::SpawnFoliageInstances(DesiredWorld, TargetFoliageType, Instances, {});
 
 		TArray<FVector> InstancesPositions;
 		InstancesPositions.Reserve(Instances.Num());
@@ -1009,9 +1009,17 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 			InstancesPositions.Add(Instance.Location);	
 		}
 
+		TArray<FString> ActorInstancePaths;
+		ActorInstancePaths.Reserve(FoliageActors.Num());
+		for (auto & Instance : FoliageActors) 
+		{
+			ActorInstancePaths.Add(Instance->GetPathName());
+		}
+
 		// Store back output object.
 		BakedObject.FoliageType = TargetFoliageType;
 		BakedObject.FoliageInstancePositions = InstancesPositions;
+		BakedObject.FoliageActors = ActorInstancePaths;
 		InBakeState.SetNewBakedOutputObject(InOutputIndex, Identifier, BakedObject);
     }
 

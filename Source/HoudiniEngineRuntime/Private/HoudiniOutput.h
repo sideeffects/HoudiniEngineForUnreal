@@ -535,6 +535,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// Returns BakedSkeleton if valid, otherwise nullptr
 		USkeleton* GetBakedSkeletonIfValid(bool bInTryLoad=true) const;
 
+		// Returns the generated or modified Foliage actors if valid
+		TArray<AActor*> GetFoliageActorsIfValid(bool bInTryLoad=true) const;
+
 		// The actor that the baked output was associated with
 		UPROPERTY()
 		FString Actor;
@@ -575,6 +578,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		UPROPERTY()
 		UFoliageType* FoliageType = nullptr;
 
+		// Foliage Actor Instances
+		UPROPERTY()
+		TArray<FString> FoliageActors;
+	
 		// All exported level instance actors.
 		UPROPERTY()
 		TArray<FString> LevelInstanceActors;
