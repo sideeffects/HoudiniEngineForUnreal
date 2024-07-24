@@ -535,6 +535,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// Returns BakedSkeleton if valid, otherwise nullptr
 		USkeleton* GetBakedSkeletonIfValid(bool bInTryLoad=true) const;
 
+		// Returns an array of valid instanced actors
+		TArray<AActor*> GetInstancedActorsIfValid(bool bInTryLoad=true) const;
+
 		// The actor that the baked output was associated with
 		UPROPERTY()
 		FString Actor;
