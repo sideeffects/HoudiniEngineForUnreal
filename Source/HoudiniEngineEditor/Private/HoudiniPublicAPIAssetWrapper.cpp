@@ -451,10 +451,11 @@ UHoudiniPublicAPIAssetWrapper::GetBakedOutputActors_Implementation()
 		for (const auto& BakedPair : BakedOutput.BakedOutputObjects) 
 		{
 			AActor* Actor = BakedPair.Value.GetActorIfValid(true);
-			if (!Actor)
-				continue;
+			if (Actor)
+				OutputActors.Add(Actor);
 
-			OutputActors.Add(Actor);
+			// Get valid Foliage Actors
+			OutputActors.Append(BakedPair.Value.GetFoliageActorsIfValid(true));
 		}
 	}
 

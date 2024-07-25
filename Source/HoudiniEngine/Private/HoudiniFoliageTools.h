@@ -68,7 +68,7 @@ public:
 	static TArray<UFoliageType*> GetFoliageTypes(const ULevel* DesiredLevel, const UStaticMesh* InstancedStaticMesh);
 
 	// Spawn the Foliage Instances into the given World/Foliage Type.
-	static void SpawnFoliageInstances(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& InstancesToPlace, const TArray<FFoliageAttachmentInfo> & AttachementInfos);
+	static TArray<AInstancedFoliageActor*> SpawnFoliageInstances(UWorld* InWorld, UFoliageType* Settings, const TArray<FFoliageInstance>& InstancesToPlace, const TArray<FFoliageAttachmentInfo> & AttachementInfos);
 
 	// Returns Foliage Instances used in the given World by the Foliage Type.
 	static TArray<FFoliageInstance> GetAllFoliageInstances(UWorld* InWorld, UFoliageType* Settings);
