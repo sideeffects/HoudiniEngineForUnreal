@@ -134,8 +134,12 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 	
 	const FMargin ContentPadding(4.f, 2.f);
 
-	auto AddParameterItemRowFn = [this, Container, ContentPadding] (TSharedRef<SSplitter> Splitter, const FString& Label, const FString& Name, const FString& Tooltip, const FString& ValueStr)
+	auto AddParameterItemRowFn = [this, Container, ContentPadding] (
+		int Indentation, TSharedRef<SSplitter> Splitter, FString Label, const FString& Name, const FString& Tooltip, const FString& ValueStr)
 	{
+		FString Indent = FString::ChrN(Indentation * 8, ' ');
+		Label = Indent + Label;
+
 		// Item Row
 		Container->AddSlot()
 			.AutoHeight()
@@ -761,80 +765,82 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 
 		// By default we'll include all parameters for the preset
 		KeepParameters.Add(ParamName);
-		
+
+		FString ValueStr;
+		bool bValidRow = false;
+
 		switch (Param->GetParameterType())
 		{
 			// Float based parameters
 			case EHoudiniParameterType::Color:
-				if (FString ValueStr; FHoudiniPresetHelpers::IngestParameter(Cast<UHoudiniParameterColor>(Param), FloatValues, ValueStr))
-				{
-					AddParameterItemRowFn(Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
-				}
+				bValidRow = FHoudiniPresetHelpers::GetParameterValues(Cast<UHoudiniParameterColor>(Param), FloatValues, ValueStr);
 				break;
 			case EHoudiniParameterType::ColorRamp:
-				if (FString ValueStr; FHoudiniPresetHelpers::IngestParameter(Cast<UHoudiniParameterRampColor>(Param), RampColorValues, ValueStr))
-				{
-					AddParameterItemRowFn(Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
-				}
+				bValidRow = FHoudiniPresetHelpers::GetParameterValues(Cast<UHoudiniParameterRampColor>(Param), RampColorValues, ValueStr);
 				break;
 			case EHoudiniParameterType::File:
 			case EHoudiniParameterType::FileDir:
 			case EHoudiniParameterType::FileGeo:
 			case EHoudiniParameterType::FileImage:
-				if (FString ValueStr; FHoudiniPresetHelpers::IngestParameter(Cast<UHoudiniParameterFile>(Param), StringValues, ValueStr))
-				{
-					AddParameterItemRowFn(Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
-				}
+				bValidRow = FHoudiniPresetHelpers::GetParameterValues(Cast<UHoudiniParameterFile>(Param), StringValues, ValueStr);
 				break;
 			case EHoudiniParameterType::Float:
-				if (FString ValueStr; FHoudiniPresetHelpers::IngestParameter(Cast<UHoudiniParameterFloat>(Param), FloatValues, ValueStr))
-				{
-					AddParameterItemRowFn(Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
-				}
+				bValidRow = FHoudiniPresetHelpers::GetParameterValues(Cast<UHoudiniParameterFloat>(Param), FloatValues, ValueStr);
 				break;
 			case EHoudiniParameterType::FloatRamp:
-				if (FString ValueStr; FHoudiniPresetHelpers::IngestParameter(Cast<UHoudiniParameterRampFloat>(Param), RampFloatValues, ValueStr))
-				{
-					AddParameterItemRowFn(Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
-				}
+				bValidRow = FHoudiniPresetHelpers::GetParameterValues(Cast<UHoudiniParameterRampFloat>(Param), RampFloatValues, ValueStr);
 				break;
 			case EHoudiniParameterType::Input:
 				// This input will be processed during the Input Loop at the end
 				break;
 			case EHoudiniParameterType::Int:
-				if (FString ValueStr; FHoudiniPresetHelpers::IngestParameter(Cast<UHoudiniParameterInt>(Param), IntValues, ValueStr))
-				{
-					AddParameterItemRowFn(Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
-				}
+				bValidRow = FHoudiniPresetHelpers::GetParameterValues(Cast<UHoudiniParameterInt>(Param), IntValues, ValueStr);
 				break;
 			case EHoudiniParameterType::IntChoice:
-				if (FString ValueStr; FHoudiniPresetHelpers::IngestParameter(Cast<UHoudiniParameterChoice>(Param), IntValues, ValueStr))
-				{
-					AddParameterItemRowFn(Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
-				}
+				bValidRow = FHoudiniPresetHelpers::GetParameterValues(Cast<UHoudiniParameterChoice>(Param), IntValues, ValueStr);
 				break;
 			case EHoudiniParameterType::Toggle:
-				if (FString ValueStr; FHoudiniPresetHelpers::IngestParameter(Cast<UHoudiniParameterToggle>(Param), IntValues, ValueStr))
-				{
-					AddParameterItemRowFn(Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
-				}
+				bValidRow = FHoudiniPresetHelpers::GetParameterValues(Cast<UHoudiniParameterToggle>(Param), IntValues, ValueStr);
 				break;
 			case EHoudiniParameterType::String:
 			case EHoudiniParameterType::StringAssetRef:
-				if (FString ValueStr; FHoudiniPresetHelpers::IngestParameter(Cast<UHoudiniParameterString>(Param), StringValues, ValueStr))
-				{
-					AddParameterItemRowFn(Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
-				}
+				bValidRow = FHoudiniPresetHelpers::GetParameterValues(Cast<UHoudiniParameterString>(Param), StringValues, ValueStr);
 				break;
 			case EHoudiniParameterType::StringChoice:
-				if (FString ValueStr; FHoudiniPresetHelpers::IngestParameter(Cast<UHoudiniParameterChoice>(Param), StringValues, ValueStr))
-				{
-					AddParameterItemRowFn(Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
-				}
+				bValidRow = FHoudiniPresetHelpers::GetParameterValues(Cast<UHoudiniParameterChoice>(Param), StringValues, ValueStr);
 				break;
-			
-			default: ;
+			case EHoudiniParameterType::MultiParm:
+				bValidRow = FHoudiniPresetHelpers::GetParameterValues(Cast<UHoudiniParameterMultiParm>(Param), MultiParmValues, ValueStr);
+				MultiParmChildren.Add(ParamName, {});
+				break;
+			default:
+				bValidRow = false;
+				break;
 		}
+
+		if (bValidRow)
+		{
+			// Calculate an appropriate indentation for multi-parms
+			int Indentation = 0;
+			auto * IndentParam = Param;
+			while(IndentParam->GetIsChildOfMultiParm())
+			{
+				++Indentation;
+				IndentParam = HAC->GetParameterAt(IndentParam->GetParentParmId());
+			}
+
+			AddParameterItemRowFn(Indentation, Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
+		}
+
+		if (Param->GetIsChildOfMultiParm())
+		{
+			// If this Parm is a child of a multiparm, keep track of it
+			int ParentId = Param->GetParentParmId();
+			auto ParentParm = HAC->GetParameterAt(ParentId);
+			MultiParmChildren[ParentParm->GetParameterName()].Add(Param->GetParameterName());
+			MultiParmParent.Add(Param->GetParameterName(), ParentParm->GetParameterName());
+		}
+
 	} // End for loop over parms
 
 	// Inputs
@@ -972,8 +978,7 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 			
 			const int32 NumObjects = Input->GetNumberOfInputObjects();
 			FString InputTypeName = UHoudiniInput::InputTypeToString( Input->GetInputType() );
-			FString ValueStr;
-			FHoudiniPresetHelpers::IngestGenericInput(Input, bIsObjectPathParameter, ParameterName, InputValues, ValueStr);
+			FHoudiniPresetHelpers::GetGenericInput(Input, bIsObjectPathParameter, ParameterName, InputValues);
 
 			TSharedRef<SSplitter> Splitter = CreateSplitterFn();
 
@@ -1228,10 +1233,31 @@ void SHoudiniPresetUIBase::OnParameterCheckStateChanged(ECheckBoxState CheckStat
 	if (CheckState == ECheckBoxState::Checked)
 	{
 		KeepParameters.Add(ParamName);
+
+		// If a child of a multi-parm is activated, make sure all parents are activated.
+		FString * ParentName = MultiParmParent.Find(ParamName);
+		while(ParentName)
+		{
+			KeepParameters.Add(*ParentName);
+			ParentName = MultiParmParent.Find(*ParentName);
+		}
+
 	}
 	else
 	{
 		KeepParameters.Remove(ParamName);
+	}
+
+	// If the parent of a multi-parm is changed, change all its children.
+	if (auto* Children = MultiParmChildren.Find(ParamName))
+	{
+		for (const FString & Child : *Children)
+		{
+			if (CheckState == ECheckBoxState::Checked)
+				KeepParameters.Add(Child);
+			else
+				KeepParameters.Remove(Child);
+		}
 	}
 }
 
@@ -1343,9 +1369,9 @@ SHoudiniPresetUIBase::SelectAllParameters()
 	}
 }
 
-void SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Asset)
+void SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Preset)
 {
-	if (!IsValid(Asset))
+	if (!IsValid(Preset))
 	{
 		HOUDINI_LOG_ERROR(TEXT("Error populating Preset from UI. Invalid UHoudiniPreset asset."));
 		return;
@@ -1353,81 +1379,91 @@ void SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Asset)
 
 	if (!HoudiniAssetComponent.IsValid())
 	{
-		HOUDINI_LOG_ERROR(TEXT("Error populating Preset from UI. Invalid Houdini Asset Component asset."));
+		HOUDINI_LOG_ERROR(TEXT("Error populating Preset from UI. Invalid Houdini Preset Component asset."));
 		return;
 	}
 	
 	const UHoudiniAssetComponent* HAC = HoudiniAssetComponent.Get();
 
-	Asset->Modify();
+	Preset->Modify();
 	
 	// Populate the preset asset
-	Asset->Name = PresetLabel;
-	Asset->Description = PresetDescription;
-	Asset->SourceHoudiniAsset = SourceHoudiniAsset.Get();
-	Asset->bApplyOnlyToSource = bApplyOnlyToSource;
-	Asset->bCanInstantiate = bCanInstantiate;
-	Asset->bRevertHDAParameters = bRevertHDAParameters;
+	Preset->Name = PresetLabel;
+	Preset->Description = PresetDescription;
+	Preset->SourceHoudiniAsset = SourceHoudiniAsset.Get();
+	Preset->bApplyOnlyToSource = bApplyOnlyToSource;
+	Preset->bCanInstantiate = bCanInstantiate;
+	Preset->bRevertHDAParameters = bRevertHDAParameters;
 
-	Asset->bApplyTemporaryCookFolder = bApplyTempCookFolder;
-	Asset->TemporaryCookFolder = HAC->TemporaryCookFolder.Path;
-	Asset->bApplyBakeFolder = bApplyBakeFolder;
-	Asset->BakeFolder = HAC->BakeFolder.Path;
+	Preset->bApplyTemporaryCookFolder = bApplyTempCookFolder;
+	Preset->TemporaryCookFolder = HAC->TemporaryCookFolder.Path;
+	Preset->bApplyBakeFolder = bApplyBakeFolder;
+	Preset->BakeFolder = HAC->BakeFolder.Path;
 
-	FHoudiniToolsEditor::CopySettingsToPreset(HAC, bApplyAssetOptions, bApplyBakeOptions, bApplyStaticMeshGenSettings, bApplyProxyMeshGenSettings, Asset);
+	FHoudiniToolsEditor::CopySettingsToPreset(HAC, bApplyAssetOptions, bApplyBakeOptions, bApplyStaticMeshGenSettings, bApplyProxyMeshGenSettings, Preset);
 
 	// Transfer int params that we want to keep (checked by the user)
-	Asset->IntParameters.Empty();
+	Preset->IntParameters.Empty();
 	for (auto& Entry : IntValues)
 	{
 		if (KeepParameters.Contains(Entry.Key))
 		{
-			Asset->IntParameters.Add(Entry.Key, Entry.Value);
+			Preset->IntParameters.Add(Entry.Key, Entry.Value);
 		}
 	}
 	
 	// Transfer float parameters
-	Asset->FloatParameters.Empty();
+	Preset->FloatParameters.Empty();
 	for (auto& Entry : FloatValues)
 	{
 		if (KeepParameters.Contains(Entry.Key))
 		{
-			Asset->FloatParameters.Add(Entry.Key, Entry.Value);
+			Preset->FloatParameters.Add(Entry.Key, Entry.Value);
 		}
 	}
 
 	// Transfer string parameters
-	Asset->StringParameters.Empty();
+	Preset->StringParameters.Empty();
 	for (auto& Entry : StringValues)
 	{
 		if (KeepParameters.Contains(Entry.Key))
 		{
-			Asset->StringParameters.Add(Entry.Key, Entry.Value);
+			Preset->StringParameters.Add(Entry.Key, Entry.Value);
 		}
 	}
 	
 	// Transform Ramp (float) parameters
-	Asset->RampFloatParameters.Empty();
+	Preset->RampFloatParameters.Empty();
 	for (auto& Entry : RampFloatValues)
 	{
 		if (KeepParameters.Contains(Entry.Key))
 		{
-			Asset->RampFloatParameters.Add(Entry.Key, Entry.Value);
+			Preset->RampFloatParameters.Add(Entry.Key, Entry.Value);
 		}
 	}
 
 	// Transform Ramp (color) parameters
-	Asset->RampColorParameters.Empty();
+	Preset->RampColorParameters.Empty();
 	for (auto& Entry : RampColorValues)
 	{
 		if (KeepParameters.Contains(Entry.Key))
 		{
-			Asset->RampColorParameters.Add(Entry.Key, Entry.Value);
+			Preset->RampColorParameters.Add(Entry.Key, Entry.Value);
+		}
+	}
+
+	// Transform multiparam parameters
+	Preset->MultiParmParameters.Empty();
+	for (auto& Entry : MultiParmValues)
+	{
+		if (KeepParameters.Contains(Entry.Key))
+		{
+			Preset->MultiParmParameters.Add(Entry.Key, Entry.Value);
 		}
 	}
 
 	// Transfer input parameters
-	Asset->InputParameters.Empty();
+	Preset->InputParameters.Empty();
 	for (int32 InputIndex = 0; InputIndex < InputValues.Num(); ++InputIndex)
 	{
 		auto& Entry = InputValues[InputIndex];
@@ -1435,30 +1471,30 @@ void SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Asset)
 		{
 			if (KeepParameters.Contains(Entry.ParameterName))
 			{
-				Asset->InputParameters.Add(Entry);
+				Preset->InputParameters.Add(Entry);
 			}
 		}
 		else
 		{
 			if (KeepInputs.Contains(Entry.InputIndex))
 			{
-				Asset->InputParameters.Add(Entry);
+				Preset->InputParameters.Add(Entry);
 			}
 		}
 	}
 
 	// Copy the icon from the source houdini asset, if possible
-	if (IsValid(Asset->SourceHoudiniAsset))
+	if (IsValid(Preset->SourceHoudiniAsset))
 	{
-		const UHoudiniToolData* ToolData = Asset->SourceHoudiniAsset->HoudiniToolData;
+		const UHoudiniToolData* ToolData = Preset->SourceHoudiniAsset->HoudiniToolData;
 		if (IsValid(ToolData))
 		{
-			Asset->IconImageData = ToolData->IconImageData;
-			FHoudiniToolsRuntimeUtils::UpdateAssetThumbnailFromImageData(Asset, Asset->IconImageData);
+			Preset->IconImageData = ToolData->IconImageData;
+			FHoudiniToolsRuntimeUtils::UpdateAssetThumbnailFromImageData(Preset, Preset->IconImageData);
 		}
 	}
 
-	Asset->MarkPackageDirty();
+	Preset->MarkPackageDirty();
 }
 
 
@@ -1670,6 +1706,10 @@ SHoudiniUpdatePresetFromHDA::PostConstruct()
 
 	SelectedPreset->RampColorParameters.GetKeys(Keys);
 	KeepParameters.Append( Keys );
+	Keys.Empty();
+
+	SelectedPreset->MultiParmParameters.GetKeys(Keys);
+	KeepParameters.Append(Keys);
 	Keys.Empty();
 
 	KeepInputs.Empty();

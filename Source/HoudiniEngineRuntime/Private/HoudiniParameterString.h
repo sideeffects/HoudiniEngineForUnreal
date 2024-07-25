@@ -48,7 +48,7 @@ public:
 
 	UObject* GetAssetAt(const uint32& Index) const { return ChosenAssets.IsValidIndex(Index) ? ChosenAssets[Index] : nullptr; };
 
-	int32 GetNumberOfValues() { return Values.Num(); };
+	int32 GetNumberOfValues() const { return Values.Num(); };
 
 	bool IsAssetRef() const { return bIsAssetRef; };
 

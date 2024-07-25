@@ -73,6 +73,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
+#include "HoudiniParameterTranslator.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	#include "Subsystems/EditorAssetSubsystem.h"
@@ -2856,7 +2857,7 @@ void
 FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	const UHoudiniPreset* Preset,
 	UHoudiniAssetComponent* HAC,
-	const bool bReselectSelectedActors)
+	bool bReselectSelectedActors)
 {
 	if (!IsValid(HAC) || !IsValid(Preset))
 	{
@@ -2914,13 +2915,32 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	}
 
 	// Iterate over all the parameters and settings in the preset and apply it to the Houdini Asset Component.
-	
+
+	// Apply all the Multiparam parameters
+	for (const auto& Entry : Preset->MultiParmParameters)
+	{
+		const FString& ParmName = Entry.Key;
+		const FHoudiniPresetMultiParmValues & ParmValues = Entry.Value;
+
+		UHoudiniParameter* Parm = HAC->FindParameterByName(ParmName);
+		if (!IsValid(Parm))
+			continue;
+
+		FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterMultiParm>(Parm));
+	}
+
+	if (Preset->MultiParmParameters.Num() > 0)
+	{
+		FHoudiniParameterTranslator::UploadChangedParameters(HAC);
+		FHoudiniParameterTranslator::UpdateParameters(HAC);
+	}
+
 	// Apply all the Int parameters
 	for( const auto& Entry : Preset->IntParameters )
 	{
 		const FString& ParmName = Entry.Key;
 		const FHoudiniPresetIntValues& ParmValues = Entry.Value;
-
+		
 		UHoudiniParameter* Parm = HAC->FindParameterByName( ParmName );
 		if (!IsValid(Parm))
 		{

@@ -47,8 +47,8 @@ public:
 	// Accessors
 	FString GetFileFilters() const { return Filters; };
 	bool IsReadOnly() const { return bIsReadOnly; };
-	FString GetValueAt(int32 Index) { return Values[Index]; };
-	int32 GetNumValues() { return Values.Num(); };
+	FString GetValueAt(int32 Index) const { return Values[Index]; };
+	int32 GetNumValues() const { return Values.Num(); };
 
 	void SetNumberOfValues(const uint32& NumValues) { Values.SetNum(NumValues); };
 	bool SetValueAt(const FString& InValue, const uint32& Index);

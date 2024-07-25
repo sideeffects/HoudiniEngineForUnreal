@@ -73,7 +73,7 @@ public:
 	// Write access to the value array
 	float* GetValuesPtr() { return Values.Num() > 0 ? &Values[0] : nullptr; };
 
-	int32 GetNumberOfValues() { return Values.Num(); };
+	int32 GetNumberOfValues() const { return Values.Num(); };
 
 	// Mutators
 	void SetHasMin(const bool& InHasMin) { bHasMin = InHasMin; };

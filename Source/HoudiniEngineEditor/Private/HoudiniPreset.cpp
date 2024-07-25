@@ -65,134 +65,93 @@ FHoudiniPresetHelpers::IsSupportedInputType(const EHoudiniInputType InputType)
 	return false;
 }
 
-void
-FHoudiniPresetHelpers::PopulateFromParameter(UHoudiniParameterFloat* Parm, FHoudiniPresetFloatValues& Value)
-{
-	const int32 NumValues = Parm->GetNumberOfValues();
-	Value.Values.SetNum(NumValues);
-	for (int i = 0; i < NumValues; i++)
-	{
-		Parm->GetValueAt(i, Value.Values[i]);
-	}
-}
-
-
-void
-FHoudiniPresetHelpers::PopulateFromParameter(UHoudiniParameterInt* Parm, FHoudiniPresetIntValues& Value)
-{
-	const int32 NumValues = Parm->GetNumberOfValues();
-	Value.Values.SetNum(NumValues);
-	for (int i = 0; i < NumValues; i++)
-	{
-		Parm->GetValueAt(i, Value.Values[i]);
-	}
-}
-
-
-void
-FHoudiniPresetHelpers::PopulateFromParameter(UHoudiniParameterString* Parm, FHoudiniPresetStringValues& Value)
-{
-	const int32 NumValues = Parm->GetNumberOfValues();
-	Value.Values.SetNum(NumValues);
-	for (int i = 0; i < NumValues; i++)
-	{
-		Value.Values[i] = Parm->GetValueAt(i);
-	}
-}
-
-
 bool
-FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterInt* Parm,
-	TMap<FString, FHoudiniPresetIntValues>& OutValues, FString& OutValueStr)
+FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterInt* Param, TMap<FString, FHoudiniPresetIntValues>& OutValues, FString& OutValueStr)
 {
-	if (!IsValid(Parm))
+	if (!IsValid(Param))
 	{
 		return false;
 	}
 
-	const int32 NumValues = Parm->GetNumberOfValues();
+	const int32 NumValues = Param->GetNumberOfValues();
 	FHoudiniPresetIntValues Values;
 	Values.Values.SetNum(NumValues);
 	for (int i = 0; i < NumValues; i++)
 	{
-		Parm->GetValueAt(i, Values.Values[i]);
+		Param->GetValueAt(i, Values.Values[i]);
 	}
 
-	OutValues.Add(Parm->GetParameterName(), Values);
+	OutValues.Add(Param->GetParameterName(), Values);
 	OutValueStr = Values.ToString();
 	return true;
 }
 
 
 bool
-FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterChoice* Parm,
-	TMap<FString, FHoudiniPresetIntValues>& OutValues, FString& OutValueStr)
+FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterChoice* Param, TMap<FString, FHoudiniPresetIntValues>& OutValues, FString& OutValueStr)
 {
-	if (!IsValid(Parm))
+	if (!IsValid(Param))
 	{
 		return false;
 	}
 	
 	FHoudiniPresetIntValues Values;
-	Values.Values.Add( Parm->GetIntValueIndex() );
+	Values.Values.Add(Param->GetIntValueIndex() );
 
-	OutValues.Add(Parm->GetParameterName(), Values);
+	OutValues.Add(Param->GetParameterName(), Values);
 	OutValueStr = Values.ToString();
 	return true;
 }
 
 
 bool
-FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterToggle* Parm,
-	TMap<FString, FHoudiniPresetIntValues>& OutValues, FString& OutValueStr)
+FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterToggle* Param, TMap<FString, FHoudiniPresetIntValues>& OutValues, FString& OutValueStr)
 {
-	if (!IsValid(Parm))
+	if (!IsValid(Param))
 	{
 		return false;
 	}
 
-	const int32 NumValues = Parm->GetNumValues();
+	const int32 NumValues = Param->GetNumValues();
 	FHoudiniPresetIntValues Values;
 	Values.Values.SetNum(NumValues);
 	for (int i = 0; i < NumValues; i++)
 	{
-		 Values.Values[i] = static_cast<int>(Parm->GetValueAt(i));
+		 Values.Values[i] = static_cast<int>(Param->GetValueAt(i));
 	}
 
-	OutValues.Add(Parm->GetParameterName(), Values);
+	OutValues.Add(Param->GetParameterName(), Values);
 	OutValueStr = Values.ToString();
 	return true;
 }
 
 
 bool
-FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterFloat* Parm,
-	TMap<FString, FHoudiniPresetFloatValues>& OutValues, FString& OutValueStr)
+FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterFloat* Param, TMap<FString, FHoudiniPresetFloatValues>& OutValues, FString& OutValueStr)
 {
-	if (!IsValid(Parm))
+	if (!IsValid(Param))
 	{
 		return false;
 	}
 
-	const int32 NumValues = Parm->GetNumberOfValues();
+	const int32 NumValues = Param->GetNumberOfValues();
 	FHoudiniPresetFloatValues Values;
 	Values.Values.SetNum(NumValues);
 	for (int i = 0; i < NumValues; i++)
 	{
-		Parm->GetValueAt(i, Values.Values[i]);
+		Param->GetValueAt(i, Values.Values[i]);
 	}
 
-	OutValues.Add(Parm->GetParameterName(), Values);
+	OutValues.Add(Param->GetParameterName(), Values);
 	OutValueStr = Values.ToString();
 	return true;
 }
 
 
 bool
-FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterColor* Parm,
-	TMap<FString, FHoudiniPresetFloatValues>& OutValues, FString& OutValueStr)
+FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterColor* Param, TMap<FString, FHoudiniPresetFloatValues>& OutValues, FString& OutValueStr)
 {
-	if (!IsValid(Parm))
+	if (!IsValid(Param))
 	{
 		return false;
 	}
@@ -200,59 +159,57 @@ FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterColor* Parm,
 	FHoudiniPresetFloatValues Values;
 	Values.Values.SetNum(4);
 	
-	const FLinearColor Color = Parm->GetColorValue();
+	const FLinearColor Color = Param->GetColorValue();
 	Values.Values[0] = Color.R;
 	Values.Values[1] = Color.G;
 	Values.Values[2] = Color.B;
 	Values.Values[3] = Color.A;
 	
-	OutValues.Add(Parm->GetParameterName(), Values);
+	OutValues.Add(Param->GetParameterName(), Values);
 	OutValueStr = Values.ToString();
 	return true;
 }
 
 
 bool
-FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterString* Parm,
-	TMap<FString, FHoudiniPresetStringValues>& OutValues, FString& OutValueStr)
+FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterString* Param, TMap<FString, FHoudiniPresetStringValues>& OutValues, FString& OutValueStr)
 {
-	if (!IsValid(Parm))
+	if (!IsValid(Param))
 	{
 		return false;
 	}
 
-	const int32 NumValues = Parm->GetNumberOfValues();
+	const int32 NumValues = Param->GetNumberOfValues();
 	FHoudiniPresetStringValues Values;
 	Values.Values.SetNum(NumValues);
 	for (int i = 0; i < NumValues; i++)
 	{
-		Values.Values[i] = Parm->GetValueAt(i);
+		Values.Values[i] = Param->GetValueAt(i);
 	}
 
-	OutValues.Add(Parm->GetParameterName(), Values);
+	OutValues.Add(Param->GetParameterName(), Values);
 	OutValueStr = Values.ToString();
 	return true;
 }
 
 
 bool
-FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterFile* Parm,
-	TMap<FString, FHoudiniPresetStringValues>& OutValues, FString& OutValueStr)
+FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterFile* Param, TMap<FString, FHoudiniPresetStringValues>& OutValues, FString& OutValueStr)
 {
-	if (!IsValid(Parm))
+	if (!IsValid(Param))
 	{
 		return false;
 	}
 	
-	const int32 NumValues = Parm->GetNumValues();
+	const int32 NumValues = Param->GetNumValues();
 	FHoudiniPresetStringValues Values;
 	Values.Values.SetNum(NumValues);
 	for (int i = 0; i < NumValues; i++)
 	{
-		Values.Values[i] = Parm->GetValueAt(i);
+		Values.Values[i] = Param->GetValueAt(i);
 	}
 
-	OutValues.Add(Parm->GetParameterName(), Values);
+	OutValues.Add(Param->GetParameterName(), Values);
 	OutValueStr = Values.ToString();
 	
 	return true;
@@ -260,34 +217,33 @@ FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterFile* Parm,
 
 
 bool
-FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterChoice* Parm,
-	TMap<FString, FHoudiniPresetStringValues>& OutValues, FString& OutValueStr)
+FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterChoice* Param, TMap<FString, FHoudiniPresetStringValues>& OutValues, FString& OutValueStr)
 {
-	if (!IsValid(Parm))
+	if (!IsValid(Param))
 	{
 		return false;
 	}
 	
 	FHoudiniPresetStringValues Values;
-	Values.Values.Add( Parm->GetStringValue() );
+	Values.Values.Add(Param->GetStringValue() );
 
-	OutValues.Add(Parm->GetParameterName(), Values);
+	OutValues.Add(Param->GetParameterName(), Values);
 	OutValueStr = Values.ToString();
 	return true;
 }
 
 
 bool
-FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterRampFloat* Parm,
+FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterRampFloat* Param,
 	TMap<FString, FHoudiniPresetRampFloatValues>& OutValues, FString& OutValueStr)
 {
-	if (!IsValid(Parm))
+	if (!IsValid(Param))
 	{
 		return false;
 	}
 
 	FHoudiniPresetRampFloatValues Values;
-	for (const UHoudiniParameterRampFloatPoint* ParmPoint : Parm->Points)
+	for (const UHoudiniParameterRampFloatPoint* ParmPoint : Param->Points)
 	{
 		if (!IsValid(ParmPoint))
 		{
@@ -300,7 +256,7 @@ FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterRampFloat* Parm,
 		Values.Points.Add(Point);
 	}
 
-	OutValues.Add(Parm->GetParameterName(), Values);
+	OutValues.Add(Param->GetParameterName(), Values);
 	OutValueStr = Values.ToString();
 	
 	return true;
@@ -308,7 +264,7 @@ FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterRampFloat* Parm,
 
 
 bool
-FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterRampColor* Parm,
+FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterRampColor* Parm,
 	TMap<FString, FHoudiniPresetRampColorValues>& OutValues, FString& OutValueStr)
 {
 	if (!IsValid(Parm))
@@ -336,14 +292,26 @@ FHoudiniPresetHelpers::IngestParameter(UHoudiniParameterRampColor* Parm,
 	return true;
 }
 
+bool
+FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterMultiParm* Parm, TMap<FString, FHoudiniPresetMultiParmValues>& OutValues, FString& OutValueStr)
+{
+	if (!IsValid(Parm))
+		return false;
+
+	FHoudiniPresetMultiParmValues Values;
+	Values.Count = Parm->GetInstanceCount();
+
+	OutValues.Add(Parm->GetParameterName(), Values);
+	OutValueStr = Values.ToString();
+
+	return true;
+}
 
 void
-FHoudiniPresetHelpers::IngestGenericInput(
-	UHoudiniInput* Input,
+FHoudiniPresetHelpers::GetGenericInput(UHoudiniInput* Input,
 	bool bIsParameterInput,
 	const FString& ParameterName,
-	TArray<FHoudiniPresetInputValue>& OutValues,
-	FString& OutValueStr)
+	TArray<FHoudiniPresetInputValue>& OutValues)
 {
 	FHoudiniPresetInputValue Value;
 	Value.ParameterName = ParameterName;
@@ -634,6 +602,19 @@ FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetRampFloatV
 	// We have already synced the cached points, so we don't need to process them on the next PreCook event.
 	Param->bCaching = false;
 }
+
+void
+FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetMultiParmValues& Values, UHoudiniParameterMultiParm* Param)
+{
+	if (!IsValid(Param))
+	{
+		return;
+	}
+	Param->SetNumElements(Values.Count);
+
+	Param->MarkChanged(true);
+}
+
 
 void
 FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetRampColorValues& Values, UHoudiniParameterRampColor* Param)
