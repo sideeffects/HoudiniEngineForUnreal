@@ -694,7 +694,8 @@ HAPI_Result FHoudiniHapiAccessor::SendHapiData(const HAPI_Session* Session, cons
 		}
 		else if constexpr (std::is_same_v<DataType, int64>)
 		{
-			Result = FHoudiniApi::SetAttributeInt64Data(Session, NodeId, PartId, AttributeName, &AttributeInfo, Data, StartIndex, IndexCount);
+			const HAPI_Int64* Hapi64Data = reinterpret_cast<const HAPI_Int64*>(Data); // worked around for some Linux variations.
+			Result = FHoudiniApi::SetAttributeInt64Data(Session, NodeId, PartId, AttributeName, &AttributeInfo, Hapi64Data, StartIndex, IndexCount);
 		}
 		else if constexpr (std::is_same_v<DataType, FString>)
 		{
