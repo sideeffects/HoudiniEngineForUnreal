@@ -743,6 +743,14 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 			];
 	}
 
+	// Construct of map of parms by Id for quick look up.
+	TMap<int, UHoudiniParameter*> IdToParam;
+	for (int Index = 0; Index < NumParms; Index++)
+	{
+		UHoudiniParameter* Param = HAC->GetParameterAt(Index);
+		IdToParam.Add(Param->GetParmId(), Param);
+	}
+
 	// List of parameter checkboxes
 	for (int i = 0; i < NumParms; i++)
 	{
@@ -826,7 +834,14 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 			while(IndentParam->GetIsChildOfMultiParm())
 			{
 				++Indentation;
-				IndentParam = HAC->GetParameterAt(IndentParam->GetParentParmId());
+
+				int ParentId = IndentParam->GetParentParmId();
+				
+				UHoudiniParameter ** Parent = IdToParam.Find(ParentId);
+				if (!Parent)
+					break;
+
+				IndentParam = *Parent;
 			}
 
 			AddParameterItemRowFn(Indentation, Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
@@ -836,9 +851,12 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 		{
 			// If this Parm is a child of a multiparm, keep track of it
 			int ParentId = Param->GetParentParmId();
-			auto ParentParm = HAC->GetParameterAt(ParentId);
-			MultiParmChildren[ParentParm->GetParameterName()].Add(Param->GetParameterName());
-			MultiParmParent.Add(Param->GetParameterName(), ParentParm->GetParameterName());
+			UHoudiniParameter** ParentParm = IdToParam.Find(ParentId);
+			if (ParentParm)
+			{
+				MultiParmChildren[(*ParentParm)->GetParameterName()].Add(Param->GetParameterName());
+				MultiParmParent.Add(Param->GetParameterName(), (*ParentParm)->GetParameterName());
+			}
 		}
 
 	} // End for loop over parms
@@ -1249,16 +1267,26 @@ void SHoudiniPresetUIBase::OnParameterCheckStateChanged(ECheckBoxState CheckStat
 	}
 
 	// If the parent of a multi-parm is changed, change all its children.
-	if (auto* Children = MultiParmChildren.Find(ParamName))
+	TArray<FString> ParamsToProcess;
+	ParamsToProcess.Add(ParamName);
+
+	while(!ParamsToProcess.IsEmpty())
 	{
-		for (const FString & Child : *Children)
+		FString ParentName = ParamsToProcess.Pop();
+		if (auto* Children = MultiParmChildren.Find(ParentName))
 		{
-			if (CheckState == ECheckBoxState::Checked)
-				KeepParameters.Add(Child);
-			else
-				KeepParameters.Remove(Child);
+			for (const FString& Child : *Children)
+			{
+				ParamsToProcess.Add(Child);
+				if (CheckState == ECheckBoxState::Checked)
+					KeepParameters.Add(Child);
+				else
+					KeepParameters.Remove(Child);
+			}
 		}
+
 	}
+
 }
 
 ECheckBoxState SHoudiniPresetUIBase::GetInputCheckState(const int32 InputIndex) const
