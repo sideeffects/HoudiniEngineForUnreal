@@ -584,6 +584,34 @@ FHoudiniBakedOutputObject::GetFoliageActorsIfValid(bool bInTryLoad) const
     return ValidActors;
 }
 
+TArray<AActor*> FHoudiniBakedOutputObject::GetInstancedActorsIfValid(bool bInTryLoad) const
+{
+    TArray<AActor*> ValidActors;
+
+    for (const FString& ActorPathString : InstancedActors)
+    {
+        FSoftObjectPath ActorPath(ActorPathString);
+
+        if (!ActorPath.IsValid())
+            continue;
+
+        UObject* ResolvedObject = ActorPath.ResolveObject();
+        if (!ResolvedObject && bInTryLoad)
+            ResolvedObject = ActorPath.TryLoad();
+
+        if (!IsValid(ResolvedObject))
+            continue;
+
+        AActor* ResolvedActor = Cast<AActor>(ResolvedObject);
+        if (ResolvedActor)
+        {
+            ValidActors.Add(ResolvedActor);
+        }
+    }
+
+    return ValidActors;
+}
+
 UHoudiniOutput::UHoudiniOutput(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Type(EHoudiniOutputType::Invalid)

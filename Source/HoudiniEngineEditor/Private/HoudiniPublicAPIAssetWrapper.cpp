@@ -456,6 +456,11 @@ UHoudiniPublicAPIAssetWrapper::GetBakedOutputActors_Implementation()
 
 			// Get valid Foliage Actors
 			OutputActors.Append(BakedPair.Value.GetFoliageActorsIfValid(true));
+
+			// Get valid instanced actors
+			TArray<AActor*> InstancedActors = BakedPair.Value.GetInstancedActorsIfValid(true);
+			OutputActors.Append(InstancedActors);
+
 		}
 	}
 

@@ -538,6 +538,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// Returns the generated or modified Foliage actors if valid
 		TArray<AActor*> GetFoliageActorsIfValid(bool bInTryLoad=true) const;
 
+		// Returns an array of valid instanced actors
+		TArray<AActor*> GetInstancedActorsIfValid(bool bInTryLoad=true) const;
+
 		// The actor that the baked output was associated with
 		UPROPERTY()
 		FString Actor;
