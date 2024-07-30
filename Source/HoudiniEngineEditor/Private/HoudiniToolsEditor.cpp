@@ -2914,6 +2914,8 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 		HAC->bLandscapeUseTempLayers = Preset->bLandscapeUseTempLayers;
 	}
 
+	FHoudiniParameterTranslator::UpdateParameters(HAC);
+
 	// Iterate over all the parameters and settings in the preset and apply it to the Houdini Asset Component.
 
 	// Apply all Multiparam parameters. Since multiparms may contain multiparms we need to perform a loop
@@ -3139,6 +3141,11 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	if (bReselectSelectedActors)
 	{
 		FHoudiniEngineEditorUtils::ReselectSelectedActors();
+	}
+
+	for(auto & Callback : Preset->PostInstantiationCallbacks)
+	{
+		Callback(Preset, HAC);
 	}
 }
 

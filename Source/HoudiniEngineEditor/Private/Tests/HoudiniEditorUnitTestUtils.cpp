@@ -23,14 +23,20 @@
 #include "HoudiniPDGManager.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
+UWorld* FHoudiniEditorUnitTestUtils::CreateEmptyMap(bool bOpenWorld)
+{
+	FString MapName = bOpenWorld ? TEXT("/Engine/Maps/Templates/OpenWorld.umap") : TEXT("/Engine/Maps/Templates/Template_Default.umap");
+
+	UWorld* World = UEditorLoadingAndSavingUtils::NewMapFromTemplate(MapName, false);
+	return World;
+}
+
 UHoudiniAssetComponent* FHoudiniEditorUnitTestUtils::LoadHDAIntoNewMap(
 	const FString& PackageName, 
 	const FTransform& Transform, 
 	bool bOpenWorld)
 {
-	FString MapName = bOpenWorld ? TEXT("/Engine/Maps/Templates/OpenWorld.umap") : TEXT("/Engine/Maps/Templates/Template_Default.umap");
-
-	UWorld* World = UEditorLoadingAndSavingUtils::NewMapFromTemplate(MapName, false);
+	UWorld * World = CreateEmptyMap(bOpenWorld);
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	TArray<FAssetData> AssetData;
@@ -216,6 +222,17 @@ UHoudiniParameter* FHoudiniEditorUnitTestUtils::GetTypedParameter(UHoudiniAssetC
 }
 
 FHoudiniTestContext::FHoudiniTestContext(
+	FAutomationTestBase* CurrentTest,
+	bool bOpenWorld)
+{
+	World = FHoudiniEditorUnitTestUtils::CreateEmptyMap(bOpenWorld);
+	this->bCookInProgress = true;
+	this->bPostOutputDelegateCalled = true;
+	Test = CurrentTest;
+	TimeStarted = FPlatformTime::Seconds();
+}
+
+FHoudiniTestContext::FHoudiniTestContext(
 	FAutomationTestBase* CurrentTest, 
 	const FString & HDAName,
 	const FTransform& Transform,
@@ -225,6 +242,8 @@ FHoudiniTestContext::FHoudiniTestContext(
 
 	// Load the HDA into a new map and kick start the cook. We do an initial cook to make sure the parameters are available.
 	HAC = FHoudiniEditorUnitTestUtils::LoadHDAIntoNewMap(HDAName, Transform, bOpenWorld);
+	World = HAC->GetHACWorld();
+
 	if (!HAC)
 	{
 		HOUDINI_LOG_ERROR(TEXT("Failed to load HDA %s into map. Missing uasset?"), *HDAName);
@@ -240,6 +259,15 @@ FHoudiniTestContext::FHoudiniTestContext(
 
 	// Set time last so we don't include instantiation time.
 	TimeStarted = FPlatformTime::Seconds();
+}
+
+void FHoudiniTestContext::SetHAC(UHoudiniAssetComponent* HACToUse)
+{
+	HAC = HACToUse;
+	OutputDelegateHandle = HAC->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniAssetComponent* _HAC, bool  bSuccess)
+	{
+		this->bPostOutputDelegateCalled = true;
+	});
 }
 
 FHoudiniTestContext::~FHoudiniTestContext()

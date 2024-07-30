@@ -71,6 +71,8 @@ struct FHoudiniEditorUnitTestUtils
 {
 	static UHoudiniAssetComponent* LoadHDAIntoNewMap(const FString& PackageName, const FTransform& Transform, bool bOpenWorld);
 
+	static UWorld * CreateEmptyMap(bool bOpenWorld);
+
 	static FString GetAbsolutePathOfProjectFile(const FString & Object);
 
 	// Helper function to returns components from an output.
@@ -270,6 +272,8 @@ struct FHoudiniTestContext
 		const FTransform& Transform,
 		bool bOpenWorld);
 
+	FHoudiniTestContext(FAutomationTestBase* CurrentTest,	bool bOpenWorld);
+
 	~FHoudiniTestContext();
 
 	// Starts cooking the HDA asynchrously.
@@ -279,6 +283,8 @@ struct FHoudiniTestContext
 	void StartCookingSelectedTOPNetwork();
 
 	void WaitForTicks(int Count);
+
+	void SetHAC(UHoudiniAssetComponent* HACToUse);
 
 	//  Check if the context is valid. This will be false if, for example, the HDA failed to load.
 	bool IsValid();
@@ -297,6 +303,7 @@ struct FHoudiniTestContext
 	bool bPDGCookInProgress = false;
 	bool bPDGPostCookDelegateCalled = false;
 	int WaitTickFrame = 0;
+	UWorld * World = nullptr;
 
 private:
 	FDelegateHandle OutputDelegateHandle;

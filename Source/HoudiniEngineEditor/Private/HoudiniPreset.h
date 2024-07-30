@@ -562,4 +562,10 @@ public:
 	// Raw image data of the icon to be displayed
 	UPROPERTY()
 	FHImageData IconImageData;
+
+	// Callback for when this preset has been instantiated.
+	// Used for testing.
+	TArray< TFunction<void(const UHoudiniPreset*, UHoudiniAssetComponent *)> > PostInstantiationCallbacks;
+
+
 };
