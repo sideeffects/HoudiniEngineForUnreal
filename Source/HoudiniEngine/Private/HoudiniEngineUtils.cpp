@@ -7422,7 +7422,7 @@ FHoudiniEngineUtils::GetBakeFolderAttribute(
 {
 	OutBakeFolder.Empty();
 
-	FHoudiniHapiAccessor Accessor(InNodeId, InPartId, HAPI_UNREAL_ATTRIB_TEMP_FOLDER);
+	FHoudiniHapiAccessor Accessor(InNodeId, InPartId, HAPI_UNREAL_ATTRIB_BAKE_FOLDER);
 	bool bSuccess = Accessor.GetAttributeData(InAttributeOwner, 1, OutBakeFolder, InStart, InCount);
 
 	if (bSuccess && OutBakeFolder.Num() > 0)
