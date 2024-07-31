@@ -847,7 +847,7 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 			AddParameterItemRowFn(Indentation, Splitter, ParamLabel, ParamName, ParamTooltip, ValueStr);
 		}
 
-		if (Param->GetIsChildOfMultiParm())
+		if (Param->IsDirectChildOfMultiParm())
 		{
 			// If this Parm is a child of a multiparm, keep track of it
 			int ParentId = Param->GetParentParmId();
