@@ -266,6 +266,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 
 	// Initialize the default SM Build settings with the plugin's settings default values
 	StaticMeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+
+	//bWantsOnUpdateTransform = true;
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
@@ -1945,6 +1947,37 @@ UHoudiniAssetComponent::PostEditUndo()
 }
 
 #endif
+
+bool
+UHoudiniAssetComponent::ShouldTryToStartFirstSession() const
+{
+	if (!HoudiniAsset)
+		return false;
+
+	// Only try to start the default session if we have an "active" HAC
+	switch (AssetState)
+	{
+		case EHoudiniAssetState::NewHDA:
+		case EHoudiniAssetState::PreInstantiation:
+		case EHoudiniAssetState::Instantiating:
+		case EHoudiniAssetState::PreCook:
+		case EHoudiniAssetState::Cooking:
+			return true;
+
+		case EHoudiniAssetState::NeedInstantiation:
+		case EHoudiniAssetState::PostCook:
+		case EHoudiniAssetState::PreProcess:
+		case EHoudiniAssetState::Processing:
+		case EHoudiniAssetState::None:
+		case EHoudiniAssetState::NeedRebuild:
+		case EHoudiniAssetState::NeedDelete:
+		case EHoudiniAssetState::Deleting:
+		case EHoudiniAssetState::ProcessTemplate:
+			return false;
+	};
+
+	return false;
+}
 
 
 #if WITH_EDITOR

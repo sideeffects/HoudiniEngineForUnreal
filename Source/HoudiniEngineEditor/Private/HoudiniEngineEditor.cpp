@@ -1517,7 +1517,7 @@ FHoudiniEngineEditor::RegisterConsoleCommands()
 		FConsoleCommandDelegate::CreateStatic(&FHoudiniEngineCommands::BakeAllAssets));
 
 	static FAutoConsoleCommand CCmdClean = FAutoConsoleCommand(
-		TEXT("Houdini.Clean"),
+		TEXT("Houdini.CleanTemp"),
 		TEXT("Cleans up unused/unreferenced Houdini Engine temporary files."),
 		FConsoleCommandDelegate::CreateStatic(&FHoudiniEngineCommands::CleanUpTempFolder));
 
@@ -1595,6 +1595,11 @@ FHoudiniEngineEditor::RegisterConsoleCommands()
 		TEXT("Houdini.DumpGenericAttribute"),
 		TEXT("Outputs a list of all the generic property attribute for a given class."),
 		FConsoleCommandWithArgsDelegate::CreateStatic(&FHoudiniEngineCommands::DumpGenericAttribute));
+
+	static FAutoConsoleCommand CCmdCleanSession = FAutoConsoleCommand(
+		TEXT("Houdini.CleanSession"),
+		TEXT("Cleans the current Houdini Engine Session - this will delete every node in the current Houdini Session."),
+		FConsoleCommandDelegate::CreateStatic(&FHoudiniEngineCommands::CleanHoudiniEngineSession));
 }
 
 void

@@ -428,13 +428,7 @@ FHoudiniEngineManager::AutoStartFirstSessionIfNeeded(UHoudiniAssetComponent* InC
 		|| !InCurrentHAC)
 		return;
 
-	// Only try to start the default session if we have an "active" HAC
-	const EHoudiniAssetState CurrentState = InCurrentHAC->GetAssetState();
-	if (CurrentState == EHoudiniAssetState::NewHDA
-		|| CurrentState == EHoudiniAssetState::PreInstantiation
-		|| CurrentState == EHoudiniAssetState::Instantiating
-		|| CurrentState == EHoudiniAssetState::PreCook
-		|| CurrentState == EHoudiniAssetState::Cooking)
+	if(InCurrentHAC->ShouldTryToStartFirstSession())
 	{
 		FString StatusText = TEXT("Initializing Houdini Engine...");
 		FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(StatusText), true, 4.0f);
@@ -742,8 +736,17 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			if (HAC->NeedUpdate())
 			{
 				HAC->bForceNeedUpdate = false;
+
 				// Update the HAC's state
-				HAC->SetAssetState(EHoudiniAssetState::PreCook);
+				// Cook for valid nodes - instantiate for invalid nodes
+				if (FHoudiniEngineUtils::IsHoudiniNodeValid(HAC->GetAssetId()))
+					HAC->SetAssetState(EHoudiniAssetState::PreCook);
+				else
+				{
+					// Mark as needcook first to make sure we preserve/upload all params/inputs
+					HAC->MarkAsNeedCook();
+					HAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
+				}
 			}
 			else if (HAC->bCookOnTransformChange && HAC->bUploadTransformsToHoudiniEngine && HAC->bHasComponentTransformChanged)
 			{

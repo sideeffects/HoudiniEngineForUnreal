@@ -2335,9 +2335,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 	
 	// Ensure the asset has a valid node ID
 	if (AssetId < 0)
-	{
 		return false;
-	}
 
 	// Get the AssetInfo
 	HAPI_AssetInfo AssetInfo;
@@ -2348,8 +2346,17 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 	// Get the Asset NodeInfo
 	HAPI_NodeInfo AssetNodeInfo;
 	FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId, &AssetNodeInfo), false);
+	HAPI_Result NodeResult = FHoudiniApi::GetNodeInfo(
+		FHoudiniEngine::Get().GetSession(), AssetId, &AssetNodeInfo);
+
+	if (HAPI_RESULT_SUCCESS != NodeResult)
+	{
+		// Don't log invalid argument errors here
+		if (NodeResult != HAPI_RESULT_INVALID_ARGUMENT)
+			HOUDINI_CHECK_ERROR_RETURN(NodeResult, false);
+		else
+			return false;
+	}
 
 	FString CurrentAssetName;
 	{

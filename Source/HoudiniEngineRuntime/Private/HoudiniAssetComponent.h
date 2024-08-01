@@ -270,6 +270,9 @@ public:
 	// cook folder. This function does not take the unreal_temp_folder attribute into account.
 	FString GetTemporaryCookFolderOrDefault() const;
 
+	// Returns true if this asset should try to start a session
+	virtual bool ShouldTryToStartFirstSession() const;
+
 	//------------------------------------------------------------------------------------------------
 	// Mutators
 	//------------------------------------------------------------------------------------------------
