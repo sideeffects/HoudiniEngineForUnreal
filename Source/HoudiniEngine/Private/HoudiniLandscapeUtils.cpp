@@ -1168,13 +1168,9 @@ ULandscapeLayerInfoObject*
 FHoudiniLandscapeUtils::GetLandscapeLayerInfoForLayer(const FHoudiniGeoPartObject& Part, const FName& InLayerName)
 {
 	// See if we have assigned a landscape layer info object to this layer via attribute
-	HAPI_AttributeInfo AttributeInfo;
-	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-
 	TArray<FString> AttributeValues;
 	FHoudiniHapiAccessor Accessor(Part.GeoId, Part.PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_INFO);
 	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, 1, AttributeValues);
-
 
 	if (!bSuccess)
 		return nullptr;

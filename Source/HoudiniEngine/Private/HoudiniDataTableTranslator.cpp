@@ -687,10 +687,9 @@ FHoudiniDataTableTranslator::SetOutputPath(int32 GeoId,
 {
 	TArray<FString> DTNameHolder;
 
-
 	FHoudiniHapiAccessor Accessor(GeoId, PartId, HAPI_UNREAL_ATTRIB_OBJECT_PATH);
 	bool Status = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, DTNameHolder);
-
+	Accessor.GetInfo(AttribInfo);
 	if (Status && AttribInfo.exists && AttribInfo.storage == HAPI_STORAGETYPE_STRING && DTNameHolder.Num())
 	{
 		const FString Folder = FPaths::GetPath(DTNameHolder[0]);
@@ -739,7 +738,7 @@ FHoudiniDataTableTranslator::GetRowStructAttrib(int32 GeoId,
 
 	FHoudiniHapiAccessor Accessor(GeoId, PartId, HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT);
 	bool Status = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, StructPathHolder);
-
+	Accessor.GetInfo(AttribInfo);
 	if (Status && AttribInfo.exists && AttribInfo.storage == HAPI_STORAGETYPE_STRING && StructPathHolder.Num())
 	{
 		RowStructName = StructPathHolder[0];

@@ -1879,12 +1879,9 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					currentHGPO.GenericPropertyAttributes);
 
 				{
-					TArray<int> KeepTagData;
-					HAPI_AttributeInfo AttrInfoKeepTag;
-					FHoudiniApi::AttributeInfo_Init(&AttrInfoKeepTag);
-
 					currentHGPO.bKeepTags = false;
 
+					TArray<int> KeepTagData;
 					FHoudiniHapiAccessor Accessor(currentHGPO.GeoId, currentHGPO.PartId, HAPI_UNREAL_ATTRIB_TAG_KEEP);
 					bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, 1, KeepTagData);
 
@@ -2674,9 +2671,6 @@ FHoudiniOutputTranslator::ClearOutput(UHoudiniOutput* Output)
 bool
 FHoudiniOutputTranslator::GetCustomPartNameFromAttribute(const HAPI_NodeId & NodeId, const HAPI_PartId & PartId, FString & OutCustomPartName) 
 {
-	HAPI_AttributeInfo CustomPartNameInfo;
-	FHoudiniApi::AttributeInfo_Init(&CustomPartNameInfo);
-
 	TArray<FString> CustomNames;
 
 	FHoudiniHapiAccessor Accessor(NodeId, PartId, HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2);

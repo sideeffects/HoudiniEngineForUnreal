@@ -1499,7 +1499,7 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 		HAPI_UNREAL_ATTRIB_INSTANCE, HAPI_ATTROWNER_POINT, &AttribInfo);
 	
 	// unreal_instance attribute on points
-	if (Result != HAPI_RESULT_SUCCESS || AttribInfo.exists == false)
+	if (Result != HAPI_RESULT_SUCCESS || !AttribInfo.exists)
 	{
 		is_override_attr = true;
 		Result = FHoudiniApi::GetAttributeInfo(
@@ -3253,9 +3253,6 @@ FHoudiniInstanceTranslator::GetMaterialOverridesFromAttributes(
 	const TArray<FString>& InAllAttribNames,
 	TArray<FString>& OutMaterialAttributes)
 {
-	HAPI_AttributeInfo MaterialAttributeInfo;
-	FHoudiniApi::AttributeInfo_Init(&MaterialAttributeInfo);
-
 	// See if the "materialX" attributes were added as zero-based or not by searching for "material0"
 	// If they are not (so the attributes starts at unreal_material1). then we'll need to decrement the idx
 	FString MatZero = InAttributeName;
@@ -3523,11 +3520,8 @@ FHoudiniInstanceTranslator::IsFoliageInstancer(const int32& InGeoId, const int32
 		return false;
 
 	TArray<int32> IntData;
-	HAPI_AttributeInfo AttributeInfo;
-	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
 
 	// Get the first attribute value as Int
-
 	FHoudiniHapiAccessor Accessor(InGeoId, InPartId, HAPI_UNREAL_ATTRIB_FOLIAGE_INSTANCER);
 
 	bool bSuccess = Accessor.GetAttributeData(Owner, IntData, 0, 1);
@@ -3713,8 +3707,6 @@ bool
 FHoudiniInstanceTranslator::HasHISMAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId) 
 {
 	bool bHISM = false;
-	HAPI_AttributeInfo AttriInfo;
-	FHoudiniApi::AttributeInfo_Init(&AttriInfo);
 
 	TArray<int32> IntData;
 	IntData.Empty();
@@ -3723,11 +3715,9 @@ FHoudiniInstanceTranslator::HasHISMAttribute(const HAPI_NodeId& GeoId, const HAP
 	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, 1,  IntData, 0, 1);
 
 	if (!bSuccess)
-	{
 		return false;
-	}
 
-	if (!AttriInfo.exists || IntData.Num() <= 0)
+	if (IntData.Num() <= 0)
 		return false;
 
 	return IntData[0] != 0;
@@ -3737,9 +3727,6 @@ bool
 FHoudiniInstanceTranslator::HasForceInstancerAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId) 
 {
 	bool bHISM = false;
-	HAPI_AttributeInfo AttriInfo;
-	FHoudiniApi::AttributeInfo_Init(&AttriInfo);
-
 	TArray<int32> IntData;
 	IntData.Empty();
 
@@ -3747,11 +3734,9 @@ FHoudiniInstanceTranslator::HasForceInstancerAttribute(const HAPI_NodeId& GeoId,
 	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, 1, IntData, 0, 1);
 
 	if (!bSuccess)
-	{
 		return false;
-	}
 
-	if (!AttriInfo.exists || IntData.Num() <= 0)
+	if (IntData.Num() <= 0)
 		return false;
 
 	return IntData[0] != 0;
@@ -3913,16 +3898,10 @@ FHoudiniInstanceTranslator::GetPerInstanceCustomData(
 	TArray<int32> CustomFloatsArray;
 
 	FHoudiniHapiAccessor Accessor(InGeoNodeId, InPartId, HAPI_UNREAL_ATTRIB_INSTANCE_NUM_CUSTOM_FLOATS);
-	HAPI_AttributeInfo AttribInfo;
-	Accessor.GetInfo(AttribInfo);
-
 	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, CustomFloatsArray);
 
-
 	if (!bSuccess)
-	{
 		return false;
-	}
 
 	if (CustomFloatsArray.Num() <= 0)
 		return false;

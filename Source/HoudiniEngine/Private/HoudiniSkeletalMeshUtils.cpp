@@ -317,7 +317,6 @@ FHoudiniSkeletalMeshMaterialSettings FHoudiniSkeletalMeshUtils::GetMaterialOverr
 		return {};
 
 	// Find all unique material overrides and create a FHoudiniSkeletalMeshMaterial per material.
-
 	TMap<FString, FHoudiniSkeletalMeshMaterial> UniqueMaterials;
 	int NextFreeSlot = 0;
 	for(FString & Attribute : AttributeData)

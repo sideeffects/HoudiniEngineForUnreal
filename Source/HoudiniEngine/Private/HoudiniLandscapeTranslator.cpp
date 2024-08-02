@@ -188,7 +188,7 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 		//
 
 		// Get Edit layer type.
-    PartData.EditLayerType = HAPI_UNREAL_LANDSCAPE_EDITLAYER_TYPE_BASE;
+		PartData.EditLayerType = HAPI_UNREAL_LANDSCAPE_EDITLAYER_TYPE_BASE;
 		FHoudiniHapiAccessor Accessor;
 		Accessor.Init(PartObj.GeoId, PartObj.PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_TYPE);
 		Accessor.GetAttributeFirstValue(HAPI_ATTROWNER_INVALID, PartData.EditLayerType);

@@ -1094,6 +1094,7 @@ FHoudiniMeshTranslator::UpdatePartNormalsIfNeeded()
 
 	FHoudiniHapiAccessor Accessor(HGPO.GeoInfo.NodeId, HGPO.PartInfo.PartId, HAPI_UNREAL_ATTRIB_NORMAL);
 	Accessor.GetInfo(AttribInfoNormals);
+
 	// Retrieve normal data for this part
 	bool Success = Accessor.GetAttributeData(AttribInfoNormals, PartNormals);
 
@@ -1246,7 +1247,7 @@ FHoudiniMeshTranslator::UpdatePartLightmapResolutionsIfNeeded()
 		return true;
 
 	FHoudiniHapiAccessor Accessor(HGPO.GeoInfo.NodeId, HGPO.PartInfo.PartId, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION);
-
+	Accessor.GetInfo(AttribInfoLightmapResolution);
 	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, PartLightMapResolutions);
 
 	if (!bSuccess && AttribInfoLightmapResolution.exists)

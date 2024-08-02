@@ -751,7 +751,6 @@ bool FUnrealDataTableTranslator::CreateInputNodeForDataTable(
 							FHoudiniEngine::Get().GetSession(), InputNodeId, 0,
 							TCHAR_TO_ANSI(*CurAttrName), &AttributeInfo), false);
 
-
 						FHoudiniHapiAccessor Accessor(InputNodeId, 0, TCHAR_TO_ANSI(*CurAttrName));
 						HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfo, Col), false);
 						continue;

@@ -1824,7 +1824,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 			HAPI_IMAGE_DATA_INT8, ImagePacking, false, ImageBuffer))
 		{
 			// Locate sampling expression.
-			ExpressionTextureOpacitySample = Cast< UMaterialExpressionTextureSampleParameter2D >(
+			ExpressionTextureOpacitySample = Cast<UMaterialExpressionTextureSampleParameter2D>(
 				FHoudiniMaterialTranslator::MaterialLocateExpression(
 					MatOpacityMask.Expression, UMaterialExpressionTextureSampleParameter2D::StaticClass()));
 

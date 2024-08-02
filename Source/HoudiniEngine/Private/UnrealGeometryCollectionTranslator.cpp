@@ -656,8 +656,8 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-                                FHoudiniEngine::Get().GetSession(),
-                                GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
+				FHoudiniEngine::Get().GetSession(),
+				GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
 
 			FHoudiniHapiAccessor Accessor(GeometryNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV);
 			HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, Binormals), false);

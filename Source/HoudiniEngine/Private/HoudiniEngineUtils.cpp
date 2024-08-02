@@ -7017,10 +7017,6 @@ FHoudiniEngineUtils::GetLevelPathAttribute(
 	FHoudiniHapiAccessor Accessor(InGeoId, InPartId, HAPI_UNREAL_ATTRIB_LEVEL_PATH);
 	bool bSuccess = Accessor.GetAttributeData(InAttributeOwner, 1, OutLevelPaths, InStartIndex, InCount);
 
-
-	HAPI_AttributeInfo AttributeInfo;
-	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-
 	if (bSuccess && OutLevelPaths.Num() > 0)
 		return true;
 
@@ -7524,10 +7520,6 @@ FHoudiniEngineUtils::GetBakeActorAttribute(
 	FHoudiniHapiAccessor Accessor(InNodeId, InPartId, HAPI_UNREAL_ATTRIB_BAKE_ACTOR);
 	bool bSuccess = Accessor.GetAttributeData(InAttributeOwner, 1, OutBakeActorNames, InStart, InCount);
 
-
-	HAPI_AttributeInfo AttributeInfo;
-	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-
 	if (bSuccess && OutBakeActorNames.Num() > 0)
 		return true;
 
@@ -7941,9 +7933,8 @@ FHoudiniEngineUtils::UpdateMeshPartUVSets(
 
 	// Also look for 16.5 uvs (attributes with a Texture type) 
 	// For that, we'll have to iterate through ALL the attributes and check their types
-	TArray< FString > FoundAttributeNames; 
-	TArray< HAPI_AttributeInfo > FoundAttributeInfos;
-		
+	TArray<FString> FoundAttributeNames;
+	TArray<HAPI_AttributeInfo> FoundAttributeInfos;
 	for (int32 AttrIdx = 0; AttrIdx < HAPI_ATTROWNER_MAX; ++AttrIdx)
 	{
 		FHoudiniEngineUtils::HapiGetAttributeOfType(

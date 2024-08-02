@@ -35,8 +35,6 @@
 TOptional<FHoudiniLevelInstanceParams> FHoudiniLevelInstanceUtils::GetParams(int NodeId, int PartId)
 {
 	// See if a level instance was specified. If it wasn't ignore.
-
-
 	FString OutputName;
 	FHoudiniHapiAccessor Accessor(NodeId, PartId, HAPI_UNREAL_ATTRIB_LEVEL_INSTANCE_NAME);
 	bool bSuccess = Accessor.GetAttributeFirstValue(HAPI_ATTROWNER_INVALID, OutputName);
@@ -51,7 +49,6 @@ TOptional<FHoudiniLevelInstanceParams> FHoudiniLevelInstanceUtils::GetParams(int
 
 	// See if a type was specified.
 	int32 Type = 0;
-
 
 	Accessor.Init(NodeId, PartId, HAPI_UNREAL_ATTRIB_LEVEL_INSTANCE_TYPE);
 	bSuccess = Accessor.GetAttributeFirstValue(HAPI_ATTROWNER_INVALID, Type);

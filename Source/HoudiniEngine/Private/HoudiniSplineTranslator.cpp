@@ -323,9 +323,6 @@ FHoudiniSplineTranslator::UpdateHoudiniCurve(UHoudiniSplineComponent* HoudiniSpl
 	}
 
 	TArray<float> RefinedCurvePositions;
-	HAPI_AttributeInfo AttributeRefinedCurvePositions;
-	FHoudiniApi::AttributeInfo_Init(&AttributeRefinedCurvePositions);
-
 	FHoudiniHapiAccessor Accessor(CurveNode_id, 0, HAPI_UNREAL_ATTRIB_POSITION);
 	if (!Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, RefinedCurvePositions))
 	{
@@ -397,9 +394,6 @@ bool FHoudiniSplineTranslator::UpdateHoudiniCurveLegacy(UHoudiniSplineComponent*
 	HOUDINI_CHECK_ERROR_RETURN(	FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), CurveNode_id, &NodeInfo), false);
 
 	TArray<float> RefinedCurvePositions;
-	HAPI_AttributeInfo AttributeRefinedCurvePositions;
-	FHoudiniApi::AttributeInfo_Init(&AttributeRefinedCurvePositions);
-
 	FHoudiniHapiAccessor Accessor(CurveNode_id, 0 , HAPI_UNREAL_ATTRIB_POSITION);
 	if (!Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, RefinedCurvePositions))
 	{
@@ -2154,23 +2148,15 @@ FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(UHoudiniOutput* InOu
 			continue;
 
 		// Check if we want to create a houdini output curve from corresponding attribute
-		HAPI_AttributeInfo CurveOutputAttriInfo;
-		FHoudiniApi::AttributeInfo_Init(&CurveOutputAttriInfo);
 		TArray<int> IntData;
 		IntData.Empty();
-
 		FHoudiniHapiAccessor Accessor(CurHGPO.GeoId, CurHGPO.PartId, HAPI_UNREAL_ATTRIB_OUTPUT_UNREAL_CURVE);
 		bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, 1, IntData, 0, 1);
 		if (!bSuccess || IntData.Num() <= 0 || IntData[0] == 0)
 			continue;
 
-		HAPI_AttributeInfo LinearAttriInfo;
-		FHoudiniApi::AttributeInfo_Init(&LinearAttriInfo);
 		IntData.Empty();
-
 		bool bIsLinear = false;
-
-
 		Accessor.Init(CurHGPO.GeoId, CurHGPO.PartId, HAPI_UNREAL_ATTRIB_OUTPUT_UNREAL_CURVE_LINEAR);
 		if (Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, 1, IntData, 0, 1))
 		{
@@ -2178,10 +2164,7 @@ FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(UHoudiniOutput* InOu
 				bIsLinear = IntData[0] != 0;
 		}
 
-		HAPI_AttributeInfo ClosedAttriInfo;
-		FHoudiniApi::AttributeInfo_Init(&ClosedAttriInfo);
 		IntData.Empty();
-
 		Accessor.Init(CurHGPO.GeoId, CurHGPO.PartId, HAPI_UNREAL_ATTRIB_OUTPUT_UNREAL_CURVE_CLOSED);
 		bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, 1, IntData, 0, 1 );
 		bool bIsClosed = false;

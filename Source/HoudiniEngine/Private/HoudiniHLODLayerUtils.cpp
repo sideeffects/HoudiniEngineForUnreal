@@ -53,11 +53,6 @@ FHoudiniHLODLayerUtils::GetHLODLayers(HAPI_NodeId NodeId, HAPI_PartId PartId)
 
 	// Get a list of all groups this part MAY be a member of.
 	TArray<FString> HLODNames;
-
-	HAPI_AttributeInfo AttributeInfo;
-	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-
-
 	FHoudiniHapiAccessor Accessor(NodeId, PartId, HAPI_UNREAL_ATTRIB_HLOD_LAYER);
 	bool bResult = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, HLODNames);
 
