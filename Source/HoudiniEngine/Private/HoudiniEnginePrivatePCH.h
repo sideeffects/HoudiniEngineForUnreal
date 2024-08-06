@@ -132,10 +132,6 @@
 // Always the name of the main landscape actor. 
 // Names for landscape tile actors will be taken from 'unreal_output_name'.
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_SHARED_ACTOR_NAME		"unreal_landscape_shared_actor_name"
-// This tile_actor_type succeeds the 'unreal_landscape_streaming_proxy' (v1) attribute.
-#define HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE_ACTOR_TYPE		"unreal_landscape_tile_actor_type"
-// This attribute is for backwards compatibility only.
-#define HAPI_UNREAL_ATTRIB_LANDSCAPE_STREAMING_PROXY		"unreal_landscape_streaming_proxy"
 
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_MIN				"unreal_landscape_layer_min"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_MAX				"unreal_landscape_layer_max"
