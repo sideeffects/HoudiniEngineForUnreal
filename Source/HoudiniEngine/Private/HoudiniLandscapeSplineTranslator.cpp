@@ -644,13 +644,6 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 	HOUDINI_LOG_WARNING(TEXT("Landscape Spline Output is only supported in UE5.1+"));
 	return false;
 #else
-	// If we're not forcing the rebuild then only recreate if the HGPO is marked has changed.
-	if (!bInForceRebuild && (!InHGPO.bHasGeoChanged || !InHGPO.bHasPartChanged))
-	{
-		// Simply reuse the existing splines
-		OutputSplines = InCurrentSplines;
-		return true;
-	}
 
 	if (!IsValid(InWorld))
 		return false;

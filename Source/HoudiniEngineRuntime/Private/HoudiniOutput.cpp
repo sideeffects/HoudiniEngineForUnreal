@@ -114,7 +114,7 @@ UHoudiniLandscapeSplinesOutput::GetLayerSegments(const FName InEditLayer, TArray
 
 
 void
-UHoudiniLandscapeSplinesOutput::Clear(const bool bInClearTempLayers)
+UHoudiniLandscapeSplinesOutput::Clear(bool bInClearTempLayers)
 {
 	// Delete the splines (segments and control points)
 	FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesSegmentsAndControlPoints(this);
@@ -1349,6 +1349,17 @@ void FHoudiniOutputObject::DestroyCookedData()
 		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 		SceneComponent->UnregisterComponent();
 		SceneComponent->DestroyComponent();
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------
+	// Remove spline output
+	//--------------------------------------------------------------------------------------------------------------------
+
+	// Destroy any segments that we previously created
+	UHoudiniLandscapeSplinesOutput* SplinesOutputObject = Cast<UHoudiniLandscapeSplinesOutput>(this->OutputObject);
+	if (IsValid(SplinesOutputObject))
+	{
+		SplinesOutputObject->Clear();
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------
