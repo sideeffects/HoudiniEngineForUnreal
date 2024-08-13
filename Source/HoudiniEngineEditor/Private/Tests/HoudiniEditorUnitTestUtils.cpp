@@ -242,13 +242,14 @@ FHoudiniTestContext::FHoudiniTestContext(
 
 	// Load the HDA into a new map and kick start the cook. We do an initial cook to make sure the parameters are available.
 	HAC = FHoudiniEditorUnitTestUtils::LoadHDAIntoNewMap(HDAName, Transform, bOpenWorld);
-	World = HAC->GetHACWorld();
 
 	if (!HAC)
 	{
 		HOUDINI_LOG_ERROR(TEXT("Failed to load HDA %s into map. Missing uasset?"), *HDAName);
 		return;
 	}
+
+	World = HAC->GetHACWorld();
 
 	this->bCookInProgress = true;
 	this->bPostOutputDelegateCalled = true;

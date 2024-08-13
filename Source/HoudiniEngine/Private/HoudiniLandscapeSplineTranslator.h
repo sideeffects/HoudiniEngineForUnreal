@@ -34,72 +34,51 @@
 
 #include "HoudiniOutput.h"
 #include "LandscapeSplineControlPoint.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniLandscapeRuntimeUtils.h"
+#include "HoudiniLandscapeUtils.h"
+#include "HoudiniPackageParams.h"
+#include "HoudiniSplineTranslator.h"
 
+#include "Landscape.h"
+#include "LandscapeSplineActor.h"
+#include "LandscapeSplineSegment.h"
+#include "LandscapeSplinesComponent.h"
 
-// Unreal engine forward declarations
 class ULandscapeSplineControlPoint;
 class ULandscapeSplineSegment;
 struct FLandscapeSplineSegmentConnection;
-
-// Houdini Engine Plugin forward declarations
 class UHoudiniAssetComponent;
 struct FHoudiniPackageParams;
-struct FLandscapeSplineInfo;
-struct FLandscapeSplineCurveAttributes;
-struct FLandscapeSplineSegmentMeshAttributes;
+struct FHoudiniLandscapeSplineInfo;
+struct FHoudiniLandscapeSplineData;
+struct FHoudiniLandscapeSplineSegmentMeshData;
 struct FHoudiniLandscapeSplineApplyLayerData;
+
+
 
 
 struct HOUDINIENGINE_API FHoudiniLandscapeSplineTranslator
 {
-	/**
-	 * @brief Process the landscape spline output InOutput and create/update the relevant ULandscapeSplinesComponents.
-	 * @param InOutput A landscape output.
-	 * @param InAllInputLandscaps Input landscapes. Used to find landscapes targets referenced as "Input#".
-	 * @param InPackageParams Package parameters used as the basis for naming LandscapeSplineActors in world partition.
-	 * @param ClearedLayers Map of landscape to a set of layer names: this map is checked and updated to keep track of
-	 * which edit layers have been cleared during output processing.
-	 * @return True if we successfully processed the output and create/update/removed the appropriate landscape splines.
-	 */
+	// Process the landscape spline output InOutput and create/update the relevant ULandscapeSplinesComponents.
 	static bool ProcessLandscapeSplineOutput(
-		UHoudiniOutput* const InOutput,
+		UHoudiniOutput* InOutput,
 		const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 		UWorld* InWorld,
 		const FHoudiniPackageParams& InPackageParams,
-		TMap<ALandscape*, TSet<FName>>& ClearedLayers);
+		TMap<ALandscape*, TSet<FName>>& InClearedLayers);
 
-	/**
-	 * @brief Create / update ULandscapeSplinesComponents from the geo in InHGPO.
-	 * @param InHGPO The Houdini geo part object containing the curves to treat as landscape splines.
-	 * @param InOutput The UHoudiniOutput instance of the InHGPO.
-	 * @param InAllInputLandscaps Input landscapes. Used to find landscapes targets referenced as "Input#".
-	 * @param InPackageParams Package parameters, used as the basis for naming LandscapeSplineActors in world partition
-	 * and for temp edit layer names.
-	 * @param InCurrentSplines The current landscape spline output objects (to be updated/replaced).
-	 * @param bInForceRebuild If true then we always remove the existing landscape splines in InCurrentSplines and
-	 * create new ones from the content of the InHGPO (instead of re-using existing splines).
-	 * @param InFallbackLandscape If the InHGPO does not have the appropriate target landscape attribute, create the
-	 * splines on this landscape.
-	 * @param ClearedLayers Used to check if a layer has been cleared or already. Cleared layers are added.
-	 * @param SegmentsToApplyToLayers Updated with per-landscape-layer segments that should be applied to the layer
-	 * at the end of output processing.
-	 * @param OutputSplines The created/updated landscape spline output objects.
-	 * @param InHAC The HoudiniAssetComponent if available. Currently this is only to determine if temp edit layers
-	 * should be created and for temp package naming.
-	 * @return True if the landscape splines were successfully created/updated.
-	 */
-	static bool CreateOutputLandscapeSplinesFromHoudiniGeoPartObject(
+	// Create / update ULandscapeSplinesComponents from the geo in InHGPO.
+	static bool CreateOutputLandscapeSpline(
 		const FHoudiniGeoPartObject& InHGPO,
 		UHoudiniOutput* InOutput,
 		const TArray<ALandscapeProxy*>& InAllInputLandscapes,
 		UWorld* InWorld,
 		const FHoudiniPackageParams& InPackageParams,
-		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InCurrentSplines,
-		bool bInForceRebuild,
 		ALandscapeProxy* InFallbackLandscape,
-		TMap<ALandscape*, TSet<FName>>& ClearedLayers,
+		TMap<ALandscape*, TSet<FName>>& InClearedLayers,
 		TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& SegmentsToApplyToLayers,
-		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputSplines,
+		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects,
 		UHoudiniAssetComponent* InHAC=nullptr);
 
 private:
@@ -107,48 +86,166 @@ private:
 
 	static void AddSegmentToOutputObject(
 		ULandscapeSplineSegment* InSegment,
-		const FLandscapeSplineCurveAttributes& InAttributes,
-		int32 InVertexIndex,
+		const FHoudiniLandscapeSplineData& InSplineData,
+		int InVertexIndex,
 		UHoudiniAssetComponent* InHAC,
 		const FHoudiniPackageParams& InPackageParams,
 		UHoudiniLandscapeSplinesOutput& InOutputObject);
 
 	static void UpdateNonReservedEditLayers(
-		const FLandscapeSplineInfo& InSplineInfo,
-		TMap<ALandscape*, TSet<FName>>& ClearedLayers,
-		TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& SegmentsToApplyToLayers);
+		const FHoudiniLandscapeSplineInfo& InSplineInfo,
+		TMap<ALandscape*, TSet<FName>>& InClearedLayers,
+		TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& InSegmentsToApplyToLayers);
 
 	static ULandscapeSplineControlPoint* GetOrCreateControlPoint(
-		FLandscapeSplineInfo& SplineInfo, int32 InControlPointId, bool& bOutCreated);
+		FHoudiniLandscapeSplineInfo& SplineInfo, int InControlPointId, bool& bOutCreated);
 	
 	static bool CopySegmentMeshAttributesFromHoudini(
 		HAPI_NodeId InNodeId,
 		HAPI_PartId InPartId,
 		HAPI_AttributeOwner InAttrOwner,
-		int32 InStartIndex,
-		int32 InCount,
-		TArray<FLandscapeSplineSegmentMeshAttributes>& OutAttributes);
+		int InStartIndex,
+		int InCount,
+		TArray<FHoudiniLandscapeSplineSegmentMeshData>& AllSegmentMeshData);
 
-	static bool CopyCurveAttributesFromHoudini(
+	static FHoudiniLandscapeSplineData GetSplineDataFromAttributes(
 		HAPI_NodeId InNodeId,
 		HAPI_PartId InPartId,
-		int32 InPrimIndex,
-		int32 InFirstPointIndex,
-		int32 InNumPoints,
-		FLandscapeSplineCurveAttributes& OutCurveAttributes);
+		int InPrimIndex,
+		int InFirstPointIndex,
+		int InNumPoints);
 
-	static bool UpdateControlPointFromAttributes(
+	static bool SetControlPointData(
 		ULandscapeSplineControlPoint* InPoint,
-		const FLandscapeSplineCurveAttributes& InAttributes,
+		const FHoudiniLandscapeSplineData& SplineData,
 		const FTransform& InTransformToApply,
-		int32 InPointIndex);
+		int InPointIndex);
 
-	static bool UpdateSegmentFromAttributes(
-		ULandscapeSplineSegment* InSegment, const FLandscapeSplineCurveAttributes& InAttributes, int32 InVertexIndex);
+	static bool SetSegmentData(ULandscapeSplineSegment* InSegment, const FHoudiniLandscapeSplineData& InSplineData, int InVertexIndex);
 	
-	static bool UpdateConnectionFromAttributes(
+	static bool SetConnectionData(
 		FLandscapeSplineSegmentConnection& InConnection,
-		const int32 InConnectionIndex,
-		const FLandscapeSplineCurveAttributes& InAttributes,
-		int32 InPointIndex);
+		int InConnectionIndex,
+		const FHoudiniLandscapeSplineData& InSplineData,
+		int InPointIndex);
+
+	static void GetCachedAttributes(FHoudiniOutputObject * OutputObject, const FHoudiniGeoPartObject& InHGPO, const FHoudiniLandscapeSplineInfo& SplineInfo);
+
+	static FVector ConvertPositionToVector(const float* InPosition);
+
+};
+
+struct FHoudiniLandscapeSplineMesh
+{
+	FString MeshRef;
+	TArray<FString> MaterialOverrideRef; // the outer index is material 0, 1, 2 ... 
+	FVector MeshScale = FVector::OneVector;
+	FVector2d CenterAdjust = FVector2d::Zero();
+};
+
+
+struct FHoudiniLandscapeSplineSegmentMeshData
+{
+	TArray<FHoudiniLandscapeSplineMesh> Meshes;
+};
+
+
+struct FHoudiniLandscapeSplineData
+{
+	//-------------------------------------------------------------------------------------------------------------------------------------
+	// Attribute data associate with control points. This is the raw attribute data pulled from Houdini.
+	// Since Houdini Engine doesn't really distinguish between curve vertices and points, this data can be store on either.
+	//-------------------------------------------------------------------------------------------------------------------------------------
+
+	TArray<float> PointPositions;
+	TArray<float> PointRotations;
+	TArray<FString> PointPaintLayerNames;
+	TArray<int> PointRaiseTerrains;
+	TArray<int> PointLowerTerrains;
+	TArray<FString> PointMeshRefs;
+	TArray<float> PointMeshScales;
+	TArray<int> PointIds;
+	TArray<float> PointHalfWidths;
+	TArray<float> PointSideFalloffs;
+	TArray<float> PointEndFalloffs;
+	TArray<TArray<FString>> PerMaterialOverridePointRefs;
+
+	//-------------------------------------------------------------------------------------------------------------------------------------
+	// Attribute data associated with segments. This is the raw attribute data pulled from Houdini.
+	// Since Houdini Engine doesn't really distinguish between curve vertices and points, this data can be store on either.
+	//-------------------------------------------------------------------------------------------------------------------------------------
+
+	TArray<FString> SegmentConnectionSocketNames[2]; // 0 - is the start, 1 - is the end.
+	TArray<float> SegmentConnectionTangentLengths[2]; // 0 - is the start, 1 - is the end.
+	TArray<FString> SegmentPaintLayerNames;
+	TArray<int> SegmentRaiseTerrains;
+	TArray<int> SegmentLowerTerrains;
+	TArray<FString> SegmentEditLayers;
+	TArray<int> SegmentEditLayersClear;
+	TArray<FString> SegmentEditLayersAfter;
+	TArray<FHoudiniLandscapeSplineSegmentMeshData> SegmentMeshData;
+
+	//-------------------------------------------------------------------------------------------------------------------------------------
+	// Default values for spline control points and segments. These are set to sensible defaults, but can be overriden
+	// with primitive attributes
+	//-------------------------------------------------------------------------------------------------------------------------------------
+
+	float DefaultConnectionTangentLengths[2]; // near side (0) and far side (1) of the segment connection.
+	FString DefaultPaintLayerName;
+	int DefaultRaiseTerrain = 1;
+	int DefaultLowerTerrain = 1;
+	FString DefaultEditLayer;
+	bool DefaultEditLayerClear = false;
+	FString DefaultEditLayerAfter;
+	TArray<FHoudiniLandscapeSplineSegmentMeshData> DefaultMeshSegmentData;
+
+	/**
+	* The mesh socket names on the splines' prims. The index is the near side (0) and far side (1) of the
+	* segment connection.
+	*/
+	FString DefaultConnectionSocketNames[2];
+};
+
+// Transient/transactional struct for processing landscape spline output.
+struct FHoudiniLandscapeSplineInfo
+{
+	// OutputObject Id.
+	FHoudiniOutputObjectIdentifier Identifier;
+
+	// Target output info.
+	ALandscapeProxy* LandscapeProxy = nullptr;
+	ALandscape* Landscape = nullptr;
+	ULandscapeSplinesComponent* SplinesComponent = nullptr;
+
+
+	// Package Params.
+	FHoudiniPackageParams LayerPackageParams;
+	FHoudiniPackageParams SplineActorPackageParams;
+
+	// Data for World Partition only
+	ALandscapeSplineActor* LandscapeSplineActor = nullptr;
+	FName OutputName = NAME_None;
+
+	 // Array of curve indices in the HGPO that will be used to create segments for this landscape spline. There can
+	 // be more than one segment per curve.
+	TArray<int> CurveIndices;
+
+	 // An array per-curve that stores the index of the first point (corresponding to the P attribute) for the curve
+	 // info in the HGPO.
+	TArray<int> PerCurveFirstPointIndex;
+
+	// An array per-curve that stores the number of points for the curve in the HGPO. 
+	TArray<int> PerCurvePointCount;
+
+	// Curve prim and point attributes read from Houdini to apply to ULandscapeSplineControlPoint/Segment. 
+	TArray<FHoudiniLandscapeSplineData> SplineData;
+
+	// Control points mapped by id that have been created for this splines component.
+	TMap<int, ULandscapeSplineControlPoint*> ControlPointMap;
+
+	// The next control point ID (largest ID seen + 1).
+	int32 NextControlPointId = 0;
+
+	// Object used to keep track of segments/control points that we create for the FHoudiniOutputObject.
+	UHoudiniLandscapeSplinesOutput* SplinesOutputObject = nullptr;
 };
