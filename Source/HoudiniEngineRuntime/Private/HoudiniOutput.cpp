@@ -537,6 +537,24 @@ FHoudiniBakedOutputObject::GetLandscapeLayerInfoIfValid(const FName& InLayerName
 	return Cast<ULandscapeLayerInfoObject>(Object);
 }
 
+ALandscape*
+FHoudiniBakedOutputObject::GetLandscapeIfValid(bool bInTryLoad) const
+{
+    const FSoftObjectPath LandscapePath(Landscape);
+
+    if (!LandscapePath.IsValid())
+        return nullptr;
+
+    UObject* Object = LandscapePath.ResolveObject();
+    if (!Object && bInTryLoad)
+        Object = LandscapePath.TryLoad();
+
+    if (!IsValid(Object))
+        return nullptr;
+
+    return Cast<ALandscape>(Object);
+}
+
 USkeleton*
 FHoudiniBakedOutputObject::GetBakedSkeletonIfValid(bool bInTryLoad) const
 {

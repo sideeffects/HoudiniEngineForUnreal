@@ -752,7 +752,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 			BakeSettings,
 			InBakeFolder,
 			BakedObjectData);
-
+		
+		AllBakedActors.Append(BakedLandscapeActors);
 		NewBakedActors.Append(BakedLandscapeActors);
 	}
 

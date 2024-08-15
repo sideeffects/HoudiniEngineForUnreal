@@ -440,6 +440,7 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 						PackageParams);
 
 				Results.Add(BakeActor);
+				BakedOutputObject.Landscape = *BakeActor.Actor->GetPathName();	
 				
 			}
 
