@@ -4442,7 +4442,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscapeSplinesComponent(
 	static constexpr bool bForceReferenceInputNodeCreation = true;
 	static constexpr bool bLandscapeSplinesExportCurves = true;
 	FUnrealObjectInputHandle CreatedSplinesNodeHandle;
-	const bool bSuccess = FUnrealLandscapeSplineTranslator::CreateInputNodeForLandscapeSplinesComponent(
+	const bool bSuccess = FUnrealLandscapeSplineTranslator::CreateInputNode(
 		SplinesComponent,
 		bForceReferenceInputNodeCreation,
 		CreatedNodeId,

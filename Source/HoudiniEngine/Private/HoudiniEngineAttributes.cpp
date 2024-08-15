@@ -64,6 +64,26 @@ void FHoudiniHapiAccessor::Init(HAPI_NodeId InNodeId, HAPI_NodeId InPartId, cons
 	AttributeName = InName;
 }
 
+bool FHoudiniHapiAccessor::AddAttribute(HAPI_AttributeOwner InOwner, HAPI_StorageType InStorageType, int InTupleSize, int InCount, HAPI_AttributeInfo* OutAttrInfo)
+{
+	HAPI_AttributeInfo AttrInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttrInfo);
+	AttrInfo.tupleSize = InTupleSize;
+	AttrInfo.count = InCount;
+	AttrInfo.exists = true;
+	AttrInfo.owner = InOwner;
+	AttrInfo.storage = InStorageType;
+	AttrInfo.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	const HAPI_Session *  Session = FHoudiniEngine::Get().GetSession();
+	auto bResult = FHoudiniApi::AddAttribute(Session, NodeId, PartId, AttributeName, &AttrInfo);
+
+	if (OutAttrInfo)
+		*OutAttrInfo = AttrInfo;
+
+	return (bResult == HAPI_RESULT_SUCCESS);
+}
+
 
 bool
 FHoudiniHapiAccessor::GetInfo(HAPI_AttributeInfo& OutAttributeInfo, const HAPI_AttributeOwner InOwner)
@@ -1129,6 +1149,15 @@ bool FHoudiniHapiAccessor::SetAttributeStringMap(const HAPI_AttributeInfo& Attri
 	return Result == HAPI_RESULT_SUCCESS;
 }
 
+template<typename DataType> bool FHoudiniHapiAccessor::SetAttributeUniqueData(HAPI_AttributeOwner Owner, const DataType& Data)
+{
+	HAPI_AttributeInfo AttrInfo;
+	if (!GetInfo(AttrInfo, Owner))
+		return false;
+
+	return SetAttributeUniqueData(AttrInfo, Data);
+}
+
 template<typename DataType> bool FHoudiniHapiAccessor::SetAttributeUniqueData(const HAPI_AttributeInfo& AttributeInfo, const DataType& Data)
 {
 	HAPI_Result Result = HAPI_RESULT_FAILURE;
@@ -1362,6 +1391,7 @@ HAPI_StorageType FHoudiniHapiAccessor::GetTypeWithoutArray(HAPI_StorageType Stor
 	template bool FHoudiniHapiAccessor::SetAttributeData(const HAPI_AttributeInfo& AttributeInfo, const DATA_TYPE* Data, int IndexStart, int IndexCount) const;\
 	template bool FHoudiniHapiAccessor::SetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const DATA_TYPE* Data, int IndexStart, int IndexCount) const;\
 	template bool FHoudiniHapiAccessor::SetAttributeData(const HAPI_AttributeInfo& AttributeInfo, const TArray<DATA_TYPE>& Data);\
+	template bool FHoudiniHapiAccessor::SetAttributeUniqueData(HAPI_AttributeOwner Owner, const DATA_TYPE& Data);\
 	template bool FHoudiniHapiAccessor::SetAttributeUniqueData(const HAPI_AttributeInfo& AttributeInfo, const DATA_TYPE& Data);\
 	template bool FHoudiniHapiAccessor::SetAttributeArrayData(const HAPI_AttributeInfo& InAttributeInfo, const TArray<DATA_TYPE>& InStringArray, const TArray<int>& SizesFixedArray);\
 	template bool FHoudiniHapiAccessor::GetAttributeArrayData(HAPI_AttributeOwner Owner, TArray<DATA_TYPE>& StringArray, TArray<int>& SizesFixedArray, int IndexStart, int IndexCount);

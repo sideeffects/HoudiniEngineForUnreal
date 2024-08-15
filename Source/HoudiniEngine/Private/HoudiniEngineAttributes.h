@@ -50,6 +50,10 @@ struct FHoudiniHapiAccessor
 	FHoudiniHapiAccessor() {}
 	void Init(HAPI_NodeId InNodeId, HAPI_NodeId InPartId, const char * InName);
 
+	// Create the attribute. Will fill in OutAttrInfo if supplied - You probably want this because calling
+	// GetInfo() will fail if the node is not commited.
+	bool AddAttribute(HAPI_AttributeOwner Owner, HAPI_StorageType StorageType, int TupleSize, int Count, HAPI_AttributeInfo * OutAttrInfo = nullptr);
+
 	// Get HAPI_AttributeInfo from the accessor. 
 	bool GetInfo(HAPI_AttributeInfo& OutAttributeInfo, HAPI_AttributeOwner InOwner = HAPI_ATTROWNER_INVALID);
 
@@ -74,11 +78,12 @@ struct FHoudiniHapiAccessor
 
 	//  Functions to set data, mostly templated on type.
 	//
-
+	//template<typename DataType> bool SetAttributeData(HAPI_AttributeOwner Owner, const TArray<DataType>& Data);
 	template<typename DataType> bool SetAttributeData(const HAPI_AttributeInfo& AttributeInfo, const TArray<DataType>& Data);
 	template<typename DataType> bool SetAttributeData(const HAPI_AttributeInfo& AttributeInfo, const DataType* Data, int First = 0, int Count = -1) const;
 	template<typename DataType> bool SetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, const DataType* Data, int First = 0, int Count = -1) const;
-	template<typename DataType> bool SetAttributeUniqueData(const HAPI_AttributeInfo& AttributeInfo, const DataType & Data);
+	template<typename DataType> bool SetAttributeUniqueData(const HAPI_AttributeInfo& AttributeInfo, const DataType& Data);
+	template<typename DataType> bool SetAttributeUniqueData(HAPI_AttributeOwner Owner, const DataType & Data);
 	template<typename DataType> bool SetAttributeArrayData(const HAPI_AttributeInfo& InAttributeInfo, const TArray<DataType>& InStringArray, const TArray<int>& SizesFixedArray);
 	bool SetAttributeStringMap(const HAPI_AttributeInfo& AttributeInfo, const FHoudiniEngineIndexedStringMap& InIndexedStringMap);
 	bool SetAttributeDictionary(const HAPI_AttributeInfo& InAttributeInfo, const TArray<FString>& JSONData);

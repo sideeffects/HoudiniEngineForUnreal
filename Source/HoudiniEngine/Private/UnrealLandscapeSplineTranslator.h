@@ -32,7 +32,7 @@
 
 #include "HAPI/HAPI_Common.h"
 
-class FLandscapeSplineControlPointAttributes;
+class FHoudiniLandscapeSplineControlPointAttributes;
 struct FLandscapeSplineInterpPoint;
 class ALandscapeProxy;
 class ULandscapeSplinesComponent;
@@ -40,199 +40,214 @@ class UMaterialInterface;
 class UStaticMesh;
 
 class FUnrealObjectInputHandle;
-struct FLandscapeSplineSegmentMeshData;
-struct FLandscapeSplinesControlPointData;
-struct FLandscapeSplinesData;
+struct FHoudiniLandscapeSplineSegmentMeshData;
+struct FHoudiniLandscapeSplinesControlPointData;
+struct FHoudiniLandscapeSplinesData;
 
 
-enum class EHoudiniLandscapeSplineCurve : uint8
+enum class EHoudiniLandscapeSplineCurve 
 {
-	Invalid = 0,
-	Center = 1,
-	Left = 2,
-	Right = 3
+	Center = 0,
+	Left = 1,
+	Right = 2
 };
 
 
 struct HOUDINIENGINE_API FUnrealLandscapeSplineTranslator 
 {
 public:
-	/**
-	 * @brief Create HAPI nodes and send the landscape splines of InLandscapeSplines to Houdini.
-	 * @param InSplinesComponent The landscape splines component to translate to Houdini.
-	 * @param bForceReferenceInputNodeCreation Only applicable to the new input system. If True this function creates
-	 * the reference node even if only bInExport option is True.
-	 * @param OutInputNodeId The HAPI node id of the merge node that will be created. This can be set to the existing
-	 * node by the caller, which will then be deleted and recreated.
-	 * @param OutInputNodeHandle The input handle for the reference counted input system for the newly created HAPI node.
-	 * @param InNodeName The base name to use for the HAPI nodes.
-	 * @param InSplineResolution The spline resolution. <= 0 leaves the landscape spline at its current resolution.
-	 * @param bInExportCurves If true export the splines as curves.
-	 * @param bInExportControlPoints If true, then create a separate control point point cloud and merge it with
-	 * the splines / curves. This can be useful in cases where the control points in the splines are offset by mesh
-	 * socket connections.
-	 * @param bInExportLeftRightCurves Export curves for the .Left and .Right positions of each interpolated spline
-	 * point as well.
-	 * @param bInInputNodesCanBeDeleted Set to true if deletion of input nodes should be allowed.
-	 * @return True if the landscape splines were successfully sent to Houdini. In failure cases some HAPI nodes could
-	 * still have been created, so OutInputNodeId and OutInputNodeHandle should still be handled appropriately.
-	 */
-	static bool CreateInputNodeForLandscapeSplinesComponent(
+	// Create HAPI nodes and send the landscape splines of InLandscapeSplines to Houdini.
+	static bool CreateInputNode(
 		ULandscapeSplinesComponent* const InSplinesComponent,
-		const bool bForceReferenceInputNodeCreation,
+		bool bForceReferenceInputNodeCreation,
 		HAPI_NodeId& OutInputNodeId,
 		FUnrealObjectInputHandle& OutInputNodeHandle,
 		const FString& InNodeName,
 		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 		int32& InNextControlPointId,
-		const float InSplineResolution=0.0f,
-		const bool bInExportCurves=true,
-		const bool bInExportControlPoints=false,
-		const bool bInExportLeftRightCurves=false,
-		const bool bInInputNodesCanBeDeleted=true);
+		float InSplineResolution=0.0f,
+		bool bInExportCurves=true,
+		bool bInExportControlPoints=false,
+		bool bInExportLeftRightCurves=false,
+		bool bInInputNodesCanBeDeleted=true);
 
-	/**
-	 * @brief Create a null SOP with a curve for each spline/segment of InSplinesComponent.
-	 * @param InSplinesComponent The landscape splines component to send as curves to Houdini.
-	 * @param InObjectNodeId The HAPI object geo node in which to create the node for the curves.
-	 * @param InNodeName The basename to use for naming the spline curves node. The final node name as a "_splines" suffix.
-	 * @param OutNodeId The HAPI node id of the SOP that was created for the curves.
-	 * @param InExportCurve The curve to export: Center (default), Left or Right.
-	 * @param InSplineResolution The spline resolution. <= 0 leaves the landscape spline at its current resolution.
-	 * @return True if the operation was successful. In failure cases some HAPI nodes could still have been created, so
-	 * OutNodeId must still be handled appropriately.
-	 */
-	static bool CreateInputNodeForLandscapeSplines(
+	// Create a null SOP with a curve for each spline/segment of InSplinesComponent.
+	static bool CreateInputNode(
 		ULandscapeSplinesComponent* const InSplinesComponent, 
-		const HAPI_NodeId& InObjectNodeId,
+		HAPI_NodeId InObjectNodeId,
 		const FString& InNodeName,
 		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 		int32& InNextControlPointId,
 		HAPI_NodeId& OutNodeId,
-		const EHoudiniLandscapeSplineCurve InExportCurve=EHoudiniLandscapeSplineCurve::Center,
-		const float InSplineResolution=0.0f);
+		EHoudiniLandscapeSplineCurve InExportCurve=EHoudiniLandscapeSplineCurve::Center,
+		float InSplineResolution=0.0f);
 
-	/**
-	 * @brief Create a null SOP with a point cloud of the control points of InSplinesComponent.
-	 * @param InSplinesComponent The landscape splines component to create a point cloud from.
-	 * @param InObjectNodeId The HAPI object geo node in which to create the node for the point cloud.
-	 * @param InNodeName The basename to use for naming the spline control points node. The final node name as a "_control_points" suffix.
-	 * @param OutNodeId The HAPI node id of the SOP that was created for the point cloud.
-	 * @return True if the operation was successful. In failure cases some HAPI nodes could still have been created, so
-	 * OutNodeId must still be handled appropriately.
-	 */
-	static bool CreateInputNodeForLandscapeSplinesControlPoints(
+	// Create a null SOP with a point cloud of the control points of InSplinesComponent.
+	static bool CreateInputNodeForControlPoints(
 		ULandscapeSplinesComponent* const InSplinesComponent, 
 		const HAPI_NodeId& InObjectNodeId,
 		const FString& InNodeName,
-		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap, 
 		int32& InNextControlPointId,
 		HAPI_NodeId& OutNodeId);
 
 private:
-	/**
-	 * @brief Extract landscape splines data arrays: positions, and various attributes.
-	 * @param InSplinesComponent The landscape splines component.
-	 * @param OutSplinesData The struct to extract data into.
-	 * @param InExportCurve The curve to export: Center (default), Left or Right.
-	 * @param InSplineResolution The spline resolution. <= 0 leaves the landscape spline at its current resolution.
-	 * @return True if data was successfully extracted.
-	 */
-	static bool ExtractLandscapeSplineData(
+	// Extract landscape splines data arrays: positions, and various attributes.
+	static bool ExtractSplineData(
 		ULandscapeSplinesComponent* const InSplinesComponent,
 		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 		int32& InNextControlPointId,
-		FLandscapeSplinesData& OutSplinesData,
-		const EHoudiniLandscapeSplineCurve InExportCurve=EHoudiniLandscapeSplineCurve::Center,
-		const float InSplineResolution=0.0f);
+		FHoudiniLandscapeSplinesData& OutSplinesData,
+		EHoudiniLandscapeSplineCurve InExportCurve=EHoudiniLandscapeSplineCurve::Center,
+		float InSplineResolution=0.0f);
 		
-	/**
-	 * @brief Extract landscape splines control points data arrays: positions, rotations, and various attributes.
-	 * @param InSplinesComponent The landscape splines component.
-	 * @param OutSplinesControlPointData The struct to extract data into.
-	 * @return True if data was successfully extracted.
-	 */
-	static bool ExtractLandscapeSplineControlPointsData(
+	// landscape splines control points data arrays: positions, rotations, and various attributes.
+	static bool ExtractSplineControlPointsData(
 		ULandscapeSplinesComponent* const InSplinesComponent,
 		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 		int32& InNextControlPointId,
-		FLandscapeSplinesControlPointData& OutSplinesControlPointData);
+		FHoudiniLandscapeSplinesControlPointData& OutSplinesControlPointData);
 
-	/**
-	 * Adds the landscape spline target landscape prim attribute (target = InLandscapeActor).
-	 * @param InNodeId The HAPI node that contains the geo create the attribute on.
-	 * @param InPartId The part id containing the geo.
-	 * @param InLandscapeActor The landscape actor to set as target.
-	 * @param InCount The number of prims in the part.
-	 */
-	static bool AddLandscapeSplineTargetLandscapeAttribute(
-		const HAPI_NodeId& InNodeId,
-		const HAPI_PartId& InPartId,
+	// Adds the landscape spline target landscape prim attribute (target = InLandscapeActor).
+	static bool AddTargetLandscapeAttribute(
+		HAPI_NodeId InNodeId,
+		HAPI_PartId InPartId,
 		ALandscapeProxy const* const InLandscapeActor,
-		const int32 InCount,
-		const HAPI_AttributeOwner InAttribOwner=HAPI_ATTROWNER_PRIM);
+		int InCount,
+		HAPI_AttributeOwner InAttribOwner=HAPI_ATTROWNER_PRIM);
+
+	static bool AddOutputAttribute(HAPI_NodeId InNodeId, HAPI_PartId InPartId, int InValue, int InCount,HAPI_AttributeOwner InAttribOwner=HAPI_ATTROWNER_PRIM);
+	static bool AddPositionAttribute(HAPI_NodeId InNodeId, const TArray<float>& InPositions);
+	static bool AddPaintLayerNameAttribute(HAPI_NodeId InNodeId, const TArray<FString>& InPaintLayerNames, HAPI_AttributeOwner InAttribOwner);
+	static bool AddRaiseTerrainAttribute(HAPI_NodeId InNodeId, const TArray<int8>& InRaiseTerrain, HAPI_AttributeOwner InAttribOwner);
+	static bool AddLowerTerrainAttribute(HAPI_NodeId InNodeId, const TArray<int8>& InLowerTerrain, HAPI_AttributeOwner InAttribOwner);
+	static bool AddSegmentMeshesAttributes(HAPI_NodeId InNodeId, const TArray<FHoudiniLandscapeSplineSegmentMeshData>& InPerMeshSegmentData);
+	static bool AddConnectionSocketNameAttribute(HAPI_NodeId InNodeId, const TArray<FString>& InPointConnectionSocketNames);
+	static bool AddRotationAttribute(HAPI_NodeId InNodeId, const TArray<float>& InControlPointRotations);
+	static bool AddMeshAttribute(HAPI_NodeId InNodeId, const TArray<FString>& InMeshRefs);
+	static bool AddMaterialOverrideAttributes(HAPI_NodeId InNodeId, const TArray<TArray<FString>>& InMaterialOverrideRefs);
+	static bool AddIdsAttribute(HAPI_NodeId InNodeId, const TArray<int32>& InControlPointIds);
+	static bool AddHalfWidthAttribute(HAPI_NodeId InNodeId, const TArray<float>& InHalfWidths);
+	static bool AddSideFalloffAttribute(HAPI_NodeId InNodeId, const TArray<float>& InSideFalloffs);
+	static bool AddEndFalloffAttribute(HAPI_NodeId InNodeId, const TArray<float>& InEndFalloffs);
+	static bool AddTangentLengthAttribute(HAPI_NodeId InNodeId, const TArray<float>& InTangentLengths);
+	static bool AddMeshScaleAttribute(HAPI_NodeId InNodeId, const TArray<float>& InTangentLengths);
+	static bool AddControlPointAttributes(HAPI_NodeId InNodeId, const FHoudiniLandscapeSplineControlPointAttributes& InControlPointAttributes);
+};
+
+class FHoudiniLandscapeSplineControlPointAttributes
+{
+public:
+	/** Empties all arrays and reserve enough space for InExpectedPointCount entries. */
+	void Init(int32 InPointCount);
+
+	/** Add an entry to each array with the property values from InControlPoint. */
+	bool AddControlPointData(
+		const ULandscapeSplineControlPoint * InControlPoint,
+		int32 InControlPointIndex,
+		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
+		int32& InNextControlPointId);
+
+	/** Add an empty / default initialized entry to each array. */
+	void AddEmpty();
+
+	TArray<float> Rotations;
+	TArray<FString> PaintLayerNames;
+	TArray<int8> RaiseTerrains;
+	TArray<int8> LowerTerrains;
+	TArray<FString> MeshRefs;
+	TArray<TArray<FString>> MaterialOverrideRefs;
+	TArray<float> MeshScales;
+	TArray<int32> Ids;
+	TArray<float> HalfWidths;
+	TArray<float> SideFalloffs;
+	TArray<float> EndFalloffs;
+
+private:
+	int32 PointCount = 0;
+};
+
+
+struct FHoudiniLandscapeSplineSegmentMeshData
+{
+	TArray<FString> MeshRefs;
+	TArray<TArray<FString>> MeshMaterialOverrideRefs;
+	TArray<float> MeshScales;
+};
+
+
+struct FHoudiniLandscapeSplinesData
+{
+	/** Point positions (xyz) for all segments. */
+	TArray<float> PointPositions;
+
+	/** Vertex counts: the number of vertices per landscape spline. */
+	TArray<int32> VertexCounts;
+
+	/** Per-segment paint layer names */
+	TArray<FString> SegmentPaintLayerNames;
+
+	/** Per-segment bRaiseTerrain */
+	TArray<int8> SegmentRaiseTerrains;
+
+	/** Per-segment bLowerTerrain */
+	TArray<int8> SegmentLowerTerrains;
+
+	/** Static mesh attribute, the outer index is mesh 0, 1, 2 ... The struct contains the per-segment data */
+	TArray<FHoudiniLandscapeSplineSegmentMeshData> PerMeshSegmentData;
 
 	/**
-	 * Adds the landscape splines output attribute to identify a curve as a landscape spline.
-	 * @param InNodeId The HAPI node that contains the geo create the attribute on.
-	 * @param InPartId The part id containing the geo.
-	 * @param InValue The value to write. The meaning of the value is the corresponding EHoudiniLandscapeSplineCurve
-	 * enum value.
-	 * @param InCount The number of elements (points, prims etc, see InAttribOwner) in the part.
-	 * @param InAttribOwner The type of attribute: point, prim etc.
+	 * The mesh socket names on the splines' points, each index is a point index. Only the point indices that
+	 * correspond to control points (first and last point of each segment) will have values set, the rest of the
+	 * array will contain empty strings.
 	 */
-	static bool AddLandscapeSplineOutputAttribute(
-		const HAPI_NodeId& InNodeId,
-		const HAPI_PartId& InPartId,
-		const int32 InValue,
-		const int32 InCount,
-		const HAPI_AttributeOwner InAttribOwner=HAPI_ATTROWNER_PRIM);
+	TArray<FString> PointConnectionSocketNames;
 
-	static bool AddLandscapeSplinePositionAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<float>& InPositions);
+	/**
+	 * If a point corresponds with a control point on the spline, this contains the control point's tangent length
+	 * for the segment connection.
+	 */
+	TArray<float> PointConnectionTangentLengths;
 
-	static bool AddLandscapeSplinePaintLayerNameAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<FString>& InPaintLayerNames, const HAPI_AttributeOwner InAttribOwner);
-	
-	static bool AddLandscapeSplineRaiseTerrainAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<int8>& InRaiseTerrain, const HAPI_AttributeOwner InAttribOwner);
+	/** Control point specific attributes. */
+	FHoudiniLandscapeSplineControlPointAttributes ControlPointAttributes;
+};
 
-	static bool AddLandscapeSplineLowerTerrainAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<int8>& InLowerTerrain, const HAPI_AttributeOwner InAttribOwner);
 
-	static bool AddLandscapeSplineSegmentMeshesAttributes(
-		const HAPI_NodeId& InNodeId, const TArray<FLandscapeSplineSegmentMeshData>& InPerMeshSegmentData);
+struct FHoudiniLandscapeSplinesControlPointData
+{
+	/**
+	 * The control point positions of the splines. These are the original positions unaffected by connection mesh
+	 * sockets.
+	 */
+	TArray<float> ControlPointPositions;
 
-	static bool AddLandscapeSplineConnectionSocketNameAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<FString>& InPointConnectionSocketNames);
+	/** Control point attributes. */
+	FHoudiniLandscapeSplineControlPointAttributes Attributes;
+};
 
-	static bool AddLandscapeSplineControlPointRotationAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<float>& InControlPointRotations);
 
-	static bool AddLandscapeSplineControlPointMeshAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<FString>& InMeshRefs);
+/**
+ * Helper struct for storing unresampled points (center, left and right) and the point's normalized [0, 1] position
+ * along the spline.
+ */
+class FHoudiniUnResampledPoint
+{
+public:
+	FHoudiniUnResampledPoint() = delete;
 
-	static bool AddLandscapeSplineControlPointMaterialOverrideAttributes(
-		const HAPI_NodeId& InNodeId, const TArray<TArray<FString>>& InMaterialOverrideRefs);
+	FHoudiniUnResampledPoint(EHoudiniLandscapeSplineCurve InSplineSelection);
+	FHoudiniUnResampledPoint(EHoudiniLandscapeSplineCurve InSplineSelection, const FLandscapeSplineInterpPoint& InPoint);
 
-	static bool AddLandscapeSplineControlPointIdsAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<int32>& InControlPointIds);
+	FVector GetSelectedPosition() const;
+	FQuat CalculateRotationTo(const FHoudiniUnResampledPoint& InNextPoint);
 
-	static bool AddLandscapeSplineHalfWidthAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<float>& InHalfWidths);
-
-	static bool AddLandscapeSplineSideFalloffAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<float>& InSideFalloffs);
-
-	static bool AddLandscapeSplineEndFalloffAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<float>& InEndFalloffs);
-
-	static bool AddLandscapeSplineTangentLengthAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<float>& InTangentLengths);
-
-	static bool AddLandscapeSplineControlPointMeshScaleAttribute(
-		const HAPI_NodeId& InNodeId, const TArray<float>& InTangentLengths);
-
-	static bool AddLandscapeSplineControlPointAttributes(
-		const HAPI_NodeId& InNodeId, const FLandscapeSplineControlPointAttributes& InControlPointAttributes);
+	FVector Center;
+	FVector Left;
+	FVector Right;
+	FVector FalloffLeft;
+	FVector FalloffRight;
+	FQuat Rotation;
+	float Alpha;
+	EHoudiniLandscapeSplineCurve SplineSelection;
 };
