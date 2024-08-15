@@ -32,6 +32,7 @@
 
 #include "HAPI/HAPI_Common.h"
 
+struct FHoudiniUnrealLandscapeSplinesData;
 class FHoudiniLandscapeSplineControlPointAttributes;
 struct FLandscapeSplineInterpPoint;
 class ALandscapeProxy;
@@ -42,7 +43,7 @@ class UStaticMesh;
 class FUnrealObjectInputHandle;
 struct FHoudiniLandscapeSplineSegmentMeshData;
 struct FHoudiniLandscapeSplinesControlPointData;
-struct FHoudiniLandscapeSplinesData;
+struct FHoudiniUnrealLandscapeSplinesData;
 
 
 enum class EHoudiniLandscapeSplineCurve 
@@ -97,7 +98,7 @@ private:
 		ULandscapeSplinesComponent* const InSplinesComponent,
 		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 		int32& InNextControlPointId,
-		FHoudiniLandscapeSplinesData& OutSplinesData,
+		FHoudiniUnrealLandscapeSplinesData& OutSplinesData,
 		EHoudiniLandscapeSplineCurve InExportCurve=EHoudiniLandscapeSplineCurve::Center,
 		float InSplineResolution=0.0f);
 		
@@ -176,7 +177,7 @@ struct FHoudiniLandscapeSplineSegmentMeshData
 };
 
 
-struct FHoudiniLandscapeSplinesData
+struct FHoudiniUnrealLandscapeSplinesData
 {
 	/** Point positions (xyz) for all segments. */
 	TArray<float> PointPositions;

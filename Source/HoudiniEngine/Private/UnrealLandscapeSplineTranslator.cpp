@@ -564,7 +564,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 		break;
 	}
 
-	FHoudiniLandscapeSplinesData SplinesData;
+	FHoudiniUnrealLandscapeSplinesData SplinesData;
 	if (!ExtractSplineData(InSplinesComponent, InControlPointIdMap, InNextControlPointId, SplinesData, InExportCurve, InSplineResolution))
 	{
 		HOUDINI_LOG_WARNING(TEXT("Failed to extract landscape splines data."));
@@ -980,7 +980,7 @@ bool FUnrealLandscapeSplineTranslator::ExtractSplineData(
 	ULandscapeSplinesComponent* const InSplinesComponent,
 	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 	int32& InNextControlPointId,
-	FHoudiniLandscapeSplinesData& OutSplinesData,
+	FHoudiniUnrealLandscapeSplinesData& OutSplinesData,
 	const EHoudiniLandscapeSplineCurve InExportCurve,
 	float InSplineResolution)
 {
