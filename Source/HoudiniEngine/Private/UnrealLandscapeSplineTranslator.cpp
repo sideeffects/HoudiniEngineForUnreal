@@ -65,7 +65,7 @@ struct FConnectedSpline
 
 
 void
-FHoudiniLandscapeSplineControlPointAttributes::Init(const int32 InExpectedPointCount)
+FHoudiniUnrealLandscapeSplineControlPointAttributes::Init(const int32 InExpectedPointCount)
 {
 	PointCount = InExpectedPointCount;
 	Rotations.Empty(PointCount * 4);
@@ -109,7 +109,7 @@ ConvertAndSetRotation(const FRotator& InUnrealRotation, const int32 InArrayStart
 }
 
 bool
-FHoudiniLandscapeSplineControlPointAttributes::AddControlPointData(
+FHoudiniUnrealLandscapeSplineControlPointAttributes::AddControlPointData(
 	const ULandscapeSplineControlPoint * InControlPoint,
 	int32 InControlPointIndex,
 	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
@@ -159,7 +159,7 @@ FHoudiniLandscapeSplineControlPointAttributes::AddControlPointData(
 
 
 void
-FHoudiniLandscapeSplineControlPointAttributes::AddEmpty()
+FHoudiniUnrealLandscapeSplineControlPointAttributes::AddEmpty()
 {
 	Rotations.Add(FQuat::Identity.X);
 	Rotations.Add(FQuat::Identity.Z);
@@ -184,13 +184,13 @@ FHoudiniLandscapeSplineControlPointAttributes::AddEmpty()
 }
 
 
-FHoudiniUnResampledPoint::FHoudiniUnResampledPoint(EHoudiniLandscapeSplineCurve InSplineSelection)
+FHoudiniUnResampledPoint::FHoudiniUnResampledPoint(EHoudiniUnrealLandscapeSplineCurve InSplineSelection)
 	: Alpha(0.0f)
 	, SplineSelection(InSplineSelection)
 {
 }
 
-FHoudiniUnResampledPoint::FHoudiniUnResampledPoint(EHoudiniLandscapeSplineCurve InSplineSelection, const FLandscapeSplineInterpPoint& InPoint)
+FHoudiniUnResampledPoint::FHoudiniUnResampledPoint(EHoudiniUnrealLandscapeSplineCurve InSplineSelection, const FLandscapeSplineInterpPoint& InPoint)
 	: Center(InPoint.Center)
 	, Left(InPoint.Left)
 	, Right(InPoint.Right)
@@ -209,11 +209,11 @@ FHoudiniUnResampledPoint::GetSelectedPosition() const
 {
 	switch (SplineSelection)
 	{
-	case EHoudiniLandscapeSplineCurve::Center:
+	case EHoudiniUnrealLandscapeSplineCurve::Center:
 		return Center;
-	case EHoudiniLandscapeSplineCurve::Left:
+	case EHoudiniUnrealLandscapeSplineCurve::Left:
 		return Left;
-	case EHoudiniLandscapeSplineCurve::Right:
+	case EHoudiniUnrealLandscapeSplineCurve::Right:
 		return Right;
 	default:
 		HOUDINI_LOG_WARNING(TEXT("Invalid value for SplineSelection: %d, returning Center point."), SplineSelection);
@@ -443,7 +443,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 		HAPI_NodeId SplinesNodeId = -1;
 		if (!CreateInputNode(
 				InSplinesComponent, ObjectNodeId, FinalInputNodeName, InControlPointIdMap, InNextControlPointId,
-				SplinesNodeId,	EHoudiniLandscapeSplineCurve::Center, InSplineResolution))
+				SplinesNodeId,	EHoudiniUnrealLandscapeSplineCurve::Center, InSplineResolution))
 		{
 			bSuccess = false;
 		}
@@ -494,7 +494,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 		HAPI_NodeId SplinesNodeId = -1;
 		if (!CreateInputNode(
 			InSplinesComponent, ObjectNodeId, FinalInputNodeName, InControlPointIdMap, InNextControlPointId,
-			SplinesNodeId, EHoudiniLandscapeSplineCurve::Left, InSplineResolution))
+			SplinesNodeId, EHoudiniUnrealLandscapeSplineCurve::Left, InSplineResolution))
 		{
 			bSuccess = false;
 		}
@@ -508,7 +508,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 		}
 		if (!CreateInputNode(
 			InSplinesComponent, ObjectNodeId, FinalInputNodeName, InControlPointIdMap, InNextControlPointId,
-			SplinesNodeId, EHoudiniLandscapeSplineCurve::Right, InSplineResolution))
+			SplinesNodeId, EHoudiniUnrealLandscapeSplineCurve::Right, InSplineResolution))
 		{
 			bSuccess = false;
 		}
@@ -543,7 +543,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 	int32& InNextControlPointId,
 	HAPI_NodeId& OutNodeId,
-	const EHoudiniLandscapeSplineCurve InExportCurve,
+	const EHoudiniUnrealLandscapeSplineCurve InExportCurve,
 	const float InSplineResolution)
 {
 	if (!IsValid(InSplinesComponent))
@@ -553,13 +553,13 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 	FString FinalInputNodeName;
 	switch (InExportCurve)
 	{
-	case EHoudiniLandscapeSplineCurve::Center:
+	case EHoudiniUnrealLandscapeSplineCurve::Center:
 		FinalInputNodeName = InNodeName + TEXT("_curves");
 		break;
-	case EHoudiniLandscapeSplineCurve::Left:
+	case EHoudiniUnrealLandscapeSplineCurve::Left:
 		FinalInputNodeName = InNodeName + TEXT("_left_curves");
 		break;
-	case EHoudiniLandscapeSplineCurve::Right:
+	case EHoudiniUnrealLandscapeSplineCurve::Right:
 		FinalInputNodeName = InNodeName + TEXT("_right_curves");
 		break;
 	}
@@ -716,7 +716,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNodeForControlPoints(
 	// Set the final node name with _control_points suffix
 	const FString FinalInputNodeName = InNodeName + TEXT("_control_points");
 
-	FHoudiniLandscapeSplinesControlPointData ControlPointsData;
+	FHoudiniUnrealLandscapeSplinesControlPointData ControlPointsData;
 	if (!ExtractSplineControlPointsData(InSplinesComponent, InControlPointIdMap, InNextControlPointId, ControlPointsData))
 	{
 		HOUDINI_LOG_WARNING(TEXT("Failed to extract landscape splines control points data."));
@@ -883,7 +883,7 @@ void FindConnectedSplines(const TArray<TObjectPtr<ULandscapeSplineSegment>>& InS
 
 void PopulateUnResampledPointData(
 	TArray<FConnectedSpline>& InConnectedSplines,
-	const EHoudiniLandscapeSplineCurve InExportCurve,
+	const EHoudiniUnrealLandscapeSplineCurve InExportCurve,
 	const bool bInResampleSplines,
 	const float InSplineResolution,
 	int32& OutTotalNumPoints,
@@ -981,7 +981,7 @@ bool FUnrealLandscapeSplineTranslator::ExtractSplineData(
 	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 	int32& InNextControlPointId,
 	FHoudiniUnrealLandscapeSplinesData& OutSplinesData,
-	const EHoudiniLandscapeSplineCurve InExportCurve,
+	const EHoudiniUnrealLandscapeSplineCurve InExportCurve,
 	float InSplineResolution)
 {
 	if (!IsValid(InSplinesComponent))
@@ -1212,7 +1212,7 @@ bool FUnrealLandscapeSplineTranslator::ExtractSplineData(
 			for (int32 MeshIdx = 0; MeshIdx < NumMeshes; ++MeshIdx)
 			{
 				const FLandscapeSplineMeshEntry& SplineMeshEntry = SegmentData.Segment->SplineMeshes[MeshIdx];
-				FHoudiniLandscapeSplineSegmentMeshData& SegmentMeshData = OutSplinesData.PerMeshSegmentData[MeshIdx];
+				FHoudiniUnrealLandscapeSplineSegmentMeshData& SegmentMeshData = OutSplinesData.PerMeshSegmentData[MeshIdx];
 				// Initialize mesh per segment array if needed
 				if (SegmentMeshData.MeshRefs.IsEmpty())
 				{
@@ -1273,7 +1273,7 @@ FUnrealLandscapeSplineTranslator::ExtractSplineControlPointsData(
 	ULandscapeSplinesComponent* const InSplinesComponent,
 	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 	int32& InNextControlPointId,
-	FHoudiniLandscapeSplinesControlPointData& OutSplinesControlPointData)
+	FHoudiniUnrealLandscapeSplinesControlPointData& OutSplinesControlPointData)
 {
 	if (!IsValid(InSplinesComponent))
 		return false;
@@ -1425,7 +1425,7 @@ bool FUnrealLandscapeSplineTranslator::AddLowerTerrainAttribute(HAPI_NodeId InNo
 }
 
 
-bool FUnrealLandscapeSplineTranslator::AddSegmentMeshesAttributes(HAPI_NodeId InNodeId, const TArray<FHoudiniLandscapeSplineSegmentMeshData>& InPerMeshSegmentData)
+bool FUnrealLandscapeSplineTranslator::AddSegmentMeshesAttributes(HAPI_NodeId InNodeId, const TArray<FHoudiniUnrealLandscapeSplineSegmentMeshData>& InPerMeshSegmentData)
 {
 	int32 NumMeshAttrs = InPerMeshSegmentData.Num();
 	if (NumMeshAttrs <= 0)
@@ -1436,7 +1436,7 @@ bool FUnrealLandscapeSplineTranslator::AddSegmentMeshesAttributes(HAPI_NodeId In
 	bool bNeedToCommit = false;
 	for (int32 MeshIdx = 0; MeshIdx < NumMeshAttrs; ++MeshIdx)
 	{
-		const FHoudiniLandscapeSplineSegmentMeshData& MeshSegmentData = InPerMeshSegmentData[MeshIdx];
+		const FHoudiniUnrealLandscapeSplineSegmentMeshData& MeshSegmentData = InPerMeshSegmentData[MeshIdx];
 		HAPI_AttributeInfo AttrInfo;
 
 		// Add the mesh attribute
@@ -1630,7 +1630,7 @@ FUnrealLandscapeSplineTranslator::AddMeshScaleAttribute(HAPI_NodeId InNodeId, co
 
 
 bool
-FUnrealLandscapeSplineTranslator::AddControlPointAttributes(HAPI_NodeId InNodeId, const FHoudiniLandscapeSplineControlPointAttributes& InControlPointAttributes)
+FUnrealLandscapeSplineTranslator::AddControlPointAttributes(HAPI_NodeId InNodeId, const FHoudiniUnrealLandscapeSplineControlPointAttributes& InControlPointAttributes)
 {
 	bool bNeedToCommit = false;
 
