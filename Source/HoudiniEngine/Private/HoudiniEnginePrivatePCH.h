@@ -127,7 +127,7 @@
 #define HAPI_UNREAL_ATTRIB_NORMAL						HAPI_ATTRIB_NORMAL
 #define HAPI_UNREAL_ATTRIB_TANGENTU						HAPI_ATTRIB_TANGENT
 #define HAPI_UNREAL_ATTRIB_TANGENTV						HAPI_ATTRIB_TANGENT2
-
+#define HAPI_UNREAL_ATTRIB_DISABLE_GAMMA_CORRECTION     "unreal_disable_gamma_correction"
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_TILE					"tile"
 // Always the name of the main landscape actor. 
 // Names for landscape tile actors will be taken from 'unreal_output_name'.
