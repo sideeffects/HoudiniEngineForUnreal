@@ -709,8 +709,6 @@ FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 		return true;
 	}
 
-
-
 	// Create a new mesh translator to handle the output data creation
 	FHoudiniMeshTranslator CurrentTranslator;
 	CurrentTranslator.ForceRebuild = InForceRebuild;
@@ -3101,22 +3099,6 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			continue;
 		
 		const FHoudiniOutputObjectIdentifier& CurrentObjId = Current.Key;
-		// Update property attributes on the SM
-		TArray<FHoudiniGenericAttribute> PropertyAttributes;
-		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
-			CurrentObjId.GeoId,
-			CurrentObjId.PartId,
-			true,
-			CurrentObjId.PrimitiveIndex,
-			INDEX_NONE,
-			CurrentObjId.PointIndex,
-			PropertyAttributes))
-		{
-			// Defer post edit change calls until after all property values have been set, since the static mesh
-			// build function is called from PostEditChangeProperty.
-			constexpr bool bDeferPostEditChangePropertyCalls = true;
-			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SM, PropertyAttributes, 0, bDeferPostEditChangePropertyCalls);
-		}
 
 		UBodySetup * BodySetup = SM->GetBodySetup();
 		if (!BodySetup)
@@ -3225,6 +3207,22 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			MainBodySetup->CollisionTraceFlag = MainStaticMeshCTF;
 		}
 
+		// Update property attributes on the SM
+		TArray<FHoudiniGenericAttribute> PropertyAttributes;
+		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
+			CurrentObjId.GeoId,
+			CurrentObjId.PartId,
+			true,
+			CurrentObjId.PrimitiveIndex,
+			INDEX_NONE,
+			CurrentObjId.PointIndex,
+			PropertyAttributes))
+		{
+			// Defer post edit change calls until after all property values have been set, since the static mesh
+			// build function is called from PostEditChangeProperty.
+			constexpr bool bDeferPostEditChangePropertyCalls = true;
+			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SM, PropertyAttributes, 0, bDeferPostEditChangePropertyCalls);
+		}
 
 		if (bDoTiming)
 		{
