@@ -1400,8 +1400,6 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			FHoudiniGeoInfo CurrentGeoInfo;
 			CacheGeoInfo(CurrentHapiGeoInfo, CurrentGeoInfo);
 
-			HOUDINI_LOG_MESSAGE(TEXT("Found %d parts on geo."), CurrentGeoInfo.PartCount);
-
 			// Simply create an empty array for this geo's group names
 			// We might need it later for splitting
 			TArray<FString> GeoGroupNames;
