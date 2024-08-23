@@ -29,10 +29,13 @@
 
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniEngine.h"
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniEngineCommands.h"
 #include "HoudiniEngineEditorUtils.h"
+#include "HoudiniEngineManager.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniOutputDetails.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterButton.h"
@@ -4439,4 +4442,50 @@ UHoudiniPublicAPIAssetWrapper::GetValidTOPNodeByPathWithError(
 	OutNodeIndex = NodeIndex;
 	OutNode = Node;
 	return true;
+}
+
+void
+UHoudiniPublicAPIAssetWrapper::ProcessComponentSynchronous_Implementation()
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return;
+
+	if (!FHoudiniEngine::Get().IsCookingEnabled())
+		return;
+
+	// Node Sync component cant be processed
+	if (HAC->IsA<UHoudiniNodeSyncComponent>())
+		return;
+
+	FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
+	if (!HEM)
+		return;
+
+	bool bIsStillProcessing = true;
+	while (bIsStillProcessing)
+	{
+		EHoudiniAssetState CurrentState = HAC->GetAssetState();
+		if (CurrentState == EHoudiniAssetState::NeedInstantiation)
+		{
+			// We can exit here.
+			bIsStillProcessing = false;
+		}
+		else if (CurrentState == EHoudiniAssetState::None)
+		{
+			// When reaching the none state - we want to process the component
+			// one last time in case some changes trigger an update/cook
+			HEM->ProcessComponent(HAC);
+			if (HAC->GetAssetState() == EHoudiniAssetState::None)
+			{
+				// The component is not active anymore - we can return
+				bIsStillProcessing = false;
+			}
+		}
+		else
+		{
+			// Keep processing the component until we reach an inactive state
+			HEM->ProcessComponent(HAC);
+		}
+	}
 }

@@ -44,7 +44,7 @@ struct FGuid;
 
 enum class EHoudiniAssetState : uint8;
 
-class FHoudiniEngineManager
+class HOUDINIENGINE_API FHoudiniEngineManager
 {
 public:
 
