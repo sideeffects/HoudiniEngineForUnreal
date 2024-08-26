@@ -83,13 +83,15 @@ struct FHoudiniAutomationTest : FAutomationTestBase
 };
 
 // Similar to IMPLEMENT_SIMPLE_AUTOMATION_TEST, But use Houdini class
-#define IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST( TClass, PrettyName, TFlags ) \
-IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, FHoudiniAutomationTest, PrettyName, TFlags, __FILE__, __LINE__) \
+#define IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST( TClass, TBaseClass, PrettyName, TFlags ) \
+IMPLEMENT_SIMPLE_AUTOMATION_TEST_PRIVATE(TClass, TBaseClass, PrettyName, TFlags, __FILE__, __LINE__) \
 namespace\
 {\
 TClass TClass##AutomationTestInstance( TEXT(#TClass) );\
 }
 
+#define IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST( TClass, PrettyName, TFlags ) \
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(TClass, FHoudiniAutomationTest, PrettyName, TFlags) 
 
 /*
  *TBD;

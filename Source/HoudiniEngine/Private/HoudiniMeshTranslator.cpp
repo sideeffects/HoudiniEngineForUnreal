@@ -1521,19 +1521,8 @@ FHoudiniMeshTranslator::UpdatePartLODScreensizeIfNeeded()
 		return true;
 
 	FHoudiniHapiAccessor Accessor(HGPO.GeoInfo.NodeId, HGPO.PartInfo.PartId, HAPI_UNREAL_ATTRIB_LOD_SCREENSIZE);
-
 	bool Success = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, PartLODScreensize);
-
-	if (!Success)
-	{
-		// Error retrieving FaceSmoothing values.
-		HOUDINI_LOG_WARNING(
-			TEXT("Creating Static Meshes: Object [%d %s], Geo [%d], Part [%d %s], unable to retrieve LOD screensizes"),
-			HGPO.ObjectId, *HGPO.ObjectName, HGPO.GeoId, HGPO.PartId, *HGPO.PartName);
-		return false;
-	}
-
-	return true;
+	return Success;
 }
 
 

@@ -259,6 +259,17 @@ struct FHoudiniEditorUnitTestUtils
 		__Parameter->SetValueAt(_PARAMETER_VALUE, _PARAMETER_INDEX);\
 	}
 
+// Helper macro to set parm, ensures the parameter is valid.
+#define SET_HDA_PARAMETER_NUM_ELEMENTS(_HAC, _PARAMETER_TYPE, _PARAMATER_NAME, _PARAMETER_VALUE)\
+	{\
+		_PARAMETER_TYPE* __Parameter = FHoudiniEditorUnitTestUtils::GetTypedParameter<_PARAMETER_TYPE>(_HAC, _PARAMATER_NAME);\
+		if (!TestNotNull(#_PARAMATER_NAME, __Parameter))\
+		{\
+			return true;\
+		}\
+		__Parameter->SetNumElements(_PARAMETER_VALUE);\
+	}
+
 struct FHoudiniTestContext
 {
 	// Create and pass one of these structures between different latent parts of a test  (ie. those added
