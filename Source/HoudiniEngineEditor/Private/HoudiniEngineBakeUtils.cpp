@@ -4404,6 +4404,14 @@ FHoudiniEngineBakeUtils::BakeHoudiniCurveOutputToActors(
 		OutputBakedActor.OutputIndex = InOutputIndex;
 		OutputBakedActor.OutputObjectIdentifier = Identifier;
 
+		// Don't forget to copy the tags to the curve's actor
+		if (FoundHGPO && IsValid(OutputBakedActor.Actor))
+		{
+			FHoudiniEngineUtils::KeepOrClearActorTags(OutputBakedActor.Actor, true, false, FoundHGPO);
+			// Add actor tags from generic property attributes
+			FHoudiniEngineUtils::ApplyTagsToActorOnly(FoundHGPO->GenericPropertyAttributes, OutputBakedActor.Actor->Tags);
+		}
+
 		AllBakedActors.Add(OutputBakedActor);
 		NewBakedActors.Add(OutputBakedActor);
 
@@ -5787,7 +5795,7 @@ FHoudiniEngineBakeUtils::BakeCurve(
 	// We duplicated the InSplineComponent, so we don't have to copy all of its properties, but we must set the
 	// world transform
 	DuplicatedSplineComponent->SetWorldTransform(InSplineComponent->GetComponentTransform());
-	
+
 	FAssetRegistryModule::AssetCreated(DuplicatedSplineComponent);
 	DuplicatedSplineComponent->RegisterComponent();
 
