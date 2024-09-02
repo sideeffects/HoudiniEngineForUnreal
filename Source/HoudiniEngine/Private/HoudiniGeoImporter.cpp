@@ -793,7 +793,8 @@ UHoudiniGeoImporter::CreateInstancerOutputPartData(
 			OutInstancedOutputPartData.Add(OutputIdentifier, FHoudiniInstancedOutputPartData());
 			FHoudiniInstancedOutputPartData *InstancedOutputData = OutInstancedOutputPartData.Find(OutputIdentifier); 
 			// Create all the instancers and attach them to a fake outer component
-			if (!FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(HGPO, InOutputs, *InstancedOutputData))
+			TSet<UObject*> InvisibleObjects; // Not used by this function.
+			if (!FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(HGPO, InOutputs, *InstancedOutputData, InvisibleObjects))
 				return false;
 		}
 	}

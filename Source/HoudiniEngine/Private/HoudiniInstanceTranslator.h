@@ -219,7 +219,8 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 		static bool PopulateInstancedOutputPartData(
 			const FHoudiniGeoPartObject& InHGPO,
 			const TArray<UHoudiniOutput*>& InAllOutputs,
-			FHoudiniInstancedOutputPartData& OutInstancedOutputPartData);
+			FHoudiniInstancedOutputPartData& OutInstancedOutputPartData,
+			TSet<UObject*>& OutInvisibleObjects);
 
 		static int CreateAllInstancersFromHoudiniOutputs(
 			const TArray<UHoudiniOutput*>& InAllOutputs,
@@ -252,7 +253,8 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 			TArray<TArray<int32>>& OutInstancedIndices,
 			FString& OutSplitAttributeName,
 			TArray<FString>& OutSplitAttributeValues,
-			TMap<FString, FHoudiniInstancedOutputPerSplitAttributes>& OutPerSplitAttributes);
+			TMap<FString, FHoudiniInstancedOutputPerSplitAttributes>& OutPerSplitAttributes,
+			TSet<UObject*> & OutInvisibleObjects);
 
 		static bool GetPackedPrimitiveInstancerHGPOsAndTransforms(
 			const FHoudiniGeoPartObject& InHGPO,

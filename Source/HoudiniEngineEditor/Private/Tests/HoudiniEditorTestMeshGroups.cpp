@@ -565,6 +565,359 @@ bool FHoudiniEditorTestMeshGroups_Everything::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedNone, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.None", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedNone::RunTest(const FString& Parameters)
+{
+	// No special groups should export a single mesh,
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumBoxCollisions = 0;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedRenderedCollisionGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.RenderedCollisionGeo", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedRenderedCollisionGeo::RunTest(const FString& Parameters)
+{
+	// rendered_collision_geo should export a simple mesh
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("rendered_collision_geo");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumBoxCollisions = 0;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedCollisionGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.CollisionGeo", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedCollisionGeo::RunTest(const FString& Parameters)
+{
+	// collision_geo should export a simple mesh where the component is invisible.
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("collision_geo");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumBoxCollisions = 0;
+	MeshCheck.bComponentIsVisible = false;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedMainGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.MainGeo", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedMainGeo::RunTest(const FString& Parameters)
+{
+	// main_geo should export a simple mesh
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("main_geo");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumBoxCollisions = 0;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP18Collision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP18Collision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP18Collision::RunTest(const FString& Parameters)
+{
+	// Convex hull test
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("rendered_collision_geo_simple_kdop18");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumConvexCollisions = 1;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP26Collision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP26Collision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP26Collision::RunTest(const FString& Parameters)
+{
+	// Convex hull test
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("rendered_collision_geo_simple_kdop26");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumConvexCollisions = 1;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10xCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP10xCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10xCollision::RunTest(const FString& Parameters)
+{
+	// Convex hull test
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("rendered_collision_geo_simple_kdop10x");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumConvexCollisions = 1;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10yCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP10yCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10yCollision::RunTest(const FString& Parameters)
+{
+	// Convex hull test
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("rendered_collision_geo_simple_kdop10y");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumConvexCollisions = 1;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10zCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP10zCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10zCollision::RunTest(const FString& Parameters)
+{
+	// Convex hull test
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("rendered_collision_geo_simple_kdop10z");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumConvexCollisions = 1;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleBoxCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleBoxCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedSimpleBoxCollision::RunTest(const FString& Parameters)
+{
+	// Convex hull test
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("rendered_collision_geo_simple_box");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumBoxCollisions = 1;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleBoxAndSphereCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.Simple1Box1SphereCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedSimpleBoxAndSphereCollision::RunTest(const FString& Parameters)
+{
+	// Test that 2 simple collisions can be added to the same mesh.
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("");
+	Settings.CubeGroups.Add("collision_geo_simple_box_1");
+	Settings.SphereGroups.Add("collision_geo_simple_sphere_1");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumBoxCollisions = 1;
+	MeshCheck.NumSphereCollisions = 1;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimple2BoxCollisions, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.Simple2BoxesCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedSimple2BoxCollisions::RunTest(const FString& Parameters)
+{
+	// Test that 2 simple collisions can be added to the same mesh.
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("");
+	Settings.CubeGroups.Add("collision_geo_simple_box_1");
+	Settings.CubeGroups.Add("collision_geo_simple_box_2");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumBoxCollisions = 2;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedMainGeoBoxAndSphereCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.MainGeoSimpleBoxAndSphereCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedMainGeoBoxAndSphereCollision::RunTest(const FString& Parameters)
+{
+	// Test that 2 simple collisions can be added to the same mesh. with main_geo as the name.
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("main_geo");
+	Settings.CubeGroups.Add("collision_geo_simple_box_1");
+	Settings.SphereGroups.Add("collision_geo_simple_sphere_1");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.NumBoxCollisions = 1;
+	MeshCheck.NumSphereCollisions = 1;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedLODs, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.LODs", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedLODs::RunTest(const FString& Parameters)
+{
+	// test lods.
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.CubeGroups.Add("lod1");
+	Settings.SphereGroups.Add("lod2");
+	Settings.CubeGroups.Add("lod3");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Sphere);
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedMainGeoCustomCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.ComplexCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedMainGeoCustomCollision::RunTest(const FString& Parameters)
+{
+	// Test a complex collision, where a second mesh is created.
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.SphereGroups.Add("collision_geo");
+	Settings.CubeGroups.Add("rendered_geo");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.ComplexCollisionType = EHoudiniMeshType::Sphere;
+
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedEverything, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.Everything", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestMeshGroups_PackedEverything::RunTest(const FString& Parameters)
+{
+	// Lots of things tested together.
+	TSharedPtr<FHoudiniTestContext> Context = FHoudiniMeshAutomationTest::LoadHDA(this);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	FHoudiniTestSettings Settings;
+	Settings.SphereGroups.Add("collision_geo");
+	Settings.CubeGroups.Add("rendered_geo");
+	Settings.CubeGroups.Add("collision_geo_simple_box_1");
+	Settings.SphereGroups.Add("lod1");
+	Settings.bPack = true;
+
+	FHoudiniMeshCheck MeshCheck;
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Cube);
+	MeshCheck.LODMeshes.Add(EHoudiniMeshType::Sphere);
+	MeshCheck.ComplexCollisionType = EHoudiniMeshType::Sphere;
+	MeshCheck.NumBoxCollisions = 1;
+	ExecuteMeshTest(Context, Settings, MeshCheck);
+
+	return true;
+}
 
 
 #endif
