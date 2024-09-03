@@ -73,6 +73,8 @@ UHoudiniPublicAPIProcessHDANode::ProcessHDA(
 	const bool bInEnableAutoBake,
 	const FString& InBakeDirectoryPath,
 	const EHoudiniEngineBakeOption InBakeMethod,
+	const EHoudiniStaticMeshMethod InStaticMeshMethod,
+	const FMeshBuildSettings InMeshBuildSettings,
 	const bool bInRemoveOutputAfterBake,
 	const bool bInRecenterBakedActors,
 	const bool bInReplacePreviousBake,
@@ -91,6 +93,8 @@ UHoudiniPublicAPIProcessHDANode::ProcessHDA(
 	Node->bEnableAutoBake = bInEnableAutoBake;
 	Node->BakeDirectoryPath = InBakeDirectoryPath;
 	Node->BakeMethod = InBakeMethod;
+	Node->StaticMeshMethod = InStaticMeshMethod;
+	Node->StaticMeshBuildSettings = InMeshBuildSettings;
 	Node->bRemoveOutputAfterBake = bInRemoveOutputAfterBake;
 	Node->bRecenterBakedActors = bInRecenterBakedActors;
 	Node->bReplacePreviousBake = bInReplacePreviousBake;
@@ -134,6 +138,8 @@ UHoudiniPublicAPIProcessHDANode::Activate()
 			bEnableAutoBake,
 			BakeDirectoryPath,
 			BakeMethod,
+			StaticMeshMethod,
+			StaticMeshBuildSettings,
 			bRemoveOutputAfterBake,
 			bRecenterBakedActors,
 			bReplacePreviousBake))
