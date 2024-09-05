@@ -39,6 +39,8 @@
 #include "Engine/SkeletalMesh.h"
 #include "Factories/FbxSkeletalMeshImportData.h"
 #include "IMeshBuilderModule.h"
+#include "PhysicsAssetGenerationSettings.h"
+#include "PhysicsAssetUtils.h"
 #include "ImportUtils/SkeletalMeshImportUtils.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialInterface.h"
@@ -46,6 +48,8 @@
 #include "Rendering/SkeletalMeshLODImporterData.h"
 #include "Rendering/SkeletalMeshModel.h"
 #include "ReferenceSkeleton.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "Engine/SkinnedAssetCommon.h"
@@ -918,10 +922,245 @@ bool FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshParts()
 
 	FHoudiniSkeletalMeshTranslator::CreateUnrealData(SkeletalMeshBuildSettings);
 
+	//----------------------------------------------------------------------------------------------------------------------------------------
+	// Physics Asset
+	//----------------------------------------------------------------------------------------------------------------------------------------
+
+	if (UnrealSkeleton.BoneMap.IsEmpty())
+	{
+		USkeleton * Skeleton = SkeletalMeshAsset->GetSkeleton();
+		UnrealSkeleton = FHoudiniSkeletalMeshUtils::UnrealToHoudiniSkeleton(Skeleton);
+	}
+
+	UPhysicsAsset* PhysicsAsset = GetExistingPhysicsAssetFromParts();
+	bool bCreateDefaultPhysicsAsset = IsCreateDefaultPhysicsAssetAttributeSet();
+
+	if (PhysicsAsset)
+	{
+		PhysicsAsset->PreviewSkeletalMesh = SkeletalMeshAsset;
+		SkeletalMeshAsset->SetPhysicsAsset(PhysicsAsset);
+	}
+	else if (bCreateDefaultPhysicsAsset)
+	{
+		FHoudiniOutputObjectIdentifier PhysAssetIdentifier;
+
+		const FHoudiniGeoPartObject* PhysAssetInstancerHGPO = SKParts.HGPOPhysAssetInstancer;
+		if (!PhysAssetInstancerHGPO)
+		{
+			PhysAssetInstancerHGPO = SKParts.HGPOShapeMesh;
+		}
+
+		if (PhysAssetInstancerHGPO)
+			PhysAssetIdentifier = FHoudiniOutputObjectIdentifier(PhysAssetInstancerHGPO->ObjectId, PhysAssetInstancerHGPO->GeoId, PhysAssetInstancerHGPO->PartId, "");
+
+		PhysicsAsset = CreateNewPhysAsset(PhysAssetIdentifier.SplitIdentifier);
+
+		FHoudiniOutputObject& PhysicsAssetOutputObject = OutputObjects.FindOrAdd(PhysAssetIdentifier);
+		PhysicsAssetOutputObject.OutputObject = PhysicsAsset;
+		PhysicsAssetOutputObject.bProxyIsCurrent = false;
+
+		// Do automatic asset generation.
+		FText ErrorMessage;
+		const FPhysAssetCreateParams& NewBodyData = GetDefault<UPhysicsAssetGenerationSettings>()->CreateParams;
+		bool bSetToMesh = true;
+		FPhysicsAssetUtils::CreateFromSkeletalMesh(PhysicsAsset, SkeletalMeshAsset, NewBodyData, ErrorMessage, bSetToMesh);
+
+
+	}
+	else if (SKParts.HGPOPhysAssetInstancer && SKParts.HGPOPhysAssetMesh)
+	{
+		const FHoudiniGeoPartObject * PhysAssetInstancerHGPO = SKParts.HGPOPhysAssetInstancer;
+
+		FHoudiniOutputObjectIdentifier PhysAssetIdentifier = FHoudiniOutputObjectIdentifier(PhysAssetInstancerHGPO->ObjectId, PhysAssetInstancerHGPO->GeoId, PhysAssetInstancerHGPO->PartId, "");
+
+		PhysicsAsset = CreateNewPhysAsset(PhysAssetIdentifier.SplitIdentifier);
+		PhysicsAsset->PreviewSkeletalMesh = SkeletalMeshAsset;
+
+		SetPhysicsAssetFromHGPO(PhysicsAsset, UnrealSkeleton, *SKParts.HGPOPhysAssetMesh);
+
+		SkeletalMeshAsset->SetPhysicsAsset(PhysicsAsset);
+
+		FHoudiniOutputObject& SkeletonOutputObject = OutputObjects.FindOrAdd(PhysAssetIdentifier);
+		SkeletonOutputObject.OutputObject = PhysicsAsset;
+		SkeletonOutputObject.bProxyIsCurrent = false;
+
+	}
+
 	return true;
 }
 
+void
+FHoudiniSkeletalMeshTranslator::SetPhysicsAssetFromHGPO(UPhysicsAsset* PhysicsAsset, const FHoudiniSkeleton& Skeleton, const FHoudiniGeoPartObject & HGPO)
+{
+	TArray<FString> BoneNames;
+	FHoudiniHapiAccessor Accessor(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_PHYSICS_BONE);
 
+	Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, BoneNames);
+	if (BoneNames.IsEmpty())
+		return;
+
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::PartInfo_Init(&PartInfo);
+	HOUDINI_CHECK_ERROR(FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), HGPO.GeoId, HGPO.PartId, &PartInfo));
+	TArray<FString> GroupNames;
+	if (!FHoudiniEngineUtils::HapiGetGroupNames(HGPO.GeoId, HGPO.PartId, HAPI_GROUPTYPE_POINT, PartInfo.isInstanced, GroupNames))
+	{
+		return;
+	}
+
+	TArray<float> Points;
+	Accessor.Init(HGPO.GeoId, HGPO.PartId, HAPI_ATTRIB_POSITION);
+	Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Points);
+
+	for(FString & GroupName : GroupNames)
+	{
+		TMap<FString, TArray<int>> BoneSplitGroups = ExtractBoneGroup(BoneNames, HGPO, PartInfo, GroupName);
+		for (auto& Entry : BoneSplitGroups)
+		{
+			const FString& BoneName = Entry.Key;
+			const TArray<int>& PointIndices = Entry.Value;
+
+			if (BoneName.IsEmpty() || PointIndices.IsEmpty())
+				continue;
+
+			// Create or get BodySetup for this joint. Assign a Physical Material, if specified.
+			UBodySetup* BodySetup = GetBodySetup(PhysicsAsset, BoneName);
+
+			FHoudiniHapiAccessor PhysicalMaterialAccessor(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_PHYSICAL_MATERIAL);
+			TArray<FString> PhysicMaterials;
+			PhysicalMaterialAccessor.GetAttributeData(HAPI_ATTROWNER_POINT, PhysicMaterials, PointIndices[0], 1);
+			if (!PhysicMaterials.IsEmpty())
+			{
+				UPhysicalMaterial* Material = Cast<UPhysicalMaterial>(StaticLoadObject(UPhysicalMaterial::StaticClass(),
+					nullptr, *(PhysicMaterials[0]), nullptr, LOAD_NoWarn, nullptr));
+				BodySetup->PhysMaterial = Material;
+			}
+
+			// Get Points in Unreal space.  These will then be used to construct the appropriate simple primitive.
+			TArray<FVector> UnrealPoints = GetPointForPhysicsBone(Skeleton, BoneName, PointIndices, Points);
+
+			if (GroupName.StartsWith(TEXT("collision_geo_simple_box")))
+			{
+				FHoudiniMeshTranslator::GenerateOrientedBoxAsSimpleCollision(UnrealPoints, BodySetup->AggGeom);
+			}
+			else if (GroupName.StartsWith(TEXT("collision_geo_simple_sphere")))
+			{
+				FHoudiniMeshTranslator::GenerateSphereAsSimpleCollision(UnrealPoints, BodySetup->AggGeom);
+			}
+			else if (GroupName.StartsWith(TEXT("collision_geo_simple_capsule")))
+			{
+				FHoudiniMeshTranslator::GenerateOrientedSphylAsSimpleCollision(UnrealPoints, BodySetup->AggGeom);
+			}
+			else if (GroupName.StartsWith(TEXT("collision_geo_simple_kdop")))
+			{
+				TArray<FVector> Directions = FHoudiniMeshTranslator::GetKdopDirections(GroupName);
+				FHoudiniMeshTranslator::GenerateKDopAsSimpleCollision(UnrealPoints, Directions, BodySetup->AggGeom);
+			}
+		}
+	}
+}
+
+TMap<FString, TArray<int>>
+FHoudiniSkeletalMeshTranslator::ExtractBoneGroup(const TArray<FString>& BoneNames, const FHoudiniGeoPartObject& HGPO, const HAPI_PartInfo& PartInfo, const FString& GroupName)
+{
+	// This will return an array of point indices for each bone where the point is in the group.
+
+	TMap<FString, TArray<int>> Result;
+
+	TArray<int32> PointGroupMembership;
+	bool AllEqual;
+	if (!FHoudiniEngineUtils::HapiGetGroupMembership(HGPO.GeoId, PartInfo, HAPI_GROUPTYPE_POINT, GroupName, PointGroupMembership, AllEqual))
+		return Result;
+
+	for (int Index = 0; Index < PointGroupMembership.Num(); Index++)
+	{
+		if (PointGroupMembership[Index] == 0)
+			continue;
+
+		const FString& BoneName = BoneNames[Index];
+		if (!Result.Contains(BoneName))
+		{
+			Result.Add(BoneName, {});
+		}
+		Result[BoneName].Add(Index);
+	}
+
+
+	return Result;
+}
+
+UBodySetup* FHoudiniSkeletalMeshTranslator::GetBodySetup(UPhysicsAsset* PhysicsAsset, const FString& BoneName)
+{
+	// Get or create a new UBodySetup for this bone. Note: FPhysicsAssetUtils::CreateNewBody() will not create
+	// a new body setup if it already exists
+
+	const FPhysAssetCreateParams& NewBodyData = GetDefault<UPhysicsAssetGenerationSettings>()->CreateParams;
+	int32 BodyId = FPhysicsAssetUtils::CreateNewBody(PhysicsAsset, FName(BoneName), NewBodyData);
+	UBodySetup* BodySetup = PhysicsAsset->SkeletalBodySetups[BodyId];
+	return BodySetup;
+
+}
+
+TArray<FVector> FHoudiniSkeletalMeshTranslator::GetPointForPhysicsBone(const FHoudiniSkeleton& Skeleton, const FString& BoneName, const TArray<int> PointIndices, const TArray<float>& Points)
+{
+	auto Bone = Skeleton.BoneMap.Find(BoneName);
+
+	auto BoneTransform = (*Bone)->UnrealGlobalMatrix.Inverse();
+
+	// Convert Houdini Points to Unreal Points.
+	TArray<FVector> UnrealPoints;
+	UnrealPoints.SetNum(PointIndices.Num());
+	for (int Index = 0; Index < PointIndices.Num(); Index++)
+	{
+		int PointIndex = PointIndices[Index];
+		UnrealPoints[Index].X = Points[PointIndex * 3 + 0];
+		UnrealPoints[Index].Y = Points[PointIndex * 3 + 2];
+		UnrealPoints[Index].Z = Points[PointIndex * 3 + 1];
+		UnrealPoints[Index] *= HAPI_UNREAL_SCALE_FACTOR_POSITION;
+
+		UnrealPoints[Index] = BoneTransform.TransformPosition(UnrealPoints[Index]);
+	}
+
+	return UnrealPoints;
+}
+
+UPhysicsAsset*
+FHoudiniSkeletalMeshTranslator::CreateNewPhysAsset(const FString& InSplitIdentifier)
+{
+
+	PhysAssetPackageParams.SplitStr = InSplitIdentifier;
+	if (PhysAssetPackageParams.ObjectName.IsEmpty())
+	{
+		PhysAssetPackageParams.ObjectName = FString::Printf(TEXT("%s_%d_%d_%d_%sPhysicsAsset"), 
+			*PhysAssetPackageParams.HoudiniAssetName,
+			PhysAssetPackageParams.ObjectId, PhysAssetPackageParams.GeoId, PhysAssetPackageParams.PartId, *PhysAssetPackageParams.SplitStr);
+	}
+	else
+	{
+		PhysAssetPackageParams.ObjectName += TEXT("Skeleton");
+	}
+
+	const FString AssetPath = PhysAssetPackageParams.GetPackagePath();
+	const FString PackageName = PhysAssetPackageParams.GetPackageName();
+
+	const FString PackagePath = FPaths::Combine(AssetPath, PackageName);
+	const FSoftObjectPath PhysAssetPath(PackagePath);
+
+	UPhysicsAsset* PhysAsset = LoadObject<UPhysicsAsset>(nullptr, *PackagePath, nullptr, LOAD_NoWarn);
+
+	if (IsValid(PhysAsset))
+	{
+		PhysAsset->PreEditChange(nullptr);
+	}
+	else
+	{
+		PhysAsset = PhysAssetPackageParams.CreateObjectAndPackage<UPhysicsAsset>();
+		if (PhysAsset)
+			FAssetRegistryModule::AssetCreated(PhysAsset);
+	}
+
+	return PhysAsset;
+}
 
 USkeleton*
 FHoudiniSkeletalMeshTranslator::CreateNewSkeleton(const FString& InSplitIdentifier) 
@@ -1025,6 +1264,17 @@ FHoudiniSkeletalMeshTranslator::IsRestShapeMesh(HAPI_NodeId GeoId, HAPI_PartId P
 }
 
 bool
+FHoudiniSkeletalMeshTranslator::IsPhysAssetMesh(HAPI_NodeId GeoId, HAPI_PartId PartId)
+{
+	if (!GetAttrInfo(GeoId, PartId, HAPI_UNREAL_ATTRIB_PHYSICS_BONE, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT).exists)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool
 FHoudiniSkeletalMeshTranslator::IsCapturePoseInstancer(HAPI_NodeId GeoId, HAPI_PartId PartId, FString& OutBaseName, HAPI_PartId & PosePartId)
 {
 	auto GetAttrInfo = [](const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, const char* AttrName, HAPI_AttributeOwner AttrOwner) -> HAPI_AttributeInfo
@@ -1084,6 +1334,55 @@ FHoudiniSkeletalMeshTranslator::IsCapturePoseInstancer(HAPI_NodeId GeoId, HAPI_P
 	return true;
 }
 
+bool
+FHoudiniSkeletalMeshTranslator::IsPhysAssetInstancer(HAPI_NodeId GeoId, HAPI_PartId PartId, FString& OutBaseName, HAPI_PartId& PhysAssetPartId)
+{
+
+	// Capture Pose packed prim name must end with '.skel'
+	TArray<FString> NameData;
+
+	FHoudiniHapiAccessor Accessor(GeoId, PartId, "name");
+	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, NameData);
+
+	if (!bSuccess || NameData.Num() == 0)
+	{
+		return false;
+	}
+	if (!NameData[0].EndsWith(".phys"))
+	{
+		return false;
+	}
+
+	// Extract the base name that we can use to identify this capture pose and pair it with its respective rest geometry.
+	FString Path, Filename, Extension;
+	FPaths::Split(NameData[0], Path, OutBaseName, Extension);
+
+	// Check for attributes inside this packed prim:
+	// point attributes: transform, name
+
+	// Assume that there is only one part per instance. This is always true for now but may need to be looked at later.
+	const int NumInstancedParts = 1;
+	TArray<HAPI_PartId> InstancedPartIds;
+	InstancedPartIds.SetNumZeroed(NumInstancedParts);
+	if (FHoudiniApi::GetInstancedPartIds(
+		FHoudiniEngine::Get().GetSession(),
+		GeoId, PartId,
+		InstancedPartIds.GetData(),
+		0, NumInstancedParts) != HAPI_RESULT_SUCCESS)
+	{
+		return false;
+	}
+
+	PhysAssetPartId = InstancedPartIds[0];
+
+	if (!IsPhysAssetMesh(GeoId, PhysAssetPartId))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 
 
 bool
@@ -1105,7 +1404,7 @@ FHoudiniSkeletalMeshTranslator::IsCapturePoseMesh(HAPI_NodeId GeoId, HAPI_PartId
 
 
 HAPI_AttributeInfo
-FHoudiniSkeletalMeshTranslator::GetAttrInfo(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId,
+FHoudiniSkeletalMeshTranslator::GetAttrInfo(HAPI_NodeId GeoId, HAPI_NodeId PartId,
 	const char* AttrName, HAPI_AttributeOwner AttrOwner)
 {
 	HAPI_AttributeInfo AttrInfo;
@@ -1155,6 +1454,13 @@ FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshOutputs(
 				SKParts.HGPOPoseMesh = &CurHGPO;
 			else
 				SKParts.HGPOPoseInstancer = &CurHGPO;
+		}
+		else if (CurHGPO.Type == EHoudiniPartType::SkeletalMeshPhysAsset)
+		{
+			if (CurHGPO.bIsInstanced)
+				SKParts.HGPOPhysAssetMesh = &CurHGPO;
+			else
+				SKParts.HGPOPhysAssetInstancer = &CurHGPO;
 		}
 	}
 
@@ -1230,6 +1536,19 @@ FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshParts(
 		SKMeshTranslator.SkeletonPackageParams.ObjectId = SKParts.HGPOPoseInstancer->ObjectId;
 		SKMeshTranslator.SkeletonPackageParams.GeoId = SKParts.HGPOPoseInstancer->GeoId;
 		SKMeshTranslator.SkeletonPackageParams.PartId = SKParts.HGPOPoseInstancer->PartId;
+	}
+
+
+	if (SKParts.HGPOPhysAssetInstancer)
+	{
+		SKMeshTranslator.PhysAssetPackageParams = InPackageParams;
+		SKMeshTranslator.PhysAssetPackageParams.ObjectId = SKParts.HGPOPhysAssetInstancer->ObjectId;
+		SKMeshTranslator.PhysAssetPackageParams.GeoId = SKParts.HGPOPhysAssetInstancer->GeoId;
+		SKMeshTranslator.PhysAssetPackageParams.PartId = SKParts.HGPOPhysAssetInstancer->PartId;
+	}
+	else if (SKParts.HGPOShapeInstancer)
+	{
+		SKMeshTranslator.PhysAssetPackageParams = SKMeshTranslator.SkinnedMeshPackageParams;
 	}
 
 	SKMeshTranslator.OuterComponent = InOuterComponent;
@@ -1314,5 +1633,69 @@ FHoudiniSkeletalMeshTranslator::LoadOrCreateMaterials(
 
 	return true;
 }
+
+bool FHoudiniSkeletalMeshTranslator::IsCreateDefaultPhysicsAssetAttributeSet(const FHoudiniGeoPartObject * GeoPart)
+{
+	if (!GeoPart)
+		return false;
+
+	int Value = 0;
+	FHoudiniHapiAccessor Accessor(GeoPart->GeoId, GeoPart->PartId, HAPI_UNREAL_ATTRIB_CREATE_DEFAULT_PHYSICS_ASSET);
+	Accessor.GetAttributeFirstValue(HAPI_ATTROWNER_INVALID, Value);
+	return Value != 0;
+}
+
+bool FHoudiniSkeletalMeshTranslator::IsCreateDefaultPhysicsAssetAttributeSet()
+{
+	bool bShouldCreate = false;
+	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOPhysAssetInstancer))
+		return true;
+	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOShapeMesh))
+		return true;
+	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOPoseInstancer))
+		return true;
+	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOPoseMesh))
+		return true;
+	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOPhysAssetInstancer))
+		return true;
+	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOPhysAssetMesh))
+		return true;
+
+	return false;
+}
+
+FString FHoudiniSkeletalMeshTranslator::GetPhysicAssetRef(const FHoudiniGeoPartObject* GeoPart)
+{
+	FString Result;
+
+	if (!GeoPart)
+		return Result;
+
+	FHoudiniHapiAccessor Accessor(GeoPart->GeoId, GeoPart->PartId, HAPI_UNREAL_ATTRIB_PHYSICS_ASSET);
+	Accessor.GetAttributeFirstValue(HAPI_ATTROWNER_INVALID, Result);
+	return Result;
+}
+
+UPhysicsAsset * FHoudiniSkeletalMeshTranslator::GetExistingPhysicsAssetFromParts()
+{
+	FString RefPath;
+	RefPath = GetPhysicAssetRef(SKParts.HGPOPhysAssetInstancer);
+	if (RefPath.IsEmpty())
+		RefPath = GetPhysicAssetRef(SKParts.HGPOShapeMesh);
+	if (RefPath.IsEmpty())
+		RefPath = GetPhysicAssetRef(SKParts.HGPOPoseInstancer);
+	if (RefPath.IsEmpty())
+		RefPath = GetPhysicAssetRef(SKParts.HGPOPoseMesh);
+	if (RefPath.IsEmpty())
+		RefPath = GetPhysicAssetRef(SKParts.HGPOPhysAssetInstancer);
+	if (RefPath.IsEmpty())
+		RefPath = GetPhysicAssetRef(SKParts.HGPOPhysAssetMesh);
+
+	UPhysicsAsset * PhysicsAsset = Cast<UPhysicsAsset>(StaticLoadObject(UPhysicsAsset::StaticClass(), nullptr, *RefPath, nullptr, LOAD_NoWarn, nullptr));
+
+	return PhysicsAsset;
+}
+
+
 
 #undef LOCTEXT_NAMESPACE

@@ -34,6 +34,7 @@
 #include "CoreMinimal.h"
 #include "HoudiniSkeletalMeshUtils.h"
 #include "ImportUtils/SkeletalMeshImportUtils.h"
+#include "PhysicsEngine/BoxElem.h"
 #include "Rendering/SkeletalMeshLODImporterData.h"
 
 class USkeletalMesh;
@@ -59,6 +60,8 @@ struct FHoudiniSkeletalMeshParts
 	const FHoudiniGeoPartObject* HGPOShapeMesh = nullptr;
 	const FHoudiniGeoPartObject* HGPOPoseInstancer = nullptr;
 	const FHoudiniGeoPartObject* HGPOPoseMesh = nullptr;
+    const FHoudiniGeoPartObject* HGPOPhysAssetInstancer = nullptr;
+    const FHoudiniGeoPartObject* HGPOPhysAssetMesh = nullptr;
 
     const FHoudiniGeoPartObject* GetShapeInstancer() const { return HGPOShapeInstancer; }
     bool HasRestShape() const { return HGPOShapeInstancer && HGPOShapeMesh; }
@@ -90,6 +93,10 @@ public:
     // Check whether the packed primitive is skeleton Rest Geometry
     static bool IsCapturePoseInstancer(HAPI_NodeId GeoId, HAPI_PartId PartId, FString& OutBaseName, HAPI_PartId &PoseCurveId);
     static bool IsCapturePoseMesh(HAPI_NodeId GeoId, const HAPI_NodeId PartId);
+
+    // Check whether the packed primitive is a Phys Asset
+    static bool IsPhysAssetInstancer(HAPI_NodeId GeoId, HAPI_PartId PartId, FString& OutBaseName, HAPI_PartId& PoseCurveId);
+    static bool IsPhysAssetMesh(HAPI_NodeId GeoId, const HAPI_NodeId PartId);
 
     // Creates all skeletal mesh assets and component for a given HoudiniOutput
     static bool ProcessSkeletalMeshOutputs(
@@ -154,12 +161,14 @@ protected:
 
     USkeletalMesh* CreateNewSkeletalMesh(const FString& InSplitIdentifier);
     USkeleton* CreateNewSkeleton(const FString& InSplitIdentifier);
+    UPhysicsAsset * CreateNewPhysAsset(const FString& InSplitIdentifier);
 
     // The HoudiniGeoPartObjects we're working on
     FHoudiniSkeletalMeshParts SKParts;
     // Structure that handles cooking/baking package creation parameters
     FHoudiniPackageParams SkinnedMeshPackageParams;
     FHoudiniPackageParams SkeletonPackageParams;
+    FHoudiniPackageParams PhysAssetPackageParams;
 
     // New Output objects
     TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> OutputObjects;
@@ -175,8 +184,27 @@ protected:
     // Outer object for attaching components to
     UObject* OuterComponent = nullptr;
 
+	// Helper to IsRestGeometry* / IsCapturePose* functions
+	static HAPI_AttributeInfo GetAttrInfo(HAPI_NodeId GeoId, HAPI_NodeId PartId, const char* AttrName, HAPI_AttributeOwner AttrOwner);
 
-// Helper to IsRestGeometry* / IsCapturePose* functions
-static HAPI_AttributeInfo GetAttrInfo(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, const char* AttrName, HAPI_AttributeOwner AttrOwner);
+    // Functions to determine if we should create a default physics asset attributes.
+    bool IsCreateDefaultPhysicsAssetAttributeSet();
+    bool IsCreateDefaultPhysicsAssetAttributeSet(const FHoudiniGeoPartObject* GeoPart);
+
+    // Sets the Physics Assets collision from the HGPO.
+    void SetPhysicsAssetFromHGPO(UPhysicsAsset* PhysicsAsset, const FHoudiniSkeleton& Skeleton, const FHoudiniGeoPartObject& HGPO);
+
+    // Gets all points for the given bone name.
+    static TArray<FVector> GetPointForPhysicsBone(const FHoudiniSkeleton& Skeleton, const FString& BoneName, const TArray<int> PointIndices, const TArray<float>& Points);
+
+    // Getall point indices for the given collision group. Grouped by Bone
+    static TMap<FString, TArray<int>> ExtractBoneGroup(const TArray<FString> & BoneNames, const FHoudiniGeoPartObject& HGPO, const HAPI_PartInfo & PartInfo, const FString & GroupName);
+
+    // Gets (or creates) the UBodySetup for the named bone.
+    static UBodySetup* GetBodySetup(UPhysicsAsset* PhysicsAsset, const FString& BoneName);
+
+	// Functions for getting an existing Physics Asset, if specified
+    UPhysicsAsset *  GetExistingPhysicsAssetFromParts();
+    static FString GetPhysicAssetRef(const FHoudiniGeoPartObject* GeoPart);
 
 };

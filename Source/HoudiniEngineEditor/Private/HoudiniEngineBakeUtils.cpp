@@ -155,6 +155,7 @@
 #include "UserDefinedStructure/UserDefinedStructEditorData.h"
 #include "HoudiniFoliageUtils.h"
 
+#include "PhysicsEngine/PhysicsAsset.h"
 
 HOUDINI_BAKING_DEFINE_LOG_CATEGORY();
 
@@ -3098,6 +3099,8 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	UWorld* DesiredWorld = InOutput ? InOutput->GetWorld() : GWorld;
 	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
 
+	// Bake Skeleton
+
 	FHoudiniPackageParams SkeletonPackageParams;
 	FHoudiniOutputObjectIdentifier SkeletonIdentifier = InIdentifier;
 	SkeletonIdentifier.SplitIdentifier = TEXT("skeleton");
@@ -3119,8 +3122,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	if (!SkeletonPackageParams.ObjectName.Contains(TEXT("skeleton"), ESearchCase::IgnoreCase))
 		SkeletonPackageParams.ObjectName += TEXT("_skeleton");
 
-	// Bake the skeleton if it is temporary
-	USkeleton* const Skeleton = SkeletalMesh->GetSkeleton();
+	USkeleton* Skeleton = SkeletalMesh->GetSkeleton();
 	USkeleton* BakedSkeleton = DuplicateSkeletonAndCreatePackageIfNeeded(
 		Skeleton,
 		BakedOutputObject.GetBakedSkeletonIfValid(),
@@ -3135,6 +3137,46 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 		BakedOutputObject.BakedSkeleton = FSoftObjectPath(BakedSkeleton).ToString();
 	else
 		BakedOutputObject.BakedSkeleton = FSoftObjectPath(nullptr).ToString();
+
+	// Bake Physics Asset
+
+	FHoudiniPackageParams PhysicsAssetsPackageParams;
+	FHoudiniOutputObjectIdentifier PhysicsAsssetIdentifier = InIdentifier;
+	PhysicsAsssetIdentifier.SplitIdentifier = TEXT("physics_asset");
+	if (!ResolvePackageParams(
+		InHoudiniAssetComponent,
+		InOutput,
+		PhysicsAsssetIdentifier,
+		InOutputObject,
+		bHasPreviousBakeData,
+		DefaultObjectName + TEXT("_physics_asset"),
+		InBakeFolder,
+		BakeSettings,
+		PhysicsAssetsPackageParams,
+		BakedObjectData))
+	{
+		return false;
+	}
+	// TODO: add an attribute for controlling the bake name?
+	if (!PhysicsAssetsPackageParams.ObjectName.Contains(TEXT("physics_asset"), ESearchCase::IgnoreCase))
+		PhysicsAssetsPackageParams.ObjectName += TEXT("physics_asset");
+
+	// Bake the skeleton if it is temporary
+	UPhysicsAsset* PhysicsAsset = SkeletalMesh->GetPhysicsAsset();
+	UPhysicsAsset* BakedPhysicsAsset = DuplicatePhysicsAssetAndCreatePackageIfNeeded(
+		PhysicsAsset,
+		BakedOutputObject.GetBakedPhysicsAssetIfValid(),
+		PhysicsAssetsPackageParams,
+		InAllOutputs,
+		InAllBakedActors,
+		InTempCookFolder.Path,
+		BakedObjectData,
+		InBakeState.GetBakedPhysicsAssets());
+
+	if (PhysicsAsset != BakedPhysicsAsset)
+		BakedOutputObject.BakedPhysicsAsset = FSoftObjectPath(BakedPhysicsAsset).ToString();
+	else
+		BakedOutputObject.BakedPhysicsAsset = FSoftObjectPath(nullptr).ToString();
 
 	FHoudiniAttributeResolver Resolver;
 
@@ -3173,6 +3215,12 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	// Update the skeleton of the BakedSK if the skeleton was baked
 	if (BakedSK->GetSkeleton() != BakedSkeleton)
 		BakedSK->SetSkeleton(BakedSkeleton);
+
+	if (BakedSK->GetPhysicsAsset() != BakedPhysicsAsset)
+	{
+		BakedSK->SetPhysicsAsset(BakedPhysicsAsset);
+		BakedPhysicsAsset->SetPreviewMesh(BakedSK);
+	}
 
 	// Record the baked object
 	BakedOutputObject.BakedObject = FSoftObjectPath(BakedSK).ToString();
@@ -5385,6 +5433,108 @@ USkeleton* FHoudiniEngineBakeUtils::DuplicateSkeletonAndCreatePackageIfNeeded(
 	return DuplicatedSkeleton;
 }
 
+
+UPhysicsAsset* FHoudiniEngineBakeUtils::DuplicatePhysicsAssetAndCreatePackageIfNeeded(
+	UPhysicsAsset* InPhysicsAsset,
+	UPhysicsAsset * InPreviousBakePhysicsAsset,
+	const FHoudiniPackageParams& PackageParams,
+	const TArray<UHoudiniOutput*>& InParentOutputs,
+	const TArray<FHoudiniEngineBakedActor>& InCurrentBakedActors,
+	const FString& InTemporaryCookFolder,
+	FHoudiniBakedObjectData& BakedObjectData,
+	TMap<UPhysicsAsset*, UPhysicsAsset*>& InOutAlreadyBakedPhysicsAssetMap)
+{
+	if (!IsValid(InPhysicsAsset))
+		return nullptr;
+
+	// Don't bake a new object if this isn't temporary
+	bool bIsTemporary = IsObjectTemporary(InPhysicsAsset, EHoudiniOutputType::Mesh, InParentOutputs, InTemporaryCookFolder, PackageParams.ComponentGUID);
+	if (!bIsTemporary)
+	{
+		return InPhysicsAsset;
+	}
+
+	// Was it already baked?
+	UPhysicsAsset** AlreadyBakedPhysicsAsset = InOutAlreadyBakedPhysicsAssetMap.Find(InPhysicsAsset);
+	if (AlreadyBakedPhysicsAsset && IsValid(*AlreadyBakedPhysicsAsset))
+		return *AlreadyBakedPhysicsAsset;
+
+	// If we have a previously baked object, get the bake counter from it so that both replace and increment
+	// is consistent with the bake counter
+	int32 BakeCounter = 0;
+	bool bPreviousBakeValid = IsValid(InPreviousBakePhysicsAsset);
+	if (bPreviousBakeValid)
+	{
+		bPreviousBakeValid = PackageParams.MatchesPackagePathNameExcludingBakeCounter(InPreviousBakePhysicsAsset);
+		if (bPreviousBakeValid)
+		{
+			PackageParams.GetBakeCounterFromBakedAsset(InPreviousBakePhysicsAsset, BakeCounter);
+		}
+	}
+	FString CreatedPackageName;
+	UPackage* PhysicsAssetPackage = PackageParams.CreatePackageForObject(CreatedPackageName, BakeCounter);
+	if (!IsValid(PhysicsAssetPackage))
+		return nullptr;
+	BakedObjectData.BakeStats.NotifyPackageCreated(1);
+	BakedObjectData.PackagesToSave.Add(PhysicsAssetPackage);
+
+	// We need to be sure the package has been fully loaded before calling DuplicateObject
+	if (!PhysicsAssetPackage->IsFullyLoaded())
+	{
+		FlushAsyncLoading();
+		if (!PhysicsAssetPackage->GetOuter())
+		{
+			PhysicsAssetPackage->FullyLoad();
+		}
+		else
+		{
+			PhysicsAssetPackage->GetOutermost()->FullyLoad();
+		}
+	}
+
+	// If an object with that name already exists then detach it from all of its components before replacing
+	// it so that its render resources can be safely replaced/updated, and then reattach it
+	UPhysicsAsset* DuplicatedPhysicsAsset = nullptr;
+	UPhysicsAsset* ExistingSkeleton = FindObject<UPhysicsAsset>(PhysicsAssetPackage, *CreatedPackageName);
+	bool bFoundExistingPhysicsAsset = false;
+	if (IsValid(ExistingSkeleton))
+	{
+		DuplicatedPhysicsAsset = DuplicateObject<UPhysicsAsset>(InPhysicsAsset, PhysicsAssetPackage, *CreatedPackageName);
+		bFoundExistingPhysicsAsset = true;
+		BakedObjectData.BakeStats.NotifyObjectsReplaced(USkeleton::StaticClass()->GetName(), 1);
+	}
+	else
+	{
+		DuplicatedPhysicsAsset = DuplicateObject<UPhysicsAsset>(InPhysicsAsset, PhysicsAssetPackage, *CreatedPackageName);
+		BakedObjectData.BakeStats.NotifyObjectsUpdated(UPhysicsAsset::StaticClass()->GetName(), 1);
+	}
+
+	if (!IsValid(DuplicatedPhysicsAsset))
+		return nullptr;
+
+	InOutAlreadyBakedPhysicsAssetMap.Add(InPhysicsAsset, DuplicatedPhysicsAsset);
+
+	// Add meta information.
+	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+		PhysicsAssetPackage, DuplicatedPhysicsAsset,
+		HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
+	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+		PhysicsAssetPackage, DuplicatedPhysicsAsset,
+		HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *CreatedPackageName);
+	// Baked object! this is not temporary anymore
+	FHoudiniEngineBakeUtils::AddHoudiniMetaInformationToPackage(
+		PhysicsAssetPackage, DuplicatedPhysicsAsset,
+		HAPI_UNREAL_PACKAGE_META_BAKED_OBJECT, TEXT("true"));
+
+	// Notify registry that we have created a new duplicate skeleton
+	if (!bFoundExistingPhysicsAsset)
+		FAssetRegistryModule::AssetCreated(DuplicatedPhysicsAsset);
+
+	// Dirty the skeleton package.
+	DuplicatedPhysicsAsset->MarkPackageDirty();
+
+	return DuplicatedPhysicsAsset;
+}
 
 UGeometryCollection* FHoudiniEngineBakeUtils::DuplicateGeometryCollectionAndCreatePackageIfNeeded(
 	UGeometryCollection* InGeometryCollection, 

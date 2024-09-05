@@ -223,7 +223,7 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HA
 	// Convert Houdini matrices to Unreal matrix, and calculate the local matrices(which is what Unreal wants).
 	//--------------------------------------------------------------------------------------------------------------------
 
-	ConstructGlobalMatrices(Result.Root, nullptr);
+	ConstructGlobalMatricesFromHoudiniMatrices(Result.Root, nullptr);
 
 	return Result;
 }
@@ -528,11 +528,13 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::UnrealToHoudiniSkeleton(USkeleton * 
 		auto & ThisBone = HoudiniSkeleton.Bones[BoneIndex];
 		ThisBone.Name = BoneName;
 		ThisBone.UnrealGlobalMatrix = BoneTransform;
+		ThisBone.UnrealLocalMatrix = BoneTransform;
 		ThisBone.UnrealBoneNumber = BoneIndex;
 		if (ParentIndex != INDEX_NONE)
 		{
+			auto& ParentBone = HoudiniSkeleton.Bones[ParentIndex];
 			ThisBone.Parent = &HoudiniSkeleton.Bones[ParentIndex];
-			ThisBone.Children.Add(&HoudiniSkeleton.Bones[ParentIndex]);
+			ParentBone.Children.Add(&ThisBone);
 		}
 		else
 		{
@@ -541,11 +543,26 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::UnrealToHoudiniSkeleton(USkeleton * 
 		}
 	}
 
-	ConstructGlobalMatrices(HoudiniSkeleton.Root, nullptr);
+	ConstructGlobalMatricesFromUnrealMatrices(HoudiniSkeleton.Root, nullptr);
 	return HoudiniSkeleton;
 }
 
-void FHoudiniSkeletalMeshUtils::ConstructGlobalMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent) 
+void FHoudiniSkeletalMeshUtils::ConstructGlobalMatricesFromUnrealMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent)
+{
+
+	FTransform ParentUnrealMatrix = FTransform::Identity;
+	if (Parent != nullptr)
+	{
+		ParentUnrealMatrix = Parent->UnrealGlobalMatrix;
+	}
+	Node->UnrealGlobalMatrix = Node->UnrealLocalMatrix * ParentUnrealMatrix;
+	for (auto Child : Node->Children)
+	{
+		ConstructGlobalMatricesFromUnrealMatrices(Child, Node);
+	}
+}
+
+void FHoudiniSkeletalMeshUtils::ConstructGlobalMatricesFromHoudiniMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent) 
 {
 
 	FTransform ParentUnrealMatrix = FTransform::Identity;
@@ -557,7 +574,7 @@ void FHoudiniSkeletalMeshUtils::ConstructGlobalMatrices(FHoudiniSkeletonBone* No
 	Node->UnrealLocalMatrix = Node->UnrealGlobalMatrix * ParentUnrealMatrix.Inverse();
 	for (auto Child : Node->Children)
 	{
-		ConstructGlobalMatrices(Child, Node);
+		ConstructGlobalMatricesFromHoudiniMatrices(Child, Node);
 	}
 }
 

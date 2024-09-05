@@ -46,6 +46,7 @@
 #include "Animation/Skeleton.h"
 #include "Templates/Tuple.h"
 #include "HoudiniFoliageUtils.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 
 FHoudiniMaterialIdentifier::FHoudiniMaterialIdentifier(
@@ -571,6 +572,24 @@ FHoudiniBakedOutputObject::GetBakedSkeletonIfValid(bool bInTryLoad) const
 		return nullptr;
 
 	return Cast<USkeleton>(Object);
+}
+
+UPhysicsAsset*
+FHoudiniBakedOutputObject::GetBakedPhysicsAssetIfValid(bool bInTryLoad) const
+{
+	const FSoftObjectPath PhyscsAssetPath(BakedPhysicsAsset);
+
+	if (!PhyscsAssetPath.IsValid())
+		return nullptr;
+
+	UObject* Object = PhyscsAssetPath.ResolveObject();
+	if (!Object && bInTryLoad)
+		Object = PhyscsAssetPath.TryLoad();
+
+	if (!IsValid(Object))
+		return nullptr;
+
+	return Cast<UPhysicsAsset>(Object);
 }
 
 TArray<AActor*>
@@ -1385,8 +1404,11 @@ void FHoudiniOutputObject::DestroyCookedData()
 	//--------------------------------------------------------------------------------------------------------------------
 
 	if (IsValid(OutputObject))
+	{
+		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+		AssetEditorSubsystem->CloseAllEditorsForAsset(OutputObject);
 		OutputObject->ConditionalBeginDestroy();
-
+	}
 	OutputObject = nullptr;
 
 	if (IsValid(ProxyObject))

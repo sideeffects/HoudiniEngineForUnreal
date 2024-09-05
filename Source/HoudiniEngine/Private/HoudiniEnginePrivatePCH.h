@@ -218,6 +218,9 @@
 
 #define HAPI_UNREAL_ATTRIB_CREATE_DATA_LAYERS               "unreal_create_data_layers"
 
+#define HAPI_UNREAL_ATTRIB_CREATE_DEFAULT_PHYSICS_ASSET     "unreal_create_default_physics_asset"
+#define HAPI_UNREAL_ATTRIB_PHYSICS_BONE                     "unreal_physics_bone"
+
 // Enable or disable the NoWeightBlend setting for landscape paint layers. 
 // Note this attribute supercedes the unreal_landscape_layer_nonweightblended string attribute.
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_NOWEIGHTBLEND	"unreal_landscape_layer_noweightblend"
@@ -279,6 +282,7 @@
 #define HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_END_FALLOFF 					"unreal_landscape_spline_end_falloff"
 
 #define HAPI_UNREAL_ATTRIB_SKELETON                         "unreal_skeleton"
+#define HAPI_UNREAL_ATTRIB_PHYSICS_ASSET                    "unreal_physics_asset"
 #define HAPI_UNREAL_ATTRIB_SKELETON_IMPORT_SCALE            "unreal_sk_import_scale"
 
 #define HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX				"unreal_uproperty_"

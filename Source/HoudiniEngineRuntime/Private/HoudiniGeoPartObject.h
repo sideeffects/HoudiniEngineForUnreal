@@ -55,7 +55,8 @@ enum class EHoudiniPartType : uint8
 	LandscapeSpline,
 	SkeletalMeshShape, // Rest Geometry for the skeletal mesh
 	SkeletalMeshPose,  // Capture Pose for the skeletal mesh 
-	MotionClip
+	MotionClip,
+	SkeletalMeshPhysAsset
 };
 
 UENUM()

@@ -31,6 +31,7 @@
 #include "Materials/MaterialInterface.h"
 #include "Components/Border.h"
 #include "Components/ComboBox.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 
 struct FHoudiniBakeSettings;
@@ -119,6 +120,7 @@ public:
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
 		const TWeakObjectPtr<USkeletalMesh>& SkelMesh,
 		const TWeakObjectPtr<USkeleton>& Skeleton,
+		const TWeakObjectPtr<UPhysicsAsset>& PhysicsAsset,
 		FHoudiniOutputObjectIdentifier& OutputIdentifier,
 		FHoudiniGeoPartObject& HoudiniGeoPartObject);
 

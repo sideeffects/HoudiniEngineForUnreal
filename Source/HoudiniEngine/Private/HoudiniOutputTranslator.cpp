@@ -1508,10 +1508,12 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 
 			struct FHoudiniSkeletalMeshParts
 			{
-				int32 ShapeInstancerPartId = -1;
-				int32 PoseInstancerPartId = -1;
-				int32 ShapeMeshPartId = -1;
-				int32 PoseMeshPartId = -1;
+				int32 ShapeInstancerPartId = INDEX_NONE;
+				int32 ShapeMeshPartId = INDEX_NONE;
+				int32 PoseInstancerPartId = INDEX_NONE;
+				int32 PoseMeshPartId = INDEX_NONE;
+				int32 PhysAssetInstancerPartId = INDEX_NONE;
+				int32 PhysAssetMeshPartId = INDEX_NONE;
 			};
 
 			// Track shapes / skeleton parts so that we can pair them when building skeletal mesh outputs.
@@ -1539,6 +1541,9 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					FString BaseName;
 
 					int32 ShapeMeshPartId = INDEX_NONE;
+					int32 PhysAssetId = INDEX_NONE;
+					int32 PoseCurveId = INDEX_NONE;
+
 					if (FHoudiniSkeletalMeshTranslator::IsRestShapeInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, BaseName, ShapeMeshPartId))
 					{
 						PartIdBaseNameMap.Add(PartId, BaseName);
@@ -1556,11 +1561,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 
 						}
 					}
-					// Check for skeletal mesh Capture Pose
-
-					int32 PoseCurveId = INDEX_NONE;
-
-					if (FHoudiniSkeletalMeshTranslator::IsCapturePoseInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, BaseName, PoseCurveId))
+					else if (FHoudiniSkeletalMeshTranslator::IsCapturePoseInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, BaseName, PoseCurveId))
 					{
 						PartIdBaseNameMap.Add(PartId, BaseName);
 						FHoudiniSkeletalMeshParts& SkelParts = SkelMeshParts.FindOrAdd(BaseName);
@@ -1573,6 +1574,22 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 							PartIdBaseNameMap.Add(PoseCurveId, BaseName);
 							SkeletalMeshPartIds[PartId] = EHoudiniPartType::SkeletalMeshPose;
 							SkeletalMeshPartIds[PoseCurveId] = EHoudiniPartType::SkeletalMeshPose;
+							ValidSkelMeshNames.Add(BaseName);
+						}
+					}
+					else if (FHoudiniSkeletalMeshTranslator::IsPhysAssetInstancer(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, BaseName, PhysAssetId))
+					{
+						PartIdBaseNameMap.Add(PartId, BaseName);
+						FHoudiniSkeletalMeshParts& SkelParts = SkelMeshParts.FindOrAdd(BaseName);
+						if (SkelParts.PhysAssetInstancerPartId == INDEX_NONE)
+						{
+							// Set the Phys Assets parts
+							SkelParts.PhysAssetInstancerPartId = PartId;
+							SkelParts.PhysAssetMeshPartId = PhysAssetId;
+							PartIdBaseNameMap.Add(PartId, BaseName);
+							PartIdBaseNameMap.Add(PhysAssetId, BaseName);
+							SkeletalMeshPartIds[PartId] = EHoudiniPartType::SkeletalMeshPhysAsset;
+							SkeletalMeshPartIds[PhysAssetId] = EHoudiniPartType::SkeletalMeshPhysAsset;
 							ValidSkelMeshNames.Add(BaseName);
 						}
 					}
@@ -1774,7 +1791,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					(CurrentPartType != EHoudiniPartType::Instancer || (CurrentInstancerType != EHoudiniInstancerType::PackedPrimitive && CurrentInstancerType != EHoudiniInstancerType::GeometryCollection)) &&
 					(CurrentPartType != EHoudiniPartType::MotionClip) &&
 					(CurrentPartType != EHoudiniPartType::SkeletalMeshPose) &&
-					(CurrentPartType != EHoudiniPartType::SkeletalMeshShape)
+					(CurrentPartType != EHoudiniPartType::SkeletalMeshShape) &&
+					(CurrentPartType != EHoudiniPartType::SkeletalMeshPhysAsset)
 					)
 				{
 					HOUDINI_LOG_MESSAGE(
@@ -2031,7 +2049,9 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				}
 				currentHGPO.CurveInfo = CurrentCurveInfo;
 
-				if (CurrentPartType == EHoudiniPartType::SkeletalMeshPose || CurrentPartType == EHoudiniPartType::SkeletalMeshShape)
+				if (CurrentPartType == EHoudiniPartType::SkeletalMeshPose || 
+					CurrentPartType == EHoudiniPartType::SkeletalMeshShape || 
+					CurrentPartType == EHoudiniPartType::SkeletalMeshPhysAsset)
 				{
 					FString SkeletalMeshBaseName = PartIdBaseNameMap.FindChecked(PartId);
 					currentHGPO.InstancerName = SkeletalMeshBaseName;
@@ -2051,13 +2071,16 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				if (currentHGPO.Type != EHoudiniPartType::Volume &&
 					currentHGPO.Type != EHoudiniPartType::MotionClip &&
 					currentHGPO.Type != EHoudiniPartType::SkeletalMeshPose &&
-					currentHGPO.Type != EHoudiniPartType::SkeletalMeshShape
+					currentHGPO.Type != EHoudiniPartType::SkeletalMeshShape &&
+					currentHGPO.Type != EHoudiniPartType::SkeletalMeshPhysAsset
 					)
 				{
 					// Create single output per HGPO. never reuse old outputs, as its deprecated anyway
 					FoundHoudiniOutput = nullptr;
 				}
-				else if (currentHGPO.Type == EHoudiniPartType::SkeletalMeshPose || currentHGPO.Type == EHoudiniPartType::SkeletalMeshShape)
+				else if (currentHGPO.Type == EHoudiniPartType::SkeletalMeshPose || 
+						currentHGPO.Type == EHoudiniPartType::SkeletalMeshShape || 
+					currentHGPO.Type == EHoudiniPartType::SkeletalMeshPhysAsset)
 				{
 					// Each "complete" skeletal mesh (2 packed prims) will result in a single output.
 					// Collect HGPOs that match the skeletal mesh BaseName into a single output.

@@ -4700,6 +4700,41 @@ FHoudiniMeshTranslator::AddConvexCollisionToAggregate(const FString& SplitGroupN
 	return true;
 }
 
+TArray<FVector> FHoudiniMeshTranslator::GetKdopDirections(const FString& SplitGroupName)
+{
+	uint32 NumDirections = 26;
+	const FVector* Directions = KDopDir26;
+	if (SplitGroupName.Contains("kdop10X"))
+	{
+		NumDirections = 10;
+		Directions = KDopDir10X;
+	}
+	else if (SplitGroupName.Contains("kdop10Y"))
+	{
+		NumDirections = 10;
+		Directions = KDopDir10Y;
+	}
+	else if (SplitGroupName.Contains("kdop10Z"))
+	{
+		NumDirections = 10;
+		Directions = KDopDir10Z;
+	}
+	else if (SplitGroupName.Contains("kdop18"))
+	{
+		NumDirections = 18;
+		Directions = KDopDir18;
+	}
+
+	// Converting the directions to a TArray
+	TArray<FVector> DirArray;
+	DirArray.SetNum(NumDirections);
+	for (uint32 DirectionIndex = 0; DirectionIndex < NumDirections; DirectionIndex++)
+	{
+		DirArray[DirectionIndex] = Directions[DirectionIndex];
+	}
+	return DirArray;
+}
+
 bool
 FHoudiniMeshTranslator::AddSimpleCollisionToAggregate(const FString& SplitGroupName, FKAggregateGeom& AggCollisions)
 {
@@ -4747,38 +4782,7 @@ FHoudiniMeshTranslator::AddSimpleCollisionToAggregate(const FString& SplitGroupN
 	}
 	else
 	{
-		// We need to see what type of collision the user wants
-		// by default, a kdop26 will be created
-		uint32 NumDirections = 26;
-		const FVector* Directions = KDopDir26;
-		if (SplitGroupName.Contains("kdop10X"))
-		{
-			NumDirections = 10;
-			Directions = KDopDir10X;
-		}
-		else if (SplitGroupName.Contains("kdop10Y"))
-		{
-			NumDirections = 10;
-			Directions = KDopDir10Y;
-		}
-		else if (SplitGroupName.Contains("kdop10Z"))
-		{
-			NumDirections = 10;
-			Directions = KDopDir10Z;
-		}
-		else if (SplitGroupName.Contains("kdop18"))
-		{
-			NumDirections = 18;
-			Directions = KDopDir18;
-		}
-
-		// Converting the directions to a TArray
-		TArray<FVector> DirArray;
-		DirArray.SetNum(NumDirections);
-		for (uint32 DirectionIndex = 0; DirectionIndex < NumDirections; DirectionIndex++)
-		{
-			DirArray[DirectionIndex] = Directions[DirectionIndex];
-		}
+		TArray<FVector> DirArray = GetKdopDirections(SplitGroupName);
 
 		NewColliders = FHoudiniMeshTranslator::GenerateKDopAsSimpleCollision(VertexArray, DirArray, AggCollisions);
 	}

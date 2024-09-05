@@ -384,7 +384,7 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		bool AddConvexCollisionToAggregate(const FString& SplitGroupName, FKAggregateGeom& AggCollisions);
 		// Create simple colliders for a split and add to the aggregate
 		bool AddSimpleCollisionToAggregate(const FString& SplitGroupName, FKAggregateGeom& AggCollisions);
-		
+public:
 		// Helper functions to generate the simple colliders and add them to the aggregate
 		static int32 GenerateBoxAsSimpleCollision(const TArray<FVector>& InPositionArray, FKAggregateGeom& OutAggregateCollisions);
 		static int32 GenerateOrientedBoxAsSimpleCollision(const TArray<FVector>& InPositionArray, FKAggregateGeom& OutAggregateCollisions);
@@ -392,7 +392,9 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		static int32 GenerateSphylAsSimpleCollision(const TArray<FVector>& InPositionArray, FKAggregateGeom& OutAggregateCollisions);
 		static int32 GenerateOrientedSphylAsSimpleCollision(const TArray<FVector>& InPositionArray, FKAggregateGeom& OutAggregateCollisions);
 		static int32 GenerateKDopAsSimpleCollision(const TArray<FVector>& InPositionArray, const TArray<FVector> &Dirs, FKAggregateGeom& OutAggregateCollisions);
+		static TArray<FVector> GetKdopDirections(const FString& SplitGroupName);
 
+protected:
 		// Helper functions for the simple colliders generation
 		static void CalcBoundingBox(const TArray<FVector>& PositionArray, FVector& Center, FVector& Extents, FVector& LimitVec);
 		static void CalcBoundingSphere(const TArray<FVector>& PositionArray, FSphere& sphere, FVector& LimitVec);

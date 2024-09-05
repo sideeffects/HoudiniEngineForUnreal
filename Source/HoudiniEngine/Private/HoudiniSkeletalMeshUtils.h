@@ -119,6 +119,8 @@ protected:
 
 	static FTransform HoudiniToUnrealMatrix(const FMatrix & Matrix);
 
-	static void ConstructGlobalMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent);
+	static void ConstructGlobalMatricesFromHoudiniMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent);
+	static void ConstructGlobalMatricesFromUnrealMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent);
+
 };
 

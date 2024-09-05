@@ -139,8 +139,362 @@ bool FHoudiniEditorTestSkeletalMeshElectra::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectraDefaultPhysicsAsset, "Houdini.UnitTests.SkeletalMesh.ElectraDefaultPhysicsAsset", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
+bool FHoudiniEditorTestSkeletalMeshElectraDefaultPhysicsAsset::RunTest(const FString& Parameters)
+{
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Test baking of skeletal meshes.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestSkeletalMeshUtils::SkeletalMeshHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
+	Context->HAC->bEnableProxyStaticMeshOverride = false;
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Cook and Bake Electra.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "unreal_skeleton", TEXT(""), 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "create_default_physics_asset", true, 0);
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		TArray<UHoudiniOutput*> Outputs;
+		Context->HAC->GetOutputs(Outputs);
+
+		// We should have two outputs, two meshes
+		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 1, return true);
+		TArray<USkeletalMeshComponent*> SkeletalMeshComponents = FHoudiniEditorUnitTestUtils::GetOutputsWithComponent<USkeletalMeshComponent>(Outputs);
+		TArray<USkeleton*> Skeleton = FHoudiniEditorUnitTestUtils::GetOutputsWithObject<USkeleton>(Outputs);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponents.Num(), 1, return true);
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		FHoudiniBakeSettings BakeSettings;
+
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+
+		FString BakeFolder = Context->HAC->GetBakeFolderOrDefault();
+
+		// There should be one baked output object.
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
+		auto& BakedOutput = BakedOutputs[0];
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), false, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAsset.IsEmpty(), false, return true);
+
+		// For now, check we have the correct number of bones. Can add more complicated checks in the future if needed, such as checking
+		// parents, etc. Probably should not check the bone order though.
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedSkeleton), BakeFolder);
+
+		FString SkeletonName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+		HOUDINI_TEST_EQUAL(SkeletonName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
+
+		USkeleton* Skeleton = Cast<USkeleton>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedSkeleton));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(Skeleton, return false);
+		auto& ReferenceSkeleton = Skeleton->GetReferenceSkeleton();
+		HOUDINI_TEST_EQUAL_ON_FAIL(ReferenceSkeleton.GetRawBoneNum(), 53, return true);
+
+		// Check the skeletal mesh 
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObject), BakeFolder);
+		FString SkeletalMeshName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+		HOUDINI_TEST_EQUAL(SkeletalMeshName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
+
+		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObject));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMesh, return false);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMesh->GetSkeleton(), Skeleton, return true);
+		auto& Materials = SkeletalMesh->GetMaterials();
+		HOUDINI_TEST_EQUAL_ON_FAIL(Materials.Num(), 1, return true);
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(Materials[0].MaterialInterface->GetPackage()->GetPathName()), BakeFolder);
+
+		// Check the skeletal mesh component
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponent));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMeshComponent, return false);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponent->GetSkeletalMeshAsset(), SkeletalMesh, return true);
+		FString ActorName = SkeletalMeshComponent->GetOwner()->GetActorLabel();
+		HOUDINI_TEST_EQUAL(ActorName.StartsWith(TEXT("TestSkeletonBakeActor")), true);
+
+		// Check the Physics Asset has some body setups.
+		UPhysicsAsset * PhysicsAsset = SkeletalMesh->GetPhysicsAsset();
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PhysicsAsset, return false);
+		HOUDINI_TEST_NOT_EQUAL(PhysicsAsset->SkeletalBodySetups.Num(), 0);
+
+		return true;
+	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset, "Houdini.UnitTests.SkeletalMesh.ElectraCustomPhysicsAsset", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FString& Parameters)
+{
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Test baking of skeletal meshes.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestSkeletalMeshUtils::SkeletalMeshHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
+	Context->HAC->bEnableProxyStaticMeshOverride = false;
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Cook and Bake Electra.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "unreal_skeleton", TEXT(""), 0);
+			SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "enable_custom_physics_asset", true, 0);
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			TArray<UHoudiniOutput*> Outputs;
+			Context->HAC->GetOutputs(Outputs);
+
+			// We should have two outputs, two meshes
+			HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 1, return true);
+			TArray<USkeletalMeshComponent*> SkeletalMeshComponents = FHoudiniEditorUnitTestUtils::GetOutputsWithComponent<USkeletalMeshComponent>(Outputs);
+			TArray<USkeleton*> Skeleton = FHoudiniEditorUnitTestUtils::GetOutputsWithObject<USkeleton>(Outputs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponents.Num(), 1, return true);
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			FHoudiniBakeSettings BakeSettings;
+
+			FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+
+			FString BakeFolder = Context->HAC->GetBakeFolderOrDefault();
+
+			// There should be one baked output object.
+			TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+			HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
+			auto& BakedOutput = BakedOutputs[0];
+			HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
+			auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
+			HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), false, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAsset.IsEmpty(), false, return true);
+
+			// For now, check we have the correct number of bones. Can add more complicated checks in the future if needed, such as checking
+			// parents, etc. Probably should not check the bone order though.
+			HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedSkeleton), BakeFolder);
+
+			FString SkeletonName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+			HOUDINI_TEST_EQUAL(SkeletonName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
+
+			USkeleton* Skeleton = Cast<USkeleton>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedSkeleton));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(Skeleton, return false);
+			auto& ReferenceSkeleton = Skeleton->GetReferenceSkeleton();
+			HOUDINI_TEST_EQUAL_ON_FAIL(ReferenceSkeleton.GetRawBoneNum(), 53, return true);
+
+			// Check the skeletal mesh 
+			HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObject), BakeFolder);
+			FString SkeletalMeshName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+			HOUDINI_TEST_EQUAL(SkeletalMeshName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
+
+			USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObject));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMesh, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMesh->GetSkeleton(), Skeleton, return true);
+			auto& Materials = SkeletalMesh->GetMaterials();
+			HOUDINI_TEST_EQUAL_ON_FAIL(Materials.Num(), 1, return true);
+			HOUDINI_TEST_EQUAL(FPaths::GetPath(Materials[0].MaterialInterface->GetPackage()->GetPathName()), BakeFolder);
+
+			// Check the skeletal mesh component
+			USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponent));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMeshComponent, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponent->GetSkeletalMeshAsset(), SkeletalMesh, return true);
+			FString ActorName = SkeletalMeshComponent->GetOwner()->GetActorLabel();
+			HOUDINI_TEST_EQUAL(ActorName.StartsWith(TEXT("TestSkeletonBakeActor")), true);
+
+			// Check the Physics Asset has some body setups.
+			UPhysicsAsset* PhysicsAsset = SkeletalMesh->GetPhysicsAsset();
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(PhysicsAsset, return true);
+
+			HOUDINI_TEST_EQUAL(PhysicsAsset->SkeletalBodySetups.Num(), 6);
+
+			int32 BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("head"));
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+			UBodySetup * BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 1);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.ConvexElems.Num(), 0);
+
+			BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("calf_l"));
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+			BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 1);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.ConvexElems.Num(), 0);
+
+			BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("calf_r"));
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+			BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 1);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.ConvexElems.Num(), 0);
+
+			BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("thigh_l"));
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+			BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 1);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.ConvexElems.Num(), 0);
+
+			BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("thigh_r"));
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+			BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 1);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.ConvexElems.Num(), 0);
+
+			BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("spine_03"));
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+			BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 0);
+			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.ConvexElems.Num(), 1);
+
+			return true;
+		}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectraExistingPhysicsAsset, "Houdini.UnitTests.SkeletalMesh.ElectraExistingPhysicsAsset", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestSkeletalMeshElectraExistingPhysicsAsset::RunTest(const FString& Parameters)
+{
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Test baking of skeletal meshes.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestSkeletalMeshUtils::SkeletalMeshHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
+	Context->HAC->bEnableProxyStaticMeshOverride = false;
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Cook and Bake Electra.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "unreal_skeleton", TEXT(""), 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "use_test_physics_asset", true, 0);
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		TArray<UHoudiniOutput*> Outputs;
+		Context->HAC->GetOutputs(Outputs);
+
+		// We should have two outputs, two meshes
+		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 1, return true);
+		TArray<USkeletalMeshComponent*> SkeletalMeshComponents = FHoudiniEditorUnitTestUtils::GetOutputsWithComponent<USkeletalMeshComponent>(Outputs);
+		TArray<USkeleton*> Skeleton = FHoudiniEditorUnitTestUtils::GetOutputsWithObject<USkeleton>(Outputs);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponents.Num(), 1, return true);
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		FHoudiniBakeSettings BakeSettings;
+
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+
+		FString BakeFolder = Context->HAC->GetBakeFolderOrDefault();
+
+		// There should be one baked output object.
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
+		auto& BakedOutput = BakedOutputs[0];
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), false, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAsset.IsEmpty(), true, return true);
+
+		// For now, check we have the correct number of bones. Can add more complicated checks in the future if needed, such as checking
+		// parents, etc. Probably should not check the bone order though.
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedSkeleton), BakeFolder);
+
+		FString SkeletonName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+		HOUDINI_TEST_EQUAL(SkeletonName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
+
+		USkeleton* Skeleton = Cast<USkeleton>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedSkeleton));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(Skeleton, return false);
+		auto& ReferenceSkeleton = Skeleton->GetReferenceSkeleton();
+		HOUDINI_TEST_EQUAL_ON_FAIL(ReferenceSkeleton.GetRawBoneNum(), 53, return true);
+
+		// Check the skeletal mesh 
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObject), BakeFolder);
+		FString SkeletalMeshName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+		HOUDINI_TEST_EQUAL(SkeletalMeshName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
+
+		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObject));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMesh, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMesh->GetSkeleton(), Skeleton, return true);
+		auto& Materials = SkeletalMesh->GetMaterials();
+		HOUDINI_TEST_EQUAL_ON_FAIL(Materials.Num(), 1, return true);
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(Materials[0].MaterialInterface->GetPackage()->GetPathName()), BakeFolder);
+
+		// Check the skeletal mesh component
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponent));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMeshComponent, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponent->GetSkeletalMeshAsset(), SkeletalMesh, return true);
+		FString ActorName = SkeletalMeshComponent->GetOwner()->GetActorLabel();
+		HOUDINI_TEST_EQUAL(ActorName.StartsWith(TEXT("TestSkeletonBakeActor")), true);
+
+		// Check the Physics Asset has some body setups.
+		UPhysicsAsset* PhysicsAsset = SkeletalMesh->GetPhysicsAsset();
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PhysicsAsset, return true);
+
+		FString PhysicsPathName = PhysicsAsset->GetPathName();
+		HOUDINI_TEST_EQUAL(PhysicsPathName, TEXT("/Game/TestObjects/SkeletalMeshes/Test_Ref_Physics_Asset.Test_Ref_Physics_Asset"));
+
+		return true;
+	}));
+
+	return true;
+}
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectraExistingSkeleton, "Houdini.UnitTests.SkeletalMesh.ElectraExistingSkeleton", 
 		EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
@@ -206,7 +560,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingSkeleton::RunTest(const FStrin
 		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObject), BakeFolder);
 
 		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObject));
-		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMesh, return false);
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMesh, return true);
 		auto& Materials = SkeletalMesh->GetMaterials();
 		HOUDINI_TEST_EQUAL_ON_FAIL(Materials.Num(), 1, return true);
 		HOUDINI_TEST_EQUAL(FPaths::GetPath(Materials[0].MaterialInterface->GetPackage()->GetPathName()), BakeFolder);

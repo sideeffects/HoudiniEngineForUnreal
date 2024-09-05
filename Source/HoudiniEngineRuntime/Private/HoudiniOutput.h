@@ -538,6 +538,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// Returns BakedSkeleton if valid, otherwise nullptr
 		USkeleton* GetBakedSkeletonIfValid(bool bInTryLoad=true) const;
 
+		// Returns BakedPhysicsAsset if valid, otherwise nullptr
+		UPhysicsAsset* GetBakedPhysicsAssetIfValid(bool bInTryLoad = true) const;
+
 		// Returns the generated or modified Foliage actors if valid
 		TArray<AActor*> GetFoliageActorsIfValid(bool bInTryLoad=true) const;
 
@@ -599,6 +602,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// For skeletal meshes, this is the skeleton that was baked for the skeletal mesh.
 		UPROPERTY()
 		FString BakedSkeleton;
+
+		// For skeletal meshes, this is the physics that was baked for the skeletal mesh.
+		UPROPERTY()
+		FString BakedPhysicsAsset;
+
 };
 
 // Container to hold the map of baked objects. There should be one of
