@@ -5222,41 +5222,28 @@ FHoudiniEngineUtils::AddMeshSocketsToArray_DetailAttribute(
 {
 	int32 FoundSocketCount = 0;
 
-	// Attributes we are interested in.
-	// Position
+	// Attributes we are interested in:
 	TArray<float> Positions;
-	HAPI_AttributeInfo AttribInfoPositions;
-	FHoudiniApi::AttributeInfo_Init(&AttribInfoPositions);
 
 	// Rotation
 	bool bHasRotation = false;
 	TArray<float> Rotations;
-	HAPI_AttributeInfo AttribInfoRotations;
-	FHoudiniApi::AttributeInfo_Init(&AttribInfoRotations);
 
 	// Scale
 	bool bHasScale = false;
 	TArray<float> Scales;
-	HAPI_AttributeInfo AttribInfoScales;
-	FHoudiniApi::AttributeInfo_Init(&AttribInfoScales);
 
 	// Socket Name
 	bool bHasNames = false;
 	TArray<FString> Names;
-	HAPI_AttributeInfo AttribInfoNames;
-	FHoudiniApi::AttributeInfo_Init(&AttribInfoNames);
 
 	// Socket Actor
 	bool bHasActors = false;
 	TArray<FString> Actors;
-	HAPI_AttributeInfo AttribInfoActors;
-	FHoudiniApi::AttributeInfo_Init(&AttribInfoActors);
 
 	// Socket Tags
 	bool bHasTags = false;
 	TArray<FString> Tags;
-	HAPI_AttributeInfo AttribInfoTags;
-	FHoudiniApi::AttributeInfo_Init(&AttribInfoTags);
 
 	// Lambda function for creating the socket and adding it to the array
 	// Shared between the by Attribute / by Group methods	
@@ -5318,34 +5305,22 @@ FHoudiniEngineUtils::AddMeshSocketsToArray_DetailAttribute(
 	// Lambda function for reseting the arrays/attributes
 	auto ResetArraysAndAttr = [&]()
 	{
-		// Position
 		Positions.Empty();
-		FHoudiniApi::AttributeInfo_Init(&AttribInfoPositions);
 
-		// Rotation
 		bHasRotation = false;
 		Rotations.Empty();
-		FHoudiniApi::AttributeInfo_Init(&AttribInfoRotations);
 
-		// Scale
 		bHasScale = false;
 		Scales.Empty();
-		FHoudiniApi::AttributeInfo_Init(&AttribInfoScales);
 
-		// Socket Name
 		bHasNames = false;
 		Names.Empty();
-		FHoudiniApi::AttributeInfo_Init(&AttribInfoNames);
 
-		// Socket Actor
 		bHasActors = false;
 		Actors.Empty();
-		FHoudiniApi::AttributeInfo_Init(&AttribInfoActors);
 
-		// Socket Tags
 		bHasTags = false;
 		Tags.Empty();
-		FHoudiniApi::AttributeInfo_Init(&AttribInfoTags);
 	};
 
 	//-------------------------------------------------------------------------
@@ -5366,13 +5341,8 @@ FHoudiniEngineUtils::AddMeshSocketsToArray_DetailAttribute(
 		FString SocketPosAttr = SocketAttrPrefix + TEXT("_pos");
 
 		FHoudiniHapiAccessor Accessor(GeoId, PartId, TCHAR_TO_ANSI(*SocketPosAttr));
-
 		bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Positions);
-
 		if (!bSuccess)
-			break;
-
-		if (!AttribInfoPositions.exists)
 		{
 			// No need to keep looking for socket attributes
 			HasSocketAttributes = false;
@@ -5432,25 +5402,12 @@ FHoudiniEngineUtils::AddMeshSocketsToArray_Group(
 	TArray<float> Scales;
 	bool bHasNormals = false;
 	TArray<float> Normals;
-
-
-	// Socket Name
 	bool bHasNames = false;
 	TArray<FString> Names;
-	HAPI_AttributeInfo AttribInfoNames;
-	FHoudiniApi::AttributeInfo_Init(&AttribInfoNames);
-
-	// Socket Actor
 	bool bHasActors = false;
 	TArray<FString> Actors;
-	HAPI_AttributeInfo AttribInfoActors;
-	FHoudiniApi::AttributeInfo_Init(&AttribInfoActors);
-
-	// Socket Tags
 	bool bHasTags = false;
 	TArray<FString> Tags;
-	HAPI_AttributeInfo AttribInfoTags;
-	FHoudiniApi::AttributeInfo_Init(&AttribInfoTags);
 
 	// Lambda function for creating the socket and adding it to the array
 	// Shared between the by Attribute / by Group methods
@@ -5541,17 +5498,14 @@ FHoudiniEngineUtils::AddMeshSocketsToArray_Group(
 		// Socket Name
 		bHasNames = false;
 		Names.Empty();
-		FHoudiniApi::AttributeInfo_Init(&AttribInfoNames);
 
 		// Socket Actor
 		bHasActors = false;
 		Actors.Empty();
-		FHoudiniApi::AttributeInfo_Init(&AttribInfoActors);
 
 		// Socket Tags
 		bHasTags = false;
 		Tags.Empty();
-		FHoudiniApi::AttributeInfo_Init(&AttribInfoTags);
 	};
 
 	//-------------------------------------------------------------------------
@@ -5608,7 +5562,6 @@ FHoudiniEngineUtils::AddMeshSocketsToArray_Group(
 	Accessor.Init(GeoId, PartId, HAPI_UNREAL_ATTRIB_SCALE);
 	if (Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, Scales))
 		bHasScale = true;
-
 
 	// Retrieve mesh socket names.
 	Accessor.Init(GeoId, PartId, HAPI_UNREAL_ATTRIB_MESH_SOCKET_NAME);
