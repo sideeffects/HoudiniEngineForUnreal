@@ -29,13 +29,24 @@
 
 #include "CoreMinimal.h"
 
-class FHoudiniEditorTestInstances
+struct FHoudiniInstanceAutomationTest : public FHoudiniAutomationTest
 {
-public:
-	const static inline FString BakingHDA = TEXT("/Game/TestHDAs/Instances/Test_Instances");
-	const static inline FString InstancedMesh = TEXT("/Script/Engine.StaticMesh'/Game/TestObjects/SM_Cube.SM_Cube'");
-	const static inline FString InstancedActor = TEXT("/Script/Engine.Blueprint'/Game/TestObjects/BP_Cube.BP_Cube'");
+    FHoudiniInstanceAutomationTest(const FString& InName, const bool bInComplexTask)
+        : FHoudiniAutomationTest(InName, bInComplexTask)
+    {
+    }
+
+	void CheckPositions(const TArray<FVector> & Positions);
+
+    const static inline FString BakingHDA = TEXT("/Game/TestHDAs/Instances/Test_Instances");
+    const static inline FString InstancedMesh = TEXT("/Script/Engine.StaticMesh'/Game/TestObjects/SM_Cube.SM_Cube'");
+    const static inline FString InstancedActor = TEXT("/Script/Engine.Blueprint'/Game/TestObjects/BP_Cube.BP_Cube'");
+    const static inline FString PackedInstancesHDA = TEXT("/Game/TestHDAs/Instances/Test_PackedInstances");
+
+    static TArray<FFoliageInstance> GetAllFoliageInstances(UWorld* InWorld, UFoliageType* FoliageType);
+    static TArray<UFoliageType*> GetAllFoliageTypes(UWorld* InWorld);
 
 };
+
 #endif
 
