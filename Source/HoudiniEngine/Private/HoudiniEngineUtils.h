@@ -1174,6 +1174,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			return Cast<T>( FindOrRenameInvalidActorGeneric(T::StaticClass(), InWorld, InName, OutFoundActor) );
 		}
 
+		// Finds actors with the same Name, but without the post fix number.
+		static TArray<AActor*> FindActorsWithNameNoNumber(UClass* InClass, UWorld* InWorld, const FString & InName);
+
 		// Moves an actor to the specified level
 		static bool MoveActorToLevel(AActor* InActor, ULevel* InDesiredLevel);
 	

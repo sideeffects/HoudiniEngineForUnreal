@@ -1189,47 +1189,43 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 		    NewBakedActors.Append(OutputBakedActors);
 		}
 
-		for (auto & Actor : CurrentOutputObject.OutputActors)
-		{
-			if (!IsValid(Actor.Get()))
-				continue;
-
-			OutputBakedActors.Reset();
-
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 
-			ALevelInstance * LevelInstance = Cast<ALevelInstance>(Actor.Get());
-			if (IsValid(LevelInstance))
+		// Bake any level instances. They will be stored on the OutputActors member, 
+		// but we want to return one output for all instances on  this output, so do
+		// them all at once.
+
+		if (!CurrentOutputObject.OutputActors.IsEmpty())
+		{
+			OutputBakedActors.Reset();
+
+			FHoudiniEngineBakedActor BakedActorEntry;
+			if (BakeInstancerOutputToActors_LevelInstances(
+				HoudiniAssetComponent,
+				InOutputIndex,
+				InAllOutputs,
+				InBakeState,
+				Pair.Key,
+				CurrentOutputObject,
+				InBakeFolder,
+				InTempCookFolder,
+				BakeSettings,
+				AllBakedActors,
+				BakedActorEntry,
+				BakedObjectData,
+				InOutAlreadyBakedStaticMeshMap,
+				InOutAlreadyBakedMaterialsMap,
+				InFallbackActor,
+				InFallbackWorldOutlinerFolder))
 			{
-				FHoudiniEngineBakedActor BakedActorEntry;
-				if (BakeInstancerOutputToActors_LevelInstances(
-					LevelInstance,
-					HoudiniAssetComponent,
-					InOutputIndex,
-					InAllOutputs,
-					InBakeState,
-					Pair.Key,
-					CurrentOutputObject,
-					InBakeFolder,
-					InTempCookFolder,
-					BakeSettings,
-					AllBakedActors,
-					BakedActorEntry,
-					BakedObjectData,
-					InOutAlreadyBakedStaticMeshMap,
-					InOutAlreadyBakedMaterialsMap,
-					InFallbackActor,
-					InFallbackWorldOutlinerFolder))
-				{
-					OutputBakedActors.Add(BakedActorEntry);
-				}
+				OutputBakedActors.Add(BakedActorEntry);
 			}
-#endif
 
 			AllBakedActors.Append(OutputBakedActors);
 			NewBakedActors.Append(OutputBakedActors);
 		}
-
+		
+#endif
 	}
 
 	OutActors = MoveTemp(NewBakedActors);
@@ -1674,7 +1670,6 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 }
 
 bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
-	ALevelInstance* LevelInstance,
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
@@ -1706,61 +1701,75 @@ bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
 		World, HoudiniAssetComponent, InOutputObjectIdentifier, InOutputObject, bHasPreviousBakeData, ObjectName,
 		InstancerPackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
-	const FName OutlinerPath = GetOutlinerFolderPath(
-		InstancerResolver,
-		FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
+	const FName OutlinerPath = GetOutlinerFolderPath(InstancerResolver, FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 
-	if (!IsValid(LevelInstance))
-		return false;
-
-	FActorSpawnParameters Parameters;
-	Parameters.Template = LevelInstance;
-
-	AActor * BakedActor = LevelInstance->GetWorld()->SpawnActor<ALevelInstance>(Parameters);
-	BakedActor->bDefaultOutlinerExpansionState = false;
-	BakedActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	BakedActor->SetActorTransform(LevelInstance->GetActorTransform()); // WHY IS THIS NEEDED? Don't know, but it is...
-
-	BakedActor->SetActorLabel(LevelInstance->GetActorLabel());
-	BakedObjectData.BakeStats.NotifyObjectsCreated(BakedActor->GetClass()->GetName(), 1);
-
-	const FString* BackActorPrefix = InOutputObject.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_BAKE_ACTOR);
-	FString BakedName;
-
-	if (BackActorPrefix == nullptr || BackActorPrefix->IsEmpty())
+	for (auto & Actor : InOutputObject.OutputActors)
 	{
-		BakedName = LevelInstance->GetActorLabel();
+		ALevelInstance* LevelInstance = Cast<ALevelInstance>(Actor.Get());
+		if (!IsValid(LevelInstance))
+			continue;
+
+		// Determine the name for the baked actor. Destroy any old ones if needed.
+		const FString* BackActorPrefix = InOutputObject.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_BAKE_ACTOR);
+		FName BakedName;
+
+		if (BackActorPrefix == nullptr || BackActorPrefix->IsEmpty())
+		{
+			BakedName = LevelInstance->GetFName();
+		}
+		else
+		{
+			BakedName = FName(*BackActorPrefix);
+		}
+
+		// If replacing existing bake assets, find thsoe actors with the same name and delete them. But only if they are not
+		// attached to the HDA Actor as this means they are cooked (temp) objects.
+
+		if(AssetPackageReplaceMode == EPackageReplaceMode::ReplaceExistingAssets)
+		{
+			TArray<AActor*> Actors = FHoudiniEngineUtils::FindActorsWithNameNoNumber(AActor::StaticClass(), World, BakedName.GetPlainNameString());
+			for (AActor* OldBakedActor : Actors)
+			{
+				if (OldBakedActor->GetOwner() != HoudiniAssetComponent->GetOwner())
+				{
+					OldBakedActor->Destroy();
+				}
+			}
+		}
+
+		FActorSpawnParameters Parameters;
+		Parameters.Template = LevelInstance;
+		Parameters.Name = BakedName;
+		Parameters.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Requested;
+		AActor * BakedActor = World->SpawnActor<ALevelInstance>(Parameters);
+		BakedActor->bDefaultOutlinerExpansionState = false;
+		BakedActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		BakedActor->SetActorTransform(LevelInstance->GetActorTransform()); // WHY IS THIS NEEDED? Don't know, but it is...
+
+		BakedActor->SetActorLabel(LevelInstance->GetActorLabel());
+		BakedObjectData.BakeStats.NotifyObjectsCreated(BakedActor->GetClass()->GetName(), 1);
+		BakedActor->SetActorLabel(BakedName.ToString());
+		BakedActor->SetFolderPath(OutlinerPath);
+
+		BakedOutputObject.LevelInstanceActors.Add(BakedActor->GetPathName());
+
+		if (HoudiniAssetComponent->bRemoveOutputAfterBake)
+		{
+			LevelInstance->Destroy();
+		}
+
+		OutBakedActorEntry.OutputIndex = InOutputIndex;
+		OutBakedActorEntry.Actor = BakedActor;
+		OutBakedActorEntry.ActorBakeName = FName(BakedActor->GetName());
+		OutBakedActorEntry.OutputObjectIdentifier = InOutputObjectIdentifier;
+
 	}
-	else
-	{
-		BakedName = *BackActorPrefix;
-	}
-
-	AActor* FoundActor = FHoudiniEngineUtils::FindOrRenameInvalidActor<AActor>(World, BakedName, FoundActor);
-	if (FoundActor)
-		FoundActor->Destroy(); // nuke it!
-
-
-	BakedActor->SetActorLabel(BakedName);
-
-	BakedOutputObject.LevelInstanceActors.Add(BakedActor->GetPathName());
-
-	BakedActor->SetFolderPath(OutlinerPath);
-
-	if (HoudiniAssetComponent->bRemoveOutputAfterBake)
-	{
-		LevelInstance->Destroy();
-	}
-
-	OutBakedActorEntry.OutputIndex = InOutputIndex;
-	OutBakedActorEntry.Actor = BakedActor;
-	OutBakedActorEntry.ActorBakeName = FName(BakedActor->GetName());
-	OutBakedActorEntry.OutputObjectIdentifier = InOutputObjectIdentifier;
 
 	// Set the updated baked output object in the state
 	InBakeState.SetNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, BakedOutputObject);
-	
+
 	return true;
+
 #else
     return false;
 #endif

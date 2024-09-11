@@ -411,7 +411,6 @@ public:
 		const FString& InFallbackWorldOutlinerFolder="");
 
 	static bool BakeInstancerOutputToActors_LevelInstances(
-		ALevelInstance * LevelInstance,
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
