@@ -2445,8 +2445,18 @@ bool FUnrealLandscapeTranslator::SendTargetLayersToHoudini(
 
 	bool bSuccess = true;
 
+	// Send target layers to Houdini. Note, we always need to create and commit a Mask or the Volume Info won't function
+	// correctly.
 	if (Options.bExportMergedPaintLayers)
+	{
 		bSuccess &= SendCombinedTargetLayersToHoudini(LandscapeProxy, HeightFieldId, PartId, MergeId, MaskId, HeightFieldVolumeInfo, XSize, YSize, OutMergeInputIndex);
+	}
+	else
+	{
+		InitDefaultHeightfieldMask(HeightFieldVolumeInfo, MaskId);
+		ApplyAttributesToHeightfieldNode(MaskId, PartId, LandscapeProxy);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(MaskId), false);
+	}
 
 	if (Options.bExportPaintLayersPerEditLayer)
 		bSuccess &= SendAllEditLayerTargetLayersToHoudini(LandscapeProxy, HeightFieldId, PartId, MergeId, MaskId, HeightFieldVolumeInfo, XSize, YSize, OutMergeInputIndex);
