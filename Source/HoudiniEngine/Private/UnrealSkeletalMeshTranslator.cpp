@@ -32,6 +32,7 @@
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniSkeletalMeshUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputRuntimeUtils.h"
 #include "UnrealObjectInputUtils.h"
@@ -814,18 +815,7 @@ FUnrealSkeletalMeshTranslator::CreateSkeletalMeshBoneCaptureAttributes(
 		const FTransform& LocalBoneTransform = RefSkeleton.GetRefBonePose()[BoneIndex];
 		FTransform& BoneTransform = ComponentSpaceTransforms[BoneIndex];
 
-		FTransform ScaleConversion = FTransform(FRotator(0.0, 0.0, 00), FVector(0.0, 0.0, 0.0), FVector(1, 1, -1));
-		FTransform FirstRotationConversion = FTransform(FRotator(0.0, 0, -90.0), FVector(0.0, 0.0, 0.0), FVector(1, 1, 1));
-		FTransform BoneTransformConverted = BoneTransform * ScaleConversion * FirstRotationConversion;
-
-		FTransform FinalTransform;
-		FinalTransform.SetTranslation(0.01f * BoneTransformConverted.GetTranslation());
-
-		FRotator StockRot = BoneTransformConverted.GetRotation().Rotator();
-		StockRot.Roll += 180;
-		FinalTransform.SetRotation(StockRot.Quaternion());
-
-		FMatrix M44 = FinalTransform.ToMatrixWithScale();
+		FMatrix M44 = FHoudiniSkeletalMeshUtils::UnrealToHoudiniMatrix(BoneTransform);
 		FMatrix M44Inverse = M44.Inverse();  //see pCaptData property
 
 		int32 row = 0;
@@ -2119,29 +2109,24 @@ FUnrealSkeletalMeshTranslator::CreateInputNodeForCapturePose(
 	int32 BoneDataIndex = 0;
 	for (const FMeshBoneInfo& BoneInfo : BoneInfoArray)
 	{
-		const FMatrix BoneMatrix = InSkeletalMesh->GetComposedRefPoseMatrix(BoneInfo.Name);
-		FTransform BoneTransform(BoneMatrix);
+
+		FTransform UnrealBoneTransform(InSkeletalMesh->GetComposedRefPoseMatrix(BoneInfo.Name));
+		FMatrix HoudiniMatrix = FHoudiniSkeletalMeshUtils::UnrealToHoudiniMatrix(UnrealBoneTransform);
 
 		// Bone position
-		const FVector4 Location = BoneTransform.GetLocation();
-		PosData[BoneDataIndex] = FVector3f(Location.X, Location.Z, Location.Y) * 0.01;
+		FVector3f Location = FVector3f(FVector3d(HoudiniMatrix.GetOrigin()));
+		PosData[BoneDataIndex] = Location;
 
-		// Bone rotation
-		FQuat BoneQuat = BoneTransform.GetRotation();
-		BoneQuat = FQuat(BoneQuat.X, BoneQuat.Z, BoneQuat.Y, -BoneQuat.W) * FQuat::MakeFromEuler({ 90.f, 0.f, 0.f });
-		
-		FMatrix Rot = FRotationMatrix::Make(BoneQuat.Rotator()) * 0.01;
-
-		const int32 TransformDataIndex = BoneDataIndex * TransformDataStride;
-		WorldTransformData[TransformDataIndex + 0] = Rot.M[0][0];
-		WorldTransformData[TransformDataIndex + 1] = Rot.M[0][1];
-		WorldTransformData[TransformDataIndex + 2] = Rot.M[0][2];
-		WorldTransformData[TransformDataIndex + 3] = Rot.M[1][0];
-		WorldTransformData[TransformDataIndex + 4] = Rot.M[1][1];
-		WorldTransformData[TransformDataIndex + 5] = Rot.M[1][2];
-		WorldTransformData[TransformDataIndex + 6] = Rot.M[2][0];
-		WorldTransformData[TransformDataIndex + 7] = Rot.M[2][1];
-		WorldTransformData[TransformDataIndex + 8] = Rot.M[2][2];
+		int32 TransformDataIndex = BoneDataIndex * TransformDataStride;
+		WorldTransformData[TransformDataIndex + 0] = HoudiniMatrix.M[0][0];
+		WorldTransformData[TransformDataIndex + 1] = HoudiniMatrix.M[0][1];
+		WorldTransformData[TransformDataIndex + 2] = HoudiniMatrix.M[0][2];
+		WorldTransformData[TransformDataIndex + 3] = HoudiniMatrix.M[1][0];
+		WorldTransformData[TransformDataIndex + 4] = HoudiniMatrix.M[1][1];
+		WorldTransformData[TransformDataIndex + 5] = HoudiniMatrix.M[1][2];
+		WorldTransformData[TransformDataIndex + 6] = HoudiniMatrix.M[2][0];
+		WorldTransformData[TransformDataIndex + 7] = HoudiniMatrix.M[2][1];
+		WorldTransformData[TransformDataIndex + 8] = HoudiniMatrix.M[2][2];
 
 		// Primitives (Edges) between joints
 		if (BoneInfo.ParentIndex != INDEX_NONE)

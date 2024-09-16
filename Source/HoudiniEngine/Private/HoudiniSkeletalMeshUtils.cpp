@@ -59,40 +59,56 @@
 FMatrix
 FHoudiniSkeletalMeshUtils::MakeMatrixFromHoudiniData(const float RotationData[], const float PositionData[])
 {
-	FMatrix M44Pose;  //this is unconverted houdini space, stored in an Unreal FMatrix.
+	// Convert Houdini matrix to data to Unreal data. Y/Z axis are swapped so we each column 1 and 2 are switched.
+	// In addition the Y/Z vectors need to be switched.
+
+	FMatrix M44Pose;  
 	M44Pose.M[0][0] = RotationData[0];
-	M44Pose.M[0][1] = RotationData[1];
-	M44Pose.M[0][2] = RotationData[2];
+	M44Pose.M[0][1] = RotationData[2];
+	M44Pose.M[0][2] = RotationData[1];
 	M44Pose.M[0][3] = 0;
-	M44Pose.M[1][0] = RotationData[3];
-	M44Pose.M[1][1] = RotationData[4];
-	M44Pose.M[1][2] = RotationData[5];
+	M44Pose.M[1][0] = RotationData[6];
+	M44Pose.M[1][1] = RotationData[8];
+	M44Pose.M[1][2] = RotationData[7];
 	M44Pose.M[1][3] = 0;
-	M44Pose.M[2][0] = RotationData[6];
-	M44Pose.M[2][1] = RotationData[7];
-	M44Pose.M[2][2] = RotationData[8];
+	M44Pose.M[2][0] = RotationData[3];
+	M44Pose.M[2][1] = RotationData[5];
+	M44Pose.M[2][2] = RotationData[4];
 	M44Pose.M[2][3] = 0;
-	M44Pose.M[3][0] = PositionData[0];
-	M44Pose.M[3][1] = PositionData[1];
-	M44Pose.M[3][2] = PositionData[2];
+	M44Pose.M[3][0] = PositionData[0] * 100.0;
+	M44Pose.M[3][1] = PositionData[2] * 100.0;
+	M44Pose.M[3][2] = PositionData[1] * 100.0;
 	M44Pose.M[3][3] = 1;
 
 	return M44Pose;
 }
 
-FTransform FHoudiniSkeletalMeshUtils::HoudiniToUnrealMatrix(const FMatrix& Matrix)
+FMatrix FHoudiniSkeletalMeshUtils::UnrealToHoudiniMatrix(const FTransform& Transform)
 {
-	FTransform Transform = FTransform(Matrix);
+	FMatrix UnrealMatrix = Transform.ToMatrixWithScale();
 
-	FQuat PoseQ = Transform.GetRotation();
-	FVector PoseT = Transform.GetLocation();
-	FVector ConvertedPoseT = FVector(100.0f * PoseT.X, 100.0f * PoseT.Z, 100.0f * PoseT.Y);
-	const FQuat ConvertedPoseQ = PoseQ * FQuat::MakeFromEuler({ 90.f, 0.f, 0.f });
-	FVector PoseS = Transform.GetScale3D();
+	FMatrix Result;
+	Result.M[0][0] = UnrealMatrix.M[0][0];
+	Result.M[0][1] = UnrealMatrix.M[0][2];
+	Result.M[0][2] = UnrealMatrix.M[0][1];
+	Result.M[0][3] = UnrealMatrix.M[0][3];
 
-	Transform = FTransform(ConvertedPoseQ, ConvertedPoseT, PoseS);
+	Result.M[1][0] = UnrealMatrix.M[2][0];
+	Result.M[1][1] = UnrealMatrix.M[2][2];
+	Result.M[1][2] = UnrealMatrix.M[2][1];
+	Result.M[1][3] = UnrealMatrix.M[2][3];
 
-	return Transform;
+	Result.M[2][0] = UnrealMatrix.M[1][0];
+	Result.M[2][1] = UnrealMatrix.M[1][2];
+	Result.M[2][2] = UnrealMatrix.M[1][1];
+	Result.M[2][3] = UnrealMatrix.M[1][3];
+
+	Result.M[3][0] = UnrealMatrix.M[3][0] * 0.01;
+	Result.M[3][1] = UnrealMatrix.M[3][2] * 0.01;
+	Result.M[3][2] = UnrealMatrix.M[3][1] * 0.01;
+	Result.M[3][3] = UnrealMatrix.M[3][3];
+
+	return Result;
 }
 
 FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HAPI_PartId PartId)
@@ -177,10 +193,10 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HA
 
 	for(int Index = 0; Index < Result.Bones.Num(); Index++)
 	{
-		FHoudiniSkeletonBone* BOne = &Result.Bones[Index];
-		int PointIndex = BoneNamesToPointIndex[BOne->Name];
+		FHoudiniSkeletonBone* Bone = &Result.Bones[Index];
+		int PointIndex = BoneNamesToPointIndex[Bone->Name];
 
-		BOne->HoudiniGlobalMatrix = MakeMatrixFromHoudiniData(&RotationData[PointIndex * 9], &PositionData[PointIndex * 3]);
+		Bone->UnrealGlobalTransform = FTransform(MakeMatrixFromHoudiniData(&RotationData[PointIndex * 9], &PositionData[PointIndex * 3]));
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------
@@ -223,7 +239,7 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HA
 	// Convert Houdini matrices to Unreal matrix, and calculate the local matrices(which is what Unreal wants).
 	//--------------------------------------------------------------------------------------------------------------------
 
-	ConstructGlobalMatricesFromHoudiniMatrices(Result.Root, nullptr);
+	ConstructLocalMatricesFromGlobal(Result.Root, nullptr);
 
 	return Result;
 }
@@ -527,7 +543,7 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::UnrealToHoudiniSkeleton(USkeleton * 
 		HoudiniSkeleton.BoneMap.Add(BoneName, &HoudiniSkeleton.Bones[BoneIndex]);
 		auto & ThisBone = HoudiniSkeleton.Bones[BoneIndex];
 		ThisBone.Name = BoneName;
-		ThisBone.UnrealGlobalMatrix = BoneTransform;
+		ThisBone.UnrealGlobalTransform = BoneTransform;
 		ThisBone.UnrealLocalMatrix = BoneTransform;
 		ThisBone.UnrealBoneNumber = BoneIndex;
 		if (ParentIndex != INDEX_NONE)
@@ -543,38 +559,20 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::UnrealToHoudiniSkeleton(USkeleton * 
 		}
 	}
 
-	ConstructGlobalMatricesFromUnrealMatrices(HoudiniSkeleton.Root, nullptr);
 	return HoudiniSkeleton;
 }
 
-void FHoudiniSkeletalMeshUtils::ConstructGlobalMatricesFromUnrealMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent)
+void FHoudiniSkeletalMeshUtils::ConstructLocalMatricesFromGlobal(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent) 
 {
-
 	FTransform ParentUnrealMatrix = FTransform::Identity;
 	if (Parent != nullptr)
 	{
-		ParentUnrealMatrix = Parent->UnrealGlobalMatrix;
+		ParentUnrealMatrix = Parent->UnrealGlobalTransform;
 	}
-	Node->UnrealGlobalMatrix = Node->UnrealLocalMatrix * ParentUnrealMatrix;
+	Node->UnrealLocalMatrix = Node->UnrealGlobalTransform * ParentUnrealMatrix.Inverse();
 	for (auto Child : Node->Children)
 	{
-		ConstructGlobalMatricesFromUnrealMatrices(Child, Node);
-	}
-}
-
-void FHoudiniSkeletalMeshUtils::ConstructGlobalMatricesFromHoudiniMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent) 
-{
-
-	FTransform ParentUnrealMatrix = FTransform::Identity;
-	if (Parent != nullptr)
-	{
-		ParentUnrealMatrix = Parent->UnrealGlobalMatrix;
-	}
-	Node->UnrealGlobalMatrix = HoudiniToUnrealMatrix(Node->HoudiniGlobalMatrix);
-	Node->UnrealLocalMatrix = Node->UnrealGlobalMatrix * ParentUnrealMatrix.Inverse();
-	for (auto Child : Node->Children)
-	{
-		ConstructGlobalMatricesFromHoudiniMatrices(Child, Node);
+		ConstructLocalMatricesFromGlobal(Child, Node);
 	}
 }
 

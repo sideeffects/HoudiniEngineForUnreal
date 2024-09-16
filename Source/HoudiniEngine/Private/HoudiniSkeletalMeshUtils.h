@@ -40,8 +40,7 @@ struct FReferenceSkeletonModifier;
 struct FHoudiniSkeletonBone
 {
 	FString Name;
-	FMatrix HoudiniGlobalMatrix;
-	FTransform UnrealGlobalMatrix;
+	FTransform UnrealGlobalTransform;
 	FTransform UnrealLocalMatrix;
 	int UnrealBoneNumber = -1;
 	int HoudiniBoneNumber = -1;;
@@ -114,13 +113,11 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshUtils
 
 	static bool RemapInfluences(FHoudiniInfluences & Influences, const FHoudiniSkeleton & NewSkeleton);
 
-protected:
 	static FMatrix MakeMatrixFromHoudiniData(const float Rotation[], const float Position[]);
 
-	static FTransform HoudiniToUnrealMatrix(const FMatrix & Matrix);
+	static FMatrix UnrealToHoudiniMatrix(const FTransform& Transform);
 
-	static void ConstructGlobalMatricesFromHoudiniMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent);
-	static void ConstructGlobalMatricesFromUnrealMatrices(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent);
+	static void ConstructLocalMatricesFromGlobal(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent);
 
 };
 

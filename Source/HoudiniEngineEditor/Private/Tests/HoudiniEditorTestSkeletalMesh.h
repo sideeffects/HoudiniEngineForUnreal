@@ -33,5 +33,6 @@ class FHoudiniEditorTestSkeletalMeshUtils
 {
 public:
 	const static inline FString SkeletalMeshHDA = TEXT("/Game/TestHDAs/SkeletalMesh/Test_SkeletalMesh");
+	const static inline FString RoundtripHDA = TEXT("/Game/TestHDAs/SkeletalMesh/Test_SkeletalMeshRoundtrip");
 };
 #endif

@@ -30,8 +30,10 @@
 #include "HoudiniParameterInt.h"
 #include "HoudiniParameterString.h"
 #include "HoudiniParameterToggle.h"
+#include "Animation/SkeletalMeshActor.h"
 #include "Chaos/HeightField.h"
 #include "Animation/Skeleton.h"
+#include "Evaluation/PreAnimatedState/MovieScenePreAnimatedCaptureSources.h"
 #if WITH_DEV_AUTOMATION_TESTS
 #include "HoudiniEditorTestUtils.h"
 
@@ -575,6 +577,125 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingSkeleton::RunTest(const FStrin
 		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponent->GetSkeletalMeshAsset(), SkeletalMesh, return true);
 		FString ActorName = SkeletalMeshComponent->GetOwner()->GetActorLabel();
 		HOUDINI_TEST_EQUAL(ActorName.StartsWith(TEXT("TestSkeletonBakeActor")), true);
+
+		return true;
+	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshRoundtrip, "Houdini.UnitTests.SkeletalMesh.Roundtrip", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestSkeletalMeshRoundtrip::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestSkeletalMeshUtils::RoundtripHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
+	Context->HAC->bEnableProxyStaticMeshOverride = false;
+
+	USkeletalMesh* OrigSkeletalMesh = LoadObject<USkeletalMesh>(Context->World, TEXT("/Script/Engine.SkeletalMesh'/Game/TestObjects/SkeletalMeshes/Test_Roundtrip_SKM.Test_Roundtrip_SKM'"));
+
+	FActorSpawnParameters SpawnParams;
+	ASkeletalMeshActor * OrigSkeletalMeshActor = Context->World->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), SpawnParams);
+	OrigSkeletalMeshActor->GetSkeletalMeshComponent()->SetSkeletalMesh(OrigSkeletalMesh);
+
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Cook and Bake Electra.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, OrigSkeletalMeshActor]()
+	{
+		UHoudiniInput* CurrentInput = Context->HAC->GetInputAt(0);
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, OrigSkeletalMeshActor]()
+	{
+		TArray<AActor*> Actors;
+		Actors.Add(OrigSkeletalMeshActor);
+		UHoudiniInput* CurrentInput = Context->HAC->GetInputAt(0);
+		bool bChanged = true;
+		CurrentInput->SetInputType(EHoudiniInputType::World, bChanged);
+
+		CurrentInput->UpdateWorldSelection(Actors);
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, OrigSkeletalMesh]()
+	{
+		TArray<UHoudiniOutput*> Outputs;
+		Context->HAC->GetOutputs(Outputs);
+
+		// We should have two outputs, two meshes
+		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 1, return true);
+		TArray<USkeletalMeshComponent*> SkeletalMeshComponents = FHoudiniEditorUnitTestUtils::GetOutputsWithComponent<USkeletalMeshComponent>(Outputs);
+		TArray<USkeleton*> Skeleton = FHoudiniEditorUnitTestUtils::GetOutputsWithObject<USkeleton>(Outputs);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponents.Num(), 1, return true);
+
+		USkeletalMesh * CookedSkeletalMesh = SkeletalMeshComponents[0]->GetSkeletalMeshAsset();
+
+		TArray<FName> CookedBoneNames =  CookedSkeletalMesh->GetRefSkeleton().GetRawRefBoneNames();
+		TArray<FName> OrigBoneNames = OrigSkeletalMesh->GetRefSkeleton().GetRawRefBoneNames();
+
+		TArray<FTransform> CookedRefPose = CookedSkeletalMesh->GetRefSkeleton().GetRefBonePose();
+		TArray<FTransform> OrigRefPose = OrigSkeletalMesh->GetRefSkeleton().GetRefBonePose();
+
+		HOUDINI_TEST_EQUAL_ON_FAIL(CookedBoneNames.Num(), CookedRefPose.Num(), return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(OrigBoneNames.Num(), OrigRefPose.Num(), return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(CookedBoneNames.Num(), OrigBoneNames.Num(), return true);
+
+		TMap<FString, FTransform> OrigBoneMap;
+		TMap<FString, FTransform> CoookedBoneMap;
+
+		for(int Index = 0; Index < OrigBoneNames.Num(); Index++)
+		{
+			OrigBoneMap.Add(OrigBoneNames[Index].GetPlainNameString(), OrigRefPose[Index]);
+			CoookedBoneMap.Add(CookedBoneNames[Index].GetPlainNameString(), CookedRefPose[Index]);
+		}
+
+		for(const FName & BoneName : OrigBoneNames)
+		{
+			FString Bone = BoneName.ToString();
+			FTransform * OrigTransform = OrigBoneMap.Find(Bone);
+			FTransform * CookedTransform = CoookedBoneMap.Find(Bone);
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(OrigTransform, return true);
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(CookedTransform, return true);
+
+			if (!OrigTransform->GetRotation().Equals(CookedTransform->GetRotation(), 0.01f))
+			{
+				FString Error = FString::Printf(TEXT("Bone %s Rotation Differs: Original %s Cooked %s"), *Bone,
+					*OrigTransform->GetRotation().ToString(),
+					*CookedTransform->GetRotation().ToString());
+
+				AddError(Error);
+			}
+
+			if (!OrigTransform->GetScale3D().Equals(CookedTransform->GetScale3D(), 0.01f))
+			{
+				FString Error = FString::Printf(TEXT("Bone %s Scale Differs: Original %s Cooked %s"), *Bone,
+					*OrigTransform->GetScale3D().ToString(),
+					*CookedTransform->GetScale3D().ToString());
+
+				AddError(Error);
+			}
+
+		}
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		FHoudiniBakeSettings BakeSettings;
+
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
 
 		return true;
 	}));
