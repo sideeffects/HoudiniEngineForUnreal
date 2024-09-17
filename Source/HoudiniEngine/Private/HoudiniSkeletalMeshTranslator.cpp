@@ -933,12 +933,30 @@ bool FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshParts()
 	}
 
 	UPhysicsAsset* PhysicsAsset = GetExistingPhysicsAssetFromParts();
-	bool bCreateDefaultPhysicsAsset = IsCreateDefaultPhysicsAssetAttributeSet();
+	bool bCreateDefaultPhysicsAsset = GetCreateDefaultPhysicsAssetAttributeSet();
 
 	if (PhysicsAsset)
 	{
 		PhysicsAsset->PreviewSkeletalMesh = SkeletalMeshAsset;
 		SkeletalMeshAsset->SetPhysicsAsset(PhysicsAsset);
+	}
+	else if (SKParts.HGPOPhysAssetInstancer && SKParts.HGPOPhysAssetMesh)
+	{
+		const FHoudiniGeoPartObject* PhysAssetInstancerHGPO = SKParts.HGPOPhysAssetInstancer;
+
+		FHoudiniOutputObjectIdentifier PhysAssetIdentifier = FHoudiniOutputObjectIdentifier(PhysAssetInstancerHGPO->ObjectId, PhysAssetInstancerHGPO->GeoId, PhysAssetInstancerHGPO->PartId, "");
+
+		PhysicsAsset = CreateNewPhysAsset(PhysAssetIdentifier.SplitIdentifier);
+		PhysicsAsset->PreviewSkeletalMesh = SkeletalMeshAsset;
+
+		SetPhysicsAssetFromHGPO(PhysicsAsset, UnrealSkeleton, *SKParts.HGPOPhysAssetMesh);
+
+		SkeletalMeshAsset->SetPhysicsAsset(PhysicsAsset);
+
+		FHoudiniOutputObject& SkeletonOutputObject = OutputObjects.FindOrAdd(PhysAssetIdentifier);
+		SkeletonOutputObject.OutputObject = PhysicsAsset;
+		SkeletonOutputObject.bProxyIsCurrent = false;
+
 	}
 	else if (bCreateDefaultPhysicsAsset)
 	{
@@ -965,24 +983,6 @@ bool FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshParts()
 		bool bSetToMesh = true;
 		FPhysicsAssetUtils::CreateFromSkeletalMesh(PhysicsAsset, SkeletalMeshAsset, NewBodyData, ErrorMessage, bSetToMesh);
 
-
-	}
-	else if (SKParts.HGPOPhysAssetInstancer && SKParts.HGPOPhysAssetMesh)
-	{
-		const FHoudiniGeoPartObject * PhysAssetInstancerHGPO = SKParts.HGPOPhysAssetInstancer;
-
-		FHoudiniOutputObjectIdentifier PhysAssetIdentifier = FHoudiniOutputObjectIdentifier(PhysAssetInstancerHGPO->ObjectId, PhysAssetInstancerHGPO->GeoId, PhysAssetInstancerHGPO->PartId, "");
-
-		PhysicsAsset = CreateNewPhysAsset(PhysAssetIdentifier.SplitIdentifier);
-		PhysicsAsset->PreviewSkeletalMesh = SkeletalMeshAsset;
-
-		SetPhysicsAssetFromHGPO(PhysicsAsset, UnrealSkeleton, *SKParts.HGPOPhysAssetMesh);
-
-		SkeletalMeshAsset->SetPhysicsAsset(PhysicsAsset);
-
-		FHoudiniOutputObject& SkeletonOutputObject = OutputObjects.FindOrAdd(PhysAssetIdentifier);
-		SkeletonOutputObject.OutputObject = PhysicsAsset;
-		SkeletonOutputObject.bProxyIsCurrent = false;
 
 	}
 
@@ -1634,34 +1634,40 @@ FHoudiniSkeletalMeshTranslator::LoadOrCreateMaterials(
 	return true;
 }
 
-bool FHoudiniSkeletalMeshTranslator::IsCreateDefaultPhysicsAssetAttributeSet(const FHoudiniGeoPartObject * GeoPart)
+TOptional<bool>  FHoudiniSkeletalMeshTranslator::GetCreateDefaultPhysicsAssetAttributeSet(const FHoudiniGeoPartObject * GeoPart)
 {
+	TOptional<bool> Result;
+	Result.Reset();
+
 	if (!GeoPart)
-		return false;
+	{
+		return Result;
+	}
 
 	int Value = 0;
 	FHoudiniHapiAccessor Accessor(GeoPart->GeoId, GeoPart->PartId, HAPI_UNREAL_ATTRIB_CREATE_DEFAULT_PHYSICS_ASSET);
-	Accessor.GetAttributeFirstValue(HAPI_ATTROWNER_INVALID, Value);
-	return Value != 0;
+	if (Accessor.GetAttributeFirstValue(HAPI_ATTROWNER_INVALID, Value))
+		Result = Value != 0;
+	return Result;
 }
 
-bool FHoudiniSkeletalMeshTranslator::IsCreateDefaultPhysicsAssetAttributeSet()
+bool FHoudiniSkeletalMeshTranslator::GetCreateDefaultPhysicsAssetAttributeSet()
 {
-	bool bShouldCreate = false;
-	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOPhysAssetInstancer))
-		return true;
-	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOShapeMesh))
-		return true;
-	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOPoseInstancer))
-		return true;
-	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOPoseMesh))
-		return true;
-	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOPhysAssetInstancer))
-		return true;
-	if (IsCreateDefaultPhysicsAssetAttributeSet(SKParts.HGPOPhysAssetMesh))
-		return true;
+	TArray<const FHoudiniGeoPartObject*> PartsToCheck;
+	PartsToCheck.Add(SKParts.HGPOPhysAssetInstancer);
+	PartsToCheck.Add(SKParts.HGPOShapeMesh);
+	PartsToCheck.Add(SKParts.HGPOPoseInstancer);
+	PartsToCheck.Add(SKParts.HGPOPoseMesh);
+	PartsToCheck.Add(SKParts.HGPOPhysAssetInstancer);
+	PartsToCheck.Add(SKParts.HGPOPhysAssetMesh);
 
-	return false;
+	for(auto & PartToCheck : PartsToCheck)
+	{
+		TOptional<bool> bShouldCreate = GetCreateDefaultPhysicsAssetAttributeSet(PartToCheck);
+		if (bShouldCreate.IsSet())
+			return bShouldCreate.Get(true);
+	}
+	return true;
 }
 
 FString FHoudiniSkeletalMeshTranslator::GetPhysicAssetRef(const FHoudiniGeoPartObject* GeoPart)

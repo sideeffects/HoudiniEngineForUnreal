@@ -188,8 +188,8 @@ protected:
 	static HAPI_AttributeInfo GetAttrInfo(HAPI_NodeId GeoId, HAPI_NodeId PartId, const char* AttrName, HAPI_AttributeOwner AttrOwner);
 
     // Functions to determine if we should create a default physics asset attributes.
-    bool IsCreateDefaultPhysicsAssetAttributeSet();
-    bool IsCreateDefaultPhysicsAssetAttributeSet(const FHoudiniGeoPartObject* GeoPart);
+    bool GetCreateDefaultPhysicsAssetAttributeSet();
+    TOptional<bool> GetCreateDefaultPhysicsAssetAttributeSet(const FHoudiniGeoPartObject* GeoPart);
 
     // Sets the Physics Assets collision from the HGPO.
     void SetPhysicsAssetFromHGPO(UPhysicsAsset* PhysicsAsset, const FHoudiniSkeleton& Skeleton, const FHoudiniGeoPartObject& HGPO);
