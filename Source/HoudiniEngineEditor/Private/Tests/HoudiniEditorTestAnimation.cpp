@@ -84,12 +84,9 @@ bool FHoudiniEditorTestAnimationRoundtrip::RunTest(const FString& Parameters)
 	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
 	Context->HAC->bEnableProxyStaticMeshOverride = false;
 
-	USkeletalMesh* SkeletalMesh = LoadObject<USkeletalMesh>(Context->World, TEXT("/Script/Engine.SkeletalMesh'/Game/TestObjects/SkeletalMeshes/Test_Roundtrip_SKM.Test_Roundtrip_SKM'"));
 	UAnimSequence* OrigAnimSequence = LoadObject<UAnimSequence>(Context->World, TEXT("/Script/Engine.SkeletalMesh'/Game/TestObjects/Animation/MM_Walk_Fwd.MM_Walk_Fwd'"));
 
-	FActorSpawnParameters SpawnParams;
-	ASkeletalMeshActor* SkeletalMeshActor = Context->World->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), SpawnParams);
-	SkeletalMeshActor->GetSkeletalMeshComponent()->SetSkeletalMesh(SkeletalMesh);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(OrigAnimSequence, return false);
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
@@ -98,7 +95,7 @@ bool FHoudiniEditorTestAnimationRoundtrip::RunTest(const FString& Parameters)
 		return true;
 	}));
 
-	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, OrigAnimSequence, SkeletalMesh]()
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, OrigAnimSequence]()
 	{
 		bool bChanged = true;
 
@@ -118,7 +115,7 @@ bool FHoudiniEditorTestAnimationRoundtrip::RunTest(const FString& Parameters)
 		return true;
 	}));
 
-	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, SkeletalMeshActor]()
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
 		TArray<UHoudiniOutput*> Outputs;
 		Context->HAC->GetOutputs(Outputs);
