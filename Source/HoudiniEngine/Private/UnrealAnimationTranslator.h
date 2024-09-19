@@ -48,10 +48,10 @@ struct HOUDINIENGINE_API FUnrealAnimationTranslator
 			HAPI_NodeId& InputObjectNodeId,
 			const FString& InputNodeName,
 			FUnrealObjectInputHandle& OutHandle,
-			const bool& ExportAllLODs,
-			const bool& ExportSockets,
-			const bool& ExportColliders,
-			const bool& bInputNodesCanBeDeleted);
+			bool ExportAllLODs,
+			bool ExportSockets,
+			bool ExportColliders,
+			bool bInputNodesCanBeDeleted);
 
 		static bool SetAnimationDataOnNode(
 			UAnimSequence* Animation,
@@ -60,9 +60,9 @@ struct HOUDINIENGINE_API FUnrealAnimationTranslator
 		static bool AddBoneTracksToNode(HAPI_NodeId& NewNodeId, UAnimSequence* Animation);
 
 		static void GetComponentSpaceTransforms(TArray<FTransform>& OutResult, const FReferenceSkeleton& InRefSkeleton);
-		static FTransform GetCompSpaceTransformForBone(const FReferenceSkeleton& InSkel, const int32& InBoneIdx);
-		static FString GetBonePathForBone(const FReferenceSkeleton& InSkel, const int32& InBoneIdx);
-		static FTransform GetCompSpacePoseTransformForBone(const TArray<FTransform>& Bones, const FReferenceSkeleton& InSkel, const int32& InBoneIdx);
-		static FTransform GetCompSpacePoseTransformForBoneMap(const TMap<int, FTransform>& BoneMap, const FReferenceSkeleton& InSkel, const int32& InBoneIdx);
+		static FTransform GetCompSpaceTransformForBone(const FReferenceSkeleton& InSkel, int32 InBoneIdx);
+		static FString GetBonePathForBone(const FReferenceSkeleton& InSkel, int32 InBoneIdx);
+		static FTransform GetCompSpacePoseTransformForBone(const TArray<FTransform>& Bones, const FReferenceSkeleton& InSkel, int32 InBoneIdx);
+		static FTransform GetCompSpacePoseTransformForBoneMap(const TMap<int, FTransform>& BoneMap, const FReferenceSkeleton& InSkel, int32 InBoneIdx);
 
 };

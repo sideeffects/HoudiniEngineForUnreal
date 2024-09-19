@@ -553,9 +553,6 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 			//Now convert to unreal
 			FQuat PoseQ = PoseTransform.GetRotation();
 			FQuat ConvertedPoseQ = FQuat(PoseQ.X, PoseQ.Z, PoseQ.Y, -PoseQ.W) * FQuat::MakeFromEuler({ 90.f, 0.f, 0.f });
-			//FQuat ConvertedPoseQ = FQuat::MakeFromEuler({ -90.f, 0.f, 0.f }) * FQuat(PoseQ.X, PoseQ.Z, PoseQ.Y, -PoseQ.W);
-			//FQuat ConvertedPoseQ = FQuat::MakeFromEuler({ 90.f, 0.f, 0.f }) * FQuat(PoseQ.X, PoseQ.Z, PoseQ.Y, -PoseQ.W);
-
 			FVector PoseT = PoseTransform.GetLocation();
 			FVector ConvertedPoseT = FVector(PoseT.X, PoseT.Z, PoseT.Y);
 			FVector PoseS = PoseTransform.GetScale3D();
@@ -570,34 +567,33 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 		const FReferenceSkeleton& RefSkeleton = MySkeleton->GetReferenceSkeleton();
 		for (auto& Elem : BoneWSTransforms)
 		{
-			const FName CurrentBoneName = Elem.Key;
+			const FName & CurrentBoneName = Elem.Key;
+			const FTransform & GlobalBoneTransform = Elem.Value;
 			const int32 BoneRefIndex = RefSkeleton.FindBoneIndex(CurrentBoneName);
-			FName ParentBoneName = CurrentBoneName;
+			FTransform LocalBoneTransform;
+
 			if (BoneRefIndex > 0)
 			{
-				int32 ParentBoneIndex = 0;
-				ParentBoneIndex = RefSkeleton.GetParentIndex(BoneRefIndex);
-				ParentBoneName = RefSkeleton.GetBoneName(ParentBoneIndex);
+				int32 ParentBoneIndex = RefSkeleton.GetParentIndex(BoneRefIndex);
+				const FName & ParentBoneName = RefSkeleton.GetBoneName(ParentBoneIndex);
+				const FTransform & ParentCSXform = *BoneWSTransforms.Find(ParentBoneName);
+				LocalBoneTransform = GlobalBoneTransform * ParentCSXform.Inverse();
 			}
-			if (!BoneWSTransforms.Contains(ParentBoneName))
+			else
 			{
-				continue;
+				LocalBoneTransform = GlobalBoneTransform;
 			}
-			FTransform ParentCSXform = *BoneWSTransforms.Find(ParentBoneName);
-			
-			FTransform BoneCSXform = Elem.Value;
-			FTransform BoneLXform = BoneCSXform * ParentCSXform.Inverse(); //Final
 
 			TArray<FVector3f>& KeyPosArray = BonesPosTrack.FindOrAdd(CurrentBoneName);
-			FVector Pos = BoneLXform.GetLocation();
+			FVector Pos = LocalBoneTransform.GetLocation();
 			KeyPosArray.Add(FVector3f(Pos));
 
 			TArray<FQuat4f>& KeyRotArray = BonesRotTrack.FindOrAdd(CurrentBoneName);
-			FQuat Q = BoneLXform.GetRotation();
+			FQuat Q = LocalBoneTransform.GetRotation();
 			KeyRotArray.Add(FQuat4f(Q));
 			
 			TArray<FVector3f>& KeyScaleArray = BonesScaleTrack.FindOrAdd(CurrentBoneName);
-			FVector Scale = BoneLXform.GetScale3D();
+			FVector Scale = LocalBoneTransform.GetScale3D();
 			KeyScaleArray.Add(FVector3f(Scale));
 		}
 

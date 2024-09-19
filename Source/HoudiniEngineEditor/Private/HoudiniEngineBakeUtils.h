@@ -669,6 +669,35 @@ public:
 		AActor* InFallbackActor = nullptr,
 		const FString& InFallbackWorldOutlinerFolder = TEXT(""));
 
+
+	static UAnimSequence* CreateBakedAnimSequence(
+		const FString& ObjectName,
+		UHoudiniOutput* CookedOutput,
+		const FHoudiniOutputObjectIdentifier& Identifier,
+		const UHoudiniAssetComponent* HoudiniAssetComponent,
+		const FHoudiniBakedOutput& InPreviousBakedOutput,
+		FHoudiniBakedOutput& InNewBakedOutput,
+		const FDirectoryPath& InBakeFolder,
+		const FHoudiniBakeSettings& BakeSettings,
+		FHoudiniBakedObjectData& BakedObjectData);
+
+
+	static bool BakeAnimSequence(
+		const UHoudiniAssetComponent* HoudiniAssetComponent,
+		int32 InOutputIndex,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		FHoudiniEngineBakeState& InBakeState,
+		const FDirectoryPath& InBakeFolder,
+		const FDirectoryPath& InTempCookFolder,
+		const FHoudiniBakeSettings& BakeSettings,
+		const TArray<FHoudiniEngineBakedActor>& InBakedActors,
+		TArray<FHoudiniEngineBakedActor>& OutActors,
+		FHoudiniBakedObjectData& BakedObjectData,
+		TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
+		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
+		AActor* InFallbackActor = nullptr,
+		const FString& InFallbackWorldOutlinerFolder = TEXT(""));
+
 	static bool BakeHoudiniCurveOutputToActors(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,

@@ -156,6 +156,8 @@
 #include "HoudiniFoliageUtils.h"
 
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "Animation/AnimSequence.h"
+
 
 HOUDINI_BAKING_DEFINE_LOG_CATEGORY();
 
@@ -675,6 +677,26 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 				InFallbackWorldOutlinerFolder);
 			}
 			break;
+
+		case EHoudiniOutputType::AnimSequence:
+		{
+			FHoudiniEngineBakeUtils::BakeAnimSequence(
+				HoudiniAssetComponent,
+				OutputIdx,
+				InOutputs,
+				InBakeState,
+				InBakeFolder,
+				InTempCookFolder,
+				BakeSettings,
+				AllBakedActors,
+				OutputBakedActors,
+				BakedObjectData,
+				AlreadyBakedStaticMeshMap,
+				AlreadyBakedMaterialsMap,
+				InFallbackActor,
+				InFallbackWorldOutlinerFolder);
+		}
+		break;
 
 		case EHoudiniOutputType::Invalid:
 				break;
@@ -4016,6 +4038,150 @@ FHoudiniEngineBakeUtils::BakeDataTables(
 
 		
 }
+
+bool
+FHoudiniEngineBakeUtils::BakeAnimSequence(
+	const UHoudiniAssetComponent* HoudiniAssetComponent,
+	int32 InOutputIndex,
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	FHoudiniEngineBakeState& InBakeState,
+	const FDirectoryPath& InBakeFolder,
+	const FDirectoryPath& InTempCookFolder,
+	const FHoudiniBakeSettings& BakeSettings,
+	const TArray<FHoudiniEngineBakedActor>& InBakedActors,
+	TArray<FHoudiniEngineBakedActor>& OutActors,
+	FHoudiniBakedObjectData& BakedObjectData,
+	TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
+	TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
+	AActor* InFallbackActor,
+	const FString& InFallbackWorldOutlinerFolder)
+{
+	if ((InOutputIndex < 0) || !InAllOutputs.IsValidIndex(InOutputIndex))
+		return false;
+
+	// Get previously cooked output.
+	UHoudiniOutput* CookedOutput = InAllOutputs[InOutputIndex];
+	if (!IsValid(CookedOutput))
+		return false;
+
+
+	FHoudiniPackageParams PackageParams;
+
+	const FString DefaultObjectName = TEXT("Default");
+
+	for (auto& It : CookedOutput->GetOutputObjects())
+	{
+		if (!IsValid(It.Value.OutputObject))
+			continue;
+
+		FHoudiniOutputObject& OutputObject = It.Value;
+
+		if (OutputObject.OutputObject->IsA<UAnimSequence>())
+		{
+			FDirectoryPath BakeFolder = InBakeFolder;
+			FString* Attribute = It.Value.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_BAKE_FOLDER);
+			if (Attribute != nullptr)
+			{
+				BakeFolder.Path = *Attribute;
+			}
+
+			FString ObjectName = "";
+			if (FString* Value = OutputObject.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2))
+			{
+				ObjectName = *Value;
+			}
+
+			UAnimSequence * BakedAnimSequence = CreateBakedAnimSequence(
+				ObjectName,
+				CookedOutput,
+				It.Key,
+				HoudiniAssetComponent,
+				InBakeState.GetOldBakedOutputs()[InOutputIndex],
+				InBakeState.GetNewBakedOutputs()[InOutputIndex],
+				BakeFolder,
+				BakeSettings,
+				BakedObjectData);
+
+			if (!BakedAnimSequence)
+				return false;
+
+			break;
+		}
+	}
+
+	return true;
+}
+
+UAnimSequence * FHoudiniEngineBakeUtils::CreateBakedAnimSequence(
+	const FString& ObjectName,
+	UHoudiniOutput* CookedOutput,
+	const FHoudiniOutputObjectIdentifier& Identifier,
+	const UHoudiniAssetComponent* HoudiniAssetComponent,
+	const FHoudiniBakedOutput& InPreviousBakedOutput,
+	FHoudiniBakedOutput& InNewBakedOutput,
+	const FDirectoryPath& BakeFolder,
+	const FHoudiniBakeSettings& BakeSettings,
+	FHoudiniBakedObjectData& BakedObjectData)
+{
+	FHoudiniOutputObject& OutputObject = CookedOutput->GetOutputObjects().FindOrAdd(Identifier);
+	FHoudiniBakedOutputObject BakedOutputObject;
+	const bool bHasPreviousBakeData = InPreviousBakedOutput.BakedOutputObjects.Contains(Identifier);
+	if (bHasPreviousBakeData)
+		BakedOutputObject = InPreviousBakedOutput.BakedOutputObjects.FindChecked(Identifier);
+
+	FHoudiniPackageParams PackageParams;
+
+	FHoudiniOutputObjectIdentifier BakeIdentifier = Identifier;
+	BakeIdentifier.SplitIdentifier = "anim";
+
+	if (!ResolvePackageParams(HoudiniAssetComponent,
+		CookedOutput,
+		BakeIdentifier,
+		OutputObject,
+		bHasPreviousBakeData,
+		FString(""),
+		BakeFolder,
+		BakeSettings,
+		PackageParams,
+		BakedObjectData))
+	{
+		return nullptr;
+	}
+
+	UAnimSequence * CookedAnimSequence = Cast<UAnimSequence>(OutputObject.OutputObject);
+
+	// Create the package for the object
+	FString NewObjectName;
+	UPackage* Package = PackageParams.CreatePackageForObject(NewObjectName);
+	if (!IsValid(Package))
+		return nullptr;
+
+	if (!Package->IsFullyLoaded())
+	{
+		FlushAsyncLoading();
+		if (!Package->GetOuter())
+		{
+			Package->FullyLoad();
+		}
+		else
+		{
+			Package->GetOutermost()->FullyLoad();
+		}
+	}
+	UAnimSequence* BakedAnimSequence = Cast<UAnimSequence>(DuplicateObject(CookedAnimSequence, Package, *NewObjectName));
+
+	//BakedAnimSequence->PreEditChange(nullptr);
+
+	BakedObjectData.BakeStats.NotifyPackageCreated(1);
+	BakedObjectData.PackagesToSave.Add(BakedAnimSequence->GetPackage());
+	BakedAnimSequence->MarkPackageDirty();
+
+	BakedOutputObject.BakedObject = BakedAnimSequence->GetPathName();
+	InNewBakedOutput.BakedOutputObjects.Emplace(Identifier, BakedOutputObject);
+
+	return BakedAnimSequence;
+}
+
 
 bool FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 	const UHoudiniAssetComponent* HoudiniAssetComponent,

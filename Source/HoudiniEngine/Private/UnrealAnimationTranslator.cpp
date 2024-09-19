@@ -82,10 +82,10 @@ FUnrealAnimationTranslator::HapiCreateInputNodeForAnimation(
 	HAPI_NodeId& InputNodeId,
 	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
-	const bool& ExportAllLODs /*=false*/,
-	const bool& ExportSockets /*=false*/,
-	const bool& ExportColliders /*=false*/,
-	const bool& bInputNodesCanBeDeleted /*=true*/)
+	bool ExportAllLODs,
+	bool ExportSockets,
+	bool ExportColliders,
+	bool bInputNodesCanBeDeleted)
 {
 	// If we don't have a animation there's nothing to do.
 	if (!IsValid(Animation))
@@ -323,7 +323,7 @@ FUnrealAnimationTranslator::HapiCreateInputNodeForAnimation(
 }
 
 FTransform
-FUnrealAnimationTranslator::GetCompSpaceTransformForBone(const FReferenceSkeleton& InSkel, const int32& InBoneIdx)
+FUnrealAnimationTranslator::GetCompSpaceTransformForBone(const FReferenceSkeleton& InSkel, int32 InBoneIdx)
 {
 	FTransform resultBoneTransform = InSkel.GetRefBonePose()[InBoneIdx];
 
@@ -340,9 +340,8 @@ FUnrealAnimationTranslator::GetCompSpaceTransformForBone(const FReferenceSkeleto
 }
 
 FTransform
-FUnrealAnimationTranslator::GetCompSpacePoseTransformForBoneMap(const TMap<int,FTransform>& BoneMap, const FReferenceSkeleton& InSkel, const int32& InBoneIdx)
+FUnrealAnimationTranslator::GetCompSpacePoseTransformForBoneMap(const TMap<int,FTransform>& BoneMap, const FReferenceSkeleton& InSkel, int32 InBoneIdx)
 {
-	//FTransform resultBoneTransform = InSkel.GetRefBonePose()[InBoneIdx];
 	FTransform resultBoneTransform = FTransform::Identity;
 	if (BoneMap.Contains(InBoneIdx))
 	{
@@ -355,8 +354,6 @@ FUnrealAnimationTranslator::GetCompSpacePoseTransformForBoneMap(const TMap<int,F
 	while (Bone)
 	{
 		const int32 ParentIdx = refBoneInfo[Bone].ParentIndex;
-		//if root then use -90
-		//FTransform BoneTransform = Bones[refBoneInfo[Bone].ParentIndex];
 		FTransform BoneTransform = FTransform::Identity;
 		if (BoneMap.Contains(ParentIdx))
 		{
@@ -373,9 +370,8 @@ FUnrealAnimationTranslator::GetCompSpacePoseTransformForBoneMap(const TMap<int,F
 
 
 FTransform
-FUnrealAnimationTranslator::GetCompSpacePoseTransformForBone(const TArray<FTransform>& Bones, const FReferenceSkeleton& InSkel, const int32& InBoneIdx)
+FUnrealAnimationTranslator::GetCompSpacePoseTransformForBone(const TArray<FTransform>& Bones, const FReferenceSkeleton& InSkel, int32 InBoneIdx)
 {
-	//FTransform resultBoneTransform = InSkel.GetRefBonePose()[InBoneIdx];
 	FTransform resultBoneTransform = Bones[InBoneIdx];
 
 	auto refBoneInfo = InSkel.GetRefBoneInfo();
@@ -406,7 +402,7 @@ FUnrealAnimationTranslator::GetComponentSpaceTransforms(TArray<FTransform>& OutR
 	}
 }
 
-FString FUnrealAnimationTranslator::GetBonePathForBone(const FReferenceSkeleton& InSkel, const int32& InBoneIdx)
+FString FUnrealAnimationTranslator::GetBonePathForBone(const FReferenceSkeleton& InSkel, int32 InBoneIdx)
 {
 	FString BonePath;
 	auto refBoneInfo = InSkel.GetRefBoneInfo();
@@ -426,7 +422,6 @@ FString FUnrealAnimationTranslator::GetBonePathForBone(const FReferenceSkeleton&
 		BonePath += FString(TEXT("\x2f")) + refBoneInfo[Idx].Name.ToString();
 	}
 
-	//BonePath += FString(TEXT("\x2f")) + refBoneInfo[0].Name.ToString();
 	return BonePath;
 }
 
@@ -473,16 +468,12 @@ FUnrealAnimationTranslator::AddBoneTracksToNode(HAPI_NodeId& NewNodeId, UAnimSeq
 	WorldTransformData.SetNumZeroed(3 * 3 * BonesTrackNames.Num() * (TotalTrackKeys + 1));  //3x3 matrix
 
 	TArray<float> PoseLocationData;
-	//PoseLocationData.SetNumZeroed(3 * OutNames.Num() * (TotalTrackKeys));
 	TArray<float> PoseRotationData;
-	//PoseRotationData.SetNumZeroed(OutNames.Num() * (TotalTrackKeys));
 	TArray<FVector> PoseScaleData;
 	PoseScaleData.SetNumZeroed(BonesTrackNames.Num() * (TotalTrackKeys + 1));
 
 	TArray<float> LocalLocationData;
-	//LocalLocationData.SetNumZeroed(OutNames.Num() * (TotalTrackKeys));
 	TArray<float> LocalRotationData;
-	//LocalRotationData.SetNumZeroed(OutNames.Num() * (TotalTrackKeys));
 	TArray<FVector> LocalScaleData;
 	LocalScaleData.SetNumZeroed(BonesTrackNames.Num() * (TotalTrackKeys + 1));
 
@@ -648,15 +639,6 @@ FUnrealAnimationTranslator::AddBoneTracksToNode(HAPI_NodeId& NewNodeId, UAnimSeq
 				LocalLocationData.Add(-LocalLocation.Y);
 				//reassemble transform
 				LocalBoneTransform.SetLocation(LocalLocation);
-
-				if (BoneRefIndex == 0)
-				{
-					LocalBoneTransform.SetScale3D(FVector(0.01, 0.01, 0.01));
-				}
-				else
-				{
-					LocalBoneTransform.SetScale3D(FVector(1, 1, 1));
-				}
 				
 				{
 					FName BoneName = RefSkeleton.GetBoneName(BoneRefIndex);
@@ -794,19 +776,16 @@ FUnrealAnimationTranslator::AddBoneTracksToNode(HAPI_NodeId& NewNodeId, UAnimSeq
 	AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
 	AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
 		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
 
 	//Position Data
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-		FHoudiniEngine::Get().GetSession(),
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
 		NewNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint,
 		(float*)Points.GetData(), 0, AttributeInfoPoint.count), false);
 
 	//vertex list.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(
-		FHoudiniEngine::Get().GetSession(),
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetVertexList(FHoudiniEngine::Get().GetSession(),
 		NewNodeId, 0, PrimIndices.GetData(), 0, PrimIndices.Num()), false);
 
 	//FaceCounts
@@ -889,15 +868,12 @@ FUnrealAnimationTranslator::AddBoneTracksToNode(HAPI_NodeId& NewNodeId, UAnimSeq
 	TimeInfo.storage = HAPI_STORAGETYPE_FLOAT;
 	TimeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-		"time", &TimeInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), 
+		NewNodeId, 0, "time", &TimeInfo), false);
 
 	//Position Data
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-		FHoudiniEngine::Get().GetSession(),
-		NewNodeId, 0, "time", &TimeInfo,
-		(float*)TimeData.GetData(), 0, TimeInfo.count), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(FHoudiniEngine::Get().GetSession(),
+		NewNodeId, 0, "time", &TimeInfo, (float*)TimeData.GetData(), 0, TimeInfo.count), false);
 
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// FrameIndex
@@ -945,9 +921,8 @@ FUnrealAnimationTranslator::AddBoneTracksToNode(HAPI_NodeId& NewNodeId, UAnimSeq
 	{
 		SizesLocalTransformArray.Add(4 * 4);
 	}
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
-		FHoudiniEngine::Get().GetSession(), NewNodeId,
-		0, "in_localtransform", &LocalTransformInfo, LocalTransformData.GetData(),
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(FHoudiniEngine::Get().GetSession(), 
+		NewNodeId, 0, "in_localtransform", &LocalTransformInfo, LocalTransformData.GetData(),
 		LocalTransformData.Num(), SizesLocalTransformArray.GetData(), 0, SizesLocalTransformArray.Num()), false);
 
 	//--------------------------------------------------------------------------------------------------------------------- 
@@ -965,18 +940,16 @@ FUnrealAnimationTranslator::AddBoneTracksToNode(HAPI_NodeId& NewNodeId, UAnimSeq
 	WorldTransformInfo.totalArrayElements = WorldTransformData.Num();
 	WorldTransformInfo.typeInfo = HAPI_AttributeTypeInfo::HAPI_ATTRIBUTE_TYPE_MATRIX3;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-		"in_transform", &WorldTransformInfo), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(FHoudiniEngine::Get().GetSession(), NewNodeId, 
+		0, "in_transform", &WorldTransformInfo), false);
 
 	TArray<int32> SizesWorldTransformArray;
 	for (int i = 0; i < Part.pointCount; i++)
 	{
 		SizesWorldTransformArray.Add(3 * 3);
 	}
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
-		FHoudiniEngine::Get().GetSession(), NewNodeId,
-		0, "in_transform", &WorldTransformInfo, WorldTransformData.GetData(),
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(FHoudiniEngine::Get().GetSession(), 
+		NewNodeId, 0, "in_transform", &WorldTransformInfo, WorldTransformData.GetData(),
 		WorldTransformData.Num(), SizesWorldTransformArray.GetData(), 0, SizesWorldTransformArray.Num()), false);
 
 	//--------------------------------------------------------------------------------------------------------------------- 
