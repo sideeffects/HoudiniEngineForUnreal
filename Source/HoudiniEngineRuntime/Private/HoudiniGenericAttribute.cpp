@@ -372,6 +372,8 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 	TArray<FHoudiniGenericAttributeChangedProperty>* OutChangedProperties,
 	const FFindPropertyFunctionType& InFindPropertyFunction)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject);
+
 	if (!IsValid(InObject))
 		return false;
 

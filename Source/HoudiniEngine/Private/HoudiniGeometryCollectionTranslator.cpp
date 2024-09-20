@@ -30,6 +30,8 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 	const FHoudiniPackageParams& InPackageParams, 
 	UWorld * InWorld)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs);
+
 	USceneComponent* ParentComponent = Cast<USceneComponent>(InOuterComponent);
 	if (!ParentComponent)
 		return;

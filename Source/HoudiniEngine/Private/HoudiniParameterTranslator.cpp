@@ -2706,6 +2706,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 	{
 		case EHoudiniParameterType::Float:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue-Float);
 			UHoudiniParameterFloat* FloatParam = Cast<UHoudiniParameterFloat>(InParam);
 			if (!IsValid(FloatParam))
 			{
@@ -2726,6 +2727,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 		case EHoudiniParameterType::Int:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - Int);
 			UHoudiniParameterInt* IntParam = Cast<UHoudiniParameterInt>(InParam);
 			if (!IsValid(IntParam))
 			{
@@ -2746,6 +2748,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 		case EHoudiniParameterType::String:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - String);
 			UHoudiniParameterString* StringParam = Cast<UHoudiniParameterString>(InParam);
 			if (!IsValid(StringParam))
 			{
@@ -2770,6 +2773,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 		case EHoudiniParameterType::IntChoice:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - IntChoice);
 			UHoudiniParameterChoice* ChoiceParam = Cast<UHoudiniParameterChoice>(InParam);
 			if (!IsValid(ChoiceParam))
 				return false;
@@ -2783,6 +2787,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 				ChoiceParam->GetNodeId(), &IntValue, ChoiceParam->GetValueIndex(), ChoiceParam->GetTupleSize()), false);
 		}
 		break;
+
 		case EHoudiniParameterType::StringChoice:
 		{
 			UHoudiniParameterChoice* ChoiceParam = Cast<UHoudiniParameterChoice>(InParam);
@@ -2793,6 +2798,8 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 			if (ChoiceParam->IsStringChoice())
 			{
+				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - StringChoice);
+
 				// Set the parameter's string value.
 				std::string ConvertedString = TCHAR_TO_UTF8(*(ChoiceParam->GetStringValue()));
 				HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmStringValue(
@@ -2801,6 +2808,8 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 			}
 			else
 			{
+				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - StringChoice - Int);
+
 				// Set the parameter's int value.
 				int32 IntValue = ChoiceParam->GetIntValueIndex();
 				HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmIntValues(
@@ -2812,6 +2821,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 		case EHoudiniParameterType::Color:
 		{	
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - Color);
 			UHoudiniParameterColor* ColorParam = Cast<UHoudiniParameterColor>(InParam);
 			if (!IsValid(ColorParam))
 				return false;
@@ -2830,6 +2840,8 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 		case EHoudiniParameterType::Button:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - Button);
+
 			UHoudiniParameterButton* ButtonParam = Cast<UHoudiniParameterButton>(InParam);
 			if (!ButtonParam)
 				return false;
@@ -2848,6 +2860,8 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 		case EHoudiniParameterType::ButtonStrip: 
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - Strip);
+
 			UHoudiniParameterButtonStrip* ButtonStripParam = Cast<UHoudiniParameterButtonStrip>(InParam);
 			if (!ButtonStripParam)
 				return false;
@@ -2862,6 +2876,8 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 		case EHoudiniParameterType::Toggle: 
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - Toggle);
+
 			UHoudiniParameterToggle* ToggleParam = Cast<UHoudiniParameterToggle>(InParam);
 			if (!ToggleParam)
 				return false;
@@ -2880,8 +2896,9 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 		case EHoudiniParameterType::FileGeo:
 		case EHoudiniParameterType::FileImage:
 		{
-			UHoudiniParameterFile* FileParam = Cast<UHoudiniParameterFile>(InParam);
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - File);
 
+			UHoudiniParameterFile* FileParam = Cast<UHoudiniParameterFile>(InParam);
 			if (!UploadDirectoryPath(FileParam))
 				return false;
 		}
@@ -2889,6 +2906,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 		case EHoudiniParameterType::MultiParm: 
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - MultiParm);
 			if (!UploadMultiParmValues(InParam))
 				return false;
 		}
@@ -2897,6 +2915,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 		case EHoudiniParameterType::FloatRamp:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - FloatRamp);
 			if (!UploadRampParameter(InParam))
 				return false;
 		}
@@ -2904,6 +2923,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 		case EHoudiniParameterType::ColorRamp:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - ColorRamp);
 			if (!UploadRampParameter(InParam))
 				return false;
 		}

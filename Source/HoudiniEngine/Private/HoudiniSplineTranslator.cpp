@@ -1516,6 +1516,7 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNode(
 UHoudiniSplineComponent* 
 FHoudiniSplineTranslator::CreateHoudiniSplineComponentFromHoudiniEditableNode(const int32 & GeoId, const FString & PartName, UObject* OuterComponent) 
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniSplineTranslator::CreateHoudiniSplineComponentFromHoudiniEditableNode);
 	if (GeoId < 0)
 		return nullptr;
 
@@ -2122,6 +2123,7 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 bool 
 FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(UHoudiniOutput* InOutput, UObject* InOuterComponent)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput);
 	if (!IsValid(InOutput))
 		return false;
 

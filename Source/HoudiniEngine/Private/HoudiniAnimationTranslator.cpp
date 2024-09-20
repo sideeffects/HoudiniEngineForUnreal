@@ -380,6 +380,8 @@ FHoudiniAnimationTranslator::GetFbxCustomAttributes(
 //Creates SkelatalMesh and Skeleton Assets and Packages, and adds them to OutputObjects
 bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* InOutput, const TArray<FHoudiniGeoPartObject>& HGPOs, const FHoudiniPackageParams& InPackageParams, UObject* InOuterComponent)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniAnimationTranslator::CreateAnimationFromMotionClip);
+
 	if (HGPOs.Num() == 0)
 	{
 		HOUDINI_LOG_WARNING(TEXT("Could not translate MotionClip. No Geo Part Objects."));

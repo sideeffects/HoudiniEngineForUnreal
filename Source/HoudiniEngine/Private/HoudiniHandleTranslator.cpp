@@ -43,6 +43,8 @@
 bool
 FHoudiniHandleTranslator::BuildHandles(UHoudiniAssetComponent* HAC) 
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniHandleTranslator::BuildHandles);
+
 	if (!IsValid(HAC))
 		return false;
 

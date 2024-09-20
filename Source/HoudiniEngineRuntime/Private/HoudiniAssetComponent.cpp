@@ -2434,6 +2434,8 @@ UHoudiniAssetComponent::SetStaticMeshGenerationProperties(UStaticMesh* InStaticM
 void
 UHoudiniAssetComponent::UpdatePhysicsState()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UHoudiniAssetComponent::UpdatePhysicsState);
+
 	// Update physics representation right away.
 	RecreatePhysicsState();
 

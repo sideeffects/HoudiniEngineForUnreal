@@ -503,6 +503,8 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 	{
 		case EHoudiniAssetState::NeedInstantiation:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-NeedInstantiation);
+
 			// Do nothing unless the HAC has been updated
 			if (HAC->NeedUpdate())
 			{
@@ -525,6 +527,8 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::NewHDA:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-NewHDA);
+
 			// Update parameters. Since there is no instantiated node yet, this will only fetch the defaults from
 			// the asset definition.
 			FHoudiniParameterTranslator::UpdateParameters(HAC);
@@ -538,6 +542,8 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::PreInstantiation:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-PreInstantiation);
+
 			// Only proceed forward if we don't need to wait for our input HoudiniAssets to finish cooking/instantiating
 			if (HAC->NeedsToWaitForInputHoudiniAssets())
 				break;
@@ -603,7 +609,8 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 		}
 
 		case EHoudiniAssetState::Instantiating:
-		{			
+		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-Instantiating);
 			EHoudiniAssetState NewState = EHoudiniAssetState::Instantiating;
 			if (UpdateInstantiating(HAC, NewState))
 			{
@@ -620,6 +627,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::PreCook:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-PreCook);
 			// Only proceed forward if we don't need to wait for our input
 			// HoudiniAssets to finish cooking/instantiating
 			if (HAC->NeedsToWaitForInputHoudiniAssets())
@@ -670,6 +678,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::Cooking:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-Cooking);
 			EHoudiniAssetState NewState = EHoudiniAssetState::Cooking;
 			bool state = UpdateCooking(HAC, NewState);
 			if (state)
@@ -687,6 +696,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::PostCook:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-PostCook);
 			// Handle PostCook
 			EHoudiniAssetState NewState = EHoudiniAssetState::None;
 			bool bSuccess = HAC->bLastCookSuccess;
@@ -709,12 +719,15 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::PreProcess:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-PreProcess);
 			StartTaskAssetProcess(HAC);
 			break;
 		}
 
 		case EHoudiniAssetState::Processing:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-Processing);
+
 			UpdateProcess(HAC);
 
 			HAC->HandleOnPostOutputProcessing();
@@ -725,6 +738,8 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::None:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-None);
+
 			// Update world inputs if we have any
 			FHoudiniInputTranslator::UpdateWorldInputs(HAC);
 
@@ -794,6 +809,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::NeedRebuild:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-NeedRebuild);
 			if (!bIsNodeSyncComponent)
 			{
 				// Do not delete nodes for NodeSync components!
@@ -806,6 +822,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::NeedDelete:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-NeedDelete);
 			if (!bIsNodeSyncComponent)
 			{
 				// Do not delete nodes for NodeSync components!
@@ -821,6 +838,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 
 		case EHoudiniAssetState::Deleting:
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-Deleting);
 			break;
 		}
 	}
@@ -854,7 +872,7 @@ FHoudiniEngineManager::StartTaskAssetInstantiation(UHoudiniAsset* HoudiniAsset, 
 	}
 
 	// Handle hda files that contain multiple assets
-	TArray< HAPI_StringHandle > AssetNames;
+	TArray<HAPI_StringHandle> AssetNames;
 	if (!FHoudiniEngineUtils::GetSubAssetNames(AssetLibraryId, AssetNames))
 	{
 		HOUDINI_LOG_ERROR(TEXT("Cancelling asset instantiation - unable to retrieve asset names."));

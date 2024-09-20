@@ -76,6 +76,8 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 	FHoudiniClearedEditLayers& ClearedLayers,
 	TArray<UPackage*>& OutCreatedPackages)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniLandscapeTranslator::ProcessLandscapeOutput);
+
 	UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InOutput);
 
 	//------------------------------------------------------------------------------------------------------------------------------

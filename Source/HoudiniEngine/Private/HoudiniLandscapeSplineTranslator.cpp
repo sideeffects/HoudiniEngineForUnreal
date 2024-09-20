@@ -65,6 +65,7 @@ FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(
 	const FHoudiniPackageParams& InPackageParams,
 	TMap<ALandscape*, TSet<FName>>& InClearedLayers)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput);
 	if (!IsValid(InOutput))
 		return false;
 

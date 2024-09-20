@@ -82,6 +82,8 @@ FHoudiniEngineString::HasValidId() const
 bool
 FHoudiniEngineString::ToStdString(std::string& String, const HAPI_Session* InSession) const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineString::ToStdString);
+
 	String = "";
 
 	// Null string ID / zero should be considered invalid

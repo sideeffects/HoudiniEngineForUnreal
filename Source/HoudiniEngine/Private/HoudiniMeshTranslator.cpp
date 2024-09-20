@@ -100,6 +100,8 @@ FHoudiniMeshTranslator::CreateAllMeshesAndComponentsFromHoudiniOutput(
 	bool bInTreatExistingMaterialsAsUpToDate,
 	bool bInDestroyProxies)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniMeshTranslator::CreateAllMeshesAndComponentsFromHoudiniOutput);
+
 	if (!IsValid(InOutput))
 		return false;
 
@@ -172,6 +174,8 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 	bool bInDestroyProxies,
 	bool bInApplyGenericProperties)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniMeshTranslator::CreateOrUpdateAllComponents);
+
 	if (!IsValid(InOutput))
 		return false;
 
@@ -700,6 +704,8 @@ FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 	const FMeshBuildSettings& InSMBuildSettings,
 	bool bInTreatExistingMaterialsAsUpToDate)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject);
+
 	// If we're not forcing the rebuild
 	// No need to recreate something that hasn't changed
 	if (!InForceRebuild && !InHGPO.bHasGeoChanged && !InHGPO.bHasPartChanged && InOutputObjects.Num() > 0)

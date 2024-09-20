@@ -207,6 +207,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(
 	const FHoudiniPackageParams& InPackageParms,
 	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs);
 	int FoliageTypeCount = 0;
 
 	USceneComponent* ParentComponent = Cast<USceneComponent>(InOuterComponent);

@@ -1243,6 +1243,8 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 	UHoudiniAssetComponent* HAC,
 	TArray<ALandscapeProxy*>& AllInputLandscapes)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherLandscapeInputs);
+
 	if (!IsValid(HAC))
 		return;
 
@@ -1542,6 +1544,7 @@ FHoudiniEngineUtils::LoadLibHAPI(FString & StoredLibHAPILocation)
 bool
 FHoudiniEngineUtils::IsInitialized()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::IsInitialized);
 	if (!FHoudiniApi::IsHAPIInitialized())
 		return false;
 
@@ -1720,6 +1723,8 @@ FHoudiniEngineUtils::LoadHoudiniAsset(const UHoudiniAsset * HoudiniAsset, HAPI_A
 	// Lambda to detect license issues
 	auto CheckLicenseValid = [&AssetFileName](const HAPI_Result& Result)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::LoadHoudiniAsset - CheckLicenseValid);
+
 		// HoudiniEngine acquires a license when creating/loading a node, not when creating a session
 		if (Result >= HAPI_RESULT_NO_LICENSE_FOUND && Result < HAPI_RESULT_ASSET_INVALID)
 		{
@@ -1744,6 +1749,8 @@ FHoudiniEngineUtils::LoadHoudiniAsset(const UHoudiniAsset * HoudiniAsset, HAPI_A
 	// Lambda to load an HDA from file
 	auto LoadAssetFromFile = [&Result, &OutAssetLibraryId](const FString& InAssetFileName)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::LoadHoudiniAsset - LoadAssetFromFile);
+
 		// Load the asset from file.
 		std::string AssetFileNamePlain;
 		FHoudiniEngineUtils::ConvertUnrealString(InAssetFileName, AssetFileNamePlain);
@@ -1755,6 +1762,8 @@ FHoudiniEngineUtils::LoadHoudiniAsset(const UHoudiniAsset * HoudiniAsset, HAPI_A
 	// Lambda to load an HDA from memory
 	auto LoadAssetFromMemory = [&Result, &OutAssetLibraryId](const UHoudiniAsset* InHoudiniAsset)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::LoadHoudiniAsset - LoadAssetFromMemory);
+
 		// Load the asset from the cached memory buffer
 		Result = FHoudiniApi::LoadAssetLibraryFromMemory(
 			FHoudiniEngine::Get().GetSession(),
@@ -1847,6 +1856,8 @@ FHoudiniEngineUtils::GetSubAssetNames(
 	const HAPI_AssetLibraryId& AssetLibraryId,
 	TArray< HAPI_StringHandle >& OutAssetNames)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GetSubAssetNames);
+
 	if (AssetLibraryId < 0)
 		return false;
 
@@ -1954,6 +1965,8 @@ FHoudiniEngineUtils::IsValidNodeId(HAPI_NodeId NodeId)
 bool
 FHoudiniEngineUtils::GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString& NameString)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GetHoudiniAssetName);
+
 	if (AssetNodeId < 0)
 		return false;
 
@@ -2032,6 +2045,8 @@ FHoudiniEngineUtils::HapiGetAbsNodePath(const HAPI_NodeId& InNodeId, FString& Ou
 bool
 FHoudiniEngineUtils::HapiGetNodePath(const HAPI_NodeId& InNodeId, const HAPI_NodeId& InRelativeToNodeId, FString& OutPath)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiGetNodePath);
+
 	// Retrieve Path to the given Node, relative to the other given Node
 	if ((InNodeId < 0) || (InRelativeToNodeId < 0))
 		return false;
@@ -2114,6 +2129,8 @@ FHoudiniEngineUtils::HapiGetNodePath(const FHoudiniGeoPartObject& InHGPO, FStrin
 bool
 FHoudiniEngineUtils::HapiGetObjectInfos(const HAPI_NodeId& InNodeId, TArray<HAPI_ObjectInfo>& OutObjectInfos, TArray<HAPI_Transform>& OutObjectTransforms)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiGetObjectInfos);
+
 	HAPI_NodeInfo NodeInfo;
 	FHoudiniApi::NodeInfo_Init(&NodeInfo);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
@@ -2225,6 +2242,8 @@ FHoudiniEngineUtils::HapiGetObjectInfos(const HAPI_NodeId& InNodeId, TArray<HAPI
 bool 
 FHoudiniEngineUtils::IsObjNodeFullyVisible(const TSet<HAPI_NodeId>& AllObjectIds, const HAPI_NodeId& InRootNodeId, const HAPI_NodeId& InChildNodeId)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::IsObjNodeFullyVisible);
+
 	// Walk up the hierarchy from child to root.
 	// If any node in that hierarchy is not in the "AllObjectIds" set, the OBJ node is considered to
 	// be hidden.
@@ -2303,6 +2322,7 @@ FHoudiniEngineUtils::IsSopNode(const HAPI_NodeId& NodeId)
 
 bool FHoudiniEngineUtils::ContainsSopNodes(const HAPI_NodeId& NodeId)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::ContainsSopNodes);
 	int ChildCount = 0;
 	HOUDINI_CHECK_ERROR_RETURN(
 		FHoudiniApi::ComposeChildNodeList(
@@ -2353,15 +2373,23 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 
 	// Get the AssetInfo
 	HAPI_AssetInfo AssetInfo;
-	FHoudiniApi::AssetInfo_Init(&AssetInfo);
-	bool bAssetInfoResult = HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo);
+	bool bAssetInfoResult = false;
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs-GetAssetInfo);
+		FHoudiniApi::AssetInfo_Init(&AssetInfo);
+		bAssetInfoResult = HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
+			FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo);
+	}
 
 	// Get the Asset NodeInfo
 	HAPI_NodeInfo AssetNodeInfo;
-	FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
-	HAPI_Result NodeResult = FHoudiniApi::GetNodeInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId, &AssetNodeInfo);
+	HAPI_Result NodeResult = HAPI_RESULT_FAILURE;
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs-GetNodeInfo);
+		FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
+		NodeResult = FHoudiniApi::GetNodeInfo(
+			FHoudiniEngine::Get().GetSession(), AssetId, &AssetNodeInfo);
+	}
 
 	if (HAPI_RESULT_SUCCESS != NodeResult)
 	{
@@ -2393,6 +2421,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 	int32 EditableNodeCount = 0;
 	if (bAssetHasChildren)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs-ComposeChildNodeList);
 		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
 			FHoudiniEngine::Get().GetSession(),
 			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
@@ -2403,6 +2432,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 	// of whether the subnet is considered visible or not.
 	if (EditableNodeCount > 0)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs-GetComposedChildNodeList);
 		TArray<HAPI_NodeId> EditableNodeIds;
 		EditableNodeIds.SetNumUninitialized(EditableNodeCount);
 		HOUDINI_CHECK_ERROR(FHoudiniApi::GetComposedChildNodeList(
@@ -2411,6 +2441,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 
 		for (int32 nEditable = 0; nEditable < EditableNodeCount; nEditable++)
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs-GetEditableGeoInfo);
 			HAPI_GeoInfo CurrentEditableGeoInfo;
 			FHoudiniApi::GeoInfo_Init(&CurrentEditableGeoInfo);
 			HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
@@ -2465,6 +2496,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 	TSet<HAPI_NodeId> AllObjectIds;
 	if (bUseOutputFromSubnets)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs-GetComposedChildNodeList2);
 		int NumObjSubnets;
 		TArray<HAPI_NodeId> ObjectIds;
 		HOUDINI_CHECK_ERROR_RETURN(
@@ -2478,6 +2510,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 				),
 			false);
 
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs-GetComposedChildNodeList2);
 		ObjectIds.SetNumUninitialized(NumObjSubnets);
 		HOUDINI_CHECK_ERROR_RETURN(
 			FHoudiniApi::GetComposedChildNodeList(
@@ -2570,6 +2603,8 @@ bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNod
                                                         TSet<HAPI_NodeId>& OutForceNodesCook
 )
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherImmediateOutputGeoInfos);
+
 	TSet<HAPI_NodeId> GatheredNodeIds;
 
 	// NOTE: This function assumes that the incoming node is a Geometry container that contains immediate
@@ -2870,8 +2905,8 @@ FHoudiniEngineUtils::TranslateUnrealTransform(const FTransform& UnrealTransform,
 
 void
 FHoudiniEngineUtils::TranslateUnrealTransform(
-	const FTransform & UnrealTransform,
-	HAPI_TransformEuler & HapiTransformEuler)
+	const FTransform& UnrealTransform,
+	HAPI_TransformEuler& HapiTransformEuler)
 {
 	FHoudiniApi::TransformEuler_Init(&HapiTransformEuler);
 
@@ -3028,6 +3063,7 @@ FHoudiniEngineUtils::UploadHACTransform(UHoudiniAssetComponent* HAC)
 bool
 FHoudiniEngineUtils::HapiSetAssetTransform(const HAPI_NodeId& AssetId, const FTransform & Transform)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiSetAssetTransform);
 	if (AssetId < 0)
 		return false;
 
@@ -3080,6 +3116,8 @@ FHoudiniEngineUtils::HapiGetParentNodeId(const HAPI_NodeId& NodeId)
 void
 FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(UHoudiniAssetComponent* HAC)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded);
+
 	if (!IsValid(HAC))
 		return;
 
@@ -6146,12 +6184,18 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 
 
 bool
-FHoudiniEngineUtils::GetGenericPropertiesAttributes(const HAPI_NodeId& InGeoNodeId, const HAPI_PartId& InPartId,
-	const bool InbFindDetailAttributes, const int32& InFirstValidPrimIndex, const int32& InFirstValidVertexIndex, const int32& InFirstValidPointIndex,
+FHoudiniEngineUtils::GetGenericPropertiesAttributes(
+	const HAPI_NodeId& InGeoNodeId,
+	const HAPI_PartId& InPartId,
+	const bool InbFindDetailAttributes,
+	const int32& InFirstValidPrimIndex,
+	const int32& InFirstValidVertexIndex,
+	const int32& InFirstValidPointIndex,
 	TArray<FHoudiniGenericAttribute>& OutPropertyAttributes)
 {
-	int32 FoundCount = 0;
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GetGenericPropertiesAttributes);
 
+	int32 FoundCount = 0;
 	// List all the generic property detail attributes ...
 	if (InbFindDetailAttributes)
 	{
@@ -6191,6 +6235,7 @@ FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
 	const bool bInDeferPostEditChangePropertyCalls,
 	const FHoudiniGenericAttribute::FFindPropertyFunctionType& InProcessFunction)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::UpdateGenericPropertiesAttributes);
 	if (!IsValid(InObject))
 		return false;
 
@@ -6956,6 +7001,8 @@ FHoudiniEngineUtils::CreateNode(
 int32
 FHoudiniEngineUtils::HapiGetCookCount(const HAPI_NodeId& InNodeId)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiGetCookCount);
+
 	// To reduce the "cost" of the call on big HDAs - limit or search to non bypassed SOP/OBJ nodes
 	int32 CookCount = -1;
 	if (HAPI_RESULT_FAILURE == FHoudiniApi::GetTotalCookCount(

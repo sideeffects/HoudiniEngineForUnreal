@@ -63,6 +63,7 @@ FHoudiniPDGManager::~FHoudiniPDGManager()
 bool
 FHoudiniPDGManager::InitializePDGAssetLink(UHoudiniAssetComponent* InHAC)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniPDGManager::InitializePDGAssetLink);
 	if (!IsValid(InHAC))
 		return false;
 
@@ -213,6 +214,8 @@ FHoudiniPDGManager::UpdatePDGAssetLink(UHoudiniPDGAssetLink* PDGAssetLink)
 bool
 FHoudiniPDGManager::PopulateTOPNetworks(UHoudiniPDGAssetLink* PDGAssetLink, bool bInZeroWorkItemTallys)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniPDGManager::PopulateTOPNetworks);
+
 	// Find all TOP networks from linked HDA, as well as the TOP nodes within, and populate internal state.
 	if (!IsValid(PDGAssetLink))
 		return false;
@@ -449,6 +452,7 @@ bool
 FHoudiniPDGManager::PopulateTOPNodes(
 	const TArray<HAPI_NodeId>& InTopNodeIDs, UTOPNetwork* InTOPNetwork, UHoudiniPDGAssetLink* InPDGAssetLink, bool bInZeroWorkItemTallys)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniPDGManager::PopulateTOPNodes);
 	if (!IsValid(InPDGAssetLink))
 		return false;
 
@@ -2226,6 +2230,8 @@ EHoudiniBGEOCommandletStatus FHoudiniPDGManager::UpdateAndGetBGEOCommandletStatu
 bool
 FHoudiniPDGManager::IsPDGAsset(const HAPI_NodeId& InAssetId)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniPDGManager::IsPDGAsset);
+
 	if (InAssetId < 0)
 		return false;
 

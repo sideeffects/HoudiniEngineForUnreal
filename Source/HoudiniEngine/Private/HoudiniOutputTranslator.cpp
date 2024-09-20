@@ -90,6 +90,8 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	const bool& bInForceUpdate,
 	bool& bOutHasHoudiniStaticMeshOutput)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateOutputs);
+
 	if (!IsValid(HAC))
 		return false;
 
@@ -2639,6 +2641,8 @@ FHoudiniOutputTranslator::ClearAndRemoveOutputs(UHoudiniAssetComponent *InHAC, T
 void 
 FHoudiniOutputTranslator::ClearOutput(UHoudiniOutput* Output) 
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::ClearOutput);
+
 	switch (Output->GetType()) 
 	{
 		case EHoudiniOutputType::Landscape:

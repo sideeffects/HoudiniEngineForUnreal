@@ -402,6 +402,8 @@ FHoudiniDataTableTranslator::BuildDataTable(
 	UHoudiniOutput* CurOutput,
 	FHoudiniPackageParams& PackageParams)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniDataTableTranslator::BuildDataTable);
+
 	DeletePreviousOutput(CurOutput);
 
 	int32 GeoId = HGPO.GeoId;
