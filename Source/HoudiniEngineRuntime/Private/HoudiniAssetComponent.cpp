@@ -268,6 +268,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	StaticMeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 
 	//bWantsOnUpdateTransform = true;
+
+	bIsPDGAssetLinkInitialized = false;
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()

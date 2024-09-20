@@ -2186,13 +2186,17 @@ FHoudiniEngineUtils::HapiGetObjectInfos(const HAPI_NodeId& InNodeId, TArray<HAPI
 		}
 		else
 		{
-			// This OBJ has children
-			// See if we should add ourself by looking for immediate display SOP 
 			int32 ImmediateSOP = 0;
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
-				FHoudiniEngine::Get().GetSession(), NodeInfo.id,
-				HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_DISPLAY,
-				false, &ImmediateSOP), false);
+			{
+				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiGetObjectInfos-ComposeChildNodeList);
+
+				// This OBJ has children
+				// See if we should add ourself by looking for immediate display SOP 
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
+					FHoudiniEngine::Get().GetSession(), NodeInfo.id,
+					HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_DISPLAY,
+					false, &ImmediateSOP), false);
+			}
 
 			bool bAddSelf = ImmediateSOP > 0;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeObjectList(
@@ -2329,7 +2333,7 @@ bool FHoudiniEngineUtils::ContainsSopNodes(const HAPI_NodeId& NodeId)
 			FHoudiniEngine::Get().GetSession(),
 			NodeId,
 			HAPI_NODETYPE_SOP,
-			HAPI_NODEFLAGS_ANY,
+			HAPI_NODEFLAGS_NON_BYPASS,
 			false,
 			&ChildCount
 		),
@@ -2424,7 +2428,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs-ComposeChildNodeList);
 		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
 			FHoudiniEngine::Get().GetSession(),
-			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
+			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
 			true, &EditableNodeCount));
 	}
 	
@@ -2504,7 +2508,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 				FHoudiniEngine::Get().GetSession(),
 				AssetId,
 				HAPI_NODETYPE_OBJ,
-				HAPI_NODEFLAGS_OBJ_SUBNET,
+				HAPI_NODEFLAGS_OBJ_SUBNET | HAPI_NODEFLAGS_NON_BYPASS,
 				true,
 				&NumObjSubnets
 				),

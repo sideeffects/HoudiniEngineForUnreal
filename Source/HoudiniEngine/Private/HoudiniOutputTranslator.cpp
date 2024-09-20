@@ -821,10 +821,16 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 
 		// Start by getting the number of editable nodes
 		int32 EditableNodeCount = 0;
-		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
-			FHoudiniEngine::Get().GetSession(),
-			CurrentHapiObjectInfo.nodeId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
-			true, &EditableNodeCount));
+		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateLoadedOutputs-ComposeChildNodeList);
+			HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
+				FHoudiniEngine::Get().GetSession(),
+				CurrentHapiObjectInfo.nodeId,
+				HAPI_NODETYPE_SOP, 
+				HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
+				true,
+				&EditableNodeCount));
+		}
 
 		if (EditableNodeCount > 0)
 		{
@@ -1068,6 +1074,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	bool InUseOutputNodes, 
 	bool bGatherEditableCurves)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs);
+
 	// NOTE: This function still gathers output nodes from the asset id. This is old behaviour.
 	//       Output nodes are now being gathered before cooking starts and is passed in through
 	//       the OutputNodes array. Clean up this function by only using output nodes from the
@@ -1148,9 +1156,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	int32 EditableNodeCount = 0;
 	if (bAssetHasChildren)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs-ComposeChildNodeList);
 		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
 			FHoudiniEngine::Get().GetSession(),
-			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
+			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
 			true, &EditableNodeCount));
 	}
 	
@@ -1222,6 +1231,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	TSet<HAPI_NodeId> AllObjectIds;
 	if (bUseOutputFromSubnets)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs-ComposeChildNodeList2);
+
 		int NumObjSubnets;
 		TArray<HAPI_NodeId> ObjectIds;
 		HOUDINI_CHECK_ERROR_RETURN(
@@ -1229,10 +1240,9 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				FHoudiniEngine::Get().GetSession(),
 				AssetId,
 				HAPI_NODETYPE_OBJ,
-				HAPI_NODEFLAGS_OBJ_SUBNET,
+				HAPI_NODEFLAGS_OBJ_SUBNET | HAPI_NODEFLAGS_NON_BYPASS,
 				true,
-				&NumObjSubnets
-				),
+				&NumObjSubnets),
 			false);
 
 		ObjectIds.SetNumUninitialized(NumObjSubnets);
@@ -1241,8 +1251,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				FHoudiniEngine::Get().GetSession(),
 				AssetId,
 				ObjectIds.GetData(),
-				NumObjSubnets
-				),
+				NumObjSubnets),
 			false);
 		AllObjectIds.Append(ObjectIds);
 	}

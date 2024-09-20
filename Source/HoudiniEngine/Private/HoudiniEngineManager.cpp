@@ -815,6 +815,10 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 				// Do not delete nodes for NodeSync components!
 				StartTaskAssetRebuild(HAC->AssetId, HAC->HapiGUID);
 			}
+
+			// We want to check again for PDG after a rebuild
+			HAC->bIsPDGAssetLinkInitialized = false;
+
 			HAC->MarkAsNeedCook();
 			HAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
 			break;
@@ -1004,14 +1008,6 @@ FHoudiniEngineManager::UpdateInstantiating(UHoudiniAssetComponent* HAC, EHoudini
 			// Retrieve the current component-to-world transform for this component.
 			if (!FHoudiniEngineUtils::HapiSetAssetTransform(TaskInfo.AssetId, HAC->GetComponentTransform()))
 				HOUDINI_LOG_MESSAGE(TEXT("Failed to upload the initial Transform back to HAPI."));
-		}
-
-		// Only initalize the PDG Asset Link if this Asset is a PDG Asset
-		// InitializePDGAssetLink may take a while to execute on non PDG HDA,
-		// So we want to avoid calling it if possible
-		if (FHoudiniPDGManager::IsPDGAsset(HAC->AssetId))
-		{
-			PDGManager.InitializePDGAssetLink(HAC);
 		}
 
 		// Initial update/create of inputs
@@ -1363,6 +1359,18 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 	{
 		int32 NodeCookCount = FHoudiniEngineUtils::HapiGetCookCount(NodeId);
 		HAC->SetOutputNodeCookCount(NodeId, NodeCookCount);
+	}
+
+	// See if we need to initialize the PDG Asset Link for this HDA
+	if (!HAC->bIsPDGAssetLinkInitialized)
+	{
+		if (FHoudiniPDGManager::IsPDGAsset(HAC->AssetId))
+		{
+			PDGManager.InitializePDGAssetLink(HAC);
+		}
+
+		// Only do this once per HDA - only check again on rebuild
+		HAC->bIsPDGAssetLinkInitialized = true;
 	}
 
 	// If we have downstream HDAs, we need to tell them we're done cooking

@@ -313,6 +313,9 @@
 // We only support Unreal spline outputs for now
 //#define HAPI_UNREAL_ATTRIB_OUTPUT_HOUDINI_CURVE				"houdini_output_curve"
 
+// PDG Attributes
+#define HAPI_UNREAL_ATTRIB_PDG_ASSET                        "unreal_pdg_asset"
+
 // Geometry Node
 #define HAPI_UNREAL_PARAM_TRANSLATE							"t"
 #define HAPI_UNREAL_PARAM_ROTATE							"r"
