@@ -1600,6 +1600,16 @@ FHoudiniEngineEditor::RegisterConsoleCommands()
 		TEXT("Houdini.CleanSession"),
 		TEXT("Cleans the current Houdini Engine Session - this will delete every node in the current Houdini Session."),
 		FConsoleCommandDelegate::CreateStatic(&FHoudiniEngineCommands::CleanHoudiniEngineSession));
+
+	static FAutoConsoleCommand CCmdStartPerfMon = FAutoConsoleCommand(
+		TEXT("Houdini.StartHAPIPerformanceMonitor"),
+		TEXT("Starts a HAPI Performance Monitoring Session."),
+		FConsoleCommandDelegate::CreateStatic(&FHoudiniEngineCommands::StartPerformanceMonitoring));
+
+	static FAutoConsoleCommand CCmdStopPerfMon = FAutoConsoleCommand(
+		TEXT("Houdini.StopHAPIPerformanceMonitor"),
+		TEXT("Stops and save to file the current HAPI Performance Monitoring Session."),
+		FConsoleCommandDelegate::CreateStatic(&FHoudiniEngineCommands::StopPerformanceMonitoring));
 }
 
 void

@@ -2138,4 +2138,61 @@ FHoudiniEngineCommands::CleanHoudiniEngineSession()
 	}
 }
 
+
+void
+FHoudiniEngineCommands::StartPerformanceMonitoring()
+{
+	// HAPI needs to be initialized
+	if (!FHoudiniApi::IsHAPIInitialized())
+	{
+		HOUDINI_LOG_ERROR(TEXT("Unable to start HAPI performance monitoring - HAPI is not initialized."));
+		return;
+	}
+
+	// We need a current session
+	const HAPI_Session* CurrentSession = FHoudiniEngine::Get().GetSession();
+	if (!CurrentSession)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Unable to start HAPI performance monitoring - no current session."));
+		return;
+	}
+
+	// We need the current session to be valid
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::IsSessionValid(CurrentSession))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Unable to start HAPI performance monitoring - the current session is invalid."));
+		return;
+	}
+
+	FHoudiniEngine::Get().StartHAPIPerformanceMonitoring();
+}
+
+void
+FHoudiniEngineCommands::StopPerformanceMonitoring()
+{
+	// HAPI needs to be initialized
+	if (!FHoudiniApi::IsHAPIInitialized())
+	{
+		HOUDINI_LOG_ERROR(TEXT("Unable to start HAPI performance monitoring - HAPI is not initialized."));
+		return;
+	}
+
+	// We need a current session
+	const HAPI_Session* CurrentSession = FHoudiniEngine::Get().GetSession();
+	if (!CurrentSession)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Unable to start HAPI performance monitoring - no current session."));
+		return;
+	}
+
+	// We need the current session to be valid
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::IsSessionValid(CurrentSession))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Unable to start HAPI performance monitoring - the current session is invalid."));
+		return;
+	}
+
+	FHoudiniEngine::Get().StopHAPIPerformanceMonitoring();
+}
+
 #undef LOCTEXT_NAMESPACE

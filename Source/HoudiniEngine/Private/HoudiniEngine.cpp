@@ -87,6 +87,7 @@ FHoudiniEngine::FHoudiniEngine()
 	, HoudiniLogoBrush(nullptr)
 	, HoudiniDefaultReferenceMesh(nullptr)
 	, HoudiniDefaultReferenceMeshMaterial(nullptr)
+	, HAPIPerfomanceProfileID(-1)
 {
 	SetSessionStatus(EHoudiniSessionStatus::Invalid);
 
@@ -1555,10 +1556,83 @@ FHoudiniEngine::UnregisterPostEngineInitCallback()
 		FCoreDelegates::OnPostEngineInit.Remove(PostEngineInitCallback);
 }
 
-bool FHoudiniEngine::IsSyncWithHoudiniCookEnabled() const
+bool 
+FHoudiniEngine::IsSyncWithHoudiniCookEnabled() const
 {
 	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 	return HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bSyncWithHoudiniCook : false;
+}
+
+void
+FHoudiniEngine::StartHAPIPerformanceMonitoring()
+{
+	// The HAPI stubs needs to be initialized
+	if (!FHoudiniApi::IsHAPIInitialized())
+	{
+		HOUDINI_LOG_ERROR(TEXT("Failed to Start a HAPI Performance Monitoring: The Houdini API stubs have not been properly initialized."));
+		return;
+	}
+
+	// We need a Valid Session
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::IsSessionValid(GetSession()))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Failed to Start a HAPI Performance Monitoring: The session is invalid."));
+		return;
+	}
+
+	// Stop the current session if it was already started
+	if (HAPIPerfomanceProfileID != -1)
+		StopHAPIPerformanceMonitoring();
+
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::StartPerformanceMonitorProfile(
+		GetSession(), "HoudiniEngineForUnreal-HAPI-Profiling", &HAPIPerfomanceProfileID))
+	{
+		HAPIPerfomanceProfileID = -1;
+		HOUDINI_LOG_ERROR(TEXT("Failed to Start a HAPI Performance Monitoring."));
+	}
+	else
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("HAPI Performance Monitoring started."));
+	}
+}
+
+void
+FHoudiniEngine::StopHAPIPerformanceMonitoring()
+{
+	// The HAPI stubs needs to be initialized
+	if (!FHoudiniApi::IsHAPIInitialized())
+	{
+		HOUDINI_LOG_ERROR(TEXT("Failed to Start a HAPI Performance Monitoring: The Houdini API stubs have not been properly initialized."));
+		return;
+	}
+
+	// We need a Valid Session
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::IsSessionValid(GetSession()))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Failed to Start a HAPI Performance Monitoring: The session is invalid."));
+		return;
+	}
+
+	if (HAPIPerfomanceProfileID == -1)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Failed to Stop a HAPI Performance Monitoring: no performance profiling session was started."));	
+	}
+
+	// Build the filename
+	int32 Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec;
+	FPlatformTime::SystemTime(Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec);
+	FString FileName = TEXT("./HAPI_UE_") + FString::Printf(TEXT("%d%02d%02d_%02d%02d%02d"), Year, Month, Day, Hour, Min, Sec) + TEXT(".hperf");
+
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::StopPerformanceMonitorProfile(
+		GetSession(), HAPIPerfomanceProfileID, TCHAR_TO_UTF8(*FileName)))
+	{
+		HAPIPerfomanceProfileID = -1;
+		HOUDINI_LOG_ERROR(TEXT("Failed to Stop HAPI Performance Monitoring."));
+	}
+	else
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("HAPI Performance Monitoring saved - %s."), *FileName);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

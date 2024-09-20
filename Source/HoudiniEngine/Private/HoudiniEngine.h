@@ -269,6 +269,9 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 
 		void UnregisterPostEngineInitCallback();
 
+		void StartHAPIPerformanceMonitoring();
+		void StopHAPIPerformanceMonitoring();
+
 	private:
 
 		// Singleton instance of Houdini Engine.
@@ -354,6 +357,8 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 		TWeakObjectPtr<UMaterial> HoudiniDefaultReferenceMeshMaterial;
 
 		FDelegateHandle PostEngineInitCallback;
+
+		int HAPIPerfomanceProfileID;
 
 #if WITH_EDITOR
 		/** Notification used by this component. **/
