@@ -571,9 +571,6 @@ FUnrealObjectInputUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputI
 	if (!AreHAPINodesValid(InRefNodeIdentifier))
 		return false;
 	
-	if (!AreReferencedHAPINodesValid(InRefNodeIdentifier))
-		return false;
-
 	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return false;
@@ -619,6 +616,9 @@ FUnrealObjectInputUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputI
 	int32 InputIndex = 0;
 	for (const FUnrealObjectInputHandle& Handle : ReferencedNodes)
 	{
+		if (!Handle.IsValid())
+			continue;
+
 		HAPI_NodeId NodeId = -1;
 		if (!GetHAPINodeId(Handle, NodeId))
 			continue;

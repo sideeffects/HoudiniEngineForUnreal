@@ -71,7 +71,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		return false;
 
 	if (InputBrushObject->ShouldIgnoreThisInput())
-		return true;
+		return false;
 
 	FString FinalInputNodeName = NodeName;
 
