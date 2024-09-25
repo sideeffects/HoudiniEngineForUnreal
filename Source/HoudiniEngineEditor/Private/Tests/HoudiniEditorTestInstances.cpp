@@ -25,6 +25,7 @@
 */
 
 #include "HoudiniEditorTestBaking.h"
+#include "HoudiniEngineCommands.h"
 #include "HoudiniParameterInt.h"
 #include "HoudiniParameterString.h"
 
@@ -1252,5 +1253,173 @@ bool FHoudiniEditorTestProxyMeshInstances::RunTest(const FString& Parameters)
 
 	return true;
 }
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestPDGInstances::RunTest(const FString& Parameters)
+{
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Test PDG.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, PDGHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
+	Context->HAC->bEnableProxyStaticMeshOverride = true;
+
+	// HDA Path and kick Cook.
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		FString TempDir = FPaths::ProjectIntermediateDir() / "Temp";
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "working_dir", TempDir, 0);
+
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	// kick PDG Cook.
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		Context->StartCookingSelectedTOPNetwork();
+		return true;
+	}));
+
+	// Bake and check results.
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		UHoudiniPDGAssetLink* AssetLink = Context->HAC->GetPDGAssetLink();
+		UTOPNetwork* Network = AssetLink->GetTOPNetwork(0);
+		HOUDINI_TEST_NOT_NULL(Network);
+
+		UTOPNode* Node = nullptr;
+		for (UTOPNode* It : Network->AllTOPNodes)
+		{
+			if (It->NodeName == "HE_OUT_X")
+			{
+				Node = It;
+				break;
+			}
+		}
+		HOUDINI_TEST_NOT_NULL(Node);
+
+		HOUDINI_TEST_EQUAL_ON_FAIL(Node->WorkResult.Num(), 10, return true);
+
+
+		for( auto& Result : Node->WorkResult)
+		{
+			auto ResultOutputs = Result.ResultObjects[0].GetResultOutputs();
+			HOUDINI_TEST_EQUAL_ON_FAIL(ResultOutputs.Num(), 1, return true);
+
+			UHoudiniOutput * Output = ResultOutputs[0];
+
+			TArray<FHoudiniOutputObject> OutputObjects;
+			Output->GetOutputObjects().GenerateValueArray(OutputObjects);
+
+			HOUDINI_TEST_EQUAL_ON_FAIL(OutputObjects.Num(), 1, return true);
+
+			const FHoudiniOutputObject & OutputObject = OutputObjects[0];
+
+			HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents.Num(), 1, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents[0]->IsA(UInstancedStaticMeshComponent::StaticClass()), 1, return true);
+		}
+
+		return true;
+	}));
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstancesAsync, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
+{
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Test PDG.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+	FHoudiniEngineCommands::SetPDGCommandletEnabled(true);
+	FHoudiniEngineCommands::StartPDGCommandlet();
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, PDGHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
+	Context->HAC->bEnableProxyStaticMeshOverride = true;
+
+	// HDA Path and kick Cook.
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			FString TempDir = FPaths::ProjectIntermediateDir() / "Temp";
+			SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "working_dir", TempDir, 0);
+
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	// kick PDG Cook.
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			Context->StartCookingSelectedTOPNetwork();
+			return true;
+		}));
+
+	// Bake and check results.
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			UHoudiniPDGAssetLink* AssetLink = Context->HAC->GetPDGAssetLink();
+			UTOPNetwork* Network = AssetLink->GetTOPNetwork(0);
+			HOUDINI_TEST_NOT_NULL(Network);
+
+			UTOPNode* Node = nullptr;
+			for (UTOPNode* It : Network->AllTOPNodes)
+			{
+				if (It->NodeName == "HE_OUT_X")
+				{
+					Node = It;
+					break;
+				}
+			}
+			HOUDINI_TEST_NOT_NULL(Node);
+
+			HOUDINI_TEST_EQUAL_ON_FAIL(Node->WorkResult.Num(), 10, return true);
+
+
+			for (auto& Result : Node->WorkResult)
+			{
+				auto ResultOutputs = Result.ResultObjects[0].GetResultOutputs();
+				HOUDINI_TEST_EQUAL_ON_FAIL(ResultOutputs.Num(), 1, return true);
+
+				UHoudiniOutput* Output = ResultOutputs[0];
+
+				TArray<FHoudiniOutputObject> OutputObjects;
+				Output->GetOutputObjects().GenerateValueArray(OutputObjects);
+
+				HOUDINI_TEST_EQUAL_ON_FAIL(OutputObjects.Num(), 1, return true);
+
+				const FHoudiniOutputObject& OutputObject = OutputObjects[0];
+
+				HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents.Num(), 1, return true);
+				HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents[0]->IsA(UInstancedStaticMeshComponent::StaticClass()), 1, return true);
+			}
+
+			FHoudiniEngineCommands::StopPDGCommandlet();
+			FHoudiniEngineCommands::SetPDGCommandletEnabled(false);
+			return true;
+		}));
+
+	return true;
+}
+
 #endif
 

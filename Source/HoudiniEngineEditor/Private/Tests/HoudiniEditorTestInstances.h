@@ -39,6 +39,7 @@ struct FHoudiniInstanceAutomationTest : public FHoudiniAutomationTest
 	void CheckPositions(const TArray<FVector> & Positions);
 
     const static inline FString BakingHDA = TEXT("/Game/TestHDAs/Instances/Test_Instances");
+    const static inline FString PDGHDA = TEXT("/Game/TestHDAs/Instances/Test_PDGInstances");
     const static inline FString InstancedMesh = TEXT("/Script/Engine.StaticMesh'/Game/TestObjects/SM_Cube.SM_Cube'");
     const static inline FString InstancedActor = TEXT("/Script/Engine.Blueprint'/Game/TestObjects/BP_Cube.BP_Cube'");
     const static inline FString PackedInstancesHDA = TEXT("/Game/TestHDAs/Instances/Test_PackedInstances");
