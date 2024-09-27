@@ -986,7 +986,7 @@ UHoudiniAssetComponent::MarkAsNeedRebuild()
 	bFullyLoaded = false;
 
 	//bEditorPropertiesNeedFullUpdate = true;
-
+	/*
 	// We need to mark all our parameters as changed/trigger update
 	for (auto CurrentParam : Parameters)
 	{
@@ -1001,6 +1001,7 @@ UHoudiniAssetComponent::MarkAsNeedRebuild()
 		CurrentParam->MarkChanged(true);
 		CurrentParam->SetNeedsToTriggerUpdate(true);
 	}
+	*/
 
 	// We need to mark all of our editable curves as changed
 	for (auto Output : Outputs)

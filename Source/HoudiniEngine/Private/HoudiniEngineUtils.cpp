@@ -1244,7 +1244,6 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 	TArray<ALandscapeProxy*>& AllInputLandscapes)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherLandscapeInputs);
-
 	if (!IsValid(HAC))
 		return;
 
@@ -1991,8 +1990,9 @@ FHoudiniEngineUtils::GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString
 }
 
 bool
-FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray< char > & PresetBuffer)
+FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray<int8>& PresetBuffer)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GetAssetPreset);
 	PresetBuffer.Empty();
 
 	HAPI_NodeId NodeId;
@@ -2005,6 +2005,9 @@ FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray< char
 	else
 		NodeId = AssetNodeId;
 
+	if (NodeId < 0)
+		return false;
+
 	int32 BufferLength = 0;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPresetBufLength(
 		FHoudiniEngine::Get().GetSession(), NodeId,
@@ -2013,7 +2016,7 @@ FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray< char
 	PresetBuffer.SetNumZeroed(BufferLength);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPreset(
 		FHoudiniEngine::Get().GetSession(), NodeId,
-		&PresetBuffer[0], PresetBuffer.Num()), false);
+		(char*)(PresetBuffer.GetData()), PresetBuffer.Num()), false);
 
 	return true;
 }

@@ -822,7 +822,7 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 		// Start by getting the number of editable nodes
 		int32 EditableNodeCount = 0;
 		{
-			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateLoadedOutputs-ComposeChildNodeList);
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateLoadedOutputs-ComposeChildNodeList-EditableNodes);
 			HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
 				FHoudiniEngine::Get().GetSession(),
 				CurrentHapiObjectInfo.nodeId,
@@ -1156,7 +1156,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	int32 EditableNodeCount = 0;
 	if (bAssetHasChildren)
 	{
-		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs-ComposeChildNodeList);
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs-ComposeChildNodeList-EditableNodes);
 		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
 			FHoudiniEngine::Get().GetSession(),
 			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
@@ -1231,7 +1231,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	TSet<HAPI_NodeId> AllObjectIds;
 	if (bUseOutputFromSubnets)
 	{
-		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs-ComposeChildNodeList2);
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs-ComposeChildNodeList-AllSubnets);
 
 		int NumObjSubnets;
 		TArray<HAPI_NodeId> ObjectIds;

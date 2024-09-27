@@ -812,6 +812,15 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-NeedRebuild);
 			if (!bIsNodeSyncComponent)
 			{
+				// Make sure no parameters are changed before getting the preset
+				FHoudiniParameterTranslator::UploadChangedParameters(HAC);
+
+				if (!FHoudiniEngineUtils::GetAssetPreset(HAC->AssetId, HAC->ParameterPresetBuffer))
+				{
+					HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's parameter preset, rebuilt asset may have lost its parameters."));
+					HAC->ParameterPresetBuffer.Empty();
+				}
+
 				// Do not delete nodes for NodeSync components!
 				StartTaskAssetRebuild(HAC->AssetId, HAC->HapiGUID);
 			}
@@ -1228,10 +1237,37 @@ FHoudiniEngineManager::PreCook(UHoudiniAssetComponent* HAC)
 
 	if (HAC->HasBeenLoaded() || HAC->IsParameterDefinitionUpdateNeeded())
 	{
-		// This will sync parameter definitions but not upload values to HAPI or fetch values for existing parameters
-		// in Unreal. It will creating missing parameters in Unreal.
-		FHoudiniParameterTranslator::UpdateLoadedParameters(HAC);
-		HAC->bParameterDefinitionUpdateNeeded = false;
+		bool bPresetSuccess = false;
+		if (!HAC->ParameterPresetBuffer.IsEmpty())
+		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PreCook-SetPreset);
+
+			// If we have stored parameter preset - restore them
+			HAPI_Result Res = FHoudiniApi::SetPreset(
+				FHoudiniEngine::Get().GetSession(), 
+				HAC->AssetId,
+				HAPI_PRESETTYPE_BINARY,
+				"hapi",
+				(char *)(HAC->ParameterPresetBuffer.GetData()),
+				HAC->ParameterPresetBuffer.Num());
+
+			if (Res == HAPI_RESULT_SUCCESS)
+				bPresetSuccess = true;
+		}
+
+		if(!bPresetSuccess)
+		{
+			// This will sync parameter definitions but not upload values to HAPI or fetch values for existing parameters
+			// in Unreal. It will creating missing parameters in Unreal.
+			FHoudiniParameterTranslator::UpdateLoadedParameters(HAC);
+			HAC->bParameterDefinitionUpdateNeeded = false;
+		}
+		else
+		{
+			// We've successfully applied the parameter presets
+			// Clean it up until next cook 
+			HAC->ParameterPresetBuffer.Empty();
+		}
 	}
 	
 	// Upload the changed/parameters back to HAPI
@@ -1301,6 +1337,13 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 		FHoudiniParameterTranslator::UpdateParameters(HAC);
 
 		FHoudiniInputTranslator::UpdateInputs(HAC);
+
+		// Update the HDA's parameter preset
+		if (!FHoudiniEngineUtils::GetAssetPreset(HAC->AssetId, HAC->ParameterPresetBuffer))
+		{
+			HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset."));
+			HAC->ParameterPresetBuffer.Empty();
+		}
 
 		bool bHasHoudiniStaticMeshOutput = false;
 		bool ForceUpdate = HAC->HasRebuildBeenRequested() || HAC->HasRecookBeenRequested();
@@ -1415,19 +1458,12 @@ bool
 FHoudiniEngineManager::StartTaskAssetRebuild(const HAPI_NodeId& InAssetId, FGuid& OutTaskGUID)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::StartTaskAssetRebuild);
-
 	// Check this HAC doesn't already have a running task
 	if (OutTaskGUID.IsValid())
 		return false;
 
 	if (InAssetId >= 0)
 	{
-		/* TODO: Handle Asset Preset
-		if (!FHoudiniEngineUtils::GetAssetPreset(AssetId, PresetBuffer))
-		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset, rebuilt asset may have lost its parameters."));
-		}
-		*/
 		// Delete the asset
 		if (!StartTaskAssetDelete(InAssetId, OutTaskGUID, true))
 		{

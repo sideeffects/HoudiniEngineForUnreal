@@ -426,7 +426,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static bool GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString & NameString);
 
 		// Gets preset data for a given asset.
-		static bool GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray< char > & PresetBuffer);
+		static bool GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray<int8>& PresetBuffer);
 
 		// HAPI : Set asset transform.
 		static bool HapiSetAssetTransform(const HAPI_NodeId& AssetNodeId, const FTransform & Transform);

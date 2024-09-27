@@ -839,6 +839,9 @@ protected:
 	UPROPERTY(Transient)
 	double LastLiveSyncPingTime;
 
+	UPROPERTY()
+	TArray<int8> ParameterPresetBuffer;
+
 	//
 	// Begin: IHoudiniAssetStateEvents
 	//
