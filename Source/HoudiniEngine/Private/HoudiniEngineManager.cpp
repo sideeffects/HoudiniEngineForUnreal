@@ -1353,12 +1353,6 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 		// Handles have to be built after the parameters
 		FHoudiniHandleTranslator::BuildHandles(HAC);
 
-		// Clear the HasBeenLoaded flag
-		if (HAC->HasBeenLoaded())
-		{
-			HAC->SetHasBeenLoaded(false);
-		}
-
 		// Clear the HasBeenDuplicated flag
 		if (HAC->HasBeenDuplicated())
 		{
@@ -1414,6 +1408,12 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 
 		// Only do this once per HDA - only check again on rebuild
 		HAC->bIsPDGAssetLinkInitialized = true;
+	}
+
+	// Clear the HasBeenLoaded flag
+	if (HAC->HasBeenLoaded())
+	{
+		HAC->SetHasBeenLoaded(false);
 	}
 
 	// If we have downstream HDAs, we need to tell them we're done cooking
