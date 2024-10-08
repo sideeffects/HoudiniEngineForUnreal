@@ -59,6 +59,9 @@ private:
 	// Adds a text row indicate we're using a Houdini indie license
 	void AddIndieLicenseRow(IDetailCategoryBuilder& InCategory);
 
+	// Adds a text row indicate we're using a Houdini Edu license
+	void AddEducationLicenseRow(IDetailCategoryBuilder& InCategory);
+
 	// Adds a category for baking options
 	void AddBakeMenu(IDetailCategoryBuilder& InCategory, UHoudiniAssetComponent* HAC);
 

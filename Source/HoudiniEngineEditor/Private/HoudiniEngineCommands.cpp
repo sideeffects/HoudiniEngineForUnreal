@@ -65,6 +65,8 @@
 #include "LevelEditor.h"
 #include "UObject/UObjectIterator.h"
 
+#include "Trace/StoreClient.h"
+
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 
@@ -2192,7 +2194,24 @@ FHoudiniEngineCommands::StopPerformanceMonitoring()
 		return;
 	}
 
-	FHoudiniEngine::Get().StopHAPIPerformanceMonitoring();
+	FString TraceStorePath;
+	if (TraceStorePath.IsEmpty())
+	{
+		using UE::Trace::FStoreClient;
+		FStoreClient* StoreClientPtr = FStoreClient::Connect(TEXT("localhost"));
+		TUniquePtr<FStoreClient> StoreClient = TUniquePtr<FStoreClient>(StoreClientPtr);
+
+		if (StoreClient)
+		{
+			const FStoreClient::FStatus* Status = StoreClient->GetStatus();
+			if (Status)
+			{
+				TraceStorePath = FString(Status->GetStoreDir());
+			}
+		}
+	}
+
+	FHoudiniEngine::Get().StopHAPIPerformanceMonitoring(TraceStorePath);
 }
 
 #undef LOCTEXT_NAMESPACE

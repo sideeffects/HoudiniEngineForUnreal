@@ -116,7 +116,8 @@ public class HoudiniEngineEditor : ModuleRules
                 "GameProjectGeneration",
                 "ToolWidgets",
                 "EditorFramework",
-				"DataLayerEditor"
+                "DataLayerEditor",
+                "TraceAnalysis"
             }
         );
         

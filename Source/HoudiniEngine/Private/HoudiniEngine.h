@@ -250,6 +250,7 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 		const HAPI_License GetLicenseType() const { return LicenseType; };
 
 		const bool IsLicenseIndie() const { return (LicenseType == HAPI_LICENSE_HOUDINI_ENGINE_INDIE || LicenseType == HAPI_LICENSE_HOUDINI_INDIE); };
+		const bool IsLicenseEducation() const { return (LicenseType == HAPI_LICENSE_HOUDINI_ENGINE_EDUCATION || LicenseType == HAPI_LICENSE_HOUDINI_EDUCATION); };
 
 		// Session Sync ProcHandle accessor
 		FProcHandle GetHESSProcHandle() const { return HESS_ProcHandle; };
@@ -270,7 +271,7 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 		void UnregisterPostEngineInitCallback();
 
 		void StartHAPIPerformanceMonitoring();
-		void StopHAPIPerformanceMonitoring();
+		void StopHAPIPerformanceMonitoring(const FString& TraceDirectory);
 
 	private:
 

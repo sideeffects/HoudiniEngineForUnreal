@@ -105,6 +105,39 @@ FHoudiniAssetComponentDetails::AddIndieLicenseRow(IDetailCategoryBuilder& InCate
 	];
 }
 
+void
+FHoudiniAssetComponentDetails::AddEducationLicenseRow(IDetailCategoryBuilder& InCategory)
+{
+	FText EduText =
+		FText::FromString(TEXT("Houdini Engine Education - For Educationnal Use Only"));
+
+	FSlateFontInfo LargeDetailsFont = IDetailLayoutBuilder::GetDetailFontBold();
+	LargeDetailsFont.Size += 2;
+
+	FSlateColor LabelColor = FLinearColor(1.0f, 1.0f, 0.0f, 1.0f);
+
+	InCategory.AddCustomRow(FText::GetEmpty())
+	[
+		SNew(STextBlock)
+		.Text(EduText)
+		.ToolTipText(EduText)
+		.Font(LargeDetailsFont)
+		.Justification(ETextJustify::Center)
+		.ColorAndOpacity(LabelColor)
+	];
+
+	InCategory.AddCustomRow(FText::GetEmpty())
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.Padding(0, 0, 5, 0)
+		[
+			SNew(SSeparator)
+			.Thickness(2.0f)
+		]
+	];
+}
+
 
 void
 FHoudiniAssetComponentDetails::AddSessionStatusRow(IDetailCategoryBuilder& InCategory)
@@ -222,6 +255,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	// Check if we'll need to add indie license labels
 	bool bIsIndieLicense = FHoudiniEngine::Get().IsLicenseIndie();
+	bool bIsEduLicense = FHoudiniEngine::Get().IsLicenseEducation();
 
 	// To handle multiselection parameter edit, we try to group the selected components by their houdini assets
 	// TODO? ignore multiselection if all are not the same HDA?
@@ -287,6 +321,8 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			// If we are running Houdini Engine Indie license, we need to display a special label.
 			if (bIsIndieLicense)
 				AddIndieLicenseRow(HouEngineCategory);
+			else if (bIsEduLicense)
+				AddEducationLicenseRow(HouEngineCategory);
 
 			TArray<TWeakObjectPtr<UHoudiniAssetComponent>> MultiSelectedHACs;
 			for (auto& NextHACWeakPtr : HACs) 
@@ -336,6 +372,8 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			// If we are running Houdini Engine Indie license, we need to display a special label.
 			if (bIsIndieLicense)
 				AddIndieLicenseRow(HouPDGCategory);
+			else if (bIsEduLicense)
+				AddEducationLicenseRow(HouPDGCategory);
 
 			// TODO: Handle multi selection of outputs like params/inputs?
 
@@ -360,8 +398,13 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				DetailBuilder.EditCategory(*ParamCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
 			// If we are running Houdini Engine Indie license, we need to display a special label.
-			if (bIsIndieLicense && MainComponent->GetNumParameters() > 0)
-				AddIndieLicenseRow(HouParameterCategory);
+			if (MainComponent->GetNumParameters() > 0)
+			{
+				if (bIsIndieLicense)
+					AddIndieLicenseRow(HouParameterCategory);
+				else if (bIsEduLicense)
+					AddEducationLicenseRow(HouParameterCategory);
+			}
 
 			TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>> JoinedParams;
 
@@ -421,8 +464,13 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				DetailBuilder.EditCategory(*HandleCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
 			// If we are running Houdini Engine Indie license, we need to display a special label.
-			if (bIsIndieLicense && MainComponent->GetNumHandles() > 0)
-				AddIndieLicenseRow(HouHandleCategory);
+			if (MainComponent->GetNumHandles() > 0)
+			{
+				if (bIsIndieLicense)
+					AddIndieLicenseRow(HouHandleCategory);
+				else if (bIsEduLicense)
+					AddEducationLicenseRow(HouHandleCategory);
+			}
 
 			// Iterate through the component's Houdini handles
 			for (int32 HandleIdx = 0; HandleIdx < MainComponent->GetNumHandles(); ++HandleIdx)
@@ -472,8 +520,13 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				DetailBuilder.EditCategory(*InputCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
 			// If we are running Houdini Engine Indie license, we need to display a special label.
-			if (bIsIndieLicense && MainComponent->GetNumInputs() > 0)
-				AddIndieLicenseRow(HouInputCategory);
+			if (MainComponent->GetNumInputs() > 0)
+			{
+				if (bIsIndieLicense)
+					AddIndieLicenseRow(HouInputCategory);
+				else if (bIsEduLicense)
+					AddEducationLicenseRow(HouInputCategory);
+			}
 
 			// Iterate through the component's inputs
 			for (int32 InputIdx = 0; InputIdx < MainComponent->GetNumInputs(); InputIdx++)

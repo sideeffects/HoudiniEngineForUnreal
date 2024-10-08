@@ -3209,6 +3209,18 @@ FHoudiniEngineUtils::GetLicenseType(FString & LicenseType)
 			break;
 		}
 
+		case HAPI_LICENSE_HOUDINI_EDUCATION:
+		{
+			LicenseType = TEXT("Houdini Education");
+			break;
+		}
+
+		case HAPI_LICENSE_HOUDINI_ENGINE_EDUCATION:
+		{
+			LicenseType = TEXT("Houdini Engine Education");
+			break;
+		}
+
 		case HAPI_LICENSE_MAX:
 		default:
 		{

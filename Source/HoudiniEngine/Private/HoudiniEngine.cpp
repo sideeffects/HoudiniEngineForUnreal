@@ -1582,7 +1582,7 @@ FHoudiniEngine::StartHAPIPerformanceMonitoring()
 
 	// Stop the current session if it was already started
 	if (HAPIPerfomanceProfileID != -1)
-		StopHAPIPerformanceMonitoring();
+		StopHAPIPerformanceMonitoring(FString());
 
 	if (HAPI_RESULT_SUCCESS != FHoudiniApi::StartPerformanceMonitorProfile(
 		GetSession(), "HoudiniEngineForUnreal-HAPI-Profiling", &HAPIPerfomanceProfileID))
@@ -1597,7 +1597,7 @@ FHoudiniEngine::StartHAPIPerformanceMonitoring()
 }
 
 void
-FHoudiniEngine::StopHAPIPerformanceMonitoring()
+FHoudiniEngine::StopHAPIPerformanceMonitoring(const FString& TraceDirectory)
 {
 	// The HAPI stubs needs to be initialized
 	if (!FHoudiniApi::IsHAPIInitialized())
@@ -1621,7 +1621,8 @@ FHoudiniEngine::StopHAPIPerformanceMonitoring()
 	// Build the filename
 	int32 Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec;
 	FPlatformTime::SystemTime(Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec);
-	FString FileName = TEXT("./HAPI_UE_") + FString::Printf(TEXT("%d%02d%02d_%02d%02d%02d"), Year, Month, Day, Hour, Min, Sec) + TEXT(".hperf");
+	FString FileName = !TraceDirectory.IsEmpty() ? TraceDirectory + TEXT("\\") : TEXT("");
+	FileName += TEXT("HAPI_UE_") + FString::Printf(TEXT("%d%02d%02d_%02d%02d%02d"), Year, Month, Day, Hour, Min, Sec) + TEXT(".hperf");
 
 	if (HAPI_RESULT_SUCCESS != FHoudiniApi::StopPerformanceMonitorProfile(
 		GetSession(), HAPIPerfomanceProfileID, TCHAR_TO_UTF8(*FileName)))
@@ -1631,7 +1632,7 @@ FHoudiniEngine::StopHAPIPerformanceMonitoring()
 	}
 	else
 	{
-		HOUDINI_LOG_MESSAGE(TEXT("HAPI Performance Monitoring saved - %s."), *FileName);
+		HOUDINI_LOG_MESSAGE(TEXT("HAPI Performance Monitoring saved - %s."), *FPaths::ConvertRelativePathToFull(FileName));
 	}
 }
 
