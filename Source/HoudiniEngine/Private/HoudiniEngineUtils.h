@@ -1318,7 +1318,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			TArray<HAPI_AttributeInfo>& OutAttribInfoUVSets);
 
 		template <typename DataType>
-		static TArray<int> RunLengthEncode(const DataType* Data, int TupleSize, int Count, const float MaxCompressionRatio = 0.25f)
+		static TArray<int> RunLengthEncode(const DataType* Data, int TupleSize, int Count, float MaxCompressionRatio = 0.25f, int MaxPackets = 500)
 		{
 			// Run length encode the data.
 			// If this function returns an empty array it means the desired compression ratio could not be met.
@@ -1338,7 +1338,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 				return EncodedData;
 
 			// Guess of size needed.
-			EncodedData.Reserve(static_cast<int>(MaxCompressionRatio * Count));
+			EncodedData.Reserve(MaxPackets);
 
 			// The first run always begins on element zero.
 			int Start = 0;
@@ -1352,6 +1352,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 				if (!CompareTuple(&Data[Start], &Data[Index]))
 				{
 					// The value changed, so start a new run
+					if (EncodedData.Num() == MaxPackets)
+						return {};
 					Start = Index;
 					EncodedData.Add(Start / TupleSize);
 				}
