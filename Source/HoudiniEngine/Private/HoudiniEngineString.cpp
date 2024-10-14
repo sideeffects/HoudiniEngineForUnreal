@@ -395,6 +395,35 @@ void FHoudiniEngineRawStrings::CreateRawStrings(const TArrayView<const FString> 
 	}
 }
 
+void FHoudiniEngineIndexedStringMap::InitializeFromStringHandles(const TArray<HAPI_StringHandle>& StringHandles)
+{
+	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+
+	Ids.SetNum(StringHandles.Num());
+	Strings.Empty();
+	StringToId.Empty();
+
+	for (int StringHandleIndex = 0; StringHandleIndex < StringHandles.Num(); StringHandleIndex++)
+	{
+		FString NewString;
+		FHoudiniEngineString::ToFString(StringHandles[StringHandleIndex], NewString, Session);
+		SetString(StringHandleIndex, NewString);
+	}
+}
+
+void FHoudiniEngineIndexedStringMap::InitializeFromStrings(const TArray<FString>& StringsToUse)
+{
+	Ids.SetNum(Strings.Num());
+	Strings.Empty();
+	StringToId.Empty();
+
+	for (int Index = 0; Index < Strings.Num(); Index++)
+	{
+		SetString(Index, StringsToUse[Index]);
+	}
+}
+
+
 bool FHoudiniEngineIndexedStringMap::HasEntries()
 {
 	// If there are no entries, there are... no entries!

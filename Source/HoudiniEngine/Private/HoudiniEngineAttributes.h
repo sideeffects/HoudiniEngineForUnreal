@@ -26,8 +26,11 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "HoudiniEngineRuntimeCommon.h"
 #include "HAPI/HAPI_Common.h"
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineString.h"
 
 class FHoudiniEngineIndexedStringMap;
 struct FHoudiniRawAttributeData;
@@ -76,6 +79,9 @@ struct FHoudiniHapiAccessor
 	template<typename DataType> bool GetAttributeData(const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int IndexStart, int IndexCount);
 	template<typename DataType> bool GetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int IndexStart, int IndexCount) const;
 
+	bool GetAttributeStrings(HAPI_AttributeOwner Owner, FHoudiniEngineIndexedStringMap& StringMap, int IndexStart = 0, int IndexCount = -1);
+	bool GetAttributeStrings(const HAPI_AttributeInfo& AttributeInfo, FHoudiniEngineIndexedStringMap& StringMap, int IndexStart = 0, int IndexCount = -1);
+
 	//  Functions to set data, mostly templated on type.
 	//
 	//template<typename DataType> bool SetAttributeData(HAPI_AttributeOwner Owner, const TArray<DataType>& Data);
@@ -87,6 +93,8 @@ struct FHoudiniHapiAccessor
 	template<typename DataType> bool SetAttributeArrayData(const HAPI_AttributeInfo& InAttributeInfo, const TArray<DataType>& InStringArray, const TArray<int>& SizesFixedArray);
 	bool SetAttributeStringMap(const HAPI_AttributeInfo& AttributeInfo, const FHoudiniEngineIndexedStringMap& InIndexedStringMap);
 	bool SetAttributeDictionary(const HAPI_AttributeInfo& InAttributeInfo, const TArray<FString>& JSONData);
+
+	TArray<FString> GetAttributeNames(HAPI_AttributeOwner Owner);
 
 protected:
 	//

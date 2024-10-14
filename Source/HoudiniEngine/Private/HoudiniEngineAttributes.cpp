@@ -31,6 +31,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineTimers.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniApi.h"
 
 #define THRIFT_MAX_CHUNKSIZE			10 * 1024 * 1024
 
@@ -75,7 +76,7 @@ bool FHoudiniHapiAccessor::AddAttribute(HAPI_AttributeOwner InOwner, HAPI_Storag
 	AttrInfo.storage = InStorageType;
 	AttrInfo.originalOwner = HAPI_ATTROWNER_INVALID;
 
-	const HAPI_Session *  Session = FHoudiniEngine::Get().GetSession();
+	const HAPI_Session * Session = FHoudiniEngine::Get().GetSession();
 	auto bResult = FHoudiniApi::AddAttribute(Session, NodeId, PartId, AttributeName, &AttrInfo);
 
 	if (OutAttrInfo)
@@ -1378,6 +1379,90 @@ HAPI_StorageType FHoudiniHapiAccessor::GetTypeWithoutArray(HAPI_StorageType Stor
 		return static_cast<HAPI_StorageType>(StorageType - HAPI_STORAGETYPE_INT_ARRAY);
 	else
 		return StorageType;
+}
+
+bool FHoudiniHapiAccessor::GetAttributeStrings(HAPI_AttributeOwner Owner, FHoudiniEngineIndexedStringMap& StringArray, int IndexStart, int IndexCount)
+{
+	HAPI_AttributeInfo AttrInfo;
+	if (!GetInfo(AttrInfo, Owner))
+		return false;
+
+	return GetAttributeStrings(AttrInfo, StringArray, IndexStart, IndexCount);
+}
+
+
+
+bool FHoudiniHapiAccessor::GetAttributeStrings(const HAPI_AttributeInfo& InAttrInfo, FHoudiniEngineIndexedStringMap& StringArray, int IndexStart, int IndexCount)
+{
+	StringArray = {};
+
+	int Count = IndexCount == -1 ? InAttrInfo.count : IndexCount;
+
+	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+
+	TArray<HAPI_StringHandle> StringHandles;
+	StringHandles.SetNum(Count);
+	HAPI_AttributeInfo AttrInfo = InAttrInfo;
+
+	if (AttrInfo.storage == HAPI_STORAGETYPE_STRING)
+	{
+		auto Result = FHoudiniApi::GetAttributeStringData(Session, NodeId, PartId, AttributeName, &AttrInfo, StringHandles.GetData(), IndexStart, Count);
+
+		if (Result != HAPI_RESULT_SUCCESS)
+			return false;
+
+		StringArray.InitializeFromStringHandles(StringHandles);
+	}
+	else
+	{
+		TArray<FString> Strings;
+		Strings.SetNum(Count);
+		if (!GetAttributeDataViaSession(Session, InAttrInfo, Strings.GetData(), IndexStart, Count))
+			return false;
+
+		TMap<FString, int> HandleIndices;
+		StringArray.Ids.SetNum(Strings.Num());
+		StringArray.Strings.Empty();
+
+		for(int Index = 0; Index < Strings.Num(); Index++)
+		{
+			int * StringIndex = HandleIndices.Find(Strings[Index]);
+			if (StringIndex)
+			{
+				StringArray.Ids[Index] = *StringIndex;
+			}
+			else
+			{
+				StringArray.Ids[Index] = StringArray.Strings.Num();
+				HandleIndices.Add(Strings[Index]) = StringArray.Strings.Num();
+				StringArray.Strings.Add(Strings[Index]);
+			}
+		}
+
+	}
+	return true;
+}
+
+TArray<FString> FHoudiniHapiAccessor::GetAttributeNames(HAPI_AttributeOwner Owner)
+{
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::PartInfo_Init(&PartInfo);
+	FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &PartInfo);
+
+
+	int AttrCount = PartInfo.attributeCounts[Owner];
+	TArray<HAPI_StringHandle> StringHandles;
+	StringHandles.SetNum(AttrCount);
+
+	FHoudiniApi::GetAttributeNames(FHoudiniEngine::Get().GetSession(), NodeId, PartId, Owner, StringHandles.GetData(), AttrCount);
+
+	TArray<FString> Results;
+	Results.SetNum(StringHandles.Num());
+	for(int Index = 0; Index < Results.Num(); Index++)
+	{
+		FHoudiniEngineString::ToFString(StringHandles[Index], Results[Index], FHoudiniEngine::Get().GetSession());
+	}
+	return Results;
 }
 
 

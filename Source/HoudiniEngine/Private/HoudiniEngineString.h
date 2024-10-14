@@ -126,9 +126,12 @@ public:
     // string is added via SetString(index,string) the string is checked to see if it
     // is already present and, if so, its re-used.
 
-    using StringId = int;
+	using StringId = int;
 
-    void Reset(int ExpectedStringCount, int ExprectedIndiexCount);
+	void InitializeFromStringHandles(const TArray<HAPI_StringHandle>& StringHandles);
+	void InitializeFromStrings(const TArray<FString>& Strings);
+
+	void Reset(int ExpectedStringCount, int ExpectedIndexCount);
     const FString& GetStringForIndex(int index) const;
     void SetString(int Index, const FString & value);
 
@@ -138,7 +141,6 @@ public:
 
 	bool HasEntries();
 
-private:
     TArray<FString> Strings; // Each unique string.
     TMap<FString, StringId> StringToId; // Backwards mapping to optimize lookup
     TArray<StringId> Ids; // Strings[Ids[i]] is the string to use.
