@@ -36,7 +36,6 @@
 #include "HoudiniPDGAssetLink.h"
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniInstancedActorComponent.h"
-#include "HoudiniMeshSplitInstancerComponent.h"
 #include "HoudiniParameterButton.h"
 #include "HoudiniParameterButtonStrip.h"
 #include "HoudiniParameterChoice.h"
@@ -721,33 +720,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniInstancedOutput&
 {
 	const FString Header = "FHoudiniInstancedOutput";
 	bool Result = true;
-
-	//Result &= TestExpressionError(IsEquivalent(A.OriginalObject.Get(), B.OriginalObject.Get()), Header, "OriginalObject");
-	Result &= TestExpressionError(A.OriginalObjectIndex == B.OriginalObjectIndex, Header, "OriginalObjectIndex");
-	Result &= TestExpressionError(A.OriginalTransforms.Num() == B.OriginalTransforms.Num(), Header, "OriginalTransforms.Num");
-	for (int i = 0; i < FMath::Min(A.OriginalTransforms.Num(), B.OriginalTransforms.Num()); i++)
-	{
-		Result &= TestExpressionError(IsEquivalent(A.OriginalTransforms[i], B.OriginalTransforms[i]), Header, "OriginalTransforms");	
-	}
-	Result &= TestExpressionError(A.VariationObjects.Num() == B.VariationObjects.Num(), Header, "VariationObjects.Num");
-	for (int i = 0; i < FMath::Min(A.VariationObjects.Num(), B.VariationObjects.Num()); i++)
-	{
-	//	Result &= TestExpressionError(IsEquivalent(A.VariationObjects[i].Get(), B.VariationObjects[i].Get()), Header, "VariationObjects");	
-	}
-	Result &= TestExpressionError(A.VariationTransformOffsets.Num() == B.VariationTransformOffsets.Num(), Header, "VariationTransformOffsets.Num");
-	for (int i = 0; i < FMath::Min(A.VariationTransformOffsets.Num(), B.VariationTransformOffsets.Num()); i++)
-	{
-		Result &= TestExpressionError(IsEquivalent(A.VariationTransformOffsets[i], B.VariationTransformOffsets[i]), Header, "VariationTransformOffsets");	
-	}
-	Result &= TestExpressionError(A.TransformVariationIndices.Num() == B.TransformVariationIndices.Num(), Header, "TransformVariationIndices.Num");
-	for (int i = 0; i < FMath::Min(A.TransformVariationIndices.Num(), B.TransformVariationIndices.Num()); i++)
-	{
-		Result &= TestExpressionError(A.TransformVariationIndices[i] == B.TransformVariationIndices[i], Header, "TransformVariationIndices");	
-	}
-	// Result &= TestExpressionError(A.bChanged == B.bChanged, Header, "bChanged");
-	// Result &= TestExpressionError(A.bStale == B.bStale, Header, "bStale");
-
-	
 	return Result;
 }
 
@@ -1154,8 +1126,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UObject* A, const UObjec
 		Result &= TestExpressionError(IsEquivalent(Cast<UHoudiniInputObject>(A), Cast<UHoudiniInputObject>(B)), Header, "Object cast");
 	else if (A->IsA(UHoudiniInstancedActorComponent::StaticClass()))
 		Result &= TestExpressionError(IsEquivalent(Cast<UHoudiniInstancedActorComponent>(A), Cast<UHoudiniInstancedActorComponent>(B)), Header, "Object cast");
-	else if (A->IsA(UHoudiniMeshSplitInstancerComponent::StaticClass()))
-		Result &= TestExpressionError(IsEquivalent(Cast<UHoudiniMeshSplitInstancerComponent>(A), Cast<UHoudiniMeshSplitInstancerComponent>(B)), Header, "Object cast");
 	else if (A->IsA(UHoudiniOutput::StaticClass()))
 		Result &= TestExpressionError(IsEquivalent(Cast<UHoudiniOutput>(A), Cast<UHoudiniOutput>(B)), Header, "Object cast");
 	// Parameters
@@ -1310,35 +1280,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInstancedActorCo
 		Result &= TestExpressionError(IsEquivalent(A->InstancedActors[i], B->InstancedActors[i]), Header, "InstancedActors");
 	}
 	
-	return Result;
-}
-
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniMeshSplitInstancerComponent* A,
-	const UHoudiniMeshSplitInstancerComponent* B)
-{
-	const FString Header = "UHoudiniMeshSplitInstancerComponent";
-
-	bool Result = true;
-	
-	Result &= TestExpressionError((IsValid(A)) == (IsValid(B)), Header, "Null check");
-
-	if (!IsValid(A) || !IsValid(B))
-	{
-		return true;
-	}
-
-	Result &= TestExpressionError(A->Instances.Num() == B->Instances.Num(), Header, "Instances.Num");
-	for (int i = 0; i < FMath::Min(A->Instances.Num(), B->Instances.Num()); i++)
-	{
-		Result &= TestExpressionError(IsEquivalent(A->Instances[i], B->Instances[i]), Header, "Instances");
-	}
-	Result &= TestExpressionError(A->OverrideMaterials.Num() == B->OverrideMaterials.Num(), Header, "OverrideMaterials.Num");
-	for (int i = 0; i < FMath::Min(A->OverrideMaterials.Num(), B->OverrideMaterials.Num()); i++)
-	{
-		Result &= TestExpressionError(IsEquivalent(A->OverrideMaterials[i], B->OverrideMaterials[i]), Header, "OverrideMaterials");
-	}
-	Result &= TestExpressionError(IsEquivalent(A->InstancedMesh, B->InstancedMesh), Header, "InstancedMesh");
-
 	return Result;
 }
 

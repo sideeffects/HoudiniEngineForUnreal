@@ -43,6 +43,7 @@ struct FHoudiniInstanceAutomationTest : public FHoudiniAutomationTest
     const static inline FString InstancedMesh = TEXT("/Script/Engine.StaticMesh'/Game/TestObjects/SM_Cube.SM_Cube'");
     const static inline FString InstancedActor = TEXT("/Script/Engine.Blueprint'/Game/TestObjects/BP_Cube.BP_Cube'");
     const static inline FString PackedInstancesHDA = TEXT("/Game/TestHDAs/Instances/Test_PackedInstances");
+    const static inline FString SplitPackedInstancesHDA = TEXT("/Game/TestHDAs/Instances/Test_SplitPackedInstances");
 
     static TArray<FFoliageInstance> GetAllFoliageInstances(UWorld* InWorld, UFoliageType* FoliageType);
     static TArray<UFoliageType*> GetAllFoliageTypes(UWorld* InWorld);

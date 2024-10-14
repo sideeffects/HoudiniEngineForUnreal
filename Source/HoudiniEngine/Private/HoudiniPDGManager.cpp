@@ -1863,7 +1863,7 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 		// Construct UHoudiniOutputs
 		bool bHasUnsupportedOutputs = false;
 		TArray<UHoudiniOutput*> NewOutputs;
-		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData> InstancedOutputPartData;
+		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData> InstancedOutputPartData;
 		NewOutputs.Reserve(InMessage.Outputs.Num());
 		for (const FHoudiniPDGImportNodeOutput& Output : InMessage.Outputs)
 		{
@@ -1886,8 +1886,7 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 					Identifier.GeoId = HGPO.GeoId;
 					Identifier.PartId = HGPO.PartId;
 					Identifier.PartName = HGPO.PartName;
-					FHoudiniInstancedOutputPartData InstancedPartData = Output.InstancedOutputPartData[Index];
-					InstancedPartData.BuildOriginalInstancedTransformsAndObjectArrays();
+					FHoudiniInstancerPartData InstancedPartData = Output.InstancedOutputPartData[Index];
 					InstancedOutputPartData.Add(Identifier, InstancedPartData);
 				}
 			}

@@ -308,7 +308,7 @@ UHoudiniGeoImportCommandlet::HandleImportBGEOMessage(
 
 	TArray<UHoudiniOutput*> Outputs;
 	TMap<FHoudiniOutputObjectIdentifier, TArray<FHoudiniGenericAttribute>> OutputObjectAttributes;
-	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData> InstancedOutputPartData;
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData> InstancedOutputPartData;
 	if (ImportBGEO(InMessage.FilePath, PackageParams, Outputs, &InMessage.StaticMeshGenerationProperties, &InMessage.MeshBuildSettings, &OutputObjectAttributes, &InstancedOutputPartData) == 0)
 	{
 		FHoudiniPDGImportBGEOResultMessage* Reply = new FHoudiniPDGImportBGEOResultMessage();
@@ -339,15 +339,14 @@ UHoudiniGeoImportCommandlet::HandleImportBGEOMessage(
 					OutputIdentifier.PartId = HGPO.PartId;
 					OutputIdentifier.PartName = HGPO.PartName;
 
-					FHoudiniInstancedOutputPartData* InstancedOutputPartDataPtr = InstancedOutputPartData.Find(OutputIdentifier);
+					FHoudiniInstancerPartData* InstancedOutputPartDataPtr = InstancedOutputPartData.Find(OutputIdentifier);
 					if (InstancedOutputPartDataPtr)
 					{
-						InstancedOutputPartDataPtr->BuildFlatInstancedTransformsAndObjectPaths();
 						MessageOutput.InstancedOutputPartData.Add(*InstancedOutputPartDataPtr);
 					}
 					else
 					{
-						MessageOutput.InstancedOutputPartData.Add(FHoudiniInstancedOutputPartData());
+						MessageOutput.InstancedOutputPartData.Add(FHoudiniInstancerPartData());
 					}
 				}
 			}
@@ -445,7 +444,7 @@ int32 UHoudiniGeoImportCommandlet::ImportBGEO(
 	const FHoudiniStaticMeshGenerationProperties* InStaticMeshGenerationProperties,
 	const FMeshBuildSettings* InMeshBuildSettings,
 	TMap<FHoudiniOutputObjectIdentifier, TArray<FHoudiniGenericAttribute>>* OutGenericAttributes,
-	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* OutInstancedOutputPartData)
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* OutInstancedOutputPartData)
 {
 	if (!IsHoudiniEngineSessionRunning() && !StartHoudiniEngineSession())
 	{

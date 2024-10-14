@@ -37,7 +37,7 @@ struct FHoudiniStaticMeshGenerationProperties;
 struct FHoudiniGeoPartObject;
 struct FMeshBuildSettings;
 struct FHoudiniOutputObjectIdentifier;
-struct FHoudiniInstancedOutputPartData;
+struct FHoudiniInstancerPartData;
 
 enum class EHoudiniOutputType : uint8;
 enum class EHoudiniPartType : uint8;
@@ -108,7 +108,7 @@ public:
 		FHoudiniPackageParams InPackageParams,
 		const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 		const FMeshBuildSettings& InMeshBuildSettings,
-		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* OutInstancedOutputPartData = nullptr);
+		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* OutInstancedOutputPartData = nullptr);
 
 	// 6. Clean up the created node
 	static bool DeleteCreatedNode(const HAPI_NodeId& InNodeId);
@@ -150,7 +150,7 @@ private:
 	/** @param InOutputs Must all have type EHoudiniOutput::Instancer. */
 	static bool CreateInstancerOutputPartData(
 		const TArray<UHoudiniOutput*>& InOutputs,
-		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>& OutInstancedOutputPartData);
+		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>& OutInstancedOutputPartData);
 
 	/** @param InOutputs Must all have type EHoudiniOutput::DataTable. */
 	bool CreateDataTables(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);

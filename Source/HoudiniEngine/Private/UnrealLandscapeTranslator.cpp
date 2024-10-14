@@ -2243,7 +2243,7 @@ FUnrealLandscapeTranslator::AddLandscapeMeshIndicesAndMaterialsAttribute(
             // Marshall in override primitive material names.
             HAPI_AttributeInfo AttributeInfoPrimitiveMaterial;
             FHoudiniApi::AttributeInfo_Init(&AttributeInfoPrimitiveMaterial);
-            AttributeInfoPrimitiveMaterial.count = FaceMaterials.GetIds().Num();
+            AttributeInfoPrimitiveMaterial.count = FaceMaterials.Ids.Num();
             AttributeInfoPrimitiveMaterial.tupleSize = 1;
             AttributeInfoPrimitiveMaterial.exists = true;
             AttributeInfoPrimitiveMaterial.owner = HAPI_ATTROWNER_PRIM;

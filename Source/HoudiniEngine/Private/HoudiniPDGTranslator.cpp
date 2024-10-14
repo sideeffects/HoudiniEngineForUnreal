@@ -193,7 +193,7 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 	const FHoudiniPackageParams& InPackageParams,
 	TArray<UHoudiniOutput*>& InOutputs,
 	TArray<EHoudiniOutputType> InOutputTypesToProcess,
-	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData)
+	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* InPreBuiltInstancedOutputPartData)
 {
 	if (!IsValid(InAssetLink))
 	{
@@ -286,7 +286,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	TArray<EHoudiniOutputType> InOutputTypesToProcess,
 	bool bInTreatExistingMaterialsAsUpToDate,
 	bool bInOnlyUseExistingAssets,
-	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData
+	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* InPreBuiltInstancedOutputPartData
 	)
 {
 	// Process the new/updated outputs via the various translators

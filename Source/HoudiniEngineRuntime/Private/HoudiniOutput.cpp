@@ -159,126 +159,6 @@ GetTypeHash(const FHoudiniOutputObjectIdentifier& HoudiniOutputObjectIdentifier)
 	return HoudiniOutputObjectIdentifier.GetTypeHash();
 }
 
-void
-FHoudiniInstancedOutput::SetVariationObjectAt(const int32 AtIndex, UObject* InObject)
-{
-	// Resize the array if needed
-	if (VariationObjects.Num() <= AtIndex)
-		VariationObjects.SetNum(AtIndex + 1);
-
-	if (VariationTransformOffsets.Num() <= AtIndex)
-		VariationTransformOffsets.SetNum(AtIndex + 1);
-
-	UObject* CurrentObject = VariationObjects[AtIndex].LoadSynchronous();
-	if (CurrentObject == InObject)
-		return;
-
-	VariationObjects[AtIndex] = InObject;
-}
-
-bool 
-FHoudiniInstancedOutput::SetTransformOffsetAt(const float Value, const int32 AtIndex, const int32 PosRotScaleIndex, const int32 XYZIndex)
-{
-	FTransform* Transform = VariationTransformOffsets.IsValidIndex(AtIndex) ? &VariationTransformOffsets[AtIndex] : nullptr;
-	if (!Transform)
-		return false;
-
-	if (PosRotScaleIndex == 0)
-	{
-		FVector Position = Transform->GetLocation();
-		if (Position[XYZIndex] == Value)
-			return false;
-		Position[XYZIndex] = Value;
-		Transform->SetLocation(Position);
-	}
-	else if (PosRotScaleIndex == 1)
-	{
-		FRotator Rotator = Transform->Rotator();
-		switch (XYZIndex)
-		{
-		case 0:
-		{
-			if (Rotator.Roll == Value)
-				return false;
-			Rotator.Roll = Value;
-			break;
-		}
-
-		case 1:
-		{
-			if (Rotator.Pitch == Value)
-				return false;
-			Rotator.Pitch = Value;
-			break;
-		}
-
-		case 2:
-		{
-			if (Rotator.Yaw == Value)
-				return false;
-			Rotator.Yaw = Value;
-			break;
-		}
-		}
-		Transform->SetRotation(Rotator.Quaternion());
-	}
-	else if (PosRotScaleIndex == 2)
-	{
-		FVector Scale = Transform->GetScale3D();
-		if (Scale[XYZIndex] == Value)
-			return false;
-
-		Scale[XYZIndex] = Value;
-		Transform->SetScale3D(Scale);
-	}
-
-	MarkChanged(true);
-
-	return true;
-}
-
-float 
-FHoudiniInstancedOutput::GetTransformOffsetAt(const int32 AtIndex, const int32 PosRotScaleIndex, const int32 XYZIndex)
-{
-	FTransform* Transform = VariationTransformOffsets.IsValidIndex(AtIndex) ? &VariationTransformOffsets[AtIndex] : nullptr;
-	if (!Transform)
-		return 0.0f;
-
-	if (PosRotScaleIndex == 0)
-	{
-		FVector Position = Transform->GetLocation();
-		return Position[XYZIndex];
-	}
-	else if (PosRotScaleIndex == 1)
-	{
-		FRotator Rotator = Transform->Rotator();
-		switch (XYZIndex)
-		{
-			case 0:
-			{
-				return Rotator.Roll;
-			}
-
-			case 1:
-			{
-				return Rotator.Pitch;
-			}
-
-			case 2:
-			{
-				return Rotator.Yaw;
-			}
-		}
-	}
-	else if (PosRotScaleIndex == 2)
-	{
-		FVector Scale = Transform->GetScale3D();
-		return Scale[XYZIndex];
-	}
-
-	return 0.0f;
-}
-
 // ----------------------------------------------------
 // FHoudiniOutputObjectIdentifier
 // ----------------------------------------------------
@@ -293,7 +173,7 @@ FHoudiniOutputObjectIdentifier::FHoudiniOutputObjectIdentifier()
 }
 
 FHoudiniOutputObjectIdentifier::FHoudiniOutputObjectIdentifier(
-	const int32& InObjectId, const int32& InGeoId, const int32& InPartId, const FString& InSplitIdentifier)
+	int32 InObjectId, int32 InGeoId, int32 InPartId, const FString& InSplitIdentifier)
 {
 	ObjectId = InObjectId;
 	GeoId = InGeoId;

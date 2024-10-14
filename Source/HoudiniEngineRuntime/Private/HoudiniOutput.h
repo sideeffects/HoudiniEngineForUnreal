@@ -349,7 +349,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObjectIdentifier
 public:
 	// Constructors
 	FHoudiniOutputObjectIdentifier();
-	FHoudiniOutputObjectIdentifier(const int32& InObjectId, const int32& InGeoId, const int32& InPartId, const FString& InSplitIdentifier);
+	FHoudiniOutputObjectIdentifier(int32 InObjectId, int32 InGeoId, int32 InPartId, const FString& InSplitIdentifier);
 
 	// Return hash value for this object, used when using this object as a key inside hashing containers.
 	uint32 GetTypeHash() const;
@@ -433,65 +433,17 @@ struct HOUDINIENGINERUNTIME_API FHoudiniInstancedOutput
 {
 	GENERATED_USTRUCT_BODY()
 
-public:
-
 	void MarkChanged(const bool InChanged) { bChanged = InChanged; };
 
-	void SetVariationObjectAt(const int32 AtIndex, UObject* InObject);
-
-	bool SetTransformOffsetAt(const float Value, const int32 AtIndex, const int32 PosRotScaleIndex, const int32 XYZIndex);
-
-	float GetTransformOffsetAt(const int32 AtIndex, const int32 PosRotScaleIndex, const int32 XYZIndex);
-
-#if WITH_EDITOR
-	void SwitchUniformScaleLock() { bUniformScaleLocked = !bUniformScaleLocked; };
-	bool IsUnformScaleLocked() const { return bUniformScaleLocked; };
-#endif
-
-public:
-
-	// Original object used by the instancer.
 	UPROPERTY()
-	TSoftObjectPtr<UObject> OriginalObject = nullptr;
+	TSoftObjectPtr<UObject> InstancedObject = nullptr;
 
 	UPROPERTY()
-	int32 OriginalObjectIndex = -1;
-	
-	// Original Instance transforms
-	UPROPERTY()
-	TArray<FTransform> OriginalTransforms;
-
-	// Variation objects currently used for instancing
-	UPROPERTY()
-	TArray<TSoftObjectPtr<UObject>> VariationObjects;
-
-	// Transform offsets, one for each variation.
-	UPROPERTY()
-	TArray<FTransform> VariationTransformOffsets;
-
-	// Index of the variation used for each transform
-	UPROPERTY()
-	TArray<int32> TransformVariationIndices;
-
-	// Original Indices of the variation instances
-	UPROPERTY()
-	TArray<int32> OriginalInstanceIndices;
+	int NumInstances;
 
 	// Indicates this instanced output's component should be recreated
 	UPROPERTY()
 	bool bChanged = false;
-
-	// Indicates this instanced output is stale and should be removed
-	UPROPERTY()
-	bool bStale = false;
-
-	// Indicates if change the scale of Transform Offset of this object uniformly
-#if WITH_EDITORONLY_DATA
-	UPROPERTY()
-	bool bUniformScaleLocked = false;
-#endif
-	// TODO
-	// Color overrides??
 };
 
 // Parameters used to create the level instance.

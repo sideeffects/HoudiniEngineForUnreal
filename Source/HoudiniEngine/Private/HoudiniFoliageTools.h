@@ -56,10 +56,10 @@ class HOUDINIENGINE_API FHoudiniFoliageTools
 {
 public:
 	// Create a new Foliage type using the InstancedStaticMesh as an Asset.
-	static UFoliageType* CreateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, UStaticMesh* InstancedStaticMesh);
+	static UFoliageType* CreateFoliageType(const FHoudiniPackageParams& Params, UStaticMesh* InstancedStaticMesh);
 
 	// Duplicate foliage asset.
-	static UFoliageType* DuplicateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, UFoliageType* FoliageType);
+	static UFoliageType* DuplicateFoliageType(const FHoudiniPackageParams& Params, UFoliageType* FoliageType);
 
 	// Get the Foliage Type which uses the Instanced Static Mesh. If more than one is found, a warning is printed.
 	static UFoliageType* GetFoliageType(const ULevel* DesiredLevel, const UStaticMesh* InstancedStaticMesh);

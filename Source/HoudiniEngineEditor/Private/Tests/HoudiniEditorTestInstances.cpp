@@ -32,6 +32,7 @@
 #include "HoudiniParameterToggle.h"
 #include "InstancedFoliage.h"
 #include "Chaos/HeightField.h"
+#include "Materials/Material.h"
 #if WITH_DEV_AUTOMATION_TESTS
 #include "HoudiniEditorTestUtils.h"
 
@@ -1420,6 +1421,372 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 
 	return true;
 }
+
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSplitInstanceMeshesMaterials, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SplitInstancesMaterials", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestSplitInstanceMeshesMaterials::RunTest(const FString& Parameters)
+{
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Test baking of split instances.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, BakingHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
+	Context->HAC->bEnableProxyStaticMeshOverride = false;
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "instance_object", "/Script/Engine.StaticMesh'/Game/TestObjects/SM_Cube.SM_Cube'", 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "split_instance_meshes", true, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "foliage", false, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "custom_materials", true, 0);
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		TArray<UHoudiniOutput*> Outputs;
+		Context->HAC->GetOutputs(Outputs);
+
+		// We should have two outputs, two actors
+		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 1, return true);
+		return true;
+	}));
+
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		FHoudiniBakeSettings BakeSettings;
+
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+		// There should be two outputs as we have two meshes.
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
+
+		// Go through each output and check we have two actors with one mesh component each.
+		TArray<FString> ActorNames;
+		for (auto& BakedOutput : BakedOutputs)
+		{
+			for (auto It : BakedOutput.BakedOutputObjects)
+			{
+				FHoudiniBakedOutputObject& OutputObject = It.Value;
+
+				FString InstanceActorName = OutputObject.Actor;
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *InstanceActorName));
+				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
+
+				ActorNames.Add(*OutputObject.Actor);
+			}
+		}
+
+		HOUDINI_TEST_EQUAL_ON_FAIL(ActorNames.Num(), 4, return true);
+
+		return true;
+	}));
+
+
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+
+		FHoudiniBakeSettings BakeSettings;
+		BakeSettings.ActorBakeOption = EHoudiniEngineActorBakeOption::OneActorPerHDA;
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+		// There should be two outputs as we have two meshes.
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
+
+		// Go through each output and check we have the instances. Build an array of instances.
+
+		TSet<FString> ActorNames;
+		for (auto& BakedOutput : BakedOutputs)
+		{
+			for (auto It : BakedOutput.BakedOutputObjects)
+			{
+				FHoudiniBakedOutputObject& OutputObject = It.Value;
+
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
+
+				const int NumInstanceComponents = 4;
+
+				TArray<UInstancedStaticMeshComponent*> Components;
+				Actor->GetComponents(Components);
+				HOUDINI_TEST_EQUAL_ON_FAIL(Components.Num(), NumInstanceComponents, continue);
+				for (int Index = 0; Index < NumInstanceComponents; Index++)
+				{
+					HOUDINI_TEST_EQUAL_ON_FAIL(Components[Index]->IsA<UInstancedStaticMeshComponent>(), 1, continue);
+					HOUDINI_TEST_EQUAL(Components[Index]->GetNumRenderInstances(), 25);
+
+					UMaterial * Material = Cast<UMaterial>(Components[Index]->GetMaterial(0));
+					FString MaterialName = Material->GetPathName();
+					FString ExpectName = FString::Printf(TEXT("/Game/TestObjects/InstanceMaterial_%d.InstanceMaterial_%d"), Index, Index);
+					HOUDINI_TEST_EQUAL(MaterialName, ExpectName);
+
+
+				}
+
+				ActorNames.Add(*OutputObject.Actor);
+			}
+		}
+
+		HOUDINI_TEST_EQUAL_ON_FAIL(ActorNames.Num(), 1, return true);
+
+		TArray<FVector> InstancePositions;
+		InstancePositions.Reserve(100);
+
+		AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *(*ActorNames.CreateConstIterator())));
+		TArray<UInstancedStaticMeshComponent*> Components;
+		Actor->GetComponents(Components);
+		for (int Index = 0; Index < Components.Num(); Index++)
+		{
+			for (int InstanceIndex = 0; InstanceIndex < Components[Index]->PerInstanceSMData.Num(); InstanceIndex++)
+			{
+				InstancePositions.Add(Components[Index]->PerInstanceSMData[InstanceIndex].Transform.GetOrigin());
+			}
+		}
+
+		HOUDINI_TEST_EQUAL(InstancePositions.Num(), 100);
+		InstancePositions.Sort([](const FVector& First, const FVector& Second) { return First.X < Second.X; });
+		CheckPositions(InstancePositions);
+
+		return true;
+	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSplitInstanceCustomFloats, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SplitInstanceCustomData", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestSplitInstanceCustomFloats::RunTest(const FString& Parameters)
+{
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, BakingHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
+	Context->HAC->bEnableProxyStaticMeshOverride = false;
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, "instance_object", "/Script/Engine.StaticMesh'/Game/TestObjects/SM_Cube.SM_Cube'", 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "split_instance_meshes", true, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "foliage", false, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "custom_floats", true, 0);
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		TArray<UHoudiniOutput*> Outputs;
+		Context->HAC->GetOutputs(Outputs);
+
+		// We should have two outputs, two actors
+		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 1, return true);
+		return true;
+	}));
+
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		FHoudiniBakeSettings BakeSettings;
+
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+		// There should be two outputs as we have two meshes.
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
+
+		// Go through each output and check we have two actors with one mesh component each.
+		TArray<FString> ActorNames;
+		for (auto& BakedOutput : BakedOutputs)
+		{
+			for (auto It : BakedOutput.BakedOutputObjects)
+			{
+				FHoudiniBakedOutputObject& OutputObject = It.Value;
+
+				FString InstanceActorName = OutputObject.Actor;
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *InstanceActorName));
+				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
+
+				ActorNames.Add(*OutputObject.Actor);
+			}
+		}
+
+		HOUDINI_TEST_EQUAL_ON_FAIL(ActorNames.Num(), 4, return true);
+
+		return true;
+	}));
+
+
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+
+		FHoudiniBakeSettings BakeSettings;
+		BakeSettings.ActorBakeOption = EHoudiniEngineActorBakeOption::OneActorPerHDA;
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+		// There should be two outputs as we have two meshes.
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
+
+		// Go through each output and check we have the instances. Build an array of instances.
+
+		TSet<FString> ActorNames;
+		for (auto& BakedOutput : BakedOutputs)
+		{
+			for (auto It : BakedOutput.BakedOutputObjects)
+			{
+				FHoudiniBakedOutputObject& OutputObject = It.Value;
+				ActorNames.Add(*OutputObject.Actor);
+			}
+		}
+
+		HOUDINI_TEST_EQUAL_ON_FAIL(ActorNames.Num(), 1, return true);
+
+		TArray<FVector> InstancePositions;
+		InstancePositions.Reserve(100);
+
+		AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *(*ActorNames.CreateConstIterator())));
+		TArray<UInstancedStaticMeshComponent*> Components;
+		Actor->GetComponents(Components);
+		for (int Index = 0; Index < Components.Num(); Index++)
+		{
+			for (int InstanceIndex = 0; InstanceIndex < Components[Index]->PerInstanceSMData.Num(); InstanceIndex++)
+			{
+				InstancePositions.Add(Components[Index]->PerInstanceSMData[InstanceIndex].Transform.GetOrigin());
+			}
+
+			HOUDINI_TEST_EQUAL_ON_FAIL(Components[Index]->IsA<UInstancedStaticMeshComponent>(), 1, continue);
+			HOUDINI_TEST_EQUAL(Components[Index]->GetNumRenderInstances(), 25);
+
+			HOUDINI_TEST_EQUAL(Components[Index]->NumCustomDataFloats, Index + 1);
+
+			for (int Instance = 0; Instance < Components[Index]->GetNumRenderInstances(); Instance++)
+			{
+				for (int CustomFloatIndex = 0; CustomFloatIndex < Components[Index]->NumCustomDataFloats; CustomFloatIndex++)
+				{
+					// Use unique calculated values so we can test values arrived in the correct slots.
+					float ExpectedValue = Index * 10000 + Instance * 100 + CustomFloatIndex;
+					float ActualValue = Components[Index]->PerInstanceSMCustomData[Instance * Components[Index]->NumCustomDataFloats + CustomFloatIndex];
+					HOUDINI_TEST_EQUAL(ActualValue, ExpectedValue);
+				}
+			}
+		}
+
+		HOUDINI_TEST_EQUAL(InstancePositions.Num(), 100);
+		InstancePositions.Sort([](const FVector& First, const FVector& Second) { return First.X < Second.X; });
+		CheckPositions(InstancePositions);
+
+		return true;
+	}));
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSplitPackedInstancer, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SplitPackedInstancer", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestSplitPackedInstancer::RunTest(const FString& Parameters)
+{
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, SplitPackedInstancesHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
+	Context->HAC->bEnableProxyStaticMeshOverride = false;
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		TArray<UHoudiniOutput*> Outputs;
+		Context->HAC->GetOutputs(Outputs);
+
+		// We should have two outputs, two actors
+		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 2, return true);
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+
+		FHoudiniBakeSettings BakeSettings;
+		BakeSettings.ActorBakeOption = EHoudiniEngineActorBakeOption::OneActorPerHDA;
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+		// There should be two outputs as we have two meshes.
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 2, return true);
+
+		// Go through each output and check we have the instances. Build an array of instances.
+
+		TSet<FString> ActorNames;
+		for (auto& BakedOutput : BakedOutputs)
+		{
+			for (auto It : BakedOutput.BakedOutputObjects)
+			{
+				FHoudiniBakedOutputObject& OutputObject = It.Value;
+				if (!OutputObject.Actor.IsEmpty())
+					ActorNames.Add(*OutputObject.Actor);
+			}
+		}
+
+		HOUDINI_TEST_EQUAL_ON_FAIL(ActorNames.Num(), 1, return true);
+
+		TArray<FVector> InstancePositions;
+		InstancePositions.Reserve(100);
+
+		AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *(*ActorNames.CreateConstIterator())));
+		TArray<UInstancedStaticMeshComponent*> Components;
+		Actor->GetComponents(Components);
+		HOUDINI_TEST_EQUAL_ON_FAIL(Components.Num(), 3, return true);
+
+		for (int Index = 0; Index < Components.Num(); Index++)
+		{
+			for (int InstanceIndex = 0; InstanceIndex < Components[Index]->PerInstanceSMData.Num(); InstanceIndex++)
+			{
+				InstancePositions.Add(Components[Index]->PerInstanceSMData[InstanceIndex].Transform.GetOrigin());
+			}
+
+			HOUDINI_TEST_EQUAL_ON_FAIL(Components[Index]->IsA<UInstancedStaticMeshComponent>(), 1, continue);
+			HOUDINI_TEST_EQUAL(Components[Index]->GetNumRenderInstances(), 10);
+		}
+
+		return true;
+	}));
+
+	return true;
+}
+
 
 #endif
 

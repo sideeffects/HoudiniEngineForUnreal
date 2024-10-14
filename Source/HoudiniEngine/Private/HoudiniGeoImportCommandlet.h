@@ -120,7 +120,7 @@ protected:
 		const FHoudiniStaticMeshGenerationProperties* InStaticMeshGenerationProperties=nullptr,
 		const FMeshBuildSettings* InMeshBuildSettings=nullptr,
 		TMap<FHoudiniOutputObjectIdentifier, TArray<FHoudiniGenericAttribute>>* OutGenericAttributes=nullptr,
-		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* OutInstancedOutputPartData=nullptr);
+		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* OutInstancedOutputPartData=nullptr);
 
 	void TickDiscoveredFiles();
 

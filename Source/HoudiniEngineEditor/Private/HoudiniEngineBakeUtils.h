@@ -371,26 +371,6 @@ public:
 		TArray<FHoudiniEngineBakedActor>& OutActors,
 		FHoudiniBakedObjectData& BakedObjectData);
 
-	static bool BakeInstancerOutputToActors_MSIC(
-		const UHoudiniAssetComponent* HoudiniAssetComponent,
-		int32 InOutputIndex,
-		const TArray<UHoudiniOutput*>& InAllOutputs,
-		FHoudiniEngineBakeState& InBakeState,
-		const TArray<FHoudiniGeoPartObject>& InHGPOs,
-		const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier,
-		const FHoudiniOutputObject& InOutputObject,
-		const FTransform& InTransform,
-		const FDirectoryPath& InBakeFolder,
-		const FDirectoryPath& InTempCookFolder,
-		const FHoudiniBakeSettings& BakeSettings,
-		const TArray<FHoudiniEngineBakedActor>& InBakedActors,
-		FHoudiniEngineBakedActor& OutBakedActorEntry,
-		FHoudiniBakedObjectData& BakedObjectData,
-		TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
-		TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap,
-		AActor* InFallbackActor=nullptr,
-		const FString& InFallbackWorldOutlinerFolder="");
-
 	static bool BakeInstancerOutputToActors_SMC(
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,

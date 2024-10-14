@@ -84,9 +84,6 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 	DefaultTemporaryCookFolder = HAPI_UNREAL_DEFAULT_TEMP_COOK_FOLDER;
 	DefaultBakeFolder = HAPI_UNREAL_DEFAULT_BAKE_FOLDER;
 
-	// Instances
-	bEnableDeprecatedInstanceVariations = false;
-
 	// Parameter options
 	//bTreatRampParametersAsMultiparms = false;
 

@@ -161,7 +161,7 @@ bool UHoudiniGeoImporter::CreateObjectsFromOutputs(
 	FHoudiniPackageParams InPackageParams,
 	const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 	const FMeshBuildSettings& InMeshBuildSettings,
-	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* OutInstancedOutputPartData)
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* OutInstancedOutputPartData)
 {
 	//
 	// This isn't ideal but the reason we do this is because previously each 
@@ -771,7 +771,7 @@ UHoudiniGeoImporter::CreateAnimSequences(
 bool
 UHoudiniGeoImporter::CreateInstancerOutputPartData(
 	const TArray<UHoudiniOutput*>& InOutputs,
-	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>& OutInstancedOutputPartData)
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>& OutInstancedOutputPartData)
 {
 	if (InOutputs.IsEmpty())
 	{
@@ -790,12 +790,10 @@ UHoudiniGeoImporter::CreateInstancerOutputPartData(
 			OutputIdentifier.PartId = HGPO.PartId;
 			OutputIdentifier.PartName = HGPO.PartName;
 			
-			OutInstancedOutputPartData.Add(OutputIdentifier, FHoudiniInstancedOutputPartData());
-			FHoudiniInstancedOutputPartData *InstancedOutputData = OutInstancedOutputPartData.Find(OutputIdentifier); 
+			OutInstancedOutputPartData.Add(OutputIdentifier, FHoudiniInstancerPartData());
+			FHoudiniInstancerPartData *InstancedOutputData = OutInstancedOutputPartData.Find(OutputIdentifier); 
 			// Create all the instancers and attach them to a fake outer component
-			TSet<UObject*> InvisibleObjects; // Not used by this function.
-			if (!FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(HGPO, InOutputs, *InstancedOutputData, InvisibleObjects))
-				return false;
+			*InstancedOutputData = FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(HGPO, InOutputs);
 		}
 	}
 

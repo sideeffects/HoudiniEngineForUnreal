@@ -29,11 +29,13 @@
 #include "HAPI/HAPI_Common.h"
 #include "HoudiniOutput.h"
 #include "CoreMinimal.h"
+#include "HoudiniEngineString.h"
 #include "UObject/ObjectMacros.h"
 #include "HoudiniGenericAttribute.h"
 #include "HoudiniMaterialTranslator.h"
 #include "HoudiniInstanceTranslator.generated.h"
 
+struct FHoudiniInstancer;
 class UStaticMesh;
 class UFoliageType;
 class UHoudiniStaticMesh;
@@ -45,7 +47,7 @@ enum InstancerComponentType
 	Invalid = -1,
 	InstancedStaticMeshComponent = 0,
 	HierarchicalInstancedStaticMeshComponent = 1,
-	MeshSplitInstancerComponent = 2,
+	//MeshSplitInstancerComponent = 2,
 	HoudiniInstancedActorComponent = 3,
 	StaticMeshComponent = 4,
 	HoudiniStaticMeshComponent = 5,
@@ -55,470 +57,291 @@ enum InstancerComponentType
 };
 
 USTRUCT()
-struct HOUDINIENGINE_API FHoudiniInstancedOutputPerSplitAttributes
+struct HOUDINIENGINE_API FHoudiniInstancerSettings
 {
 public:
 
 	GENERATED_BODY()
-	
-	// level path attribute value
+
 	UPROPERTY()
 	FString LevelPath;
 
-	// Bake actor name attribute value
 	UPROPERTY()
 	FString BakeActorName;
 
-	// Bake actor class attribute value
 	UPROPERTY()
 	FString BakeActorClassName;
 
-	// bake outliner folder attribute value
 	UPROPERTY()
 	FString BakeOutlinerFolder;
 
-	// unreal_bake_folder attribute value
 	UPROPERTY()
 	FString BakeFolder;
+
+	UPROPERTY()
+	FString OutputName;
+
+	UPROPERTY()
+	bool bIsFoliage = false;
 };
 
 USTRUCT()
-struct HOUDINIENGINE_API FHoudiniInstancedOutputPartData
+struct HOUDINIENGINE_API FHoudiniInstancer
+{
+	// This structure holds data about a specific instancer. AttributeIndices references
+	// data in the FHoudiniInstancerPartData which is a part of (eg. transforms).
+
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FString ObjectPath;
+
+	UPROPERTY()
+	TArray<int> AttributeIndices;
+
+	UPROPERTY()
+	FString SplitName;
+
+	UPROPERTY()
+	FHoudiniInstancerSettings Settings;
+
+	UPROPERTY()
+	int NumCustomFloats = 0;
+
+	UPROPERTY()
+	TArray<float> CustomFloats;
+
+	UPROPERTY()
+	bool bForceHISM;
+
+	UPROPERTY()
+	bool bForceInstancer;
+
+	UPROPERTY()
+	bool bVisible = true;
+	
+};
+
+USTRUCT()
+struct HOUDINIENGINE_API FHoudiniInstancerPartData
 {
 public:
 	
 	GENERATED_BODY()
 
 	UPROPERTY()
-	bool bForceHISM = false;
-
-	// Should we create an instancer even for single instances?
-	UPROPERTY()
-	bool bForceInstancer = false;
+	FHoudiniGeoPartObject GeoPartObject;
 
 	UPROPERTY()
-	TArray<UObject*> OriginalInstancedObjects;
+	TArray<FHoudiniInstancer> Instancers;
 
-	// Object paths of OriginalInstancedObjects. Used by message passing system
-	// when sending messages from the async importer to the PDG manager. UObject*/references
-	// are not directly supported by the messaging system. See BuildFlatInstancedTransformsAndObjectPaths().
 	UPROPERTY()
-	TArray<FString> OriginalInstanceObjectPackagePaths;
-	
-	TArray<TArray<FTransform>> OriginalInstancedTransforms;
-
-	TArray<TArray<int32>> OriginalInstancedIndices;
-
-	// Number of entries in OriginalInstancedTransforms. Populated when building
-	// OriginalInstancedTransformsFlat in BuildFlatInstancedTransformsAndObjectPaths() and used when rebuilding
-	// OriginalInstancedTransforms from OriginalInstancedTransformsFlat in BuildOriginalInstancedTransformsAndObjectArrays().
-	UPROPERTY()
-	TArray<int32> NumInstancedTransformsPerObject;
-	
-	// Flattened version of OriginalInstancedTransforms. Used by message passing system
-	// when sending messages from the async importer to the PDG manager. Nested arrays
-	// are not supported by UPROPERTIES and thus not by the messaging system.
-	// See BuildFlatInstancedTransformsAndObjectPaths().
-	UPROPERTY()
-	TArray<FTransform> OriginalInstancedTransformsFlat;
-
-	// Number of entries in OriginalInstancedIndices. Populated when building
-	// OriginalInstancedIndicesFlat in BuildFlatInstancedTransformsAndObjectPaths() and used when rebuilding
-	// OriginalInstancedIndices from OriginalInstancedIndicesFlat in BuildOriginalInstancedTransformsAndObjectArrays().
-	UPROPERTY()
-	TArray<int32> NumInstancedIndicesPerObject;
-
-	// Flattened version of OriginalInstancedIndices. Used by message passing system
-	// when sending messages from the async importer to the PDG manager. Nested arrays
-	// are not supported by UPROPERTIES and thus not by the messaging system. See
-	// BuildFlatInstancedTransformsAndObjectPaths().
-	UPROPERTY()
-	TArray<int32> OriginalInstancedIndicesFlat;
+	TArray<FTransform>  InstanceTransforms;
 
 	UPROPERTY()
 	FString SplitAttributeName;
-	
-	UPROPERTY()
-	TArray<FString> SplitAttributeValues;
-
-	UPROPERTY()
-	bool bSplitMeshInstancer = false;
-
-	UPROPERTY()
-	bool bIsFoliageInstancer = false;
 
 	UPROPERTY()
 	TArray<FHoudiniGenericAttribute> AllPropertyAttributes;
-
-	// All level path attributes from the first attribute owner we could find
-	UPROPERTY()
-	TArray<FString> AllLevelPaths;
-
-	// All bake actor name attributes from the first attribute owner we could find
-	UPROPERTY()
-	TArray<FString> AllBakeActorNames;
-
-	// All bake actor class name attributes from the first attribute owner we could find
-	UPROPERTY()
-	TArray<FString> AllBakeActorClassNames;
-
-	// All unreal_bake_folder attributes (prim attr is checked first then detail)
-	UPROPERTY()
-	TArray<FString> AllBakeFolders;
-
-	// All bake outliner folder attributes from the first attribute owner we could find
-	UPROPERTY()
-	TArray<FString> AllBakeOutlinerFolders;
-
-	// A map of split value to attribute values that are valid per split (unreal_bake_actor, unreal_level_path,
-	// unreal_bake_outliner_folder)
-	UPROPERTY()
-	TMap<FString, FHoudiniInstancedOutputPerSplitAttributes> PerSplitAttributes;
-
-	UPROPERTY()
-	TArray<FString> OutputNames;
-
-	UPROPERTY()
-	TArray<FString> BakeNames;
-
-	UPROPERTY()
-	TArray<int32> TileValues;
 
 	// Array of material attributes
 	// If multiple slots are defined, we store all the different attributes values in a flat array
 	// Such that the size of MaterialAttributes is NumberOfAttributes * NumberOfMaterialSlots
 	UPROPERTY()
 	TArray<FHoudiniMaterialInfo> MaterialAttributes;
-	
-	// Custom float array per original instanced object
-	// Size is NumCustomFloat * NumberOfInstances
-	TArray<TArray<float>> PerInstanceCustomData;
-
-	// Number of entries in PerInstanceCustomData. Populated when building
-	// PerInstanceCustomDataFlat in BuildFlatInstancedTransformsAndObjectPaths() and used when rebuilding
-	// PerInstanceCustomData from PerInstanceCustomDataFlat in BuildOriginalInstancedTransformsAndObjectArrays().
-	UPROPERTY()
-	TArray<int32> NumPerInstanceCustomDataPerObject;
-	
-	// Flattened version of OriginalInstancedTransforms. Used by message passing system
-	// when sending messages from the async importer to the PDG manager. Nested arrays
-	// are not supported by UPROPERTIES and thus not by the messaging system.
-	// See BuildFlatInstancedTransformsAndObjectPaths().
-	UPROPERTY()
-	TArray<float> PerInstanceCustomDataFlat;
-
-	void BuildFlatInstancedTransformsAndObjectPaths();
-
-	void BuildOriginalInstancedTransformsAndObjectArrays();
 };
 
 struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 {
 	public:
 
-		static bool PopulateInstancedOutputPartData(
-			const FHoudiniGeoPartObject& InHGPO,
-			const TArray<UHoudiniOutput*>& InAllOutputs,
-			FHoudiniInstancedOutputPartData& OutInstancedOutputPartData,
-			TSet<UObject*>& OutInvisibleObjects);
-
-		static int CreateAllInstancersFromHoudiniOutputs(
-			const TArray<UHoudiniOutput*>& InAllOutputs,
-			UObject* InOuterComponent,
-			const FHoudiniPackageParams& InPackageParms,
-			const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData = nullptr);
-
-		static int CreateAllInstancersFromHoudiniOutputs(
-			const TArray<UHoudiniOutput*>& OutputsToUpdate,
-			const TArray<UHoudiniOutput*>& InAllOutputs,
-			UObject* InOuterComponent,
-			const FHoudiniPackageParams& InPackageParms,
-			const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData = nullptr);
-
-	private:
-		static bool CreateAllInstancersFromHoudiniOutput(
-			UHoudiniOutput* InOutput,
-			const TArray<UHoudiniOutput*>& InAllOutputs,
-			UObject* InOuterComponent,
-			const FHoudiniPackageParams& InPackageParms,
-			int & FoliageTypeCount,
-			const TMap<FHoudiniOutputObjectIdentifier,FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData = nullptr);
-
-	public:
-		static bool GetInstancerObjectsAndTransforms(
-			const FHoudiniGeoPartObject& InHGPO,
-			const TArray<UHoudiniOutput*>& InAllOutputs,
-			TArray<UObject*>& OutInstancedObjects,
-			TArray<TArray<FTransform>>& OutInstancedTransforms,
-			TArray<TArray<int32>>& OutInstancedIndices,
-			FString& OutSplitAttributeName,
-			TArray<FString>& OutSplitAttributeValues,
-			TMap<FString, FHoudiniInstancedOutputPerSplitAttributes>& OutPerSplitAttributes,
-			TSet<UObject*> & OutInvisibleObjects);
-
-		static bool GetPackedPrimitiveInstancerHGPOsAndTransforms(
-			const FHoudiniGeoPartObject& InHGPO,
-			TArray<FHoudiniGeoPartObject>& OutInstancedHGPO,
-			TArray<TArray<FTransform>>& OutInstancedTransforms,
-			TArray<TArray<int32>>& OutInstancedIndices,
-			FString& OutSplitAttributeName,
-			TArray<FString>& OutSplitAttributeValue,
-			TMap<FString, FHoudiniInstancedOutputPerSplitAttributes>& OutPerSplitAttributes);
-
-		static bool GetAttributeInstancerObjectsAndTransforms(
-			const FHoudiniGeoPartObject& InHGPO,
-			TArray<UObject*>& OutInstancedObjects,
-			TArray<TArray<FTransform>>& OutInstancedTransforms,
-			TArray<TArray<int32>>& OutInstancedIndices,
-			FString& OutSplitAttributeName,
-			TArray<FString>& OutSplitAttributeValue,
-			TMap<FString, FHoudiniInstancedOutputPerSplitAttributes>& OutPerSplitAttributes);
-
-		static bool GetOldSchoolAttributeInstancerHGPOsAndTransforms(
-			const FHoudiniGeoPartObject& InHGPO,
-			const TArray<UHoudiniOutput*>& InAllOutputs,
-			TArray<FHoudiniGeoPartObject>& OutInstancedHGPO,
-			TArray<TArray<FTransform>>& OutInstancedTransforms,
-			TArray<TArray<int32>>& OutInstancedIndices);
-
-		static bool GetObjectInstancerHGPOsAndTransforms(
-			const FHoudiniGeoPartObject& InHGPO,
-			const TArray<UHoudiniOutput*>& InAllOutputs,
-			TArray<FHoudiniGeoPartObject>& OutInstancedHGPO,
-			TArray<TArray<FTransform>>& OutInstancedTransforms,
-			TArray<TArray<int32>>& OutInstancedIndices);
-
-		// Updates the variations array using the instanced outputs
-		static void UpdateInstanceVariationObjects(
-			const FHoudiniOutputObjectIdentifier& InOutputIdentifier,
-			const TArray<UObject*>& InOriginalObjects,
-			const TArray<TArray<FTransform>>& InOriginalTransforms,
-			const TArray<TArray<int32>>& OriginalInstancedIndices,
-			TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutput>& InstancedOutputs,
-			TArray<TSoftObjectPtr<UObject>>& OutVariationsInstancedObjects,
-			TArray<TArray<FTransform>>& OutVariationsInstancedTransforms,
-			TArray<int32>& OutVariationOriginalObjectIdx,
-			TArray<int32>& OutVariationIndices);
-
-		// Recreates the components after an instanced outputs has been changed
-		static bool UpdateChangedInstancedOutput(
-			FHoudiniInstancedOutput& InInstancedOutput,
-			const FHoudiniOutputObjectIdentifier& OutputIdentifier,
-			UHoudiniOutput* InParentOutput,
-			USceneComponent* InParentComponent,
-			const FHoudiniPackageParams& InPackageParams);
-
-		// Recomputes the variation assignements for a given instanced output
-		static void UpdateVariationAssignements(
-			FHoudiniInstancedOutput& InstancedOutput);
-
-		// Extracts the final transforms (with the transform offset applied) for a given variation
-		static void ProcessInstanceTransforms(
-			FHoudiniInstancedOutput& InstancedOutput,
-			const int32& VariationIdx,
-			TArray<FTransform>& OutProcessedTransforms);
-
-		// Creates a new component or updates the previous one if possible
-		static bool CreateOrUpdateInstancer(
-			UObject* InstancedObject,
-			const TArray<FTransform>& InstancedObjectTransforms,
-			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
-			const FHoudiniGeoPartObject& InstancerGeoPartObject,
-			const FHoudiniPackageParams& InPackageParams,
-			USceneComponent* ParentComponent,
-			TArray<USceneComponent*>& OldInstancerComponents,
-			TArray<USceneComponent*>& NewComponents,
-			TArray<AActor*>& OldActors,
-			TArray<AActor*>& NewActors,
-			bool InIsSplitMeshInstancer,
-			bool InIsFoliageInstancer,
-			const TArray<UMaterialInterface *>& InstancerMaterials,
-			const TArray<int32>& OriginalInstancerObjectIndices, 
-			int32& FoliageTypeCount,
-			UFoliageType*& FoliageTypeUsed,
-			UWorld* & WorldUsed,
-			bool bForceHISM = false,
-			bool bForceInstancer = false);
-
-		// Create or update an ISMC / HISMC
-		static bool CreateOrUpdateInstancedStaticMeshComponent(
-			UStaticMesh* InstancedStaticMesh,
-			const TArray<FTransform>& InstancedObjectTransforms,
-			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
-			const FHoudiniGeoPartObject& InstancerGeoPartObject,
-			USceneComponent* ParentComponent,
-			USceneComponent*& CreatedInstancedComponent,
-			TArray<UMaterialInterface*> InstancerMaterials,
-			const bool& bForceHISM = false,
-			const int32& InstancerObjectIdx = 0);
-
-		// Create or update an IAC
-		static bool CreateOrUpdateInstancedActorComponent(
-			UObject* InstancedObject,
-			const TArray<FTransform>& InstancedObjectTransforms,
-			const TArray<int32>& OriginalInstancerObjectIndices,
-			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
-			const FHoudiniGeoPartObject* InstancerHGPO,
-			USceneComponent* ParentComponent,
-			USceneComponent*& CreatedInstancedComponent);
-
-		// Create or update a MeshSplitInstancer
-		static bool CreateOrUpdateMeshSplitInstancerComponent(
-			UStaticMesh* InstancedStaticMesh,
-			const TArray<FTransform>& InstancedObjectTransforms,
-			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
-			const FHoudiniGeoPartObject& InstancerGeoPartObject,
-			USceneComponent* ParentComponent,
-			USceneComponent*& CreatedInstancedComponent,
-			const TArray<UMaterialInterface *>& InstancerMaterials);
-
-		// Create or update a StaticMeshComponent (when we have only one instance)
-		static bool CreateOrUpdateStaticMeshComponent(
-			UStaticMesh* InstancedStaticMesh,
-			const TArray<FTransform>& InstancedObjectTransforms,
-			const int32& InOriginalIndex,
-			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
-			const FHoudiniGeoPartObject& InstancerGeoPartObject,
-			USceneComponent* ParentComponent,
-			USceneComponent*& CreatedInstancedComponent,
-			TArray<UMaterialInterface*> InstancerMaterials);
-
-		// Create or update a HoudiniStaticMeshComponent (when we have only one instance)
-		static bool CreateOrUpdateHoudiniStaticMeshComponent(
-			UHoudiniStaticMesh* InstancedProxyStaticMesh,
-			const TArray<FTransform>& InstancedObjectTransforms,
-			const int32& InOriginalIndex,
-			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
-			const FHoudiniGeoPartObject& InstancerGeoPartObject,
-			USceneComponent* ParentComponent,
-			USceneComponent*& CreatedInstancedComponent,
-			TArray<UMaterialInterface*> InstancerMaterials);
-
-		// Create or update a Foliage instances
-		static bool CreateOrUpdateFoliageInstances(
-			UStaticMesh* InstancedStaticMesh,
-			UFoliageType* InFoliageType,
-			UWorld*& WorldUsed,
-			const TArray<FTransform>& InstancedObjectTransforms,
-			const int32& FirstOriginalIndex,
-			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
-			const FHoudiniGeoPartObject& InstancerGeoPartObject,
-			const FHoudiniPackageParams& InPackageParams,
-			int & FoliageTypeCount,
-			USceneComponent* ParentComponent,
-			UFoliageType* & CookedFoliageType,
-			TArray<USceneComponent*> & NewInstancedComponents,
-			TArray<UMaterialInterface*> InstancerMaterials);
+		static bool IsHISM(HAPI_NodeId GeoId, HAPI_NodeId PartId, HAPI_AttributeOwner Owner, int Index);
+	static FHoudiniInstancerPartData PopulateInstancedOutputPartData(
+		const FHoudiniGeoPartObject& InHGPO,
+		const TArray<UHoudiniOutput*>& InAllOutputs);
 
 
-		// Create or update Level instances
-		static bool CreateOrUpdateLevelInstanceActors(
-			UWorld* LevelInstanceWorld,
-			const TArray<FTransform>& InstancedObjectTransforms,
-			const int32& InOriginalIndex,
-			const TArray<FHoudiniGenericAttribute>& AllPropertyAttributes,
-			const FHoudiniGeoPartObject& InstancerGeoPartObject,
-			USceneComponent* ParentComponent,
-			TArray<AActor*>& NewInstanceActors,
-			TArray<UMaterialInterface*> InstancerMaterials);
+	static int CreateAllInstancersFromHoudiniOutputs(
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		UObject* InOuterComponent,
+		const FHoudiniPackageParams& InPackageParms,
+		const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* InPreBuiltInstancedOutputPartData = nullptr);
 
-		// Helper fumction to properly remove/destroy a component
-		static bool RemoveAndDestroyComponent(
-			UObject* InComponent,
-			UObject* InFoliageObject);
+	static int CreateAllInstancersFromHoudiniOutputs(
+		const TArray<UHoudiniOutput*>& OutputsToUpdate,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		UObject* InOuterComponent,
+		const FHoudiniPackageParams& InPackageParms,
+		const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* InPreBuiltInstancedOutputPartData = nullptr);
 
-		// Utility function
-		// Fetches instance transforms and convert them to ue4 coordinates
-		static bool HapiGetInstanceTransforms(
-			const FHoudiniGeoPartObject& InHGPO,
-			TArray<FTransform>& OutInstancerUnrealTransforms);
+	static bool CreateAllInstancersFromHoudiniOutput(
+		UHoudiniOutput* InOutput,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		UObject* InOuterComponent,
+		const FHoudiniPackageParams& InPackageParams,
+		const TMap<FHoudiniOutputObjectIdentifier,FHoudiniInstancerPartData>* InPreBuiltInstancedOutputPartData = nullptr);
 
-		// Helper function used to spawn a new Actor for UHoudiniInstancedActorComponent
-		// Relies on editor-only functionalities, so this function is not on the IAC itself
-		static AActor* SpawnInstanceActor(
-			const FTransform& InTransform,
-			ULevel* InSpawnLevel, 
-			UHoudiniInstancedActorComponent* InIAC,
-			FName Name = NAME_None);
+	static bool GetAttributeInstancerPartData(const FHoudiniGeoPartObject& HGPO, FHoudiniInstancerPartData& PartData);
 
-		// Helper functions for generic property attributes
-		static bool GetGenericPropertiesAttributes(
-			const int32& InGeoNodeId,
-			const int32& InPartId,
-			TArray<FHoudiniGenericAttribute>& OutPropertyAttributes);
+	static bool GetPackedPrimitiveInstancerPartData(
+		const FHoudiniGeoPartObject& HGPO, 
+		const TArray<UHoudiniOutput*> & InAllOutputs, 
+		FHoudiniInstancerPartData& PartData);
 
-		static bool GetMaterialOverridesFromAttributes(
-			const int32& InGeoNodeId,
-			const int32& InPartId,
-			const int32& InAttributeIndex,
-			const FString& InAttributeName,
-			const TArray<FString>& InAllAttribNames,
-			TArray<FString>& OutMaterialAttributes);
+	static bool FindInstancedOutputObject(
+		const FHoudiniGeoPartObject& HGPO,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		FHoudiniOutputObjectIdentifier& OutId,
+		const UHoudiniOutput*& OutOutput);
 
-		static bool GetMaterialOverridesFromAttributes(
-			const int32& InGeoNodeId,
-			const int32& InPartId, 
-			const int32& InAttributeIndex,
-			const EHoudiniInstancerType InInstancerType,
-			TArray<FHoudiniMaterialInfo>& OutMaterialAttributes);
+	static void SetInstancerObject(
+		FHoudiniInstancer& InstancerData,
+		const FHoudiniGeoPartObject& HGPO,
+		const TArray<UHoudiniOutput*>& InAllOutputs);
 
-		static bool GetInstancerMaterials(
-			const TArray<FHoudiniMaterialInfo>& MaterialAttribute,
-			TArray<UMaterialInterface*>& OutInstancerMaterials);
+	// Creates a new component or updates the previous one if possible
+	static bool CreateInstancer(
+		FHoudiniOutputObject & Output,
+		UObject*& InstanceObject,
+		const FHoudiniInstancer& Instancer,
+		const FHoudiniInstancerPartData& InstancerPartData,
+		const FHoudiniPackageParams& InPackageParams,
+		USceneComponent* ParentComponent,
+		const TArray<UMaterialInterface *>& InstancerMaterials);
 
-		static bool GetInstancerMaterialInstances(
-			const TArray<FHoudiniMaterialInfo>& MaterialAttribute,
-			const FHoudiniGeoPartObject& InHGPO, const FHoudiniPackageParams& InPackageParams,
-			TArray<UMaterialInterface*>& OutInstancerMaterials);
+	// Create or update an ISMC / HISMC
+	static bool CreateInstancedStaticMeshInstancer(
+		FHoudiniOutputObject& Output,
+		const FHoudiniInstancer& Instancer,
+		UObject* InstanceObject,
+		const FHoudiniInstancerPartData& InstancerPartData,
+		USceneComponent* ParentComponent,
+		const TArray<UMaterialInterface*>& InstancerMaterials);
 
-		static bool GetAllInstancerMaterials(
-			const int32& InGeoNodeId,
-			const int32& InPartId,
-			const int32& InOriginalIndex,
-			const FHoudiniGeoPartObject& InHGPO,
-			const FHoudiniPackageParams& InPackageParams,
-			TArray<UMaterialInterface*>& OutInstancerMaterials);
+	// Create or update an IAC
+	static bool CreateInstancedActorInstancer(
+		FHoudiniOutputObject& Output,
+		const FHoudiniInstancer& Instancer,
+		UObject* InstanceObject,
+		const FHoudiniInstancerPartData& InstancePartData,
+		USceneComponent* ParentComponent);
 
-		static bool IsSplitInstancer(
-			const int32& InGeoId, 
-			const int32& InPartId);
+	// Create or update a StaticMeshComponent (when we have only one instance)
+	static bool CreateStaticMeshInstancer(
+		FHoudiniOutputObject& Output,
+		const FHoudiniInstancer& Instancer,
+		UObject* InstanceObject,
+		const FHoudiniInstancerPartData& InstancerPartData,
+		USceneComponent* ParentComponent,
+		const TArray<UMaterialInterface*>& InstancerMaterials);
 
-		static bool IsFoliageInstancer(
-			const int32& InGeoId,
-			const int32& InPartId);
+	// Create or update a HoudiniStaticMeshComponent (when we have only one instance)
+	static bool CreateHoudiniStaticMeshInstancer(
+		FHoudiniOutputObject& Output,
+		const FHoudiniInstancer& Instancer,
+		UObject* InstanceObject,
+		const FHoudiniInstancerPartData& InstancerPartData,
+		USceneComponent* ParentComponent,
+		const TArray<UMaterialInterface*>& InstancerMaterials);
 
-		static void CleanupFoliageInstances(
-			UHierarchicalInstancedStaticMeshComponent* InFoliageHISMC,
-			UObject* InInstancedObject,
-			USceneComponent* InParentComponent);
+	// Create or update a Foliage instances
+	static bool CreateFoliageInstancer(
+		FHoudiniOutputObject& Output,
+		const FHoudiniInstancer& Instancer,
+		UObject* InstanceObject,
+		const FHoudiniInstancerPartData& InstancerPartData,
+		const FHoudiniPackageParams& InPackageParams,
+		USceneComponent* ParentComponent,
+		const TArray<UMaterialInterface*>& InstancerMaterials);
 
-		static FString GetInstancerTypeFromComponent(
-			UObject* InComponent);
+	// Create or update Level instances
+	static bool CreateLevelInstanceInstancer(
+		FHoudiniOutputObject& Output,
+		const FHoudiniInstancer& Instancer,
+		UObject* InstanceObject,
+		const FHoudiniInstancerPartData& InstancerPartData,
+		USceneComponent* ParentComponent,
+		const TArray<UMaterialInterface*>& InstancerMaterials);
 
-		// Returns the name and values of the attribute that has been specified to split the instances
-		// returns false if the attribute is invalid or hasn't been specified
-		static bool GetInstancerSplitAttributesAndValues(
-			const int32& InGeoId,
-			const int32& InPartId,
-			const HAPI_AttributeOwner& InSplitAttributeOwner,
-			FString& OutSplitAttributeName,
-			TArray<FString>& OutAllSplitAttributeValues);
+	// Utility function
+	// Fetches instance transforms and convert them to unreal coordinates
+	static bool HapiGetInstanceTransforms(
+		const FHoudiniGeoPartObject& InHGPO,
+		TArray<FTransform>& OutInstancerUnrealTransforms);
 
-		// Get if force using HISM from attribute
-		static bool HasHISMAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
+	// Helper function used to spawn a new Actor for UHoudiniInstancedActorComponent
+	// Relies on editor-only functionalities, so this function is not on the IAC itself
+	static AActor* SpawnInstanceActor(
+		const FTransform& InTransform,
+		ULevel* InSpawnLevel, 
+		UHoudiniInstancedActorComponent* InIAC,
+		FName Name = NAME_None);
 
-		// Return true if HAPI_UNREAL_ATTRIB_FORCE_INSTANCER is set to non-zero (this controls
-		// if an instancer is created even for single instances (static mesh vs instanced static mesh for example)
-		static bool HasForceInstancerAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
-	
-		// Checks for PerInstanceCustomData on the instancer part
-		static bool GetPerInstanceCustomData(
-			const int32& InGeoNodeId,
-			const int32& InPartId,
-			FHoudiniInstancedOutputPartData& OutInstancedOutputPartData);
+	// Helper functions for generic property attributes
+	static bool GetGenericPropertiesAttributes(
+		int32 InGeoNodeId,
+		int32 InPartId,
+		TArray<FHoudiniGenericAttribute>& OutPropertyAttributes);
 
-		// Update PerInstanceCustom data on the given component if possible
-		static bool UpdateChangedPerInstanceCustomData(
-			const TArray<float>& InPerInstanceCustomData,
-			USceneComponent* InComponentToUpdate);
+	static bool GetMaterialOverridesFromAttributes(
+		int32 InGeoNodeId,
+		int32 InPartId,
+		int32 InAttributeIndex,
+		const FString& InAttributeName,
+		const TArray<FString>& InAllAttribNames,
+		TArray<FString>& OutMaterialAttributes);
+
+	static bool GetMaterialOverridesFromAttributes(
+		int32 InGeoNodeId,
+		int32 InPartId, 
+		int32 InAttributeIndex,
+		EHoudiniInstancerType InInstancerType,
+		TArray<FHoudiniMaterialInfo>& OutMaterialAttributes);
+
+	static bool GetInstancerMaterials(
+		const TArray<FHoudiniMaterialInfo>& MaterialAttribute,
+		TArray<UMaterialInterface*>& OutInstancerMaterials);
+
+	static bool GetInstancerMaterialInstances(
+		const TArray<FHoudiniMaterialInfo>& MaterialAttribute,
+		const FHoudiniGeoPartObject& InHGPO, const FHoudiniPackageParams& InPackageParams,
+		TArray<UMaterialInterface*>& OutInstancerMaterials);
+
+	static TArray<UMaterialInterface*> GetAllInstancerMaterials(
+		int32 InAttributeIndex,
+		const FHoudiniGeoPartObject& InHGPO,
+		const FHoudiniPackageParams& InPackageParams);
+
+	static FString GetInstancerTypeFromComponent(UObject* InComponent);
+
+	static bool IsForceInstancer(HAPI_NodeId GeoId, HAPI_NodeId PartId, HAPI_AttributeOwner Owner, int Index);
+
+	// Checks for PerInstanceCustomData on the instancer part
+	static void GetPerInstanceCustomData(
+		int32 InGeoNodeId,
+		int32 InPartId,
+		FHoudiniInstancerPartData& OutInstancedOutputPartData);
+
+	// Update PerInstanceCustom data on the given component if possible
+	static void SetPerInstanceCustomData(
+		const FHoudiniInstancer& Instancers, 
+		const FHoudiniInstancerPartData& InstancePartData,
+		USceneComponent* InComponentToUpdate);
+
+	static void SetGenericPropertyAttributes(UObject* Object, 
+		const FHoudiniInstancer& InstancerData, 
+		const FHoudiniInstancerPartData& InInstancedOutputPartData);
+
+	static FHoudiniInstancerSettings GetDefaultInstancerSettings(const FHoudiniGeoPartObject& HGPO);
+
+	static FHoudiniInstancerSettings GetInstancerSettings(const FHoudiniGeoPartObject& HGPO, HAPI_AttributeOwner AttributeOwner, int Index, const FHoudiniInstancerSettings & Defaults);
+
+	static TArray<FTransform> UnpackTransforms(const FHoudiniInstancer& InstanceData, const FHoudiniInstancerPartData & PartData);
+
+	static TTuple<FString, FHoudiniEngineIndexedStringMap> GetSplitData(const FHoudiniGeoPartObject& HGPO, HAPI_AttributeOwner Owner);
+
+	static TArray<FTransform> GetInstancerTransforms(const FHoudiniGeoPartObject& InHGPO);
+
+	static UObject* LoadInstancedObject(const FString& ObjectPath);
+
 };

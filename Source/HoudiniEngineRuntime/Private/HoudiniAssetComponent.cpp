@@ -42,7 +42,6 @@
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniStaticMeshComponent.h"
 #include "HoudiniInstancedActorComponent.h"
-#include "HoudiniMeshSplitInstancerComponent.h"
 
 #if WITH_EDITOR
 #include "HoudiniEditorAssetStateSubsystemInterface.h"
@@ -1210,10 +1209,6 @@ UHoudiniAssetComponent::UpdatePostDuplicate()
 			ComponentToRemove = NextChild;
 		}
 		else if (NextChild->IsA<USplineComponent>())
-		{
-			ComponentToRemove = NextChild;
-		}
-		else if (NextChild->IsA<UHoudiniMeshSplitInstancerComponent>())
 		{
 			ComponentToRemove = NextChild;
 		}

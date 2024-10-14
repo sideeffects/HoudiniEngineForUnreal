@@ -26,7 +26,6 @@
 
 #include "HoudiniInstancedActorComponent.h"
 
-#include "HoudiniMeshSplitInstancerComponent.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniPluginSerializationVersion.h"

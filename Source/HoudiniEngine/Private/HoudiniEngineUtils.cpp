@@ -6250,8 +6250,8 @@ bool
 FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
 	UObject* InObject,
 	const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes,
-	const int32& AtIndex,
-	const bool bInDeferPostEditChangePropertyCalls,
+	int32 AtIndex,
+	bool bInDeferPostEditChangePropertyCalls,
 	const FHoudiniGenericAttribute::FFindPropertyFunctionType& InProcessFunction)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::UpdateGenericPropertiesAttributes);

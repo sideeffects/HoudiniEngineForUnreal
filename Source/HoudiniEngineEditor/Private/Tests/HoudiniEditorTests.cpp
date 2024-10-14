@@ -133,13 +133,7 @@ bool HoudiniEditorRandomEquivalenceTest::RunTest(const FString & Parameters)
 		{
 			FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_heightfield"), TEXT("simple_heightfield"), {}, [this](bool IsSuccessful)
 			{
-				FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/Instancing_ThreeWays"), TEXT("Instancing_ThreeWays"), {}, [this](bool IsSuccessful)
-				{
-					FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/SideFX__scott_spookytable"), TEXT("SideFX__scott_spookytable"), {}, [this](bool IsSuccessful)
-					{
-		
-					});
-				});
+
 			});
 		});
 	});

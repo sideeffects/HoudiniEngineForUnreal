@@ -755,8 +755,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static bool UpdateGenericPropertiesAttributes(
 			UObject* InObject,
 			const TArray<FHoudiniGenericAttribute>& InAllPropertyAttributes,
-			const int32& AtIndex = 0,
-			const bool bInDeferPostEditChangePropertyCalls=false,
+			int32 AtIndex = 0,
+			bool bInDeferPostEditChangePropertyCalls=false,
 			const FHoudiniGenericAttribute::FFindPropertyFunctionType& InProcessFunction=nullptr);
 
 		// Helper function for setting a generic attribute on geo (UE -> HAPI)

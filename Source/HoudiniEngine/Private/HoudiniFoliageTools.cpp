@@ -50,13 +50,13 @@
 #endif
 
 UFoliageType*
-FHoudiniFoliageTools::CreateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, UStaticMesh* InstancedStaticMesh)
+FHoudiniFoliageTools::CreateFoliageType(const FHoudiniPackageParams& Params, UStaticMesh* InstancedStaticMesh)
 {
 	UFoliageType* FoliageType = nullptr;
 
 	// With world partition, Foliage Types must be assets. Create a package and save it.
 	FHoudiniPackageParams FoliageParams = Params;
-	FoliageParams.ObjectName = FString::Printf(TEXT("%s_%d_%s"), *FoliageParams.HoudiniAssetName, OutputIndex + 1, TEXT("foliage_type"));
+	FoliageParams.SplitStr = TEXT("foliage_type");
 	if (UFoliageType_InstancedStaticMesh* InstancedMeshFoliageType = FoliageParams.CreateObjectAndPackage<UFoliageType_InstancedStaticMesh>())
 	{
 		InstancedMeshFoliageType->SetStaticMesh(InstancedStaticMesh);
@@ -69,12 +69,12 @@ FHoudiniFoliageTools::CreateFoliageType(const FHoudiniPackageParams& Params, int
 }
 
 // Duplicate foliage asset.
-UFoliageType* FHoudiniFoliageTools::DuplicateFoliageType(const FHoudiniPackageParams& Params, int OutputIndex, UFoliageType* OrigFoliageType)
+UFoliageType* FHoudiniFoliageTools::DuplicateFoliageType(const FHoudiniPackageParams& Params, UFoliageType* OrigFoliageType)
 {
 	UFoliageType* FoliageType = nullptr;
 
 	FHoudiniPackageParams FoliageParams = Params;
-	FoliageParams.ObjectName = FString::Printf(TEXT("%s_%s_%d_%s"), *FoliageParams.HoudiniAssetName, *OrigFoliageType->GetName(), OutputIndex + 1, TEXT("foliage_type"));
+	FoliageParams.SplitStr = TEXT("foliage_type");
 
 	UFoliageType_InstancedStaticMesh * FTISM = Cast<UFoliageType_InstancedStaticMesh>(OrigFoliageType);
 

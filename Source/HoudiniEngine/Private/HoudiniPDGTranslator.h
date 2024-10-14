@@ -39,7 +39,7 @@ enum class EHoudiniOutputType : uint8;
 struct FHoudiniPackageParams;
 struct FTOPWorkResultObject;
 struct FHoudiniOutputObjectIdentifier;
-struct FHoudiniInstancedOutputPartData;
+struct FHoudiniInstancerPartData;
 struct FHoudiniLandscapeExtent;
 struct FHoudiniLandscapeReferenceLocation;
 struct FHoudiniLandscapeTileSizeInfo;
@@ -66,7 +66,7 @@ struct HOUDINIENGINE_API FHoudiniPDGTranslator
 			const FHoudiniPackageParams& InPackageParams,
 			TArray<UHoudiniOutput*>& InOutputs,
 			TArray<EHoudiniOutputType> InOutputTypesToProcess={},
-			const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData=nullptr);
+			const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* InPreBuiltInstancedOutputPartData=nullptr);
 
 		// Use the relevant translators to create assets/geometry for all PDG outputs (InOutputs).
 		// InOuterComponent is the component to attach the created output objects/components to.
@@ -80,7 +80,7 @@ struct HOUDINIENGINE_API FHoudiniPDGTranslator
 			TArray<EHoudiniOutputType> InOutputTypesToProcess={},
 			bool bInTreatExistingMaterialsAsUpToDate=false,
 			bool bInOnlyUseExistingAssets=false,
-			const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutputPartData>* InPreBuiltInstancedOutputPartData=nullptr
+			const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* InPreBuiltInstancedOutputPartData=nullptr
 			);
 };
 

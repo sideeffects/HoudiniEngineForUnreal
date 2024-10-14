@@ -182,7 +182,7 @@ public:
 	TArray<FHoudiniPDGImportNodeOutputObject> OutputObjects;
 
 	UPROPERTY()
-	TArray<FHoudiniInstancedOutputPartData> InstancedOutputPartData;
+	TArray<FHoudiniInstancerPartData> InstancedOutputPartData;
 };
 
 USTRUCT()
