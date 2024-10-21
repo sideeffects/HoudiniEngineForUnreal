@@ -44,8 +44,13 @@
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 #include "Engine/SkinnedAssetCommon.h"
 #endif
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	#include "PhysicsEngine/BodySetup.h"
+	#include "PhysicsEngine/SkeletalBodySetup.h"
+#endif
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectra, "Houdini.UnitTests.SkeletalMesh.Electra", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectra, "Houdini.UnitTests.SkeletalMesh.Electra",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestSkeletalMeshElectra::RunTest(const FString& Parameters)
 {
@@ -141,7 +146,8 @@ bool FHoudiniEditorTestSkeletalMeshElectra::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectraDefaultPhysicsAsset, "Houdini.UnitTests.SkeletalMesh.ElectraDefaultPhysicsAsset", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectraDefaultPhysicsAsset, "Houdini.UnitTests.SkeletalMesh.ElectraDefaultPhysicsAsset",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestSkeletalMeshElectraDefaultPhysicsAsset::RunTest(const FString& Parameters)
 {
@@ -243,7 +249,8 @@ bool FHoudiniEditorTestSkeletalMeshElectraDefaultPhysicsAsset::RunTest(const FSt
 	return true;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset, "Houdini.UnitTests.SkeletalMesh.ElectraCustomPhysicsAsset", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset, "Houdini.UnitTests.SkeletalMesh.ElectraCustomPhysicsAsset",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FString& Parameters)
 {
@@ -342,7 +349,11 @@ bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FStr
 
 			int32 BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("head"));
 			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			UBodySetup* BodySetup = Cast<UBodySetup>(PhysicsAsset->SkeletalBodySetups[BodyIndex].Get());
+#else
 			UBodySetup * BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+#endif
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 0);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 1);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 0);
@@ -350,7 +361,11 @@ bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FStr
 
 			BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("calf_l"));
 			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			BodySetup = Cast<UBodySetup>(PhysicsAsset->SkeletalBodySetups[BodyIndex].Get());
+#else
 			BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+#endif
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 1);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 0);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 0);
@@ -358,7 +373,11 @@ bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FStr
 
 			BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("calf_r"));
 			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			BodySetup = Cast<UBodySetup>(PhysicsAsset->SkeletalBodySetups[BodyIndex].Get());
+#else
 			BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+#endif
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 1);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 0);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 0);
@@ -366,7 +385,11 @@ bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FStr
 
 			BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("thigh_l"));
 			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			BodySetup = Cast<UBodySetup>(PhysicsAsset->SkeletalBodySetups[BodyIndex].Get());
+#else
 			BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+#endif
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 0);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 0);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 1);
@@ -374,7 +397,11 @@ bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FStr
 
 			BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("thigh_r"));
 			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			BodySetup = Cast<UBodySetup>(PhysicsAsset->SkeletalBodySetups[BodyIndex].Get());
+#else
 			BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+#endif
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 0);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 0);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 1);
@@ -382,7 +409,11 @@ bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FStr
 
 			BodyIndex = PhysicsAsset->FindBodyIndex(TEXT("spine_03"));
 			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(BodyIndex, (int32)INDEX_NONE, return true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			BodySetup = Cast<UBodySetup>(PhysicsAsset->SkeletalBodySetups[BodyIndex].Get());
+#else
 			BodySetup = PhysicsAsset->SkeletalBodySetups[BodyIndex];
+#endif
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.BoxElems.Num(), 0);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphereElems.Num(), 0);
 			HOUDINI_TEST_EQUAL(BodySetup->AggGeom.SphylElems.Num(), 0);
@@ -394,7 +425,8 @@ bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FStr
 	return true;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectraExistingPhysicsAsset, "Houdini.UnitTests.SkeletalMesh.ElectraExistingPhysicsAsset", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectraExistingPhysicsAsset, "Houdini.UnitTests.SkeletalMesh.ElectraExistingPhysicsAsset",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestSkeletalMeshElectraExistingPhysicsAsset::RunTest(const FString& Parameters)
 {
@@ -498,7 +530,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingPhysicsAsset::RunTest(const FS
 	return true;
 }
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectraExistingSkeleton, "Houdini.UnitTests.SkeletalMesh.ElectraExistingSkeleton", 
-		EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestSkeletalMeshElectraExistingSkeleton::RunTest(const FString& Parameters)
 {
@@ -584,7 +616,8 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingSkeleton::RunTest(const FStrin
 	return true;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshRoundtrip, "Houdini.UnitTests.SkeletalMesh.Roundtrip", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshRoundtrip, "Houdini.UnitTests.SkeletalMesh.Roundtrip",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestSkeletalMeshRoundtrip::RunTest(const FString& Parameters)
 {

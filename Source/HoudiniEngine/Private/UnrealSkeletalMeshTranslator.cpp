@@ -44,6 +44,10 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	#include "PhysicsEngine/AggregateGeom.h"
+	#include "PhysicsEngine/SkeletalBodySetup.h"
+#endif
 #include "SkeletalMeshAttributes.h"
 #include "Rendering/SkeletalMeshModel.h"
 

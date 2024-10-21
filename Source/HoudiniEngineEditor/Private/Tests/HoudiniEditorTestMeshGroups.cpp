@@ -227,7 +227,8 @@ void FHoudiniMeshAutomationTest::ExecuteMeshTest(TSharedPtr<FHoudiniTestContext>
 	}));
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_None, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.None", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_None, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.None",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_None::RunTest(const FString& Parameters)
 {
@@ -246,7 +247,8 @@ bool FHoudiniEditorTestMeshGroups_None::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_RenderedCollisionGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.RenderedCollisionGeo", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_RenderedCollisionGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.RenderedCollisionGeo",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_RenderedCollisionGeo::RunTest(const FString& Parameters)
 {
@@ -266,7 +268,8 @@ bool FHoudiniEditorTestMeshGroups_RenderedCollisionGeo::RunTest(const FString& P
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_CollisionGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.CollisionGeo", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_CollisionGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.CollisionGeo",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_CollisionGeo::RunTest(const FString& Parameters)
 {
@@ -287,7 +290,8 @@ bool FHoudiniEditorTestMeshGroups_CollisionGeo::RunTest(const FString& Parameter
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_MainGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.MainGeo", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_MainGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.MainGeo",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_MainGeo::RunTest(const FString& Parameters)
 {
@@ -308,7 +312,8 @@ bool FHoudiniEditorTestMeshGroups_MainGeo::RunTest(const FString& Parameters)
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleKDOP18Collision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleKDOP18Collision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleKDOP18Collision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleKDOP18Collision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_SimpleKDOP18Collision::RunTest(const FString& Parameters)
 {
@@ -328,7 +333,8 @@ bool FHoudiniEditorTestMeshGroups_SimpleKDOP18Collision::RunTest(const FString& 
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleKDOP26Collision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleKDOP26Collision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleKDOP26Collision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleKDOP26Collision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_SimpleKDOP26Collision::RunTest(const FString& Parameters)
 {
@@ -348,7 +354,8 @@ bool FHoudiniEditorTestMeshGroups_SimpleKDOP26Collision::RunTest(const FString& 
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleKDOP10xCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleKDOP10xCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleKDOP10xCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleKDOP10xCollision", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_SimpleKDOP10xCollision::RunTest(const FString& Parameters)
 {
@@ -368,7 +375,8 @@ bool FHoudiniEditorTestMeshGroups_SimpleKDOP10xCollision::RunTest(const FString&
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleKDOP10yCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleKDOP10yCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleKDOP10yCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleKDOP10yCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_SimpleKDOP10yCollision::RunTest(const FString& Parameters)
 {
@@ -388,7 +396,8 @@ bool FHoudiniEditorTestMeshGroups_SimpleKDOP10yCollision::RunTest(const FString&
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleKDOP10zCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleKDOP10zCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleKDOP10zCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleKDOP10zCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_SimpleKDOP10zCollision::RunTest(const FString& Parameters)
 {
@@ -409,7 +418,8 @@ bool FHoudiniEditorTestMeshGroups_SimpleKDOP10zCollision::RunTest(const FString&
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleBoxCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleBoxCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleBoxCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.SimpleBoxCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_SimpleBoxCollision::RunTest(const FString& Parameters)
 {
@@ -428,7 +438,8 @@ bool FHoudiniEditorTestMeshGroups_SimpleBoxCollision::RunTest(const FString& Par
 
 	return true;
 }
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleBoxAndSphereCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.Simple1Box1SphereCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_SimpleBoxAndSphereCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.Simple1Box1SphereCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_SimpleBoxAndSphereCollision::RunTest(const FString& Parameters)
 {
@@ -451,7 +462,8 @@ bool FHoudiniEditorTestMeshGroups_SimpleBoxAndSphereCollision::RunTest(const FSt
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_Simple2BoxCollisions, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.Simple2BoxesCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_Simple2BoxCollisions, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.Simple2BoxesCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_Simple2BoxCollisions::RunTest(const FString& Parameters)
 {
@@ -472,7 +484,8 @@ bool FHoudiniEditorTestMeshGroups_Simple2BoxCollisions::RunTest(const FString& P
 
 	return true;
 }
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_MainGeoBoxAndSphereCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.MainGeoSimpleBoxAndSphereCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_MainGeoBoxAndSphereCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.MainGeoSimpleBoxAndSphereCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_MainGeoBoxAndSphereCollision::RunTest(const FString& Parameters)
 {
@@ -496,7 +509,8 @@ bool FHoudiniEditorTestMeshGroups_MainGeoBoxAndSphereCollision::RunTest(const FS
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_LODs, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.LODs", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_LODs, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.LODs",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_LODs::RunTest(const FString& Parameters)
 {
@@ -519,7 +533,8 @@ bool FHoudiniEditorTestMeshGroups_LODs::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_MainGeoCustomCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.ComplexCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_MainGeoCustomCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.ComplexCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_MainGeoCustomCollision::RunTest(const FString& Parameters)
 {
@@ -541,7 +556,8 @@ bool FHoudiniEditorTestMeshGroups_MainGeoCustomCollision::RunTest(const FString&
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_Everything, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.Everything", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_Everything, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Unpacked.Everything",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_Everything::RunTest(const FString& Parameters)
 {
@@ -565,7 +581,8 @@ bool FHoudiniEditorTestMeshGroups_Everything::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedNone, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.None", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedNone, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.None",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedNone::RunTest(const FString& Parameters)
 {
@@ -585,7 +602,8 @@ bool FHoudiniEditorTestMeshGroups_PackedNone::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedRenderedCollisionGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.RenderedCollisionGeo", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedRenderedCollisionGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.RenderedCollisionGeo",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedRenderedCollisionGeo::RunTest(const FString& Parameters)
 {
@@ -606,7 +624,8 @@ bool FHoudiniEditorTestMeshGroups_PackedRenderedCollisionGeo::RunTest(const FStr
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedCollisionGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.CollisionGeo", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedCollisionGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.CollisionGeo",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedCollisionGeo::RunTest(const FString& Parameters)
 {
@@ -628,7 +647,8 @@ bool FHoudiniEditorTestMeshGroups_PackedCollisionGeo::RunTest(const FString& Par
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedMainGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.MainGeo", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedMainGeo, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.MainGeo",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedMainGeo::RunTest(const FString& Parameters)
 {
@@ -650,7 +670,8 @@ bool FHoudiniEditorTestMeshGroups_PackedMainGeo::RunTest(const FString& Paramete
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP18Collision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP18Collision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP18Collision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP18Collision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP18Collision::RunTest(const FString& Parameters)
 {
@@ -671,7 +692,8 @@ bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP18Collision::RunTest(const FSt
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP26Collision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP26Collision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP26Collision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP26Collision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP26Collision::RunTest(const FString& Parameters)
 {
@@ -692,7 +714,8 @@ bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP26Collision::RunTest(const FSt
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10xCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP10xCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10xCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP10xCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10xCollision::RunTest(const FString& Parameters)
 {
@@ -713,7 +736,8 @@ bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10xCollision::RunTest(const FS
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10yCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP10yCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10yCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP10yCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10yCollision::RunTest(const FString& Parameters)
 {
@@ -734,7 +758,8 @@ bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10yCollision::RunTest(const FS
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10zCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP10zCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10zCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleKDOP10zCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10zCollision::RunTest(const FString& Parameters)
 {
@@ -756,7 +781,8 @@ bool FHoudiniEditorTestMeshGroups_PackedSimpleKDOP10zCollision::RunTest(const FS
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleBoxCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleBoxCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleBoxCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.SimpleBoxCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedSimpleBoxCollision::RunTest(const FString& Parameters)
 {
@@ -776,7 +802,8 @@ bool FHoudiniEditorTestMeshGroups_PackedSimpleBoxCollision::RunTest(const FStrin
 
 	return true;
 }
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleBoxAndSphereCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.Simple1Box1SphereCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimpleBoxAndSphereCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.Simple1Box1SphereCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedSimpleBoxAndSphereCollision::RunTest(const FString& Parameters)
 {
@@ -800,7 +827,8 @@ bool FHoudiniEditorTestMeshGroups_PackedSimpleBoxAndSphereCollision::RunTest(con
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimple2BoxCollisions, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.Simple2BoxesCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedSimple2BoxCollisions, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.Simple2BoxesCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedSimple2BoxCollisions::RunTest(const FString& Parameters)
 {
@@ -822,7 +850,8 @@ bool FHoudiniEditorTestMeshGroups_PackedSimple2BoxCollisions::RunTest(const FStr
 
 	return true;
 }
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedMainGeoBoxAndSphereCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.MainGeoSimpleBoxAndSphereCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedMainGeoBoxAndSphereCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.MainGeoSimpleBoxAndSphereCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedMainGeoBoxAndSphereCollision::RunTest(const FString& Parameters)
 {
@@ -847,7 +876,8 @@ bool FHoudiniEditorTestMeshGroups_PackedMainGeoBoxAndSphereCollision::RunTest(co
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedLODs, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.LODs", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedLODs, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.LODs",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedLODs::RunTest(const FString& Parameters)
 {
@@ -871,7 +901,8 @@ bool FHoudiniEditorTestMeshGroups_PackedLODs::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedMainGeoCustomCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.ComplexCollision", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedMainGeoCustomCollision, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.ComplexCollision",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedMainGeoCustomCollision::RunTest(const FString& Parameters)
 {
@@ -894,7 +925,8 @@ bool FHoudiniEditorTestMeshGroups_PackedMainGeoCustomCollision::RunTest(const FS
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedEverything, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.Everything", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMeshGroups_PackedEverything, FHoudiniMeshAutomationTest, "Houdini.UnitTests.MeshGroups.MeshDesc.Packed.Everything",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMeshGroups_PackedEverything::RunTest(const FString& Parameters)
 {

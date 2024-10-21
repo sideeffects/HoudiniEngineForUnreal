@@ -396,8 +396,11 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	{
 		HAPI_VolumeInfo LayerVolumeInfo;
 		FHoudiniApi::VolumeInfo_Init(&HeightfieldVolumeInfo);
-		
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5	
+		for (const FLandscapeLayer& Layer : Landscape->GetLayers())
+#else
 		for(FLandscapeLayer& Layer : Landscape->LandscapeLayers)
+#endif
 		{
 			const FString LayerVolumeName = FString::Format(TEXT("landscapelayer_{0}"), {Layer.Name.ToString()});
 			

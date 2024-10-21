@@ -48,7 +48,8 @@
 #include "HoudiniEditorUnitTestUtils.h"
 #include "FoliageType_InstancedStaticMesh.h"
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestOutput, "Houdini.UnitTests.OutputTests", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestOutput, "Houdini.UnitTests.OutputTests", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestOutput::RunTest(const FString & Parameters)
 {

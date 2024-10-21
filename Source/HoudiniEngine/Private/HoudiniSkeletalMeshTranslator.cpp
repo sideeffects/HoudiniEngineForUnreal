@@ -55,6 +55,11 @@
 	#include "Engine/SkinnedAssetCommon.h"
 #endif
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	#include "PhysicsEngine/BodySetup.h"
+	#include "PhysicsEngine/SkeletalBodySetup.h"
+#endif
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
 
@@ -1096,7 +1101,11 @@ UBodySetup* FHoudiniSkeletalMeshTranslator::GetBodySetup(UPhysicsAsset* PhysicsA
 
 	const FPhysAssetCreateParams& NewBodyData = GetDefault<UPhysicsAssetGenerationSettings>()->CreateParams;
 	int32 BodyId = FPhysicsAssetUtils::CreateNewBody(PhysicsAsset, FName(BoneName), NewBodyData);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	UBodySetup* BodySetup = Cast<UBodySetup>(PhysicsAsset->SkeletalBodySetups[BodyId].Get());
+#else
 	UBodySetup* BodySetup = PhysicsAsset->SkeletalBodySetups[BodyId];
+#endif
 	return BodySetup;
 
 }

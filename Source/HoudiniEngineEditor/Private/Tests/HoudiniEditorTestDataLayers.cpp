@@ -50,7 +50,8 @@
 #include "FoliageType_InstancedStaticMesh.h"
 #include "HoudiniEngineBakeUtils.h"
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestsDataLayers, "Houdini.UnitTests.DataLayers.PDGTest", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestsDataLayers, "Houdini.UnitTests.DataLayers.PDGTest",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 
 bool FHoudiniEditorTestsDataLayers::RunTest(const FString& Parameters)

@@ -204,6 +204,9 @@ FHoudiniEngineRuntime::UnRegisterHoudiniComponent(UHoudiniAssetComponent* HAC)
 	if (!IsValid(HAC))
 		return;
 
+	if (RegisteredHoudiniComponents.IsEmpty())
+		return;
+
 	// Calling GetPathName here may lead to some crashes due to invalid outers...
 	//HOUDINI_LOG_DISPLAY(TEXT("[FHoudiniEngineRuntime::UnRegisterHoudiniComponent] HAC: %s"), *(HAC->GetPathName()) );
 

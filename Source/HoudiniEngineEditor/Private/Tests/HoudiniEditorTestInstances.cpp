@@ -101,7 +101,8 @@ TArray<FFoliageInstance> FHoudiniInstanceAutomationTest::GetAllFoliageInstances(
 	return Results;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesActors, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.InstancedMeshes", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesActors, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.InstancedMeshes",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestInstancesActors::RunTest(const FString& Parameters)
 {
@@ -234,7 +235,8 @@ bool FHoudiniEditorTestInstancesActors::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestBakingInstanceActors, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.InstancedActors", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestBakingInstanceActors, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.InstancedActors", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestBakingInstanceActors::RunTest(const FString& Parameters)
 {
@@ -361,7 +363,8 @@ bool FHoudiniEditorTestBakingInstanceActors::RunTest(const FString& Parameters)
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestBakingSplitInstanceMeshes, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SplitInstances", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestBakingSplitInstanceMeshes, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SplitInstances", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestBakingSplitInstanceMeshes::RunTest(const FString& Parameters)
 {
@@ -502,7 +505,8 @@ bool FHoudiniEditorTestBakingSplitInstanceMeshes::RunTest(const FString& Paramet
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSingleInstancedMesh, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SingleInstancedMeshes", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSingleInstancedMesh, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SingleInstancedMeshes", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestSingleInstancedMesh::RunTest(const FString& Parameters)
 {
@@ -625,7 +629,8 @@ bool FHoudiniEditorTestSingleInstancedMesh::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesHSM, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.HierarchicalInstancedStaticMeshes", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesHSM, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.HierarchicalInstancedStaticMeshes",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestInstancesHSM::RunTest(const FString& Parameters)
 {
@@ -756,7 +761,8 @@ bool FHoudiniEditorTestInstancesHSM::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPackedInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PackedInstances", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPackedInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PackedInstances",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestPackedInstances::RunTest(const FString& Parameters)
 {
@@ -822,7 +828,8 @@ bool FHoudiniEditorTestPackedInstances::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSinglePackedInstance, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SinglePackedInstance", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSinglePackedInstance, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SinglePackedInstance", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestSinglePackedInstance::RunTest(const FString& Parameters)
 {
@@ -873,7 +880,8 @@ bool FHoudiniEditorTestSinglePackedInstance::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestFoliageStaticMesh, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.FoliageStaticMesh", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestFoliageStaticMesh, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.FoliageStaticMesh", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestFoliageStaticMesh::RunTest(const FString& Parameters)
 {
@@ -963,7 +971,8 @@ bool FHoudiniEditorTestFoliageStaticMesh::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestFoliageUserFoliageType, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.UserFoliageType", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestFoliageUserFoliageType, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.UserFoliageType", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestFoliageUserFoliageType::RunTest(const FString& Parameters)
 {
@@ -1069,7 +1078,8 @@ bool FHoudiniEditorTestFoliageUserFoliageType::RunTest(const FString& Parameters
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLevelInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.LevelInstances", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLevelInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.LevelInstances", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestLevelInstances::RunTest(const FString& Parameters)
 {
@@ -1146,7 +1156,8 @@ bool FHoudiniEditorTestLevelInstances::RunTest(const FString& Parameters)
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestActorInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.ActorInstances", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestActorInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.ActorInstances", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestActorInstances::RunTest(const FString& Parameters)
 {
@@ -1213,7 +1224,8 @@ bool FHoudiniEditorTestActorInstances::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestProxyMeshInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.ProxyMeshes", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestProxyMeshInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.ProxyMeshes", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestProxyMeshInstances::RunTest(const FString& Parameters)
 {
@@ -1255,7 +1267,8 @@ bool FHoudiniEditorTestProxyMeshInstances::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestPDGInstances::RunTest(const FString& Parameters)
 {
@@ -1336,7 +1349,8 @@ bool FHoudiniEditorTestPDGInstances::RunTest(const FString& Parameters)
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstancesAsync, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstancesAsync, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 {
@@ -1423,7 +1437,8 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSplitInstanceMeshesMaterials, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SplitInstancesMaterials", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSplitInstanceMeshesMaterials, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SplitInstancesMaterials", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestSplitInstanceMeshesMaterials::RunTest(const FString& Parameters)
 {
@@ -1568,7 +1583,8 @@ bool FHoudiniEditorTestSplitInstanceMeshesMaterials::RunTest(const FString& Para
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSplitInstanceCustomFloats, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SplitInstanceCustomData", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSplitInstanceCustomFloats, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SplitInstanceCustomData",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestSplitInstanceCustomFloats::RunTest(const FString& Parameters)
 {
@@ -1705,7 +1721,8 @@ bool FHoudiniEditorTestSplitInstanceCustomFloats::RunTest(const FString& Paramet
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSplitPackedInstancer, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SplitPackedInstancer", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSplitPackedInstancer, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.SplitPackedInstancer",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestSplitPackedInstancer::RunTest(const FString& Parameters)
 {

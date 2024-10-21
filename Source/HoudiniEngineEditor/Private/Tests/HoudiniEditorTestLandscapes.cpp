@@ -264,7 +264,8 @@ FHoudiniEditorTestLandscapes::GetLandscapePaintLayerValues(ALandscape* Landscape
 }
 
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_Simple, "Houdini.UnitTests.Landscapes.SimpleLandscape", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_Simple, "Houdini.UnitTests.Landscapes.SimpleLandscape",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestLandscapes_Simple::RunTest(const FString & Parameters)
 {
@@ -353,7 +354,8 @@ bool FHoudiniEditorTestLandscapes_Simple::RunTest(const FString & Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_GridSize, "Houdini.UnitTests.Landscapes.ResizedLandscape", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_GridSize, "Houdini.UnitTests.Landscapes.ResizedLandscape", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestLandscapes_GridSize::RunTest(const FString& Parameters)
 {
@@ -445,7 +447,8 @@ bool FHoudiniEditorTestLandscapes_GridSize::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_TargetLayers, "Houdini.UnitTests.Landscapes.TargetLayers", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_TargetLayers, "Houdini.UnitTests.Landscapes.TargetLayers", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestLandscapes_TargetLayers::RunTest(const FString& Parameters)
 {

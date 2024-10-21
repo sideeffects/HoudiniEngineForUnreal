@@ -464,7 +464,11 @@ FUnrealObjectInputActorAsReference::Update(const FUnrealObjectInputHAPINodeId& I
 		// We just want the path up to the first point
 		int32 DotIndex;
 		if (LevelPath.FindChar('.', DotIndex))
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			LevelPath.LeftInline(DotIndex, EAllowShrinking::No);
+#else
 			LevelPath.LeftInline(DotIndex, false);
+#endif
 	}
 
 	// Construct a VEXpression to set create and set level path and actor path attributes

@@ -46,7 +46,8 @@
 #include "Engine/SkinnedAssetCommon.h"
 #endif
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPresetLoading, "Houdini.UnitTests.Presets.Loading", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPresetLoading, "Houdini.UnitTests.Presets.Loading",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestPresetLoading::RunTest(const FString& Parameters)
 {

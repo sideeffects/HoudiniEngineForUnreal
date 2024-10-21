@@ -1166,7 +1166,11 @@ FUnrealObjectInputNode::DestroyModifiers(const FName InChainName)
 	while (Chain->Modifiers.Num() > 0)
 	{
 		static constexpr bool bAllowShrinking = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		FUnrealObjectInputModifier* const Modifier = Chain->Modifiers.Pop(bAllowShrinking ? EAllowShrinking::Yes : EAllowShrinking::No);
+#else
 		FUnrealObjectInputModifier* const Modifier = Chain->Modifiers.Pop(bAllowShrinking);
+#endif
 		if (!Modifier)
 			continue;
 		Modifier->OnRemovedFromOwner();

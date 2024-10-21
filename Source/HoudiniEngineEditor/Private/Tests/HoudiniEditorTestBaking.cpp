@@ -37,7 +37,9 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "HoudiniEditorUnitTestUtils.h"
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesMeshes, "Houdini.UnitTests.Baking.Meshes", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesMeshes, "Houdini.UnitTests.Baking.Meshes",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestInstancesMeshes::RunTest(const FString& Parameters)
 {
@@ -154,7 +156,8 @@ bool FHoudiniEditorTestInstancesMeshes::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestBakingGrouped, "Houdini.UnitTests.Baking.MultipleComponentsOneActor", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestBakingGrouped, "Houdini.UnitTests.Baking.MultipleComponentsOneActor",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestBakingGrouped::RunTest(const FString& Parameters)
 {
@@ -228,7 +231,8 @@ bool FHoudiniEditorTestBakingGrouped::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestBakingGroupedToBlueprint, "Houdini.UnitTests.Baking.MultipleComponentsToOneBlueprint", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestBakingGroupedToBlueprint, "Houdini.UnitTests.Baking.MultipleComponentsToOneBlueprint",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestBakingGroupedToBlueprint::RunTest(const FString& Parameters)
 {

@@ -214,7 +214,6 @@ void FUnrealLevelInstanceTranslator::CreateAttributeData(HAPI_NodeId NodeId, ALe
 	const FTransform& Transform = LevelInstance->GetActorTransform();
 
 	FVector PositionVector = Transform.GetLocation();
-	FVector3f Position;
 	Positions.Add(0.0f);
 	Positions.Add(0.0f);
 	Positions.Add(0.0f);

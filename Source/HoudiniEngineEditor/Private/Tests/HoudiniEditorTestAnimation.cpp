@@ -70,7 +70,8 @@ TMap<FName, TArray<FTransform>> FHoudiniEditorTestAnimationUtils::GetAnimationTr
 	return TrackMap;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestAnimationRoundtrip, "Houdini.UnitTests.Animation.Roundtrip", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestAnimationRoundtrip, "Houdini.UnitTests.Animation.Roundtrip", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestAnimationRoundtrip::RunTest(const FString& Parameters)
 {

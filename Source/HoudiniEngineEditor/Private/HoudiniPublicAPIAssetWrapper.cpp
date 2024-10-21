@@ -2093,7 +2093,11 @@ UHoudiniPublicAPIAssetWrapper::GetFloatRampParameterPoints_Implementation(
 
 	OutRampPoints.Reserve(RampPointData.Num());
 	const bool bAllowShrinking = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	OutRampPoints.SetNum(0, bAllowShrinking ? EAllowShrinking::Yes : EAllowShrinking::No);
+#else
 	OutRampPoints.SetNum(0, bAllowShrinking);
+#endif
 	for (TPair<UObject*, bool> const& Entry : RampPointData)
 	{
 		UObject* const PointData = Entry.Key;
@@ -2359,7 +2363,11 @@ UHoudiniPublicAPIAssetWrapper::GetColorRampParameterPoints_Implementation(
 
 	OutRampPoints.Reserve(RampPointData.Num());
 	const bool bAllowShrinking = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	OutRampPoints.SetNum(0, bAllowShrinking ? EAllowShrinking::Yes : EAllowShrinking::No);
+#else
 	OutRampPoints.SetNum(0, bAllowShrinking);
+#endif
 	for (TPair<UObject*, bool> const& Entry : RampPointData)
 	{
 		UObject* const PointData = Entry.Key;
@@ -3724,7 +3732,11 @@ UHoudiniPublicAPIAssetWrapper::FindRampPointData(
 				// Get all points
 				OutPointData.Reserve(FloatRampParam->CachedPoints.Num());
 				const bool bAllowShrinking = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+				OutPointData.SetNum(0, bAllowShrinking ? EAllowShrinking::Yes : EAllowShrinking::No);
+#else
 				OutPointData.SetNum(0, bAllowShrinking);
+#endif
 				for (UHoudiniParameterRampFloatPoint* const RampPoint : FloatRampParam->CachedPoints)
 				{
 					const bool bIsPointData = true;
@@ -3735,8 +3747,11 @@ UHoudiniPublicAPIAssetWrapper::FindRampPointData(
 			{
 				OutPointData.Reserve(1);
 				const bool bAllowShrinking = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+				OutPointData.SetNum(0, bAllowShrinking ? EAllowShrinking::Yes : EAllowShrinking::No);
+#else
 				OutPointData.SetNum(0, bAllowShrinking);
-				
+#endif
 				const bool bIsPointData = true;
 				OutPointData.Add(TPair<UObject*, bool>(FloatRampParam->CachedPoints[InIndex], bIsPointData));
 			}
@@ -3757,7 +3772,11 @@ UHoudiniPublicAPIAssetWrapper::FindRampPointData(
 				// Get all points
 				OutPointData.Reserve(ColorRampParam->CachedPoints.Num());
 				const bool bAllowShrinking = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+				OutPointData.SetNum(0, bAllowShrinking ? EAllowShrinking::Yes : EAllowShrinking::No);
+#else
 				OutPointData.SetNum(0, bAllowShrinking);
+#endif
 				for (UHoudiniParameterRampColorPoint* const RampPoint : ColorRampParam->CachedPoints)
 				{
 					const bool bIsPointData = true;
@@ -3768,7 +3787,11 @@ UHoudiniPublicAPIAssetWrapper::FindRampPointData(
 			{
 				OutPointData.Reserve(1);
 				const bool bAllowShrinking = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+				OutPointData.SetNum(0, bAllowShrinking ? EAllowShrinking::Yes : EAllowShrinking::No);
+#else
 				OutPointData.SetNum(0, bAllowShrinking);
+#endif
 
 				const bool bIsPointData = true;
 				OutPointData.Add(TPair<UObject*, bool>(ColorRampParam->CachedPoints[InIndex], bIsPointData));
@@ -3804,7 +3827,11 @@ UHoudiniPublicAPIAssetWrapper::FindRampPointData(
 		else
 			OutPointData.Reserve(1);
 		const bool bAllowShrinking = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		OutPointData.SetNum(0, bAllowShrinking ? EAllowShrinking::Yes : EAllowShrinking::No);
+#else
 		OutPointData.SetNum(0, bAllowShrinking);
+#endif
 		
 		if (bFetchAllPoints || InIndex < NumActivePointsInArray)
 		{

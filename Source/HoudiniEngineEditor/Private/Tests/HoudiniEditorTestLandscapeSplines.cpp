@@ -42,7 +42,8 @@
 #include "HoudiniEditorUnitTestUtils.h"
 #include "LandscapeEdit.h"
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapeSplines_Simple, "Houdini.UnitTests.LandscapeSplines.Simple", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapeSplines_Simple, "Houdini.UnitTests.LandscapeSplines.Simple", 
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestLandscapeSplines_Simple::RunTest(const FString& Parameters)
 {
@@ -126,7 +127,8 @@ bool FHoudiniEditorTestLandscapeSplines_Simple::RunTest(const FString& Parameter
 	return true;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapeSplines_WorldPartition, "Houdini.UnitTests.LandscapeSplines.WorldPartition", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapeSplines_WorldPartition, "Houdini.UnitTests.LandscapeSplines.WorldPartition",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestLandscapeSplines_WorldPartition::RunTest(const FString& Parameters)
 {

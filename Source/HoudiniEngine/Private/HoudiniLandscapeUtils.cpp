@@ -88,10 +88,19 @@ void
 FHoudiniLandscapeUtils::SetNonCookedLayersVisibility(UHoudiniAssetComponent& HAC, ALandscape& Landscape, bool bVisible)
 {
 	TSet<FString> CookedLayers = GetCookedLandscapeLayers(HAC, Landscape);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayers();
+#endif
 
-	for(int LayerIndex = 0; LayerIndex < Landscape.LandscapeLayers.Num(); LayerIndex++)
+	FString LayerName;
+	for(int LayerIndex = 0; LayerIndex < Landscape.GetLayerCount(); LayerIndex++)
 	{
-		if (!CookedLayers.Contains(Landscape.LandscapeLayers[LayerIndex].Name.ToString()))
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5		
+		LayerName = Layers[LayerIndex].Name.ToString(); 
+#else
+		LayerName = Landscape.LandscapeLayers[LayerIndex].Name.ToString();
+#endif
+		if (!CookedLayers.Contains(LayerName))
 		{
 			// Non cooked Layer
 			Landscape.SetLayerVisibility(LayerIndex, bVisible);
@@ -103,10 +112,19 @@ void
 FHoudiniLandscapeUtils::SetCookedLayersVisibility(UHoudiniAssetComponent& HAC, ALandscape& Landscape, bool bVisible)
 {
 	TSet<FString> CookedLayers = GetCookedLandscapeLayers(HAC, Landscape);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayers();
+#endif
 
-	for (int LayerIndex = 0; LayerIndex < Landscape.LandscapeLayers.Num(); LayerIndex++)
+	FString LayerName;
+	for (int LayerIndex = 0; LayerIndex < Landscape.GetLayerCount(); LayerIndex++)
 	{
-		if (CookedLayers.Contains(Landscape.LandscapeLayers[LayerIndex].Name.ToString()))
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		LayerName = Layers[LayerIndex].Name.ToString();
+#else
+		LayerName = Landscape.LandscapeLayers[LayerIndex].Name.ToString();
+#endif
+		if (CookedLayers.Contains(LayerName))
 		{
 			// Cooked Layer
 			Landscape.SetLayerVisibility(LayerIndex, bVisible);
@@ -789,7 +807,6 @@ TArray<ULandscapeLayerInfoObject*> FHoudiniLandscapeUtils::CreateTargetLayerInfo
 			FString TargetLayerName = TargetLayerSettings.LayerName.ToString();
 
 			ULandscapeLayerInfoObject* Layer = nullptr;
-
 			if (PartsForLandscape.Contains(TargetLayerName))
 			{
 				if (!PartsForLandscape[TargetLayerName]->LayerInfoObjectName.IsEmpty())
@@ -814,7 +831,11 @@ TArray<ULandscapeLayerInfoObject*> FHoudiniLandscapeUtils::CreateTargetLayerInfo
 			if (IsValid(Layer))
 			{
 				Results.Add(Layer);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+				LandscapeProxy->AddTargetLayer(TargetLayerSettings.LayerName, FLandscapeTargetLayerSettings(Layer));
+#else
 				LandscapeProxy->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(Layer));
+#endif
 				TargetLayerSettings.LayerInfoObj = Layer;
 			}
 

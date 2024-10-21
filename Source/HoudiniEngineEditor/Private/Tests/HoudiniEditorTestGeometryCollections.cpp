@@ -45,7 +45,8 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "HoudiniEditorUnitTestUtils.h"
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestGeometryCollections, "Houdini.UnitTests.GeometryCollection.GeometryCollection", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestGeometryCollections, "Houdini.UnitTests.GeometryCollection.GeometryCollection",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestGeometryCollections::RunTest(const FString& Parameters)
 {
