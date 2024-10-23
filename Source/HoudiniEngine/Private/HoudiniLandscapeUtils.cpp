@@ -178,7 +178,8 @@ static float Convert(int NewValue, int NewMax, int OldMax)
 	return (Scale * OldMax);
 }
 
-float FHoudiniLandscapeUtils::GetLandscapeHeightRangeInCM(ALandscape& Landscape)
+float 
+FHoudiniLandscapeUtils::GetLandscapeHeightRangeInCM(ALandscape& Landscape)
 {
 	float Scale = Landscape.GetTransform().GetScale3D().Z;
 
@@ -186,7 +187,15 @@ float FHoudiniLandscapeUtils::GetLandscapeHeightRangeInCM(ALandscape& Landscape)
 
 }
 
-TArray<uint16> FHoudiniLandscapeUtils::GetHeightData(ALandscape* Landscape, const FHoudiniExtents& Extents, FLandscapeLayer* EditLayer)
+TArray<uint16> 
+FHoudiniLandscapeUtils::GetHeightData(
+	ALandscape* Landscape,
+	const FHoudiniExtents& Extents,
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	const FLandscapeLayer* EditLayer)
+#else
+	FLandscapeLayer* EditLayer)
+#endif
 {
 	int DiffX = 1 + Extents.Max.X - Extents.Min.X;
 	int DiffY = 1 + Extents.Max.Y - Extents.Min.Y;
@@ -204,44 +213,75 @@ TArray<uint16> FHoudiniLandscapeUtils::GetHeightData(ALandscape* Landscape, cons
 	return Values;
 }
 
-FLandscapeLayer* FHoudiniLandscapeUtils::GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+const FLandscapeLayer*
+#else
+FLandscapeLayer*
+#endif
+FHoudiniLandscapeUtils::GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName)
 {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	const FLandscapeLayer* UnrealEditLayer = GetEditLayer(Landscape, LayerName);
+#else
 	FLandscapeLayer* UnrealEditLayer = GetEditLayer(Landscape, LayerName);
+#endif
 	if (UnrealEditLayer == nullptr)
 	{
 		int EditLayerIndex = Landscape->CreateLayer(LayerName);
-
 		if (EditLayerIndex == INDEX_NONE)
 		{
 			HOUDINI_LOG_ERROR(TEXT("Could not create edit layer %s"), *LayerName.ToString());
 			return nullptr;
 		}
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		UnrealEditLayer = Landscape->GetLayerConst(EditLayerIndex);
+#else
 		UnrealEditLayer = Landscape->GetLayer(EditLayerIndex);
+#endif
 	}
 
 	return UnrealEditLayer;
 }
 
-FLandscapeLayer* 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+const FLandscapeLayer*
+#else
+FLandscapeLayer*
+#endif
 FHoudiniLandscapeUtils::GetEditLayer(ALandscape* Landscape, const FName& LayerName)
 {
 	if (!Landscape->bCanHaveLayersContent)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		return Landscape->GetLayerConst(0);
+#else
 		return Landscape->GetLayer(0);
+#endif
 
 	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
 	if (EditLayerIndex == INDEX_NONE)
 		return nullptr;
 
-	FLandscapeLayer* UnrealEditLayer = Landscape->GetLayer(EditLayerIndex);
-	return UnrealEditLayer;
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	return Landscape->GetLayerConst(EditLayerIndex);
+#else
+	return Landscape->GetLayer(EditLayerIndex);
+#endif
 }
 
-FLandscapeLayer* 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+const FLandscapeLayer*
+#else
+FLandscapeLayer*
+#endif
 FHoudiniLandscapeUtils::MoveEditLayerAfter(ALandscape* Landscape, const FName& LayerName, const FName& AfterLayerName)
 {
 	if (!Landscape->bCanHaveLayersContent)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		return Landscape->GetLayerConst(0);
+#else
 		return Landscape->GetLayer(0);
+#endif
 
 	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
 	int32 NewLayerIndex = Landscape->GetLayerIndex(AfterLayerName);
@@ -256,12 +296,15 @@ FHoudiniLandscapeUtils::MoveEditLayerAfter(ALandscape* Landscape, const FName& L
 
 	// Ensure we have the correct layer/index
 	EditLayerIndex = Landscape->GetLayerIndex(LayerName);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	return Landscape->GetLayerConst(EditLayerIndex);
+#else
 	return Landscape->GetLayer(EditLayerIndex);
-
-
+#endif
 }
 
-TArray<uint8_t> FHoudiniLandscapeUtils::GetLayerData(ALandscape* Landscape, const FHoudiniExtents& Extents, const FName& EditLayerName, const FName& TargetLayerName)
+TArray<uint8_t>
+FHoudiniLandscapeUtils::GetLayerData(ALandscape* Landscape, const FHoudiniExtents& Extents, const FName& EditLayerName, const FName& TargetLayerName)
 {
 	int DiffX = 1 + Extents.Max.X - Extents.Min.X;
 	int DiffY = 1 + Extents.Max.Y - Extents.Min.Y;
@@ -270,7 +313,11 @@ TArray<uint8_t> FHoudiniLandscapeUtils::GetLayerData(ALandscape* Landscape, cons
 	TArray<uint8_t> Values;
 	Values.SetNum(NumPoints);
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	const FLandscapeLayer* EditLayer = FHoudiniLandscapeUtils::GetEditLayer(Landscape, EditLayerName);
+#else
 	FLandscapeLayer* EditLayer = FHoudiniLandscapeUtils::GetEditLayer(Landscape, EditLayerName);
+#endif
 	ULandscapeLayerInfoObject* TargetLayerInfo = Landscape->GetLandscapeInfo()->GetLayerInfoByName(TargetLayerName);
 
 	FScopedSetLandscapeEditingLayer Scope(Landscape, EditLayer->Guid, [&] { /*Landscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); */});
@@ -1407,8 +1454,12 @@ void FHoudiniLandscapeUtils::ApplyLocks(UHoudiniLandscapeTargetLayerOutput* Outp
 	if (EditLayerIndex == INDEX_NONE)
 		return;
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	Output->Landscape->SetLayerLocked(EditLayerIndex, true);
+#else
 	FLandscapeLayer* UnrealEditLayer = Output->Landscape->GetLayer(EditLayerIndex);
 	UnrealEditLayer->bLocked = true;
+#endif
 }
 
 bool

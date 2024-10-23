@@ -2572,7 +2572,11 @@ bool FUnrealLandscapeTranslator::SendAllEditLayerTargetLayersToHoudini(
 		int32 NumTargetLayers = LandscapeInfo->Layers.Num();
 		for (int32 TargetLayerIndex = 0; TargetLayerIndex < NumTargetLayers; TargetLayerIndex++)
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			const FName & EditLayerName = LandscapeProxy->GetLandscapeActor()->GetLayerConst(EditLayerIndex)->Name;
+#else
 			const FName & EditLayerName = LandscapeProxy->GetLandscapeActor()->GetLayer(EditLayerIndex)->Name;
+#endif
 			const FName & TargetLayerName = LandscapeInfo->Layers[TargetLayerIndex].GetLayerName();
 
 			FHoudiniExtents Extents = FHoudiniLandscapeUtils::GetLandscapeExtents(LandscapeProxy);

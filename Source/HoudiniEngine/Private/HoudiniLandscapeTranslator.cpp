@@ -589,21 +589,28 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	// Create the Edit Layer if it doesn't exist
 	// ------------------------------------------------------------------------------------------------------------------
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	const FLandscapeLayer* UnrealEditLayer = nullptr;
+#else
 	FLandscapeLayer* UnrealEditLayer = nullptr;
-
+#endif
 	bool bWasLocked = false;
 	if (OutputLandscape->bCanHaveLayersContent)
 	{
 		UnrealEditLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, FName(CookedLayerName));
 		if (!UnrealEditLayer)
 			return nullptr;
-
+		
 		bWasLocked = UnrealEditLayer->bLocked;
 		if (UnrealEditLayer->bLocked)
 		{
 			if (Part.bWriteLockedLayers)
 			{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+				OutputLandscape->SetLayerLocked(OutputLandscape->GetLayerIndex(UnrealEditLayer->Name), false);
+#else
 				UnrealEditLayer->bLocked = false;
+#endif
 			}
 			else
 			{
@@ -799,7 +806,13 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	}
 
 	if (bWasLocked && UnrealEditLayer)
+	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		OutputLandscape->SetLayerLocked(OutputLandscape->GetLayerIndex(UnrealEditLayer->Name), true);
+#else
 		UnrealEditLayer->bLocked = true;
+#endif
+	}
 
 	// ------------------------------------------------------------------------------------------------------------------
 	// We successfully did what we came to, return an Object

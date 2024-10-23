@@ -240,13 +240,24 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
     static float GetLandscapeHeightRangeInCM(ALandscape& Landscape);
 
-    static TArray<uint16> GetHeightData(ALandscape* Landscape, const FHoudiniExtents& Extents, FLandscapeLayer* EditLayer);
+    static TArray<uint16> GetHeightData(
+		ALandscape* Landscape,
+		const FHoudiniExtents& Extents,
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		const FLandscapeLayer* EditLayer);
+#else
+		FLandscapeLayer* EditLayer);
+#endif
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+    static const FLandscapeLayer* GetEditLayer(ALandscape* Landscape, const FName& LayerName);
+    static const FLandscapeLayer* GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName);
+    static const FLandscapeLayer* MoveEditLayerAfter(ALandscape* Landscape, const FName& LayerName, const FName& AfterLayerName);
+#else
     static FLandscapeLayer* GetEditLayer(ALandscape* Landscape, const FName& LayerName);
-
     static FLandscapeLayer* GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName);
-
     static FLandscapeLayer* MoveEditLayerAfter(ALandscape* Landscape, const FName& LayerName, const FName& AfterLayerName);
+#endif
 
 	static TArray<uint8_t> GetLayerData(ALandscape* Landscape, const FHoudiniExtents& Extents, const FName& EditLayerName, const FName& TargetLayerName);
 
