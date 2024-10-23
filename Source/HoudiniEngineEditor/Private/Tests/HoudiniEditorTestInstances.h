@@ -36,7 +36,7 @@ struct FHoudiniInstanceAutomationTest : public FHoudiniAutomationTest
     {
     }
 
-	void CheckPositions(const TArray<FVector> & Positions);
+	void CheckPositions(const TArray<FVector> & Positions, int Start = 0);
 
     const static inline FString BakingHDA = TEXT("/Game/TestHDAs/Instances/Test_Instances");
     const static inline FString PDGHDA = TEXT("/Game/TestHDAs/Instances/Test_PDGInstances");
@@ -47,6 +47,8 @@ struct FHoudiniInstanceAutomationTest : public FHoudiniAutomationTest
 
     static TArray<FFoliageInstance> GetAllFoliageInstances(UWorld* InWorld, UFoliageType* FoliageType);
     static TArray<UFoliageType*> GetAllFoliageTypes(UWorld* InWorld);
+
+    static FVector GetHDAInstancePosition(int Index);
 
 };
 

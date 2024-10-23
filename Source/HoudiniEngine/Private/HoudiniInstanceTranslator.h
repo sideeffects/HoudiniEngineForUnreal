@@ -83,6 +83,17 @@ public:
 
 	UPROPERTY()
 	bool bIsFoliage = false;
+
+	UPROPERTY()
+	bool bForceHISM = false;
+
+	UPROPERTY()
+	bool bForceInstancer = false;
+
+	// Transform relative to the parent (HAC) Transform.
+	UPROPERTY()
+	FTransform ComponentRelativeTransform = FTransform::Identity;
+
 };
 
 USTRUCT()
@@ -112,14 +123,7 @@ struct HOUDINIENGINE_API FHoudiniInstancer
 	TArray<float> CustomFloats;
 
 	UPROPERTY()
-	bool bForceHISM;
-
-	UPROPERTY()
-	bool bForceInstancer;
-
-	UPROPERTY()
 	bool bVisible = true;
-	
 };
 
 USTRUCT()
@@ -155,11 +159,10 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 {
 	public:
 
-		static bool IsHISM(HAPI_NodeId GeoId, HAPI_NodeId PartId, HAPI_AttributeOwner Owner, int Index);
+	static bool IsHISM(HAPI_NodeId GeoId, HAPI_NodeId PartId, HAPI_AttributeOwner Owner, int Index);
 	static FHoudiniInstancerPartData PopulateInstancedOutputPartData(
 		const FHoudiniGeoPartObject& InHGPO,
 		const TArray<UHoudiniOutput*>& InAllOutputs);
-
 
 	static int CreateAllInstancersFromHoudiniOutputs(
 		const TArray<UHoudiniOutput*>& InAllOutputs,
@@ -332,7 +335,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 		const FHoudiniInstancer& InstancerData, 
 		const FHoudiniInstancerPartData& InInstancedOutputPartData);
 
-	static FHoudiniInstancerSettings GetDefaultInstancerSettings(const FHoudiniGeoPartObject& HGPO);
+	static FHoudiniInstancerSettings GetDefaultInstancerSettings(const FHoudiniGeoPartObject& HGPO, HAPI_AttributeOwner Owner);
 
 	static FHoudiniInstancerSettings GetInstancerSettings(const FHoudiniGeoPartObject& HGPO, HAPI_AttributeOwner AttributeOwner, int Index, const FHoudiniInstancerSettings & Defaults);
 

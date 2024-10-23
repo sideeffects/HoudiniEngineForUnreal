@@ -190,6 +190,7 @@
 
 #define HAPI_UNREAL_ATTRIB_INSTANCE							"instance"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE				"unreal_instance"
+#define HAPI_UNREAL_ATRTIB_INSTANCE_ORIGIN                  "unreal_instance_origin"
 #define HAPI_UNREAL_ATTRIB_SPLIT_INSTANCES					"unreal_split_instances"
 #define HAPI_UNREAL_ATTRIB_FOLIAGE_INSTANCER				"unreal_foliage"
 #define HAPI_UNREAL_ATTRIB_FOLIAGE_ATTACHMENT_TYPE          "unreal_foliage_attachment_type"

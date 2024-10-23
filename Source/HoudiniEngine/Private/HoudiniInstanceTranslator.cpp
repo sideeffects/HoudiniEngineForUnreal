@@ -440,7 +440,7 @@ bool FHoudiniInstanceTranslator::GetPackedPrimitiveInstancerPartData(
 		}
 	}
 
-	FHoudiniInstancerSettings DefaultSettings = GetDefaultInstancerSettings(HGPO);
+	FHoudiniInstancerSettings DefaultSettings = GetDefaultInstancerSettings(HGPO, HAPI_ATTROWNER_DETAIL);
 
 	TArray<int> InstancedPartIds;
 	InstancedPartIds.SetNum(PartInfo.instancedPartCount);
@@ -452,7 +452,7 @@ bool FHoudiniInstanceTranslator::GetPackedPrimitiveInstancerPartData(
 	for (auto It : InstancerMap)
 	{
 		int32 PartNumber = It.Key >> 32;
-		int32 SplitStringHandle = It.Key & 0x7ffffffff;
+		int32 SplitStringHandle = It.Key & INT_MAX;
 
 		FHoudiniInstancer& Instancer = PartData.Instancers[It.Value];
 		Instancer.SplitName = FString::Printf(TEXT("%d"), PartNumber);
@@ -469,8 +469,6 @@ bool FHoudiniInstanceTranslator::GetPackedPrimitiveInstancerPartData(
 		InstancedHGPO.PartId = InstancedPartIds[PartNumber];
 		SetInstancerObject(Instancer, InstancedHGPO, InAllOutputs);
 
-		Instancer.bForceHISM = IsHISM(HGPO.GeoId, HGPO.PartId, HAPI_ATTROWNER_PRIM, Instancer.AttributeIndices[0]);
-		Instancer.bForceInstancer = IsForceInstancer(HGPO.GeoId, HGPO.PartId, HAPI_ATTROWNER_PRIM, Instancer.AttributeIndices[0]);
 	}
 
 
@@ -521,7 +519,6 @@ FHoudiniInstanceTranslator::GetAttributeInstancerPartData(
 	// quick look up
 	//---------------------------------------------------------------------------------------------------------------------------
 
-
 	TTuple<FString, FHoudiniEngineIndexedStringMap> SplitData = GetSplitData(HGPO, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT);
 
 	TMap<int64_t, int> InstancerMap;
@@ -548,12 +545,12 @@ FHoudiniInstanceTranslator::GetAttributeInstancerPartData(
 	// Pull all instancer data from Houdini
 	//---------------------------------------------------------------------------------------------------------------------------
 
-	FHoudiniInstancerSettings DefaultSettings = GetDefaultInstancerSettings(HGPO);
+	FHoudiniInstancerSettings DefaultSettings = GetDefaultInstancerSettings(HGPO, HAPI_ATTROWNER_DETAIL);
 
 	for(auto It : InstancerMap)
 	{
 		int32 ObjectStringHandle = It.Key >> 32;
-		int32 SplitStringHandle = It.Key & 0x7ffffffff;
+		int32 SplitStringHandle = It.Key & INT_MAX;
 
 		FHoudiniInstancer & Instancer = PartData.Instancers[It.Value];
 
@@ -567,10 +564,6 @@ FHoudiniInstanceTranslator::GetAttributeInstancerPartData(
 
 		int FirstIndex = Instancer.AttributeIndices[0];
 		Instancer.Settings = GetInstancerSettings(HGPO, HAPI_ATTROWNER_POINT, FirstIndex, DefaultSettings);
-
-		Instancer.bForceHISM = IsHISM(HGPO.GeoId, HGPO.PartId, HAPI_ATTROWNER_POINT, Instancer.AttributeIndices[0]);
-		Instancer.bForceInstancer = IsForceInstancer(HGPO.GeoId, HGPO.PartId, HAPI_ATTROWNER_POINT, Instancer.AttributeIndices[0]);
-
 	}
 
 	//---------------------------------------------------------------------------------------------------------------------------
@@ -654,7 +647,7 @@ FHoudiniInstanceTranslator::CreateInstancer(
 	}
 	else if(InstanceObject->IsA<UStaticMesh>())
 	{
-		bool bMustUseInstancerComponent = Instancers.AttributeIndices.Num() > 1 || Instancers.bForceInstancer;
+		bool bMustUseInstancerComponent = Instancers.AttributeIndices.Num() > 1 || Instancers.Settings.bForceInstancer;
 
 		// It is recommended to avoid putting Nanite mesh in HISM since they have their own LOD mechanism.
 		// Will also improve performance by avoiding access to the render data to fetch the LOD count which could
@@ -662,7 +655,7 @@ FHoudiniInstanceTranslator::CreateInstancer(
 
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(InstanceObject);
 
-		if (!StaticMesh->NaniteSettings.bEnabled && (Instancers.bForceHISM || (bMustUseInstancerComponent && StaticMesh->GetNumLODs() > 1)))
+		if (!StaticMesh->NaniteSettings.bEnabled && (Instancers.Settings.bForceHISM || (bMustUseInstancerComponent && StaticMesh->GetNumLODs() > 1)))
 			InstancerType = HierarchicalInstancedStaticMeshComponent;
 		else if (bMustUseInstancerComponent)
 			InstancerType = InstancedStaticMeshComponent;
@@ -818,11 +811,6 @@ FHoudiniInstanceTranslator::CreateInstancer(
 		if (InstancerType != Foliage && InstancerType != LevelInstance)
 		    NewComponentToSet->AttachToComponent(ParentComponent, FAttachmentTransformRules::KeepRelativeTransform);
 
-	    // For single instance, that generates a SMC, the transform is already set on the component
-	    // TODO: Should cumulate transform in that case?
-	    if(InstancerType != StaticMeshComponent && InstancerType != HoudiniStaticMeshComponent && InstancerType != LevelInstance)
-			NewComponentToSet->SetRelativeTransform(InstancerPartData.GeoPartObject.TransformMatrix);
-
 	    // Only register if we have a valid component
 	    if (NewComponentToSet->GetOwner() && NewComponentToSet->GetWorld())
 			NewComponentToSet->RegisterComponent();
@@ -903,7 +891,7 @@ FHoudiniInstanceTranslator::CreateInstancer(
 bool
 FHoudiniInstanceTranslator::CreateInstancedStaticMeshInstancer(
 	FHoudiniOutputObject& Output,
-	const FHoudiniInstancer& Instancers,
+	const FHoudiniInstancer& Instancer,
 	UObject* InstanceObject,
 	const FHoudiniInstancerPartData& InstancerPartData,
 	USceneComponent* ParentComponent,
@@ -927,7 +915,7 @@ FHoudiniInstanceTranslator::CreateInstancedStaticMeshInstancer(
 	// It is recommended to avoid putting Nanite mesh in HISM since they have their own LOD mecanism.
 	// Will also improve performance by avoiding access to the render data to fetch the LOD count which could
 	// trigger an async mesh wait until it has been computed.
-	if (!InstancedStaticMesh->NaniteSettings.bEnabled && (InstancedStaticMesh->GetNumLODs() > 1 || Instancers.bForceHISM))
+	if (!InstancedStaticMesh->NaniteSettings.bEnabled && (InstancedStaticMesh->GetNumLODs() > 1 || Instancer.Settings.bForceHISM))
 	{
 		// If the mesh has LODs, use Hierarchical ISMC
 		InstancedStaticMeshComponent = NewObject<UHierarchicalInstancedStaticMeshComponent>(
@@ -943,8 +931,7 @@ FHoudiniInstanceTranslator::CreateInstancedStaticMeshInstancer(
 	// Change the creation method so the component is listed in the details panels
 	if (InstancedStaticMeshComponent)
 		FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(InstancedStaticMeshComponent);
-
-	if (!InstancedStaticMeshComponent)
+	else
 		return false;
 
 	Output.OutputComponents.Add(InstancedStaticMeshComponent);
@@ -969,11 +956,23 @@ FHoudiniInstanceTranslator::CreateInstancedStaticMeshInstancer(
 		}
 	}
 
-	TArray<FTransform> Transforms = UnpackTransforms(Instancers, InstancerPartData);
+	// Set the transform of the Component relative to its parents.
+	InstancedStaticMeshComponent->SetRelativeTransform(Instancer.Settings.ComponentRelativeTransform);
+
+	// Get the transforms of all instances. In Houdini the origin is relative to the HDA Component in Unreal.
+	TArray<FTransform> Transforms = UnpackTransforms(Instancer, InstancerPartData);
+
+	// Offset all transforms relative to the component.
+	FTransform InvComponentTransform = Instancer.Settings.ComponentRelativeTransform.Inverse();
+	for(FTransform & Transform : Transforms)
+	{
+		Transform = InvComponentTransform * Transform;
+	}
+
 	InstancedStaticMeshComponent->AddInstances(Transforms, false);
 
 	// Apply generic attributes if we have any. Just use attributes on the first point.
-	FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(InstancedStaticMeshComponent, InstancerPartData.AllPropertyAttributes, Instancers.AttributeIndices[0]);
+	FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(InstancedStaticMeshComponent, InstancerPartData.AllPropertyAttributes, Instancer.AttributeIndices[0]);
 	return true;
 }
 
@@ -1911,9 +1910,13 @@ FHoudiniInstanceTranslator::SetGenericPropertyAttributes(UObject* Object, const 
 }
 
 FHoudiniInstancerSettings
-FHoudiniInstanceTranslator::GetDefaultInstancerSettings(const FHoudiniGeoPartObject& HGPO)
+FHoudiniInstanceTranslator::GetDefaultInstancerSettings(const FHoudiniGeoPartObject& HGPO, HAPI_AttributeOwner Owner)
 {
-	FHoudiniInstancerSettings Result = GetInstancerSettings(HGPO, HAPI_ATTROWNER_DETAIL, 0, {});
+	FHoudiniInstancerSettings DefaultSettings;
+	if (HGPO.PartInfo.InstanceCount)
+		DefaultSettings.ComponentRelativeTransform = HGPO.TransformMatrix;
+
+	FHoudiniInstancerSettings Result = GetInstancerSettings(HGPO, HAPI_ATTROWNER_DETAIL, 0, DefaultSettings);
 	return Result;
 }
 
@@ -1922,7 +1925,7 @@ FHoudiniInstancerSettings
 FHoudiniInstanceTranslator::GetInstancerSettings(
 	const FHoudiniGeoPartObject& HGPO, 
 	HAPI_AttributeOwner AttributeOwner, 
-	int PointIndex, 
+	int AttrIndex, 
 	const FHoudiniInstancerSettings& Defaults)
 {
 	FHoudiniInstancerSettings Result = Defaults;
@@ -1930,40 +1933,60 @@ FHoudiniInstanceTranslator::GetInstancerSettings(
 	FHoudiniEngineIndexedStringMap AttributeValues;
 
 	Accessor.Init(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_LEVEL_PATH);
-	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, PointIndex, 1);
+	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, AttrIndex, 1);
 	if (!AttributeValues.Strings.IsEmpty())
 		Result.LevelPath = AttributeValues.Strings[0];
 
 	Accessor.Init(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_BAKE_ACTOR);
-	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, PointIndex, 1);
+	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, AttrIndex, 1);
 	if (!AttributeValues.Strings.IsEmpty())
 		Result.BakeActorName = AttributeValues.Strings[0];
 
 	Accessor.Init(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_BAKE_ACTOR_CLASS);
-	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, PointIndex, 1);
+	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, AttrIndex, 1);
 	if (!AttributeValues.Strings.IsEmpty())
 		Result.BakeActorClassName = AttributeValues.Strings[0];
 
 	Accessor.Init(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_BAKE_FOLDER);
-	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, PointIndex, 1);
+	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, AttrIndex, 1);
 	if (!AttributeValues.Strings.IsEmpty())
 		Result.BakeFolder = AttributeValues.Strings[0];
 
 	Accessor.Init(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER);
-	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, PointIndex, 1);
+	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, AttrIndex, 1);
 	if (!AttributeValues.Strings.IsEmpty())
 		Result.BakeOutlinerFolder = AttributeValues.Strings[0];
 
 	Accessor.Init(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2);
-	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, PointIndex, 1);
+	Accessor.GetAttributeStrings(AttributeOwner, AttributeValues, AttrIndex, 1);
 	if (!AttributeValues.Strings.IsEmpty())
 		Result.OutputName = AttributeValues.Strings[0];
 
 	int BoolValue = 0;
 	Accessor.Init(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_FOLIAGE_INSTANCER);
-	Accessor.GetAttributeData(AttributeOwner, &BoolValue, PointIndex, 1);
+	Accessor.GetAttributeData(AttributeOwner, &BoolValue, AttrIndex, 1);
 	Result.bIsFoliage = BoolValue != 0;
 
+	BoolValue = 0;
+	Accessor.Init(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_HIERARCHICAL_INSTANCED_SM);
+	Accessor.GetAttributeData(AttributeOwner, &BoolValue, AttrIndex, 1);
+	Result.bForceHISM = BoolValue != 0;
+
+	BoolValue = 0;
+	Accessor.Init(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATTRIB_FORCE_INSTANCER);
+	Accessor.GetAttributeData(AttributeOwner, &BoolValue, AttrIndex, 1);
+	Result.bForceInstancer = BoolValue != 0;
+
+	Accessor.Init(HGPO.GeoId, HGPO.PartId, HAPI_UNREAL_ATRTIB_INSTANCE_ORIGIN);
+	HAPI_AttributeInfo AttrInfo;
+	if (Accessor.GetInfo(AttrInfo, AttributeOwner) && AttrInfo.tupleSize == 3)
+	{
+		TArray<float> Center;
+		Accessor.GetAttributeData(AttrInfo, Center, AttrIndex, 1);
+		FVector Location = FVector(Center[0], Center[2], Center[1]);
+		Result.ComponentRelativeTransform.SetIdentity();
+		Result.ComponentRelativeTransform.SetLocation(Location * 100.0);
+	}
 	return Result;
 }
 

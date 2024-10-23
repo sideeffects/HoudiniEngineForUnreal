@@ -48,16 +48,32 @@
 #include "LevelInstance/LevelInstanceComponent.h"
 #endif
 
-void FHoudiniInstanceAutomationTest::CheckPositions(const TArray<FVector>& Positions)
+
+FVector FHoudiniInstanceAutomationTest::GetHDAInstancePosition(int Index)
+{
+	// the Test HDA uses a magic formula to calculate the position. This is replicated here, but with Y/Z
+	// swapped....
+
+	FVector ExpectedGlobalPosition;
+	ExpectedGlobalPosition.X = 10.0 + Index * 10;
+	ExpectedGlobalPosition.Z = 20.0;
+	ExpectedGlobalPosition.Y = 30.0 + Index * 20;
+
+	// ... and scale by 100 (as H->U conversion always does)
+	ExpectedGlobalPosition = ExpectedGlobalPosition * 100.0f;
+
+	return ExpectedGlobalPosition;
+}
+
+void FHoudiniInstanceAutomationTest::CheckPositions(const TArray<FVector>& Positions, int StartIndex)
 {
 	for(int Index = 0; Index < Positions.Num(); Index++)
 	{
-		FVector ExpectedPosition;
-		ExpectedPosition.X = Index * 10.0 * 100.0;
-		ExpectedPosition.Y = Index * 20.0 * 100.0;
-		ExpectedPosition.Z = 0;
-	
-		HOUDINI_TEST_EQUALISH_ON_FAIL(Positions[Index], ExpectedPosition, 0.1, break);
+		int HDA_AttribIndex = Index + StartIndex;
+
+		FVector ExpectedGlobalPosition = GetHDAInstancePosition(HDA_AttribIndex);
+
+		HOUDINI_TEST_EQUALISH_ON_FAIL(Positions[Index], ExpectedGlobalPosition, 0.1, break);
 	}
 }
 
@@ -128,6 +144,7 @@ bool FHoudiniEditorTestInstancesActors::RunTest(const FString& Parameters)
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "split_instance_meshes", false, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "foliage", false, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "instance_origin", true, 0);
 		Context->StartCookingHDA();
 		return true;
 	}));
@@ -176,10 +193,15 @@ bool FHoudiniEditorTestInstancesActors::RunTest(const FString& Parameters)
 					HOUDINI_TEST_EQUAL_ON_FAIL(Components[0]->IsA<UInstancedStaticMeshComponent>(), 1, continue);
 
 					UInstancedStaticMeshComponent * ISMC = Components[0];
+
+					const FTransform & Transform = ISMC->GetComponentTransform();
+
 					TArray<FVector> Positions;
 					Positions.SetNum(ISMC->PerInstanceSMData.Num());
 					for(int Index = 0; Index < ISMC->PerInstanceSMData.Num(); Index++)
-						Positions[Index] = ISMC->PerInstanceSMData[Index].Transform.GetOrigin();
+					{
+						Positions[Index] = Transform.TransformPosition(ISMC->PerInstanceSMData[Index].Transform.GetOrigin());
+					}
 
 					CheckPositions(Positions);
 
@@ -260,6 +282,7 @@ bool FHoudiniEditorTestBakingInstanceActors::RunTest(const FString& Parameters)
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "split_instance_meshes", false, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "foliage", false, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "instance_origin", false, 0);
 		Context->StartCookingHDA();
 		return true;
 	}));
@@ -389,6 +412,7 @@ bool FHoudiniEditorTestBakingSplitInstanceMeshes::RunTest(const FString& Paramet
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "split_instance_meshes", true, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "foliage", false, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "instance_origin", true, 0);
 		Context->StartCookingHDA();
 		return true;
 	}));
@@ -468,11 +492,47 @@ bool FHoudiniEditorTestBakingSplitInstanceMeshes::RunTest(const FString& Paramet
 
 				TArray<UInstancedStaticMeshComponent*> Components;
 				Actor->GetComponents(Components);
+
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components.Num(), 4, continue);
-				for(int Index = 0; Index < 4; Index++)
+
+				// Each component should have a different transform using unreal_instance_origin. Since we don't know which
+				// component came from which split we need to look them up by position. We have 4 instancers, each containing
+				// 25 points.
+
+				TArray<FVector> Origins = {
+					GetHDAInstancePosition(0),
+					GetHDAInstancePosition(25),
+					GetHDAInstancePosition(50),
+					GetHDAInstancePosition(75)
+				};
+
+				for(int Index = 0; Index < Components.Num(); Index++)
 				{
+					int OriginIndex = 0;
+					for(; OriginIndex < Origins.Num(); OriginIndex++)
+					{
+						const FTransform RelativeTransform = Components[Index]->GetRelativeTransform();
+						if (RelativeTransform.GetLocation().Equals(Origins[OriginIndex], 0.1))
+							break;
+					}
+					if (OriginIndex == Origins.Num())
+					{
+						TestEqual(TEXT("Failed to find a component with an expected origin"), false, true);
+						return true;
+					}
+
 					HOUDINI_TEST_EQUAL_ON_FAIL(Components[Index]->IsA<UInstancedStaticMeshComponent>(), 1, continue);
 					HOUDINI_TEST_EQUAL(Components[Index]->GetNumRenderInstances(), 25);
+					const FTransform & Transform = Components[Index]->GetRelativeTransform();
+
+					TArray<FVector> InstancePositions;
+					InstancePositions.SetNum(Components[Index]->GetNumRenderInstances());
+					for (int InstanceIndex = 0; InstanceIndex < Components[Index]->PerInstanceSMData.Num(); InstanceIndex++)
+					{
+						InstancePositions[InstanceIndex] = 
+							Transform.TransformPosition(Components[Index]->PerInstanceSMData[InstanceIndex].Transform.GetOrigin());
+					}
+					CheckPositions(InstancePositions, OriginIndex * 25);
 				}
 
 				ActorNames.Add(*OutputObject.Actor);
@@ -480,24 +540,6 @@ bool FHoudiniEditorTestBakingSplitInstanceMeshes::RunTest(const FString& Paramet
 		}
 
 		HOUDINI_TEST_EQUAL_ON_FAIL(ActorNames.Num(), 1, return true);
-
-		TArray<FVector> InstancePositions;
-		InstancePositions.Reserve(100);
-
-		AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *(*ActorNames.CreateConstIterator())));
-		TArray<UInstancedStaticMeshComponent*> Components;
-		Actor->GetComponents(Components);
-		for (int Index = 0; Index < Components.Num(); Index++)
-		{
-			for (int InstanceIndex = 0; InstanceIndex < Components[Index]->PerInstanceSMData.Num(); InstanceIndex++)
-			{
-				InstancePositions.Add(Components[Index]->PerInstanceSMData[InstanceIndex].Transform.GetOrigin());
-			}
-		}
-
-		HOUDINI_TEST_EQUAL(InstancePositions.Num(), 100);
-		InstancePositions.Sort([](const FVector & First ,const FVector & Second) { return First.X < Second.X; });
-		CheckPositions(InstancePositions);
 
 		return true;
 	}));
@@ -530,6 +572,7 @@ bool FHoudiniEditorTestSingleInstancedMesh::RunTest(const FString& Parameters)
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 1, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "split_instance_meshes", false, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "foliage", false, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "instance_origin", false, 0);
 		Context->StartCookingHDA();
 		return true;
 	}));
@@ -655,6 +698,7 @@ bool FHoudiniEditorTestInstancesHSM::RunTest(const FString& Parameters)
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "split_instance_meshes", false, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "foliage", false, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "instance_origin", false, 0);
 		Context->StartCookingHDA();
 		return true;
 	}));
@@ -907,6 +951,7 @@ bool FHoudiniEditorTestFoliageStaticMesh::RunTest(const FString& Parameters)
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "split_instance_meshes", false, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "foliage", true, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "instance_origin", false, 0);
 		Context->StartCookingHDA();
 		return true;
 	}));
@@ -1000,6 +1045,7 @@ bool FHoudiniEditorTestFoliageUserFoliageType::RunTest(const FString& Parameters
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterInt, "max_instances", 100, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "split_instance_meshes", false, 0);
 		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "foliage", true, 0);
+		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "instance_origin", false, 0);
 		Context->StartCookingHDA();
 		return true;
 	}));
