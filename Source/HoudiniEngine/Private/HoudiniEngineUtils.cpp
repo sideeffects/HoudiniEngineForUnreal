@@ -688,7 +688,7 @@ void FHoudiniEngineUtils::LogPackageInfo(const UPackage* InPackage)
 
 	HOUDINI_LOG_MESSAGE(TEXT(" = Filename: %s"), *(InPackage->GetLoadedPath().GetPackageName()));
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
-	HOUDINI_LOG_MESSAGE(TEXT(" = Package Id: %d"), InPackage->GetPackageId().LexToString());
+	HOUDINI_LOG_MESSAGE(TEXT(" = Package Id: %s"), *(LexToString(InPackage->GetPackageId())));
 #else
 	HOUDINI_LOG_MESSAGE(TEXT(" = Package Id: %d"), InPackage->GetPackageId().ValueForDebugging());
 #endif

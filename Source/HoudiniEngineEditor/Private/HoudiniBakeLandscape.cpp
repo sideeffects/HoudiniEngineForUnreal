@@ -63,6 +63,10 @@
 #include "WorldPartition/WorldPartition.h"
 #include "LandscapeSplineActor.h"
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	#include "LandscapeEditLayer.h"
+#endif
+
 bool
 FHoudiniLandscapeBake::BakeLandscapeLayer(
 	FHoudiniPackageParams& PackageParams, 
@@ -611,7 +615,12 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 	const FName BakedEditLayer = *LayerOutput.BakedEditLayer;
 
 	// If the landscape has a reserved splines layer, then we don't create any named temp/bake layers on the landscape for splines
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	if (OutputLandscape->FindLayerOfType(ULandscapeEditLayerSplines::StaticClass()))
+#else
 	if (OutputLandscape->GetLandscapeSplinesReservedLayer())
+#endif
 	{
 		FHoudiniLandscapeSplineApplyLayerData& LayerData = SegmentsToApplyToLayers.FindOrAdd({ OutputLandscape, BakedEditLayer });
 		LayerData.bIsReservedSplineLayer = true;

@@ -44,6 +44,10 @@
 #include "Materials/Material.h"
 #include "WorldPartition/WorldPartition.h"
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	#include "LandscapeEditLayer.h"
+#endif
+
 
 FVector 
 FHoudiniLandscapeSplineTranslator::ConvertPositionToVector(const float* InPosition)
@@ -171,8 +175,12 @@ FHoudiniLandscapeSplineTranslator::UpdateNonReservedEditLayers(
 	TSet<FName>& ClearedLayersForLandscape = InClearedLayers.FindOrAdd(InSplineInfo.Landscape);
 
 	// If the landscape has a reserved splines layer, then we don't have track the segments to apply. Just record the
-	// landscape with its reserved layer.
+	// landscape with its reserved layer.	
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	const FLandscapeLayer* ReservedSplinesLayer = InSplineInfo.Landscape->FindLayerOfType(ULandscapeEditLayerSplines::StaticClass());
+#else
 	FLandscapeLayer* const ReservedSplinesLayer = InSplineInfo.Landscape->GetLandscapeSplinesReservedLayer();
+#endif
 	if (ReservedSplinesLayer)
 	{
 		FHoudiniLandscapeSplineApplyLayerData& LayerData = InSegmentsToApplyToLayers.FindOrAdd({ InSplineInfo.Landscape, ReservedSplinesLayer->Name});

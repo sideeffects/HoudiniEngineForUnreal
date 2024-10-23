@@ -45,6 +45,10 @@
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	#include "LandscapeEditLayer.h"
+#endif
+
 TSet<UHoudiniLandscapeTargetLayerOutput *>
 FHoudiniLandscapeUtils::GetEditLayers(UHoudiniOutput& Output)
 {
@@ -1295,8 +1299,15 @@ void FHoudiniLandscapeUtils::ApplyMaterialsFromParts(
 bool
 FHoudiniLandscapeUtils::ApplyLandscapeSplinesToReservedLayer(ALandscape* const InLandscape)
 {
-	if (!IsValid(InLandscape) || !InLandscape->GetLandscapeSplinesReservedLayer())
+	if (!IsValid(InLandscape)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		|| !InLandscape->FindLayerOfType(ULandscapeEditLayerSplines::StaticClass()))
+#else
+		|| !InLandscape->GetLandscapeSplinesReservedLayer())
+#endif
+	{
 		return false;
+	}
 
 	InLandscape->RequestSplineLayerUpdate();
 
@@ -1326,7 +1337,12 @@ FHoudiniLandscapeUtils::ApplySegmentsToLandscapeEditLayers(
 			continue;
 		}
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		FLandscapeLayer const* const Layer = Landscape->GetLayerConst(LayerName);
+#else
 		FLandscapeLayer const* const Layer = Landscape->GetLayer(LayerName);
+#endif
+
 		if (!Layer)
 		{
 			HOUDINI_LOG_WARNING(
