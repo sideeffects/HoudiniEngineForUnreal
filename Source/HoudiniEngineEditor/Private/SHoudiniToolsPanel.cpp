@@ -300,18 +300,20 @@ SHoudiniToolCategory::Construct(const FArguments& InArgs)
 	{
 		// Configure List View
 		SAssignNew(HoudiniToolsView, SHoudiniToolListView)
-		.ScrollbarVisibility(EVisibility::Collapsed)
-		.SelectionMode( ESelectionMode::Single )
-		.ListItemsSource( &VisibleEntries )
-		.OnGenerateRow( InArgs._OnGenerateRow )
-		.OnSelectionChanged_Lambda( [this, InArgs](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
-		{
-			ActiveTool = HoudiniTool;
-			InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
-		} )
-		.OnMouseButtonDoubleClick( InArgs._OnMouseButtonDoubleClick )
-		.OnContextMenuOpening(this, &SHoudiniToolCategory::HandleContextMenuOpening )
-		.ItemHeight( 64 );
+			.ScrollbarVisibility(EVisibility::Collapsed)
+			.SelectionMode(ESelectionMode::Single)
+			.ListItemsSource(&VisibleEntries)
+			.OnGenerateRow(InArgs._OnGenerateRow)
+			.OnSelectionChanged_Lambda([this, InArgs](const TSharedPtr<FHoudiniTool>& HoudiniTool, ESelectInfo::Type SelectInfo)
+				{
+					ActiveTool = HoudiniTool;
+					InArgs._OnToolSelectionChanged.ExecuteIfBound(this, HoudiniTool, SelectInfo);
+				})
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 5
+			.ItemHeight(64) //UE5.5 deprecated this - only for tile view
+#endif
+			.OnMouseButtonDoubleClick(InArgs._OnMouseButtonDoubleClick)
+			.OnContextMenuOpening(this, &SHoudiniToolCategory::HandleContextMenuOpening);
 	}
 	
 	ChildSlot

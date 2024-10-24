@@ -698,7 +698,11 @@ void FHoudiniLandscapeUtils::CreateDefaultHeightField(ALandscape* LandscapeActor
 		HeightMapDataPerLayers,
 		NULL,
 		MaterialLayerDataPerLayer,
-		ELandscapeImportAlphamapType::Layered);
+		ELandscapeImportAlphamapType::Layered
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		,MakeArrayView<FLandscapeLayer>({})
+#endif
+	);
 }
 
 ALandscapeProxy* FHoudiniLandscapeUtils::FindTargetLandscapeProxy(const FString& ActorName, UWorld* World,

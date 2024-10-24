@@ -5637,7 +5637,12 @@ FHoudiniEngineBakeUtils::BakeHeightfield(
 				0, 0, XSize-1, YSize-1,
 				InLandscapeInfo->ComponentNumSubsections, InLandscapeInfo->SubsectionSizeQuads,
 				HeightmapDataPerLayers, NULL,
-				MaterialLayerDataPerLayer, ImportLayerType);
+				MaterialLayerDataPerLayer,
+				ImportLayerType
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+				, MakeArrayView<FLandscapeLayer>({})
+#endif
+			);
 
 			BakedLandscapeProxy->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((XSize * YSize) / (2048 * 2048) + 1), (uint32)2);
 

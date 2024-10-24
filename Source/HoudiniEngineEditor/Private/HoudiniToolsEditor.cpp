@@ -196,7 +196,11 @@ FString FHoudiniToolsEditor::GetDefaultPackageAssetPath(const FString& PackageNa
 TSoftObjectPtr<UHoudiniToolsPackageAsset> FHoudiniToolsEditor::GetPackageAssetRef(const FString& PackagePath)
 {
 	const FString PackageName = FString::Format(TEXT("{0}.{0}"), { FHoudiniToolsRuntimeUtils::GetPackageUAssetName() } );
-	return TSoftObjectPtr<UHoudiniToolsPackageAsset>(FString::Format(TEXT("UHoudiniToolsPackageAsset'{0}/{1}'"), {PackagePath, PackageName})); 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	return TSoftObjectPtr<UHoudiniToolsPackageAsset>(FSoftObjectPath(FString::Format(TEXT("UHoudiniToolsPackageAsset'{0}/{1}'"), {PackagePath, PackageName})));
+#else
+	return TSoftObjectPtr<UHoudiniToolsPackageAsset>(FString::Format(TEXT("UHoudiniToolsPackageAsset'{0}/{1}'"), { PackagePath, PackageName }));
+#endif
 }
 
 FString FHoudiniToolsEditor::GetAbsoluteToolsPackagePath(const UHoudiniToolsPackageAsset* ToolsPackage)
@@ -824,8 +828,13 @@ FHoudiniToolsEditor::PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& Houdini
 	if (!IsValid(InHoudiniAsset))
 		return;
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	HoudiniTool->HoudiniAsset = TSoftObjectPtr<UHoudiniAsset>(FSoftObjectPath(InHoudiniAsset->GetPathName()));
+	HoudiniTool->ToolsPackage = TSoftObjectPtr<UHoudiniToolsPackageAsset>(FSoftObjectPath(InToolsPackage->GetPathName()));
+#else
 	HoudiniTool->HoudiniAsset = InHoudiniAsset;
 	HoudiniTool->ToolsPackage = InToolsPackage;
+#endif
 	
 	if (IsValid(InHoudiniPreset))
 	{
@@ -867,8 +876,11 @@ FHoudiniToolsEditor::PopulateHoudiniTool(const TSharedPtr<FHoudiniTool>& Houdini
 		HoudiniTool->Type = EHoudiniToolType::HTOOLTYPE_GENERATOR;
 		HoudiniTool->SelectionType = EHoudiniToolSelectionType::HTOOL_SELECTION_ALL;
 	}
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	HoudiniTool->HoudiniPreset = TSoftObjectPtr<UHoudiniPreset>(FSoftObjectPath(InHoudiniPreset->GetPathName()));
+#else
 	HoudiniTool->HoudiniPreset = InHoudiniPreset;
+#endif
 	HoudiniTool->PackageToolType = IsValid(InHoudiniPreset) ? EHoudiniPackageToolType::Preset : EHoudiniPackageToolType::HoudiniAsset;
 
 	// if (IsValid(InHoudiniAsset->AssetImportData))
@@ -1762,7 +1774,11 @@ FHoudiniToolsEditor::ReimportPackageHDAs(const UHoudiniToolsPackageAsset* Packag
 		// If it doesn't exist, create a new UHoudiniAsset. If it already exists, reimport it using the above ToolPath.
 
 		// Construct the asset's ref
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		TSoftObjectPtr<UHoudiniAsset> HoudiniAssetRef = TSoftObjectPtr<UHoudiniAsset>(FSoftObjectPath(ToolAssetRefPath));
+#else
 		TSoftObjectPtr<UHoudiniAsset> HoudiniAssetRef(ToolAssetRefPath);
+#endif
 		UHoudiniAsset* LoadedAsset = nullptr;
 
 		//
