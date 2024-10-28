@@ -1289,12 +1289,9 @@ void FHoudiniOutputObject::DestroyCookedData()
 		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
 		AssetEditorSubsystem->CloseAllEditorsForAsset(OutputObject);
 #endif
-		OutputObject->ConditionalBeginDestroy();
 	}
 	OutputObject = nullptr;
 
-	if (IsValid(ProxyObject))
-		ProxyObject->ConditionalBeginDestroy();
 	ProxyObject = nullptr;
 
 	//--------------------------------------------------------------------------------------------------------------------

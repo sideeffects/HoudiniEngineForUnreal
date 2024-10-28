@@ -78,6 +78,9 @@ enum class EHoudiniAssetState : uint8
 	// functionality, typically limited to checking for parameter updates
 	// in order to trigger PostEditChange() to run construction scripts again.
 	ProcessTemplate,
+
+	// Used when an HDA has been instanced using Level Instances.
+	Dormant,
 };
 
 UENUM()

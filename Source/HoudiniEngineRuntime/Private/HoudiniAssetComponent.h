@@ -520,6 +520,10 @@ protected:
 	// Set asset state
 	void SetAssetState(EHoudiniAssetState InNewState);
 
+	void UpdateDormantStatus();
+
+	ILevelInstanceInterface* GetLevelInstance() const;
+
 public:
 
 	// Houdini Asset associated with this component.
@@ -713,7 +717,10 @@ protected:
 	UPROPERTY(DuplicateTransient)
 	bool bHasBeenLoaded;
 
-	UPROPERTY(DuplicateTransient)
+	// Sometimes, specifically when editing level instances, the Unreal Editor will duplicate the HDA,
+	// then duplicate it again, before we get a change to call UpdatePostDuplicate().
+	// So bHasBeenDuplicated should not be cleared and is so not marked DuplicateTransient.
+	UPROPERTY()
 	bool bHasBeenDuplicated;
 
 	UPROPERTY(DuplicateTransient)
