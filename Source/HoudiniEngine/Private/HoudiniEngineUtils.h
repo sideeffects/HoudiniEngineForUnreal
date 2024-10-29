@@ -711,8 +711,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Helper function to get Heightfield data
 		// The data will be read in chunks if too large for thrift
 		static HAPI_Result HapiGetHeightFieldData(
-			const HAPI_NodeId& InNodeId,
-			const HAPI_PartId& InPartId,
+			HAPI_NodeId InNodeId,
+			HAPI_PartId InPartId,
 			TArray<float>& OutFloatValues);
 
 		static bool HapiGetParameterDataAsString(

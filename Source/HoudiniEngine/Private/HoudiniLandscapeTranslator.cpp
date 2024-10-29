@@ -50,6 +50,7 @@
 #include "HoudiniLandscapeUtils.h"
 #include "AssetToolsModule.h"
 #include "HoudiniEngineAttributes.h"
+#include "HoudiniEngineTimers.h"
 #include "Misc/Guid.h"
 #include "Engine/LevelBounds.h"
 #include "HAL/IConsoleManager.h"
@@ -76,7 +77,7 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 	FHoudiniClearedEditLayers& ClearedLayers,
 	TArray<UPackage*>& OutCreatedPackages)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniLandscapeTranslator::ProcessLandscapeOutput);
+	H_SCOPED_FUNCTION_TIMER();
 
 	UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InOutput);
 
@@ -533,6 +534,8 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		FHoudiniClearedEditLayers& ClearedLayers,
 		const FHoudiniPackageParams& InPackageParams)
 {
+	H_SCOPED_FUNCTION_TIMER();
+
 	enum TargetLayerType
 	{
 		Height, Visibility, Paint
@@ -656,6 +659,19 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		ClearedLayers.Add(CookedLayerName, Part.TargetLayerName);
 	}
 
+
+	if (LayerType == TargetLayerType::Paint && TargetLayerInfo == nullptr)
+	{
+		// The target layer doesn't exist, so report an error and do nothing. The target layers are defined by the material
+		// and trying to create new ones is probably not correct. Note, this is different from what we do if a Layer is missing.
+
+		// mask is very common, so silently ignore it.
+		if (Part.TargetLayerName != "mask")
+			HOUDINI_LOG_WARNING(TEXT("Tried to export to a target layer called %s but it does not exist"), *Part.TargetLayerName);
+
+		return nullptr;
+	}
+
 	// ------------------------------------------------------------------------------------------------------------------
 	// Layer controls
 	// ------------------------------------------------------------------------------------------------------------------
@@ -677,27 +693,21 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 
 	// Fetch the height field data from Houdini into Unreal Space. This data may have already been fetched during landscape
 	// creation, so if it's already present.
-	FHoudiniHeightFieldData HeightFieldData;
 
-	if (!Part.CachedData.IsValid())
-	{
-		HeightFieldData = FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(*Part.HeightField, 
+	const bool bFetchData = !Landscape.bWasCreated || LayerType != TargetLayerType::Height;
+	
+	FHoudiniHeightFieldData HeightFieldData = FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(
+			*Part.HeightField, 
 			Part.SizeInfo.UnrealGridDimensions,
+			bFetchData,
 			LayerType == TargetLayerType::Height);
-	}
-	else
-	{
-		// Move the existing data, which has the effect of delete in the input layer's reference to it. Do this
-		// so we don't have all the layer data loaded at once.
-		HeightFieldData = std::move(*Part.CachedData);
-	}
 
 	// The transform we get from Houdini should be relative to the HDA:
 	HeightFieldData.Transform = HeightFieldData.Transform * HAC.GetComponentTransform();
 
-	// If a new landscape was create, resize the layer to match the created landscape size. (We resize the landscape if it does
+	// If a new landscape was created, resize the layer to match the created landscape size. (We resize the landscape if it does
 	// not fit one of Unreal's predetermined sizes. Only do this for non-tiles.
-	if (Landscape.bWasCreated && !Part.TileInfo.IsSet())
+	if (Landscape.bWasCreated && !Part.TileInfo.IsSet() && bFetchData)
 	{
 		if (Landscape.Dimensions != HeightFieldData.Dimensions)
 			HeightFieldData = FHoudiniLandscapeUtils::ReDimensionLandscape(HeightFieldData, Landscape.Dimensions);
@@ -712,18 +722,6 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	ULandscapeInfo* TargetLandscapeInfo = OutputLandscape->GetLandscapeInfo();
 	if (LayerType == TargetLayerType::Paint || LayerType == TargetLayerType::Visibility)
 	{
-		if (LayerType == TargetLayerType::Paint && TargetLayerInfo == nullptr)
-		{
-			// The target layer doesn't exist, so report an error and do nothing. The target layers are defined by the material
-			// and trying to create new ones is probably not correct. Note, this is different from what we do if a Layer is missing.
-
-			// mask is very common, so silently ignore it.
-			if (Part.TargetLayerName != "mask")
-				HOUDINI_LOG_WARNING(TEXT("Tried to export to a target layer called %s but it does not exist"), *Part.TargetLayerName );
-
-			return nullptr;
-		}
-
 		FGuid LayerGUID;
 		if (OutputLandscape->bCanHaveLayersContent)
 			LayerGUID = UnrealEditLayer->Guid;
@@ -771,29 +769,13 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	}
 
 	// ------------------------------------------------------------------------------------------------------------------
-	// Is this the height layer?
+	// Is this the height layer and we did not create a new landscape, apply it.
 	// ------------------------------------------------------------------------------------------------------------------
 
-	if (LayerType == TargetLayerType::Height)
+	if (LayerType == TargetLayerType::Height && !Landscape.bWasCreated)
 	{
-		// Convert Houdini data to Unreal Quantized format.
 
-		float Range = FHoudiniLandscapeUtils::GetLandscapeHeightRangeInCM(*OutputLandscape);
-
-		float Scale = 100.0f; // Scale from Meters to CM.
-		Scale /= Range; // Remap to -1.0f to 1.0 Range
-
-		FHoudiniLandscapeUtils::RealignHeightFieldData(HeightFieldData.Values, 0.5f, Scale * 0.5f);
-		
-		// Explicitly clamp the values, and report if clamped.
-		bool bClamped = FHoudiniLandscapeUtils::ClampHeightFieldData(HeightFieldData.Values, 0.0, 1.0f);
-		if (bClamped)
-		{
-			HOUDINI_BAKING_WARNING(TEXT("Landscape layer exceeded max heights so was clamped."));
-		}
-
-		// Quantized to 16-bit and set the data.
-		auto QuantizedData = FHoudiniLandscapeUtils::QuantizeNormalizedDataTo16Bit(HeightFieldData.Values);
+		TArray<uint16> QuantizedData = FHoudiniLandscapeUtils::ConvertHeightFieldData(OutputLandscape, HeightFieldData.Values);
 
 		FScopedSetLandscapeEditingLayer Scope(OutputLandscape, UnrealEditLayer->Guid, [&] { OutputLandscape->ForceUpdateLayersContent(); });
 

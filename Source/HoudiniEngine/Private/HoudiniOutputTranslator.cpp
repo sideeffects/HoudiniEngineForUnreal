@@ -440,7 +440,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 				{
 					ALandscapeProxy* OutputLandscape = LayerOutput->Landscape;
 
-					if (OutputLandscape)
+					if (OutputLandscape && !LayerOutput->PropertyAttributes.IsEmpty())
 					{
 						FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(OutputLandscape, LayerOutput->PropertyAttributes);
 						OutputLandscape->GetLandscapeInfo()->FixupProxiesTransform();

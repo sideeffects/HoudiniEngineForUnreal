@@ -33,6 +33,7 @@
 #include "LandscapeDataAccess.h"
 #include "HoudiniAsset.h"
 #include "HoudiniEngineAttributes.h"
+#include "HoudiniEngineTimers.h"
 #include "HoudiniEngineUtils.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "HoudiniPackageParams.h"
@@ -44,6 +45,7 @@
 #include "PackageTools.h"
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
+#include "Async/ParallelFor.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	#include "LandscapeEditLayer.h"
@@ -138,6 +140,8 @@ FHoudiniLandscapeUtils::SetCookedLayersVisibility(UHoudiniAssetComponent& HAC, A
 
 void FHoudiniLandscapeUtils::RealignHeightFieldData(TArray<float>& Data, float ZeroPoint, float Scale)
 {
+	H_SCOPED_FUNCTION_TIMER();
+
 	for(int Index = 0; Index < Data.Num(); Index++)
 	{
 		Data[Index] = Data[Index] * Scale + ZeroPoint;
@@ -147,6 +151,8 @@ void FHoudiniLandscapeUtils::RealignHeightFieldData(TArray<float>& Data, float Z
 
 bool FHoudiniLandscapeUtils::ClampHeightFieldData(TArray<float>& Data, float MinValue, float MaxValue)
 {
+	H_SCOPED_FUNCTION_TIMER();
+
 	TArray<float> Result;
 	bool bClamped = false;
 	Result.SetNumUninitialized(Data.Num());
@@ -162,24 +168,20 @@ bool FHoudiniLandscapeUtils::ClampHeightFieldData(TArray<float>& Data, float Min
 TArray<uint16>
 FHoudiniLandscapeUtils::QuantizeNormalizedDataTo16Bit(const TArray<float>& Data)
 {
+	H_SCOPED_FUNCTION_TIMER();
+
 	TArray<uint16> Result;
 	Result.SetNumUninitialized(Data.Num());
-	for(int Index = 0; Index < Data.Num(); Index++)
-	{
+	ParallelFor(Result.Num(), [&](int Index) {
 		int Quantized = static_cast<int>(Data[Index] * 65535);
 		Result[Index] = FMath::Clamp<int>(Quantized, 0, 65535);
-	}
+	});
+
 	return Result;
 }
 
-static float Convert(int NewValue, int NewMax, int OldMax)
-{
-	float Scale = float(NewValue) / float(NewMax - 1);
-	return (Scale * OldMax);
-}
-
 float 
-FHoudiniLandscapeUtils::GetLandscapeHeightRangeInCM(ALandscape& Landscape)
+FHoudiniLandscapeUtils::GetLandscapeHeightRangeInCM(const ALandscape& Landscape)
 {
 	float Scale = Landscape.GetTransform().GetScale3D().Z;
 
@@ -332,7 +334,7 @@ FHoudiniLandscapeUtils::GetLayerData(ALandscape* Landscape, const FHoudiniExtent
 
 bool
 FHoudiniLandscapeUtils::CalcLandscapeSizeFromHeightFieldSize(
-	const int32 ProposedUnrealSizeX, const int32 ProposedUnrealSizeY, 
+	int32 ProposedUnrealSizeX, int32 ProposedUnrealSizeY, 
 	FHoudiniLandscapeCreationInfo & Info)
 {
 	// TODO: We already know Proposed Size will fit, so some of this function is redundant.
@@ -462,6 +464,8 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 	UWorld * World, 
 	const TArray<ALandscapeProxy*>& LandscapeInputs)
 {
+	H_SCOPED_FUNCTION_TIMER();
+
 	FHoudiniLayersToUnrealLandscapeMapping Result;
 
 	//--------------------------------------------------------------------------------------------------------------------------
@@ -536,17 +540,17 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		// If no height field exists then use the first layer.
 		//---------------------------------------------------------------------------------------------------------------------------------
 
-		FHoudiniHeightFieldPartData* PartForSizing = GetPartWithHeightData(PartsForLandscape);
-		if (!PartForSizing)
+		FHoudiniHeightFieldPartData* HeightPart = GetPartWithHeightData(PartsForLandscape);
+		if (!HeightPart)
 		{
-    		PartForSizing = PartsForLandscape.CreateIterator().Value();
+    		HeightPart = PartsForLandscape.CreateIterator().Value();
 			HOUDINI_BAKING_WARNING(TEXT("No height primitve was found, using %s"), *BaseLayer->TargetLayer);
 		}
 
 		auto LayerPackageParams = PackageParams;
-		LayerPackageParams.ObjectId = PartForSizing->ObjectId;
-		LayerPackageParams.GeoId = PartForSizing->GeoId;
-		LayerPackageParams.PartId = PartForSizing->PartId;
+		LayerPackageParams.ObjectId = HeightPart->ObjectId;
+		LayerPackageParams.GeoId = HeightPart->GeoId;
+		LayerPackageParams.PartId = HeightPart->PartId;
 		LayerPackageParams.SplitStr = CookedLandscapePrefix + LandscapeActorName;
 		FString CookingActorName = LayerPackageParams.GetPackageName();
 
@@ -569,12 +573,12 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		// up World Partition. 
 		//---------------------------------------------------------------------------------------------------------------------------------
 
-		FTransform LocalHeightFieldTransform = GetHeightFieldTransformInUnrealSpace(PartForSizing->HeightField->VolumeInfo, PartForSizing->SizeInfo.UnrealGridDimensions);
+		FTransform LocalHeightFieldTransform = GetHeightFieldTransformInUnrealSpace(HeightPart->HeightField->VolumeInfo, HeightPart->SizeInfo.UnrealGridDimensions);
 
-		if (PartForSizing->TileInfo.IsSet())
+		if (HeightPart->TileInfo.IsSet())
 		{
 			// Adjust the transform of the Landscape actor we are creating if this is a single tile.
-			LocalHeightFieldTransform = GetLandscapeActorTransformFromTileTransform(LocalHeightFieldTransform, PartForSizing->TileInfo.GetValue());
+			LocalHeightFieldTransform = GetLandscapeActorTransformFromTileTransform(LocalHeightFieldTransform, HeightPart->TileInfo.GetValue());
 		}
 		FTransform HACTransform = HAC->GetComponentToWorld();
 		FTransform LandscapeTransform = LocalHeightFieldTransform * HACTransform;
@@ -595,9 +599,9 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 
 		TArray<UPackage*> CreatedPackages;
 
-		PartForSizing->MaterialInstance = AssignGraphicsMaterialsToLandscape(
+		HeightPart->MaterialInstance = AssignGraphicsMaterialsToLandscape(
 			LandscapeActor, 
-			PartForSizing->Materials, 
+			HeightPart->Materials, 
 			PackageParams, 
 			CreatedPackages);
 
@@ -606,21 +610,22 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		TArray<ULandscapeLayerInfoObject*> CreateLayerInfoObjects =
 			CreateTargetLayerInfoAssets(LandscapeActor, PackageParams, PartsForLandscape, CreatedPackages);
 
-		//---------------------------------------------------------------------------------------------------------------------------------
-		// Create an empty, zeroed height field. The actual height field, if supplied, will be applied after the landscape is created
-		// in an Edit Layer.
-		//---------------------------------------------------------------------------------------------------------------------------------
-
-		CreateDefaultHeightField(LandscapeActor, PartForSizing->SizeInfo);
 
 		//---------------------------------------------------------------------------------------------------------------------------------
-		// Set the landscape scale. We will need the actual data for the height field for this, so fetch it and cache it for later.
+		// Fetch the data for the height field and use to create the landscape.
 		//---------------------------------------------------------------------------------------------------------------------------------
 
-		PartForSizing->CachedData = MakeUnique<FHoudiniHeightFieldData>(
-								FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(*PartForSizing->HeightField, PartForSizing->SizeInfo.UnrealGridDimensions, true));
+		FHoudiniHeightFieldData HeightFieldData = FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(
+			*HeightPart->HeightField, HeightPart->SizeInfo.UnrealGridDimensions, true, true);
 
-		FHoudiniLandscapeUtils::AdjustLandscapeTransformToLayerHeight(*LandscapeActor, *PartForSizing, *PartForSizing->CachedData);
+		HeightFieldData = FHoudiniLandscapeUtils::ReDimensionLandscape(HeightFieldData, HeightPart->SizeInfo.UnrealGridDimensions);
+
+		FHoudiniLandscapeUtils::AdjustLandscapeTransformToLayerHeight(*LandscapeActor, *HeightPart, HeightFieldData);
+
+		TArray<uint16> QuantizedData = FHoudiniLandscapeUtils::ConvertHeightFieldData(LandscapeActor, HeightFieldData.Values);
+
+
+		ImportLandscape(LandscapeActor, HeightPart->SizeInfo, QuantizedData);
 
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// Set label. Doing this earlier results in Unreal errors as the Landscape is not fully initialized.
@@ -628,11 +633,12 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 
 		LandscapeActor->SetActorLabel(CookingActorName);
 
+
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// World Partition
 		//---------------------------------------------------------------------------------------------------------------------------------
 
-		SetWorldPartitionGridSize(LandscapeActor, PartForSizing->SizeInfo.WorldPartitionGridSize);
+		SetWorldPartitionGridSize(LandscapeActor, HeightPart->SizeInfo.WorldPartitionGridSize);
 
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// and store the results.
@@ -648,7 +654,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		Output.BakedName = FName(LandscapeActorName);
 		Output.CreatedLayerInfoObjects = CreateLayerInfoObjects;
 		Output.bWasCreated = true;
-		Output.Dimensions = PartForSizing->SizeInfo.UnrealGridDimensions;
+		Output.Dimensions = HeightPart->SizeInfo.UnrealGridDimensions;
 		Result.TargetLandscapes.Add(Output);
 		Result.CreatedPackages = CreatedPackages;
 	}
@@ -669,17 +675,8 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 	return Result;
 }
 
-void FHoudiniLandscapeUtils::CreateDefaultHeightField(ALandscape* LandscapeActor, const FHoudiniLandscapeCreationInfo& Info)
+void FHoudiniLandscapeUtils::ImportLandscape(ALandscape* LandscapeActor, const FHoudiniLandscapeCreationInfo& Info, const TArray<uint16>& Values)
 {
-	// Create an height field of zeros.
-
-	TArray<uint16> Values;
-	int NumPoints = (Info.UnrealGridDimensions.X + 1) * (Info.UnrealGridDimensions.Y + 1);
-	Values.SetNumUninitialized(NumPoints);
-	uint16 ZeroHeight = LandscapeDataAccess::GetTexHeight(0.0f);
-	for (int Index = 0; Index < NumPoints; Index++)
-		Values[Index] = ZeroHeight;
-
 	TMap<FGuid, TArray<uint16>> HeightMapDataPerLayers;
 	HeightMapDataPerLayers.Add(FGuid(), Values);
 
@@ -692,7 +689,7 @@ void FHoudiniLandscapeUtils::CreateDefaultHeightField(ALandscape* LandscapeActor
 	// Now call the UE Import() function to actually create the layer
 	LandscapeActor->Import(
 		LandscapeActor->GetLandscapeGuid(),
-		0, 0, Info.UnrealGridDimensions.X, Info.UnrealGridDimensions.Y,
+		0, 0, Info.UnrealGridDimensions.X - 1, Info.UnrealGridDimensions.Y - 1,
 		Info.NumSectionsPerComponent,
 		Info.NumQuadsPerSection,
 		HeightMapDataPerLayers,
@@ -1047,39 +1044,42 @@ FHoudiniLandscapeUtils::GetVolumeDimensionsInUnrealSpace(const FHoudiniGeoPartOb
 
 FHoudiniHeightFieldData FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(
 	const FHoudiniGeoPartObject& HeightField, 
-	const FIntPoint& UnrealLandscapeDimensions, 
+	const FIntPoint& UnrealLandscapeDimensions,
+	bool bFetchData,
 	bool bTansposeData)
 {
+	H_SCOPED_FUNCTION_TIMER();
+
 	FHoudiniHeightFieldData Result;
 	Result.Dimensions = GetVolumeDimensionsInUnrealSpace(HeightField);
 	Result.Transform = GetHeightFieldTransformInUnrealSpace(HeightField.VolumeInfo, UnrealLandscapeDimensions);
 
-	TArray<float> HoudiniValues;
-	HoudiniValues.SetNumZeroed(Result.GetNumPoints());
-	Result.Values.SetNumZeroed(HoudiniValues.Num());
-
-	auto Status = FHoudiniEngineUtils::HapiGetHeightFieldData(
-							HeightField.GeoId, HeightField.PartId, HoudiniValues);
-	HOUDINI_CHECK_RETURN(Status == HAPI_RESULT_SUCCESS, Result);
-
-
-	Result.Values.SetNum(HoudiniValues.Num());
-
-	if (bTansposeData)
+	if (bFetchData)
 	{
-		int Offset = 0;
-		for(int Y = 0; Y < Result.Dimensions.Y; Y++)
+		TArray<float> HoudiniValues;
+		HoudiniValues.SetNumZeroed(Result.GetNumPoints());
+		Result.Values.SetNumZeroed(HoudiniValues.Num());
+
+		auto Status = FHoudiniEngineUtils::HapiGetHeightFieldData(HeightField.GeoId, HeightField.PartId, HoudiniValues);
+		HOUDINI_CHECK_RETURN(Status == HAPI_RESULT_SUCCESS, Result);
+		Result.Values.SetNum(HoudiniValues.Num());
+
+		if (bTansposeData)
 		{
-			for (int X = 0; X < Result.Dimensions.X; X++)
+			int Offset = 0;
+			for(int Y = 0; Y < Result.Dimensions.Y; Y++)
 			{
-				int HIndex = Y + Result.Dimensions.Y * X;
-				Result.Values[Offset++] = HoudiniValues[HIndex];
+				for (int X = 0; X < Result.Dimensions.X; X++)
+				{
+					int HIndex = Y + Result.Dimensions.Y * X;
+					Result.Values[Offset++] = HoudiniValues[HIndex];
+				}
 			}
 		}
-	}
-	else
-	{
-		Result.Values = HoudiniValues;
+		else
+		{
+			Result.Values = HoudiniValues;
+		}
 	}
 
 	return Result;
@@ -1088,6 +1088,8 @@ FHoudiniHeightFieldData FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(
 FHoudiniHeightFieldData
 FHoudiniLandscapeUtils::ReDimensionLandscape(const FHoudiniHeightFieldData & HeightField, FIntPoint NewDimensions)
 {
+	H_SCOPED_FUNCTION_TIMER();
+
 	FHoudiniHeightFieldData Result;
 	Result.Transform = HeightField.Transform;
 	Result.Dimensions = NewDimensions;
@@ -1095,25 +1097,27 @@ FHoudiniLandscapeUtils::ReDimensionLandscape(const FHoudiniHeightFieldData & Hei
 
 	const float XScale = (float)(HeightField.Dimensions.X - 1) / (Result.Dimensions.X - 1);
 	const float YScale = (float)(HeightField.Dimensions.Y - 1) / (Result.Dimensions.Y - 1);
-	for (int32 Y = 0; Y < Result.Dimensions.Y; ++Y)
+
+	ParallelFor(Result.Dimensions.Y, [&](int Y)
 	{
+		float OldY = Y * YScale;
+		int32 Y0 = FMath::FloorToInt(OldY);
+		int32 Y1 = FMath::Min(FMath::FloorToInt(OldY) + 1, HeightField.Dimensions.Y - 1);
+
 		for (int32 X = 0; X < Result.Dimensions.X; ++X)
 		{
-			float OldY = Y * YScale;
 			float OldX = X * XScale;
 			int32 X0 = FMath::FloorToInt(OldX);
 			int32 X1 = FMath::Min(FMath::FloorToInt(OldX) + 1, HeightField.Dimensions.X - 1);
-			int32 Y0 = FMath::FloorToInt(OldY);
-			int32 Y1 = FMath::Min(FMath::FloorToInt(OldY) + 1, HeightField.Dimensions.Y - 1);
 			float Original00 = HeightField.Values[Y0 * HeightField.Dimensions.X + X0];
 			float Original10 = HeightField.Values[Y0 * HeightField.Dimensions.X + X1];
 			float Original01 = HeightField.Values[Y1 * HeightField.Dimensions.X + X0];
 			float Original11 = HeightField.Values[Y1 * HeightField.Dimensions.X + X1];
 			float NewValue = FMath::BiLerp(Original00, Original10, Original01, Original11, FMath::Fractional(OldX), FMath::Fractional(OldY));
 			Result.Values[Y * Result.Dimensions.X + X] = NewValue;
-
 		}
 	}
+	);
 
 	return Result;
 }
@@ -1510,4 +1514,28 @@ FHoudiniLandscapeUtils::NormalizePaintLayers(TArray<float>& Data, bool bNormaliz
 	}
 	return true;
 
+}
+
+TArray<uint16> FHoudiniLandscapeUtils::ConvertHeightFieldData(const ALandscape* LandscapeActor, const TArray<float>& Values)
+{
+	H_SCOPED_FUNCTION_TIMER();
+
+	float Range = FHoudiniLandscapeUtils::GetLandscapeHeightRangeInCM(*LandscapeActor);
+
+	float Scale = 100.0f; // Scale from Meters to CM.
+	Scale /= Range; // Remap to -1.0f to 1.0 Range
+
+	TArray<float> AlignedValues = Values;
+	FHoudiniLandscapeUtils::RealignHeightFieldData(AlignedValues, 0.5f, Scale * 0.5f);
+
+	// Explicitly clamp the values, and report if clamped.
+	bool bClamped = FHoudiniLandscapeUtils::ClampHeightFieldData(AlignedValues, 0.0, 1.0f);
+	if (bClamped)
+	{
+		HOUDINI_BAKING_WARNING(TEXT("Landscape layer exceeded max heights so was clamped."));
+	}
+
+	// Quantized to 16-bit and set the data.
+	auto QuantizedData = FHoudiniLandscapeUtils::QuantizeNormalizedDataTo16Bit(AlignedValues);
+	return QuantizedData;
 }

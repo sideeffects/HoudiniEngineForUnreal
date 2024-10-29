@@ -4496,8 +4496,8 @@ FHoudiniEngineUtils::HapiSetHeightFieldData(
 
 HAPI_Result
 FHoudiniEngineUtils::HapiGetHeightFieldData(
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	TArray<float>& OutFloatValues)
 {
     H_SCOPED_FUNCTION_TIMER();
