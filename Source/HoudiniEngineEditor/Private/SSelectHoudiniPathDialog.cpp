@@ -336,8 +336,8 @@ SSelectHoudiniPathDialog::FillHoudiniNodeInfo(FHoudiniNodeInfoPtr InNodeInfo)
 		bLookForChildrens = true;
 		break;
 
-	case HAPI_NODETYPE_COPERNICUS:
-		InNodeInfo->NodeType = TEXT("COPERNICUS");
+	case HAPI_NODETYPE_COP:
+		InNodeInfo->NodeType = TEXT("COP");
 		break;
 	}
 
