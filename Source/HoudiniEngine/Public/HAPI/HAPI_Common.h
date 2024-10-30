@@ -500,17 +500,18 @@ HAPI_C_ENUM_TYPEDEF( HAPI_PresetType )
 
 enum HAPI_NodeType
 {
-    HAPI_NODETYPE_ANY       = -1,
-    HAPI_NODETYPE_NONE      = 0,
-    HAPI_NODETYPE_OBJ       = 1 << 0,
-    HAPI_NODETYPE_SOP       = 1 << 1,
-    HAPI_NODETYPE_CHOP      = 1 << 2,
-    HAPI_NODETYPE_ROP       = 1 << 3,
-    HAPI_NODETYPE_SHOP      = 1 << 4,
-    HAPI_NODETYPE_COP       = 1 << 5,
-    HAPI_NODETYPE_VOP       = 1 << 6,
-    HAPI_NODETYPE_DOP       = 1 << 7,
-    HAPI_NODETYPE_TOP       = 1 << 8
+    HAPI_NODETYPE_ANY        = -1,
+    HAPI_NODETYPE_NONE       = 0,
+    HAPI_NODETYPE_OBJ        = 1 << 0,
+    HAPI_NODETYPE_SOP        = 1 << 1,
+    HAPI_NODETYPE_CHOP       = 1 << 2,
+    HAPI_NODETYPE_ROP        = 1 << 3,
+    HAPI_NODETYPE_SHOP       = 1 << 4,
+    HAPI_NODETYPE_COP2       = 1 << 5,
+    HAPI_NODETYPE_VOP        = 1 << 6,
+    HAPI_NODETYPE_DOP        = 1 << 7,
+    HAPI_NODETYPE_TOP        = 1 << 8,
+    HAPI_NODETYPE_COPERNICUS = 1 << 9
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeType )
 typedef int HAPI_NodeTypeBits;
