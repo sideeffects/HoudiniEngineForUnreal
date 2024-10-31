@@ -301,13 +301,14 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 	static FHoudiniHeightFieldData FetchVolumeInUnrealSpace(
 			const FHoudiniGeoPartObject& HeightField, 
             const FIntPoint & UnrealLandscapeDimensions,
-            bool bFetchData,
-            bool bTransposeData);
+            bool bFetchData);
 
     static FIntPoint GetVolumeDimensionsInUnrealSpace(const FHoudiniGeoPartObject& HeightField);
 
     static FHoudiniHeightFieldData ReDimensionLandscape(const FHoudiniHeightFieldData& HeightField, FIntPoint NewDimensions);
-    
+
+    static void TransposeValues(TArray<float> & Values, const FIntPoint & Dimensions);
+
     static FHoudiniMinMax GetHeightFieldRange(const FHoudiniHeightFieldData& HeightField);
 
     static float GetAbsRange(const FHoudiniMinMax& Range, float MaxUsableRange);

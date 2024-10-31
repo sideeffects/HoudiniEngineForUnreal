@@ -616,7 +616,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		//---------------------------------------------------------------------------------------------------------------------------------
 
 		FHoudiniHeightFieldData HeightFieldData = FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(
-			*HeightPart->HeightField, HeightPart->SizeInfo.UnrealGridDimensions, true, true);
+			*HeightPart->HeightField, HeightPart->SizeInfo.UnrealGridDimensions, true);
 
 		HeightFieldData = FHoudiniLandscapeUtils::ReDimensionLandscape(HeightFieldData, HeightPart->SizeInfo.UnrealGridDimensions);
 
@@ -1033,6 +1033,7 @@ FHoudiniLandscapeUtils::GetExtents(
 	return Extents;
 }
 
+
 FIntPoint
 FHoudiniLandscapeUtils::GetVolumeDimensionsInUnrealSpace(const FHoudiniGeoPartObject& HeightField)
 {
@@ -1042,11 +1043,29 @@ FHoudiniLandscapeUtils::GetVolumeDimensionsInUnrealSpace(const FHoudiniGeoPartOb
 	return Dimension;
 }
 
+void FHoudiniLandscapeUtils::TransposeValues(TArray<float> & Values, const FIntPoint & Dimensions)
+{
+	H_SCOPED_FUNCTION_TIMER();
+
+	TArray<float> Result;
+	Result.SetNumUninitialized(Values.Num());
+
+	ParallelFor(Dimensions.Y, [&](int Y)
+	{
+		for(int X = 0; X < Dimensions.X; X++)
+		{
+			int Index1 = X + Dimensions.X * Y;
+			int Index2 = Y + Dimensions.Y * X;
+			Result[Index1] = Values[Index2];
+		}
+	});
+	Values = Result;
+}
+
 FHoudiniHeightFieldData FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(
 	const FHoudiniGeoPartObject& HeightField, 
 	const FIntPoint& UnrealLandscapeDimensions,
-	bool bFetchData,
-	bool bTansposeData)
+	bool bFetchData)
 {
 	H_SCOPED_FUNCTION_TIMER();
 
@@ -1056,30 +1075,12 @@ FHoudiniHeightFieldData FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(
 
 	if (bFetchData)
 	{
-		TArray<float> HoudiniValues;
-		HoudiniValues.SetNumZeroed(Result.GetNumPoints());
-		Result.Values.SetNumZeroed(HoudiniValues.Num());
+		FHoudiniHapiAccessor Accessor(HeightField.GeoId, HeightField.PartId, "");
+		bool bSuccess = Accessor.GetHeightFieldData(Result.Values, Result.GetNumPoints());
 
-		auto Status = FHoudiniEngineUtils::HapiGetHeightFieldData(HeightField.GeoId, HeightField.PartId, HoudiniValues);
-		HOUDINI_CHECK_RETURN(Status == HAPI_RESULT_SUCCESS, Result);
-		Result.Values.SetNum(HoudiniValues.Num());
+		HOUDINI_CHECK_RETURN(bSuccess == true, Result);
 
-		if (bTansposeData)
-		{
-			int Offset = 0;
-			for(int Y = 0; Y < Result.Dimensions.Y; Y++)
-			{
-				for (int X = 0; X < Result.Dimensions.X; X++)
-				{
-					int HIndex = Y + Result.Dimensions.Y * X;
-					Result.Values[Offset++] = HoudiniValues[HIndex];
-				}
-			}
-		}
-		else
-		{
-			Result.Values = HoudiniValues;
-		}
+		TransposeValues(Result.Values, Result.Dimensions);
 	}
 
 	return Result;
@@ -1473,6 +1474,8 @@ void FHoudiniLandscapeUtils::ApplyLocks(UHoudiniLandscapeTargetLayerOutput* Outp
 bool
 FHoudiniLandscapeUtils::NormalizePaintLayers(TArray<float>& Data, bool bNormalize)
 {
+	H_SCOPED_FUNCTION_TIMER();
+
 	if (Data.Num() == 0)
 		return false;
 

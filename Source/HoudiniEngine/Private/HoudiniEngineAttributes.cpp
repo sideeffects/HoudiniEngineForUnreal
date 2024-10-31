@@ -292,17 +292,6 @@ struct FHoudiniAttributeTask
 
 };
 
-template<typename DataType>
-struct FHoudiniAttributeGetTask : public  FHoudiniAttributeTask
-{
-	DataType* Results;
-
-	void DoWork()
-	{
-		bSuccess = Accessor->GetAttributeDataViaSession(Session, *StorageInfo, Results, RawIndex, Count);
-	}
-};
-
 int FHoudiniHapiAccessor::CalculateNumberOfSessions(const HAPI_AttributeInfo& AttributeInfo) const
 {
 	// GetStringBatchSize does not seem to function correctly with multisession. Arrays are slower with more than one session.
@@ -319,13 +308,18 @@ int FHoudiniHapiAccessor::CalculateNumberOfSessions(const HAPI_AttributeInfo& At
 
 int FHoudiniHapiAccessor::CalculateNumberOfTasks(const HAPI_AttributeInfo& AttributeInfo) const
 {
-	// By default assume one task per session.
 	int64 NumSessions = CalculateNumberOfSessions(AttributeInfo);
+	int64 TotalSize = GetHapiSize(AttributeInfo.storage) * AttributeInfo.tupleSize * AttributeInfo.count;
+	return CalculateNumberOfTasks(TotalSize, NumSessions);
+}
+
+int FHoudiniHapiAccessor::CalculateNumberOfTasks(int64 SizeInBytes, int NumSessions) const
+{
+	// By default assume one task per session.
 	int64 NumTasks = NumSessions;
 
 	// Check to see if each session has too much data.
-	int64 TotalSize = GetHapiSize(AttributeInfo.storage) * AttributeInfo.tupleSize * AttributeInfo.count;
-	int64 SizePerSession = TotalSize / NumTasks;
+	int64 SizePerSession = SizeInBytes / NumTasks;
 
 	constexpr int ThriftChunkSize = THRIFT_MAX_CHUNKSIZE;
 
@@ -345,9 +339,9 @@ int FHoudiniHapiAccessor::CalculateNumberOfTasks(const HAPI_AttributeInfo& Attri
 
 	if (SizePerSession > MaxSize)
 	{
-		NumTasks = (TotalSize + MaxSize - 1) / MaxSize;
+		NumTasks = (SizeInBytes + MaxSize - 1) / MaxSize;
 	}
-	return NumTasks;
+	return static_cast<int>(NumTasks);
 }
 
 template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int IndexStart, int IndexCount) const
@@ -513,6 +507,66 @@ bool FHoudiniHapiAccessor::ExecuteTasksWithSessions(TArray<TaskType> & Tasks, in
 	return bSuccess;
 }
 
+struct FHoudiniHeightFieldGetTask : public  FHoudiniAttributeTask
+{
+	float* Results;
+
+	void DoWork()
+	{
+		bSuccess = Accessor->GetHeightFieldDataViaSession(Session, *StorageInfo, Results, RawIndex, Count);
+	}
+};
+
+bool FHoudiniHapiAccessor::GetHeightFieldDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, float* Results, int IndexStart, int IndexCount) const
+{
+	HAPI_Result Result = FHoudiniApi::GetHeightFieldData(Session, NodeId, PartId, Results, IndexStart, IndexCount);
+	return Result == HAPI_Result::HAPI_RESULT_SUCCESS;
+}
+
+bool FHoudiniHapiAccessor::GetHeightFieldData(TArray<float>& Results, int IndexCount)
+{
+	H_SCOPED_FUNCTION_TIMER();
+
+	int64 TotalSize = Results.Num() * sizeof(Results[0]);
+	int64 NumSessions = bAllowMultiThreading ? FHoudiniEngine::Get().GetNumSessions() : 1;
+	int NumTasks = CalculateNumberOfTasks(TotalSize, NumSessions);
+	// Task array.
+	TArray<FAsyncTask<FHoudiniHeightFieldGetTask>> Tasks;
+	Tasks.SetNum(NumTasks);
+
+	Results.SetNumUninitialized(IndexCount);
+
+	for(int64 TaskId = 0; TaskId < NumTasks; TaskId++)
+	{
+		// Fill a task, one per session.
+		FHoudiniHeightFieldGetTask& Task = Tasks[TaskId].GetTask();
+
+		int StartOffset = static_cast<int>(IndexCount * TaskId / NumTasks);
+		int EndOffset = static_cast<int>(IndexCount * (TaskId + 1) / NumTasks);
+		Task.Accessor = this;
+		Task.RawIndex = StartOffset;
+		Task.Results = Results.GetData() + StartOffset;
+		Task.Count = EndOffset - StartOffset;
+		Task.Session = nullptr;
+	}
+
+	bool bSuccess = ExecuteTasksWithSessions(Tasks, NumSessions);
+	if (!bSuccess)
+		Results.Empty();
+
+	return bSuccess;
+}
+
+template<typename DataType>
+struct FHoudiniAttributeGetTask : public  FHoudiniAttributeTask
+{
+	DataType* Results;
+
+	void DoWork()
+	{
+		bSuccess = Accessor->GetAttributeDataViaSession(Session, *StorageInfo, Results, RawIndex, Count);
+	}
+};
 
 template<typename DataType>
 bool FHoudiniHapiAccessor::GetAttributeDataMultiSession(const HAPI_AttributeInfo& AttributeInfo, DataType * Results, int IndexStart, int IndexCount)

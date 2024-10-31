@@ -56,6 +56,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Engine/AssetManager.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
+#include "Async/ParallelFor.h"
 #if WITH_EDITOR
 	#include "EditorLevelUtils.h"
 #endif
@@ -699,8 +700,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	FHoudiniHeightFieldData HeightFieldData = FHoudiniLandscapeUtils::FetchVolumeInUnrealSpace(
 			*Part.HeightField, 
 			Part.SizeInfo.UnrealGridDimensions,
-			bFetchData,
-			LayerType == TargetLayerType::Height);
+			bFetchData);
 
 	// The transform we get from Houdini should be relative to the HDA:
 	HeightFieldData.Transform = HeightFieldData.Transform * HAC.GetComponentTransform();
@@ -726,29 +726,22 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		if (OutputLandscape->bCanHaveLayersContent)
 			LayerGUID = UnrealEditLayer->Guid;
 
-		FScopedSetLandscapeEditingLayer Scope(OutputLandscape, LayerGUID, [&] { OutputLandscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); });
-
-		TArray<uint8> Values;
-		Values.SetNum(HeightFieldData.Values.Num());
-		int XDiff = 1 + Extents.Max.X - Extents.Min.X;
-		int YDiff = 1 + Extents.Max.Y - Extents.Min.Y;
-		int Dest = 0;
-
 		bool bExceededRange = FHoudiniLandscapeUtils::NormalizePaintLayers(HeightFieldData.Values, Part.bNormalizePaintLayers);
 
 		if (bExceededRange)
 			HOUDINI_LOG_WARNING(TEXT("Target layer %s contains values outside the range 0 to 1."), *Part.TargetLayerName);
 
-		for (int Y = 0; Y < YDiff; Y++)
-		{
-			for (int X = 0; X < XDiff; X++)
-			{
-				int Src = Y + X * YDiff;
 
-				float Value = HeightFieldData.Values[Src];
-				Values[Dest++] = static_cast<uint8>(Value * 255);
-			}
-		}
+		TArray<uint8> Values;
+		Values.SetNum(HeightFieldData.Values.Num());
+
+		ParallelFor(Values.Num(), [&](int Index)
+		{
+			float Value = HeightFieldData.Values[Index];
+			Values[Index] = static_cast<uint8>(Value * 255);
+		});
+
+		FScopedSetLandscapeEditingLayer Scope(OutputLandscape, LayerGUID, [&] { OutputLandscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); });
 
 		if (LayerType == TargetLayerType::Visibility)
 		{

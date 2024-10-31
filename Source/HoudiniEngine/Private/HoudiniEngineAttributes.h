@@ -96,11 +96,15 @@ struct FHoudiniHapiAccessor
 
 	TArray<FString> GetAttributeNames(HAPI_AttributeOwner Owner);
 
+	bool GetHeightFieldData(TArray<float>& Values, int IndexCount);
+	bool GetHeightFieldDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, float* Results, int IndexStart, int IndexCount) const;
+
 protected:
 	//
 	// Internal functions.
 
 	int CalculateNumberOfTasks(const HAPI_AttributeInfo& AttributeInfo) const;
+	int CalculateNumberOfTasks(int64 SizeInBytes, int NumSessions) const;
 	int CalculateNumberOfSessions(const HAPI_AttributeInfo& AttributeInfo) const;
 
 	template<typename DataType> bool GetAttributeDataMultiSession(const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int First, int Count);
