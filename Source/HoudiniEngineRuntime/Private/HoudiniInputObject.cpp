@@ -1676,9 +1676,18 @@ UHoudiniInputLandscapeSplinesComponent::Update(UObject * InObject, const FHoudin
 	{
 		for (int32 Idx = 0; Idx < NumControlPoints; ++Idx)
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			TObjectPtr<ULandscapeSplineControlPoint>& ControlPoint = ControlPoints[Idx];
+#else
 			ULandscapeSplineControlPoint const* const ControlPoint = ControlPoints[Idx];
+#endif
 			FHoudiniLandscapeSplineControlPointData& CachedControlPoint = CachedControlPoints[Idx];
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			if (!ControlPoint)
+#else
 			if (!IsValid(ControlPoint))
+#endif
 			{
 				// Reset entry to default
 				CachedControlPoint = {};

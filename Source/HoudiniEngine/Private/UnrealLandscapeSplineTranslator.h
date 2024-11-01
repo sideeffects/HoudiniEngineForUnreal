@@ -62,7 +62,11 @@ public:
 
 	/** Add an entry to each array with the property values from InControlPoint. */
 	bool AddControlPointData(
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		TObjectPtr<ULandscapeSplineControlPoint>& InControlPoint,
+#else
 		const ULandscapeSplineControlPoint* InControlPoint,
+#endif
 		int32 InControlPointIndex,
 		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 		int32& InNextControlPointId);
