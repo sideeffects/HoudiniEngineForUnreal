@@ -422,7 +422,7 @@ FHoudiniLandscapeRuntimeUtils::GetOrGenerateValidControlPointId(
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	const TSoftObjectPtr<ULandscapeSplineControlPoint> ControlPointPtr(InControlPoint.Get());
 #else
-	sconst TSoftObjectPtr<ULandscapeSplineControlPoint> ControlPointPtr(InControlPoint);
+	const TSoftObjectPtr<ULandscapeSplineControlPoint> ControlPointPtr(InControlPoint);
 #endif
 	int32 ControlPointId = INDEX_NONE;
 	if (int32 const* const ControlPointIdPtr = InControlPointIdMap.Find(ControlPointPtr))
