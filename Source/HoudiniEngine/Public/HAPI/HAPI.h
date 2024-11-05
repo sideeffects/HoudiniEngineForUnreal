@@ -4360,10 +4360,15 @@ HAPI_DECL HAPI_SetPreset( const HAPI_Session * session,
                           const char * buffer,
                           int buffer_length );
 
-/// @brief  Gets the number of presets in an IDX file.
-///         HAPI_GetPresetNames() should be called before 
-///         HAPI_GetPresetCount() is called again to prevent 
-///         the previous values from being overwritten.
+/// @brief  Gets the number of presets in an IDX file. When this method is
+///         called, the names of the presets are stored in a single internal
+///         buffer from which they can be retrieved by calling
+///         HAPI_GetPresetNames().
+///         
+///         Note that calling HAPI_GetPresetCount() will overwrite the preset
+///         names that were previously stored in the internal buffer. Therefore,
+///         ensure that you have called HAPI_GetPresetNames() before calling
+///         HAPI_GetPresetCount() again.
 ///
 /// @ingroup Presets
 ///
@@ -4374,7 +4379,7 @@ HAPI_DECL HAPI_SetPreset( const HAPI_Session * session,
 ///                 <!-- default NULL -->
 ///
 /// @param[in]      buffer
-///                 Buffer to hold the preset data.
+///                 A buffer containing the raw binary data of the .idx file.
 ///
 /// @param[in]      buffer_length
 ///                 Size of the buffer.
@@ -4387,7 +4392,9 @@ HAPI_DECL HAPI_GetPresetCount( const HAPI_Session * session,
                                int buffer_length,
                                int * count );
 
-/// @brief  Gets the names of presets in an IDX file
+/// @brief  Gets the names of presets in an IDX file. HAPI_GetPresetCount() must
+///         be called before calling this method. See the HAPI_GetPresetCount()
+///         documentation for more information.
 ///
 /// @ingroup Presets
 ///
@@ -4398,7 +4405,9 @@ HAPI_DECL HAPI_GetPresetCount( const HAPI_Session * session,
 ///                 <!-- default NULL -->
 ///
 /// @param[in]      buffer
-///                 Buffer to hold the preset data.
+///                 A buffer containing the raw binary data of the .idx file.
+///                 This should be the same buffer that was passed into
+///                 HAPI_GetPresetCount().
 ///
 /// @param[in]      buffer_length
 ///                 Size of the buffer.
