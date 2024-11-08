@@ -10954,8 +10954,9 @@ HAPI_DECL HAPI_GetMaterialInfo( const HAPI_Session * session,
 ///
 /// @ingroup Materials
 ///
-///         Note that you must call this first for any of the other material
-///         APIs to work.
+///         Note that you must call this method,
+///         ::HAPI_RenderCOPOutputToImage(), or ::HAPI_RenderTextureToImage()
+///         before any of the other material APIs.
 ///
 /// @param[in]      session
 ///                 The session of Houdini you are interacting with.
@@ -10969,13 +10970,41 @@ HAPI_DECL HAPI_GetMaterialInfo( const HAPI_Session * session,
 HAPI_DECL HAPI_RenderCOPToImage( const HAPI_Session * session,
                                  HAPI_NodeId cop_node_id );
 
+/// @brief  Render a single texture from a COP to an image for
+///         later extraction. COPs may have multiple outputs,
+///         so this method lets you select which output to use.
+///
+/// @ingroup Materials
+///
+///         Note that you must call this method,
+///         ::HAPI_RenderCOPToImage(), or ::HAPI_RenderTextureToImage()
+///         before any of the other material APIs.
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      cop_node_id
+///                 The COP node id.
+///
+/// @param[in]      cop_output_name
+///                 The name of the output to extract. Passing in
+///                 an empty string will default to the COP's first output.
+///
+HAPI_DECL HAPI_RenderCOPOutputToImage( const HAPI_Session * session,
+                                       HAPI_NodeId cop_node_id,
+                                       const char * cop_output_name );
+
 /// @brief  Render only a single texture to an image for later extraction.
 ///         An example use of this method might be to render the diffuse,
 ///         normal, and bump texture maps of a material to individual
 ///         texture files for use within the client application.
 ///
-///         Note that you must call this first for any of the other material
-///         APIs to work.
+///         Note that you must call this method,
+///         ::HAPI_RenderCOPToImage(), or ::HAPI_RenderCOPOutputToImage()
+///         before any of the other material APIs.
 ///
 /// @ingroup Materials
 ///
@@ -11001,8 +11030,9 @@ HAPI_DECL HAPI_RenderTextureToImage( const HAPI_Session * session,
 ///         resolution and default file format. This information will be
 ///         used when extracting planes to an image.
 ///
-///         Note that you must call ::HAPI_RenderTextureToImage() first for
-///         this method call to make sense.
+///         Note that you must call one of ::HAPI_RenderTextureToImage(),
+///         ::HAPI_RenderCOPToImage(), or ::HAPI_RenderCOPOutputToImage()
+///         first for this method call to make sense.
 ///
 /// @ingroup Materials
 ///
@@ -11026,8 +11056,9 @@ HAPI_DECL HAPI_GetImageInfo( const HAPI_Session * session,
 ///         This information will be used when extracting planes to
 ///         an image.
 ///
-///         Note that you must call ::HAPI_RenderTextureToImage() first for
-///         this method call to make sense.
+///         Note that you must call one of ::HAPI_RenderTextureToImage(),
+///         ::HAPI_RenderCOPToImage(), or ::HAPI_RenderCOPOutputToImage()
+///         first for this method call to make sense.
 ///
 ///         You should also first call ::HAPI_GetImageInfo() to get the
 ///         current Image Info and change only the properties
@@ -11053,8 +11084,9 @@ HAPI_DECL HAPI_SetImageInfo( const HAPI_Session * session,
 
 /// @brief  Get the number of image planes for the just rendered image.
 ///
-///         Note that you must call ::HAPI_RenderTextureToImage() first for
-///         this method call to make sense.
+///         Note that you must call one of ::HAPI_RenderTextureToImage(),
+///         ::HAPI_RenderCOPToImage(), or ::HAPI_RenderCOPOutputToImage()
+///         first for this method call to make sense.
 ///
 /// @ingroup Materials
 ///
@@ -11076,8 +11108,9 @@ HAPI_DECL HAPI_GetImagePlaneCount( const HAPI_Session * session,
 
 /// @brief  Get the names of the image planes of the just rendered image.
 ///
-///         Note that you must call ::HAPI_RenderTextureToImage() first for
-///         this method call to make sense.
+///         Note that you must call one of ::HAPI_RenderTextureToImage(),
+///         ::HAPI_RenderCOPToImage(), or ::HAPI_RenderCOPOutputToImage()
+///         first for this method call to make sense.
 ///
 ///         You should also call ::HAPI_GetImagePlaneCount() first to get
 ///         the total number of image planes so you know how large the
@@ -11110,8 +11143,9 @@ HAPI_DECL HAPI_GetImagePlanes( const HAPI_Session * session,
 
 /// @brief  Extract a rendered image to a file.
 ///
-///         Note that you must call ::HAPI_RenderTextureToImage() first for
-///         this method call to make sense.
+///         Note that you must call one of ::HAPI_RenderTextureToImage(),
+///         ::HAPI_RenderCOPToImage(), or ::HAPI_RenderCOPOutputToImage()
+///         first for this method call to make sense.
 ///
 /// @ingroup Materials
 ///
@@ -11234,8 +11268,9 @@ HAPI_DECL HAPI_GetImageFilePath( const HAPI_Session * session,
 
 /// @brief  Extract a rendered image to memory.
 ///
-///         Note that you must call ::HAPI_RenderTextureToImage() first for
-///         this method call to make sense.
+///         Note that you must call one of ::HAPI_RenderTextureToImage(),
+///         ::HAPI_RenderCOPToImage(), or ::HAPI_RenderCOPOutputToImage()
+///         first for this method call to make sense.
 ///
 ///         Also note that this function will do all the work of
 ///         extracting and compositing the image into a memory buffer
@@ -11296,8 +11331,9 @@ HAPI_DECL HAPI_ExtractImageToMemory( const HAPI_Session * session,
 /// @brief  Fill your allocated buffer with the just extracted
 ///         image buffer.
 ///
-///         Note that you must call ::HAPI_RenderTextureToImage() first for
-///         this method call to make sense.
+///         Note that you must call one of ::HAPI_RenderTextureToImage(),
+///         ::HAPI_RenderCOPToImage(), or ::HAPI_RenderCOPOutputToImage()
+///         first for this method call to make sense.
 ///
 ///         Also note that you must call ::HAPI_ExtractImageToMemory()
 ///         first in order to perform the extraction and get the
