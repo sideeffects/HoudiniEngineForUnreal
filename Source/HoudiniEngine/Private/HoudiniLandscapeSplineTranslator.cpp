@@ -948,6 +948,8 @@ FHoudiniLandscapeSplineTranslator::CopySegmentMeshAttributesFromHoudini(
 				AllSegmentMeshData[Index].Meshes.Add(SegmentMeshData);
 
 		}
+
+		MeshIndex++;
 	}
 
 	AllSegmentMeshData.Shrink();
