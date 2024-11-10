@@ -627,6 +627,13 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 
 		ImportLandscape(LandscapeActor, HeightPart->SizeInfo, QuantizedData);
 
+		// Rename the default height layer if needed.
+		const FString DefaultLayerName = TEXT("Layer");
+		if (!LandscapeActor->LandscapeLayers.IsEmpty() && HeightPart->UnrealLayerName != DefaultLayerName)
+		{
+			LandscapeActor->LandscapeLayers[0].Name = FName(HeightPart->UnrealLayerName);
+		}
+
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// Set label. Doing this earlier results in Unreal errors as the Landscape is not fully initialized.
 		//---------------------------------------------------------------------------------------------------------------------------------
