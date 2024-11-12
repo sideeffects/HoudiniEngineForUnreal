@@ -633,8 +633,13 @@ bool FHoudiniEditorTestLandscapes_EditLayers::RunTest(const FString& Parameters)
 
 		// check Edit Layer
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayerCount(), 1);
+			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayerConst(0)->Name.ToString(), FString(TEXT("Edit Layer")));
+#else
 			HOUDINI_TEST_EQUAL(LandscapeActor->LandscapeLayers.Num(), 1);
 			HOUDINI_TEST_EQUAL(LandscapeActor->LandscapeLayers[0].Name.ToString(), FString(TEXT("Edit Layer")));
+#endif
 		}
 		return true;
 	}));
