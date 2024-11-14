@@ -302,6 +302,8 @@ struct FHoudiniTestContext
 		const FTransform& Transform,
 		bool bOpenWorld);
 
+	FHoudiniTestContext(FAutomationTestBase* CurrentTest, const FString& MapName);
+
 	FHoudiniTestContext(FAutomationTestBase* CurrentTest,	bool bOpenWorld);
 
 	~FHoudiniTestContext();

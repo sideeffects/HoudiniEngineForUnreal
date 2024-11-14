@@ -384,7 +384,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	//--------------------------------------------------------------------------------------------------
 
 	if (!SendTargetLayersToHoudini(LandscapeProxy, HeightFieldId, PartId, MergeId, MaskId, Options, HeightfieldVolumeInfo, XSize, YSize, MergeInputIndex))
-	return false;
+		return false;
 
 	//--------------------------------------------------------------------------------------------------
 	// Create height field input for each editable landscape layer

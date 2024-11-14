@@ -40,9 +40,11 @@ public:
     static TArray<float> CreateExpectedHeightValues(const FIntPoint& ExpectedSize, float HeightScale);
 
     // Functions for getting and setting paint layers
-    static TArray<float> GetLandscapePaintLayerValues(ALandscape* LandscapeActor, const FString & LayerName);
+    static TArray<float> GetLandscapePaintLayerValues(ALandscape* LandscapeActor, const FString & TargetLayerName);
     static TArray<float> CreateExpectedPaintLayer1Values(const FIntPoint& ExpectedSize);
     static TArray<float> CreateExpectedPaintLayer2Values(const FIntPoint& ExpectedSize);
+
+    static TArray<float> GetLandscapeEditLayerValues(ALandscape* LandscapeActor, const FString& EditLayer, const FString& TargetLayerName, const FIntPoint & Size);
 
     static ULandscapeLayerInfoObject* GetLayerInfo(ALandscape* LandscapeActor, const FString& LayerName);
 

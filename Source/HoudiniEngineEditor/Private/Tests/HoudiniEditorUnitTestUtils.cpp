@@ -223,6 +223,40 @@ UHoudiniParameter* FHoudiniEditorUnitTestUtils::GetTypedParameter(UHoudiniAssetC
 
 FHoudiniTestContext::FHoudiniTestContext(
 	FAutomationTestBase* CurrentTest,
+	const FString& MapName)
+{
+	World = UEditorLoadingAndSavingUtils::NewMapFromTemplate(MapName, false);
+	this->bCookInProgress = true;
+	this->bPostOutputDelegateCalled = true;
+	Test = CurrentTest;
+	TimeStarted = FPlatformTime::Seconds();
+
+	// Find Houdini Asset Actor and then component.
+	for(TActorIterator<AActor> ActorItr(World, AHoudiniAssetActor::StaticClass()); ActorItr; ++ActorItr)
+	{
+		AActor* FoundActor = *ActorItr;
+		if(FoundActor)
+		{
+			HAC = FoundActor->FindComponentByClass<UHoudiniAssetComponent>();
+			break;
+		}
+	}
+
+	if(!HAC)
+		return;
+
+	OutputDelegateHandle = HAC->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniAssetComponent* _HAC, bool  bSuccess)
+		{
+			this->bPostOutputDelegateCalled = true;
+		});
+
+	// Set time last so we don't include instantiation time.
+	TimeStarted = FPlatformTime::Seconds();
+
+}
+
+FHoudiniTestContext::FHoudiniTestContext(
+	FAutomationTestBase* CurrentTest,
 	bool bOpenWorld)
 {
 	World = FHoudiniEditorUnitTestUtils::CreateEmptyMap(bOpenWorld);
@@ -231,7 +265,6 @@ FHoudiniTestContext::FHoudiniTestContext(
 	Test = CurrentTest;
 	TimeStarted = FPlatformTime::Seconds();
 }
-
 FHoudiniTestContext::FHoudiniTestContext(
 	FAutomationTestBase* CurrentTest, 
 	const FString & HDAName,
