@@ -4415,7 +4415,7 @@ HAPI_DECL HAPI_GetPresetCount( const HAPI_Session * session,
 /// @param[out]     preset_names_array
 ///                 Array of preset names to be filled      
 ///
-/// @param[in]      count
+/// @param[in]      preset_names_count
 ///                 Number of presets in the file. Should be the same as 
 ///                 the count returned by ::HAPI_GetPresetCount()
 ///
@@ -4423,7 +4423,7 @@ HAPI_DECL HAPI_GetPresetNames( const HAPI_Session * session,
                                const char * buffer,
                                int buffer_length,
                                HAPI_StringHandle * preset_names_array,
-                               int count );
+                               int preset_names_count );
 
 /// @defgroup Objects
 /// Functions for working with OBJ Nodes
