@@ -1893,7 +1893,22 @@ FHoudiniEngineUtils::GetSubAssetNames(
 		return false;
 	}
 
-	return true;
+	// Recipes show as subassets - and can't be instantiated by HAPI (even potentially crash?)
+	// So, get all the subasset names - and remove the recipes (::Data/) from the list
+	FString RecipeString = TEXT("::Data/");
+	for (int32 n = OutAssetNames.Num() - 1; n >= 0; n--)
+	{
+		// Get the name string
+		FHoudiniEngineString HapiStr(OutAssetNames[n]);
+		FString AssetName;
+		HapiStr.ToFString(AssetName, FHoudiniEngine::Get().GetSession());
+		
+		// If the HDA names matches the "recipes" substring - remove this subasset from the list to prevent its instantiation
+		if (AssetName.Contains(RecipeString))
+			OutAssetNames.RemoveAt(n);
+	}
+
+	return OutAssetNames.Num() > 0;
 }
 
 

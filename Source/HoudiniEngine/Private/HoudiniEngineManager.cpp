@@ -915,14 +915,12 @@ FHoudiniEngineManager::StartTaskAssetInstantiation(UHoudiniAsset* HoudiniAsset, 
 	// Should we show the multi asset dialog?
 	bool bShowMultiAssetDialog = false;
 
-	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 	if (HoudiniRuntimeSettings && AssetNames.Num() > 1)
 		bShowMultiAssetDialog = HoudiniRuntimeSettings->bShowMultiAssetDialog;
 
-	// TODO: Add multi selection dialog
 	if (bShowMultiAssetDialog )
 	{
-		// TODO: Implement
 		FHoudiniEngineUtils::OpenSubassetSelectionWindow(AssetNames, PickedAssetName);
 	}
 #endif
