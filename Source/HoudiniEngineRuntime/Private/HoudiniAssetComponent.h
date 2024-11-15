@@ -522,7 +522,9 @@ protected:
 
 	void UpdateDormantStatus();
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
 	ILevelInstanceInterface* GetLevelInstance() const;
+#endif
 
 public:
 

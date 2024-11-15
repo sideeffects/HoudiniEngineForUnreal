@@ -45,7 +45,9 @@
 #include "Misc/ScopedSlowTask.h"
 #include "Containers/Ticker.h"
 #include "HAL/IConsoleManager.h"
-#include "LevelInstance/LevelInstanceInterface.h"
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
+	#include "LevelInstance/LevelInstanceInterface.h"
+#endif
 
 #if WITH_EDITOR
 	#include "Editor.h"
@@ -510,6 +512,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-NeedInstantiation);
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
 			// If this HDA is part of an uneditable level instance, mark it as dormant.
 			auto * LevelInstance = HAC->GetLevelInstance();
 			if (LevelInstance && !LevelInstance->IsEditing())
@@ -517,6 +520,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 				HAC->SetAssetState(EHoudiniAssetState::Dormant);
 				break;
 			}
+#endif
 
 			// Do nothing unless the HAC has been updated
 			if (HAC->NeedUpdate())

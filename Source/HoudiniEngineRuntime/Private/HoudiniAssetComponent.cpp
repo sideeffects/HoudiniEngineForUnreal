@@ -80,7 +80,9 @@
 
 #include "ComponentReregisterContext.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
-#include "LevelInstance/LevelInstanceInterface.h"
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
+	#include "LevelInstance/LevelInstanceInterface.h"
+#endif
 #include "LevelInstance/LevelInstanceSubsystem.h"
 
 // Macro to update given properties on all children components of the HAC.
@@ -2588,6 +2590,7 @@ UHoudiniAssetComponent::HandleOnPostBake(bool bInSuccess)
 		OnPostBakeDelegate.Broadcast(this, bInSuccess);
 }
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
 ILevelInstanceInterface*
 UHoudiniAssetComponent::GetLevelInstance() const
 {
@@ -2607,13 +2610,16 @@ UHoudiniAssetComponent::GetLevelInstance() const
 
 	return LevelInstanceSystem->GetOwningLevelInstance(Actor->GetLevel());
 }
+#endif
 
 void
 UHoudiniAssetComponent::UpdateDormantStatus()
 {
 #if WITH_EDITOR
 	// This function checks if we should go into or out of doermant status.
-
+#if (ENGINE_MAJOR_VERSION <= 5 && ENGINE_MINOR_VERSION < 1)
+	return;
+#else
 	ILevelInstanceInterface* LevelInstance = GetLevelInstance();
 	if (!LevelInstance)
 		return;
@@ -2634,5 +2640,6 @@ UHoudiniAssetComponent::UpdateDormantStatus()
 		if (!LevelInstance->IsEditing())
 			this->SetAssetState(EHoudiniAssetState::Dormant);
 	}
+#endif
 #endif
 }
