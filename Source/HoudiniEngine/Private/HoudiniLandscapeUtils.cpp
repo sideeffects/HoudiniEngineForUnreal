@@ -45,6 +45,7 @@
 #include "PackageTools.h"
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
+#include "LandscapeUtils.h"
 #include "Async/ParallelFor.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
@@ -607,10 +608,6 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 
 		LandscapeActor->CreateLandscapeInfo();
 
-		TArray<ULandscapeLayerInfoObject*> CreateLayerInfoObjects =
-			CreateTargetLayerInfoAssets(LandscapeActor, PackageParams, PartsForLandscape, CreatedPackages);
-
-
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// Fetch the data for the height field and use to create the landscape.
 		//---------------------------------------------------------------------------------------------------------------------------------
@@ -626,6 +623,10 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 
 
 		ImportLandscape(LandscapeActor, HeightPart->SizeInfo, QuantizedData);
+
+
+		TArray<ULandscapeLayerInfoObject*> CreateLayerInfoObjects =
+			CreateTargetLayerInfoAssets(LandscapeActor, PackageParams, PartsForLandscape, CreatedPackages);
 
 		// Rename the default height layer if needed.
 		const FString DefaultLayerName = TEXT("Layer");
@@ -859,6 +860,52 @@ TArray<ULandscapeLayerInfoObject*> FHoudiniLandscapeUtils::CreateTargetLayerInfo
 	TMap<FString, FHoudiniHeightFieldPartData*>& PartsForLandscape,
 	TArray<UPackage*>& CreatedPackages)
 {
+#if ENGINE_MAJOR_VERSION  >= 5 && ENGINE_MINOR_VERSION  >= 5
+	TArray<ULandscapeLayerInfoObject*> Results;
+
+	auto* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
+
+	FHoudiniPackageParams LayerPackageParams = PackageParams;
+
+	TSet<FName> LayerNames;
+	LandscapeProxy->GetLandscapeInfo()->ForEachLandscapeProxy([&LayerNames](ALandscapeProxy* LandscapeProxy)
+		{
+			LayerNames.Append(LandscapeProxy->RetrieveTargetLayerNamesFromMaterials());
+			return true;
+		});
+
+	UE::Landscape::FLayerInfoFinder LayerInfoFinder;
+
+	auto LandscapeTargetLayers = LandscapeProxy->GetTargetLayers();
+
+	for(FName TargetLayerName : LayerNames)
+	{
+		// if the landscape info already exists, don't create one.
+		if(LandscapeTargetLayers.Find(TargetLayerName))
+			continue;
+
+		// if the user did not specify the target info, do not create it
+		if(!PartsForLandscape.Contains(TargetLayerName.ToString()))
+			continue;
+
+		// Normally we create packages with a name based off geo/part ids. But this doesn't make sense here
+		// as we're creating a layer info based off the material and name of the landscape.
+		ALandscape* ParentLandscape = LandscapeProxy->GetLandscapeActor();
+		FString PackageName = ParentLandscape->GetName() + FString("_") + TargetLayerName.ToString();
+		FString PackagePath = LayerPackageParams.GetPackagePath();
+		UPackage* Package = nullptr;
+		ULandscapeLayerInfoObject* LandscapeLayerInfo = FindOrCreateLandscapeLayerInfoObject(TargetLayerName.ToString(), PackagePath, PackageName, Package);
+		CreatedPackages.Add(Package);
+
+		FLandscapeTargetLayerSettings LayerSettings(LandscapeLayerInfo);
+		LandscapeProxy->AddTargetLayer(TargetLayerName, LayerSettings);
+		Results.Add(LandscapeLayerInfo);
+	}
+
+	LandscapeInfo->UpdateLayerInfoMap(LandscapeProxy, false);
+
+	return Results;
+#else
 	TArray<ULandscapeLayerInfoObject*> Results;
 
 	auto * LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
@@ -897,11 +944,7 @@ TArray<ULandscapeLayerInfoObject*> FHoudiniLandscapeUtils::CreateTargetLayerInfo
 			if (IsValid(Layer))
 			{
 				Results.Add(Layer);
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
-				LandscapeProxy->AddTargetLayer(TargetLayerSettings.LayerName, FLandscapeTargetLayerSettings(Layer));
-#else
 				LandscapeProxy->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(Layer));
-#endif
 				TargetLayerSettings.LayerInfoObj = Layer;
 			}
 
@@ -911,6 +954,7 @@ TArray<ULandscapeLayerInfoObject*> FHoudiniLandscapeUtils::CreateTargetLayerInfo
 	LandscapeInfo->UpdateLayerInfoMap(LandscapeProxy, false);
 
 	return Results;
+#endif
 }
 
 UPackage* FHoudiniLandscapeUtils::FindOrCreate(const FString& PackageFullPath)
