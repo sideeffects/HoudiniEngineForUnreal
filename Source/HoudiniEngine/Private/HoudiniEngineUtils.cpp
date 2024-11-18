@@ -7142,7 +7142,7 @@ FHoudiniEngineUtils::GetOutputNameAttribute(
 
 	if (InPrimIndex >= 0)
 	{
-		bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, 1, StringData, InPointIndex, Count);
+		bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, 1, StringData, InPrimIndex, Count);
 		if (bSuccess && StringData.Num() > 0)
 		{
 			OutOutputName = StringData[0];
@@ -7150,7 +7150,7 @@ FHoudiniEngineUtils::GetOutputNameAttribute(
 		}
 	}
 
-	bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, StringData, InPointIndex, Count);
+	bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, StringData, 0, Count);
 	if (bSuccess && StringData.Num() > 0)
 	{
 		OutOutputName = StringData[0];
@@ -7172,7 +7172,7 @@ FHoudiniEngineUtils::GetOutputNameAttribute(
 
 	if (InPrimIndex >= 0)
 	{
-		bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, 1, StringData, InPointIndex, Count);
+		bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, 1, StringData, InPrimIndex, Count);
 		if (bSuccess && StringData.Num() > 0)
 		{
 			OutOutputName = StringData[0];
@@ -7180,7 +7180,7 @@ FHoudiniEngineUtils::GetOutputNameAttribute(
 		}
 	}
 
-	bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, StringData, InPointIndex, Count);
+	bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, StringData, 0, Count);
 	if (bSuccess && StringData.Num() > 0)
 	{
 		OutOutputName = StringData[0];
