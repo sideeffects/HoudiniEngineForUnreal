@@ -923,10 +923,7 @@ bool FHoudiniEngineUtils::RenameObject(UObject* Object, const TCHAR* NewName /*=
 		if (Actor->IsPackageExternal())
 		{
 			// There should be no need to choose a specific name for an actor in Houdini Engine, instead setting its label should be enough.
-			if (FHoudiniEngineRuntimeUtils::SetActorLabel(Actor, NewName))
-			{
-				HOUDINI_LOG_WARNING(TEXT("Called SetActorLabel(%s) on external actor %s instead of Rename : Explicit naming of an actor that is saved in its own external package is prone to cause name clashes when submitting the file.)"), NewName, *Actor->GetActorNameOrLabel());
-			}
+			FHoudiniEngineRuntimeUtils::SetActorLabel(Actor, NewName);
 			// Force to return false (make sure nothing in Houdini Engine plugin relies on actor being renamed to provided name)
 			return false;
 		}
