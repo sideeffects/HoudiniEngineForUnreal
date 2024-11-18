@@ -7674,7 +7674,7 @@ FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(
 	// ---------------------------------------------
 
 	FHoudiniHapiAccessor Accessor(InGeoId, InPartId, HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER);
-	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, 1, OutBakeOutlinerFolders, InStart, InCount);
+	bool bSuccess = Accessor.GetAttributeData(InAttributeOwner, 1, OutBakeOutlinerFolders, InStart, InCount);
 	if (bSuccess && OutBakeOutlinerFolders.Num() > 0)
 		return true;
 
