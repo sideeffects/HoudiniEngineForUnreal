@@ -35,6 +35,8 @@
 #include "WorldPartition/DataLayer/WorldDataLayers.h"
 #include "HoudiniPackageParams.h"
 #include "DataLayer/DataLayerEditorSubsystem.h"
+#include "Landscape.h"
+#include "LandscapeStreamingProxy.h"
 
 #if HOUDINI_ENABLE_DATA_LAYERS
 #include "WorldPartition/DataLayer/DataLayerAsset.h"
@@ -63,6 +65,25 @@ void FHoudiniDataLayerUtils::ApplyDataLayersToActor(const FHoudiniPackageParams&
     {
         AddActorToLayer(Params, WorldDataLayers, Actor, Layer);
     }
+
+	if (ALandscape* Landscape = Cast<ALandscape>(Actor))
+	{
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 1
+		TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Landscape->GetLandscapeInfo()->StreamingProxies;
+#else
+		TArray<TObjectPtr<ALandscapeStreamingProxy>> Proxies = Proxy->GetLandscapeInfo()->Proxies;
+#endif
+
+		for(TWeakObjectPtr<ALandscapeStreamingProxy> Child : Proxies)
+		{
+			for(auto& Layer : Layers)
+			{
+				ALandscapeStreamingProxy* LandscapeProxy = Child.Get();
+				AddActorToLayer(Params, WorldDataLayers, Cast<AActor>(LandscapeProxy), Layer);
+			}
+		}
+	}
 #endif
 }
 

@@ -50,11 +50,10 @@
 #include "FoliageType_InstancedStaticMesh.h"
 #include "HoudiniEngineBakeUtils.h"
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestsDataLayers, "Houdini.UnitTests.DataLayers.PDGTest",
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestsPDGDataLayers, "Houdini.UnitTests.DataLayers.PDGTest",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
-
-bool FHoudiniEditorTestsDataLayers::RunTest(const FString& Parameters)
+bool FHoudiniEditorTestsPDGDataLayers::RunTest(const FString& Parameters)
 {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -141,6 +140,58 @@ bool FHoudiniEditorTestsDataLayers::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapeDataLayers, "Houdini.UnitTests.DataLayers.Landscapes",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestLandscapeDataLayers::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString HDAName = TEXT("/Game/TestHDAs/DataLayers/CreateLandscapeWithDataLayers");
+
+	// Now create the test context. This should be the last step before the tests start as it starts the timeout timer. Note
+	// the context live in a SharedPtr<> because each part of the test, in AddCommand(), are executed asyncronously
+	// after the test returns.
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, HDAName, FTransform::Identity, true));
+	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
+	Context->HAC->bEnableProxyStaticMeshOverride = false;
+
+	// HDA Path and kick Cook.
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	// Bake and check results.
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		FHoudiniBakeSettings BakeSettings;
+
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
+		auto& BakedOutput = BakedOutputs[0];
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
+
+		ALandscape* Landscape = Cast<ALandscape>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.Landscape));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(Landscape, return true);
+
+		TArray<FHoudiniUnrealDataLayerInfo> DataLayers = FHoudiniDataLayerUtils::GetDataLayerInfoForActor(Landscape);
+
+		FString ExpectedName(TEXT("TestDataLayer"));
+		HOUDINI_TEST_EQUAL_ON_FAIL(DataLayers.Num(), 1, return true);
+		HOUDINI_TEST_EQUAL(DataLayers[0].Name.Left(ExpectedName.Len()), ExpectedName);
+
+		return true;
+	}));
+
+	return true;
+}
 
 #endif
 

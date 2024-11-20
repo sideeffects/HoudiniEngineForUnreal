@@ -29,6 +29,8 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineAttributes.h"
 #include "WorldPartition/HLOD/HLODLayer.h"
+#include "Landscape.h"
+#include "LandscapeStreamingProxy.h"
 
 void FHoudiniHLODLayerUtils::AddActorToHLOD(AActor* Actor, const FString& AssetRef)
 {
@@ -78,6 +80,26 @@ void FHoudiniHLODLayerUtils::ApplyHLODLayersToActor(const FHoudiniPackageParams&
 	{
 		AddActorToHLOD(Actor, Layer.Name);
 	}
+
+	if(ALandscape* Landscape = Cast<ALandscape>(Actor))
+	{
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 1
+		TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Landscape->GetLandscapeInfo()->StreamingProxies;
+#else
+		TArray<TObjectPtr<ALandscapeStreamingProxy>> Proxies = Proxy->GetLandscapeInfo()->Proxies;
+#endif
+
+		for(TWeakObjectPtr<ALandscapeStreamingProxy> Child : Proxies)
+		{
+			for(auto& Layer : Layers)
+			{
+				ALandscapeStreamingProxy* LandscapeProxy = Child.Get();
+				AddActorToHLOD(Cast<AActor>(LandscapeProxy), Layer.Name);
+			}
+		}
+	}
+
 }
 
 void FHoudiniHLODLayerUtils::SetVexCode(HAPI_NodeId VexNodeId, AActor * Actor)
