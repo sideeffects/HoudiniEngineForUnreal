@@ -49,6 +49,7 @@
 #include "HoudiniEditorUnitTestUtils.h"
 #include "FoliageType_InstancedStaticMesh.h"
 #include "HoudiniEngineBakeUtils.h"
+#include "LandscapeStreamingProxy.h"
 
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestsPDGDataLayers, "Houdini.UnitTests.DataLayers.PDGTest",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
@@ -186,6 +187,28 @@ bool FHoudiniEditorTestLandscapeDataLayers::RunTest(const FString& Parameters)
 		FString ExpectedName(TEXT("TestDataLayer"));
 		HOUDINI_TEST_EQUAL_ON_FAIL(DataLayers.Num(), 1, return true);
 		HOUDINI_TEST_EQUAL(DataLayers[0].Name.Left(ExpectedName.Len()), ExpectedName);
+
+		ULandscapeInfo* Info = Landscape->GetLandscapeInfo();
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+		TArray<TWeakObjectPtr<ALandscapeStreamingProxy>>& Proxies = Info->StreamingProxies;
+		for(auto ProxyPtr : Proxies)
+		{
+			ALandscapeStreamingProxy* Proxy = ProxyPtr.Get();
+#else
+		TArray<ALandscapeStreamingProxy*>& Proxies = Info->Proxies;
+		for(ALandscapeStreamingProxy* Proxy : Proxies)
+		{
+#endif
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(Proxy, return true);
+
+			TArray<FHoudiniUnrealDataLayerInfo> ProxyDataLayers = FHoudiniDataLayerUtils::GetDataLayerInfoForActor(Cast<AActor>(Proxy));
+
+			FString ProxyName(TEXT("TestDataLayer"));
+			HOUDINI_TEST_EQUAL_ON_FAIL(ProxyDataLayers.Num(), 1, return true);
+			HOUDINI_TEST_EQUAL(ProxyDataLayers[0].Name.Left(ProxyName.Len()), ProxyName);
+
+		}
 
 		return true;
 	}));

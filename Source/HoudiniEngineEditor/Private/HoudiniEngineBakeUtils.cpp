@@ -798,8 +798,70 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 		}
 	}
 
-	for (FHoudiniEngineBakedActor& BakedActor : NewBakedActors)
+	// Create package params we will use for data layers and HLODs. Code is simpler if we do this up front.
+	TArray<FHoudiniPackageParams> PackageParams;
+	PackageParams.SetNum(NewBakedActors.Num());
+
+	for (int Index = 0; Index < NewBakedActors.Num(); Index++)
 	{
+		FHoudiniEngineBakedActor& BakedActor = NewBakedActors[Index];
+		UHoudiniOutput* Output = InOutputs[BakedActor.OutputIndex];
+		FHoudiniOutputObject& OutputObject = Output->GetOutputObjects()[BakedActor.OutputObjectIdentifier];
+
+		const bool bHasPreviousBakeData = InBakeState.FindOldBakedOutputObject(BakedActor.OutputIndex, BakedActor.OutputObjectIdentifier) != nullptr;
+
+		const EPackageReplaceMode AssetPackageReplaceMode = BakeSettings.bReplaceAssets ? EPackageReplaceMode::ReplaceExistingAssets : EPackageReplaceMode::CreateNewAssets;
+		FHoudiniAttributeResolver Resolver;
+		FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
+			BakedActor.Actor->GetWorld(),
+			HoudiniAssetComponent,
+			BakedActor.OutputObjectIdentifier,
+			OutputObject,
+			bHasPreviousBakeData,
+			"",
+			PackageParams[Index],
+			Resolver,
+			InBakeFolder.Path,
+			AssetPackageReplaceMode);
+	}
+
+	// Due to a bug in 5.3 and earlier we need to create all the data layers in one go and store their values,
+	// since there seem to be a delay in creating new data layers.
+
+	TMap<FString, UDataLayerInstance*> DataLayerLookup;
+
+	for(int Index = 0; Index < NewBakedActors.Num(); Index++)
+	{
+		FHoudiniEngineBakedActor& BakedActor = NewBakedActors[Index];
+		UHoudiniOutput* Output = InOutputs[BakedActor.OutputIndex];
+		FHoudiniOutputObject& OutputObject = Output->GetOutputObjects()[BakedActor.OutputObjectIdentifier];
+
+		UWorld* World = BakedActor.Actor->GetWorld();
+
+		AWorldDataLayers* WorldDataLayers = World->GetWorldDataLayers();
+		if(!WorldDataLayers)
+		{
+			if (!OutputObject.DataLayers.IsEmpty())
+				HOUDINI_LOG_ERROR(TEXT("Unable to apply Data Layer because this map is not world partitioned."));
+			continue;
+		}
+
+		for(auto& DataLayer : OutputObject.DataLayers)
+		{
+			if (!DataLayerLookup.Contains(DataLayer.Name))
+			{
+				UDataLayerInstance* DataLayerInstance = FHoudiniDataLayerUtils::FindOrCreateDataLayerInstance(PackageParams[Index], WorldDataLayers, DataLayer);
+				if(DataLayerInstance)
+				{
+					DataLayerLookup.Add(DataLayer.Name, DataLayerInstance);
+				}
+			}
+		}
+	}
+
+	for(int Index = 0; Index < NewBakedActors.Num(); Index++)
+	{
+		FHoudiniEngineBakedActor& BakedActor = NewBakedActors[Index];
 		UHoudiniOutput* Output = InOutputs[BakedActor.OutputIndex];
 		FHoudiniOutputObject& OutputObject = Output->GetOutputObjects()[BakedActor.OutputObjectIdentifier];
 
@@ -807,26 +869,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 		
 		if (IsValid(BakedActor.Actor))
 		{
-			const EPackageReplaceMode AssetPackageReplaceMode = BakeSettings.bReplaceAssets
-				? EPackageReplaceMode::ReplaceExistingAssets
-				: EPackageReplaceMode::CreateNewAssets;
-
-			FHoudiniPackageParams PackageParams;
-			FHoudiniAttributeResolver Resolver;
-			FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-				BakedActor.Actor->GetWorld(),
-				HoudiniAssetComponent, 
-				BakedActor.OutputObjectIdentifier,
-				OutputObject,
-				bHasPreviousBakeData,
-				"",
-				PackageParams, 
-				Resolver,
-				InBakeFolder.Path, 
-				AssetPackageReplaceMode);
-
-			FHoudiniDataLayerUtils::ApplyDataLayersToActor(PackageParams, BakedActor.Actor, OutputObject.DataLayers);
-			FHoudiniHLODLayerUtils::ApplyHLODLayersToActor(PackageParams, BakedActor.Actor, OutputObject.HLODLayers);
+			FHoudiniDataLayerUtils::ApplyDataLayersToActor(BakedActor.Actor, OutputObject.DataLayers, DataLayerLookup);
+			FHoudiniHLODLayerUtils::ApplyHLODLayersToActor(PackageParams[Index], BakedActor.Actor, OutputObject.HLODLayers);
 		}
 	}
 	
