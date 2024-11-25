@@ -49,6 +49,24 @@ void FHoudiniHLODLayerUtils::AddActorToHLOD(AActor* Actor, const FString& AssetR
 }
 
 TArray<FHoudiniHLODLayer>
+FHoudiniHLODLayerUtils::GetHLODLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner, int Index)
+{
+	TArray<FString> HLODNames;
+	FHoudiniHapiAccessor Accessor(NodeId, PartId, HAPI_UNREAL_ATTRIB_HLOD_LAYER);
+	Accessor.GetAttributeData(Owner, HLODNames, Index, 1);
+	if(HLODNames.IsEmpty())
+		return {};
+
+	FHoudiniHLODLayer Layer;
+	Layer.Name = HLODNames[0];
+
+	TArray<FHoudiniHLODLayer> Results;
+	Results.Add(Layer);
+	return Results;
+
+}
+
+TArray<FHoudiniHLODLayer>
 FHoudiniHLODLayerUtils::GetHLODLayers(HAPI_NodeId NodeId, HAPI_PartId PartId)
 {
 	TArray<FHoudiniHLODLayer> Results;
@@ -76,11 +94,10 @@ void FHoudiniHLODLayerUtils::ApplyHLODLayersToActor(const FHoudiniPackageParams&
 	if (Layers.Num() == 0)
 		return;
 
-	for (auto& Layer : Layers)
-	{
-		AddActorToHLOD(Actor, Layer.Name);
-	}
+	const FHoudiniHLODLayer & Layer = Layers[0];
 
+	AddActorToHLOD(Actor, Layer.Name);
+	
 	if(ALandscape* Landscape = Cast<ALandscape>(Actor))
 	{
 
@@ -92,11 +109,8 @@ void FHoudiniHLODLayerUtils::ApplyHLODLayersToActor(const FHoudiniPackageParams&
 
 		for(TWeakObjectPtr<ALandscapeStreamingProxy> Child : Proxies)
 		{
-			for(auto& Layer : Layers)
-			{
-				ALandscapeStreamingProxy* LandscapeProxy = Child.Get();
-				AddActorToHLOD(Cast<AActor>(LandscapeProxy), Layer.Name);
-			}
+			ALandscapeStreamingProxy* LandscapeProxy = Child.Get();
+			AddActorToHLOD(Cast<AActor>(LandscapeProxy), Layer.Name);
 		}
 	}
 

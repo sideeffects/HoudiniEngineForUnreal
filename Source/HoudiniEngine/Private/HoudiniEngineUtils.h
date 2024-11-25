@@ -246,9 +246,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			TArray<int32>& OutGroupMembership, bool& OutAllEquals);
 
 		static bool HapiGetGroupMembership(
-			HAPI_NodeId GeoId, const HAPI_PartId & PartId,
+			HAPI_NodeId GeoId, HAPI_PartId PartId,
 			const HAPI_GroupType& GroupType, const FString& GroupName,
-			int32 & OutGroupMembership);
+			int32 & OutGroupMembership, int Start = 0, int Length = 1);
 
 		// HAPI : Given vertex list, retrieve new vertex list for a specified group.
 		// Return number of processed valid index vertices for this split.

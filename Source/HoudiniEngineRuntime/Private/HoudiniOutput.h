@@ -694,11 +694,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		UPROPERTY()
 		UWorld* World = nullptr;
 
-		// Data Layers which should be applied (during Baking only).
+		// Data Layers which should be applied (during Baking only). There can be multiple data layers per actor.
 		UPROPERTY()
 		TArray<FHoudiniDataLayer> DataLayers;
 
-		// HLOD Layers which should be applied (during Baking only).
+		// HLOD Layers which should be applied (during Baking only). Currently UE only supports one HLOD layer
+		// per Actor, but we store this an array, since changing that would cause issues.
 		UPROPERTY()
 		TArray<FHoudiniHLODLayer> HLODLayers;
 

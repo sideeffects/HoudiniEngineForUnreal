@@ -74,6 +74,8 @@
 #include "GeometryCollection/GeometryCollectionRenderLevelSetActor.h"
 #include <cstdint>
 
+#include "HoudiniHLODLayerUtils.h"
+
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
 //
@@ -885,6 +887,8 @@ FHoudiniInstanceTranslator::CreateInstancer(
 		Output.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, Instancers.Settings.BakeFolder);
 	}
 
+	Output.DataLayers = Instancers.Settings.DataLayers;
+	Output.HLODLayers = Instancers.Settings.HLODLayers;
 	return true;
 }
 
@@ -2015,6 +2019,17 @@ FHoudiniInstanceTranslator::GetInstancerSettings(
 		Result.ComponentRelativeTransform.SetIdentity();
 		Result.ComponentRelativeTransform.SetLocation(Location * 100.0);
 	}
+
+	Result.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(HGPO.GeoId, HGPO.PartId, HAPI_GroupType::HAPI_GROUPTYPE_POINT, AttrIndex);
+	if (Result.DataLayers.IsEmpty())
+		Result.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(HGPO.GeoId, HGPO.PartId, HAPI_GroupType::HAPI_GROUPTYPE_PRIM, 0);
+
+	Result.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(HGPO.GeoId, HGPO.PartId, HAPI_ATTROWNER_POINT, AttrIndex);
+	if (Result.HLODLayers.IsEmpty())
+		Result.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(HGPO.GeoId, HGPO.PartId, HAPI_ATTROWNER_PRIM, 0);
+	if(Result.HLODLayers.IsEmpty())
+		Result.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(HGPO.GeoId, HGPO.PartId, HAPI_ATTROWNER_DETAIL, 0);
+
 	return Result;
 }
 

@@ -4794,9 +4794,9 @@ FHoudiniEngineUtils::HapiGetGroupNames(
 }
 
 bool FHoudiniEngineUtils::HapiGetGroupMembership(
-	HAPI_NodeId GeoId, const HAPI_PartId& PartId,
+	HAPI_NodeId GeoId, const HAPI_PartId PartId,
 	const HAPI_GroupType& GroupType, const FString& GroupName,
-	int32 & OutGroupMembership)
+	int32 & OutGroupMembership, int Start, int Length)
 {
 	OutGroupMembership = 0;
 
@@ -4806,7 +4806,7 @@ bool FHoudiniEngineUtils::HapiGetGroupMembership(
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupMembership(
 			FHoudiniEngine::Get().GetSession(),
 			GeoId, PartId, GroupType, ConvertedGroupName.c_str(),
-			&AllEqual, &OutGroupMembership, 0, 1), false);
+			&AllEqual, &OutGroupMembership, Start, Length), false);
 
 	return true;
 }

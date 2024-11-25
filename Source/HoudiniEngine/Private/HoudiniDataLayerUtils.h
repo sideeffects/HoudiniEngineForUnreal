@@ -62,7 +62,7 @@ public:
 	static void ApplyDataLayersToActor(AActor* Actor, TArray<FHoudiniDataLayer>& DataLayers, TMap<FString, UDataLayerInstance*>& DataLayerLookup);
 
 	static TArray<FHoudiniDataLayer> GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId);
-	static TArray<FHoudiniDataLayer> GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_GroupType GroupType);
+	static TArray<FHoudiniDataLayer> GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_GroupType GroupType, int Index);
 
 	// Using this cache, create Houdini Groups for this Actor.
 	static HAPI_NodeId AddGroupsFromDataLayers(AActor* Actor, HAPI_NodeId ParentNodeId, HAPI_NodeId InputNodeId);

@@ -35,6 +35,7 @@ class HOUDINIENGINE_API FHoudiniHLODLayerUtils
 {
 public:
 	static TArray<FHoudiniHLODLayer> GetHLODLayers(HAPI_NodeId NodeId, HAPI_PartId PartId);
+	static TArray<FHoudiniHLODLayer> GetHLODLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner, int Index);
 
 	static void ApplyHLODLayersToActor(const FHoudiniPackageParams& Params, AActor* Actor, const TArray<FHoudiniHLODLayer>& Layers);
 

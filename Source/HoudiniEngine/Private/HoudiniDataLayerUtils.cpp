@@ -147,7 +147,7 @@ void FHoudiniDataLayerUtils::AddActorToLayer(
 #endif
 
 TArray<FHoudiniDataLayer>
-FHoudiniDataLayerUtils::GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_GroupType GroupType)
+FHoudiniDataLayerUtils::GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_GroupType GroupType, int Index)
 {
 	TArray<FHoudiniDataLayer> Results;
 #if HOUDINI_ENABLE_DATA_LAYERS
@@ -166,7 +166,7 @@ FHoudiniDataLayerUtils::GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HA
 		// Is a member of the group?
 		int32 GroupMembership = 0;
 
-		FHoudiniEngineUtils::HapiGetGroupMembership(NodeId, PartId, GroupType, DataLayerName, GroupMembership);
+		FHoudiniEngineUtils::HapiGetGroupMembership(NodeId, PartId, GroupType, DataLayerName, GroupMembership, Index, 1);
 
 		if(GroupMembership == 0)
 			continue;
@@ -195,9 +195,9 @@ FHoudiniDataLayerUtils::GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HA
 TArray<FHoudiniDataLayer>
 FHoudiniDataLayerUtils::GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId)
 {
-	TArray<FHoudiniDataLayer> Results = GetDataLayers(NodeId, PartId, HAPI_GroupType::HAPI_GROUPTYPE_PRIM);
+	TArray<FHoudiniDataLayer> Results = GetDataLayers(NodeId, PartId, HAPI_GroupType::HAPI_GROUPTYPE_PRIM, 0);
 	if (Results.IsEmpty())
-		Results = GetDataLayers(NodeId, PartId, HAPI_GroupType::HAPI_GROUPTYPE_POINT);
+		Results = GetDataLayers(NodeId, PartId, HAPI_GroupType::HAPI_GROUPTYPE_POINT, 0);
 	return Results;
 }
 

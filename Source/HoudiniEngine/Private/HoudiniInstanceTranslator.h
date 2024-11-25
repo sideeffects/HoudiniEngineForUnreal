@@ -94,6 +94,14 @@ public:
 	UPROPERTY()
 	FTransform ComponentRelativeTransform = FTransform::Identity;
 
+	// Data Layers which should be applied (during Baking only).
+	UPROPERTY()
+	TArray<FHoudiniDataLayer> DataLayers;
+
+	// HLOD Layers which should be applied (during Baking only).
+	UPROPERTY()
+	TArray<FHoudiniHLODLayer> HLODLayers;
+
 };
 
 USTRUCT()
