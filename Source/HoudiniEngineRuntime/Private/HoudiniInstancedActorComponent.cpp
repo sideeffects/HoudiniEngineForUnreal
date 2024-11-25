@@ -44,9 +44,10 @@
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
-UHoudiniInstancedActorComponent::UHoudiniInstancedActorComponent( const FObjectInitializer& ObjectInitializer )
-: Super( ObjectInitializer )
-, InstancedObject( nullptr )
+UHoudiniInstancedActorComponent::UHoudiniInstancedActorComponent(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+, InstancedObject(nullptr)
+, InstancedActorClass(nullptr)
 {
 	//
 	// 	Set default component properties.
@@ -130,6 +131,17 @@ UHoudiniInstancedActorComponent::AddReferencedObjects(UObject * InThis, FReferen
 }
 
 
+void
+UHoudiniInstancedActorComponent::SetInstancedObject(class UObject* InObject)
+{
+	if (InObject == InstancedObject)
+		return;
+
+	InstancedObject = InObject;
+	InstancedActorClass = nullptr;
+}
+
+
 int32
 UHoudiniInstancedActorComponent::AddInstance(const FTransform& InstanceTransform, AActor * NewActor)
 {
@@ -145,6 +157,7 @@ UHoudiniInstancedActorComponent::AddInstance(const FTransform& InstanceTransform
 bool
 UHoudiniInstancedActorComponent::SetInstanceAt(const int32& Idx, const FTransform& InstanceTransform, AActor * NewActor)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UHoudiniInstancedActorComponent::SetInstanceAt);
 	if (!IsValid(NewActor))
 		return false;
 
@@ -176,6 +189,7 @@ UHoudiniInstancedActorComponent::SetInstanceTransformAt(const int32& Idx, const 
 void 
 UHoudiniInstancedActorComponent::ClearAllInstances()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UHoudiniInstancedActorComponent::ClearAllInstances);
     for ( AActor* Instance : InstancedActors )
     {
         if (IsValid(Instance))
@@ -192,6 +206,7 @@ UHoudiniInstancedActorComponent::ClearAllInstances()
 void
 UHoudiniInstancedActorComponent::SetNumberOfInstances(const int32& NewInstanceNum)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UHoudiniInstancedActorComponent::SetNumberOfInstances);
 	int32 OldInstanceNum = InstancedActors.Num();
 
 	// If we want less instances than we already have, destroy the extra properly
@@ -217,6 +232,8 @@ UHoudiniInstancedActorComponent::SetNumberOfInstances(const int32& NewInstanceNu
 void 
 UHoudiniInstancedActorComponent::OnComponentCreated()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UHoudiniInstancedActorComponent::OnComponentCreated);
+
     Super::OnComponentCreated();
 
     // If our instances are parented to another actor we should duplicate them

@@ -984,6 +984,8 @@ FHoudiniInstanceTranslator::CreateInstancedActorInstancer(
 	const FHoudiniInstancerPartData& InstancerPartData,
 	USceneComponent* ParentComponent)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInstanceTranslator::CreateInstancedActorInstancer);
+
 	if (!InstanceObject)
 		return false;
 
@@ -1013,9 +1015,7 @@ FHoudiniInstanceTranslator::CreateInstancedActorInstancer(
 	InstancedActorComponent->SetInstancedObject(InstanceObject);
 
 	// Set the number of needed instances
-
 	TArray<FTransform> Transforms = UnpackTransforms(Instancer, InstancerPartData);
-
 	InstancedActorComponent->SetNumberOfInstances(Transforms.Num());
 
 	for (int32 Idx = 0; Idx < Transforms.Num(); Idx++)
@@ -1025,6 +1025,7 @@ FHoudiniInstanceTranslator::CreateInstancedActorInstancer(
 
 		// Get the current instance
 		// If null, we need to create a new one, else we can reuse the actor
+		// TODO: ?? we cant reuse previous actors since we clear everything above?
 		AActor* CurInstance = InstancedActorComponent->GetInstancedActorAt(Idx);
 		if (!IsValid(CurInstance))
 		{
@@ -1722,6 +1723,8 @@ FHoudiniInstanceTranslator::SpawnInstanceActor(
 	UHoudiniInstancedActorComponent* InIAC,
 	const FName Name)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInstanceTranslator::SpawnInstanceActor);
+
 	if (!IsValid(InIAC))
 		return nullptr;
 
@@ -1731,20 +1734,45 @@ FHoudiniInstanceTranslator::SpawnInstanceActor(
 
 	AActor* NewActor = nullptr;
 
-#if WITH_EDITOR
-	// Try to spawn a new actor for the given transform
-	GEditor->ClickLocation = InTransform.GetTranslation();
-	GEditor->ClickPlane = FPlane(GEditor->ClickLocation, FVector::UpVector);
-		
-	TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject(InSpawnLevel, InstancedObject, false, RF_Transactional, nullptr, Name);
-	if (NewActors.Num() > 0)
+	UWorld* SpawnWorld = InSpawnLevel->GetWorld();
+	UClass* InstancedActorClass = InIAC->GetInstancedActorClass();
+	if (InstancedActorClass == nullptr || SpawnWorld == nullptr)
 	{
-		if (IsValid(NewActors[0]))
+#if WITH_EDITOR
+		// Try to spawn a new actor for the given transform
+		GEditor->ClickLocation = InTransform.GetTranslation();
+		GEditor->ClickPlane = FPlane(GEditor->ClickLocation, FVector::UpVector);
+
+		// Using this function lets unreal find the appropriate actor class for us
+		// We only use it for the first instanced actors just to get the best actor class for that object
+		// Once we have that class - it is much faster (~25x) to just use SpawnActor instead
+		TArray<AActor*> NewActors = FLevelEditorViewportClient::TryPlacingActorFromObject(InSpawnLevel, InstancedObject, false, RF_Transactional, nullptr, Name);
+		if (NewActors.Num() > 0)
 		{
-			NewActor = NewActors[0];
+			if (IsValid(NewActors[0]))
+			{
+				NewActor = NewActors[0];
+			}
 		}
-	}
+
+		// Set the instanced actor class on the IAC so we can reuse it
+		if(NewActor)
+			InIAC->SetInstancedActorClass(NewActor->GetClass());
 #endif
+	}
+	else
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.ObjectFlags = RF_Transactional;
+		//SpawnParams.Owner = ComponentOuter;
+		SpawnParams.OverrideLevel = InSpawnLevel;
+		SpawnParams.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Requested;
+		SpawnParams.Template = nullptr;
+		SpawnParams.bNoFail = true;
+		//SpawnParams.Template = nullptr;
+
+		NewActor = SpawnWorld->SpawnActor(InstancedActorClass, &InTransform, SpawnParams);
+	}
 
 	// Make sure that the actor was spawned in the proper level
 	FHoudiniEngineUtils::MoveActorToLevel(NewActor, InSpawnLevel);

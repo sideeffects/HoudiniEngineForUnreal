@@ -212,9 +212,24 @@ FHoudiniEngineRuntime::UnRegisterHoudiniComponent(UHoudiniAssetComponent* HAC)
 
 	FScopeLock ScopeLock(&CriticalSection);
 
-	int32 FoundIdx = RegisteredHoudiniComponents.Find(HAC);
-	if (!RegisteredHoudiniComponents.IsValidIndex(FoundIdx))
+	int32 FoundIdx = -1;
+	for (int32 n = RegisteredHoudiniComponents.Num() - 1; n >= 0; n--)
+	{
+		TWeakObjectPtr<UHoudiniAssetComponent>& CurHAC = RegisteredHoudiniComponents[n];
+		if (!CurHAC.IsStale() || !CurHAC.IsValid())
+		{
+			// Remove stale/invalid HAC from Array?
+			RegisteredHoudiniComponents.RemoveAt(n);
+			continue;
+		}
+
+		if (CurHAC.Get() == HAC)
+			FoundIdx = n;
+	}
+
+	if (FoundIdx < 0 || !RegisteredHoudiniComponents.IsValidIndex(FoundIdx))
 		return;
+
 	HAC->NotifyHoudiniPreUnregister();
 	UnRegisterHoudiniComponent(FoundIdx);
 	HAC->NotifyHoudiniPostUnregister();

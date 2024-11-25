@@ -3786,7 +3786,7 @@ FHoudiniToolsEditor::Shutdown()
 	for  (auto& Entry : CachedTextures)
 	{
 		UTexture2D* CachedTexture = Entry.Value;
-		if (IsValid(CachedTexture))
+		if(CachedTexture && CachedTexture->IsValidLowLevel())
 		{
 			CachedTexture->RemoveFromRoot();
 		}

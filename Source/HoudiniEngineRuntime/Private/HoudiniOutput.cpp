@@ -1243,6 +1243,7 @@ void FHoudiniOutputObject::DestroyCookedData()
 	//--------------------------------------------------------------------------------------------------------------------
 	// Destroy all components
 	//--------------------------------------------------------------------------------------------------------------------
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputObject::DestroyCookedData);
 
 	TArray<UObject*> ComponentsToDestroy;
 
@@ -1321,6 +1322,7 @@ void FHoudiniOutputObject::DestroyCookedData()
 
 void UHoudiniOutput::DestroyCookedData()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UHoudiniOutput::DestroyCookedData);
 	for (auto It : OutputObjects)
 	{
 		FHoudiniOutputObject* FoundOutputObject = &It.Value;

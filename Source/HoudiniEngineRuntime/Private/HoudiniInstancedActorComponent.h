@@ -49,10 +49,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniInstancedActorComponent : public USceneCo
 		static void AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector );
 
 		// Object mutator
-		void SetInstancedObject(class UObject* InObject) { InstancedObject = InObject; }
+		void SetInstancedObject(class UObject* InObject);
+		void SetInstancedActorClass(class UClass* InClass) { InstancedActorClass = InClass; }
 		// Object accessor
 		class UObject* GetInstancedObject() const { return InstancedObject; }
-		
+		class UClass* GetInstancedActorClass() const { return InstancedActorClass; }
 
 		// Instance Accessor
 		TArray<class AActor*>& GetInstancedActorsForWrite() { return InstancedActors; }
@@ -85,6 +86,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniInstancedActorComponent : public USceneCo
 
 		UPROPERTY(VisibleAnywhere, Category = Instances )
 		UObject* InstancedObject;
+
+		UPROPERTY()
+		UClass* InstancedActorClass;
 
 		UPROPERTY(VisibleInstanceOnly, Category = Instances )
 		TArray<AActor*> InstancedActors;
