@@ -216,5 +216,66 @@ bool FHoudiniEditorTestLandscapeDataLayers::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesDataLayers, "Houdini.UnitTests.DataLayers.Instances",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+	
+	bool FHoudiniEditorTestInstancesDataLayers::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString HDAName = TEXT("/Game/TestHDAs/DataLayers/CreateInstancesDataLayers");
+
+	// Now create the test context. This should be the last step before the tests start as it starts the timeout timer. Note
+	// the context live in a SharedPtr<> because each part of the test, in AddCommand(), are executed asyncronously
+	// after the test returns.
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, HDAName, FTransform::Identity, true));
+	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
+	Context->HAC->bEnableProxyStaticMeshOverride = false;
+
+	// HDA Path and kick Cook.
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	// Bake and check results.
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		FHoudiniBakeSettings BakeSettings;
+
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
+		auto& BakedOutput = BakedOutputs[0];
+
+		auto ObjIt = BakedOutput.BakedOutputObjects.begin();
+
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 2, return true);
+		auto& BakedObject0 = ObjIt.Value();
+
+		// Check first output instancer has DataLayer1.
+		AActor * Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject0.Actor));
+		TArray<FHoudiniUnrealDataLayerInfo> DataLayers = FHoudiniDataLayerUtils::GetDataLayerInfoForActor(Actor);
+		HOUDINI_TEST_EQUAL_ON_FAIL(DataLayers.Num(), 1, return true);
+		HOUDINI_TEST_EQUAL(DataLayers[0].Name, TEXT("DataLayer1"));
+
+		// Check second output instanxer has DataLayer2.
+		++ObjIt;
+		auto& BakedObject1 = ObjIt.Value();
+		Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject1.Actor));
+		DataLayers = FHoudiniDataLayerUtils::GetDataLayerInfoForActor(Actor);
+		HOUDINI_TEST_EQUAL_ON_FAIL(DataLayers.Num(), 1, return true);
+		HOUDINI_TEST_EQUAL(DataLayers[0].Name, TEXT("DataLayer2"));
+
+		return true;
+	}));
+
+	return true;
+}
+
 #endif
 
