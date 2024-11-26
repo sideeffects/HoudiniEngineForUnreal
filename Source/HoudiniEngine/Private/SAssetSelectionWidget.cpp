@@ -169,13 +169,23 @@ SAssetSelectionWidget::Construct(const FArguments & InArgs)
 			// We have two sets of :: separators - procede with the chopping
 			if (bHideNameSpace)
 			{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+				ShortAssetNameString.RightChopInline(FirstSepIdx + 2, EAllowShrinking::Yes);
+#else
 				ShortAssetNameString.RightChopInline(FirstSepIdx + 2, true);
+#endif
 				LastSepIdx -= FirstSepIdx + 2;
 			}
 
 			//
 			if (bHideVersion && LastSepIdx >= 0)
+			{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+				ShortAssetNameString.LeftInline(LastSepIdx, EAllowShrinking::Yes);
+#else
 				ShortAssetNameString.LeftInline(LastSepIdx, true);
+#endif
+			}
 		}
 		else if(FirstSepIdx >= 0 && (bHideNameSpace || bHideVersion))
 		{
@@ -212,7 +222,11 @@ SAssetSelectionWidget::Construct(const FArguments & InArgs)
 				}
 				else
 				{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+					ShortAssetNameString.RightChopInline(ManagerSepIdx + 1, EAllowShrinking::Yes);
+#else
 					ShortAssetNameString.RightChopInline(ManagerSepIdx + 1, true);
+#endif
 				}
 			}
 		}
