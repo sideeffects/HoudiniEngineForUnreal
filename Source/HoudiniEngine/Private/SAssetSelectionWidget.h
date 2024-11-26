@@ -95,6 +95,15 @@ protected:
 
 	/** Is set to true if selection process has been cancelled. **/
 	bool bIsCancelled;
+
+	/** Hide name space in the asset name **/
+	bool bHideNameSpace;
+
+	/** Hide version in the asset name **/
+	bool bHideVersion;
+
+	/** Hide node manager type in the asset name **/
+	bool bHideNodeManager;
 };
 
 #endif

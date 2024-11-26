@@ -1939,9 +1939,9 @@ FHoudiniEngineUtils::OpenSubassetSelectionWindow(TArray<HAPI_StringHandle>& Asse
 	TSharedRef<SWindow> Window = SNew(SWindow)
 		.Title(LOCTEXT("WindowTitle", "Select an asset to instantiate"))
 		.ClientSize(FVector2D(640, 480))
-		.SupportsMinimize(false)
-		.SupportsMaximize(false)
-		.HasCloseButton(false);
+		.SupportsMinimize(true)
+		.SupportsMaximize(true)
+		.HasCloseButton(true);
 
 	Window->SetContent(SAssignNew(AssetSelectionWidget, SAssetSelectionWidget)
 		.WidgetWindow(Window)
