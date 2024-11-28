@@ -43,6 +43,12 @@ class UMaterialInstanceConstant;
 class UTexture2D;
 class UTexture;
 class UPackage;
+class UMaterialExpression;
+class UMaterialExpressionMultiply;
+class UMaterialExpressionVectorParameter;
+class UMaterialExpressionScalarParameter;
+class UMaterialExpressionVertexColor;
+class UMaterialExpressionTextureSampleParameter2D;
 
 struct FHoudiniPackageParams;
 struct FCreateTexture2DParameters;
@@ -260,6 +266,64 @@ public:
 		const FHoudiniPackageParams& InPackageParams,
 		FString& OutMaterialName);
 
+	// Create a scalar expression in the material graph, reusing the existing expression if possible.
+	static UMaterialExpressionScalarParameter* CreateScalarExpression(
+		UMaterialExpression* ExistingExpression,
+		UMaterial* Material,
+		const EObjectFlags& ObjectFlag,
+		const FString& GeneratingParameterName);
+
+	// Create a vertex color expression in the material graph, reusing the existing expression if possible.
+	static UMaterialExpressionVertexColor* CreateVertexColorExpression(
+		UMaterialExpression* ExistingExpression,
+		UMaterial* Material,
+		const EObjectFlags& ObjectFlag,
+		const FString& GeneratingParameterName);
+
+	// Create a color expression in the material graph, reusing the existing expression if possible.
+	static UMaterialExpressionVectorParameter* CreateColorExpression(
+		UMaterialExpression* ExistingExpression,
+		UMaterial* Material,
+		const EObjectFlags& ObjectFlag);
+
+	// Set a color expression's color to that of a HAPI color parameter.
+	// Records the GeneratingParameterName if the HAPI parameter is found.
+	// Returns true if successfully set, false otherwise.
+	static bool SetColorExpression(
+		const HAPI_NodeId& NodeId,
+		const char* ParamName,
+		const char* ParamTag,
+		UMaterialExpressionVectorParameter* ColorExpression,
+		FString& GeneratingParameterName);
+
+	// Create a texture from a HAPI material and assign it to an expression in the Unreal material graph.
+	// Records the GeneratingParameterName if the HAPI parameter is found.
+	// Returns true if the expression is successfully created, false otherwise.
+	static bool CreateTextureExpression(
+		// HAPI extraction parameters
+		const HAPI_ParmId ParmTextureId,
+		const HAPI_MaterialInfo& InMaterialInfo,
+		const char* PlaneType,
+		HAPI_ImagePacking ImagePacking,
+		bool bRenderToImage,
+		// Texture creation parameters
+		UMaterialExpression*& MatInputExpression,
+		UMaterialExpressionTextureSampleParameter2D*& TextureExpression,
+		UTexture2D*& Texture,
+		const bool SetMatInputExpression,
+		const HAPI_NodeId InAssetId,
+		const FString& InTextureType,
+		const FHoudiniPackageParams& InPackageParams,
+		const FCreateTexture2DParameters& TextureParameters,
+		const TextureGroup LODGroup,
+		// Sampling expression parameters
+		UMaterial* Material,
+		const EObjectFlags ObjectFlag,
+		FString& GeneratingParameterName,
+		const EMaterialSamplerType SamplerType,
+		// Misc parameters
+		const bool SetBlendModeMasked,
+		TArray<UPackage*>& OutPackages);
 
 	// Create a texture from given information.
 	static UTexture2D* CreateUnrealTexture(
@@ -269,13 +333,53 @@ public:
 		const FString& TextureName,
 		const TArray<char>& ImageBuffer,
 		const FCreateTexture2DParameters& TextureParameters,
-		const TextureGroup& LODGroup,
+		const TextureGroup LODGroup,
 		const FString& TextureType,
 		const FString& NodePath);
 
+	// Connect expressions A, B, and optionally C with multiply expressions.
+	// If C is not provided, creates one multiply. Otherwise, creates two ((A*B)*C).
+	// Returns the last multiply expression in the chain.
+	static UMaterialExpressionMultiply* CreateMultiplyExpressions(
+		UMaterialExpression* MatInputExpression,
+		UMaterialExpression* ExpressionA,
+		UMaterialExpression* ExpressionB,
+		UMaterialExpression* ExpressionC,
+		UMaterial* Material,
+		int32& MaterialNodeY,
+		const EObjectFlags& ObjectFlag);
+
+	// Creates a scalar parameter expression from a HAPI float parameter.
+	// Returns true if the expression was successfully created. False otherwise.
+	static bool CreateScalarExpressionFromFloatParam(
+		HAPI_NodeId Node,
+		const char* ParamName,
+		const char* ParamTag,
+		UMaterialExpression*& MatInputExpression,
+		UMaterial* Material,
+		int32& MaterialNodeY,
+		const EObjectFlags& ObjectFlag);
+
+	// Positions the expressions in the material graph.
+	static void PositionExpression(
+		UMaterialExpression* Expression,
+		int32& MaterialNodeY,
+		const float HorizontalPositionScale);
+
+	// Determines if world space normals are required for the material created from this node.
+	static bool RequiresWorldSpaceNormals(HAPI_NodeId HapiMaterial);
+
+	// Retrieve information based on the planes of the HAPI material.
+	static bool GetPlaneInfo(
+		const HAPI_ParmId ParmTextureId,
+		const HAPI_MaterialInfo& InMaterialInfo,
+		HAPI_ImagePacking& ImagePacking,
+		const char*& PlaneType,
+		bool& bUseAlpha);
+
 	// HAPI : Retrieve a list of image planes.
 	static bool HapiExtractImage(
-		const HAPI_ParmId& NodeParmId,
+		const HAPI_ParmId NodeParmId,
 		const HAPI_MaterialInfo& MaterialInfo,
 		const char * PlaneType,
 		const HAPI_ImageDataFormat& ImageDataFormat,
@@ -285,13 +389,33 @@ public:
 
 	// HAPI : Extract image data.
 	static bool HapiGetImagePlanes(
-		const HAPI_ParmId& NodeParmId, const HAPI_MaterialInfo& MaterialInfo, TArray<FString>& OutImagePlanes);
+		const HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, TArray<FString>& OutImagePlanes);
 	
 	// Returns a unique name for a given material, its relative path (to the asset)
 	static bool GetMaterialRelativePath(
 		const HAPI_NodeId& InAssetId, const HAPI_MaterialInfo& InMaterialNodeInfo, FString& OutRelativePath);
 	static bool GetMaterialRelativePath(
 		const HAPI_NodeId& InAssetId, const HAPI_NodeId& InMaterialNodeId, FString& OutRelativePath);
+
+	// Finds a HAPI parameter based on its name/tag.
+	// Returns its ParmId, ParmInfo, and sets the GeneratingParameterName.
+	static HAPI_ParmId FindParam(
+		const HAPI_NodeId& NodeId,
+		const char* Name,
+		const char* Tag,
+		HAPI_ParmInfo& Info,
+		FString& GeneratingParameterName);
+
+	// Finds a HAPI texture parameter based on its name/tag.
+	// Returns its ParmId, ParmInfo, and sets the GeneratingParameterName.
+	static HAPI_ParmId FindTextureParam(
+		const HAPI_NodeId& NodeId,
+		const char* Name,
+		const char* NameEnabled,
+		const char* Tag,
+		const char* TagEnabled,
+		HAPI_ParmInfo& TextureInfo,
+		FString& GeneratingParameterName);
 
 	// Returns true if a texture parameter was found
 	// Ensures that the texture is not disabled via the "UseTexture" Parm name/tag
