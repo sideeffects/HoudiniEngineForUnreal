@@ -1566,7 +1566,6 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 		return false;
 
 	bool bExpressionCreated = false;
-	float OpacityValue = 1.0f;
 	bool bNeedsTranslucency = false;
 
 	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
@@ -1633,7 +1632,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 	{
 		if (ParmOpacityValueInfo.size > 0 && ParmOpacityValueInfo.floatValuesIndex >= 0)
 		{
-			float OpacityValueRetrieved = 1.0f;
+			float OpacityValue = 1.0f;
 			if (FHoudiniApi::GetParmFloatValues(
 				FHoudiniEngine::Get().GetSession(), InMaterialInfo.nodeId,
 				(float*)&OpacityValue, ParmOpacityValueInfo.floatValuesIndex, 1) == HAPI_RESULT_SUCCESS)
@@ -1645,8 +1644,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 				}
 
 				// Clamp retrieved value.
-				OpacityValueRetrieved = FMath::Clamp<float>(OpacityValueRetrieved, 0.0f, 1.0f);
-				OpacityValue = OpacityValueRetrieved;
+				OpacityValue = FMath::Clamp<float>(OpacityValue, 0.0f, 1.0f);
 
 				// Set expression fields.
 				ExpressionScalarOpacity->DefaultValue = OpacityValue;
