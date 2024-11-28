@@ -1698,10 +1698,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 		ExpressionMultiply->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
 		ExpressionMultiply->MaterialExpressionEditorY = MaterialNodeY;
 
-		ExpressionScalarOpacity->MaterialExpressionEditorX =
-			FHoudiniMaterialTranslator::MaterialExpressionNodeX - FHoudiniMaterialTranslator::MaterialExpressionNodeStepX;
-		ExpressionScalarOpacity->MaterialExpressionEditorY = MaterialNodeY;
-		MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
+		FHoudiniMaterialTranslator::PositionExpression(ExpressionScalarOpacity, MaterialNodeY, 1.0);
 
 		bExpressionCreated = true;
 	}
@@ -1709,9 +1706,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 	{
 		MatInputOpacity.Expression = ExpressionScalarOpacity;
 
-		ExpressionScalarOpacity->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
-		ExpressionScalarOpacity->MaterialExpressionEditorY = MaterialNodeY;
-		MaterialNodeY += FHoudiniMaterialTranslator::MaterialExpressionNodeStepY;
+		FHoudiniMaterialTranslator::PositionExpression(ExpressionScalarOpacity, MaterialNodeY, 0.0);
 
 		bExpressionCreated = true;
 	}
