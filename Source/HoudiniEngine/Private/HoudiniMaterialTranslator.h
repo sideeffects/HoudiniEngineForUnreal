@@ -180,10 +180,10 @@ public:
 		const FHoudiniPackageParams& InPackageParams,
 		const TArray<int32>& InUniqueMaterialIds,
 		const TArray<HAPI_MaterialInfo>& InUniqueMaterialInfos,
-		const TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& InMaterials,
-		const TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& InAllOutputMaterials,
-		TMap<FHoudiniMaterialIdentifier, UMaterialInterface *>& OutMaterials,
-		TArray<UMaterialInterface *> & OutMaterialArray,
+		const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InMaterials,
+		const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials,
+		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& OutMaterials,
+		TArray<UMaterialInterface*> & OutMaterialArray,
 		TArray<UPackage*>& OutPackages,
 		const bool& bForceRecookAll,
 		bool bInTreatExistingMaterialsAsUpToDate=false,
@@ -382,7 +382,7 @@ public:
 	static bool HapiExtractImage(
 		const HAPI_ParmId NodeParmId,
 		const HAPI_MaterialInfo& MaterialInfo,
-		const char * PlaneType,
+		const char* PlaneType,
 		const HAPI_ImageDataFormat& ImageDataFormat,
 		HAPI_ImagePacking ImagePacking,
 		bool bRenderToImage,
@@ -427,11 +427,11 @@ public:
 		const bool& bFindByTag,
 		HAPI_ParmId& OutParmId,
 		HAPI_ParmInfo& OutParmInfo);
-		
+
 protected:
 
 	// Helper function to locate first Material expression of given class within given expression subgraph.
-	static UMaterialExpression * MaterialLocateExpression(UMaterialExpression* Expression, UClass* ExpressionClass);
+	static UMaterialExpression* MaterialLocateExpression(UMaterialExpression* Expression, UClass* ExpressionClass);
 
 	// Create various material components.
 	static bool CreateMaterialComponentDiffuse(
