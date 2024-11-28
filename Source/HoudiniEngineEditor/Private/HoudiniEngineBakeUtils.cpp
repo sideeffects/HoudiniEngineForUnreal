@@ -2360,7 +2360,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 
 			FTransform CurrentTransform = CurrentInstancedActor->GetTransform();
 
-			AActor* NewActor = FHoudiniInstanceTranslator::SpawnInstanceActor(CurrentTransform, DesiredLevel, InIAC);
+			AActor* NewActor = FHoudiniInstanceTranslator::SpawnInstanceActor(CurrentTransform, DesiredLevel, InIAC, CurrentInstancedActor);
 			if (!IsValid(NewActor))
 			{
 				continue;

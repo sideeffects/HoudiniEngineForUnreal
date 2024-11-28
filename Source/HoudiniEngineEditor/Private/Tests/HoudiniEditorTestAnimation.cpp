@@ -142,9 +142,6 @@ bool FHoudiniEditorTestAnimationRoundtrip::RunTest(const FString& Parameters)
 		BakedObjects.GenerateValueArray(BakeOutputObjects);
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakeOutputObjects.Num(), 1, return true);
 
-
-		BakeOutputObjects[0].BakedObject;
-
 		UAnimSequence* AnimSequence  = Cast<UAnimSequence>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakeOutputObjects[0].BakedObject));
 
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(AnimSequence, return true);

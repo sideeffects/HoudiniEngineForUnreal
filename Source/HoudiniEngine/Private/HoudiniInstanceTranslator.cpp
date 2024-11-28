@@ -1022,6 +1022,7 @@ FHoudiniInstanceTranslator::CreateInstancedActorInstancer(
 	TArray<FTransform> Transforms = UnpackTransforms(Instancer, InstancerPartData);
 	InstancedActorComponent->SetNumberOfInstances(Transforms.Num());
 
+	AActor* ReferenceActor = nullptr;
 	for (int32 Idx = 0; Idx < Transforms.Num(); Idx++)
 	{
 		// if we already have an actor, we can reuse it
@@ -1033,7 +1034,7 @@ FHoudiniInstanceTranslator::CreateInstancedActorInstancer(
 		AActor* CurInstance = InstancedActorComponent->GetInstancedActorAt(Idx);
 		if (!IsValid(CurInstance))
 		{
-			CurInstance = SpawnInstanceActor(CurTransform, SpawnLevel, InstancedActorComponent);
+			CurInstance = SpawnInstanceActor(CurTransform, SpawnLevel, InstancedActorComponent, ReferenceActor);
 			InstancedActorComponent->SetInstanceAt(Idx, CurTransform, CurInstance);
 		}
 		else
@@ -1041,6 +1042,9 @@ FHoudiniInstanceTranslator::CreateInstancedActorInstancer(
 			// We can simply update the actor's transform
 			InstancedActorComponent->SetInstanceTransformAt(Idx, CurTransform);	
 		}
+
+		if (!ReferenceActor)
+			ReferenceActor = CurInstance;
 
 		FHoudiniEngineUtils::KeepOrClearActorTags(CurInstance, true, true, &InstancerPartData.GeoPartObject);
 
@@ -1725,6 +1729,7 @@ FHoudiniInstanceTranslator::SpawnInstanceActor(
 	const FTransform& InTransform,
 	ULevel* InSpawnLevel,
 	UHoudiniInstancedActorComponent* InIAC,
+	AActor* InReferenceActor,
 	const FName Name)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInstanceTranslator::SpawnInstanceActor);
@@ -1773,7 +1778,8 @@ FHoudiniInstanceTranslator::SpawnInstanceActor(
 		SpawnParams.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Requested;
 		SpawnParams.Template = nullptr;
 		SpawnParams.bNoFail = true;
-		//SpawnParams.Template = nullptr;
+		// We need to use the previously instantiated actor as template when instantiating a decal material.
+		SpawnParams.Template = InReferenceActor;
 
 		NewActor = SpawnWorld->SpawnActor(InstancedActorClass, &InTransform, SpawnParams);
 	}
