@@ -31,6 +31,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 #include "Engine/TextureDefines.h"
+#include "Engine/EngineTypes.h"
 
 #include <string>
 
