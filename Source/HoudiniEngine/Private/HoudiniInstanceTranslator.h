@@ -453,8 +453,9 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 		// Relies on editor-only functionalities, so this function is not on the IAC itself
 		static AActor* SpawnInstanceActor(
 			const FTransform& InTransform,
-			ULevel* InSpawnLevel, 
+			ULevel* InSpawnLevel,
 			UHoudiniInstancedActorComponent* InIAC,
+			AActor* ReferenceActor,
 			FName Name = NAME_None);
 
 		// Helper functions for generic property attributes

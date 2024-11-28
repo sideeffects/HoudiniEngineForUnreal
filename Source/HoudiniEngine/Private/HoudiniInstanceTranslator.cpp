@@ -2516,6 +2516,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedActorComponent(
 	// Set the number of needed instances
 	InstancedActorComponent->SetNumberOfInstances(InstancedObjectTransforms.Num());
 
+	AActor* ReferenceActor = nullptr;
 	for (int32 Idx = 0; Idx < InstancedObjectTransforms.Num(); Idx++)
 	{
 		// if we already have an actor, we can reuse it
@@ -2526,7 +2527,7 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedActorComponent(
 		AActor* CurInstance = InstancedActorComponent->GetInstancedActorAt(Idx);
 		if (!IsValid(CurInstance))
 		{
-			CurInstance = SpawnInstanceActor(CurTransform, SpawnLevel, InstancedActorComponent);
+			CurInstance = SpawnInstanceActor(CurTransform, SpawnLevel, InstancedActorComponent, ReferenceActor);
 			InstancedActorComponent->SetInstanceAt(Idx, CurTransform, CurInstance);
 		}
 		else
@@ -2534,6 +2535,9 @@ FHoudiniInstanceTranslator::CreateOrUpdateInstancedActorComponent(
 			// We can simply update the actor's transform
 			InstancedActorComponent->SetInstanceTransformAt(Idx, CurTransform);	
 		}
+
+		if (!ReferenceActor)
+			ReferenceActor = CurInstance;
 
 		// Keep or clear tags on the instanced actor
 		FHoudiniEngineUtils::KeepOrClearActorTags(CurInstance, true, true, InstancerHGPO);
@@ -3580,6 +3584,7 @@ FHoudiniInstanceTranslator::SpawnInstanceActor(
 	const FTransform& InTransform,
 	ULevel* InSpawnLevel,
 	UHoudiniInstancedActorComponent* InIAC,
+	AActor* ReferenceActor,
 	const FName Name)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInstanceTranslator::SpawnInstanceActor);
@@ -3626,7 +3631,7 @@ FHoudiniInstanceTranslator::SpawnInstanceActor(
 		//SpawnParams.Owner = ComponentOuter;
 		SpawnParams.OverrideLevel = InSpawnLevel;
 		SpawnParams.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Requested;
-		SpawnParams.Template = nullptr;
+		SpawnParams.Template = ReferenceActor;  // We need to "duplicate" the previously instantiated actor, when we instantiate a decal material.
 		SpawnParams.bNoFail = true;
 		//SpawnParams.Template = nullptr;
 
