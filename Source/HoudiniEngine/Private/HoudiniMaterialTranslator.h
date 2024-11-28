@@ -338,7 +338,7 @@ public:
 		const FString& NodePath);
 
 	// Connect expressions A, B, and optionally C with multiply expressions.
-	// If C is not provided, creates one multiply. Otherwise, creates two ((A*B)*C).
+	// If C is not provided, creates one multiply (A*B). Otherwise, creates two ((A*B)*C).
 	// Returns the last multiply expression in the chain.
 	static UMaterialExpressionMultiply* CreateMultiplyExpressions(
 		UMaterialExpression* MatInputExpression,
@@ -355,7 +355,7 @@ public:
 		HAPI_NodeId Node,
 		const char* ParamName,
 		const char* ParamTag,
-		UMaterialExpression*& MatInputExpression,
+		UMaterialExpression*& ExistingExpression,
 		UMaterial* Material,
 		int32& MaterialNodeY,
 		const EObjectFlags& ObjectFlag);

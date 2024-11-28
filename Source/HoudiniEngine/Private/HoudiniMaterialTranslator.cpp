@@ -3468,7 +3468,7 @@ FHoudiniMaterialTranslator::CreateScalarExpressionFromFloatParam(
 	HAPI_NodeId Node,
 	const char* ParamName,
 	const char* ParamTag,
-	UMaterialExpression*& MatInputExpression,
+	UMaterialExpression*& ExistingExpression,
 	UMaterial* Material,
 	int32& MaterialNodeY,
 	const EObjectFlags& ObjectFlag)
@@ -3493,15 +3493,15 @@ FHoudiniMaterialTranslator::CreateScalarExpressionFromFloatParam(
 
 	// If there's already an input expression, check if it's a scalar expression.
 	UMaterialExpressionScalarParameter* Expression =
-		Cast<UMaterialExpressionScalarParameter>(MatInputExpression);
+		Cast<UMaterialExpressionScalarParameter>(ExistingExpression);
 
 	if (!Expression)
 	{
-		if (MatInputExpression)
+		if (ExistingExpression)
 		{
 			// The input expression is not a scalar expression. Destroy it.
-			MatInputExpression->ConditionalBeginDestroy();
-			MatInputExpression = nullptr;
+			ExistingExpression->ConditionalBeginDestroy();
+			ExistingExpression = nullptr;
 		}
 
 		Expression = NewObject<UMaterialExpressionScalarParameter>(
@@ -3518,7 +3518,7 @@ FHoudiniMaterialTranslator::CreateScalarExpressionFromFloatParam(
 	FHoudiniMaterialTranslator::PositionExpression(Expression, MaterialNodeY, 0.0f);
 
 	_AddMaterialExpression(Material, Expression);
-	MatInputExpression = Expression;
+	ExistingExpression = Expression;
 
 	return true;
 }
