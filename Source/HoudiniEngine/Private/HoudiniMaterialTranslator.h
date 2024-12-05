@@ -294,6 +294,9 @@ public:
 		const HAPI_NodeId& NodeId,
 		const char* ParamName,
 		const char* ParamTag,
+		const char* ParamCPMConst,
+		const char* ParamCPMDefault,
+		const char* ParamCPMSwitch,
 		UMaterialExpressionVectorParameter* ColorExpression,
 		FString& GeneratingParameterName);
 
@@ -356,6 +359,9 @@ public:
 		HAPI_NodeId Node,
 		const char* ParamName,
 		const char* ParamTag,
+		const char* ParamCPMConst,
+		const char* ParamCPMDefault,
+		const char* ParamCPMSwitch,
 		UMaterialExpression*& ExistingExpression,
 		UMaterial* Material,
 		int32& MaterialNodeY,
@@ -398,12 +404,15 @@ public:
 	static bool GetMaterialRelativePath(
 		const HAPI_NodeId& InAssetId, const HAPI_NodeId& InMaterialNodeId, FString& OutRelativePath);
 
-	// Finds a HAPI parameter based on its name/tag.
+	// Finds a HAPI parameter (which represents a constant value for a plane) based on its name/tag.
 	// Returns its ParmId, ParmInfo, and sets the GeneratingParameterName.
-	static HAPI_ParmId FindParam(
+	static HAPI_ParmId FindConstantParam(
 		const HAPI_NodeId& NodeId,
 		const char* Name,
 		const char* Tag,
+		const char* CPMConst,
+		const char* CPMDefault,
+		const char* CPMSwitch,
 		HAPI_ParmInfo& Info,
 		FString& GeneratingParameterName);
 
@@ -415,6 +424,8 @@ public:
 		const char* NameEnabled,
 		const char* Tag,
 		const char* TagEnabled,
+		const char* CPMName,
+		const char* CPMSwitch,
 		HAPI_ParmInfo& TextureInfo,
 		FString& GeneratingParameterName);
 
@@ -425,6 +436,7 @@ public:
 		const std::string& InTextureParmName,
 		const std::string& InUseTextureParmName,
 		const bool& bFindByTag,
+		const bool& bIsCPM,
 		HAPI_ParmId& OutParmId,
 		HAPI_ParmInfo& OutParmInfo);
 

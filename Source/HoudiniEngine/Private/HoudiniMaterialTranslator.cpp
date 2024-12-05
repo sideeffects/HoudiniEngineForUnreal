@@ -1367,10 +1367,21 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 
 	UMaterialExpressionVectorParameter* ExpressionBaseColor =
 		FHoudiniMaterialTranslator::CreateColorExpression(MatInputDiffuse.Expression, Material, ObjectFlag);
+
+	// The diffuse constant color parameter on Principled Shaders is "basecolor", but COP Preview Material's diffuse texture parameter is also "basecolor".
+	// We search for parameters by name without checking the node type. If we're on a CPM, then we would accidentally find the texture parameter when we want a constant color.
+	// So, we check if we're in a CPM by looking for the CPM Diffuse Switch parameter. If we are in a CPM, don't search for "basecolor".
+	HAPI_ParmInfo CPMSwitchInfo;
+	HAPI_ParmId CPMSwitchId = FHoudiniEngineUtils::HapiFindParameterByName(InMaterialInfo.nodeId, HAPI_UNREAL_PARAM_MAP_DIFFUSE_CPM_SWITCH, CPMSwitchInfo);
+	const char* DiffuseString = CPMSwitchId >= 0 ? "" : HAPI_UNREAL_PARAM_COLOR_DIFFUSE;
+
 	FHoudiniMaterialTranslator::SetColorExpression(
 		InMaterialInfo.nodeId,
-		HAPI_UNREAL_PARAM_COLOR_DIFFUSE,
+		DiffuseString,
 		HAPI_UNREAL_PARAM_COLOR_DIFFUSE_OGL,
+		HAPI_UNREAL_PARAM_COLOR_DIFFUSE_CPM,
+		HAPI_UNREAL_PARAM_COLOR_DIFFUSE_CPM_DEFAULT,
+		HAPI_UNREAL_PARAM_MAP_DIFFUSE_CPM_SWITCH,
 		ExpressionBaseColor,
 		GeneratingParameterNameUniformColor);
 
@@ -1388,6 +1399,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 		TextureDiffuse = Cast<UTexture2D>(ExpressionTextureSample->Texture);
 
 	// See if a diffuse texture is available.
+	// The diffuse constant color parameter on Principled Shaders is "basecolor", but COP Preview Material's diffuse texture parameter is also "basecolor".
+	// We search for parameters by name without checking the node type. If we're on a Principled Shader, then we would accidentally find the constant color parameter when we want a texture.
+	// So, we check if we're in a CPM by looking for the CPM Diffuse Switch parameter. If we aren't in a CPM, don't search for "basecolor".
+	const char* CPMDiffuseString = CPMSwitchId >= 0 ? HAPI_UNREAL_PARAM_MAP_DIFFUSE_CPM : "";
 	HAPI_ParmInfo ParmDiffuseTextureInfo;
 	HAPI_ParmId ParmDiffuseTextureId = FHoudiniMaterialTranslator::FindTextureParam(
 		InMaterialInfo.nodeId,
@@ -1395,6 +1410,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 		HAPI_UNREAL_PARAM_MAP_DIFFUSE_ENABLED,
 		HAPI_UNREAL_PARAM_MAP_DIFFUSE_OGL,
 		HAPI_UNREAL_PARAM_MAP_DIFFUSE_OGL_ENABLED,
+		CPMDiffuseString,
+		HAPI_UNREAL_PARAM_MAP_DIFFUSE_CPM_SWITCH,
 		ParmDiffuseTextureInfo,
 		GeneratingParameterNameDiffuseTexture);
 
@@ -1487,6 +1504,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 		HAPI_UNREAL_PARAM_MAP_OPACITY_ENABLED,
 		HAPI_UNREAL_PARAM_MAP_OPACITY_OGL,
 		HAPI_UNREAL_PARAM_MAP_OPACITY_OGL_ENABLED,
+		HAPI_UNREAL_PARAM_MAP_OPACITY_CPM,
+		HAPI_UNREAL_PARAM_MAP_OPACITY_CPM_SWITCH,
 		ParmOpacityTextureInfo,
 		GeneratingParameterNameTexture);
 
@@ -1621,10 +1640,13 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 	// Retrieve opacity value
 	HAPI_ParmInfo ParmOpacityValueInfo;
 	HAPI_ParmId ParmOpacityValueId =
-		FHoudiniMaterialTranslator::FindParam(
+		FHoudiniMaterialTranslator::FindConstantParam(
 			InMaterialInfo.nodeId,
 			HAPI_UNREAL_PARAM_ALPHA,
 			HAPI_UNREAL_PARAM_ALPHA_OGL,
+			HAPI_UNREAL_PARAM_ALPHA_CPM,
+			HAPI_UNREAL_PARAM_ALPHA_CPM_DEFAULT,
+			HAPI_UNREAL_PARAM_MAP_OPACITY_CPM_SWITCH,
 			ParmOpacityValueInfo,
 			GeneratingParameterNameScalar);
 
@@ -1770,6 +1792,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 		HAPI_UNREAL_PARAM_MAP_NORMAL_ENABLED,
 		HAPI_UNREAL_PARAM_MAP_NORMAL_OGL,
 		"",
+		HAPI_UNREAL_PARAM_MAP_NORMAL_CPM,
+		"",
 		ParmNormalTextureInfo,
 		GeneratingParameterName);
 
@@ -1812,6 +1836,12 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 	if (!bExpressionCreated)
 	{
 		// See if diffuse texture is available.
+		// The diffuse constant color parameter on Principled Shaders is "basecolor", but COP Preview Material's diffuse texture parameter is also "basecolor".
+		// We search for parameters by name without checking the node type. If we're on a Principled Shader, then we would accidentally find the constant color parameter when we want a texture.
+		// So, we check if we're in a CPM by looking for the CPM Diffuse Switch parameter. If we aren't in a CPM, don't search for "basecolor".
+		HAPI_ParmInfo CPMSwitchInfo;
+		HAPI_ParmId CPMSwitchId = FHoudiniEngineUtils::HapiFindParameterByName(InMaterialInfo.nodeId, HAPI_UNREAL_PARAM_MAP_DIFFUSE_CPM_SWITCH, CPMSwitchInfo);
+		const char* CPMDiffuseString = CPMSwitchId >= 0 ? HAPI_UNREAL_PARAM_MAP_DIFFUSE_CPM : "";
 		HAPI_ParmInfo ParmDiffuseTextureInfo;
 		HAPI_ParmId ParmDiffuseTextureId = FHoudiniMaterialTranslator::FindTextureParam(
 			InMaterialInfo.nodeId,
@@ -1819,6 +1849,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 			HAPI_UNREAL_PARAM_MAP_DIFFUSE_ENABLED,
 			HAPI_UNREAL_PARAM_MAP_DIFFUSE_OGL,
 			HAPI_UNREAL_PARAM_MAP_DIFFUSE_OGL_ENABLED,
+			CPMDiffuseString,
+			HAPI_UNREAL_PARAM_MAP_DIFFUSE_CPM_SWITCH,
 			ParmDiffuseTextureInfo,
 			GeneratingParameterName);
 
@@ -1903,6 +1935,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 		HAPI_UNREAL_PARAM_MAP_SPECULAR_ENABLED,
 		HAPI_UNREAL_PARAM_MAP_SPECULAR_OGL,
 		HAPI_UNREAL_PARAM_MAP_SPECULAR_OGL_ENABLED,
+		HAPI_UNREAL_PARAM_MAP_SPECULAR_CPM,
+		HAPI_UNREAL_PARAM_MAP_SPECULAR_CPM_SWITCH,
 		ParmSpecularTextureInfo,
 		GeneratingParameterName);
 
@@ -1939,8 +1973,11 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 	if (!bExpressionCreated)
 		bExpressionCreated = FHoudiniMaterialTranslator::CreateScalarExpressionFromFloatParam(
 			InMaterialInfo.nodeId,
-			HAPI_UNREAL_PARAM_COLOR_SPECULAR,
-			HAPI_UNREAL_PARAM_COLOR_SPECULAR_OGL,
+			HAPI_UNREAL_PARAM_VALUE_SPECULAR,
+			HAPI_UNREAL_PARAM_VALUE_SPECULAR_OGL,
+			HAPI_UNREAL_PARAM_VALUE_SPECULAR_CPM,
+			HAPI_UNREAL_PARAM_VALUE_SPECULAR_CPM_DEFAULT,
+			HAPI_UNREAL_PARAM_MAP_SPECULAR_CPM_SWITCH,
 			MatInputSpecular.Expression, Material, MaterialNodeY, ObjectFlag);
 
 	return bExpressionCreated;
@@ -1989,6 +2026,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 		HAPI_UNREAL_PARAM_MAP_ROUGHNESS_ENABLED,
 		HAPI_UNREAL_PARAM_MAP_ROUGHNESS_OGL,
 		HAPI_UNREAL_PARAM_MAP_ROUGHNESS_OGL_ENABLED,
+		HAPI_UNREAL_PARAM_MAP_ROUGHNESS_CPM,
+		HAPI_UNREAL_PARAM_MAP_ROUGHNESS_CPM_SWITCH,
 		ParmRoughnessTextureInfo,
 		GeneratingParameterName);
 
@@ -2027,6 +2066,9 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 			InMaterialInfo.nodeId,
 			HAPI_UNREAL_PARAM_VALUE_ROUGHNESS,
 			HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_OGL,
+			HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_CPM,
+			HAPI_UNREAL_PARAM_VALUE_ROUGHNESS_CPM_DEFAULT,
+			HAPI_UNREAL_PARAM_MAP_ROUGHNESS_CPM_SWITCH,
 			MatInputRoughness.Expression, Material, MaterialNodeY, ObjectFlag);
 
 	return bExpressionCreated;
@@ -2075,6 +2117,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 		HAPI_UNREAL_PARAM_MAP_METALLIC_ENABLED,
 		HAPI_UNREAL_PARAM_MAP_METALLIC_OGL,
 		HAPI_UNREAL_PARAM_MAP_METALLIC_OGL_ENABLED,
+		HAPI_UNREAL_PARAM_MAP_METALLIC_CPM,
+		HAPI_UNREAL_PARAM_MAP_METALLIC_CPM_SWITCH,
 		ParmMetallicTextureInfo,
 		GeneratingParameterName);
 
@@ -2113,6 +2157,9 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 			InMaterialInfo.nodeId,
 			HAPI_UNREAL_PARAM_VALUE_METALLIC,
 			HAPI_UNREAL_PARAM_VALUE_METALLIC_OGL,
+			HAPI_UNREAL_PARAM_VALUE_METALLIC_CPM,
+			HAPI_UNREAL_PARAM_VALUE_METALLIC_CPM_DEFAULT,
+			HAPI_UNREAL_PARAM_MAP_METALLIC_CPM_SWITCH,
 			MatInputMetallic.Expression, Material, MaterialNodeY, ObjectFlag);
 
 	return bExpressionCreated;
@@ -2161,6 +2208,9 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 		InMaterialInfo.nodeId,
 		HAPI_UNREAL_PARAM_VALUE_EMISSIVE,
 		HAPI_UNREAL_PARAM_VALUE_EMISSIVE_OGL,
+		HAPI_UNREAL_PARAM_VALUE_EMISSIVE_CPM,
+		HAPI_UNREAL_PARAM_VALUE_EMISSIVE_CPM_DEFAULT,
+		HAPI_UNREAL_PARAM_MAP_EMISSIVE_CPM_SWITCH,
 		ExpressionEmissiveColor,
 		GeneratingParameterNameEmissiveColor);
 
@@ -2170,10 +2220,13 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 
 	// See if emissive intensity is available.
 	HAPI_ParmInfo ParmEmissiveIntensityInfo;
-	HAPI_ParmId ParmEmissiveIntensityId = FHoudiniMaterialTranslator::FindParam(
+	HAPI_ParmId ParmEmissiveIntensityId = FHoudiniMaterialTranslator::FindConstantParam(
 		InMaterialInfo.nodeId,
 		HAPI_UNREAL_PARAM_VALUE_EMISSIVE_INTENSITY,
 		HAPI_UNREAL_PARAM_VALUE_EMISSIVE_INTENSITY_OGL,
+		HAPI_UNREAL_PARAM_VALUE_EMISSIVE_INTENSITY_CPM,
+		HAPI_UNREAL_PARAM_VALUE_EMISSIVE_INTENSITY_CPM_DEFAULT,
+		HAPI_UNREAL_PARAM_MAP_EMISSIVE_INTENSITY_CPM_SWITCH,
 		ParmEmissiveIntensityInfo,
 		GeneratingParameterNameEmissiveIntensity);
 
@@ -2211,8 +2264,13 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 		HAPI_UNREAL_PARAM_MAP_EMISSIVE_ENABLED,
 		HAPI_UNREAL_PARAM_MAP_EMISSIVE_OGL,
 		HAPI_UNREAL_PARAM_MAP_EMISSIVE_OGL_ENABLED,
+		HAPI_UNREAL_PARAM_MAP_EMISSIVE_INTENSITY_CPM,
+		HAPI_UNREAL_PARAM_MAP_EMISSIVE_INTENSITY_CPM_SWITCH,
 		ParmEmissiveTextureInfo,
 		GeneratingParameterNameEmissiveTexture);
+	// Note: CPM has two emissive maps, one for color and one for intensity.
+	// Meanwhile, SHOP and VOP have just one map, for intensity, but the constant
+	// names don't have INTENSITY in them since there's only one map.
 
 	// If we have an emissive texture parameter.
 	if (ParmEmissiveTextureId >= 0)
@@ -2915,6 +2973,7 @@ FHoudiniMaterialTranslator::FindTextureParamByNameOrTag(
 	const std::string& InTextureParmName,
 	const std::string& InUseTextureParmName,
 	const bool& bFindByTag,
+	const bool& bIsCPM,
 	HAPI_ParmId& OutParmId,
 	HAPI_ParmInfo& OutParmInfo)
 {
@@ -2941,19 +3000,38 @@ FHoudiniMaterialTranslator::FindTextureParamByNameOrTag(
 
 	if (FoundUseParmId >= 0)
 	{
-		// We found a valid "use" parameter, check if it is disabled
-		// Get the param value
-		int32 UseValue = 0;
-		if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmIntValues(
-			FHoudiniEngine::Get().GetSession(),
-			InNodeId, &UseValue, FoundUseParmInfo.intValuesIndex, 1))
+		// We found a valid "use" parameter, check its value to see if the texture should be used
+		if (!bIsCPM)
 		{
-			if (UseValue == 0)
+			int32 UseValue = 0;
+			if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmIntValues(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, &UseValue, FoundUseParmInfo.intValuesIndex, 1))
 			{
-				// We found the texture parm, but the "use" param/tag is disabled, so don't use it!
-				// We still return true as we found the parameter, this will prevent looking for other parms
-				OutParmId = -1;
-				return true;
+				if (UseValue == 0)
+				{
+					// We found the texture parm, but the "use" param/tag is disabled, so don't use it!
+					// We still return true as we found the parameter, this will prevent looking for other parms
+					OutParmId = -1;
+					return true;
+				}
+			}
+		}
+		else
+		{
+			float UseValue = 0;
+			if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmFloatValues(
+				FHoudiniEngine::Get().GetSession(),
+				InNodeId, &UseValue, FoundUseParmInfo.floatValuesIndex, 1))
+			{
+				// For some reason, in CPMs the switch parameter is a float, but it's used like a boolean.
+				// 0.0 means the source is either File or COP, and 1.0 means the source is Constant.
+				if (UseValue != 0.0f)
+				{
+					// We still return true as we found the parameter, this will prevent looking for other parms
+					OutParmId = -1;
+					return true;
+				}
 			}
 		}
 	}
@@ -2981,13 +3059,17 @@ FHoudiniMaterialTranslator::FindTextureParamByNameOrTag(
 }
 
 HAPI_ParmId
-FHoudiniMaterialTranslator::FindParam(
+FHoudiniMaterialTranslator::FindConstantParam(
 	const HAPI_NodeId& NodeId,
 	const char* Name,
 	const char* Tag,
+	const char* CPMConst,
+	const char* CPMDefault,
+	const char* CPMSwitch,
 	HAPI_ParmInfo& Info,
 	FString& GeneratingParameterName)
 {
+	// Attempt to get the parameter by name.
 	HAPI_ParmId ValueId = FHoudiniEngineUtils::HapiFindParameterByName(NodeId, Name, Info);
 	if (ValueId >= 0)
 	{
@@ -2995,10 +3077,43 @@ FHoudiniMaterialTranslator::FindParam(
 		return ValueId;
 	}
 
+	// Attempt to get the parameter by tag.
 	ValueId = FHoudiniEngineUtils::HapiFindParameterByTag(NodeId, Tag, Info);
 	if (ValueId >= 0)
 	{
 		GeneratingParameterName = FString(Tag);
+		return ValueId;
+	}
+
+	// Attempt to get the COP Preview Material constant parameter.
+	// First, check that the switch is set to 1.0.
+	HAPI_ParmInfo CPMSwitchInfo;
+	HAPI_ParmId CPMSwitchId = FHoudiniEngineUtils::HapiFindParameterByName(NodeId, CPMSwitch, CPMSwitchInfo);
+	if (CPMSwitchId >= 0)
+	{
+		float CPMSwitchValue = 0;
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmFloatValues(
+			FHoudiniEngine::Get().GetSession(),
+			NodeId, &CPMSwitchValue, CPMSwitchInfo.floatValuesIndex, 1))
+		{
+			// For some reason, in CPMs the switch parameter is a float, but it's used like a boolean.
+			// 0.0 means the source is either File or COP, and 1.0 means the source is Constant.
+			if (CPMSwitchValue != 0.0) {
+				ValueId = FHoudiniEngineUtils::HapiFindParameterByName(NodeId, CPMConst, Info);
+				if (ValueId >= 0)
+				{
+					GeneratingParameterName = FString(CPMConst);
+					return ValueId;
+				}
+			}
+		}
+	}
+
+	// Attempt to get the COP Preview Material default parameter.
+	ValueId = FHoudiniEngineUtils::HapiFindParameterByName(NodeId, CPMDefault, Info);
+	if (ValueId >= 0)
+	{
+		GeneratingParameterName = FString(CPMDefault);
 		return ValueId;
 	}
 
@@ -3012,24 +3127,34 @@ FHoudiniMaterialTranslator::FindTextureParam(
 	const char* NameEnabled,
 	const char* Tag,
 	const char* TagEnabled,
+	const char* CPMName,
+	const char* CPMSwitch,
 	HAPI_ParmInfo& TextureInfo,
 	FString& GeneratingParameterName)
 {
 	HAPI_ParmId TextureId = -1;
 
 	if (FHoudiniMaterialTranslator::FindTextureParamByNameOrTag(
-		NodeId, Name, NameEnabled, false, TextureId, TextureInfo))
+		NodeId, Name, NameEnabled, false, false, TextureId, TextureInfo))
 	{
-		// Found via Parm name
+		// Found via parm name
 		GeneratingParameterName = FString(Name);
 		return TextureId;
 	}
 
 	if (FHoudiniMaterialTranslator::FindTextureParamByNameOrTag(
-		NodeId, Tag, TagEnabled, true, TextureId, TextureInfo))
+		NodeId, Tag, TagEnabled, true, false, TextureId, TextureInfo))
 	{
 		// Found via OGL tag
 		GeneratingParameterName = FString(Tag);
+		return TextureId;
+	}
+
+	if (FHoudiniMaterialTranslator::FindTextureParamByNameOrTag(
+		NodeId, CPMName, CPMSwitch, false, true, TextureId, TextureInfo))
+	{
+		// Found via COP Preview Material parm name
+		GeneratingParameterName = FString(CPMName);
 		return TextureId;
 	}
 
@@ -3193,12 +3318,15 @@ FHoudiniMaterialTranslator::SetColorExpression(
 	const HAPI_NodeId& NodeId,
 	const char* ParamName,
 	const char* ParamTag,
+	const char* ParamCPMConst,
+	const char* ParamCPMDefault,
+	const char* ParamCPMSwitch,
 	UMaterialExpressionVectorParameter* ColorExpression,
 	FString& GeneratingParameterName)
 {
 	HAPI_ParmInfo ParmInfo;
-	HAPI_ParmId ParmId = FHoudiniMaterialTranslator::FindParam(
-		NodeId, ParamName, ParamTag, ParmInfo, GeneratingParameterName);
+	HAPI_ParmId ParmId = FHoudiniMaterialTranslator::FindConstantParam(
+		NodeId, ParamName, ParamTag, ParamCPMConst, ParamCPMDefault, ParamCPMSwitch, ParmInfo, GeneratingParameterName);
 
 	if (ParmId >= 0)
 	{
@@ -3448,6 +3576,9 @@ FHoudiniMaterialTranslator::CreateScalarExpressionFromFloatParam(
 	HAPI_NodeId Node,
 	const char* ParamName,
 	const char* ParamTag,
+	const char* ParamCPMConst,
+	const char* ParamCPMDefault,
+	const char* ParamCPMSwitch,
 	UMaterialExpression*& ExistingExpression,
 	UMaterial* Material,
 	int32& MaterialNodeY,
@@ -3456,8 +3587,8 @@ FHoudiniMaterialTranslator::CreateScalarExpressionFromFloatParam(
 	// Find parameter.
 	FString GeneratingParameterName = TEXT("");
 	HAPI_ParmInfo ParmInfo;
-	HAPI_ParmId ParmId = FHoudiniMaterialTranslator::FindParam(
-		Node, ParamName, ParamTag, ParmInfo, GeneratingParameterName);
+	HAPI_ParmId ParmId = FHoudiniMaterialTranslator::FindConstantParam(
+		Node, ParamName, ParamTag, ParamCPMConst, ParamCPMDefault, ParamCPMSwitch, ParmInfo, GeneratingParameterName);
 	if (ParmId < 0)
 		return false;
 
