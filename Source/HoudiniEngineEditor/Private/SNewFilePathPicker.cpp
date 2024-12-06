@@ -95,20 +95,16 @@ void SNewFilePathPicker::Construct( const FArguments& InArgs )
 #if PLATFORM_WINDOWS
 
 #include "Windows/WindowsHWrapper.h"
-#include "Windows/COMPointer.h"
-//#include "Misc/Paths.h"
-//#include "Misc/Guid.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+	#include "Microsoft/COMPointer.h"
+#else
+	#include "Windows/COMPointer.h"
+#endif
 #include "HAL/FileManager.h"
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include <commdlg.h>
-//#include <shellapi.h>
 #include <shlobj.h>
-//#include <Winver.h>
-//#include <LM.h>
-//#include <tlhelp32.h>
-//#include <Psapi.h>
 #include "Windows/HideWindowsPlatformTypes.h"
-//#pragma comment( lib, "version.lib" )
 
 bool FileDialogShared( bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex )
 {
