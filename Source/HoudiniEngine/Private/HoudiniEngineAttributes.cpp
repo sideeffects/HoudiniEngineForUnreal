@@ -393,8 +393,7 @@ template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeArrayData(con
 	DataArray.SetNum(AttributeInfo.totalArrayElements);
 	Sizes.SetNum(IndexCount);
 
-	const HAPI_Int64* Hapi64Data = reinterpret_cast<const HAPI_Int64*>(DataArray.GetData()); // worked around for some Linux variations.
-	HAPI_Result Result = FetchHapiDataArray(FHoudiniEngine::Get().GetSession(), AttributeInfo, Hapi64Data, Sizes.GetData(), IndexStart, IndexCount);
+	HAPI_Result Result = FetchHapiDataArray(FHoudiniEngine::Get().GetSession(), AttributeInfo, DataArray.GetData(), Sizes.GetData(), IndexStart, IndexCount);
 	return Result == HAPI_RESULT_SUCCESS;
 }
 

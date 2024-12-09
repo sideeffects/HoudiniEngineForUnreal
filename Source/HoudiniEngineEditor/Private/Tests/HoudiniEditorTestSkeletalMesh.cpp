@@ -601,6 +601,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingSkeleton::RunTest(const FStrin
 
 		// Check skeleton
 		USkeleton * Skeleton = SkeletalMesh->GetSkeleton();
+        HOUDINI_TEST_NOT_NULL_ON_FAIL(Skeleton, return true);
 		HOUDINI_TEST_EQUAL(Skeleton->GetName(), TEXT("Test_Ref_Skeleton"));
 
 		// Check the skeletal mesh component

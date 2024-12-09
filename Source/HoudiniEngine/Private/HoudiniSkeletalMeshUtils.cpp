@@ -160,18 +160,20 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HA
 	}
 
 	// Fill in bone names.
-	Result.Bones.SetNum(BoneNames.Num());
+	TArray<FHoudiniSkeletonBone> Bones;
+	Bones.SetNum(BoneNames.Num());
+	TMap<FString, FHoudiniSkeletonBone*> BoneMap;
+
 	for(int Index = 0; Index < BoneNames.Num(); Index++)
 	{
-		FHoudiniSkeletonBone & Bone = Result.Bones[Index];
+		FHoudiniSkeletonBone& Bone = Bones[Index];
 		Bone.Name = BoneNames[Index];
-		Bone.UnrealBoneNumber = Index;
-		Result.BoneMap.Add(Bone.Name, &Bone);
+		BoneMap.Add(Bone.Name, &Bone);
 	}
 
 	for (int Index = 0; Index < ParentChild.Num(); Index++)
 	{
-		FHoudiniSkeletonBone* Node = Result.BoneMap[ParentChild[Index]];
+		FHoudiniSkeletonBone* Node = BoneMap[ParentChild[Index]];
 		if (!Result.HoudiniBoneMap.Contains(ParentChildBoneNumbers[Index]))
 		{
 			Node->HoudiniBoneNumber = ParentChildBoneNumbers[Index];
@@ -191,9 +193,9 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HA
 	Accessor.Init(NodeId, PartId, "P");
 	Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, PositionData);
 
-	for(int Index = 0; Index < Result.Bones.Num(); Index++)
+	for(int Index = 0; Index < Bones.Num(); Index++)
 	{
-		FHoudiniSkeletonBone* Bone = &Result.Bones[Index];
+		FHoudiniSkeletonBone* Bone = &Bones[Index];
 		int PointIndex = BoneNamesToPointIndex[Bone->Name];
 
 		Bone->UnrealGlobalTransform = FTransform(MakeMatrixFromHoudiniData(&RotationData[PointIndex * 9], &PositionData[PointIndex * 3]));
@@ -208,8 +210,8 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HA
 		const FString & ParentName = ParentChild[Index];
 		const FString& ChildName = ParentChild[Index + 1];
 
-		FHoudiniSkeletonBone* Parent = Result.BoneMap[ParentName];
-		FHoudiniSkeletonBone* Child = Result.BoneMap[ChildName];
+		FHoudiniSkeletonBone* Parent = BoneMap[ParentName];
+		FHoudiniSkeletonBone* Child = BoneMap[ChildName];
 
 		if (!Parent || !Child)
 		{
@@ -222,17 +224,30 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HA
 
 	// Root is first bone with no parent
 	Result.Root = nullptr;
-	for(FHoudiniSkeletonBone& Bone : Result.Bones)
+	int RootIndex = INDEX_NONE;
+
+	for (int BoneIndex = 0;BoneIndex < Bones.Num(); BoneIndex++)
 	{
-		if (!Bone.Parent)
+		if(!Bones[BoneIndex].Parent)
 		{
-			Result.Root = &Bone;
+			RootIndex = BoneIndex;
 		}
 	}
-	if (!Result.Root)
+
+	if (RootIndex == INDEX_NONE)
 	{
 		HOUDINI_LOG_ERROR(TEXT("No root found on skeleton"));
 		return {};
+	}
+
+    Result.Bones = CreateSortedBoneList(Bones, RootIndex);
+
+    Result.Root = &Result.Bones[0];
+
+	for(int Index = 0; Index < Result.Bones.Num(); Index++)
+	{
+		FHoudiniSkeletonBone* Bone = &Result.Bones[Index];
+		Result.BoneMap.Add(Bone->Name, Bone);
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------
@@ -244,6 +259,40 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HA
 	return Result;
 }
 
+TArray<FHoudiniSkeletonBone>
+FHoudiniSkeletalMeshUtils::CreateSortedBoneList(TArray<FHoudiniSkeletonBone>& UnsortedBones, int RootIndex)
+{
+	TArray<FHoudiniSkeletonBone> SortedBones;
+	SortedBones.SetNum(UnsortedBones.Num());
+	int NextFreeSlot = 0;
+	TMap<FHoudiniSkeletonBone*, FHoudiniSkeletonBone*> Remap;
+	Remap.Add(nullptr, nullptr);
+
+	std::function<void(FHoudiniSkeletonBone*)> AddChildren = [&](FHoudiniSkeletonBone* Parent)
+	{
+		Remap.Add(Parent, &SortedBones[NextFreeSlot]);
+		SortedBones[NextFreeSlot++] = *Parent;
+		for (auto& Child : Parent->Children)
+		{
+			AddChildren(Child);
+		}
+	};
+
+	AddChildren(&UnsortedBones[RootIndex]);
+
+	for (int Index = 0; Index < SortedBones.Num(); Index++)
+	{
+		SortedBones[Index].UnrealBoneNumber = Index;
+		SortedBones[Index].Parent = Remap[SortedBones[Index].Parent];
+		for (int ChildIndex = 0; ChildIndex < SortedBones[Index].Children.Num(); ChildIndex++)
+		{
+			SortedBones[Index].Children[ChildIndex] = Remap[SortedBones[Index].Children[ChildIndex]];
+		}
+	}
+
+	return SortedBones;
+}
+
 FHoudiniInfluences FHoudiniSkeletalMeshUtils::FetchInfluences(HAPI_NodeId NodeId, HAPI_PartId PartId, FHoudiniSkeleton& Skeleton)
 {
 	HAPI_AttributeInfo BoneCaptureInfo;
@@ -252,11 +301,11 @@ FHoudiniInfluences FHoudiniSkeletalMeshUtils::FetchInfluences(HAPI_NodeId NodeId
 	Accessor.Init(NodeId, PartId, "boneCapture");
 	Accessor.GetInfo(BoneCaptureInfo, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT);
 	Accessor.GetAttributeData(HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, BoneCaptureData);
-	if (BoneCaptureData.Num() == 0)
-	{
-		HOUDINI_LOG_ERROR(TEXT("No Capture Data found on Skeletal Mesh."));		
-		return {};
-	}
+
+	TArray<FString> BoneNames;
+	TArray<int> BoneNameIndices;
+	Accessor.Init(NodeId, PartId, "boneCapture_pCaptPath");
+	Accessor.GetAttributeArrayData(HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, BoneNames, BoneNameIndices);
 
 	int HoudiniInfluencesPerVertex = BoneCaptureInfo.tupleSize / 2; // Divide by two compensate for the 'two floats' per capture data entry.
 
@@ -281,13 +330,13 @@ FHoudiniInfluences FHoudiniSkeletalMeshUtils::FetchInfluences(HAPI_NodeId NodeId
 
 			if (BoneWeight > 0.0f && BoneIndex != -1)
 			{
-				if(BoneIndex >= Skeleton.Bones.Num())
+				if(BoneIndex >= BoneNames.Num())
 				{
 					HOUDINI_LOG_ERROR(TEXT("Invalid bone index in bone capture."));
 					return {};
 				}
 
-				const FString& BoneName = Skeleton.HoudiniBoneMap[BoneIndex];
+				const FString& BoneName = BoneNames[BoneIndex];
 				InputInfluences[InputInfluence].Bone = Skeleton.BoneMap[BoneName];
 				InputInfluences[InputInfluence].Weight = BoneWeight;
 			}
@@ -541,21 +590,21 @@ FHoudiniSkeleton FHoudiniSkeletalMeshUtils::UnrealToHoudiniSkeleton(USkeleton * 
 		FTransform & BoneTransform = RefPose[BoneIndex];
 
 		HoudiniSkeleton.BoneMap.Add(BoneName, &HoudiniSkeleton.Bones[BoneIndex]);
-		auto & ThisBone = HoudiniSkeleton.Bones[BoneIndex];
-		ThisBone.Name = BoneName;
-		ThisBone.UnrealGlobalTransform = BoneTransform;
-		ThisBone.UnrealLocalMatrix = BoneTransform;
-		ThisBone.UnrealBoneNumber = BoneIndex;
+		auto * ThisBone = &HoudiniSkeleton.Bones[BoneIndex];
+		ThisBone->Name = BoneName;
+		ThisBone->UnrealGlobalTransform = BoneTransform;
+		ThisBone->UnrealLocalMatrix = BoneTransform;
+		ThisBone->UnrealBoneNumber = BoneIndex;
 		if (ParentIndex != INDEX_NONE)
 		{
-			auto& ParentBone = HoudiniSkeleton.Bones[ParentIndex];
-			ThisBone.Parent = &HoudiniSkeleton.Bones[ParentIndex];
-			ParentBone.Children.Add(&ThisBone);
+			auto* ParentBone = &HoudiniSkeleton.Bones[ParentIndex];
+			ThisBone->Parent = &HoudiniSkeleton.Bones[ParentIndex];
+			ParentBone->Children.Add(ThisBone);
 		}
 		else
 		{
-			ThisBone.Parent = nullptr;
-			HoudiniSkeleton.Root = &ThisBone;
+			ThisBone->Parent = nullptr;
+			HoudiniSkeleton.Root = ThisBone;
 		}
 	}
 

@@ -119,5 +119,7 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshUtils
 
 	static void ConstructLocalMatricesFromGlobal(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent);
 
+	static TArray<FHoudiniSkeletonBone> CreateSortedBoneList(TArray<FHoudiniSkeletonBone> & UnsortedBones, int RootIndex);
+
 };
 
