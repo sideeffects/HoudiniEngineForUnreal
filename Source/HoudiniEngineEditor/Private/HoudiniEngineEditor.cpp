@@ -1610,6 +1610,12 @@ FHoudiniEngineEditor::RegisterConsoleCommands()
 		TEXT("Houdini.StopHAPIPerformanceMonitor"),
 		TEXT("Stops and save to file the current HAPI Performance Monitoring Session."),
 		FConsoleCommandDelegate::CreateStatic(&FHoudiniEngineCommands::StopPerformanceMonitoring));
+
+	static FAutoConsoleCommand CCmdDumpNode = FAutoConsoleCommand(
+		TEXT("Houdini.DumpNode"),
+		TEXT("Prints out Houdini Engine information about a given node."),
+		FConsoleCommandWithArgsDelegate::CreateStatic(&FHoudiniEngineCommands::DumpNode));
+
 }
 
 void

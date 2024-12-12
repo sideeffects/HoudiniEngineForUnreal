@@ -1264,6 +1264,22 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			bool bInSkipTempFolderResolutionAndUseDefault=false);
 
 		// -------------------------------------------------
+		// Houdini Engine debug functions
+		// -------------------------------------------------
+
+		static FString DumpNode(HAPI_NodeId NodeId);
+		static void DumpPart(HAPI_NodeId NodeId, HAPI_PartId PartId, FStringBuilderBase& Output);
+		static void DumpNode(const FString & NodePath);
+		static FString CurveTypeToString(HAPI_CurveType CurveType);
+		static FString StorageTypeToString(HAPI_StorageType StorageType);
+		static FString AttributeTypeToString(HAPI_AttributeTypeInfo AttributeType);
+		static FString PartTypeToString(HAPI_PartType PartType);
+		static FString NodeTypeToString(HAPI_NodeType NodeType);
+		static FString DumpAttribute(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner, const FString& Name);
+		static FString RSTOrderToString(HAPI_RSTOrder RstOrder);
+		static FString HapiTransformToString(HAPI_Transform Transform);
+
+		// -------------------------------------------------
 		// Foliage utilities
 		// -------------------------------------------------
 

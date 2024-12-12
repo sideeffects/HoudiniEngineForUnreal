@@ -2226,4 +2226,38 @@ FHoudiniEngineCommands::StopPerformanceMonitoring()
 	FHoudiniEngine::Get().StopHAPIPerformanceMonitoring(TraceStorePath);
 }
 
+void
+FHoudiniEngineCommands::DumpNode(const TArray<FString>& Args)
+{
+	// HAPI needs to be initialized
+	if(!FHoudiniApi::IsHAPIInitialized())
+	{
+		HOUDINI_LOG_ERROR(TEXT("HAPI is not initialized."));
+		return;
+	}
+
+	// We need a current session
+	const HAPI_Session* CurrentSession = FHoudiniEngine::Get().GetSession();
+	if(!CurrentSession)
+	{
+		HOUDINI_LOG_ERROR(TEXT("No current session."));
+		return;
+	}
+
+	// We need the current session to be valid
+	if(HAPI_RESULT_SUCCESS != FHoudiniApi::IsSessionValid(CurrentSession))
+	{
+		HOUDINI_LOG_ERROR(TEXT("The current session is invalid."));
+		return;
+	}
+
+    if(Args.Num() < 1)
+    {
+        HOUDINI_LOG_ERROR(TEXT("DumpNode takes a node id as argument! ie: DumpNode /obj/node"));
+        return;
+    }
+
+	FHoudiniEngineUtils::DumpNode(Args[0]);
+}
+
 #undef LOCTEXT_NAMESPACE

@@ -8084,5 +8084,299 @@ TMap< HAPI_AttributeOwner, TArray<FString>> FHoudiniEngineUtils::GetAllAttribute
 	return Results;
 }
 
+void FHoudiniEngineUtils::DumpNode(const FString& NodePath)
+{
+	HAPI_NodeId UnrealContentNodeId = -1;
+	HAPI_Result result = FHoudiniApi::GetNodeFromPath(
+		FHoudiniEngine::Get().GetSession(), -1, TCHAR_TO_ANSI(*NodePath), &UnrealContentNodeId);
+	if (result != HAPI_RESULT_SUCCESS)
+	{
+		HOUDINI_LOG_DISPLAY(TEXT("Failed to get node from path: %s"), *NodePath);
+		return;
+	}
+	FString Output = DumpNode(UnrealContentNodeId);
+	HOUDINI_LOG_DISPLAY(TEXT("%s"), *Output);
+}
+
+#define H_CASE_ENUM_TO_STRING(X) case X: return TEXT(#X);
+
+FString FHoudiniEngineUtils::NodeTypeToString(HAPI_NodeType NodeType)
+{
+	switch (NodeType)
+	{
+		H_CASE_ENUM_TO_STRING(HAPI_NODETYPE_ANY)
+		H_CASE_ENUM_TO_STRING(HAPI_NODETYPE_NONE)
+		H_CASE_ENUM_TO_STRING(HAPI_NODETYPE_OBJ)
+		H_CASE_ENUM_TO_STRING(HAPI_NODETYPE_SOP)
+		H_CASE_ENUM_TO_STRING(HAPI_NODETYPE_CHOP)
+		H_CASE_ENUM_TO_STRING(HAPI_NODETYPE_ROP)
+		H_CASE_ENUM_TO_STRING(HAPI_NODETYPE_SHOP)
+		H_CASE_ENUM_TO_STRING(HAPI_NODETYPE_COP)
+		H_CASE_ENUM_TO_STRING(HAPI_NODETYPE_VOP)
+		H_CASE_ENUM_TO_STRING(HAPI_NODETYPE_DOP)
+		H_CASE_ENUM_TO_STRING(HAPI_NODETYPE_TOP)
+	default:
+		return TEXT("Unknown");
+	}
+}
+
+FString FHoudiniEngineUtils::PartTypeToString(HAPI_PartType PartType)
+{
+	switch (PartType)
+	{
+		H_CASE_ENUM_TO_STRING(HAPI_PARTTYPE_INVALID);
+		H_CASE_ENUM_TO_STRING(HAPI_PARTTYPE_MESH);
+		H_CASE_ENUM_TO_STRING(HAPI_PARTTYPE_CURVE)
+		H_CASE_ENUM_TO_STRING(HAPI_PARTTYPE_VOLUME);
+		H_CASE_ENUM_TO_STRING(HAPI_PARTTYPE_INSTANCER);
+		H_CASE_ENUM_TO_STRING(HAPI_PARTTYPE_BOX);
+		H_CASE_ENUM_TO_STRING(HAPI_PARTTYPE_SPHERE);
+		H_CASE_ENUM_TO_STRING(HAPI_PARTTYPE_MAX);
+	default:
+		return TEXT("Unknown");
+	}
+}
+
+FString FHoudiniEngineUtils::AttributeTypeToString(HAPI_AttributeTypeInfo AttributeType)
+{
+	switch (AttributeType)
+	{
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_INVALID);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_NONE);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_POINT);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_HPOINT);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_VECTOR);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_NORMAL);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_COLOR);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_QUATERNION);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_MATRIX3);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_MATRIX);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_ST);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_HIDDEN);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_BOX2);
+		H_CASE_ENUM_TO_STRING(HAPI_ATTRIBUTE_TYPE_BOX);
+	default:
+		return TEXT("Unknown");
+	}
+}
+
+FString FHoudiniEngineUtils::StorageTypeToString(HAPI_StorageType StorageType)
+{
+	switch (StorageType)
+	{
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_INVALID);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_INT);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_INT64);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_FLOAT);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_FLOAT64);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_STRING);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_UINT8);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_INT8);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_INT16);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_DICTIONARY);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_INT_ARRAY);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_INT64_ARRAY);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_FLOAT_ARRAY);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_FLOAT64_ARRAY);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_STRING_ARRAY);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_UINT8_ARRAY);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_INT8_ARRAY);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_INT16_ARRAY);
+		H_CASE_ENUM_TO_STRING(HAPI_STORAGETYPE_DICTIONARY_ARRAY);
+	default: return TEXT("Unknown");
+	}
+}
+
+FString FHoudiniEngineUtils::CurveTypeToString(HAPI_CurveType CurveType)
+{
+	switch (CurveType)
+	{
+		H_CASE_ENUM_TO_STRING(HAPI_CURVETYPE_INVALID)
+		H_CASE_ENUM_TO_STRING(HAPI_CURVETYPE_LINEAR)
+		H_CASE_ENUM_TO_STRING(HAPI_CURVETYPE_NURBS)
+		H_CASE_ENUM_TO_STRING(HAPI_CURVETYPE_BEZIER)
+		H_CASE_ENUM_TO_STRING(HAPI_CURVETYPE_MAX)
+	default:
+		return TEXT("Unknown");
+	}
+}
+
+FString FHoudiniEngineUtils::RSTOrderToString(HAPI_RSTOrder RstOrder)
+{
+	switch (RstOrder)
+	{
+		H_CASE_ENUM_TO_STRING(HAPI_TRS)
+		H_CASE_ENUM_TO_STRING(HAPI_TSR)
+		H_CASE_ENUM_TO_STRING(HAPI_RST)
+		H_CASE_ENUM_TO_STRING(HAPI_RTS)
+		H_CASE_ENUM_TO_STRING(HAPI_STR)
+		H_CASE_ENUM_TO_STRING(HAPI_SRT)
+	default:
+		return TEXT("Unknown");
+	}
+}
+
+#undef H_CASE_ENUM_TO_STRING
+
+FString FHoudiniEngineUtils::HapiTransformToString(HAPI_Transform Transform)
+{
+	FStringBuilderBase Output;
+	Output.Appendf(TEXT("P: %f, %f, %f "), Transform.position[0], Transform.position[1], Transform.position[2]);
+	Output.Appendf(TEXT("Q: %f, %f, %f, %f "), Transform.rotationQuaternion[0], Transform.rotationQuaternion[1],
+	               Transform.rotationQuaternion[2], Transform.rotationQuaternion[3]);
+	Output.Appendf(TEXT("S: %f, %f, %f "), Transform.scale[0], Transform.scale[1], Transform.scale[2]);
+	Output.Appendf(TEXT("SH: %f, %f, %f "), Transform.shear[0], Transform.shear[1], Transform.shear[2]);
+	Output.Appendf(TEXT("RST Order: %s\n"), *RSTOrderToString(Transform.rstOrder));
+	return Output.ToString();
+}
+
+FString FHoudiniEngineUtils::DumpNode(HAPI_NodeId NodeId)
+{
+	if (NodeId == INDEX_NONE)
+		return TEXT("Invalid Node ID\n");
+
+	HAPI_NodeInfo NodeInfo;
+	HOUDINI_CHECK_ERROR(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo));
+
+	FStringBuilderBase Output;
+
+
+	Output.Appendf(TEXT("Node ID: %d\n"), NodeId);
+	Output.Appendf(TEXT("    Name: %s\n"), *FHoudiniEngineString(NodeInfo.nameSH).ToFString());
+	Output.Appendf(TEXT("    Type: %s\n"), *NodeTypeToString(NodeInfo.type));
+
+	// Get GeoInfo for this node
+	HAPI_GeoInfo GeoInfo;
+	HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), NodeId, &GeoInfo));
+	Output.Append(TEXT("    Part Count: %d\n"), GeoInfo.partCount);
+
+	for (int PartIndex = 0; PartIndex < GeoInfo.partCount; PartIndex++)
+	{
+		DumpPart(NodeId, PartIndex, Output);
+	}
+	return Output.ToString();
+}
+
+FString FHoudiniEngineUtils::DumpAttribute(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner,
+                                           const FString& Name)
+{
+	HAPI_AttributeInfo AttributeInfo;
+	HOUDINI_CHECK_ERROR(
+		FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, TCHAR_TO_ANSI(*Name), Owner, &
+			AttributeInfo));
+	FStringBuilderBase Output;
+	Output.Appendf(TEXT("            Storage: %s\n"), *StorageTypeToString(AttributeInfo.storage));
+	Output.Appendf(TEXT("            Type: %s\n"), *AttributeTypeToString(AttributeInfo.typeInfo));
+	Output.Appendf(TEXT("            Tuple Size: %d\n"), AttributeInfo.tupleSize);
+	Output.Appendf(TEXT("            Count: %d\n"), AttributeInfo.count);
+	Output.Appendf(TEXT("            Total Array Elements: %d\n"), AttributeInfo.totalArrayElements);
+	return Output.ToString();
+}
+
+
+void FHoudiniEngineUtils::DumpPart(HAPI_NodeId NodeId, HAPI_PartId PartId, FStringBuilderBase& Output)
+{
+	HAPI_PartInfo partInfo;
+	HOUDINI_CHECK_ERROR(FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &partInfo));
+
+	Output.Appendf(TEXT("Part %d\n"), PartId);
+	Output.Appendf(TEXT("    Part Name: %s\n"), *FHoudiniEngineString(partInfo.nameSH).ToFString());
+	Output.Appendf(TEXT("    Part Type: %s\n"), *PartTypeToString(partInfo.type));
+	Output.Appendf(TEXT("    Part Face Count: %d\n"), partInfo.faceCount);
+	Output.Appendf(TEXT("    Part Vertex Count: %d\n"), partInfo.vertexCount);
+	Output.Appendf(TEXT("    Part Point Count: %d\n"), partInfo.pointCount);
+	Output.Appendf(TEXT("    Part Vertex Attribute Count: %d\n"), partInfo.attributeCounts[HAPI_ATTROWNER_VERTEX]);
+	Output.Appendf(TEXT("    Part Point Attribute Count: %d\n"), partInfo.attributeCounts[HAPI_ATTROWNER_POINT]);
+	Output.Appendf(TEXT("    Part Primitive Attribute Count: %d\n"), partInfo.attributeCounts[HAPI_ATTROWNER_PRIM]);
+	Output.Appendf(TEXT("    Part Detail Attribute Count: %d\n"), partInfo.attributeCounts[HAPI_ATTROWNER_DETAIL]);
+	Output.Appendf(TEXT("    Part Is Instanced: %d\n"), partInfo.isInstanced ? 1 : 0);
+	Output.Appendf(TEXT("    Instance Count: %d\n"), partInfo.instanceCount);
+	Output.Appendf(TEXT("    Instance Part Count: %d\n"), partInfo.instancedPartCount ? 1 : 0);
+
+	switch (partInfo.type)
+	{
+	case HAPI_PARTTYPE_CURVE:
+		HAPI_CurveInfo CurveInfo;
+		HOUDINI_CHECK_ERROR(FHoudiniApi::GetCurveInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &CurveInfo));
+		Output.Appendf(TEXT("    Curve:\n"));
+		Output.Appendf(TEXT("        Curve Type: %s\n"), *CurveTypeToString(CurveInfo.curveType));
+		Output.Appendf(TEXT("        Curve Count: %d\n"), CurveInfo.curveCount);
+		Output.Appendf(TEXT("        Vertex Count: %d\n"), CurveInfo.vertexCount);
+		Output.Appendf(TEXT("        Knot Count: %d\n"), CurveInfo.knotCount);
+		Output.Appendf(TEXT("        Periodic: %d\n"), CurveInfo.isPeriodic ? 1 : 0);
+		Output.Appendf(TEXT("        Rational: %d\n"), CurveInfo.isRational ? 1 : 0);
+		Output.Appendf(TEXT("        Order: %d\n"), CurveInfo.order);
+		Output.Appendf(TEXT("        Has Knots: %d\n"), CurveInfo.hasKnots);
+		Output.Appendf(TEXT("        Is Closed: %d\n"), CurveInfo.isClosed ? 1 : 0);
+		break;
+	case HAPI_PARTTYPE_VOLUME:
+		HAPI_VolumeInfo VolumeInfo;
+		HOUDINI_CHECK_ERROR(FHoudiniApi::GetVolumeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &VolumeInfo));
+		Output.Appendf(TEXT("    Volume:\n"));
+		Output.Appendf(TEXT("        X Length: %d\n"), VolumeInfo.xLength);
+		Output.Appendf(TEXT("        Y Length: %d\n"), VolumeInfo.yLength);
+		Output.Appendf(TEXT("        Z Length: %d\n"), VolumeInfo.zLength);
+		Output.Appendf(TEXT("        Tuple Size: %d\n"), VolumeInfo.tupleSize);
+		Output.Appendf(TEXT("        Storage: %s\n"), *StorageTypeToString(VolumeInfo.storage));
+		Output.Appendf(TEXT("        Tile Size: %d\n"), VolumeInfo.tileSize);
+		Output.Appendf(TEXT("        Has Taper: %d\n"), VolumeInfo.hasTaper);
+		Output.Appendf(TEXT("        X Taper: %f\n"), VolumeInfo.xTaper);
+		Output.Appendf(TEXT("        Y Taper: %f\n"), VolumeInfo.yTaper);
+		break;
+
+	case HAPI_PARTTYPE_INSTANCER:
+		{
+			TArray<HAPI_NodeId> InstancedPartIds;
+			InstancedPartIds.SetNum(partInfo.instancedPartCount);
+
+			HOUDINI_CHECK_ERROR(FHoudiniApi::GetInstancedPartIds(FHoudiniEngine::Get().GetSession(),
+				NodeId, PartId, InstancedPartIds.GetData(), 0, partInfo.instancedPartCount));
+
+			Output.Append(TEXT("    Instance Ids: "));
+			for (int Index = 0; Index < InstancedPartIds.Num(); Index++)
+			{
+				Output.Appendf(TEXT("%d "), InstancedPartIds[Index]);
+			}
+			Output.Appendf(TEXT("\n"));
+		}
+		break;
+	default:
+		break;
+	}
+
+	TArray<FString> AttrNames = FHoudiniEngineUtils::GetAttributeNames(FHoudiniEngine::Get().GetSession(), 
+		NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_VERTEX);
+
+	for (int32 AttrIdx = 0; AttrIdx < AttrNames.Num(); ++AttrIdx)
+	{
+		Output.Appendf(TEXT("        Vertex Attribute: %s\n"), *AttrNames[AttrIdx]);
+		Output.Append(DumpAttribute(NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_VERTEX, AttrNames[AttrIdx]));
+	}
+
+	AttrNames = FHoudiniEngineUtils::GetAttributeNames(FHoudiniEngine::Get().GetSession(), NodeId, PartId,
+	                                                   HAPI_AttributeOwner::HAPI_ATTROWNER_POINT);
+	for (int32 AttrIdx = 0; AttrIdx < AttrNames.Num(); ++AttrIdx)
+	{
+		Output.Appendf(TEXT("        Point Attribute: %s\n"), *AttrNames[AttrIdx]);
+		Output.Append(DumpAttribute(NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, AttrNames[AttrIdx]));
+	}
+
+	AttrNames = FHoudiniEngineUtils::GetAttributeNames(FHoudiniEngine::Get().GetSession(), NodeId, PartId,
+	                                                   HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM);
+	for (int32 AttrIdx = 0; AttrIdx < AttrNames.Num(); ++AttrIdx)
+	{
+		Output.Appendf(TEXT("        Prims Attribute: %s\n"), *AttrNames[AttrIdx]);
+		Output.Append(DumpAttribute(NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM, AttrNames[AttrIdx]));
+	}
+
+	AttrNames = FHoudiniEngineUtils::GetAttributeNames(FHoudiniEngine::Get().GetSession(), NodeId, PartId,
+	                                                   HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL);
+	for (int32 AttrIdx = 0; AttrIdx < AttrNames.Num(); ++AttrIdx)
+	{
+		Output.Appendf(TEXT("        Detail Attribute: %s\n"), *AttrNames[AttrIdx]);
+		Output.Append(DumpAttribute(NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_DETAIL, AttrNames[AttrIdx]));
+	}
+}
+
 
 #undef LOCTEXT_NAMESPACE

@@ -52,7 +52,8 @@ class HOUDINIENGINE_API FHoudiniEngineString
 		bool ToFName(FName & Name, const HAPI_Session* InSession = nullptr) const;
 		bool ToFString(FString & String, const HAPI_Session* InSession = nullptr) const;
 		bool ToFText(FText & Text, const HAPI_Session* InSession = nullptr) const;
-		
+		FString ToFString(const HAPI_Session* InSession = nullptr) const;
+
 		// Static converters
 		static bool ToStdString(
 			const int32& InStringId,

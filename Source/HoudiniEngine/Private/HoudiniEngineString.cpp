@@ -200,6 +200,14 @@ FHoudiniEngineString::ToFText(
 	return HAPIString.ToFText(OutText, InSession);
 }
 
+FString
+FHoudiniEngineString::ToFString(const HAPI_Session* InSession) const
+{
+	FString Result;
+	ToFString(Result, InSession);
+	return Result;
+}
+
 bool
 FHoudiniEngineString::SHArrayToFStringArray(
 	const TArray<int32>& InStringIdArray, 
