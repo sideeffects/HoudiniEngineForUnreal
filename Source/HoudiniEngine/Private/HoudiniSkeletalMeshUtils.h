@@ -117,6 +117,12 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshUtils
 
 	static FMatrix UnrealToHoudiniMatrix(const FTransform& Transform);
 
+	static FMatrix UnrealToHoudiniMatrix(const FMatrix& Transform);
+
+	static void UnrealToHoudiniMatrix(FMatrix& UnrealMatrix, float Rotation[], float Position[]);
+
+	static void UnrealToHoudiniMatrix(FMatrix& UnrealMatrix, float Matrix[]);
+
 	static void ConstructLocalMatricesFromGlobal(FHoudiniSkeletonBone* Node, const FHoudiniSkeletonBone* Parent);
 
 	static TArray<FHoudiniSkeletonBone> CreateSortedBoneList(TArray<FHoudiniSkeletonBone> & UnsortedBones, int RootIndex);

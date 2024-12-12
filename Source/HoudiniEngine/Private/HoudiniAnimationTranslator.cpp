@@ -33,6 +33,7 @@
 #include "HoudiniInputObject.h"
 
 #include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniSkeletalMeshUtils.h"
 
 #include "Animation/Skeleton.h"
 #include "Animation/AnimSequence.h"
@@ -90,11 +91,6 @@ FHoudiniAnimationTranslator::IsMotionClipFrame(const HAPI_NodeId& GeoId, const H
 	}
 
 	if (!GetAttrInfo(GeoId, InstancedPartId, "transform", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT).exists)
-	{
-		return false;
-	}
-
-	if (!GetAttrInfo(GeoId, InstancedPartId, "path", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT).exists)
 	{
 		return false;
 	}
@@ -400,8 +396,7 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 		return false;
 	}
 	
-	FHoudiniOutputObjectIdentifier OutputObjectIdentifier(
-		TopologyHGPO.ObjectId, TopologyHGPO.GeoId, TopologyPartId, "");
+	FHoudiniOutputObjectIdentifier OutputObjectIdentifier(TopologyHGPO.ObjectId, TopologyHGPO.GeoId, TopologyPartId, "");
 	OutputObjectIdentifier.PartName = TopologyHGPO.PartName;
 
 	FString SkeletonAssetPathName = GetUnrealSkeletonPath(HGPOs);
@@ -458,7 +453,7 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 	// For each frame, we'll retrieve the world transforms of each bone, transform them into
 	// Unreal space, then compute the local transforms.
 
-	TMap <int, TMap <FName, FTransform>> FrameBoneTransformMap;  //For each frame, store bones and LOCAL transforms
+	TMap<int, TMap <FName, FTransform>> FrameBoneTransformMap;  //For each frame, store bones and LOCAL transforms
 
 	// Per-bone tracks for Pos, Rot and Scale as needed by the AnimController. 
 	TMap<FName, TArray<FVector3f>> BonesPosTrack;
@@ -467,36 +462,55 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 	TMap<FString, TArray<FRichCurveKey>> FbxCustomAttributes;
 
 	const int NumHGPOs = HGPOs.Num();
-	
-	for (int i = 1; i < NumHGPOs; i++)
+
+	TArray<const FHoudiniGeoPartObject*> Frames;
+    Frames.Reserve(NumHGPOs - 1);
+	for(int i = 1; i < NumHGPOs; i++)
 	{
-		const FHoudiniGeoPartObject& InstancerHGPO = HGPOs[i];
+        const FHoudiniGeoPartObject& InstancerHGPO = HGPOs[i];
 		HAPI_PartId MeshPartId = GetInstancedMeshPartID(InstancerHGPO);
-		if (MeshPartId < 0)
-		{
-			continue;
-		}
+        if(InstancerHGPO.Type != EHoudiniPartType::MotionClip || MeshPartId == INDEX_NONE)
+        {
+            continue;
+        }
 
 		const int GeoId = InstancerHGPO.GeoId;
 		const int PartId = MeshPartId;
-		const int FrameIndex = i - 1;
-		const double FrameTime = (i-1) / static_cast<double>(FrameRate);
+		HAPI_PartInfo PartInfo;
+		FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), GeoId, PartId, &PartInfo);
+		if(PartInfo.faceCount == 0)
+			continue;
+
+        Frames.Add(&InstancerHGPO);
+    }
+
+	for (int Frame = 0; Frame < Frames.Num(); Frame++)
+	{
+		const FHoudiniGeoPartObject& InstancerHGPO = *Frames[Frame];
+		HAPI_PartId MeshPartId = GetInstancedMeshPartID(InstancerHGPO);
+
+		const int GeoId = InstancerHGPO.GeoId;
+		const int FrameIndex = Frame;
+		const double FrameTime = (Frame-1) / static_cast<double>(FrameRate);
 		
 		// Retrieve the WorldTransform for all the points in this Mesh (frame)
 		// Note, we need to retrieve "P" for the translation, and "transform" for the rotation/scale.
 
+        HAPI_PartInfo PartInfo;
+        FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), GeoId, MeshPartId, &PartInfo);
+			
 		// Retrieve Position (World Space)
 		HAPI_AttributeInfo PointInfo;
 		FHoudiniApi::AttributeInfo_Init(&PointInfo);
 
 		HAPI_Result PointInfoResult = FHoudiniApi::GetAttributeInfo(
 			FHoudiniEngine::Get().GetSession(),
-			GeoId, PartId,
+			GeoId, MeshPartId,
 			HAPI_UNREAL_ATTRIB_POSITION, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &PointInfo);
 
 		TArray<FVector3f> PositionData;
 		PositionData.SetNum(PointInfo.count);  //dont need * PositionInfo.tupleSize, its already a vector container
-		FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, HAPI_UNREAL_ATTRIB_POSITION, &PointInfo, -1, (float*)&PositionData[0], 0, PointInfo.count);
+		FHoudiniApi::GetAttributeFloatData(FHoudiniEngine::Get().GetSession(), GeoId, MeshPartId, HAPI_UNREAL_ATTRIB_POSITION, &PointInfo, -1, (float*)&PositionData[0], 0, PointInfo.count);
 
 		// Retrieve Rotation matrix (World Space)
 		HAPI_AttributeInfo WorldTransformInfo;
@@ -504,14 +518,14 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 
 		HAPI_Result WorldTransformInfoResult = FHoudiniApi::GetAttributeInfo(
 			FHoudiniEngine::Get().GetSession(),
-			GeoId, PartId,
+			GeoId, MeshPartId,
 			"transform", HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, &WorldTransformInfo);
 		
 		TArray<float> WorldTransformData;
 		TArray<int> WorldTransformSizesFixedArray;
 		WorldTransformData.SetNum(WorldTransformInfo.count * WorldTransformInfo.tupleSize);
 		WorldTransformSizesFixedArray.SetNum(WorldTransformInfo.count);
-		HAPI_Result WorldTransformDataResult = FHoudiniApi::GetAttributeFloatArrayData(FHoudiniEngine::Get().GetSession(), GeoId, PartId, "transform", &WorldTransformInfo, &WorldTransformData[0], WorldTransformInfo.count * WorldTransformInfo.tupleSize, &WorldTransformSizesFixedArray[0], 0, WorldTransformInfo.count);
+		HAPI_Result WorldTransformDataResult = FHoudiniApi::GetAttributeFloatArrayData(FHoudiniEngine::Get().GetSession(), GeoId, MeshPartId, "transform", &WorldTransformInfo, &WorldTransformData[0], WorldTransformInfo.count * WorldTransformInfo.tupleSize, &WorldTransformSizesFixedArray[0], 0, WorldTransformInfo.count);
 
 		//Build the World Space transforms for the bones
 		
@@ -531,34 +545,10 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 			{
 				RootBoneIndex = BoneIndex;
 			}
-			
-			//Read in 3x3 into Matrix, and append the translation
-			FMatrix M44Pose;  //this is unconverted houdini space
-			M44Pose.M[0][0] = WorldTransformData[9 * BoneIndex + 0];
-			M44Pose.M[0][1] = WorldTransformData[9 * BoneIndex + 1];
-			M44Pose.M[0][2] = WorldTransformData[9 * BoneIndex + 2];
-			M44Pose.M[0][3] = 0;
-			M44Pose.M[1][0] = WorldTransformData[9 * BoneIndex + 3];
-			M44Pose.M[1][1] = WorldTransformData[9 * BoneIndex + 4];
-			M44Pose.M[1][2] = WorldTransformData[9 * BoneIndex + 5];
-			M44Pose.M[1][3] = 0;
-			M44Pose.M[2][0] = WorldTransformData[9 * BoneIndex + 6];
-			M44Pose.M[2][1] = WorldTransformData[9 * BoneIndex + 7];
-			M44Pose.M[2][2] = WorldTransformData[9 * BoneIndex + 8];
-			M44Pose.M[2][3] = 0;
-			M44Pose.M[3][0] = PositionData[BoneIndex].X;
-			M44Pose.M[3][1] = PositionData[BoneIndex].Y;
-			M44Pose.M[3][2] = PositionData[BoneIndex].Z;
-			M44Pose.M[3][3] = 1;
 
-			FTransform PoseTransform = FTransform(M44Pose);//this is in Houdini Space
-			//Now convert to unreal
-			FQuat PoseQ = PoseTransform.GetRotation();
-			FQuat ConvertedPoseQ = FQuat(PoseQ.X, PoseQ.Z, PoseQ.Y, -PoseQ.W) * FQuat::MakeFromEuler({ 90.f, 0.f, 0.f });
-			FVector PoseT = PoseTransform.GetLocation();
-			FVector ConvertedPoseT = FVector(PoseT.X, PoseT.Z, PoseT.Y);
-			FVector PoseS = PoseTransform.GetScale3D();
-			FTransform UnrealPoseTransform = FTransform(ConvertedPoseQ, ConvertedPoseT * 100, PoseS * 100);
+			FMatrix M44Pose = FHoudiniSkeletalMeshUtils::MakeMatrixFromHoudiniData(WorldTransformData.GetData() + 9 * BoneIndex, &PositionData[BoneIndex].X);
+
+			FTransform UnrealPoseTransform = FTransform(M44Pose);
 			
 			BoneWSTransforms.Add(BoneName, UnrealPoseTransform);
 		}
@@ -603,7 +593,7 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 		{
 			// Collect the fbx_custom_attributes for this frame
 			TSharedPtr<FJsonObject> JsonObject;
-			if (GetFbxCustomAttributes(GeoId, PartId, RootBoneIndex, JsonObject))
+			if (GetFbxCustomAttributes(GeoId, MeshPartId, RootBoneIndex, JsonObject))
 			{
 				TArray<FString> Keys;
 				JsonObject->Values.GetKeys(Keys);
@@ -640,8 +630,7 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 		// This line is to set actual frame rate
 		AnimController.SetFrameRate(FFrameRate(FrameRate, 1), true);
 
-		//AnimController.SetPlayLength(33.0f, true);
-		const int32 NumKeys = NumHGPOs-1;
+		const int32 NumKeys = Frames.Num();
 		AnimController.SetNumberOfFrames(NumKeys - 1);
 
 		//rgc

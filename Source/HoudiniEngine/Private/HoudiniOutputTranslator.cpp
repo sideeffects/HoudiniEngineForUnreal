@@ -1490,28 +1490,27 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			//// Motion Clip checks. Note this currentrly assumes one part/motion clip per geo.
 			//---------------------------------------------------------------------------------------------------------------------------------------
 
-			for (int32 PartId = 0; PartId < CurrentGeoInfo.PartCount; ++PartId)
+			if (CurrentGeoInfo.PartCount >= 3)
 			{
-				HAPI_PartInfo& CurrentHapiPartInfo = HapiPartInfos[PartId];
-				FHoudiniPartInfo& CurrentPartInfo = PartInfos[PartId];
+				HAPI_PartInfo* CurrentHapiPartInfo = &HapiPartInfos[0];
 
 				// Check to for motion clip topology frame
-				if ((CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER) && PartId == 0)
+				if ((CurrentHapiPartInfo->type == HAPI_PARTTYPE_INSTANCER))
 				{
-					bHasMotionClipTopologyFrame = FHoudiniAnimationTranslator::IsMotionClipFrame(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, false);
+					bHasMotionClipTopologyFrame = FHoudiniAnimationTranslator::IsMotionClipFrame(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo->id, false);
 				}
 
-				// Check for the first motion clip anim frame 
-				if ((CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER) && PartId == 2)
+				// Check for the first motion clip anim frame
+				CurrentHapiPartInfo = &HapiPartInfos[2];
+				if ((CurrentHapiPartInfo->type == HAPI_PARTTYPE_INSTANCER))
 				{
-					bHasMotionClipAnimFrame = FHoudiniAnimationTranslator::IsMotionClipFrame(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id, true);
+					bHasMotionClipAnimFrame = FHoudiniAnimationTranslator::IsMotionClipFrame(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo->id, false);
 				}
 
 				if (bHasMotionClipTopologyFrame && bHasMotionClipAnimFrame)
 				{
 					// We have identified that this Geo data is likely a motion clip.
 					bIsMotionClip = true;
-					break;
 				}
 			}
 
@@ -2083,11 +2082,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				bool IsFoundOutputValid = false;
 				UHoudiniOutput ** FoundHoudiniOutput = nullptr;	
 				if (currentHGPO.Type != EHoudiniPartType::Volume &&
-					currentHGPO.Type != EHoudiniPartType::MotionClip &&
 					currentHGPO.Type != EHoudiniPartType::SkeletalMeshPose &&
 					currentHGPO.Type != EHoudiniPartType::SkeletalMeshShape &&
-					currentHGPO.Type != EHoudiniPartType::SkeletalMeshPhysAsset
-					)
+					currentHGPO.Type != EHoudiniPartType::SkeletalMeshPhysAsset &&
+					!bIsMotionClip)
 				{
 					// Create single output per HGPO. never reuse old outputs, as its deprecated anyway
 					FoundHoudiniOutput = nullptr;

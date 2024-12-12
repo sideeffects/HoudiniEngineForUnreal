@@ -86,7 +86,25 @@ FHoudiniSkeletalMeshUtils::MakeMatrixFromHoudiniData(const float RotationData[],
 FMatrix FHoudiniSkeletalMeshUtils::UnrealToHoudiniMatrix(const FTransform& Transform)
 {
 	FMatrix UnrealMatrix = Transform.ToMatrixWithScale();
+	return UnrealToHoudiniMatrix(UnrealMatrix);
+}
 
+void FHoudiniSkeletalMeshUtils::UnrealToHoudiniMatrix(FMatrix& UnrealMatrix, float Matrix[])
+{
+	FMatrix HoudiniMatrix = UnrealToHoudiniMatrix(UnrealMatrix);
+
+	for (int Row = 0; Row < 4; Row++)
+	{
+		for (int Col = 0; Col < 4; Col++)
+		{
+			Matrix[Row * 4 + Col] = HoudiniMatrix.M[Row][Col];
+		}
+	}
+}
+
+
+FMatrix FHoudiniSkeletalMeshUtils::UnrealToHoudiniMatrix(const FMatrix& UnrealMatrix)
+{
 	FMatrix Result;
 	Result.M[0][0] = UnrealMatrix.M[0][0];
 	Result.M[0][1] = UnrealMatrix.M[0][2];
@@ -110,6 +128,21 @@ FMatrix FHoudiniSkeletalMeshUtils::UnrealToHoudiniMatrix(const FTransform& Trans
 
 	return Result;
 }
+
+void FHoudiniSkeletalMeshUtils::UnrealToHoudiniMatrix(FMatrix& UnrealMatrix, float Rotation[], float Position[])
+{
+	FMatrix HoudiniMatrix = UnrealToHoudiniMatrix(UnrealMatrix);
+
+	for (int Col = 0; Col < 3; Col++)
+	{
+		for (int Row = 0; Row < 3; Row++)
+		{
+			Rotation[Row * 3 + Col] = HoudiniMatrix.M[Row][Col];
+		}
+		Position[Col] = HoudiniMatrix.M[3][Col];
+	}
+}
+
 
 FHoudiniSkeleton FHoudiniSkeletalMeshUtils::FetchSkeleton(HAPI_NodeId NodeId, HAPI_PartId PartId)
 {
