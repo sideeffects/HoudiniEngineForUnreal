@@ -2009,7 +2009,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodeForCapturePose(
 		HAPI_NodeId AttribWrangleNodeId = -1;
 		
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ObjectNodeId, TEXT("attribwrangle"),
-			TEXT("convert_matrix"), true, &AttribWrangleNodeId), false);
+			TEXT("convert_matrix"), false, &AttribWrangleNodeId), false);
 
 		// Connect Wrangle to Null
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(

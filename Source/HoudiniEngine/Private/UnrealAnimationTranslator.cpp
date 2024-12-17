@@ -200,7 +200,7 @@ FUnrealAnimationTranslator::HapiCreateInputNodeForAnimation(
 		HAPI_NodeId AttribWrangleNodeId;
 		{
 			CreateResult = FHoudiniEngineUtils::CreateNode(InputObjectNodeId, TEXT("attribwrangle"),
-				TEXT("convert_matrix"), true, &AttribWrangleNodeId);
+				TEXT("convert_matrix"), false, &AttribWrangleNodeId);
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 				FHoudiniEngine::Get().GetSession(),
@@ -227,7 +227,7 @@ FUnrealAnimationTranslator::HapiCreateInputNodeForAnimation(
 		//Create Pack Node
 		HAPI_NodeId PackNodeId;
 		HAPI_Result CreatePackResult = FHoudiniEngineUtils::CreateNode(InputObjectNodeId, TEXT("pack"),
-			TEXT("pack_data"), true, &PackNodeId);
+			TEXT("pack_data"), false, &PackNodeId);
 
 		// Connect to point wrangle
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
@@ -272,7 +272,7 @@ FUnrealAnimationTranslator::HapiCreateInputNodeForAnimation(
 		HAPI_NodeId DetailWrangleNodeId;
 		{
 			CreateResult = FHoudiniEngineUtils::CreateNode(InputObjectNodeId, TEXT("attribwrangle"),
-				TEXT("build_clipinfo"), true, &DetailWrangleNodeId);
+				TEXT("build_clipinfo"), false, &DetailWrangleNodeId);
 
 			// Connect to Pack
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
