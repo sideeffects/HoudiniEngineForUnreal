@@ -1659,8 +1659,8 @@ FHoudiniInstanceTranslator::GetInstancerMaterialInstances(
 		return true;
 	
 	TArray<UPackage*> MaterialAndTexturePackages;
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> InputAssignmentMaterials;
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputAssignmentMaterials;
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> InputAssignmentMaterials;
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> OutputAssignmentMaterials;
 	static constexpr bool bForceRecookAll = false;
 	bool bSuccess = false;
 	if (FHoudiniMaterialTranslator::CreateMaterialInstances(
@@ -1682,7 +1682,7 @@ FHoudiniInstanceTranslator::GetInstancerMaterialInstances(
 			// skip the invalid ids (non material instance)
 			if (!MaterialIdentifier.IsValid())
 				continue;
-			UMaterialInterface** Material = OutputAssignmentMaterials.Find(MaterialIdentifier);
+			TObjectPtr<UMaterialInterface>* Material = OutputAssignmentMaterials.Find(MaterialIdentifier);
 			if (!Material || !IsValid(*Material))
 			{
 				OutInstancerMaterials[SlotIdx] = nullptr;

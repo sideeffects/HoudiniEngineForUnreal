@@ -72,7 +72,7 @@ bool operator==(const FHoudiniLevelInstanceParams & p1, const FHoudiniLevelInsta
 	return p1.Type == p2.Type && p1.OutputName == p2.OutputName;
 }
 
-bool FHoudiniLevelInstanceUtils::FetchLevelInstanceParameters(TArray<UHoudiniOutput*>& CookedOutputs)
+bool FHoudiniLevelInstanceUtils::FetchLevelInstanceParameters(TArray<TObjectPtr<UHoudiniOutput>>& CookedOutputs)
 {
 	for (int Index = 0; Index < CookedOutputs.Num(); Index++)
 	{

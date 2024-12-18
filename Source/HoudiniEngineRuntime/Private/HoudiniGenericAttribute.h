@@ -66,7 +66,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniGenericAttributeChangedProperty
 	
 	/** The object from where to follow the PropertyChain to the changed property. */
 	UPROPERTY()
-	UObject* Object;
+	TObjectPtr<UObject> Object;
 
 	/** The property chain, relative to Object, for the changed property. */
 	FEditPropertyChain PropertyChain;

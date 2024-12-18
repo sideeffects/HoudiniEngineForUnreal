@@ -286,7 +286,7 @@ public:
 
 	// Persist all the required properties for being able to recook the HoudiniAsset from its existing state.
 	UPROPERTY()
-	UHoudiniAsset* HoudiniAsset;
+	TObjectPtr<UHoudiniAsset> HoudiniAsset;
 
 	UPROPERTY()
 	int32 AssetId;
@@ -346,6 +346,6 @@ public:
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniAssetBlueprintOutput> Outputs;
 
 	UPROPERTY()
-	TArray<UHoudiniInput*> Inputs;
+	TArray<TObjectPtr<UHoudiniInput>> Inputs;
 };
 

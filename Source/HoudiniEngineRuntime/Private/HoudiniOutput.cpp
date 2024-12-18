@@ -101,11 +101,11 @@ UHoudiniLandscapePtr::UHoudiniLandscapePtr(class FObjectInitializer const& Initi
 bool
 UHoudiniLandscapeSplinesOutput::GetLayerSegments(const FName InEditLayer, TArray<ULandscapeSplineSegment*>& OutSegments) const
 {
-	UHoudiniLandscapeSplineTargetLayerOutput* const* const LayerOutputPtr = LayerOutputs.Find(InEditLayer);
+	const TObjectPtr<UHoudiniLandscapeSplineTargetLayerOutput> * LayerOutputPtr = LayerOutputs.Find(InEditLayer);
 	if (!LayerOutputPtr)
 		return false;
 
-	UHoudiniLandscapeSplineTargetLayerOutput* const LayerOutput = *LayerOutputPtr;
+	UHoudiniLandscapeSplineTargetLayerOutput* LayerOutput = LayerOutputPtr->Get();
 	if (!IsValid(LayerOutput))
 		return false;
 

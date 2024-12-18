@@ -53,7 +53,7 @@ UHoudiniEditorNodeSyncSubsystem::Deinitialize()
 
 	// Clean the world input
 	FHoudiniInputTranslator::DisconnectAndDestroyInput(NodeSyncWorldInput, EHoudiniInputType::World);
-	TArray<UHoudiniInputObject*>* InputObjects = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
 	if (InputObjects)
 		InputObjects->Empty();
 	
@@ -207,7 +207,7 @@ UHoudiniEditorNodeSyncSubsystem::SendContentBrowserSelection(const TArray<UObjec
 
 	// No need to upload something we've already sent ... 
 	TArray<UObject*> ObjectsToSend = CurrentCBSelection;
-	TArray<UHoudiniInputObject*>* InputObjects = NodeSyncCBInput->GetHoudiniInputObjectArray(EHoudiniInputType::Geometry);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = NodeSyncCBInput->GetHoudiniInputObjectArray(EHoudiniInputType::Geometry);
 	if (InputObjects)
 	{
 		// ... so remove all selected objects that were previously sent
@@ -255,7 +255,7 @@ UHoudiniEditorNodeSyncSubsystem::SendWorldSelection()
 	InitNodeSyncInputsIfNeeded();
 
 	// No need to upload something we've already sent
-	TArray<UHoudiniInputObject*>* InputObjects = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
 	if (InputObjects)
 	{
 		// Remove all selected objects that were previously sent
@@ -479,7 +479,7 @@ UHoudiniEditorNodeSyncSubsystem::UpdateAllSelection()
 	InitNodeSyncInputsIfNeeded();
 
 	// Build an array of all previously sent actors
-	TArray<UHoudiniInputObject*>* InputObjects = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
 	if (InputObjects)
 	{
 		for (const auto& CurInputObject : *InputObjects)
@@ -509,7 +509,7 @@ UHoudiniEditorNodeSyncSubsystem::DeleteAllSelection()
 
 	// Clean the world input
 	bool bReturn = FHoudiniInputTranslator::DisconnectAndDestroyInput(NodeSyncWorldInput, EHoudiniInputType::World);
-	TArray<UHoudiniInputObject*>* InputObjects = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
 	if (InputObjects)
 		InputObjects->Empty();
 
@@ -605,8 +605,8 @@ UHoudiniEditorNodeSyncSubsystem::FetchFromHoudini()
 			TArray<HAPI_NodeId> CreatedNodeIds;
 
 			// Create a new Geo importer
-			TArray<UHoudiniOutput*> DummyOldOutputs;
-			TArray<UHoudiniOutput*> NewOutputs;
+			TArray<TObjectPtr<UHoudiniOutput>> DummyOldOutputs;
+			TArray<TObjectPtr<UHoudiniOutput>> NewOutputs;
 			UHoudiniGeoImporter* HoudiniGeoImporter = NewObject<UHoudiniGeoImporter>(this);
 			HoudiniGeoImporter->AddToRoot();
 
@@ -1115,7 +1115,7 @@ UHoudiniEditorNodeSyncSubsystem::CheckNodeSyncInputNodesValid()
 		return false;
 	}
 
-	const TArray<UHoudiniInputObject*>* InputObjects = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
+	const TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
 	if (!InputObjects)
 		return false;
 
@@ -1155,7 +1155,7 @@ UHoudiniEditorNodeSyncSubsystem::UpdateNodeSyncInputs()
 	bool bSuccess = true;
 	if (NodeSyncWorldInput->IsDataUploadNeeded())
 	{
-		TArray<UHoudiniInputObject*>* InputObjectsArray = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
+		TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsArray = NodeSyncWorldInput->GetHoudiniInputObjectArray(EHoudiniInputType::World);
 
 		// Iterate on all the input objects and see if they need to be uploaded
 		TArray<int32> CreatedNodeIds;

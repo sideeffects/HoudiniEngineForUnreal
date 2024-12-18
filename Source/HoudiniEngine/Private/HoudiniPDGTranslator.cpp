@@ -73,8 +73,8 @@ FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 		return false;
 	}
 	
-	TArray<UHoudiniOutput*> OldTOPOutputs = InWorkResultObject.GetResultOutputs();
-	TArray<UHoudiniOutput*> NewTOPOutputs;
+	TArray<TObjectPtr<UHoudiniOutput>> OldTOPOutputs = InWorkResultObject.GetResultOutputs();
+	TArray<TObjectPtr<UHoudiniOutput>> NewTOPOutputs;
 
 	FHoudiniEngine::Get().CreateTaskSlateNotification(LOCTEXT("LoadPDGBGEO", "Loading PDG Output BGEO File..."));
 	
@@ -191,7 +191,7 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 	UTOPNode* InTOPNode,
 	FTOPWorkResultObject& InWorkResultObject,
 	const FHoudiniPackageParams& InPackageParams,
-	TArray<UHoudiniOutput*>& InOutputs,
+	TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
 	TArray<EHoudiniOutputType> InOutputTypesToProcess,
 	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* InPreBuiltInstancedOutputPartData)
 {
@@ -277,7 +277,7 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 
 bool
 FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
-	TArray<UHoudiniOutput*>& InOutputs,
+	TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
 	const FHoudiniPackageParams& InPackageParams,
 	UObject* InOuterComponent,
 	FHoudiniClearedEditLayers& ClearedLayers,
@@ -306,7 +306,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	const bool bIsHACValid = IsValid(HAC);
 	
 	// Keep track of all generated houdini materials to avoid recreating them over and over
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials;
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> AllOutputMaterials;
 	TMap<FString, ALandscape*> CookedLandscapes;
 
 	// Landscape splines track edit layers that were cleared per-landscape

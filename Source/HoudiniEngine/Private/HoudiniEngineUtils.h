@@ -1264,6 +1264,39 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			bool bInSkipTempFolderResolutionAndUseDefault=false);
 
 		// -------------------------------------------------
+		template <typename T>
+		static TArray<TObjectPtr<T>> ToObjectPtr(const TArray<T*>& In)
+		{
+			TArray<TObjectPtr<T>> Result;
+			Result.Reserve(In.Num());
+			for(T* Ptr : In)
+				Result.Add(TObjectPtr<T>(Ptr));
+			return Result;
+		}
+
+		template <typename T>
+		static TSet<TObjectPtr<T>> ToObjectPtr(const TSet<T*>& In)
+		{
+			TSet<TObjectPtr<T>> Result;
+			Result.Reserve(In.Num());
+			for(T* Ptr : In)
+				Result.Add(TObjectPtr<T>(Ptr));
+			return Result;
+		}
+
+		template <typename T>
+		static TSet<T*> RemoveObjectPtr(const TSet<TObjectPtr<T>>& In)
+		{
+			TSet<T*> Result;
+			Result.Reserve(In.Num());
+			for(T* Ptr : In)
+				Result.Add(Ptr);
+			return Result;
+		}
+
+		// -------------------------------------------------
+
+		// -------------------------------------------------
 		// Houdini Engine debug functions
 		// -------------------------------------------------
 

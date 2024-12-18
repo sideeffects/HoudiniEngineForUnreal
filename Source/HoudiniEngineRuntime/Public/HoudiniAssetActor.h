@@ -44,7 +44,7 @@ class HOUDINIENGINERUNTIME_API AHoudiniAssetActor : public AActor
 
 	// Pointer to the root HoudiniAssetComponent
 	UPROPERTY(Category = HoudiniAssetActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|HoudiniEngine")/*, AllowPrivateAccess = "true"*/)
-	UHoudiniAssetComponent * HoudiniAssetComponent;
+	TObjectPtr<UHoudiniAssetComponent>  HoudiniAssetComponent;
 
 public:
 

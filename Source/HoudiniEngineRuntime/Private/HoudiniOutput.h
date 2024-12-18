@@ -200,10 +200,10 @@ class HOUDINIENGINERUNTIME_API UHoudiniLandscapeTargetLayerOutput : public UObje
 
 public:
 	UPROPERTY()
-	ALandscape * Landscape; // Parent Landscape
+	TObjectPtr<ALandscape>  Landscape; // Parent Landscape
 
 	UPROPERTY()
-	ALandscapeProxy* LandscapeProxy; // Landscape Proxy
+	TObjectPtr<ALandscapeProxy> LandscapeProxy; // Landscape Proxy
 
 	UPROPERTY()
 	FString BakedEditLayer; // Final baked layer name
@@ -230,13 +230,13 @@ public:
 	FString BakedLandscapeName;
 
 	UPROPERTY()
-	TArray<ULandscapeLayerInfoObject*> LayerInfoObjects;
+	TArray<TObjectPtr<ULandscapeLayerInfoObject>> LayerInfoObjects;
 
 	UPROPERTY()
 	FString BakeFolder;
 
 	UPROPERTY()
-	UMaterialInterface* MaterialInstance = nullptr;
+	TObjectPtr<UMaterialInterface> MaterialInstance = nullptr;
 
 	UPROPERTY()
 	bool bWriteLockedLayers = false;
@@ -256,13 +256,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniLandscapeOutput : public UObject
 
 public:
 	UPROPERTY()
-	ALandscape* Landscape;
+	TObjectPtr<ALandscape> Landscape;
 
 	UPROPERTY()
 	FString BakedName;
 
 	UPROPERTY()
-	TArray<UHoudiniLandscapeTargetLayerOutput*> Layers;
+	TArray<TObjectPtr<UHoudiniLandscapeTargetLayerOutput>> Layers;
 
 	UPROPERTY()
 	bool bCreated;
@@ -280,7 +280,7 @@ public:
 	FName AfterEditLayer = NAME_None;
 
 	UPROPERTY()
-	TArray<ULandscapeSplineSegment*> Segments;
+	TArray<TObjectPtr<ULandscapeSplineSegment>> Segments;
 };
 
 
@@ -291,16 +291,16 @@ class HOUDINIENGINERUNTIME_API UHoudiniLandscapeSplinesOutput : public UObject
 
 public:
 
-	TMap<FName, UHoudiniLandscapeSplineTargetLayerOutput*>& GetLayerOutputs() { return LayerOutputs; }
-	const TMap<FName, UHoudiniLandscapeSplineTargetLayerOutput*>& GetLayerOutputs() const { return LayerOutputs; }
+	TMap<FName, TObjectPtr<UHoudiniLandscapeSplineTargetLayerOutput>>& GetLayerOutputs() { return LayerOutputs; }
+	const TMap<FName, TObjectPtr<UHoudiniLandscapeSplineTargetLayerOutput>>& GetLayerOutputs() const { return LayerOutputs; }
 
 	bool GetLayerSegments(FName InEditLayer, TArray<ULandscapeSplineSegment*>& OutSegments) const;
 
-	TArray<ULandscapeSplineSegment*>& GetSegments() { return Segments; }
-	const TArray<ULandscapeSplineSegment*>& GetSegments() const { return Segments; }
+	TArray<TObjectPtr<ULandscapeSplineSegment>>& GetSegments() { return Segments; }
+	const TArray<TObjectPtr<ULandscapeSplineSegment>>& GetSegments() const { return Segments; }
 
-	TArray<ULandscapeSplineControlPoint*>& GetControlPoints() { return ControlPoints; }
-	const TArray<ULandscapeSplineControlPoint*>& GetControlPoints() const { return ControlPoints; }
+	TArray<TObjectPtr<ULandscapeSplineControlPoint>>& GetControlPoints() { return ControlPoints; }
+	const TArray<TObjectPtr<ULandscapeSplineControlPoint>>& GetControlPoints() const { return ControlPoints; }
 
 	void SetLandscape(ALandscape* InLandscape) { Landscape = InLandscape; }
 	ALandscape* GetLandscape() const { return Landscape; }
@@ -319,25 +319,25 @@ public:
 
 private:
 	UPROPERTY()
-	ALandscape* Landscape;
+	TObjectPtr<ALandscape> Landscape;
 
 	UPROPERTY()
-	ALandscapeProxy* LandscapeProxy;
+	TObjectPtr<ALandscapeProxy> LandscapeProxy;
 
 	UPROPERTY()
-	ALandscapeSplineActor* LandscapeSplineActor;
+	TObjectPtr<ALandscapeSplineActor> LandscapeSplineActor;
 
 	UPROPERTY()
-	ULandscapeSplinesComponent* LandscapeSplinesComponent;
+	TObjectPtr<ULandscapeSplinesComponent> LandscapeSplinesComponent;
 
 	UPROPERTY()
-	TMap<FName, UHoudiniLandscapeSplineTargetLayerOutput*> LayerOutputs;
+	TMap<FName, TObjectPtr<UHoudiniLandscapeSplineTargetLayerOutput>> LayerOutputs;
 
 	UPROPERTY()
-	TArray<ULandscapeSplineSegment*> Segments;
+	TArray<TObjectPtr<ULandscapeSplineSegment>> Segments;
 
 	UPROPERTY()
-	TArray<ULandscapeSplineControlPoint*> ControlPoints;
+	TArray<TObjectPtr<ULandscapeSplineControlPoint>> ControlPoints;
 };
 
 
@@ -537,7 +537,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 
 		// Foliage Type (Baked or user-defined)
 		UPROPERTY()
-		UFoliageType* FoliageType = nullptr;
+		TObjectPtr<UFoliageType> FoliageType = nullptr;
 
 		// Foliage Actor Instances
 		UPROPERTY()
@@ -609,11 +609,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 
 		// The main output object
 		UPROPERTY()
-		UObject* OutputObject = nullptr;
+		TObjectPtr<UObject> OutputObject = nullptr;
 
 		// The main output component
 		UPROPERTY()
-		TArray<UObject*> OutputComponents;
+		TArray<TObjectPtr<UObject>> OutputComponents;
 
 		// The main output component
 		UPROPERTY()
@@ -621,11 +621,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 
 		// Proxy object
 		UPROPERTY()
-		UObject* ProxyObject = nullptr;
+		TObjectPtr<UObject> ProxyObject = nullptr;
 
 		// Proxy Component
 		UPROPERTY()
-		UObject* ProxyComponent = nullptr;
+		TObjectPtr<UObject> ProxyComponent = nullptr;
 
 		// Mesh output properties
 		// If this is true the proxy mesh is "current", 
@@ -683,16 +683,16 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 
 		// Object that was instanced.
 		UPROPERTY()
-	    UObject* UserFoliageType = nullptr;
+	    TObjectPtr<UObject> UserFoliageType = nullptr;
 
 		// Foliage Type was that used.
 		UPROPERTY()
-        UFoliageType* FoliageType = nullptr;
+        TObjectPtr<UFoliageType> FoliageType = nullptr;
 
 		// World used when creating the output. This is used for Foliage may have no explicit objects
 		// are created and so we cannot track the original world when we want to remove instances.
 		UPROPERTY()
-		UWorld* World = nullptr;
+		TObjectPtr<UWorld> World = nullptr;
 
 		// Data Layers which should be applied (during Baking only). There can be multiple data layers per actor.
 		UPROPERTY()
@@ -756,10 +756,10 @@ public:
 	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& GetOutputObjects() const { return OutputObjects; };
 
 	// Returns this output's assignement material map
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& GetAssignementMaterials() { return AssignmentMaterialsById; };
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& GetAssignementMaterials() { return AssignmentMaterialsById; };
 	
 	// Returns this output's replacement material map
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& GetReplacementMaterials() { return ReplacementMaterialsById; };
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& GetReplacementMaterials() { return ReplacementMaterialsById; };
 
 	// Returns the instanced outputs maps
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutput>& GetInstancedOutputs() { return InstancedOutputs; };
@@ -826,10 +826,10 @@ public:
 	bool IsLandscapeWorldComposition () const { return bLandscapeWorldComposition; };
 
 	FORCEINLINE
-	TArray<AActor*> & GetHoudiniCreatedSocketActors() { return HoudiniCreatedSocketActors; };
+	TArray<TObjectPtr<AActor>> & GetHoudiniCreatedSocketActors() { return HoudiniCreatedSocketActors; };
 
 	FORCEINLINE
-	TArray<AActor*> & GetHoudiniAttachedSocketActors() { return HoudiniAttachedSocketActors; }
+	TArray<TObjectPtr<AActor>> & GetHoudiniAttachedSocketActors() { return HoudiniAttachedSocketActors; }
 
 	// Duplicate this object and copy its state to the resulting object.
 	// This is typically used to transfer state between between template and instance components.
@@ -880,11 +880,11 @@ protected:
 
 	// The material assignments for this output
 	UPROPERTY()
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AssignmentMaterialsById;
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> AssignmentMaterialsById;
 
 	// The material replacements for this output
 	UPROPERTY()
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> ReplacementMaterialsById;
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> ReplacementMaterialsById;
 
 	// Indicates the number of stale HGPO
 	int32 StaleCount;
@@ -895,10 +895,10 @@ protected:
 	// stores the created actors for sockets with actor references.
 	// <CreatedActorPtr, SocketName>
 	UPROPERTY()
-	TArray<AActor*> HoudiniCreatedSocketActors;
+	TArray<TObjectPtr<AActor>> HoudiniCreatedSocketActors;
 
 	UPROPERTY()
-	TArray<AActor*> HoudiniAttachedSocketActors;
+	TArray<TObjectPtr<AActor>> HoudiniAttachedSocketActors;
 
 private:
 	// Use HoudiniOutput to represent an editable curve.

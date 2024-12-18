@@ -124,7 +124,7 @@ UHoudiniInput::BeginDestroy()
 	// This messes up unreal's Garbage collection and would cause crashes on duplication
 
 	// Mark all our input objects for destruction
-	ForAllHoudiniInputObjectArrays([](TArray<UHoudiniInputObject*>& ObjectArray) {
+	ForAllHoudiniInputObjectArrays([](TArray<TObjectPtr<UHoudiniInputObject>>& ObjectArray) {
 		ObjectArray.Empty();
 	});
 
@@ -135,7 +135,7 @@ UHoudiniInput::BeginDestroy()
 void UHoudiniInput::PostEditUndo() 
 {
 	 Super::PostEditUndo();
-	 TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(Type);
+	 TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(Type);
 	 if (!InputObjectsPtr)
 		 return;
 
@@ -543,7 +543,8 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 			if ( IsValid(LandscapeInfo) )
 			{
 				// Get the currently selected components
-				LandscapeSelectedComponents = LandscapeInfo->GetSelectedComponents();
+				for(ULandscapeComponent* LandscapeComponent : LandscapeInfo->GetSelectedComponents())
+					LandscapeSelectedComponents.Add(LandscapeComponent);
 			}
 	
 			if ( InputSettings.bLandscapeAutoSelectComponent && LandscapeSelectedComponents.Num() <= 0 && Bounds.IsValid )
@@ -1067,7 +1068,7 @@ UHoudiniInput::MarkAllInputObjectsChanged(const bool& bInChanged)
 	InputTypes.Add(Type);
 	InputTypes.Add(EHoudiniInputType::Curve);
 	
-	TArray<UHoudiniInputObject*>* NewInputObjects = GetHoudiniInputObjectArray(Type);
+	TArray<TObjectPtr<UHoudiniInputObject>>* NewInputObjects = GetHoudiniInputObjectArray(Type);
 	if (NewInputObjects)
 	{
 		for (auto CurInputObject : *NewInputObjects)
@@ -1091,7 +1092,7 @@ void UHoudiniInput::CopyStateFrom(UHoudiniInput* InInput, bool bCopyAllPropertie
 {
 	// Preserve the current input objects before the copy to ensure we don't lose 
 	// access to input objects and have them end up in the garbage.	
-	TMap<EHoudiniInputType, TArray<UHoudiniInputObject*>*> PrevInputObjectsMap;
+	TMap<EHoudiniInputType, TArray<TObjectPtr<UHoudiniInputObject>>*> PrevInputObjectsMap;
 	for(EHoudiniInputType InputType : HoudiniInputTypeList)
 	{
 		PrevInputObjectsMap.Add(InputType, GetHoudiniInputObjectArray(InputType));
@@ -1138,9 +1139,9 @@ void UHoudiniInput::CopyStateFrom(UHoudiniInput* InInput, bool bCopyAllPropertie
 	for(auto& Entry : PrevInputObjectsMap)
 	{
 		EHoudiniInputType InputType = Entry.Key;
-		TArray<UHoudiniInputObject*>* PrevInputObjects = Entry.Value;
-		TArray<UHoudiniInputObject*>* ToInputObjects = GetHoudiniInputObjectArray(InputType);
-		TArray<UHoudiniInputObject*>* FromInputObjects = InInput->GetHoudiniInputObjectArray(InputType);
+		TArray<TObjectPtr<UHoudiniInputObject>>* PrevInputObjects = Entry.Value;
+		TArray<TObjectPtr<UHoudiniInputObject>>* ToInputObjects = GetHoudiniInputObjectArray(InputType);
+		TArray<TObjectPtr<UHoudiniInputObject>>* FromInputObjects = InInput->GetHoudiniInputObjectArray(InputType);
 
 		if (ToInputObjects && FromInputObjects)
 		{
@@ -1236,7 +1237,7 @@ void UHoudiniInput::InvalidateData()
 	CreatedDataNodeIds.Empty();
 }
 
-void UHoudiniInput::CopyInputs(TArray<UHoudiniInputObject*>& ToInputObjects, TArray<UHoudiniInputObject*>& FromInputObjects, bool bInCanDeleteHoudiniNodes)
+void UHoudiniInput::CopyInputs(TArray<TObjectPtr<UHoudiniInputObject>>& ToInputObjects, TArray<TObjectPtr<UHoudiniInputObject>>& FromInputObjects, bool bInCanDeleteHoudiniNodes)
 {
 	TSet<UHoudiniInputObject*> StaleObjects(ToInputObjects);
 
@@ -1529,7 +1530,7 @@ UHoudiniInput::RemoveSplineFromInputObject(
 }
 
 
-TArray<UHoudiniInputObject*>*
+TArray<TObjectPtr<UHoudiniInputObject>>*
 UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType)
 {
 	switch (InType)
@@ -1549,7 +1550,7 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType)
 	}
 }
 
-TArray<AActor*>*
+TArray<TObjectPtr<AActor>>*
 UHoudiniInput::GetBoundSelectorObjectArray()
 {	
 	switch (Type)
@@ -1562,7 +1563,7 @@ UHoudiniInput::GetBoundSelectorObjectArray()
 	}
 }
 
-const TArray<AActor*>*
+const TArray<TObjectPtr<AActor>>*
 UHoudiniInput::GetBoundSelectorObjectArray() const
 {
 	switch (Type)
@@ -1575,7 +1576,7 @@ UHoudiniInput::GetBoundSelectorObjectArray() const
 	}
 }
 
-const TArray<UHoudiniInputObject*>*
+const TArray<TObjectPtr<UHoudiniInputObject>>*
 UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType) const
 {
 	switch (InType)
@@ -1604,7 +1605,7 @@ UHoudiniInput::GetHoudiniInputObjectAt(const int32& AtIndex)
 const UHoudiniInputObject*
 UHoudiniInput::GetHoudiniInputObjectAt(const int32& AtIndex) const
 {
-	const TArray<UHoudiniInputObject*>* InputObjectsArray = GetHoudiniInputObjectArray(Type);
+	const TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsArray = GetHoudiniInputObjectArray(Type);
 	if (!InputObjectsArray || !InputObjectsArray->IsValidIndex(AtIndex))
 		return nullptr;
 
@@ -1614,7 +1615,7 @@ UHoudiniInput::GetHoudiniInputObjectAt(const int32& AtIndex) const
 UHoudiniInputObject*
 UHoudiniInput::GetHoudiniInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex)
 {
-	TArray<UHoudiniInputObject*>* InputObjectsArray = GetHoudiniInputObjectArray(InType);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsArray = GetHoudiniInputObjectArray(InType);
 	if (!InputObjectsArray || !InputObjectsArray->IsValidIndex(AtIndex))
 		return nullptr;
 
@@ -1630,7 +1631,7 @@ UHoudiniInput::GetInputObjectAt(const int32& AtIndex)
 AActor*
 UHoudiniInput::GetBoundSelectorObjectAt(const int32& AtIndex)
 {
-	TArray<AActor*>* BoundSelectorObjects = GetBoundSelectorObjectArray();
+	TArray<TObjectPtr<AActor>>* BoundSelectorObjects = GetBoundSelectorObjectArray();
 
 	if (!BoundSelectorObjects)
 		return nullptr;
@@ -1660,7 +1661,7 @@ UHoudiniInput::InsertInputObjectAt(const int32& AtIndex)
 void
 UHoudiniInput::InsertInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex)
 {
-	TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
 	if (!InputObjectsPtr)
 		return;
 
@@ -1677,7 +1678,7 @@ UHoudiniInput::DeleteInputObjectAt(const int32& AtIndex, const bool bInRemoveInd
 void
 UHoudiniInput::DeleteInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex, const bool bInRemoveIndexFromArray)
 {
-	TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
 	if (!InputObjectsPtr)
 		return;
 
@@ -1754,7 +1755,7 @@ UHoudiniInput::DuplicateInputObjectAt(const int32& AtIndex)
 void
 UHoudiniInput::DuplicateInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex)
 {
-	TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
 	if (!InputObjectsPtr)
 		return;
 
@@ -1783,7 +1784,7 @@ UHoudiniInput::GetNumberOfInputObjects()
 int32
 UHoudiniInput::GetNumberOfInputObjects(const EHoudiniInputType& InType)
 {
-	TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
 	if (!InputObjectsPtr)
 		return 0;
 
@@ -1799,7 +1800,7 @@ UHoudiniInput::GetNumberOfInputMeshes()
 int32
 UHoudiniInput::GetNumberOfInputMeshes(const EHoudiniInputType& InType)
 {
-	TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
 	if (!InputObjectsPtr)
 		return 0;
 
@@ -1840,7 +1841,7 @@ UHoudiniInput::GetNumberOfInputMeshes(const EHoudiniInputType& InType)
 int32
 UHoudiniInput::GetNumberOfBoundSelectorObjects() const
 {
-	const TArray<AActor*>* BoundSelectorObjects = GetBoundSelectorObjectArray();
+	const TArray<TObjectPtr<AActor>>* BoundSelectorObjects = GetBoundSelectorObjectArray();
 
 	if (!BoundSelectorObjects)
 		return 0;
@@ -1876,7 +1877,7 @@ UHoudiniInput::SetInputObjectAt(const EHoudiniInputType& InType, const int32& At
 	if (!InObject)
 	{
 		// We want to set the input object to null
-		TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
+		TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
 		if (!ensure(InputObjectsPtr != nullptr && InputObjectsPtr->IsValidIndex(AtIndex)))
 			return;
 
@@ -1906,7 +1907,7 @@ UHoudiniInput::SetInputObjectAt(const EHoudiniInputType& InType, const int32& At
 	}
 
 	// Destroy the existing input object
-	TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
 	if (!ensure(InputObjectsPtr))
 		return;
 
@@ -1936,7 +1937,7 @@ UHoudiniInput::SetInputObjectAt(const EHoudiniInputType& InType, const int32& At
 void
 UHoudiniInput::SetInputObjectsNumber(const EHoudiniInputType& InType, const int32& InNewCount)
 {
-	TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(InType);
 	if (!InputObjectsPtr)
 		return;
 
@@ -1988,7 +1989,7 @@ UHoudiniInput::SetInputObjectsNumber(const EHoudiniInputType& InType, const int3
 void
 UHoudiniInput::SetBoundSelectorObjectsNumber(const int32& InNewCount)
 {
-	TArray<AActor*>* BoundSelectorObjects = GetBoundSelectorObjectArray();
+	TArray<TObjectPtr<AActor>>* BoundSelectorObjects = GetBoundSelectorObjectArray();
 
 	if (!BoundSelectorObjects)
 		return;
@@ -2032,7 +2033,7 @@ UHoudiniInput::SetBoundSelectorObjectAt(const int32& AtIndex, AActor* InActor)
 		return;
 	}
 
-	TArray<AActor*>* BoundSelectorObjects = GetBoundSelectorObjectArray();
+	TArray<TObjectPtr<AActor>>* BoundSelectorObjects = GetBoundSelectorObjectArray();
 
 	if (!BoundSelectorObjects)
 		return;
@@ -2107,7 +2108,7 @@ UHoudiniInput::HasChanged()
 	if (bHasChanged)
 		return true;
 
-	TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(Type);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(Type);
 	if (!ensure(InputObjectsPtr))
 		return false;
 
@@ -2123,7 +2124,7 @@ UHoudiniInput::HasChanged()
 bool
 UHoudiniInput::IsTransformUploadNeeded()
 {
-	TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(Type);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(Type);
 	if (!ensure(InputObjectsPtr))
 		return false;
 
@@ -2143,7 +2144,7 @@ UHoudiniInput::NeedsToTriggerUpdate()
 	if (bNeedsToTriggerUpdate)
 		return true;
 
-	const TArray<UHoudiniInputObject*>* InputObjectsPtr = GetHoudiniInputObjectArray(Type);
+	const TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(Type);
 	if (!ensure(InputObjectsPtr))
 		return false;
 
@@ -2406,7 +2407,7 @@ UHoudiniInput::SetHasLandscapeExportTypeChanged(const bool InChanged)
 bool
 UHoudiniInput::UpdateWorldSelectionFromBoundSelectors()
 {
-	TArray<AActor*>* BoundSelectorObjects = GetBoundSelectorObjectArray();
+	TArray<TObjectPtr<AActor>>* BoundSelectorObjects = GetBoundSelectorObjectArray();
 	if (!BoundSelectorObjects)
 		return false;
 
@@ -2485,7 +2486,7 @@ UHoudiniInput::UpdateWorldSelection(const TArray<AActor*>& InNewSelection)
 {
 	// TODO: Can we use a set for NewSelectedActors instead?
 	TArray<AActor*> NewSelectedActors = InNewSelection;
-	TArray<UHoudiniInputObject*>* InputObjects = GetHoudiniInputObjectArray(EHoudiniInputType::World);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = GetHoudiniInputObjectArray(EHoudiniInputType::World);
 
 	// Update our current selection with the new one
 	// Keep actors that are still selected, remove the one that are not selected anymore
@@ -2537,7 +2538,7 @@ UHoudiniInput::ContainsInputObject(const UObject* InObject, const EHoudiniInputT
 		return false;
 
 	// Returns true if the object is one of our input object for the given type
-	const TArray<UHoudiniInputObject*>* ObjectArray = GetHoudiniInputObjectArray(InType);
+	const TArray<TObjectPtr<UHoudiniInputObject>>* ObjectArray = GetHoudiniInputObjectArray(InType);
 	if (!ObjectArray)
 		return false;
 
@@ -2585,20 +2586,20 @@ void UHoudiniInput::ForAllHoudiniInputObjects(TFunctionRef<void(UHoudiniInputObj
 	}
 }
 
-TArray<const TArray<UHoudiniInputObject*>*> UHoudiniInput::GetAllObjectArrays() const
+TArray<const TArray<TObjectPtr<UHoudiniInputObject>>*> UHoudiniInput::GetAllObjectArrays() const
 {
 	return { &GeometryInputObjects, &CurveInputObjects, &WorldInputObjects };
 }
 
-TArray<TArray<UHoudiniInputObject*>*> UHoudiniInput::GetAllObjectArrays()
+TArray<TArray<TObjectPtr<UHoudiniInputObject>>*> UHoudiniInput::GetAllObjectArrays()
 {
 	return { &GeometryInputObjects, &CurveInputObjects, &WorldInputObjects };
 }
 
-void UHoudiniInput::ForAllHoudiniInputObjectArrays(TFunctionRef<void(const TArray<UHoudiniInputObject*>&)> Fn) const
+void UHoudiniInput::ForAllHoudiniInputObjectArrays(TFunctionRef<void(const TArray<TObjectPtr<UHoudiniInputObject>>&)> Fn) const
 {
-	TArray<const TArray<UHoudiniInputObject*>*> ObjectArrays = GetAllObjectArrays();
-	for (const TArray<UHoudiniInputObject*>* ObjectArrayPtr : ObjectArrays)
+	TArray<const TArray<TObjectPtr<UHoudiniInputObject>>*> ObjectArrays = GetAllObjectArrays();
+	for (const TArray<TObjectPtr<UHoudiniInputObject>>* ObjectArrayPtr : ObjectArrays)
 	{
 		if (!ObjectArrayPtr)
 			continue;
@@ -2606,10 +2607,10 @@ void UHoudiniInput::ForAllHoudiniInputObjectArrays(TFunctionRef<void(const TArra
 	}
 }
 
-void UHoudiniInput::ForAllHoudiniInputObjectArrays(TFunctionRef<void(TArray<UHoudiniInputObject*>&)> Fn)
+void UHoudiniInput::ForAllHoudiniInputObjectArrays(TFunctionRef<void(TArray<TObjectPtr<UHoudiniInputObject>>&)> Fn)
 {
-	TArray<TArray<UHoudiniInputObject*>*> ObjectArrays = GetAllObjectArrays();
-	for (TArray<UHoudiniInputObject*>* ObjectArrayPtr : ObjectArrays)
+	TArray<TArray<TObjectPtr<UHoudiniInputObject>>*> ObjectArrays = GetAllObjectArrays();
+	for (TArray<TObjectPtr<UHoudiniInputObject>>* ObjectArrayPtr : ObjectArrays)
 	{
 		if (!ObjectArrayPtr)
 			continue;
@@ -2678,7 +2679,7 @@ void UHoudiniInput::RemoveHoudiniInputObject(UHoudiniInputObject* InInputObject)
 	if (!InInputObject)
 		return;
 
-	ForAllHoudiniInputObjectArrays([InInputObject](TArray<UHoudiniInputObject*>& ObjectArray) {
+	ForAllHoudiniInputObjectArrays([InInputObject](TArray<TObjectPtr<UHoudiniInputObject>>& ObjectArray) {
 		ObjectArray.Remove(InInputObject);
 	});
 

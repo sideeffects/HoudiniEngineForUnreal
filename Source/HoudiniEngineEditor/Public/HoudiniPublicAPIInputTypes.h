@@ -185,7 +185,7 @@ protected:
 
 	/** The input objects for this input. */
 	UPROPERTY()
-	TArray<UObject*> InputObjects;
+	TArray<TObjectPtr<UObject>> InputObjects;
 
 };
 
@@ -535,7 +535,7 @@ public:
 
 	/** Objects used for automatic bound selection */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
-	TArray<AActor*> WorldInputBoundSelectorObjects;
+	TArray<TObjectPtr<AActor>> WorldInputBoundSelectorObjects;
 
 	/** Indicates that this world input is in "BoundSelector" mode */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")

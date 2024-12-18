@@ -48,7 +48,7 @@ FHoudiniHandleTranslator::BuildHandles(UHoudiniAssetComponent* HAC)
 	if (!IsValid(HAC))
 		return false;
 
-	TArray<UHoudiniHandleComponent*> NewHandles;
+	TArray<TObjectPtr<UHoudiniHandleComponent>> NewHandles;
 	if (FHoudiniHandleTranslator::BuildAllHandles(HAC->GetAssetId(), HAC, HAC->HandleComponents, NewHandles)) 
 	{
 		HAC->HandleComponents = NewHandles;
@@ -61,8 +61,8 @@ bool
 FHoudiniHandleTranslator::BuildAllHandles(
 	const HAPI_NodeId& AssetId,
 	UHoudiniAssetComponent* OuterObject,
-	TArray<UHoudiniHandleComponent*>& CurrentHandles,
-	TArray<UHoudiniHandleComponent*>& NewHandles)
+	TArray<TObjectPtr<UHoudiniHandleComponent>>& CurrentHandles,
+	TArray<TObjectPtr<UHoudiniHandleComponent>>& NewHandles)
 {
 	if (AssetId < 0)
 		return false;
@@ -201,7 +201,7 @@ FHoudiniHandleTranslator::BuildAllHandles(
 
 				const HAPI_ParmId ParamId = BindingInfo.assetParmId;
 
-				TArray<UHoudiniHandleParameter*> &XformParms = HandleComponent->XformParms;
+				TArray<TObjectPtr<UHoudiniHandleParameter>> &XformParms = HandleComponent->XformParms;
 
 				UHoudiniParameter* FoundParam = nullptr;
 
@@ -324,7 +324,7 @@ FHoudiniHandleTranslator::UpdateTransformParameters(UHoudiniHandleComponent* Han
 	if (!HandleComponent->CheckHandleValid())
 		return;
 
-	TArray<UHoudiniHandleParameter*>& XformParms = HandleComponent->XformParms;
+	TArray<TObjectPtr<UHoudiniHandleParameter>>& XformParms = HandleComponent->XformParms;
 	if (XformParms.Num() < (int32)EXformParameter::COUNT)
 		return;
 

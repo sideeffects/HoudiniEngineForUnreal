@@ -40,7 +40,7 @@ struct FHoudiniEngineBakedActor;
 class FHoudiniLevelInstanceUtils
 {
 public:
-	static bool FetchLevelInstanceParameters(TArray<UHoudiniOutput*>& CookedOutputs);
+	static bool FetchLevelInstanceParameters(TArray<TObjectPtr<UHoudiniOutput>>& CookedOutputs);
 
 	static TOptional<FHoudiniLevelInstanceParams> GetParams(int NodeId, int PartId);
 

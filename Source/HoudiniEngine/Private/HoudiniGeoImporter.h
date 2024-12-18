@@ -65,8 +65,8 @@ public:
 	static bool BuildAllOutputsForNode(
 		const HAPI_NodeId& InNodeId, 
 		UObject* InOuter, 
-		TArray<UHoudiniOutput*>& InOldOutputs, 
-		TArray<UHoudiniOutput*>& OutNewOutputs, 
+		TArray<TObjectPtr<UHoudiniOutput>>& InOldOutputs,
+		TArray<TObjectPtr<UHoudiniOutput>>& OutNewOutputs,
 		bool bInAddOutputsToRootSet = false,
 		bool bInUseOutputNodes = true,
 		bool bGatherEditableCurves = true);
@@ -98,13 +98,13 @@ public:
 	// 4. Extract the outputs for a given node ID
 	bool BuildOutputsForNode(
 		const HAPI_NodeId& InNodeId,
-		TArray<UHoudiniOutput*>& InOldOutputs, 
-		TArray<UHoudiniOutput*>& OutNewOutputs,
+		TArray<TObjectPtr<UHoudiniOutput>>& InOldOutputs,
+		TArray<TObjectPtr<UHoudiniOutput>>& OutNewOutputs,
 		bool bInUseOutputNodes = true);
 
 	// 5. Create objects using outputs
 	bool CreateObjectsFromOutputs(
-		TArray<UHoudiniOutput*>& InOutputs,
+		TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
 		FHoudiniPackageParams InPackageParams,
 		const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 		const FMeshBuildSettings& InMeshBuildSettings,
@@ -143,7 +143,7 @@ private:
 
 	/** @param InInstancerOutputs Must all have type EHoudiniOutput::Instancer. */
 	bool CreateInstancers(
-		TArray<UHoudiniOutput*>& InAllOutputs,
+		TArray<TObjectPtr<UHoudiniOutput>>& InAllOutputs,
 		const TArray<UHoudiniOutput*>& InInstancerOutputs, 
 		FHoudiniPackageParams InPackageParams);
 

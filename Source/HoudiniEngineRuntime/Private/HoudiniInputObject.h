@@ -448,7 +448,7 @@ private:
 
 	// The input object of the parent actor of the component
 	UPROPERTY()
-	UHoudiniInputActor* ParentInputActor;
+	TObjectPtr<UHoudiniInputActor> ParentInputActor;
 };
 
 
@@ -662,7 +662,7 @@ protected:
 	// lives on the same actor as this input object. If we use a Soft Object Reference instead the editor
 	// will complain about breaking references everytime we try to delete the actor.
 	UPROPERTY(Instanced)
-	UHoudiniSplineComponent* CachedComponent;
+	TObjectPtr<UHoudiniSplineComponent> CachedComponent;
 };
 
 
@@ -835,7 +835,7 @@ protected:
 
 	// The actor's components that can be sent as inputs
 	UPROPERTY()
-	TArray<UHoudiniInputSceneComponent*> ActorComponents;
+	TArray<TObjectPtr<UHoudiniInputSceneComponent>> ActorComponents;
 
 	// The USceneComponents the actor had the last time we called Update (matches the ones in ActorComponents).
 	UPROPERTY()
@@ -892,13 +892,13 @@ public:
 
 	virtual bool ShouldTrackComponent(UActorComponent const* InComponent, const FHoudiniInputObjectSettings* InSettings) const override { return false; }
 
-	const TMap<TSoftObjectPtr<AActor>, UHoudiniInputObject*>& GetTrackedActorObjects() const { return TrackedActorObjects; }
+	const TMap<TSoftObjectPtr<AActor>, TObjectPtr<UHoudiniInputObject>>& GetTrackedActorObjects() const { return TrackedActorObjects; }
 
 	virtual void InvalidateData() override;
 
 private:
 	UPROPERTY()
-	TMap<TSoftObjectPtr<AActor>, UHoudiniInputObject*> TrackedActorObjects;
+	TMap<TSoftObjectPtr<AActor>, TObjectPtr<UHoudiniInputObject>> TrackedActorObjects;
 
 	UPROPERTY()
 	int32 NumActorsAddedLastUpdate;
@@ -1077,7 +1077,7 @@ protected:
 	TArray<FHoudiniBrushInfo> BrushesInfo;
 	
 	UPROPERTY(Transient, DuplicateTransient)
-	UModel* CombinedModel;
+	TObjectPtr<UModel> CombinedModel;
 
 	UPROPERTY()
 	bool bIgnoreInputObject;
@@ -1179,7 +1179,7 @@ protected:
 
 	// The BP's components that can be sent as inputs
 	UPROPERTY()
-		TArray<UHoudiniInputSceneComponent*> BPComponents;
+		TArray<TObjectPtr<UHoudiniInputSceneComponent>> BPComponents;
 
 	// The USceneComponents the BP had the last time we called Update (matches the ones in BPComponents).
 	UPROPERTY()
@@ -1223,7 +1223,7 @@ public:
 	
 private:
 	UPROPERTY()
-	UHoudiniInputBlueprint* BlueprintInputObject;
+	TObjectPtr<UHoudiniInputBlueprint> BlueprintInputObject;
 
 };
 

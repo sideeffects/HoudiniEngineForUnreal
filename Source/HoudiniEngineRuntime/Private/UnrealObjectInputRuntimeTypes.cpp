@@ -184,7 +184,7 @@ FUnrealObjectInputOptions::MakeOptionsForLevelInstanceActor(const FHoudiniInputO
 
 
 FUnrealObjectInputOptions
-FUnrealObjectInputOptions::MakeOptionsForLandscapeActor(const FHoudiniInputObjectSettings& InInputSettings, const TSet<ULandscapeComponent*>* InSelectedComponents)
+FUnrealObjectInputOptions::MakeOptionsForLandscapeActor(const FHoudiniInputObjectSettings& InInputSettings, const TSet<TObjectPtr<ULandscapeComponent>>* InSelectedComponents)
 {
 	FUnrealObjectInputOptions Options = MakeOptionsForLandscapeSplineActor(InInputSettings);
 	if (!Options.bImportAsReference)
@@ -208,7 +208,7 @@ FUnrealObjectInputOptions::MakeOptionsForLandscapeActor(const FHoudiniInputObjec
 
 
 FUnrealObjectInputOptions
-FUnrealObjectInputOptions::MakeOptionsForLandscapeData(const FHoudiniInputObjectSettings& InInputSettings, const TSet<ULandscapeComponent*>* InSelectedComponents)
+FUnrealObjectInputOptions::MakeOptionsForLandscapeData(const FHoudiniInputObjectSettings& InInputSettings, const TSet<TObjectPtr<ULandscapeComponent>>* InSelectedComponents)
 {
 	FUnrealObjectInputOptions Options;
 	Options.bImportAsReference = InInputSettings.bImportAsReference;

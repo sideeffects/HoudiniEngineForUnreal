@@ -218,10 +218,10 @@ private:
 	bool InitNodeSyncInputsIfNeeded();
 
 	UPROPERTY()
-	UHoudiniInput* NodeSyncWorldInput;
+	TObjectPtr<UHoudiniInput> NodeSyncWorldInput;
 
 	UPROPERTY()
-	UHoudiniInput* NodeSyncCBInput;
+	TObjectPtr<UHoudiniInput> NodeSyncCBInput;
 
 	// Ticker handle, used for processing HAC.
 	FTSTicker::FDelegateHandle TickerHandle;

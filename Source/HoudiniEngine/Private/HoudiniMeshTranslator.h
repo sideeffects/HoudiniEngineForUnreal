@@ -165,7 +165,7 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			bool bSplitMeshSupport,
 			const FHoudiniStaticMeshGenerationProperties& InSMGenerationProperties,
 			const FMeshBuildSettings& InMeshBuildSettings,
-			const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials,
+			const TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InAllOutputMaterials,
 			UObject* InOuterComponent,
 			bool bInTreatExistingMaterialsAsUpToDate=false,
 			bool bInDestroyProxies=false);
@@ -175,9 +175,9 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			const FHoudiniPackageParams& InPackageParams,
 			const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects,
 			TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutOutputObjects,
-			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAssignmentMaterialMap,
-			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InReplacementMaterialMap,
-			const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials,
+			TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InAssignmentMaterialMap,
+			TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InReplacementMaterialMap,
+			const TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InAllOutputMaterials,
 			UObject* const InOuterComponent,
 			const bool& InForceRebuild,
 			EHoudiniStaticMeshMethod InStaticMeshMethod,
@@ -277,9 +277,9 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		void SetInputObjects(const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InInputObjects) { InputObjects = InInputObjects; };
 		void SetOutputObjects(TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& InOutputObjects) { OutputObjects = InOutputObjects; };
 
-		void SetInputAssignmentMaterials(const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InInputMaterials) { InputAssignmentMaterials = InInputMaterials; };
-		void SetReplacementMaterials(const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InReplacementMaterials) { ReplacementMaterials = InReplacementMaterials; };
-		void SetAllOutputMaterials(const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials) { AllOutputMaterials = InAllOutputMaterials; };
+		void SetInputAssignmentMaterials(const TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InInputMaterials) { InputAssignmentMaterials = InInputMaterials; };
+		void SetReplacementMaterials(const TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InReplacementMaterials) { ReplacementMaterials = InReplacementMaterials; };
+		void SetAllOutputMaterials(const TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InAllOutputMaterials) { AllOutputMaterials = InAllOutputMaterials; };
 
 		//void SetInputObjectProperties(const TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObjectProperty>& InInputObjectProperties) { InputObjectProperties = InInputObjectProperties; };
 		//void SetOutputObjectProperties(TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObjectProperty>& InOutputObjectProperties) { OutputObjectProperties = InOutputObjectProperties; };
@@ -365,7 +365,7 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		bool CreateNeededMaterials();
 
 		int32 GetFaceMaterialIndex(UMaterialInterface* MaterialInterface,
-			TMap<UMaterialInterface*, int32>& MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh,
+			TMap<TObjectPtr<UMaterialInterface>, int32>& MapUnrealMaterialInterfaceToUnrealMaterialIndexThisMesh,
 			int32 MatIndex,
 			TArray<FStaticMaterial>& FoundStaticMaterials);
 
@@ -414,8 +414,8 @@ protected:
 			const FHoudiniOutputObjectIdentifier &InOutputIdentifier,
 			const FHoudiniOutputObject & OutputObject,
 			const FHoudiniGeoPartObject *InHGPO, 
-			TArray<AActor*> & HoudiniCreatedSocketActors, 
-			TArray<AActor*> & HoudiniAttachedSocketActors,
+			TArray<TObjectPtr<AActor>> & HoudiniCreatedSocketActors,
+			TArray<TObjectPtr<AActor>> & HoudiniAttachedSocketActors,
 			bool bInApplyGenericProperties=true);
 
 		// Helper to create or update a mesh component for a UStaticMesh or proxy mesh output
@@ -435,7 +435,7 @@ protected:
 		static bool UpdateMeshOnHoudiniStaticMeshComponent(UHoudiniStaticMeshComponent *InComponent, UObject *InMesh);
 
 		static bool AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStaticMeshComponent * StaticMeshComponent, 
-			TArray<AActor*>& HoudiniCreatedSocketActors, TArray<AActor*>& HoudiniAttachedSocketActors);
+			TArray<TObjectPtr<AActor>>& HoudiniCreatedSocketActors, TArray<TObjectPtr<AActor>>& HoudiniAttachedSocketActors);
 
 		static bool HasFracturePieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId);
 
@@ -461,14 +461,14 @@ protected:
 
 
 		// Input Material Map
-		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> InputAssignmentMaterials;
+		TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> InputAssignmentMaterials;
 		// Output Material Map
-		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputAssignmentMaterials;
+		TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> OutputAssignmentMaterials;
 		// Input Replacement Materials maps
-		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> ReplacementMaterials;
+		TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> ReplacementMaterials;
 		// All the materials that have been generated by this Houdini Asset
 		// Used to avoid generating the same houdini material over and over again
-		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials;
+		TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> AllOutputMaterials;
 
 		// Input mesh properties
 		//TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObjectProperty> InputObjectProperties;
@@ -599,9 +599,9 @@ protected:
 		bool CreateStaticMeshFromSplitGroups(const FString & Name, FHoudiniSplitGroupMesh & Mesh);
 
 		bool CreateHoudiniStaticMeshFromSplitGroups(const FString& Name, FHoudiniSplitGroupMesh& Mesh,
-			TMap<HAPI_NodeId, UMaterialInterface*> & MapHoudiniMatIdToUnrealInterface,
-			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> & MapHoudiniMatAttributesToUnrealInterface,
-			TMap<UHoudiniStaticMesh*, TMap<UMaterialInterface*, int32>> & MapUnrealMaterialInterfaceToUnrealIndexPerMesh);
+			TMap<HAPI_NodeId, TObjectPtr<UMaterialInterface>> & MapHoudiniMatIdToUnrealInterface,
+			TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> & MapHoudiniMatAttributesToUnrealInterface,
+			TMap<UHoudiniStaticMesh*, TMap<TObjectPtr<UMaterialInterface>, int32>> & MapUnrealMaterialInterfaceToUnrealIndexPerMesh);
 
 		void UpdateSplitGroups();
 
@@ -612,9 +612,9 @@ protected:
 		void ProcessMaterialsForHSM(
 					const FString& SplitGroupName, 
 					UHoudiniStaticMesh* FoundStaticMesh,
-					TMap<HAPI_NodeId, UMaterialInterface*> & MapHoudiniMatIdToUnrealInterface,
-					TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> & MapHoudiniMatAttributesToUnrealInterface,
-					TMap<UHoudiniStaticMesh*, TMap<UMaterialInterface*, int32>> & MapUnrealMaterialInterfaceToUnrealIndexPerMesh);
+					TMap<HAPI_NodeId, TObjectPtr<UMaterialInterface>> & MapHoudiniMatIdToUnrealInterface,
+					TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> & MapHoudiniMatAttributesToUnrealInterface,
+					TMap<UHoudiniStaticMesh*, TMap<TObjectPtr<UMaterialInterface>, int32>> & MapUnrealMaterialInterfaceToUnrealIndexPerMesh);
 
 		bool IsGammaCorrectionDisabled(HAPI_NodeId Node, HAPI_PartId PartId);
 

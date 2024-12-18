@@ -322,7 +322,7 @@ FHoudiniLandscapeSplineTranslator::AddSegmentToOutputObject(
 	}
 
 	// Now that we have the final cooked / temp edit layer name, find or create the Layer Output object for this layer
-	TMap<FName, UHoudiniLandscapeSplineTargetLayerOutput*>& LayerOutputs = InOutputObject.GetLayerOutputs();
+	TMap<FName, TObjectPtr<UHoudiniLandscapeSplineTargetLayerOutput>>& LayerOutputs = InOutputObject.GetLayerOutputs();
 	UHoudiniLandscapeSplineTargetLayerOutput* LayerOutput = nullptr;
 	if (!LayerOutputs.Contains(EditLayerName))
 	{

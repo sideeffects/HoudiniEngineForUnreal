@@ -68,8 +68,8 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 		UObject* InOuterObject,
 		const TArray<HAPI_NodeId>& OutputNodes,
 		const TMap<HAPI_NodeId, int32>& OutputNodeCookCounts,
-		TArray<UHoudiniOutput*>& InOldOutputs,
-		TArray<UHoudiniOutput*>& OutNewOutputs,
+		TArray<TObjectPtr<UHoudiniOutput>>& InOldOutputs,
+		TArray<TObjectPtr<UHoudiniOutput>>& OutNewOutputs,
 		bool InOutputTemplatedGeos,
 		bool InUseOutputNodes,
 		bool bGatherEditableCurves);

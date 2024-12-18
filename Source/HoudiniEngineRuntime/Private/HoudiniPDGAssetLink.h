@@ -96,7 +96,7 @@ public:
 
 private:
 	UPROPERTY(NonTransactional)
-	AActor* OutputActor;
+	TObjectPtr<AActor> OutputActor;
 	
 };
 
@@ -117,10 +117,10 @@ public:
 	void SetResultOutputs(const TArray<UHoudiniOutput*>& InUpdatedOutputs) { ResultOutputs = InUpdatedOutputs; }
 
 	// Getter for ResultOutputs
-	TArray<UHoudiniOutput*>& GetResultOutputs() { return ResultOutputs; }
+	TArray<TObjectPtr<UHoudiniOutput>>& GetResultOutputs() { return ResultOutputs; }
 	
 	// Getter for ResultOutputs
-	const TArray<UHoudiniOutput*>& GetResultOutputs() const { return ResultOutputs; }
+	const TArray<TObjectPtr<UHoudiniOutput>>& GetResultOutputs() const { return ResultOutputs; }
 
 	// Destroy ResultOutputs
 	void DestroyResultOutputs(const FGuid& InHoudiniComponentGuid);
@@ -156,7 +156,7 @@ protected:
 	// TArray<UObject*>		ResultObjects;
 
 	UPROPERTY(NonTransactional)
-	TArray<UHoudiniOutput*> ResultOutputs;
+	TArray<TObjectPtr<UHoudiniOutput>> ResultOutputs;
 
 	// If true, indicates that the work result object has been auto-baked since it was last loaded.
 	UPROPERTY(NonTransactional)
@@ -515,7 +515,7 @@ public:
 	FString					ParentName;
 	
 	UPROPERTY()
-	UObject*				WorkResultParent;
+	TObjectPtr<UObject>				WorkResultParent;
 	UPROPERTY(NonTransactional)
 	TArray<FTOPWorkResult>	WorkResult;
 
@@ -636,7 +636,7 @@ public:
 	FString				NodePath;
 
 	UPROPERTY()
-	TArray<UTOPNode*>	AllTOPNodes;
+	TArray<TObjectPtr<UTOPNode>>	AllTOPNodes;
 
 	// TODO: Should be using SelectedNodeName instead?
 	// Index is not consistent after updating filter
@@ -833,7 +833,7 @@ public:
 	int32						AssetID;
 
 	UPROPERTY()
-	TArray<UTOPNetwork*>		AllTOPNetworks;
+	TArray<TObjectPtr<UTOPNetwork>>		AllTOPNetworks;
 
 	UPROPERTY()
 	int32						SelectedTOPNetworkIndex;
@@ -867,7 +867,7 @@ public:
 	// that are created.
 	// If null, then output actors are created under a folder
 	UPROPERTY(EditAnywhere, Category="Output")
-	AActor*					 	OutputParentActor;
+	TObjectPtr<AActor>					 	OutputParentActor;
 
 	// Folder used for baking PDG outputs
 	UPROPERTY()

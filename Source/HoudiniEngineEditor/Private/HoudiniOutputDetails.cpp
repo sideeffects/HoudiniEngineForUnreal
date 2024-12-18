@@ -2807,7 +2807,7 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 
 	// Try to find the original assignment, if not, we'll use the default material
 	UMaterialInterface * AssignMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-	UMaterialInterface * const * FoundMat = HoudiniOutput->GetAssignementMaterials().Find(MaterialIdentifier);
+	TObjectPtr<UMaterialInterface> * FoundMat = HoudiniOutput->GetAssignementMaterials().Find(MaterialIdentifier);
 	if (FoundMat && (*FoundMat))
 		AssignMaterial = *FoundMat;
 
@@ -2880,7 +2880,7 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 
 	// Try to find the original assignment, if not, we'll use the default material
 	UMaterialInterface * AssignMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
-	UMaterialInterface * const * FoundMat = InHoudiniOutput->GetAssignementMaterials().Find(MaterialIdentifier);
+	TObjectPtr<UMaterialInterface> * FoundMat = InHoudiniOutput->GetAssignementMaterials().Find(MaterialIdentifier);
 	if (FoundMat && (*FoundMat))
 		AssignMaterial = *FoundMat;
 

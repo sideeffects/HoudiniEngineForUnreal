@@ -410,7 +410,7 @@ public:
 	// The HoudiniAsset linked to this preset.
 	// Should this be a soft object pointer instead?
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
-	UHoudiniAsset* SourceHoudiniAsset;
+	TObjectPtr<UHoudiniAsset> SourceHoudiniAsset;
 	
 	// Whether the revert all parameters on the HDA to their default values before applying this preset
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")

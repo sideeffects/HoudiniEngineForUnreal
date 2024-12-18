@@ -163,10 +163,10 @@ protected:
 	int32 GNumNodes;		// Number of Bsp nodes at start of AddWorldToBrush.
 	
 	UPROPERTY()
-	UModel* GModel;			// Level map Model we're adding to.
+	TObjectPtr<UModel> GModel;			// Level map Model we're adding to.
 
 	UPROPERTY()
-	class UModel* TempModel;
+	TObjectPtr<class UModel> TempModel;
 
 	//// Globals removed from FBspPointsGrid
 	//UPROPERTY()

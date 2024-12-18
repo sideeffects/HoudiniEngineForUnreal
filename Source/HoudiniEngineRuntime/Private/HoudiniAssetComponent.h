@@ -531,7 +531,7 @@ public:
 	// Houdini Asset associated with this component.
 	/*Category = HoudiniAsset, EditAnywhere, meta = (DisplayPriority=0)*/
 	UPROPERTY(Category = HoudiniAsset, EditAnywhere)// BlueprintSetter = SetHoudiniAsset, BlueprintReadWrite, )
-	UHoudiniAsset* HoudiniAsset;
+	TObjectPtr<UHoudiniAsset> HoudiniAsset;
 
 	// Automatically cook when a parameter or input is changed
 	UPROPERTY()
@@ -671,7 +671,7 @@ protected:
 
 	// List of dependent downstream HACs that have us as an asset input
 	UPROPERTY(DuplicateTransient)
-	TSet<UHoudiniAssetComponent*> DownstreamHoudiniAssets;
+	TSet<TObjectPtr<UHoudiniAssetComponent>> DownstreamHoudiniAssets;
 
 	// Unique GUID created by component.
 	UPROPERTY(DuplicateTransient)
@@ -759,13 +759,13 @@ protected:
 	//bool bEditorPropertiesNeedFullUpdate;
 
 	UPROPERTY(Instanced)
-	TArray<UHoudiniParameter*> Parameters;
+	TArray<TObjectPtr<UHoudiniParameter>> Parameters;
 
 	UPROPERTY(Instanced)
-	TArray<UHoudiniInput*> Inputs;
+	TArray<TObjectPtr<UHoudiniInput>> Inputs;
 	
 	UPROPERTY(Instanced)
-	TArray<UHoudiniOutput*> Outputs;
+	TArray<TObjectPtr<UHoudiniOutput>> Outputs;
 
 	// The baked outputs from the last bake.
 	UPROPERTY()
@@ -778,7 +778,7 @@ protected:
 	TArray<TWeakObjectPtr<AActor>> UntrackedOutputs;
 
 	UPROPERTY()
-	TArray<UHoudiniHandleComponent*> HandleComponents;
+	TArray<TObjectPtr<UHoudiniHandleComponent>> HandleComponents;
 
 	UPROPERTY(Transient, DuplicateTransient)
 	bool bHasComponentTransformChanged;
@@ -787,7 +787,7 @@ protected:
 	bool bFullyLoaded;
 
 	UPROPERTY()
-	UHoudiniPDGAssetLink* PDGAssetLink;
+	TObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink;
 
 	UPROPERTY()
 	bool bIsPDGAssetLinkInitialized;

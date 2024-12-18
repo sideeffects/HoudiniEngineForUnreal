@@ -32,6 +32,7 @@
 #include "HoudiniPublicAPIInputTypes.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
+#include <HoudiniEngineUtils.h>
 
 
 UHoudiniPublicAPIProcessHDANode::UHoudiniPublicAPIProcessHDANode(const FObjectInitializer& ObjectInitializer)
@@ -83,8 +84,10 @@ UHoudiniPublicAPIProcessHDANode::ProcessHDA(
 	Node->HoudiniAsset = InHoudiniAsset;
 	Node->InstantiateAt = InInstantiateAt;
 	Node->Parameters = InParameters;
-	Node->NodeInputs = InNodeInputs;
-	Node->ParameterInputs = InParameterInputs;
+	for (auto It : InNodeInputs)
+		Node->NodeInputs.Add(It.Key, It.Value);
+	for(auto It : InParameterInputs)
+		Node->ParameterInputs.Add(It.Key, It.Value);
 	Node->WorldContextObject = InWorldContextObject;
 	Node->SpawnInLevelOverride = InSpawnInLevelOverride;
 	Node->bEnableAutoCook = bInEnableAutoCook;
@@ -219,20 +222,15 @@ UHoudiniPublicAPIProcessHDANode::HandlePostInstantiation(UHoudiniPublicAPIAssetW
 	// Set any inputs specified when the node was created
 	if (IsValid(AssetWrapper))
 	{
-		if (NodeInputs.Num() > 0)
+		for (auto It : NodeInputs)
 		{
-			AssetWrapper->SetInputsAtIndices(NodeInputs);
-		}
-		if (ParameterInputs.Num() > 0)
-		{
-			AssetWrapper->SetInputParameters(ParameterInputs);
+			AssetWrapper->SetInputAtIndex(It.Key, It.Value);
 		}
 
-		// // Set any parameters specified when the node was created 
-		// if (Parameters.Num() > 0)
-		// {
-		// 	AssetWrapper->SetParameterTuples(Parameters);
-		// }
+		for(auto It : ParameterInputs)
+		{
+			AssetWrapper->SetInputParameter(It.Key, It.Value);
+		}
 	}
 
 	if (PostInstantiation.IsBound())

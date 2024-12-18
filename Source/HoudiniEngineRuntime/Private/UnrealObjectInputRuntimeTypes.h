@@ -98,11 +98,11 @@ public:
 	
 	/** Helper to make FUnrealObjectInputOptions for Landscape actors. */
 	static FUnrealObjectInputOptions MakeOptionsForLandscapeActor(
-		const FHoudiniInputObjectSettings& InInputSettings, const TSet<ULandscapeComponent*>* InSelectedComponents=nullptr);
+		const FHoudiniInputObjectSettings& InInputSettings, const TSet<TObjectPtr<ULandscapeComponent>>* InSelectedComponents=nullptr);
 	
 	/** Helper to make FUnrealObjectInputOptions for Landscape data. */
 	static FUnrealObjectInputOptions MakeOptionsForLandscapeData(
-		const FHoudiniInputObjectSettings& InInputSettings, const TSet<ULandscapeComponent*>* InSelectedComponents=nullptr);
+		const FHoudiniInputObjectSettings& InInputSettings, const TSet<TObjectPtr<ULandscapeComponent>>* InSelectedComponents=nullptr);
 
 	/** Helper to make FUnrealObjectInputOptions for LandscapeSplineActors. */
 	static FUnrealObjectInputOptions MakeOptionsForLandscapeSplineActor(const FHoudiniInputObjectSettings& InInputSettings);
@@ -129,7 +129,7 @@ public:
 	void SetSelectedComponents(TSet<TWeakObjectPtr<UActorComponent>>&& InSelectedComponents);
 
 	template <class T>
-	void SetSelectedComponents(const TSet<T*>& InSelectedComponents);
+	void SetSelectedComponents(const TSet<TObjectPtr<T>>& InSelectedComponents);
 
 	const TSet<TWeakObjectPtr<UActorComponent>>& GetSelectedComponents() const { return SelectedComponents; }
 
@@ -1000,7 +1000,7 @@ private:
 
 
 template <class T>
-void FUnrealObjectInputOptions::SetSelectedComponents(const TSet<T*>& InSelectedComponents)
+void FUnrealObjectInputOptions::SetSelectedComponents(const TSet<TObjectPtr<T>>& InSelectedComponents)
 {
 	static_assert(std::is_base_of<UActorComponent, T>::value, "T must derive from UActorComponent");
 

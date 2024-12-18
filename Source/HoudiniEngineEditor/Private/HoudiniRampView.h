@@ -137,8 +137,8 @@ public:
 		float PrevPosition = 0.0f;
 		float NextPosition = 1.0f;
 
-		TArray<PointType*>& CurrentPoints = MainParameter->Points;
-		TArray<PointType*>& CachedPoints = MainParameter->CachedPoints;
+		TArray<TObjectPtr<PointType>>& CurrentPoints = MainParameter->Points;
+		TArray<TObjectPtr<PointType>>& CachedPoints = MainParameter->CachedPoints;
 
 		const int32 NumPoints = GetPointCount();
 
@@ -641,19 +641,19 @@ private:
 		// Use Synced points if the MainParam is on auto update mode
 		// Use Cached points if the Mainparam is on manual update mode
 
-		TArray<PointType*>& MainPoints = (MainParam->IsAutoUpdate() && bCookingEnabled)
+		TArray<TObjectPtr<PointType>>& MainPoints = (MainParam->IsAutoUpdate() && bCookingEnabled)
 			? MainParam->Points
 			: MainParam->CachedPoints;
 
 		if (Param->IsAutoUpdate() && bCookingEnabled)
 		{
-			TArray<PointType*>& Points = Param->Points;
+			TArray<TObjectPtr<PointType>>& Points = Param->Points;
 
 			int32 PointIdx = 0;
 			while (MainPoints.IsValidIndex(PointIdx) && Points.IsValidIndex(PointIdx))
 			{
-				PointType*& MainPoint = MainPoints[PointIdx];
-				PointType*& Point = Points[PointIdx];
+				TObjectPtr<PointType>& MainPoint = MainPoints[PointIdx];
+				TObjectPtr<PointType>& Point = Points[PointIdx];
 
 				if (!MainPoint || !Point)
 					continue;
@@ -707,7 +707,7 @@ private:
 			// There are more points in MainPoints array
 			for (; PointInsertIdx < MainPoints.Num(); ++PointInsertIdx)
 			{
-				PointType*& NextMainPoint = MainPoints[PointInsertIdx];
+				TObjectPtr<PointType> & NextMainPoint = MainPoints[PointInsertIdx];
 
 				if (!NextMainPoint)
 					continue;
@@ -723,7 +723,7 @@ private:
 			// There are more points in Points array
 			for (; PointDeleteIdx < Points.Num(); ++PointDeleteIdx)
 			{
-				PointType*& NextPoint = Points[PointDeleteIdx];
+				TObjectPtr<PointType>& NextPoint = Points[PointDeleteIdx];
 
 				if (!NextPoint)
 					continue;
@@ -736,13 +736,13 @@ private:
 		}
 		else
 		{
-			TArray<PointType*>& Points = Param->CachedPoints;
+			TArray<TObjectPtr<PointType>>& Points = Param->CachedPoints;
 
 			int32 PointIdx = 0;
 			while (MainPoints.IsValidIndex(PointIdx) && Points.IsValidIndex(PointIdx))
 			{
-				PointType*& MainPoint = MainPoints[PointIdx];
-				PointType*& Point = Points[PointIdx];
+				TObjectPtr<PointType>& MainPoint = MainPoints[PointIdx];
+				TObjectPtr<PointType>& Point = Points[PointIdx];
 
 				if (!MainPoint || !Point)
 					continue;
@@ -789,7 +789,7 @@ private:
 			// There are more points in MainPoints array
 			for (int32 MainPointsLeftIdx = PointIdx; MainPointsLeftIdx < MainPoints.Num(); ++MainPointsLeftIdx)
 			{
-				PointType* NextMainPoint = MainPoints[MainPointsLeftIdx];
+				TObjectPtr<PointType> NextMainPoint = MainPoints[MainPointsLeftIdx];
 
 				if (!NextMainPoint)
 					continue;

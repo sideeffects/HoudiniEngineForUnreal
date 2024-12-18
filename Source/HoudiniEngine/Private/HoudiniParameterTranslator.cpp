@@ -88,7 +88,7 @@ FHoudiniParameterTranslator::UpdateParameters(UHoudiniAssetComponent* HAC)
 	// When recooking/rebuilding the HDA, force a full update of all params
 	const bool bForceFullUpdate = HAC->HasRebuildBeenRequested() || HAC->HasRecookBeenRequested() || HAC->IsParameterDefinitionUpdateNeeded();
 
-	TArray<UHoudiniParameter*> NewParameters;
+	TArray<TObjectPtr<UHoudiniParameter>> NewParameters;
 	if (FHoudiniParameterTranslator::BuildAllParameters(HAC->GetAssetId(), HAC, HAC->Parameters, NewParameters, true, bForceFullUpdate, HAC->GetHoudiniAsset(), HAC->GetHapiAssetName()))
 	{
 		/*
@@ -203,7 +203,7 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(UHoudiniAssetComponent* HAC)
 
 	// This call to BuildAllParameters will keep all the loaded parameters (in the HAC's Parameters array)
 	// that are still present in the HDA, and keep their loaded value.
-	TArray<UHoudiniParameter*> NewParameters;
+	TArray<TObjectPtr<UHoudiniParameter>> NewParameters;
 	// We don't need to fetch defaults from the asset definition for a loaded HAC
 	const UHoudiniAsset* const HoudiniAsset = nullptr;
 	const FString HoudiniAssetName = FString();
@@ -240,8 +240,8 @@ bool
 FHoudiniParameterTranslator::BuildAllParameters(
 	const HAPI_NodeId& AssetId, 
 	class UObject* Outer,
-	TArray<UHoudiniParameter*>& CurrentParameters,
-	TArray<UHoudiniParameter*>& NewParameters,
+	TArray<TObjectPtr<UHoudiniParameter>>& CurrentParameters,
+	TArray<TObjectPtr<UHoudiniParameter>>& NewParameters,
 	const bool& bUpdateValues,
 	const bool& InForceFullUpdate,
 	const UHoudiniAsset* InHoudiniAsset,
@@ -2638,7 +2638,7 @@ FHoudiniParameterTranslator::UploadChangedParameters( UHoudiniAssetComponent * H
 
 	for (int32 ParmIdx = 0; ParmIdx < HAC->GetNumParameters(); ParmIdx++)
 	{
-		UHoudiniParameter*& CurrentParm = HAC->Parameters[ParmIdx];
+		TObjectPtr<UHoudiniParameter>& CurrentParm = HAC->Parameters[ParmIdx];
 		if (!IsValid(CurrentParm) || !CurrentParm->HasChanged())
 			continue;
 
@@ -3033,7 +3033,7 @@ FHoudiniParameterTranslator::GetFolderTypeFromParamInfo(const HAPI_ParmInfo* Par
 
 bool
 FHoudiniParameterTranslator::SyncMultiParmValuesAtLoad(
-	UHoudiniParameter* InParam, TArray<UHoudiniParameter*>& OldParams, const int32& InAssetId, const HAPI_AssetInfo& AssetInfo)
+	UHoudiniParameter* InParam, TArray<TObjectPtr<UHoudiniParameter>>& OldParams, const int32& InAssetId, const HAPI_AssetInfo& AssetInfo)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::SyncMultiParmValuesAtLoad);
 
@@ -3209,7 +3209,7 @@ bool FHoudiniParameterTranslator::UploadRampParameter(UHoudiniParameter* InParam
 	UHoudiniParameterRampFloat* RampFloatParam = Cast<UHoudiniParameterRampFloat>(InParam);
 	UHoudiniParameterRampColor* RampColorParam = Cast<UHoudiniParameterRampColor>(InParam);
 
-	TArray<UHoudiniParameterRampModificationEvent*> *Events = nullptr;
+	TArray<TObjectPtr<UHoudiniParameterRampModificationEvent>> *Events = nullptr;
 	if (RampFloatParam)
 	{
 		Events = &(RampFloatParam->ModificationEvents);

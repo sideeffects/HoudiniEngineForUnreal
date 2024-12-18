@@ -167,7 +167,7 @@ protected:
 
 	/** The asset wrapper for the instantiated HDA processed by this node. */
 	UPROPERTY()
-	UHoudiniPublicAPIAssetWrapper* AssetWrapper;
+	TObjectPtr<UHoudiniPublicAPIAssetWrapper> AssetWrapper;
 
 	/** True if the last cook was successful. */
 	UPROPERTY()
@@ -181,7 +181,7 @@ protected:
 
 	/** The HDA to instantiate. */
 	UPROPERTY()
-	UHoudiniAsset* HoudiniAsset;
+	TObjectPtr<UHoudiniAsset> HoudiniAsset;
 
 	/** The transform the instantiate the asset with. */
 	UPROPERTY()
@@ -193,19 +193,19 @@ protected:
 
 	/** The node inputs to set on #PostInstantiation */
 	UPROPERTY()
-	TMap<int32, UHoudiniPublicAPIInput*> NodeInputs;
+	TMap<int32, TObjectPtr<UHoudiniPublicAPIInput>> NodeInputs;
 
 	/** The object path parameter inputs to set on #PostInstantiation */
 	UPROPERTY()
-	TMap<FName, UHoudiniPublicAPIInput*> ParameterInputs;
+	TMap<FName, TObjectPtr<UHoudiniPublicAPIInput>> ParameterInputs;
 
 	/** The world context object: spawn in this world if #SpawnInLevelOverride is not set. */ 
 	UPROPERTY()
-	UObject* WorldContextObject;
+	TObjectPtr<UObject> WorldContextObject;
 
 	/** The level to spawn in. If both this and #WorldContextObject is not set, spawn in the editor context's level. */ 
 	UPROPERTY()
-	ULevel* SpawnInLevelOverride;
+	TObjectPtr<ULevel> SpawnInLevelOverride;
 
 	/** Whether to set the instantiated asset to auto cook. */
 	UPROPERTY()

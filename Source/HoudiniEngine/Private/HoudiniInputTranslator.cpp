@@ -154,8 +154,8 @@ bool
 FHoudiniInputTranslator::BuildAllInputs(
 	const HAPI_NodeId& AssetId,
 	class UObject* InOuterObject,
-	TArray<UHoudiniInput*>& Inputs,
-	TArray<UHoudiniParameter*>& Parameters)
+	TArray<TObjectPtr<UHoudiniInput>>& Inputs,
+	TArray<TObjectPtr<UHoudiniParameter>>& Parameters)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::BuildAllInputs);
 
@@ -470,7 +470,7 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 	
 	// Destroy the nodes created by all the input objects
 	TArray<int32> CreatedInputDataAssetIds = InputToDestroy->GetCreatedDataNodeIds();
-	TArray<UHoudiniInputObject*>* InputObjectNodes = InputToDestroy->GetHoudiniInputObjectArray(InputType);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectNodes = InputToDestroy->GetHoudiniInputObjectArray(InputType);
 	if (InputObjectNodes)
 	{
 		TArray<int32> ManagedHAPINodeIds;
@@ -793,7 +793,7 @@ FHoudiniInputTranslator::UploadChangedInputs(UHoudiniAssetComponent * HAC)
 	//for (auto CurrentInput : HAC->Inputs)
 	for(int32 InputIdx = 0; InputIdx < HAC->GetNumInputs(); InputIdx++)
 	{
-		UHoudiniInput*& CurrentInput = HAC->Inputs[InputIdx];
+		TObjectPtr<UHoudiniInput>& CurrentInput = HAC->Inputs[InputIdx];
 		if (!IsValid(CurrentInput) || !CurrentInput->HasChanged())
 			continue;
 
@@ -1037,7 +1037,7 @@ FHoudiniInputTranslator::UpdateTransformOffset(UHoudiniInput* InInput)
 		return true;
 
 	// Get the input objects
-	TArray<UHoudiniInputObject*>* InputObjectsArray = InInput->GetHoudiniInputObjectArray(InputType);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsArray = InInput->GetHoudiniInputObjectArray(InputType);
 	if (!ensure(InputObjectsArray))
 		return false;
 
@@ -1073,7 +1073,7 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 		return false;
 
 	EHoudiniInputType InputType = InInput->GetInputType();
-	TArray<UHoudiniInputObject*>* InputObjectsArray = InInput->GetHoudiniInputObjectArray(InInput->GetInputType());
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsArray = InInput->GetHoudiniInputObjectArray(InInput->GetInputType());
 	if (!ensure(InputObjectsArray))
 		return false;
 
@@ -1293,7 +1293,7 @@ FHoudiniInputTranslator::UploadInputTransform(UHoudiniInput* InInput)
 		return false;
 
 	EHoudiniInputType InputType = InInput->GetInputType();
-	TArray<UHoudiniInputObject*>* InputObjectsArray = InInput->GetHoudiniInputObjectArray(InInput->GetInputType());
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsArray = InInput->GetHoudiniInputObjectArray(InInput->GetInputType());
 	if (!ensure(InputObjectsArray))
 		return false;
 
@@ -4693,7 +4693,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 	InObject->Update(Landscape, InputSettings);
 
 	{
-		TSet<ULandscapeComponent*> SelectedLandscapeComponents = InInput->GetLandscapeSelectedComponents();
+		TSet<TObjectPtr<ULandscapeComponent>> SelectedLandscapeComponents = InInput->GetLandscapeSelectedComponents();
 		FUnrealObjectInputOptions Options = FUnrealObjectInputOptions::MakeOptionsForLandscapeActor(InputSettings, &SelectedLandscapeComponents);
 		FUnrealObjectInputIdentifier LandscapeInputNodeId(Landscape, Options, false);
 
@@ -4714,7 +4714,7 @@ bool
 FHoudiniInputTranslator::HapiCreateInputNodeForBrush(
 	const FString& InObjNodeName,
 	UHoudiniInputBrush* InObject,
-	TArray<AActor*>* ExcludeActors,
+	TArray<TObjectPtr<AActor>>* ExcludeActors,
 	const FHoudiniInputObjectSettings& InInputSettings,
 	const bool& bInputNodesCanBeDeleted)
 {
@@ -4899,7 +4899,7 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 	if (WorldType != EHoudiniInputType::World)
 		return false;
 
-	TArray<UHoudiniInputObject*>* InputObjectsPtr = InInput->GetHoudiniInputObjectArray(WorldType);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = InInput->GetHoudiniInputObjectArray(WorldType);
 	if (!InputObjectsPtr)
 		return false;
 

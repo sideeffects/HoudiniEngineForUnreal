@@ -136,13 +136,13 @@ public:
 	int32 InstanceIndex = -1;
 
 	UPROPERTY()
-	UHoudiniParameterFloat* PositionParentParm = nullptr;
+	TObjectPtr<UHoudiniParameterFloat> PositionParentParm = nullptr;
 
 	UPROPERTY()
-	UHoudiniParameterFloat* ValueParentParm = nullptr;
+	TObjectPtr<UHoudiniParameterFloat> ValueParentParm = nullptr;
 
 	UPROPERTY()
-	UHoudiniParameterChoice* InterpolationParentParm = nullptr;
+	TObjectPtr<UHoudiniParameterChoice> InterpolationParentParm = nullptr;
 
 	FORCEINLINE
 	float GetPosition() const { return Position; };
@@ -189,13 +189,13 @@ public:
 	int32 InstanceIndex = -1;
 
 	UPROPERTY()
-	UHoudiniParameterFloat * PositionParentParm = nullptr;
+	TObjectPtr<UHoudiniParameterFloat>  PositionParentParm = nullptr;
 
 	UPROPERTY()
-	UHoudiniParameterColor* ValueParentParm = nullptr;
+	TObjectPtr<UHoudiniParameterColor> ValueParentParm = nullptr;
 
 	UPROPERTY()
-	UHoudiniParameterChoice* InterpolationParentParm = nullptr;
+	TObjectPtr<UHoudiniParameterChoice> InterpolationParentParm = nullptr;
 
 	FORCEINLINE
 	float GetPosition() const { return Position; };
@@ -287,10 +287,10 @@ public:
 	bool UpdatePointsArray(const TArray<UHoudiniParameter*>& InParameters, const int32 InStartParamIndex);
 	
 	UPROPERTY()
-	TArray<UHoudiniParameterRampFloatPoint*> Points;
+	TArray<TObjectPtr<UHoudiniParameterRampFloatPoint>> Points;
 
 	UPROPERTY()
-	TArray<UHoudiniParameterRampFloatPoint*> CachedPoints;
+	TArray<TObjectPtr<UHoudiniParameterRampFloatPoint>> CachedPoints;
 
 	UPROPERTY()
 	TArray<float> DefaultPositions;
@@ -309,7 +309,7 @@ public:
 	bool bCaching;
 
 	UPROPERTY()
-	TArray<UHoudiniParameterRampModificationEvent*> ModificationEvents;
+	TArray<TObjectPtr<UHoudiniParameterRampModificationEvent>> ModificationEvents;
 
 	bool IsDefault() const override;
 
@@ -369,13 +369,13 @@ public:
 	bool SetCachedPointAtIndex(const int32 InIndex, const float InPosition, const FLinearColor& InValue, const EHoudiniRampInterpolationType InInterpolation);
 
 	UPROPERTY(Instanced)
-	TArray<UHoudiniParameterRampColorPoint*> Points;
+	TArray<TObjectPtr<UHoudiniParameterRampColorPoint>> Points;
 
 	UPROPERTY()
 	bool bCaching;
 
 	UPROPERTY(Instanced)
-	TArray<UHoudiniParameterRampColorPoint*> CachedPoints;
+	TArray<TObjectPtr<UHoudiniParameterRampColorPoint>> CachedPoints;
 
 	UPROPERTY()
 	TArray<float> DefaultPositions;
@@ -390,7 +390,7 @@ public:
 	int32 NumDefaultPoints;
 
 	UPROPERTY()
-	TArray<UHoudiniParameterRampModificationEvent*> ModificationEvents;
+	TArray<TObjectPtr<UHoudiniParameterRampModificationEvent>> ModificationEvents;
 
 	bool IsDefault() const override;
 

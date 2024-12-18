@@ -355,7 +355,7 @@ FHoudiniPresetHelpers::UpdateFromGeometryInput(FHoudiniPresetInputValue& Value, 
 {
 	UpdateGenericInputSettings(Value, Input);
 	
-	const TArray<UHoudiniInputObject*>* InputObjects = Input->GetHoudiniInputObjectArray(EHoudiniInputType::Geometry);
+	const TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = Input->GetHoudiniInputObjectArray(EHoudiniInputType::Geometry);
 	if (!InputObjects)
 	{
 		return;
@@ -382,7 +382,7 @@ FHoudiniPresetHelpers::UpdateFromCurveInput(FHoudiniPresetInputValue& Value, con
 {
 	UpdateGenericInputSettings(Value, Input);
 
-	const TArray<UHoudiniInputObject*>* InputObjects = Input->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+	const TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = Input->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
 	if (!InputObjects)
 	{
 		return;
@@ -733,7 +733,7 @@ FHoudiniPresetHelpers::ApplyPresetGeometryInput(const FHoudiniPresetInputValue& 
 void
 FHoudiniPresetHelpers::ApplyPresetCurveInput(const FHoudiniPresetInputValue& PresetInput, UHoudiniInput* Input)
 {
-	TArray<UHoudiniInputObject*>* InputObjects = Input->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = Input->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
 	if (!InputObjects)
 	{
 		return;

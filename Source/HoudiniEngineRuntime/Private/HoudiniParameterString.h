@@ -64,7 +64,7 @@ public:
 
 	void SetNumberOfValues(const uint32& InNumValues) { Values.SetNum(InNumValues); ChosenAssets.SetNum(InNumValues); };
 
-	TArray<UObject*> & GetChosenAssets() { return ChosenAssets; };
+	TArray<TObjectPtr<UObject>> & GetChosenAssets() { return ChosenAssets; };
 
 	void SetDefaultValues();
 
@@ -84,7 +84,7 @@ protected:
 	TArray< FString > DefaultValues;
 
 	UPROPERTY()
-	TArray<UObject*> ChosenAssets;
+	TArray<TObjectPtr<UObject>> ChosenAssets;
 
 	// Indicates this string parameter should be treated as an asset reference
 	// and display an object picker

@@ -100,9 +100,9 @@ struct HOUDINIENGINE_API FHoudiniSkeletalMeshUtils
 
 	static bool CreateHoudiniMaterial(
 		FHoudiniSkeletalMeshMaterialSettings& SkeletalFaceMaterials,
-			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> InputAssignmentMaterials, 
-			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials, 
-			TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputAssignmentMaterials,
+			TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> InputAssignmentMaterials,
+			TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> AllOutputMaterials,
+			TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> OutputAssignmentMaterials,
 			const FHoudiniPackageParams& InPackageParams);
 
 	static FHoudiniSkeletalMeshMaterialSettings GetMaterialOverrides(HAPI_NodeId NodeId, HAPI_PartId PartId);

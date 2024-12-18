@@ -93,11 +93,11 @@ class HOUDINIENGINERUNTIME_API UHoudiniAsset : public UObject
 #if WITH_EDITORONLY_DATA
 		// Importing data and options used for this Houdini asset.
 		UPROPERTY(Category = ImportSettings, VisibleAnywhere, Instanced)
-		UAssetImportData * AssetImportData;
+		TObjectPtr<UAssetImportData>  AssetImportData;
 
 		// HoudiniTool related data stored on the Houdini asset.
 		UPROPERTY(Category = HoudiniTools, VisibleAnywhere, Instanced)
-		UHoudiniToolData* HoudiniToolData;
+		TObjectPtr<UHoudiniToolData> HoudiniToolData;
 #endif
 
 	private:

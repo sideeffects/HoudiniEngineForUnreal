@@ -124,7 +124,7 @@ public:
 	
 	// Package to save to
 	UPROPERTY()
-	UObject* OuterPackage;
+	TObjectPtr<UObject> OuterPackage;
 
 	// Name of the package we want to create
 	// If null, we'll generate one from:

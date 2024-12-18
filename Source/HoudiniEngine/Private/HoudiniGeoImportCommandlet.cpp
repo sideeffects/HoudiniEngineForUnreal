@@ -163,7 +163,7 @@ void UHoudiniGeoImportCommandlet::TickDiscoveredFiles()
 			
 			FHoudiniPackageParams PackageParams;
 			PopulatePackageParams(FileData.FileName, PackageParams);
-			TArray<UHoudiniOutput*> Outputs;
+			TArray<TObjectPtr<UHoudiniOutput>> Outputs;
 			int32 Error = ImportBGEO(FileData.FileName, PackageParams, Outputs);
 			if (Error == 0)
 			{
@@ -306,7 +306,7 @@ UHoudiniGeoImportCommandlet::HandleImportBGEOMessage(
 	FHoudiniPackageParams PackageParams;
 	InMessage.PopulatePackageParams(PackageParams);
 
-	TArray<UHoudiniOutput*> Outputs;
+	TArray<TObjectPtr<UHoudiniOutput>> Outputs;
 	TMap<FHoudiniOutputObjectIdentifier, TArray<FHoudiniGenericAttribute>> OutputObjectAttributes;
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData> InstancedOutputPartData;
 	if (ImportBGEO(InMessage.FilePath, PackageParams, Outputs, &InMessage.StaticMeshGenerationProperties, &InMessage.MeshBuildSettings, &OutputObjectAttributes, &InstancedOutputPartData) == 0)
@@ -440,7 +440,7 @@ bool UHoudiniGeoImportCommandlet::StartHoudiniEngineSession()
 int32 UHoudiniGeoImportCommandlet::ImportBGEO(
 	const FString &InFilename, 
 	const FHoudiniPackageParams &InPackageParams,
-	TArray<UHoudiniOutput*>& OutOutputs,
+	TArray<TObjectPtr<UHoudiniOutput>>& OutOutputs,
 	const FHoudiniStaticMeshGenerationProperties* InStaticMeshGenerationProperties,
 	const FMeshBuildSettings* InMeshBuildSettings,
 	TMap<FHoudiniOutputObjectIdentifier, TArray<FHoudiniGenericAttribute>>* OutGenericAttributes,
@@ -454,7 +454,7 @@ int32 UHoudiniGeoImportCommandlet::ImportBGEO(
 	FHoudiniPackageParams PackageParams = InPackageParams;
 	UHoudiniGeoImporter* GeoImporter = NewObject<UHoudiniGeoImporter>(this);
 
-	TArray<UHoudiniOutput*> OldOutputs;
+	TArray<TObjectPtr<UHoudiniOutput>> OldOutputs;
 	OutOutputs.Empty();
 
 	// 2. Update the file paths
@@ -761,7 +761,7 @@ int32 UHoudiniGeoImportCommandlet::Main(const FString& InParams)
 		FHoudiniPackageParams PackageParams;
 		PopulatePackageParams(Filename, PackageParams);
 
-		TArray<UHoudiniOutput*> Outputs;
+		TArray<TObjectPtr<UHoudiniOutput>> Outputs;
 		const int32 Result = ImportBGEO(Tokens[0], PackageParams, Outputs);
 
 		for (UHoudiniOutput* Output : Outputs)

@@ -412,7 +412,7 @@ public:
 	bool HasReachedExpectedCookCount() const { return this->CookCount >= this->ExpectedCookCount; }
 
 	UPROPERTY()
-	TArray<UHoudiniPublicAPIAssetWrapper*> InAssetWrappers;
+	TArray<TObjectPtr<UHoudiniPublicAPIAssetWrapper>> InAssetWrappers;
 
 	FOnHoudiniAssetStateChange OnPreInstantiationDelegate;
 	FOnHoudiniAssetStateChange OnPostProcessingDelegate;

@@ -41,8 +41,8 @@ struct HOUDINIENGINE_API FHoudiniHandleTranslator
 
 	static bool BuildAllHandles(const HAPI_NodeId& AssetId, 
 								UHoudiniAssetComponent* OuterObject, 
-								TArray<UHoudiniHandleComponent*>& CurrentHandles,
-								TArray<UHoudiniHandleComponent*>& NewHandles);
+								TArray<TObjectPtr<UHoudiniHandleComponent>>& CurrentHandles,
+								TArray<TObjectPtr<UHoudiniHandleComponent>>& NewHandles);
 
 	static void ClearHandles(UHoudiniAssetComponent* HAC);
 

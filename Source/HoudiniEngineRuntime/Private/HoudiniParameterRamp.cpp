@@ -49,8 +49,8 @@ HoudiniParameterRampStatics::SyncCachedPoints(ParamT* Param)
 
 	while (Idx < Param->CachedPoints.Num() && Idx < Param->Points.Num())
 	{
-		PointT* &CachedPoint = Param->CachedPoints[Idx];
-		PointT* &CurrentPoint = Param->Points[Idx];
+		TObjectPtr<PointT> &CachedPoint = Param->CachedPoints[Idx];
+		TObjectPtr<PointT> &CurrentPoint = Param->Points[Idx];
 
 		if (!CachedPoint || !CurrentPoint)
 			continue;
@@ -88,7 +88,7 @@ HoudiniParameterRampStatics::SyncCachedPoints(ParamT* Param)
 	// Insert points
 	for (int32 IdxCachedPointLeft = Idx; IdxCachedPointLeft < Param->CachedPoints.Num(); ++IdxCachedPointLeft) 
 	{
-		PointT *&CachedPoint = Param->CachedPoints[IdxCachedPointLeft];
+		TObjectPtr<PointT> &CachedPoint = Param->CachedPoints[IdxCachedPointLeft];
 		if (!CachedPoint)
 			continue;
 
@@ -102,7 +102,7 @@ HoudiniParameterRampStatics::SyncCachedPoints(ParamT* Param)
 	{
 		Param->RemoveElement(IdxCurrentPointLeft);
 
-		PointT* Point = Param->Points[IdxCurrentPointLeft];
+		TObjectPtr<PointT> Point = Param->Points[IdxCurrentPointLeft];
 
 		if (!Point)
 			continue;
@@ -370,7 +370,8 @@ UHoudiniParameterRampFloat::CopyStateFrom(
 	Points = PrevPoints;
 	
 	
-	auto CopyPointsStateFn = [InClearFlags, InSetFlags] (TArray<UHoudiniParameterRampFloatPoint*>& FromArray, TArray<UHoudiniParameterRampFloatPoint*>& ToArray, UObject* NewOuter)
+	auto CopyPointsStateFn = [InClearFlags, InSetFlags] (TArray<TObjectPtr<UHoudiniParameterRampFloatPoint>>& FromArray, 
+														TArray<TObjectPtr<UHoudiniParameterRampFloatPoint>>& ToArray, UObject* NewOuter)
 	{
 		const int32 NumPts = FromArray.Num();
 
@@ -697,7 +698,8 @@ UHoudiniParameterRampColor::CopyStateFrom(UHoudiniParameter * InParameter, bool 
 	Points = PrevPoints;
 	
 	
-	auto CopyPointsStateFn = [InClearFlags, InSetFlags] (TArray<UHoudiniParameterRampColorPoint*>& FromArray, TArray<UHoudiniParameterRampColorPoint*>& ToArray, UObject* NewOuter)
+	auto CopyPointsStateFn = [InClearFlags, InSetFlags] (
+	TArray<TObjectPtr<UHoudiniParameterRampColorPoint>>& FromArray, TArray<TObjectPtr<UHoudiniParameterRampColorPoint>>& ToArray, UObject* NewOuter)
 	{
 		const int32 NumPts = FromArray.Num();
 

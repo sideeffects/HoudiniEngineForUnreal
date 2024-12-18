@@ -69,7 +69,7 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 
 	//
 	static bool SyncMultiParmValuesAtLoad(
-		UHoudiniParameter* MultiParam, TArray<UHoudiniParameter*> &OldParams, const int32& InAssetId, const HAPI_AssetInfo& AssetInfo);
+		UHoudiniParameter* MultiParam, TArray<TObjectPtr<UHoudiniParameter>> &OldParams, const int32& InAssetId, const HAPI_AssetInfo& AssetInfo);
 	
 	// 
 	static bool GetMultiParmInstanceStartIdx(const HAPI_AssetInfo& InAssetInfo, const FString InParmName, 
@@ -87,8 +87,8 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 	static bool BuildAllParameters(
 		const HAPI_NodeId& AssetId,
 		class UObject* OuterObject,
-		TArray<UHoudiniParameter*>& CurrentParameters,
-		TArray<UHoudiniParameter*>& NewParameters,
+		TArray<TObjectPtr<UHoudiniParameter>>& CurrentParameters,
+		TArray<TObjectPtr<UHoudiniParameter>>& NewParameters,
 		const bool& bUpdateValues,
 		const bool& InForceFullUpdate,
 		const UHoudiniAsset* InHoudiniAsset,

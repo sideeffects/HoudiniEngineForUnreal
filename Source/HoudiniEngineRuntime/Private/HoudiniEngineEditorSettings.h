@@ -45,7 +45,7 @@ struct FUserPackageRules
 
 	// Tools package that will be used to resolve the include/exclude patterns.
 	UPROPERTY(EditAnywhere, Category="User Category")
-	class UHoudiniToolsPackageAsset* ToolsPackageAsset;
+	TObjectPtr<class UHoudiniToolsPackageAsset> ToolsPackageAsset;
 
 	// Include any tools that match the following patterns (relative to the Tools Package).
 	UPROPERTY(EditAnywhere, Category="User Category")

@@ -1432,7 +1432,7 @@ bool
 FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshOutputs(
 	UHoudiniOutput* InOutput,
 	const FHoudiniPackageParams& InPackageParams,
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials,
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InAllOutputMaterials,
 	UObject* InOuterComponent)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshOutputs);
@@ -1442,8 +1442,8 @@ FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshOutputs(
 
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> NewOutputObjects;
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> OldOutputObjects = InOutput->GetOutputObjects();
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& AssignementMaterials = InOutput->GetAssignementMaterials();
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& ReplacementMaterials = InOutput->GetReplacementMaterials();
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& AssignementMaterials = InOutput->GetAssignementMaterials();
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& ReplacementMaterials = InOutput->GetReplacementMaterials();
 
 	bool InForceRebuild = false;
 
@@ -1525,9 +1525,9 @@ FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshParts(
 	const FHoudiniPackageParams& InPackageParams,
 	UObject* InOuterComponent,
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutOutputObjects,
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& AssignmentMaterialMap,
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& ReplacementMaterialMap,
-	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials)
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& AssignmentMaterialMap,
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& ReplacementMaterialMap,
+	const TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InAllOutputMaterials)
 {
 	FHoudiniSkeletalMeshTranslator SKMeshTranslator;
 	SKMeshTranslator.SKParts = SKParts;

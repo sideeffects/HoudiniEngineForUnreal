@@ -25,7 +25,7 @@
 
 void
 FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(
-	TArray<UHoudiniOutput*>& InAllOutputs,
+	TArray<TObjectPtr<UHoudiniOutput>>& InAllOutputs,
 	UObject* InOuterComponent,
 	const FHoudiniPackageParams& InPackageParams, 
 	UWorld * InWorld)
@@ -422,7 +422,7 @@ FHoudiniGeometryCollectionTranslator::CreateNewGeometryActor(
 
 bool
 FHoudiniGeometryCollectionTranslator::GetGeometryCollectionNames(
-	TArray<UHoudiniOutput*>& InAllOutputs,
+	TArray<TObjectPtr<UHoudiniOutput>>& InAllOutputs,
 	TSet<FString>& Names)
 {
 	for (auto & HoudiniOutput : InAllOutputs)

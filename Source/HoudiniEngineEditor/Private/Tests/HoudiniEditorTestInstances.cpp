@@ -1002,7 +1002,7 @@ bool FHoudiniEditorTestFoliageStaticMesh::RunTest(const FString& Parameters)
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
-				HOUDINI_TEST_NOT_NULL(OutputObject.FoliageType);
+				HOUDINI_TEST_NOT_NULL(OutputObject.FoliageType.Get());
 				HOUDINI_TEST_EQUAL(OutputObject.FoliageInstancePositions.Num(), 100);
 
 				CheckPositions(OutputObject.FoliageInstancePositions);
@@ -1101,7 +1101,7 @@ bool FHoudiniEditorTestFoliageUserFoliageType::RunTest(const FString& Parameters
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
-				HOUDINI_TEST_NOT_NULL(OutputObject.FoliageType);
+				HOUDINI_TEST_NOT_NULL(OutputObject.FoliageType.Get());
 				HOUDINI_TEST_EQUAL(OutputObject.FoliageInstancePositions.Num(), 100);
 
 				CheckPositions(OutputObject.FoliageInstancePositions);
@@ -1110,7 +1110,7 @@ bool FHoudiniEditorTestFoliageUserFoliageType::RunTest(const FString& Parameters
 
 				UFoliageType* UserFoliageTypeObject = Cast<UFoliageType>(StaticLoadObject(UObject::StaticClass(), nullptr, *AssetName));;
 
-				HOUDINI_TEST_EQUAL(UserFoliageTypeObject, OutputObject.FoliageType);
+				HOUDINI_TEST_EQUAL(UserFoliageTypeObject, OutputObject.FoliageType.Get());
 
 				TArray<UFoliageType*> FoliageTypes = GetAllFoliageTypes(Context->HAC->GetHACWorld());
 				HOUDINI_TEST_EQUAL_ON_FAIL(FoliageTypes.Num(), 1, return true);

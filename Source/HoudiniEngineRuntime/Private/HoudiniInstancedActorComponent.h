@@ -56,9 +56,9 @@ class HOUDINIENGINERUNTIME_API UHoudiniInstancedActorComponent : public USceneCo
 		class UClass* GetInstancedActorClass() const { return InstancedActorClass; }
 
 		// Instance Accessor
-		TArray<class AActor*>& GetInstancedActorsForWrite() { return InstancedActors; }
+		TArray<TObjectPtr<AActor>>& GetInstancedActorsForWrite() { return InstancedActors; }
 		// const Instance accessor
-		const TArray<class AActor*>& GetInstancedActors() const { return InstancedActors; }
+		const TArray<TObjectPtr<AActor>>& GetInstancedActors() const { return InstancedActors; }
 
 		// Returns the instanced actor at a given index
 		AActor* GetInstancedActorAt(const int32& Idx) { return InstancedActors.IsValidIndex(Idx) ? InstancedActors[Idx] : nullptr; }
@@ -85,12 +85,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniInstancedActorComponent : public USceneCo
 	private:
 
 		UPROPERTY(VisibleAnywhere, Category = Instances )
-		UObject* InstancedObject;
+		TObjectPtr<UObject> InstancedObject;
 
 		UPROPERTY()
-		UClass* InstancedActorClass;
+		TObjectPtr<UClass> InstancedActorClass;
 
 		UPROPERTY(VisibleInstanceOnly, Category = Instances )
-		TArray<AActor*> InstancedActors;
+		TArray<TObjectPtr<AActor>> InstancedActors;
 
 };

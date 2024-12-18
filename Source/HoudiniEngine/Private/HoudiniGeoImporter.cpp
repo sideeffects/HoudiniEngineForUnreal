@@ -145,8 +145,8 @@ UHoudiniGeoImporter::AutoStartHoudiniEngineSessionIfNeeded()
 bool
 UHoudiniGeoImporter::BuildOutputsForNode(
 	const HAPI_NodeId& InNodeId, 
-	TArray<UHoudiniOutput*>& InOldOutputs,
-	TArray<UHoudiniOutput*>& OutNewOutputs,
+	TArray<TObjectPtr<UHoudiniOutput>>& InOldOutputs,
+	TArray<TObjectPtr<UHoudiniOutput>>& OutNewOutputs,
 	bool bInUseOutputNodes)
 {
 	FString Notification = TEXT("BGEO Importer: Getting output geos...");
@@ -157,7 +157,7 @@ UHoudiniGeoImporter::BuildOutputsForNode(
 }
 
 bool UHoudiniGeoImporter::CreateObjectsFromOutputs(
-	TArray<UHoudiniOutput*>& InOutputs,
+	TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
 	FHoudiniPackageParams InPackageParams,
 	const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 	const FMeshBuildSettings& InMeshBuildSettings,
@@ -253,7 +253,7 @@ UHoudiniGeoImporter::CreateStaticMeshes(
 	const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 	const FMeshBuildSettings& InMeshBuildSettings)
 {
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> AllOutputMaterials;
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> AllOutputMaterials;
 	for (UHoudiniOutput* const CurOutput : InOutputs)
 	{
 		if (CurOutput->GetType() != EHoudiniOutputType::Mesh)
@@ -266,8 +266,8 @@ UHoudiniGeoImporter::CreateStaticMeshes(
 
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> NewOutputObjects;
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> OldOutputObjects = CurOutput->GetOutputObjects();
-		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& AssignementMaterials = CurOutput->GetAssignementMaterials();
-		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& ReplacementMaterials = CurOutput->GetReplacementMaterials();
+		TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& AssignementMaterials = CurOutput->GetAssignementMaterials();
+		TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& ReplacementMaterials = CurOutput->GetReplacementMaterials();
 
 		// Iterate on all of the output's HGPO, creating meshes as we go
 		for (const FHoudiniGeoPartObject& CurHGPO : CurOutput->GetHoudiniGeoPartObjects())
@@ -504,7 +504,7 @@ UHoudiniGeoImporter::CreateLandscapeSplines(const TArray<UHoudiniOutput*>& InOut
 
 bool
 UHoudiniGeoImporter::CreateInstancers(
-	TArray<UHoudiniOutput*>& InAllOutputs,
+	TArray<TObjectPtr<UHoudiniOutput>>& InAllOutputs,
 	const TArray<UHoudiniOutput*>& InInstancerOutputs,
 	FHoudiniPackageParams InPackageParams)
 {
@@ -686,7 +686,7 @@ UHoudiniGeoImporter::CreateSkeletalMeshes(
 	{
 		check(CurOutput->GetType() == EHoudiniOutputType::Skeletal);
 
-		TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> OutputMaterials;
+		TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> OutputMaterials;
 		UObject* const OuterComponent = nullptr;
 		if (!FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshOutputs(CurOutput, PackageParams, OutputMaterials, OuterComponent))
 		{
@@ -840,8 +840,8 @@ UHoudiniGeoImporter::ImportBGEOFile(
 		return false;
 	
 	// 4. Get the output from the file node
-	TArray<UHoudiniOutput*> NewOutputs;
-	TArray<UHoudiniOutput*> OldOutputs;
+	TArray<TObjectPtr<UHoudiniOutput>> NewOutputs;
+	TArray<TObjectPtr<UHoudiniOutput>> OldOutputs;
 	if (!BuildOutputsForNode(NodeId, OldOutputs, NewOutputs, true))
 		return false;
 
@@ -1131,8 +1131,8 @@ bool
 UHoudiniGeoImporter::BuildAllOutputsForNode(
 	const HAPI_NodeId& InNodeId,
 	UObject* InOuter,
-	TArray<UHoudiniOutput*>& InOldOutputs,
-	TArray<UHoudiniOutput*>& OutNewOutputs,
+	TArray<TObjectPtr<UHoudiniOutput>>& InOldOutputs,
+	TArray<TObjectPtr<UHoudiniOutput>>& OutNewOutputs,
 	bool bInAddOutputsToRootSet,
 	bool bInUseOutputNodes,
 	bool bGatherEditableCurves)

@@ -43,7 +43,7 @@ struct HOUDINIENGINE_API FUnrealBrushTranslator
 		static bool CreateInputNodeForBrush(
 			UHoudiniInputBrush* InputBrushObject, 
 			ABrush* BrushActor, 
-			const TArray<AActor*>* ExcludeActors, 
+			const TArray<TObjectPtr<AActor>>* ExcludeActors,
 			HAPI_NodeId &CreatedNodeId, 
 			const FString& NodeName,
 			bool bInExportMaterialParametersAsAttributes,

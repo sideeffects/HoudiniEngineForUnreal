@@ -89,8 +89,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool BuildAllInputs(
 		const HAPI_NodeId& AssetId,
 		class UObject* OuterObject,
-		TArray<UHoudiniInput*>& Inputs,
-		TArray<UHoudiniParameter*>& Parameters);
+		TArray<TObjectPtr<UHoudiniInput>>& Inputs,
+		TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
 
 	// Update loaded inputs and their input objects so they can be uploaded properly
 	static bool	UpdateLoadedInputs(UHoudiniAssetComponent * HAC);
@@ -312,7 +312,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool	HapiCreateInputNodeForBrush(
 		const FString& InObjNodeName, 
 		UHoudiniInputBrush* InObject, 
-		TArray<AActor*>* ExcludeActors,
+		TArray<TObjectPtr<AActor>>* ExcludeActors,
 		const FHoudiniInputObjectSettings& InInputSettings,
 		const bool& bInputNodesCanBeDeleted);
 

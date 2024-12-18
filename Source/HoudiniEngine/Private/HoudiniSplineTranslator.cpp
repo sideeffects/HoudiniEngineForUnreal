@@ -220,7 +220,7 @@ FHoudiniSplineTranslator::UpdateHoudiniInputCurves(UHoudiniInput* Input)
 	if (!Input || Input->GetInputType() != EHoudiniInputType::Curve)
 		return;
 
-	TArray<UHoudiniInputObject*> *InputObjectArray = Input->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+	TArray<TObjectPtr<UHoudiniInputObject>> *InputObjectArray = Input->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
 	if (!InputObjectArray)
 		return;
 

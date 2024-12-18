@@ -88,7 +88,7 @@ protected:
 
 	/** The mesh. */
 	UPROPERTY(EditAnywhere, Category = "Mesh")
-	UHoudiniStaticMesh *Mesh;
+	TObjectPtr<UHoudiniStaticMesh> Mesh;
 
 	/** Local space bounds of mesh. */
 	UPROPERTY()

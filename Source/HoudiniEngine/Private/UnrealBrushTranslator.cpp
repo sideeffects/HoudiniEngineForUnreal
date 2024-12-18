@@ -57,7 +57,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogBrushTranslator, Log, All);
 bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 	UHoudiniInputBrush* InputBrushObject, 
 	ABrush* BrushActor, 
-	const TArray<AActor*>* ExcludeActors, 
+	const TArray<TObjectPtr<AActor>>* ExcludeActors,
 	HAPI_NodeId& InputNodeId,
 	const FString& NodeName,
 	bool bInExportMaterialParametersAsAttributes,

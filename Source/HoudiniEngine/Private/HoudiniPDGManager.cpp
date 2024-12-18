@@ -1862,7 +1862,7 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 
 		// Construct UHoudiniOutputs
 		bool bHasUnsupportedOutputs = false;
-		TArray<UHoudiniOutput*> NewOutputs;
+		TArray<TObjectPtr<UHoudiniOutput>> NewOutputs;
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData> InstancedOutputPartData;
 		NewOutputs.Reserve(InMessage.Outputs.Num());
 		for (const FHoudiniPDGImportNodeOutput& Output : InMessage.Outputs)
@@ -1943,7 +1943,7 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 			{
 				// Clear/remove the outputs on WorkResultObject that are supported by the commandlet, since we
 				// are going to replace them with NewOutputs now
-				TArray<UHoudiniOutput*>& CurrentOutputs = WorkResultObject->GetResultOutputs();
+				TArray<TObjectPtr<UHoudiniOutput>>& CurrentOutputs = WorkResultObject->GetResultOutputs();
 				const int32 NumCurrentOutputs = CurrentOutputs.Num();
 				for (int32 Index = 0; Index < NumCurrentOutputs; ++Index)
 				{

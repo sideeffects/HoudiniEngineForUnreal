@@ -137,8 +137,8 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 
 	// Populate / update the outputs for the template from the preview / instance.
 	// TODO: Wrap the Blueprint manipulation in a transaction
-	TArray<UHoudiniOutput*>& TemplateOutputs = CachedTemplateComponent->Outputs;
-	TSet<UHoudiniOutput*> StaleTemplateOutputs(TemplateOutputs);
+	TArray<TObjectPtr<UHoudiniOutput>>& TemplateOutputs = CachedTemplateComponent->Outputs;
+	TSet<TObjectPtr<UHoudiniOutput>> StaleTemplateOutputs(TemplateOutputs);
 
 	TemplateOutputs.SetNum(Outputs.Num());
 	CachedOutputNodes.Empty();
@@ -528,7 +528,7 @@ UHoudiniAssetBlueprintComponent::CopyStateFromTemplateComponent(UHoudiniAssetBlu
 	// Copy outputs to component template
 	// -----------------------------------------------------
 
-	TArray<UHoudiniOutput*>& TemplateOutputs = CachedTemplateComponent->Outputs;
+	TArray<TObjectPtr<UHoudiniOutput>>& TemplateOutputs = CachedTemplateComponent->Outputs;
 	
 	TSet<UHoudiniOutput*> StaleInstanceOutputs(Outputs);
 	
@@ -673,7 +673,7 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 
 	// TODO: Add support for input components
 	{
-		TArray<UHoudiniInput*>& FromInputs = FromComponent->Inputs;
+		TArray<TObjectPtr<UHoudiniInput>>& FromInputs = FromComponent->Inputs;
 		TSet<UHoudiniInput*> StaleInputs(Inputs);
 		USimpleConstructionScript* SCS = GetSCS();
 		USCS_Node* SCSHACNode = nullptr;
@@ -779,7 +779,7 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 	// -----------------------------------------------------
 	TMap<UHoudiniParameter*, UHoudiniParameter*> ParameterMapping;
 	
-	TArray<UHoudiniParameter*>& FromParameters = FromComponent->Parameters;
+	TArray<TObjectPtr<UHoudiniParameter>>& FromParameters = FromComponent->Parameters;
 	Parameters.SetNum(FromParameters.Num());
 
 	for (int i = 0; i < FromParameters.Num(); i++)

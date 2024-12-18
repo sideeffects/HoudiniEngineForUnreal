@@ -105,7 +105,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniStaticMeshGenerationProperties
 
 	/** Physical material to use for simple collision on this body. Encodes information about density, friction etc. */
 	UPROPERTY(EditAnywhere, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Simple Collision Physical Material"))
-	UPhysicalMaterial * GeneratedPhysMaterial;
+	TObjectPtr<UPhysicalMaterial>  GeneratedPhysMaterial;
 
 	/** Default properties of the body instance, copied into objects on instantiation, was URB_BodyInstance */
 	UPROPERTY(EditAnywhere, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (FullyExpand = "true"))
@@ -137,11 +137,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniStaticMeshGenerationProperties
 
 	/** Default settings when using this mesh for instanced foliage. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Foliage Default Settings"))
-	UFoliageType_InstancedStaticMesh* GeneratedFoliageDefaultSettings = nullptr;
+	TObjectPtr<UFoliageType_InstancedStaticMesh> GeneratedFoliageDefaultSettings = nullptr;
 
 	/** Array of user data stored with the asset. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Asset User Data"))
-	TArray<UAssetUserData*> GeneratedAssetUserData;
+	TArray<TObjectPtr<UAssetUserData>> GeneratedAssetUserData;
 };
 
 
@@ -354,7 +354,7 @@ protected:
 
 		/// Physical material to use for simple collision of new Houdini Assets. Encodes information about density, friction etc.
 		UPROPERTY(EditAnywhere, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Simple Collision Physical Material"))
-		UPhysicalMaterial * PhysMaterial;
+		TObjectPtr<UPhysicalMaterial>  PhysMaterial;
 
 		/// Default properties of the body instance
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = "GeneratedStaticMeshSettings", meta = (FullyExpand = "true"))
@@ -394,11 +394,11 @@ protected:
 
 		/// Default settings when using new Houdini Asset mesh for instanced foliage.
 		UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Foliage Default Settings"))
-		UFoliageType_InstancedStaticMesh * FoliageDefaultSettings;
+		TObjectPtr<UFoliageType_InstancedStaticMesh>  FoliageDefaultSettings;
 
 		/// Array of user data stored with the new Houdini Asset.
 		UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Asset User Data"))
-		TArray<UAssetUserData *> AssetUserData;
+		TArray<TObjectPtr<UAssetUserData> > AssetUserData;
 
 		//-------------------------------------------------------------------------------------------------------------
 		// Static Mesh build settings. 

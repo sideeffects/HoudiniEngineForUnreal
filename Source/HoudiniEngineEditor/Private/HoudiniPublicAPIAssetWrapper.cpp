@@ -1654,7 +1654,7 @@ UHoudiniPublicAPIAssetWrapper::SetRampParameterNumPoints_Implementation(FName In
 		int32 NumPendingInsertOperations = 0;
 		int32 NumPendingDeleteOperations = 0;
 		TSet<int32> InstanceIndexesPendingDelete;
-		TArray<UHoudiniParameterRampModificationEvent*>& ModificationEvents = FloatRampParam ? FloatRampParam->ModificationEvents : ColorRampParam->ModificationEvents;
+		TArray<TObjectPtr<UHoudiniParameterRampModificationEvent>>& ModificationEvents = FloatRampParam ? FloatRampParam->ModificationEvents : ColorRampParam->ModificationEvents;
 		for (UHoudiniParameterRampModificationEvent const* const Event : ModificationEvents)
 		{
 			if (!IsValid(Event))
@@ -1857,7 +1857,7 @@ UHoudiniPublicAPIAssetWrapper::GetRampParameterNumPoints_Implementation(FName In
 	{
 		int32 NumPendingInsertOperations = 0;
 		int32 NumPendingDeleteOperations = 0;
-		TArray<UHoudiniParameterRampModificationEvent*>& ModificationEvents = FloatRampParam ? FloatRampParam->ModificationEvents : ColorRampParam->ModificationEvents;
+		TArray<TObjectPtr<UHoudiniParameterRampModificationEvent>>& ModificationEvents = FloatRampParam ? FloatRampParam->ModificationEvents : ColorRampParam->ModificationEvents;
 		for (UHoudiniParameterRampModificationEvent const* const Event : ModificationEvents)
 		{
 			if (!IsValid(Event))
@@ -3804,7 +3804,7 @@ UHoudiniPublicAPIAssetWrapper::FindRampPointData(
 	{
 		TSet<int32> InstanceIndexesPendingDelete;
 		int32 NumInsertOps = 0;
-		TArray<UHoudiniParameterRampModificationEvent*>& ModificationEvents = FloatRampParam ? FloatRampParam->ModificationEvents : ColorRampParam->ModificationEvents;
+		TArray<TObjectPtr<UHoudiniParameterRampModificationEvent>>& ModificationEvents = FloatRampParam ? FloatRampParam->ModificationEvents : ColorRampParam->ModificationEvents;
 		for (UHoudiniParameterRampModificationEvent const* const Event : ModificationEvents)
 		{
 			if (!IsValid(Event))

@@ -157,10 +157,10 @@ public:
 	float GetUnrealSplineResolution() const			{ return InputSettings.UnrealSplineResolution; };
 	virtual bool GetCookOnCurveChange() const		{ return bCookOnCurveChanged; };
 		
-	TArray<UHoudiniInputObject*>* GetHoudiniInputObjectArray(const EHoudiniInputType& InType);
-	const TArray<UHoudiniInputObject*>* GetHoudiniInputObjectArray(const EHoudiniInputType& InType) const;
-	TArray<AActor*>* GetBoundSelectorObjectArray();
-	const TArray<AActor*>* GetBoundSelectorObjectArray() const;
+	TArray<TObjectPtr<UHoudiniInputObject>>* GetHoudiniInputObjectArray(const EHoudiniInputType& InType);
+	const TArray<TObjectPtr<UHoudiniInputObject>>* GetHoudiniInputObjectArray(const EHoudiniInputType& InType) const;
+	TArray<TObjectPtr<AActor>>* GetBoundSelectorObjectArray();
+	const TArray<TObjectPtr<AActor>>* GetBoundSelectorObjectArray() const;
 
 	UHoudiniInputObject* GetHoudiniInputObjectAt(const int32& AtIndex);
 	const UHoudiniInputObject* GetHoudiniInputObjectAt(const int32& AtIndex) const;
@@ -215,12 +215,12 @@ public:
 	bool ContainsInputObject(const UObject* InObject, const EHoudiniInputType& InType) const;
 
 	// Get all input object arrays
-	TArray<const TArray<UHoudiniInputObject*>*> GetAllObjectArrays() const;
-	TArray<TArray<UHoudiniInputObject*>*> GetAllObjectArrays();
+	TArray<const TArray<TObjectPtr<UHoudiniInputObject>>*> GetAllObjectArrays() const;
+	TArray<TArray<TObjectPtr<UHoudiniInputObject>>*> GetAllObjectArrays();
 
 	// Iterate over all input object arrays
-	void ForAllHoudiniInputObjectArrays(TFunctionRef<void(const TArray<UHoudiniInputObject*>&)> Fn) const;
-	void ForAllHoudiniInputObjectArrays(TFunctionRef<void(TArray<UHoudiniInputObject*>&)> Fn);
+	void ForAllHoudiniInputObjectArrays(TFunctionRef<void(const TArray<TObjectPtr<UHoudiniInputObject>>&)> Fn) const;
+	void ForAllHoudiniInputObjectArrays(TFunctionRef<void(TArray<TObjectPtr<UHoudiniInputObject>>&)> Fn);
 
 	// Return ALL input objects. Optionally, the results can be filtered to only return input objects
 	// relevant to the current *input type*.
@@ -252,7 +252,7 @@ public:
 
 	bool IsExportLevelInstanceContentEnabled() const { return InputSettings.bExportLevelInstanceContent; }
 
-	const TSet< ULandscapeComponent * > GetLandscapeSelectedComponents() const { return LandscapeSelectedComponents; };
+	const TSet<TObjectPtr<ULandscapeComponent>> GetLandscapeSelectedComponents() const { return LandscapeSelectedComponents; };
 
 	// Get a constant reference to the InputSettings
 	const FHoudiniInputObjectSettings& GetInputSettings() const { return InputSettings; }
@@ -384,7 +384,7 @@ public:
 	virtual void InvalidateData();
 
 protected:
-	void CopyInputs(TArray<UHoudiniInputObject*>& ToInputs, TArray<UHoudiniInputObject*>& FromInputs, bool bInCanDeleteHoudiniNodes);
+	void CopyInputs(TArray<TObjectPtr<UHoudiniInputObject>>& ToInputs, TArray<TObjectPtr<UHoudiniInputObject>>& FromInputs, bool bInCanDeleteHoudiniNodes);
 
 public:
 
@@ -554,7 +554,7 @@ protected:
 	//-------------------------------------------------------------------------------------------------------------------------
 	// Geometry objects
 	UPROPERTY()
-	TArray<UHoudiniInputObject*> GeometryInputObjects;
+	TArray<TObjectPtr<UHoudiniInputObject>> GeometryInputObjects;
 
 	// Is set to true when static mesh used for geometry input has changed.
 	UPROPERTY()
@@ -577,7 +577,7 @@ protected:
 	//-------------------------------------------------------------------------------------------------------------------------
 	// Curve/Spline inputs
 	UPROPERTY()
-	TArray<UHoudiniInputObject*> CurveInputObjects;
+	TArray<TObjectPtr<UHoudiniInputObject>> CurveInputObjects;
 
 	// Offset used when using muiltiple curves
 	UPROPERTY()
@@ -592,11 +592,11 @@ protected:
 	//-------------------------------------------------------------------------------------------------------------------------
 	// World inputs
 	UPROPERTY()
-	TArray<UHoudiniInputObject*> WorldInputObjects;
+	TArray<TObjectPtr<UHoudiniInputObject>> WorldInputObjects;
 
 	// Objects used for automatic bound selection
 	UPROPERTY()
-	TArray<AActor*> WorldInputBoundSelectorObjects;
+	TArray<TObjectPtr<AActor>> WorldInputBoundSelectorObjects;
 
 	// Indicates that this world input is in "BoundSelector" mode
 	UPROPERTY()
@@ -608,7 +608,7 @@ protected:
 
 	// A cache of the selected landscape components so that it is saved across levels
 	UPROPERTY()
-	TSet<ULandscapeComponent*> LandscapeSelectedComponents;
+	TSet<TObjectPtr<ULandscapeComponent>> LandscapeSelectedComponents;
 
 	// The node ids of InputNodeIds previously used by this input that are pending delete
 	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
@@ -663,11 +663,11 @@ public:
 	
 	// This array is to record the last insert action, for undo input insertion actions.
 	UPROPERTY(Transient, DuplicateTransient)
-	TArray<UHoudiniInputHoudiniSplineComponent*> LastInsertedInputs;
+	TArray<TObjectPtr<UHoudiniInputHoudiniSplineComponent>> LastInsertedInputs;
 
 	// This array is to cache the action of last undo delete action, and redo that action.
 	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
-	TArray<UHoudiniInputObject*> LastUndoDeletedInputs;
+	TArray<TObjectPtr<UHoudiniInputObject>> LastUndoDeletedInputs;
 
 	// Is set to true when layer visibility is controlled by the plugin.
 	UPROPERTY()

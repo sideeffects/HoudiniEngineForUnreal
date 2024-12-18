@@ -818,7 +818,7 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 	bool bLandscapeAutoSelectComponent = InputSettings.bLandscapeAutoSelectComponent;
 
 	// Get selected components if bLandscapeExportSelectionOnly or bLandscapeAutoSelectComponent is true
-	TSet<ULandscapeComponent*> SelectedComponents;
+	TSet<TObjectPtr<ULandscapeComponent>> SelectedComponents;
 	if (bExportSelectionOnly)
 	{
 		InInput->UpdateLandscapeInputSelection();
@@ -931,25 +931,31 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 		Options.bExportPaintLayersPerEditLayer = InInput->IsPaintLayerPerEditLayerExportEnabled();
 
 		int32 NumComponents = InLandscape->LandscapeComponents.Num();
-		if (!bExportSelectionOnly || (SelectedComponents.Num() == NumComponents))
+		if(!bExportSelectionOnly || (SelectedComponents.Num() == NumComponents))
+		{
 			// Export the whole landscape and its layer as a single heightfield node
 			bSuccess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 				InLandscape,
 				Options,
-				InputNodeId, 
-				FinalInputNodeName, 
+				InputNodeId,
+				FinalInputNodeName,
 				ParentNodeId,
 				bSetObjectTransformToWorldTransform);
+		}
 		else
+		{
+			TSet<ULandscapeComponent*> SelectedLandscapeComponents = FHoudiniEngineUtils::RemoveObjectPtr(SelectedComponents);
+
 			// Each selected landscape component will be exported as separate volumes in a single heightfield
 			bSuccess = FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(
-				InLandscape, 
-				SelectedComponents, 
+				InLandscape,
+				SelectedLandscapeComponents,
 				Options,
-				InputNodeId, 
-				FinalInputNodeName, 
+				InputNodeId,
+				FinalInputNodeName,
 				ParentNodeId,
 				bSetObjectTransformToWorldTransform);
+		}
 	}
 	else
 	{

@@ -86,10 +86,10 @@ class UHoudiniToolEditorProperties : public UObject
 
 
 		UPROPERTY()
-		UHoudiniAsset* HoudiniAsset;
+		TObjectPtr<UHoudiniAsset> HoudiniAsset;
 
 		UPROPERTY()
-		UHoudiniPreset* HoudiniPreset; 
+		TObjectPtr<UHoudiniPreset> HoudiniPreset; 
 };
 
 

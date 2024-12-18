@@ -49,7 +49,7 @@ public:
 	void AddTabFolder(UHoudiniParameterFolder* InFolderParm);
 
 	FORCEINLINE
-	TArray<UHoudiniParameterFolder*>& GetTabs() { return TabFolders; };
+	TArray<TObjectPtr<UHoudiniParameterFolder>>& GetTabs() { return TabFolders; };
 
 	FORCEINLINE
 	bool IsTabMenu() const { return bIsTabMenu; };
@@ -72,7 +72,7 @@ public:
 	bool bIsTabsShown;
 
 	UPROPERTY()
-	TArray<UHoudiniParameterFolder*> TabFolders;
+	TArray<TObjectPtr<UHoudiniParameterFolder>> TabFolders;
 
 
 	//------------------------------------------------------------------------------------------------

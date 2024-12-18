@@ -48,7 +48,7 @@ public:
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
-	UHoudiniParameter* AssetParameter;
+	TObjectPtr<UHoudiniParameter> AssetParameter;
 
 	UPROPERTY()
 	int32 TupleIndex;
@@ -123,13 +123,13 @@ public:
 
 public:
 	UPROPERTY()
-	TArray<UHoudiniHandleParameter*> XformParms;
+	TArray<TObjectPtr<UHoudiniHandleParameter>> XformParms;
 
 	UPROPERTY()
-	UHoudiniHandleParameter* RSTParm;
+	TObjectPtr<UHoudiniHandleParameter> RSTParm;
 
 	UPROPERTY()
-	UHoudiniHandleParameter* RotOrderParm;
+	TObjectPtr<UHoudiniHandleParameter> RotOrderParm;
 
 	UPROPERTY()
 	FTransform LastSentTransform;

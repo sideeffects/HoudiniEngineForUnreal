@@ -273,9 +273,9 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 	const FHoudiniPackageParams& InPackageParams,
 	const TArray<int32>& InUniqueMaterialIds,
 	const TArray<HAPI_MaterialInfo>& InUniqueMaterialInfos,
-	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InMaterials,
-	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InAllOutputMaterials,
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& OutMaterials,
+	const TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InMaterials,
+	const TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InAllOutputMaterials,
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& OutMaterials,
 	TArray<UMaterialInterface*>& OutMaterialArray,
 	TArray<UPackage*>& OutPackages,
 	const bool& bForceRecookAll,
@@ -348,7 +348,7 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		
 		// Check first in the existing material map
 		UMaterial* Material = nullptr;
-		UMaterialInterface* const* FoundMaterial = InMaterials.Find(MaterialIdentifier);
+		const TObjectPtr<UMaterialInterface> * FoundMaterial = InMaterials.Find(MaterialIdentifier);
 		bool bCanReuseExistingMaterial = false;
 		if (FoundMaterial)
 		{
@@ -505,8 +505,8 @@ FHoudiniMaterialTranslator::CreateMaterialInstances(
 	const FHoudiniPackageParams& InPackageParams,
 	const TMap<FHoudiniMaterialIdentifier, FHoudiniMaterialInfo>& UniqueMaterialInstanceOverrides,
 	const TArray<UPackage*>& InPackages,
-	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InMaterials,
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& OutMaterials,
+	const TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InMaterials,
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& OutMaterials,
 	const bool& bForceRecookAll)
 {
 	// Check the node ID is valid
@@ -545,7 +545,7 @@ FHoudiniMaterialTranslator::CreateMaterialInstances(
 
 		// See if we can find an existing package for that instance
 		UPackage* MaterialInstancePackage = nullptr;
-		UMaterialInterface* const* FoundMatPtr = InMaterials.Find(Identifier);
+		const TObjectPtr<UMaterialInterface> * FoundMatPtr = InMaterials.Find(Identifier);
 		if (FoundMatPtr && *FoundMatPtr)
 		{
 			// We found an already existing MI, get its package
@@ -809,8 +809,8 @@ bool FHoudiniMaterialTranslator::SortUniqueFaceMaterialOverridesAndCreateMateria
 	const FHoudiniGeoPartObject& InHGPO,
 	const FHoudiniPackageParams& InPackageParams,
 	const TArray<UPackage*>& InPackages, 
-	const TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& InMaterials,
-	TMap<FHoudiniMaterialIdentifier, UMaterialInterface*>& OutMaterials,
+	const TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& InMaterials,
+	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>>& OutMaterials,
 	const bool& bForceRecookAll)
 {
 	// Map containing unique face materials override attribute

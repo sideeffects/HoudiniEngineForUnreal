@@ -108,7 +108,7 @@ UHoudiniPublicAPIInput::PopulateFromHoudiniInput(UHoudiniInput const* const InIn
 	bImportAsReferenceMaterialEnabled = InInput->GetImportAsReferenceMaterialEnabled();
 	bExportMaterialParameters = InInput->GetExportMaterialParameters();
 
-	const TArray<UHoudiniInputObject*>* SrcInputObjectsPtr = InInput->GetHoudiniInputObjectArray(InputType);
+	const TArray<TObjectPtr<UHoudiniInputObject>>* SrcInputObjectsPtr = InInput->GetHoudiniInputObjectArray(InputType);
 	if (SrcInputObjectsPtr && SrcInputObjectsPtr->Num() > 0)
 	{
 		InputObjects.Empty(SrcInputObjectsPtr->Num()); 
@@ -875,7 +875,7 @@ UHoudiniPublicAPICurveInput::ConvertAPIInputObjectAndAssignToInput(UObject* InAP
 				}
 			}
 			
-			TArray<UHoudiniInputObject*>* HoudiniInputObjectArray = InHoudiniInput->GetHoudiniInputObjectArray(InHoudiniInput->GetInputType());
+			TArray<TObjectPtr<UHoudiniInputObject>>* HoudiniInputObjectArray = InHoudiniInput->GetHoudiniInputObjectArray(InHoudiniInput->GetInputType());
 			if (HoudiniInputObjectArray && HoudiniInputObjectArray->IsValidIndex(InInputIndex))
 			{
 				(*HoudiniInputObjectArray)[InInputIndex] = IsValid(NewHoudiniInputObject) ? NewHoudiniInputObject : nullptr;
@@ -926,7 +926,7 @@ UHoudiniPublicAPIWorldInput::PopulateFromHoudiniInput(UHoudiniInput const* const
 	if (!Super::PopulateFromHoudiniInput(InInput))
 		return false;
 
-	TArray<AActor*> const* const BoundSelectorObjectArray = InInput->GetBoundSelectorObjectArray();
+	TArray<TObjectPtr<AActor>> const* const BoundSelectorObjectArray = InInput->GetBoundSelectorObjectArray();
 	if (BoundSelectorObjectArray)
 		WorldInputBoundSelectorObjects = *BoundSelectorObjectArray;
 	else
@@ -951,7 +951,7 @@ UHoudiniPublicAPIWorldInput::UpdateHoudiniInput(UHoudiniInput* const InInput) co
 		return false;
 
 	bool bAnyChanges = false;
-	TArray<AActor*>* const BoundSelectorObjectArray = InInput->GetBoundSelectorObjectArray();
+	TArray<TObjectPtr<AActor>>* const BoundSelectorObjectArray = InInput->GetBoundSelectorObjectArray();
 	if (BoundSelectorObjectArray)
 	{
 		if (BoundSelectorObjectArray->Num() != WorldInputBoundSelectorObjects.Num())

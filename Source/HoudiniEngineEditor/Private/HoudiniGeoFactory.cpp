@@ -181,8 +181,8 @@ UHoudiniGeoFactory::Import(UClass* InClass, UPackage* InParent, const FString & 
 	GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPreImport(this, InClass, InParent, FName(FileName), TEXT("Houdini GEO"));
 
 	// Create a new Geo importer
-	TArray<UHoudiniOutput*> DummyOldOutputs;
-	TArray<UHoudiniOutput*> NewOutputs;
+	TArray<TObjectPtr<UHoudiniOutput>> DummyOldOutputs;
+	TArray<TObjectPtr<UHoudiniOutput>> NewOutputs;
 	UHoudiniGeoImporter* BGEOImporter = NewObject<UHoudiniGeoImporter>(this);
 	BGEOImporter->AddToRoot();
 
