@@ -117,7 +117,7 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 			const bool bStartAutomaticServer,
 			const float AutomaticServerTimeout,
 			const EHoudiniRuntimeSettingsSessionType SessionType,
-			const int32 NumSessions,
+			const int32 MaxSessions,
 			const FString& ServerPipeName,
 			const int32 ServerPort,
 			const FString& ServerHost,

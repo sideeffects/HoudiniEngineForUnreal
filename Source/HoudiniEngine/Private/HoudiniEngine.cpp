@@ -805,7 +805,7 @@ FHoudiniEngine::StartSessions(
 	const bool bStartAutomaticServer,
 	const float AutomaticServerTimeout,
 	const EHoudiniRuntimeSettingsSessionType SessionType,
-	const int32 NumSessions,
+	const int32 MaxNumSessions,
 	const FString& ServerPipeName,
 	const int32 ServerPort,
 	const FString& ServerHost,
@@ -835,7 +835,14 @@ FHoudiniEngine::StartSessions(
 	if(SessionType != EHoudiniRuntimeSettingsSessionType::HRSST_None)
 		FHoudiniApi::ClearConnectionError();
 
-	// Empty and reserve space
+
+	// Setup number of sessions.
+	int NumSessions = MaxNumSessions;
+	if(SessionType == EHoudiniRuntimeSettingsSessionType::HRSST_MemoryBuffer && MaxNumSessions > 1)
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Limiting Number of Sessions to 1 when using Shared Memory."));
+		NumSessions = 1;
+	}
 	Sessions.Empty(NumSessions);
 
 	// Create the sessions...
