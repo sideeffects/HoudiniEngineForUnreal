@@ -439,7 +439,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniInstancedOutput
 	TSoftObjectPtr<UObject> InstancedObject = nullptr;
 
 	UPROPERTY()
-	int NumInstances;
+	int NumInstances = 0;
 
 	// Indicates this instanced output's component should be recreated
 	UPROPERTY()

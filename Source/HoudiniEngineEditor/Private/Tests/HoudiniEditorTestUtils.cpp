@@ -122,6 +122,13 @@ bool FHoudiniAutomationTest::IsSupressedWarning(const FString& InWarning)
 
 void FHoudiniEditorTestUtils::InitializeTests(FHoudiniAutomationTest* Test, const TFunction<void()>& OnSuccess, const TFunction<void()>& OnFail)
 {
+	// Gpu Profiler runs out of space if we don't increase the buffer size from Unreal 5.5.
+	IConsoleVariable* ConsoleVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.GpuProfilerMaxEventBufferSizeKB"));
+	if(ConsoleVar)
+	{
+		ConsoleVar->Set(1024); 
+	}
+
 	LoadMap(Test, TEXT("/Game/TestSaved/Levels/TestLevel"), [=]
 	{
 		CreateSessionIfInvalidWithLatentRetries(Test, HoudiniEngineSessionPipeName, OnSuccess, OnFail);
