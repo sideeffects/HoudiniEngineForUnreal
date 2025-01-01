@@ -8236,7 +8236,11 @@ FString FHoudiniEngineUtils::DumpNode(HAPI_NodeId NodeId)
 		return TEXT("Invalid Node ID\n");
 
 	HAPI_NodeInfo NodeInfo;
-	HOUDINI_CHECK_ERROR(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo));
+	FHoudiniApi::NodeInfo_Init(&NodeInfo);
+
+	HAPI_Result Result = FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo);
+	if(Result != HAPI_RESULT_SUCCESS)
+		return FString::Printf(TEXT("Failed to get node info: %s\n"), *FHoudiniEngineUtils::GetErrorDescription());
 
 	FStringBuilderBase Output;
 
@@ -8247,7 +8251,14 @@ FString FHoudiniEngineUtils::DumpNode(HAPI_NodeId NodeId)
 
 	// Get GeoInfo for this node
 	HAPI_GeoInfo GeoInfo;
-	HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), NodeId, &GeoInfo));
+	FHoudiniApi::GeoInfo_Init(&GeoInfo);
+	Result = FHoudiniApi::GetGeoInfo(FHoudiniEngine::Get().GetSession(), NodeId, &GeoInfo);
+	if(Result != HAPI_RESULT_SUCCESS)
+	{
+		Output.Appendf(TEXT("    No GeoInfo, reason: %s\n"), *FHoudiniEngineUtils::GetErrorDescription());
+		return Output.ToString();
+	}
+
 	Output.Append(TEXT("    Part Count: %d\n"), GeoInfo.partCount);
 
 	for (int PartIndex = 0; PartIndex < GeoInfo.partCount; PartIndex++)
@@ -8261,9 +8272,14 @@ FString FHoudiniEngineUtils::DumpAttribute(HAPI_NodeId NodeId, HAPI_PartId PartI
                                            const FString& Name)
 {
 	HAPI_AttributeInfo AttributeInfo;
-	HOUDINI_CHECK_ERROR(
-		FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, TCHAR_TO_ANSI(*Name), Owner, &
-			AttributeInfo));
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+	HAPI_Result Result = FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId,
+		TCHAR_TO_ANSI(*Name), Owner, &AttributeInfo);
+	if(Result != HAPI_RESULT_SUCCESS)
+	{
+		return FString::Printf(TEXT("Failed to get attribute info: %s\n"), *FHoudiniEngineUtils::GetErrorDescription());
+	}
+
 	FStringBuilderBase Output;
 	Output.Appendf(TEXT("            Storage: %s\n"), *StorageTypeToString(AttributeInfo.storage));
 	Output.Appendf(TEXT("            Type: %s\n"), *AttributeTypeToString(AttributeInfo.typeInfo));
@@ -8276,28 +8292,40 @@ FString FHoudiniEngineUtils::DumpAttribute(HAPI_NodeId NodeId, HAPI_PartId PartI
 
 void FHoudiniEngineUtils::DumpPart(HAPI_NodeId NodeId, HAPI_PartId PartId, FStringBuilderBase& Output)
 {
-	HAPI_PartInfo partInfo;
-	HOUDINI_CHECK_ERROR(FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &partInfo));
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::PartInfo_Init(&PartInfo);
+	HAPI_Result Result = FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &PartInfo);
+	if(Result != HAPI_RESULT_SUCCESS)
+	{
+		Output.Appendf(TEXT("    Failed to get part info: %s\n"), *FHoudiniEngineUtils::GetErrorDescription());
+		return;
+	}
 
 	Output.Appendf(TEXT("Part %d\n"), PartId);
-	Output.Appendf(TEXT("    Part Name: %s\n"), *FHoudiniEngineString(partInfo.nameSH).ToFString());
-	Output.Appendf(TEXT("    Part Type: %s\n"), *PartTypeToString(partInfo.type));
-	Output.Appendf(TEXT("    Part Face Count: %d\n"), partInfo.faceCount);
-	Output.Appendf(TEXT("    Part Vertex Count: %d\n"), partInfo.vertexCount);
-	Output.Appendf(TEXT("    Part Point Count: %d\n"), partInfo.pointCount);
-	Output.Appendf(TEXT("    Part Vertex Attribute Count: %d\n"), partInfo.attributeCounts[HAPI_ATTROWNER_VERTEX]);
-	Output.Appendf(TEXT("    Part Point Attribute Count: %d\n"), partInfo.attributeCounts[HAPI_ATTROWNER_POINT]);
-	Output.Appendf(TEXT("    Part Primitive Attribute Count: %d\n"), partInfo.attributeCounts[HAPI_ATTROWNER_PRIM]);
-	Output.Appendf(TEXT("    Part Detail Attribute Count: %d\n"), partInfo.attributeCounts[HAPI_ATTROWNER_DETAIL]);
-	Output.Appendf(TEXT("    Part Is Instanced: %d\n"), partInfo.isInstanced ? 1 : 0);
-	Output.Appendf(TEXT("    Instance Count: %d\n"), partInfo.instanceCount);
-	Output.Appendf(TEXT("    Instance Part Count: %d\n"), partInfo.instancedPartCount ? 1 : 0);
+	Output.Appendf(TEXT("    Part Name: %s\n"), *FHoudiniEngineString(PartInfo.nameSH).ToFString());
+	Output.Appendf(TEXT("    Part Type: %s\n"), *PartTypeToString(PartInfo.type));
+	Output.Appendf(TEXT("    Part Face Count: %d\n"), PartInfo.faceCount);
+	Output.Appendf(TEXT("    Part Vertex Count: %d\n"), PartInfo.vertexCount);
+	Output.Appendf(TEXT("    Part Point Count: %d\n"), PartInfo.pointCount);
+	Output.Appendf(TEXT("    Part Vertex Attribute Count: %d\n"), PartInfo.attributeCounts[HAPI_ATTROWNER_VERTEX]);
+	Output.Appendf(TEXT("    Part Point Attribute Count: %d\n"), PartInfo.attributeCounts[HAPI_ATTROWNER_POINT]);
+	Output.Appendf(TEXT("    Part Primitive Attribute Count: %d\n"), PartInfo.attributeCounts[HAPI_ATTROWNER_PRIM]);
+	Output.Appendf(TEXT("    Part Detail Attribute Count: %d\n"), PartInfo.attributeCounts[HAPI_ATTROWNER_DETAIL]);
+	Output.Appendf(TEXT("    Part Is Instanced: %d\n"), PartInfo.isInstanced ? 1 : 0);
+	Output.Appendf(TEXT("    Instance Count: %d\n"), PartInfo.instanceCount);
+	Output.Appendf(TEXT("    Instance Part Count: %d\n"), PartInfo.instancedPartCount ? 1 : 0);
 
-	switch (partInfo.type)
+	switch (PartInfo.type)
 	{
 	case HAPI_PARTTYPE_CURVE:
 		HAPI_CurveInfo CurveInfo;
-		HOUDINI_CHECK_ERROR(FHoudiniApi::GetCurveInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &CurveInfo));
+		FHoudiniApi::CurveInfo_Init(&CurveInfo);
+		Result = FHoudiniApi::GetCurveInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &CurveInfo);
+		if(Result != HAPI_RESULT_SUCCESS)
+		{
+			Output.Appendf(TEXT("    Failed to get curve info: %s\n"), *FHoudiniEngineUtils::GetErrorDescription());
+			return;
+		}
 		Output.Appendf(TEXT("    Curve:\n"));
 		Output.Appendf(TEXT("        Curve Type: %s\n"), *CurveTypeToString(CurveInfo.curveType));
 		Output.Appendf(TEXT("        Curve Count: %d\n"), CurveInfo.curveCount);
@@ -8311,7 +8339,13 @@ void FHoudiniEngineUtils::DumpPart(HAPI_NodeId NodeId, HAPI_PartId PartId, FStri
 		break;
 	case HAPI_PARTTYPE_VOLUME:
 		HAPI_VolumeInfo VolumeInfo;
-		HOUDINI_CHECK_ERROR(FHoudiniApi::GetVolumeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &VolumeInfo));
+		FHoudiniApi::VolumeInfo_Init(&VolumeInfo);
+		Result = FHoudiniApi::GetVolumeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &VolumeInfo);
+		if(Result != HAPI_RESULT_SUCCESS)
+		{
+			Output.Appendf(TEXT("    Failed to get volume info: %s\n"), *FHoudiniEngineUtils::GetErrorDescription());
+			return;
+		}
 		Output.Appendf(TEXT("    Volume:\n"));
 		Output.Appendf(TEXT("        X Length: %d\n"), VolumeInfo.xLength);
 		Output.Appendf(TEXT("        Y Length: %d\n"), VolumeInfo.yLength);
@@ -8327,10 +8361,15 @@ void FHoudiniEngineUtils::DumpPart(HAPI_NodeId NodeId, HAPI_PartId PartId, FStri
 	case HAPI_PARTTYPE_INSTANCER:
 		{
 			TArray<HAPI_NodeId> InstancedPartIds;
-			InstancedPartIds.SetNum(partInfo.instancedPartCount);
+			InstancedPartIds.SetNum(PartInfo.instancedPartCount);
 
-			HOUDINI_CHECK_ERROR(FHoudiniApi::GetInstancedPartIds(FHoudiniEngine::Get().GetSession(),
-				NodeId, PartId, InstancedPartIds.GetData(), 0, partInfo.instancedPartCount));
+			Result = FHoudiniApi::GetInstancedPartIds(FHoudiniEngine::Get().GetSession(),
+				NodeId, PartId, InstancedPartIds.GetData(), 0, PartInfo.instancedPartCount);
+			if(Result != HAPI_RESULT_SUCCESS)
+			{
+				Output.Appendf(TEXT("    Failed to get instanced part ids: %s\n"), *FHoudiniEngineUtils::GetErrorDescription());
+				return;
+			}
 
 			Output.Append(TEXT("    Instance Ids: "));
 			for (int Index = 0; Index < InstancedPartIds.Num(); Index++)
