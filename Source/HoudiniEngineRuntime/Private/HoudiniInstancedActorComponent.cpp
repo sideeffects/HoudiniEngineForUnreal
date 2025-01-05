@@ -109,6 +109,8 @@ void UHoudiniInstancedActorComponent::OnComponentDestroyed( bool bDestroyingHier
 void 
 UHoudiniInstancedActorComponent::AddReferencedObjects(UObject * InThis, FReferenceCollector & Collector )
 {
+    Super::AddReferencedObjects(InThis, Collector);
+
     UHoudiniInstancedActorComponent * ThisHIAC = Cast< UHoudiniInstancedActorComponent >(InThis);
     if ( IsValid(ThisHIAC) )
     {
