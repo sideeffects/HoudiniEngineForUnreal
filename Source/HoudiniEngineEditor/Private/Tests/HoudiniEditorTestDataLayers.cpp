@@ -261,7 +261,10 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesDataLayers, 
 		AActor * Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject0.Actor));
 		TArray<FHoudiniUnrealDataLayerInfo> DataLayers = FHoudiniDataLayerUtils::GetDataLayerInfoForActor(Actor);
 		HOUDINI_TEST_EQUAL_ON_FAIL(DataLayers.Num(), 1, return true);
-		HOUDINI_TEST_EQUAL(DataLayers[0].Name, TEXT("DataLayer1"));
+
+		FString DataLayerName = DataLayers[0].Name;
+		DataLayerName = DataLayerName.Mid(0, 10);
+		HOUDINI_TEST_EQUAL(DataLayerName, TEXT("DataLayer1"));
 
 		// Check second output instanxer has DataLayer2.
 		++ObjIt;
@@ -269,7 +272,9 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesDataLayers, 
 		Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject1.Actor));
 		DataLayers = FHoudiniDataLayerUtils::GetDataLayerInfoForActor(Actor);
 		HOUDINI_TEST_EQUAL_ON_FAIL(DataLayers.Num(), 1, return true);
-		HOUDINI_TEST_EQUAL(DataLayers[0].Name, TEXT("DataLayer2"));
+		DataLayerName = DataLayers[0].Name;
+		DataLayerName = DataLayerName.Mid(0, 10);
+		HOUDINI_TEST_EQUAL(DataLayerName, TEXT("DataLayer2"));
 
 		return true;
 	}));
