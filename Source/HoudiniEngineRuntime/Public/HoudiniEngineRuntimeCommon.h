@@ -102,7 +102,8 @@ enum class EHoudiniOutputType : uint8
 	GeometryCollection,
 	DataTable,
 	LandscapeSpline,
-	AnimSequence
+	AnimSequence,
+	Cop
 };
 
 UENUM()

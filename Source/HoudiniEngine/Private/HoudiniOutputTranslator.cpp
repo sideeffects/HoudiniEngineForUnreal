@@ -52,6 +52,8 @@
 #include "HoudiniLandscapeTranslator.h"
 #include "HoudiniLandscapeSplineTranslator.h"
 #include "HoudiniInstanceTranslator.h"
+#include "HoudiniAnimationTranslator.h"
+#include "HoudiniTextureTranslator.h"
 #include "HoudiniGeometryCollectionTranslator.h"
 
 #include "Editor.h"
@@ -78,7 +80,6 @@
 #include "HoudiniLevelInstanceUtils.h"
 #include "Engine/UserDefinedStruct.h"
 #include "HoudiniHLODLayerUtils.h"
-#include <HoudiniAnimationTranslator.h>
 #include "HoudiniFoliageUtils.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
@@ -1104,6 +1105,21 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
 		FHoudiniEngine::Get().GetSession(), AssetId, &AssetNodeInfo), false);
+
+	// If the node is a COP node, add a Cop HoudiniOutput which only stores the node id; no geo info
+	if (AssetNodeInfo.type == HAPI_NODETYPE_COP || AssetNodeInfo.type == HAPI_NODETYPE_COP2)
+	{
+		TObjectPtr<UHoudiniOutput> Output =
+			NewObject<UHoudiniOutput>(
+				InOuterObject,
+				UHoudiniOutput::StaticClass(),
+				NAME_None,
+				RF_NoFlags);
+		Output->SetTypeToCop(AssetId);
+		OutNewOutputs.Add(Output);
+
+		return true;
+	}
 
 	if (!bAssetInfoSuccess)
 	{

@@ -41,6 +41,7 @@
 #include "HoudiniDataTableTranslator.h"
 #include "HoudiniSkeletalMeshTranslator.h"
 #include "HoudiniAnimationTranslator.h"
+#include "HoudiniTextureTranslator.h"
 #include "HoudiniGeometryCollectionTranslator.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniEngineRuntimeUtils.h"
@@ -53,6 +54,7 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Editor.h"
 
+#include "ImageUtils.h"  // Included for FCreateTexture2DParameters
 #include "Materials/MaterialInterface.h"
 #include "Materials/Material.h"
 
@@ -179,6 +181,7 @@ bool UHoudiniGeoImporter::CreateObjectsFromOutputs(
 	TArray<UHoudiniOutput*> DataTableOutputs;
 	TArray<UHoudiniOutput*> SkeletalOutputs;
 	TArray<UHoudiniOutput*> AnimSequenceOutputs;
+	TArray<UHoudiniOutput*> CopTextureOutputs;
 
 	for (UHoudiniOutput* const Output : InOutputs)
 	{
@@ -207,6 +210,9 @@ bool UHoudiniGeoImporter::CreateObjectsFromOutputs(
 			break;
 		case EHoudiniOutputType::AnimSequence:
 			AnimSequenceOutputs.Add(Output);
+			break;
+		case EHoudiniOutputType::Cop:
+			CopTextureOutputs.Add(Output);
 			break;
 		}
 	}
@@ -241,6 +247,9 @@ bool UHoudiniGeoImporter::CreateObjectsFromOutputs(
 		return false;
 
 	if (!CreateAnimSequences(AnimSequenceOutputs, InPackageParams))
+		return false;
+
+	if (!CreateCopTextures(CopTextureOutputs, InPackageParams))
 		return false;
 
 	return true;
@@ -762,6 +771,56 @@ UHoudiniGeoImporter::CreateAnimSequences(
 			}
 
 			OutputObjects.Add(CurObj);
+		}
+	}
+
+	return true;
+}
+
+bool
+UHoudiniGeoImporter::CreateCopTextures(
+	const TArray<UHoudiniOutput*>& InOutputs,
+	FHoudiniPackageParams InPackageParams)
+{
+	if (InOutputs.IsEmpty())
+	{
+		return true;
+	}
+
+	TArray<UPackage*> DummyPackages;
+	for (UHoudiniOutput* const CurOutput : InOutputs)
+	{
+		check(CurOutput->GetType() == EHoudiniOutputType::Cop);
+
+		FString Notification = TEXT("BGEO Importer: Creating Cop Textures...");
+		FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Notification));
+
+		HAPI_NodeId CopNode = CurOutput->GetCopNodeId();
+		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderCOPTexture(CopNode);
+		if (bRenderSuccessful)
+		{
+			FCreateTexture2DParameters CreateTexture2DParameters;
+			CreateTexture2DParameters.SourceGuidHash = FGuid();
+			CreateTexture2DParameters.bUseAlpha = false;
+			CreateTexture2DParameters.CompressionSettings = TC_Default;
+			CreateTexture2DParameters.bDeferCompression = true;
+			CreateTexture2DParameters.bSRGB = true;
+
+			UTexture2D* Texture = nullptr;
+			FHoudiniTextureTranslator::CreateTexture(
+				CopNode,
+				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA,
+				HAPI_IMAGE_DATA_INT8,
+				HAPI_IMAGE_PACKING_RGBA,
+				Texture,
+				"",
+				"",
+				InPackageParams,
+				CreateTexture2DParameters,
+				TEXTUREGROUP_World,
+				DummyPackages);
+
+			OutputObjects.Add(Texture);
 		}
 	}
 

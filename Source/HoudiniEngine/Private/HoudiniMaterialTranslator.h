@@ -254,18 +254,17 @@ public:
 		const TArray<UPackage*>& InPackages);
 
 	//
-	static UPackage* CreatePackageForTexture(
-		const HAPI_NodeId& InMaterialNodeId,
-		const FString& InTextureType,
-		const FHoudiniPackageParams& InPackageParams,
-		FString& OutTextureName);
-
-	//
 	static UPackage* CreatePackageForMaterial(
 		const HAPI_NodeId& InMaterialNodeId,
 		const FString& InMaterialName,
 		const FHoudiniPackageParams& InPackageParams,
 		FString& OutMaterialName);
+
+	static void GetTextureAndExpression(
+		UMaterialExpression*& MatInputExpression,
+		const bool bLocateExpression,
+		UTexture2D*& OutTexture,
+		UMaterialExpressionTextureSampleParameter2D*& OutExpression);
 
 	// Create a scalar expression in the material graph, reusing the existing expression if possible.
 	static UMaterialExpressionScalarParameter* CreateScalarExpression(
@@ -299,47 +298,6 @@ public:
 		const char* ParamCPMSwitch,
 		UMaterialExpressionVectorParameter* ColorExpression,
 		FString& GeneratingParameterName);
-
-	// Create a texture from a HAPI material and assign it to an expression in the Unreal material graph.
-	// Records the GeneratingParameterName if the HAPI parameter is found.
-	// Returns true if the expression is successfully created, false otherwise.
-	static bool CreateTextureExpression(
-		// HAPI extraction parameters
-		const HAPI_ParmId ParmTextureId,
-		const HAPI_MaterialInfo& InMaterialInfo,
-		const char* PlaneType,
-		HAPI_ImagePacking ImagePacking,
-		bool bRenderToImage,
-		// Texture creation parameters
-		UMaterialExpression*& MatInputExpression,
-		UMaterialExpressionTextureSampleParameter2D*& TextureExpression,
-		UTexture2D*& Texture,
-		const bool SetMatInputExpression,
-		const HAPI_NodeId InAssetId,
-		const FString& InTextureType,
-		const FHoudiniPackageParams& InPackageParams,
-		const FCreateTexture2DParameters& TextureParameters,
-		const TextureGroup LODGroup,
-		// Sampling expression parameters
-		UMaterial* Material,
-		const EObjectFlags ObjectFlag,
-		FString& GeneratingParameterName,
-		const EMaterialSamplerType SamplerType,
-		// Misc parameters
-		const bool SetBlendModeMasked,
-		TArray<UPackage*>& OutPackages);
-
-	// Create a texture from given information.
-	static UTexture2D* CreateUnrealTexture(
-		UTexture2D* ExistingTexture,
-		const HAPI_ImageInfo& ImageInfo,
-		UPackage* Package,
-		const FString& TextureName,
-		const TArray<char>& ImageBuffer,
-		const FCreateTexture2DParameters& TextureParameters,
-		const TextureGroup LODGroup,
-		const FString& TextureType,
-		const FString& NodePath);
 
 	// Connect expressions A, B, and optionally C with multiply expressions.
 	// If C is not provided, creates one multiply (A*B). Otherwise, creates two ((A*B)*C).
@@ -376,28 +334,6 @@ public:
 	// Determines if world space normals are required for the material created from this node.
 	static bool RequiresWorldSpaceNormals(HAPI_NodeId HapiMaterial);
 
-	// Retrieve information based on the planes of the HAPI material.
-	static bool GetPlaneInfo(
-		const HAPI_ParmId ParmTextureId,
-		const HAPI_MaterialInfo& InMaterialInfo,
-		HAPI_ImagePacking& ImagePacking,
-		const char*& PlaneType,
-		bool& bUseAlpha);
-
-	// HAPI : Retrieve a list of image planes.
-	static bool HapiExtractImage(
-		const HAPI_ParmId NodeParmId,
-		const HAPI_MaterialInfo& MaterialInfo,
-		const char* PlaneType,
-		const HAPI_ImageDataFormat& ImageDataFormat,
-		HAPI_ImagePacking ImagePacking,
-		bool bRenderToImage,
-		TArray<char>& OutImageBuffer);
-
-	// HAPI : Extract image data.
-	static bool HapiGetImagePlanes(
-		const HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, TArray<FString>& OutImagePlanes);
-	
 	// Returns a unique name for a given material, its relative path (to the asset)
 	static bool GetMaterialRelativePath(
 		const HAPI_NodeId& InAssetId, const HAPI_MaterialInfo& InMaterialNodeInfo, FString& OutRelativePath);
@@ -444,6 +380,18 @@ protected:
 
 	// Helper function to locate first Material expression of given class within given expression subgraph.
 	static UMaterialExpression* MaterialLocateExpression(UMaterialExpression* Expression, UClass* ExpressionClass);
+
+	// Assigns a texture to an expression in the Unreal material graph.
+	// Returns true if the expression is successfully created, false otherwise.
+	static bool CreateTextureExpression(
+		UTexture2D* Texture,
+		UMaterialExpressionTextureSampleParameter2D*& TextureExpression,
+		UMaterialExpression*& MatInputExpression,
+		const bool SetMatInputExpression,
+		UMaterial* Material,
+		const EObjectFlags ObjectFlag,
+		const FString& GeneratingParameterName,
+		const EMaterialSamplerType SamplerType);
 
 	// Create various material components.
 	static bool CreateMaterialComponentDiffuse(

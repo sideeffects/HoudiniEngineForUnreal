@@ -2328,6 +2328,23 @@ FHoudiniEngineUtils::IsObjNodeFullyVisible(const TSet<HAPI_NodeId>& AllObjectIds
 
 
 bool
+FHoudiniEngineUtils::HapiGetNodeType(const HAPI_NodeId& InNodeId, HAPI_NodeType& OutNodeType)
+{
+	HAPI_NodeInfo NodeInfo;
+	FHoudiniApi::NodeInfo_Init(&NodeInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+		FHoudiniEngine::Get().GetSession(),
+		InNodeId,
+		&NodeInfo
+		),
+		false
+	);
+	OutNodeType = NodeInfo.type;
+	return true;
+}
+
+
+bool
 FHoudiniEngineUtils::IsSopNode(const HAPI_NodeId& NodeId)
 {
 	HAPI_NodeInfo NodeInfo;
@@ -2422,6 +2439,10 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 		else
 			return false;
 	}
+
+	// We only handle SOP and OBJ nodes here.
+	if (AssetNodeInfo.type != HAPI_NODETYPE_SOP && AssetNodeInfo.type != HAPI_NODETYPE_OBJ)
+		return false;
 
 	FString CurrentAssetName;
 	{

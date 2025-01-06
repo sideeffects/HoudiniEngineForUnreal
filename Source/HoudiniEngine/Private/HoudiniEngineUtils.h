@@ -193,8 +193,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// - Only has Object subnet parents (if we find a parent with non-Object nodetype then it's not visible).
 		static bool IsObjNodeFullyVisible(const TSet<HAPI_NodeId>& AllObjectIds, const HAPI_NodeId& RootNodeId, const HAPI_NodeId& ChildNodeId);
 
+		static bool HapiGetNodeType(const HAPI_NodeId& InNodeId, HAPI_NodeType& OutNodeType);
+
 		static bool IsSopNode(const HAPI_NodeId& NodeId);
-		
 		static bool ContainsSopNodes(const HAPI_NodeId& NodeId);
 
 		// Get the output index of InNodeId (assuming InNodeId is an Output node).

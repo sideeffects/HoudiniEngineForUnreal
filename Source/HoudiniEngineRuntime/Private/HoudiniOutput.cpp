@@ -533,6 +533,7 @@ UHoudiniOutput::UHoudiniOutput(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Type(EHoudiniOutputType::Invalid)
 	, StaleCount(0)
+	, CopNodeId(-1)
 	, bLandscapeWorldComposition(false)
 	, bIsEditableNode(false)
 	, bHasEditableNodeBuilt(false)
@@ -940,6 +941,7 @@ UHoudiniOutput::AddNewHGPO(const FHoudiniGeoPartObject& InHGPO)
 void
 UHoudiniOutput::UpdateOutputType()
 {
+	// NOTE: Cop-type outputs are not set here, they must be set using SetTypeToCop()
 	int32 MeshCount = 0;
 	int32 CurveCount = 0;
 	int32 VolumeCount = 0;
@@ -1033,6 +1035,13 @@ UHoudiniOutput::UpdateOutputType()
 	}
 }
 
+void
+UHoudiniOutput::SetTypeToCop(const int32 NodeId)
+{
+	Type = EHoudiniOutputType::Cop;
+	CopNodeId = NodeId;
+}
+
 UHoudiniOutput*
 UHoudiniOutput::DuplicateAndCopyProperties(UObject* DestOuter, FName NewName)
 {
@@ -1104,6 +1113,12 @@ UHoudiniOutput::OutputTypeToString(const EHoudiniOutputType& InOutputType)
 			break;
 		case EHoudiniOutputType::LandscapeSpline:
 			OutputTypeStr = TEXT("LandscapeSpline");
+			break;
+		case EHoudiniOutputType::AnimSequence:
+			OutputTypeStr = TEXT("AnimSequence");
+			break;
+		case EHoudiniOutputType::Cop:
+			OutputTypeStr = TEXT("Cop");
 			break;
 
 		default:

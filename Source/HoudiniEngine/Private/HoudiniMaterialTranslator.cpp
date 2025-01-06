@@ -35,6 +35,7 @@
 #include "HoudiniOutput.h"
 #include "HoudiniPackageParams.h"
 #include "HoudiniMeshTranslator.h"
+#include "HoudiniTextureTranslator.h"
 
 #include "MaterialTypes.h"
 #include "Materials/Material.h"
@@ -940,332 +941,6 @@ FHoudiniMaterialTranslator::CreatePackageForMaterial(
 	return MyPackageParams.CreatePackageForObject(OutMaterialName);
 }
 
-UPackage*
-FHoudiniMaterialTranslator::CreatePackageForTexture(
-	const HAPI_NodeId& InMaterialNodeId,
-	const FString& InTextureType,
-	const FHoudiniPackageParams& InPackageParams,
-	FString& OutTextureName)
-{
-	FString TextureInfoDescriptor = TEXT("_texture_") + FString::FromInt(InMaterialNodeId) + TEXT("_") + InTextureType;
-	FHoudiniPackageParams MyPackageParams = InPackageParams;
-	if (!MyPackageParams.ObjectName.IsEmpty())
-	{
-		MyPackageParams.ObjectName += TextureInfoDescriptor;
-	}
-	else if (!MyPackageParams.HoudiniAssetName.IsEmpty())
-	{
-		MyPackageParams.ObjectName = MyPackageParams.HoudiniAssetName + TextureInfoDescriptor;
-	}
-	else
-	{
-		MyPackageParams.ObjectName = TextureInfoDescriptor;
-	}
-	MyPackageParams.PackageMode = FHoudiniPackageParams::GetDefaultMaterialAndTextureCookMode();
-
-	return MyPackageParams.CreatePackageForObject(OutTextureName);
-}
-
-UTexture2D*
-FHoudiniMaterialTranslator::CreateUnrealTexture(
-	UTexture2D* ExistingTexture,
-	const HAPI_ImageInfo& ImageInfo,
-	UPackage* Package,
-	const FString& TextureName,
-	const TArray<char>& ImageBuffer,
-	const FCreateTexture2DParameters& TextureParameters,
-	const TextureGroup LODGroup, 
-	const FString& TextureType,
-	const FString& NodePath)
-{
-	if (!IsValid(Package))
-		return nullptr;
-
-	UTexture2D* Texture = nullptr;
-	if (ExistingTexture)
-	{
-		Texture = ExistingTexture;
-	}
-	else
-	{
-		// Create new texture object.
-		Texture = NewObject<UTexture2D>(
-			Package, UTexture2D::StaticClass(), *TextureName,
-			RF_Transactional);
-
-		// Assign texture group.
-		Texture->LODGroup = LODGroup;
-	}
-
-	// Add/Update meta information to package.
-	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
-		Package, Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
-	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
-		Package, Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *TextureName);
-	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
-		Package, Texture, HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_TYPE, *TextureType);
-	FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
-		Package, Texture, HAPI_UNREAL_PACKAGE_META_NODE_PATH, *NodePath);
-
-	// Initialize texture source.
-	Texture->Source.Init(ImageInfo.xRes, ImageInfo.yRes, 1, 1, TSF_BGRA8);
-
-	// Lock the texture.
-	uint8* MipData = Texture->Source.LockMip(0);
-
-	// Create base map.
-	uint8* DestPtr = nullptr;
-	uint32 SrcWidth = ImageInfo.xRes;
-	uint32 SrcHeight = ImageInfo.yRes;
-	const char* SrcData = &ImageBuffer[0];
-
-	// Handle the different packing for the source Houdini texture
-	uint32 PackOffset = 4;
-	uint32 OffsetR = 0;
-	uint32 OffsetG = 1;
-	uint32 OffsetB = 2;
-	uint32 OffsetA = 3;
-	switch (ImageInfo.packing)
-	{
-		case HAPI_IMAGE_PACKING_SINGLE:
-			PackOffset = 1;
-			OffsetR = 0;
-			OffsetG = 0;
-			OffsetB = 0;
-			OffsetA = 0;
-			break;
-
-		case HAPI_IMAGE_PACKING_DUAL:
-			PackOffset = 2;
-			OffsetR = 0;
-			OffsetG = 1;
-			OffsetB = 1;
-			OffsetA = 0;
-			break;
-
-		case HAPI_IMAGE_PACKING_RGB:
-			PackOffset = 3;
-			OffsetR = 0;
-			OffsetG = 1;
-			OffsetB = 2;
-			OffsetA = 0;
-			break;
-
-		case HAPI_IMAGE_PACKING_BGR:
-			PackOffset = 3;
-			OffsetR = 2;
-			OffsetG = 1;
-			OffsetB = 0;
-			OffsetA = 0;
-			break;
-
-		case HAPI_IMAGE_PACKING_RGBA:
-			PackOffset = 4;
-			OffsetR = 0;
-			OffsetG = 1;
-			OffsetB = 2;
-			OffsetA = 3;
-			break;
-
-		case HAPI_IMAGE_PACKING_ABGR:
-			PackOffset = 4;
-			OffsetR = 3;
-			OffsetG = 2;
-			OffsetB = 1;
-			OffsetA = 0;
-			break;
-
-		case HAPI_IMAGE_PACKING_UNKNOWN:
-		case HAPI_IMAGE_PACKING_MAX:
-			// invalid packing
-			HOUDINI_CHECK_RETURN(false, nullptr);
-			break;
-	}
-
-	for (uint32 y = 0; y < SrcHeight; y++)
-	{
-		DestPtr = &MipData[(SrcHeight - 1 - y) * SrcWidth * sizeof(FColor)];
-
-		for (uint32 x = 0; x < SrcWidth; x++)
-		{
-			uint32 DataOffset = y * SrcWidth * PackOffset + x * PackOffset;
-
-			*DestPtr++ = *(uint8*)(SrcData + DataOffset + OffsetB); // B
-			*DestPtr++ = *(uint8*)(SrcData + DataOffset + OffsetG); // G
-			*DestPtr++ = *(uint8*)(SrcData + DataOffset + OffsetR); // R
-
-			if (TextureParameters.bUseAlpha && PackOffset == 4)
-				*DestPtr++ = *(uint8*)(SrcData + DataOffset + OffsetA); // A
-			else
-				*DestPtr++ = 0xFF;
-		}
-	}
-
-	bool bHasAlphaValue = false;
-	if (TextureParameters.bUseAlpha)
-	{
-		// See if there is an actual alpha value in the texture or if we can ignore the texture alpha
-		for (uint32 y = 0; y < SrcHeight; y++)
-		{
-			for (uint32 x = 0; x < SrcWidth; x++)
-			{
-				uint32 DataOffset = y * SrcWidth * 4 + x * 4;
-				if (*(uint8*)(SrcData + DataOffset + 3) != 0xFF)
-				{
-					bHasAlphaValue = true;
-					break;
-				}
-			}
-
-			if (bHasAlphaValue)
-				break;
-		}
-	}
-
-	// Unlock the texture.
-	Texture->Source.UnlockMip(0);
-
-	// Texture creation parameters.
-	Texture->SRGB = TextureParameters.bSRGB;
-	Texture->CompressionSettings = TextureParameters.CompressionSettings;
-	Texture->CompressionNoAlpha = !bHasAlphaValue;
-	Texture->DeferCompression = TextureParameters.bDeferCompression;
-
-	// Set the Source Guid/Hash if specified.
-	/*
-	if (TextureParameters.SourceGuidHash.IsValid())
-	{
-		Texture->Source.SetId(TextureParameters.SourceGuidHash, true);
-	}
-	*/
-
-	Texture->PostEditChange();
-
-	return Texture;
-}
-
-bool
-FHoudiniMaterialTranslator::HapiExtractImage(
-	const HAPI_ParmId NodeParmId, 
-	const HAPI_MaterialInfo& MaterialInfo,
-	const char* PlaneType,
-	const HAPI_ImageDataFormat& ImageDataFormat,
-	HAPI_ImagePacking ImagePacking,
-	bool bRenderToImage,
-	TArray<char>& OutImageBuffer)
-{
-	if (bRenderToImage)
-	{
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RenderTextureToImage(
-			FHoudiniEngine::Get().GetSession(),
-			MaterialInfo.nodeId, NodeParmId), false);
-	}
-
-	// See if we have the images planes we want
-	int NumImagePlanes = 0;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetImagePlaneCount(
-		FHoudiniEngine::Get().GetSession(), MaterialInfo.nodeId, &NumImagePlanes), false);
-
-	TArray<int32> ImagePlanesSHArray;
-	ImagePlanesSHArray.SetNum(NumImagePlanes);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetImagePlanes(
-		FHoudiniEngine::Get().GetSession(), MaterialInfo.nodeId, ImagePlanesSHArray.GetData(), NumImagePlanes), false);
-
-	TArray<FString> ImagePlanesStringArray;
-	FHoudiniEngineString::SHArrayToFStringArray(ImagePlanesSHArray, ImagePlanesStringArray);
-
-	bool bFound = false;
-	bool bCFound = false;
-	bool bAFound = false;
-	FString InPlaneTypeString(PlaneType);
-	for (int32 n = 0; n < ImagePlanesStringArray.Num(); n++)
-	{
-		if (ImagePlanesStringArray[n].Equals(InPlaneTypeString, ESearchCase::IgnoreCase))
-			bFound = true;
-		else if (InPlaneTypeString.Equals("C A"))
-		{
-			if (ImagePlanesStringArray[n].Equals("C"))
-			{				
-				bCFound = true;
-				// If only color is found, still allow image extraction
-				bFound = true;
-			}				
-			else if (ImagePlanesStringArray[n].Equals("A"))
-			{
-				bAFound = true;
-			}
-
-			if (bCFound && bAFound)
-				bFound = true;
-		}
-	}
-
-	if (!bFound)
-		return false;
-
-	HAPI_ImageInfo ImageInfo;
-	FHoudiniApi::ImageInfo_Init(&ImageInfo);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetImageInfo(
-		FHoudiniEngine::Get().GetSession(),
-		MaterialInfo.nodeId, &ImageInfo), false);
-
-	ImageInfo.dataFormat = ImageDataFormat;
-	ImageInfo.interleaved = true;
-	ImageInfo.packing = ImagePacking;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetImageInfo(
-		FHoudiniEngine::Get().GetSession(),
-		MaterialInfo.nodeId, &ImageInfo), false);
-
-	int32 ImageBufferSize = 0;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ExtractImageToMemory(
-		FHoudiniEngine::Get().GetSession(),
-		MaterialInfo.nodeId, HAPI_RAW_FORMAT_NAME,
-		PlaneType, &ImageBufferSize), false);
-
-	if (ImageBufferSize <= 0)
-		return false;
-
-	OutImageBuffer.SetNumUninitialized(ImageBufferSize);
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetImageMemoryBuffer(
-		FHoudiniEngine::Get().GetSession(),
-		MaterialInfo.nodeId, &OutImageBuffer[0],
-		ImageBufferSize), false);
-
-	return true;
-}
-
-bool
-FHoudiniMaterialTranslator::HapiGetImagePlanes(
-	const HAPI_ParmId NodeParmId, const HAPI_MaterialInfo& MaterialInfo, TArray<FString>& OutImagePlanes)
-{
-	OutImagePlanes.Empty();
-		
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RenderTextureToImage(
-		FHoudiniEngine::Get().GetSession(),
-		MaterialInfo.nodeId, NodeParmId), false);
-
-	int32 ImagePlaneCount = 0;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetImagePlaneCount(
-		FHoudiniEngine::Get().GetSession(),
-		MaterialInfo.nodeId, &ImagePlaneCount), false);
-
-	if (ImagePlaneCount <= 0)
-		return true;
-
-	TArray<HAPI_StringHandle> ImagePlaneStringHandles;
-	ImagePlaneStringHandles.SetNumZeroed(ImagePlaneCount);
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetImagePlanes(
-		FHoudiniEngine::Get().GetSession(),
-		MaterialInfo.nodeId, &ImagePlaneStringHandles[0], ImagePlaneCount), false);
-	
-	FHoudiniEngineString::SHArrayToFStringArray(ImagePlaneStringHandles, OutImagePlanes);
-
-	return true;
-}
-
 UMaterialExpression*
 FHoudiniMaterialTranslator::MaterialLocateExpression(UMaterialExpression* Expression, UClass* ExpressionClass)
 {
@@ -1330,6 +1005,37 @@ FHoudiniMaterialTranslator::_AddMaterialExpression(UMaterial* InMaterial, UMater
 }
 
 bool
+FHoudiniMaterialTranslator::CreateTextureExpression(
+	UTexture2D* Texture,
+	UMaterialExpressionTextureSampleParameter2D*& TextureExpression,
+	UMaterialExpression*& MatInputExpression,
+	const bool SetMatInputExpression,
+	UMaterial* Material,
+	const EObjectFlags ObjectFlag,
+	const FString& GeneratingParameterName,
+	const EMaterialSamplerType SamplerType)
+{
+	// Create the sampling expression, if it hasn't been created yet.
+	if (!TextureExpression)
+		TextureExpression = NewObject<UMaterialExpressionTextureSampleParameter2D>(
+			Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag);
+
+	// Record generating parameter.
+	TextureExpression->Desc = GeneratingParameterName;
+	TextureExpression->ParameterName = *GeneratingParameterName;
+
+	TextureExpression->Texture = Texture;
+	TextureExpression->SamplerType = SamplerType;
+
+	// Assign expression to material.
+	_AddMaterialExpression(Material, TextureExpression);
+	if (SetMatInputExpression)
+		MatInputExpression = TextureExpression;
+
+	return true;
+}
+
+bool
 FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	const HAPI_NodeId& InAssetId,
 	const FString& InHoudiniAssetName,
@@ -1388,15 +1094,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	UMaterialExpressionVertexColor* ExpressionVertexColor =
 		FHoudiniMaterialTranslator::CreateVertexColorExpression(MatInputDiffuse.Expression, Material, ObjectFlag, GeneratingParameterNameVertexColor);
 
-	// Locate sampling expression.
-	UMaterialExpressionTextureSampleParameter2D* ExpressionTextureSample =
-		Cast<UMaterialExpressionTextureSampleParameter2D>(FHoudiniMaterialTranslator::MaterialLocateExpression(
-			MatInputDiffuse.Expression, UMaterialExpressionTextureSampleParameter2D::StaticClass()));
-
-	// If texture sampling expression exists, attempt to retrieve its texture.
-	UTexture2D* TextureDiffuse = nullptr;
-	if (IsValid(ExpressionTextureSample))
-		TextureDiffuse = Cast<UTexture2D>(ExpressionTextureSample->Texture);
+	// Locate sampling expression and its texture.
+	UTexture2D* TextureDiffuse;
+	UMaterialExpressionTextureSampleParameter2D* ExpressionTextureSample;
+	FHoudiniMaterialTranslator::GetTextureAndExpression(MatInputDiffuse.Expression, true, TextureDiffuse, ExpressionTextureSample);
 
 	// See if a diffuse texture is available.
 	// The diffuse constant color parameter on Principled Shaders is "basecolor", but COP Preview Material's diffuse texture parameter is also "basecolor".
@@ -1420,33 +1121,41 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	{
 		HAPI_ImagePacking ImagePacking;
 		const char* PlaneType;
-		bool bFoundImagePlanes = FHoudiniMaterialTranslator::GetPlaneInfo(
+		bool bFoundImagePlanes = FHoudiniTextureTranslator::GetPlaneInfo(
 			ParmDiffuseTextureId, InMaterialInfo,
 			ImagePacking, PlaneType, CreateTexture2DParameters.bUseAlpha);
 
 		if (bFoundImagePlanes)
 		{
-			FHoudiniMaterialTranslator::CreateTextureExpression(
-				ParmDiffuseTextureId,
-				InMaterialInfo,
+			// Get the node path for the texture package's meta data
+			FString NodePath;
+			FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, InMaterialInfo.nodeId, NodePath);
+
+			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+				InMaterialInfo.nodeId,
 				PlaneType,
+				HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
-				false,
-				MatInputDiffuse.Expression,
-				ExpressionTextureSample,
 				TextureDiffuse,
-				false,
-				InAssetId,
+				NodePath,
 				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE,
 				InPackageParams,
 				CreateTexture2DParameters,
 				TEXTUREGROUP_World,
-				Material,
-				ObjectFlag,
-				GeneratingParameterNameDiffuseTexture,
-				SAMPLERTYPE_Color,
-				false,
 				OutPackages);
+
+			if (bTextureCreated)
+			{
+				FHoudiniMaterialTranslator::CreateTextureExpression(
+					TextureDiffuse,
+					ExpressionTextureSample,
+					MatInputDiffuse.Expression,
+					false,
+					Material,
+					ObjectFlag,
+					GeneratingParameterNameDiffuseTexture,
+					SAMPLERTYPE_Color);
+			}
 		}
 	}
 
@@ -1514,45 +1223,50 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 	{
 		HAPI_ImagePacking ImagePacking;
 		const char* PlaneType;
-		bool bFoundImagePlanes = FHoudiniMaterialTranslator::GetPlaneInfo(
+		bool bFoundImagePlanes = FHoudiniTextureTranslator::GetPlaneInfo(
 			ParmOpacityTextureId, InMaterialInfo,
 			ImagePacking, PlaneType, CreateTexture2DParameters.bUseAlpha);
 
 		if (bFoundImagePlanes)
 		{
-			UMaterialExpressionTextureSampleParameter2D* ExpressionTextureOpacitySample =
-				Cast<UMaterialExpressionTextureSampleParameter2D>(
-					FHoudiniMaterialTranslator::MaterialLocateExpression(
-						MatInputOpacityMask.Expression, UMaterialExpressionTextureSampleParameter2D::StaticClass()));
+			UTexture2D* TextureOpacity;
+			UMaterialExpressionTextureSampleParameter2D* ExpressionTextureOpacitySample;
+			FHoudiniMaterialTranslator::GetTextureAndExpression(MatInputOpacityMask.Expression, true, TextureOpacity, ExpressionTextureOpacitySample);
 
-			UTexture2D* TextureOpacity = nullptr;
-			if (ExpressionTextureOpacitySample)
-				TextureOpacity = Cast<UTexture2D>(ExpressionTextureOpacitySample->Texture);
+			// Get the node path for the texture package's meta data
+			FString NodePath;
+			FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, InMaterialInfo.nodeId, NodePath);
 
-			bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
-				ParmOpacityTextureId,
-				InMaterialInfo,
+			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+				InMaterialInfo.nodeId,
 				PlaneType,
+				HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
-				false,
-				MatInputOpacityMask.Expression,
-				ExpressionTextureOpacitySample,
 				TextureOpacity,
-				true,
-				InAssetId,
+				NodePath,
 				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK,
 				InPackageParams,
 				CreateTexture2DParameters,
 				TEXTUREGROUP_World,
-				Material,
-				ObjectFlag,
-				GeneratingParameterNameTexture,
-				SAMPLERTYPE_Grayscale,
-				true,
 				OutPackages);
+
+			if (bTextureCreated)
+			{
+				bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
+					TextureOpacity,
+					ExpressionTextureOpacitySample,
+					MatInputOpacityMask.Expression,
+					true,
+					Material,
+					ObjectFlag,
+					GeneratingParameterNameTexture,
+					SAMPLERTYPE_Grayscale);
+			}
 
 			if (bExpressionCreated)
 			{
+				Material->BlendMode = BLEND_Masked;
+
 				FHoudiniMaterialTranslator::PositionExpression(ExpressionTextureOpacitySample, MaterialNodeY, 0.0f);
 
 				// We need to set material type to masked.
@@ -1801,29 +1515,43 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 	{
 		bTangentSpaceNormal = FHoudiniMaterialTranslator::RequiresWorldSpaceNormals(InMaterialInfo.nodeId);
 
-		UMaterialExpressionTextureSampleParameter2D* TextureExpression = nullptr;
-		UTexture2D* Texture = nullptr;
-		bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
-			ParmNormalTextureId,
-			InMaterialInfo,
-			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-			HAPI_IMAGE_PACKING_RGBA,
-			true,
-			MatInputNormal.Expression,
-			TextureExpression,
-			Texture,
-			true,
-			InAssetId,
-			HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
-			InPackageParams,
-			CreateTexture2DParameters,
-			TEXTUREGROUP_WorldNormalMap,
-			Material,
-			ObjectFlag,
-			GeneratingParameterName,
-			SAMPLERTYPE_Normal,
-			false,
-			OutPackages);
+		UTexture2D* Texture;
+		UMaterialExpressionTextureSampleParameter2D* TextureExpression;
+		FHoudiniMaterialTranslator::GetTextureAndExpression(MatInputNormal.Expression, false, Texture, TextureExpression);
+
+		// Get the node path for the texture package's meta data
+		FString NodePath;
+		FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, InMaterialInfo.nodeId, NodePath);
+
+		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmNormalTextureId);
+		if (bRenderSuccessful)
+		{
+			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+				InMaterialInfo.nodeId,
+				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
+				HAPI_IMAGE_DATA_INT8,
+				HAPI_IMAGE_PACKING_RGBA,
+				Texture,
+				NodePath,
+				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
+				InPackageParams,
+				CreateTexture2DParameters,
+				TEXTUREGROUP_WorldNormalMap,
+				OutPackages);
+
+			if (bTextureCreated)
+			{
+				bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
+					Texture,
+					TextureExpression,
+					MatInputNormal.Expression,
+					true,
+					Material,
+					ObjectFlag,
+					GeneratingParameterName,
+					SAMPLERTYPE_Normal);
+			}
+		}
 
 		if (bExpressionCreated)
 		{
@@ -1857,29 +1585,43 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 		// If normal plane is available in diffuse map.
 		if (ParmDiffuseTextureId >= 0)
 		{
-			UMaterialExpressionTextureSampleParameter2D* TextureExpression = nullptr;
-			UTexture2D* Texture = nullptr;
-			bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
-				ParmDiffuseTextureId,
-				InMaterialInfo,
-				HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL,
-				HAPI_IMAGE_PACKING_RGB,
-				true,
-				MatInputNormal.Expression,
-				TextureExpression,
-				Texture,
-				true,
-				InAssetId,
-				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
-				InPackageParams,
-				CreateTexture2DParameters,
-				TEXTUREGROUP_WorldNormalMap,
-				Material,
-				ObjectFlag,
-				GeneratingParameterName,
-				SAMPLERTYPE_Normal,
-				false,
-				OutPackages);
+			UTexture2D* Texture;
+			UMaterialExpressionTextureSampleParameter2D* TextureExpression;
+			FHoudiniMaterialTranslator::GetTextureAndExpression(MatInputNormal.Expression, false, Texture, TextureExpression);
+
+			// Get the node path for the texture package's meta data
+			FString NodePath;
+			FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, InMaterialInfo.nodeId, NodePath);
+
+			bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmDiffuseTextureId);
+			if (bRenderSuccessful)
+			{
+				bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+					InMaterialInfo.nodeId,
+					HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL,
+					HAPI_IMAGE_DATA_INT8,
+					HAPI_IMAGE_PACKING_RGB,
+					Texture,
+					NodePath,
+					HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
+					InPackageParams,
+					CreateTexture2DParameters,
+					TEXTUREGROUP_WorldNormalMap,
+					OutPackages);
+
+				if (bTextureCreated)
+				{
+					bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
+						Texture,
+						TextureExpression,
+						MatInputNormal.Expression,
+						true,
+						Material,
+						ObjectFlag,
+						GeneratingParameterName,
+						SAMPLERTYPE_Normal);
+				}
+			}
 
 			if (bExpressionCreated)
 			{
@@ -1942,29 +1684,43 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 
 	if (ParmSpecularTextureId >= 0)
 	{
-		UMaterialExpressionTextureSampleParameter2D* TextureExpression = nullptr;
-		UTexture2D* Texture = nullptr;
-		bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
-			ParmSpecularTextureId,
-			InMaterialInfo,
-			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-			HAPI_IMAGE_PACKING_RGBA,
-			true,
-			MatInputSpecular.Expression,
-			TextureExpression,
-			Texture,
-			true,
-			InAssetId,
-			HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR,
-			InPackageParams,
-			CreateTexture2DParameters,
-			TEXTUREGROUP_World,
-			Material,
-			ObjectFlag,
-			GeneratingParameterName,
-			SAMPLERTYPE_LinearGrayscale,
-			false,
-			OutPackages);
+		UTexture2D* Texture;
+		UMaterialExpressionTextureSampleParameter2D* TextureExpression;
+		FHoudiniMaterialTranslator::GetTextureAndExpression(MatInputSpecular.Expression, false, Texture, TextureExpression);
+
+		// Get the node path for the texture package's meta data
+		FString NodePath;
+		FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, InMaterialInfo.nodeId, NodePath);
+
+		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmSpecularTextureId);
+		if (bRenderSuccessful)
+		{
+			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+				InMaterialInfo.nodeId,
+				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
+				HAPI_IMAGE_DATA_INT8,
+				HAPI_IMAGE_PACKING_RGBA,
+				Texture,
+				NodePath,
+				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR,
+				InPackageParams,
+				CreateTexture2DParameters,
+				TEXTUREGROUP_World,
+				OutPackages);
+
+			if (bTextureCreated)
+			{
+				bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
+					Texture,
+					TextureExpression,
+					MatInputSpecular.Expression,
+					true,
+					Material,
+					ObjectFlag,
+					GeneratingParameterName,
+					SAMPLERTYPE_LinearGrayscale);
+			}
+		}
 
 		if (bExpressionCreated)
 			FHoudiniMaterialTranslator::PositionExpression(MatInputSpecular.Expression, MaterialNodeY, 0.0f);
@@ -2033,29 +1789,43 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 
 	if (ParmRoughnessTextureId >= 0)
 	{
-		UMaterialExpressionTextureSampleParameter2D* TextureExpression = nullptr;
-		UTexture2D* Texture = nullptr;
-		bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
-			ParmRoughnessTextureId,
-			InMaterialInfo,
-			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-			HAPI_IMAGE_PACKING_RGBA,
-			true,
-			MatInputRoughness.Expression,
-			TextureExpression,
-			Texture,
-			true,
-			InAssetId,
-			HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS,
-			InPackageParams,
-			CreateTexture2DParameters,
-			TEXTUREGROUP_World,
-			Material,
-			ObjectFlag,
-			GeneratingParameterName,
-			SAMPLERTYPE_LinearGrayscale,
-			false,
-			OutPackages);
+		UTexture2D* Texture;
+		UMaterialExpressionTextureSampleParameter2D* TextureExpression;
+		FHoudiniMaterialTranslator::GetTextureAndExpression(MatInputRoughness.Expression, false, Texture, TextureExpression);
+
+		// Get the node path for the texture package's meta data
+		FString NodePath;
+		FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, InMaterialInfo.nodeId, NodePath);
+
+		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmRoughnessTextureId);
+		if (bRenderSuccessful)
+		{
+			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+				InMaterialInfo.nodeId,
+				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
+				HAPI_IMAGE_DATA_INT8,
+				HAPI_IMAGE_PACKING_RGBA,
+				Texture,
+				NodePath,
+				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS,
+				InPackageParams,
+				CreateTexture2DParameters,
+				TEXTUREGROUP_World,
+				OutPackages);
+
+			if (bTextureCreated)
+			{
+				bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
+					Texture,
+					TextureExpression,
+					MatInputRoughness.Expression,
+					true,
+					Material,
+					ObjectFlag,
+					GeneratingParameterName,
+					SAMPLERTYPE_LinearGrayscale);
+			}
+		}
 
 		if (bExpressionCreated)
 			FHoudiniMaterialTranslator::PositionExpression(MatInputRoughness.Expression, MaterialNodeY, 0.0f);
@@ -2124,29 +1894,43 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 
 	if (ParmMetallicTextureId >= 0)
 	{
-		UMaterialExpressionTextureSampleParameter2D* TextureExpression = nullptr;
-		UTexture2D* Texture = nullptr;
-		bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
-			ParmMetallicTextureId,
-			InMaterialInfo,
-			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-			HAPI_IMAGE_PACKING_RGBA,
-			true,
-			MatInputMetallic.Expression,
-			TextureExpression,
-			Texture,
-			true,
-			InAssetId,
-			HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC,
-			InPackageParams,
-			CreateTexture2DParameters,
-			TEXTUREGROUP_World,
-			Material,
-			ObjectFlag,
-			GeneratingParameterName,
-			SAMPLERTYPE_LinearGrayscale,
-			false,
-			OutPackages);
+		UTexture2D* Texture;
+		UMaterialExpressionTextureSampleParameter2D* TextureExpression;
+		FHoudiniMaterialTranslator::GetTextureAndExpression(MatInputMetallic.Expression, false, Texture, TextureExpression);
+
+		// Get the node path for the texture package's meta data
+		FString NodePath;
+		FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, InMaterialInfo.nodeId, NodePath);
+
+		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmMetallicTextureId);
+		if (bRenderSuccessful)
+		{
+			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+				InMaterialInfo.nodeId,
+				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
+				HAPI_IMAGE_DATA_INT8,
+				HAPI_IMAGE_PACKING_RGBA,
+				Texture,
+				NodePath,
+				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC,
+				InPackageParams,
+				CreateTexture2DParameters,
+				TEXTUREGROUP_World,
+				OutPackages);
+
+			if (bTextureCreated)
+			{
+				bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
+					Texture,
+					TextureExpression,
+					MatInputMetallic.Expression,
+					true,
+					Material,
+					ObjectFlag,
+					GeneratingParameterName,
+					SAMPLERTYPE_LinearGrayscale);
+			}
+		}
 
 		if (bExpressionCreated)
 			FHoudiniMaterialTranslator::PositionExpression(MatInputMetallic.Expression, MaterialNodeY, 0.0f);
@@ -2246,15 +2030,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 	ExpressionEmissiveIntensity->Desc = GeneratingParameterNameEmissiveIntensity;
 	ExpressionEmissiveIntensity->ParameterName = *GeneratingParameterNameEmissiveIntensity;
 
-	// Locate Texture sampling expression.
-	UMaterialExpressionTextureSampleParameter2D* ExpressionTextureSample =
-		Cast<UMaterialExpressionTextureSampleParameter2D>(FHoudiniMaterialTranslator::MaterialLocateExpression(
-			MatInputEmissive.Expression, UMaterialExpressionTextureSampleParameter2D::StaticClass()));
-
-	// If texture sampling expression exists, attempt to retrieve its texture.
-	UTexture2D* TextureEmissive = nullptr;
-	if (IsValid(ExpressionTextureSample))
-		TextureEmissive = Cast<UTexture2D>(ExpressionTextureSample->Texture);
+	// Locate sampling expression and its texture.
+	UTexture2D* TextureEmissive;
+	UMaterialExpressionTextureSampleParameter2D* ExpressionTextureSample;
+	FHoudiniMaterialTranslator::GetTextureAndExpression(MatInputEmissive.Expression, true, TextureEmissive, ExpressionTextureSample);
 
 	// See if an emissive texture is available.
 	HAPI_ParmInfo ParmEmissiveTextureInfo;
@@ -2277,33 +2056,41 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 	{
 		HAPI_ImagePacking ImagePacking;
 		const char* PlaneType;
-		bool bFoundImagePlanes = FHoudiniMaterialTranslator::GetPlaneInfo(
+		bool bFoundImagePlanes = FHoudiniTextureTranslator::GetPlaneInfo(
 			ParmEmissiveTextureId, InMaterialInfo,
 			ImagePacking, PlaneType, CreateTexture2DParameters.bUseAlpha);
 
 		if (bFoundImagePlanes)
 		{
-			FHoudiniMaterialTranslator::CreateTextureExpression(
-				ParmEmissiveTextureId,
-				InMaterialInfo,
+			// Get the node path for the texture package's meta data
+			FString NodePath;
+			FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, InMaterialInfo.nodeId, NodePath);
+
+			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+				InMaterialInfo.nodeId,
 				PlaneType,
+				HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
-				false,
-				MatInputEmissive.Expression,
-				ExpressionTextureSample,
 				TextureEmissive,
-				false,
-				InAssetId,
+				NodePath,
 				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE,
 				InPackageParams,
 				CreateTexture2DParameters,
 				TEXTUREGROUP_World,
-				Material,
-				ObjectFlag,
-				GeneratingParameterNameEmissiveTexture,
-				SAMPLERTYPE_LinearGrayscale,
-				false,
 				OutPackages);
+
+			if (bTextureCreated)
+			{
+				FHoudiniMaterialTranslator::CreateTextureExpression(
+					TextureEmissive,
+					ExpressionTextureSample,
+					MatInputEmissive.Expression,
+					false,
+					Material,
+					ObjectFlag,
+					GeneratingParameterNameEmissiveTexture,
+					SAMPLERTYPE_LinearGrayscale);
+			}
 		}
 	}
 
@@ -3207,38 +2994,6 @@ FHoudiniMaterialTranslator::RequiresWorldSpaceNormals(HAPI_NodeId HapiMaterial)
 	return true;
 }
 
-bool
-FHoudiniMaterialTranslator::GetPlaneInfo(
-	const HAPI_ParmId ParmTextureId,
-	const HAPI_MaterialInfo& InMaterialInfo,
-	HAPI_ImagePacking& ImagePacking,
-	const char*& PlaneType,
-	bool& bUseAlpha)
-{
-	TArray<FString> ImagePlanes;
-	bool bGetImagePlanesSuccess = FHoudiniMaterialTranslator::HapiGetImagePlanes(
-		ParmTextureId, InMaterialInfo, ImagePlanes);
-
-	if (bGetImagePlanesSuccess && ImagePlanes.Contains(TEXT(HAPI_UNREAL_MATERIAL_TEXTURE_COLOR)))
-	{
-		// We use RGBA packing even if the image planes do not contain the alpha plane.
-		// This is because all texture data from Houdini Engine contains the alpha plane by default.
-		ImagePacking = HAPI_IMAGE_PACKING_RGBA;
-		PlaneType = HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA;
-
-		bUseAlpha = ImagePlanes.Contains(TEXT(HAPI_UNREAL_MATERIAL_TEXTURE_ALPHA));
-
-		return true;
-	}
-	else
-	{
-		ImagePacking = HAPI_IMAGE_PACKING_UNKNOWN;
-		PlaneType = "";
-
-		return false;
-	}
-}
-
 UMaterialExpressionVertexColor*
 FHoudiniMaterialTranslator::CreateVertexColorExpression(
 	UMaterialExpression* ExistingExpression,
@@ -3262,6 +3017,36 @@ FHoudiniMaterialTranslator::CreateVertexColorExpression(
 	_AddMaterialExpression(Material, VertexExpression);
 
 	return VertexExpression;
+}
+
+void
+FHoudiniMaterialTranslator::GetTextureAndExpression(
+	UMaterialExpression*& MatInputExpression,
+	const bool bLocateExpression,
+	UTexture2D*& OutTexture,
+	UMaterialExpressionTextureSampleParameter2D*& OutExpression)
+{
+	if (bLocateExpression)
+		OutExpression =
+			Cast<UMaterialExpressionTextureSampleParameter2D>(FHoudiniMaterialTranslator::MaterialLocateExpression(
+				MatInputExpression, UMaterialExpressionTextureSampleParameter2D::StaticClass()));
+	else
+		OutExpression =
+			Cast<UMaterialExpressionTextureSampleParameter2D>(MatInputExpression);
+
+	if (IsValid(OutExpression))
+		OutTexture = Cast<UTexture2D>(OutExpression->Texture);
+	else
+	{
+		OutTexture = nullptr;
+
+		// The input expression is not a texture expression. Destroy it.
+		if (MatInputExpression)
+		{
+			MatInputExpression->ConditionalBeginDestroy();
+			MatInputExpression = nullptr;
+		}
+	}
 }
 
 UMaterialExpressionScalarParameter*
@@ -3348,147 +3133,6 @@ FHoudiniMaterialTranslator::SetColorExpression(
 	}
 
 	return false;
-}
-
-bool
-FHoudiniMaterialTranslator::CreateTextureExpression(
-	// HAPI extraction parameters
-	const HAPI_ParmId ParmTextureId,
-	const HAPI_MaterialInfo& InMaterialInfo,
-	const char* PlaneType,
-	HAPI_ImagePacking ImagePacking,
-	bool bRenderToImage,
-	// Texture creation parameters
-	UMaterialExpression*& MatInputExpression,
-	UMaterialExpressionTextureSampleParameter2D*& TextureExpression,
-	UTexture2D*& Texture,
-	const bool SetMatInputExpression,
-	const HAPI_NodeId InAssetId,
-	const FString& InTextureType,
-	const FHoudiniPackageParams& InPackageParams,
-	const FCreateTexture2DParameters& TextureParameters,
-	const TextureGroup LODGroup,
-	// Sampling expression parameters
-	UMaterial* Material,
-	const EObjectFlags ObjectFlag,
-	FString& GeneratingParameterName,
-	const EMaterialSamplerType SamplerType,
-	const bool SetBlendModeMasked,
-	TArray<UPackage*>& OutPackages)
-{
-	bool bExpressionCreated = false;
-	TArray<char> ImageBuffer;
-	if (FHoudiniMaterialTranslator::HapiExtractImage(
-		ParmTextureId, InMaterialInfo, PlaneType,
-		HAPI_IMAGE_DATA_INT8, ImagePacking, bRenderToImage, ImageBuffer))
-	{
-		if (!TextureExpression)
-			// If there's already an input expression, check if it's a texture expression.
-			TextureExpression = Cast<UMaterialExpressionTextureSampleParameter2D>(MatInputExpression);
-
-		if (!Texture) {
-			if (TextureExpression)
-			{
-				Texture = Cast<UTexture2D>(TextureExpression->Texture);
-			}
-			else
-			{
-				if (MatInputExpression)
-				{
-					// The input expression is not a texture expression. Destroy it.
-					MatInputExpression->ConditionalBeginDestroy();
-					MatInputExpression = nullptr;
-				}
-				// In this case, the texture will be created later by CreateUnrealTexture().
-			}
-		}
-
-		UPackage* TexturePackage = nullptr;
-		if (IsValid(Texture))
-			TexturePackage = Cast<UPackage>(Texture->GetOuter());
-
-		HAPI_ImageInfo ImageInfo;
-		FHoudiniApi::ImageInfo_Init(&ImageInfo);
-		HAPI_Result Result = FHoudiniApi::GetImageInfo(
-			FHoudiniEngine::Get().GetSession(),
-			InMaterialInfo.nodeId, &ImageInfo);
-
-		if (Result == HAPI_RESULT_SUCCESS && ImageInfo.xRes > 0 && ImageInfo.yRes > 0)
-		{
-			// Create texture package, if this is a new texture.
-			FString TextureName;
-			if (!TexturePackage)
-			{
-				TexturePackage = FHoudiniMaterialTranslator::CreatePackageForTexture(
-					InMaterialInfo.nodeId, InTextureType, InPackageParams, TextureName);
-			}
-			else if (IsValid(Texture))
-			{
-				// Get the name of the texture if we are overwriting the exist asset
-				TextureName = Texture->GetName();
-			}
-			else
-			{
-				TextureName = FPaths::GetBaseFilename(TexturePackage->GetName(), true);
-			}
-
-			bool bCreatedNewTexture = !IsValid(Texture);
-
-			// Get the node path to add it to the meta data
-			FString NodePath;
-			FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, InMaterialInfo.nodeId, NodePath);
-
-			// Reuse existing texture, or create new one.
-			Texture = FHoudiniMaterialTranslator::CreateUnrealTexture(
-				Texture, 
-				ImageInfo,
-				TexturePackage,
-				TextureName,
-				ImageBuffer,
-				TextureParameters,
-				LODGroup,
-				InTextureType,
-				NodePath);
-
-			//if (BakeMode == EBakeMode::CookToTemp)
-			Texture->SetFlags(RF_Public | RF_Standalone);
-
-			// Create the sampling expression, if it hasn't been created yet.
-			if (!TextureExpression)
-				TextureExpression = NewObject<UMaterialExpressionTextureSampleParameter2D>(
-					Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag);
-
-			// Record generating parameter.
-			TextureExpression->Desc = GeneratingParameterName;
-			TextureExpression->ParameterName = *GeneratingParameterName;
-
-			TextureExpression->Texture = Texture;
-			TextureExpression->SamplerType = SamplerType;
-
-			// Assign expression to material.
-			_AddMaterialExpression(Material, TextureExpression);
-			if (SetMatInputExpression)
-				MatInputExpression = TextureExpression;
-
-			// Propagate and trigger texture updates.
-			if (bCreatedNewTexture)
-				FAssetRegistryModule::AssetCreated(Texture);
-
-			Texture->PreEditChange(nullptr);
-			Texture->PostEditChange();
-			Texture->MarkPackageDirty();
-
-			bExpressionCreated = true;
-		}
-
-		if (SetBlendModeMasked)
-			Material->BlendMode = BLEND_Masked;
-
-		// Cache the texture package
-		OutPackages.AddUnique(TexturePackage);
-	}
-
-	return bExpressionCreated;
 }
 
 UMaterialExpressionMultiply*

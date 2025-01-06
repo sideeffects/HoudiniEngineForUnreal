@@ -161,6 +161,9 @@ private:
 	/** @param InOutputs Must all have type EHoudiniOutput::AnimSequence. */
 	bool CreateAnimSequences(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 
+	/** @param InOutputs Must all have type EHoudiniOutput::Cop. */
+	bool CreateCopTextures(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
+
 	// Path to the file we're currently loading
 	FString SourceFilePath;
 

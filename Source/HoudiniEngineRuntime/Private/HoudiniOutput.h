@@ -764,6 +764,9 @@ public:
 	// Returns the instanced outputs maps
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancedOutput>& GetInstancedOutputs() { return InstancedOutputs; };
 
+	// For Cop-type outputs, this returns the Cop node's id.
+	int32 GetCopNodeId() { return CopNodeId; }
+
 	const bool HasGeoChanged() const;
 	const bool HasTransformChanged() const;
 	const bool HasMaterialsChanged() const;
@@ -783,6 +786,7 @@ public:
 	// Mutators
 	//------------------------------------------------------------------------------------------------
 	void UpdateOutputType();
+	void SetTypeToCop(const int32 NodeId);
 
 	// Adds a new HoudiniGeoPartObject to our array
 	void AddNewHGPO(const FHoudiniGeoPartObject& InHGPO);
@@ -888,6 +892,10 @@ protected:
 
 	// Indicates the number of stale HGPO
 	int32 StaleCount;
+
+	// For Cop-type outputs, this is the Cop node's id.
+	// The type should be HAPI_NodeId instead of int32, but including HAPI_Common.h to HoudiniEngineRuntime would be a bit messy.
+	int32 CopNodeId;
 
 	UPROPERTY()
 	bool bLandscapeWorldComposition;
