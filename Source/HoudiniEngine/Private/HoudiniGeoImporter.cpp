@@ -795,7 +795,11 @@ UHoudiniGeoImporter::CreateCopTextures(
 		FString Notification = TEXT("BGEO Importer: Creating Cop Textures...");
 		FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Notification));
 
-		HAPI_NodeId CopNode = CurOutput->GetCopNodeId();
+		const TArray<FHoudiniGeoPartObject>& GeoPartObjects = CurOutput->GetHoudiniGeoPartObjects();
+		if (GeoPartObjects.Num() <= 0)
+			continue;
+		HAPI_NodeId CopNode = GeoPartObjects[0].GeoId;
+
 		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderCOPTexture(CopNode);
 		if (bRenderSuccessful)
 		{

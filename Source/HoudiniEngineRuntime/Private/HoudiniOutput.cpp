@@ -533,7 +533,6 @@ UHoudiniOutput::UHoudiniOutput(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Type(EHoudiniOutputType::Invalid)
 	, StaleCount(0)
-	, CopNodeId(-1)
 	, bLandscapeWorldComposition(false)
 	, bIsEditableNode(false)
 	, bHasEditableNodeBuilt(false)
@@ -941,7 +940,6 @@ UHoudiniOutput::AddNewHGPO(const FHoudiniGeoPartObject& InHGPO)
 void
 UHoudiniOutput::UpdateOutputType()
 {
-	// NOTE: Cop-type outputs are not set here, they must be set using SetTypeToCop()
 	int32 MeshCount = 0;
 	int32 CurveCount = 0;
 	int32 VolumeCount = 0;
@@ -950,6 +948,7 @@ UHoudiniOutput::UpdateOutputType()
 	int32 LandscapeSplineCount = 0;
 	int32 AnimSequenceCount = 0;
 	int32 SkeletonCount = 0;
+	int32 CopCount = 0;
 
 	for (auto& HGPO : HoudiniGeoPartObjects)
 	{
@@ -981,6 +980,9 @@ UHoudiniOutput::UpdateOutputType()
 			break;
 		case EHoudiniPartType::SkeletalMeshShape:
 			SkeletonCount++;
+			break;
+		case EHoudiniPartType::Cop:
+			CopCount++;
 			break;
 		default:
 		case EHoudiniPartType::Invalid:
@@ -1028,18 +1030,15 @@ UHoudiniOutput::UpdateOutputType()
 	{
 		Type = EHoudiniOutputType::LandscapeSpline;
 	}
+	else if (CopCount > 0)
+	{
+		Type = EHoudiniOutputType::Cop;
+	}
 	else
 	{
 		// No valid HGPO detected...
 		Type = EHoudiniOutputType::Invalid;
 	}
-}
-
-void
-UHoudiniOutput::SetTypeToCop(const int32 NodeId)
-{
-	Type = EHoudiniOutputType::Cop;
-	CopNodeId = NodeId;
 }
 
 UHoudiniOutput*

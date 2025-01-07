@@ -1109,13 +1109,20 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	// If the node is a COP node, add a Cop HoudiniOutput which only stores the node id; no geo info
 	if (AssetNodeInfo.type == HAPI_NODETYPE_COP || AssetNodeInfo.type == HAPI_NODETYPE_COP2)
 	{
+
+		FHoudiniGeoPartObject currentHGPO;
+		currentHGPO.GeoId = AssetId;
+		currentHGPO.Type = EHoudiniPartType::Cop;
+
 		TObjectPtr<UHoudiniOutput> Output =
 			NewObject<UHoudiniOutput>(
 				InOuterObject,
 				UHoudiniOutput::StaticClass(),
 				NAME_None,
 				RF_NoFlags);
-		Output->SetTypeToCop(AssetId);
+		Output->AddNewHGPO(currentHGPO);
+		Output->UpdateOutputType();
+
 		OutNewOutputs.Add(Output);
 
 		return true;
