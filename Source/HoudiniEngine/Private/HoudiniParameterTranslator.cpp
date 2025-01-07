@@ -2164,9 +2164,8 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 						{
 							if (ChoiceIdx < ParmChoices.Num())
 							{
-								FHoudiniEngineString HoudiniEngineString(ParmChoices[ChoiceIdx].labelSH);
+								FHoudiniEngineString HoudiniEngineString(ParmChoices[ChoiceIdx].valueSH);
 								FString Token;
-
 								if (HoudiniEngineString.ToFString(Token))
 								{
 									int32 Value = FCString::Atoi(*Token);
