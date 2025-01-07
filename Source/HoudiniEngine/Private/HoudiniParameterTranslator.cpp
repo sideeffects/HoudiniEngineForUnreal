@@ -2168,8 +2168,11 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 								FString Token;
 								if (HoudiniEngineString.ToFString(Token))
 								{
-									int32 Value = FCString::Atoi(*Token);
-									IntValue = Value;
+									if (Token.IsNumeric())
+									{
+										int32 Value = FCString::Atoi(*Token);
+										IntValue = Value;
+									}
 								}
 							}
 						}
@@ -2214,6 +2217,12 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 					else
 					{
 						return false;
+					}
+
+					// If useMenuItemTokenAsValue is set, then the value is not the index. Find the value using the token, if possible.
+					if (ParmInfo.useMenuItemTokenAsValue)
+					{
+						// NOT HANDLED
 					}
 
 					// Get the string value
