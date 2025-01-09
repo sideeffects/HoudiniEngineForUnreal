@@ -805,7 +805,7 @@ UHoudiniGeoImporter::CreateCopTextures(
 		{
 			FCreateTexture2DParameters CreateTexture2DParameters;
 			CreateTexture2DParameters.SourceGuidHash = FGuid();
-			CreateTexture2DParameters.bUseAlpha = false;
+			CreateTexture2DParameters.bUseAlpha = true;
 			CreateTexture2DParameters.CompressionSettings = TC_Default;
 			CreateTexture2DParameters.bDeferCompression = true;
 			CreateTexture2DParameters.bSRGB = true;
