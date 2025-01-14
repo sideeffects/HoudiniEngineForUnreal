@@ -222,7 +222,6 @@ FHoudiniTextureTranslator::CreatePackageForTexture(
 	{
 		MyPackageParams.ObjectName = TextureInfoDescriptor;
 	}
-	MyPackageParams.PackageMode = FHoudiniPackageParams::GetDefaultMaterialAndTextureCookMode();
 
 	return MyPackageParams.CreatePackageForObject(OutTextureName);
 }
