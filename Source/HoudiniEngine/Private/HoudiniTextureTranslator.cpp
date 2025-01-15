@@ -172,7 +172,7 @@ FHoudiniTextureTranslator::HapiExtractImage(
 		InMaterialNodeId, &ImageInfo), false);
 
 	ImageInfo.dataFormat = InImageDataFormat;
-	ImageInfo.interleaved = false;
+	ImageInfo.interleaved = true;
 	ImageInfo.packing = InImagePacking;
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetImageInfo(
