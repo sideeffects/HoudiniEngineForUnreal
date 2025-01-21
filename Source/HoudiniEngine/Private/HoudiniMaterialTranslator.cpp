@@ -1419,14 +1419,14 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 		FExpressionOutput* ExpressionOutput = ExpressionOutputs.GetData();
 
 		ExpressionMultiply->A.Expression = ExpressionTextureOpacitySample;
+		ExpressionMultiply->A.Mask = ExpressionOutput->Mask;
+		ExpressionMultiply->A.MaskR = 0;
+		ExpressionMultiply->A.MaskG = 0;
+		ExpressionMultiply->A.MaskB = 0;
+		ExpressionMultiply->A.MaskA = 1;
 		ExpressionMultiply->B.Expression = ExpressionScalarOpacity;
 
 		MatInputOpacity.Expression = ExpressionMultiply;
-		MatInputOpacity.Mask = ExpressionOutput->Mask;
-		MatInputOpacity.MaskR = 0;
-		MatInputOpacity.MaskG = 0;
-		MatInputOpacity.MaskB = 0;
-		MatInputOpacity.MaskA = 1;
 
 		ExpressionMultiply->MaterialExpressionEditorX = FHoudiniMaterialTranslator::MaterialExpressionNodeX;
 		ExpressionMultiply->MaterialExpressionEditorY = MaterialNodeY;
