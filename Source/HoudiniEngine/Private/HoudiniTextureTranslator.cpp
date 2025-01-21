@@ -429,6 +429,7 @@ FHoudiniTextureTranslator::CreateUnrealTexture(
 			break;
 	}
 
+	bool bHasAlphaValue = false;
 	for (uint32 y = 0; y < SrcHeight; y++)
 	{
 		DestPtr = &MipData[(SrcHeight - 1 - y) * SrcWidth * sizeof(FColor)];
@@ -442,30 +443,13 @@ FHoudiniTextureTranslator::CreateUnrealTexture(
 			*DestPtr++ = *(uint8*)(SrcData + DataOffset + OffsetR); // R
 
 			if (TextureParameters.bUseAlpha && PackOffset == 4)
+			{
 				*DestPtr++ = *(uint8*)(SrcData + DataOffset + OffsetA); // A
+				if (*(uint8*)(SrcData + DataOffset + OffsetA) != 0xFF)
+					bHasAlphaValue = true;
+			}
 			else
 				*DestPtr++ = 0xFF;
-		}
-	}
-
-	bool bHasAlphaValue = false;
-	if (TextureParameters.bUseAlpha)
-	{
-		// See if there is an actual alpha value in the texture or if we can ignore the texture alpha
-		for (uint32 y = 0; y < SrcHeight; y++)
-		{
-			for (uint32 x = 0; x < SrcWidth; x++)
-			{
-				uint32 DataOffset = y * SrcWidth * 4 + x * 4;
-				if (*(uint8*)(SrcData + DataOffset + 3) != 0xFF)
-				{
-					bHasAlphaValue = true;
-					break;
-				}
-			}
-
-			if (bHasAlphaValue)
-				break;
 		}
 	}
 
