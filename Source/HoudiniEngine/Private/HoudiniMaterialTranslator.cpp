@@ -1972,9 +1972,9 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 	FCreateTexture2DParameters CreateTexture2DParameters;
 	CreateTexture2DParameters.SourceGuidHash = FGuid();
 	CreateTexture2DParameters.bUseAlpha = false;
-	CreateTexture2DParameters.CompressionSettings = TC_Grayscale;
+	CreateTexture2DParameters.CompressionSettings = TC_Default;
 	CreateTexture2DParameters.bDeferCompression = true;
-	CreateTexture2DParameters.bSRGB = false;
+	CreateTexture2DParameters.bSRGB = true;
 
 	// Attempt to look up previously created expressions.
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
@@ -2042,13 +2042,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 		HAPI_UNREAL_PARAM_MAP_EMISSIVE_ENABLED,
 		HAPI_UNREAL_PARAM_MAP_EMISSIVE_OGL,
 		HAPI_UNREAL_PARAM_MAP_EMISSIVE_OGL_ENABLED,
-		HAPI_UNREAL_PARAM_MAP_EMISSIVE_INTENSITY_CPM,
-		HAPI_UNREAL_PARAM_MAP_EMISSIVE_INTENSITY_CPM_SWITCH,
+		HAPI_UNREAL_PARAM_MAP_EMISSIVE_CPM,
+		HAPI_UNREAL_PARAM_MAP_EMISSIVE_CPM_SWITCH,
 		ParmEmissiveTextureInfo,
 		GeneratingParameterNameEmissiveTexture);
-	// Note: CPM has two emissive maps, one for color and one for intensity.
-	// Meanwhile, SHOP and VOP have just one map, for intensity, but the constant
-	// names don't have INTENSITY in them since there's only one map.
 
 	// If we have an emissive texture parameter.
 	if (ParmEmissiveTextureId >= 0)
@@ -2088,7 +2085,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 					Material,
 					ObjectFlag,
 					GeneratingParameterNameEmissiveTexture,
-					SAMPLERTYPE_LinearGrayscale);
+					SAMPLERTYPE_Color);
 			}
 		}
 	}
