@@ -29,10 +29,18 @@
 
 #include "CoreMinimal.h"
 
-// Class just for containing static member variables
 class FHoudiniEditorMaterialTests
 {
 public:
+	struct FTexturePixelTestCase
+	{
+		uint32 x;
+		uint32 y;
+		uint8 r;
+		uint8 g;
+		uint8 b;
+		uint8 a;
+	};
 	static FString EquivalenceTestMapName;
 	static FString TestHDAPath;
 };
