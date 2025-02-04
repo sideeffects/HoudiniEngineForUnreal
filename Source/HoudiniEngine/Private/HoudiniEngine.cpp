@@ -1219,26 +1219,12 @@ FHoudiniEngine::OnSessionConnected()
 	// because Houdini Asset Components need to know when this happens so they can invalidate
 	// their HAPI info, eg. node ids, left over from previous sessions.
 
-	if(!GEngine) 
-		return;
-
-	for(const FWorldContext& WorldContext : GEngine->GetWorldContexts())
+	for (int Index = 0; Index < FHoudiniEngineRuntime::Get().GetRegisteredHoudiniComponentCount(); Index++)
 	{
-		UWorld* World = WorldContext.World();
-		if(World)
+		UHoudiniAssetComponent* HAC = FHoudiniEngineRuntime::Get().GetRegisteredHoudiniComponentAt(Index);
+		if (HAC && IsValid(HAC))
 		{
-			for(TActorIterator<AActor> ActorItr(World); ActorItr; ++ActorItr)
-			{
-				AActor* Actor = *ActorItr;
-				if(!Actor)
-					continue;
-
-				UHoudiniAssetComponent* HAC = Actor->FindComponentByClass<UHoudiniAssetComponent>();
-				if (HAC)
-				{
-					HAC->OnSessionConnected();
-				}
-			}
+			HAC->OnSessionConnected();
 		}
 	}
 }
