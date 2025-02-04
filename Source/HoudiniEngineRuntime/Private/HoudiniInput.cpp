@@ -2862,7 +2862,7 @@ UHoudiniInput::OnSessionConnected()
 
 	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectArray = GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
 	ResetInputObjects(InputObjectArray);
-	if(!InputObjectArray)
+	if(InputObjectArray)
 	{
 		for(UHoudiniInputObject* InputObject : *InputObjectArray)
 		{
