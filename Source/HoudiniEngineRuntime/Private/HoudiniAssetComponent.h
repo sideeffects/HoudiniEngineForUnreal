@@ -528,6 +528,9 @@ protected:
 
 public:
 
+
+	void OnSessionConnected();
+
 	// Houdini Asset associated with this component.
 	/*Category = HoudiniAsset, EditAnywhere, meta = (DisplayPriority=0)*/
 	UPROPERTY(Category = HoudiniAsset, EditAnywhere)// BlueprintSetter = SetHoudiniAsset, BlueprintReadWrite, )

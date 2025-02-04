@@ -828,7 +828,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 		case EHoudiniAssetState::NeedRebuild:
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessComponent-NeedRebuild);
-			if (!bIsNodeSyncComponent)
+			if (!bIsNodeSyncComponent && HAC->AssetId != INDEX_NONE)
 			{
 				// Make sure no parameters are changed before getting the preset
 				FHoudiniParameterTranslator::UploadChangedParameters(HAC);

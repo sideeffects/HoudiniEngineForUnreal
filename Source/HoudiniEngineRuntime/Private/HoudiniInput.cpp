@@ -2838,3 +2838,48 @@ UHoudiniInput::AddAllLandscapeSplineActorsForInputLandscapes()
 	return false;
 #endif
 }
+
+void
+UHoudiniInput::OnSessionConnected()
+{
+	AssetNodeId = INDEX_NONE;
+	InputNodeId = INDEX_NONE;
+	InputIndex = INDEX_NONE;
+
+	auto ResetInputObjects = [](TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectArray)
+		{
+			if(!InputObjectArray)
+				return;
+			for(UHoudiniInputObject* InputObject : *InputObjectArray)
+			{
+				if(InputObject)
+				{
+					InputObject->SetInputNodeId(INDEX_NONE);
+					InputObject->SetInputObjectNodeId(INDEX_NONE);
+				}
+			}
+		};
+
+	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectArray = GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
+	ResetInputObjects(InputObjectArray);
+	if(!InputObjectArray)
+	{
+		for(UHoudiniInputObject* InputObject : *InputObjectArray)
+		{
+			UHoudiniInputHoudiniSplineComponent* HoudiniSplineInput = Cast<UHoudiniInputHoudiniSplineComponent>(InputObject);
+			if(!HoudiniSplineInput)
+				continue;
+
+			UHoudiniSplineComponent* HoudiniSplineComponent = HoudiniSplineInput->GetCurveComponent();
+			HoudiniSplineComponent->SetNodeId(INDEX_NONE);
+		}
+	}
+
+	InputObjectArray = GetHoudiniInputObjectArray(EHoudiniInputType::Geometry);
+	ResetInputObjects(InputObjectArray);
+
+	InputObjectArray = GetHoudiniInputObjectArray(EHoudiniInputType::World);
+	ResetInputObjects(InputObjectArray);
+
+}
+

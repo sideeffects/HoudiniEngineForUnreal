@@ -57,6 +57,8 @@ public:
 
 	UHoudiniInput();
 
+	void OnSessionConnected();
+
 	virtual void Serialize(FArchive& Ar) override;
 
 	// Equality operator,

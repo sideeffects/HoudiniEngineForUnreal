@@ -2612,6 +2612,19 @@ UHoudiniAssetComponent::GetLevelInstance() const
 }
 #endif
 
+void UHoudiniAssetComponent::OnSessionConnected()
+{
+	for(auto& Param : Parameters)
+		Param->OnSessionConnected();
+
+	for (auto & Input : Inputs)
+	{
+		Input->OnSessionConnected();
+	}
+
+	AssetId = INDEX_NONE;
+}
+
 void
 UHoudiniAssetComponent::UpdateDormantStatus()
 {

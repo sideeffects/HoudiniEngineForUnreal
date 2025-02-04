@@ -218,6 +218,8 @@ public:
 
 	virtual void OnPreCook() {};
 
+	void OnSessionConnected();
+
 protected:
 
 	//---------------------------------------------------------------------------------------------

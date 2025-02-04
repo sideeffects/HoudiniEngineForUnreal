@@ -259,4 +259,11 @@ UHoudiniParameter::InvalidateData()
 
 }
 
+void UHoudiniParameter::OnSessionConnected()
+{
+	NodeId = INDEX_NONE;
+	ParmId = INDEX_NONE;
+	ParentParmId = INDEX_NONE;
+}
+
 

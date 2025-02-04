@@ -120,6 +120,11 @@ UHoudiniSplineComponent::UHoudiniSplineComponent(const FObjectInitializer & Obje
 #endif
 }
 
+void UHoudiniSplineComponent::OnSessionConnected()
+{
+	NodeId = INDEX_NONE;
+}
+
 void 
 UHoudiniSplineComponent::Construct(TArray<FVector>& InCurveDisplayPoints, int32 InsertedPoint) 
 {

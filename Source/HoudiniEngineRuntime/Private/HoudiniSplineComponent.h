@@ -60,6 +60,8 @@ class HOUDINIENGINERUNTIME_API UHoudiniSplineComponent : public USceneComponent,
 
 		void Construct(TArray<FVector>& InCurveDisplayPoints, int32 InsertedPoint = -1);
 
+		void OnSessionConnected();
+
 		void CopyHoudiniData(const UHoudiniSplineComponent* OtherHoudiniSplineComponent);
 
 		void ResetCurvePoints();
