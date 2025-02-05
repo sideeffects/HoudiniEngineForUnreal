@@ -96,7 +96,10 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	if (!IsValid(HAC))
 		return false;
 
-	RemovePreviousOutputs(HAC);
+	//
+	// 1. Update the output objects
+	//
+	RemovePreviousOutputs(HAC->Outputs);
 
 	// Outputs that should be cleared, but only AFTER new output processing have taken place.
 	// This is needed for landscape resizing where the new landscape needs to copy data from the original landscape
@@ -129,6 +132,11 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		// This HDA is marked as not supposed to produce any output
 		ClearAndRemoveOutputs(HAC, DeferredClearOutputs, true);
 	}
+
+
+	//
+	// 2. Update tags and generic attributes on HAC
+	//
 
 	// At the moment we don't support controlling KeepTags separately for components and actors, so if we find any
 	// HGPOs with KeepTags set to true, we'll keep the tags on both actors and components. In the future we may
@@ -193,6 +201,12 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		WorldComposition->bTemporarilyDisableOriginTracking = true;
 	}
 
+
+
+	//
+	// 3. Create the actual outputs assets/components
+	//
+
 	// "Process" the mesh.
 	// TODO: Move this to the actual processing stage,
 	// And see if some of this could be threaded
@@ -216,7 +230,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	PackageParams.ObjectName = FString();
 
 	// ----------------------------------------------------
-	// Outputs prepass
+	// 3.1 Outputs prepass
 	// ----------------------------------------------------
 	
 	TArray<UPackage*> CreatedWorldCompositionPackages;
@@ -276,7 +290,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	FHoudiniEngineUtils::GatherLandscapeInputs(HAC, AllInputLandscapes);
 
 	// ----------------------------------------------------
-	// Process outputs
+	// 3.2 Process outputs
 	// ----------------------------------------------------
 	// Landscape creation will cache the first tile as a reference location
 	// in this struct to be used by during construction of subsequent tiles.
@@ -543,6 +557,10 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		FHoudiniEngineUtils::AddHoudiniLogoToComponent(HAC);
 	}
 
+	//
+	// 4. Output cleanup
+	//
+	 
 	// Clear any old outputs that was marked as "Should Defer Clear".
 	// This should happen before SharedLandscapeActor cleanup
 	// since this needs to remove old landscape proxies so that empty SharedLandscapeActors
@@ -682,6 +700,10 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		FEditorDelegates::RefreshAllBrowsers.Broadcast();
 	}
 
+	//
+	// 5. Update Data Layers
+	//
+
 	for (auto& CurrentOutput : HAC->Outputs)
 	{
 		for(auto & It : CurrentOutput->OutputObjects)
@@ -697,8 +719,15 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		}
 	}
 
+	//
+	// 6. Update Level instances
+	//
 	FHoudiniLevelInstanceUtils::FetchLevelInstanceParameters(HAC->Outputs);
 
+
+	//
+	// 7. Save all created packages
+	//
 	if (CreatedPackages.Num() > 0)
 	{
 		// Save created packages. For example, we don't want landscape layers deleted 
@@ -710,13 +739,13 @@ FHoudiniOutputTranslator::UpdateOutputs(
 }
 
 void
-FHoudiniOutputTranslator::RemovePreviousOutputs(UHoudiniAssetComponent* HAC)
+FHoudiniOutputTranslator::RemovePreviousOutputs(TArray<TObjectPtr<UHoudiniOutput>>& Outputs)
 {
-	for(auto Output : HAC->Outputs)
+	for(auto Output : Outputs)
 	{
 			Output->DestroyCookedData();
 	}
-	HAC->Outputs.Empty();
+	Outputs.Empty();
 }
 
 bool
@@ -791,20 +820,17 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 
 //
 bool
-FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
+FHoudiniOutputTranslator::UpdateLoadedOutputs(
+	const HAPI_NodeId& InNodeId,
+	TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
+	USceneComponent* InComponent)
 {
-	// Nothing to do for Node Sync Components!
-	if (HAC->IsA<UHoudiniNodeSyncComponent>())
-		return true;
-
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateLoadedOutputs);
-
-	HAPI_NodeId & AssetId = HAC->AssetId;
 
 	// Retrieve information about each object contained within our asset.
 	TArray<HAPI_ObjectInfo> ObjectInfos;
 	TArray<HAPI_Transform> ObjectTransforms;
-	if (!FHoudiniEngineUtils::HapiGetObjectInfos(AssetId, ObjectInfos, ObjectTransforms))
+	if (!FHoudiniEngineUtils::HapiGetObjectInfos(InNodeId, ObjectInfos, ObjectTransforms))
 		return false;
 
 	TArray<HAPI_NodeId> EditableCurveObjIds;
@@ -813,7 +839,6 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 	TArray<FString> EditableCurvePartNames;
 
 	// Iterate through all objects to get all editable curve's object geo and part Ids.
-
 	for (int32 ObjectId = 0; ObjectId < ObjectInfos.Num(); ++ObjectId)
 	{
 		// Retrieve the object info
@@ -842,7 +867,7 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 			EditableNodeIds.SetNumUninitialized(EditableNodeCount);
 			HOUDINI_CHECK_ERROR(FHoudiniApi::GetComposedChildNodeList(
 				FHoudiniEngine::Get().GetSession(),
-				AssetId, EditableNodeIds.GetData(), EditableNodeCount));
+				InNodeId, EditableNodeIds.GetData(), EditableNodeCount));
 
 			for (int32 nEditable = 0; nEditable < EditableNodeCount; nEditable++)
 			{
@@ -920,9 +945,14 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 	}
 
 	int32 Idx = 0;
-	for (auto& CurrentOutput : HAC->Outputs)
+	for (auto& CurrentOutput : InOutputs)
 	{
-		if (CurrentOutput->IsEditableNode()) 
+		if (!CurrentOutput->IsEditableNode())
+		{
+			// Output curve
+			FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(CurrentOutput, InComponent);
+		}
+		else
 		{
 			// The HAC is Loaded, re-assign node id to its editable curves
 			if (CurrentOutput->HasEditableNodeBuilt())
@@ -950,10 +980,10 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 					}
 				}
 			}
-			// The HAC is a Duplication, re-construct output objects with attached duplicated editable curves, matching by part name
 			else 
 			{
-				const TArray<USceneComponent*> &Children = HAC->GetAttachChildren();
+				// The HAC is a Duplication, re-construct output objects with attached duplicated editable curves, matching by part name
+				const TArray<USceneComponent*>& Children = IsValid(InComponent) ? InComponent->GetAttachChildren() : TArray<USceneComponent*>();
 				for (auto & CurAttachedComp : Children) 
 				{
 					if (!IsValid(CurAttachedComp))
@@ -1000,11 +1030,7 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 				}
 			}
 		}
-		else 
-		{
-			// Output curve
-			FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(CurrentOutput, HAC); 
-		}
+
 		
 		// Mark our outputs as loaded so they can be matched for potential reuse
 		// This indicates that the HGPO's ids are invalid and that HGPO should be matched using partnames instead
@@ -1017,22 +1043,12 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 //
 bool 
 FHoudiniOutputTranslator::UploadChangedEditableOutput(
-	UHoudiniAssetComponent* HAC,
-	const bool& bInForceUpdate) 
+	TArray<TObjectPtr<UHoudiniOutput>>& InOutputs) 
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UploadChangedEditableOutput);
 
-	if (!IsValid(HAC))
-		return false;
-
-	// Nothing to do for Node Sync Components!
-	if (HAC->IsA<UHoudiniNodeSyncComponent>())
-		return true;
-
-	TArray<TObjectPtr<UHoudiniOutput>> &Outputs = HAC->Outputs;
-
-	// Iterate through the outputs array of HAC.
-	for (auto& CurrentOutput : HAC->Outputs)
+	// Iterate through the outputs array.
+	for (auto& CurrentOutput : InOutputs)
 	{
 		if (!CurrentOutput)
 			continue;
@@ -1510,7 +1526,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			}
 
 			//---------------------------------------------------------------------------------------------------------------------------------------
-			//// Motion Clip checks. Note this currentrly assumes one part/motion clip per geo.
+			// Motion Clip checks. Note this currently assumes one part/motion clip per geo.
 			//---------------------------------------------------------------------------------------------------------------------------------------
 
 			if (CurrentGeoInfo.PartCount >= 3)

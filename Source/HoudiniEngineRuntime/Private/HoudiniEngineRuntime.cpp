@@ -28,8 +28,6 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniRuntimeSettings.h"
 
-#include "HoudiniAssetComponent.h"
-
 #include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
@@ -178,23 +176,6 @@ FHoudiniEngineRuntime::RegisterHoudiniComponent(UHoudiniAssetComponent* HAC, boo
 }
 
 
-void 
-FHoudiniEngineRuntime::MarkNodeIdAsPendingDelete(const int32& InNodeId, bool bDeleteParent)
-{
-	if (InNodeId >= 0) 
-	{
-		// FDebug::DumpStackTraceToLog();
-
-		NodeIdsPendingDelete.AddUnique(InNodeId);
-
-		if (bDeleteParent)
-		{
-			NodeIdsParentPendingDelete.AddUnique(InNodeId);
-		}
-	}
-}
-
-
 void
 FHoudiniEngineRuntime::UnRegisterHoudiniComponent(UHoudiniAssetComponent* HAC)
 {
@@ -253,8 +234,25 @@ FHoudiniEngineRuntime::UnRegisterHoudiniComponent(const int32& ValidIndex)
 			MarkNodeIdAsPendingDelete(HAC->GetAssetId(), true);
 		}
 	}
-	
+
 	RegisteredHoudiniComponents.RemoveAt(ValidIndex);
+}
+
+
+void 
+FHoudiniEngineRuntime::MarkNodeIdAsPendingDelete(const int32& InNodeId, bool bDeleteParent)
+{
+	if (InNodeId >= 0) 
+	{
+		// FDebug::DumpStackTraceToLog();
+
+		NodeIdsPendingDelete.AddUnique(InNodeId);
+
+		if (bDeleteParent)
+		{
+			NodeIdsParentPendingDelete.AddUnique(InNodeId);
+		}
+	}
 }
 
 
@@ -335,6 +333,172 @@ FHoudiniEngineRuntime::GetDefaultBakeFolder() const
 		return HAPI_UNREAL_DEFAULT_BAKE_FOLDER;
 
 	return HoudiniRuntimeSettings->DefaultBakeFolder;
+}
+
+
+
+int32
+FHoudiniEngineRuntime::GetRegisteredHoudiniCookableCount()
+{
+	if (!IsInitialized())
+		return 0;
+
+	FScopeLock ScopeLock(&CriticalSection);
+	return RegisteredHoudiniCookables.Num();
+}
+
+
+UHoudiniCookable*
+FHoudiniEngineRuntime::GetRegisteredHoudiniCookableAt(const int32& Index)
+{
+	if (!IsInitialized())
+		return nullptr;
+
+	FScopeLock ScopeLock(&CriticalSection);
+	if (!RegisteredHoudiniCookables.IsValidIndex(Index))
+		return nullptr;
+
+	TWeakObjectPtr<UHoudiniCookable> Ptr = RegisteredHoudiniCookables[Index];
+	if (!Ptr.IsValid())
+		return nullptr;
+
+	if (Ptr.IsStale())
+		return nullptr;
+
+	return Ptr.Get();
+}
+
+
+void
+FHoudiniEngineRuntime::CleanUpRegisteredHoudiniCookables()
+{
+	// Remove Stale and invalid Cookables
+	FScopeLock ScopeLock(&CriticalSection);
+	for (int Idx = RegisteredHoudiniCookables.Num() - 1; Idx >= 0; Idx--)
+	{
+		TWeakObjectPtr<UHoudiniCookable> Ptr = RegisteredHoudiniCookables[Idx];
+		if (!Ptr.IsValid() || Ptr.IsStale())
+		{
+			UnRegisterHoudiniCookable(Idx);
+			continue;
+		}
+
+		UHoudiniCookable* CurrentHAC = Ptr.Get();
+		if (!IsValid(CurrentHAC))
+		{
+			UnRegisterHoudiniCookable(Idx);
+			continue;
+		}
+	}
+}
+
+
+bool
+FHoudiniEngineRuntime::IsCookableRegistered(UHoudiniCookable* HC) const
+{
+	// No need for duplicates
+	if (HC && RegisteredHoudiniCookables.Find(HC) != INDEX_NONE)
+		return true;
+
+	return false;
+}
+
+
+void
+FHoudiniEngineRuntime::RegisterHoudiniCookable(UHoudiniCookable* HC, bool bAllowArchetype)
+{
+	if (!FHoudiniEngineRuntime::IsInitialized())
+		return;
+
+	if (!IsValid(HC))
+		return;
+
+	// RF_Transient indicates a temporary/preview object
+	// No need to instantiate/cook those in Houdini
+	// RF_ArchetypeObject is the template for blueprinted HDA, so we need to be able to register those.
+	if (HC->HasAnyFlags(RF_Transient) || (HC->HasAnyFlags(RF_ArchetypeObject) && !bAllowArchetype) || HC->HasAnyFlags(RF_ClassDefaultObject))
+		return;
+
+	// No need for duplicates
+	if (IsCookableRegistered(HC))
+		return;
+
+	HOUDINI_BP_MESSAGE(TEXT("[FHoudiniEngineRuntime::RegisterHoudiniCookable] HAC: %s"), *(HC->GetPathName()));
+
+	// Before adding, clean up the all ready registered
+	CleanUpRegisteredHoudiniCookables();
+
+	// Add the new Cookable
+	{
+		FScopeLock ScopeLock(&CriticalSection);
+		RegisteredHoudiniCookables.Add(HC);
+	}
+
+	HC->NotifyHoudiniRegisterCompleted();
+}
+
+
+
+void
+FHoudiniEngineRuntime::UnRegisterHoudiniCookable(UHoudiniCookable* HC)
+{
+	if (!IsInitialized())
+		return;
+
+	if (!IsValid(HC))
+		return;
+
+	if (RegisteredHoudiniCookables.IsEmpty())
+		return;
+
+	// Calling GetPathName here may lead to some crashes due to invalid outers...
+	//HOUDINI_LOG_DISPLAY(TEXT("[FHoudiniEngineRuntime::UnRegisterHoudiniCookable] HC: %s"), *(HC->GetPathName()) );
+
+	FScopeLock ScopeLock(&CriticalSection);
+
+	int32 FoundIdx = -1;
+	for (int32 n = RegisteredHoudiniCookables.Num() - 1; n >= 0; n--)
+	{
+		TWeakObjectPtr<UHoudiniCookable>& CurHC = RegisteredHoudiniCookables[n];
+		if (!CurHC.IsStale() || !CurHC.IsValid())
+		{
+			// Remove stale/invalid HAC from Array?
+			RegisteredHoudiniCookables.RemoveAt(n);
+			continue;
+		}
+
+		if (CurHC.Get() == CurHC)
+			FoundIdx = n;
+	}
+
+	if (FoundIdx < 0 || !RegisteredHoudiniCookables.IsValidIndex(FoundIdx))
+		return;
+
+	HC->NotifyHoudiniPreUnregister();
+	UnRegisterHoudiniCookable(FoundIdx);
+	HC->NotifyHoudiniPostUnregister();
+}
+
+
+void
+FHoudiniEngineRuntime::UnRegisterHoudiniCookable(const int32& ValidIndex)
+{
+	if (!IsInitialized())
+		return;
+
+	FScopeLock ScopeLock(&CriticalSection);
+
+	TWeakObjectPtr<UHoudiniCookable> Ptr = RegisteredHoudiniCookables[ValidIndex];
+	if (Ptr.IsValid(true, false))
+	{
+		UHoudiniCookable* CurHC = Ptr.Get();
+		if (CurHC && CurHC->CanDeleteHoudiniNodes())
+		{
+			MarkNodeIdAsPendingDelete(CurHC->GetNodeId(), true);
+		}
+	}
+
+	RegisteredHoudiniCookables.RemoveAt(ValidIndex);
 }
 
 #undef LOCTEXT_NAMESPACE

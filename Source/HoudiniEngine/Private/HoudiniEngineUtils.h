@@ -42,6 +42,7 @@ class FString;
 class UStaticMesh;
 class UHoudiniAsset;
 class UHoudiniAssetComponent;
+class UHoudiniCookable;
 
 struct FHoudiniPartInfo;
 struct FHoudiniMeshSocket;
@@ -137,6 +138,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// Updates the Object transform of a Houdini Asset Component
 		static bool UploadHACTransform(UHoudiniAssetComponent* HAC);
+		static bool UploadCookableTransform(UHoudiniCookable* HC);
 
 		// Convert FString to std::string
 		static void ConvertUnrealString(const FString & UnrealString, std::string& String);
@@ -433,7 +435,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static bool HapiSetAssetTransform(const HAPI_NodeId& AssetNodeId, const FTransform & Transform);
 
 		// TODO: Move me somewhere else
-		static void AssignUniqueActorLabelIfNeeded(UHoudiniAssetComponent* HAC);
+		static void AssignUniqueActorLabelIfNeeded(const HAPI_NodeId& InNodeId, AActor* InActorOwner);
 
 		// Triggers an update the details panel
 		// Will use an AsyncTask if we're not in the game thread

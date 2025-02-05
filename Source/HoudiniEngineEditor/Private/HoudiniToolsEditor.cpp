@@ -36,6 +36,7 @@
 #include "HoudiniEngineEditorSettings.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterColor.h"
 #include "HoudiniParameterFile.h"
@@ -2876,14 +2877,16 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	bool bReselectSelectedActors)
 {
 	if (!IsValid(HAC) || !IsValid(Preset))
-	{
 		return;
-	}
 
-	if (!CanApplyPresetToHoudiniAssetcomponent(Preset, HAC))
-	{
+	if (!HAC->IsA<UHoudiniNodeSyncComponent>())
 		return;
-	}
+
+	if (!CanApplyPresetToHoudiniAssetcomponent(Preset, HAC))	
+		return;
+
+	// Try to upload changed parameters
+	FHoudiniParameterTranslator::UploadChangedParameters(HAC->Parameters, HAC->GetAssetId());
 
 		// Record a transaction for undo/redo
 	FScopedTransaction Transaction(
@@ -2930,7 +2933,20 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 		HAC->bLandscapeUseTempLayers = Preset->bLandscapeUseTempLayers;
 	}
 
-	FHoudiniParameterTranslator::UpdateParameters(HAC);
+	// When recooking/rebuilding the HDA, force a full update of all params
+	const bool bForceFullUpdate = HAC->HasRebuildBeenRequested() || HAC->HasRecookBeenRequested() || HAC->IsParameterDefinitionUpdateNeeded();
+	const bool bCacheRampParms = !HAC->HasBeenLoaded() && !HAC->HasBeenDuplicated();
+
+	// Update the parameters
+	FHoudiniParameterTranslator::UpdateParameters(
+		HAC->GetAssetId(),
+		HAC,
+		HAC->Parameters,
+		HAC->GetHoudiniAsset(),
+		HAC->GetHapiAssetName(),
+		bForceFullUpdate,
+		bCacheRampParms,
+		HAC->bNeedToUpdateEditorProperties);
 
 	// Iterate over all the parameters and settings in the preset and apply it to the Houdini Asset Component.
 
@@ -2970,15 +2986,31 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 		if (!bProcessedAtLeastOne)
 			break;
 
-		FHoudiniParameterTranslator::UploadChangedParameters(HAC);
-		FHoudiniParameterTranslator::UpdateParameters(HAC);
+		FHoudiniParameterTranslator::UploadChangedParameters(HAC->Parameters, HAC->GetAssetId());
+		FHoudiniParameterTranslator::UpdateParameters(
+			HAC->GetAssetId(),
+			HAC,
+			HAC->Parameters,
+			HAC->GetHoudiniAsset(),
+			HAC->GetHapiAssetName(),
+			bForceFullUpdate,
+			bCacheRampParms,
+			HAC->bNeedToUpdateEditorProperties);
 	}
 
 
 	if (Preset->MultiParmParameters.Num() > 0)
 	{
-		FHoudiniParameterTranslator::UploadChangedParameters(HAC);
-		FHoudiniParameterTranslator::UpdateParameters(HAC);
+		FHoudiniParameterTranslator::UploadChangedParameters(HAC->Parameters, HAC->GetAssetId());
+		FHoudiniParameterTranslator::UpdateParameters(
+			HAC->GetAssetId(),
+			HAC,
+			HAC->Parameters,
+			HAC->GetHoudiniAsset(),
+			HAC->GetHapiAssetName(),
+			bForceFullUpdate,
+			bCacheRampParms,
+			HAC->bNeedToUpdateEditorProperties);
 	}
 
 	// Apply all the Int parameters

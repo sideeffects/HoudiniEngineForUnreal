@@ -32,6 +32,7 @@
 
 class UHoudiniOutput;
 class UHoudiniAssetComponent;
+class USceneComponent;
 
 struct FHoudiniObjectInfo;
 struct FHoudiniGeoInfo;
@@ -53,15 +54,19 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 		bool& bOutHasHoudiniStaticMeshOutput);
 
 	//
-	static bool BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAssetComponent* HAC, bool bInDestroyProxies=false);
+	static bool BuildStaticMeshesOnHoudiniProxyMeshOutputs(
+		UHoudiniAssetComponent* HAC,
+		bool bInDestroyProxies = false);
 
 	//
-	static bool UpdateLoadedOutputs(UHoudiniAssetComponent* HAC);
+	static bool UpdateLoadedOutputs(
+		const HAPI_NodeId& InNodeId,
+		TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
+		USceneComponent* InComponent);
 
 	//
 	static bool UploadChangedEditableOutput(
-		UHoudiniAssetComponent* HAC,
-		const bool& bInForceUpdate);
+		TArray<TObjectPtr<UHoudiniOutput>>& InOutputs);
 	//
 	static bool BuildAllOutputs(
 		const HAPI_NodeId& AssetId,
@@ -105,6 +110,6 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 
 	static bool GetCustomPartNameFromAttribute(const HAPI_NodeId & NodeId, const HAPI_PartId & PartId, FString & OutCustomPartName);
 
-	static void RemovePreviousOutputs(UHoudiniAssetComponent* HAC);
+	static void RemovePreviousOutputs(TArray<TObjectPtr<UHoudiniOutput>>& Outputs);
 
 };

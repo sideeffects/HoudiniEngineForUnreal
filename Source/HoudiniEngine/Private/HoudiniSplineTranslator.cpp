@@ -2134,11 +2134,6 @@ FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(UHoudiniOutput* InOu
 	if (InOutput->GetType() != EHoudiniOutputType::Curve)
 		return false;
 
-	// UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(InOuterComponent);
-	//
-	// if (!IsValid(OuterHAC))
-	// 	return false;
-
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> NewOutputObjects;
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OldOutputObjects = InOutput->GetOutputObjects();
 

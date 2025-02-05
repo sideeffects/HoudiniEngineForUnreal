@@ -128,31 +128,9 @@ struct FHoudiniMoveTracker
 };
 #endif
 
-// 
-bool
-FHoudiniInputTranslator::UpdateInputs(UHoudiniAssetComponent* HAC)
-{
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::UpdateInputs);
-
-	if (!IsValid(HAC))
-		return false;
-
-	// Nothing to do for Node Sync Components!
-	if (HAC->IsA<UHoudiniNodeSyncComponent>())
-		return true;
-
-	if (!FHoudiniInputTranslator::BuildAllInputs(HAC->GetAssetId(), HAC, HAC->Inputs, HAC->Parameters))
-	{
-		// Failed to create the inputs
-		return false;
-	}
-
-	return true;
-}
-
 bool
 FHoudiniInputTranslator::BuildAllInputs(
-	const HAPI_NodeId& AssetId,
+	const HAPI_NodeId& NodeId,
 	class UObject* InOuterObject,
 	TArray<TObjectPtr<UHoudiniInput>>& Inputs,
 	TArray<TObjectPtr<UHoudiniParameter>>& Parameters)
@@ -160,7 +138,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::BuildAllInputs);
 
 	// Ensure the asset has a valid node ID
-	if (AssetId < 0)
+	if (NodeId < 0)
 	{
 		return false;
 	}
@@ -168,7 +146,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 	// Start by getting the asset's info
 	HAPI_AssetInfo AssetInfo;
 	bool bAssetInfoSuccess = (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo));
+		FHoudiniEngine::Get().GetSession(), NodeId, &AssetInfo));
 
 	// Get the number of geo (SOP) inputs
 	// It's best to update the input count even if the hda hasnt cooked
@@ -323,7 +301,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 		FString CurrentInputHelp;
 
 		// Set the nodeId
-		CurrentInput->SetAssetNodeId(AssetId);
+		CurrentInput->SetAssetNodeId(NodeId);
 
 		// Is this an object path parameter input?
 		bool bIsObjectPath = InputIdx >= AssetInfo.geoInputCount;
@@ -336,7 +314,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 			HAPI_StringHandle InputStringHandle;
 			if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeInputName(
 				FHoudiniEngine::Get().GetSession(),
-				AssetId, InputIdx, &InputStringHandle))
+				NodeId, InputIdx, &InputStringHandle))
 			{
 				FHoudiniEngineString HoudiniEngineString(InputStringHandle);
 				HoudiniEngineString.ToFString(CurrentInputLabel);
@@ -390,7 +368,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 			CurrentInput->SetInputType(GetDefaultInputTypeFromLabel(CurrentInputLabel), bBlueprintStructureChanged);
 
 			// Preset the default HDA for objpath input
-			SetDefaultAssetFromHDA(CurrentInput, bBlueprintStructureChanged);
+			SetDefaultInputFromParameterValue(CurrentInput, bBlueprintStructureChanged);
 		}
 
 		// Update input objects data on UE side for all types of inputs.
@@ -672,7 +650,7 @@ FHoudiniInputTranslator::ChangeInputType(UHoudiniInput* InInput, const bool& bFo
 }
 
 bool
-FHoudiniInputTranslator::SetDefaultAssetFromHDA(UHoudiniInput* Input, bool& bOutBlueprintStructureModified)
+FHoudiniInputTranslator::SetDefaultInputFromParameterValue(UHoudiniInput* Input, bool& bOutBlueprintStructureModified)
 {
 	// 
 	if (!IsValid(Input))
@@ -776,24 +754,15 @@ FHoudiniInputTranslator::SetDefaultAssetFromHDA(UHoudiniInput* Input, bool& bOut
 }
 
 bool
-FHoudiniInputTranslator::UploadChangedInputs(UHoudiniAssetComponent * HAC)
+FHoudiniInputTranslator::UploadChangedInputs(
+	TArray<TObjectPtr<UHoudiniInput>>& InInputs,
+	AActor* InOwnerActor)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::UploadChangedInputs);
 
-	if (!IsValid(HAC))
-		return false;
-
-	// Nothing to do for Node Sync Components!
-	if (HAC->IsA<UHoudiniNodeSyncComponent>())
-		return true;
-
-	// Disabled, this seems to be unused and is fairly costly to run in large levels/worlds
-	//HoudiniUnrealDataLayersCache DataLayerCache = FHoudiniUnrealDataLayersCache::MakeCache(HAC->GetWorld());
-
-	//for (auto CurrentInput : HAC->Inputs)
-	for(int32 InputIdx = 0; InputIdx < HAC->GetNumInputs(); InputIdx++)
+	for(int32 InputIdx = 0; InputIdx < InInputs.Num(); InputIdx++)
 	{
-		TObjectPtr<UHoudiniInput>& CurrentInput = HAC->Inputs[InputIdx];
+		TObjectPtr<UHoudiniInput>& CurrentInput = InInputs[InputIdx];
 		if (!IsValid(CurrentInput) || !CurrentInput->HasChanged())
 			continue;
 
@@ -842,10 +811,9 @@ FHoudiniInputTranslator::UploadChangedInputs(UHoudiniAssetComponent * HAC)
 		if (CurrentInput->IsDataUploadNeeded())
 		{
 			FTransform OwnerTransform = FTransform::Identity;
-			AActor * OwnerActor = HAC->GetOwner();
-			if (OwnerActor)
+			if (InOwnerActor)
 			{
-				OwnerTransform = OwnerActor->GetTransform();
+				OwnerTransform = InOwnerActor->GetTransform();
 			}
 			
 			bSuccess &= UploadInputData(CurrentInput, OwnerTransform);
@@ -4813,31 +4781,32 @@ FHoudiniInputTranslator::HapiCreateInputNodeForCamera(
 }
 
 bool
-FHoudiniInputTranslator::UpdateLoadedInputs(UHoudiniAssetComponent* HAC)
+FHoudiniInputTranslator::UpdateInputs(
+	const HAPI_NodeId& InNodeId, 
+	UObject* InOuter, 
+	TArray<TObjectPtr<UHoudiniInput>>& Inputs,
+	TArray<TObjectPtr<UHoudiniParameter>>& Parameters,
+	const bool& bLoadedInputs)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::UpdateLoadedInputs);
-	if (!IsValid(HAC))
-		return false;
-
-	// Nothing to do for Node Sync Components!
-	if (HAC->IsA<UHoudiniNodeSyncComponent>())
-		return true;
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::UpdateInputs);
 
 	// We need to call BuildAllInputs here to update all the inputs,
 	// and make sure that the object path parameter inputs' parameter ids are up to date
-	if (!FHoudiniInputTranslator::BuildAllInputs(HAC->GetAssetId(), HAC, HAC->Inputs, HAC->Parameters))
+	if (!FHoudiniInputTranslator::BuildAllInputs(InNodeId, InOuter, Inputs, Parameters))
 		return false;
 
-	// We need to update the AssetID stored on all the inputs
-	// and mark all the input objects for this input type as changed
-	int32 HACAssetId = HAC->GetAssetId();
-	for (auto CurrentInput : HAC->Inputs)
+	// If we weren't loaded - we're done
+	if (!bLoadedInputs)
+		return true;
+
+	// If we were loaded - we also need to update the NodeId stored on all the inputs
+	for (auto CurrentInput : Inputs)
 	{
 		if (!IsValid(CurrentInput))
 			continue;
 
 		//
-		CurrentInput->SetAssetNodeId(HACAssetId);
+		CurrentInput->SetAssetNodeId(InNodeId);
 
 		// We need to delete the nodes created for the input objects if they are valid
 		// (since the node IDs are transients, this likely means we're handling a recook/rebuild
@@ -4851,19 +4820,15 @@ FHoudiniInputTranslator::UpdateLoadedInputs(UHoudiniAssetComponent* HAC)
 
 
 bool
-FHoudiniInputTranslator::UpdateWorldInputs(UHoudiniAssetComponent* HAC)
+FHoudiniInputTranslator::UpdateWorldInputs(TArray<TObjectPtr<UHoudiniInput>>& InInputs, AActor* InActorOwner)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::UpdateWorldInputs);
 
-	if (!IsValid(HAC))
-		return false;
-
 	// Only tick/cook when in Editor
 	// This prevents PIE cooks or runtime cooks due to inputs moving
-	AActor* ActorOwner = HAC->GetOwner();
-	if (ActorOwner)
+	if (InActorOwner)
 	{
-		if (!ActorOwner->GetWorld() || (ActorOwner->GetWorld()->WorldType != EWorldType::Editor))
+		if (!InActorOwner->GetWorld() || (InActorOwner->GetWorld()->WorldType != EWorldType::Editor))
 			return false;
 	}
 
@@ -4876,7 +4841,7 @@ FHoudiniInputTranslator::UpdateWorldInputs(UHoudiniAssetComponent* HAC)
 	}
 #endif
 
-	for (auto CurrentInput : HAC->Inputs)
+	for (auto CurrentInput : InInputs)
 	{
 		if (!CurrentInput)
 			continue;

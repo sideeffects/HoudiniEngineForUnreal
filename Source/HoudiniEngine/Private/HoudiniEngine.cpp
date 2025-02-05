@@ -1227,6 +1227,17 @@ FHoudiniEngine::OnSessionConnected()
 			HAC->OnSessionConnected();
 		}
 	}
+
+	// Do the same thing for cookable
+	int32 NumCookable = FHoudiniEngineRuntime::Get().GetRegisteredHoudiniCookableCount();
+	for (int32 nCurrent = 0; nCurrent < NumCookable; nCurrent++)
+	{
+		UHoudiniCookable* CurCookable = FHoudiniEngineRuntime::Get().GetRegisteredHoudiniCookableAt(nCurrent);
+		if (!CurCookable || !IsValid(CurCookable))
+			continue;
+
+		CurCookable->OnSessionConnected();
+	}
 }
 
 bool

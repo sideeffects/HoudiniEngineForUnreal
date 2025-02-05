@@ -52,6 +52,7 @@ protected:
 	virtual void NotifyOfHoudiniAssetStateChange(UObject* InHoudiniAssetContext, const EHoudiniAssetState InFromState, const EHoudiniAssetState InToState) = 0;
 
 	friend class UHoudiniAssetComponent;
+	friend class UHoudiniCookable;
 
 	static HOUDINIENGINERUNTIME_API void SetInstance(IHoudiniEditorAssetStateSubsystemInterface* InInstance);
 	static HOUDINIENGINERUNTIME_API IHoudiniEditorAssetStateSubsystemInterface* Instance;

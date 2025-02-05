@@ -32,25 +32,31 @@
 #include "Templates/SharedPointer.h"
 
 class UHoudiniAssetComponent;
+class UHoudiniCookable;
 class UHoudiniHandleComponent;
+class UHoudiniParameter;
+class USceneComponent;
 
 struct HOUDINIENGINE_API FHoudiniHandleTranslator 
 {
 	static bool BuildHandles(UHoudiniAssetComponent* HAC);
 
+	static bool BuildHandles(UHoudiniCookable* HC);
 
-	static bool BuildAllHandles(const HAPI_NodeId& AssetId, 
-								UHoudiniAssetComponent* OuterObject, 
-								TArray<TObjectPtr<UHoudiniHandleComponent>>& CurrentHandles,
-								TArray<TObjectPtr<UHoudiniHandleComponent>>& NewHandles);
+	static bool BuildAllHandles(
+		const HAPI_NodeId& AssetId,
+		USceneComponent* OuterComponent,
+		TArray<TObjectPtr<UHoudiniHandleComponent>>& CurrentHandles,
+		TArray<TObjectPtr<UHoudiniHandleComponent>>& NewHandles,
+		TArray<TObjectPtr<UHoudiniParameter>>& InParameters);
 
-	static void ClearHandles(UHoudiniAssetComponent* HAC);
+	//static void ClearHandles(UHoudiniAssetComponent* HAC);
 
 	static HAPI_RSTOrder GetHapiRSTOrder(const TSharedPtr<FString> & StrPtr);
 
 	static HAPI_XYZOrder GetHapiXYZOrder(const TSharedPtr<FString> & StrPtr);
 
-	static void UpdateHandlesIfNeeded(UHoudiniAssetComponent* HAC);
+	static void UpdateHandlesIfNeeded(TArray<TObjectPtr<UHoudiniHandleComponent>>& InHandleComponents);
 
 	static void UpdateTransformParameters(UHoudiniHandleComponent* HandleComponent);
 

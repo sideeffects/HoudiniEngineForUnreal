@@ -1778,25 +1778,25 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 	// Curve Editing
 	TooltipText = LOCTEXT("HoudiniEngineEnableCurveEditingTooltip", "Enable curve editing.");
 	SecondLeftColumnVerticalBox->AddSlot()
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
 		.FillWidth(4.0f)
 		[
 			SNew(STextBlock)
 			.MinDesiredWidth(160.f)
-		.Text(LOCTEXT("HoudiniEngineEnableCurveEditingToolLabel", "Enable Curve Editing"))
-		.ToolTipText(TooltipText)
+			.Text(LOCTEXT("HoudiniEngineEnableCurveEditingToolLabel", "Enable Curve Editing"))
+			.ToolTipText(TooltipText)
 		]
-	+ SHorizontalBox::Slot()
+		+ SHorizontalBox::Slot()
 		[
 			SNew(SCheckBox)
 			.OnCheckStateChanged_Lambda(OnCheckStateChangedEnableCurveEditingLambda)
-		.IsChecked_Lambda(IsCheckedEnableCurveEditingLambda)
-		.ToolTipText(TooltipText)
+			.IsChecked_Lambda(IsCheckedEnableCurveEditingLambda)
+			.ToolTipText(TooltipText)
 		]
-		];
+	];
 
 
 	// Use whole widget

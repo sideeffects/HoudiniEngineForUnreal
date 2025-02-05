@@ -2029,6 +2029,9 @@ FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray<int8>
 		FHoudiniEngine::Get().GetSession(), NodeId,
 		HAPI_PRESETTYPE_BINARY, NULL, &BufferLength), false);
 
+	if (BufferLength <= 0)
+		return false;
+
 	PresetBuffer.SetNumZeroed(BufferLength);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPreset(
 		FHoudiniEngine::Get().GetSession(), NodeId,
@@ -3105,6 +3108,36 @@ FHoudiniEngineUtils::UploadHACTransform(UHoudiniAssetComponent* HAC)
 }
 
 bool
+FHoudiniEngineUtils::UploadCookableTransform(UHoudiniCookable* HC)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::UploadHACTransform);
+
+	if (!HC || !HC->IsComponentSupported())
+		return false;
+
+	if (!HC->ComponentData.bUploadTransformsToHoudiniEngine)
+		return false;
+
+	if (!IsValid(HC->ComponentData.Component))
+		return false;
+
+	// Indicates the Cookable has been fully loaded
+	if (!HC->IsFullyLoaded())
+		return false;
+
+	if (HC->CookCount > 0 && HC->GetNodeId() >= 0)
+	{
+		if (!FHoudiniEngineUtils::HapiSetAssetTransform(HC->GetNodeId(), HC->ComponentData.Component->GetComponentTransform()))
+			return false;
+	}
+
+	HC->SetHasComponentTransformChanged(false);
+
+	return true;
+}
+
+
+bool
 FHoudiniEngineUtils::HapiSetAssetTransform(const HAPI_NodeId& AssetId, const FTransform & Transform)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiSetAssetTransform);
@@ -3158,34 +3191,29 @@ FHoudiniEngineUtils::HapiGetParentNodeId(const HAPI_NodeId& NodeId)
 
 // Assign a unique Actor Label if needed
 void
-FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(UHoudiniAssetComponent* HAC)
+FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(const HAPI_NodeId& InNodeId, AActor* InActorOwner)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded);
 
-	if (!IsValid(HAC))
-		return;
-
 #if WITH_EDITOR
-	HAPI_NodeId AssetId = HAC->GetAssetId();
-	if (AssetId < 0)
+	if (InNodeId < 0)
 		return;
 
-	AActor* OwnerActor = HAC->GetOwner();
-	if (!OwnerActor)
+	if (!InActorOwner)
 		return;
 
 	// Make sure we only create a unique name for a new Houdini Actor
 	// We don't want to loose custom/manual names
-	if (!OwnerActor->GetActorNameOrLabel().StartsWith(AHoudiniAssetActor::StaticClass()->GetName()))
+	if (!InActorOwner->GetActorNameOrLabel().StartsWith(AHoudiniAssetActor::StaticClass()->GetName()))
 		return;
 
-	if (!OwnerActor->GetName().StartsWith(AHoudiniAssetActor::StaticClass()->GetName()))
+	if (!InActorOwner->GetName().StartsWith(AHoudiniAssetActor::StaticClass()->GetName()))
 		return;
 
 	// Assign unique actor label based on asset name if it seems to have not been renamed already
 	FString UniqueName;
-	if (FHoudiniEngineUtils::GetHoudiniAssetName(AssetId, UniqueName))
-		FActorLabelUtilities::SetActorLabelUnique(OwnerActor, UniqueName);
+	if (FHoudiniEngineUtils::GetHoudiniAssetName(InNodeId, UniqueName))
+		FActorLabelUtilities::SetActorLabelUnique(InActorOwner, UniqueName);
 #endif
 }
 

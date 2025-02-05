@@ -66,7 +66,11 @@ public:
 	
 	// Initialize the PDG Asset Link for a HoudiniAssetComponent
 	// returns true if the HAC uses a PDG asset, and a PDGAssetLink was successfully created
-	bool InitializePDGAssetLink(UHoudiniAssetComponent* InHAC);
+	bool InitializePDGAssetLink(
+		const HAPI_NodeId& InNodeId,
+		UObject* InOuter,
+		UHoudiniPDGAssetLink* PDGAssetLink,
+		const bool& bHasBeenLoaded);
 
 	// Updates an existing PDG AssetLink
 	static bool UpdatePDGAssetLink(UHoudiniPDGAssetLink* PDGAssetLink);

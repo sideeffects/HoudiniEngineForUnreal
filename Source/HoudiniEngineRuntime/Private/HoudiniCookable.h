@@ -1,0 +1,695 @@
+/*
+* Copyright (c) <2025> Side Effects Software Inc.
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
+*
+* 1. Redistributions of source code must retain the above copyright notice,
+*    this list of conditions and the following disclaimer.
+*
+* 2. The name of Side Effects Software may not be used to endorse or
+*    promote products derived from this software without specific prior
+*    written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY SIDE EFFECTS SOFTWARE "AS IS" AND ANY EXPRESS
+* OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+* OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
+* NO EVENT SHALL SIDE EFFECTS SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT,
+* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+* LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
+* OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+* LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+* NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+* EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#pragma once
+
+#include "CoreTypes.h"
+#include "UObject/Object.h"
+#include "UObject/ObjectMacros.h"
+
+#include "HoudiniEngineRuntimeCommon.h"
+#include "HoudiniRuntimeSettings.h"
+#include "HoudiniAssetStateTypes.h"
+#include "IHoudiniAssetStateEvents.h"
+
+#include "Delegates/DelegateCombinations.h"
+#include "Engine/EngineTypes.h"
+#include "Components/PrimitiveComponent.h"
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
+	#include "LevelInstance/LevelInstanceInterface.h"
+#endif
+
+#include "HoudiniCookable.generated.h"
+
+class UHoudiniAsset;
+class UHoudiniHandleComponent;
+class UHoudiniInput;
+class UHoudiniOutput;
+class UHoudiniPDGAssetLink;
+class UHoudiniParameter;
+
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FCookableHoudiniAssetData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FCookableHoudiniAssetData();
+
+	// Houdini Asset associated with this component.			
+	UPROPERTY(Category = HoudiniAsset, EditAnywhere)// BlueprintSetter = SetHoudiniAsset, BlueprintReadWrite, )
+	TObjectPtr<UHoudiniAsset> HoudiniAsset;
+
+	// Subasset index
+	UPROPERTY()
+	uint32 SubAssetIndex;
+
+	// The asset name of the selected asset inside the asset library
+	UPROPERTY()//(DuplicateTransient)
+	FString HapiAssetName;
+};
+
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FCookableParameterData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FCookableParameterData();
+
+	UPROPERTY(Instanced)
+	TArray<TObjectPtr<UHoudiniParameter>> Parameters;
+
+	// Used to store the current state of parameters 
+	// This allows fast - batch setting of parameters (upon rebuild/load)
+	UPROPERTY()
+	TArray<int8> ParameterPresetBuffer;
+
+	// Automatically cook when a parameter is changed
+	UPROPERTY()
+	bool bCookOnParameterChange;
+
+	// Indicates that the parameter state (excluding values) on the HAC and the instantiated node needs to be synced.
+	// The most common use for this would be a newly instantiated HDA that has only a default parameter interface
+	// from its asset definition, and needs to sync pre-cook.
+	UPROPERTY()//(DuplicateTransient)
+	bool bParameterDefinitionUpdateNeeded;
+
+	// Try to find one of our parameter that matches another (name, type, size and enabled)
+	UHoudiniParameter* FindMatchingParameter(UHoudiniParameter* InOtherParam);
+};
+
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FCookableInputData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FCookableInputData();
+
+	// Store data for a cookable's inputs
+	UPROPERTY(Instanced)
+	TArray<TObjectPtr<UHoudiniInput>> Inputs;
+
+	// Automatically cook when an input is changed
+	UPROPERTY()
+	bool bCookOnInputChange; // bCookOnParameterChange
+
+
+	// Accessors
+	int32 GetNumInputs() const { return Inputs.Num(); };
+	UHoudiniInput* GetInputAt(const int32& Idx) { return Inputs.IsValidIndex(Idx) ? Inputs[Idx] : nullptr; };
+
+	//
+	//bool NeedUpdateInputs() const;
+	
+	//
+	bool NeedsToWaitForInputHoudiniAssets();
+};
+
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FCookableOutputData 
+{
+	GENERATED_USTRUCT_BODY()
+
+	FCookableOutputData();
+
+	// Declare the delegate that is broadcast when RefineMeshesTimer fires
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRefineMeshesTimerDelegate, UHoudiniCookable*);
+
+	bool IsProxyStaticMeshRefinementByTimerEnabled() const;
+
+	UPROPERTY(Instanced)
+	TArray<TObjectPtr<UHoudiniOutput>> Outputs;
+
+	// Any actors that aren't explicitly tracked by output objects
+	// should be registered here so that they can be cleaned up.
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AActor>> UntrackedOutputs;
+	
+	// Temporary cook folder
+	UPROPERTY()
+	FDirectoryPath TemporaryCookFolder;
+
+	// ??
+	// Indicates if this can create world outputs (component/actors)
+	bool bHasWorldOutputs;
+
+	// Enabling this will prevent producing any output after cooking.
+	UPROPERTY()
+	bool bOutputless;
+
+	// Enabling this will allow outputing the asset's templated geos
+	UPROPERTY()
+	bool bOutputTemplateGeos;
+
+	// Enabling this will allow outputing using output nodes
+	// Disabling it will either fall back to display flag node (legacy workflow)
+	UPROPERTY()
+	bool bUseOutputNodes;
+
+	// Whether or not to support multiple mesh outputs on one HDA output. This is currently in Alpha  testing.
+	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 0))
+	bool bSplitMeshSupport = false;
+		
+	UPROPERTY()
+	bool bEnableCurveEditing;
+
+	// Generation properties for the Static Meshes
+	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 1)/*, meta = (ShowOnlyInnerProperties)*/)
+	FHoudiniStaticMeshGenerationProperties StaticMeshGenerationProperties;
+
+	// Build Settings to be used when generating the Static Meshes for this Houdini Asset
+	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 2))
+	FMeshBuildSettings StaticMeshBuildSettings;
+
+	//-----------------------------------
+	// BAKE
+
+	// Bake Options
+	UPROPERTY()
+	EHoudiniEngineBakeOption HoudiniEngineBakeOption;
+	
+	// Folder used for baking this asset's outputs (unless set by prim/detail attribute on the output). Falls back to
+	// the default from the plugin settings if not set.
+	UPROPERTY()
+	FDirectoryPath BakeFolder;
+
+	// If true, bake the asset after its next cook.
+	UPROPERTY()//(DuplicateTransient)
+	EHoudiniBakeAfterNextCook BakeAfterNextCook;
+
+	// If true, then after a successful bake, outputs will be cleared and removed.
+	UPROPERTY()
+	bool bRemoveOutputAfterBake;
+
+	// If true, recenter baked actors to their bounding box center after bake
+	UPROPERTY()
+	bool bRecenterBakedActors;
+
+	// If true, replace the previously baked output (if any) instead of creating new objects
+	UPROPERTY()
+	bool bReplacePreviousBake;
+
+	UPROPERTY()
+	EHoudiniEngineActorBakeOption ActorBakeOption;
+
+	UPROPERTY()
+	bool bLandscapeUseTempLayers;
+
+	//-----------------------------------
+	// PROXY MESH
+	UPROPERTY()
+	bool bHasProxyMeshSupport;
+	
+	// If true, don't build a proxy mesh next cook (regardless of global or override settings),
+	// instead build the UStaticMesh directly (if applicable for the output types).
+	UPROPERTY()//(DuplicateTransient)
+	bool bNoProxyMeshNextCookRequested;
+
+	// Override the global fast proxy mesh settings
+	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere/*, meta = (DisplayAfter = "StaticMeshGenerationProperties")*/)
+	bool bOverrideGlobalProxyStaticMeshSettings;
+
+	// For StaticMesh outputs: should a fast proxy be created first?
+	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Enable Proxy Static Mesh", EditCondition="bOverrideGlobalProxyStaticMeshSettings"))
+	bool bEnableProxyStaticMeshOverride;
+
+	// If fast proxy meshes are being created, must it be baked as a StaticMesh after a period of no updates?
+	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes After a Timeout", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
+	bool bEnableProxyStaticMeshRefinementByTimerOverride;
+	
+	// If the option to automatically refine the proxy mesh via a timer has been selected, this controls the timeout in seconds.
+	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Proxy Mesh Auto Refine Timeout Seconds", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride && bEnableProxyStaticMeshRefinementByTimerOverride"))
+	float ProxyMeshAutoRefineTimeoutSecondsOverride;
+
+	// Automatically refine proxy meshes to UStaticMesh before the map is saved
+	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes When Saving a Map", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
+	bool bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
+
+	// Automatically refine proxy meshes to UStaticMesh before starting a play in editor session
+	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes On PIE", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
+	bool bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
+
+	UPROPERTY(Transient)//, DuplicateTransient)
+	bool bAllowPlayInEditorRefinement;
+
+	// Timer that is used to trigger creation of UStaticMesh for all mesh outputs
+	// that still have UHoudiniStaticMeshes. The timer is cleared on PreCook and reset
+	// at the end of the PostCook.
+	UPROPERTY()
+	FTimerHandle RefineMeshesTimer;
+
+	// TODO COOKABLE
+	// Delegate that is used to broadcast when RefineMeshesTimer fires
+	FOnRefineMeshesTimerDelegate OnRefineMeshesTimerDelegate;
+};
+
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FCookableComponentData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FCookableComponentData();
+
+	UPROPERTY()
+	TObjectPtr<UPrimitiveComponent> Component; // Should be a scenecomponent instead?
+	
+	// TODO COOKABLE: Needed?
+	UPROPERTY()
+	UClass* ComponentClass;
+	
+	// Used to compare transform changes and whether we need to
+	// send transform updates to Houdini.
+	UPROPERTY()//(DuplicateTransient)
+	FTransform LastComponentTransform;
+
+	UPROPERTY(Transient)//, DuplicateTransient)
+	bool bHasComponentTransformChanged;
+
+	// Enables uploading of transformation changes back to Houdini Engine.
+	UPROPERTY()
+	bool bUploadTransformsToHoudiniEngine;
+
+	// Transform changes automatically trigger cooks.
+	UPROPERTY()
+	bool bCookOnTransformChange;
+
+	// Handles found on this cookable
+	UPROPERTY()
+	TArray<TObjectPtr<UHoudiniHandleComponent>> HandleComponents;
+
+	// The last timestamp this cookable's component received a session sync update ping
+	// used to limit the frequency at which we ping HDAs for session sync updates
+	UPROPERTY(Transient)
+	double LastLiveSyncPingTime;
+};
+
+USTRUCT()
+struct HOUDINIENGINERUNTIME_API FCookablePDGData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FCookablePDGData();
+
+	void SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink);
+
+	UPROPERTY()
+	TObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink;
+
+	UPROPERTY()
+	bool bIsPDGAssetLinkInitialized;
+};
+
+
+
+
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniCookable : public UObject, public IHoudiniAssetStateEvents
+{
+	GENERATED_UCLASS_BODY()
+
+	// Declare translators as friend so they can easily directly modify
+	// Inputs, outputs and parameters
+	friend class FHoudiniEngineManager;
+	friend struct FHoudiniEngineUtils;
+	//friend struct FHoudiniOutputTranslator;
+	//friend struct FHoudiniInputTranslator;
+	//friend struct FHoudiniSplineTranslator;
+	friend struct FHoudiniParameterTranslator;
+	//friend struct FHoudiniPDGManager;
+	friend struct FHoudiniHandleTranslator;
+
+	// Delegate for when EHoudiniAssetState changes from InFromState to InToState on a HoudiniCookable (InHC)
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCookableStateChangeDelegate, UHoudiniCookable*, const EHoudiniAssetState, const EHoudiniAssetState);
+
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreInstantiationDelegate, UHoudiniCookable*);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreCookDelegate, UHoudiniCookable*);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostCookDelegate, UHoudiniCookable*, bool);
+
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPreOutputProcessingDelegate, UHoudiniCookable*, bool);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostOutputProcessingDelegate, UHoudiniCookable*, bool);
+	
+
+public:
+
+	virtual ~UHoudiniCookable();
+
+	//------------------------------------------------------------------------------------------------
+	// Accessors
+	//------------------------------------------------------------------------------------------------
+
+	int32 GetNodeId() const { return NodeId; };
+
+	EHoudiniAssetState GetCurrentState() const { return CurrentState; };
+	EHoudiniAssetStateResult GetCurrentStateResult() const { return CurrentStateResult; };
+	//virtual FString GetHoudiniAssetName() const;
+
+	UPrimitiveComponent* GetComponent() const;
+	AActor* GetOwner() const;
+	UWorld* GetWorld() const;
+	bool IsOwnerSelected() const;
+
+	FCookableHoudiniAssetData* GetHoudiniAssetData() { return IsHoudiniAssetSupported() ? &HoudiniAssetData : nullptr; };
+	FCookableParameterData* GetParameterData() { return IsParameterSupported() ? &ParameterData : nullptr; };
+	FCookableInputData* GetInputData() { return IsInputSupported() ? &InputData : nullptr; };
+	FCookableOutputData* GetOutputData() { return IsOutputSupported() ? &OutputData : nullptr;};
+	FCookableComponentData* GetComponentData() { return IsComponentSupported() ? &ComponentData : nullptr; };
+	FCookablePDGData* GetPDGData() { return IsPDGSupported() ? &PDGData : nullptr; };
+
+	bool IsCookingEnabled() const { return bEnableCooking; };
+	bool HasBeenLoaded() const { return bHasBeenLoaded; };
+	bool HasBeenDuplicated() const { return bHasBeenDuplicated; };
+	bool HasRecookBeenRequested() const { return bRecookRequested; };
+	bool HasRebuildBeenRequested() const { return bRebuildRequested; };
+
+	// Returns true if a parameter definition update (excluding values) is needed.
+	bool IsParameterDefinitionUpdateNeeded() const { return IsParameterSupported() ? ParameterData.bParameterDefinitionUpdateNeeded : false; };
+
+	FString GetDisplayName() const;
+
+	// Returns true if this cookable should try to start a session
+	virtual bool ShouldTryToStartFirstSession() const;
+
+	// Needed for BP support
+	bool IsFullyLoaded() const { return bFullyLoaded; };	
+	// Whether this component is currently open in a Blueprint editor. This
+	// method is overridden by HoudiniAssetBlueprintComponent.
+	virtual bool HasOpenEditor() const { return false; };
+
+	// TODO COOKABLE: Move to component?
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
+	ILevelInstanceInterface* GetLevelInstance() const;
+#endif
+
+	// Indicates if the cookable needs to be updated
+	bool NeedUpdate() const;
+
+	// TODO COOKABLE: Unneeded?
+	// Indicates if any of the cookable's output components needs to be updated (no recook needed)
+	bool NeedUpdateInstancedOutputs() const;
+
+	// Derived blueprint based components will check whether the template component contains updates that needs to processed.
+
+	// Indicates if the cookable's parameters need an update
+	bool NeedUpdateParameters() const;
+
+	// Indicates if the cookable's inputs need an update
+	bool NeedUpdateInputs() const;
+
+	// Indicates if any of cookable's outputs need an update
+	bool NeedUpdateOutputs() const;
+
+
+	//------------------------------------------------------------------------------------------------
+	// Mutators
+	//------------------------------------------------------------------------------------------------
+ 
+	// Set asset state	
+	void SetCurrentState(EHoudiniAssetState InNewState);
+
+	void UpdateDormantStatus();
+
+	// Cleans up children components and PDG asset link (if any) after a duplication
+	void UpdatePostDuplicate();
+
+	// Clear nodes to cook. This will also clear their cook counts.
+	void ClearNodesToCook(); 
+	void ClearOutputNodes() { return ClearNodesToCook(); };
+
+	void SetNodeIdsToCook(const TArray<int32>& InNodeIds);
+	
+	// Clear/disable the RefineMeshesTimer.
+	void ClearRefineMeshesTimer();
+
+	void SetHasComponentTransformChanged(const bool& InHasChanged);
+
+	void MarkAsNeedCook();
+
+	void PreventAutoUpdates();
+
+	void OnSessionConnected();
+
+	//------------------------------------------------------------------------------------------------
+	// Supported Features
+	//------------------------------------------------------------------------------------------------
+
+	// Whether or not this component should be able to delete the Houdini nodes
+	// that correspond to the HoudiniAsset when being deregistered. 
+	virtual bool CanDeleteHoudiniNodes() const { return true; }
+
+	virtual bool IsInputTypeSupported(EHoudiniInputType InType) { return IsInputSupported(); };
+	virtual bool IsOutputTypeSupported(EHoudiniOutputType InType) { return IsOutputSupported(); };
+
+	// Feature accessors
+	virtual bool IsHoudiniAssetSupported() const { return bHasHoudiniAsset; };
+	virtual bool IsParameterSupported() const { return bHasParameters; };
+	virtual bool IsInputSupported() const { return bHasInputs; };
+	virtual bool IsOutputSupported() const { return bHasOutputs; };
+	virtual bool IsComponentSupported() const { return bHasComponent; };
+	virtual bool IsPDGSupported() const { return bHasPDG; };
+
+	// Needed for BP support
+	virtual void NotifyHoudiniRegisterCompleted() {};
+	virtual void NotifyHoudiniPreUnregister() {};
+	virtual void NotifyHoudiniPostUnregister() {};
+
+	// Feature mutators
+	virtual void SetHoudiniAssetSupported(const bool& bSupport) { bHasHoudiniAsset = bSupport; };
+	virtual void SetParameterSupported(const bool& bSupport) { bHasParameters = bSupport; };
+	virtual void SetInputSupported(const bool& bSupport) { bHasInputs = bSupport; };
+	virtual void SetOutputSupported(const bool& bSupport) { bHasOutputs = bSupport; };
+	virtual void SetComponentSupported(const bool& bSupport) { bHasComponent = bSupport; };
+	virtual void SetPDGSupported(const bool& bSupport) { bHasPDG = bSupport; };
+
+
+	//------------------------------------------------------------------------------------------------
+	// Delegates / Public API
+	//------------------------------------------------------------------------------------------------
+
+	//
+	// Begin: IHoudiniAssetStateEvents
+	//
+
+	virtual void HandleOnHoudiniAssetStateChange(UObject* InHoudiniAssetContext, const EHoudiniAssetState InFromState, const EHoudiniAssetState InToState) override;
+
+	FORCEINLINE virtual FOnHoudiniAssetStateChange& GetOnHoudiniAssetStateChangeDelegate() override { return OnHoudiniAssetStateChangeDelegate; }
+	FOnCookableStateChangeDelegate& GetOnCookableStateChangeDelegate() { return OnCookableStateChangeDelegate; }
+
+
+	//
+	// End: IHoudiniAssetStateEvents
+	//
+
+	// Called by HandleOnHoudiniAssetStateChange when entering the PostCook state. Broadcasts OnPostCookDelegate.
+	void HandleOnPreInstantiation();
+	void HandleOnPreCook();
+	void HandleOnPostCook();
+
+	// Other public API delegates
+	void HandleOnPreOutputProcessing();
+	void HandleOnPostOutputProcessing();
+
+protected:
+
+	// Id of the corresponding Houdini node.
+	UPROPERTY(DuplicateTransient)
+	int32 NodeId;	// AssetId
+
+	// NEW: The name of the node we're creating/fetching
+	// This is NOT an ASSET name - Assets are handled via ASSET DATA
+	// TODO COOKABLE: ? path name ?
+	FString NodeName;
+
+	// NEW: Indicates if our node should be created when this cookable
+	// is instantiated - or if we should simply read data/output from it
+	bool bNodeNeedsToBeCreated;
+
+	// Current state (switch to new State?)
+	UPROPERTY(DuplicateTransient)
+	EHoudiniAssetState CurrentState;	// AssetState
+
+	// Result of the current state
+	UPROPERTY(DuplicateTransient)
+	EHoudiniAssetStateResult CurrentStateResult;	// AssetStateResult
+
+	// Unique GUID created per cookable
+	UPROPERTY(DuplicateTransient)
+	FGuid CookableGUID;	// ComponentGUID
+
+	// GUID used to track asynchronous cooking requests of this cookable
+	UPROPERTY(DuplicateTransient)
+	FGuid HapiGUID;	// HapiGUID
+		
+	// This cookable's name
+	UPROPERTY(DuplicateTransient)
+	FString Name;
+
+	// Number of times this has been cooked.
+	UPROPERTY(DuplicateTransient)
+	int32 CookCount;	// AssetCookCount
+
+	// Ids of the nodes that should also be cooked with this cookable
+	// This can be used for additional outputs or templated nodes if used.
+	UPROPERTY(Transient, DuplicateTransient)
+	TArray<int32> NodeIdsToCook;	// NodeIdsToCook
+	
+	// Cook counts for nodes in the NodeIdsToCook array.
+	UPROPERTY(Transient, DuplicateTransient)
+	TMap<int32, int32> NodesToCookCookCounts;	// OutputNodeCookCounts
+
+	UPROPERTY(DuplicateTransient)
+	bool bPendingDelete;	// bPendingDelete
+
+	UPROPERTY(DuplicateTransient)
+	bool bRecookRequested;	// bRecookRequested
+
+	UPROPERTY(DuplicateTransient)
+	bool bRebuildRequested;	// bRebuildRequested
+
+	UPROPERTY(DuplicateTransient)
+	bool bEnableCooking;	// bEnableCooking
+
+	UPROPERTY(DuplicateTransient)
+	bool bForceNeedUpdate;	// bForceNeedUpdate
+
+	UPROPERTY(DuplicateTransient)
+	bool bLastCookSuccess;	// bLastCookSuccess
+
+	// The last timestamp this cookable was ticked
+	// Used to prioritize/limit the number of Cookable processed per tick
+	UPROPERTY(Transient)
+	double LastTickTime;	// LastTickTime
+
+
+	// TODO COOKABLE: Assess if needed? 
+	UPROPERTY(DuplicateTransient)
+	bool bHasBeenLoaded;	// bHasBeenLoaded	
+
+	// TODO COOKABLE: Assess if needed? 
+	UPROPERTY(Transient, DuplicateTransient)
+	bool bFullyLoaded;	// bFullyLoaded
+
+	// TODO COOKABLE: Assess if needed?
+	// Sometimes, specifically when editing level instances, the Unreal Editor will duplicate the HDA,
+	// then duplicate it again, before we get a change to call UpdatePostDuplicate().
+	// So bHasBeenDuplicated should not be cleared and is so not marked DuplicateTransient.
+	UPROPERTY()
+	bool bHasBeenDuplicated;	// bHasBeenDuplicated
+
+	
+	// Indicates whether or not this cookable should update its editor UI
+	// This is to prevent successive calls of the function for the same cookables 
+	UPROPERTY(Transient, DuplicateTransient)
+	bool bNeedToUpdateEditorProperties;
+
+	//
+	// COOKABLE DATA
+	//
+
+	// HOUDINI ASSET
+	// Indicates if this cookable is using an HDA
+	UPROPERTY()
+	bool bHasHoudiniAsset;
+
+	// Structure containing the HDA data
+	UPROPERTY()
+	FCookableHoudiniAssetData HoudiniAssetData;
+
+	// PARAMETERS
+	// Indicates if this cookable has parameters
+	UPROPERTY()
+	bool bHasParameters;
+
+	// Structure containing the HDA data
+	UPROPERTY()
+	FCookableParameterData ParameterData;
+
+	// INPUTS
+	// Indicates if this cookable has inputs
+	UPROPERTY()
+	bool bHasInputs;
+
+	// Structure containing the HDA data
+	UPROPERTY()
+	FCookableInputData InputData;
+
+	// OUTPUTS
+	// Indicates if this cookable has outputs
+	UPROPERTY()
+	bool bHasOutputs;
+
+	// Structure containing the HDA data
+	UPROPERTY()
+	FCookableOutputData OutputData;
+
+	// COMPONENTS / TRANSFORM?
+	// Indicates if this cookable has a component/is placed in the level
+	UPROPERTY()
+	bool bHasComponent; // bIsInWorld?
+
+	// Structure containing the HDA data
+	UPROPERTY()
+	FCookableComponentData ComponentData;
+
+	// PDG
+	// Indicates if this cookable has access to PDG
+	UPROPERTY()
+	bool bHasPDG;
+
+	// Structure containing the HDA data
+	UPROPERTY()
+	FCookablePDGData PDGData;
+
+	//
+	// Public API delegates
+	//
+	
+	// Delegate that is broadcast when current State changes
+	FOnHoudiniAssetStateChange 	OnHoudiniAssetStateChangeDelegate;
+
+	// Delegate that is broadcast when the current state changes (Cookable version)
+	FOnCookableStateChangeDelegate OnCookableStateChangeDelegate;
+	 
+	// Delegate to broadcast before instantiation
+	// Arguments are (HoudiniAssetComponent* HAC)
+	FOnPreInstantiationDelegate OnPreInstantiationDelegate;
+
+	// Delegate to broadcast after a post cook event
+	// Arguments are (HoudiniAssetComponent* HAC, bool IsSuccessful)
+	FOnPreCookDelegate OnPreCookDelegate;
+
+	// Delegate to broadcast after a post cook event
+	// Arguments are (HoudiniAssetComponent* HAC, bool IsSuccessful)
+	FOnPostCookDelegate OnPostCookDelegate;
+
+	// Delegate to broadcast after baking the HAC. Not called when just baking individual outputs directly.
+	// Arguments are (HoudiniAssetComponent* HAC, bool bIsSuccessful)
+	//FOnPostBakeDelegate OnPostBakeDelegate;
+	FOnPostOutputProcessingDelegate OnPostOutputProcessingDelegate;
+	FOnPreOutputProcessingDelegate OnPreOutputProcessingDelegate;
+
+	// Store any PreCookCallbacks here until the Cookable is ready to process them during the PreCook event.
+	TArray<TFunction<void(UHoudiniCookable*)>> PreCookCallbacks;
+};

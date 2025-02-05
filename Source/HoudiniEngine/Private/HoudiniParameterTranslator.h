@@ -33,6 +33,7 @@
 
 class UHoudiniAsset;
 class UHoudiniAssetComponent;
+class UHoudiniCookable;
 class UHoudiniParameter;
 class UHoudiniParameterFile;
 
@@ -41,16 +42,31 @@ enum class EHoudiniParameterType : uint8;
 
 struct HOUDINIENGINE_API FHoudiniParameterTranslator
 {
-	// 
-	static bool UpdateParameters(UHoudiniAssetComponent* HAC);
+	static bool UpdateParameters(
+		const HAPI_NodeId& InNodeId,
+		UObject* InOuter,
+		TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
+		UHoudiniAsset* InHoudiniAsset,
+		const FString& InHapiAssetName,
+		const bool& bForceFullUpdate,
+		const bool& bCacheRampParms,
+		bool& bNeedToUpdateEditorProperties);
 
-	static bool OnPreCookParameters(UHoudiniAssetComponent* HAC);
+	static bool OnPreCookParameters(TArray<TObjectPtr<UHoudiniParameter>>& InParams);
 
 	//
-	static bool UpdateLoadedParameters(UHoudiniAssetComponent* HAC);
+	static bool UpdateLoadedParameters(
+		const HAPI_NodeId& InNodeId,
+		TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
+		UObject* InOuter,
+		const bool& bForceFullUpdate,
+		const bool& bCacheRampParams,
+		bool& bNeedToUpdateEditorProperties);
 
 	// 
-	static bool UploadChangedParameters(UHoudiniAssetComponent* HAC);
+	static bool UploadChangedParameters(
+		TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
+		const HAPI_NodeId& InNodeId);
 
 	//
 	static bool UploadParameterValue(UHoudiniParameter* InParam);
@@ -92,7 +108,8 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 		const bool& bUpdateValues,
 		const bool& InForceFullUpdate,
 		const UHoudiniAsset* InHoudiniAsset,
-		const FString& InHoudiniAssetName);
+		const FString& InHoudiniAssetName,
+		const bool& bCacheRampParms);
 
 	// Parameter creation
 	static UHoudiniParameter * CreateTypedParameter(

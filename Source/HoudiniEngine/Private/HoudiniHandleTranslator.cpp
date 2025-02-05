@@ -27,18 +27,16 @@
 #include "HoudiniHandleTranslator.h"
 
 #include "HoudiniApi.h"
+#include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"
-
-#include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniEngineRuntimePrivatePCH.h"
-
-#include "HoudiniAssetComponent.h"
-#include "HoudiniParameter.h"
 #include "HoudiniHandleComponent.h"
-
+#include "HoudiniParameter.h"
 
 bool
 FHoudiniHandleTranslator::BuildHandles(UHoudiniAssetComponent* HAC) 
@@ -49,9 +47,40 @@ FHoudiniHandleTranslator::BuildHandles(UHoudiniAssetComponent* HAC)
 		return false;
 
 	TArray<TObjectPtr<UHoudiniHandleComponent>> NewHandles;
-	if (FHoudiniHandleTranslator::BuildAllHandles(HAC->GetAssetId(), HAC, HAC->HandleComponents, NewHandles)) 
+	if (FHoudiniHandleTranslator::BuildAllHandles(
+		HAC->GetAssetId(),
+		HAC,
+		HAC->HandleComponents,
+		NewHandles,
+		HAC->Parameters))
 	{
 		HAC->HandleComponents = NewHandles;
+	}
+
+	return true;
+}
+
+bool
+FHoudiniHandleTranslator::BuildHandles(UHoudiniCookable* HC)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniHandleTranslator::BuildHandles);
+
+	if (!IsValid(HC))
+		return false;
+
+	// For handles, we need to support parameters and components!
+	if (!HC->IsComponentSupported() || !HC->IsParameterSupported())
+		return false;
+
+	TArray<TObjectPtr<UHoudiniHandleComponent>> NewHandles;
+	if (FHoudiniHandleTranslator::BuildAllHandles(
+		HC->GetNodeId(),
+		HC->ComponentData.Component,
+		HC->ComponentData.HandleComponents,
+		NewHandles,
+		HC->ParameterData.Parameters))
+	{
+		HC->ComponentData.HandleComponents = NewHandles;
 	}
 
 	return true;
@@ -60,9 +89,10 @@ FHoudiniHandleTranslator::BuildHandles(UHoudiniAssetComponent* HAC)
 bool 
 FHoudiniHandleTranslator::BuildAllHandles(
 	const HAPI_NodeId& AssetId,
-	UHoudiniAssetComponent* OuterObject,
+	USceneComponent* OuterComponent,
 	TArray<TObjectPtr<UHoudiniHandleComponent>>& CurrentHandles,
-	TArray<TObjectPtr<UHoudiniHandleComponent>>& NewHandles)
+	TArray<TObjectPtr<UHoudiniHandleComponent>>& NewHandles,
+	TArray<TObjectPtr<UHoudiniParameter>>& InParameters )
 {
 	if (AssetId < 0)
 		return false;
@@ -136,7 +166,7 @@ FHoudiniHandleTranslator::BuildAllHandles(
 			if (HandleType == EHoudiniHandleType::Unsupported)
 			{
 				HOUDINI_LOG_DISPLAY(TEXT("%s: Unsupported Handle Type %s for handle %s"), 
-					OuterObject ? *(OuterObject->GetName()) : TEXT("?"), *TypeName, *HandleName);
+					OuterComponent ? *(OuterComponent->GetName()) : TEXT("?"), *TypeName, *HandleName);
 				continue;
 			}
 
@@ -152,7 +182,7 @@ FHoudiniHandleTranslator::BuildAllHandles(
 			else
 			{
 				HandleComponent = NewObject<UHoudiniHandleComponent>(
-					OuterObject,
+					OuterComponent,
 					UHoudiniHandleComponent::StaticClass(),
 					NAME_None, RF_Public | RF_Transactional);
 
@@ -169,7 +199,7 @@ FHoudiniHandleTranslator::BuildAllHandles(
 			// If we have no parent, we need to re-attach.
 			if (!HandleComponent->GetAttachParent())
 			{
-				HandleComponent->AttachToComponent(OuterObject, FAttachmentTransformRules::KeepRelativeTransform);
+				HandleComponent->AttachToComponent(OuterComponent, FAttachmentTransformRules::KeepRelativeTransform);
 			}
 
 			HandleComponent->SetVisibility(true);
@@ -205,7 +235,7 @@ FHoudiniHandleTranslator::BuildAllHandles(
 
 				UHoudiniParameter* FoundParam = nullptr;
 
-				for (auto Param : OuterObject->Parameters) 
+				for (auto Param : InParameters) 
 				{
 					if (Param->GetParmId() == ParamId)
 					{
@@ -258,7 +288,7 @@ FHoudiniHandleTranslator::BuildAllHandles(
 	return true;
 }
 
-
+/*
 void
 FHoudiniHandleTranslator::ClearHandles(UHoudiniAssetComponent* HAC) 
 {
@@ -277,6 +307,7 @@ FHoudiniHandleTranslator::ClearHandles(UHoudiniAssetComponent* HAC)
 
 	HAC->HandleComponents.Empty();
 }
+*/
 
 HAPI_RSTOrder 
 FHoudiniHandleTranslator::GetHapiRSTOrder(const TSharedPtr<FString> & StrPtr) 
@@ -370,12 +401,9 @@ FHoudiniHandleTranslator::UpdateTransformParameters(UHoudiniHandleComponent* Han
 }
 
 void
-FHoudiniHandleTranslator::UpdateHandlesIfNeeded(UHoudiniAssetComponent* HAC)
+FHoudiniHandleTranslator::UpdateHandlesIfNeeded(TArray<TObjectPtr<UHoudiniHandleComponent>>& InHandleComponents)
 {
-	if (!IsValid(HAC))
-		return;
-
-	for (auto& CurHandle : HAC->HandleComponents)
+	for (auto& CurHandle : InHandleComponents)
 	{
 		if (!CurHandle)
 			continue;

@@ -27,6 +27,7 @@
 #pragma once
 
 #include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniPDGAssetLink.h"
 
 #include "Modules/ModuleInterface.h"
@@ -64,10 +65,31 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngineRuntime : public IModuleInterface
 		void UnRegisterHoudiniComponent(const int32& ValidIdx);
 
 		bool IsComponentRegistered(UHoudiniAssetComponent* HAC) const;
+
 		int32 GetRegisteredHoudiniComponentCount();
+
 		UHoudiniAssetComponent* GetRegisteredHoudiniComponentAt(const int32& Index);
 
 		virtual TArray<TWeakObjectPtr<UHoudiniAssetComponent>>* GetRegisteredHoudiniComponents() { return &RegisteredHoudiniComponents; };
+
+
+		//
+		// Houdini Cookable registry
+		//
+		void CleanUpRegisteredHoudiniCookables();
+
+		void RegisterHoudiniCookable(UHoudiniCookable* HC, bool bAllowArchetype = false);
+
+		void UnRegisterHoudiniCookable(UHoudiniCookable* HC);
+		void UnRegisterHoudiniCookable(const int32& ValidIdx);
+
+		bool IsCookableRegistered(UHoudiniCookable* HC) const;
+
+		int32 GetRegisteredHoudiniCookableCount();
+
+		UHoudiniCookable* GetRegisteredHoudiniCookableAt(const int32& Index);
+
+		virtual TArray<TWeakObjectPtr<UHoudiniCookable>>* GetRegisteredHoudiniCookable() { return &RegisteredHoudiniCookables; };
 		
 		//
 		// Node deletion
@@ -75,7 +97,9 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngineRuntime : public IModuleInterface
 		void MarkNodeIdAsPendingDelete(const int32& InNodeId, bool bDeleteParent = false);
 
 		int32 GetNodeIdsPendingDeleteCount();
+
 		int32 GetNodeIdsPendingDeleteAt(const int32& Index);
+
 		void RemoveNodeIdPendingDeleteAt(const int32& Index);
 
 		bool IsParentNodePendingDelete(const int32& NodeId);
@@ -104,8 +128,11 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngineRuntime : public IModuleInterface
 		// Singleton instance.
 		static FHoudiniEngineRuntime * HoudiniEngineRuntimeInstance;
 
-		// 
+		// Array of HAC
 		TArray<TWeakObjectPtr<UHoudiniAssetComponent>> RegisteredHoudiniComponents;
+
+		// Array of Cookable
+		TArray<TWeakObjectPtr<UHoudiniCookable>> RegisteredHoudiniCookables;
 
 		TArray<int32> NodeIdsPendingDelete;
 

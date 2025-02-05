@@ -76,8 +76,15 @@ enum class EHoudiniLandscapeExportType : uint8;
 
 struct HOUDINIENGINE_API FHoudiniInputTranslator
 {
-	// 
-	static bool UpdateInputs(UHoudiniAssetComponent* HAC);
+	// TODO COOKABLE:
+	// UpdateInputs just call BuildAllInputs
+	// both should be merged
+	static bool UpdateInputs(
+		const HAPI_NodeId& InNodeId,
+		UObject* InOuter,
+		TArray<TObjectPtr<UHoudiniInput>>& Inputs,
+		TArray<TObjectPtr<UHoudiniParameter>>& Parameters,
+		const bool& bLoadedInputs);
 
 	// Update inputs from the asset
 	// @AssetId: NodeId of the digital asset
@@ -92,11 +99,10 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		TArray<TObjectPtr<UHoudiniInput>>& Inputs,
 		TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
 
-	// Update loaded inputs and their input objects so they can be uploaded properly
-	static bool	UpdateLoadedInputs(UHoudiniAssetComponent * HAC);
-
 	// Update all the inputs that have been marked as change
-	static bool UploadChangedInputs(UHoudiniAssetComponent * HAC);
+	static bool UploadChangedInputs(
+		TArray<TObjectPtr<UHoudiniInput>>& InInputs,
+		AActor* InActorOwner);
 
 	// Only update simple input properties
 	static bool UpdateInputProperties(UHoudiniInput* InInput);
@@ -133,7 +139,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		UHoudiniInput* InInput, UHoudiniInputObject* InInputObject);
 
 	// Updates/ticks world inputs in the given HAC
-	static bool UpdateWorldInputs(UHoudiniAssetComponent* HAC);
+	//static bool UpdateWorldInputs(UHoudiniAssetComponent* HAC);
+	static bool UpdateWorldInputs(TArray<TObjectPtr<UHoudiniInput>>& InInputs, AActor* InActorOwner);
 
 	// Updates/ticks the given world input
 	static bool UpdateWorldInput(UHoudiniInput* InInput);
@@ -148,7 +155,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 
 	static EHoudiniInputType GetDefaultInputTypeFromLabel(const FString& InputName);
 
-	static bool SetDefaultAssetFromHDA(UHoudiniInput* Input, bool& bOutBlueprintStructureModified);
+	static bool SetDefaultInputFromParameterValue(UHoudiniInput* Input, bool& bOutBlueprintStructureModified);
 
 	static bool ChangeInputType(UHoudiniInput* Input, const bool& bForce);
 

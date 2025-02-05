@@ -1218,7 +1218,7 @@ UHoudiniAssetComponent::UpdatePostDuplicate()
 		}
 		else if (NextChild->IsA<UHoudiniInstancedActorComponent>())
 		{
-			// The actors attched to the HoudiniAssetActor are not duplicated, so we only 
+			// The actors attached to the HoudiniAssetActor are not duplicated, so we only 
 			// have to handle the component.
 			ComponentToRemove = NextChild;
 		}
@@ -1249,26 +1249,6 @@ UHoudiniAssetComponent::UpdatePostDuplicate()
 	SetHasBeenDuplicated(false);
 }
 
-bool UHoudiniAssetComponent::IsInputTypeSupported(EHoudiniInputType InType) const
-{
-	return true;
-}
-
-bool UHoudiniAssetComponent::IsOutputTypeSupported(EHoudiniOutputType InType) const
-{
-	return true;
-}
-
-bool
-UHoudiniAssetComponent::IsPreview() const
-{
-	return bCachedIsPreview;
-}
-
-bool UHoudiniAssetComponent::IsValidComponent() const
-{
-	return true;
-}
 
 void UHoudiniAssetComponent::OnFullyLoaded()
 {
@@ -2042,11 +2022,6 @@ bool UHoudiniAssetComponent::HasOutputNodeChanged(const int& NodeId, const int& 
 void UHoudiniAssetComponent::ClearOutputNodes()
 {
 	NodeIdsToCook.Empty();
-	ClearOutputNodesCookCount();
-}
-
-void UHoudiniAssetComponent::ClearOutputNodesCookCount()
-{
 	OutputNodeCookCounts.Empty();
 }
 
@@ -2655,4 +2630,45 @@ UHoudiniAssetComponent::UpdateDormantStatus()
 	}
 #endif
 #endif
+}
+
+void
+UHoudiniAssetComponent::ProcessBPTemplate(const bool& InIsGlobalCookingEnabled)
+{
+	// Handle template processing (for BP)
+	if (GetAssetState() != EHoudiniAssetState::ProcessTemplate)
+		return;
+
+	if (IsTemplate() && !HasOpenEditor())
+	{
+		// This component template no longer has an open editor and can be deregistered.
+		// TODO: Replace this polling mechanism with an "On Asset Closed" event if we
+		// can find one that actually works.
+		FHoudiniEngineRuntime::Get().UnRegisterHoudiniComponent(this);
+		return;
+	}
+
+	if (NeedBlueprintStructureUpdate())
+	{
+		OnBlueprintStructureModified();
+	}
+
+	if (NeedBlueprintUpdate())
+	{
+		OnBlueprintModified();
+	}
+
+	if (InIsGlobalCookingEnabled)
+	{
+		// Only process component template parameter updates when cooking is enabled.
+		if (NeedUpdateParameters() || NeedUpdateInputs())
+		{
+			OnTemplateParametersChanged();
+		}
+	}
+
+	if (NeedOutputUpdate())
+	{
+		// TODO: Transfer template output changes over to the preview instance.
+	}
 }

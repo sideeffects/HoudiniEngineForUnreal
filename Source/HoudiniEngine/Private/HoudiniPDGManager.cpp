@@ -61,32 +61,28 @@ FHoudiniPDGManager::~FHoudiniPDGManager()
 }
 
 bool
-FHoudiniPDGManager::InitializePDGAssetLink(UHoudiniAssetComponent* InHAC)
+FHoudiniPDGManager::InitializePDGAssetLink(
+	const HAPI_NodeId& InNodeId, UObject* InOuter, UHoudiniPDGAssetLink* PDGAssetLink, const bool& bHasBeenLoaded)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniPDGManager::InitializePDGAssetLink);
-	if (!IsValid(InHAC))
+	if (InNodeId < 0)
 		return false;
 
-	int32 AssetId = InHAC->GetAssetId();
-	if (AssetId < 0)
-		return false;
-
-	if (!FHoudiniEngineUtils::IsHoudiniNodeValid((HAPI_NodeId)AssetId))
+	if (!FHoudiniEngineUtils::IsHoudiniNodeValid((HAPI_NodeId)InNodeId))
 		return false;
 
 	// Create a new PDG Asset Link Object
-	bool bRegisterPDGAssetLink = false;
-	UHoudiniPDGAssetLink* PDGAssetLink = InHAC->GetPDGAssetLink();		
+	bool bRegisterPDGAssetLink = false;		
 	if (!IsValid(PDGAssetLink))
 	{
-		PDGAssetLink = NewObject<UHoudiniPDGAssetLink>(InHAC, UHoudiniPDGAssetLink::StaticClass(), NAME_None, RF_Transactional);
+		PDGAssetLink = NewObject<UHoudiniPDGAssetLink>(InOuter, UHoudiniPDGAssetLink::StaticClass(), NAME_None, RF_Transactional);
 		bRegisterPDGAssetLink = true;
 	}
 
 	if (!IsValid(PDGAssetLink))
 		return false;
 	
-	PDGAssetLink->AssetID = AssetId;
+	PDGAssetLink->AssetID = InNodeId;
 	
 	// Get the HDA's info
 	HAPI_NodeInfo AssetInfo;
@@ -107,12 +103,11 @@ FHoudiniPDGManager::InitializePDGAssetLink(UHoudiniAssetComponent* InHAC)
 	{
 		// We couldn't find any valid TOPNet/TOPNode, this is not a PDG Asset
 		// Make sure the HDA doesn't have a PDGAssetLink
-		InHAC->SetPDGAssetLink(nullptr);
 		return false;
 	}
 
 	// If the PDG asset link comes from a loaded asset, we also need to register it
-	if (InHAC->HasBeenLoaded())
+	if (bHasBeenLoaded)
 	{
 		bRegisterPDGAssetLink = true;
 	}
@@ -123,8 +118,6 @@ FHoudiniPDGManager::InitializePDGAssetLink(UHoudiniAssetComponent* InHAC)
 
 	if (PDGAssetLink->SelectedTOPNetworkIndex < 0)
 		PDGAssetLink->SelectedTOPNetworkIndex = 0;
-
-	InHAC->SetPDGAssetLink(PDGAssetLink);
 
 	if (bRegisterPDGAssetLink)
 	{
@@ -160,20 +153,28 @@ FHoudiniPDGManager::UpdatePDGAssetLink(UHoudiniPDGAssetLink* PDGAssetLink)
 	if (!IsValid(PDGAssetLink))
 		return false;
 
-	// If the PDG Asset link is inactive, indicate that our HDA must be instantiated
+	// TODO COOKABLE: Improve! do not rely on GetOuter
+	UHoudiniAssetComponent* ParentHAC = Cast<UHoudiniAssetComponent>(PDGAssetLink->GetOuter());
+	UHoudiniCookable* ParentHC = Cast<UHoudiniCookable>(PDGAssetLink->GetOuter());
+	EHoudiniAssetState ParentState = ParentHAC ? ParentHAC->GetAssetState() : ParentHC ? ParentHC->GetCurrentState() : EHoudiniAssetState::None;
+	HAPI_NodeId ParentNodeId = ParentHAC ? ParentHAC->GetAssetId() : ParentHC ? ParentHC->GetNodeId() : -1;
+
+		// If the PDG Asset link is inactive, indicate that our HDA must be instantiated
 	if (PDGAssetLink->LinkState == EPDGLinkState::Inactive)
 	{
-		UHoudiniAssetComponent* ParentHAC = Cast<UHoudiniAssetComponent>(PDGAssetLink->GetOuter());
-		if(!ParentHAC)
+		if(!ParentHAC && !ParentHC)
 		{
-			// No valid parent HAC, error!
+			// No valid parent, error!
 			PDGAssetLink->LinkState = EPDGLinkState::Error_Not_Linked;
 			HOUDINI_LOG_ERROR(TEXT("No valid Houdini Asset Component parent for PDG Asset Link!"));
 		}
-		else if (ParentHAC && ParentHAC->GetAssetState() == EHoudiniAssetState::NeedInstantiation)
+		else if (ParentState == EHoudiniAssetState::NeedInstantiation)
 		{
 			PDGAssetLink->LinkState = EPDGLinkState::Linking;
-			ParentHAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
+			if (ParentHAC)
+				ParentHAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
+			else if (ParentHC)
+				ParentHC->SetCurrentState(EHoudiniAssetState::PreInstantiation);
 		}
 		else
 		{
@@ -189,15 +190,13 @@ FHoudiniPDGManager::UpdatePDGAssetLink(UHoudiniPDGAssetLink* PDGAssetLink)
 
 	if (PDGAssetLink->LinkState != EPDGLinkState::Linked)
 	{
-		UHoudiniAssetComponent* ParentHAC = Cast<UHoudiniAssetComponent>(PDGAssetLink->GetOuter());
-		int32 AssetId = ParentHAC->GetAssetId();
-		if (AssetId < 0)
+		if (ParentNodeId < 0)
 			return false;
 
-		if (!FHoudiniEngineUtils::IsHoudiniNodeValid((HAPI_NodeId)AssetId))
+		if (!FHoudiniEngineUtils::IsHoudiniNodeValid((HAPI_NodeId)ParentNodeId))
 			return false;
 
-		PDGAssetLink->AssetID = AssetId;
+		PDGAssetLink->AssetID = ParentNodeId;
 	}
 
 	if(!PopulateTOPNetworks(PDGAssetLink))
