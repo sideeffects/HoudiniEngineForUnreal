@@ -2844,7 +2844,6 @@ UHoudiniInput::OnSessionConnected()
 {
 	AssetNodeId = INDEX_NONE;
 	InputNodeId = INDEX_NONE;
-	InputIndex = INDEX_NONE;
 
 	auto ResetInputObjects = [](TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectArray)
 		{
