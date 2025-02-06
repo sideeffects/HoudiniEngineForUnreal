@@ -360,12 +360,11 @@ public:
 
 	//Called after applying a transaction to the object.  Default implementation simply calls PostEditChange. 
 	virtual void PostEditUndo() override;
+#endif
 
 	// Whether this component is currently open in a Blueprint editor. This
 	// method is overridden by HoudiniAssetBlueprintComponent.
 	virtual bool HasOpenEditor() const { return false; };
-
-#endif
 
 	void SetStaticMeshGenerationProperties(UStaticMesh* InStaticMesh) const;
 

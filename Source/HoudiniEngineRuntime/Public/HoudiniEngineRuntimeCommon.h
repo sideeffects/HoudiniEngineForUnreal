@@ -42,14 +42,12 @@ enum class EHoudiniRampInterpolationType : int8
 	HERMITE = 6
 };
 
-#if WITH_EDITORONLY_DATA
 UENUM()
 enum class EHoudiniEngineBakeOption : uint8
 {
 	ToActor,
 	ToBlueprint
 };
-#endif
 
 UENUM()
 enum class EHoudiniEngineActorBakeOption : uint8

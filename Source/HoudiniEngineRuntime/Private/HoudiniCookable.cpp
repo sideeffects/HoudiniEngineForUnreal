@@ -43,6 +43,7 @@
 
 #include "Components/SplineComponent.h"
 #include "LevelInstance/LevelInstanceSubsystem.h"
+#include "TimerManager.h"
 
 UHoudiniParameter*
 FCookableParameterData::FindMatchingParameter(UHoudiniParameter* InOtherParam)
