@@ -2621,11 +2621,7 @@ FHoudiniParameterTranslator::UploadChangedParameters(
 		if (!IsValid(CurrentParm) || !CurrentParm->HasChanged())
 			continue;
 
-
-		HOUDINI_LOG_WARNING(TEXT("Uploading Paremeter: name %s Id: %d, type: %d"), *CurrentParm->GetParameterName(), CurrentParm->GetParmId(), CurrentParm->GetParameterType());
-
 		bool bSuccess = false;
-
 		const EHoudiniParameterType CurrentParmType = CurrentParm->GetParameterType();
 		if (CurrentParm->IsPendingRevertToDefault())
 		{
