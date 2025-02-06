@@ -2879,7 +2879,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	if (!IsValid(HAC) || !IsValid(Preset))
 		return;
 
-	if (!HAC->IsA<UHoudiniNodeSyncComponent>())
+	if (HAC->IsA<UHoudiniNodeSyncComponent>())
 		return;
 
 	if (!CanApplyPresetToHoudiniAssetcomponent(Preset, HAC))	
