@@ -69,7 +69,7 @@ public:
 	bool InitializePDGAssetLink(
 		const HAPI_NodeId& InNodeId,
 		UObject* InOuter,
-		UHoudiniPDGAssetLink* PDGAssetLink,
+		UHoudiniPDGAssetLink*& PDGAssetLink,
 		const bool& bHasBeenLoaded);
 
 	// Updates an existing PDG AssetLink

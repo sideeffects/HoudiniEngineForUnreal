@@ -62,7 +62,7 @@ FHoudiniPDGManager::~FHoudiniPDGManager()
 
 bool
 FHoudiniPDGManager::InitializePDGAssetLink(
-	const HAPI_NodeId& InNodeId, UObject* InOuter, UHoudiniPDGAssetLink* PDGAssetLink, const bool& bHasBeenLoaded)
+	const HAPI_NodeId& InNodeId, UObject* InOuter, UHoudiniPDGAssetLink*& PDGAssetLink, const bool& bHasBeenLoaded)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniPDGManager::InitializePDGAssetLink);
 	if (InNodeId < 0)
