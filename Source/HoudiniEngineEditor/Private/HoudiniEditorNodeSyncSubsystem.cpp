@@ -283,7 +283,9 @@ UHoudiniEditorNodeSyncSubsystem::SendWorldSelection()
 	SendToHoudini(CurrentWorldSelection, AddedObjectIndex, true);
 
 	// Rebuild the NodeSync selection view
-	FHoudiniEngineEditor::Get().GetNodeSyncPanel()->RebuildSelectionView();
+	TSharedPtr<SHoudiniNodeSyncPanel> NSPanel = FHoudiniEngineEditor::Get().GetNodeSyncPanel();
+	if(NSPanel && NSPanel.IsValid())
+		NSPanel->RebuildSelectionView();
 }
 
 
@@ -492,7 +494,9 @@ UHoudiniEditorNodeSyncSubsystem::UpdateAllSelection()
 	SendToHoudini(CurrentWorldSelection, 0, true);
 
 	// Rebuild the NodeSync selection view
-	FHoudiniEngineEditor::Get().GetNodeSyncPanel()->RebuildSelectionView();
+	TSharedPtr<SHoudiniNodeSyncPanel> NSPanel = FHoudiniEngineEditor::Get().GetNodeSyncPanel();
+	if (NSPanel && NSPanel.IsValid())
+		NSPanel->RebuildSelectionView();
 }
 
 void
@@ -529,7 +533,9 @@ UHoudiniEditorNodeSyncSubsystem::DeleteAllSelection()
 	}
 
 	// Rebuild the NodeSync selection view
-	FHoudiniEngineEditor::Get().GetNodeSyncPanel()->RebuildSelectionView();
+	TSharedPtr<SHoudiniNodeSyncPanel> NSPanel = FHoudiniEngineEditor::Get().GetNodeSyncPanel();
+	if (NSPanel && NSPanel.IsValid())
+		NSPanel->RebuildSelectionView();
 }
 
 
