@@ -46,7 +46,7 @@
 #include "TimerManager.h"
 
 UHoudiniParameter*
-FCookableParameterData::FindMatchingParameter(UHoudiniParameter* InOtherParam)
+UCookableParameterData::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 {
 	if (!IsValid(InOtherParam))
 		return nullptr;
@@ -68,8 +68,9 @@ FCookableParameterData::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 //
 // HOUDINI ASSET DATA
 //
-FCookableHoudiniAssetData::FCookableHoudiniAssetData()
-	: HoudiniAsset(nullptr)
+UCookableHoudiniAssetData::UCookableHoudiniAssetData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, HoudiniAsset(nullptr)
 	, SubAssetIndex(-1)
 	, HapiAssetName(TEXT(""))
 {
@@ -81,8 +82,9 @@ FCookableHoudiniAssetData::FCookableHoudiniAssetData()
 //
 // PARAMETER DATA
 //
-FCookableParameterData::FCookableParameterData()
-	: bCookOnParameterChange(true)
+UCookableParameterData::UCookableParameterData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, bCookOnParameterChange(true)
 	, bParameterDefinitionUpdateNeeded(false)
 {
 
@@ -93,15 +95,16 @@ FCookableParameterData::FCookableParameterData()
 //
 // INPUT DATA
 //
-FCookableInputData::FCookableInputData()
-	: bCookOnInputChange(true)
+UCookableInputData::UCookableInputData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, bCookOnInputChange(true)
 {
 
 }
 
 
 bool
-FCookableInputData::NeedsToWaitForInputHoudiniAssets()
+UCookableInputData::NeedsToWaitForInputHoudiniAssets()
 {
 	for (auto& CurrentInput : Inputs)
 	{
@@ -153,8 +156,9 @@ FCookableInputData::NeedsToWaitForInputHoudiniAssets()
 //
 // OUTPUT DATA
 //
-FCookableOutputData::FCookableOutputData()
-	: TemporaryCookFolder()
+UCookableOutputData::UCookableOutputData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, TemporaryCookFolder()
 	, bHasWorldOutputs()
 	, bOutputless(false)
 	, bOutputTemplateGeos(false)
@@ -195,7 +199,7 @@ FCookableOutputData::FCookableOutputData()
 }
 
 bool
-FCookableOutputData::IsProxyStaticMeshRefinementByTimerEnabled() const
+UCookableOutputData::IsProxyStaticMeshRefinementByTimerEnabled() const
 {
 	if (bOverrideGlobalProxyStaticMeshSettings)
 		return bEnableProxyStaticMeshOverride && bEnableProxyStaticMeshRefinementByTimerOverride;
@@ -212,8 +216,9 @@ FCookableOutputData::IsProxyStaticMeshRefinementByTimerEnabled() const
 //
 // COMPONENT DATA
 //
-FCookableComponentData::FCookableComponentData()
-	: LastComponentTransform(FTransform())
+UCookableComponentData::UCookableComponentData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, LastComponentTransform(FTransform())
 	, bHasComponentTransformChanged(false)
 	, bUploadTransformsToHoudiniEngine(true)
 	, bCookOnTransformChange(false)
@@ -227,14 +232,15 @@ FCookableComponentData::FCookableComponentData()
 //
 // PDG DATA
 //
-FCookablePDGData::FCookablePDGData()
-	: bIsPDGAssetLinkInitialized(false)
+UCookablePDGData::UCookablePDGData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, bIsPDGAssetLinkInitialized(false)
 {
 	PDGAssetLink = nullptr;
 }
 
 void
-FCookablePDGData::SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink)
+UCookablePDGData::SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink)
 {
 	// Check the object validity
 	if (!IsValid(InPDGAssetLink))
@@ -283,66 +289,36 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 	//LastLiveSyncPingTime = 0.0;
 
 	bHasHoudiniAsset = false;
-	//HoudiniAssetData.HoudiniAsset = nullptr;
-	//HoudiniAssetData.SubAssetIndex = -1;
-	//HoudiniAssetData.HapiAssetName = FString();
+/*	HoudiniAssetData = NewObject<UCookableHoudiniAssetData>(
+		this, UCookableHoudiniAssetData::StaticClass(), NAME_None, RF_NoFlags);*/
+	HoudiniAssetData = CreateDefaultSubobject<UCookableHoudiniAssetData>(TEXT("HoudiniAssetData"));
 
 	bHasInputs = false;
-	//InputData.bCookOnInputChange = true;
-	//InputsData.bCookOnAssetInputCook = true;
+/*	InputData = NewObject<UCookableInputData>(
+		this, UCookableInputData::StaticClass(), NAME_None, RF_NoFlags);*/
+	InputData = CreateDefaultSubobject<UCookableInputData>(TEXT("InputData"));
 
 	bHasParameters = false;
-	//ParameterData.bCookOnParameterChange = true;
+/*	ParameterData = NewObject<UCookableParameterData>(
+		this, UCookableParameterData::StaticClass(), NAME_None, RF_NoFlags);*/
+	ParameterData = CreateDefaultSubobject<UCookableParameterData>(TEXT("ParameterData"));
 	
 	bHasComponent = false;
-	//ComponentData.LastComponentTransform = FTransform();
-	//ComponentData.bUploadTransformsToHoudiniEngine = true;
-	//ComponentData.bHasComponentTransformChanged = false;
-	//ComponentData.bCookOnTransformChange = false;
-
+/*	ComponentData = NewObject<UCookableComponentData>(
+		this, UCookableComponentData::StaticClass(), NAME_None, RF_NoFlags);*/
+	ComponentData = CreateDefaultSubobject<UCookableComponentData>(TEXT("ComponentData"));
 
 	bHasOutputs = false;
-	/*
-	//OutputData.bOutputless = false;
-	//bUseNativeHoudiniMaterials = true;
-	//OutputData.bOutputTemplateGeos = false;
-	//OutputData.bUseOutputNodes = true;
-	//OutputData.bOverrideGlobalProxyStaticMeshSettings = false;
-	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-	if (HoudiniRuntimeSettings)
-	{
-		OutputData.bEnableProxyStaticMeshOverride = HoudiniRuntimeSettings->bEnableProxyStaticMesh;
-		OutputData.bEnableProxyStaticMeshRefinementByTimerOverride = HoudiniRuntimeSettings->bEnableProxyStaticMeshRefinementByTimer;
-		OutputData.ProxyMeshAutoRefineTimeoutSecondsOverride = HoudiniRuntimeSettings->ProxyMeshAutoRefineTimeoutSeconds;
-		OutputData.bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = HoudiniRuntimeSettings->bEnableProxyStaticMeshRefinementOnPreSaveWorld;
-		OutputData.bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = HoudiniRuntimeSettings->bEnableProxyStaticMeshRefinementOnPreBeginPIE;
-	}
-	else
-	{
-		OutputData.bEnableProxyStaticMeshOverride = false;
-		OutputData.bEnableProxyStaticMeshRefinementByTimerOverride = true;
-		OutputData.ProxyMeshAutoRefineTimeoutSecondsOverride = 10.0f;
-		OutputData.bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = true;
-		OutputData.bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = true;
-	}
-	OutputData.bNoProxyMeshNextCookRequested = false;
-	OutputData.BakeAfterNextCook = EHoudiniBakeAfterNextCook::Disabled;
-	OutputData.HoudiniEngineBakeOption = EHoudiniEngineBakeOption::ToActor;
-	OutputData.bRemoveOutputAfterBake = false;
-	OutputData.bRecenterBakedActors = false;
-	OutputData.bReplacePreviousBake = false;
-	OutputData.ActorBakeOption = EHoudiniEngineActorBakeOption::OneActorPerComponent;
-	OutputData.bAllowPlayInEditorRefinement = false;
-	//HoudiniOutputsData.bNeedToUpdateEditorProperties = false;
-	OutputData.bLandscapeUseTempLayers = false;
-	//HoudiniOutputsData.bEnableCurveEditing = true;
-	// Initialize the default SM Build settings with the plugin's settings default values
-	OutputData.StaticMeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
-	*/
-	bNeedToUpdateEditorProperties = false;
+/*	OutputData = NewObject<UCookableOutputData>(
+		this, UCookableOutputData::StaticClass(), NAME_None, RF_NoFlags);*/
+	OutputData = CreateDefaultSubobject<UCookableOutputData>(TEXT("OutputData"));
 
-	//PDGData.PDGAssetLink = nullptr;
-	//PDGData.bIsPDGAssetLinkInitialized = false;
+	bHasPDG = false;
+/*	PDGData = NewObject<UCookablePDGData>(
+		this, UCookablePDGData::StaticClass(), NAME_None, RF_NoFlags);*/
+	PDGData = CreateDefaultSubobject<UCookablePDGData>(TEXT("PDGData"));
+
+	bNeedToUpdateEditorProperties = false;
 
 	/*
 	//
@@ -378,7 +354,7 @@ UHoudiniCookable::GetComponent() const
 	if (!IsComponentSupported())
 		return nullptr;
 
-	return ComponentData.Component.Get();
+	return ComponentData->Component.Get();
 }
 
 AActor*
@@ -407,7 +383,7 @@ UHoudiniCookable::IsOwnerSelected() const
 bool
 UHoudiniCookable::ShouldTryToStartFirstSession() const
 {
-	if(IsHoudiniAssetSupported() && !HoudiniAssetData.HoudiniAsset)
+	if(IsHoudiniAssetSupported() && !HoudiniAssetData->HoudiniAsset)
 		return false;
 
 	// Only try to start the default session if we have an "active" HAC
@@ -593,7 +569,7 @@ UHoudiniCookable::NeedUpdateInstancedOutputs() const
 		return false;
 
 	// Go through all outputs
-	for (auto CurrentOutput : OutputData.Outputs)
+	for (auto CurrentOutput : OutputData->Outputs)
 	{
 		if (!IsValid(CurrentOutput))
 			continue;
@@ -615,11 +591,11 @@ UHoudiniCookable::NeedUpdateParameters() const
 		return false;
 
 	// No need to cook on param change
-	if(!ParameterData.bCookOnParameterChange)
+	if(!ParameterData->bCookOnParameterChange)
 		return false;
 
 	// Go through all our parameters, return true if they have been updated
-	for (auto CurrentParm : ParameterData.Parameters)
+	for (auto CurrentParm : ParameterData->Parameters)
 	{
 		if (!IsValid(CurrentParm))
 			continue;
@@ -645,11 +621,11 @@ UHoudiniCookable::NeedUpdateInputs() const
 		return false;
 
 	// No need to cook on input change
-	if (!InputData.bCookOnInputChange)
+	if (!InputData->bCookOnInputChange)
 		return false;
 
 	// Go through all our inputs, return true if they have been updated
-	for (auto CurrentInput : InputData.Inputs)
+	for (auto CurrentInput : InputData->Inputs)
 	{
 		if (!IsValid(CurrentInput))
 			continue;
@@ -675,7 +651,7 @@ UHoudiniCookable::NeedUpdateOutputs() const
 		return false;
 
 	// Go through all outputs, filter the editable nodes. Return true if they have been updated.
-	for (auto CurrentOutput : OutputData.Outputs)
+	for (auto CurrentOutput : OutputData->Outputs)
 	{
 		if (!IsValid(CurrentOutput))
 			continue;
@@ -725,14 +701,14 @@ UHoudiniCookable::NeedUpdate() const
 		return false;
 	*/
 	// If we support HDAs - we should have one assigned.
-	if (IsHoudiniAssetSupported() && !HoudiniAssetData.HoudiniAsset)
+	if (IsHoudiniAssetSupported() && !HoudiniAssetData->HoudiniAsset)
 		return false;
 
 	if (bForceNeedUpdate || bRecookRequested) // || bRebuildRequested ??
 		return true;
 
 	// Check if the HAC's transform has changed and we need to cook because of it
-	if (IsComponentSupported() && ComponentData.bHasComponentTransformChanged && ComponentData.bCookOnTransformChange)
+	if (IsComponentSupported() && ComponentData->bHasComponentTransformChanged && ComponentData->bCookOnTransformChange)
 		return true;
 
 	// If we don't want to cook on parameter/input change dont bother looking for updates
@@ -775,7 +751,7 @@ UHoudiniCookable::ClearNodesToCook()
 void
 UHoudiniCookable::UpdatePostDuplicate()
 {
-	if (IsComponentSupported() && IsValid(ComponentData.Component))
+	if (IsComponentSupported() && IsValid(ComponentData->Component))
 	{
 		// TODO COOKABLE:
 		// - Keep the output objects/components (remove duplicatetransient on the output object uproperties)
@@ -784,7 +760,7 @@ UHoudiniCookable::UpdatePostDuplicate()
 		// This should remove the need for a cook on duplicate
 		
 		// For now, we simply clean some of our component's children component manually
-		const TArray<USceneComponent*> Children = ComponentData.Component->GetAttachChildren();
+		const TArray<USceneComponent*> Children = ComponentData->Component->GetAttachChildren();
 
 		for (auto& NextChild : Children)
 		{
@@ -834,18 +810,18 @@ UHoudiniCookable::UpdatePostDuplicate()
 		}
 	}
 	
-	if(IsPDGSupported() && IsValid(PDGData.PDGAssetLink))
+	if(IsPDGSupported() && IsValid(PDGData->PDGAssetLink))
 	{
 		// if there is an associated PDG asset link, call its UpdatePostDuplicate to cleanup references to
 		// to the original instance's PDG output actors
-		PDGData.PDGAssetLink->UpdatePostDuplicate();
+		PDGData->PDGAssetLink->UpdatePostDuplicate();
 	}
 
 	bHasBeenDuplicated = false;
 }
 
 void
-UHoudiniCookable::SetHasComponentTransformChanged(const bool& InHasChanged)
+UHoudiniCookable::SetHasComponentTransformChanged(bool InHasChanged)
 {
 	if (!IsComponentSupported())
 		return;
@@ -855,8 +831,8 @@ UHoudiniCookable::SetHasComponentTransformChanged(const bool& InHasChanged)
 	if (!bFullyLoaded)
 		return;
 
-	ComponentData.bHasComponentTransformChanged = InHasChanged;
-	ComponentData.LastComponentTransform = ComponentData.Component->GetComponentTransform();
+	ComponentData->bHasComponentTransformChanged = InHasChanged;
+	ComponentData->LastComponentTransform = ComponentData->Component->GetComponentTransform();
 }
 
 
@@ -870,7 +846,7 @@ UHoudiniCookable::ClearRefineMeshesTimer()
 	if (!World)
 		return;
 
-	World->GetTimerManager().ClearTimer(OutputData.RefineMeshesTimer);
+	World->GetTimerManager().ClearTimer(OutputData->RefineMeshesTimer);
 }
 
 
@@ -907,7 +883,7 @@ UHoudiniCookable::MarkAsNeedCook()
 	if (IsParameterSupported())
 	{
 		// We need to mark all our parameters as changed/trigger update
-		for (auto CurrentParam : ParameterData.Parameters)
+		for (auto CurrentParam : ParameterData->Parameters)
 		{
 			if (!IsValid(CurrentParam))
 				continue;
@@ -925,7 +901,7 @@ UHoudiniCookable::MarkAsNeedCook()
 	if (IsOutputSupported())
 	{
 		// We need to mark all of our editable curves as changed
-		for (auto Output : OutputData.Outputs)
+		for (auto Output : OutputData->Outputs)
 		{
 			if (!IsValid(Output) || Output->GetType() != EHoudiniOutputType::Curve || !Output->IsEditableNode())
 				continue;
@@ -952,7 +928,7 @@ UHoudiniCookable::MarkAsNeedCook()
 	if (IsInputSupported())
 	{
 		// We need to mark all our inputs as changed/trigger update
-		for (auto CurrentInput : InputData.Inputs)
+		for (auto CurrentInput : InputData->Inputs)
 		{
 			if (!IsValid(CurrentInput))
 				continue;
@@ -1007,12 +983,12 @@ UHoudiniCookable::PreventAutoUpdates()
 	bRebuildRequested = false;
 
 	if(IsComponentSupported())
-		ComponentData.bHasComponentTransformChanged = false;
+		ComponentData->bHasComponentTransformChanged = false;
 
 	if (IsParameterSupported())
 	{
 		// Go through all our parameters, prevent them from triggering updates
-		for (auto CurrentParm : ParameterData.Parameters)
+		for (auto CurrentParm : ParameterData->Parameters)
 		{
 			if (!IsValid(CurrentParm))
 				continue;
@@ -1025,7 +1001,7 @@ UHoudiniCookable::PreventAutoUpdates()
 	// Same with inputs
 	if (IsInputSupported())
 	{
-		for (auto CurrentInput : InputData.Inputs)
+		for (auto CurrentInput : InputData->Inputs)
 		{
 			if (!IsValid(CurrentInput))
 				continue;
@@ -1038,7 +1014,7 @@ UHoudiniCookable::PreventAutoUpdates()
 	if (IsOutputSupported())
 	{
 		// Go through all outputs, filter the editable nodes.
-		for (auto CurrentOutput : OutputData.Outputs)
+		for (auto CurrentOutput : OutputData->Outputs)
 		{
 			if (!IsValid(CurrentOutput))
 				continue;
@@ -1073,13 +1049,13 @@ UHoudiniCookable::OnSessionConnected()
 {
 	if (IsParameterSupported())
 	{
-		for (auto& Param : ParameterData.Parameters)
+		for (auto& Param : ParameterData->Parameters)
 			Param->OnSessionConnected();
 	}
 	
 	if (IsInputSupported())
 	{
-		for (auto& Input : InputData.Inputs)
+		for (auto& Input : InputData->Inputs)
 		{
 			Input->OnSessionConnected();
 		}

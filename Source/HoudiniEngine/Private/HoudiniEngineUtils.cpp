@@ -371,7 +371,7 @@ FHoudiniEngineUtils::MarkAllHACsAsNeedInstantiation()
 }
 
 const FString
-FHoudiniEngineUtils::GetNodeErrorsWarningsAndMessages(const HAPI_NodeId& InNodeId)
+FHoudiniEngineUtils::GetNodeErrorsWarningsAndMessages(HAPI_NodeId InNodeId)
 {
 	int32 NodeErrorLength = 0;
 	if (HAPI_RESULT_SUCCESS != FHoudiniApi::ComposeNodeCookResult(
@@ -1559,7 +1559,7 @@ FHoudiniEngineUtils::IsInitialized()
 }
 
 bool
-FHoudiniEngineUtils::IsHoudiniNodeValid(const HAPI_NodeId& NodeId)
+FHoudiniEngineUtils::IsHoudiniNodeValid(HAPI_NodeId NodeId)
 {
 	if (NodeId < 0)
 		return false;
@@ -1594,7 +1594,7 @@ FHoudiniEngineUtils::HapiDisconnectAsset(HAPI_NodeId HostAssetId, int32 InputInd
 }
 
 bool
-FHoudiniEngineUtils::DestroyHoudiniAsset(const HAPI_NodeId& AssetId)
+FHoudiniEngineUtils::DestroyHoudiniAsset(HAPI_NodeId AssetId)
 {
 	if (HAPI_RESULT_SUCCESS == FHoudiniApi::DeleteNode(
 		FHoudiniEngine::Get().GetSession(), AssetId))
@@ -1606,7 +1606,7 @@ FHoudiniEngineUtils::DestroyHoudiniAsset(const HAPI_NodeId& AssetId)
 }
 
 bool
-FHoudiniEngineUtils::DeleteHoudiniNode(const HAPI_NodeId& InNodeId)
+FHoudiniEngineUtils::DeleteHoudiniNode(HAPI_NodeId InNodeId)
 {
 	if (HAPI_RESULT_SUCCESS == FHoudiniApi::DeleteNode(
 		FHoudiniEngine::Get().GetSession(), InNodeId))
@@ -1978,7 +1978,7 @@ FHoudiniEngineUtils::IsValidNodeId(HAPI_NodeId NodeId)
 */
 
 bool
-FHoudiniEngineUtils::GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString& NameString)
+FHoudiniEngineUtils::GetHoudiniAssetName(HAPI_NodeId AssetNodeId, FString& NameString)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GetHoudiniAssetName);
 
@@ -2006,7 +2006,7 @@ FHoudiniEngineUtils::GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString
 }
 
 bool
-FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray<int8>& PresetBuffer)
+FHoudiniEngineUtils::GetAssetPreset(HAPI_NodeId AssetNodeId, TArray<int8>& PresetBuffer)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GetAssetPreset);
 	PresetBuffer.Empty();
@@ -2041,7 +2041,7 @@ FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray<int8>
 }
 
 bool
-FHoudiniEngineUtils::HapiGetAbsNodePath(const HAPI_NodeId& InNodeId, FString& OutPath)
+FHoudiniEngineUtils::HapiGetAbsNodePath(HAPI_NodeId InNodeId, FString& OutPath)
 {
 	// Retrieve Path to the given Node, relative to the other given Node
 	if (InNodeId < 0)
@@ -2065,7 +2065,7 @@ FHoudiniEngineUtils::HapiGetAbsNodePath(const HAPI_NodeId& InNodeId, FString& Ou
 
 
 bool
-FHoudiniEngineUtils::HapiGetNodePath(const HAPI_NodeId& InNodeId, const HAPI_NodeId& InRelativeToNodeId, FString& OutPath)
+FHoudiniEngineUtils::HapiGetNodePath(HAPI_NodeId InNodeId, HAPI_NodeId InRelativeToNodeId, FString& OutPath)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiGetNodePath);
 
@@ -2149,7 +2149,7 @@ FHoudiniEngineUtils::HapiGetNodePath(const FHoudiniGeoPartObject& InHGPO, FStrin
 
 
 bool
-FHoudiniEngineUtils::HapiGetObjectInfos(const HAPI_NodeId& InNodeId, TArray<HAPI_ObjectInfo>& OutObjectInfos, TArray<HAPI_Transform>& OutObjectTransforms)
+FHoudiniEngineUtils::HapiGetObjectInfos(HAPI_NodeId InNodeId, TArray<HAPI_ObjectInfo>& OutObjectInfos, TArray<HAPI_Transform>& OutObjectTransforms)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiGetObjectInfos);
 
@@ -2266,7 +2266,7 @@ FHoudiniEngineUtils::HapiGetObjectInfos(const HAPI_NodeId& InNodeId, TArray<HAPI
 }
 
 bool 
-FHoudiniEngineUtils::IsObjNodeFullyVisible(const TSet<HAPI_NodeId>& AllObjectIds, const HAPI_NodeId& InRootNodeId, const HAPI_NodeId& InChildNodeId)
+FHoudiniEngineUtils::IsObjNodeFullyVisible(const TSet<HAPI_NodeId>& AllObjectIds, HAPI_NodeId InRootNodeId, HAPI_NodeId InChildNodeId)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::IsObjNodeFullyVisible);
 
@@ -2331,7 +2331,7 @@ FHoudiniEngineUtils::IsObjNodeFullyVisible(const TSet<HAPI_NodeId>& AllObjectIds
 
 
 bool
-FHoudiniEngineUtils::HapiGetNodeType(const HAPI_NodeId& InNodeId, HAPI_NodeType& OutNodeType)
+FHoudiniEngineUtils::HapiGetNodeType(HAPI_NodeId InNodeId, HAPI_NodeType& OutNodeType)
 {
 	HAPI_NodeInfo NodeInfo;
 	FHoudiniApi::NodeInfo_Init(&NodeInfo);
@@ -2348,7 +2348,7 @@ FHoudiniEngineUtils::HapiGetNodeType(const HAPI_NodeId& InNodeId, HAPI_NodeType&
 
 
 bool
-FHoudiniEngineUtils::IsSopNode(const HAPI_NodeId& NodeId)
+FHoudiniEngineUtils::IsSopNode(HAPI_NodeId NodeId)
 {
 	HAPI_NodeInfo NodeInfo;
 	FHoudiniApi::NodeInfo_Init(&NodeInfo);
@@ -2363,7 +2363,7 @@ FHoudiniEngineUtils::IsSopNode(const HAPI_NodeId& NodeId)
 }
 
 
-bool FHoudiniEngineUtils::ContainsSopNodes(const HAPI_NodeId& NodeId)
+bool FHoudiniEngineUtils::ContainsSopNodes(HAPI_NodeId NodeId)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::ContainsSopNodes);
 	int ChildCount = 0;
@@ -2381,7 +2381,7 @@ bool FHoudiniEngineUtils::ContainsSopNodes(const HAPI_NodeId& NodeId)
 	return ChildCount > 0;
 }
 
-bool FHoudiniEngineUtils::GetOutputIndex(const HAPI_NodeId& InNodeId, int32& OutOutputIndex)
+bool FHoudiniEngineUtils::GetOutputIndex(HAPI_NodeId InNodeId, int32& OutOutputIndex)
 {
 	int TempValue = -1;
 	if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmIntValue(
@@ -2635,7 +2635,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 			
 		} // if (bObjectIsVisible)
 
-		for (const HAPI_NodeId& NodeId : ForceNodesToCook)
+		for (HAPI_NodeId NodeId : ForceNodesToCook)
 		{
 			OutOutputNodes.AddUnique(NodeId);
 		}
@@ -2643,7 +2643,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 	return true;
 }
 
-bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNodeId,
+bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(HAPI_NodeId InNodeId,
                                                         const bool bUseOutputNodes,
                                                         const bool bGatherTemplateNodes,
                                                         TArray<HAPI_GeoInfo>& OutGeoInfos,
@@ -2730,7 +2730,7 @@ bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNod
 					HAPI_GeoInfo GeoInfo;
 					FHoudiniApi::GeoInfo_Init(&GeoInfo);
 					// Retrieve the Geo Infos for each display node
-					for(const HAPI_NodeId& DisplayNodeId : DisplayNodeIds)
+					for(HAPI_NodeId DisplayNodeId : DisplayNodeIds)
 					{
 						if (GatheredNodeIds.Contains(DisplayNodeId))
 							continue; // This node has already been gathered from this subnet.
@@ -2777,7 +2777,7 @@ bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNod
 					))
 			{
 				
-				for(const HAPI_NodeId& TemplateNodeId : TemplateNodeIds)
+				for(HAPI_NodeId TemplateNodeId : TemplateNodeIds)
 				{
 					if (GatheredNodeIds.Contains(TemplateNodeId))
 					{
@@ -2810,7 +2810,7 @@ bool FHoudiniEngineUtils::GatherImmediateOutputGeoInfos(const HAPI_NodeId& InNod
 
 
 bool
-FHoudiniEngineUtils::HapiGetAssetTransform(const HAPI_NodeId& InNodeId, FTransform& OutTransform)
+FHoudiniEngineUtils::HapiGetAssetTransform(HAPI_NodeId InNodeId, FTransform& OutTransform)
 {
 	HAPI_NodeInfo NodeInfo;
 	FHoudiniApi::NodeInfo_Init(&NodeInfo);
@@ -3010,7 +3010,7 @@ FHoudiniEngineUtils::ConvertHoudiniPositionToUnrealVector(const TArray<float>& I
 
 	for (int32 OutIndex = 0; OutIndex < OutVectorData.Num(); OutIndex++)
 	{
-		const int32& InIndex = OutIndex * 3;
+		int32 InIndex = OutIndex * 3;
 
 		// Swap Y/Z and scale meters to centimeters
 		OutVectorData[OutIndex].X = (double)(InRawData[InIndex + 0] * HAPI_UNREAL_SCALE_FACTOR_POSITION);
@@ -3037,7 +3037,7 @@ FHoudiniEngineUtils::ConvertHoudiniScaleToUnrealVector(const TArray<float>& InRa
 
 	for (int32 OutIndex = 0; OutIndex < OutVectorData.Num(); OutIndex++)
 	{
-		const int32& InIndex = OutIndex * 3;
+		int32 InIndex = OutIndex * 3;
 
 		// Just swap Y/Z
 		OutVectorData[OutIndex].X = (double)InRawData[InIndex + 0];
@@ -3053,7 +3053,7 @@ FHoudiniEngineUtils::ConvertHoudiniRotQuatToUnrealVector(const TArray<float>& In
 
 	for (int32 OutIndex = 0; OutIndex < OutVectorData.Num(); OutIndex++)
 	{
-		const int32& InIndex = OutIndex * 4;
+		int32 InIndex = OutIndex * 4;
 
 		// Extract a quaternion: Swap Y/Z, invert W
 		FQuat ObjectRotation(
@@ -3074,7 +3074,7 @@ FHoudiniEngineUtils::ConvertHoudiniRotEulerToUnrealVector(const TArray<float>& I
 
 	for (int32 OutIndex = 0; OutIndex < OutVectorData.Num(); OutIndex++)
 	{
-		const int32& InIndex = OutIndex * 3;
+		int32 InIndex = OutIndex * 3;
 
 		// Just swap Y/Z
 		OutVectorData[OutIndex].X = (double)InRawData[InIndex + 0];
@@ -3115,10 +3115,10 @@ FHoudiniEngineUtils::UploadCookableTransform(UHoudiniCookable* HC)
 	if (!HC || !HC->IsComponentSupported())
 		return false;
 
-	if (!HC->ComponentData.bUploadTransformsToHoudiniEngine)
+	if (!HC->ComponentData->bUploadTransformsToHoudiniEngine)
 		return false;
 
-	if (!IsValid(HC->ComponentData.Component))
+	if (!IsValid(HC->ComponentData->Component))
 		return false;
 
 	// Indicates the Cookable has been fully loaded
@@ -3127,7 +3127,7 @@ FHoudiniEngineUtils::UploadCookableTransform(UHoudiniCookable* HC)
 
 	if (HC->CookCount > 0 && HC->GetNodeId() >= 0)
 	{
-		if (!FHoudiniEngineUtils::HapiSetAssetTransform(HC->GetNodeId(), HC->ComponentData.Component->GetComponentTransform()))
+		if (!FHoudiniEngineUtils::HapiSetAssetTransform(HC->GetNodeId(), HC->ComponentData->Component->GetComponentTransform()))
 			return false;
 	}
 
@@ -3138,7 +3138,7 @@ FHoudiniEngineUtils::UploadCookableTransform(UHoudiniCookable* HC)
 
 
 bool
-FHoudiniEngineUtils::HapiSetAssetTransform(const HAPI_NodeId& AssetId, const FTransform & Transform)
+FHoudiniEngineUtils::HapiSetAssetTransform(HAPI_NodeId AssetId, const FTransform & Transform)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiSetAssetTransform);
 	if (AssetId < 0)
@@ -3175,7 +3175,7 @@ FHoudiniEngineUtils::HapiSetAssetTransform(const HAPI_NodeId& AssetId, const FTr
 }
 
 HAPI_NodeId
-FHoudiniEngineUtils::HapiGetParentNodeId(const HAPI_NodeId& NodeId)
+FHoudiniEngineUtils::HapiGetParentNodeId(HAPI_NodeId NodeId)
 {
 	HAPI_NodeId ParentId = -1;
 	if (NodeId >= 0)
@@ -3191,7 +3191,7 @@ FHoudiniEngineUtils::HapiGetParentNodeId(const HAPI_NodeId& NodeId)
 
 // Assign a unique Actor Label if needed
 void
-FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(const HAPI_NodeId& InNodeId, AActor* InActorOwner)
+FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(HAPI_NodeId InNodeId, AActor* InActorOwner)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded);
 
@@ -3570,8 +3570,8 @@ FHoudiniEngineUtils::UpdateBlueprintEditor_Internal(UHoudiniAssetComponent* HAC)
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeFloatData(
 	const TArray<float>& InFloatData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo,
 	bool bAttemptRunLengthEncoding)
@@ -3589,8 +3589,8 @@ FHoudiniEngineUtils::HapiSetAttributeFloatData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeFloatData(
 	const float* InFloatData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo,
 	bool bAttemptRunLengthEncoding)
@@ -3659,8 +3659,8 @@ FHoudiniEngineUtils::HapiSetAttributeFloatData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeIntData(
 	const TArray<int32>& InIntData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo,
     bool bAttemptRunLengthEncoding)
@@ -3677,8 +3677,8 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeFloatUniqueData(
 	const float InFloatData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -3698,8 +3698,8 @@ FHoudiniEngineUtils::HapiSetAttributeFloatUniqueData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
 	const int32 InIntData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -3719,8 +3719,8 @@ FHoudiniEngineUtils::HapiSetAttributeIntUniqueData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeIntData(	
 	const int32* InIntData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo,
 	bool bAttemptRunLengthEncoding)
@@ -3790,8 +3790,8 @@ FHoudiniEngineUtils::HapiSetAttributeIntData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeUIntData(
 	const TArray<int64>& InIntData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -3804,8 +3804,8 @@ FHoudiniEngineUtils::HapiSetAttributeUIntData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeUIntData(
 	const int64* InIntData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -3818,8 +3818,8 @@ FHoudiniEngineUtils::HapiSetAttributeUIntData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeInt8Data(
 	const TArray<int8>& InByteData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -3835,8 +3835,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt8Data(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeInt8Data(
 	const int8* InByteData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -3880,8 +3880,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt8Data(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
 	const TArray<uint8>& InByteData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -3898,8 +3898,8 @@ FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
 	const uint8* InByteData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -3943,8 +3943,8 @@ FHoudiniEngineUtils::HapiSetAttributeUInt8Data(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeInt16Data(
 	const TArray<int16>& InShortData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -3962,8 +3962,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt16Data(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeInt16Data(
 	const int16* InShortData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -4007,8 +4007,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt16Data(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeUInt16Data(
 	const TArray<int32>& InShortData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -4021,8 +4021,8 @@ FHoudiniEngineUtils::HapiSetAttributeUInt16Data(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeUInt16Data(
 	const int32* InShortData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -4035,8 +4035,8 @@ FHoudiniEngineUtils::HapiSetAttributeUInt16Data(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 	const TArray<int64>& InInt64Data,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -4052,8 +4052,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 	const int64* InInt64Data,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -4145,8 +4145,8 @@ FHoudiniEngineUtils::HapiSetAttributeInt64Data(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeUInt64Data(
 	const TArray<int64>& InInt64Data,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -4159,8 +4159,8 @@ FHoudiniEngineUtils::HapiSetAttributeUInt64Data(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeDoubleData(
 	const TArray<double>& InDoubleData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -4177,8 +4177,8 @@ FHoudiniEngineUtils::HapiSetAttributeDoubleData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeDoubleData(
 	const double* InDoubleData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -4222,8 +4222,8 @@ FHoudiniEngineUtils::HapiSetAttributeDoubleData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetVertexList(
 	const TArray<int32>& InVertexListData,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId)
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId)
 {
     H_SCOPED_FUNCTION_TIMER();
 
@@ -4261,8 +4261,8 @@ FHoudiniEngineUtils::HapiSetVertexList(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetFaceCounts(
 	const TArray<int32>& InFaceCounts,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId)
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId)
 {
     H_SCOPED_FUNCTION_TIMER();
 
@@ -4299,8 +4299,8 @@ FHoudiniEngineUtils::HapiSetFaceCounts(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeStringUniqueData(
 	const FString& InString,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -4320,8 +4320,8 @@ FHoudiniEngineUtils::HapiSetAttributeStringUniqueData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeStringMap(
 	const FHoudiniEngineIndexedStringMap& InIndexedStringMap,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
@@ -4341,8 +4341,8 @@ FHoudiniEngineUtils::HapiSetAttributeStringMap(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeStringData(
 	const TArray<FString>& InStringArray, 
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo )
 {
@@ -4395,8 +4395,8 @@ FHoudiniEngineUtils::HapiSetAttributeStringData(
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeStringArrayData(
 	const TArray<FString>& InStringArray,
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo,
 	const TArray<int>& SizesFixedArray)
@@ -4458,7 +4458,7 @@ FHoudiniEngineUtils::HapiSetAttributeStringArrayData(
 
 HAPI_Result
 FHoudiniEngineUtils::HapiSetAttributeDictionaryData(const TArray<FString>& JSONData,
-	const HAPI_NodeId& InNodeId, const HAPI_PartId& InPartId, const FString& InAttributeName,
+	HAPI_NodeId InNodeId, HAPI_PartId InPartId, const FString& InAttributeName,
 	const HAPI_AttributeInfo& InAttributeInfo)
 {
 	H_SCOPED_FUNCTION_DYNAMIC_LABEL(InAttributeName);
@@ -4509,8 +4509,8 @@ FHoudiniEngineUtils::HapiSetAttributeDictionaryData(const TArray<FString>& JSOND
 
 HAPI_Result
 FHoudiniEngineUtils::HapiSetHeightFieldData(
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	const TArray<float>& InFloatValues,
 	const FString& InHeightfieldName)
 {
@@ -4696,7 +4696,7 @@ FHoudiniEngineUtils::HasHoudiniLogo(UHoudiniAssetComponent* HAC)
 
 int32
 FHoudiniEngineUtils::HapiGetVertexListForGroup(
-	const HAPI_NodeId& GeoId,
+	HAPI_NodeId GeoId,
 	const HAPI_PartInfo& PartInfo,
 	const FString& GroupName,
 	const TArray<int32>& FullVertexList,
@@ -4706,7 +4706,7 @@ FHoudiniEngineUtils::HapiGetVertexListForGroup(
 	TArray<int32>& AllGroupFaceIndices,
 	int32& FirstValidVertex,
 	int32& FirstValidPrim,
-	const bool& isPackedPrim)
+	bool isPackedPrim)
 {
 	int32 ProcessedWedges = 0;
 	AllFaceList.Empty();
@@ -4862,7 +4862,7 @@ bool FHoudiniEngineUtils::HapiGetGroupMembership(
 
 bool
 FHoudiniEngineUtils::HapiGetGroupMembership(
-	const HAPI_NodeId& GeoId, const HAPI_PartInfo& PartInfo,
+	HAPI_NodeId GeoId, const HAPI_PartInfo& PartInfo,
 	const HAPI_GroupType& GroupType, const FString & GroupName,
 	TArray<int32>& OutGroupMembership, bool& OutAllEquals)
 {
@@ -4892,13 +4892,13 @@ FHoudiniEngineUtils::HapiGetGroupMembership(
 
 bool
 FHoudiniEngineUtils::HapiGetAttributeDataAsStringFromInfo(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	const char * InAttribName,
 	HAPI_AttributeInfo& InAttributeInfo,
 	TArray<FString>& OutData,
-	const int32& InStartIndex,
-	const int32& InCount)
+	int32 InStartIndex,
+	int32 InCount)
 {
 	if (!InAttributeInfo.exists)
 		return false;
@@ -4942,7 +4942,7 @@ FHoudiniEngineUtils::HapiGetAttributeDataAsStringFromInfo(
 
 bool
 FHoudiniEngineUtils::HapiCheckAttributeExists(
-	const HAPI_NodeId& GeoId, const HAPI_PartId& PartId,
+	HAPI_NodeId GeoId, HAPI_PartId PartId,
 	const char * AttribName, HAPI_AttributeOwner Owner)
 {
 	if (Owner == HAPI_ATTROWNER_INVALID)
@@ -4971,7 +4971,7 @@ FHoudiniEngineUtils::HapiCheckAttributeExists(
 }
 
 bool
-FHoudiniEngineUtils::IsAttributeInstancer(const HAPI_NodeId& GeoId, const HAPI_PartId& PartId, EHoudiniInstancerType& OutInstancerType)
+FHoudiniEngineUtils::IsAttributeInstancer(HAPI_NodeId GeoId, HAPI_PartId PartId, EHoudiniInstancerType& OutInstancerType)
 {
 	// Check for 
 	// - HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE (unreal_instance) on points/detail
@@ -4997,7 +4997,7 @@ FHoudiniEngineUtils::IsAttributeInstancer(const HAPI_NodeId& GeoId, const HAPI_P
 	return false;
 }
 
-bool FHoudiniEngineUtils::IsValidDataTable(const HAPI_NodeId& GeoId, const HAPI_PartId& PartId)
+bool FHoudiniEngineUtils::IsValidDataTable(HAPI_NodeId GeoId, HAPI_PartId PartId)
 {
 	HAPI_PartInfo PartInfo;
 	HAPI_Result Error = FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(),
@@ -5032,7 +5032,7 @@ bool FHoudiniEngineUtils::IsValidDataTable(const HAPI_NodeId& GeoId, const HAPI_
 }
 
 bool
-FHoudiniEngineUtils::IsLandscapeSpline(const HAPI_NodeId& GeoId, const HAPI_PartId& PartId)
+FHoudiniEngineUtils::IsLandscapeSpline(HAPI_NodeId GeoId, HAPI_PartId PartId)
 {
 	// Check for 
 	// - HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE on points/prim/detail with true/non-zero value
@@ -5050,7 +5050,7 @@ FHoudiniEngineUtils::IsLandscapeSpline(const HAPI_NodeId& GeoId, const HAPI_Part
 
 bool
 FHoudiniEngineUtils::HapiGetParameterDataAsString(
-	const HAPI_NodeId& NodeId, 
+	HAPI_NodeId NodeId, 
 	const std::string& ParmName,
 	const FString& DefaultValue,
 	FString& OutValue)
@@ -5085,9 +5085,9 @@ FHoudiniEngineUtils::HapiGetParameterDataAsString(
 
 bool 
 FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
-	const HAPI_NodeId& NodeId,
+	HAPI_NodeId NodeId,
 	const std::string& ParmName,
-	const int32& DefaultValue,
+	int32 DefaultValue,
 	int32& OutValue)
 {
 	OutValue = DefaultValue;	
@@ -5122,9 +5122,9 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
 
 bool
 FHoudiniEngineUtils::HapiGetParameterDataAsFloat(
-	const HAPI_NodeId& NodeId,
+	HAPI_NodeId NodeId,
 	const std::string& ParmName,
-	const float& DefaultValue,
+	float DefaultValue,
 	float& OutValue)
 {
 	OutValue = DefaultValue;
@@ -5157,7 +5157,7 @@ FHoudiniEngineUtils::HapiGetParameterDataAsFloat(
 }
 
 HAPI_ParmId
-FHoudiniEngineUtils::HapiFindParameterByName(const HAPI_NodeId& InNodeId, const std::string& InParmName, HAPI_ParmInfo& OutFoundParmInfo)
+FHoudiniEngineUtils::HapiFindParameterByName(HAPI_NodeId InNodeId, const std::string& InParmName, HAPI_ParmInfo& OutFoundParmInfo)
 {
 	// Try to find the parameter by its name
 	HAPI_ParmId ParmId = -1;
@@ -5177,7 +5177,7 @@ FHoudiniEngineUtils::HapiFindParameterByName(const HAPI_NodeId& InNodeId, const 
 }
 
 HAPI_ParmId
-FHoudiniEngineUtils::HapiFindParameterByTag(const HAPI_NodeId& InNodeId, const std::string& InParmTag, HAPI_ParmInfo& OutFoundParmInfo)
+FHoudiniEngineUtils::HapiFindParameterByTag(HAPI_NodeId InNodeId, const std::string& InParmTag, HAPI_ParmInfo& OutFoundParmInfo)
 {
 	// Try to find the parameter by its tag
 	HAPI_ParmId ParmId = -1;
@@ -5198,8 +5198,8 @@ FHoudiniEngineUtils::HapiFindParameterByTag(const HAPI_NodeId& InNodeId, const s
 
 int32
 FHoudiniEngineUtils::HapiGetAttributeOfType(
-	const HAPI_NodeId& GeoId,
-	const HAPI_NodeId& PartId,
+	HAPI_NodeId GeoId,
+	HAPI_NodeId PartId,
 	const HAPI_AttributeOwner& AttributeOwner,
 	const HAPI_AttributeTypeInfo& AttributeType,
 	TArray<HAPI_AttributeInfo>& MatchingAttributesInfo,
@@ -5309,10 +5309,10 @@ FHoudiniEngineUtils::ToHAPIPartInfo(const FHoudiniPartInfo& InHPartInfo)
 
 int32
 FHoudiniEngineUtils::AddMeshSocketsToArray_DetailAttribute(
-	const HAPI_NodeId& GeoId,
-	const HAPI_PartId& PartId,
+	HAPI_NodeId GeoId,
+	HAPI_PartId PartId,
 	TArray< FHoudiniMeshSocket >& AllSockets,
-	const bool& isPackedPrim)
+	bool isPackedPrim)
 {
 	int32 FoundSocketCount = 0;
 
@@ -5341,7 +5341,7 @@ FHoudiniEngineUtils::AddMeshSocketsToArray_DetailAttribute(
 
 	// Lambda function for creating the socket and adding it to the array
 	// Shared between the by Attribute / by Group methods	
-	auto AddSocketToArray = [&](const int32& PointIdx)
+	auto AddSocketToArray = [&](int32 PointIdx)
 	{
 		FHoudiniMeshSocket CurrentSocket;
 		FVector currentPosition = FVector::ZeroVector;
@@ -5484,10 +5484,10 @@ FHoudiniEngineUtils::AddMeshSocketsToArray_DetailAttribute(
 
 int32
 FHoudiniEngineUtils::AddMeshSocketsToArray_Group(
-	const HAPI_NodeId& GeoId,
-	const HAPI_PartId& PartId,
+	HAPI_NodeId GeoId,
+	HAPI_PartId PartId,
 	TArray<FHoudiniMeshSocket>& AllSockets,
-	const bool& isPackedPrim)
+	bool isPackedPrim)
 {
 	TArray<float> Positions;
 	bool bHasRotation = false;
@@ -5506,7 +5506,7 @@ FHoudiniEngineUtils::AddMeshSocketsToArray_Group(
 	// Lambda function for creating the socket and adding it to the array
 	// Shared between the by Attribute / by Group methods
 	int32 FoundSocketCount = 0;
-	auto AddSocketToArray = [&](const int32& PointIdx)
+	auto AddSocketToArray = [&](int32 PointIdx)
 	{
 		FHoudiniMeshSocket CurrentSocket;
 		FVector currentPosition = FVector::ZeroVector;
@@ -5720,7 +5720,7 @@ bool
 FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
 	UStaticMesh* StaticMesh,
 	TArray<FHoudiniMeshSocket >& AllSockets,
-	const bool& CleanImportSockets)
+	bool CleanImportSockets)
 {
 	if (!IsValid(StaticMesh))
 		return false;
@@ -5790,8 +5790,8 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
 
 bool
 FHoudiniEngineUtils::CreateAttributesFromTags(
-	const HAPI_NodeId& NodeId, 
-	const HAPI_PartId& PartId,
+	HAPI_NodeId NodeId, 
+	HAPI_PartId PartId,
 	const TArray<FName>& Tags )
 {
 	if (Tags.Num() <= 0)
@@ -5854,8 +5854,8 @@ FHoudiniEngineUtils::CreateAttributesFromTags(
 
 bool
 FHoudiniEngineUtils::CreateGroupsFromTags(
-	const HAPI_NodeId& NodeId,
-	const HAPI_PartId& PartId, 
+	HAPI_NodeId NodeId,
+	HAPI_PartId PartId, 
 	const TArray<FName>& Tags )
 {
 	if (Tags.Num() <= 0)
@@ -5974,12 +5974,12 @@ FHoudiniEngineUtils::SanitizeHAPIVariableName(FString& String)
 
 int32
 FHoudiniEngineUtils::GetGenericAttributeList(
-	const HAPI_NodeId& InGeoNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoNodeId,
+	HAPI_PartId InPartId,
 	const FString& InGenericAttributePrefix,
 	TArray<FHoudiniGenericAttribute>& OutFoundAttributes,
 	const HAPI_AttributeOwner& AttributeOwner,
-	const int32& InAttribIndex)
+	int32 InAttribIndex)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GetGenericAttributeList);
 	
@@ -6227,12 +6227,12 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 
 bool
 FHoudiniEngineUtils::GetGenericPropertiesAttributes(
-	const HAPI_NodeId& InGeoNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoNodeId,
+	HAPI_PartId InPartId,
 	const bool InbFindDetailAttributes,
-	const int32& InFirstValidPrimIndex,
-	const int32& InFirstValidVertexIndex,
-	const int32& InFirstValidPointIndex,
+	int32 InFirstValidPrimIndex,
+	int32 InFirstValidVertexIndex,
+	int32 InFirstValidPointIndex,
 	TArray<FHoudiniGenericAttribute>& OutPropertyAttributes)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GetGenericPropertiesAttributes);
@@ -6366,8 +6366,8 @@ FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
 
 bool
 FHoudiniEngineUtils::SetGenericPropertyAttribute(
-	const HAPI_NodeId& InGeoNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoNodeId,
+	HAPI_PartId InPartId,
 	const FHoudiniGenericAttribute& InPropertyAttribute)
 {
 	HAPI_AttributeOwner AttribOwner;
@@ -6756,10 +6756,10 @@ FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
 
 bool
 FHoudiniEngineUtils::AddLevelPathAttribute(
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	ULevel* InLevel,
-	const int32& InCount,
+	int32 InCount,
 	const HAPI_AttributeOwner& InAttrOwner)
 {
 	if (InNodeId < 0 || InCount <= 0)
@@ -6817,10 +6817,10 @@ FHoudiniEngineUtils::AddLevelPathAttribute(
 
 bool
 FHoudiniEngineUtils::AddActorPathAttribute(
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	AActor* InActor,
-	const int32& InCount,
+	int32 InCount,
 	const HAPI_AttributeOwner& InAttrOwner)
 {
 	if (InNodeId < 0 || InCount <= 0)
@@ -6868,10 +6868,10 @@ FHoudiniEngineUtils::AddActorPathAttribute(
 
 bool
 FHoudiniEngineUtils::AddLandscapeTypeAttribute(
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	AActor* InActor,
-	const int32& InCount)
+	int32 InCount)
 {
 	HOUDINI_CHECK_RETURN(IsValid(InActor), false);
 
@@ -6942,7 +6942,7 @@ FHoudiniEngineUtils::ContainsInvalidLightmapFaces(const FRawMesh & RawMesh, int3
 
 void
 FHoudiniEngineUtils::CreateSlateNotification(
-	const FString& NotificationString, const float& NotificationExpire, const float& NotificationFadeOut )
+	const FString& NotificationString, float NotificationExpire, float NotificationFadeOut )
 {
 #if WITH_EDITOR
 	// Trying to display SlateNotifications while in a background thread will crash UE
@@ -6999,10 +6999,10 @@ FHoudiniEngineUtils::GetHoudiniEnginePluginDir()
 
 HAPI_Result
 FHoudiniEngineUtils::CreateNode(
-	const HAPI_NodeId& InParentNodeId,
+	HAPI_NodeId InParentNodeId,
 	const FString& InOperatorName,
 	const FString& InNodeLabel,
-	const HAPI_Bool& bInCookOnCreation,
+	HAPI_Bool bInCookOnCreation,
 	HAPI_NodeId* OutNewNodeId)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::CreateNode);
@@ -7046,7 +7046,7 @@ FHoudiniEngineUtils::CreateNode(
 
 
 int32
-FHoudiniEngineUtils::HapiGetCookCount(const HAPI_NodeId& InNodeId)
+FHoudiniEngineUtils::HapiGetCookCount(HAPI_NodeId InNodeId)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiGetCookCount);
 
@@ -7064,12 +7064,12 @@ FHoudiniEngineUtils::HapiGetCookCount(const HAPI_NodeId& InNodeId)
 
 bool
 FHoudiniEngineUtils::GetLevelPathAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	TArray<FString>& OutLevelPaths,
 	HAPI_AttributeOwner InAttributeOwner,
-	const int32& InStartIndex,
-	const int32& InCount)
+	int32 InStartIndex,
+	int32 InCount)
 {
 	// ---------------------------------------------
 	// Attribute: unreal_level_path
@@ -7087,11 +7087,11 @@ FHoudiniEngineUtils::GetLevelPathAttribute(
 
 bool
 FHoudiniEngineUtils::GetLevelPathAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	FString& OutLevelPath,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
+	int32 InPointIndex,
+	int32 InPrimIndex)
 {
 	constexpr int32 Count = 1;
 	TArray<FString> StringData;
@@ -7135,11 +7135,11 @@ FHoudiniEngineUtils::GetLevelPathAttribute(
 
 bool
 FHoudiniEngineUtils::GetOutputNameAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId, 
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId, 
 	TArray<FString>& OutOutputNames,
-	const int32& InStartIndex,
-	const int32& InCount)
+	int32 InStartIndex,
+	int32 InCount)
 {
 	FHoudiniHapiAccessor Accessor;
 	Accessor.Init(InGeoId, InPartId, HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2);
@@ -7160,11 +7160,11 @@ FHoudiniEngineUtils::GetOutputNameAttribute(
 
 bool
 FHoudiniEngineUtils::GetOutputNameAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	FString& OutOutputName,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
+	int32 InPointIndex,
+	int32 InPrimIndex)
 {
 	constexpr int32 Count = 1;
 	TArray<FString> StringData;
@@ -7240,12 +7240,12 @@ FHoudiniEngineUtils::GetOutputNameAttribute(
 
 bool
 FHoudiniEngineUtils::GetBakeNameAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId, 
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId, 
 	TArray<FString>& OutBakeNames,
 	const HAPI_AttributeOwner& InAttribOwner,
-	const int32& InStartIndex,
-	const int32& InCount)
+	int32 InStartIndex,
+	int32 InCount)
 {
 	// ---------------------------------------------
 	// Attribute: unreal_bake_name
@@ -7263,11 +7263,11 @@ FHoudiniEngineUtils::GetBakeNameAttribute(
 
 bool
 FHoudiniEngineUtils::GetBakeNameAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId, 
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId, 
 	FString& OutBakeName,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
+	int32 InPointIndex,
+	int32 InPrimIndex)
 {
 	constexpr int32 Count = 1;
 	TArray<FString> StringData;
@@ -7311,12 +7311,12 @@ FHoudiniEngineUtils::GetBakeNameAttribute(
 
 bool
 FHoudiniEngineUtils::GetTileAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	TArray<int32>& OutTileValues,
 	const HAPI_AttributeOwner& InAttribOwner,
-	const int32& InStart,
-	const int32& InCount)
+	int32 InStart,
+	int32 InCount)
 {
 	// ---------------------------------------------
 	// Attribute: tile
@@ -7337,11 +7337,11 @@ FHoudiniEngineUtils::GetTileAttribute(
 
 bool
 FHoudiniEngineUtils::GetTileAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	int32& OutTileValue,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
+	int32 InPointIndex,
+	int32 InPrimIndex)
 {
 	constexpr int32 Count = 1;
 	TArray<int32> IntData;
@@ -7384,8 +7384,8 @@ FHoudiniEngineUtils::GetTileAttribute(
 
 bool
 FHoudiniEngineUtils::GetEditLayerName(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	FString& EditLayerName,
 	const HAPI_AttributeOwner& InAttribOwner)
 {
@@ -7410,7 +7410,7 @@ FHoudiniEngineUtils::GetEditLayerName(
 	return false;
 }
 
-bool FHoudiniEngineUtils::HasEditLayerName(const HAPI_NodeId& InGeoId, const HAPI_PartId& InPartId,
+bool FHoudiniEngineUtils::HasEditLayerName(HAPI_NodeId InGeoId, HAPI_PartId InPartId,
 	const HAPI_AttributeOwner& InAttribOwner)
 {
 	// ---------------------------------------------
@@ -7425,12 +7425,12 @@ bool FHoudiniEngineUtils::HasEditLayerName(const HAPI_NodeId& InGeoId, const HAP
 
 bool
 FHoudiniEngineUtils::GetTempFolderAttribute(
-	const HAPI_NodeId& InNodeId,
+	HAPI_NodeId InNodeId,
 	const HAPI_AttributeOwner& InAttributeOwner,
 	TArray<FString>& OutTempFolder,
-	const HAPI_PartId& InPartId,
-	const int32& InStart,
-	const int32& InCount)
+	HAPI_PartId InPartId,
+	int32 InStart,
+	int32 InCount)
 {
 	OutTempFolder.Empty();
 
@@ -7446,10 +7446,10 @@ FHoudiniEngineUtils::GetTempFolderAttribute(
 
 bool
 FHoudiniEngineUtils::GetTempFolderAttribute(
-	const HAPI_NodeId& InGeoId,
+	HAPI_NodeId InGeoId,
 	FString& OutTempFolder,
-	const HAPI_PartId& InPartId,
-	const int32& InPrimIndex)
+	HAPI_PartId InPartId,
+	int32 InPrimIndex)
 {
 	constexpr int32 Count = 1;
 	TArray<FString> StringData;
@@ -7477,12 +7477,12 @@ FHoudiniEngineUtils::GetTempFolderAttribute(
 
 bool
 FHoudiniEngineUtils::GetBakeFolderAttribute(
-	const HAPI_NodeId& InNodeId,
+	HAPI_NodeId InNodeId,
 	const HAPI_AttributeOwner& InAttributeOwner,
 	TArray<FString>& OutBakeFolder,
-	const HAPI_PartId& InPartId,
-	const int32& InStart,
-	const int32& InCount)
+	HAPI_PartId InPartId,
+	int32 InStart,
+	int32 InCount)
 {
 	OutBakeFolder.Empty();
 
@@ -7498,11 +7498,11 @@ FHoudiniEngineUtils::GetBakeFolderAttribute(
 
 bool
 FHoudiniEngineUtils::GetBakeFolderAttribute(
-	const HAPI_NodeId& InGeoId,
+	HAPI_NodeId InGeoId,
 	TArray<FString>& OutBakeFolder,
-	const HAPI_PartId& InPartId,
-	const int32& InStart,
-	const int32& InCount)
+	HAPI_PartId InPartId,
+	int32 InStart,
+	int32 InCount)
 {
 	OutBakeFolder.Empty();
 
@@ -7567,12 +7567,12 @@ FHoudiniEngineUtils::GetBakeFolderAttribute(
 
 bool
 FHoudiniEngineUtils::GetBakeActorAttribute(
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	TArray<FString>& OutBakeActorNames,
 	const HAPI_AttributeOwner& InAttributeOwner,
-	const int32& InStart,
-	const int32& InCount)
+	int32 InStart,
+	int32 InCount)
 {
 	// ---------------------------------------------
 	// Attribute: unreal_bake_actor
@@ -7590,11 +7590,11 @@ FHoudiniEngineUtils::GetBakeActorAttribute(
 
 bool
 FHoudiniEngineUtils::GetBakeActorAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	FString& OutBakeActorName,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
+	int32 InPointIndex,
+	int32 InPrimIndex)
 {
 	constexpr int32 Count = 1;
 	TArray<FString> StringData;
@@ -7638,12 +7638,12 @@ FHoudiniEngineUtils::GetBakeActorAttribute(
 
 bool
 FHoudiniEngineUtils::GetBakeActorClassAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	TArray<FString>& OutBakeActorClassNames,
 	const HAPI_AttributeOwner& InAttributeOwner,
-	const int32& InStart,
-	const int32& InCount)
+	int32 InStart,
+	int32 InCount)
 {
 	// ---------------------------------------------
 	// Attribute: unreal_bake_actor
@@ -7661,11 +7661,11 @@ FHoudiniEngineUtils::GetBakeActorClassAttribute(
 
 bool
 FHoudiniEngineUtils::GetBakeActorClassAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	FString& OutBakeActorClassName,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
+	int32 InPointIndex,
+	int32 InPrimIndex)
 {
 	constexpr int32 Count = 1;
 	TArray<FString> StringData;
@@ -7709,12 +7709,12 @@ FHoudiniEngineUtils::GetBakeActorClassAttribute(
 
 bool
 FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	TArray<FString>& OutBakeOutlinerFolders,
 	const HAPI_AttributeOwner& InAttributeOwner,
-	const int32& InStart,
-	const int32& InCount)
+	int32 InStart,
+	int32 InCount)
 {
 	// ---------------------------------------------
 	// Attribute: unreal_bake_outliner_folder
@@ -7731,11 +7731,11 @@ FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(
 
 bool
 FHoudiniEngineUtils::GetBakeOutlinerFolderAttribute(
-	const HAPI_NodeId& InGeoId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InGeoId,
+	HAPI_PartId InPartId,
 	FString& OutBakeOutlinerFolder,
-	const int32& InPointIndex,
-	const int32& InPrimIndex)
+	int32 InPointIndex,
+	int32 InPrimIndex)
 {
 	constexpr int32 Count = 1;
 	TArray<FString> StringData;
@@ -7799,14 +7799,14 @@ FHoudiniEngineUtils::MoveActorToLevel(AActor* InActor, ULevel* InDesiredLevel)
 }
 
 HAPI_Result
-FHoudiniEngineUtils::HapiCommitGeo(const HAPI_NodeId& InNodeId)
+FHoudiniEngineUtils::HapiCommitGeo(HAPI_NodeId InNodeId)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiCommitGeo);
 	return FHoudiniApi::CommitGeo(FHoudiniEngine::Get().GetSession(), InNodeId);
 }
 
 bool
-FHoudiniEngineUtils::HapiCookNode(const HAPI_NodeId& InNodeId, HAPI_CookOptions* InCookOptions, const bool& bWaitForCompletion)
+FHoudiniEngineUtils::HapiCookNode(HAPI_NodeId InNodeId, HAPI_CookOptions* InCookOptions, bool bWaitForCompletion)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiCookNode);
 
@@ -7909,7 +7909,7 @@ FHoudiniEngineUtils::CreateInputNode(const FString& InNodeLabel, HAPI_NodeId& Ou
 }
 
 bool
-FHoudiniEngineUtils::HapiConnectNodeInput(const int32& InNodeId, const int32& InputIndex, const int32& InNodeIdToConnect, const int32& OutputIndex, const int32& InXFormType)
+FHoudiniEngineUtils::HapiConnectNodeInput(int32 InNodeId, int32 InputIndex, int32 InNodeIdToConnect, int32 OutputIndex, int32 InXFormType)
 {
 	// Connect the node ids
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
@@ -7960,7 +7960,7 @@ bool
 FHoudiniEngineUtils::UpdateMeshPartUVSets(
 	const int GeoId,
 	const int PartId,
-	const bool& bRemoveUnused,
+	bool bRemoveUnused,
 	TArray<TArray<float>>& OutPartUVSets,
 	TArray<HAPI_AttributeInfo>& OutAttribInfoUVSets)
 {

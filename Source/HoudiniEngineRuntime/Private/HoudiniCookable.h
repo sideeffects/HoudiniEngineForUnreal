@@ -51,12 +51,15 @@ class UHoudiniOutput;
 class UHoudiniPDGAssetLink;
 class UHoudiniParameter;
 
-USTRUCT()
-struct HOUDINIENGINERUNTIME_API FCookableHoudiniAssetData
-{
-	GENERATED_USTRUCT_BODY()
 
-	FCookableHoudiniAssetData();
+UCLASS()
+class HOUDINIENGINERUNTIME_API UCookableHoudiniAssetData : public UObject
+{
+	GENERATED_UCLASS_BODY()
+
+	friend class UHoudiniCookable;
+
+	UCookableHoudiniAssetData();
 
 	// Houdini Asset associated with this component.			
 	UPROPERTY(Category = HoudiniAsset, EditAnywhere)// BlueprintSetter = SetHoudiniAsset, BlueprintReadWrite, )
@@ -71,12 +74,15 @@ struct HOUDINIENGINERUNTIME_API FCookableHoudiniAssetData
 	FString HapiAssetName;
 };
 
-USTRUCT()
-struct HOUDINIENGINERUNTIME_API FCookableParameterData
-{
-	GENERATED_USTRUCT_BODY()
 
-	FCookableParameterData();
+UCLASS()
+class HOUDINIENGINERUNTIME_API UCookableParameterData : public UObject
+{
+	GENERATED_UCLASS_BODY()
+
+	friend class UHoudiniCookable;
+
+	UCookableParameterData();
 
 	UPROPERTY(Instanced)
 	TArray<TObjectPtr<UHoudiniParameter>> Parameters;
@@ -100,12 +106,15 @@ struct HOUDINIENGINERUNTIME_API FCookableParameterData
 	UHoudiniParameter* FindMatchingParameter(UHoudiniParameter* InOtherParam);
 };
 
-USTRUCT()
-struct HOUDINIENGINERUNTIME_API FCookableInputData
-{
-	GENERATED_USTRUCT_BODY()
 
-	FCookableInputData();
+UCLASS()
+class HOUDINIENGINERUNTIME_API UCookableInputData : public UObject
+{
+	GENERATED_UCLASS_BODY()
+
+	friend class UHoudiniCookable;
+
+	UCookableInputData();
 
 	// Store data for a cookable's inputs
 	UPROPERTY(Instanced)
@@ -127,12 +136,15 @@ struct HOUDINIENGINERUNTIME_API FCookableInputData
 	bool NeedsToWaitForInputHoudiniAssets();
 };
 
-USTRUCT()
-struct HOUDINIENGINERUNTIME_API FCookableOutputData 
-{
-	GENERATED_USTRUCT_BODY()
 
-	FCookableOutputData();
+UCLASS()
+class HOUDINIENGINERUNTIME_API UCookableOutputData : public UObject
+{
+	GENERATED_UCLASS_BODY()
+
+	friend class UHoudiniCookable;
+
+	UCookableOutputData();
 
 	// Declare the delegate that is broadcast when RefineMeshesTimer fires
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRefineMeshesTimerDelegate, UHoudiniCookable*);
@@ -265,12 +277,16 @@ struct HOUDINIENGINERUNTIME_API FCookableOutputData
 	FOnRefineMeshesTimerDelegate OnRefineMeshesTimerDelegate;
 };
 
-USTRUCT()
-struct HOUDINIENGINERUNTIME_API FCookableComponentData
-{
-	GENERATED_USTRUCT_BODY()
 
-	FCookableComponentData();
+UCLASS()
+class HOUDINIENGINERUNTIME_API UCookableComponentData : public UObject
+{
+	GENERATED_UCLASS_BODY()
+
+	friend class UHoudiniCookable;
+
+
+	UCookableComponentData();
 
 	UPROPERTY()
 	TObjectPtr<UPrimitiveComponent> Component; // Should be a scenecomponent instead?
@@ -305,12 +321,15 @@ struct HOUDINIENGINERUNTIME_API FCookableComponentData
 	double LastLiveSyncPingTime;
 };
 
-USTRUCT()
-struct HOUDINIENGINERUNTIME_API FCookablePDGData
-{
-	GENERATED_USTRUCT_BODY()
 
-	FCookablePDGData();
+UCLASS()
+class HOUDINIENGINERUNTIME_API UCookablePDGData : public UObject
+{
+	GENERATED_UCLASS_BODY()
+
+	friend class UHoudiniCookable;
+
+	UCookablePDGData();
 
 	void SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink);
 
@@ -371,12 +390,12 @@ public:
 	UWorld* GetWorld() const;
 	bool IsOwnerSelected() const;
 
-	FCookableHoudiniAssetData* GetHoudiniAssetData() { return IsHoudiniAssetSupported() ? &HoudiniAssetData : nullptr; };
-	FCookableParameterData* GetParameterData() { return IsParameterSupported() ? &ParameterData : nullptr; };
-	FCookableInputData* GetInputData() { return IsInputSupported() ? &InputData : nullptr; };
-	FCookableOutputData* GetOutputData() { return IsOutputSupported() ? &OutputData : nullptr;};
-	FCookableComponentData* GetComponentData() { return IsComponentSupported() ? &ComponentData : nullptr; };
-	FCookablePDGData* GetPDGData() { return IsPDGSupported() ? &PDGData : nullptr; };
+	UCookableHoudiniAssetData* GetHoudiniAssetData() { return IsHoudiniAssetSupported() ? HoudiniAssetData : nullptr; };
+	UCookableParameterData* GetParameterData() { return IsParameterSupported() ? ParameterData : nullptr; };
+	UCookableInputData* GetInputData() { return IsInputSupported() ? InputData : nullptr; };
+	UCookableOutputData* GetOutputData() { return IsOutputSupported() ? OutputData : nullptr;};
+	UCookableComponentData* GetComponentData() { return IsComponentSupported() ? ComponentData : nullptr; };
+	UCookablePDGData* GetPDGData() { return IsPDGSupported() ? PDGData : nullptr; };
 
 	bool IsCookingEnabled() const { return bEnableCooking; };
 	bool HasBeenLoaded() const { return bHasBeenLoaded; };
@@ -385,7 +404,7 @@ public:
 	bool HasRebuildBeenRequested() const { return bRebuildRequested; };
 
 	// Returns true if a parameter definition update (excluding values) is needed.
-	bool IsParameterDefinitionUpdateNeeded() const { return IsParameterSupported() ? ParameterData.bParameterDefinitionUpdateNeeded : false; };
+	bool IsParameterDefinitionUpdateNeeded() const { return IsParameterSupported() ? ParameterData->bParameterDefinitionUpdateNeeded : false; };
 
 	FString GetDisplayName() const;
 
@@ -443,7 +462,7 @@ public:
 	// Clear/disable the RefineMeshesTimer.
 	void ClearRefineMeshesTimer();
 
-	void SetHasComponentTransformChanged(const bool& InHasChanged);
+	void SetHasComponentTransformChanged(bool InHasChanged);
 
 	void MarkAsNeedCook();
 
@@ -463,12 +482,12 @@ public:
 	virtual bool IsOutputTypeSupported(EHoudiniOutputType InType) { return IsOutputSupported(); };
 
 	// Feature accessors
-	virtual bool IsHoudiniAssetSupported() const { return bHasHoudiniAsset; };
-	virtual bool IsParameterSupported() const { return bHasParameters; };
-	virtual bool IsInputSupported() const { return bHasInputs; };
-	virtual bool IsOutputSupported() const { return bHasOutputs; };
-	virtual bool IsComponentSupported() const { return bHasComponent; };
-	virtual bool IsPDGSupported() const { return bHasPDG; };
+	virtual bool IsHoudiniAssetSupported() const { return bHasHoudiniAsset && HoudiniAssetData; };
+	virtual bool IsParameterSupported() const { return bHasParameters && ParameterData; };
+	virtual bool IsInputSupported() const { return bHasInputs && InputData; };
+	virtual bool IsOutputSupported() const { return bHasOutputs && OutputData; };
+	virtual bool IsComponentSupported() const { return bHasComponent && ComponentData; };
+	virtual bool IsPDGSupported() const { return bHasPDG && PDGData; };
 
 	// Needed for BP support
 	virtual void NotifyHoudiniRegisterCompleted() {};
@@ -476,12 +495,12 @@ public:
 	virtual void NotifyHoudiniPostUnregister() {};
 
 	// Feature mutators
-	virtual void SetHoudiniAssetSupported(const bool& bSupport) { bHasHoudiniAsset = bSupport; };
-	virtual void SetParameterSupported(const bool& bSupport) { bHasParameters = bSupport; };
-	virtual void SetInputSupported(const bool& bSupport) { bHasInputs = bSupport; };
-	virtual void SetOutputSupported(const bool& bSupport) { bHasOutputs = bSupport; };
-	virtual void SetComponentSupported(const bool& bSupport) { bHasComponent = bSupport; };
-	virtual void SetPDGSupported(const bool& bSupport) { bHasPDG = bSupport; };
+	virtual void SetHoudiniAssetSupported(bool bSupport) { bHasHoudiniAsset = bSupport; };
+	virtual void SetParameterSupported(bool bSupport) { bHasParameters = bSupport; };
+	virtual void SetInputSupported(bool bSupport) { bHasInputs = bSupport; };
+	virtual void SetOutputSupported(bool bSupport) { bHasOutputs = bSupport; };
+	virtual void SetComponentSupported(bool bSupport) { bHasComponent = bSupport; };
+	virtual void SetPDGSupported(bool bSupport) { bHasPDG = bSupport; };
 
 
 	//------------------------------------------------------------------------------------------------
@@ -615,7 +634,7 @@ protected:
 
 	// Structure containing the HDA data
 	UPROPERTY()
-	FCookableHoudiniAssetData HoudiniAssetData;
+	TObjectPtr<UCookableHoudiniAssetData> HoudiniAssetData;
 
 	// PARAMETERS
 	// Indicates if this cookable has parameters
@@ -624,7 +643,7 @@ protected:
 
 	// Structure containing the HDA data
 	UPROPERTY()
-	FCookableParameterData ParameterData;
+	TObjectPtr<UCookableParameterData> ParameterData;
 
 	// INPUTS
 	// Indicates if this cookable has inputs
@@ -633,7 +652,7 @@ protected:
 
 	// Structure containing the HDA data
 	UPROPERTY()
-	FCookableInputData InputData;
+	TObjectPtr<UCookableInputData> InputData;
 
 	// OUTPUTS
 	// Indicates if this cookable has outputs
@@ -642,7 +661,7 @@ protected:
 
 	// Structure containing the HDA data
 	UPROPERTY()
-	FCookableOutputData OutputData;
+	TObjectPtr<UCookableOutputData> OutputData;
 
 	// COMPONENTS / TRANSFORM?
 	// Indicates if this cookable has a component/is placed in the level
@@ -651,7 +670,7 @@ protected:
 
 	// Structure containing the HDA data
 	UPROPERTY()
-	FCookableComponentData ComponentData;
+	TObjectPtr<UCookableComponentData> ComponentData;
 
 	// PDG
 	// Indicates if this cookable has access to PDG
@@ -660,7 +679,7 @@ protected:
 
 	// Structure containing the HDA data
 	UPROPERTY()
-	FCookablePDGData PDGData;
+	TObjectPtr<UCookablePDGData> PDGData;
 
 	//
 	// Public API delegates

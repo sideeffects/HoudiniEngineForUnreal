@@ -50,7 +50,7 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 	// 
 	static bool UpdateOutputs(
 		UHoudiniAssetComponent* HAC,
-		const bool& bInForceUpdate,
+		bool bInForceUpdate,
 		bool& bOutHasHoudiniStaticMeshOutput);
 
 	//
@@ -60,7 +60,7 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 
 	//
 	static bool UpdateLoadedOutputs(
-		const HAPI_NodeId& InNodeId,
+		HAPI_NodeId InNodeId,
 		TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
 		USceneComponent* InComponent);
 
@@ -69,7 +69,7 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 		TArray<TObjectPtr<UHoudiniOutput>>& InOutputs);
 	//
 	static bool BuildAllOutputs(
-		const HAPI_NodeId& AssetId,
+		HAPI_NodeId AssetId,
 		UObject* InOuterObject,
 		const TArray<HAPI_NodeId>& OutputNodes,
 		const TMap<HAPI_NodeId, int32>& OutputNodeCookCounts,
@@ -108,7 +108,7 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 	// Helper to clear an individual UHoudiniOutput
 	static void ClearOutput(UHoudiniOutput* Output);
 
-	static bool GetCustomPartNameFromAttribute(const HAPI_NodeId & NodeId, const HAPI_PartId & PartId, FString & OutCustomPartName);
+	static bool GetCustomPartNameFromAttribute(HAPI_NodeId NodeId, HAPI_PartId PartId, FString& OutCustomPartName);
 
 	static void RemovePreviousOutputs(TArray<TObjectPtr<UHoudiniOutput>>& Outputs);
 

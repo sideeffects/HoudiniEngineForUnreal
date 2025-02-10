@@ -88,7 +88,7 @@
 bool
 FHoudiniOutputTranslator::UpdateOutputs(
 	UHoudiniAssetComponent* HAC,
-	const bool& bInForceUpdate,
+	bool bInForceUpdate,
 	bool& bOutHasHoudiniStaticMeshOutput)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateOutputs);
@@ -821,7 +821,7 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 //
 bool
 FHoudiniOutputTranslator::UpdateLoadedOutputs(
-	const HAPI_NodeId& InNodeId,
+	HAPI_NodeId InNodeId,
 	TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
 	USceneComponent* InComponent)
 {
@@ -1084,7 +1084,7 @@ FHoudiniOutputTranslator::UploadChangedEditableOutput(
 
 bool
 FHoudiniOutputTranslator::BuildAllOutputs(
-	const HAPI_NodeId& AssetId,
+	HAPI_NodeId AssetId,
 	UObject* InOuterObject,	
 	const TArray<HAPI_NodeId>& OutputNodes,
 	const TMap<HAPI_NodeId, int32>& OutputNodeCookCounts,
@@ -2752,7 +2752,10 @@ FHoudiniOutputTranslator::ClearOutput(UHoudiniOutput* Output)
 
 
 bool
-FHoudiniOutputTranslator::GetCustomPartNameFromAttribute(const HAPI_NodeId & NodeId, const HAPI_PartId & PartId, FString & OutCustomPartName) 
+FHoudiniOutputTranslator::GetCustomPartNameFromAttribute(
+	HAPI_NodeId NodeId,
+	HAPI_PartId PartId,
+	FString& OutCustomPartName) 
 {
 	TArray<FString> CustomNames;
 

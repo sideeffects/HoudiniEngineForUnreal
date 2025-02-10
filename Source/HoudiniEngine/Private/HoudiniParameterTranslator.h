@@ -43,30 +43,30 @@ enum class EHoudiniParameterType : uint8;
 struct HOUDINIENGINE_API FHoudiniParameterTranslator
 {
 	static bool UpdateParameters(
-		const HAPI_NodeId& InNodeId,
+		HAPI_NodeId InNodeId,
 		UObject* InOuter,
 		TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
 		UHoudiniAsset* InHoudiniAsset,
 		const FString& InHapiAssetName,
-		const bool& bForceFullUpdate,
-		const bool& bCacheRampParms,
+		bool bForceFullUpdate,
+		bool bCacheRampParms,
 		bool& bNeedToUpdateEditorProperties);
 
 	static bool OnPreCookParameters(TArray<TObjectPtr<UHoudiniParameter>>& InParams);
 
 	//
 	static bool UpdateLoadedParameters(
-		const HAPI_NodeId& InNodeId,
+		HAPI_NodeId InNodeId,
 		TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
 		UObject* InOuter,
-		const bool& bForceFullUpdate,
-		const bool& bCacheRampParams,
+		bool bForceFullUpdate,
+		bool bCacheRampParams,
 		bool& bNeedToUpdateEditorProperties);
 
 	// 
 	static bool UploadChangedParameters(
 		TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
-		const HAPI_NodeId& InNodeId);
+		HAPI_NodeId InNodeId);
 
 	//
 	static bool UploadParameterValue(UHoudiniParameter* InParam);
@@ -88,8 +88,13 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 		UHoudiniParameter* MultiParam, TArray<TObjectPtr<UHoudiniParameter>> &OldParams, const int32& InAssetId, const HAPI_AssetInfo& AssetInfo);
 	
 	// 
-	static bool GetMultiParmInstanceStartIdx(const HAPI_AssetInfo& InAssetInfo, const FString InParmName, 
-		int32& OutStartIdx, int32& OutInstanceCount, HAPI_ParmId& OutParmId, TArray<HAPI_ParmInfo> &OutParmInfos);
+	static bool GetMultiParmInstanceStartIdx(
+		const HAPI_AssetInfo& InAssetInfo,
+		const FString InParmName, 
+		int32& OutStartIdx,
+		int32& OutInstanceCount,
+		HAPI_ParmId& OutParmId,
+		TArray<HAPI_ParmInfo> &OutParmInfos);
 
 	/** Update parameters from the asset, re-uses parameters passed into CurrentParameters.
 	@AssetId: Id of the digital asset
@@ -101,15 +106,15 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 		NewParameters are new and re-used parameters.
 	*/
 	static bool BuildAllParameters(
-		const HAPI_NodeId& AssetId,
+		HAPI_NodeId AssetId,
 		class UObject* OuterObject,
 		TArray<TObjectPtr<UHoudiniParameter>>& CurrentParameters,
 		TArray<TObjectPtr<UHoudiniParameter>>& NewParameters,
-		const bool& bUpdateValues,
-		const bool& InForceFullUpdate,
+		bool bUpdateValues,
+		bool InForceFullUpdate,
 		const UHoudiniAsset* InHoudiniAsset,
 		const FString& InHoudiniAssetName,
-		const bool& bCacheRampParms);
+		bool bCacheRampParms);
 
 	// Parameter creation
 	static UHoudiniParameter * CreateTypedParameter(
@@ -124,10 +129,10 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 	// as the internal parameter's value from HAPI
 	static bool UpdateParameterFromInfo(
 		UHoudiniParameter * HoudiniParameter,
-		const HAPI_NodeId& InNodeId,
+		HAPI_NodeId InNodeId,
 		const HAPI_ParmInfo& ParmInfo,
-		const bool& bFullUpdate = true,
-		const bool& bUpdateValue = true,
+		bool bFullUpdate = true,
+		bool bUpdateValue = true,
 		const TArray<int>* DefaultIntValues = nullptr,
 		const TArray<float>* DefaultFloatValues = nullptr,
 		const TArray<HAPI_StringHandle>* DefaultStringValues = nullptr,
@@ -151,21 +156,21 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 
 	// HAPI: Get a parameter's tag value.
 	static bool HapiGetParameterTagValue(
-		const HAPI_NodeId& NodeId,
-		const HAPI_ParmId& ParmId,
+		HAPI_NodeId NodeId,
+		HAPI_ParmId ParmId,
 		const FString& Tag,
 		FString& TagValue);
 
 	// HAPI: Get a parameter's unit.
 	static bool HapiGetParameterUnit(
-		const HAPI_NodeId& NodeId,
-		const HAPI_ParmId& ParmId,
+		HAPI_NodeId NodeId,
+		HAPI_ParmId ParmId,
 		FString& OutUnitString );
 
 	// HAPI: Indicates if a parameter has a given tag
 	static bool HapiGetParameterHasTag(
-		const HAPI_NodeId& NodeId,
-		const HAPI_ParmId& ParmId,
+		HAPI_NodeId NodeId,
+		HAPI_ParmId ParmId,
 		const FString& Tag);
 
 	// Get folder parameter type from HAPI_ParmInfo struct

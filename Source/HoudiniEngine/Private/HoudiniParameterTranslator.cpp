@@ -72,13 +72,13 @@
 
 bool
 FHoudiniParameterTranslator::UpdateParameters(
-	const HAPI_NodeId& InNodeId, 
+	HAPI_NodeId InNodeId, 
 	UObject* InOuter,
 	TArray<TObjectPtr<UHoudiniParameter>>& InParameters, 
 	UHoudiniAsset* InHoudiniAsset, 
 	const FString& InHapiAssetName,
-	const bool& bForceFullUpdate,
-	const bool& bCacheRampParms, 
+	bool bForceFullUpdate,
+	bool bCacheRampParms, 
 	bool& bNeedToUpdateEditorProperties)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UpdateParameters);
@@ -125,11 +125,11 @@ FHoudiniParameterTranslator::OnPreCookParameters(TArray<TObjectPtr<UHoudiniParam
 // 
 bool
 FHoudiniParameterTranslator::UpdateLoadedParameters(
-	const HAPI_NodeId& InNodeId,
+	HAPI_NodeId InNodeId,
 	TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
 	UObject* InOuter,
-	const bool& bForceFullUpdate,
-	const bool& bCacheRampParams,
+	bool bForceFullUpdate,
+	bool bCacheRampParams,
 	bool& bNeedToUpdateEditorProperties)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UpdateLoadedParameters);
@@ -214,15 +214,15 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(
 
 bool
 FHoudiniParameterTranslator::BuildAllParameters(
-	const HAPI_NodeId& AssetId, 
+	HAPI_NodeId AssetId, 
 	class UObject* Outer,
 	TArray<TObjectPtr<UHoudiniParameter>>& CurrentParameters,
 	TArray<TObjectPtr<UHoudiniParameter>>& NewParameters,
-	const bool& bUpdateValues,
-	const bool& InForceFullUpdate,
+	bool bUpdateValues,
+	bool InForceFullUpdate,
 	const UHoudiniAsset* InHoudiniAsset,
 	const FString& InHoudiniAssetName,
-	const bool& bCacheRampParms)
+	bool bCacheRampParms)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::BuildAllParameters);
 
@@ -1297,8 +1297,11 @@ FHoudiniParameterTranslator::CreateTypedParameter(UObject * Outer, const EHoudin
 
 bool
 FHoudiniParameterTranslator::UpdateParameterFromInfo(
-	UHoudiniParameter * HoudiniParameter, const HAPI_NodeId& InNodeId, const HAPI_ParmInfo& ParmInfo,
-	const bool& bFullUpdate, const bool& bUpdateValue,
+	UHoudiniParameter * HoudiniParameter, 
+	HAPI_NodeId InNodeId, 
+	const HAPI_ParmInfo& ParmInfo,
+	bool bFullUpdate,
+	bool bUpdateValue,
 	const TArray<int>* DefaultIntValues,
 	const TArray<float>* DefaultFloatValues,
 	const TArray<HAPI_StringHandle>* DefaultStringValues,
@@ -2525,7 +2528,11 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 }
 
 bool
-FHoudiniParameterTranslator::HapiGetParameterTagValue(const HAPI_NodeId& NodeId, const HAPI_ParmId& ParmId, const FString& Tag, FString& TagValue)
+FHoudiniParameterTranslator::HapiGetParameterTagValue(
+	HAPI_NodeId NodeId,
+	HAPI_ParmId ParmId,
+	const FString& Tag,
+	FString& TagValue)
 {
 	// Default
 	TagValue = FString();
@@ -2556,7 +2563,10 @@ FHoudiniParameterTranslator::HapiGetParameterTagValue(const HAPI_NodeId& NodeId,
 
 
 bool
-FHoudiniParameterTranslator::HapiGetParameterUnit(const HAPI_NodeId& NodeId, const HAPI_ParmId& ParmId, FString& OutUnitString)
+FHoudiniParameterTranslator::HapiGetParameterUnit(
+	HAPI_NodeId NodeId,
+	HAPI_ParmId ParmId,
+	FString& OutUnitString)
 {
 	//
 	OutUnitString = TEXT("");
@@ -2588,7 +2598,10 @@ FHoudiniParameterTranslator::HapiGetParameterUnit(const HAPI_NodeId& NodeId, con
 }
 
 bool
-FHoudiniParameterTranslator::HapiGetParameterHasTag(const HAPI_NodeId& NodeId, const HAPI_ParmId& ParmId, const FString& Tag)
+FHoudiniParameterTranslator::HapiGetParameterHasTag(
+	HAPI_NodeId NodeId,
+	HAPI_ParmId ParmId,
+	const FString& Tag)
 {
 	// Does the parameter has the tag we're looking for?
 	bool HasTag = false;
@@ -2603,7 +2616,7 @@ FHoudiniParameterTranslator::HapiGetParameterHasTag(const HAPI_NodeId& NodeId, c
 bool
 FHoudiniParameterTranslator::UploadChangedParameters(
 	TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
-	const HAPI_NodeId& InNodeId)
+	HAPI_NodeId InNodeId)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadChangedParameters);
 
