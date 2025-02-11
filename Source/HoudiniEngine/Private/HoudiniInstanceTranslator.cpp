@@ -1861,31 +1861,33 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 			const FString& SplitAttrValue = CurrentSplits[InstIdx];
 			SplitTransformMap.FindOrAdd(SplitAttrValue).Add(CurrentTransforms[InstIdx]);
 			SplitIndicesMap.FindOrAdd(SplitAttrValue).Add(CurrentIndices[InstIdx]);
-			
+
+			int OriginalIndex = CurrentIndices[InstIdx];
+
 			// Record attributes for any split value we have not yet seen
 			FHoudiniInstancedOutputPerSplitAttributes& PerSplitAttributes = OutPerSplitAttributes.FindOrAdd(SplitAttrValue);
 			if (bHasAnyPerSplitAttributes)
 			{
-				if (bHasLevelPaths && PerSplitAttributes.LevelPath.IsEmpty() && AllLevelPaths.IsValidIndex(InstIdx))
+				if (bHasLevelPaths && PerSplitAttributes.LevelPath.IsEmpty() && AllLevelPaths.IsValidIndex(OriginalIndex))
 				{
-					PerSplitAttributes.LevelPath = AllLevelPaths[InstIdx];
+					PerSplitAttributes.LevelPath = AllLevelPaths[OriginalIndex];
 				}
-				if (bHasBakeActorNames && PerSplitAttributes.BakeActorName.IsEmpty() && AllBakeActorNames.IsValidIndex(InstIdx))
+				if (bHasBakeActorNames && PerSplitAttributes.BakeActorName.IsEmpty() && AllBakeActorNames.IsValidIndex(OriginalIndex))
 				{
-					PerSplitAttributes.BakeActorName = AllBakeActorNames[InstIdx];
+					PerSplitAttributes.BakeActorName = AllBakeActorNames[OriginalIndex];
 				}
-				if (bHasBakeFolders && PerSplitAttributes.BakeFolder.IsEmpty() && AllBakeFolders.IsValidIndex(InstIdx))
+				if (bHasBakeFolders && PerSplitAttributes.BakeFolder.IsEmpty() && AllBakeFolders.IsValidIndex(OriginalIndex))
 				{
-					PerSplitAttributes.BakeFolder = AllBakeFolders[InstIdx];
+					PerSplitAttributes.BakeFolder = AllBakeFolders[OriginalIndex];
 				}
-				if (bHasBakeOutlinerFolders && PerSplitAttributes.BakeOutlinerFolder.IsEmpty() && AllBakeOutlinerFolders.IsValidIndex(InstIdx))
+				if (bHasBakeOutlinerFolders && PerSplitAttributes.BakeOutlinerFolder.IsEmpty() && AllBakeOutlinerFolders.IsValidIndex(OriginalIndex))
 				{
-					PerSplitAttributes.BakeOutlinerFolder = AllBakeOutlinerFolders[InstIdx];
+					PerSplitAttributes.BakeOutlinerFolder = AllBakeOutlinerFolders[OriginalIndex];
 				}
 			}
 
-			PerSplitAttributes.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(InHGPO.GeoId, InHGPO.PartId, HAPI_GroupType::HAPI_GROUPTYPE_POINT, InstIdx);
-			PerSplitAttributes.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(InHGPO.GeoId, InHGPO.PartId, HAPI_ATTROWNER_POINT, InstIdx);
+			PerSplitAttributes.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(InHGPO.GeoId, InHGPO.PartId, HAPI_GroupType::HAPI_GROUPTYPE_POINT, OriginalIndex);
+			PerSplitAttributes.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(InHGPO.GeoId, InHGPO.PartId, HAPI_ATTROWNER_POINT, OriginalIndex);
 
 		}
 
