@@ -70,6 +70,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniAssetComponent : public UPrimitiveCompone
 	friend struct FHoudiniPDGManager;
 	friend struct FHoudiniHandleTranslator;
 	friend class FHoudiniToolsEditor;
+	//friend struct FHoudiniEngineBakeUtils;
 
 #if WITH_EDITORONLY_DATA
 	friend class FHoudiniAssetComponentDetails;
@@ -174,13 +175,10 @@ public:
 
 	TArray<FHoudiniBakedOutput>& GetBakedOutputs() { return BakedOutputs; }
 	const TArray<FHoudiniBakedOutput>& GetBakedOutputs() const { return BakedOutputs; }
-
-	/*
-	TArray<UHoudiniParameter*>& GetParameters() { return Parameters; };
-	TArray<UHoudiniInput*>& GetInputs() { return Inputs; };
-	TArray<UHoudiniOutput*>& GetOutputs() { return Outputs; };
-	*/
-
+		
+	TArray<TObjectPtr<UHoudiniParameter>>& GetParameters() { return Parameters; };
+	TArray<TObjectPtr<UHoudiniInput>>& GetInputs() { return Inputs; };
+	TArray<TObjectPtr<UHoudiniOutput>>& GetOutputs() { return Outputs; };
 	bool IsCookingEnabled() const { return bEnableCooking; };
 	bool HasBeenLoaded() const { return bHasBeenLoaded; };
 	bool HasBeenDuplicated() const { return bHasBeenDuplicated; };

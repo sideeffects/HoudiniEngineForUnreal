@@ -809,13 +809,13 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			UPackage* Package, UObject* Object, const FString& Key, const FString& Value);
 
 		// Adds the HoudiniLogo mesh to a Houdini Asset Component
-		static bool AddHoudiniLogoToComponent(UHoudiniAssetComponent* HAC);
+		static bool AddHoudiniLogoToComponent(USceneComponent* InComponent);
 
 		// Removes the default Houdini logo mesh from a HAC
-		static bool RemoveHoudiniLogoFromComponent(UHoudiniAssetComponent* HAC);
+		static bool RemoveHoudiniLogoFromComponent(USceneComponent* InComponent);
 
 		// Indicates if a HAC has the Houdini logo mesh
-		static bool HasHoudiniLogo(UHoudiniAssetComponent* HAC);
+		static bool HasHoudiniLogo(USceneComponent* InComponent);
 
 		// 
 		static HAPI_PartInfo ToHAPIPartInfo(const FHoudiniPartInfo& InHPartInfo);
@@ -1341,8 +1341,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// -------------------------------------------------
 
 		// Iterate over the input objects and gather only the landscape inputs.
-		static void GatherLandscapeInputs(UHoudiniAssetComponent* HAC, TArray<ALandscapeProxy*>& AllInputLandscapes);
-
+		static void GatherLandscapeInputs(
+			const TArray<TObjectPtr<UHoudiniInput>>& Inputs,
+			TArray<ALandscapeProxy*>& OutAllInputLandscapes);
 
 		static UHoudiniAssetComponent* GetOuterHoudiniAssetComponent(const UObject* Obj);
 

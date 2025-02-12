@@ -400,7 +400,7 @@ bool
 FHoudiniDataTableTranslator::BuildDataTable(
 	const FHoudiniGeoPartObject& HGPO,
 	UHoudiniOutput* CurOutput,
-	FHoudiniPackageParams& PackageParams)
+	const FHoudiniPackageParams& PackageParams)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniDataTableTranslator::BuildDataTable);
 

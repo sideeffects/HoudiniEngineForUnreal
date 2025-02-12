@@ -36,7 +36,7 @@ struct HOUDINIENGINE_API FHoudiniDataTableTranslator
 {
 	static bool BuildDataTable(const FHoudiniGeoPartObject& HGPO,
 		UHoudiniOutput* CurOutput,
-		FHoudiniPackageParams& PackageParams);
+		const FHoudiniPackageParams& PackageParams);
 
 	static bool GenerateRowNames(int32 GeoId,
 		int32 PartId,

@@ -320,8 +320,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
 
 	if (bSuccess && bInRemoveHACOutputOnSuccess)
 	{
-		TArray<UHoudiniOutput*> DeferredClearOutputs;
-		FHoudiniOutputTranslator::ClearAndRemoveOutputs(InHACToBake, DeferredClearOutputs, true);
+		FHoudiniOutputTranslator::ClearAndRemoveOutputs(InHACToBake->GetOutputs());
 	}
 	
 	return bSuccess;

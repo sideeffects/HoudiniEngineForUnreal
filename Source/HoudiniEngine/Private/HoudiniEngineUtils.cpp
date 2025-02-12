@@ -1241,17 +1241,13 @@ FHoudiniEngineUtils::RepopulateFoliageTypeListInUI()
 
 void
 FHoudiniEngineUtils::GatherLandscapeInputs(
-	UHoudiniAssetComponent* HAC,
+	const TArray<TObjectPtr<UHoudiniInput>>& Inputs,
 	TArray<ALandscapeProxy*>& AllInputLandscapes)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherLandscapeInputs);
-	if (!IsValid(HAC))
-		return;
 
-	int32 NumInputs = HAC->GetNumInputs();	
-	for (int32 InputIndex = 0; InputIndex < NumInputs; InputIndex++ )
+	for(auto CurrentInput : Inputs)
 	{
-		UHoudiniInput* CurrentInput = HAC->GetInputAt(InputIndex);
 		if (!CurrentInput)
 			continue;
 		
@@ -4599,13 +4595,13 @@ FHoudiniEngineUtils::FreeRawStringMemory(TArray<const char*>& InRawStringArray)
 }
 
 bool
-FHoudiniEngineUtils::AddHoudiniLogoToComponent(UHoudiniAssetComponent* HAC)
+FHoudiniEngineUtils::AddHoudiniLogoToComponent(USceneComponent* InComponent)
 {
-	if (!IsValid(HAC))
+	if (!IsValid(InComponent))
 		return false;
 
 	// No need to add another component if we already show the logo
-	if (FHoudiniEngineUtils::HasHoudiniLogo(HAC))
+	if (FHoudiniEngineUtils::HasHoudiniLogo(InComponent))
 		return true;
 
 	UStaticMesh* HoudiniLogoSM = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh().Get();
@@ -4613,7 +4609,7 @@ FHoudiniEngineUtils::AddHoudiniLogoToComponent(UHoudiniAssetComponent* HAC)
 		return false;
 
 	UStaticMeshComponent * HoudiniLogoSMC = NewObject<UStaticMeshComponent>(
-		HAC, UStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
+		InComponent, UStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
 
 	if (!HoudiniLogoSMC)
 		return false;
@@ -4622,16 +4618,16 @@ FHoudiniEngineUtils::AddHoudiniLogoToComponent(UHoudiniAssetComponent* HAC)
 	HoudiniLogoSMC->SetVisibility(true);
 	HoudiniLogoSMC->SetHiddenInGame(true);
 	// Attach created static mesh component to our Houdini component.
-	HoudiniLogoSMC->AttachToComponent(HAC, FAttachmentTransformRules::KeepRelativeTransform);
+	HoudiniLogoSMC->AttachToComponent(InComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	HoudiniLogoSMC->RegisterComponent();
 
 	return true;
 }
 
 bool
-FHoudiniEngineUtils::RemoveHoudiniLogoFromComponent(UHoudiniAssetComponent* HAC)
+FHoudiniEngineUtils::RemoveHoudiniLogoFromComponent(USceneComponent* InComponent)
 {
-	if (!IsValid(HAC))
+	if (!IsValid(InComponent))
 		return false;
 
 	// Get the Houdini Logo SM
@@ -4640,7 +4636,7 @@ FHoudiniEngineUtils::RemoveHoudiniLogoFromComponent(UHoudiniAssetComponent* HAC)
 		return false;
 
 	// Iterate on the HAC's component
-	for (USceneComponent* CurrentSceneComp : HAC->GetAttachChildren())
+	for (USceneComponent* CurrentSceneComp : InComponent->GetAttachChildren())
 	{
 		if (!IsValid(CurrentSceneComp) || !CurrentSceneComp->IsA<UStaticMeshComponent>())
 			continue;
@@ -4665,9 +4661,9 @@ FHoudiniEngineUtils::RemoveHoudiniLogoFromComponent(UHoudiniAssetComponent* HAC)
 }
 
 bool
-FHoudiniEngineUtils::HasHoudiniLogo(UHoudiniAssetComponent* HAC)
+FHoudiniEngineUtils::HasHoudiniLogo(USceneComponent* InComponent)
 {
-	if (!IsValid(HAC))
+	if (!IsValid(InComponent))
 		return false;
 
 	// Get the Houdini Logo SM
@@ -4676,7 +4672,7 @@ FHoudiniEngineUtils::HasHoudiniLogo(UHoudiniAssetComponent* HAC)
 		return false;
 
 	// Iterate on the HAC's component
-	for (USceneComponent* CurrentSceneComp : HAC->GetAttachChildren())
+	for (USceneComponent* CurrentSceneComp : InComponent->GetAttachChildren())
 	{
 		if (!IsValid(CurrentSceneComp) || !CurrentSceneComp->IsA<UStaticMeshComponent>())
 			continue;

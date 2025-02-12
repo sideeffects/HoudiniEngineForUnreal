@@ -148,7 +148,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 		// data.
 		TArray<ALandscapeProxy *> AllInputLandscapes;
 		UHoudiniAssetComponent* HAC = InAssetLink->GetOuterHoudiniAssetComponent();
-		FHoudiniEngineUtils::GatherLandscapeInputs(HAC, AllInputLandscapes);
+		FHoudiniEngineUtils::GatherLandscapeInputs(HAC->GetInputs(), AllInputLandscapes);
 
 		bResult = CreateAllResultObjectsFromPDGOutputs(
 			NewTOPOutputs,
@@ -247,7 +247,7 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 	// data.
 	TArray<ALandscapeProxy *> AllInputLandscapes;
 	UHoudiniAssetComponent* HAC = InAssetLink->GetOuterHoudiniAssetComponent();
-	FHoudiniEngineUtils::GatherLandscapeInputs(HAC, AllInputLandscapes);
+	FHoudiniEngineUtils::GatherLandscapeInputs(HAC->GetInputs(), AllInputLandscapes);
 
 	const bool bInTreatExistingMaterialsAsUpToDate = true;
 	const bool bOnlyUseExistingAssets = true;

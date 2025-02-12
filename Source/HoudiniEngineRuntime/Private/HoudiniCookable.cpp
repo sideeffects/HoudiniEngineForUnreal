@@ -371,6 +371,8 @@ UHoudiniCookable::GetOwner() const
 UWorld*
 UHoudiniCookable::GetWorld() const
 {
+	// TODO COOKABLE:
+	// ?? return GetComponent()->GetWold() first? though it should be same...
 	return GetOwner() ? GetOwner()->GetWorld() : nullptr;
 }
 

@@ -31,7 +31,10 @@
 
 
 class UHoudiniOutput;
+class UHoudiniInput;
 class UHoudiniAssetComponent;
+class AActor;
+class UActorComponent;
 class USceneComponent;
 
 struct FHoudiniObjectInfo;
@@ -39,6 +42,9 @@ struct FHoudiniGeoInfo;
 struct FHoudiniPartInfo;
 struct FHoudiniVolumeInfo;
 struct FHoudiniCurveInfo;
+struct FHoudiniPackageParams;
+struct FHoudiniStaticMeshGenerationProperties;
+struct FMeshBuildSettings;
 
 enum class EHoudiniOutputType : uint8;
 enum class EHoudiniGeoType : uint8;
@@ -47,6 +53,8 @@ enum class EHoudiniCurveType : int8;
 
 struct HOUDINIENGINE_API FHoudiniOutputTranslator
 {
+public:
+
 	// 
 	static bool UpdateOutputs(
 		UHoudiniAssetComponent* HAC,
@@ -94,22 +102,59 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 	static void CacheVolumeInfo(const HAPI_VolumeInfo& InVolumeInfo, FHoudiniVolumeInfo& OutVolumeInfoCache);
 	static void CacheCurveInfo(const HAPI_CurveInfo& InCurveInfo, FHoudiniCurveInfo& OutCurveInfoCache);
 
-	/** 
-	 * Helper to clear the outputs of the houdini asset component
-	 *
-	 * Some outputs (such as landscapes) need "deferred clearing". This means that
-	 * these outputs should only be destroyed AFTER the new outputs have been processed.
-	 * 
-	 * @param   InHAC	All outputs for this Houdini Asset Component will be cleared. 
-	 * @param   OutputsPendingClear	Any outputs that is "pending" clear. These outputs should typically be cleared AFTER the new outputs have been fully processed.
-	 * @param   bForceClearAll	Setting this flag will force outputs to be cleared here and not take into account outputs requested a deferred clear.
-	 */
-	static void ClearAndRemoveOutputs(UHoudiniAssetComponent *InHAC, TArray<UHoudiniOutput*>& OutputsPendingClear, bool bForceClearAll = false);
+	// Helper to clear all outputs
+	static void ClearAndRemoveOutputs(TArray<TObjectPtr<UHoudiniOutput>>& OutputsToClear);
+
 	// Helper to clear an individual UHoudiniOutput
 	static void ClearOutput(UHoudiniOutput* Output);
 
 	static bool GetCustomPartNameFromAttribute(HAPI_NodeId NodeId, HAPI_PartId PartId, FString& OutCustomPartName);
 
-	static void RemovePreviousOutputs(TArray<TObjectPtr<UHoudiniOutput>>& Outputs);
+protected:
+
+	// 1. Update the output objects
+	static void UpdateOutputObjects(
+		HAPI_NodeId InNodeId,
+		TArray<TObjectPtr<UHoudiniOutput>>& Outputs,
+		const TArray<int32>& InNodeIdsToCook,
+		const TMap<int32, int32>& InOutputNodeCookCounts,
+		UObject* InOuter,
+		bool bOutputless,
+		bool bOutputTemplateGeos,
+		bool bUseOutputNodes,
+		bool bEnableCurveEditing);
+
+	// 2. Update tags and generic attributes on HAC
+	static bool UpdateOutputAttributesAndTags(
+		TArray<TObjectPtr<UHoudiniOutput>>& Outputs,
+		AActor* InActorOwner,
+		UActorComponent* InComponent);
+
+	// 3. Create the actual outputs assets/components
+	static bool CreateAllOutputs(
+		TArray<TObjectPtr<UHoudiniOutput>>& Outputs,
+		const TArray<TObjectPtr<UHoudiniInput>>& Inputs,
+		const FHoudiniPackageParams& PackageParams,
+		UObject* InOuterComponent,
+		UWorld* InWorld,
+		bool bIsProxyStaticMeshEnabled,
+		bool bHasNoProxyMeshNextCookBeenRequested,
+		bool bIsBakeAfterNextCookEnabled,
+		bool bSplitMeshSupport,
+		const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
+		const FMeshBuildSettings& InStaticMeshBuildSettings,
+		bool& bOutHasHoudiniStaticMeshOutput,
+		TArray<UPackage*>& OutCreatedPackages);
+
+	// 4. Output cleanup
+	static void CleanOutputsPostCreate(
+		TArray<TObjectPtr<UHoudiniOutput>>& Outputs,
+		USceneComponent* InComponent,
+		UWorld* InWorld,
+		bool bHasBeenLoaded);
+
+	// 5. Update Data Layers and level instances
+	static void UpdateDataLayersAndLevelInstanceOnOutput(
+		TArray<TObjectPtr<UHoudiniOutput>>& InOutputs);
 
 };
