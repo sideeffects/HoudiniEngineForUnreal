@@ -28,46 +28,52 @@
 
 #include "HAPI/HAPI.h"
 
-#include "HoudiniOutput.h"
+#include "HoudiniAnimationTranslator.h"
 #include "HoudiniApi.h"
-#include "HoudiniEngine.h"
-
-#include "HoudiniEngineUtils.h"
-#include "HoudiniEngineString.h"
-#include "HoudiniGeoPartObject.h"
-#include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
-#include "HoudiniNodeSyncComponent.h"
-#include "HoudiniSplineComponent.h"
-#include "HoudiniEngineRuntime.h"
-#include "HoudiniInput.h"
-#include "HoudiniStaticMesh.h"
-
+#include "HoudiniCookable.h"
+#include "HoudiniDataLayerUtils.h"
 #include "HoudiniDataTableTranslator.h"
-#include "HoudiniMeshTranslator.h"
-#include "HoudiniSkeletalMeshTranslator.h"
-#include "HoudiniSplineTranslator.h"
+#include "HoudiniEngine.h"
+#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineRuntime.h"
+#include "HoudiniEngineString.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniFoliageTools.h"
+#include "HoudiniFoliageUtils.h"
+#include "HoudiniGeometryCollectionTranslator.h"
+#include "HoudiniGeoPartObject.h"
+#include "HoudiniHLODLayerUtils.h"
+#include "HoudiniInput.h"
+#include "HoudiniInstanceTranslator.h"
 #include "HoudiniLandscapeTranslator.h"
 #include "HoudiniLandscapeSplineTranslator.h"
-#include "HoudiniInstanceTranslator.h"
-#include "HoudiniAnimationTranslator.h"
+#include "HoudiniLevelInstanceUtils.h"
+#include "HoudiniMeshTranslator.h"
+#include "HoudiniNodeSyncComponent.h"
+#include "HoudiniOutput.h"
+#include "HoudiniSkeletalMeshTranslator.h"
+#include "HoudiniSplineComponent.h"
+#include "HoudiniSplineTranslator.h"
+#include "HoudiniStaticMesh.h"
 #include "HoudiniTextureTranslator.h"
-#include "HoudiniGeometryCollectionTranslator.h"
 
+
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Editor.h"
 #include "EditorSupportDelegates.h"
+#include "Engine/UserDefinedStruct.h"
+#include "Engine/WorldComposition.h"
 #include "FileHelpers.h"
-#include "HoudiniDataLayerUtils.h"
-#include "LandscapeInfo.h"
 #include "HAL/PlatformFileManager.h"
 #include "HAL/FileManager.h"
-#include "Engine/WorldComposition.h"
+#include "InstancedFoliageActor.h"
+#include "LandscapeInfo.h"
 #include "Modules/ModuleManager.h"
 #include "WorldBrowserModule.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "InstancedFoliageActor.h"
+
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 	#include "GeometryCollection/GeometryCollectionActor.h"
 	#include "GeometryCollection/GeometryCollectionObject.h"
@@ -75,12 +81,6 @@
 	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionActor.h"
 	#include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"
 #endif
-
-#include "HoudiniFoliageTools.h"
-#include "HoudiniLevelInstanceUtils.h"
-#include "Engine/UserDefinedStruct.h"
-#include "HoudiniHLODLayerUtils.h"
-#include "HoudiniFoliageUtils.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -108,6 +108,44 @@ FHoudiniOutputTranslator::UpdateOutputs(
 
 	// 2. Update tags and generic attributes on HAC
 	UpdateOutputAttributesAndTags(HAC->Outputs, HAC->GetOwner(), HAC);
+
+	return true;
+}
+
+//
+bool
+FHoudiniOutputTranslator::UpdateOutputs(
+	UHoudiniCookable* HC)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateOutputs-Cookable);
+
+	if (!IsValid(HC))
+		return false;
+
+	if (!HC->IsOutputSupported() || !HC->OutputData)
+		return false;
+
+
+	UObject* Outer = HC->IsComponentSupported() ? HC->ComponentData->Component.Get() : Cast<UObject>(HC);
+
+	// 1. Update the output objects
+	UpdateOutputObjects(
+		HC->NodeId,
+		HC->OutputData->Outputs,
+		HC->NodeIdsToCook,
+		HC->NodesToCookCookCounts,
+		Outer,
+		HC->OutputData->bOutputless,
+		HC->OutputData->bOutputTemplateGeos,
+		HC->OutputData->bUseOutputNodes,
+		HC->OutputData->bEnableCurveEditing);
+
+	// 2. Update tags and generic attributes on the Cookable's component (if any)
+	if (HC->IsComponentSupported() && HC->ComponentData)
+	{
+		UpdateOutputAttributesAndTags(HC->OutputData->Outputs, HC->GetOwner(), HC->GetComponent());
+	}
+	
 
 	return true;
 }
@@ -156,6 +194,73 @@ FHoudiniOutputTranslator::ProcessOutputs(
 
 	// 5. 
 	UpdateDataLayersAndLevelInstanceOnOutput(HAC->Outputs);
+
+	// 6. Save all created packages	
+	if (CreatedPackages.Num() > 0)
+	{
+		// Save created packages. For example, we don't want landscape layers deleted 
+		// along with the HDA.
+		FEditorFileUtils::PromptForCheckoutAndSave(CreatedPackages, true, false);
+	}
+
+	return true;
+}
+
+
+//
+bool
+FHoudiniOutputTranslator::ProcessOutputs(
+	UHoudiniCookable* HC,
+	bool& bOutHasHoudiniStaticMeshOutput)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::ProcessOutputs-Cookable);
+
+	if (!IsValid(HC))
+		return false;
+
+	if (!HC->IsOutputSupported() || !HC->OutputData)
+		return false;
+
+	UActorComponent* CookableComponent = nullptr;
+	if (HC->IsComponentSupported() && HC->ComponentData)
+		CookableComponent = HC->ComponentData->Component;
+
+	// 3. Create the outputs and components
+	FHoudiniPackageParams PackageParams;
+	PackageParams.PackageMode = FHoudiniPackageParams::GetDefaultStaticMeshesCookMode();
+	PackageParams.ReplaceMode = FHoudiniPackageParams::GetDefaultReplaceMode();
+
+	PackageParams.BakeFolder = HC->OutputData->GetBakeFolderOrDefault();
+	PackageParams.TempCookFolder = HC->OutputData->GetTemporaryCookFolderOrDefault();
+
+	PackageParams.OuterPackage = CookableComponent ? CookableComponent->GetComponentLevel() : nullptr;
+	PackageParams.HoudiniAssetName = HC->IsHoudiniAssetSupported() ? HC->HoudiniAssetData->HapiAssetName : HC->NodeName;
+	PackageParams.HoudiniAssetActorName = HC->GetDisplayName(); //HC->GetOwner()->GetActorNameOrLabel();
+	PackageParams.ComponentGUID = HC->CookableGUID;
+	PackageParams.ObjectName = FString();
+
+	TArray<UPackage*> CreatedPackages;
+	if (!CreateAllOutputs(
+		HC->OutputData->Outputs,
+		HC->InputData->Inputs, // TODO COOKABLE: Handle no input support?
+		PackageParams,
+		HC, // TODO COOKABLE: Use component here ?
+		HC->GetWorld(),
+		HC->OutputData->IsProxyStaticMeshEnabled(),
+		HC->OutputData->bNoProxyMeshNextCookRequested,
+		HC->OutputData->IsBakeAfterNextCookEnabled(),
+		HC->OutputData->bSplitMeshSupport,
+		HC->OutputData->StaticMeshGenerationProperties,
+		HC->OutputData->StaticMeshBuildSettings,
+		bOutHasHoudiniStaticMeshOutput,
+		CreatedPackages))
+		return false;
+
+	// 4. Output cleanup
+	CleanOutputsPostCreate(HC->OutputData->Outputs, HC->GetWorld(), HC->HasBeenLoaded());
+
+	// 5. 
+	UpdateDataLayersAndLevelInstanceOnOutput(HC->OutputData->Outputs);
 
 	// 6. Save all created packages	
 	if (CreatedPackages.Num() > 0)

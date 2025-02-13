@@ -36,6 +36,7 @@ class UHoudiniAssetComponent;
 class AActor;
 class UActorComponent;
 class USceneComponent;
+class UHoudiniCookable;
 
 struct FHoudiniObjectInfo;
 struct FHoudiniGeoInfo;
@@ -56,12 +57,19 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 public:
 
 	// 
-	static bool UpdateOutputs(
-		UHoudiniAssetComponent* HAC);
+	static bool UpdateOutputs(UHoudiniAssetComponent* HAC);
+
+	// 
+	static bool UpdateOutputs(UHoudiniCookable* HC);
 
 	//
 	static bool ProcessOutputs(
 		UHoudiniAssetComponent* HAC,
+		bool& bOutHasHoudiniStaticMeshOutput);
+
+	//
+	static bool ProcessOutputs(
+		UHoudiniCookable* HC,
 		bool& bOutHasHoudiniStaticMeshOutput);
 
 	//

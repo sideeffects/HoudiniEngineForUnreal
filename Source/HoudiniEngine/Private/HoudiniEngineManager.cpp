@@ -2443,8 +2443,7 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC)
 	}
 
 	// Cache the current cook counts of the nodes so that we can more reliable determine
-	// whether content has changed next time build outputs.	
-	// This needs to be done after output processing
+	// whether content has changed next time build outputs.
 	const TArray<int32> OutputNodes = HAC->GetOutputNodeIds();
 	for (int32 NodeId : OutputNodes)
 	{
@@ -2544,6 +2543,7 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		//
 		// INPUTS
 		//
+		// TODO COOKABLE: Do asset preset after input (obj path param?)
 		if (HC->IsInputSupported())
 		{
 			// Update our inputs
@@ -2561,11 +2561,9 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		bool bHasHoudiniStaticMeshOutput = false;
 		if (HC->IsOutputSupported())
 		{
-			bool bForceOutputUpdate = HC->HasRebuildBeenRequested() || HC->HasRecookBeenRequested();
-
-			// TODO: UPDATE OUTPUTS!!!!!!
-			//FHoudiniOutputTranslator::UpdateOutputs(HAC, bForceOutputUpdate, bHasHoudiniStaticMeshOutput);
-
+			// Update our output objects
+			// We will process them at the processing stage
+			FHoudiniOutputTranslator::UpdateOutputs(HC);
 			HC->OutputData->bNoProxyMeshNextCookRequested = false;
 		}
 
@@ -2580,76 +2578,15 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		{
 			HC->bHasBeenDuplicated = false;
 		}
-
-		//
-		// COMPONENTS
-		// 
-		// Component updates if supported
-		if (HC->IsComponentSupported())
-		{
-			USceneComponent* MyComponent = Cast<USceneComponent>(HC->GetComponent());
-			UHoudiniAssetComponent* MyHAC = Cast<UHoudiniAssetComponent>(HC->GetComponent());
-
-			// Update Physics state.
-			if (MyHAC)
-				MyHAC->UpdatePhysicsState();
-
-			if (MyComponent)
-			{
-				// Mark  Render State as dirty
-				MyComponent->MarkRenderStateDirty();
-
-				// Since we have new asset, we need to update bounds.
-				MyComponent->UpdateBounds();
-			}
-
-			if (HC->IsOutputSupported())
-			{
-				// If any outputs have HoudiniStaticMeshes, and if timer based refinement is enabled on the HAC,
-				// set the RefineMeshesTimer and ensure BuildStaticMeshesForAllHoudiniStaticMeshes is bound to
-				// the RefineMeshesTimerFired delegate of the HAC
-				if (bHasHoudiniStaticMeshOutput && HC->OutputData->IsProxyStaticMeshRefinementByTimerEnabled())
-				{
-					// TODO: UPDATE REFINE TIMERS AND DELEGATES!!!!!!
-					/*
-					if (!HC->HoudiniOutputsData.IsBoundToObject(this))
-						HC->HoudiniOutputsData.AddRaw(this, &FHoudiniEngineManager::BuildStaticMeshesForAllHoudiniStaticMeshes);
-
-						HAC->SetRefineMeshesTimer();
-					*/
-				}
-			}
-		}
-
-		FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nFinished processing outputs"), true);
-
-		if (bHasHoudiniStaticMeshOutput)
-			bNeedsToTriggerViewportUpdate = true;
-
-#if WITH_EDITORONLY_DATA
-		// Indicate we want to trigger a details panel update
-		HC->bNeedToUpdateEditorProperties = true;
-#endif
 	}
 
-	// Cache the current cook counts of the nodes so that we can more reliably determine
-	// whether content has changed next time we build outputs.	
-	//const TArray<int32> OutputNodes = HC->NodeIdsToCook;
+	// Cache the current cook counts of the nodes so that we can more reliable determine
+	// whether content has changed next time build outputs.
 	for (int32 NodeId : HC->NodeIdsToCook)
 	{
 		int32 NodeCookCount = FHoudiniEngineUtils::HapiGetCookCount(NodeId);
 		HC->NodesToCookCookCounts.Add(NodeId, CookCount);
 	}
-
-	// Clear the HasBeenLoaded flag
-	if (HC->HasBeenLoaded())
-	{
-		HC->bHasBeenLoaded = false;
-	}
-
-	// TODO: DOWNSTREAM
-	// If we have downstream HDAs, we need to tell them we're done cooking
-	//HAC->NotifyCookedToDownstreamAssets();
 
 	// See if we need to initialize the PDG Asset Link for this HDA
 	if (HC->IsPDGSupported())
@@ -2673,12 +2610,16 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		FHoudiniPDGManager::NotifyAssetCooked(HC->PDGData->PDGAssetLink, HC->bLastCookSuccess);
 	}
 
-	if (bNeedsToTriggerViewportUpdate && GEditor)
+
+	// Clear the HasBeenLoaded flag
+	if (HC->HasBeenLoaded())
 	{
-		// We need to manually update the viewport with HoudiniMeshProxies
-		// if not, modification made in H with the two way debugger wont be visible in Unreal until the viewports gets focus
-		GEditor->RedrawAllViewports(false);
+		HC->bHasBeenLoaded = false;
 	}
+
+	// TODO COOKABLE: DOWNSTREAM
+	// If we have downstream HDAs, we need to tell them we're done cooking
+	//HAC->NotifyCookedToDownstreamAssets();
 
 	// Clear the rebuild/recook flags
 	HC->bRecookRequested = false;
@@ -2767,11 +2708,81 @@ FHoudiniEngineManager::StartTaskAssetProcess(UHoudiniCookable* HC)
 bool
 FHoudiniEngineManager::UpdateProcess(UHoudiniCookable* HC)
 {
+	// We should only process after a succesfull cook
+	if (!HC->bLastCookSuccess)
+		return false;
+
+	bool bNeedsToTriggerViewportUpdate = false;
+	bool bHasHoudiniStaticMeshOutput = false;
+
+	// ?? this was unused
+	//bool bForceOutputUpdate = HAC->HasRebuildBeenRequested() || HAC->HasRecookBeenRequested();
+	FHoudiniOutputTranslator::ProcessOutputs(HC, bHasHoudiniStaticMeshOutput);
+	HC->OutputData->bNoProxyMeshNextCookRequested = false;
+
+	//
+	// COMPONENTS
+	// 
+	// Component updates if supported
+	if (HC->IsComponentSupported())
+	{
+		USceneComponent* MyComponent = Cast<USceneComponent>(HC->GetComponent());
+		UHoudiniAssetComponent* MyHAC = Cast<UHoudiniAssetComponent>(HC->GetComponent());
+
+		// Update Physics state.
+		if (MyHAC)
+			MyHAC->UpdatePhysicsState();
+
+		if (MyComponent)
+		{
+			// Mark  Render State as dirty
+			MyComponent->MarkRenderStateDirty();
+
+			// Since we have new asset, we need to update bounds.
+			MyComponent->UpdateBounds();
+		}
+
+		if (HC->IsOutputSupported())
+		{
+			// If any outputs have HoudiniStaticMeshes, and if timer based refinement is enabled on the HAC,
+			// set the RefineMeshesTimer and ensure BuildStaticMeshesForAllHoudiniStaticMeshes is bound to
+			// the RefineMeshesTimerFired delegate of the HAC
+			if (bHasHoudiniStaticMeshOutput && HC->OutputData->IsProxyStaticMeshRefinementByTimerEnabled())
+			{
+				// TODO COOKABLE: UPDATE REFINE TIMERS AND DELEGATES!!!!!!
+				/*
+				if (!HC->HoudiniOutputsData.IsBoundToObject(this))
+					HC->HoudiniOutputsData.AddRaw(this, &FHoudiniEngineManager::BuildStaticMeshesForAllHoudiniStaticMeshes);
+
+					HAC->SetRefineMeshesTimer();
+				*/
+			}
+		}
+	}
+
+#if WITH_EDITORONLY_DATA
+	// Indicate we want to trigger a details panel update
+	HC->bNeedToUpdateEditorProperties = true;
+#endif
+
+	if (bHasHoudiniStaticMeshOutput)
+		bNeedsToTriggerViewportUpdate = true;
+
+	if (bNeedsToTriggerViewportUpdate && GEditor)
+	{
+		// We need to manually update the viewport with HoudiniMeshProxies
+		// if not, modification made in H with the two way debugger wont be visible in Unreal until the viewports gets focus
+		GEditor->RedrawAllViewports(false);
+	}
+
 	HC->SetCurrentState(EHoudiniAssetState::None);
+
+	// Indicate we're done processing the asset
+	FString DisplayName = HC->GetDisplayName();
+	FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nFinished processing outputs"), true);
 
 	return true;
 }
-
 
 bool
 FHoudiniEngineManager::StartTaskAssetRebuild(const HAPI_NodeId& InAssetId, FGuid& OutTaskGUID)

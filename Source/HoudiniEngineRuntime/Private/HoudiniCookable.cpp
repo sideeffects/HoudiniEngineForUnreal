@@ -29,6 +29,7 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 #include "HoudiniAssetComponent.h"
+#include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniInstancedActorComponent.h"
 #include "HoudiniOutput.h"
@@ -199,6 +200,34 @@ UCookableOutputData::UCookableOutputData(const FObjectInitializer& ObjectInitial
 }
 
 bool
+UCookableOutputData::IsProxyStaticMeshEnabled() const
+{
+	if (bOverrideGlobalProxyStaticMeshSettings)
+	{
+		return bEnableProxyStaticMeshOverride;
+	}
+	else
+	{
+		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+		if (HoudiniRuntimeSettings)
+		{
+			return HoudiniRuntimeSettings->bEnableProxyStaticMesh;
+		}
+		else
+		{
+			return false;
+		}
+	}
+}
+
+bool 
+UCookableOutputData::IsBakeAfterNextCookEnabled() const 
+{ 
+	// Returns true if the asset should be bake after the next cook
+	return BakeAfterNextCook != EHoudiniBakeAfterNextCook::Disabled; 
+}
+
+bool
 UCookableOutputData::IsProxyStaticMeshRefinementByTimerEnabled() const
 {
 	if (bOverrideGlobalProxyStaticMeshSettings)
@@ -209,6 +238,18 @@ UCookableOutputData::IsProxyStaticMeshRefinementByTimerEnabled() const
 		return HoudiniRuntimeSettings->bEnableProxyStaticMesh && HoudiniRuntimeSettings->bEnableProxyStaticMeshRefinementByTimer;
 
 	return false;
+}
+
+FString
+UCookableOutputData::GetBakeFolderOrDefault() const
+{
+	return !BakeFolder.Path.IsEmpty() ? BakeFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
+}
+
+FString
+UCookableOutputData::GetTemporaryCookFolderOrDefault() const
+{
+	return !TemporaryCookFolder.Path.IsEmpty() ? TemporaryCookFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
 }
 
 

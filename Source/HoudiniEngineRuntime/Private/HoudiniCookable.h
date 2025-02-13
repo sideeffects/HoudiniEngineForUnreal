@@ -149,7 +149,16 @@ class HOUDINIENGINERUNTIME_API UCookableOutputData : public UObject
 	// Declare the delegate that is broadcast when RefineMeshesTimer fires
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRefineMeshesTimerDelegate, UHoudiniCookable*);
 
+	bool IsProxyStaticMeshEnabled() const;
+
+	// Returns true if the asset should be bake after the next cook
+	bool IsBakeAfterNextCookEnabled() const;
+
 	bool IsProxyStaticMeshRefinementByTimerEnabled() const;
+
+	FString GetBakeFolderOrDefault() const;
+
+	FString GetTemporaryCookFolderOrDefault() const;
 
 	UPROPERTY(Instanced)
 	TArray<TObjectPtr<UHoudiniOutput>> Outputs;
@@ -353,7 +362,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniCookable : public UObject, public IHoudin
 	// Inputs, outputs and parameters
 	friend class FHoudiniEngineManager;
 	friend struct FHoudiniEngineUtils;
-	//friend struct FHoudiniOutputTranslator;
+	friend struct FHoudiniOutputTranslator;
 	//friend struct FHoudiniInputTranslator;
 	//friend struct FHoudiniSplineTranslator;
 	friend struct FHoudiniParameterTranslator;
