@@ -57,8 +57,11 @@ public:
 
 	// 
 	static bool UpdateOutputs(
+		UHoudiniAssetComponent* HAC);
+
+	//
+	static bool ProcessOutputs(
 		UHoudiniAssetComponent* HAC,
-		bool bInForceUpdate,
 		bool& bOutHasHoudiniStaticMeshOutput);
 
 	//
@@ -149,7 +152,6 @@ protected:
 	// 4. Output cleanup
 	static void CleanOutputsPostCreate(
 		TArray<TObjectPtr<UHoudiniOutput>>& Outputs,
-		USceneComponent* InComponent,
 		UWorld* InWorld,
 		bool bHasBeenLoaded);
 
