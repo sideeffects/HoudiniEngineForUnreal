@@ -783,6 +783,15 @@ FHoudiniDataTableTranslator::CreateRowStruct(const FHoudiniGeoPartObject& HGPO,
 		}
 	}
 
+	// Iterate through objects within the package, and delete and structs, otherwise Unreal asserts.
+	ForEachObjectWithOuter(Package, [&](UObject* Obj)
+		{
+			if(Obj && Obj->IsA(UUserDefinedStruct::StaticClass()))
+			{
+				ObjectTools::DeleteSingleObject(Obj);
+			}
+		}, true);
+
 	NewStruct = FStructureEditorUtils::CreateUserDefinedStruct(Package, FName(PackageName), RF_Standalone | RF_Public);
 	TFieldIterator<FProperty> It(NewStruct);
 	DefaultPropId = FStructureEditorUtils::GetGuidForProperty(*It);

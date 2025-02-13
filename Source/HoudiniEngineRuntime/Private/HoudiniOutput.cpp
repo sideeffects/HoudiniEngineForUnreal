@@ -46,6 +46,7 @@
 #include "Animation/Skeleton.h"
 #include "Templates/Tuple.h"
 #include "HoudiniFoliageUtils.h"
+#include "Engine/DataTable.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 
 
@@ -1292,6 +1293,20 @@ void FHoudiniOutputObject::DestroyCookedData()
 	if (IsValid(SplinesOutputObject))
 	{
 		SplinesOutputObject->Clear();
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------
+	// If we overwrite a package that contains a data table, Unreal can assert if it points an old RowStruct. So
+	// a workaround is to point the Data Table to a temp structure before its deleted.
+	//--------------------------------------------------------------------------------------------------------------------
+
+	if(UDataTable* Table = Cast<UDataTable>(OutputObject.Get()))
+	{
+		if (Table->RowStruct)
+		{
+			Table->RowStruct = Cast<UScriptStruct>(StaticDuplicateObject(Table->RowStruct, GetTransientPackage()));
+			Table->RowStruct->SetFlags(RF_Transient);
+		}
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------
