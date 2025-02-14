@@ -371,7 +371,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		UHoudiniPDGAssetLink* HPDGAL = nullptr;
 		if (!bIsNodeSyncComponent)
 		{
-			HPDGAL = MainCookable ? MainCookable->GetPDGAssetLink() : MainComponent->GetPDGAssetLink();
+			HPDGAL = MainComponent->GetPDGAssetLink();
 		}
 
 		if (HPDGAL)

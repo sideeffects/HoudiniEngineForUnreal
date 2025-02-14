@@ -2754,3 +2754,12 @@ UHoudiniAssetComponent::GetHandleComponentAt(const int32& Idx)
 
 	return HandleComponents.IsValidIndex(Idx) ? HandleComponents[Idx] : nullptr;
 }
+
+UHoudiniPDGAssetLink* 
+UHoudiniAssetComponent::GetPDGAssetLink()
+{
+	if (GetCookable())
+		return GetCookable()->GetPDGAssetLink();
+
+	return PDGAssetLink;
+};

@@ -59,6 +59,8 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer & ObjectInitiali
 		// Create Houdini component and attach it to a root component.
 		HoudiniAssetComponent =
 			ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent"));
+
+		HoudiniCookable = nullptr;
 	}
 	else
 	{

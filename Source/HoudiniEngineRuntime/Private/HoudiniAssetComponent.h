@@ -176,6 +176,8 @@ public:
 
 	void GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const;
 
+	UHoudiniPDGAssetLink* GetPDGAssetLink();
+
 	TArray<FHoudiniBakedOutput>& GetBakedOutputs() { return BakedOutputs; }
 	const TArray<FHoudiniBakedOutput>& GetBakedOutputs() const { return BakedOutputs; }
 		
@@ -193,8 +195,6 @@ public:
 	int32 GetAssetCookCount() const { return AssetCookCount; };
 
 	bool IsFullyLoaded() const { return bFullyLoaded; };
-
-	UHoudiniPDGAssetLink * GetPDGAssetLink() const { return PDGAssetLink; };
 
 	virtual bool IsProxyStaticMeshEnabled() const;
 	bool IsProxyStaticMeshRefinementByTimerEnabled() const;
