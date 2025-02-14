@@ -28,6 +28,7 @@
 
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAsset.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniParameter.h"
@@ -235,7 +236,7 @@ void
 FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	// Get all components which are being customized.
-	TArray< TWeakObjectPtr< UObject > > ObjectsCustomized;
+	TArray<TWeakObjectPtr<UObject>> ObjectsCustomized;
 	DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
 	
 	// Extract the Houdini Asset Component to detail
@@ -247,7 +248,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		UObject * Object = ObjectsCustomized[i].Get();
 		if (Object)
 		{
-			UHoudiniAssetComponent * HAC = Cast< UHoudiniAssetComponent >(Object);
+			UHoudiniAssetComponent * HAC = Cast<UHoudiniAssetComponent>(Object);
 			if (IsValid(HAC))
 				HoudiniAssetComponents.Add(HAC);
 		}
@@ -273,7 +274,14 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 		TWeakObjectPtr<UHoudiniAsset> HoudiniAsset = HAC->GetHoudiniAsset();
 		if (!IsValidWeakPointer(HoudiniAsset))
-			continue;
+		{
+			// TODO COOKABLE: Improve!
+			UHoudiniCookable* HC = Cast<UHoudiniCookable>(HAC->GetOuter());
+			if (!HC || !HC->GetHoudiniAsset() )
+				continue;
+
+			HoudiniAsset = HC->GetHoudiniAsset();
+		}
 
 		TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& ValueRef = HoudiniAssetToHACs.FindOrAdd(HoudiniAsset);
 		ValueRef.Add(HAC);
@@ -360,7 +368,13 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		//
 		//  1. PDG ASSET LINK (if available)
 		//
-		if (MainComponent->GetPDGAssetLink() && !bIsNodeSyncComponent)
+		UHoudiniPDGAssetLink* HPDGAL = nullptr;
+		if (!bIsNodeSyncComponent)
+		{
+			HPDGAL = MainCookable ? MainCookable->GetPDGAssetLink() : MainComponent->GetPDGAssetLink();
+		}
+
+		if (HPDGAL)
 		{
 			FString PDGCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PDG);
 			PDGCatName += MultiSelectionIdentifier;
@@ -376,11 +390,9 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				AddEducationLicenseRow(HouPDGCategory);
 
 			// TODO: Handle multi selection of outputs like params/inputs?
-
-
-			PDGDetails->CreateWidget(HouPDGCategory, MainComponent->GetPDGAssetLink()/*, MainComponent*/);
+			PDGDetails->CreateWidget(HouPDGCategory, HPDGAL);
 		}
-		
+
 
 		//
 		// 2. PARAMETER DETAILS

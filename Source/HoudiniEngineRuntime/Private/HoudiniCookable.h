@@ -30,6 +30,7 @@
 #include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
 
+#include "HoudiniAssetComponent.h"
 #include "HoudiniEngineRuntimeCommon.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniAssetStateTypes.h"
@@ -37,7 +38,7 @@
 
 #include "Delegates/DelegateCombinations.h"
 #include "Engine/EngineTypes.h"
-#include "Components/PrimitiveComponent.h"
+#include "Components/SceneComponent.h"
 #if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
 	#include "LevelInstance/LevelInstanceInterface.h"
 #endif
@@ -50,7 +51,6 @@ class UHoudiniInput;
 class UHoudiniOutput;
 class UHoudiniPDGAssetLink;
 class UHoudiniParameter;
-
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UCookableHoudiniAssetData : public UObject
@@ -298,7 +298,7 @@ class HOUDINIENGINERUNTIME_API UCookableComponentData : public UObject
 	UCookableComponentData();
 
 	UPROPERTY()
-	TObjectPtr<UPrimitiveComponent> Component; // Should be a scenecomponent instead?
+	TObjectPtr<USceneComponent> Component; // Should be a scenecomponent instead?
 	
 	// TODO COOKABLE: Needed?
 	UPROPERTY()
@@ -394,11 +394,7 @@ public:
 	EHoudiniAssetStateResult GetCurrentStateResult() const { return CurrentStateResult; };
 	//virtual FString GetHoudiniAssetName() const;
 
-	UPrimitiveComponent* GetComponent() const;
-	AActor* GetOwner() const;
-	UWorld* GetWorld() const;
-	bool IsOwnerSelected() const;
-
+	// Feature accessors
 	UCookableHoudiniAssetData* GetHoudiniAssetData() { return IsHoudiniAssetSupported() ? HoudiniAssetData : nullptr; };
 	UCookableParameterData* GetParameterData() { return IsParameterSupported() ? ParameterData : nullptr; };
 	UCookableInputData* GetInputData() { return IsInputSupported() ? InputData : nullptr; };
@@ -406,11 +402,29 @@ public:
 	UCookableComponentData* GetComponentData() { return IsComponentSupported() ? ComponentData : nullptr; };
 	UCookablePDGData* GetPDGData() { return IsPDGSupported() ? PDGData : nullptr; };
 
+	USceneComponent* GetComponent() const;
+	AActor* GetOwner() const;
+	UWorld* GetWorld() const;
+	bool IsOwnerSelected() const;
+	UHoudiniAsset* GetHoudiniAsset() { return IsHoudiniAssetSupported() ? HoudiniAssetData->HoudiniAsset : nullptr; };
+	UHoudiniPDGAssetLink* GetPDGAssetLink() { return IsPDGSupported() ? PDGData->PDGAssetLink : nullptr; };
+
 	bool IsCookingEnabled() const { return bEnableCooking; };
 	bool HasBeenLoaded() const { return bHasBeenLoaded; };
 	bool HasBeenDuplicated() const { return bHasBeenDuplicated; };
 	bool HasRecookBeenRequested() const { return bRecookRequested; };
 	bool HasRebuildBeenRequested() const { return bRebuildRequested; };
+
+	// Feature data accessors
+	int32 GetNumInputs() const { return IsInputSupported() ? InputData->Inputs.Num() : 0; };
+	int32 GetNumOutputs() const { return IsOutputSupported() ? OutputData->Outputs.Num() : 0; };
+	int32 GetNumParameters() const { return IsParameterSupported() ? ParameterData->Parameters.Num() : 0; };
+	int32 GetNumHandles() const { return IsComponentSupported() ? ComponentData->HandleComponents.Num() : 0; };
+
+	UHoudiniInput* GetInputAt(const int32& Idx) { return IsInputSupported() ? (InputData->Inputs.IsValidIndex(Idx) ? InputData->Inputs[Idx] : nullptr) : nullptr; };
+	UHoudiniOutput* GetOutputAt(const int32& Idx) { return IsOutputSupported() ? (OutputData->Outputs.IsValidIndex(Idx) ? OutputData->Outputs[Idx] : nullptr) : nullptr;};
+	UHoudiniParameter* GetParameterAt(const int32& Idx) { return IsParameterSupported() ? (ParameterData->Parameters.IsValidIndex(Idx) ? ParameterData->Parameters[Idx] : nullptr) : nullptr;};
+	UHoudiniHandleComponent* GetHandleComponentAt(const int32& Idx) { return IsComponentSupported() ? (ComponentData->HandleComponents.IsValidIndex(Idx) ? ComponentData->HandleComponents[Idx] : nullptr) : nullptr; };
 
 	// Returns true if a parameter definition update (excluding values) is needed.
 	bool IsParameterDefinitionUpdateNeeded() const { return IsParameterSupported() ? ParameterData->bParameterDefinitionUpdateNeeded : false; };
@@ -478,6 +492,10 @@ public:
 	void PreventAutoUpdates();
 
 	void OnSessionConnected();
+
+	void SetComponent(USceneComponent* InComp) { if (IsComponentSupported()) { ComponentData->Component = InComp; } };
+	void SetHoudiniAssetComponent(UHoudiniAssetComponent* InComp) { if (IsComponentSupported()) { ComponentData->Component = InComp; } };
+	void SetHoudiniAsset(UHoudiniAsset* InHAsset) { if (IsHoudiniAssetSupported()) { HoudiniAssetData->HoudiniAsset = InHAsset; } };
 
 	//------------------------------------------------------------------------------------------------
 	// Supported Features

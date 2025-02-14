@@ -42,6 +42,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineEditorSettings.h"
 #include "HoudiniEnginePrivatePCH.h"
@@ -3300,7 +3301,6 @@ FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(UObject* InObj)
 		return false;
 
 	UHoudiniAssetComponent* HoudiniAssetComponent = nullptr;
-
 	if (InObj->IsA<UHoudiniAssetComponent>()) 
 	{
 		HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InObj);
@@ -3312,6 +3312,17 @@ FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(UObject* InObj)
 			return false;
 
 		HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(Parameter->GetOuter());
+
+		// TODO COOKABLE: IMPROVE ME
+		if (!HoudiniAssetComponent)
+		{
+			UHoudiniCookable* HC = Cast<UHoudiniCookable>(Parameter->GetOuter());
+			if (HC)
+			{
+				EHoudiniAssetState AssetState = HC->GetCurrentState();
+				return AssetState >= EHoudiniAssetState::PreCook && AssetState <= EHoudiniAssetState::PostCook;
+			}
+		}
 	}
 
 	if (!HoudiniAssetComponent)

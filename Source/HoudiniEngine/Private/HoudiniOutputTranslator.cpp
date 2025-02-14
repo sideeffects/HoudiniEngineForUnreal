@@ -244,7 +244,7 @@ FHoudiniOutputTranslator::ProcessOutputs(
 		HC->OutputData->Outputs,
 		HC->InputData->Inputs, // TODO COOKABLE: Handle no input support?
 		PackageParams,
-		HC, // TODO COOKABLE: Use component here ?
+		HC->GetComponent(), // TODO COOKABLE: Use Cookable / Component here ? - need to split
 		HC->GetWorld(),
 		HC->OutputData->IsProxyStaticMeshEnabled(),
 		HC->OutputData->bNoProxyMeshNextCookRequested,

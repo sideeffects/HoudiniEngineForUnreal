@@ -64,8 +64,20 @@ UHoudiniAssetActorFactory::GetAssetFromActorInstance(AActor * Instance)
 	check(Instance->IsA(NewActorClass));
 	AHoudiniAssetActor * HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(Instance);
 
-	check(HoudiniAssetActor->GetHoudiniAssetComponent());
-	return HoudiniAssetActor->GetHoudiniAssetComponent()->HoudiniAsset;
+	if (HoudiniAssetActor->HoudiniCookable)
+	{
+		// Get the HDA via the Cookable
+		if (HoudiniAssetActor->HoudiniCookable->IsHoudiniAssetSupported())
+		{
+			return HoudiniAssetActor->HoudiniCookable->GetHoudiniAsset();
+		}
+	}
+	
+	// TODO COOKABLE: REMOVE ME!
+	{
+		check(HoudiniAssetActor->GetHoudiniAssetComponent());
+		return HoudiniAssetActor->GetHoudiniAssetComponent()->HoudiniAsset;
+	}
 }
 
 void
@@ -75,9 +87,31 @@ UHoudiniAssetActorFactory::PostSpawnActor(UObject * Asset, AActor * NewActor)
 
 	UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(Asset);
 	AHoudiniAssetActor * HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(NewActor);
+
+	UHoudiniCookable* HC = HoudiniAssetActor->GetHoudiniCookable();
+	if (HC)
+	{
+		USceneComponent* CookableComponent = HC->GetComponent();
+		check(CookableComponent);
+
+		FHoudiniEngineUtils::AddHoudiniLogoToComponent(CookableComponent);
+
+		if (!HoudiniAssetActor->IsUsedForPreview())
+		{
+			if (IsValid(HoudiniAsset))
+			{
+				HC->SetHoudiniAsset(HoudiniAsset);
+			}
+
+			FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(HoudiniAssetActor->HoudiniCookable);
+		}
+
+		return;
+	}
+
+	// TODO COOKABLE: REMOVE ME!
 	UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 	check(HoudiniAssetComponent);
-
 	FHoudiniEngineUtils::AddHoudiniLogoToComponent(HoudiniAssetComponent);
 
 	if (!HoudiniAssetActor->IsUsedForPreview())
@@ -86,6 +120,7 @@ UHoudiniAssetActorFactory::PostSpawnActor(UObject * Asset, AActor * NewActor)
 		{
 			HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
 		}
+
 		FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
 	}
 }
@@ -94,6 +129,8 @@ void
 UHoudiniAssetActorFactory::PostCreateBlueprint(UObject * Asset, AActor * CDO)
 {
 	HOUDINI_LOG_MESSAGE(TEXT("PostCreateBlueprint, supplied Asset = 0x%0.8p"), Asset);
+
+	// TODO COOKABLE: HANDLE ME!
 
 	UHoudiniAsset * HoudiniAsset = CastChecked<UHoudiniAsset>(Asset);
 	if (HoudiniAsset)

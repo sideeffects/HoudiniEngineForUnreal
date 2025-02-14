@@ -30,6 +30,7 @@
 
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
+#include "HoudiniCookable.h"
 #include "HoudiniInput.h"
 #include "HoudiniNodeSyncComponent.h"
 #include "HoudiniOutput.h"
@@ -324,13 +325,16 @@ UHoudiniAssetComponent::GetHACWorld() const
 UHoudiniAsset *
 UHoudiniAssetComponent::GetHoudiniAsset() const
 {
+	if (GetCookable())
+		return GetCookable()->GetHoudiniAsset();
+
 	return HoudiniAsset;
 }
 
 FString
 UHoudiniAssetComponent::GetHoudiniAssetName() const
 {
-	return IsValid(HoudiniAsset) ? HoudiniAsset->GetName() : TEXT("");
+	return IsValid(GetHoudiniAsset()) ? GetHoudiniAsset()->GetName() : TEXT("");
 }
 
 FString
@@ -2671,4 +2675,82 @@ UHoudiniAssetComponent::ProcessBPTemplate(const bool& InIsGlobalCookingEnabled)
 	{
 		// TODO: Transfer template output changes over to the preview instance.
 	}
+}
+
+UHoudiniCookable*
+UHoudiniAssetComponent::GetCookable() const
+{
+	return Cast<UHoudiniCookable>(GetOuter());
+}
+
+int32
+UHoudiniAssetComponent::GetNumInputs() const
+{
+	if (GetCookable())
+		return GetCookable()->GetNumInputs();
+
+	return Inputs.Num(); 
+}
+
+int32
+UHoudiniAssetComponent::GetNumOutputs() const
+{
+	if (GetCookable())
+		return GetCookable()->GetNumOutputs();
+
+	return Outputs.Num(); 
+}
+
+int32
+UHoudiniAssetComponent::GetNumParameters() const
+{
+	if (GetCookable())
+		return GetCookable()->GetNumParameters();
+
+	return Parameters.Num();
+}
+
+int32
+UHoudiniAssetComponent::GetNumHandles() const 
+{ 
+	if (GetCookable())
+		return GetCookable()->GetNumHandles();
+
+	return HandleComponents.Num(); 
+}
+
+UHoudiniInput*
+UHoudiniAssetComponent::GetInputAt(const int32& Idx)
+{ 
+	if (GetCookable())
+		return GetCookable()->GetInputAt(Idx);
+
+	return Inputs.IsValidIndex(Idx) ? Inputs[Idx] : nullptr; 
+}
+
+UHoudiniOutput*
+UHoudiniAssetComponent::GetOutputAt(const int32& Idx)
+{
+	if (GetCookable())
+		return GetCookable()->GetOutputAt(Idx);
+
+	return Outputs.IsValidIndex(Idx) ? Outputs[Idx] : nullptr; 
+}
+
+UHoudiniParameter*
+UHoudiniAssetComponent::GetParameterAt(const int32& Idx)
+{
+	if (GetCookable())
+		return GetCookable()->GetParameterAt(Idx);
+
+	return Parameters.IsValidIndex(Idx) ? Parameters[Idx] : nullptr;
+}
+
+UHoudiniHandleComponent*
+UHoudiniAssetComponent::GetHandleComponentAt(const int32& Idx)
+{
+	if (GetCookable())
+		return GetCookable()->GetHandleComponentAt(Idx);
+
+	return HandleComponents.IsValidIndex(Idx) ? HandleComponents[Idx] : nullptr;
 }

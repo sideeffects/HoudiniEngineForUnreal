@@ -45,6 +45,7 @@
 #include "HoudiniAssetComponent.generated.h"
 
 class UHoudiniAsset;
+class UHoudiniCookable;
 class UHoudiniParameter;
 class UHoudiniInput;
 class UHoudiniOutput;
@@ -149,7 +150,9 @@ public:
 	//------------------------------------------------------------------------------------------------
 	// Accessors
 	//------------------------------------------------------------------------------------------------
-	UHoudiniAsset * GetHoudiniAsset() const;
+	UHoudiniCookable* GetCookable() const;
+
+	UHoudiniAsset* GetHoudiniAsset() const;
 	int32 GetAssetId() const { return AssetId; };
 	EHoudiniAssetState GetAssetState() const { return AssetState; };
 //	FString GetAssetStateAsString() const { return FHoudiniEngineRuntimeUtils::EnumToString(TEXT("EHoudiniAssetState"), GetAssetState()); };
@@ -161,15 +164,15 @@ public:
 	FString GetHapiAssetName() const { return HapiAssetName; };
 	FGuid GetComponentGUID() const { return ComponentGUID; };
 
-	int32 GetNumInputs() const { return Inputs.Num(); };
-	int32 GetNumOutputs() const { return Outputs.Num(); };
-	int32 GetNumParameters() const { return Parameters.Num(); };
-	int32 GetNumHandles() const { return HandleComponents.Num(); };
+	int32 GetNumInputs() const;
+	int32 GetNumOutputs() const;
+	int32 GetNumParameters() const;
+	int32 GetNumHandles() const;
 
-	UHoudiniInput* GetInputAt(const int32& Idx) { return Inputs.IsValidIndex(Idx) ? Inputs[Idx] : nullptr; };
-	UHoudiniOutput* GetOutputAt(const int32& Idx) { return Outputs.IsValidIndex(Idx) ? Outputs[Idx] : nullptr;};
-	UHoudiniParameter* GetParameterAt(const int32& Idx) { return Parameters.IsValidIndex(Idx) ? Parameters[Idx] : nullptr;};
-	UHoudiniHandleComponent* GetHandleComponentAt(const int32& Idx) { return HandleComponents.IsValidIndex(Idx) ? HandleComponents[Idx] : nullptr; };
+	UHoudiniInput* GetInputAt(const int32& Idx);
+	UHoudiniOutput* GetOutputAt(const int32& Idx);
+	UHoudiniParameter* GetParameterAt(const int32& Idx);
+	UHoudiniHandleComponent* GetHandleComponentAt(const int32& Idx);
 
 	void GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const;
 

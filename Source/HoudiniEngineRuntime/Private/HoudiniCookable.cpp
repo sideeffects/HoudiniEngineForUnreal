@@ -389,7 +389,7 @@ UHoudiniCookable::~UHoudiniCookable()
 }
 
 
-UPrimitiveComponent*
+USceneComponent*
 UHoudiniCookable::GetComponent() const
 {
 	if (!IsComponentSupported())
@@ -401,7 +401,7 @@ UHoudiniCookable::GetComponent() const
 AActor*
 UHoudiniCookable::GetOwner() const
 {
-	UPrimitiveComponent* Comp = GetComponent();
+	USceneComponent* Comp = GetComponent();
 	if (!Comp)
 		return nullptr;
 

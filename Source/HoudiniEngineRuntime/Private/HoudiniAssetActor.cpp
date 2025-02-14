@@ -26,12 +26,23 @@
 
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniNodeSyncComponent.h"
 #include "HoudiniAsset.h"
 #include "HoudiniPDGAssetLink.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
+
+/*
+static TAutoConsoleVariable<int32> CVarHoudiniEngineUseCookable(
+	TEXT("HoudiniEngine.UseCookable"),
+	1,
+	TEXT("Controls if Cookable should be used instead of HAC when instantiating an HDA (DEBUG).\n")
+	TEXT("0: Off - HAC only (default)\n")
+	TEXT("1: On - Use Cookable to cook/create HAC\n")
+);
+*/
 
 AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -40,12 +51,40 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer & ObjectInitiali
 	//PrimaryActorTick.bCanEverTick = true;
 	//PrimaryActorTick.bStartWithTickEnabled = true;
 
-	// Create Houdini component and attach it to a root component.
-	HoudiniAssetComponent =
-		ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent"));
+	bool bUseCookable = false;
+	//bUseCookable = (bool)CVarHoudiniEngineUseCookable.GetValueOnAnyThread();
+
+	if (!bUseCookable)
+	{
+		// Create Houdini component and attach it to a root component.
+		HoudiniAssetComponent =
+			ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(this, TEXT("HoudiniAssetComponent"));
+	}
+	else
+	{
+		HoudiniCookable =
+			ObjectInitializer.CreateDefaultSubobject<UHoudiniCookable>(this, TEXT("HoudiniCookable"));
+
+		// Create Houdini component with the Cookable as outer
+		HoudiniAssetComponent =
+			ObjectInitializer.CreateDefaultSubobject<UHoudiniAssetComponent>(HoudiniCookable, TEXT("HoudiniAssetCookableComponent"));
+
+		if (HoudiniCookable)
+		{
+			// HoudiniAssetActor support all cookable features
+			HoudiniCookable->SetHoudiniAssetSupported(true);
+			HoudiniCookable->SetParameterSupported(true);
+			HoudiniCookable->SetInputSupported(true);
+			HoudiniCookable->SetOutputSupported(true);
+			HoudiniCookable->SetComponentSupported(true);
+			HoudiniCookable->SetPDGSupported(true);
+
+			// Assign the HAC to the Cookable
+			HoudiniCookable->SetComponent(HoudiniAssetComponent);
+		}
+	}
 
 	//HoudiniAssetComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-
 	RootComponent = HoudiniAssetComponent;
 }
 
@@ -99,12 +138,28 @@ AHoudiniAssetActor::GetHoudiniAssetComponent() const
 	return HoudiniAssetComponent;
 }
 
+UHoudiniCookable*
+AHoudiniAssetActor::GetHoudiniCookable() const
+{
+	return HoudiniCookable;
+}
+
 #if WITH_EDITOR
 bool
 AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
 	Super::GetReferencedContentObjects(Objects);
 
+	if (IsValid(HoudiniCookable))
+	{
+		UHoudiniAsset* HoudiniAsset = HoudiniCookable->GetHoudiniAsset();
+		if (IsValid(HoudiniAsset))
+			Objects.AddUnique(HoudiniAsset);
+
+		return true;
+	}
+
+	// TODO COOKABLE: REMOVE ME!
 	if (IsValid(HoudiniAssetComponent))
 	{
 		UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
@@ -121,6 +176,8 @@ void
 AHoudiniAssetActor::PostEditChangeProperty(FPropertyChangedEvent & PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	// TODO COOKABLE: HANDLE ME!
 
 	// Some property changes need to be forwarded to the component (ie Transform)
 	if (!IsValid(HoudiniAssetComponent))
@@ -154,7 +211,15 @@ AHoudiniAssetActor::IsUsedForPreview() const
 UHoudiniPDGAssetLink*
 AHoudiniAssetActor::GetPDGAssetLink() const
 {
-	return IsValid(HoudiniAssetComponent) ? HoudiniAssetComponent->GetPDGAssetLink() : nullptr;
+	// TODO COOKABLE: REMOVE ME!
+	if (IsValid(HoudiniCookable))
+	{
+		return HoudiniCookable->GetPDGAssetLink();
+	}
+	else
+	{
+		return IsValid(HoudiniAssetComponent) ? HoudiniAssetComponent->GetPDGAssetLink() : nullptr;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

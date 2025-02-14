@@ -391,6 +391,21 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 				}
 			}
 
+			// TODO COOKABLE ??
+			if (!CurrentCookable->bFullyLoaded)
+			{
+				/*
+				// TODO COOKABLE: BP Support
+				// Let the component figure out whether it's fully loaded or not.
+				CurrentCookable->HoudiniEngineTick();
+				if (!CurrentCookable->IsFullyLoaded())
+					continue; // We need to wait some more.
+				*/
+
+				// For non BP case - just set fully loaded
+				CurrentCookable->bFullyLoaded = true;
+			}
+
 			/*
 			* // TODO COOKABLE: BP Support
 			if (!CurrentCookable->IsFullyLoaded())

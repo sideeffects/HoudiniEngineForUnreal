@@ -33,7 +33,9 @@
 #include "HoudiniAssetActor.generated.h"
 
 class UHoudiniAssetComponent;
+class UHoudiniCookable;
 class UHoudiniPDGAssetLink;
+
 
 UCLASS(hidecategories = (Input), ConversionRoot, meta = (ChildCanTick), Blueprintable)
 class HOUDINIENGINERUNTIME_API AHoudiniAssetActor : public AActor
@@ -46,10 +48,17 @@ class HOUDINIENGINERUNTIME_API AHoudiniAssetActor : public AActor
 	UPROPERTY(Category = HoudiniAssetActor, VisibleAnywhere, BlueprintReadOnly, meta = (ExposeFunctionCategories = "Mesh,Rendering,Physics,Components|HoudiniEngine")/*, AllowPrivateAccess = "true"*/)
 	TObjectPtr<UHoudiniAssetComponent>  HoudiniAssetComponent;
 
+	// Cookable for this HAA
+	UPROPERTY()
+	TObjectPtr<UHoudiniCookable>  HoudiniCookable;
+
 public:
 
 	// Returns the actor's houdini component.
 	UHoudiniAssetComponent* GetHoudiniAssetComponent() const;
+
+	// Returns the actor's cookable.
+	UHoudiniCookable* GetHoudiniCookable() const;
 
 	bool IsUsedForPreview() const;
 	

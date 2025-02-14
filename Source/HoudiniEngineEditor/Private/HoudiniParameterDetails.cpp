@@ -110,8 +110,14 @@ const FMargin RightRowPadding(12.0f, 0.0f, 2.0f, 0.0f);
 
 
 int32 
-SCustomizedButton::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect,
-	FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+SCustomizedButton::OnPaint(
+	const FPaintArgs& Args,
+	const FGeometry& AllottedGeometry,
+	const FSlateRect& MyClippingRect,
+	FSlateWindowElementList& OutDrawElements,
+	int32 LayerId,
+	const FWidgetStyle& InWidgetStyle,
+	bool bParentEnabled) const
 {
 	TSharedPtr<SWidget> Content = GetContent();
 
@@ -229,7 +235,11 @@ SCustomizedButton::ConstructRadioButtonCircles() const
 }
 
 void 
-SCustomizedButton::DrawRadioButton(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId, const bool& bSelected) const
+SCustomizedButton::DrawRadioButton(
+	const FGeometry& AllottedGeometry,
+	FSlateWindowElementList& OutDrawElements,
+	int32 LayerId,
+	const bool& bSelected) const
 {
 	TArray<FVector2D>& OuterPoints = FHoudiniEngineEditor::Get().GetHoudiniParameterRadioButtonPointsOuter();
 	TArray<FVector2D>& InnerPoints = FHoudiniEngineEditor::Get().GetHoudiniParameterRadioButtonPointsInner();
@@ -293,7 +303,8 @@ SCustomizedButton::DrawRadioButton(const FGeometry& AllottedGeometry, FSlateWind
 }
 
 void
-SCustomizedBox::SetHoudiniParameter(const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
+SCustomizedBox::SetHoudiniParameter(
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams) 
 {
 	if (InParams.Num() <= 0)
 		return;
@@ -605,8 +616,10 @@ SCustomizedBox::SetHoudiniParameter(const TArray<TWeakObjectPtr<UHoudiniParamete
 }
 
 float
-SCustomizedBox::AddIndentation(const TWeakObjectPtr<UHoudiniParameter>& InParam, 
-	const TMap<int32, TWeakObjectPtr<UHoudiniParameterMultiParm>>& InAllMultiParms, const TMap<int32, TWeakObjectPtr<UHoudiniParameter>>& InAllFoldersAndFolderLists)
+SCustomizedBox::AddIndentation(
+	const TWeakObjectPtr<UHoudiniParameter>& InParam, 
+	const TMap<int32, TWeakObjectPtr<UHoudiniParameterMultiParm>>& InAllMultiParms,
+	const TMap<int32, TWeakObjectPtr<UHoudiniParameter>>& InAllFoldersAndFolderLists)
 {
 	if (!InParam.IsValid())
 		return 0.0f;
@@ -696,8 +709,14 @@ SCustomizedBox::AddIndentation(const TWeakObjectPtr<UHoudiniParameter>& InParam,
 };
 
 int32 
-SCustomizedBox::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect,
-	FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+SCustomizedBox::OnPaint(
+	const FPaintArgs& Args,
+	const FGeometry& AllottedGeometry,
+	const FSlateRect& MyClippingRect,
+	FSlateWindowElementList& OutDrawElements,
+	int32 LayerId,
+	const FWidgetStyle& InWidgetStyle,
+	bool bParentEnabled) const
 {
 	SHorizontalBox::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
@@ -828,7 +847,8 @@ SCustomizedBox::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometr
 
 template< class T >
 bool FHoudiniParameterDetails::CastParameters(
-	const TArray<UHoudiniParameter*>& InParams, TArray<T*>& OutCastedParams )
+	const TArray<UHoudiniParameter*>& InParams,
+	TArray<T*>& OutCastedParams )
 {
 	for (auto CurrentParam : InParams)
 	{
@@ -842,7 +862,8 @@ bool FHoudiniParameterDetails::CastParameters(
 
 template< class T >
 bool FHoudiniParameterDetails::CastParameters(
-	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, TArray<TWeakObjectPtr<T>>& OutCastedParams )
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	TArray<TWeakObjectPtr<T>>& OutCastedParams )
 {
 	for (const auto& CurrentParam : InParams)
 	{
@@ -1023,7 +1044,6 @@ void FHoudiniParameterDetails::CreateJoinableWidget(
 		return;
 
 	FDetailWidgetRow* Row = CreateNestedRow(HouParameterCategory, InJoinedParams);
-
 	if (!Row)
 		return;
 
@@ -1223,7 +1243,6 @@ FHoudiniParameterDetails::CreateCustomizedBox(
 		}
 	}
 
-
 	return CustomizedBox;
 }
 
@@ -1265,7 +1284,10 @@ FHoudiniParameterDetails::CreateNameTextBlock(
 }
 
 void
-FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams, bool WithLabel)
+FHoudiniParameterDetails::CreateNameWidget(
+	FDetailWidgetRow* Row, 
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams,
+	bool WithLabel)
 {
 	if (!Row)
 		return;
@@ -1290,7 +1312,10 @@ FHoudiniParameterDetails::CreateNameWidget(FDetailWidgetRow* Row, const TArray<T
 }
 
 void
-FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(FDetailWidgetRow* Row, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams, bool WithLabel)
+FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(
+	FDetailWidgetRow* Row,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams,
+	bool WithLabel)
 {
 	if (!Row)
 		return;
@@ -2068,7 +2093,7 @@ FHoudiniParameterDetails::CreateWidgetInt(
 	if (!IsValidWeakPointer(MainParam))
 		return;
 
-	TSharedRef< SVerticalBox > VerticalBox = SNew(SVerticalBox);
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 
 	// Helper function to find a unit from a string (name or abbreviation) 
 	auto ParmUnit = FUnitConversion::UnitFromString(*(MainParam->GetUnit()));
@@ -3783,7 +3808,10 @@ FHoudiniParameterDetails::CreateWidgetFolder(
 }
 
 void
-FHoudiniParameterDetails::CreateFolderHeaderUI(IDetailCategoryBuilder& HouParameterCategory, FDetailWidgetRow* HeaderRow, const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
+FHoudiniParameterDetails::CreateFolderHeaderUI(
+	IDetailCategoryBuilder& HouParameterCategory,
+	FDetailWidgetRow* HeaderRow,
+	const TArray<TWeakObjectPtr<UHoudiniParameter>> &InParams)
 {
 	if (!HeaderRow)	// The folder is invisible.
 		return;
@@ -4113,116 +4141,115 @@ FHoudiniParameterDetails::CreateWidgetMultiParm(
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 		[
 			PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateLambda([MainParam, MultiParmParams]()
-	{
-		FScopedTransaction Transaction(
-			TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniParameterMultiParamAddInstance", "Houdini Parameter Multi Parameter: Adding an instance"),
-			MainParam->GetOuter(), true);
+			{
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_RUNTIME),
+					LOCTEXT("HoudiniParameterMultiParamAddInstance", "Houdini Parameter Multi Parameter: Adding an instance"),
+					MainParam->GetOuter(), true);
 
-		for (auto& Param : MultiParmParams)
-		{
-			if (!IsValidWeakPointer(Param))
-				continue;
+				for (auto& Param : MultiParmParams)
+				{
+					if (!IsValidWeakPointer(Param))
+						continue;
 
-			// Add a reverse step for redo/undo
-			Param->MultiParmInstanceLastModifyArray.Add(EHoudiniMultiParmModificationType::Removed);
+					// Add a reverse step for redo/undo
+					Param->MultiParmInstanceLastModifyArray.Add(EHoudiniMultiParmModificationType::Removed);
 
-			Param->MarkChanged(true);
-			Param->Modify();
+					Param->MarkChanged(true);
+					Param->Modify();
 
-			if (Param->MultiParmInstanceLastModifyArray.Num() > 0)
-				Param->MultiParmInstanceLastModifyArray.RemoveAt(Param->MultiParmInstanceLastModifyArray.Num() - 1);
+					if (Param->MultiParmInstanceLastModifyArray.Num() > 0)
+						Param->MultiParmInstanceLastModifyArray.RemoveAt(Param->MultiParmInstanceLastModifyArray.Num() - 1);
 
-			Param->InsertElement();
+					Param->InsertElement();
 
-		}
-	}),
-				LOCTEXT("AddMultiparmInstanceToolTipAddLastInstance", "Add an Instance"), true)
+				}
+			}),
+			LOCTEXT("AddMultiparmInstanceToolTipAddLastInstance", "Add an Instance"), true)
 		];
 
-	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
+		HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 		[
 			// Remove the last multiparm instance
 			PropertyCustomizationHelpers::MakeRemoveButton(FSimpleDelegate::CreateLambda([MainParam, MultiParmParams]()
-	{
-
-		FScopedTransaction Transaction(
-			TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniParameterMultiParamDeleteInstance", "Houdini Parameter Multi Parameter: Deleting an instance"),
-			MainParam->GetOuter(), true);
-
-		for (auto & Param : MultiParmParams)
-		{
-			TArray<EHoudiniMultiParmModificationType>& LastModifiedArray = Param->MultiParmInstanceLastModifyArray;
-			int32 RemovedIndex = LastModifiedArray.Num() - 1;
-			while (LastModifiedArray.IsValidIndex(RemovedIndex) && LastModifiedArray[RemovedIndex] == EHoudiniMultiParmModificationType::Removed)
-				RemovedIndex -= 1;
-
-			// Add a reverse step for redo/undo
-			EHoudiniMultiParmModificationType PreviousModType = EHoudiniMultiParmModificationType::None;
-			if (LastModifiedArray.IsValidIndex(RemovedIndex))
 			{
-				PreviousModType = LastModifiedArray[RemovedIndex];
-				LastModifiedArray[RemovedIndex] = EHoudiniMultiParmModificationType::Inserted;
-			}
 
-			Param->MarkChanged(true);
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_RUNTIME),
+					LOCTEXT("HoudiniParameterMultiParamDeleteInstance", "Houdini Parameter Multi Parameter: Deleting an instance"),
+					MainParam->GetOuter(), true);
 
-			Param->Modify();
+				for (auto & Param : MultiParmParams)
+				{
+					TArray<EHoudiniMultiParmModificationType>& LastModifiedArray = Param->MultiParmInstanceLastModifyArray;
+					int32 RemovedIndex = LastModifiedArray.Num() - 1;
+					while (LastModifiedArray.IsValidIndex(RemovedIndex) && LastModifiedArray[RemovedIndex] == EHoudiniMultiParmModificationType::Removed)
+						RemovedIndex -= 1;
 
-			if (LastModifiedArray.IsValidIndex(RemovedIndex))
-			{
-				LastModifiedArray[RemovedIndex] = PreviousModType;
-			}
+					// Add a reverse step for redo/undo
+					EHoudiniMultiParmModificationType PreviousModType = EHoudiniMultiParmModificationType::None;
+					if (LastModifiedArray.IsValidIndex(RemovedIndex))
+					{
+						PreviousModType = LastModifiedArray[RemovedIndex];
+						LastModifiedArray[RemovedIndex] = EHoudiniMultiParmModificationType::Inserted;
+					}
 
-			Param->RemoveElement(RemovedIndex);
-		}
+					Param->MarkChanged(true);
 
-	}),
-				LOCTEXT("RemoveLastMultiParamLastToolTipRemoveLastInstance", "Remove the last instance"), true)
+					Param->Modify();
 
+					if (LastModifiedArray.IsValidIndex(RemovedIndex))
+					{
+						LastModifiedArray[RemovedIndex] = PreviousModType;
+					}
+
+					Param->RemoveElement(RemovedIndex);
+				}
+
+			}),
+			LOCTEXT("RemoveLastMultiParamLastToolTipRemoveLastInstance", "Remove the last instance"), true)
 		];
 
-	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
+		HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 		[
 			PropertyCustomizationHelpers::MakeEmptyButton(FSimpleDelegate::CreateLambda([MainParam, MultiParmParams]()
-	{
-		
-		FScopedTransaction Transaction(
-			TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniParameterMultiParamDeleteAllInstances", "Houdini Parameter Multi Parameter: Deleting all instances"),
-			MainParam->GetOuter(), true);
-
-		for (auto & Param : MultiParmParams)
-		{
-			TArray<EHoudiniMultiParmModificationType>& LastModifiedArray = Param->MultiParmInstanceLastModifyArray;
-			TArray<int32> IndicesToReverse;
-
-			for (int32 Index = 0; Index < LastModifiedArray.Num(); ++Index)
 			{
-				if (LastModifiedArray[Index] == EHoudiniMultiParmModificationType::None)
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_RUNTIME),
+					LOCTEXT("HoudiniParameterMultiParamDeleteAllInstances", "Houdini Parameter Multi Parameter: Deleting all instances"),
+					MainParam->GetOuter(), true);
+
+				for (auto& Param : MultiParmParams)
 				{
-					LastModifiedArray[Index] = EHoudiniMultiParmModificationType::Inserted;
-					IndicesToReverse.Add(Index);
+					TArray<EHoudiniMultiParmModificationType>& LastModifiedArray = Param->MultiParmInstanceLastModifyArray;
+					TArray<int32> IndicesToReverse;
+
+					for (int32 Index = 0; Index < LastModifiedArray.Num(); ++Index)
+					{
+						if (LastModifiedArray[Index] == EHoudiniMultiParmModificationType::None)
+						{
+							LastModifiedArray[Index] = EHoudiniMultiParmModificationType::Inserted;
+							IndicesToReverse.Add(Index);
+						}
+					}
+
+					Param->MarkChanged(true);
+
+					Param->Modify();
+
+					for (int32& Index : IndicesToReverse)
+					{
+						if (LastModifiedArray.IsValidIndex(Index))
+							LastModifiedArray[Index] = EHoudiniMultiParmModificationType::None;
+					}
+
+
+					Param->EmptyElements();
 				}
-			}
 
-			Param->MarkChanged(true);
-
-			Param->Modify();
-
-			for (int32 & Index : IndicesToReverse)
-			{
-				if (LastModifiedArray.IsValidIndex(Index))
-					LastModifiedArray[Index] = EHoudiniMultiParmModificationType::None;
-			}
-
-
-			Param->EmptyElements();
-		}
-
-	}),
-				LOCTEXT("HoudiniParameterRemoveAllMultiparmInstancesToolTip", "Remove all instances"), true)
+			}),
+			LOCTEXT("HoudiniParameterRemoveAllMultiparmInstancesToolTip", "Remove all instances"), true)
 		];
 
 	Row->ValueWidget.Widget = HorizontalBox;
@@ -4232,9 +4259,10 @@ FHoudiniParameterDetails::CreateWidgetMultiParm(
 }
 
 void
-FHoudiniParameterDetails::CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizontalBox> HorizontalBox, const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
-{
-	
+FHoudiniParameterDetails::CreateWidgetMultiParmObjectButtons(
+	TSharedPtr<SHorizontalBox> HorizontalBox, 
+	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
+{	
 	if (InParams.Num() <= 0)
 		return;
 
@@ -4315,7 +4343,7 @@ FHoudiniParameterDetails::CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizon
 			
 		}
 	}),
-		LOCTEXT("HoudiniParameterMultiParamAddBeforeCurrentInstanceToolTip", "Insert an instance before this instance"));
+	LOCTEXT("HoudiniParameterMultiParamAddBeforeCurrentInstanceToolTip", "Insert an instance before this instance"));
 
 
 	TSharedRef<SWidget> RemoveButton = PropertyCustomizationHelpers::MakeRemoveButton(FSimpleDelegate::CreateLambda([ParentMultiParams, InstanceIndex]()
@@ -4356,7 +4384,7 @@ FHoudiniParameterDetails::CreateWidgetMultiParmObjectButtons(TSharedPtr<SHorizon
 		}
 
 	}),
-		LOCTEXT("HoudiniParameterMultiParamDeleteCurrentInstanceToolTip", "Remove an instance"), true);
+	LOCTEXT("HoudiniParameterMultiParamDeleteCurrentInstanceToolTip", "Remove an instance"), true);
 
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(0.0f, 0.0f)[AddButton];
@@ -4428,7 +4456,9 @@ FHoudiniParameterDetails::GetParameterTooltip(const TWeakObjectPtr<UHoudiniParam
 }
 
 FString
-FHoudiniParameterDetails::GetParameterTypeString(const EHoudiniParameterType& InType, const int32& InTupleSize)
+FHoudiniParameterDetails::GetParameterTypeString(
+	const EHoudiniParameterType& InType,
+	const int32& InTupleSize)
 {
 	FString ParamStr;
 
@@ -4547,7 +4577,9 @@ FHoudiniParameterDetails::ShouldJoinNext(const UHoudiniParameter& InParam)
 
 // Check recursively if a parameter hits the end of a visible tabs
 void
-FHoudiniParameterDetails::RemoveTabDividers(IDetailCategoryBuilder& HouParameterCategory, const TWeakObjectPtr<UHoudiniParameter>& InParam)
+FHoudiniParameterDetails::RemoveTabDividers(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TWeakObjectPtr<UHoudiniParameter>& InParam)
 {
 	if (!IsValidWeakPointer(InParam))
 		return;
@@ -4656,11 +4688,11 @@ bool FHoudiniParameterDetails::IsLabelVisible(
 
 	switch (MainParam->GetParameterType())
 	{
-	case EHoudiniParameterType::Separator:
-	case EHoudiniParameterType::Button:
-		return false;
-	default:
-		return MainParam->IsLabelVisible();
+		case EHoudiniParameterType::Separator:
+		case EHoudiniParameterType::Button:
+			return false;
+		default:
+			return MainParam->IsLabelVisible();
 	}
 }
 
@@ -4675,10 +4707,10 @@ bool FHoudiniParameterDetails::UsesWholeRow(const TArray<TWeakObjectPtr<UHoudini
 
 	switch (MainParam->GetParameterType())
 	{
-	case EHoudiniParameterType::Separator:
-		return true;
-	default:
-		return false;
+		case EHoudiniParameterType::Separator:
+			return true;
+		default:
+			return false;
 	}
 }
 
@@ -4686,29 +4718,33 @@ bool FHoudiniParameterDetails::ShouldWidgetFill(EHoudiniParameterType ParameterT
 {
 	switch (ParameterType)
 	{
-	case EHoudiniParameterType::IntChoice:
-	case EHoudiniParameterType::StringChoice:
-	case EHoudiniParameterType::Color:
-	case EHoudiniParameterType::Button:
-	case EHoudiniParameterType::ButtonStrip:
-	case EHoudiniParameterType::Label:
-	case EHoudiniParameterType::Toggle:
-		return false;
+		case EHoudiniParameterType::IntChoice:
+		case EHoudiniParameterType::StringChoice:
+		case EHoudiniParameterType::Color:
+		case EHoudiniParameterType::Button:
+		case EHoudiniParameterType::ButtonStrip:
+		case EHoudiniParameterType::Label:
+		case EHoudiniParameterType::Toggle:
+			return false;
 
-	case EHoudiniParameterType::Int:
-	case EHoudiniParameterType::Float:
-	case EHoudiniParameterType::String:
-	case EHoudiniParameterType::Separator:
-	case EHoudiniParameterType::File:
-	case EHoudiniParameterType::FileDir:
-	case EHoudiniParameterType::FileGeo:
-	case EHoudiniParameterType::FileImage:
-	default:
-		return true;
+		case EHoudiniParameterType::Int:
+		case EHoudiniParameterType::Float:
+		case EHoudiniParameterType::String:
+		case EHoudiniParameterType::Separator:
+		case EHoudiniParameterType::File:
+		case EHoudiniParameterType::FileDir:
+		case EHoudiniParameterType::FileGeo:
+		case EHoudiniParameterType::FileImage:
+		default:
+			return true;
 	}
 }
 
-void FHoudiniParameterDetails::AddMetaDataToAllDescendants(const TSharedRef<SWidget> AncestorWidget, const FString& UniqueName, uint32& Index)
+void 
+FHoudiniParameterDetails::AddMetaDataToAllDescendants(
+	const TSharedRef<SWidget> AncestorWidget,
+	const FString& UniqueName,
+	uint32& Index)
 {
 	// Important: We use GetAllChildren and not GetChildren. 
 	// Widgets might choose to not expose some of their children via GetChildren.
@@ -4727,7 +4763,8 @@ void FHoudiniParameterDetails::AddMetaDataToAllDescendants(const TSharedRef<SWid
 	}
 }
 
-void SHoudiniLabelledParameter::Construct(const FArguments& InArgs)
+void 
+SHoudiniLabelledParameter::Construct(const FArguments& InArgs)
 {
 	bEnableContentPadding = InArgs._NameContent.Widget != SNullWidget::NullWidget;
 
