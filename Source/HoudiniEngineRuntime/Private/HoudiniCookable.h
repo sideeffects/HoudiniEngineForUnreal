@@ -59,6 +59,8 @@ class HOUDINIENGINERUNTIME_API UCookableHoudiniAssetData : public UObject
 
 	friend class UHoudiniCookable;
 
+public:
+
 	UCookableHoudiniAssetData();
 
 	// Houdini Asset associated with this component.			
@@ -81,6 +83,8 @@ class HOUDINIENGINERUNTIME_API UCookableParameterData : public UObject
 	GENERATED_UCLASS_BODY()
 
 	friend class UHoudiniCookable;
+
+public:
 
 	UCookableParameterData();
 
@@ -114,6 +118,8 @@ class HOUDINIENGINERUNTIME_API UCookableInputData : public UObject
 
 	friend class UHoudiniCookable;
 
+public:
+
 	UCookableInputData();
 
 	// Store data for a cookable's inputs
@@ -123,7 +129,6 @@ class HOUDINIENGINERUNTIME_API UCookableInputData : public UObject
 	// Automatically cook when an input is changed
 	UPROPERTY()
 	bool bCookOnInputChange; // bCookOnParameterChange
-
 
 	// Accessors
 	int32 GetNumInputs() const { return Inputs.Num(); };
@@ -143,6 +148,8 @@ class HOUDINIENGINERUNTIME_API UCookableOutputData : public UObject
 	GENERATED_UCLASS_BODY()
 
 	friend class UHoudiniCookable;
+
+public:
 
 	UCookableOutputData();
 
@@ -294,6 +301,7 @@ class HOUDINIENGINERUNTIME_API UCookableComponentData : public UObject
 
 	friend class UHoudiniCookable;
 
+public:
 
 	UCookableComponentData();
 
@@ -337,6 +345,8 @@ class HOUDINIENGINERUNTIME_API UCookablePDGData : public UObject
 	GENERATED_UCLASS_BODY()
 
 	friend class UHoudiniCookable;
+
+public:
 
 	UCookablePDGData();
 
@@ -426,6 +436,20 @@ public:
 	UHoudiniParameter* GetParameterAt(const int32& Idx) { return IsParameterSupported() ? (ParameterData->Parameters.IsValidIndex(Idx) ? ParameterData->Parameters[Idx] : nullptr) : nullptr;};
 	UHoudiniHandleComponent* GetHandleComponentAt(const int32& Idx) { return IsComponentSupported() ? (ComponentData->HandleComponents.IsValidIndex(Idx) ? ComponentData->HandleComponents[Idx] : nullptr) : nullptr; };
 
+	// Try to find one of our parameter that matches another (name, type, size and enabled)
+	UHoudiniParameter* FindMatchingParameter(UHoudiniParameter* InOtherParam);
+	// Try to find one of our input that matches another one (name, isobjpath, index / parmId)
+	UHoudiniInput* FindMatchingInput(UHoudiniInput* InOtherInput);
+	// Try to find one of our handle that matches another one (name and handle type)
+	UHoudiniHandleComponent* FindMatchingHandle(UHoudiniHandleComponent* InOtherHandle);
+	// Finds a parameter by name
+	UHoudiniParameter* FindParameterByName(const FString& InParamName);
+
+	// Output temp folder accessor
+	FString GetTemporaryCookFolderOrDefault();
+	// Output bake folder accessor
+	FString GetBakeFolderOrDefault();
+
 	// Returns true if a parameter definition update (excluding values) is needed.
 	bool IsParameterDefinitionUpdateNeeded() const { return IsParameterSupported() ? ParameterData->bParameterDefinitionUpdateNeeded : false; };
 
@@ -488,6 +512,10 @@ public:
 	void SetHasComponentTransformChanged(bool InHasChanged);
 
 	void MarkAsNeedCook();
+	void MarkAsNeedRebuild();
+
+	// TODO COOKABLE: protect me!
+	void MarkAsNeedRecookOrRebuild(bool bDoRebuild);
 
 	void PreventAutoUpdates();
 
@@ -496,6 +524,9 @@ public:
 	void SetComponent(USceneComponent* InComp) { if (IsComponentSupported()) { ComponentData->Component = InComp; } };
 	void SetHoudiniAssetComponent(UHoudiniAssetComponent* InComp) { if (IsComponentSupported()) { ComponentData->Component = InComp; } };
 	void SetHoudiniAsset(UHoudiniAsset* InHAsset) { if (IsHoudiniAssetSupported()) { HoudiniAssetData->HoudiniAsset = InHAsset; } };
+
+	bool SetTemporaryCookFolderPath(const FString& NewPath);
+	bool SetBakeFolderPath(const FString& NewPath);
 
 	//------------------------------------------------------------------------------------------------
 	// Supported Features

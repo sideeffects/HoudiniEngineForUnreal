@@ -276,6 +276,9 @@ public:
 
 	//void SetEditorPropertiesNeedFullUpdate(const bool& InUpdate) { bEditorPropertiesNeedFullUpdate = InUpdate; };
 
+	bool SetTemporaryCookFolderPath(const FString& NewPath);
+	bool SetBakeFolderPath(const FString& NewPath);
+
 	// Marks the assets as needing a recook
 	void MarkAsNeedCook();
 	// Marks the assets as needing a full rebuild

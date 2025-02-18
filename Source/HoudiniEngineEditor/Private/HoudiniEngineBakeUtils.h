@@ -56,6 +56,7 @@ class UGeometryCollectionComponent;
 class AGeometryCollectionActor; 
 class UMaterialExpression;
 class UPhysicsAsset;
+class UHoudiniCookable;
 
 struct FHoudiniPackageParams;
 struct FHoudiniGeoPartObject;
@@ -72,6 +73,7 @@ enum class EHoudiniLandscapeOutputBakeType : uint8;
 struct FHoudiniBakeSettings
 {
 	void SetFromHAC(UHoudiniAssetComponent * HAC);
+	void SetFromCookable(UHoudiniCookable* HC);
 
 	bool bReplaceAssets = false;
 	bool bReplaceActors = false;
@@ -499,7 +501,7 @@ public:
 	// Returns true if the underlying bake function (for example, BakeHoudiniActorToActors, returns true (or a valid UObject*))
 	static bool BakeHoudiniAssetComponent(
 		UHoudiniAssetComponent* InHACToBake,
-		FHoudiniBakeSettings & BakeSettings,
+		const FHoudiniBakeSettings& BakeSettings,
 		EHoudiniEngineBakeOption InBakeOption,
 		bool bInRemoveHACOutputOnSuccess);
 

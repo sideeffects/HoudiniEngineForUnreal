@@ -73,8 +73,7 @@ public:
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
 	static void CreateHoudiniEngineIconWidget(
-		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder);
 
 	static void CreateHoudiniEngineActionWidget(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
@@ -146,13 +145,11 @@ public:
 		const int32 InLineNumber=INDEX_NONE);
 
 private:
-	static void SetCookFolderPath(
-		const FText& InPathText,
-		const TWeakObjectPtr<UHoudiniAssetComponent>& InMainHAC,
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
-	static void SetBakeFolderPath(
+	// Helper function that can be used to set either the bake/tempcook folder path
+	static void SetFolderPath(
 		const FText& InPathText,
+		const bool& bIsBakePath,
 		const TWeakObjectPtr<UHoudiniAssetComponent>& InMainHAC,
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 };

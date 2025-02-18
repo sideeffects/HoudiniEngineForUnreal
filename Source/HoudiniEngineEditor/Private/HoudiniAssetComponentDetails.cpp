@@ -323,7 +323,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				 .ColorAndOpacity(FSlateColor::UseForeground());
 			
 			// Create Houdini Engine details category
-			IDetailCategoryBuilder & HouEngineCategory =
+			IDetailCategoryBuilder& HouEngineCategory =
 				DetailBuilder.EditCategory(*HoudiniEngineCategoryName, FText::FromString("Houdini Engine"), ECategoryPriority::Important);
 
 			// If we are running Houdini Engine Indie license, we need to display a special label.
@@ -547,6 +547,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 				if (!IsValid(CurrentInput))
 					continue;
 
+				// TODO COOKABLE: ?? handle needed ? this is mostly for BP
 				if (!MainComponent->IsInputTypeSupported(CurrentInput->GetInputType()))
 					continue;
 

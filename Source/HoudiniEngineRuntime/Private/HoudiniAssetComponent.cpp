@@ -568,12 +568,18 @@ UHoudiniAssetComponent::HasPreviousBakeOutput() const
 FString
 UHoudiniAssetComponent::GetBakeFolderOrDefault() const
 {
+	if (GetCookable())
+		return GetCookable()->GetBakeFolderOrDefault();
+
 	return !BakeFolder.Path.IsEmpty() ? BakeFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
 }
 
 FString
 UHoudiniAssetComponent::GetTemporaryCookFolderOrDefault() const
 {
+	if (GetCookable())
+		return GetCookable()->GetTemporaryCookFolderOrDefault();
+
 	return !TemporaryCookFolder.Path.IsEmpty() ? TemporaryCookFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
 }
 
@@ -887,6 +893,13 @@ UHoudiniAssetComponent::BeginDestroy()
 void 
 UHoudiniAssetComponent::MarkAsNeedCook()
 {
+	//
+	if (GetCookable())
+	{
+		GetCookable()->MarkAsNeedCook();
+		return;
+	}
+
 	// Force the asset state to NeedCook
 	//AssetCookCount = 0;
 	bHasBeenLoaded = true;
@@ -977,6 +990,13 @@ UHoudiniAssetComponent::MarkAsNeedCook()
 void
 UHoudiniAssetComponent::MarkAsNeedRebuild()
 {
+	//
+	if (GetCookable())
+	{
+		GetCookable()->MarkAsNeedRebuild();
+		return;
+	}
+
 	// Invalidate the asset ID
 	//AssetId = -1;
 
@@ -1484,6 +1504,9 @@ UHoudiniAssetComponent::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 	if (!IsValid(InOtherParam))
 		return nullptr;
 
+	if (GetCookable())
+		return GetCookable()->FindMatchingParameter(InOtherParam);
+
 	for (auto CurrentParam : Parameters)
 	{
 		if (!IsValid(CurrentParam))
@@ -1501,6 +1524,9 @@ UHoudiniAssetComponent::FindMatchingInput(UHoudiniInput* InOtherInput)
 {
 	if (!IsValid(InOtherInput))
 		return nullptr;
+
+	if (GetCookable())
+		return GetCookable()->FindMatchingInput(InOtherInput);
 
 	for (auto CurrentInput : Inputs)
 	{
@@ -1520,6 +1546,9 @@ UHoudiniAssetComponent::FindMatchingHandle(UHoudiniHandleComponent* InOtherHandl
 	if (!IsValid(InOtherHandle))
 		return nullptr;
 
+	if (GetCookable())
+		return GetCookable()->FindMatchingHandle(InOtherHandle);
+
 	for (auto CurrentHandle : HandleComponents) 
 	{
 		if (!IsValid(CurrentHandle))
@@ -1535,6 +1564,9 @@ UHoudiniAssetComponent::FindMatchingHandle(UHoudiniHandleComponent* InOtherHandl
 UHoudiniParameter*
 UHoudiniAssetComponent::FindParameterByName(const FString& InParamName)
 {
+	if (GetCookable())
+		return GetCookable()->FindParameterByName(InParamName);
+
 	for (auto CurrentParam : Parameters)
 	{
 		if (!IsValid(CurrentParam))
@@ -2763,3 +2795,38 @@ UHoudiniAssetComponent::GetPDGAssetLink()
 
 	return PDGAssetLink;
 };
+
+
+bool
+UHoudiniAssetComponent::SetTemporaryCookFolderPath(const FString& NewPath)
+{
+	if (GetCookable())
+		return GetCookable()->SetTemporaryCookFolderPath(NewPath);
+
+	if (TemporaryCookFolder.Path.Equals(NewPath))
+		return false;
+
+	if (TemporaryCookFolder.Path == NewPath)
+		return false;
+
+	TemporaryCookFolder.Path = NewPath;
+
+	return true;
+}
+
+bool
+UHoudiniAssetComponent::SetBakeFolderPath(const FString& NewPath)
+{
+	if (GetCookable())
+		return GetCookable()->SetBakeFolderPath(NewPath);
+
+	if (BakeFolder.Path.Equals(NewPath))
+		return false;
+
+	if (BakeFolder.Path == NewPath)
+		return false;
+
+	BakeFolder.Path = NewPath;
+
+	return true;
+}

@@ -31,6 +31,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniHandleComponent.h"
 #include "HoudiniInstancedActorComponent.h"
 #include "HoudiniOutput.h"
 #include "HoudiniParameter.h"
@@ -415,6 +416,58 @@ UHoudiniCookable::GetWorld() const
 	// TODO COOKABLE:
 	// ?? return GetComponent()->GetWold() first? though it should be same...
 	return GetOwner() ? GetOwner()->GetWorld() : nullptr;
+}
+
+FString
+UHoudiniCookable::GetTemporaryCookFolderOrDefault()
+{
+	if (!IsOutputSupported())
+		return FString();
+
+	return !OutputData->TemporaryCookFolder.Path.IsEmpty() ? OutputData->TemporaryCookFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
+}
+
+FString
+UHoudiniCookable::GetBakeFolderOrDefault()
+{
+	if (!IsOutputSupported())
+		return FString();
+
+	return !OutputData->BakeFolder.Path.IsEmpty() ? OutputData->BakeFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
+}
+
+bool
+UHoudiniCookable::SetTemporaryCookFolderPath(const FString& NewPath)
+{
+	if (!IsOutputSupported())
+		return false;
+
+	if (OutputData->TemporaryCookFolder.Path.Equals(NewPath))
+		return false;
+
+	if (OutputData->TemporaryCookFolder.Path == NewPath)
+		return false;
+
+	OutputData->TemporaryCookFolder.Path = NewPath;
+
+	return true;
+}
+
+bool
+UHoudiniCookable::SetBakeFolderPath(const FString& NewPath)
+{
+	if (!IsOutputSupported())
+		return false;
+
+	if (OutputData->BakeFolder.Path.Equals(NewPath))
+		return false;
+
+	if (OutputData->BakeFolder.Path == NewPath)
+		return false;
+
+	OutputData->BakeFolder.Path = NewPath;
+
+	return true;
 }
 
 bool
@@ -910,20 +963,38 @@ UHoudiniCookable::SetNodeIdsToCook(const TArray<int32>& InNodeIds)
 	}
 }
 
-
 void
 UHoudiniCookable::MarkAsNeedCook()
 {
-	// Force the asset state to NeedCook
-	//AssetCookCount = 0;
+	MarkAsNeedRecookOrRebuild(false);
+}
+
+void
+UHoudiniCookable::MarkAsNeedRebuild()
+{
+	MarkAsNeedRecookOrRebuild(true);
+}
+
+void
+UHoudiniCookable::MarkAsNeedRecookOrRebuild(bool bDoRebuild)
+{
+	if (bDoRebuild)
+	{
+		// Force the asset state to NeedRebuild
+		SetCurrentState(EHoudiniAssetState::NeedRebuild);
+		CurrentStateResult = EHoudiniAssetStateResult::None;
+	}
+
+	// Reset some of the asset's flag
 	bHasBeenLoaded = true;
 	bPendingDelete = false;
-	bRecookRequested = true;
-	bRebuildRequested = false;
+	bFullyLoaded = false; // ?? not needed? was rebuild only
+	// Indicate whether a recook or rebuild has been requested
+	bRecookRequested = bDoRebuild ? false : true;
+	bRebuildRequested = bDoRebuild ? true : false;
 
-	//bEditorPropertiesNeedFullUpdate = true;
-
-	if (IsParameterSupported())
+	// TODO COOKABLE: This was somehow only for recook ?
+	if (IsParameterSupported() && !bDoRebuild)
 	{
 		// We need to mark all our parameters as changed/trigger update
 		for (auto CurrentParam : ParameterData->Parameters)
@@ -980,6 +1051,10 @@ UHoudiniCookable::MarkAsNeedCook()
 			CurrentInput->SetNeedsToTriggerUpdate(true);
 			CurrentInput->MarkDataUploadNeeded(true);
 
+			// TODO COOKABLE: Next was recook only somehow?? 
+			if (bDoRebuild)
+				continue;
+
 			FHoudiniInputObjectSettings CurrentInputSettings(CurrentInput);
 
 			// In addition to marking the input as changed/need update, we also need to make sure that any changes on the
@@ -1011,6 +1086,7 @@ UHoudiniCookable::MarkAsNeedCook()
 	if(IsOutputSupported())
 		ClearRefineMeshesTimer();
 }
+
 
 void
 UHoudiniCookable::PreventAutoUpdates()
@@ -1105,4 +1181,86 @@ UHoudiniCookable::OnSessionConnected()
 	}
 
 	NodeId = INDEX_NONE;
+}
+
+
+UHoudiniParameter*
+UHoudiniCookable::FindMatchingParameter(UHoudiniParameter* InOtherParam)
+{
+	if (!IsValid(InOtherParam))
+		return nullptr;
+
+	if (!IsParameterSupported())
+		return nullptr;
+
+	for (auto CurrentParam : ParameterData->Parameters)
+	{
+		if (!IsValid(CurrentParam))
+			continue;
+
+		if (CurrentParam->Matches(*InOtherParam))
+			return CurrentParam;
+	}
+
+	return nullptr;
+}
+
+UHoudiniInput*
+UHoudiniCookable::FindMatchingInput(UHoudiniInput* InOtherInput)
+{
+	if (!IsValid(InOtherInput))
+		return nullptr;
+
+	if (!IsInputSupported())
+		return nullptr;
+
+	for (auto CurrentInput : InputData->Inputs)
+	{
+		if (!IsValid(CurrentInput))
+			continue;
+
+		if (CurrentInput->Matches(*InOtherInput))
+			return CurrentInput;
+	}
+
+	return nullptr;
+}
+
+UHoudiniHandleComponent*
+UHoudiniCookable::FindMatchingHandle(UHoudiniHandleComponent* InOtherHandle)
+{
+	if (!IsValid(InOtherHandle))
+		return nullptr;
+
+	if (!IsComponentSupported())
+		return nullptr;
+
+	for (auto CurrentHandle : ComponentData->HandleComponents)
+	{
+		if (!IsValid(CurrentHandle))
+			continue;
+
+		if (CurrentHandle->Matches(*InOtherHandle))
+			return CurrentHandle;
+	}
+
+	return nullptr;
+}
+
+UHoudiniParameter*
+UHoudiniCookable::FindParameterByName(const FString& InParamName)
+{
+	if (!IsParameterSupported())
+		return nullptr;
+
+	for (auto CurrentParam : ParameterData->Parameters)
+	{
+		if (!IsValid(CurrentParam))
+			continue;
+
+		if (CurrentParam->GetParameterName().Equals(InParamName))
+			return CurrentParam;
+	}
+
+	return nullptr;
 }

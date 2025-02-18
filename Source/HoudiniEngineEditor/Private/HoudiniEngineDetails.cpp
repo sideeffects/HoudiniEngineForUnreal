@@ -137,13 +137,13 @@ FHoudiniEngineDetails::CreateWidget(
 		return;
 
 	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
-
 	if (!IsValidWeakPointer(MainHAC))
 		return;
 
 	// Houdini Engine Icon
-	FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(HoudiniEngineCategoryBuilder, InHACs);
+	FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(HoudiniEngineCategoryBuilder);
 
+	// TODO COOKABLE: Handle presets!
 	// Widget for HoudiniAsset related actions. Currently only contains things for Presets.
 	FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(HoudiniEngineCategoryBuilder, InHACs);
 	
@@ -165,17 +165,9 @@ FHoudiniEngineDetails::CreateWidget(
 
 void 
 FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
-	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs) 
+	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder) 
 {
-	if (InHACs.Num() <= 0)
-		return;
-
-	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
 	IDetailLayoutBuilder* SavedLayoutBuilder = &HoudiniEngineCategoryBuilder.GetParentLayout();
-
-	if (!IsValidWeakPointer(MainHAC))
-		return;
 
 	// Skip drawing the icon if the icon image is not loaded correctly.
 	TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIIconBrush();
@@ -217,7 +209,8 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 
 
 void
-FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(
+	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
 {
 	if (InHACs.Num() <= 0)
@@ -279,7 +272,6 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 		return;
 
 	bool bIsNodeSyncComponent = MainHAC->IsA<UHoudiniNodeSyncComponent>();
-
 	auto OnReBuildClickedLambda = [InHACs]()
 	{
 		for (auto& NextHAC : InHACs)
@@ -317,7 +309,6 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 			for (int32 n = 0; n < NextHAC->GetNumParameters(); ++n)
 			{
 				UHoudiniParameter* NextParm = NextHAC->GetParameterAt(n);
-
 				if (IsValid(NextParm) && !NextParm->IsDefault())
 					return true;
 			}
@@ -337,7 +328,6 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 			for (int32 n = 0; n < NextHAC->GetNumParameters(); ++n)
 			{
 				UHoudiniParameter* NextParm = NextHAC->GetParameterAt(n);
-
 				if (IsValid(NextParm) && !NextParm->IsDefault())
 				{
 					NextParm->RevertToDefault();
@@ -350,7 +340,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 	auto OnCookFolderTextCommittedLambda = [InHACs, MainHAC](const FText& Val, ETextCommit::Type TextCommitType)
 	{
-		SetCookFolderPath(Val, MainHAC, InHACs);
+		SetFolderPath(Val, false, MainHAC, InHACs);
 	};
 
 	auto OnCookFolderBrowseButtonClickedLambda = [InHACs, MainHAC]()
@@ -362,7 +352,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 		if (Dialog->ShowModal() != EAppReturnType::Cancel)
 		{
-			SetCookFolderPath(Dialog->GetFolderPath(), MainHAC, InHACs);
+			SetFolderPath(Dialog->GetFolderPath(), false, MainHAC, InHACs);
 		}
 
 		return FReply::Handled();
@@ -371,7 +361,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 	auto OnCookFolderResetButtonClickedLambda = [InHACs, MainHAC]()
 	{
 		FText EmptyText;
-		SetCookFolderPath(EmptyText, MainHAC, InHACs);
+		SetFolderPath(EmptyText, false, MainHAC, InHACs);
 
 		return FReply::Handled();
 	};
@@ -627,7 +617,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 			{
 				if (!IsValidWeakPointer(MainHAC))
 					return FText();
-				return FText::FromString(MainHAC->TemporaryCookFolder.Path);
+				return FText::FromString(MainHAC->GetTemporaryCookFolderOrDefault());
 			})
 			.OnTextCommitted_Lambda(OnCookFolderTextCommittedLambda)
 		]
@@ -685,27 +675,42 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
 	auto OnBakeButtonClickedLambda = [InHACs, MainHAC]() 
 	{
+		FHoudiniBakeSettings BakeSettings;
+		EHoudiniEngineBakeOption BakeOption;
+		bool bRemoveOutputAfterBake;
+
+		UHoudiniCookable* MainHC = MainHAC->GetCookable();
+		if (MainHC && MainHC->IsOutputSupported())
+		{
+			BakeSettings.SetFromCookable(MainHAC->GetCookable());
+			BakeOption = MainHC->GetOutputData()->HoudiniEngineBakeOption;
+			bRemoveOutputAfterBake = MainHC->GetOutputData()->bRemoveOutputAfterBake;
+		}
+		else
+		{
+			BakeSettings.SetFromHAC(MainHAC.Get());
+			BakeOption = MainHAC->HoudiniEngineBakeOption;
+			bRemoveOutputAfterBake = MainHAC->bRemoveOutputAfterBake;
+		}
+
 		for (auto & NextHAC : InHACs)
 		{
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			FHoudiniBakeSettings BakeSettings;
-			BakeSettings.SetFromHAC(MainHAC.Get());
-
 			FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
 				NextHAC.Get(),
 				BakeSettings,
-				MainHAC->HoudiniEngineBakeOption,
-				MainHAC->bRemoveOutputAfterBake);
+				BakeOption,
+				bRemoveOutputAfterBake);
 		}
 
-		return FReply::Handled();	
+		return FReply::Handled();
 	};
 
 	auto OnBakeFolderTextCommittedLambda = [InHACs, MainHAC](const FText& Val, ETextCommit::Type TextCommitType)
 	{
-		SetBakeFolderPath(Val, MainHAC, InHACs);
+		SetFolderPath(Val, true, MainHAC, InHACs);
 	};
 
 	// Button Row
@@ -1165,7 +1170,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
 		if (Dialog->ShowModal() != EAppReturnType::Cancel)
 		{
-			SetBakeFolderPath(Dialog->GetFolderPath(), MainHAC, InHACs);
+			SetFolderPath(Dialog->GetFolderPath(), true, MainHAC, InHACs);
 		}
 
 		return FReply::Handled();
@@ -1174,7 +1179,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	auto OnBakeFolderResetButtonClickedLambda = [MainHAC, InHACs]()
 	{
 		FText EmptyText;
-		SetBakeFolderPath(EmptyText, MainHAC, InHACs);
+		SetFolderPath(EmptyText, true, MainHAC, InHACs);
 
 		return FReply::Handled();
 	};
@@ -2321,17 +2326,13 @@ FHoudiniEngineDetails::GetHoudiniAssetThumbnailBorder(TSharedPtr< SBorder > Houd
 TSharedPtr<SWidget>
 FHoudiniEngineDetails::ConstructActionMenu(const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs, class IDetailLayoutBuilder* LayoutBuilder)
 {
-	FMenuBuilder MenuBuilder( true, NULL );
+	FMenuBuilder MenuBuilder(true, NULL);
 
-	const int32 NumHACs = InHACs.Num(); 
-
+	const int32 NumHACs = InHACs.Num();
 	if (NumHACs == 0)
-	{
 		return MenuBuilder.MakeWidget();
-	}
 
 	TWeakObjectPtr<UHoudiniAssetComponent> HAC = InHACs[0];
-
 	if (!HAC.IsValid())
 	{
 		return MenuBuilder.MakeWidget();
@@ -3118,8 +3119,9 @@ FHoudiniEngineDetails::CreateNodeSyncWidgets(
 }
 
 void
-FHoudiniEngineDetails::SetCookFolderPath(
+FHoudiniEngineDetails::SetFolderPath(
 	const FText& InPathText,
+	const bool& bIsBakePath,
 	const TWeakObjectPtr<UHoudiniAssetComponent>& InMainHAC, 
 	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
 {
@@ -3136,7 +3138,6 @@ FHoudiniEngineDetails::SetCookFolderPath(
 	if (!FHoudiniEngineUtils::ValidatePath(NewPathStr, &InvalidPathReason))
 	{
 		HOUDINI_LOG_WARNING(TEXT("Invalid path: %s"), *InvalidPathReason.ToString());
-
 		FHoudiniEngineUtils::UpdateEditorProperties(true);
 		return;
 	}
@@ -3146,53 +3147,12 @@ FHoudiniEngineDetails::SetCookFolderPath(
 		if (!IsValidWeakPointer(NextHAC))
 			continue;
 
-		if (NextHAC->TemporaryCookFolder.Path.Equals(NewPathStr))
-			continue;
+		if (bIsBakePath)
+			NextHAC->SetBakeFolderPath(NewPathStr);
+		else
+			NextHAC->SetTemporaryCookFolderPath(NewPathStr);
 
-		if (NextHAC->TemporaryCookFolder.Path == NewPathStr)
-			continue;
-
-		NextHAC->TemporaryCookFolder.Path = NewPathStr;
-		NextHAC->MarkPackageDirty();
-	}
-}
-
-void
-FHoudiniEngineDetails::SetBakeFolderPath(
-	const FText& InPathText,
-	const TWeakObjectPtr<UHoudiniAssetComponent>& InMainHAC,
-	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
-{
-	if (!IsValidWeakPointer(InMainHAC))
-		return;
-
-	FString NewPathStr = InPathText.ToString();
-	if (NewPathStr.StartsWith("Game/"))
-	{
-		NewPathStr = "/" + NewPathStr;
-	}
-
-	FText InvalidPathReason;
-	if (!FHoudiniEngineUtils::ValidatePath(NewPathStr, &InvalidPathReason))
-	{
-		HOUDINI_LOG_WARNING(TEXT("Invalid path: %s"), *InvalidPathReason.ToString());
-
-		FHoudiniEngineUtils::UpdateEditorProperties(true);
-		return;
-	}
-
-	for (auto& NextHAC : InHACs)
-	{
-		if (!IsValidWeakPointer(NextHAC))
-			continue;
-
-		if (NextHAC->BakeFolder.Path.Equals(NewPathStr))
-			continue;
-
-		if (NextHAC->BakeFolder.Path == NewPathStr)
-			continue;
-
-		NextHAC->BakeFolder.Path = NewPathStr;
+		// why ?
 		NextHAC->MarkPackageDirty();
 	}
 }

@@ -33,6 +33,7 @@
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniBakeLandscape.h"
+#include "HoudiniCookable.h"
 #include "HoudiniDataLayerUtils.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineCommands.h"
@@ -287,7 +288,7 @@ FHoudiniEngineBakedActor::FHoudiniEngineBakedActor(
 bool
 FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
 	UHoudiniAssetComponent* InHACToBake,
-	FHoudiniBakeSettings& BakeSettings,
+	const FHoudiniBakeSettings& BakeSettings,
 	EHoudiniEngineBakeOption InBakeOption,
 	bool bInRemoveHACOutputOnSuccess)
 {
@@ -8992,14 +8993,29 @@ UUserDefinedStruct* FHoudiniEngineBakeUtils::DuplicateUserDefinedStruct(UUserDef
 	return DuplicatedStruct;
 }
 
-void FHoudiniBakeSettings::SetFromHAC(UHoudiniAssetComponent* HAC)
+void 
+FHoudiniBakeSettings::SetFromHAC(UHoudiniAssetComponent* HAC)
 {
 	bReplaceActors = HAC->bReplacePreviousBake;
 	bReplaceAssets = HAC->bReplacePreviousBake;
 	bRecenterBakedActors = HAC->bRecenterBakedActors;
 	ActorBakeOption = HAC->ActorBakeOption;
+}
 
-	
+void 
+FHoudiniBakeSettings::SetFromCookable(UHoudiniCookable* HC)
+{
+	if (!HC->IsOutputSupported())
+		return;
+
+	UCookableOutputData* OutputData = HC->GetOutputData();
+	if (!OutputData)
+		return;
+
+	bReplaceActors = OutputData->bReplacePreviousBake;
+	bReplaceAssets = OutputData->bReplacePreviousBake;
+	bRecenterBakedActors = OutputData->bRecenterBakedActors;
+	ActorBakeOption = OutputData->ActorBakeOption;
 }
 
 #undef LOCTEXT_NAMESPACE
