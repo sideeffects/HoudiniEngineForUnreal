@@ -197,7 +197,7 @@ FHoudiniEngineRuntime::UnRegisterHoudiniComponent(UHoudiniAssetComponent* HAC)
 	for (int32 n = RegisteredHoudiniComponents.Num() - 1; n >= 0; n--)
 	{
 		TWeakObjectPtr<UHoudiniAssetComponent>& CurHAC = RegisteredHoudiniComponents[n];
-		if (!CurHAC.IsStale() || !CurHAC.IsValid())
+		if (!CurHAC.IsValid() || CurHAC.IsStale())
 		{
 			// Remove stale/invalid HAC from Array?
 			RegisteredHoudiniComponents.RemoveAt(n);
@@ -460,7 +460,7 @@ FHoudiniEngineRuntime::UnRegisterHoudiniCookable(UHoudiniCookable* HC)
 	for (int32 n = RegisteredHoudiniCookables.Num() - 1; n >= 0; n--)
 	{
 		TWeakObjectPtr<UHoudiniCookable>& CurHC = RegisteredHoudiniCookables[n];
-		if (!CurHC.IsStale() || !CurHC.IsValid())
+		if (!CurHC.IsValid() || CurHC.IsStale())
 		{
 			// Remove stale/invalid HAC from Array?
 			RegisteredHoudiniCookables.RemoveAt(n);
