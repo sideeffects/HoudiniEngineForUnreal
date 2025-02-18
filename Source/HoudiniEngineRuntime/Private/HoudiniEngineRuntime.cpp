@@ -216,7 +216,7 @@ FHoudiniEngineRuntime::UnRegisterHoudiniComponent(UHoudiniAssetComponent* HAC)
 	for (int32 n = RegisteredHoudiniComponents.Num() - 1; n >= 0; n--)
 	{
 		TWeakObjectPtr<UHoudiniAssetComponent>& CurHAC = RegisteredHoudiniComponents[n];
-		if (!CurHAC.IsStale() || !CurHAC.IsValid())
+		if (!CurHAC.IsValid() || CurHAC.IsStale())
 		{
 			// Remove stale/invalid HAC from Array?
 			RegisteredHoudiniComponents.RemoveAt(n);
