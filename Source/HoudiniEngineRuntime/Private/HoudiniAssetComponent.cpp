@@ -2318,6 +2318,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 	return BoxBounds;
 }
 
+#if WITH_EDITORONLY_DATA
 EHoudiniEngineBakeOption
 UHoudiniAssetComponent::GetHoudiniEngineBakeOption() const
 {
@@ -2326,7 +2327,9 @@ UHoudiniAssetComponent::GetHoudiniEngineBakeOption() const
 
 	return HoudiniEngineBakeOption;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 void
 UHoudiniAssetComponent::SetHoudiniEngineBakeOption(const EHoudiniEngineBakeOption& InBakeOption)
 {
@@ -2338,7 +2341,9 @@ UHoudiniAssetComponent::SetHoudiniEngineBakeOption(const EHoudiniEngineBakeOptio
 
 	HoudiniEngineBakeOption = InBakeOption;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 bool
 UHoudiniAssetComponent::GetReplacePreviousBake() const
 {
@@ -2347,7 +2352,9 @@ UHoudiniAssetComponent::GetReplacePreviousBake() const
 
 	return bReplacePreviousBake;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 void
 UHoudiniAssetComponent::SetReplacePreviousBake(bool bInReplace)
 {
@@ -2356,7 +2363,10 @@ UHoudiniAssetComponent::SetReplacePreviousBake(bool bInReplace)
 
 	bReplacePreviousBake = bInReplace;
 }
+#endif
 
+
+#if WITH_EDITORONLY_DATA
 bool
 UHoudiniAssetComponent::GetRemoveOutputAfterBake() const
 {
@@ -2365,7 +2375,9 @@ UHoudiniAssetComponent::GetRemoveOutputAfterBake() const
 
 	return bRemoveOutputAfterBake;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 void
 UHoudiniAssetComponent::SetRemoveOutputAfterBake(bool bInRemove)
 {
@@ -2374,7 +2386,9 @@ UHoudiniAssetComponent::SetRemoveOutputAfterBake(bool bInRemove)
 
 	bRemoveOutputAfterBake = bInRemove;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 bool
 UHoudiniAssetComponent::GetRecenterBakedActors() const
 {
@@ -2383,7 +2397,9 @@ UHoudiniAssetComponent::GetRecenterBakedActors() const
 
 	return bRecenterBakedActors;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 void
 UHoudiniAssetComponent::SetRecenterBakedActors(bool bInRecenter)
 {
@@ -2392,6 +2408,7 @@ UHoudiniAssetComponent::SetRecenterBakedActors(bool bInRecenter)
 
 	bRecenterBakedActors = bInRecenter;
 }
+#endif
 
 bool
 UHoudiniAssetComponent::IsCookingEnabled() const
@@ -2503,6 +2520,7 @@ UHoudiniAssetComponent::GetUploadTransformsToHoudiniEngine() const
 	return bUploadTransformsToHoudiniEngine;
 }
 
+#if WITH_EDITORONLY_DATA
 bool
 UHoudiniAssetComponent::GetLandscapeUseTempLayers() const
 {
@@ -2511,7 +2529,9 @@ UHoudiniAssetComponent::GetLandscapeUseTempLayers() const
 
 	return bLandscapeUseTempLayers;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 bool
 UHoudiniAssetComponent::GetEnableCurveEditing() const
 {
@@ -2520,6 +2540,7 @@ UHoudiniAssetComponent::GetEnableCurveEditing() const
 
 	return bEnableCurveEditing;
 }
+#endif
 
 void
 UHoudiniAssetComponent::SetCookOnParameterChange(bool bEnable)
@@ -2586,6 +2607,7 @@ UHoudiniAssetComponent::SetUploadTransformsToHoudiniEngine(bool bEnable)
 	bUploadTransformsToHoudiniEngine = bEnable;
 }
 
+#if WITH_EDITORONLY_DATA
 void
 UHoudiniAssetComponent::SetLandscapeUseTempLayers(bool bEnable)
 {
@@ -2594,7 +2616,9 @@ UHoudiniAssetComponent::SetLandscapeUseTempLayers(bool bEnable)
 
 	bLandscapeUseTempLayers = bEnable;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 void
 UHoudiniAssetComponent::SetEnableCurveEditing(bool bEnable)
 {
@@ -2603,6 +2627,7 @@ UHoudiniAssetComponent::SetEnableCurveEditing(bool bEnable)
 
 	bEnableCurveEditing = bEnable;
 }
+#endif
 
 void
 UHoudiniAssetComponent::ClearRefineMeshesTimer()
