@@ -82,8 +82,8 @@
 /// [HAPI_CACHE]
 /// Common cache names. You can see these same cache names in the
 /// Cache Manager window in Houdini (Windows > Cache Manager).
-#define HAPI_CACHE_COP2_COOK                 "COP Cook Cache"
-#define HAPI_CACHE_COP2_FLIPBOOK             "COP Flipbook Cache"
+#define HAPI_CACHE_COP2_COOK                 "Old COP Cook Cache"
+#define HAPI_CACHE_COP2_FLIPBOOK             "Composite View Cache"
 #define HAPI_CACHE_IMAGE                    "Image Cache"
 #define HAPI_CACHE_OBJ                      "Object Transform Cache"
 #define HAPI_CACHE_GL_TEXTURE               "OpenGL Texture Cache"
