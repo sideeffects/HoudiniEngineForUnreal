@@ -2764,23 +2764,23 @@ void FHoudiniToolsEditor::CopySettingsToPreset(const UHoudiniAssetComponent* HAC
 {
 	// Populate Bake options
 	Preset->bApplyBakeOptions = bApplyBakeOptions;
-	Preset->HoudiniEngineBakeOption = HAC->HoudiniEngineBakeOption;
-	Preset->bRemoveOutputAfterBake = HAC->bRemoveOutputAfterBake;
-	Preset->bRecenterBakedActors = HAC->bRecenterBakedActors;
+	Preset->HoudiniEngineBakeOption = HAC->GetHoudiniEngineBakeOption();
+	Preset->bRemoveOutputAfterBake = HAC->GetRemoveOutputAfterBake();
+	Preset->bRecenterBakedActors = HAC->GetRecenterBakedActors();
 	Preset->bAutoBake = HAC->IsBakeAfterNextCookEnabled();
-	Preset->bReplacePreviousBake = HAC->bReplacePreviousBake;
+	Preset->bReplacePreviousBake = HAC->GetReplacePreviousBake();
 
 	// Populate Asset Settings
 	Preset->bApplyAssetOptions = bApplyAssetOptions;
-	Preset->bCookOnParameterChange = HAC->bCookOnParameterChange;
-	Preset->bCookOnTransformChange = HAC->bCookOnTransformChange;
-	Preset->bCookOnAssetInputCook = HAC->bCookOnAssetInputCook;
-	Preset->bDoNotGenerateOutputs = HAC->bOutputless;
-	Preset->bUseOutputNodes = HAC->bUseOutputNodes;
-	Preset->bOutputTemplateGeos = HAC->bOutputTemplateGeos;
+	Preset->bCookOnParameterChange = HAC->GetCookOnParameterChange();
+	Preset->bCookOnTransformChange = HAC->GetCookOnTransformChange();
+	Preset->bCookOnAssetInputCook = HAC->GetCookOnAssetInputCook();
+	Preset->bDoNotGenerateOutputs = HAC->IsOutputless();
+	Preset->bUseOutputNodes = HAC->GetUseOutputNodes();
+	Preset->bOutputTemplateGeos = HAC->GetOutputTemplateGeos();
 
-	Preset->bUploadTransformsToHoudiniEngine = HAC->bUploadTransformsToHoudiniEngine;
-	Preset->bLandscapeUseTempLayers = HAC->bLandscapeUseTempLayers;
+	Preset->bUploadTransformsToHoudiniEngine = HAC->GetUploadTransformsToHoudiniEngine();
+	Preset->bLandscapeUseTempLayers = HAC->GetLandscapeUseTempLayers();
 
 	// Populate Mesh Gen Settings
 	Preset->bApplyStaticMeshGenSettings = bApplyMeshGenSettings;
@@ -2886,7 +2886,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 		return;
 
 	// Try to upload changed parameters
-	FHoudiniParameterTranslator::UploadChangedParameters(HAC->Parameters, HAC->GetAssetId());
+	FHoudiniParameterTranslator::UploadChangedParameters(HAC->GetParameters(), HAC->GetAssetId());
 
 		// Record a transaction for undo/redo
 	FScopedTransaction Transaction(
@@ -2913,24 +2913,24 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	// Populate Bake options
 	if (Preset->bApplyBakeOptions)
 	{
-		HAC->HoudiniEngineBakeOption = Preset->HoudiniEngineBakeOption;
-		HAC->bRemoveOutputAfterBake = Preset->bRemoveOutputAfterBake;
-		HAC->bRecenterBakedActors = Preset->bRecenterBakedActors;
-		HAC->SetBakeAfterNextCook( Preset->bAutoBake ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled);
-		HAC->bReplacePreviousBake = Preset->bReplacePreviousBake;
+		HAC->SetHoudiniEngineBakeOption(Preset->HoudiniEngineBakeOption);
+		HAC->SetRemoveOutputAfterBake(Preset->bRemoveOutputAfterBake);
+		HAC->SetRecenterBakedActors(Preset->bRecenterBakedActors);
+		HAC->SetBakeAfterNextCook(Preset->bAutoBake ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled);
+		HAC->SetReplacePreviousBake(Preset->bReplacePreviousBake);
 	}
 
 	// Populate Asset Settings
 	if (Preset->bApplyAssetOptions)
 	{
-		HAC->bCookOnParameterChange = Preset->bCookOnParameterChange;
-		HAC->bCookOnTransformChange = Preset->bCookOnTransformChange;
-		HAC->bCookOnAssetInputCook = Preset->bCookOnAssetInputCook;
-		HAC->bOutputless = Preset->bDoNotGenerateOutputs;
-		HAC->bUseOutputNodes = Preset->bUseOutputNodes;
-		HAC->bOutputTemplateGeos = Preset->bOutputTemplateGeos;
-		HAC->bUploadTransformsToHoudiniEngine = Preset->bUploadTransformsToHoudiniEngine;
-		HAC->bLandscapeUseTempLayers = Preset->bLandscapeUseTempLayers;
+		HAC->SetCookOnParameterChange(Preset->bCookOnParameterChange);
+		HAC->SetCookOnTransformChange(Preset->bCookOnTransformChange);
+		HAC->SetCookOnAssetInputCook(Preset->bCookOnAssetInputCook);
+		HAC->SetOutputless(Preset->bDoNotGenerateOutputs);
+		HAC->SetUseOutputNodes(Preset->bUseOutputNodes);
+		HAC->SetOutputTemplateGeos(Preset->bOutputTemplateGeos);
+		HAC->SetUploadTransformsToHoudiniEngine(Preset->bUploadTransformsToHoudiniEngine);
+		HAC->SetLandscapeUseTempLayers(Preset->bLandscapeUseTempLayers);
 	}
 
 	// When recooking/rebuilding the HDA, force a full update of all params
@@ -2941,7 +2941,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	FHoudiniParameterTranslator::UpdateParameters(
 		HAC->GetAssetId(),
 		HAC,
-		HAC->Parameters,
+		HAC->GetParameters(),
 		HAC->GetHoudiniAsset(),
 		HAC->GetHapiAssetName(),
 		bForceFullUpdate,
@@ -2986,11 +2986,11 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 		if (!bProcessedAtLeastOne)
 			break;
 
-		FHoudiniParameterTranslator::UploadChangedParameters(HAC->Parameters, HAC->GetAssetId());
+		FHoudiniParameterTranslator::UploadChangedParameters(HAC->GetParameters(), HAC->GetAssetId());
 		FHoudiniParameterTranslator::UpdateParameters(
 			HAC->GetAssetId(),
 			HAC,
-			HAC->Parameters,
+			HAC->GetParameters(),
 			HAC->GetHoudiniAsset(),
 			HAC->GetHapiAssetName(),
 			bForceFullUpdate,
@@ -3001,11 +3001,11 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 
 	if (Preset->MultiParmParameters.Num() > 0)
 	{
-		FHoudiniParameterTranslator::UploadChangedParameters(HAC->Parameters, HAC->GetAssetId());
+		FHoudiniParameterTranslator::UploadChangedParameters(HAC->GetParameters(), HAC->GetAssetId());
 		FHoudiniParameterTranslator::UpdateParameters(
 			HAC->GetAssetId(),
 			HAC,
-			HAC->Parameters,
+			HAC->GetParameters(),
 			HAC->GetHoudiniAsset(),
 			HAC->GetHapiAssetName(),
 			bForceFullUpdate,

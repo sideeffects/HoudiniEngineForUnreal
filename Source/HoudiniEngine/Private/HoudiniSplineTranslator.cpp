@@ -210,7 +210,7 @@ FHoudiniSplineTranslator::ConvertQuaternionRotationToVectorData(const TArray<flo
 void
 FHoudiniSplineTranslator::UpdateHoudiniInputCurves(UHoudiniAssetComponent* HAC)
 {
-	for (UHoudiniInput * NextInput : HAC->Inputs)
+	for (UHoudiniInput * NextInput : HAC->GetInputs())
 		UpdateHoudiniInputCurves(NextInput);
 }
 

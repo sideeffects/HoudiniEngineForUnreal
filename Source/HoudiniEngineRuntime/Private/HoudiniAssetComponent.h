@@ -153,13 +153,13 @@ public:
 	UHoudiniCookable* GetCookable() const;
 
 	UHoudiniAsset* GetHoudiniAsset() const;
-	int32 GetAssetId() const { return AssetId; };
-	EHoudiniAssetState GetAssetState() const { return AssetState; };
+	int32 GetAssetId() const;
+	EHoudiniAssetState GetAssetState() const;
 //	FString GetAssetStateAsString() const { return FHoudiniEngineRuntimeUtils::EnumToString(TEXT("EHoudiniAssetState"), GetAssetState()); };
 
 	virtual FString GetHoudiniAssetName() const;
 
-	EHoudiniAssetStateResult GetAssetStateResult() const { return AssetStateResult; };
+	EHoudiniAssetStateResult GetAssetStateResult() const;
 	FGuid& GetHapiGUID() { return HapiGUID; };
 	FString GetHapiAssetName() const { return HapiAssetName; };
 	FGuid GetComponentGUID() const { return ComponentGUID; };
@@ -178,17 +178,33 @@ public:
 
 	UHoudiniPDGAssetLink* GetPDGAssetLink();
 
-	TArray<FHoudiniBakedOutput>& GetBakedOutputs() { return BakedOutputs; }
-	const TArray<FHoudiniBakedOutput>& GetBakedOutputs() const { return BakedOutputs; }
+	TArray<FHoudiniBakedOutput>& GetBakedOutputs();
+	const TArray<FHoudiniBakedOutput>& GetBakedOutputs() const;
 		
-	TArray<TObjectPtr<UHoudiniParameter>>& GetParameters() { return Parameters; };
-	TArray<TObjectPtr<UHoudiniInput>>& GetInputs() { return Inputs; };
-	TArray<TObjectPtr<UHoudiniOutput>>& GetOutputs() { return Outputs; };
-	bool IsCookingEnabled() const { return bEnableCooking; };
-	bool HasBeenLoaded() const { return bHasBeenLoaded; };
-	bool HasBeenDuplicated() const { return bHasBeenDuplicated; };
-	bool HasRecookBeenRequested() const { return bRecookRequested; };
-	bool HasRebuildBeenRequested() const { return bRebuildRequested; };
+	TArray<TObjectPtr<UHoudiniParameter>>& GetParameters();
+	TArray<TObjectPtr<UHoudiniInput>>& GetInputs();
+	TArray<TObjectPtr<UHoudiniOutput>>& GetOutputs();
+	TArray<TObjectPtr<UHoudiniHandleComponent>>& GetHandleComponents();
+
+	bool IsCookingEnabled() const;
+	bool HasBeenLoaded() const;
+	bool HasBeenDuplicated() const;
+	bool HasRecookBeenRequested() const;
+	bool HasRebuildBeenRequested() const;
+
+	bool GetCookOnParameterChange() const;
+	bool GetCookOnTransformChange() const;
+	bool GetCookOnAssetInputCook() const;
+	bool IsOutputless() const;
+	bool GetUseOutputNodes() const;
+	bool GetOutputTemplateGeos() const;
+	bool GetUploadTransformsToHoudiniEngine() const;
+	bool GetLandscapeUseTempLayers() const;
+	bool GetEnableCurveEditing() const;
+	bool GetSplitMeshSupport() const;
+
+	FHoudiniStaticMeshGenerationProperties GetStaticMeshGenerationProperties();
+	FMeshBuildSettings GetStaticMeshBuildSettings();
 
 	//bool GetEditorPropertiesNeedFullUpdate() const { return bEditorPropertiesNeedFullUpdate; };
 
@@ -207,9 +223,9 @@ public:
 	// Returns true if the asset state indicates that it has been cooked in this session, false otherwise.
 	bool IsHoudiniCookedDataAvailable(bool &bOutNeedsRebuildOrDelete, bool &bOutInvalidState) const;
 	// Returns true if the asset should be bake after the next cook
-	bool IsBakeAfterNextCookEnabled() const { return BakeAfterNextCook != EHoudiniBakeAfterNextCook::Disabled; }
+	bool IsBakeAfterNextCookEnabled() const;
 	// Get the BakeAfterNextCook setting
-	EHoudiniBakeAfterNextCook GetBakeAfterNextCook() const { return BakeAfterNextCook; }
+	EHoudiniBakeAfterNextCook GetBakeAfterNextCook() const;
 
 	FOnPreInstantiationDelegate& GetOnPreInstantiationDelegate() { return OnPreInstantiationDelegate; }
 	FOnPreCookDelegate& GetOnPreCookDelegate() { return OnPreCookDelegate; }
@@ -241,6 +257,12 @@ public:
 	// Returns true if a parameter definition update (excluding values) is needed.
 	bool IsParameterDefinitionUpdateNeeded() const { return bParameterDefinitionUpdateNeeded; }
 
+	// Returns the BakeFolder.
+	FDirectoryPath GetBakeFolder() const;
+
+	// Returns the TemporaryCookFolder.
+	FDirectoryPath GetTemporaryCookFolder() const;
+
 	// Returns the BakeFolder, if it is not empty. Otherwise returns the plugin default bake folder. This
 	// function does not take the unreal_bake_folder attribute into account.
 	FString GetBakeFolderOrDefault() const;
@@ -251,6 +273,12 @@ public:
 
 	// Returns true if this asset should try to start a session
 	virtual bool ShouldTryToStartFirstSession() const;
+
+	EHoudiniEngineBakeOption GetHoudiniEngineBakeOption() const;
+
+	bool GetReplacePreviousBake() const;
+	bool GetRemoveOutputAfterBake() const;
+	bool GetRecenterBakedActors() const;
 
 	//------------------------------------------------------------------------------------------------
 	// Mutators
@@ -314,10 +342,10 @@ public:
 
 	// Set to True to force the next cook to not build a proxy mesh (regardless of global or override settings) and
 	// instead build a UStaticMesh directly (if applicable for the output type).
-	void SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested) { bNoProxyMeshNextCookRequested = bInNoProxyMeshNextCookRequested; }
+	void SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested);
 
 	// Set whether or not bake after cooking (disabled, always or once).
-	void SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook) { BakeAfterNextCook = InBakeAfterNextCook; }
+	void SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook);
 
 	//
 	void SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink);
@@ -356,6 +384,21 @@ public:
 	virtual void HoudiniEngineTick();
 
 	void ProcessBPTemplate(const bool& InIsGlobalCookingEnabled);
+
+	void SetCookOnParameterChange(bool bEnable);
+	void SetCookOnTransformChange(bool bEnable);
+	void SetCookOnAssetInputCook(bool bEnable);
+	void SetOutputless(bool bEnable);
+	void SetUseOutputNodes(bool bEnable);
+	void SetOutputTemplateGeos(bool bEnable);
+	void SetUploadTransformsToHoudiniEngine(bool bEnable);
+	void SetLandscapeUseTempLayers(bool bEnable);
+	void SetEnableCurveEditing(bool bEnable);
+
+	void SetHoudiniEngineBakeOption(const EHoudiniEngineBakeOption& InBakeOption);
+	void SetReplacePreviousBake(bool InReplace);
+	void SetRemoveOutputAfterBake(bool bInRemove);
+	void SetRecenterBakedActors(bool bInRecenter);
 
 #if WITH_EDITOR
 	// This alternate version of PostEditChange is called when properties inside structs are modified.  The property that was actually modified
@@ -852,8 +895,8 @@ protected:
 public:
 	// Sets whether this HDA is allowed to be cooked in PIE
 	// for the purposes of refinement.
-	void SetAllowPlayInEditorRefinement(bool bEnabled) { bAllowPlayInEditorRefinement = bEnabled; }
-	bool IsPlayInEditorRefinementAllowed() const { return bAllowPlayInEditorRefinement; }
+	void SetAllowPlayInEditorRefinement(bool bEnabled);
+	bool IsPlayInEditorRefinementAllowed() const;
 
 protected:
 	UPROPERTY(Transient, DuplicateTransient)

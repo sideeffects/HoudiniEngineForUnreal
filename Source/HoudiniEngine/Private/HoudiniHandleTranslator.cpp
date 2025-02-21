@@ -50,9 +50,9 @@ FHoudiniHandleTranslator::BuildHandles(UHoudiniAssetComponent* HAC)
 	if (FHoudiniHandleTranslator::BuildAllHandles(
 		HAC->GetAssetId(),
 		HAC,
-		HAC->HandleComponents,
+		HAC->GetHandleComponents(),
 		NewHandles,
-		HAC->Parameters))
+		HAC->GetParameters()))
 	{
 		HAC->HandleComponents = NewHandles;
 	}

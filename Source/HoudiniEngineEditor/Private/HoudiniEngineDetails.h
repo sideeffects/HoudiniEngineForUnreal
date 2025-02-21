@@ -28,15 +28,17 @@
 
 #include "CoreMinimal.h"
 
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Widgets/SCompoundWidget.h"
-#include "Framework/SlateDelegates.h"
-#include "Styling/SlateBrush.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Framework/SlateDelegates.h"
-#include "Widgets/Input/SButton.h"
+#include "HAPI/HAPI_Common.h"
 #include "HoudiniEngineDetails.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
+
+#include "Framework/SlateDelegates.h"
+#include "Framework/SlateDelegates.h"
+#include "Styling/SlateBrush.h"
+#include "Widgets/DeclarativeSyntaxSupport.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SCompoundWidget.h"
 
 class IDetailCategoryBuilder;
 class UHoudiniAssetComponent;
@@ -44,7 +46,6 @@ class UHoudiniPDGAssetLink;
 class FMenuBuilder;
 class SBorder;
 class SButton;
-
 
 #define IsValidWeakPointer(InWeakObjectPointer) \
 	FHoudiniEngineDetails::IsValidWeakObjectPointer(InWeakObjectPointer, true, TEXT(__FILE__), __LINE__)
@@ -105,13 +106,13 @@ public:
 
 	static void CreateInstallInfoWindow();
 
-	static FReply ShowCookLog(const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACS);
+	static FReply ShowCookLog(const TArray<HAPI_NodeId>& InNodeIds);
 
-	static FReply ShowAssetHelp(const TWeakObjectPtr<UHoudiniAssetComponent>& InHAC);
+	static FReply ShowAssetHelp(HAPI_NodeId InNodeId);
 
 	static FMenuBuilder Helper_CreateHoudiniAssetPicker();
 
-	const FSlateBrush * GetHoudiniAssetThumbnailBorder(TSharedPtr< SBorder > HoudiniAssetThumbnailBorder) const;
+	const FSlateBrush * GetHoudiniAssetThumbnailBorder(TSharedPtr<SBorder> HoudiniAssetThumbnailBorder) const;
 
 	/** Construct drop down menu content for Houdini asset. **/
 	//static TSharedRef< SWidget > OnGetHoudiniAssetMenuContent(TArray<UHoudiniAssetComponent*> InHACs);

@@ -214,6 +214,9 @@ public:
 	//-----------------------------------
 	// BAKE
 
+	// Previously baked outputs
+	TArray<FHoudiniBakedOutput> BakedOutputs;
+
 	// Bake Options
 	UPROPERTY()
 	EHoudiniEngineBakeOption HoudiniEngineBakeOption;
@@ -416,14 +419,28 @@ public:
 	AActor* GetOwner() const;
 	UWorld* GetWorld() const;
 	bool IsOwnerSelected() const;
-	UHoudiniAsset* GetHoudiniAsset() { return IsHoudiniAssetSupported() ? HoudiniAssetData->HoudiniAsset : nullptr; };
-	UHoudiniPDGAssetLink* GetPDGAssetLink() { return IsPDGSupported() ? PDGData->PDGAssetLink : nullptr; };
+	UHoudiniAsset* GetHoudiniAsset();
+	UHoudiniPDGAssetLink* GetPDGAssetLink();
+	FString GetHoudiniAssetName() const;
 
 	bool IsCookingEnabled() const { return bEnableCooking; };
 	bool HasBeenLoaded() const { return bHasBeenLoaded; };
 	bool HasBeenDuplicated() const { return bHasBeenDuplicated; };
 	bool HasRecookBeenRequested() const { return bRecookRequested; };
 	bool HasRebuildBeenRequested() const { return bRebuildRequested; };
+
+	bool GetCookOnParameterChange() const;
+	bool GetCookOnTransformChange() const;
+	bool IsOutputless() const;
+	bool GetUseOutputNodes() const;
+	bool GetOutputTemplateGeos() const;
+	bool GetUploadTransformsToHoudiniEngine() const;
+	bool GetLandscapeUseTempLayers() const;
+	bool GetEnableCurveEditing() const;
+	bool GetSplitMeshSupport() const;
+
+	FHoudiniStaticMeshGenerationProperties GetStaticMeshGenerationProperties();
+	FMeshBuildSettings GetStaticMeshBuildSettings();
 
 	// Feature data accessors
 	int32 GetNumInputs() const { return IsInputSupported() ? InputData->Inputs.Num() : 0; };
@@ -445,9 +462,15 @@ public:
 	// Finds a parameter by name
 	UHoudiniParameter* FindParameterByName(const FString& InParamName);
 
-	// Output temp folder accessor
-	FString GetTemporaryCookFolderOrDefault();
 	// Output bake folder accessor
+	FDirectoryPath GetBakeFolder() const;
+	// Output temp folder accessor
+	FDirectoryPath GetTemporaryCookFolder() const;
+	// Returns the TemporaryCookFolder, if it is not empty. Otherwise returns the plugin default temporary
+	// cook folder. This function does not take the unreal_temp_folder attribute into account.
+	FString GetTemporaryCookFolderOrDefault();
+	// Returns the BakeFolder, if it is not empty. Otherwise returns the plugin default bake folder. This
+	// function does not take the unreal_bake_folder attribute into account.
 	FString GetBakeFolderOrDefault();
 
 	// Returns true if a parameter definition update (excluding values) is needed.
@@ -487,6 +510,33 @@ public:
 	// Indicates if any of cookable's outputs need an update
 	bool NeedUpdateOutputs() const;
 
+	TArray<TObjectPtr<UHoudiniParameter>>& GetParameters();
+	TArray<TObjectPtr<UHoudiniInput>>& GetInputs();
+	TArray<TObjectPtr<UHoudiniOutput>>& GetOutputs();
+	TArray<TObjectPtr<UHoudiniHandleComponent>>& GetHandleComponents();
+
+	void GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const;
+
+	TArray<FHoudiniBakedOutput>& GetBakedOutputs();
+	const TArray<FHoudiniBakedOutput>& GetBakedOutputs() const;
+	EHoudiniEngineBakeOption GetHoudiniEngineBakeOption() const;
+	bool GetReplacePreviousBake() const;
+	bool GetRemoveOutputAfterBake() const;
+	bool GetRecenterBakedActors() const;
+
+	// Proxies
+	bool IsProxyStaticMeshEnabled() const;
+	bool IsProxyStaticMeshRefinementByTimerEnabled() const;
+	float GetProxyMeshAutoRefineTimeoutSeconds() const;
+	bool IsProxyStaticMeshRefinementOnPreSaveWorldEnabled() const;
+	bool IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const;
+	bool HasAnyCurrentProxyOutput() const;
+	bool HasAnyProxyOutput() const;
+	bool IsHoudiniCookedDataAvailable(bool& bOutNeedsRebuildOrDelete, bool& bOutInvalidState) const;
+	bool IsBakeAfterNextCookEnabled() const;
+	EHoudiniBakeAfterNextCook GetBakeAfterNextCook() const;
+	bool IsPlayInEditorRefinementAllowed() const;
+
 
 	//------------------------------------------------------------------------------------------------
 	// Mutators
@@ -521,12 +571,34 @@ public:
 
 	void OnSessionConnected();
 
-	void SetComponent(USceneComponent* InComp) { if (IsComponentSupported()) { ComponentData->Component = InComp; } };
-	void SetHoudiniAssetComponent(UHoudiniAssetComponent* InComp) { if (IsComponentSupported()) { ComponentData->Component = InComp; } };
-	void SetHoudiniAsset(UHoudiniAsset* InHAsset) { if (IsHoudiniAssetSupported()) { HoudiniAssetData->HoudiniAsset = InHAsset; } };
+	void SetComponent(USceneComponent* InComp);
+	void SetHoudiniAssetComponent(UHoudiniAssetComponent* InComp);
+	void SetHoudiniAsset(UHoudiniAsset* InHAsset);
 
 	bool SetTemporaryCookFolderPath(const FString& NewPath);
 	bool SetBakeFolderPath(const FString& NewPath);
+
+	// Set to True to force the next cook to not build a proxy mesh (regardless of global or override settings) and
+	// instead build a UStaticMesh directly (if applicable for the output type).
+	void SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested);
+
+	void SetCookOnParameterChange(bool bEnable);
+	void SetCookOnTransformChange(bool bEnable);
+	//void SetCookOnAssetInputCook(bool bEnable);
+	void SetOutputless(bool bEnable);
+	void SetUseOutputNodes(bool bEnable);
+	void SetOutputTemplateGeos(bool bEnable);
+	void SetUploadTransformsToHoudiniEngine(bool bEnable);
+	void SetLandscapeUseTempLayers(bool bEnable);
+	void SetEnableCurveEditing(bool bEnable);
+
+	// Set whether or not bake after cooking (disabled, always or once).
+	void SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook);
+	void SetHoudiniEngineBakeOption(const EHoudiniEngineBakeOption& InBakeOption);
+	void SetReplacePreviousBake(bool bInReplace);
+	void SetRemoveOutputAfterBake(bool bInRemove);
+	void SetRecenterBakedActors(bool bInRecenter);
+	void SetAllowPlayInEditorRefinement(bool bEnabled);
 
 	//------------------------------------------------------------------------------------------------
 	// Supported Features

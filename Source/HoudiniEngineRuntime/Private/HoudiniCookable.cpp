@@ -28,6 +28,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
+#include "HoudiniAsset.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineRuntimeUtils.h"
@@ -389,6 +390,26 @@ UHoudiniCookable::~UHoudiniCookable()
 	//FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
 }
 
+UHoudiniAsset*
+UHoudiniCookable::GetHoudiniAsset()
+{
+	return IsHoudiniAssetSupported() ? HoudiniAssetData->HoudiniAsset : nullptr;
+}
+
+UHoudiniPDGAssetLink*
+UHoudiniCookable::GetPDGAssetLink()
+{ 
+	return IsPDGSupported() ? PDGData->PDGAssetLink : nullptr; 
+}
+
+FString
+UHoudiniCookable::GetHoudiniAssetName() const
+{
+	if (!IsHoudiniAssetSupported())
+		return FString();
+
+	return IsValid(HoudiniAssetData->HoudiniAsset) ? HoudiniAssetData->HoudiniAsset->GetName() : TEXT("");
+}
 
 USceneComponent*
 UHoudiniCookable::GetComponent() const
@@ -416,6 +437,24 @@ UHoudiniCookable::GetWorld() const
 	// TODO COOKABLE:
 	// ?? return GetComponent()->GetWold() first? though it should be same...
 	return GetOwner() ? GetOwner()->GetWorld() : nullptr;
+}
+
+FDirectoryPath
+UHoudiniCookable::GetBakeFolder() const
+{
+	if (!IsOutputSupported())
+		return FDirectoryPath();
+
+	return OutputData->BakeFolder;
+}
+
+FDirectoryPath
+UHoudiniCookable::GetTemporaryCookFolder() const
+{
+	if (!IsOutputSupported())
+		return FDirectoryPath();
+
+	return OutputData->TemporaryCookFolder;
 }
 
 FString
@@ -530,6 +569,39 @@ UHoudiniCookable::GetLevelInstance() const
 }
 #endif
 
+
+void
+UHoudiniCookable::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
+{
+	// Check the asset validity
+	if (!IsValid(InHoudiniAsset))
+		return;
+
+	if (!IsHoudiniAssetSupported())
+		return;
+
+	// If it is the same asset, do nothing.
+	if (InHoudiniAsset == HoudiniAssetData->HoudiniAsset)
+		return;
+
+	HoudiniAssetData->HoudiniAsset = InHoudiniAsset;
+}
+
+void UHoudiniCookable::SetComponent(USceneComponent* InComp)
+{
+	if (!IsComponentSupported())
+		return;
+	
+	ComponentData->Component = InComp;
+}
+
+void UHoudiniCookable::SetHoudiniAssetComponent(UHoudiniAssetComponent* InComp)
+{ 
+	if (!IsComponentSupported())
+		return;
+
+	ComponentData->Component = InComp;
+}
 
 void
 UHoudiniCookable::SetCurrentState(EHoudiniAssetState InNewState)
@@ -1263,4 +1335,521 @@ UHoudiniCookable::FindParameterByName(const FString& InParamName)
 	}
 
 	return nullptr;
+}
+
+
+TArray<TObjectPtr<UHoudiniParameter>>&
+UHoudiniCookable::GetParameters()
+{
+	return ParameterData->Parameters;
+}
+
+TArray<TObjectPtr<UHoudiniInput>>&
+UHoudiniCookable::GetInputs()
+{
+	return InputData->Inputs;
+}
+
+TArray<TObjectPtr<UHoudiniOutput>>&
+UHoudiniCookable::GetOutputs()
+{
+	return OutputData->Outputs;
+}
+
+TArray<TObjectPtr<UHoudiniHandleComponent>>&
+UHoudiniCookable::GetHandleComponents()
+{
+	return ComponentData->HandleComponents;
+}
+
+
+void
+UHoudiniCookable::GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const
+{
+	if (IsOutputSupported())
+		return;
+
+	for (UHoudiniOutput* Output : OutputData->Outputs)
+	{
+		OutOutputs.Add(Output);
+	}
+}
+
+
+bool
+UHoudiniCookable::IsProxyStaticMeshEnabled() const
+{
+	if (!IsOutputSupported())
+		return false;
+
+	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
+	{
+		return OutputData->bEnableProxyStaticMeshOverride;
+	}
+	else
+	{
+		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+		if (HoudiniRuntimeSettings)
+		{
+			return HoudiniRuntimeSettings->bEnableProxyStaticMesh;
+		}
+		else
+		{
+			return false;
+		}
+	}
+}
+
+bool
+UHoudiniCookable::IsProxyStaticMeshRefinementByTimerEnabled() const
+{
+	if (!IsOutputSupported())
+		return false;
+
+	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
+	{
+		return OutputData->bEnableProxyStaticMeshOverride && OutputData->bEnableProxyStaticMeshRefinementByTimerOverride;
+	}
+	else
+	{
+		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+		if (HoudiniRuntimeSettings)
+		{
+			return HoudiniRuntimeSettings->bEnableProxyStaticMesh && HoudiniRuntimeSettings->bEnableProxyStaticMeshRefinementByTimer;
+		}
+		else
+		{
+			return false;
+		}
+	}
+}
+
+float
+UHoudiniCookable::GetProxyMeshAutoRefineTimeoutSeconds() const
+{
+	if (!IsOutputSupported())
+		return 5.0f;
+
+	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
+	{
+		return OutputData->ProxyMeshAutoRefineTimeoutSecondsOverride;
+	}
+	else
+	{
+		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+		if (HoudiniRuntimeSettings)
+		{
+			return HoudiniRuntimeSettings->ProxyMeshAutoRefineTimeoutSeconds;
+		}
+		else
+		{
+			return 5.0f;
+		}
+	}
+}
+
+bool
+UHoudiniCookable::IsProxyStaticMeshRefinementOnPreSaveWorldEnabled() const
+{
+	if (!IsOutputSupported())
+		return false;
+
+	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
+	{
+		return OutputData->bEnableProxyStaticMeshOverride && OutputData->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
+	}
+	else
+	{
+		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+		if (HoudiniRuntimeSettings)
+		{
+			return HoudiniRuntimeSettings->bEnableProxyStaticMesh && HoudiniRuntimeSettings->bEnableProxyStaticMeshRefinementOnPreSaveWorld;
+		}
+		else
+		{
+			return false;
+		}
+	}
+}
+
+bool
+UHoudiniCookable::IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const
+{
+	if (!IsOutputSupported())
+		return false;
+
+	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
+	{
+		return OutputData->bEnableProxyStaticMeshOverride && OutputData->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
+	}
+	else
+	{
+		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
+		if (HoudiniRuntimeSettings)
+		{
+			return HoudiniRuntimeSettings->bEnableProxyStaticMesh && HoudiniRuntimeSettings->bEnableProxyStaticMeshRefinementOnPreBeginPIE;
+		}
+		else
+		{
+			return false;
+		}
+	}
+}
+
+bool
+UHoudiniCookable::HasAnyCurrentProxyOutput() const
+{
+	if (!IsOutputSupported())
+		return false;
+
+	for (const UHoudiniOutput* Output : OutputData->Outputs)
+	{
+		if (Output->HasAnyCurrentProxy())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool
+UHoudiniCookable::HasAnyProxyOutput() const
+{
+	if (!IsOutputSupported())
+		return false;
+
+	for (const UHoudiniOutput* Output : OutputData->Outputs)
+	{
+		if (Output->HasAnyProxy())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void 
+UHoudiniCookable::SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bNoProxyMeshNextCookRequested = bInNoProxyMeshNextCookRequested; 
+}
+
+void
+UHoudiniCookable::SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->BakeAfterNextCook = InBakeAfterNextCook;
+}
+
+void
+UHoudiniCookable::SetAllowPlayInEditorRefinement(bool bEnabled)
+{
+	if (IsOutputSupported())
+		return;
+
+	OutputData->bAllowPlayInEditorRefinement = bEnabled;
+}
+
+bool
+UHoudiniCookable::IsPlayInEditorRefinementAllowed() const
+{
+	if (IsOutputSupported())
+		return false;
+
+	return OutputData->bAllowPlayInEditorRefinement;
+}
+
+
+bool
+UHoudiniCookable::IsHoudiniCookedDataAvailable(bool& bOutNeedsRebuildOrDelete, bool& bOutInvalidState) const
+{
+	// Get the state of the asset and check if it is pre-cook, cooked, pending delete/rebuild or invalid
+	bOutNeedsRebuildOrDelete = false;
+	bOutInvalidState = false;
+	switch (CurrentState)
+	{
+	case EHoudiniAssetState::NewHDA:
+	case EHoudiniAssetState::NeedInstantiation:
+	case EHoudiniAssetState::PreInstantiation:
+	case EHoudiniAssetState::Instantiating:
+	case EHoudiniAssetState::PreCook:
+	case EHoudiniAssetState::Cooking:
+	case EHoudiniAssetState::PostCook:
+	case EHoudiniAssetState::PreProcess:
+	case EHoudiniAssetState::Processing:
+		return false;
+		break;
+	case EHoudiniAssetState::None:
+		return true;
+		break;
+	case EHoudiniAssetState::NeedRebuild:
+	case EHoudiniAssetState::NeedDelete:
+	case EHoudiniAssetState::Deleting:
+		bOutNeedsRebuildOrDelete = true;
+		break;
+	default:
+		bOutInvalidState = true;
+		break;
+	}
+
+	return false;
+}
+
+
+bool
+UHoudiniCookable::IsBakeAfterNextCookEnabled() const 
+{
+	if (!IsOutputSupported())
+		return false;
+
+	return OutputData->BakeAfterNextCook != EHoudiniBakeAfterNextCook::Disabled; 
+}
+
+EHoudiniBakeAfterNextCook
+UHoudiniCookable::GetBakeAfterNextCook() const
+{
+	if (!IsOutputSupported())
+		return EHoudiniBakeAfterNextCook::Disabled;
+
+	return OutputData->BakeAfterNextCook;
+}
+
+TArray<FHoudiniBakedOutput>& 
+UHoudiniCookable::GetBakedOutputs() 
+{
+	return OutputData->BakedOutputs;
+}
+
+const TArray<FHoudiniBakedOutput>&
+UHoudiniCookable::GetBakedOutputs() const
+{ 
+	return OutputData->BakedOutputs;
+}
+
+
+EHoudiniEngineBakeOption
+UHoudiniCookable::GetHoudiniEngineBakeOption() const
+{
+	if (!IsOutputSupported())
+		return EHoudiniEngineBakeOption::ToActor;
+
+	return OutputData->HoudiniEngineBakeOption;
+}
+
+void
+UHoudiniCookable::SetHoudiniEngineBakeOption(const EHoudiniEngineBakeOption& InBakeOption)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->HoudiniEngineBakeOption = InBakeOption;
+}
+
+bool
+UHoudiniCookable::GetReplacePreviousBake() const
+{
+	return OutputData->bReplacePreviousBake;
+}
+
+void
+UHoudiniCookable::SetReplacePreviousBake(bool bInReplace)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bReplacePreviousBake = bInReplace;
+}
+
+bool
+UHoudiniCookable::GetRemoveOutputAfterBake() const
+{
+	return OutputData->bRemoveOutputAfterBake;
+}
+
+void
+UHoudiniCookable::SetRemoveOutputAfterBake(bool bInRemove)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bRemoveOutputAfterBake = bInRemove;
+}
+
+bool
+UHoudiniCookable::GetRecenterBakedActors() const
+{
+	return OutputData->bRecenterBakedActors;
+}
+
+void
+UHoudiniCookable::SetRecenterBakedActors(bool bInRecenter)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bRecenterBakedActors = bInRecenter;
+}
+
+bool
+UHoudiniCookable::GetCookOnParameterChange() const
+{
+	return ParameterData->bCookOnParameterChange;
+}
+
+bool
+UHoudiniCookable::GetCookOnTransformChange() const
+{
+	return ComponentData->bCookOnTransformChange;
+}
+/*
+bool
+UHoudiniCookable::GetCookOnAssetInputCook()
+{
+	return bCookOnAssetInputCook;
+}
+*/
+
+bool
+UHoudiniCookable::IsOutputless() const
+{
+	return OutputData->bOutputless;
+}
+
+bool
+UHoudiniCookable::GetUseOutputNodes() const
+{
+	return OutputData->bUseOutputNodes;
+}
+
+bool
+UHoudiniCookable::GetOutputTemplateGeos() const
+{
+	return OutputData->bOutputTemplateGeos;
+}
+
+bool
+UHoudiniCookable::GetUploadTransformsToHoudiniEngine() const
+{
+	return ComponentData->bUploadTransformsToHoudiniEngine;
+}
+
+bool
+UHoudiniCookable::GetLandscapeUseTempLayers() const
+{
+	return OutputData->bLandscapeUseTempLayers;
+}
+
+bool
+UHoudiniCookable::GetEnableCurveEditing() const
+{
+	return OutputData->bEnableCurveEditing;
+}
+
+bool
+UHoudiniCookable::GetSplitMeshSupport() const
+{
+	return OutputData->bSplitMeshSupport;
+}
+
+
+FHoudiniStaticMeshGenerationProperties
+UHoudiniCookable::GetStaticMeshGenerationProperties()
+{
+	return OutputData->StaticMeshGenerationProperties;
+}
+
+FMeshBuildSettings
+UHoudiniCookable::GetStaticMeshBuildSettings()
+{
+	return OutputData->StaticMeshBuildSettings;
+}
+
+void
+UHoudiniCookable::SetCookOnParameterChange(bool bEnable)
+{
+	if (!IsParameterSupported())
+		return;
+
+	ParameterData->bCookOnParameterChange = bEnable;
+}
+
+void
+UHoudiniCookable::SetCookOnTransformChange(bool bEnable)
+{
+	if (!IsComponentSupported())
+		return;
+
+	ComponentData->bCookOnTransformChange = bEnable;
+}
+
+/*
+void
+UHoudiniCookable::SetCookOnAssetInputCook(bool bEnable)
+{
+	if (!IsParameterSupported())
+		return;
+
+	OutputData->bCookOnAssetInputCook = bEnable;
+}
+*/
+
+void
+UHoudiniCookable::SetOutputless(bool bEnable)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bOutputless = bEnable;
+}
+
+void
+UHoudiniCookable::SetUseOutputNodes(bool bEnable)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bUseOutputNodes = bEnable;
+}
+
+void
+UHoudiniCookable::SetOutputTemplateGeos(bool bEnable)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bOutputTemplateGeos = bEnable;
+}
+
+void
+UHoudiniCookable::SetUploadTransformsToHoudiniEngine(bool bEnable)
+{
+	if (!IsComponentSupported())
+		return;
+
+	ComponentData->bUploadTransformsToHoudiniEngine = bEnable;
+}
+
+void
+UHoudiniCookable::SetLandscapeUseTempLayers(bool bEnable)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bLandscapeUseTempLayers = bEnable;
+}
+
+void
+UHoudiniCookable::SetEnableCurveEditing(bool bEnable)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bEnableCurveEditing = bEnable;
 }

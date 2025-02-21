@@ -130,11 +130,11 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Return the errors, warning and messages on a specified node
 		static const FString GetNodeErrorsWarningsAndMessages(HAPI_NodeId InNodeId);
 
-		static const FString GetCookLog(TArray<UHoudiniAssetComponent*>& InHACs);
+		static const FString GetCookLog(const TArray<HAPI_NodeId>& InNodeIds);
 
-		static const FString GetAssetHelp(UHoudiniAssetComponent* HoudiniAssetComponent);
+		static const FString GetAssetHelp(HAPI_NodeId InNodeId);
 
-		static const FString GetAssetHelpURL(UHoudiniAssetComponent* HoudiniAssetComponent);
+		static const FString GetAssetHelpURL(HAPI_NodeId InNodeId);
 
 		// Updates the Object transform of a Houdini Asset Component
 		static bool UploadHACTransform(UHoudiniAssetComponent* HAC);

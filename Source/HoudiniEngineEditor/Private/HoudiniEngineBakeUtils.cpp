@@ -414,8 +414,8 @@ FHoudiniEngineBakeUtils::BakeHDAToActors(
 		Outputs,
 		BakeState,
 		HoudiniAssetComponent->GetComponentTransform(),
-		HoudiniAssetComponent->BakeFolder,
-		HoudiniAssetComponent->TemporaryCookFolder,
+		HoudiniAssetComponent->GetBakeFolder(),
+		HoudiniAssetComponent->GetTemporaryCookFolder(),
 		BakeSettings,
 		AllBakedActors,
 		OutNewActors,
@@ -8399,6 +8399,8 @@ FHoudiniEngineBakeUtils::CheckForAndRefineHoudiniProxyMesh(
 	bool bInRecenterBakedActors,
 	bool& bOutNeedsReCook)
 {
+	// TODO COOKABLE: Replace with cookable!
+
 	if (!IsValid(InHoudiniAssetComponent))
 	{
 		return false;

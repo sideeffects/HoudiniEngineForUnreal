@@ -291,8 +291,8 @@ UHoudiniPublicAPIAssetWrapper::BakeAllOutputs_Implementation()
 	return FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
 		HAC,
 		BakeSettings,
-		HAC->HoudiniEngineBakeOption,
-		HAC->bRemoveOutputAfterBake);
+		HAC->GetHoudiniEngineBakeOption(),
+		HAC->GetRemoveOutputAfterBake());
 }
 
 bool
@@ -348,9 +348,9 @@ UHoudiniPublicAPIAssetWrapper::SetBakeMethod_Implementation(const EHoudiniEngine
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	if (HAC->HoudiniEngineBakeOption != InBakeMethod)
+	if (HAC->GetHoudiniEngineBakeOption() != InBakeMethod)
 	{
-		HAC->HoudiniEngineBakeOption = InBakeMethod;
+		HAC->SetHoudiniEngineBakeOption(InBakeMethod);
 		HAC->Modify();
 	}
 
@@ -364,7 +364,7 @@ UHoudiniPublicAPIAssetWrapper::GetBakeMethod_Implementation(EHoudiniEngineBakeOp
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	OutBakeMethod = HAC->HoudiniEngineBakeOption;
+	OutBakeMethod = HAC->GetHoudiniEngineBakeOption();
 
 	return true;
 }
@@ -376,7 +376,7 @@ UHoudiniPublicAPIAssetWrapper::SetRemoveOutputAfterBake_Implementation(const boo
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	HAC->bRemoveOutputAfterBake = bInRemoveOutputAfterBake;
+	HAC->SetRemoveOutputAfterBake(bInRemoveOutputAfterBake);
 
 	return true;
 }
@@ -388,7 +388,7 @@ UHoudiniPublicAPIAssetWrapper::GetRemoveOutputAfterBake_Implementation() const
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	return HAC->bRemoveOutputAfterBake;
+	return HAC->GetRemoveOutputAfterBake();
 }
 
 bool

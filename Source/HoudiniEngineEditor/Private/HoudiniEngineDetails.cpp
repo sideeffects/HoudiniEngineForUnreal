@@ -689,7 +689,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 		else
 		{
 			BakeSettings.SetFromHAC(MainHAC.Get());
-			BakeOption = MainHAC->HoudiniEngineBakeOption;
+			BakeOption = MainHAC->GetHoudiniEngineBakeOption();
 			bRemoveOutputAfterBake = MainHAC->bRemoveOutputAfterBake;
 		}
 
@@ -779,7 +779,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> TypeComboBox;
 
 	TArray<TSharedPtr<FString>>* BakeOptionSources = FHoudiniEngineEditor::Get().GetHoudiniEngineBakeTypeOptionsLabels();
-	TSharedPtr<FString> IntialSelec = MakeShareable(new FString(FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(MainHAC->HoudiniEngineBakeOption)));
+	TSharedPtr<FString> IntialSelec = MakeShareable(new FString(FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(MainHAC->GetHoudiniEngineBakeOption())));
 
 	ButtonRowHorizontalBox->AddSlot()
 	/*.AutoWidth()*/
@@ -817,10 +817,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 					if (!IsValidWeakPointer(NextHAC))
 						continue;
 
-					if (MainHAC->HoudiniEngineBakeOption == NewOption)
-						continue;
-
-					MainHAC->HoudiniEngineBakeOption = NewOption;
+					NextHAC->SetHoudiniEngineBakeOption(NewOption);
 					NextHAC->MarkPackageDirty();
 				}
 
@@ -835,7 +832,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
                 		return FText();
 
 					return FText::FromString(
-						FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(MainHAC->HoudiniEngineBakeOption));
+						FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(MainHAC->GetHoudiniEngineBakeOption()));
 				})
 				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
@@ -1216,11 +1213,11 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 
 	BakeFolderRow.WholeRowWidget.Widget = BakeFolderRowHorizontalBox;
 
-	switch (MainHAC->HoudiniEngineBakeOption) 
+	switch (MainHAC->GetHoudiniEngineBakeOption())
 	{
 		case EHoudiniEngineBakeOption::ToActor:
 		{
-			if (MainHAC->bReplacePreviousBake) 
+			if (MainHAC->GetReplacePreviousBake())
 			{
 				BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeWithReplaceToActorToolTip", 
 					"Bake this Houdini Asset Actor and its components to native unreal actors and components, replacing the previous baked result."));
@@ -1267,7 +1264,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		if (!IsValidWeakPointer(MainHAC))
 			return ECheckBoxState::Unchecked;
 
-		return MainHAC->bCookOnParameterChange ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return MainHAC->GetCookOnParameterChange() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateParameterChangedLambda = [InHACs](ECheckBoxState NewState)
@@ -1278,10 +1275,10 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			if (NextHAC->bCookOnParameterChange == bChecked)
+			if (NextHAC->GetCookOnParameterChange() == bChecked)
 				continue;
 
-			NextHAC->bCookOnParameterChange = bChecked;
+			NextHAC->SetCookOnParameterChange(bChecked);
 			NextHAC->MarkPackageDirty();
 		}
 	};
@@ -1291,7 +1288,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		if (!IsValidWeakPointer(MainHAC))
 			return ECheckBoxState::Unchecked;
 
-		return MainHAC->bCookOnTransformChange ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return MainHAC->GetCookOnTransformChange() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedTransformChangeLambda = [InHACs](ECheckBoxState NewState)
@@ -1302,10 +1299,10 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			if (NextHAC->bCookOnTransformChange == bChecked)
+			if (NextHAC->GetCookOnTransformChange() == bChecked)
 				continue;
 
-			NextHAC->bCookOnTransformChange = bChecked;
+			NextHAC->SetCookOnTransformChange(bChecked);
 			NextHAC->MarkPackageDirty();
 			NextHAC->MarkAsNeedCook();
 		}
@@ -1316,7 +1313,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		if (!IsValidWeakPointer(MainHAC))
 			return ECheckBoxState::Unchecked;
 
-		return MainHAC->bCookOnAssetInputCook ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return MainHAC->GetCookOnAssetInputCook() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedAssetInputCookLambda = [InHACs](ECheckBoxState NewState)
@@ -1327,10 +1324,10 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			if (NextHAC->bCookOnAssetInputCook == bChecked)
+			if (NextHAC->GetCookOnAssetInputCook() == bChecked)
 				continue;
 
-			NextHAC->bCookOnAssetInputCook = bChecked;
+			NextHAC->SetCookOnAssetInputCook(bChecked);
 			NextHAC->MarkPackageDirty();
 		}
 	};
@@ -1340,7 +1337,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		if (!IsValidWeakPointer(MainHAC))
 			return ECheckBoxState::Unchecked;
 
-		return MainHAC->bUploadTransformsToHoudiniEngine ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return MainHAC->GetUploadTransformsToHoudiniEngine() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedPushTransformToHoudiniLambda = [InHACs](ECheckBoxState NewState)
@@ -1351,10 +1348,10 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			if (NextHAC->bUploadTransformsToHoudiniEngine == bChecked)
+			if (NextHAC->GetUploadTransformsToHoudiniEngine() == bChecked)
 				continue;
 
-			NextHAC->bUploadTransformsToHoudiniEngine = bChecked;
+			NextHAC->SetUploadTransformsToHoudiniEngine(bChecked);
 			NextHAC->MarkPackageDirty();
 			NextHAC->MarkAsNeedCook();
 		}
@@ -1365,7 +1362,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		if (!IsValidWeakPointer(MainHAC))
 			return ECheckBoxState::Unchecked;
 
-		return MainHAC->bLandscapeUseTempLayers ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return MainHAC->GetLandscapeUseTempLayers() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedUseTempLandscapeLayersLambda = [InHACs](ECheckBoxState NewState)
@@ -1376,10 +1373,10 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			if (NextHAC->bLandscapeUseTempLayers == bChecked)
+			if (NextHAC->GetLandscapeUseTempLayers() == bChecked)
 				continue;
 
-			NextHAC->bLandscapeUseTempLayers = bChecked;
+			NextHAC->SetLandscapeUseTempLayers(bChecked);
 			NextHAC->MarkPackageDirty();
 		}
 	};
@@ -1389,7 +1386,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		if (!IsValidWeakPointer(MainHAC))
 			return ECheckBoxState::Unchecked;
 
-		return MainHAC->bEnableCurveEditing ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return MainHAC->GetEnableCurveEditing() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedEnableCurveEditingLambda = [InHACs](ECheckBoxState NewState)
@@ -1400,10 +1397,10 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			if (NextHAC->bEnableCurveEditing == bChecked)
+			if (NextHAC->GetEnableCurveEditing() == bChecked)
 				continue;
 
-			NextHAC->bEnableCurveEditing = bChecked;
+			NextHAC->SetEnableCurveEditing(bChecked);
 			NextHAC->MarkPackageDirty();
 		}
 	};
@@ -1414,7 +1411,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		if (!IsValidWeakPointer(MainHAC))
 			return ECheckBoxState::Unchecked;
 
-		return MainHAC->bOutputless ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return MainHAC->IsOutputless() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedDoNotGenerateOutputsLambda = [InHACs](ECheckBoxState NewState)
@@ -1425,10 +1422,10 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			if (NextHAC->bOutputless == bChecked)
+			if (NextHAC->IsOutputless() == bChecked)
 				continue;
 
-			NextHAC->bOutputless = bChecked;
+			NextHAC->SetOutputless(bChecked);
 			NextHAC->MarkPackageDirty();
 			NextHAC->MarkAsNeedCook();
 		}
@@ -1439,7 +1436,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		if (!IsValidWeakPointer(MainHAC))
 			return ECheckBoxState::Unchecked;
 
-		return MainHAC->bOutputTemplateGeos ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return MainHAC->GetOutputTemplateGeos() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedOutputTemplatedGeosLambda = [InHACs](ECheckBoxState NewState)
@@ -1450,10 +1447,10 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			if (NextHAC->bOutputTemplateGeos == bChecked)
+			if (NextHAC->GetOutputTemplateGeos() == bChecked)
 				continue;
 
-			NextHAC->bOutputTemplateGeos = bChecked;
+			NextHAC->SetOutputTemplateGeos(bChecked);
 			NextHAC->MarkPackageDirty();
 			NextHAC->MarkAsNeedCook();
 		}
@@ -1464,7 +1461,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		if (!IsValidWeakPointer(MainHAC))
 			return ECheckBoxState::Unchecked;
 
-		return MainHAC->bUseOutputNodes ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		return MainHAC->GetUseOutputNodes() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
 	auto OnCheckStateChangedUseOutputNodesLambda = [InHACs](ECheckBoxState NewState)
@@ -1475,10 +1472,10 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			if (!IsValidWeakPointer(NextHAC))
 				continue;
 
-			if (NextHAC->bUseOutputNodes == bChecked)
+			if (NextHAC->GetUseOutputNodes() == bChecked)
 				continue;
 
-			NextHAC->bUseOutputNodes = bChecked;
+			NextHAC->SetUseOutputNodes(bChecked);
 			NextHAC->MarkPackageDirty();
 			NextHAC->MarkAsNeedCook();
 		}
@@ -1759,25 +1756,25 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 	// Landscape Temp Layers
 	TooltipText = LOCTEXT("HoudiniEngineTempLandscapeLayersTooltip", "Cooking use temporary landscape layers.");
 	SecondLeftColumnVerticalBox->AddSlot()
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
 		.FillWidth(4.0f)
 		[
 			SNew(STextBlock)
 			.MinDesiredWidth(160.f)
-		.Text(LOCTEXT("HoudiniEngineTempLandscapeCheckBoxLabel", "Temp Landscape Layers"))
-		.ToolTipText(TooltipText)
+			.Text(LOCTEXT("HoudiniEngineTempLandscapeCheckBoxLabel", "Temp Landscape Layers"))
+			.ToolTipText(TooltipText)
 		]
-	+ SHorizontalBox::Slot()
+		+ SHorizontalBox::Slot()
 		[
 			SNew(SCheckBox)
 			.OnCheckStateChanged_Lambda(OnCheckStateChangedUseTempLandscapeLayersLambda)
-		.IsChecked_Lambda(IsCheckedUseTempLandscapesLayersToHoudiniLambda)
-		.ToolTipText(TooltipText)
+			.IsChecked_Lambda(IsCheckedUseTempLandscapesLayersToHoudiniLambda)
+			.ToolTipText(TooltipText)
 		]
-		];
+	];
 
 
 	// Curve Editing
@@ -1803,7 +1800,6 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		]
 	];
 
-
 	// Use whole widget
 	CheckBoxesRow.WholeRowWidget.Widget = WidgetBox;
 }
@@ -1828,14 +1824,20 @@ FHoudiniEngineDetails::CreateHelpAndDebugWidgets(
 	if (!MainHAC->bHelpAndDebugMenuExpanded)
 		return;
 
-	auto OnFetchCookLogButtonClickedLambda = [InHACs]()
+	HAPI_NodeId MainNodeId = MainHAC->GetAssetId();
+	TArray<HAPI_NodeId> InNodeIds;
+	InNodeIds.SetNum(InHACs.Num());
+	for (int32 Idx = 0; Idx < InHACs.Num(); Idx++)
+		InNodeIds[Idx] = InHACs[Idx].Get() ? InHACs[Idx].Get()->GetAssetId() : -1;
+
+	auto OnFetchCookLogButtonClickedLambda = [InNodeIds]()
 	{
-		return ShowCookLog(InHACs);
+		return ShowCookLog(InNodeIds);
 	};
 
-	auto OnHelpButtonClickedLambda = [MainHAC]()
+	auto OnHelpButtonClickedLambda = [MainNodeId]()
 	{
-		return ShowAssetHelp(MainHAC);
+		return ShowAssetHelp(MainNodeId);
 	};
 
 	// Button Row
@@ -2525,22 +2527,10 @@ FHoudiniEngineDetails::OnGetHoudiniAssetMenuContent(TArray<UHoudiniAssetComponen
 */
 
 FReply
-FHoudiniEngineDetails::ShowCookLog(const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACS)
+FHoudiniEngineDetails::ShowCookLog(const TArray<HAPI_NodeId>& InNodeIds)
 {
-	// Convert to an array of valid HACs for the GetCookLog call
-	TArray<UHoudiniAssetComponent*> HACs;
-	if (InHACS.Num() > 0)
-	{
-		HACs.Reserve(InHACS.Num());
-		for (const auto& HAC : InHACS)
-		{
-			if (!IsValidWeakPointer(HAC))
-				continue;
-			HACs.Add(HAC.Get());
-		}
-	}
 	TSharedPtr< SWindow > ParentWindow;
-	const FString CookLog = FHoudiniEngineUtils::GetCookLog(HACs);
+	const FString CookLog = FHoudiniEngineUtils::GetCookLog(InNodeIds);
 
 	// Check if the main frame is loaded. When using the old main frame it may not be.
 	if (FModuleManager::Get().IsModuleLoaded("MainFrame"))
@@ -2570,13 +2560,13 @@ FHoudiniEngineDetails::ShowCookLog(const TArray<TWeakObjectPtr<UHoudiniAssetComp
 }
 
 FReply
-FHoudiniEngineDetails::ShowAssetHelp(const TWeakObjectPtr<UHoudiniAssetComponent>& InHAC)
+FHoudiniEngineDetails::ShowAssetHelp(HAPI_NodeId InNodeId)
 {
-	if (!IsValidWeakPointer(InHAC))
+	if (InNodeId < 0)
 		return FReply::Handled();
 
 	// If we have a help URL, then open it
-	const FString AssetHelpURL = FHoudiniEngineUtils::GetAssetHelpURL(InHAC.Get());
+	const FString AssetHelpURL = FHoudiniEngineUtils::GetAssetHelpURL(InNodeId);
 	if (AssetHelpURL.StartsWith(TEXT("http://")) || AssetHelpURL.StartsWith(TEXT("https://")) || AssetHelpURL.StartsWith(TEXT("file://")))
 	{
 		FPlatformProcess::LaunchURL(*AssetHelpURL, nullptr, nullptr);
@@ -2584,7 +2574,7 @@ FHoudiniEngineDetails::ShowAssetHelp(const TWeakObjectPtr<UHoudiniAssetComponent
 	}
 	
 	// If not, get the help string
-	const FString AssetHelp = FHoudiniEngineUtils::GetAssetHelp(InHAC.Get());
+	const FString AssetHelp = FHoudiniEngineUtils::GetAssetHelp(InNodeId);
 	
 	// Check if the main frame is loaded. When using the old main frame it may not be.
 	TSharedPtr<SWindow> ParentWindow;
@@ -2840,6 +2830,7 @@ FHoudiniEngineDetails::CreateNodeSyncWidgets(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
 {
+	// TODO COOKABLE: NEED UPDATE
 	if (InHACs.Num() <= 0)
 		return;
 

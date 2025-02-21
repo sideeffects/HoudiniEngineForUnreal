@@ -97,17 +97,17 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	// 1. Update the output objects
 	UpdateOutputObjects(
 		HAC->GetAssetId(),
-		HAC->Outputs,
+		HAC->GetOutputs(),
 		HAC->GetOutputNodeIds(),
 		HAC->GetOutputNodeCookCounts(),
 		HAC,
-		HAC->bOutputless,
-		HAC->bOutputTemplateGeos,
-		HAC->bUseOutputNodes,
-		HAC->bEnableCurveEditing);
+		HAC->IsOutputless(),
+		HAC->GetOutputTemplateGeos(),
+		HAC->GetUseOutputNodes(),
+		HAC->GetEnableCurveEditing());
 
 	// 2. Update tags and generic attributes on HAC
-	UpdateOutputAttributesAndTags(HAC->Outputs, HAC->GetOwner(), HAC);
+	UpdateOutputAttributesAndTags(HAC->GetOutputs(), HAC->GetOwner(), HAC);
 
 	return true;
 }
@@ -174,8 +174,8 @@ FHoudiniOutputTranslator::ProcessOutputs(
 
 	TArray<UPackage*> CreatedPackages;
 	if (!CreateAllOutputs(
-		HAC->Outputs,
-		HAC->Inputs,
+		HAC->GetOutputs(),
+		HAC->GetInputs(),
 		PackageParams,
 		HAC,
 		HAC->GetHACWorld(),
@@ -190,10 +190,10 @@ FHoudiniOutputTranslator::ProcessOutputs(
 		return false;
 
 	// 4. Output cleanup
-	CleanOutputsPostCreate(HAC->Outputs, HAC->GetHACWorld(), HAC->HasBeenLoaded());
+	CleanOutputsPostCreate(HAC->GetOutputs(), HAC->GetHACWorld(), HAC->HasBeenLoaded());
 
 	// 5. 
-	UpdateDataLayersAndLevelInstanceOnOutput(HAC->Outputs);
+	UpdateDataLayersAndLevelInstanceOnOutput(HAC->GetOutputs());
 
 	// 6. Save all created packages	
 	if (CreatedPackages.Num() > 0)
@@ -856,7 +856,7 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 
 	bool bFoundProxies = false;
 	TArray<UHoudiniOutput*> InstancerOutputs;
-	for (auto& CurOutput : HAC->Outputs)
+	for (auto& CurOutput : HAC->GetOutputs())
 	{
 		const EHoudiniOutputType OutputType = CurOutput->GetType();
 		if (OutputType == EHoudiniOutputType::Mesh)
@@ -868,9 +868,9 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 					CurOutput,
 					PackageParams,
 					EHoudiniStaticMeshMethod::FMeshDescription,
-					HAC->bSplitMeshSupport,
-					HAC->StaticMeshGenerationProperties,
-					HAC->StaticMeshBuildSettings,
+					HAC->GetSplitMeshSupport(),
+					HAC->GetStaticMeshGenerationProperties(),
+					HAC->GetStaticMeshBuildSettings(),
 					AllOutputMaterials,
 					OuterComponent,
 					true,  // bInTreatExistingMaterialsAsUpToDate
@@ -894,7 +894,7 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 	// Rebuild instancers if we built any static meshes from proxies
 	if (bFoundProxies)
 	{
-		FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(HAC->Outputs, OuterComponent, PackageParams);
+		FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(HAC->GetOutputs(), OuterComponent, PackageParams);
 	}
 
 	return true;
@@ -2465,11 +2465,8 @@ FHoudiniOutputTranslator::UpdateChangedOutputs(UHoudiniAssetComponent* HAC)
 	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
 	PackageParams.ComponentGUID = HAC->GetComponentGUID();
 	PackageParams.ObjectName = FString();
-	
-	TArray<TObjectPtr<UHoudiniOutput>>& Outputs = HAC->Outputs;
 
 	TArray<UHoudiniOutput *> OutputsToUpdate;
-
 	// Iterate through the outputs array of HAC.
 	for (int32 Index = 0; Index < HAC->GetNumOutputs(); ++Index)
 	{
@@ -2534,7 +2531,7 @@ FHoudiniOutputTranslator::UpdateChangedOutputs(UHoudiniAssetComponent* HAC)
 		}
 	}
 
-	FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(OutputsToUpdate, Outputs, HAC, PackageParams);
+	FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(OutputsToUpdate, HAC->GetOutputs(), HAC, PackageParams);
 
 	return true;
 }

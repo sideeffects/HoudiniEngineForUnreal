@@ -151,6 +151,11 @@ FHoudiniEngineRuntime::RegisterHoudiniComponent(UHoudiniAssetComponent* HAC, boo
 	if (!IsValid(HAC))
 		return;
 
+	// Do NOT register HACs with cookables
+	// We do not want them to be registered twice
+	if (HAC->GetCookable() != nullptr)
+		return;
+
 	// RF_Transient indicates a temporary/preview object
 	// No need to instantiate/cook those in Houdini
 	// RF_ArchetypeObject is the template for blueprinted HDA, so we need to be able to register those.

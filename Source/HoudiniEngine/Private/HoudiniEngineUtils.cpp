@@ -397,7 +397,7 @@ FHoudiniEngineUtils::GetNodeErrorsWarningsAndMessages(HAPI_NodeId InNodeId)
 }
 
 const FString
-FHoudiniEngineUtils::GetCookLog(TArray<UHoudiniAssetComponent*>& InHACs)
+FHoudiniEngineUtils::GetCookLog(const TArray<HAPI_NodeId>& InNodeIds)
 {
 	FString CookLog;
 
@@ -417,13 +417,13 @@ FHoudiniEngineUtils::GetCookLog(TArray<UHoudiniAssetComponent*>& InHACs)
 		CookLog += TEXT("Error Description:\n") + Error + TEXT("\n\n");
 
 	// Iterates on all the selected HAC and get their node errors
-	for (auto& HAC : InHACs)
+	for (auto& NodeId : InNodeIds)
 	{
-		if (!IsValid(HAC))
+		if (NodeId < 0)
 			continue;
 
 		// Get the node errors, warnings and messages
-		FString NodeErrors = FHoudiniEngineUtils::GetNodeErrorsWarningsAndMessages(HAC->GetAssetId());
+		FString NodeErrors = FHoudiniEngineUtils::GetNodeErrorsWarningsAndMessages(NodeId);
 		if (NodeErrors.IsEmpty())
 			continue;
 
@@ -464,20 +464,16 @@ FHoudiniEngineUtils::GetCookLog(TArray<UHoudiniAssetComponent*>& InHACs)
 }
 
 const FString
-FHoudiniEngineUtils::GetAssetHelp(UHoudiniAssetComponent* HoudiniAssetComponent)
+FHoudiniEngineUtils::GetAssetHelp(HAPI_NodeId InNodeId)
 {
 	FString HelpString = TEXT("");
-	if (!HoudiniAssetComponent)
+	if (InNodeId < 0)
 		return HelpString;
 
 	HAPI_AssetInfo AssetInfo;
 	FHoudiniApi::AssetInfo_Init(&AssetInfo);
-	HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
-	if (AssetId < 0)
-		return HelpString;
-
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), HelpString);
+		FHoudiniEngine::Get().GetSession(), InNodeId, &AssetInfo), HelpString);
 
 	if (FHoudiniEngineString::ToFString(AssetInfo.helpTextSH, HelpString))
 		return HelpString;
@@ -489,20 +485,16 @@ FHoudiniEngineUtils::GetAssetHelp(UHoudiniAssetComponent* HoudiniAssetComponent)
 }
 
 const FString
-FHoudiniEngineUtils::GetAssetHelpURL(UHoudiniAssetComponent* HoudiniAssetComponent)
+FHoudiniEngineUtils::GetAssetHelpURL(HAPI_NodeId InNodeId)
 {
 	FString HelpString = TEXT("");
-	if (!HoudiniAssetComponent)
+	if (InNodeId < 0)
 		return HelpString;
 
 	HAPI_AssetInfo AssetInfo;
 	FHoudiniApi::AssetInfo_Init(&AssetInfo);
-	HAPI_NodeId AssetId = HoudiniAssetComponent->GetAssetId();
-	if (AssetId < 0)
-		return HelpString;
-
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo), HelpString);
+		FHoudiniEngine::Get().GetSession(), InNodeId, &AssetInfo), HelpString);
 
 	// If we have a help url, use it first
 	if (FHoudiniEngineString::ToFString(AssetInfo.helpURLSH, HelpString))
