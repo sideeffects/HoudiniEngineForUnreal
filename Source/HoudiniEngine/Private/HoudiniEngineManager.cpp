@@ -738,7 +738,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			FHoudiniParameterTranslator::UpdateParameters(
 				HAC->GetAssetId(),
 				HAC,
-				HAC->Parameters,
+				HAC->GetParameters(),
 				HAC->GetHoudiniAsset(),
 				HAC->GetHapiAssetName(),
 				bForceFullUpdate,
@@ -779,7 +779,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 					HAC->AssetId = FetchNodeId;
 
 					// Assign a unique name to the actor if needed
-					FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(HAC->AssetId, HAC->GetOwner());
+					FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(HAC->GetAssetId(), HAC->GetOwner());
 
 					// Reset the cook counter.
 					HAC->SetAssetCookCount(0);

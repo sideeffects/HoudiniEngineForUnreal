@@ -1269,7 +1269,7 @@ UHoudiniPDGAssetLink::GetTemporaryCookFolder() const
 {
 	UHoudiniAssetComponent* HAC = GetOuterHoudiniAssetComponent();
 	if (HAC)
-		return HAC->TemporaryCookFolder;
+		return HAC->GetTemporaryCookFolder();
 	
 	FDirectoryPath TempPath;
 	TempPath.Path = FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();

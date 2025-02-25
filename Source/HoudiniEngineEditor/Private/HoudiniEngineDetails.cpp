@@ -690,7 +690,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 		{
 			BakeSettings.SetFromHAC(MainHAC.Get());
 			BakeOption = MainHAC->GetHoudiniEngineBakeOption();
-			bRemoveOutputAfterBake = MainHAC->bRemoveOutputAfterBake;
+			bRemoveOutputAfterBake = MainHAC->GetRemoveOutputAfterBake();
 		}
 
 		for (auto & NextHAC : InHACs)
@@ -895,7 +895,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
             	if (!IsValidWeakPointer(MainHAC))
             		return ECheckBoxState::Unchecked;
             	
-                return MainHAC->bRemoveOutputAfterBake ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+                return MainHAC->GetRemoveOutputAfterBake() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
             })
             .OnCheckStateChanged_Lambda([InHACs](ECheckBoxState NewState)
             {
@@ -906,10 +906,10 @@ FHoudiniEngineDetails::CreateBakeWidgets(
                     if (!IsValidWeakPointer(NextHAC))
                         continue;
 
-					if (NextHAC->bRemoveOutputAfterBake == bNewState) 
+					if (NextHAC->GetRemoveOutputAfterBake() == bNewState)
 						continue;
 
-                    NextHAC->bRemoveOutputAfterBake = bNewState;
+                    NextHAC->SetRemoveOutputAfterBake(bNewState);
 					NextHAC->MarkPackageDirty();
                 }
 
@@ -937,7 +937,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
             	if (!IsValidWeakPointer(MainHAC))
             		return ECheckBoxState::Unchecked;
             	
-                return MainHAC->bRecenterBakedActors ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+                return MainHAC->GetRecenterBakedActors() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
             })
             .OnCheckStateChanged_Lambda([InHACs](ECheckBoxState NewState)
             {
@@ -948,10 +948,10 @@ FHoudiniEngineDetails::CreateBakeWidgets(
                     if (!IsValidWeakPointer(NextHAC))
                         continue;
 
-					if (NextHAC->bRecenterBakedActors == bNewState)
+					if (NextHAC->GetRecenterBakedActors() == bNewState)
 						continue;
 
-                    NextHAC->bRecenterBakedActors = bNewState;
+                    NextHAC->SetRecenterBakedActors(bNewState);
 					NextHAC->MarkPackageDirty();
                 }
 
@@ -1022,7 +1022,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
             	if (!IsValidWeakPointer(MainHAC))
             		return ECheckBoxState::Unchecked;
 
-				return MainHAC->bReplacePreviousBake ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				return MainHAC->GetReplacePreviousBake() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([MainHAC, InHACs](ECheckBoxState NewState)
 			{
@@ -1033,10 +1033,10 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 					if (!IsValidWeakPointer(NextHAC))
 						continue;
 
-					if (NextHAC->bReplacePreviousBake == bNewState)
+					if (NextHAC->GetReplacePreviousBake() == bNewState)
 						continue;
 
-					NextHAC->bReplacePreviousBake = bNewState;
+					NextHAC->SetReplacePreviousBake(bNewState);
 					NextHAC->MarkPackageDirty();
 				}
 
@@ -1089,7 +1089,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 			{
 				if (!IsValidWeakPointer(MainHAC))
 					return FText();
-				return FText::FromString(MainHAC->BakeFolder.Path);
+				return FText::FromString(MainHAC->GetBakeFolderOrDefault());
 			})
 			.OnTextCommitted_Lambda(OnBakeFolderTextCommittedLambda)
 		]
@@ -1098,13 +1098,13 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	TArray<TSharedPtr<FString>>* ActorBakeOptionSources = FHoudiniEngineEditor::Get().GetHoudiniEngineBakeActorOptionsLabels();
 
 	ButtonRowHorizontalBox->AddSlot()
-		/*.AutoWidth()*/
-		.Padding(3.0, 0.0, 4.0f, 0.0f)
-		//.MaxWidth(103.f)
-		.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH * 1.5f)
-		[
-			SNew(SBox)
-			//.WidthOverride(103.f)
+	/*.AutoWidth()*/
+	.Padding(3.0, 0.0, 4.0f, 0.0f)
+	//.MaxWidth(103.f)
+	.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH * 1.5f)
+	[
+		SNew(SBox)
+		//.WidthOverride(103.f)
 		.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
 		[
 			SAssignNew(TypeComboBox, SComboBox<TSharedPtr<FString>>)
@@ -1133,10 +1133,10 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 						if (!IsValidWeakPointer(NextHAC))
 							continue;
 
-						if (MainHAC->ActorBakeOption == NewOption)
+						if (NextHAC->GetActorBakeOption() == NewOption)
 							continue;
 
-						MainHAC->ActorBakeOption = NewOption;
+						NextHAC->SetActorBakeOption(NewOption);
 						NextHAC->MarkPackageDirty();
 					}
 
@@ -1151,7 +1151,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 						return FText();
 
 					return FText::FromString(
-						FHoudiniEngineEditor::GetStringfromActorBakeOption(MainHAC->ActorBakeOption));
+						FHoudiniEngineEditor::GetStringfromActorBakeOption(MainHAC->GetActorBakeOption()));
 				})
 				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]

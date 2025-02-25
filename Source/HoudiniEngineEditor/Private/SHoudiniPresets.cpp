@@ -533,7 +533,7 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 			[
 				SNew(STextBlock)
 					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					.Text( FText::FromString(HAC->TemporaryCookFolder.Path) )
+					.Text( FText::FromString(HAC->GetTemporaryCookFolderOrDefault()) )
 			];
 
 			Splitter->AddSlot()
@@ -573,7 +573,7 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 			[
 				SNew(STextBlock)
 					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					.Text( FText::FromString(HAC->BakeFolder.Path) )
+					.Text( FText::FromString(HAC->GetBakeFolderOrDefault()) )
 			];
 
 			Splitter->AddSlot()
@@ -1424,9 +1424,9 @@ void SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Preset)
 	Preset->bRevertHDAParameters = bRevertHDAParameters;
 
 	Preset->bApplyTemporaryCookFolder = bApplyTempCookFolder;
-	Preset->TemporaryCookFolder = HAC->TemporaryCookFolder.Path;
+	Preset->TemporaryCookFolder = HAC->GetTemporaryCookFolderOrDefault();
 	Preset->bApplyBakeFolder = bApplyBakeFolder;
-	Preset->BakeFolder = HAC->BakeFolder.Path;
+	Preset->BakeFolder = HAC->GetBakeFolderOrDefault();
 
 	FHoudiniToolsEditor::CopySettingsToPreset(HAC, bApplyAssetOptions, bApplyBakeOptions, bApplyStaticMeshGenSettings, bApplyProxyMeshGenSettings, Preset);
 

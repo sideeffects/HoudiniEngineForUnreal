@@ -4224,8 +4224,8 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 							AllOutputs.Reserve(OwningHAC->GetNumOutputs());
 							OwningHAC->GetOutputs(AllOutputs);
 
-							TempCookFolder = OwningHAC->TemporaryCookFolder.Path;
-							BakeFolder = OwningHAC->BakeFolder.Path;
+							TempCookFolder = OwningHAC->GetTemporaryCookFolder().Path;
+							BakeFolder = OwningHAC->GetBakeFolder().Path;
 						}
 
 						FHoudiniGeoPartObject HoudiniGeoPartObject;

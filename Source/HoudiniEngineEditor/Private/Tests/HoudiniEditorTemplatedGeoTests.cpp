@@ -104,7 +104,7 @@ bool HoudiniEditorTemplatedGeoTest_HACEnabled::RunTest(const FString& InParamete
 					return;
 				
 				// Enable templated geo output via the HAC
-				HAC->bOutputTemplateGeos = true;
+				HAC->SetOutputTemplateGeos(true);
 			});
 	});
 
@@ -134,7 +134,7 @@ bool HoudiniEditorTemplatedGeoTest_HACEnabled_NoTemplateInOutput::RunTest(const 
 					return;
 
 				// Enable templated geo output via the HAC
-				HAC->bOutputTemplateGeos = true;
+				HAC->SetOutputTemplateGeos(true);
 			});
 	});
 

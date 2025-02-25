@@ -4172,7 +4172,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 				continue;
 
 			FHoudiniPackageParams PackageParams;
-			PackageParams.BakeFolder = OuterHAC->BakeFolder.Path;
+			PackageParams.BakeFolder = OuterHAC->GetBakeFolderOrDefault();
 			PackageParams.HoudiniAssetName = OuterHAC->GetName();
 			PackageParams.GeoId = NextInput->GetAssetNodeId();
 			PackageParams.PackageMode = EPackageMode::Bake;

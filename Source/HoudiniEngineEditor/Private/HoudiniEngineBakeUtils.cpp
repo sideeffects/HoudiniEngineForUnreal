@@ -6495,7 +6495,7 @@ FHoudiniEngineBakeUtils::IsObjectTemporary(
 			Outputs[OutputIdx] = InHAC->GetOutputAt(OutputIdx);
 		}
 
-		TempPath = InHAC->TemporaryCookFolder.Path;
+		TempPath = InHAC->GetTemporaryCookFolderOrDefault();
 	}
 
 	return IsObjectTemporary(InObject, InOutputType, Outputs, TempPath, InHAC->GetComponentGUID());
@@ -8998,6 +8998,12 @@ UUserDefinedStruct* FHoudiniEngineBakeUtils::DuplicateUserDefinedStruct(UUserDef
 void 
 FHoudiniBakeSettings::SetFromHAC(UHoudiniAssetComponent* HAC)
 {
+	if (!IsValid(HAC))
+		return;
+
+	if (HAC->GetCookable())
+		return SetFromCookable(HAC->GetCookable());
+
 	bReplaceActors = HAC->bReplacePreviousBake;
 	bReplaceAssets = HAC->bReplacePreviousBake;
 	bRecenterBakedActors = HAC->bRecenterBakedActors;

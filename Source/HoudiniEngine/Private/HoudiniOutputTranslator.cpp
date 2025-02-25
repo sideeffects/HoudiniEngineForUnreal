@@ -182,9 +182,9 @@ FHoudiniOutputTranslator::ProcessOutputs(
 		HAC->IsProxyStaticMeshEnabled(),
 		HAC->HasNoProxyMeshNextCookBeenRequested(),
 		HAC->IsBakeAfterNextCookEnabled(),
-		HAC->bSplitMeshSupport,
-		HAC->StaticMeshGenerationProperties,
-		HAC->StaticMeshBuildSettings,
+		HAC->GetSplitMeshSupport(),
+		HAC->GetStaticMeshGenerationProperties(),
+		HAC->GetStaticMeshBuildSettings(),
 		bOutHasHoudiniStaticMeshOutput,
 		CreatedPackages))
 		return false;

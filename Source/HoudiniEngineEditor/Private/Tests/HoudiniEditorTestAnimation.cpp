@@ -82,8 +82,8 @@ bool FHoudiniEditorTestAnimationRoundtrip::RunTest(const FString& Parameters)
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestAnimationUtils::AnimationRoundtripHDA, FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
-	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
-	Context->HAC->bEnableProxyStaticMeshOverride = false;
+	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->HAC->SetEnableProxyStaticMeshOverride(false);
 
 	UAnimSequence* OrigAnimSequence = LoadObject<UAnimSequence>(Context->World, TEXT("/Script/Engine.SkeletalMesh'/Game/TestObjects/Animation/MM_Walk_Fwd.MM_Walk_Fwd'"));
 
@@ -131,7 +131,11 @@ bool FHoudiniEditorTestAnimationRoundtrip::RunTest(const FString& Parameters)
 	{
 		FHoudiniBakeSettings BakeSettings;
 
-		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
+			Context->HAC,
+			BakeSettings,
+			Context->HAC->GetHoudiniEngineBakeOption(),
+			Context->HAC->GetRemoveOutputAfterBake());
 
 		auto BakedOutputs = Context->HAC->GetBakedOutputs();
 

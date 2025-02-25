@@ -2784,17 +2784,17 @@ void FHoudiniToolsEditor::CopySettingsToPreset(const UHoudiniAssetComponent* HAC
 
 	// Populate Mesh Gen Settings
 	Preset->bApplyStaticMeshGenSettings = bApplyMeshGenSettings;
-	Preset->StaticMeshGenerationProperties = HAC->StaticMeshGenerationProperties;
-	Preset->StaticMeshBuildSettings = HAC->StaticMeshBuildSettings;
+	Preset->StaticMeshGenerationProperties = HAC->GetStaticMeshGenerationProperties();
+	Preset->StaticMeshBuildSettings = HAC->GetStaticMeshBuildSettings();
 
 	// Populate Proxy Mesh Gen Settings
 	Preset->bApplyProxyMeshGenSettings = bApplyProxyMeshGenSettings;
-	Preset->bOverrideGlobalProxyStaticMeshSettings = HAC->bOverrideGlobalProxyStaticMeshSettings;
-	Preset->bEnableProxyStaticMeshOverride = HAC->bEnableProxyStaticMeshOverride;
-	Preset->bEnableProxyStaticMeshRefinementByTimerOverride = HAC->bEnableProxyStaticMeshRefinementByTimerOverride;
-	Preset->ProxyMeshAutoRefineTimeoutSecondsOverride = HAC->ProxyMeshAutoRefineTimeoutSecondsOverride;
-	Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = HAC->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
-	Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = HAC->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
+	Preset->bOverrideGlobalProxyStaticMeshSettings = HAC->IsOverrideGlobalProxyStaticMeshSettings();
+	Preset->bEnableProxyStaticMeshOverride = HAC->IsProxyStaticMeshEnabled();
+	Preset->bEnableProxyStaticMeshRefinementByTimerOverride = HAC->IsProxyStaticMeshRefinementByTimerEnabled();
+	Preset->ProxyMeshAutoRefineTimeoutSecondsOverride = HAC->GetProxyMeshAutoRefineTimeoutSeconds();
+	Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = HAC->IsProxyStaticMeshRefinementOnPreSaveWorldEnabled();
+	Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = HAC->IsProxyStaticMeshRefinementOnPreBeginPIEEnabled();
 }
 
 
@@ -3171,19 +3171,19 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 
 	if (Preset->bApplyStaticMeshGenSettings)
 	{
-		HAC->StaticMeshGenerationProperties = Preset->StaticMeshGenerationProperties;
-		HAC->StaticMeshBuildSettings = Preset->StaticMeshBuildSettings;
+		HAC->SetStaticMeshGenerationProperties(Preset->StaticMeshGenerationProperties);
+		HAC->SetStaticMeshBuildSettings(Preset->StaticMeshBuildSettings);
 	}
 
 	if (Preset->bApplyProxyMeshGenSettings)
 	{
 		// Populate Proxy Mesh Gen Settings
-		HAC->bOverrideGlobalProxyStaticMeshSettings = Preset->bOverrideGlobalProxyStaticMeshSettings;
-		HAC->bEnableProxyStaticMeshOverride = Preset->bEnableProxyStaticMeshOverride;
-		HAC->bEnableProxyStaticMeshRefinementByTimerOverride = Preset->bEnableProxyStaticMeshRefinementByTimerOverride;
-		HAC->ProxyMeshAutoRefineTimeoutSecondsOverride = Preset->ProxyMeshAutoRefineTimeoutSecondsOverride;
-		HAC->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
-		HAC->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
+		HAC->SetOverrideGlobalProxyStaticMeshSettings(Preset->bOverrideGlobalProxyStaticMeshSettings);
+		HAC->SetEnableProxyStaticMeshOverride(Preset->bEnableProxyStaticMeshOverride);
+		HAC->SetEnableProxyStaticMeshRefinementByTimerOverride(Preset->bEnableProxyStaticMeshRefinementByTimerOverride);
+		HAC->SetProxyMeshAutoRefineTimeoutSecondsOverride(Preset->ProxyMeshAutoRefineTimeoutSecondsOverride);
+		HAC->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride);
+		HAC->SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride);
 	}
 
 	if (bReselectSelectedActors)
@@ -3199,8 +3199,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 
 void FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(
 	const TMap<UObject*, int32>& InputObjects,
-	UHoudiniAssetComponent* HAC
-	)
+	UHoudiniAssetComponent* HAC)
 {
 	if (InputObjects.Num() <= 0)
 		return;

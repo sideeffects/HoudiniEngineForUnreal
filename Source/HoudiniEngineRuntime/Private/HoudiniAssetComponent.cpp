@@ -420,7 +420,7 @@ UHoudiniAssetComponent::GetSplitMeshSupport() const
 }
 
 FHoudiniStaticMeshGenerationProperties
-UHoudiniAssetComponent::GetStaticMeshGenerationProperties()
+UHoudiniAssetComponent::GetStaticMeshGenerationProperties() const
 {
 	if (GetCookable())
 		return GetCookable()->GetStaticMeshGenerationProperties();
@@ -429,12 +429,21 @@ UHoudiniAssetComponent::GetStaticMeshGenerationProperties()
 }
 
 FMeshBuildSettings
-UHoudiniAssetComponent::GetStaticMeshBuildSettings()
+UHoudiniAssetComponent::GetStaticMeshBuildSettings() const
 {
 	if (GetCookable())
 		return GetCookable()->GetStaticMeshBuildSettings();
 
 	return StaticMeshBuildSettings;
+}
+
+bool
+UHoudiniAssetComponent::IsOverrideGlobalProxyStaticMeshSettings() const
+{
+	if (GetCookable())
+		return GetCookable()->IsOverrideGlobalProxyStaticMeshSettings();
+
+	return bOverrideGlobalProxyStaticMeshSettings;
 }
 
 
@@ -558,6 +567,68 @@ UHoudiniAssetComponent::IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const
 	}
 }
 
+bool
+UHoudiniAssetComponent::HasNoProxyMeshNextCookBeenRequested() const 
+{ 
+	if (GetCookable())
+		return GetCookable()->HasNoProxyMeshNextCookBeenRequested();
+
+	return bNoProxyMeshNextCookRequested; 
+}
+
+void
+UHoudiniAssetComponent::SetOverrideGlobalProxyStaticMeshSettings(bool InEnable)
+{
+	if (GetCookable())
+		return GetCookable()->SetOverrideGlobalProxyStaticMeshSettings(InEnable);
+
+	bOverrideGlobalProxyStaticMeshSettings = InEnable;
+}
+
+void
+UHoudiniAssetComponent::SetEnableProxyStaticMeshOverride(bool InEnable)
+{
+	if (GetCookable())
+		return GetCookable()->SetEnableProxyStaticMeshOverride(InEnable);
+
+	bEnableProxyStaticMeshOverride = InEnable;
+}
+
+void
+UHoudiniAssetComponent::SetEnableProxyStaticMeshRefinementByTimerOverride(bool InEnable)
+{
+	if (GetCookable())
+		return GetCookable()->SetEnableProxyStaticMeshRefinementByTimerOverride(InEnable);
+
+	bEnableProxyStaticMeshRefinementByTimerOverride = InEnable;
+}
+
+void
+UHoudiniAssetComponent::SetProxyMeshAutoRefineTimeoutSecondsOverride(float InValue)
+{
+	if (GetCookable())
+		return GetCookable()->SetProxyMeshAutoRefineTimeoutSecondsOverride(InValue);
+
+	ProxyMeshAutoRefineTimeoutSecondsOverride = InValue;
+}
+
+void
+UHoudiniAssetComponent::SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bool InEnable)
+{
+	if (GetCookable())
+		return GetCookable()->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(InEnable);
+
+	bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = InEnable;
+}
+
+void
+UHoudiniAssetComponent::SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bool InEnable)
+{
+	if (GetCookable())
+		return GetCookable()->SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(InEnable);
+
+	bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = InEnable;
+}
 
 void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset * InHoudiniAsset)
@@ -587,7 +658,8 @@ UHoudiniAssetComponent::OnHoudiniAssetChanged()
 	bForceNeedUpdate = true;
 }
 
-void UHoudiniAssetComponent::QueuePreCookCallback(const TFunction<void(UHoudiniAssetComponent*)>& CallbackFn)
+void
+UHoudiniAssetComponent::QueuePreCookCallback(const TFunction<void(UHoudiniAssetComponent*)>& CallbackFn)
 {
 	PreCookCallbacks.Add(CallbackFn);
 }
@@ -664,6 +736,25 @@ UHoudiniAssetComponent::HasPreviousBakeOutput() const
 	}
 
 	return false;
+}
+
+
+bool 
+UHoudiniAssetComponent::WasLastCookSuccessful() const 
+{ 
+	if (GetCookable())
+		return GetCookable()->WasLastCookSuccessful();
+
+	return bLastCookSuccess; 
+}
+
+bool
+UHoudiniAssetComponent::IsParameterDefinitionUpdateNeeded() const
+{ 
+	if (GetCookable())
+		return GetCookable()->IsParameterDefinitionUpdateNeeded();
+
+	return bParameterDefinitionUpdateNeeded; 
 }
 
 FDirectoryPath
@@ -922,7 +1013,7 @@ UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
 					}
 				}
 
-				if (CurrentDownstreamHAC->bCookOnAssetInputCook)
+				if (CurrentDownstreamHAC->GetCookOnAssetInputCook())
 				{
 					// Mark that HAC's input has changed
 					CurrentDownstreamInput->MarkChanged(true);
@@ -2829,6 +2920,16 @@ UHoudiniAssetComponent::GetBakeAfterNextCook() const
 	return BakeAfterNextCook; 
 }
 
+EHoudiniEngineActorBakeOption
+UHoudiniAssetComponent::GetActorBakeOption() const
+{
+	if (GetCookable())
+		return GetCookable()->GetActorBakeOption();
+
+	return ActorBakeOption;
+}
+
+
 void 
 UHoudiniAssetComponent::SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested)
 {
@@ -2845,6 +2946,15 @@ UHoudiniAssetComponent::SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InB
 		return GetCookable()->SetBakeAfterNextCook(InBakeAfterNextCook);
 
 	BakeAfterNextCook = InBakeAfterNextCook; 
+}
+
+void 
+UHoudiniAssetComponent::SetActorBakeOption(const EHoudiniEngineActorBakeOption& InBakeOption)
+{
+	if (GetCookable())
+		return GetCookable()->SetActorBakeOption(InBakeOption);
+
+	ActorBakeOption = InBakeOption;
 }
 
 bool
@@ -2872,8 +2982,26 @@ UHoudiniAssetComponent::IsInstantiatingOrCooking() const
 }
 
 
+void 
+UHoudiniAssetComponent::SetStaticMeshBuildSettings(const FMeshBuildSettings& InMBS)
+{ 
+	if (GetCookable())
+		return GetCookable()->SetStaticMeshBuildSettings(InMBS);
+
+	StaticMeshBuildSettings = InMBS;
+};
+
 void
-UHoudiniAssetComponent::SetStaticMeshGenerationProperties(UStaticMesh* InStaticMesh) const
+UHoudiniAssetComponent::SetStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InHSMGP)
+{
+	if (GetCookable())
+		return GetCookable()->SetStaticMeshGenerationProperties(InHSMGP);
+
+	StaticMeshGenerationProperties = InHSMGP;
+};
+
+void
+UHoudiniAssetComponent::SetStaticMeshGenerationProperties(UStaticMesh* InStaticMesh)
 {
 #if WITH_EDITOR
 	if (!InStaticMesh)
@@ -3346,6 +3474,34 @@ UHoudiniAssetComponent::SetBakeFolderPath(const FString& NewPath)
 		return false;
 
 	BakeFolder.Path = NewPath;
+
+	return true;
+}
+
+bool
+UHoudiniAssetComponent::SetTemporaryCookFolder(const FDirectoryPath& InPath)
+{
+	if (GetCookable())
+		return GetCookable()->SetTemporaryCookFolder(InPath);
+
+	if (TemporaryCookFolder.Path.Equals(InPath.Path))
+		return false;
+
+	TemporaryCookFolder = InPath;
+
+	return true;
+}
+
+bool
+UHoudiniAssetComponent::SetBakeFolder(const FDirectoryPath& InPath)
+{
+	if (GetCookable())
+		return GetCookable()->SetBakeFolder(InPath);
+
+	if (BakeFolder.Path.Equals(InPath.Path))
+		return false;
+
+	BakeFolder = InPath;
 
 	return true;
 }

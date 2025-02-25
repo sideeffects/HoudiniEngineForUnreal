@@ -58,8 +58,8 @@ bool FHoudiniEditorTestLandscapeSplines_Simple::RunTest(const FString& Parameter
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TEXT("/Game/TestHDAs/LandscapeSplines/Test_LandscapeSpline"), FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
-	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
-	Context->HAC->bEnableProxyStaticMeshOverride = false;
+	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->HAC->SetEnableProxyStaticMeshOverride(false);
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Create a small landscape and check it loads.
@@ -143,8 +143,8 @@ bool FHoudiniEditorTestLandscapeSplines_WorldPartition::RunTest(const FString& P
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TEXT("/Game/TestHDAs/LandscapeSplines/Test_LandscapeSpline"), FTransform::Identity, true));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
-	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
-	Context->HAC->bEnableProxyStaticMeshOverride = false;
+	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->HAC->SetEnableProxyStaticMeshOverride(false);
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Create a small landscape and check it loads.

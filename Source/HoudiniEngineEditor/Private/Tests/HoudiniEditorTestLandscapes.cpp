@@ -302,8 +302,8 @@ bool FHoudiniEditorTestLandscapes_Simple::RunTest(const FString & Parameters)
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TEXT("/Game/TestHDAs/Landscape/Test_Landscapes"), FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
-	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
-	Context->HAC->bEnableProxyStaticMeshOverride = false;
+	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->HAC->SetEnableProxyStaticMeshOverride(false);
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Create a small landscape and check it loads.
@@ -392,8 +392,8 @@ bool FHoudiniEditorTestLandscapes_GridSize::RunTest(const FString& Parameters)
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TEXT("/Game/TestHDAs/Landscape/Test_Landscapes"), FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
-	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
-	Context->HAC->bEnableProxyStaticMeshOverride = false;
+	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->HAC->SetEnableProxyStaticMeshOverride(false);
 
 	const FIntPoint HeightFieldSize(143,63); 
 	{
@@ -481,8 +481,8 @@ bool FHoudiniEditorTestLandscapes_TargetLayers::RunTest(const FString& Parameter
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TEXT("/Game/TestHDAs/Landscape/Test_Landscapes"), FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
-	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
-	Context->HAC->bEnableProxyStaticMeshOverride = false;
+	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->HAC->SetEnableProxyStaticMeshOverride(false);
 
 	const FIntPoint HeightFieldSize(63, 63);
 	
@@ -574,8 +574,8 @@ bool FHoudiniEditorTestLandscapes_EditLayers::RunTest(const FString& Parameters)
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TEXT("/Game/TestHDAs/Landscape/Test_Landscapes"), FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
-	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
-	Context->HAC->bEnableProxyStaticMeshOverride = false;
+	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->HAC->SetEnableProxyStaticMeshOverride(false);
 
 	const FIntPoint HeightFieldSize(63, 63);
 

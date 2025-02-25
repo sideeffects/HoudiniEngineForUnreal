@@ -231,7 +231,7 @@ UHoudiniPublicAPIAssetWrapper::GetTemporaryCookFolder_Implementation(FDirectoryP
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	OutDirectoryPath = HAC->TemporaryCookFolder;
+	OutDirectoryPath = HAC->GetTemporaryCookFolder();
 	return true;
 }
 
@@ -242,9 +242,9 @@ UHoudiniPublicAPIAssetWrapper::SetTemporaryCookFolder_Implementation(const FDire
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	if (HAC->TemporaryCookFolder.Path != InDirectoryPath.Path)
+	if (HAC->GetTemporaryCookFolder().Path != InDirectoryPath.Path)
 	{
-		HAC->TemporaryCookFolder = InDirectoryPath;
+		HAC->SetTemporaryCookFolder(InDirectoryPath);
 		HAC->Modify();
 	}
 
@@ -258,7 +258,7 @@ UHoudiniPublicAPIAssetWrapper::GetBakeFolder_Implementation(FDirectoryPath& OutD
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	OutDirectoryPath = HAC->BakeFolder;
+	OutDirectoryPath = HAC->GetBakeFolder();
 	return true;
 }
 
@@ -269,9 +269,8 @@ UHoudiniPublicAPIAssetWrapper::SetBakeFolder_Implementation(const FDirectoryPath
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	if (HAC->BakeFolder.Path != InDirectoryPath.Path)
+	if(HAC->SetBakeFolder(InDirectoryPath))
 	{
-		HAC->BakeFolder = InDirectoryPath;
 		HAC->Modify();
 	}
 
@@ -398,9 +397,9 @@ UHoudiniPublicAPIAssetWrapper::SetRecenterBakedActors_Implementation(const bool 
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	if (HAC->bRecenterBakedActors != bInRecenterBakedActors)
+	if (HAC->GetRecenterBakedActors() != bInRecenterBakedActors)
 	{
-		HAC->bRecenterBakedActors = bInRecenterBakedActors;
+		HAC->SetRecenterBakedActors(bInRecenterBakedActors);
 		HAC->Modify();
 	}
 
@@ -414,7 +413,7 @@ UHoudiniPublicAPIAssetWrapper::GetRecenterBakedActors_Implementation() const
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	return HAC->bRecenterBakedActors;
+	return HAC->GetRecenterBakedActors();
 }
 
 bool
@@ -424,9 +423,9 @@ UHoudiniPublicAPIAssetWrapper::SetReplacePreviousBake_Implementation(const bool 
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	if (HAC->bReplacePreviousBake != bInReplacePreviousBake)
+	if (HAC->GetReplacePreviousBake() != bInReplacePreviousBake)
 	{
-		HAC->bReplacePreviousBake = bInReplacePreviousBake;
+		HAC->SetReplacePreviousBake(bInReplacePreviousBake);
 		HAC->Modify();
 	}
 
@@ -440,7 +439,7 @@ UHoudiniPublicAPIAssetWrapper::GetReplacePreviousBake_Implementation() const
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	return HAC->bReplacePreviousBake;
+	return HAC->GetReplacePreviousBake();
 }
 
 TArray<AActor*>
@@ -757,10 +756,10 @@ UHoudiniPublicAPIAssetWrapper::SetDoNotGenerateOutputs_Implementation(const bool
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	if (HAC->bOutputless == bInSetEnabled)
+	if (HAC->IsOutputless() == bInSetEnabled)
 		return false;
 
-	HAC->bOutputless = bInSetEnabled;
+	HAC->SetOutputless(bInSetEnabled);
 	HAC->Modify();
 
 	return true;
@@ -773,7 +772,7 @@ UHoudiniPublicAPIAssetWrapper::IsDoNotGenerateOutputsEnabled_Implementation() co
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	return HAC->bOutputless;
+	return HAC->IsOutputless();
 }
 
 
@@ -784,10 +783,10 @@ UHoudiniPublicAPIAssetWrapper::SetCookOnParameterOrInputChanges_Implementation(c
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	if (HAC->bCookOnParameterChange == bInSetEnabled)
+	if (HAC->GetCookOnParameterChange() == bInSetEnabled)
 		return false;
 
-	HAC->bCookOnParameterChange = bInSetEnabled;
+	HAC->SetCookOnParameterChange(bInSetEnabled);
 	HAC->Modify();
 
 	return true;
@@ -800,7 +799,7 @@ UHoudiniPublicAPIAssetWrapper::IsCookOnParameterOrInputChangesEnabled_Implementa
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	return HAC->bCookOnParameterChange;
+	return HAC->GetCookOnParameterChange();
 }
 
 bool
@@ -810,10 +809,10 @@ UHoudiniPublicAPIAssetWrapper::SetCookOnTransformChange_Implementation(const boo
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	if (HAC->bCookOnTransformChange == bInSetEnabled)
+	if (HAC->GetCookOnTransformChange() == bInSetEnabled)
 		return false;
 
-	HAC->bCookOnTransformChange = bInSetEnabled;
+	HAC->SetCookOnTransformChange(bInSetEnabled);
 	HAC->Modify();
 
 	return true;
@@ -826,7 +825,7 @@ UHoudiniPublicAPIAssetWrapper::IsCookOnTransformChangeEnabled_Implementation() c
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	return HAC->bCookOnTransformChange;
+	return HAC->GetCookOnTransformChange();
 }
 
 bool
@@ -836,10 +835,10 @@ UHoudiniPublicAPIAssetWrapper::SetCookOnAssetInputCook_Implementation(const bool
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	if (HAC->bCookOnAssetInputCook == bInSetEnabled)
+	if (HAC->GetCookOnAssetInputCook() == bInSetEnabled)
 		return false;
 
-	HAC->bCookOnAssetInputCook = bInSetEnabled;
+	HAC->SetCookOnAssetInputCook(bInSetEnabled);
 	HAC->Modify();
 
 	return true;
@@ -852,7 +851,7 @@ UHoudiniPublicAPIAssetWrapper::IsCookOnAssetInputCookEnabled_Implementation() co
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	return HAC->bCookOnAssetInputCook;
+	return HAC->GetCookOnAssetInputCook();
 }
 
 
@@ -3096,9 +3095,9 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(
 		HoudiniGeoPartObject,
 		HAC,
 		Output,
-		HAC->BakeFolder.Path,
+		HAC->GetBakeFolderOrDefault(),
 		BakeSettings,
-		HAC->TemporaryCookFolder.Path,
+		HAC->GetTemporaryCookFolderOrDefault(),
 		InLandscapeBakeType,
 		AllOutputs);
 

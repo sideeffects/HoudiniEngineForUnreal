@@ -314,7 +314,7 @@ FHoudiniLandscapeSplineTranslator::AddSegmentToOutputObject(
 	const FName BakedLayerName = EditLayerName;
 
 	// For the cooked name, but the layer name first so it is easier to read in the Landscape Editor UI.
-	if (IsValid(InHAC) && InHAC->bLandscapeUseTempLayers)
+	if (IsValid(InHAC) && InHAC->GetLandscapeUseTempLayers())
 	{
 		EditLayerName = *(
 			EditLayerName.ToString() + FString(" : ")

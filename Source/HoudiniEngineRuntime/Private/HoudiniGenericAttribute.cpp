@@ -418,7 +418,7 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 				UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InObject);
 				if (IsValid(HAC))
 				{
-					HAC->StaticMeshGenerationProperties.DefaultBodyInstance.SetCollisionProfileName(Value);
+					HAC->GetStaticMeshGenerationProperties().DefaultBodyInstance.SetCollisionProfileName(Value);
 				}
 			}
 

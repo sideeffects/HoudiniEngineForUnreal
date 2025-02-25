@@ -510,6 +510,34 @@ UHoudiniCookable::SetBakeFolderPath(const FString& NewPath)
 }
 
 bool
+UHoudiniCookable::SetTemporaryCookFolder(const FDirectoryPath& InPath)
+{
+	if (!IsOutputSupported())
+		return false;
+
+	if (OutputData->TemporaryCookFolder.Path.Equals(InPath.Path))
+		return false;
+
+	OutputData->TemporaryCookFolder = InPath;
+
+	return true;
+}
+
+bool
+UHoudiniCookable::SetBakeFolder(const FDirectoryPath& InPath)
+{
+	if (!IsOutputSupported())
+		return false;
+
+	if (OutputData->BakeFolder.Path.Equals(InPath.Path))
+		return false;
+
+	OutputData->BakeFolder = InPath;
+
+	return true;
+}
+
+bool
 UHoudiniCookable::IsOwnerSelected() const
 {
 	return GetOwner() ? GetOwner()->IsSelected() : false;
@@ -1375,6 +1403,14 @@ UHoudiniCookable::GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const
 	}
 }
 
+bool
+UHoudiniCookable::IsOverrideGlobalProxyStaticMeshSettings() const
+{
+	if (!IsOutputSupported())
+		return false;
+
+	return OutputData->bOverrideGlobalProxyStaticMeshSettings;
+}
 
 bool
 UHoudiniCookable::IsProxyStaticMeshEnabled() const
@@ -1497,6 +1533,15 @@ UHoudiniCookable::IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const
 }
 
 bool
+UHoudiniCookable::HasNoProxyMeshNextCookBeenRequested() const
+{
+	if (!IsOutputSupported())
+		return false;
+
+	return OutputData->bNoProxyMeshNextCookRequested;
+}
+
+bool
 UHoudiniCookable::HasAnyCurrentProxyOutput() const
 {
 	if (!IsOutputSupported())
@@ -1539,6 +1584,62 @@ UHoudiniCookable::SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookReq
 	OutputData->bNoProxyMeshNextCookRequested = bInNoProxyMeshNextCookRequested; 
 }
 
+
+void
+UHoudiniCookable::SetOverrideGlobalProxyStaticMeshSettings(bool InEnable)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bOverrideGlobalProxyStaticMeshSettings = InEnable;
+}
+
+void
+UHoudiniCookable::SetEnableProxyStaticMeshOverride(bool InEnable)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bEnableProxyStaticMeshOverride = InEnable;
+}
+
+void
+UHoudiniCookable::SetEnableProxyStaticMeshRefinementByTimerOverride(bool InEnable)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bEnableProxyStaticMeshRefinementByTimerOverride = InEnable;
+}
+
+void
+UHoudiniCookable::SetProxyMeshAutoRefineTimeoutSecondsOverride(float InValue)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->ProxyMeshAutoRefineTimeoutSecondsOverride = InValue;
+}
+
+void
+UHoudiniCookable::SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bool InEnable)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = InEnable;
+}
+
+void
+UHoudiniCookable::SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bool InEnable)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = InEnable;
+}
+
+
 void
 UHoudiniCookable::SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook)
 {
@@ -1546,6 +1647,15 @@ UHoudiniCookable::SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAft
 		return;
 
 	OutputData->BakeAfterNextCook = InBakeAfterNextCook;
+}
+
+void
+UHoudiniCookable::SetActorBakeOption(const EHoudiniEngineActorBakeOption InBakeOption)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->ActorBakeOption = InBakeOption;
 }
 
 void
@@ -1619,6 +1729,12 @@ UHoudiniCookable::GetBakeAfterNextCook() const
 		return EHoudiniBakeAfterNextCook::Disabled;
 
 	return OutputData->BakeAfterNextCook;
+}
+
+EHoudiniEngineActorBakeOption
+UHoudiniCookable::GetActorBakeOption() const
+{
+	return OutputData->ActorBakeOption;
 }
 
 TArray<FHoudiniBakedOutput>& 
@@ -1772,6 +1888,24 @@ UHoudiniCookable::GetStaticMeshBuildSettings()
 }
 
 void
+UHoudiniCookable::SetStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InHSMGP)
+{
+	if (!IsOutputSupported())
+		return;
+
+	 OutputData->StaticMeshGenerationProperties = InHSMGP;
+};
+
+void
+UHoudiniCookable::SetStaticMeshBuildSettings(const FMeshBuildSettings& InMBS)
+{
+	if (!IsOutputSupported())
+		return;
+
+	OutputData->StaticMeshBuildSettings = InMBS;
+};
+
+void
 UHoudiniCookable::SetCookOnParameterChange(bool bEnable)
 {
 	if (!IsParameterSupported())
@@ -1787,6 +1921,12 @@ UHoudiniCookable::SetCookOnTransformChange(bool bEnable)
 		return;
 
 	ComponentData->bCookOnTransformChange = bEnable;
+}
+
+bool
+UHoudiniCookable::WasLastCookSuccessful() const
+{
+	return bLastCookSuccess;
 }
 
 /*

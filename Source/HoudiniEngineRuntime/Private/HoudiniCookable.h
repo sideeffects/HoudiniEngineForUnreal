@@ -384,11 +384,13 @@ class HOUDINIENGINERUNTIME_API UHoudiniCookable : public UObject, public IHoudin
 
 	// Delegate for when EHoudiniAssetState changes from InFromState to InToState on a HoudiniCookable (InHC)
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCookableStateChangeDelegate, UHoudiniCookable*, const EHoudiniAssetState, const EHoudiniAssetState);
+	// Delegate for when EHoudiniAssetState changes from InFromState to InToState on a Houdini Asset Component (InHAC).
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAssetStateChangeDelegate, UHoudiniCookable*, const EHoudiniAssetState, const EHoudiniAssetState);
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreInstantiationDelegate, UHoudiniCookable*);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreCookDelegate, UHoudiniCookable*);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostCookDelegate, UHoudiniCookable*, bool);
-
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostBakeDelegate, UHoudiniCookable*, bool);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPreOutputProcessingDelegate, UHoudiniCookable*, bool);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostOutputProcessingDelegate, UHoudiniCookable*, bool);
 	
@@ -487,6 +489,8 @@ public:
 	// method is overridden by HoudiniAssetBlueprintComponent.
 	virtual bool HasOpenEditor() const { return false; };
 
+	bool WasLastCookSuccessful() const;
+
 	// TODO COOKABLE: Move to component?
 #if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
 	ILevelInstanceInterface* GetLevelInstance() const;
@@ -525,17 +529,20 @@ public:
 	bool GetRecenterBakedActors() const;
 
 	// Proxies
+	bool IsOverrideGlobalProxyStaticMeshSettings() const;
 	bool IsProxyStaticMeshEnabled() const;
 	bool IsProxyStaticMeshRefinementByTimerEnabled() const;
 	float GetProxyMeshAutoRefineTimeoutSeconds() const;
 	bool IsProxyStaticMeshRefinementOnPreSaveWorldEnabled() const;
 	bool IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const;
+	bool HasNoProxyMeshNextCookBeenRequested() const;
 	bool HasAnyCurrentProxyOutput() const;
 	bool HasAnyProxyOutput() const;
 	bool IsHoudiniCookedDataAvailable(bool& bOutNeedsRebuildOrDelete, bool& bOutInvalidState) const;
 	bool IsBakeAfterNextCookEnabled() const;
 	EHoudiniBakeAfterNextCook GetBakeAfterNextCook() const;
 	bool IsPlayInEditorRefinementAllowed() const;
+	EHoudiniEngineActorBakeOption GetActorBakeOption() const;
 
 
 	//------------------------------------------------------------------------------------------------
@@ -577,10 +584,18 @@ public:
 
 	bool SetTemporaryCookFolderPath(const FString& NewPath);
 	bool SetBakeFolderPath(const FString& NewPath);
+	bool SetTemporaryCookFolder(const FDirectoryPath& InPath);
+	bool SetBakeFolder(const FDirectoryPath& InPath);
 
 	// Set to True to force the next cook to not build a proxy mesh (regardless of global or override settings) and
 	// instead build a UStaticMesh directly (if applicable for the output type).
 	void SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested);
+	void SetOverrideGlobalProxyStaticMeshSettings(bool InEnable);
+	void SetEnableProxyStaticMeshOverride(bool InEnable);
+	void SetEnableProxyStaticMeshRefinementByTimerOverride(bool InEnable);
+	void SetProxyMeshAutoRefineTimeoutSecondsOverride(float InValue);
+	void SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bool InEnable);
+	void SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bool InEnable);
 
 	void SetCookOnParameterChange(bool bEnable);
 	void SetCookOnTransformChange(bool bEnable);
@@ -599,6 +614,10 @@ public:
 	void SetRemoveOutputAfterBake(bool bInRemove);
 	void SetRecenterBakedActors(bool bInRecenter);
 	void SetAllowPlayInEditorRefinement(bool bEnabled);
+	void SetActorBakeOption(const EHoudiniEngineActorBakeOption InBakeOption);
+
+	void SetStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InHSMGP);
+	void SetStaticMeshBuildSettings(const FMeshBuildSettings& InMBS);
 
 	//------------------------------------------------------------------------------------------------
 	// Supported Features
@@ -659,6 +678,15 @@ public:
 	// Other public API delegates
 	void HandleOnPreOutputProcessing();
 	void HandleOnPostOutputProcessing();
+
+	// Delegates
+	FOnPreInstantiationDelegate& GetOnPreInstantiationDelegate() { return OnPreInstantiationDelegate; };
+	FOnPreCookDelegate& GetOnPreCookDelegate() { return OnPreCookDelegate; };
+	FOnPostCookDelegate& GetOnPostCookDelegate() { return OnPostCookDelegate; };
+	FOnPostBakeDelegate& GetOnPostBakeDelegate() { return OnPostBakeDelegate; };
+	FOnPreOutputProcessingDelegate& GetOnPreOutputProcessingDelegate() { return OnPreOutputProcessingDelegate; };
+	FOnPostOutputProcessingDelegate& GetOnPostOutputProcessingDelegate() { return OnPostOutputProcessingDelegate; };
+	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate; };
 
 protected:
 
@@ -835,9 +863,12 @@ protected:
 
 	// Delegate to broadcast after baking the HAC. Not called when just baking individual outputs directly.
 	// Arguments are (HoudiniAssetComponent* HAC, bool bIsSuccessful)
-	//FOnPostBakeDelegate OnPostBakeDelegate;
+	FOnPostBakeDelegate OnPostBakeDelegate;
 	FOnPostOutputProcessingDelegate OnPostOutputProcessingDelegate;
 	FOnPreOutputProcessingDelegate OnPreOutputProcessingDelegate;
+
+	// Delegate that is broadcast when the asset state changes (HAC version). ??
+	FOnAssetStateChangeDelegate OnAssetStateChangeDelegate;
 
 	// Store any PreCookCallbacks here until the Cookable is ready to process them during the PreCook event.
 	TArray<TFunction<void(UHoudiniCookable*)>> PreCookCallbacks;

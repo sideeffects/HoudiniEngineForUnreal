@@ -169,8 +169,8 @@ TSharedPtr<FHoudiniTestContext> FHoudiniMeshAutomationTest::LoadHDA(FAutomationT
 
 	// Now create the test context.
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(Test, TEXT("/Game/TestHDAs/Mesh/Test_MeshGroups"), FTransform::Identity, false));
-	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
-	Context->HAC->bEnableProxyStaticMeshOverride = false;
+	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->HAC->SetEnableProxyStaticMeshOverride(false);
 
 	return Context;
 }

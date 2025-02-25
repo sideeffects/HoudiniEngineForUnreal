@@ -3077,7 +3077,7 @@ FHoudiniEngineUtils::UploadHACTransform(UHoudiniAssetComponent* HAC)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::UploadHACTransform);
 
-	if (!HAC || !HAC->bUploadTransformsToHoudiniEngine)
+	if (!HAC || !HAC->GetUploadTransformsToHoudiniEngine())
 		return false;
 
 	// Indicates the HAC has been fully loaded

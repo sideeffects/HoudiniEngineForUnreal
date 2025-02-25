@@ -69,8 +69,8 @@ bool FHoudiniEditorTestOutput::RunTest(const FString & Parameters)
 	// after the test returns.
 
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TEXT("/Game/TestHDAs/Outputs/Test_Outputs"), FTransform::Identity, false));
-	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
-	Context->HAC->bEnableProxyStaticMeshOverride = false;
+	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->HAC->SetEnableProxyStaticMeshOverride(false);
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Firstly: Enable the cube and disable the height field. This should result in one output, which is a static mesh.

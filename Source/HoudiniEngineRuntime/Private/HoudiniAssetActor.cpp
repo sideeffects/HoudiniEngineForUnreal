@@ -34,16 +34,6 @@
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
-/*
-static TAutoConsoleVariable<int32> CVarHoudiniEngineUseCookable(
-	TEXT("HoudiniEngine.UseCookable"),
-	1,
-	TEXT("Controls if Cookable should be used instead of HAC when instantiating an HDA (DEBUG).\n")
-	TEXT("0: Off - HAC only (default)\n")
-	TEXT("1: On - Use Cookable to cook/create HAC\n")
-);
-*/
-
 AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -52,8 +42,6 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer & ObjectInitiali
 	//PrimaryActorTick.bStartWithTickEnabled = true;
 
 	bool bUseCookable = false;
-	//bUseCookable = (bool)CVarHoudiniEngineUseCookable.GetValueOnAnyThread();
-
 	if (!bUseCookable)
 	{
 		// Create Houdini component and attach it to a root component.

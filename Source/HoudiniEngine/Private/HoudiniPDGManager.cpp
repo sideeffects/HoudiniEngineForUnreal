@@ -1670,8 +1670,8 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 
 		// Static mesh generation / build settings, get it from the HAC if available, otherwise from the plugin
 		// defaults
-		const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties = HAC ? HAC->StaticMeshGenerationProperties : FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
-		const FMeshBuildSettings& MeshBuildSettings = HAC ? HAC->StaticMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+		const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties = HAC ? HAC->GetStaticMeshGenerationProperties() : FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
+		const FMeshBuildSettings& MeshBuildSettings = HAC ? HAC->GetStaticMeshBuildSettings() : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 
 		// .. All TOP Nets
 		for (UTOPNetwork* CurrentTOPNet : AssetLink->AllTOPNetworks)

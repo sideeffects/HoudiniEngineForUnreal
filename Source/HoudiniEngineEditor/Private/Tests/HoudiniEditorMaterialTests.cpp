@@ -101,8 +101,8 @@ bool HoudiniEditorMaterialTest_Material_Textures::RunTest(const FString& Paramet
 	// Now create the test context.
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorMaterialTests::TestHDAPath + TEXT("Material_Textures"), FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
-	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
-	Context->HAC->bEnableProxyStaticMeshOverride = false;
+	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->HAC->SetEnableProxyStaticMeshOverride(false);
 
 	// Start cooking the HDA.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()

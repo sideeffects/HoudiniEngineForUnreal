@@ -203,8 +203,8 @@ public:
 	bool GetEnableCurveEditing() const;
 	bool GetSplitMeshSupport() const;
 
-	FHoudiniStaticMeshGenerationProperties GetStaticMeshGenerationProperties();
-	FMeshBuildSettings GetStaticMeshBuildSettings();
+	FHoudiniStaticMeshGenerationProperties GetStaticMeshGenerationProperties() const;
+	FMeshBuildSettings GetStaticMeshBuildSettings() const;
 
 	//bool GetEditorPropertiesNeedFullUpdate() const { return bEditorPropertiesNeedFullUpdate; };
 
@@ -212,6 +212,7 @@ public:
 
 	bool IsFullyLoaded() const { return bFullyLoaded; };
 
+	bool IsOverrideGlobalProxyStaticMeshSettings() const;
 	virtual bool IsProxyStaticMeshEnabled() const;
 	bool IsProxyStaticMeshRefinementByTimerEnabled() const;
 	float GetProxyMeshAutoRefineTimeoutSeconds() const;
@@ -219,13 +220,14 @@ public:
 	bool IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const;
 	// If true, then the next cook should not build proxy meshes, regardless of global or override settings,
 	// but should instead directly build UStaticMesh
-	bool HasNoProxyMeshNextCookBeenRequested() const { return bNoProxyMeshNextCookRequested; }
+	bool HasNoProxyMeshNextCookBeenRequested() const;
 	// Returns true if the asset state indicates that it has been cooked in this session, false otherwise.
 	bool IsHoudiniCookedDataAvailable(bool &bOutNeedsRebuildOrDelete, bool &bOutInvalidState) const;
 	// Returns true if the asset should be bake after the next cook
 	bool IsBakeAfterNextCookEnabled() const;
 	// Get the BakeAfterNextCook setting
 	EHoudiniBakeAfterNextCook GetBakeAfterNextCook() const;
+	EHoudiniEngineActorBakeOption GetActorBakeOption() const;
 
 	FOnPreInstantiationDelegate& GetOnPreInstantiationDelegate() { return OnPreInstantiationDelegate; }
 	FOnPreCookDelegate& GetOnPreCookDelegate() { return OnPreCookDelegate; }
@@ -252,10 +254,10 @@ public:
 	bool HasPreviousBakeOutput() const;
 
 	// Returns true if the last cook of the HDA was successful
-	bool WasLastCookSuccessful() const { return bLastCookSuccess; }
+	bool WasLastCookSuccessful() const;
 
 	// Returns true if a parameter definition update (excluding values) is needed.
-	bool IsParameterDefinitionUpdateNeeded() const { return bParameterDefinitionUpdateNeeded; }
+	bool IsParameterDefinitionUpdateNeeded() const;
 
 	// Returns the BakeFolder.
 	FDirectoryPath GetBakeFolder() const;
@@ -304,6 +306,9 @@ public:
 
 	//void SetEditorPropertiesNeedFullUpdate(const bool& InUpdate) { bEditorPropertiesNeedFullUpdate = InUpdate; };
 
+	bool SetTemporaryCookFolder(const FDirectoryPath& InDirectoryPath);
+	bool SetBakeFolder(const FDirectoryPath& InDirectoryPath);
+
 	bool SetTemporaryCookFolderPath(const FString& NewPath);
 	bool SetBakeFolderPath(const FString& NewPath);
 
@@ -344,8 +349,17 @@ public:
 	// instead build a UStaticMesh directly (if applicable for the output type).
 	void SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested);
 
+	void SetOverrideGlobalProxyStaticMeshSettings(bool InEnable);
+	void SetEnableProxyStaticMeshOverride(bool InEnable);
+	void SetEnableProxyStaticMeshRefinementByTimerOverride(bool InEnable);
+	void SetProxyMeshAutoRefineTimeoutSecondsOverride(float InValue);
+	void SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bool InEnable);
+	void SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bool InEnable);
+
 	// Set whether or not bake after cooking (disabled, always or once).
 	void SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook);
+
+	void SetActorBakeOption(const EHoudiniEngineActorBakeOption& InBakeOption);
 
 	//
 	void SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink);
@@ -413,7 +427,10 @@ public:
 	// method is overridden by HoudiniAssetBlueprintComponent.
 	virtual bool HasOpenEditor() const { return false; };
 
-	void SetStaticMeshGenerationProperties(UStaticMesh* InStaticMesh) const;
+	void SetStaticMeshGenerationProperties(UStaticMesh* InStaticMesh);
+
+	void SetStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InHSMGP);
+	void SetStaticMeshBuildSettings(const FMeshBuildSettings& InMBS);
 
 	virtual void RegisterHoudiniComponent(UHoudiniAssetComponent* InComponent);
 

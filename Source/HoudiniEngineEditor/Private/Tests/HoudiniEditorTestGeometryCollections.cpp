@@ -61,9 +61,8 @@ bool FHoudiniEditorTestGeometryCollections::RunTest(const FString& Parameters)
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestGeometryCollection::GeometryCollectionHDA, FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
-	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
-	Context->HAC->bEnableProxyStaticMeshOverride = false;
-
+	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->HAC->SetEnableProxyStaticMeshOverride(false);
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
@@ -91,7 +90,11 @@ bool FHoudiniEditorTestGeometryCollections::RunTest(const FString& Parameters)
 	{
 		FHoudiniBakeSettings BakeSettings;
 
-		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(Context->HAC, BakeSettings, Context->HAC->HoudiniEngineBakeOption, Context->HAC->bRemoveOutputAfterBake);
+		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
+			Context->HAC, 
+			BakeSettings,
+			Context->HAC->GetHoudiniEngineBakeOption(),
+			Context->HAC->GetRemoveOutputAfterBake());
 
 		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
 		// There should be two outputs as we have two meshes.
