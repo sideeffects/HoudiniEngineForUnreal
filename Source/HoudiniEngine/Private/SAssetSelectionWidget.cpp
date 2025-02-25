@@ -26,11 +26,12 @@
 
 #include "SAssetSelectionWidget.h"
 
+#include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineString.h"
 
 #if WITH_EDITOR
 
-#include "../../Launch/Resources/Version.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 #include "EditorStyleSet.h"
 #include "Internationalization/Internationalization.h"

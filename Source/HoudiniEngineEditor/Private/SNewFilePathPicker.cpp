@@ -27,12 +27,14 @@
 #include "SNewFilePathPicker.h"
 
 #include "HoudiniApi.h"
+
 #include "DesktopPlatformModule.h"
-#include "Widgets/SBoxPanel.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/SBoxPanel.h"
 
 #define LOCTEXT_NAMESPACE "SNewFilePathPicker"
 

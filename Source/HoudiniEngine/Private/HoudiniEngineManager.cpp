@@ -1036,13 +1036,24 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			if (!bIsNodeSyncComponent && HAC->AssetId != INDEX_NONE)
 			{
 				// Make sure no parameters are changed before getting the preset
-				FHoudiniParameterTranslator::UploadChangedParameters(HAC->Parameters, HAC->GetAssetId());
-
-				if (!FHoudiniEngineUtils::GetAssetPreset(HAC->AssetId, HAC->ParameterPresetBuffer))
+				bool bCleanParamPreset = false;
+				if (FHoudiniParameterTranslator::UploadChangedParameters(
+					HAC->Parameters, HAC->GetAssetId()))
 				{
-					HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's parameter preset, rebuilt asset may have lost its parameters."));
-					HAC->ParameterPresetBuffer.Empty();
+					if (!FHoudiniEngineUtils::GetAssetPreset(HAC->AssetId, HAC->ParameterPresetBuffer))
+					{
+						HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's parameter preset, rebuilt asset may have lost its parameters."));
+						bCleanParamPreset = true;
+					}
 				}
+				else
+				{
+					bCleanParamPreset = true;
+				}
+
+				// If we failed to update params or get the preset buffer, dont use it
+				if(bCleanParamPreset)
+					HAC->ParameterPresetBuffer.Empty();
 
 				// Do not delete nodes for NodeSync components!
 				StartTaskAssetRebuild(HAC->AssetId, HAC->HapiGUID);
@@ -1545,14 +1556,24 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 			if(HC->IsParameterSupported())
 			{
 				// Make sure no parameters are changed before getting the preset
-				FHoudiniParameterTranslator::UploadChangedParameters(
-					HC->ParameterData->Parameters, HC->GetNodeId());
-
-				if (!FHoudiniEngineUtils::GetAssetPreset(HC->GetNodeId(), HC->ParameterData->ParameterPresetBuffer))
+				bool bCleanParamPreset = false;
+				if (FHoudiniParameterTranslator::UploadChangedParameters(
+					HC->ParameterData->Parameters, HC->GetNodeId()))
 				{
-					HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's parameter preset, rebuilt asset may have lost its parameters."));
-					HC->ParameterData->ParameterPresetBuffer.Empty();
+					if (!FHoudiniEngineUtils::GetAssetPreset(HC->GetNodeId(), HC->ParameterData->ParameterPresetBuffer))
+					{
+						HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's parameter preset, rebuilt asset may have lost its parameters."));
+						bCleanParamPreset = true;
+					}
 				}
+				else
+				{
+					bCleanParamPreset = true;
+				}
+
+				// If we failed to update params or get the preset buffer, dont use it
+				if (bCleanParamPreset)
+					HC->ParameterData->ParameterPresetBuffer.Empty();
 			}
 
 			if (!MyHNSC)
@@ -2150,15 +2171,7 @@ FHoudiniEngineManager::PreCook(UHoudiniAssetComponent* HAC)
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PreCook-SetPreset);
 
 			// If we have stored parameter preset - restore them
-			HAPI_Result Res = FHoudiniApi::SetPreset(
-				FHoudiniEngine::Get().GetSession(), 
-				HAC->AssetId,
-				HAPI_PRESETTYPE_BINARY,
-				"hapi",
-				(char *)(HAC->ParameterPresetBuffer.GetData()),
-				HAC->ParameterPresetBuffer.Num());
-
-			if (Res == HAPI_RESULT_SUCCESS)
+			if(FHoudiniEngineUtils::SetAssetPreset(HAC->GetAssetId(), HAC->ParameterPresetBuffer))
 				bPresetSuccess = true;
 		}
 
@@ -2282,15 +2295,7 @@ FHoudiniEngineManager::PreCook(UHoudiniCookable* HC)
 				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PreCook - SetPreset);
 
 				// If we have stored parameter preset - restore them
-				HAPI_Result Res = FHoudiniApi::SetPreset(
-					FHoudiniEngine::Get().GetSession(),
-					HC->NodeId,
-					HAPI_PRESETTYPE_BINARY,
-					"hapi",
-					(char*)(HC->ParameterData->ParameterPresetBuffer.GetData()),
-					HC->ParameterData->ParameterPresetBuffer.Num());
-
-				if (Res == HAPI_RESULT_SUCCESS)
+				if (FHoudiniEngineUtils::SetAssetPreset(HC->GetNodeId(), HC->ParameterData->ParameterPresetBuffer))
 					bPresetSuccess = true;
 			}
 
@@ -2546,13 +2551,6 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 				bForceFullUpdate,
 				bCacheRampParms,
 				HC->bNeedToUpdateEditorProperties);
-
-			// Update the HDA's parameter preset
-			if (!FHoudiniEngineUtils::GetAssetPreset(HC->GetNodeId(), HC->ParameterData->ParameterPresetBuffer))
-			{
-				HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset."));
-				HC->ParameterData->ParameterPresetBuffer.Empty();
-			}
 		}
 
 		//
@@ -2569,6 +2567,17 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 				HC->ParameterData->Parameters,
 				HC->HasBeenLoaded());
 		}
+
+		// Update the HDA's parameter preset
+		// This needs to be done after inputs and parameters updates
+		if (HC->IsParameterSupported())
+		{
+			if (!FHoudiniEngineUtils::GetAssetPreset(HC->GetNodeId(), HC->ParameterData->ParameterPresetBuffer))
+			{
+				HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset."));
+				HC->ParameterData->ParameterPresetBuffer.Empty();
+			}
+		}	
 
 		//
 		// OUTPUTS

@@ -2620,6 +2620,8 @@ FHoudiniParameterTranslator::UploadChangedParameters(
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadChangedParameters);
 
+	bool bResult = true;
+
 	TMap<FString, UHoudiniParameter*> RampsToRevert;
 	// First upload all parameters, including the current child parameters/points of ramps, and then process
 	// the ramp parameters themselves (delete and insert operations of ramp points)
@@ -2627,7 +2629,6 @@ FHoudiniParameterTranslator::UploadChangedParameters(
 	// (which will change after potential insert/delete operations). Insert operations will upload their new
 	// parameter values after the insert.
 	TArray<UHoudiniParameter*> RampsToUpload;
-
 	for (int32 ParmIdx = 0; ParmIdx < InParameters.Num(); ParmIdx++)
 	{
 		TObjectPtr<UHoudiniParameter>& CurrentParm = InParameters[ParmIdx];
@@ -2669,10 +2670,12 @@ FHoudiniParameterTranslator::UploadChangedParameters(
 		{
 			// Keep this param marked as changed but prevent it from generating updates
 			CurrentParm->SetNeedsToTriggerUpdate(false);
+			bResult = false;
 		}
 	}
 
-	FHoudiniParameterTranslator::RevertRampParameters(RampsToRevert, InNodeId);
+	if (!FHoudiniParameterTranslator::RevertRampParameters(RampsToRevert, InNodeId))
+		bResult = false;
 
 	for (UHoudiniParameter* const RampParam : RampsToUpload)
 	{
@@ -2681,9 +2684,11 @@ FHoudiniParameterTranslator::UploadChangedParameters(
 
 		if (UploadParameterValue(RampParam))
 			RampParam->MarkChanged(false);
+		else
+			bResult = false;
 	}
 
-	return true;
+	return bResult;
 }
 
 bool
@@ -2923,7 +2928,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 		default:
 		{
 			// TODO: implement other parameter types!
-			return false;
+			return true;
 		}
 		break;
 	}
@@ -3464,7 +3469,6 @@ bool
 FHoudiniParameterTranslator::RevertRampParameters(TMap<FString, UHoudiniParameter*> & InRampParams, const int32 & AssetId) 
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::RevertRampParameters);
-
 	if (InRampParams.Num() <= 0)
 		return true;
 
