@@ -1978,15 +1978,15 @@ FHoudiniEngineUtils::IsValidNodeId(HAPI_NodeId NodeId)
 */
 
 bool
-FHoudiniEngineUtils::GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString& NameString)
+FHoudiniEngineUtils::GetHoudiniAssetName(HAPI_NodeId InNodeId, FString& NameString)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GetHoudiniAssetName);
 
-	if (AssetNodeId < 0)
+	if (InNodeId < 0)
 		return false;
 
 	HAPI_AssetInfo AssetInfo;
-	if (FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetNodeId, &AssetInfo) == HAPI_RESULT_SUCCESS)
+	if (FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), InNodeId, &AssetInfo) == HAPI_RESULT_SUCCESS)
 	{
 		FHoudiniEngineString HoudiniEngineString(AssetInfo.nameSH);
 		return HoudiniEngineString.ToFString(NameString);
@@ -1995,7 +1995,7 @@ FHoudiniEngineUtils::GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString
 	{
 		// If the node is not an asset, return the node name
 		HAPI_NodeInfo NodeInfo;
-		if (FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), AssetNodeId, &NodeInfo) == HAPI_RESULT_SUCCESS)
+		if (FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), InNodeId, &NodeInfo) == HAPI_RESULT_SUCCESS)
 		{
 			FHoudiniEngineString HoudiniEngineString(NodeInfo.nameSH);
 			return HoudiniEngineString.ToFString(NameString);
@@ -2006,20 +2006,26 @@ FHoudiniEngineUtils::GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString
 }
 
 bool
-FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray<int8>& PresetBuffer)
+FHoudiniEngineUtils::GetAssetPreset(HAPI_NodeId InNodeId, TArray<int8>& PresetBuffer)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GetAssetPreset);
 	PresetBuffer.Empty();
 
+	// See if param presets usage is disabled
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	bool bEnabled = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bUsePresetsForParameters : true;
+	if (!bEnabled)
+		return false;
+
 	HAPI_NodeId NodeId;
 	HAPI_AssetInfo AssetInfo;
 	if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
-		FHoudiniEngine::Get().GetSession(), AssetNodeId, &AssetInfo))
+		FHoudiniEngine::Get().GetSession(), InNodeId, &AssetInfo))
 	{
 		NodeId = AssetInfo.nodeId;
 	}
 	else
-		NodeId = AssetNodeId;
+		NodeId = InNodeId;
 
 	if (NodeId < 0)
 		return false;
@@ -2033,6 +2039,34 @@ FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray<int8>
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPreset(
 		FHoudiniEngine::Get().GetSession(), NodeId,
 		(char*)(PresetBuffer.GetData()), PresetBuffer.Num()), false);
+
+	return true;
+}
+
+bool
+FHoudiniEngineUtils::SetAssetPreset(HAPI_NodeId InNodeId, const TArray<int8>& PresetBuffer)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::SetAssetPreset);
+	if (InNodeId < 0)
+		return false;
+
+	// See if param presets usage is disabled
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+	bool bEnabled = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bUsePresetsForParameters : true;
+	if (!bEnabled)
+		return false;
+
+	// If we have stored parameter preset - restore them
+	HAPI_Result Res = FHoudiniApi::SetPreset(
+		FHoudiniEngine::Get().GetSession(),
+		InNodeId,
+		HAPI_PRESETTYPE_BINARY,
+		"hapi",
+		(char*)(PresetBuffer.GetData()),
+		PresetBuffer.Num());
+
+	if (Res != HAPI_RESULT_SUCCESS)
+		return false;
 
 	return true;
 }
@@ -2096,7 +2130,7 @@ FHoudiniEngineUtils::HapiGetNodePath(const FHoudiniGeoPartObject& InHGPO, FStrin
 	FString NodePathTemp;
 	if (InHGPO.AssetId == InHGPO.GeoId)
 	{
-		HAPI_NodeId AssetNodeId = -1;
+		HAPI_NodeId NodeId = -1;
 
 		// This is a SOP asset, just return the asset name in this case
 		HAPI_AssetInfo AssetInfo;
@@ -2105,18 +2139,18 @@ FHoudiniEngineUtils::HapiGetNodePath(const FHoudiniGeoPartObject& InHGPO, FStrin
 			FHoudiniEngine::Get().GetSession(), InHGPO.AssetId, &AssetInfo))
 		{
 			// Get the asset info node id
-			AssetNodeId = AssetInfo.nodeId;
+			NodeId = AssetInfo.nodeId;
 		}
 		else
 		{
 			// Not an asset, just use the node id directly
-			AssetNodeId = InHGPO.AssetId;
+			NodeId = InHGPO.AssetId;
 		}
 
 		HAPI_NodeInfo AssetNodeInfo;
 		FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
 		if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeInfo(
-			FHoudiniEngine::Get().GetSession(), AssetNodeId, &AssetNodeInfo))
+			FHoudiniEngine::Get().GetSession(), NodeId, &AssetNodeInfo))
 		{
 			if (FHoudiniEngineString::ToFString(AssetNodeInfo.nameSH, NodePathTemp))
 			{

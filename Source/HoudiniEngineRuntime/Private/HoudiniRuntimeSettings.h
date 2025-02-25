@@ -272,6 +272,10 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooking)
 		FString DefaultBakeFolder;
 
+		// Whether Houdini Engine can store/set multiple parameters via presets
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooking)
+		bool bUsePresetsForParameters;
+
 		//-------------------------------------------------------------------------------------------------------------
 		// Deprecated instance settings.
 		//-------------------------------------------------------------------------------------------------------------

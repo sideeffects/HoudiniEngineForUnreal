@@ -423,10 +423,13 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			TArray<HAPI_StringHandle>& AssetNames, HAPI_StringHandle& OutPickedAssetName );
 
 		// Returns the name of a Houdini asset.
-		static bool GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString & NameString);
+		static bool GetHoudiniAssetName(HAPI_NodeId InNodeId, FString & NameString);
 
-		// Gets preset data for a given asset.
-		static bool GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray<int8>& PresetBuffer);
+		// Gets preset data for a given node.
+		static bool GetAssetPreset(HAPI_NodeId InNodeId, TArray<int8>& PresetBuffer);
+
+		// Sets preset data for a given node.
+		static bool SetAssetPreset(HAPI_NodeId InNodeId, const TArray<int8>& PresetBuffer);
 
 		// HAPI : Set asset transform.
 		static bool HapiSetAssetTransform(const HAPI_NodeId& AssetNodeId, const FTransform & Transform);
