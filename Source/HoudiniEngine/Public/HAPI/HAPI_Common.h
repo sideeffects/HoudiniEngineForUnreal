@@ -1031,6 +1031,9 @@ enum HAPI_PDG_EventType
     /// Sent when a node finished generating
     HAPI_PDG_EVENT_NODE_GENERATED,
 
+    /// Sent when a work item's frame changes
+    HAPI_PDG_EVENT_WORKITEM_FRAME,
+
     HAPI_PDG_CONTEXT_EVENTS,
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_PDG_EventType )
