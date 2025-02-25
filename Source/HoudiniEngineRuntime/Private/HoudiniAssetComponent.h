@@ -458,7 +458,7 @@ public:
 	virtual bool IsInputTypeSupported(EHoudiniInputType InType) const { return true; };
 	virtual bool IsOutputTypeSupported(EHoudiniOutputType InType) const { return true; };
 
-	//------------------------------------------------------------------------------------------------5
+	//------------------------------------------------------------------------------------------------
 	// Characteristics
 	//------------------------------------------------------------------------------------------------
 

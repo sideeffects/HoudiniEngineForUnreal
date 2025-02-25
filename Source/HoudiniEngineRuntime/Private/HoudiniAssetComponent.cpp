@@ -2920,6 +2920,7 @@ UHoudiniAssetComponent::GetBakeAfterNextCook() const
 	return BakeAfterNextCook; 
 }
 
+#if WITH_EDITORONLY_DATA
 EHoudiniEngineActorBakeOption
 UHoudiniAssetComponent::GetActorBakeOption() const
 {
@@ -2928,6 +2929,7 @@ UHoudiniAssetComponent::GetActorBakeOption() const
 
 	return ActorBakeOption;
 }
+#endif
 
 
 void 
@@ -2948,6 +2950,7 @@ UHoudiniAssetComponent::SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InB
 	BakeAfterNextCook = InBakeAfterNextCook; 
 }
 
+#if WITH_EDITORONLY_DATA
 void 
 UHoudiniAssetComponent::SetActorBakeOption(const EHoudiniEngineActorBakeOption& InBakeOption)
 {
@@ -2956,6 +2959,7 @@ UHoudiniAssetComponent::SetActorBakeOption(const EHoudiniEngineActorBakeOption& 
 
 	ActorBakeOption = InBakeOption;
 }
+#endif
 
 bool
 UHoudiniAssetComponent::IsComponentValid() const
