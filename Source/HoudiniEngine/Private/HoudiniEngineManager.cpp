@@ -956,6 +956,14 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			HAC->HandleOnPostOutputProcessing();
 			HAC->OnPostOutputProcessing();
 			FHoudiniEngineUtils::UpdateBlueprintEditor(HAC);
+
+			// Update the asset cook count to prevent a cook loop
+			const int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HAC->GetAssetId());
+			HAC->SetAssetCookCount(CookCount);
+
+			//
+			HAC->SetAssetState(EHoudiniAssetState::None);
+
 			break;
 		}
 
@@ -1463,6 +1471,13 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 				MyHABC->OnPostOutputProcessing();
 				FHoudiniEngineUtils::UpdateBlueprintEditor(MyHABC);
 			}
+
+			// Update the cook count to prevent a cook loop
+			const int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
+			HC->CookCount = CookCount;
+
+			HC->SetCurrentState(EHoudiniAssetState::None);
+
 			break;
 		}
 
@@ -2711,8 +2726,6 @@ FHoudiniEngineManager::UpdateProcess(UHoudiniAssetComponent* HAC)
 		GEditor->RedrawAllViewports(false);
 	}
 
-	HAC->SetAssetState(EHoudiniAssetState::None);
-
 	// Indicate we're done processing the asset
 	FString DisplayName = HAC->GetDisplayName();
 	FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nFinished processing outputs"), true);
@@ -2798,8 +2811,6 @@ FHoudiniEngineManager::UpdateProcess(UHoudiniCookable* HC)
 		// if not, modification made in H with the two way debugger wont be visible in Unreal until the viewports gets focus
 		GEditor->RedrawAllViewports(false);
 	}
-
-	HC->SetCurrentState(EHoudiniAssetState::None);
 
 	// Indicate we're done processing the asset
 	FString DisplayName = HC->GetDisplayName();
