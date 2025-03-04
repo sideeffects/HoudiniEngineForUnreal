@@ -28,6 +28,8 @@
 
 #include "HoudiniEngineTask.h"
 
+#include "HoudiniEngineTaskInfo.generated.h"
+
 UENUM()
 enum class EHoudiniEngineTaskState : uint8
 {

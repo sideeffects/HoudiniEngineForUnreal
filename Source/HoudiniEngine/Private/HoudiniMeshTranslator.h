@@ -38,7 +38,7 @@
 #include "UObject/ObjectMacros.h"
 #include "PhysicsEngine/AggregateGeom.h"
 
-//#include "HoudiniMeshTranslator.generated.h"
+#include "HoudiniMeshTranslator.generated.h"
 
 struct FHoudiniGroupedMeshPrimitives;
 class UStaticMesh;

@@ -34,6 +34,8 @@
 #include "HoudiniOutputDetails.h"
 #include "HoudiniEngineOutputStats.h"
 
+#include "HoudiniEngineBakeUtils.generated.h"
+
 struct FHoudiniEngineBakedActor;
 class UDataTable;
 class ULevelInstanceComponent;
