@@ -31,7 +31,9 @@
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniRuntimeSettings.h"
 
-#include "Modules/ModuleInterface.h" 
+#include "Modules/ModuleInterface.h"
+
+#include "HoudiniEngine.generated.h"
 
 class FRunnableThread;
 class FHoudiniEngineScheduler;

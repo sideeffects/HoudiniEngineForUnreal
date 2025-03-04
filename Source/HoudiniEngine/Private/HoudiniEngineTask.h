@@ -31,6 +31,8 @@
 #include "Misc/Guid.h"
 #include "UObject/WeakObjectPtr.h"
 
+#include "HoudiniEngineTask.generated.h"
+
 /*
 namespace EHoudiniEngineTaskType
 {

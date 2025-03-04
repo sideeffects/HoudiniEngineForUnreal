@@ -37,7 +37,7 @@
 class UFoliageType_InstancedStaticMesh;
 
 UENUM()
-enum EHoudiniRuntimeSettingsSessionType
+enum EHoudiniRuntimeSettingsSessionType : int8
 {
 	// In process session.
 	HRSST_InProcess UMETA(Hidden, DisplayName = "In Process (experimental)"),
@@ -59,7 +59,7 @@ enum EHoudiniRuntimeSettingsSessionType
 
 
 UENUM()
-enum EHoudiniRuntimeSettingsRecomputeFlag
+enum EHoudiniRuntimeSettingsRecomputeFlag : int8
 {
 	// Recompute always.
 	HRSRF_Always UMETA(DisplayName = "Always"),
@@ -74,7 +74,7 @@ enum EHoudiniRuntimeSettingsRecomputeFlag
 };
 
 UENUM()
-enum EHoudiniExecutableType
+enum EHoudiniExecutableType : int8
 {
 	// Houdini
 	HRSHE_Houdini UMETA(DisplayName = "Houdini"),

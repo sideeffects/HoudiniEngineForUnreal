@@ -29,6 +29,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "HoudiniAssetStateTypes.generated.h"
+
 
 UENUM()
 enum class EHoudiniAssetState : uint8
