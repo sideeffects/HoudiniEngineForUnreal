@@ -1,27 +1,31 @@
 #include "HoudiniEditorUnitTestUtils.h"
-#include "FileHelpers.h"
+
 #include "HoudiniAsset.h"
-#include "HoudiniPublicAPIAssetWrapper.h"
-#include "HoudiniPublicAPIInputTypes.h"
 #include "HoudiniAssetActor.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniEngineEditorUtils.h"
-
 #include "HoudiniParameter.h"
 #include "HoudiniParameterInt.h"
 #include "HoudiniPDGAssetLink.h"
+#include "HoudiniPublicAPIAssetWrapper.h"
+#include "HoudiniPublicAPIInputTypes.h"
+
 #include "Landscape.h"
 #include "AssetRegistry/AssetRegistryModule.h"
-#if WITH_DEV_AUTOMATION_TESTS
-#include "HoudiniEditorTestUtils.h"
 
-#include "Misc/AutomationTest.h"
+#if WITH_DEV_AUTOMATION_TESTS
 #include "HoudiniAssetActorFactory.h"
-#include "GenericPlatform/GenericPlatformProcess.h"
-#include "HoudiniParameterToggle.h"
 #include "HoudiniEngineOutputStats.h"
-#include "HoudiniPDGManager.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniEditorTestUtils.h"
+#include "HoudiniParameterToggle.h"
+#include "HoudiniPDGManager.h"
+
+#include "FileHelpers.h"
+#include "GenericPlatform/GenericPlatformProcess.h"
+#include "Misc/AutomationTest.h"
+
 
 UWorld* FHoudiniEditorUnitTestUtils::CreateEmptyMap(bool bOpenWorld)
 {
@@ -104,7 +108,8 @@ bool FHoudiniLatentTestCommand::Update()
 
 	}
 
-	if (Context->bCookInProgress && IsValid(Context->HAC))
+	if (Context->bCookInProgress && 
+		(IsValid(Context->GetHAC()) || IsValid(Context->GetCookable())))
 	{
 		if (Context->bPostOutputDelegateCalled)
 		{
@@ -140,7 +145,11 @@ bool FHoudiniLatentTestCommand::Update()
 
 void FHoudiniTestContext::StartCookingHDA()
 {
-	HAC->MarkAsNeedCook();
+	if (HC)
+		HC->MarkAsNeedCook();
+	else
+		HAC->MarkAsNeedCook();
+
 	bCookInProgress = true;
 	bPostOutputDelegateCalled = false;
 }
@@ -153,7 +162,7 @@ void FHoudiniTestContext::WaitForTicks(int Count)
 
 void FHoudiniTestContext::StartCookingSelectedTOPNetwork()
 {
-	UHoudiniPDGAssetLink * AssetLink = HAC->GetPDGAssetLink();
+	UHoudiniPDGAssetLink * AssetLink = HC ? HC->GetPDGAssetLink() : HAC->GetPDGAssetLink();
 	UTOPNetwork* TopNetwork = AssetLink->GetSelectedTOPNetwork();
 
 	this->bPDGPostCookDelegateCalled = false;
@@ -232,27 +241,24 @@ FHoudiniTestContext::FHoudiniTestContext(
 	TimeStarted = FPlatformTime::Seconds();
 
 	// Find Houdini Asset Actor and then component.
+	UHoudiniAssetComponent* FoundHAC = nullptr;
 	for(TActorIterator<AActor> ActorItr(World, AHoudiniAssetActor::StaticClass()); ActorItr; ++ActorItr)
 	{
 		AActor* FoundActor = *ActorItr;
 		if(FoundActor)
 		{
-			HAC = FoundActor->FindComponentByClass<UHoudiniAssetComponent>();
+			FoundHAC = FoundActor->FindComponentByClass<UHoudiniAssetComponent>();
 			break;
 		}
 	}
 
-	if(!HAC)
+	if(!FoundHAC)
 		return;
 
-	OutputDelegateHandle = HAC->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniAssetComponent* _HAC, bool  bSuccess)
-		{
-			this->bPostOutputDelegateCalled = true;
-		});
+	SetHAC(FoundHAC);
 
 	// Set time last so we don't include instantiation time.
 	TimeStarted = FPlatformTime::Seconds();
-
 }
 
 FHoudiniTestContext::FHoudiniTestContext(
@@ -265,38 +271,41 @@ FHoudiniTestContext::FHoudiniTestContext(
 	Test = CurrentTest;
 	TimeStarted = FPlatformTime::Seconds();
 }
+
 FHoudiniTestContext::FHoudiniTestContext(
 	FAutomationTestBase* CurrentTest, 
-	const FString & HDAName,
+	const FString& HDAName,
 	const FTransform& Transform,
 	bool bOpenWorld)
 {
 	Test = CurrentTest;
 
 	// Load the HDA into a new map and kick start the cook. We do an initial cook to make sure the parameters are available.
-	HAC = FHoudiniEditorUnitTestUtils::LoadHDAIntoNewMap(HDAName, Transform, bOpenWorld);
-
-	if (!HAC)
+	UHoudiniAssetComponent* CreatedHAC = FHoudiniEditorUnitTestUtils::LoadHDAIntoNewMap(HDAName, Transform, bOpenWorld);
+	if (!CreatedHAC)
 	{
 		HOUDINI_LOG_ERROR(TEXT("Failed to load HDA %s into map. Missing uasset?"), *HDAName);
 		return;
 	}
 
+	// 
+	SetHAC(CreatedHAC);
+
 	World = HAC->GetHACWorld();
 
 	this->bCookInProgress = true;
 	this->bPostOutputDelegateCalled = true;
-	OutputDelegateHandle = HAC->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniAssetComponent* _HAC, bool  bSuccess)
-	{
-		this->bPostOutputDelegateCalled = true;
-	});
 
 	// Set time last so we don't include instantiation time.
 	TimeStarted = FPlatformTime::Seconds();
 }
 
-void FHoudiniTestContext::SetHAC(UHoudiniAssetComponent* HACToUse)
+void
+FHoudiniTestContext::SetHAC(UHoudiniAssetComponent* HACToUse)
 {
+	if (HACToUse && HACToUse->GetCookable())
+		return SetCookable(HACToUse->GetCookable());
+
 	HAC = HACToUse;
 	OutputDelegateHandle = HAC->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniAssetComponent* _HAC, bool  bSuccess)
 	{
@@ -304,14 +313,42 @@ void FHoudiniTestContext::SetHAC(UHoudiniAssetComponent* HACToUse)
 	});
 }
 
+
+void
+FHoudiniTestContext::SetCookable(UHoudiniCookable* HCToUse)
+{
+	HC = HCToUse;
+	HAC = Cast<UHoudiniAssetComponent>(HCToUse->GetComponent());
+
+	OutputDelegateHandle = HC->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
+	{
+			this->bPostOutputDelegateCalled = true;
+	});
+}
+
+UHoudiniAssetComponent*
+FHoudiniTestContext::GetHAC()
+{
+	return HAC;
+}
+
+UHoudiniCookable* 
+FHoudiniTestContext::GetCookable()
+{
+	return HC;
+}
+
 FHoudiniTestContext::~FHoudiniTestContext()
 {
-	HAC->GetOnPostOutputProcessingDelegate().Remove(OutputDelegateHandle);
+	if(HC)
+		HC->GetOnPostOutputProcessingDelegate().Remove(OutputDelegateHandle);
+	else
+		HAC->GetOnPostOutputProcessingDelegate().Remove(OutputDelegateHandle);
 }
 
 bool FHoudiniTestContext::IsValid()
 {
-	return HAC != nullptr;
+	return (HAC != nullptr || HC != nullptr);
 }
 
 TArray<AActor*> FHoudiniEditorUnitTestUtils::GetOutputActors(TArray<FHoudiniBakedOutput>& BakedOutputs)

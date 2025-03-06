@@ -66,8 +66,8 @@ bool FHoudiniEditorTestLandscapeHLOD::RunTest(const FString& Parameters)
 	// after the test returns.
 
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, HDAName, FTransform::Identity, true));
-	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Context->HAC->SetEnableProxyStaticMeshOverride(false);
+	Context->GetHAC()->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->GetHAC()->SetEnableProxyStaticMeshOverride(false);
 
 	// HDA Path and kick Cook.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
@@ -82,12 +82,12 @@ bool FHoudiniEditorTestLandscapeHLOD::RunTest(const FString& Parameters)
 		FHoudiniBakeSettings BakeSettings;
 
 		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
-			Context->HAC, 
+			Context->GetHAC(), 
 			BakeSettings, 
-			Context->HAC->GetHoudiniEngineBakeOption(),
-			Context->HAC->GetRemoveOutputAfterBake());
+			Context->GetHAC()->GetHoudiniEngineBakeOption(),
+			Context->GetHAC()->GetRemoveOutputAfterBake());
 
-		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->GetHAC()->GetBakedOutputs();
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 		auto& BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
@@ -120,8 +120,8 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesHLOD, "Houdi
 	// after the test returns.
 
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, HDAName, FTransform::Identity, true));
-	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Context->HAC->SetEnableProxyStaticMeshOverride(false);
+	Context->GetHAC()->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->GetHAC()->SetEnableProxyStaticMeshOverride(false);
 
 	// HDA Path and kick Cook.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
@@ -136,12 +136,12 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesHLOD, "Houdi
 		FHoudiniBakeSettings BakeSettings;
 
 		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
-			Context->HAC,
+			Context->GetHAC(),
 			BakeSettings, 
-			Context->HAC->GetHoudiniEngineBakeOption(),
-			Context->HAC->GetRemoveOutputAfterBake());
+			Context->GetHAC()->GetHoudiniEngineBakeOption(),
+			Context->GetHAC()->GetRemoveOutputAfterBake());
 
-		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->HAC->GetBakedOutputs();
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->GetHAC()->GetBakedOutputs();
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 		auto& BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 2, return true);

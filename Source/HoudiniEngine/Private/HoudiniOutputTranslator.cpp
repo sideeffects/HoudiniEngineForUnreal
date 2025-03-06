@@ -2121,7 +2121,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 
 					if (HAPI_RESULT_SUCCESS != Result)
 					{
-						HOUDINI_LOG_ERROR(TEXT("Failed to get VolumeInfo (%d)"), *FHoudiniEngineUtils::GetErrorDescription(Result));
+						HOUDINI_LOG_ERROR(TEXT("Failed to get VolumeInfo: %s"), *FHoudiniEngineUtils::GetErrorDescription(Result));
 						bVolumeValid = false;
 					}
 					else if (CurrentHapiVolumeInfo.tupleSize != 1)

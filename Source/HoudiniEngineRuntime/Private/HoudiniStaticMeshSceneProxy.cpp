@@ -31,6 +31,7 @@
 #include "PrimitiveViewRelevance.h"
 #include "Engine/Engine.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "SceneView.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "MaterialDomain.h"
 	#include "Materials/MaterialRenderProxy.h"

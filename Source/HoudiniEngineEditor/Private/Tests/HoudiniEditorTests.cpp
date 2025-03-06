@@ -82,6 +82,7 @@ bool HoudiniEditorDuplicateTest::RunTest(const FString & Parameters)
 			FHoudiniEditorTestUtils::InstantiateAsset(this, TEXT("/Game/TestHDAs/Evergreen"), 
 			[this, InAssetWrapper](UHoudiniPublicAPIAssetWrapper* InAssetWrapper2, const bool IsSuccessful2)
 			{
+				// TODO COOKABLE: Cookable EQ test
 				if (FHoudiniEditorEquivalenceUtils::IsEquivalent(InAssetWrapper->GetHoudiniAssetComponent(), InAssetWrapper2->GetHoudiniAssetComponent()))
 				{
 					return true;

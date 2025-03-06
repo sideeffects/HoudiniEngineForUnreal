@@ -318,6 +318,10 @@ struct FHoudiniTestContext
 	void WaitForTicks(int Count);
 
 	void SetHAC(UHoudiniAssetComponent* HACToUse);
+	void SetCookable(UHoudiniCookable* HCToUse);
+
+	UHoudiniAssetComponent* GetHAC();
+	UHoudiniCookable* GetCookable();
 
 	//  Check if the context is valid. This will be false if, for example, the HDA failed to load.
 	bool IsValid();
@@ -329,7 +333,10 @@ struct FHoudiniTestContext
 	double TimeStarted = 0.0f;					// Time this test started. Used to test for timeout.
 
 	FAutomationTestBase* Test = nullptr;		// Unit test underway
+	
 	UHoudiniAssetComponent* HAC = nullptr;		// HAC being tested
+	UHoudiniCookable* HC = nullptr;				// Cookable being tested
+
 	TMap<FString, FString> Data;				// Use this to pass data between different tests.
 	bool bCookInProgress = false;
 	bool bPostOutputDelegateCalled = false;

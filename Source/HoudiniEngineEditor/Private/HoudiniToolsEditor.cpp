@@ -2888,7 +2888,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	// Try to upload changed parameters
 	FHoudiniParameterTranslator::UploadChangedParameters(HAC->GetParameters(), HAC->GetAssetId());
 
-		// Record a transaction for undo/redo
+	// Record a transaction for undo/redo
 	FScopedTransaction Transaction(
 		TEXT(HOUDINI_MODULE_EDITOR),
 		LOCTEXT("HoudiniPresets_ApplyToAssetComponent", "Apply Preset to Houdini Asset Component"),

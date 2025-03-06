@@ -193,9 +193,9 @@ void FHoudiniEditorTestUtils::InstantiateAsset(
 	TestObject->InAssetWrappers.Add(Wrapper); // Need to assign it to TestObject otherwise it will be garbage collected!!!
 
 	// Set properties based off test settings.
-	Wrapper->GetHoudiniAssetComponent()->bOverrideGlobalProxyStaticMeshSettings = true;
-	Wrapper->GetHoudiniAssetComponent()->bEnableProxyStaticMeshOverride = Settings.bUseProxyMesh;
-	Wrapper->GetHoudiniAssetComponent()->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = !Settings.bUseProxyMesh;
+	Wrapper->GetHoudiniAssetComponent()->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Wrapper->GetHoudiniAssetComponent()->SetEnableProxyStaticMeshOverride(Settings.bUseProxyMesh);
+	Wrapper->GetHoudiniAssetComponent()->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(!Settings.bUseProxyMesh);
 
 	// Bind delegates from the asset wrapper to UHoudiniEditorTestObject which we use to proxy to non-dynamic delegates
 	// like OnPreInstantiation.
@@ -209,10 +209,8 @@ void FHoudiniEditorTestUtils::InstantiateAsset(
 
 	Wrapper->Recook(); // Make sure the callback is called!
 
-	UHoudiniAssetComponent* HoudiniComponent = Wrapper->GetHoudiniAssetComponent();
 
 	const double StartTime = FPlatformTime::Seconds();
-
 	Test->AddCommand(new FFunctionLatentCommand([=]()
 	{
 		const bool IsInstantiating = TestObject->IsInstantiating;
@@ -222,7 +220,8 @@ void FHoudiniEditorTestUtils::InstantiateAsset(
 
 		double DeltaTime = CurrentTime - StartTime;
 
-		if (IsInstantiating == false && Wrapper->GetHoudiniAssetComponent()->GetAssetState() == EHoudiniAssetState::None)
+		EHoudiniAssetState CurrentState = Wrapper->GetHoudiniCookable() ? Wrapper->GetHoudiniCookable()->GetCurrentState() : Wrapper->GetHoudiniAssetComponent()->GetAssetState();
+		if (IsInstantiating == false && CurrentState == EHoudiniAssetState::None)
 		{
 			if (ErrorOnFail && CookSuccessfulResult == false)
 			{
@@ -260,7 +259,7 @@ void FHoudiniEditorTestUtils::InstantiateAsset(
 			ErrorString = FString::Printf(TEXT("TestObject->HasReachedExpectedCookCount() : %d"), TestObject->HasReachedExpectedCookCount() ? 1 : 0);
 			Test->AddError(ErrorString);
 
-			ErrorString = FString::Printf(TEXT("AssetState: %d("), static_cast<int>(Wrapper->GetHoudiniAssetComponent()->GetAssetState()));
+			ErrorString = FString::Printf(TEXT("AssetState: %d("), static_cast<int>(CurrentState));
 			Test->AddError(ErrorString);
 
 			OnFinishInstantiate(Wrapper, CookSuccessfulResult);
@@ -535,7 +534,15 @@ UHoudiniAssetComponent* FHoudiniEditorTestUtils::GetAssetComponentWithName(const
 
 	if (Out.Num() > 0)
 	{
-		return Out[0]->GetHoudiniAssetComponent();
+		UHoudiniAssetComponent* FoundHAC = Out[0]->GetHoudiniAssetComponent();
+		if (FoundHAC == nullptr)
+		{
+			UHoudiniCookable* HC = Out[0]->GetHoudiniCookable();
+			if (HC)
+				FoundHAC = Cast<UHoudiniAssetComponent>(HC->GetComponent());
+		}
+
+		return FoundHAC;
 	}
 
 	return nullptr;
@@ -1266,7 +1273,8 @@ void FHoudiniEditorTestUtils::RecookAndWait(FHoudiniAutomationTest* Test, UHoudi
 
 		const double CurrentTime = FPlatformTime::Seconds();
 
-		if (TestObject->CookCount >= TestObject->ExpectedCookCount && InAssetWrapper->GetHoudiniAssetComponent()->GetAssetState() == EHoudiniAssetState::None)
+		EHoudiniAssetState CurrentState = InAssetWrapper->GetHoudiniCookable() ? InAssetWrapper->GetHoudiniCookable()->GetCurrentState() : InAssetWrapper->GetHoudiniAssetComponent()->GetAssetState();
+		if (TestObject->CookCount >= TestObject->ExpectedCookCount && CurrentState == EHoudiniAssetState::None)
 		{
 			if (CookSuccessfulResult == false)
 			{

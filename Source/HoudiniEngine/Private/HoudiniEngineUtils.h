@@ -1348,6 +1348,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const TArray<TObjectPtr<UHoudiniInput>>& Inputs,
 			TArray<ALandscapeProxy*>& OutAllInputLandscapes);
 
+		static UHoudiniCookable* GetOuterHoudiniCookable(const UObject* Obj);
+
 		static UHoudiniAssetComponent* GetOuterHoudiniAssetComponent(const UObject* Obj);
 
 		// Helper to create an input node (similar to the HAPI version, but allows for specifying a parent node id

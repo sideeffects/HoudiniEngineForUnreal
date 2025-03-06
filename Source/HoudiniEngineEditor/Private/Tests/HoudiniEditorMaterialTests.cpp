@@ -101,8 +101,8 @@ bool HoudiniEditorMaterialTest_Material_Textures::RunTest(const FString& Paramet
 	// Now create the test context.
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorMaterialTests::TestHDAPath + TEXT("Material_Textures"), FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
-	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Context->HAC->SetEnableProxyStaticMeshOverride(false);
+	Context->GetHAC()->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->GetHAC()->SetEnableProxyStaticMeshOverride(false);
 
 	// Start cooking the HDA.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
@@ -167,7 +167,7 @@ bool HoudiniEditorMaterialTest_Material_Textures::RunTest(const FString& Paramet
 
 		// We should have one output.
 		TArray<UHoudiniOutput*> Outputs;
-		Context->HAC->GetOutputs(Outputs);
+		Context->GetHAC()->GetOutputs(Outputs);
 		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 1, return true);
 
 		// And the one output should have a static mesh.

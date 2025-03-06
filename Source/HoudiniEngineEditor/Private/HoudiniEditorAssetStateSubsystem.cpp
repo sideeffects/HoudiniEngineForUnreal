@@ -28,6 +28,7 @@
 #include "HoudiniEditorAssetStateSubsystem.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetStateTypes.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngineBakeUtils.h"
 
 #include "UObject/Object.h"
@@ -49,6 +50,28 @@ UHoudiniEditorAssetStateSubsystem::NotifyOfHoudiniAssetStateChange(UObject* InHo
 {
 	if (!IsValid(InHoudiniAssetContext))
 		return;
+
+	UHoudiniCookable* const HC = Cast<UHoudiniCookable>(InHoudiniAssetContext);
+	if (IsValid(HC))
+	{
+		// If we went from PostCook -> PreProcess, the cook was successful, and auto bake is enabled, auto bake!
+		if (InFromState == EHoudiniAssetState::PostCook && InToState == EHoudiniAssetState::PreProcess && HC->WasLastCookSuccessful() && HC->IsBakeAfterNextCookEnabled())
+		{
+			FHoudiniBakeSettings BakeSettings;
+			BakeSettings.SetFromCookable(HC);
+			FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
+				Cast<UHoudiniAssetComponent>(HC->GetComponent()),
+				BakeSettings,
+				HC->GetOutputData()->HoudiniEngineBakeOption,
+				HC->GetOutputData()->bRemoveOutputAfterBake);
+
+			if (HC->GetBakeAfterNextCook() == EHoudiniBakeAfterNextCook::Once)
+				HC->SetBakeAfterNextCook(EHoudiniBakeAfterNextCook::Disabled);
+		}
+
+		// Done, no need to bake for the HAC
+		return;
+	}
 
 	UHoudiniAssetComponent* const HAC = Cast<UHoudiniAssetComponent>(InHoudiniAssetContext);
 	if (!IsValid(HAC))

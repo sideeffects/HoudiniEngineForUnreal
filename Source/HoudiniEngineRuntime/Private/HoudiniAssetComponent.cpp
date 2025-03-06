@@ -3031,7 +3031,7 @@ UHoudiniAssetComponent::SetStaticMeshGenerationProperties(UStaticMesh* InStaticM
 
 	// TODO
 	// Set method for LOD texture factor computation.
-	//InStaticMesh->bUseMaximumStreamingTexelRatio = StaticMeshGenerationProperties.bGeneratedUseMaximumStreamingTexelRatio;
+	// InStaticMesh->bUseMaximumStreamingTexelRatio = StaticMeshGenerationProperties.bGeneratedUseMaximumStreamingTexelRatio;
 	// Set distance where textures using UV 0 are streamed in/out.  - GOES ON COMPONENT
 	// InStaticMesh->StreamingDistanceMultiplier = StaticMeshGenerationProperties.GeneratedStreamingDistanceMultiplier;
 	
@@ -3129,6 +3129,9 @@ UHoudiniAssetComponent::CreateSceneProxy()
 void
 UHoudiniAssetComponent::SetAssetState(EHoudiniAssetState InNewState)
 {
+	if (GetCookable())
+		return GetCookable()->SetCurrentState(InNewState);
+
 	const EHoudiniAssetState OldState = AssetState;
 	AssetState = InNewState;
 

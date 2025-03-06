@@ -1599,9 +1599,18 @@ UHoudiniPDGAssetLink::UpdatePostDuplicate()
 	}
 }
 
-UHoudiniAssetComponent* UHoudiniPDGAssetLink::GetOuterHoudiniAssetComponent() const
+UHoudiniAssetComponent* 
+UHoudiniPDGAssetLink::GetOuterHoudiniAssetComponent() const
 {
-	return Cast<UHoudiniAssetComponent>( GetTypedOuter<UHoudiniAssetComponent>() );
+	UHoudiniCookable* FoundHC = Cast<UHoudiniCookable>(GetTypedOuter<UHoudiniCookable>());
+	if (FoundHC)
+		return Cast<UHoudiniAssetComponent>(FoundHC->GetComponent());
+
+	UHoudiniAssetComponent* FoundHAC = Cast<UHoudiniAssetComponent>(GetTypedOuter<UHoudiniAssetComponent>());
+	if (FoundHAC)
+		return FoundHAC;
+
+	return nullptr;
 }
 
 void

@@ -656,9 +656,14 @@ UHoudiniCookable::HandleOnHoudiniAssetStateChange(UObject* InHoudiniAssetContext
 	if (this != InHoudiniAssetContext)
 		return;
 
-	FOnCookableStateChangeDelegate& StateChangeDelegate = GetOnCookableStateChangeDelegate();
-	if (StateChangeDelegate.IsBound())
-		StateChangeDelegate.Broadcast(this, InFromState, InToState);
+	FOnAssetStateChangeDelegate StateChangedDelegate = GetOnAssetStateChangeDelegate();
+	if (StateChangedDelegate.IsBound())
+		StateChangedDelegate.Broadcast(this, InFromState, InToState);
+
+	// TODO: not needed?
+	FOnCookableStateChangeDelegate& CookableStateChangeDelegate = GetOnCookableStateChangeDelegate();
+	if (CookableStateChangeDelegate.IsBound())
+		CookableStateChangeDelegate.Broadcast(this, InFromState, InToState);
 
 	if (InToState == EHoudiniAssetState::PreInstantiation)
 	{
@@ -1394,7 +1399,7 @@ UHoudiniCookable::GetHandleComponents()
 void
 UHoudiniCookable::GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const
 {
-	if (IsOutputSupported())
+	if (!IsOutputSupported())
 		return;
 
 	for (UHoudiniOutput* Output : OutputData->Outputs)

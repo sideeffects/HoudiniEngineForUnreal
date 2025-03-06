@@ -69,7 +69,7 @@ bool FHoudiniEditorTestPresetLoading::RunTest(const FString& Parameters)
 	Preset->PostInstantiationCallbacks.Add([bPresetInstantiated, Context](const UHoudiniPreset* Preset, UHoudiniAssetComponent* HAC)
 	{
 		*bPresetInstantiated = true;
-		Context->HAC = HAC;
+		Context->SetHAC(HAC);
 	});
 
 
@@ -84,12 +84,12 @@ bool FHoudiniEditorTestPresetLoading::RunTest(const FString& Parameters)
 
 		Preset->PostInstantiationCallbacks.Empty();
 
-		HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->HAC, return true);
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->GetHAC(), return true);
 
 		TMap<FString, UHoudiniParameter*> Parameters;
-		for(int Index = 0; Index < Context->HAC->GetNumParameters();Index++)
+		for(int Index = 0; Index < Context->GetHAC()->GetNumParameters();Index++)
 		{
-			auto * Parameter = Context->HAC->GetParameterAt(Index);
+			auto * Parameter = Context->GetHAC()->GetParameterAt(Index);
 			Parameters.Add(Parameter->GetParameterName(), Parameter);
 		}
 

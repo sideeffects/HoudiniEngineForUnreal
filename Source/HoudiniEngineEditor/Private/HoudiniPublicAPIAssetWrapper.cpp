@@ -29,6 +29,7 @@
 
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniEngineCommands.h"
@@ -537,7 +538,11 @@ UHoudiniPublicAPIAssetWrapper::GetValidOutputAtWithError(const int32 InOutputInd
 
 UHoudiniPDGAssetLink*
 UHoudiniPublicAPIAssetWrapper::GetHoudiniPDGAssetLink() const
-{
+{ 
+	UHoudiniCookable* const HC = GetHoudiniCookable();
+	if (IsValid(HC))
+		return HC->GetPDGAssetLink();
+
 	UHoudiniAssetComponent* const HAC = GetHoudiniAssetComponent();
 	if (!IsValid(HAC))
 		return nullptr;
@@ -580,6 +585,17 @@ UHoudiniPublicAPIAssetWrapper::ClearHoudiniAssetObject_Implementation()
 	
 	FHoudiniEngineCommands::GetOnHoudiniProxyMeshesRefinedDelegate().Remove(OnHoudiniProxyMeshesRefinedDelegateHandle);
 
+	UHoudiniCookable* const HC = GetHoudiniCookable();
+	if (IsValid(HC))
+	{
+		if (OnAssetStateChangeDelegateHandle.IsValid())
+			HC->GetOnAssetStateChangeDelegate().Remove(OnAssetStateChangeDelegateHandle);
+		if (OnPostCookDelegateHandle.IsValid())
+			HC->GetOnPostCookDelegate().Remove(OnPostCookDelegateHandle);
+		if (OnPostBakeDelegateHandle.IsValid())
+			HC->GetOnPostBakeDelegate().Remove(OnPostBakeDelegateHandle);
+	}
+
 	UHoudiniAssetComponent* const HAC = GetHoudiniAssetComponent();
 	if (IsValid(HAC))
 	{
@@ -600,6 +616,7 @@ UHoudiniPublicAPIAssetWrapper::ClearHoudiniAssetObject_Implementation()
 
 	HoudiniAssetObject = nullptr;
 	CachedHoudiniAssetActor = nullptr;
+	CachedHoudiniCookable = nullptr;
 	CachedHoudiniAssetComponent = nullptr;
 }
 
@@ -631,23 +648,51 @@ UHoudiniPublicAPIAssetWrapper::WrapHoudiniAssetObject_Implementation(UObject* In
 	if (HoudiniAssetObject->IsA<AHoudiniAssetActor>())
 	{
 		CachedHoudiniAssetActor = Cast<AHoudiniAssetActor>(InHoudiniAssetObjectToWrap);
-		CachedHoudiniAssetComponent = CachedHoudiniAssetActor->HoudiniAssetComponent;
+		CachedHoudiniCookable = CachedHoudiniAssetActor->GetHoudiniCookable();
+		if (CachedHoudiniCookable.IsValid())
+		{
+			CachedHoudiniAssetComponent = Cast<UHoudiniAssetComponent>(CachedHoudiniCookable->GetComponent());
+		}
+		else
+		{
+			CachedHoudiniAssetComponent = CachedHoudiniAssetActor->GetHoudiniAssetComponent();
+		}
 	}
 	else if (HoudiniAssetObject->IsA<UHoudiniAssetComponent>())
 	{
 		CachedHoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InHoudiniAssetObjectToWrap);
 		CachedHoudiniAssetActor = Cast<AHoudiniAssetActor>(CachedHoudiniAssetComponent->GetOwner());
+		CachedHoudiniCookable = Cast<UHoudiniCookable>(InHoudiniAssetObjectToWrap);
+	}
+	else if (HoudiniAssetObject->IsA<UHoudiniCookable>())
+	{
+		CachedHoudiniCookable = Cast<UHoudiniCookable>(InHoudiniAssetObjectToWrap); 
+		CachedHoudiniAssetActor = Cast<AHoudiniAssetActor>(CachedHoudiniCookable->GetOwner());
+		CachedHoudiniAssetComponent = Cast<UHoudiniAssetComponent>(CachedHoudiniCookable->GetComponent());
 	}
 
-	UHoudiniAssetComponent* const HAC = GetHoudiniAssetComponent();
-	if (IsValid(HAC))
+	UHoudiniCookable* const HC = GetHoudiniCookable();
+	if (IsValid(HC))
 	{
-		// Bind to HandleOnHoudiniAssetStateChange from the HAC: we also implement IHoudiniAssetStateEvents, and
+		// Bind to HandleOnHoudiniAssetStateChange from the HC: we also implement IHoudiniAssetStateEvents, and
 		// in the default implementation HandleOnHoudiniAssetStateChange will call the appropriate Handle functions
 		// for PostInstantiate, PostCook etc
-		OnAssetStateChangeDelegateHandle = HAC->GetOnAssetStateChangeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniAssetComponentStateChange"));
-		OnPostCookDelegateHandle = HAC->GetOnPostCookDelegate().AddUFunction(this, TEXT("HandleOnHoudiniAssetComponentPostCook"));
-		OnPostBakeDelegateHandle = HAC->GetOnPostBakeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniAssetComponentPostBake"));
+		OnAssetStateChangeDelegateHandle = HC->GetOnAssetStateChangeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniCookableStateChange"));
+		OnPostCookDelegateHandle = HC->GetOnPostCookDelegate().AddUFunction(this, TEXT("HandleOnHoudiniCookablePostCook"));
+		OnPostBakeDelegateHandle = HC->GetOnPostBakeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniCookablePostBake"));
+	}
+	else
+	{
+		UHoudiniAssetComponent* const HAC = GetHoudiniAssetComponent();
+		if (IsValid(HAC))
+		{
+			// Bind to HandleOnHoudiniAssetStateChange from the HAC: we also implement IHoudiniAssetStateEvents, and
+			// in the default implementation HandleOnHoudiniAssetStateChange will call the appropriate Handle functions
+			// for PostInstantiate, PostCook etc
+			OnAssetStateChangeDelegateHandle = HAC->GetOnAssetStateChangeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniAssetComponentStateChange"));
+			OnPostCookDelegateHandle = HAC->GetOnPostCookDelegate().AddUFunction(this, TEXT("HandleOnHoudiniAssetComponentPostCook"));
+			OnPostBakeDelegateHandle = HAC->GetOnPostBakeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniAssetComponentPostBake"));
+		}
 	}
 
 	OnHoudiniProxyMeshesRefinedDelegateHandle = FHoudiniEngineCommands::GetOnHoudiniProxyMeshesRefinedDelegate().AddUFunction(this, TEXT("HandleOnHoudiniProxyMeshesRefinedGlobal"));
@@ -671,6 +716,12 @@ UHoudiniAssetComponent*
 UHoudiniPublicAPIAssetWrapper::GetHoudiniAssetComponent_Implementation() const
 {
 	return CachedHoudiniAssetComponent.Get();
+}
+
+UHoudiniCookable*
+UHoudiniPublicAPIAssetWrapper::GetHoudiniCookable_Implementation() const
+{
+	return CachedHoudiniCookable.Get();
 }
 
 bool
@@ -3584,6 +3635,90 @@ UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniAssetComponentPostBake(UHoudiniAss
 		SetErrorMessage(FString::Printf(
 			TEXT("HandleOnHoudiniAssetComponentPostBake: unexpected InHAC: %s, expected the wrapper's HAC."),
 			IsValid(InHAC) ? *InHAC->GetName() : TEXT("")));
+		return;
+	}
+
+	if (OnPostBakeDelegate.IsBound())
+		OnPostBakeDelegate.Broadcast(this, bInBakeSuccess);
+}
+
+
+void
+UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniCookableStateChange(UHoudiniCookable* InHC, const EHoudiniAssetState InFromState, const EHoudiniAssetState InToState)
+{
+	if (!IsValid(InHC))
+		return;
+
+	if (InHC != GetHoudiniCookable())
+	{
+		SetErrorMessage(FString::Printf(
+			TEXT("HandleOnHoudiniCookableStateChange: unexpected InHC: %s, expected the wrapper's HC."),
+			IsValid(InHC) ? *InHC->GetName() : TEXT("")));
+		return;
+	}
+
+	if (InToState == EHoudiniAssetState::PreInstantiation)
+	{
+		if (OnPreInstantiationDelegate.IsBound())
+			OnPreInstantiationDelegate.Broadcast(this);
+	}
+
+	if (InFromState == EHoudiniAssetState::Instantiating && InToState == EHoudiniAssetState::PreCook)
+	{
+		// PDG link setup / bindings: we have to wait until post instantiation to check if we have an asset link and
+		// configure bindings
+		if (!bAssetLinkSetupAttemptComplete)
+		{
+			BindToPDGAssetLink();
+			bAssetLinkSetupAttemptComplete = true;
+		}
+
+		if (OnPostInstantiationDelegate.IsBound())
+			OnPostInstantiationDelegate.Broadcast(this);
+	}
+
+	if (InFromState == EHoudiniAssetState::PreProcess)
+	{
+		if (OnPreProcessStateExitedDelegate.IsBound())
+			OnPreProcessStateExitedDelegate.Broadcast(this);
+	}
+
+	if (InFromState == EHoudiniAssetState::Processing && InToState == EHoudiniAssetState::None)
+	{
+		if (OnPostProcessingDelegate.IsBound())
+			OnPostProcessingDelegate.Broadcast(this);
+	}
+}
+
+void
+UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniCookablePostCook(UHoudiniCookable* InHC, const bool bInCookSuccess)
+{
+	if (!IsValid(InHC))
+		return;
+
+	if (InHC != GetHoudiniCookable())
+	{
+		SetErrorMessage(FString::Printf(
+			TEXT("HandleOnHoudiniCookableStateChange: unexpected InHC: %s, expected the wrapper's HC."),
+			IsValid(InHC) ? *InHC->GetName() : TEXT("")));
+		return;
+	}
+
+	if (OnPostCookDelegate.IsBound())
+		OnPostCookDelegate.Broadcast(this, bInCookSuccess);
+}
+
+void
+UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniCookablePostBake(UHoudiniCookable* InHC, const bool bInBakeSuccess)
+{
+	if (!IsValid(InHC))
+		return;
+
+	if (InHC != GetHoudiniCookable())
+	{
+		SetErrorMessage(FString::Printf(
+			TEXT("HandleOnHoudiniCookableStateChange: unexpected InHC: %s, expected the wrapper's HC."),
+			IsValid(InHC) ? *InHC->GetName() : TEXT("")));
 		return;
 	}
 

@@ -1263,12 +1263,41 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 	}
 }
 
+UHoudiniCookable*
+FHoudiniEngineUtils::GetOuterHoudiniCookable(const UObject* Obj)
+{
+	if (!IsValid(Obj))
+		return nullptr;
+
+	// Check the direct Outer
+	UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(Obj->GetOuter());
+	if (IsValid(OuterHC))
+		return OuterHC;
+
+	// Check the whole outer chain
+	OuterHC = Obj->GetTypedOuter<UHoudiniCookable>();
+	if (IsValid(OuterHC))
+		return OuterHC;
+
+	// Finally check if the Object itself is a HaC
+	UObject* NonConstObj = const_cast<UObject*>(Obj);
+	OuterHC = Cast<UHoudiniCookable>(NonConstObj);
+	if (IsValid(OuterHC))
+		return OuterHC;
+
+	return nullptr;
+}
 
 UHoudiniAssetComponent*
 FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(const UObject* Obj)
 {
 	if (!IsValid(Obj))
 		return nullptr;
+
+	// Start by looking for a Cookable outer
+	UHoudiniCookable* OuterHC = FHoudiniEngineUtils::GetOuterHoudiniCookable(Obj);
+	if (IsValid(OuterHC))
+		return Cast<UHoudiniAssetComponent>(OuterHC->GetComponent());
 
 	// Check the direct Outer
 	UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(Obj->GetOuter());

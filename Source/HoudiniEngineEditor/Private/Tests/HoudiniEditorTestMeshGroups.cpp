@@ -169,8 +169,8 @@ TSharedPtr<FHoudiniTestContext> FHoudiniMeshAutomationTest::LoadHDA(FAutomationT
 
 	// Now create the test context.
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(Test, TEXT("/Game/TestHDAs/Mesh/Test_MeshGroups"), FTransform::Identity, false));
-	Context->HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Context->HAC->SetEnableProxyStaticMeshOverride(false);
+	Context->GetHAC()->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Context->GetHAC()->SetEnableProxyStaticMeshOverride(false);
 
 	return Context;
 }
@@ -178,7 +178,7 @@ TSharedPtr<FHoudiniTestContext> FHoudiniMeshAutomationTest::LoadHDA(FAutomationT
 TArray<UStaticMeshComponent*> FHoudiniMeshAutomationTest::GetStaticMeshes(TSharedPtr<FHoudiniTestContext> Context)
 {
 	TArray<UHoudiniOutput*> Outputs;
-	Context->HAC->GetOutputs(Outputs);
+	Context->GetHAC()->GetOutputs(Outputs);
 
 	TArray<UStaticMeshComponent*> StaticMeshOutputComponents = FHoudiniEditorUnitTestUtils::GetOutputsWithComponent<UStaticMeshComponent>(Outputs);
 	return StaticMeshOutputComponents;
@@ -190,8 +190,8 @@ void FHoudiniMeshAutomationTest::ExecuteMeshTest(TSharedPtr<FHoudiniTestContext>
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, Settings]()
 	{
 		// Set number of multiparms; cook before we update he values.
-		SET_HDA_PARAMETER_NUM_ELEMENTS(Context->HAC, UHoudiniParameterMultiParm, "cube_groups", Settings.CubeGroups.Num());
-		SET_HDA_PARAMETER_NUM_ELEMENTS(Context->HAC, UHoudiniParameterMultiParm, "sphere_groups", Settings.SphereGroups.Num());
+		SET_HDA_PARAMETER_NUM_ELEMENTS(Context->GetHAC(), UHoudiniParameterMultiParm, "cube_groups", Settings.CubeGroups.Num());
+		SET_HDA_PARAMETER_NUM_ELEMENTS(Context->GetHAC(), UHoudiniParameterMultiParm, "sphere_groups", Settings.SphereGroups.Num());
 		Context->StartCookingHDA();
 		return true;
 	}));
@@ -202,15 +202,15 @@ void FHoudiniMeshAutomationTest::ExecuteMeshTest(TSharedPtr<FHoudiniTestContext>
 		for(int Index = 0; Index < Settings.CubeGroups.Num(); Index++)
 		{
 			FString ParmName = FString::Format(TEXT("cube_group{0}"), { Index + 1});
-			SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, TCHAR_TO_ANSI(*ParmName), Settings.CubeGroups[Index], 0);
+			SET_HDA_PARAMETER(Context->GetHAC(), UHoudiniParameterString, TCHAR_TO_ANSI(*ParmName), Settings.CubeGroups[Index], 0);
 		}
 		for (int Index = 0; Index < Settings.SphereGroups.Num(); Index++)
 		{
 			FString ParmName = FString::Format(TEXT("sphere_group{0}"), { Index + 1 });
-			SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterString, TCHAR_TO_ANSI(*ParmName), Settings.SphereGroups[Index], 0);
+			SET_HDA_PARAMETER(Context->GetHAC(), UHoudiniParameterString, TCHAR_TO_ANSI(*ParmName), Settings.SphereGroups[Index], 0);
 		}
 
-		SET_HDA_PARAMETER(Context->HAC, UHoudiniParameterToggle, "pack", Settings.bPack, 0);
+		SET_HDA_PARAMETER(Context->GetHAC(), UHoudiniParameterToggle, "pack", Settings.bPack, 0);
 
 		Context->StartCookingHDA();
 		return true;
