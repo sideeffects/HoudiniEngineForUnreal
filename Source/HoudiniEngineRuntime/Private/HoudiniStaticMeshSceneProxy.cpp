@@ -26,21 +26,21 @@
 
 #include "HoudiniStaticMeshSceneProxy.h"
 
+#include "HoudiniStaticMesh.h"
+#include "HoudiniStaticMeshComponent.h"
+
 #include "Async/ParallelFor.h"
+#include "Engine/Engine.h"
 #include "Materials/Material.h"
 #include "PrimitiveViewRelevance.h"
-#include "Engine/Engine.h"
+#include "ProfilingDebugging/CpuProfilerTrace.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "SceneView.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
 	#include "MaterialDomain.h"
 	#include "Materials/MaterialRenderProxy.h"
 	#include "SceneInterface.h" 
 #endif
-
-#include "ProfilingDebugging/CpuProfilerTrace.h"
-
-#include "HoudiniStaticMeshComponent.h"
-#include "HoudiniStaticMesh.h"
 
 // Based on: Plugins\Experimental\MeshModelingToolset\Source\ModelingComponents\Private\BaseDynamicMeshSceneProxy.h
 
