@@ -1070,7 +1070,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			// We want to check again for PDG after a rebuild
 			HAC->bIsPDGAssetLinkInitialized = false;
 
-			HAC->MarkAsNeedCook();
+			//HAC->MarkAsNeedCook();
 			HAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
 			break;
 		}
@@ -1568,7 +1568,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 		case EHoudiniAssetState::NeedRebuild:
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessCookable - NeedRebuild);
-			if(HC->IsParameterSupported())
+			if(HC->IsParameterSupported() && HC->GetNodeId() >= 0)
 			{
 				// Make sure no parameters are changed before getting the preset
 				bool bCleanParamPreset = false;
@@ -1603,7 +1603,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 				HC->PDGData->bIsPDGAssetLinkInitialized = false;
 			}
 
-			HC->MarkAsNeedCook();
+			//HC->MarkAsNeedCook();
 			HC->SetCurrentState(EHoudiniAssetState::PreInstantiation);
 			break;
 		}
@@ -2162,6 +2162,9 @@ FHoudiniEngineManager::PreCook(UHoudiniAssetComponent* HAC)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PreCook);
 
+	if (!IsValid(HAC))
+		return false;
+
 	// Remove all Cooked (layers) before cooking so we don't received cooked data in Houdini
 	// if a landscape is input back to the HDA.
 	for (int Output = 0; Output < HAC->Outputs.Num(); Output++)
@@ -2180,43 +2183,34 @@ FHoudiniEngineManager::PreCook(UHoudiniAssetComponent* HAC)
 
 	if (HAC->HasBeenLoaded() || HAC->IsParameterDefinitionUpdateNeeded())
 	{
-		bool bPresetSuccess = false;
 		if (!HAC->ParameterPresetBuffer.IsEmpty())
 		{
-			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PreCook-SetPreset);
-
-			// If we have stored parameter preset - restore them
-			if(FHoudiniEngineUtils::SetAssetPreset(HAC->GetAssetId(), HAC->ParameterPresetBuffer))
-				bPresetSuccess = true;
-		}
-
-		if(!bPresetSuccess)
-		{
-			if (!IsValid(HAC))
-				return false;
-
-			// Nothing to do for Node Sync Components!
-			if (!HAC->IsA<UHoudiniNodeSyncComponent>())
+			// Only apply parameters presets for rebuilds, not after a param change
+			if (HAC->HasRebuildBeenRequested())
 			{
-				// This will sync parameter definitions but not upload values to HAPI or fetch values for existing parameters
-				// in Unreal. It will creating missing parameters in Unreal.
-				bool bForceFullUpdate = HAC->HasRebuildBeenRequested() || HAC->HasRecookBeenRequested() || HAC->IsParameterDefinitionUpdateNeeded();
-				bool bCacheRampParms = !HAC->HasBeenLoaded() && !HAC->HasBeenDuplicated();
-				FHoudiniParameterTranslator::UpdateLoadedParameters(
-					HAC->GetAssetId(),
-					HAC->Parameters,
-					HAC,
-					bForceFullUpdate,
-					bCacheRampParms,
-					HAC->bNeedToUpdateEditorProperties);
-				HAC->bParameterDefinitionUpdateNeeded = false;
+				FHoudiniEngineUtils::SetAssetPreset(HAC->GetAssetId(), HAC->ParameterPresetBuffer);
 			}
-		}
-		else
-		{
-			// We've successfully applied the parameter presets
+
+			// We don't want to apply param presets after loading a level
 			// Clean it up until next cook 
 			HAC->ParameterPresetBuffer.Empty();
+		}
+
+		// Nothing to do for Node Sync Components!
+		if (!HAC->IsA<UHoudiniNodeSyncComponent>())
+		{
+			// This will sync parameter definitions but not upload values to HAPI or fetch values for existing parameters
+			// in Unreal. It will creating missing parameters in Unreal.
+			bool bForceFullUpdate = HAC->HasRebuildBeenRequested() || HAC->HasRecookBeenRequested() || HAC->IsParameterDefinitionUpdateNeeded();
+			bool bCacheRampParms = !HAC->HasBeenLoaded() && !HAC->HasBeenDuplicated();
+			FHoudiniParameterTranslator::UpdateLoadedParameters(
+				HAC->GetAssetId(),
+				HAC->Parameters,
+				HAC,
+				bForceFullUpdate,
+				bCacheRampParms,
+				HAC->bNeedToUpdateEditorProperties);
+			HAC->bParameterDefinitionUpdateNeeded = false;
 		}
 	}
 	
@@ -2304,40 +2298,34 @@ FHoudiniEngineManager::PreCook(UHoudiniCookable* HC)
 
 		if (HC->HasBeenLoaded() || HC->IsParameterDefinitionUpdateNeeded())
 		{
-			bool bPresetSuccess = false;
 			if (!HC->ParameterData->ParameterPresetBuffer.IsEmpty())
 			{
 				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PreCook - SetPreset);
 
-				// If we have stored parameter preset - restore them
-				if (FHoudiniEngineUtils::SetAssetPreset(HC->GetNodeId(), HC->ParameterData->ParameterPresetBuffer))
-					bPresetSuccess = true;
-			}
+				// We only apply parameters presets for rebuilds
+				if (HC->HasRebuildBeenRequested())
+				{
+					FHoudiniEngineUtils::SetAssetPreset(HC->GetNodeId(), HC->ParameterData->ParameterPresetBuffer);
+				}
 
-			if (!bPresetSuccess)
-			{
-				// This will sync parameter definitions but not upload values to HAPI or fetch values for existing parameters
-				// in Unreal. It will creating missing parameters in Unreal.
-				//FHoudiniParameterTranslator::UpdateLoadedParameters(HAC);
-
-				bool bForceFullUpdate = HC->HasRebuildBeenRequested() || HC->HasRecookBeenRequested() || HC->IsParameterDefinitionUpdateNeeded();
-				bool bCacheRampParms = !HC->HasBeenLoaded() && !HC->HasBeenDuplicated();
-				FHoudiniParameterTranslator::UpdateLoadedParameters(
-					HC->GetNodeId(),
-					HC->ParameterData->Parameters,
-					HC,
-					bForceFullUpdate,
-					bCacheRampParms,
-					HC->bNeedToUpdateEditorProperties);
-
-				HC->ParameterData->bParameterDefinitionUpdateNeeded = false;
-			}
-			else
-			{
-				// We've successfully applied the parameter presets
-				// Clean it up until next cook 
 				HC->ParameterData->ParameterPresetBuffer.Empty();
 			}
+
+			// This will sync parameter definitions but not upload values to HAPI or fetch values for existing parameters
+			// in Unreal. It will creating missing parameters in Unreal.
+			//FHoudiniParameterTranslator::UpdateLoadedParameters(HAC);
+
+			bool bForceFullUpdate = HC->HasRebuildBeenRequested() || HC->HasRecookBeenRequested() || HC->IsParameterDefinitionUpdateNeeded();
+			bool bCacheRampParms = !HC->HasBeenLoaded() && !HC->HasBeenDuplicated();
+			FHoudiniParameterTranslator::UpdateLoadedParameters(
+				HC->GetNodeId(),
+				HC->ParameterData->Parameters,
+				HC,
+				bForceFullUpdate,
+				bCacheRampParms,
+				HC->bNeedToUpdateEditorProperties);
+
+			HC->ParameterData->bParameterDefinitionUpdateNeeded = false;
 		}
 	}
 
