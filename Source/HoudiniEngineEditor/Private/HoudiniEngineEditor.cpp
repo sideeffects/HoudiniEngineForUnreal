@@ -94,7 +94,9 @@
 #include "UnrealEdGlobals.h"
 #include "Toolkits/AssetEditorModeUILayer.h"
 #include "Widgets/Docking/SDockTab.h"
-
+#if defined(HOUIDNI_USE_PCG)
+#include "HoudiniPCGComponent.h"
+#endif
 #if WITH_EDITOR
 	#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructure.h"
 	#include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
@@ -295,6 +297,16 @@ FHoudiniEngineEditor::RegisterDetails()
 	PropertyModule.RegisterCustomClassLayout(
 		TEXT("HoudiniRuntimeSettings"),
 		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniRuntimeSettingsDetails::MakeInstance));
+#if defined(HOUIDNI_USE_PCG)
+	PropertyModule.RegisterCustomClassLayout(
+		TEXT("HoudiniPCGComponent"),
+		FOnGetDetailCustomizationInstance::CreateStatic(&UHoudiniPCGComponentDetails::MakeInstance));
+#if 0
+	PropertyModule.RegisterCustomClassLayout(
+		TEXT("HoudiniPCGSettings"),
+		FOnGetDetailCustomizationInstance::CreateStatic(&UHoudiniPCGComponentDetails::MakeInstance));
+#endif
+#endif
 }
 
 void
@@ -307,6 +319,12 @@ FHoudiniEngineEditor::UnregisterDetails()
 
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"));
+#if defined(HOUIDNI_USE_PCG)
+		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniPCGComponent"));
+#if 0
+		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniPCGSettings"));
+#endif
+#endif
 	}
 }
 
@@ -697,7 +715,12 @@ FHoudiniEngineEditor::BindMenuCommands()
 		FExecuteAction::CreateLambda([](){ return FHoudiniEngineCommands::PauseAssetCooking(); }),
 		FCanExecuteAction::CreateLambda([](){ return FHoudiniEngineCommands::IsSessionValid(); }),
 		FIsActionChecked::CreateLambda([](){ return FHoudiniEngineCommands::IsAssetCookingPaused(); }));
-
+#if defined(HOUDINI_USE_PCG)
+	HEngineCommands->MapAction(
+		Commands._ResetPCGSession,
+		FExecuteAction::CreateLambda([]() { FHoudiniEngineCommands::ResetPCGSession(); }),
+		FCanExecuteAction::CreateLambda([]() { return true; }));
+#endif
 	// Non menu command (used for shortcuts only)
 
 	// Append the command to the editor module
@@ -768,7 +791,9 @@ FHoudiniEngineEditor::AddHoudiniMainMenuExtension(FMenuBuilder & MenuBuilder)
 	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._RestartSession);
 	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._OpenSessionSync);
 	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._CloseSessionSync);
-
+#if defined (HOUDINI_USE_PCG)
+	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._ResetPCGSession);
+#endif
 	// Viewport sync menu
 	struct FLocalMenuBuilder
 	{

@@ -57,6 +57,7 @@ class UHoudiniInputLandscape;
 class UHoudiniInputBrush;
 class UHoudiniSplineComponent;
 class UHoudiniInputCameraComponent;
+class UHoudiniInputPCGData;
 class UHoudiniInputDataTable;
 class UHoudiniInputFoliageType_InstancedStaticMesh;
 class UHoudiniInputBlueprint;
@@ -322,6 +323,12 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		TArray<TObjectPtr<AActor>>* ExcludeActors,
 		const FHoudiniInputObjectSettings& InInputSettings,
 		bool bInputNodesCanBeDeleted);
+
+	static bool HapiCreateInputNodeForPCGData(
+		const FString& InNodeName,
+		UHoudiniInputPCGData* InInputObject,
+		const FHoudiniInputObjectSettings& InInputSettings,
+		const bool& bInputNodesCanBeDeleted);
 
 	static bool HapiCreateInputNodeForDataTable(
 		const FString& InNodeName,

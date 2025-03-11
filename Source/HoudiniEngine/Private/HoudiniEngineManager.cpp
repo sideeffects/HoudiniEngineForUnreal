@@ -1957,7 +1957,7 @@ FHoudiniEngineManager::UpdateInstantiating(UHoudiniCookable* HC, EHoudiniAssetSt
 		// If necessary, set asset transform to the component's transform.
 		if (HC->IsComponentSupported() 
 			&& HC->ComponentData->bUploadTransformsToHoudiniEngine
-			&& IsValid(HC->ComponentData->Component))
+			&& IsValid(HC->ComponentData->Component.Get()))
 		{
 			// Retrieve the current component-to-world transform for this component.
 			if (!FHoudiniEngineUtils::HapiSetAssetTransform(HC->NodeId, HC->ComponentData->Component->GetComponentTransform()))

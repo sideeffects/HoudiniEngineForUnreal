@@ -86,7 +86,9 @@ public:
 	}
 
 	EHoudiniBGEOCommandletStatus GetPDGCommandletStatus() { return PDGManager.UpdateAndGetBGEOCommandletStatus(); }
-	
+
+	// Automatically try to start the First HE session if needed
+	void AutoStartFirstSessionIfNeeded();
 	
 protected:
 
@@ -174,9 +176,6 @@ protected:
 	void DisableEditorAutoSave(const UObject* InObject);
 	// Enable auto-save if we no longer have an object preventing autosaving
 	void EnableEditorAutoSave(const UObject* InObject);
-
-	// Automatically try to start the First HE session if needed
-	void AutoStartFirstSessionIfNeeded();
 
 private:
 

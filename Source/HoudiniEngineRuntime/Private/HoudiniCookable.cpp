@@ -952,7 +952,7 @@ UHoudiniCookable::ClearNodesToCook()
 void
 UHoudiniCookable::UpdatePostDuplicate()
 {
-	if (IsComponentSupported() && IsValid(ComponentData->Component))
+	if (IsComponentSupported() && IsValid(ComponentData->Component.Get()))
 	{
 		// TODO COOKABLE:
 		// - Keep the output objects/components (remove duplicatetransient on the output object uproperties)

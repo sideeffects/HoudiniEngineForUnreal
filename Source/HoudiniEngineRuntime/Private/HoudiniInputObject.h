@@ -44,6 +44,7 @@
 
 #include "HoudiniInputObject.generated.h"
 
+class UHoudiniPCGInputObject;
 class ULandscapeSplineControlPoint;
 class UStaticMesh;
 class USkeletalMesh;
@@ -64,6 +65,7 @@ class UCameraComponent;
 class ALevelInstance;
 class APackedLevelActor;
 class UHoudiniInputActor;
+class UPCGData;
 
 UENUM()
 enum class EHoudiniInputObjectType : uint8
@@ -97,6 +99,7 @@ enum class EHoudiniInputObjectType : uint8
 	SplineMeshComponent,
 	LevelInstance,
 	PackedLevelActor,
+	PCGData,
 };
 
 
@@ -1086,6 +1089,22 @@ protected:
 	TEnumAsByte<EBrushType> CachedInputBrushType;
 };
 
+//-----------------------------------------------------------------------------------------------------------------------------
+// UPCGData input
+//-----------------------------------------------------------------------------------------------------------------------------
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputPCGData : public UHoudiniInputObject
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+
+	//
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+
+	// DataTable accessor
+	UHoudiniPCGInputObject* GetPCGData() const;
+};
 
 //-----------------------------------------------------------------------------------------------------------------------------
 // UDataTable input

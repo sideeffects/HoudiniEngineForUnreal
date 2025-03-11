@@ -75,7 +75,7 @@ FHoudiniHandleTranslator::BuildHandles(UHoudiniCookable* HC)
 	TArray<TObjectPtr<UHoudiniHandleComponent>> NewHandles;
 	if (FHoudiniHandleTranslator::BuildAllHandles(
 		HC->GetNodeId(),
-		HC->ComponentData->Component,
+		HC->ComponentData->Component.Get(),
 		HC->ComponentData->HandleComponents,
 		NewHandles,
 		HC->ParameterData->Parameters))

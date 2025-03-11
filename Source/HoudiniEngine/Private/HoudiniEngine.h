@@ -145,7 +145,7 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 		// Connect to an existing HE session
 		bool ConnectSession(const EHoudiniRuntimeSettingsSessionType& SessionType);
 
-		// Notifies active objects that a new session has been connected to. Called when sessions are Created or Connected.
+		// Notifies active objects that a new session has been connected to. Called when sessions are None or Connected.
 		void OnSessionConnected();
 
 		// Starts the HoudiniEngineManager ticking

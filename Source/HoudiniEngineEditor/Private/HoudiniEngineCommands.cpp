@@ -64,7 +64,9 @@
 //#include "UObject/ObjectSaveContext.h"
 #include "LevelEditor.h"
 #include "UObject/UObjectIterator.h"
-
+#if defined(HOUDINI_USE_PCG)
+#include "HoudiniPCGUtils.h"
+#endif
 #include "Trace/StoreClient.h"
 
 #include "IContentBrowserSingleton.h"
@@ -133,6 +135,9 @@ FHoudiniEngineCommands::RegisterCommands()
 
 	UI_COMMAND(_CleanUpTempFolder, "Clean Houdini Engine Temp Folder", "Deletes the unused temporary files in the Temporary Cook Folder.", EUserInterfaceActionType::Button, FInputChord());	
 	UI_COMMAND(_PauseAssetCooking, "Pause Houdini Engine Cooking", "When activated, prevents Houdini Engine from cooking assets until unpaused.", EUserInterfaceActionType::Check, FInputChord(EKeys::P, EModifierKey::Control | EModifierKey::Alt));
+#if defined(HOUDINI_USE_PCG)
+	UI_COMMAND(_ResetPCGSession, "Reset PCG Session", "Resets Houdini PCG cookable data.", EUserInterfaceActionType::Button, FInputChord());
+#endif
 }
 
 void
@@ -805,6 +810,14 @@ FHoudiniEngineCommands::RebuildAllAssets()
 	// ... and a log message
 	HOUDINI_LOG_MESSAGE(TEXT("Rebuilt %d Houdini assets in the current level."), RebuiltCount);
 }
+
+#if defined(HOUDINI_USE_PCG)
+void FHoudiniEngineCommands::ResetPCGSession()
+{
+	FString Notification = TEXT("Reseting internal Houdini PCG Session data...");
+	FHoudiniPCGUtils::ResetPCGSession();
+}
+#endif
 
 void
 FHoudiniEngineCommands::RebuildSelection()

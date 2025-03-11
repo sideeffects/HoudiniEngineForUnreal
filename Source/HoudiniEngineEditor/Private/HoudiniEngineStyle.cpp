@@ -182,6 +182,7 @@ FHoudiniEngineStyle::Initialize()
 	StyleSet->Set("HoudiniEngine._SessionSync", new FSlateImageBrush(SessionSyncIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._OpenSessionSync", new FSlateImageBrush(SessionSyncStartIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._CloseSessionSync", new FSlateImageBrush(SessionSyncStopIcon, Icon16x16));
+	StyleSet->Set("HoudiniEngine._ResetPCGSession", new FSlateImageBrush(SettingsIcon, Icon16x16));
 
 	StyleSet->Set("HoudiniEngine._SyncViewport", new FSlateImageBrush(ViewportSyncIcon, Icon16x16));
 	StyleSet->Set("HoudiniEngine._ViewportSyncNone", new FSlateImageBrush(ViewportSyncOffIcon, Icon16x16));

@@ -63,6 +63,27 @@ UHoudiniParameterFloat::Create(
 	return HoudiniAssetParameter;
 }
 
+bool
+UHoudiniParameterFloat::SetValuesIfChanged(const TArray<float>& NewValues)
+{
+	// Sets the new values, and returns true if any (or number) of parameters changed.
+	if (NewValues.Num() != Values.Num())
+	{
+		Values = NewValues;
+		return true;
+	}
+
+	for (int Index = 0; Index < NewValues.Num(); Index++)
+	{
+		if (Values[Index] != NewValues[Index])
+		{
+			Values = NewValues;
+			return true;
+		}
+	}
+	return false;
+}
+
 TOptional< float >
 UHoudiniParameterFloat::GetValue(int32 Idx) const
 {

@@ -61,6 +61,29 @@ UHoudiniParameterInt::Create(
 	return HoudiniAssetParameter;
 }
 
+bool
+UHoudiniParameterInt::SetValuesIfChanged(const TArray<int>& NewValues)
+{
+	// Sets the new values, and returns true if any (or number) of parameters changed.
+	if(NewValues.Num() != Values.Num())
+	{
+		Values = NewValues;
+		return true;
+	}
+
+	for(int Index = 0; Index < NewValues.Num(); Index++)
+	{
+		if(Values[Index] != NewValues[Index])
+		{
+			Values = NewValues;
+			return true;
+		}
+	}
+	return false;
+}
+
+
+
 TOptional<int32>
 UHoudiniParameterInt::GetValue(int32 Idx) const
 {

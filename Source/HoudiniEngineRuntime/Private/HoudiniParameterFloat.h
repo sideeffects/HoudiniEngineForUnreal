@@ -108,6 +108,9 @@ public:
 	bool IsUniformLocked() const { return bUniformLocked; };
 #endif
 
+	const TArray<float>& GetDefaultValues() const { return DefaultValues;  }
+	bool SetValuesIfChanged(const TArray<float> & Values);
+
 protected:
 
 	// Float Values

@@ -1544,6 +1544,8 @@ UHoudiniInput::GetHoudiniInputObjectArray(const EHoudiniInputType& InType)
 	case EHoudiniInputType::World:
 		return &WorldInputObjects;
 
+	case EHoudiniInputType::PCGInput:
+		return &PCGInputObjects;
 	default:
 	case EHoudiniInputType::Invalid:
 		return nullptr;

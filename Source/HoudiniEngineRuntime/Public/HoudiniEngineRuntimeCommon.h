@@ -78,13 +78,14 @@ enum class EHoudiniInputType : uint8
 	
 	/* Landscape = 4 - deprecated in Houdini 20 */
 	
-	World = 5
+	World = 5,
 
 	/* Skeletal = 6 - deprecated in Houdini 20 */
 
 	/* Geometry Collection = 7 - deprecated in Houdini 20 */
+	PCGInput = 8
+	// !! The next input type should be 9 !!
 
-	// !! The next input type should be 8 !!
 };
 
 UENUM()
@@ -101,7 +102,8 @@ enum class EHoudiniOutputType : uint8
 	DataTable,
 	LandscapeSpline,
 	AnimSequence,
-	Cop
+	Cop,
+	PCG
 };
 
 UENUM()

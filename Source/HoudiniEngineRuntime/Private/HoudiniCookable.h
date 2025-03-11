@@ -309,7 +309,7 @@ public:
 	UCookableComponentData();
 
 	UPROPERTY()
-	TObjectPtr<USceneComponent> Component; // Should be a scenecomponent instead?
+	TWeakObjectPtr<USceneComponent> Component; 
 	
 	// TODO COOKABLE: Needed?
 	UPROPERTY()

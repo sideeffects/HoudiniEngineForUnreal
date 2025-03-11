@@ -39,6 +39,9 @@
 #include "HoudiniEngineTask.h"
 #include "HoudiniEngineTaskInfo.h"
 #include "HoudiniAssetComponent.h"
+#if defined(HOUDINI_USE_PCG)
+#include "HoudiniPCGCookable.h"
+#endif
 #include "UnrealObjectInputManager.h"
 #include "UnrealObjectInputManagerImpl.h"
 #include "HAPI/HAPI_Version.h"
@@ -1238,6 +1241,10 @@ FHoudiniEngine::OnSessionConnected()
 
 		CurCookable->OnSessionConnected();
 	}
+
+	// Allow PCG/Houdini to clear its internal data.
+	//UHoudiniPCGCookableCache::OnSessionConnected();
+
 }
 
 bool

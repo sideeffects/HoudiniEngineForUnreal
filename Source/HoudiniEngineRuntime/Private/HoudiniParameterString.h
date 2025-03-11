@@ -73,6 +73,8 @@ public:
 	// Get the asset reference string for a given UObject
 	static FString GetAssetReference(UObject* InObject);
 
+	const TArray<FString>& GetDefaultValues() { return DefaultValues; };
+	bool SetValuesIfChanged(const TArray<FString>& Values);
 
 protected:
 

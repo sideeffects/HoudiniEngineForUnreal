@@ -950,6 +950,7 @@ UHoudiniOutput::UpdateOutputType()
 	int32 AnimSequenceCount = 0;
 	int32 SkeletonCount = 0;
 	int32 CopCount = 0;
+	int32 PCGCount = 0;
 
 	for (auto& HGPO : HoudiniGeoPartObjects)
 	{
@@ -985,6 +986,8 @@ UHoudiniOutput::UpdateOutputType()
 		case EHoudiniPartType::Cop:
 			CopCount++;
 			break;
+		case EHoudiniPartType::PCG:
+			PCGCount++;
 		default:
 		case EHoudiniPartType::Invalid:
 			break;
@@ -1034,6 +1037,10 @@ UHoudiniOutput::UpdateOutputType()
 	else if (CopCount > 0)
 	{
 		Type = EHoudiniOutputType::Cop;
+	}
+	else if (PCGCount > 0)
+	{
+		Type = EHoudiniOutputType::PCG;
 	}
 	else
 	{
@@ -1120,7 +1127,9 @@ UHoudiniOutput::OutputTypeToString(const EHoudiniOutputType& InOutputType)
 		case EHoudiniOutputType::Cop:
 			OutputTypeStr = TEXT("Cop");
 			break;
-
+		case EHoudiniOutputType::PCG:
+			OutputTypeStr = TEXT("PCG");
+			break;
 		default:
 		case EHoudiniOutputType::Invalid:
 			OutputTypeStr = TEXT("Invalid");

@@ -65,7 +65,9 @@
 #include "Engine/Brush.h"
 
 #include "Kismet/KismetSystemLibrary.h"
-
+#if defined(HOUDINI_USE_PCG)
+#include "PCGData.h"
+#endif
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 	#include "GeometryCollection/GeometryCollectionActor.h"
 	#include "GeometryCollection/GeometryCollectionComponent.h"
@@ -78,8 +80,9 @@
 #include "LevelInstance/LevelInstanceActor.h"
 #include "PackedLevelActor/PackedLevelActor.h"
 #include "EngineUtils.h"
-
-
+#if defined(HOUDINI_USE_PCG)
+#include "HoudiniPCGInputObject.h"
+#endif
 //-----------------------------------------------------------------------------------------------------------------------------
 // Constructors
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -922,7 +925,11 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 		case EHoudiniInputObjectType::DataTable:
 			HoudiniInputObject = UHoudiniInputDataTable::Create(InObject, InOuter, InName, InInputSettings);
 			break;
-		
+
+		case EHoudiniInputObjectType::PCGData:
+			HoudiniInputObject = UHoudiniInputPCGData::Create(InObject, InOuter, InName, InInputSettings);
+			break;
+
 		case EHoudiniInputObjectType::FoliageType_InstancedStaticMesh:
 			HoudiniInputObject = UHoudiniInputFoliageType_InstancedStaticMesh::Create(InObject, InOuter, InName, InInputSettings);
 			break;
@@ -3175,6 +3182,12 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		{
 			return EHoudiniInputObjectType::DataTable;
 		}
+#if defined(HOUDINI_USE_PCG)
+		else if(InObject->IsA(UHoudiniPCGInputObject::StaticClass()))
+		{
+			return EHoudiniInputObjectType::PCGData;
+		}
+#endif
 		else
 		{
 			return EHoudiniInputObjectType::Object;
@@ -3538,6 +3551,40 @@ UHoudiniInputObject::GetChangedObjectsAndValidNodes(TArray<UHoudiniInputObject*>
 	// No changes and valid object node exists (or no node is used by this object type)
 	return false;
 }
+
+UHoudiniInputPCGData::UHoudiniInputPCGData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}
+
+UHoudiniInputObject*
+UHoudiniInputPCGData::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
+{
+	FString InputObjectNameStr = "HoudiniInputObject_DT_" + InName;
+	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputPCGData::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputPCGData* HoudiniInputObject = NewObject<UHoudiniInputPCGData>(
+		InOuter, UHoudiniInputPCGData::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::PCGData;
+	HoudiniInputObject->Update(InObject, InInputSettings);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+UHoudiniPCGInputObject*
+UHoudiniInputPCGData::GetPCGData() const
+{
+#if defined(HOUDINI_USE_PCG)
+	return Cast<UHoudiniPCGInputObject>(InputObject.LoadSynchronous());
+#else
+	return nullptr;
+#endif
+}
+
 
 //
 UHoudiniInputDataTable::UHoudiniInputDataTable(const FObjectInitializer& ObjectInitializer)

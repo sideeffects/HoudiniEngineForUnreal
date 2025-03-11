@@ -616,6 +616,10 @@ protected:
 	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
 	TSet<int32> InputNodesPendingDelete;
 
+	//-------------------------------------------------------------------------------------------------------------------------
+	// PCG inputs
+	UPROPERTY()
+	TArray<TObjectPtr<UHoudiniInputObject>> PCGInputObjects;
 public:
 
 	// Enable/disable auto selecting landscape splines (for landscapes via world input).

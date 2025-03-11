@@ -1406,7 +1406,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			int Start = 0;
 			EncodedData.Add(Start);
 
-			// Created a run length encoded array based off the input data. eg.
+			// None a run length encoded array based off the input data. eg.
 			// [ 0, 0, 0, 1, 1, 2, 3 ] will return [ 0, 3, 5, 6]
 
 			for (int Index = 0; Index < Count * TupleSize; Index += TupleSize)

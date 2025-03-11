@@ -58,7 +58,10 @@
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputRuntimeUtils.h"
 #include "UnrealObjectInputTypes.h"
+#if defined(HOUDINI_USE_PCG)
+#include "UnrealPCGDataTranslator.h"
 #include "UnrealObjectInputUtils.h"
+#endif
 #include "UnrealSkeletalMeshTranslator.h"
 #include "UnrealSplineTranslator.h"
 
@@ -82,9 +85,14 @@
 #include "Landscape.h"
 #include "LandscapeInfo.h"
 #include "LandscapeSplinesComponent.h"
+#include "UnrealObjectInputUtils.h"
 #include "LevelInstance/LevelInstanceActor.h"
 #include "PackedLevelActor/PackedLevelActor.h"
 #include "UObject/TextProperty.h"
+#if defined(HOUDINI_USE_PCG)
+#include "PCGData.h"
+#include "HoudiniPCGInputObject.h"
+#endif
 
 #if WITH_EDITOR
 	#include "Editor.h"
@@ -201,7 +209,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 	else if (InputCount < Inputs.Num())
 	{
 		// DO NOT DELETE PARAM INPUTS THAT ARE STILL PRESENT!
-		// This can ause issues with some input type when recooking the HDA after removing inputs!
+		// This can cause issues with some input type when recooking the HDA after removing inputs!
 		// Make sure that we only delete inputs that are not present anymore!
 		for (int32 InputIdx = Inputs.Num() - 1; InputIdx >= 0; InputIdx--)
 		{
@@ -1658,6 +1666,21 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				ObjBaseName, InputCamera, InputSettings);
 
 			if (bSuccess)
+			{
+				OutCreatedNodeIds.Add(InInputObject->GetInputObjectNodeId());
+				OutHandles.Add(InInputObject->InputNodeHandle);
+			}
+
+			break;
+		}
+
+		case EHoudiniInputObjectType::PCGData:
+		{
+			UHoudiniInputPCGData* InputPCGData = Cast<UHoudiniInputPCGData>(InInputObject);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForPCGData(
+				ObjBaseName, InputPCGData, InputSettings, bInputNodesCanBeDeleted);
+
+			if(bSuccess)
 			{
 				OutCreatedNodeIds.Add(InInputObject->GetInputObjectNodeId());
 				OutHandles.Add(InInputObject->InputNodeHandle);
@@ -5354,6 +5377,73 @@ bool FHoudiniInputTranslator::CreateInputNodeForReference(
 
 	return bSuccess;
 }
+
+bool
+FHoudiniInputTranslator::HapiCreateInputNodeForPCGData(
+	const FString& InNodeName,
+	UHoudiniInputPCGData* InInputObject,
+	const FHoudiniInputObjectSettings& InInputSettings,
+	const bool& bInputNodesCanBeDeleted)
+{
+#if defined(HOUDINI_USE_PCG)
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::HapiCreateInputNodeForDataTable);
+
+	if(!IsValid(InInputObject))
+		return false;
+	UHoudiniPCGInputObject* PCGData = InInputObject->GetPCGData();
+	if(!IsValid(PCGData))
+		return true;
+
+	FString PCGDataName = InNodeName + TEXT("_") + PCGData->GetName();
+	FHoudiniEngineUtils::SanitizeHAPIVariableName(PCGDataName);
+
+	FUnrealObjectInputHandle DTInputNodeHandle;
+	HAPI_NodeId InputNodeId = -1;
+
+	// Get the existing node id, if any
+
+	// For the ref counted system the handle on the input object represents a reference node that has a single node
+	// it references: the data table. The reference node represents InObject with its Transform (geometry input).
+	{
+		TSet<FUnrealObjectInputHandle> ReferencedNodes;
+		if(FUnrealObjectInputUtils::GetReferencedNodes(InInputObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
+		{
+			const FUnrealObjectInputHandle Handle = ReferencedNodes.Array()[0];
+			FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId);
+		}
+	}
+
+	if(!FUnrealPCGDataTranslator::CreateInputNodeForPCGData(PCGData, InputNodeId, PCGDataName, DTInputNodeHandle, bInputNodesCanBeDeleted))
+		return false;
+
+	{
+		// The data table can have its own transform (geometry input), so we have to create a reference node that
+		// represents InInputObject in the new input system that references the DataTable asset's input node handle
+		FUnrealObjectInputOptions Options;
+		static constexpr bool bIsLeaf = false;
+		FUnrealObjectInputIdentifier GeoInputRefNodeId(InInputObject, Options, bIsLeaf);
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { DTInputNodeHandle }, InInputObject->InputNodeHandle, true, bInputNodesCanBeDeleted);
+	}
+
+	if(!HapiSetGeoObjectTransform(InInputObject->GetInputObjectNodeId(), InInputObject->GetHoudiniObjectTransform()))
+		return false;
+
+	// Update the cached data and input settings
+	InInputObject->Update(PCGData, InInputSettings);
+
+	/*
+	// Commit the geo.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
+		FHoudiniEngine::Get().GetSession(), InputNodeId), false);
+
+	// Commit the geo.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
+		FHoudiniEngine::Get().GetSession(), InputNodeId, nullptr), false);
+	*/
+#endif
+	return true;
+}
+
 
 bool
 FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(

@@ -92,7 +92,10 @@ public:
 
 	// Helper function for rebuilding selected assets
 	static void RebuildSelection();
-
+#if defined(HOUDINI_USE_PCG)
+	// Helper function for clearing cookable data
+	static void ResetPCGSession();
+#endif
 	// Helper function for rebuilding selected assets
 	static void RecentreSelection();
 
@@ -249,6 +252,10 @@ public:
 	TSharedPtr<FUICommandInfo> _RebuildAll;
 	// UI Action to rebuild the current world selection 
 	TSharedPtr<FUICommandInfo> _RebuildSelected;
+#if defined(HOUDINI_USE_PCG)
+	// UI Action to reset PCG Session Data
+	TSharedPtr<FUICommandInfo> _ResetPCGSession;
+#endif
 	// UI Action for building static meshes for all assets using HoudiniStaticMesh
 	TSharedPtr<FUICommandInfo> _RefineAll;
 	// UI Action for building static meshes for selected assets using HoudiniStaticMesh

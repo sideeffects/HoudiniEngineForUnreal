@@ -3171,7 +3171,7 @@ FHoudiniEngineUtils::UploadCookableTransform(UHoudiniCookable* HC)
 	if (!HC->ComponentData->bUploadTransformsToHoudiniEngine)
 		return false;
 
-	if (!IsValid(HC->ComponentData->Component))
+	if (!IsValid(HC->ComponentData->Component.Get()))
 		return false;
 
 	// Indicates the Cookable has been fully loaded

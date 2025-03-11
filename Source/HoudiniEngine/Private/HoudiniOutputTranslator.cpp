@@ -59,8 +59,9 @@
 #include "HoudiniSplineTranslator.h"
 #include "HoudiniStaticMesh.h"
 #include "HoudiniTextureTranslator.h"
-
-
+#if defined(HOUDINI_USE_PCG)
+#include "HoudiniPCGTranslator.h"
+#endif
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Editor.h"
 #include "EditorSupportDelegates.h"
@@ -223,7 +224,7 @@ FHoudiniOutputTranslator::ProcessOutputs(
 
 	UActorComponent* CookableComponent = nullptr;
 	if (HC->IsComponentSupported() && HC->ComponentData)
-		CookableComponent = HC->ComponentData->Component;
+		CookableComponent = HC->ComponentData->Component.Get();
 
 	// 3. Create the outputs and components
 	FHoudiniPackageParams PackageParams;
@@ -673,6 +674,14 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 			case EHoudiniOutputType::AnimSequence:
 			{
 				FHoudiniAnimationTranslator::CreateAnimSequenceFromOutput(CurOutput, PackageParams, InOuterComponent);
+				break;
+			}
+
+			case EHoudiniOutputType::PCG:
+			{
+#if defined(HOUDINI_USE_PCG)
+				FHoudiniPCGTranslator::CreatePCGFromOutput(CurOutput);
+#endif
 				break;
 			}
 
@@ -1814,6 +1823,12 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 									}
 									
 								}
+#if defined(HOUDINI_USE_PCG)
+								else if (FHoudiniPCGTranslator::IsPCGOutput(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+								{
+									CurrentPartType = EHoudiniPartType::PCG;
+								}
+#endif
 								else if (CurrentHapiPartInfo.vertexCount <= 0 && CurrentHapiPartInfo.pointCount <= 0)
 								{
 									// No points, no vertices, we're likely invalid
