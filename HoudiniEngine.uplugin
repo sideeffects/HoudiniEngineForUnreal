@@ -31,14 +31,6 @@
 		}
 	],
 
-	"Plugins" :
-	[
-		{
-			"Name": "PCG",
-			"Enabled": {houdini_pcg_enabled}
-		}
-	],
-
 	"CanContainContent" : true,
 	"Installed": true
 }
