@@ -34,6 +34,7 @@
 #include "PCGContext.h"
 #include "PCGSettings.h"
 #include "Metadata/PCGMetadata.h"
+#include "PCGParamData.h"
 
 #define HOUDINI_PCG_PARAMS_OUTPUT_NAME "unreal_pcg_params"
 #define HOUDINI_PCG_POINT_OUTPUT_NAME "unreal_pcg_points"
