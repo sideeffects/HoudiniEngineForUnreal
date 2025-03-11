@@ -33,6 +33,7 @@
 #include "ConnectionDrawingPolicy.h"
 #include "HoudiniPCGTranslator.h"
 #include "HoudiniPCGInputObject.h"
+#include "PCGParamData.h"
 
 const FName HDAInputObject = FName(FString(TEXT("hda_input")));
 
