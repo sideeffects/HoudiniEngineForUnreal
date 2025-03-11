@@ -31,6 +31,9 @@ using System.IO;
 
 public class HoudiniEngineRuntime : ModuleRules
 {
+	private int HOUDINI_USE_PCG  = 0;
+			
+			
     public HoudiniEngineRuntime( ReadOnlyTargetRules Target ) : base( Target )
     {
         bPrecompile = true;
@@ -84,6 +87,17 @@ public class HoudiniEngineRuntime : ModuleRules
             }
 		);
 
+		if (HOUDINI_USE_PCG == 1)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"PCG"
+				}
+             );
+			 PrivateDefinitions.Add("HOUDINI_USE_PCG=1");
+		}
+		
 		if (Target.bBuildEditor == true)
 		{
 			PrivateDependencyModuleNames.AddRange(

@@ -49,6 +49,8 @@ using Microsoft.Extensions.Logging;
 public class HoudiniEngine : ModuleRules
 {
 
+	private int HOUDINI_USE_PCG  = 0;
+
     private void LogError(string err)
     {
 #if UE_5_3_OR_LATER
@@ -340,6 +342,17 @@ public class HoudiniEngine : ModuleRules
                 "PhysicsUtilities"
              }
         );
+
+        if (HOUDINI_USE_PCG == 1)
+        {
+            PrivateDependencyModuleNames.AddRange(
+               new string[]
+               {
+                   "PCG"
+               }
+            );
+            PrivateDefinitions.Add("HOUDINI_USE_PCG=1");
+        }
 
         if (Target.bBuildEditor == true)
         {
