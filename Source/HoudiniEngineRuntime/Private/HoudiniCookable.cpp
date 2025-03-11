@@ -34,6 +34,7 @@
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniHandleComponent.h"
 #include "HoudiniInstancedActorComponent.h"
+#include "HoudiniLandscapeRuntimeUtils.h"
 #include "HoudiniOutput.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterButton.h"
@@ -45,6 +46,8 @@
 #endif
 
 #include "Components/SplineComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "InstancedFoliageActor.h"
 #include "LevelInstance/LevelInstanceSubsystem.h"
 #include "TimerManager.h"
 
@@ -646,6 +649,12 @@ UHoudiniCookable::SetCurrentState(EHoudiniAssetState InNewState)
 }
 
 void
+UHoudiniCookable::SetCurrentStateResult(EHoudiniAssetStateResult InResult)
+{
+	CurrentStateResult = InResult;
+}
+
+void
 UHoudiniCookable::HandleOnHoudiniAssetStateChange(UObject* InHoudiniAssetContext, const EHoudiniAssetState InFromState, const EHoudiniAssetState InToState)
 {
 	IHoudiniAssetStateEvents::HandleOnHoudiniAssetStateChange(InHoudiniAssetContext, InFromState, InToState);
@@ -1190,6 +1199,75 @@ UHoudiniCookable::MarkAsNeedRecookOrRebuild(bool bDoRebuild)
 	// Clear the static mesh bake timer
 	if(IsOutputSupported())
 		ClearRefineMeshesTimer();
+}
+
+
+// Marks the asset as needing to be instantiated
+void
+UHoudiniCookable::MarkAsNeedInstantiation()
+{
+	// Invalidate the asset ID
+	NodeId = -1;
+
+	if((IsParameterSupported() && ParameterData->Parameters.Num() <= 0)
+		&& (IsInputSupported() && InputData->Inputs.Num() <= 0)
+		&& (IsOutputSupported() && OutputData->Outputs.Num() <= 0))
+	{
+		// The asset has no parameters or inputs.
+		// This likely indicates it has never cooked/been instantiated.
+		// Set its state to NewHDA to force its instantiation
+		// so that we can have its parameters/input interface
+		SetCurrentState(EHoudiniAssetState::NewHDA);
+	}
+	else
+	{
+		// The asset has cooked before since we have a parameter/input interface
+		// Set its state to need instantiation so that the asset is instantiated
+		// after being modified
+		SetCurrentState(EHoudiniAssetState::NeedInstantiation);
+	}
+
+	CurrentStateResult = EHoudiniAssetStateResult::None;
+
+	// Reset some of the asset's flag
+	CookCount = 0;
+	bHasBeenLoaded = true;
+	bPendingDelete = false;
+	bRecookRequested = false;
+	bRebuildRequested = false;
+	bFullyLoaded = false;
+
+	//bEditorPropertiesNeedFullUpdate = true;
+
+	if (IsParameterSupported())
+	{
+		// We need to mark all our parameters as changed/not triggering update
+		for (auto CurrentParam : ParameterData->Parameters)
+		{
+			if (CurrentParam)
+			{
+				CurrentParam->MarkChanged(true);
+				CurrentParam->SetNeedsToTriggerUpdate(false);
+			}
+		}
+	}
+	
+	if (IsInputSupported())
+	{
+		// We need to mark all our inputs as changed/not triggering update
+		for (auto CurrentInput : InputData->Inputs)
+		{
+			if (CurrentInput)
+			{
+				CurrentInput->MarkChanged(true);
+				CurrentInput->SetNeedsToTriggerUpdate(false);
+				CurrentInput->MarkDataUploadNeeded(true);
+			}
+		}
+	}
+
+	// Clear the static mesh bake timer
+	ClearRefineMeshesTimer();
 }
 
 
@@ -1861,6 +1939,12 @@ UHoudiniCookable::GetUploadTransformsToHoudiniEngine() const
 	return ComponentData->bUploadTransformsToHoudiniEngine;
 }
 
+FTransform
+UHoudiniCookable::GetLastComponentTransform() const
+{
+	return ComponentData->LastComponentTransform;
+}
+
 bool
 UHoudiniCookable::GetLandscapeUseTempLayers() const
 {
@@ -1997,4 +2081,185 @@ UHoudiniCookable::SetEnableCurveEditing(bool bEnable)
 		return;
 
 	OutputData->bEnableCurveEditing = bEnable;
+}
+
+
+void
+UHoudiniCookable::OnDestroy(bool bDestroyingHierarchy)
+{
+	// Unregister ourself so our houdini node can be deleted
+	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
+
+	if(IsHoudiniAssetSupported())
+		HoudiniAssetData->HoudiniAsset = nullptr;
+
+	if (IsParameterSupported())
+	{
+		// Clear Parameters
+		for (TObjectPtr<UHoudiniParameter>& CurrentParm : ParameterData->Parameters)
+		{
+			if (IsValid(CurrentParm))
+			{
+				CurrentParm->ConditionalBeginDestroy();
+			}
+			else if (GetWorld() != nullptr && GetWorld()->WorldType != EWorldType::PIE)
+			{
+				// TODO unneeded log?
+				// Avoid spamming that error when leaving PIE mode
+				HOUDINI_LOG_WARNING(TEXT("%s: null parameter when clearing"), GetOwner() ? *(GetOwner()->GetName()) : *GetName());
+			}
+			CurrentParm = nullptr;
+		}
+
+		ParameterData->Parameters.Empty();
+	}
+
+	if (IsInputSupported())
+	{
+		// Clear Inputs
+		for (TObjectPtr<UHoudiniInput>& CurrentInput : InputData->Inputs)
+		{
+			if (!IsValid(CurrentInput))
+				continue;
+
+			if (CurrentInput->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad))
+				continue;
+
+			// Destroy connected Houdini asset.
+			CurrentInput->ConditionalBeginDestroy();
+			CurrentInput = nullptr;
+		}
+
+		InputData->Inputs.Empty();
+	}
+
+	if (IsOutputSupported())
+	{
+		// Clear Output
+		for (TObjectPtr<UHoudiniOutput>& CurrentOutput : OutputData->Outputs)
+		{
+			if (!IsValid(CurrentOutput))
+				continue;
+
+			if (CurrentOutput->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad))
+				continue;
+
+			// Destroy all Houdini created socket actors.
+			TArray<TObjectPtr<AActor>>& CurCreatedSocketActors = CurrentOutput->GetHoudiniCreatedSocketActors();
+			for (auto& CurCreatedActor : CurCreatedSocketActors)
+			{
+				if (!IsValid(CurCreatedActor))
+					continue;
+
+				CurCreatedActor->Destroy();
+			}
+			CurCreatedSocketActors.Empty();
+
+			// Detach all Houdini attached socket actors
+			TArray<TObjectPtr<AActor>>& CurAttachedSocketActors = CurrentOutput->GetHoudiniAttachedSocketActors();
+			for (auto& CurAttachedSocketActor : CurAttachedSocketActors)
+			{
+				if (!IsValid(CurAttachedSocketActor))
+					continue;
+
+				CurAttachedSocketActor->DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
+			}
+			CurAttachedSocketActors.Empty();
+
+#if WITH_EDITOR
+			// Cleanup landscape splines
+			FHoudiniLandscapeRuntimeUtils::DeleteLandscapeSplineCookedData(CurrentOutput);
+
+			// Cleanup landscapes
+			FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(CurrentOutput);
+
+			// Clean up foliage instances
+			for (auto& CurrentOutputObject : CurrentOutput->GetOutputObjects())
+			{
+				for (int Index = 0; Index < CurrentOutputObject.Value.OutputComponents.Num(); Index++)
+				{
+					auto Component = CurrentOutputObject.Value.OutputComponents[Index];
+					// Foliage instancers store a HISMC in the components
+					UHierarchicalInstancedStaticMeshComponent* FoliageHISMC = Cast<UHierarchicalInstancedStaticMeshComponent>(Component);
+					if (!FoliageHISMC)
+						continue;
+
+					UStaticMesh* FoliageSM = FoliageHISMC->GetStaticMesh();
+					if (!IsValid(FoliageSM))
+						continue;
+
+					// If we are a foliage HISMC, then our owner is an Instanced Foliage Actor,
+					// if it is not, then we are just a "regular" HISMC
+					AInstancedFoliageActor* InstancedFoliageActor = Cast<AInstancedFoliageActor>(FoliageHISMC->GetOwner());
+					if (!IsValid(InstancedFoliageActor))
+						continue;
+
+					UFoliageType* FoliageType = InstancedFoliageActor->GetLocalFoliageTypeForSource(FoliageSM);
+					if (!IsValid(FoliageType))
+						continue;
+
+					if (IsInGameThread() && IsGarbageCollecting())
+					{
+						// TODO: ??
+						// Calling DeleteInstancesForComponent during GC will cause unreal to crash... 
+						HOUDINI_LOG_WARNING(TEXT("%s: Unable to clear foliage instances because of GC"), GetOwner() ? *(GetOwner()->GetName()) : *GetName());
+					}
+					else
+					{
+						// Clean up the instances generated for that component
+						InstancedFoliageActor->DeleteInstancesForComponent(GetComponent(), FoliageType);
+					}
+
+					if (FoliageHISMC->GetInstanceCount() > 0)
+					{
+						// If the component still has instances left after the cleanup,
+						// make sure that we dont delete it, as the leftover instances are likely hand-placed
+						CurrentOutputObject.Value.OutputComponents[Index] = nullptr;
+					}
+					else
+					{
+						// Remove the foliage type if it doesn't have any more instances
+						InstancedFoliageActor->RemoveFoliageType(&FoliageType, 1);
+					}
+				}
+			}
+#endif
+
+			CurrentOutput->Clear();
+			// Destroy connected Houdini asset.
+			CurrentOutput->ConditionalBeginDestroy();
+			CurrentOutput = nullptr;
+		}
+
+		OutputData->Outputs.Empty();
+	}
+
+	// Clear the static mesh bake timer
+	ClearRefineMeshesTimer();
+
+	// Clear all TOP data and temporary geo/objects from the PDG asset link (if valid)
+	if (IsPDGSupported() && IsValid(PDGData->PDGAssetLink))
+	{
+#if WITH_EDITOR
+		const UWorld* const World = GetWorld();
+		if (IsValid(World))
+		{
+			// Only do this for editor worlds, only interactively (not during engine shutdown or garbage collection)
+			if (World->WorldType == EWorldType::Editor && GIsRunning && !GIsGarbageCollecting)
+			{
+				// In case we are recording a transaction (undo, for example) notify that the object will be
+				// modified.
+				PDGData->PDGAssetLink->Modify();
+				PDGData->PDGAssetLink->ClearAllTOPData();
+			}
+		}
+#endif
+	}
+
+	// TODO: COOKABLE - Likely not needed!
+	// this function should already be called by the component's OnComponentDestroy
+	/*if (IsComponentSupported())
+	{
+		GetComponent()->OnComponentDestroyed(bDestroyingHierarchy);
+	}*/
 }

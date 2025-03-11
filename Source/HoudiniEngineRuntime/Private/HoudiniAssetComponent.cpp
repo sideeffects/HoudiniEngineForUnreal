@@ -308,7 +308,14 @@ void UHoudiniAssetComponent::PostInitProperties()
 	}
 
 	// Register ourself to the HER singleton
-	RegisterHoudiniComponent(this);
+	if (GetCookable())
+	{
+		FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(GetCookable());
+	}
+	else
+	{
+		RegisterHoudiniComponent(this);
+	}
 }
 
 UWorld* 
@@ -633,6 +640,7 @@ UHoudiniAssetComponent::SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(
 void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset * InHoudiniAsset)
 {
+	// TODO COOKABLE: HANDLE THIS
 	// Check the asset validity
 	if (!IsValid(InHoudiniAsset))
 		return;
@@ -648,6 +656,7 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset * InHoudiniAsset)
 void 
 UHoudiniAssetComponent::OnHoudiniAssetChanged()
 {
+	// TODO COOKABLE: HANDLE THIS
 	// TODO: clear input/params/outputs?
 	Parameters.Empty();
 
@@ -1281,6 +1290,9 @@ UHoudiniAssetComponent::MarkAsNeedRebuild()
 void
 UHoudiniAssetComponent::MarkAsNeedInstantiation()
 {
+	if (GetCookable())
+		return GetCookable()->MarkAsNeedInstantiation();
+
 	// Invalidate the asset ID
 	AssetId = -1;
 
@@ -1362,10 +1374,17 @@ UHoudiniAssetComponent::PostLoad()
 	MarkAsNeedInstantiation();
 
 	// Component has been loaded, not duplicated
-	bHasBeenDuplicated = false;
+	SetHasBeenDuplicated(false);
 
 	// We need to register ourself
-	RegisterHoudiniComponent(this);
+	if (GetCookable())
+	{
+		FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(GetCookable());
+	}
+	else
+	{
+		RegisterHoudiniComponent(this);
+	}
 
 	// Register our PDG Asset link if we have any
 
@@ -1399,12 +1418,12 @@ UHoudiniAssetComponent::PostEditImport()
 	// Component has been duplicated, not loaded
 	// We do need the loaded flag to reapply parameters, inputs
 	// and properly update some of the output objects
-	bHasBeenDuplicated = true;
+	SetHasBeenDuplicated(true);
 
 	//RemoveAllAttachedComponents();
 
-	AssetState = EHoudiniAssetState::PreInstantiation;
-	AssetStateResult = EHoudiniAssetStateResult::None;
+	SetAssetState(EHoudiniAssetState::PreInstantiation);
+	SetAssetStateResult(EHoudiniAssetStateResult::None);
 	
 	// TODO?
 	// REGISTER?
@@ -1491,32 +1510,18 @@ UHoudiniAssetComponent::OnComponentCreated()
 {
 	// This event will only be fired for native Actor and native Component.
  	Super::OnComponentCreated();
-	/*
-	if (!GetOwner() || !GetOwner()->GetWorld())
-		return;
-
-	if (StaticMeshes.Num() == 0)
-	{
-		// Create Houdini logo static mesh and component for it.
-		CreateStaticMeshHoudiniLogoResource(StaticMeshes);
-	}
-
-	// Create replacement material object.
-	if (!HoudiniAssetComponentMaterials)
-	{
-		HoudiniAssetComponentMaterials =
-			NewObject< UHoudiniAssetComponentMaterials >(
-				this, UHoudiniAssetComponentMaterials::StaticClass(), NAME_None, RF_Public | RF_Transactional);
-	}
-	*/
 }
 
 void
 UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-
-	if (CanDeleteHoudiniNodes())
+	if (GetCookable())
 	{
+		// Call the cookable's OnDestroy
+		GetCookable()->OnDestroy(bDestroyingHierarchy);
+
+		// Call our super
+		return Super::OnComponentDestroyed(bDestroyingHierarchy);
 	}
 
 	// Unregister ourself so our houdini node can be deleted
@@ -1657,13 +1662,8 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 
 	Outputs.Empty();
 
-	//FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(AssetId, true);
-	// Unregister ourself so our houdini node can be delete.
-	FHoudiniEngineRuntime::Get().UnRegisterHoudiniComponent(this);
-
 	// Clear the static mesh bake timer
 	ClearRefineMeshesTimer();
-
 	
 	// Clear all TOP data and temporary geo/objects from the PDG asset link (if valid)
 	if (IsValid(PDGAssetLink))
@@ -1802,10 +1802,10 @@ UHoudiniAssetComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformF
 	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
 
 #if WITH_EDITOR
-	if (!bUploadTransformsToHoudiniEngine)
+	if (!GetUploadTransformsToHoudiniEngine())
 		return;
-
-	if (!GetComponentTransform().Equals(LastComponentTransform))
+	
+	if (!GetComponentTransform().Equals(GetLastComponentTransform()))
 	{
 		// Only set transform changed flag if the transform actually changed.
 		// WorldComposition can call ApplyWorldOffset with a zero vector (for example during a map save)
@@ -1813,7 +1813,6 @@ UHoudiniAssetComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformF
 		SetHasComponentTransformChanged(true);
 	}
 #endif
-
 }
 
 void UHoudiniAssetComponent::HoudiniEngineTick()
@@ -2158,14 +2157,30 @@ UHoudiniAssetComponent::PostEditUndo()
 	{
 		// Make sure we are registered with the HER singleton
 		// We could be undoing a HoudiniActor delete
-		if (!FHoudiniEngineRuntime::Get().IsComponentRegistered(this))
+
+		if (GetCookable())
 		{
-			MarkAsNeedInstantiation();
+			if (!FHoudiniEngineRuntime::Get().IsCookableRegistered(GetCookable()))
+			{
+				MarkAsNeedInstantiation();
 
-			// Component has been loaded, not duplicated
-			bHasBeenDuplicated = false;
+				// Component has been loaded, not duplicated
+				SetHasBeenDuplicated(false);
 
-			RegisterHoudiniComponent(this);
+				FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(GetCookable());
+			}
+		}
+		else
+		{
+			if (!FHoudiniEngineRuntime::Get().IsComponentRegistered(this))
+			{
+				MarkAsNeedInstantiation();
+
+				// Component has been loaded, not duplicated
+				bHasBeenDuplicated = false;
+
+				RegisterHoudiniComponent(this);
+			}
 		}
 	}
 }
@@ -2610,6 +2625,16 @@ UHoudiniAssetComponent::GetUploadTransformsToHoudiniEngine() const
 
 	return bUploadTransformsToHoudiniEngine;
 }
+
+FTransform
+UHoudiniAssetComponent::GetLastComponentTransform() const
+{
+	if (GetCookable())
+		return GetCookable()->GetLastComponentTransform();
+
+	return LastComponentTransform;
+}
+
 
 #if WITH_EDITORONLY_DATA
 bool
@@ -3144,6 +3169,15 @@ UHoudiniAssetComponent::SetAssetState(EHoudiniAssetState InNewState)
 }
 
 void
+UHoudiniAssetComponent::SetAssetStateResult(EHoudiniAssetStateResult InResult)
+{
+	if (GetCookable())
+		return GetCookable()->SetCurrentStateResult(InResult);
+
+	AssetStateResult = InResult;
+}
+
+void
 UHoudiniAssetComponent::HandleOnHoudiniAssetStateChange(UObject* InHoudiniAssetContext, const EHoudiniAssetState InFromState, const EHoudiniAssetState InToState)
 {
 	IHoudiniAssetStateEvents::HandleOnHoudiniAssetStateChange(InHoudiniAssetContext, InFromState, InToState);
@@ -3251,6 +3285,9 @@ UHoudiniAssetComponent::GetLevelInstance() const
 
 void UHoudiniAssetComponent::OnSessionConnected()
 {
+	if (GetCookable())
+		GetCookable()->OnSessionConnected();
+
 	for(auto& Param : Parameters)
 		Param->OnSessionConnected();
 

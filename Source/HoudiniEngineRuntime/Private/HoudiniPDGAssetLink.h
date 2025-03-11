@@ -666,6 +666,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniPDGAssetLink : public UObject
 public:
 
 	friend class UHoudiniAssetComponent;
+	friend class UHoudiniCookable;
 
 	// Delegate for when the entire bake operation is complete (all selected nodes/networks have been baked).
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostBakeDelegate, UHoudiniPDGAssetLink*, const bool);

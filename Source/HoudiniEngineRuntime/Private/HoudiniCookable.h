@@ -441,6 +441,8 @@ public:
 	bool GetEnableCurveEditing() const;
 	bool GetSplitMeshSupport() const;
 
+	FTransform GetLastComponentTransform() const;
+
 	FHoudiniStaticMeshGenerationProperties GetStaticMeshGenerationProperties();
 	FMeshBuildSettings GetStaticMeshBuildSettings();
 
@@ -551,6 +553,8 @@ public:
  
 	// Set asset state	
 	void SetCurrentState(EHoudiniAssetState InNewState);
+	// Set asset state	
+	void SetCurrentStateResult(EHoudiniAssetStateResult InResult);
 
 	void UpdateDormantStatus();
 
@@ -570,12 +574,14 @@ public:
 
 	void MarkAsNeedCook();
 	void MarkAsNeedRebuild();
+	void MarkAsNeedInstantiation();
 
 	// TODO COOKABLE: protect me!
 	void MarkAsNeedRecookOrRebuild(bool bDoRebuild);
 
 	void PreventAutoUpdates();
 
+	void OnDestroy(bool bDestroyingHierarchy);
 	void OnSessionConnected();
 
 	void SetComponent(USceneComponent* InComp);

@@ -203,6 +203,8 @@ public:
 	bool GetEnableCurveEditing() const;
 	bool GetSplitMeshSupport() const;
 
+	FTransform GetLastComponentTransform() const;
+
 	FHoudiniStaticMeshGenerationProperties GetStaticMeshGenerationProperties() const;
 	FMeshBuildSettings GetStaticMeshBuildSettings() const;
 
@@ -285,12 +287,11 @@ public:
 	//------------------------------------------------------------------------------------------------
 	// Mutators
 	//------------------------------------------------------------------------------------------------
-	//void SetAssetId(const int& InAssetId);
+	void SetAssetId(const int& InAssetId);
 
 	// Set asset state
 	void SetAssetState(EHoudiniAssetState InNewState);
-
-	//void SetAssetStateResult(const EHoudiniAssetStateResult& InAssetStateResult) { AssetStateResult = InAssetStateResult; };
+	void SetAssetStateResult(EHoudiniAssetStateResult InAssetStateResult);
 
 	//void SetHapiGUID(const FGuid& InGUID) { HapiGUID = InGUID; };
 	//void SetComponentGUID(const FGuid& InGUID) { ComponentGUID = InGUID; };
