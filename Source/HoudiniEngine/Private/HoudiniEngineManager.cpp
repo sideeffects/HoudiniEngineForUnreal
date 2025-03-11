@@ -856,7 +856,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			// We want to check again for PDG after a rebuild
 			HAC->bIsPDGAssetLinkInitialized = false;
 
-			HAC->MarkAsNeedCook();
+			//HAC->MarkAsNeedCook();
 			HAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
 			break;
 		}
@@ -1270,28 +1270,27 @@ FHoudiniEngineManager::PreCook(UHoudiniAssetComponent* HAC)
 
 	if (HAC->HasBeenLoaded() || HAC->IsParameterDefinitionUpdateNeeded())
 	{
-		bool bPresetSuccess = false;
 		if (!HAC->ParameterPresetBuffer.IsEmpty())
 		{
-			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PreCook-SetPreset);
+			// Only apply parameters presets for rebuilds, not after a param change
+			if (HAC->HasRebuildBeenRequested())
+			{
+				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PreCook-SetPreset);
+				FHoudiniEngineUtils::SetAssetPreset(HAC->GetAssetId(), HAC->ParameterPresetBuffer);
+			}
 
-			// If we have stored parameter preset - restore them
-			if(FHoudiniEngineUtils::SetAssetPreset(HAC->GetAssetId(), HAC->ParameterPresetBuffer))
-				bPresetSuccess = true;
+			// We don't want to apply param presets after loading a level
+			// Clean it up until next cook 
+			HAC->ParameterPresetBuffer.Empty();
 		}
 
-		if(!bPresetSuccess)
+		// Nothing to do for Node Sync Components!
+		if (!HAC->IsA<UHoudiniNodeSyncComponent>())
 		{
 			// This will sync parameter definitions but not upload values to HAPI or fetch values for existing parameters
 			// in Unreal. It will creating missing parameters in Unreal.
 			FHoudiniParameterTranslator::UpdateLoadedParameters(HAC);
 			HAC->bParameterDefinitionUpdateNeeded = false;
-		}
-		else
-		{
-			// We've successfully applied the parameter presets
-			// Clean it up until next cook 
-			HAC->ParameterPresetBuffer.Empty();
 		}
 	}
 	
