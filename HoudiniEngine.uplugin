@@ -1,8 +1,8 @@
 {
 	"FileVersion" : 3,
 	"FriendlyName" : "Houdini Engine",
-	"Version" : 21000282,
-	"VersionName" : "2.0 - H21.0.282",
+	"Version" : 21000287,
+	"VersionName" : "2.0 - H21.0.287",
 	"CreatedBy" : "Side Effects Software Inc.",
 	"CreatedByURL": "https://www.sidefx.com/",
 	"DocsURL": "https://www.sidefx.com/docs/unreal/",
@@ -28,6 +28,14 @@
 			"Name" : "HoudiniEngineRuntime",
 			"Type" : "Runtime",
 			"LoadingPhase" : "Default"
+		}
+	],
+
+	"Plugins" :
+	[
+		{
+			"Name": "PCG",
+			"Enabled": {houdini_pcg_enabled}
 		}
 	],
 

@@ -1141,6 +1141,8 @@ struct HAPI_API HAPI_SessionInfo
     // command line or ::HAPI_StartThriftSharedMemoryServer. This is the size of
     // the shared memory buffer in megabytes (MB).
     HAPI_Int64 sharedMemoryBufferSize;
+
+    HAPI_Bool enableSharedMemoryDataTransfer;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_SessionInfo )
 
