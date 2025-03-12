@@ -85,6 +85,9 @@ bool FHoudiniPCGUtils::HasPCGOutputs(const UHoudiniOutput* HoudiniOutput)
 	{
 		auto & Object = It.Value;
 
+		if (!IsValid(Object.OutputObject))
+			continue;
+
 		if(Object.OutputObject->IsA<UHoudiniPCGOutputData>())
 			return true;
 	}
