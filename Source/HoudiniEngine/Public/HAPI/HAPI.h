@@ -11413,6 +11413,71 @@ HAPI_DECL HAPI_GetSupportedImageFileFormats(
                                         HAPI_ImageFileFormat * formats_array,
                                         int file_format_count );
 
+/// @brief  Loads some raw image data into a COP node.
+///
+///         This method expects the image data to be in linear color space.
+///         It will not do any color space conversions for you; the data
+///         must be converted beforehand.
+///
+/// @ingroup Materials
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      parent_node_id
+///                 The node that the copnet containing the texture will be
+///                 created in, or -1 if the parent is the image manager.
+///
+/// @param[in]      width
+///                 The width of the image in pixels. @p width * @p height *
+///                 channel count (implied by @p packing) should equal the size
+///                 of @p data_array.
+///
+/// @param[in]      height
+///                 The height of the image in pixels. @p width * @p height *
+///                 channel count (implied by @p packing) should equal the size
+///                 of @p data_array.
+///
+/// @param[in]      packing
+///                 How the image data is packed (single-channel, RBGA, etc).
+///
+/// @param[in]      flip_x
+///                 Whether to flip the image horizontally.
+///
+/// @param[in]      flip_y
+///                 Whether to flip the image vertically.
+///
+/// @param[in]      data_array
+///                 A float array representing the image's pixel data. Values
+///                 should be between 0.0 and 1.0. The data should be packed
+///                 according to @p packing.
+///
+/// @param[in]      start
+///                 The index of the first value of @p data_array to use.
+///                 Must be at least 0 and at most (size of @p data_array - 1).
+///                 <!-- min 0 -->
+///                 <!-- max arglength(data_array) - 1 -->
+///                 <!-- default 0 -->
+///
+/// @param[in]      length
+///                 How much of @p data_array to use. Must be at least 0
+///                 and at most (size of @p data_array - start).
+///                 <!-- min 0 -->
+///                 <!-- max arglength(data_array) - start -->
+///
+HAPI_DECL HAPI_CreateCOPImage( const HAPI_Session * session,
+                               HAPI_NodeId parent_node_id,
+                               const int width,
+                               const int height,
+                               const HAPI_ImagePacking packing,
+                               HAPI_Bool flip_x,
+                               HAPI_Bool flip_y,
+                               const float * data_array,
+                               int start, int length );
+
 /// @defgroup Animation
 /// Functions for working with animation.
 
