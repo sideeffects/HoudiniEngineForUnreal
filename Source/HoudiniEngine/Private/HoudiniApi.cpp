@@ -1,5 +1,5 @@
 /*
- * Copyright (c) <2024> Side Effects Software Inc. *
+ * Copyright (c) <2025> Side Effects Software Inc. *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -123,6 +123,9 @@ FHoudiniApi::CookPDG = &FHoudiniApi::CookPDGEmptyStub;
 FHoudiniApi::CookPDGAllOutputsFuncPtr
 FHoudiniApi::CookPDGAllOutputs = &FHoudiniApi::CookPDGAllOutputsEmptyStub;
 
+FHoudiniApi::CreateCOPImageFuncPtr
+FHoudiniApi::CreateCOPImage = &FHoudiniApi::CreateCOPImageEmptyStub;
+
 FHoudiniApi::CreateCustomSessionFuncPtr
 FHoudiniApi::CreateCustomSession = &FHoudiniApi::CreateCustomSessionEmptyStub;
 
@@ -209,6 +212,12 @@ FHoudiniApi::GetAssetDefinitionParmCounts = &FHoudiniApi::GetAssetDefinitionParm
 
 FHoudiniApi::GetAssetDefinitionParmInfosFuncPtr
 FHoudiniApi::GetAssetDefinitionParmInfos = &FHoudiniApi::GetAssetDefinitionParmInfosEmptyStub;
+
+FHoudiniApi::GetAssetDefinitionParmTagNameFuncPtr
+FHoudiniApi::GetAssetDefinitionParmTagName = &FHoudiniApi::GetAssetDefinitionParmTagNameEmptyStub;
+
+FHoudiniApi::GetAssetDefinitionParmTagValueFuncPtr
+FHoudiniApi::GetAssetDefinitionParmTagValue = &FHoudiniApi::GetAssetDefinitionParmTagValueEmptyStub;
 
 FHoudiniApi::GetAssetDefinitionParmValuesFuncPtr
 FHoudiniApi::GetAssetDefinitionParmValues = &FHoudiniApi::GetAssetDefinitionParmValuesEmptyStub;
@@ -924,6 +933,9 @@ FHoudiniApi::RemoveParmExpression = &FHoudiniApi::RemoveParmExpressionEmptyStub;
 FHoudiniApi::RenameNodeFuncPtr
 FHoudiniApi::RenameNode = &FHoudiniApi::RenameNodeEmptyStub;
 
+FHoudiniApi::RenderCOPOutputToImageFuncPtr
+FHoudiniApi::RenderCOPOutputToImage = &FHoudiniApi::RenderCOPOutputToImageEmptyStub;
+
 FHoudiniApi::RenderCOPToImageFuncPtr
 FHoudiniApi::RenderCOPToImage = &FHoudiniApi::RenderCOPToImageEmptyStub;
 
@@ -1361,6 +1373,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::CookOptions_Init = (CookOptions_InitFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookOptions_Init"));
 	FHoudiniApi::CookPDG = (CookPDGFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookPDG"));
 	FHoudiniApi::CookPDGAllOutputs = (CookPDGAllOutputsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CookPDGAllOutputs"));
+	FHoudiniApi::CreateCOPImage = (CreateCOPImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCOPImage"));
 	FHoudiniApi::CreateCustomSession = (CreateCustomSessionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateCustomSession"));
 	FHoudiniApi::CreateHeightFieldInput = (CreateHeightFieldInputFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateHeightFieldInput"));
 	FHoudiniApi::CreateHeightfieldInputVolumeNode = (CreateHeightfieldInputVolumeNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_CreateHeightfieldInputVolumeNode"));
@@ -1390,6 +1403,8 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::GetActiveCacheNames = (GetActiveCacheNamesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetActiveCacheNames"));
 	FHoudiniApi::GetAssetDefinitionParmCounts = (GetAssetDefinitionParmCountsFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetDefinitionParmCounts"));
 	FHoudiniApi::GetAssetDefinitionParmInfos = (GetAssetDefinitionParmInfosFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetDefinitionParmInfos"));
+	FHoudiniApi::GetAssetDefinitionParmTagName = (GetAssetDefinitionParmTagNameFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetDefinitionParmTagName"));
+	FHoudiniApi::GetAssetDefinitionParmTagValue = (GetAssetDefinitionParmTagValueFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetDefinitionParmTagValue"));
 	FHoudiniApi::GetAssetDefinitionParmValues = (GetAssetDefinitionParmValuesFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetDefinitionParmValues"));
 	FHoudiniApi::GetAssetInfo = (GetAssetInfoFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetInfo"));
 	FHoudiniApi::GetAssetLibraryFilePath = (GetAssetLibraryFilePathFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_GetAssetLibraryFilePath"));
@@ -1628,6 +1643,7 @@ FHoudiniApi::InitializeHAPI(void* LibraryHandle)
 	FHoudiniApi::RemoveMultiparmInstance = (RemoveMultiparmInstanceFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RemoveMultiparmInstance"));
 	FHoudiniApi::RemoveParmExpression = (RemoveParmExpressionFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RemoveParmExpression"));
 	FHoudiniApi::RenameNode = (RenameNodeFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenameNode"));
+	FHoudiniApi::RenderCOPOutputToImage = (RenderCOPOutputToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderCOPOutputToImage"));
 	FHoudiniApi::RenderCOPToImage = (RenderCOPToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderCOPToImage"));
 	FHoudiniApi::RenderTextureToImage = (RenderTextureToImageFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_RenderTextureToImage"));
 	FHoudiniApi::ResetSimulation = (ResetSimulationFuncPtr) FPlatformProcess::GetDllExport(LibraryHandle, TEXT("HAPI_ResetSimulation"));
@@ -1799,6 +1815,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::CookOptions_Init = &FHoudiniApi::CookOptions_InitEmptyStub;
 	FHoudiniApi::CookPDG = &FHoudiniApi::CookPDGEmptyStub;
 	FHoudiniApi::CookPDGAllOutputs = &FHoudiniApi::CookPDGAllOutputsEmptyStub;
+	FHoudiniApi::CreateCOPImage = &FHoudiniApi::CreateCOPImageEmptyStub;
 	FHoudiniApi::CreateCustomSession = &FHoudiniApi::CreateCustomSessionEmptyStub;
 	FHoudiniApi::CreateHeightFieldInput = &FHoudiniApi::CreateHeightFieldInputEmptyStub;
 	FHoudiniApi::CreateHeightfieldInputVolumeNode = &FHoudiniApi::CreateHeightfieldInputVolumeNodeEmptyStub;
@@ -1828,6 +1845,8 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::GetActiveCacheNames = &FHoudiniApi::GetActiveCacheNamesEmptyStub;
 	FHoudiniApi::GetAssetDefinitionParmCounts = &FHoudiniApi::GetAssetDefinitionParmCountsEmptyStub;
 	FHoudiniApi::GetAssetDefinitionParmInfos = &FHoudiniApi::GetAssetDefinitionParmInfosEmptyStub;
+	FHoudiniApi::GetAssetDefinitionParmTagName = &FHoudiniApi::GetAssetDefinitionParmTagNameEmptyStub;
+	FHoudiniApi::GetAssetDefinitionParmTagValue = &FHoudiniApi::GetAssetDefinitionParmTagValueEmptyStub;
 	FHoudiniApi::GetAssetDefinitionParmValues = &FHoudiniApi::GetAssetDefinitionParmValuesEmptyStub;
 	FHoudiniApi::GetAssetInfo = &FHoudiniApi::GetAssetInfoEmptyStub;
 	FHoudiniApi::GetAssetLibraryFilePath = &FHoudiniApi::GetAssetLibraryFilePathEmptyStub;
@@ -2066,6 +2085,7 @@ FHoudiniApi::FinalizeHAPI()
 	FHoudiniApi::RemoveMultiparmInstance = &FHoudiniApi::RemoveMultiparmInstanceEmptyStub;
 	FHoudiniApi::RemoveParmExpression = &FHoudiniApi::RemoveParmExpressionEmptyStub;
 	FHoudiniApi::RenameNode = &FHoudiniApi::RenameNodeEmptyStub;
+	FHoudiniApi::RenderCOPOutputToImage = &FHoudiniApi::RenderCOPOutputToImageEmptyStub;
 	FHoudiniApi::RenderCOPToImage = &FHoudiniApi::RenderCOPToImageEmptyStub;
 	FHoudiniApi::RenderTextureToImage = &FHoudiniApi::RenderTextureToImageEmptyStub;
 	FHoudiniApi::ResetSimulation = &FHoudiniApi::ResetSimulationEmptyStub;
@@ -2434,6 +2454,13 @@ FHoudiniApi::CookPDGAllOutputsEmptyStub(const HAPI_Session* session, HAPI_NodeId
 
 
 HAPI_Result
+FHoudiniApi::CreateCOPImageEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const int width, const int height, const HAPI_ImagePacking packing, HAPI_Bool flip_x, HAPI_Bool flip_y, const float * data_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
 FHoudiniApi::CreateCustomSessionEmptyStub(HAPI_SessionType session_type, void * session_info, HAPI_Session * session)
 {
 	return HAPI_RESULT_FAILURE;
@@ -2631,6 +2658,20 @@ FHoudiniApi::GetAssetDefinitionParmCountsEmptyStub(const HAPI_Session * session,
 
 HAPI_Result
 FHoudiniApi::GetAssetDefinitionParmInfosEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, HAPI_ParmInfo * parm_infos_array, int start, int length)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetAssetDefinitionParmTagNameEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, HAPI_ParmId parm_id, int tag_index, HAPI_StringHandle * tag_name)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::GetAssetDefinitionParmTagValueEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, HAPI_ParmId parm_id, const char * tag_name, HAPI_StringHandle * tag_value)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -3575,7 +3616,7 @@ FHoudiniApi::GetPresetCountEmptyStub(const HAPI_Session * session, const char * 
 
 
 HAPI_Result
-FHoudiniApi::GetPresetNamesEmptyStub(const HAPI_Session * session, const char * buffer, int buffer_length, HAPI_StringHandle * preset_names_array, int count)
+FHoudiniApi::GetPresetNamesEmptyStub(const HAPI_Session * session, const char * buffer, int buffer_length, HAPI_StringHandle * preset_names_array, int preset_names_count)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -4297,6 +4338,13 @@ FHoudiniApi::RemoveParmExpressionEmptyStub(const HAPI_Session * session, HAPI_No
 
 HAPI_Result
 FHoudiniApi::RenameNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name)
+{
+	return HAPI_RESULT_FAILURE;
+}
+
+
+HAPI_Result
+FHoudiniApi::RenderCOPOutputToImageEmptyStub(const HAPI_Session * session, HAPI_NodeId cop_node_id, const char * cop_output_name)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -5136,7 +5184,7 @@ FHoudiniApi::StartThriftSocketServerEmptyStub(const HAPI_ThriftServerOptions * o
 
 
 HAPI_Result
-FHoudiniApi::StopPerformanceMonitorProfileEmptyStub(const HAPI_Session *session, int profile_id, const char * file_path)
+FHoudiniApi::StopPerformanceMonitorProfileEmptyStub(const HAPI_Session * session, int profile_id, const char * file_path)
 {
 	return HAPI_RESULT_FAILURE;
 }

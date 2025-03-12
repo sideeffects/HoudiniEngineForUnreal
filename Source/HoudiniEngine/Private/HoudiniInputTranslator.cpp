@@ -64,6 +64,7 @@
 #endif
 #include "UnrealSkeletalMeshTranslator.h"
 #include "UnrealSplineTranslator.h"
+#include "UnrealTextureTranslator.h"
 
 #include "Animation/AnimSequence.h"
 #include "Async/Async.h"
@@ -1751,6 +1752,20 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				InputSMC,
 				InputSettings,
 				bInputNodesCanBeDeleted);
+
+			if (bSuccess)
+			{
+				OutCreatedNodeIds.Add(InInputObject->GetInputObjectNodeId());
+				OutHandles.Add(InInputObject->InputNodeHandle);
+			}
+			break;
+		}
+
+		case EHoudiniInputObjectType::Texture:
+		{
+			UHoudiniInputTexture* InputTexture = Cast<UHoudiniInputTexture>(InInputObject);
+			UTexture2D* Texture = InputTexture->GetTexture();
+			bSuccess = FUnrealTextureTranslator::HapiCreateCOPTexture(Texture, InInputObject->GetInputObjectNodeId());
 
 			if (bSuccess)
 			{

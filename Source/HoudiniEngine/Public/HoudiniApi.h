@@ -1,5 +1,5 @@
 /*
- * Copyright (c) <2024> Side Effects Software Inc. *
+ * Copyright (c) <2025> Side Effects Software Inc. *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -70,6 +70,7 @@ public:
 	typedef void (*CookOptions_InitFuncPtr)(HAPI_CookOptions * in);
 	typedef HAPI_Result (*CookPDGFuncPtr)(const HAPI_Session * session, HAPI_NodeId cook_node_id, int generate_only, int blocking);
 	typedef HAPI_Result (*CookPDGAllOutputsFuncPtr)(const HAPI_Session* session, HAPI_NodeId cook_node_id, int generate_only, int blocking);
+	typedef HAPI_Result (*CreateCOPImageFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const int width, const int height, const HAPI_ImagePacking packing, HAPI_Bool flip_x, HAPI_Bool flip_y, const float * data_array, int start, int length);
 	typedef HAPI_Result (*CreateCustomSessionFuncPtr)(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
 	typedef HAPI_Result (*CreateHeightFieldInputFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_HeightFieldSampling sampling, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
 	typedef HAPI_Result (*CreateHeightfieldInputVolumeNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize);
@@ -99,6 +100,8 @@ public:
 	typedef HAPI_Result (*GetActiveCacheNamesFuncPtr)(const HAPI_Session * session, HAPI_StringHandle * cache_names_array, int active_cache_count);
 	typedef HAPI_Result (*GetAssetDefinitionParmCountsFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, int * parm_count, int * int_value_count, int * float_value_count, int * string_value_count, int * choice_value_count);
 	typedef HAPI_Result (*GetAssetDefinitionParmInfosFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, HAPI_ParmInfo * parm_infos_array, int start, int length);
+	typedef HAPI_Result (*GetAssetDefinitionParmTagNameFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, HAPI_ParmId parm_id, int tag_index, HAPI_StringHandle * tag_name);
+	typedef HAPI_Result (*GetAssetDefinitionParmTagValueFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, HAPI_ParmId parm_id, const char * tag_name, HAPI_StringHandle * tag_value);
 	typedef HAPI_Result (*GetAssetDefinitionParmValuesFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, int * int_values_array, int int_start, int int_length, float * float_values_array, int float_start, int float_length, HAPI_Bool string_evaluate, HAPI_StringHandle * string_values_array, int string_start, int string_length, HAPI_ParmChoiceInfo * choice_values_array, int choice_start, int choice_length);
 	typedef HAPI_Result (*GetAssetInfoFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_AssetInfo * asset_info);
 	typedef HAPI_Result (*GetAssetLibraryFilePathFuncPtr)(const HAPI_Session * session, HAPI_AssetLibraryId asset_library_id, HAPI_StringHandle * file_path_sh);
@@ -233,7 +236,7 @@ public:
 	typedef HAPI_Result (*GetPresetFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int buffer_length);
 	typedef HAPI_Result (*GetPresetBufLengthFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length);
 	typedef HAPI_Result (*GetPresetCountFuncPtr)(const HAPI_Session * session, const char * buffer, int buffer_length, int * count);
-	typedef HAPI_Result (*GetPresetNamesFuncPtr)(const HAPI_Session * session, const char * buffer, int buffer_length, HAPI_StringHandle * preset_names_array, int count);
+	typedef HAPI_Result (*GetPresetNamesFuncPtr)(const HAPI_Session * session, const char * buffer, int buffer_length, HAPI_StringHandle * preset_names_array, int preset_names_count);
 	typedef HAPI_Result (*GetServerEnvIntFuncPtr)(const HAPI_Session * session, const char * variable_name, int * value);
 	typedef HAPI_Result (*GetServerEnvStringFuncPtr)(const HAPI_Session * session, const char * variable_name, HAPI_StringHandle * value);
 	typedef HAPI_Result (*GetServerEnvVarCountFuncPtr)(const HAPI_Session * session, int * env_count);
@@ -337,6 +340,7 @@ public:
 	typedef HAPI_Result (*RemoveMultiparmInstanceFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position);
 	typedef HAPI_Result (*RemoveParmExpressionFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int index);
 	typedef HAPI_Result (*RenameNodeFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name);
+	typedef HAPI_Result (*RenderCOPOutputToImageFuncPtr)(const HAPI_Session * session, HAPI_NodeId cop_node_id, const char * cop_output_name);
 	typedef HAPI_Result (*RenderCOPToImageFuncPtr)(const HAPI_Session * session, HAPI_NodeId cop_node_id);
 	typedef HAPI_Result (*RenderTextureToImageFuncPtr)(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ParmId parm_id);
 	typedef HAPI_Result (*ResetSimulationFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id);
@@ -456,7 +460,7 @@ public:
 	typedef HAPI_Result (*StartThriftNamedPipeServerFuncPtr)(const HAPI_ThriftServerOptions * options, const char * pipe_name, HAPI_ProcessId * process_id, const char * log_file);
 	typedef HAPI_Result (*StartThriftSharedMemoryServerFuncPtr)(const HAPI_ThriftServerOptions * options, const char * shared_mem_name, HAPI_ProcessId * process_id, const char * log_file);
 	typedef HAPI_Result (*StartThriftSocketServerFuncPtr)(const HAPI_ThriftServerOptions * options, int port, HAPI_ProcessId * process_id, const char * log_file);
-	typedef HAPI_Result (*StopPerformanceMonitorProfileFuncPtr)(const HAPI_Session *session, int profile_id, const char * file_path);
+	typedef HAPI_Result (*StopPerformanceMonitorProfileFuncPtr)(const HAPI_Session * session, int profile_id, const char * file_path);
 	typedef HAPI_ThriftServerOptions (*ThriftServerOptions_CreateFuncPtr)();
 	typedef void (*ThriftServerOptions_InitFuncPtr)(HAPI_ThriftServerOptions * in);
 	typedef HAPI_TimelineOptions (*TimelineOptions_CreateFuncPtr)();
@@ -505,6 +509,7 @@ public:
 	static CookOptions_InitFuncPtr CookOptions_Init;
 	static CookPDGFuncPtr CookPDG;
 	static CookPDGAllOutputsFuncPtr CookPDGAllOutputs;
+	static CreateCOPImageFuncPtr CreateCOPImage;
 	static CreateCustomSessionFuncPtr CreateCustomSession;
 	static CreateHeightFieldInputFuncPtr CreateHeightFieldInput;
 	static CreateHeightfieldInputVolumeNodeFuncPtr CreateHeightfieldInputVolumeNode;
@@ -534,6 +539,8 @@ public:
 	static GetActiveCacheNamesFuncPtr GetActiveCacheNames;
 	static GetAssetDefinitionParmCountsFuncPtr GetAssetDefinitionParmCounts;
 	static GetAssetDefinitionParmInfosFuncPtr GetAssetDefinitionParmInfos;
+	static GetAssetDefinitionParmTagNameFuncPtr GetAssetDefinitionParmTagName;
+	static GetAssetDefinitionParmTagValueFuncPtr GetAssetDefinitionParmTagValue;
 	static GetAssetDefinitionParmValuesFuncPtr GetAssetDefinitionParmValues;
 	static GetAssetInfoFuncPtr GetAssetInfo;
 	static GetAssetLibraryFilePathFuncPtr GetAssetLibraryFilePath;
@@ -772,6 +779,7 @@ public:
 	static RemoveMultiparmInstanceFuncPtr RemoveMultiparmInstance;
 	static RemoveParmExpressionFuncPtr RemoveParmExpression;
 	static RenameNodeFuncPtr RenameNode;
+	static RenderCOPOutputToImageFuncPtr RenderCOPOutputToImage;
 	static RenderCOPToImageFuncPtr RenderCOPToImage;
 	static RenderTextureToImageFuncPtr RenderTextureToImage;
 	static ResetSimulationFuncPtr ResetSimulation;
@@ -940,6 +948,7 @@ public:
 	static void CookOptions_InitEmptyStub(HAPI_CookOptions * in);
 	static HAPI_Result CookPDGEmptyStub(const HAPI_Session * session, HAPI_NodeId cook_node_id, int generate_only, int blocking);
 	static HAPI_Result CookPDGAllOutputsEmptyStub(const HAPI_Session* session, HAPI_NodeId cook_node_id, int generate_only, int blocking);
+	static HAPI_Result CreateCOPImageEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const int width, const int height, const HAPI_ImagePacking packing, HAPI_Bool flip_x, HAPI_Bool flip_y, const float * data_array, int start, int length);
 	static HAPI_Result CreateCustomSessionEmptyStub(HAPI_SessionType session_type, void * session_info, HAPI_Session * session);
 	static HAPI_Result CreateHeightFieldInputEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, const char * name, int xsize, int ysize, float voxelsize, HAPI_HeightFieldSampling sampling, HAPI_NodeId * heightfield_node_id, HAPI_NodeId * height_node_id, HAPI_NodeId * mask_node_id, HAPI_NodeId * merge_node_id);
 	static HAPI_Result CreateHeightfieldInputVolumeNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId parent_node_id, HAPI_NodeId * new_node_id, const char * name, int xsize, int ysize, float voxelsize);
@@ -969,6 +978,8 @@ public:
 	static HAPI_Result GetActiveCacheNamesEmptyStub(const HAPI_Session * session, HAPI_StringHandle * cache_names_array, int active_cache_count);
 	static HAPI_Result GetAssetDefinitionParmCountsEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, int * parm_count, int * int_value_count, int * float_value_count, int * string_value_count, int * choice_value_count);
 	static HAPI_Result GetAssetDefinitionParmInfosEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, HAPI_ParmInfo * parm_infos_array, int start, int length);
+	static HAPI_Result GetAssetDefinitionParmTagNameEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, HAPI_ParmId parm_id, int tag_index, HAPI_StringHandle * tag_name);
+	static HAPI_Result GetAssetDefinitionParmTagValueEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, HAPI_ParmId parm_id, const char * tag_name, HAPI_StringHandle * tag_value);
 	static HAPI_Result GetAssetDefinitionParmValuesEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId library_id, const char * asset_name, int * int_values_array, int int_start, int int_length, float * float_values_array, int float_start, int float_length, HAPI_Bool string_evaluate, HAPI_StringHandle * string_values_array, int string_start, int string_length, HAPI_ParmChoiceInfo * choice_values_array, int choice_start, int choice_length);
 	static HAPI_Result GetAssetInfoEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_AssetInfo * asset_info);
 	static HAPI_Result GetAssetLibraryFilePathEmptyStub(const HAPI_Session * session, HAPI_AssetLibraryId asset_library_id, HAPI_StringHandle * file_path_sh);
@@ -1103,7 +1114,7 @@ public:
 	static HAPI_Result GetPresetEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, char * buffer, int buffer_length);
 	static HAPI_Result GetPresetBufLengthEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_PresetType preset_type, const char * preset_name, int * buffer_length);
 	static HAPI_Result GetPresetCountEmptyStub(const HAPI_Session * session, const char * buffer, int buffer_length, int * count);
-	static HAPI_Result GetPresetNamesEmptyStub(const HAPI_Session * session, const char * buffer, int buffer_length, HAPI_StringHandle * preset_names_array, int count);
+	static HAPI_Result GetPresetNamesEmptyStub(const HAPI_Session * session, const char * buffer, int buffer_length, HAPI_StringHandle * preset_names_array, int preset_names_count);
 	static HAPI_Result GetServerEnvIntEmptyStub(const HAPI_Session * session, const char * variable_name, int * value);
 	static HAPI_Result GetServerEnvStringEmptyStub(const HAPI_Session * session, const char * variable_name, HAPI_StringHandle * value);
 	static HAPI_Result GetServerEnvVarCountEmptyStub(const HAPI_Session * session, int * env_count);
@@ -1207,6 +1218,7 @@ public:
 	static HAPI_Result RemoveMultiparmInstanceEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int instance_position);
 	static HAPI_Result RemoveParmExpressionEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_ParmId parm_id, int index);
 	static HAPI_Result RenameNodeEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, const char * new_name);
+	static HAPI_Result RenderCOPOutputToImageEmptyStub(const HAPI_Session * session, HAPI_NodeId cop_node_id, const char * cop_output_name);
 	static HAPI_Result RenderCOPToImageEmptyStub(const HAPI_Session * session, HAPI_NodeId cop_node_id);
 	static HAPI_Result RenderTextureToImageEmptyStub(const HAPI_Session * session, HAPI_NodeId material_node_id, HAPI_ParmId parm_id);
 	static HAPI_Result ResetSimulationEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id);
@@ -1326,7 +1338,7 @@ public:
 	static HAPI_Result StartThriftNamedPipeServerEmptyStub(const HAPI_ThriftServerOptions * options, const char * pipe_name, HAPI_ProcessId * process_id, const char * log_file);
 	static HAPI_Result StartThriftSharedMemoryServerEmptyStub(const HAPI_ThriftServerOptions * options, const char * shared_mem_name, HAPI_ProcessId * process_id, const char * log_file);
 	static HAPI_Result StartThriftSocketServerEmptyStub(const HAPI_ThriftServerOptions * options, int port, HAPI_ProcessId * process_id, const char * log_file);
-	static HAPI_Result StopPerformanceMonitorProfileEmptyStub(const HAPI_Session *session, int profile_id, const char * file_path);
+	static HAPI_Result StopPerformanceMonitorProfileEmptyStub(const HAPI_Session * session, int profile_id, const char * file_path);
 	static HAPI_ThriftServerOptions ThriftServerOptions_CreateEmptyStub();
 	static void ThriftServerOptions_InitEmptyStub(HAPI_ThriftServerOptions * in);
 	static HAPI_TimelineOptions TimelineOptions_CreateEmptyStub();

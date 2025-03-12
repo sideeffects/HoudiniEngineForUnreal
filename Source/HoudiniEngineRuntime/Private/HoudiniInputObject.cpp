@@ -968,6 +968,10 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 			HoudiniInputObject = UHoudiniInputPackedLevelActor::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
+		case EHoudiniInputObjectType::Texture:
+			HoudiniInputObject = UHoudiniInputTexture::Create(InObject, InOuter, InName, InInputSettings);
+			break;
+
 		case EHoudiniInputObjectType::Invalid:
 		default:
 			break;
@@ -3188,6 +3192,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 			return EHoudiniInputObjectType::PCGData;
 		}
 #endif
+		else if (InObject->IsA(UTexture2D::StaticClass()))
+		{
+			return EHoudiniInputObjectType::Texture;
+		}
 		else
 		{
 			return EHoudiniInputObjectType::Object;
@@ -3751,4 +3759,33 @@ UHoudiniInputSplineMeshComponent::HasComponentChanged(const FHoudiniInputObjectS
 	}
 
 	return false;
+}
+
+UHoudiniInputTexture::UHoudiniInputTexture(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bInputNodeHandleOverridesNodeIds = false;
+}
+
+UHoudiniInputObject*
+UHoudiniInputTexture::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
+{
+	FString InputObjectNameStr = "HoudiniInputObject_Texture_" + InName;
+	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputTexture::StaticClass(), *InputObjectNameStr);
+
+	// We need to create a new object
+	UHoudiniInputTexture* HoudiniInputObject = NewObject<UHoudiniInputTexture>(
+		InOuter, UHoudiniInputTexture::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::Texture;
+	HoudiniInputObject->Update(InObject, InInputSettings);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+UTexture2D*
+UHoudiniInputTexture::GetTexture() const
+{
+	return Cast<UTexture2D>(InputObject.LoadSynchronous());
 }

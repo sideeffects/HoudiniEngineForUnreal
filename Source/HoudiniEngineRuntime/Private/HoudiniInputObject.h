@@ -100,6 +100,7 @@ enum class EHoudiniInputObjectType : uint8
 	LevelInstance,
 	PackedLevelActor,
 	PCGData,
+	Texture,
 };
 
 
@@ -1470,4 +1471,21 @@ protected:
 	
 	UPROPERTY()
 	uint8 CachedbSmoothInterpRollScale:1;
+};
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// UTexture2D input
+//-----------------------------------------------------------------------------------------------------------------------------
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputTexture : public UHoudiniInputObject
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+
+	//
+	static UHoudiniInputObject* Create(UObject * InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+
+	// Texture2D accessor
+	class UTexture2D* GetTexture() const;
 };
