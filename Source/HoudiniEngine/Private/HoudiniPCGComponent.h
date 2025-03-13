@@ -44,10 +44,10 @@ public:
 	void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 public:
 
-	static UHoudiniPCGComponent* GetOrCreatePCGComponent(UPCGComponent* UnrealPCGComponent);
+	static UHoudiniPCGComponent* CreatePCGComponent(UPCGComponent* UnrealPCGComponent);
 
 	UPROPERTY(Transient)
-	TObjectPtr<UHoudiniPCGCookableCache> CookableCache;
+	TObjectPtr<UHoudiniPCGCookable> Cookable;
 
 	UPROPERTY()
 	TObjectPtr<UHoudiniAsset> HoudiniAsset;

@@ -120,10 +120,12 @@ struct FPCHoudiniDigitalAssetAttributesContext : public FPCGContext, public IPCG
 class FHoudiniDigitalAssetPCGElement : public IPCGElementWithCustomContext<FPCHoudiniDigitalAssetAttributesContext>
 {
 public:
-	virtual bool IsCacheable(const UPCGSettings* InSettings) const override { return false; }
+	virtual bool IsCacheable(const UPCGSettings* InSettings) const;
 	virtual bool CanExecuteOnlyOnMainThread(FPCGContext* Context) const override { return false; }
 protected:
 	virtual bool PrepareDataInternal(FPCGContext* InContext) const override;
 	virtual bool ExecuteInternal(FPCGContext* InContext) const override;
+
+	void ProcessCookableOutput(FPCGContext* Context, UHoudiniPCGCookable* Cookable) const;
 };
 

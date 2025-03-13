@@ -58,14 +58,6 @@ enum class EHoudiniPCGInputType
 	PCGData
 };
 
-
-struct FHoudiniPCGManagedResource
-{
-	UPCGManagedActors* Actors;
-	UPCGManagedComponentList* Components;
-};
-
-
 struct FHoudiniPCGAttributes
 {
 	FHoudiniPCGAttributes(const UPCGMetadata* Metadata, const FName & ParameterNames);
@@ -85,8 +77,6 @@ class HOUDINIENGINE_API FHoudiniPCGUtils
 public:
 
 	static FString ParameterInputPinName;;
-
-	static void ResetPCGSession();
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Conversion functions.

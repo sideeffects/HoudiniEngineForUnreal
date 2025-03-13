@@ -45,8 +45,6 @@
 
 UHoudiniPCGComponent::UHoudiniPCGComponent(class FObjectInitializer const& ObjectInitializer)
 {
-	CookableCache = CreateDefaultSubobject<UHoudiniPCGCookableCache>(TEXT("Cache"));
-
 }
 
 void UHoudiniPCGComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
@@ -54,7 +52,7 @@ void UHoudiniPCGComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 
 }
 
-UHoudiniPCGComponent* UHoudiniPCGComponent::GetOrCreatePCGComponent(UPCGComponent* UnrealPCComponent)
+UHoudiniPCGComponent* UHoudiniPCGComponent::CreatePCGComponent(UPCGComponent* UnrealPCComponent)
 {
 	UWorld* World = UnrealPCComponent->GetWorld();
 
@@ -85,28 +83,6 @@ UHoudiniPCGComponent* UHoudiniPCGComponent::GetOrCreatePCGComponent(UPCGComponen
 		HoudiniPCGActor->AddInstanceComponent(RootComponent);
 	}
 
-	// Look for our Houdini PCG Component, return if found
-	for(USceneComponent* Child : RootComponent->GetAttachChildren())
-	{
-		if(UHoudiniPCGComponent* Component  = Cast<UHoudiniPCGComponent>(Child))
-		{
-			if(Component->PCGComponent == UnrealPCComponent)
-			{
-				// Update transform if the UPCGComponent has moved.
-				const FTransform& ActorTransform = Component->PCGComponent->GetOwner()->GetActorTransform();
-				const FTransform& ThisTransform = Component->GetComponentTransform();
-				if (!ActorTransform.GetLocation().Equals(ThisTransform.GetLocation()) || !(ActorTransform.GetRotation() != ThisTransform.GetRotation()))
-				{
-					Component->SetWorldLocation(ActorTransform.GetLocation());
-					Component->SetWorldRotation(ActorTransform.GetRotation());
-				}
-
-				return Component;
-			}
-		}
-	}
-
-	// Wasn't found, create it.
 	UHoudiniPCGComponent* PCGComponent = NewObject<UHoudiniPCGComponent>(RootComponent);
 	FTransform ComponentTransform = UnrealPCComponent->GetOwner()->GetTransform();
 	ComponentTransform.SetScale3D(FVector3d::One());
@@ -164,8 +140,7 @@ void UHoudiniPCGComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailB
 						{
 							if(GEngine)
 							{
-								GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("Button Clicked!"));
-								Component->CookableCache->Invalidate();
+								// TODO: Still needed? 
 							}
 							return FReply::Handled();
 						})

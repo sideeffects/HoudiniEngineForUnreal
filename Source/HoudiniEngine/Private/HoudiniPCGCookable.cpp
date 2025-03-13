@@ -44,11 +44,9 @@
 #include "HoudiniEngineManager.h"
 #include "HoudiniPCGTranslator.h"
 #include "Misc/StringBuilder.h"
+#include "HoudiniPCGManagedResource.h"
 
 #define LOCTEXT_NAMESPACE "PCGCachedCookable"
-
-
-TArray<TWeakObjectPtr<UHoudiniPCGCookableCache>> UHoudiniPCGCookableCache::ActiveCaches;
 
 UHoudiniPCGCookable::UHoudiniPCGCookable(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -62,6 +60,9 @@ UHoudiniPCGCookable::~UHoudiniPCGCookable()
 
 void UHoudiniPCGCookable::Cook()
 {
+	// Ensure outputs are enabled. They may be disabled during instantiation.
+	Cookable->SetOutputSupported(true);
+
 	State = EPCGCookableState::Cooking;
 	FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
 	HEM->AutoStartFirstSessionIfNeeded();
@@ -72,7 +73,7 @@ void UHoudiniPCGCookable::Cook()
 void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAssetPCGSettings* Owner, UHoudiniPCGComponent* Component)
 {
 	Cookable = NewObject<UHoudiniCookable>();
-
+	State = EPCGCookableState::Initializing;
 	auto OutputDelegateHandle = Cookable->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
 		{
 			if (this->State == EPCGCookableState::Initializing)
@@ -83,7 +84,7 @@ void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAsset
 
 	Cookable->SetParameterSupported(true);
 	Cookable->SetInputSupported(true);
-	Cookable->SetOutputSupported(true);
+	Cookable->SetOutputSupported(false); // Don't produce outputs in Unreal during instantiate.
 	Cookable->SetComponentSupported(Component ? true : false);
 	if (Component)
 	{
@@ -99,64 +100,6 @@ void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAsset
 
 UHoudiniPCGCookable* FindCacheEntry(FString& CacheId);
 
-FString UHoudiniPCGCookableCache::GetCacheString(FPCGContext* Context)
-{
-	// We make the cache string as unique as possible by making it something like
-	//
-	//		Component/Graph/StackFrame
-	//
-	//	where Component is the path of the source PCG Component, Graph is the Path
-	//	of the PCG Graph, and StackFrame is a string made from the Stack Frame
-	//	of the current context. Possible the string could be shorter, but we
-	//	really have to ensure its unique.
-
-	FString ComponentPath = Context->SourceComponent->GetPathName();
-	FString GraphPath = Context->Node->GetPathName();
-
-	FStringBuilderBase CacheString;
-	CacheString.Append(ComponentPath);
-	CacheString.Append(TEXT("/"));
-	CacheString.Append(GraphPath);
-
-	const UHoudiniDigitalAssetPCGSettings* Settings = Context->GetInputSettings<UHoudiniDigitalAssetPCGSettings>();
-
-	// Iterate through the stack from, creating or finding the correct index.
-	for(int StackIndex = 0; StackIndex < Context->Stack->GetStackFrames().Num(); StackIndex++)
-	{
-		auto& StackFrame = Context->Stack->GetStackFrames()[StackIndex];
-		FString ObjectName = StackFrame.Object.IsNull() ? TEXT("None") : StackFrame.Object->GetName();
-		FString ChildName = FString::Printf(TEXT("/%s(%d)"), *ObjectName, StackFrame.LoopIndex);
-		CacheString.Append(ChildName);
-	}
-
-	// We not have a (long) string. See if it's here?
-	FString CachePath = CacheString.ToString();
-	return CachePath;
-}
-
-UHoudiniPCGCookable* UHoudiniPCGCookableCache::FindCookable(const FString& CachePath, UHoudiniAsset* HDA, UHoudiniPCGComponent* Component)
-{
-	TObjectPtr<UHoudiniPCGCookable>* Ptr = Cache.Find(CachePath);
-	return Ptr ? *Ptr : nullptr;
-}
-
-
-UHoudiniPCGCookable* UHoudiniPCGCookableCache::CreateCookable(const FString& CachePath, UHoudiniAsset* HDA, UHoudiniPCGComponent* Component)
-{
-	FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
-	HEM->AutoStartFirstSessionIfNeeded();
-
-	check(Cache.Find(CachePath) == nullptr);
-
-	Cache.Add(CachePath, NewObject<UHoudiniPCGCookable>());
-
-	TObjectPtr<UHoudiniPCGCookable> PCGCookable = *Cache.Find(CachePath);
-
-	PCGCookable->Instantiate(HDA, nullptr, Component);
-	
-	return PCGCookable;
-}
-
 void UHoudiniPCGCookable::InvalidateCookable()
 {
 	if (IsValid(this->Cookable.Get()))
@@ -165,32 +108,6 @@ void UHoudiniPCGCookable::InvalidateCookable()
 		this->Cookable = nullptr; // Garbage Collection will clean this up.
 	}
 }
-
-UHoudiniPCGCookableCache::UHoudiniPCGCookableCache(class FObjectInitializer const& ObjectInitializer)
-{
-	ActiveCaches.Add(this);
-}
-
-void UHoudiniPCGCookableCache::InvalidateAllCaches()
-{
-	for (TWeakObjectPtr<UHoudiniPCGCookableCache> & It : ActiveCaches)
-	{
-		if (It.IsValid())
-		{
-			It.Get()->Invalidate();
-		}
-	}
-}
-
-void UHoudiniPCGCookableCache::Invalidate()
-{
-	for (auto It : Cache)
-	{
-		It.Value->InvalidateCookable();
-	}
-	Cache.Empty();
-}
-
 
 bool UHoudiniPCGCookable::ApplyParametersToCookable(FPCGContext* Context)
 {
@@ -300,8 +217,13 @@ bool UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data, FPCGCo
 	return bChanged;
 }
 
+void UHoudiniPCGCookable::Release()
+{
+	FHoudiniOutputTranslator::ClearAndRemoveOutputs(this->Cookable->GetOutputs());
 
-void UHoudiniPCGCookable::CreateOutputs(FPCGContext* Context, FHoudiniPCGManagedResource* ManagedResources, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutput)
+}
+
+void UHoudiniPCGCookable::CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutput)
 {
 	if(FHoudiniPCGUtils::HasPCGOutputs(HoudiniOutput))
 	{
@@ -309,9 +231,8 @@ void UHoudiniPCGCookable::CreateOutputs(FPCGContext* Context, FHoudiniPCGManaged
 	}
 	else
 	{
-		CreateOutputsAsObjectReferences(Context, ManagedResources, OutputPinName, HoudiniOutput);
+		CreateOutputsAsObjectReferences(Context, OutputPinName, HoudiniOutput);
 	}
-
 }
 
 void UHoudiniPCGCookable::CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutput)
@@ -359,7 +280,7 @@ void UHoudiniPCGCookable::CreateOutputsAsPCGData(FPCGContext* Context, const FNa
 	}
 }
 
-void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, FHoudiniPCGManagedResource* ManagedResources, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutput)
+void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutput)
 {
 	TArray<FHoudiniPCGObjectOutput> Outputs = FHoudiniPCGUtils::GetPCGOutputData(HoudiniOutput);
 
@@ -403,35 +324,5 @@ void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, 
 	TaggedOutput.Data = ParamData;
 	TaggedOutput.Pin = OutputPinName;
 	TaggedOutput.Tags.Add(OutputPinName.ToString());
-
-	// Create Managed Resources
-
-	for (auto It : HoudiniOutput->GetOutputObjects())
-	{
-		FHoudiniOutputObject& OutputObject = It.Value;
-		if(OutputObject.ProxyComponent)
-		{
-			UActorComponent* ProxyComponent = Cast<UActorComponent>(OutputObject.ProxyComponent);
-			ManagedResources->Components->GeneratedComponents.Add(ProxyComponent);
-		}
-
-		for(auto Component : OutputObject.OutputComponents)
-		{
-			if(IsValid(Component))
-			{
-				UActorComponent* RawComponent = Cast<UActorComponent>(Component.Get());
-				ManagedResources->Components->GeneratedComponents.Add(RawComponent);
-			}
-		}
-
-		for(auto Actor : OutputObject.OutputActors)
-		{
-			if(IsValid(Actor.Get()))
-			{
-				ManagedResources->Actors->GeneratedActors.Add(Actor);
-			}
-		}
-	}
-
 }
 #undef LOCTEXT_NAMESPACE

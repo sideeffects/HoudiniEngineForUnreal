@@ -715,12 +715,7 @@ FHoudiniEngineEditor::BindMenuCommands()
 		FExecuteAction::CreateLambda([](){ return FHoudiniEngineCommands::PauseAssetCooking(); }),
 		FCanExecuteAction::CreateLambda([](){ return FHoudiniEngineCommands::IsSessionValid(); }),
 		FIsActionChecked::CreateLambda([](){ return FHoudiniEngineCommands::IsAssetCookingPaused(); }));
-#if defined(HOUDINI_USE_PCG)
-	HEngineCommands->MapAction(
-		Commands._ResetPCGSession,
-		FExecuteAction::CreateLambda([]() { FHoudiniEngineCommands::ResetPCGSession(); }),
-		FCanExecuteAction::CreateLambda([]() { return true; }));
-#endif
+
 	// Non menu command (used for shortcuts only)
 
 	// Append the command to the editor module
@@ -791,9 +786,7 @@ FHoudiniEngineEditor::AddHoudiniMainMenuExtension(FMenuBuilder & MenuBuilder)
 	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._RestartSession);
 	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._OpenSessionSync);
 	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._CloseSessionSync);
-#if defined (HOUDINI_USE_PCG)
-	MenuBuilder.AddMenuEntry(FHoudiniEngineCommands::Get()._ResetPCGSession);
-#endif
+
 	// Viewport sync menu
 	struct FLocalMenuBuilder
 	{

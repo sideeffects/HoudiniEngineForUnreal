@@ -96,7 +96,7 @@ void UHoudiniPCGSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBu
 							.Visibility(EVisibility::Visible)
 							.OnClicked_Lambda([Component]()
 								{
-									Component->CookableCache->Invalidate();
+									//Component->CookableCache->Invalidate();
 									return FReply::Handled();
 								})
 					]

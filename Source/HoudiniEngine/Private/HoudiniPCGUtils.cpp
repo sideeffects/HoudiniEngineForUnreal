@@ -362,8 +362,3 @@ FVector4d FHoudiniPCGUtils::UnrealToHoudiniQuat(const FQuat& Quat)
 	return Result;
 }
 
-void FHoudiniPCGUtils::ResetPCGSession()
-{
-	UHoudiniPCGCookableCache::InvalidateAllCaches();
-}
-

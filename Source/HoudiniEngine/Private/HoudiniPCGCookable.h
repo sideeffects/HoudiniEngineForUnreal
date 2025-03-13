@@ -32,7 +32,7 @@ class UPCGMetadata;
 struct FPCGContext;
 class UHoudiniDigitalAssetPCGSettings;
 class UHoudiniPCGComponent;
-struct FHoudiniPCGManagedResource;
+class UHoudiniPCGManagedResource;
 
 enum class EPCGCookableState
 {
@@ -66,7 +66,7 @@ public:
 
 	void Cook();
 	void Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAssetPCGSettings * PCGSettings, UHoudiniPCGComponent * Component);
-	void Remove(UHoudiniPCGCookable * Candidate);
+	void Release();
 
 	bool ApplyInputsToCookable(FPCGContext* InContext);
 	bool ApplyParametersToCookable(FPCGContext* Context);
@@ -81,44 +81,14 @@ public:
 
 	static bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const UPCGData* Data);
 
-	static void CreateOutputs(FPCGContext* Context, FHoudiniPCGManagedResource* ManagedResources, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
+	static void CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
 
 	EPCGCookableState State = EPCGCookableState::Idle;
 
 private:
-	static void CreateOutputsAsObjectReferences(FPCGContext* Context, FHoudiniPCGManagedResource* ManagedResources, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
+	static void CreateOutputsAsObjectReferences(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
 	static void CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
 };
 
-UCLASS()
-class HOUDINIENGINE_API UHoudiniPCGCookableCache : public UObject
-{
-	// Each UHoudiniPCGComponent contains an instance of this class. This class keeps track of the Houdini PCG Cookables
-	// that are in use by this instanced of a PCG Graph. We do this because creating cookables is relatively slow, and
-	// we only only want to resend dirty inputs and parameters as well.
-	//
-	// Each cache entry is referenced by a cache string - see GetCacheString() for details.
 
-	// TODO: Could this be a custom Managed Resource inside of PCG?
-
-	GENERATED_BODY()
-
-public:
-
-	UHoudiniPCGCookableCache(class FObjectInitializer const& ObjectInitializer);
-
-	static FString GetCacheString(FPCGContext* Context);
-
-	UHoudiniPCGCookable* FindCookable(const FString & CacheId, UHoudiniAsset * HDA, UHoudiniPCGComponent* Component);
-	UHoudiniPCGCookable* CreateCookable(const FString& CacheId, UHoudiniAsset* HDA, UHoudiniPCGComponent* Component);
-	void Invalidate();
-
-	static void InvalidateAllCaches();
-
-	UPROPERTY(Transient)
-	TMap<FString,TObjectPtr<UHoudiniPCGCookable>> Cache;
-
-	static TArray<TWeakObjectPtr<UHoudiniPCGCookableCache>> ActiveCaches;
-
-};
 

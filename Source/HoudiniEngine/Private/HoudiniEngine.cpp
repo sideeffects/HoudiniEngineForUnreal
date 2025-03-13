@@ -1241,10 +1241,6 @@ FHoudiniEngine::OnSessionConnected()
 
 		CurCookable->OnSessionConnected();
 	}
-
-	// Allow PCG/Houdini to clear its internal data.
-	//UHoudiniPCGCookableCache::OnSessionConnected();
-
 }
 
 bool
