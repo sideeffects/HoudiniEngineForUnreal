@@ -11459,14 +11459,12 @@ HAPI_DECL HAPI_GetSupportedImageFileFormats(
 ///                 The index of the first value of @p data_array to use.
 ///                 Must be at least 0 and at most (size of @p data_array - 1).
 ///                 <!-- min 0 -->
-///                 <!-- max arglength(data_array) - 1 -->
 ///                 <!-- default 0 -->
 ///
 /// @param[in]      length
 ///                 How much of @p data_array to use. Must be at least 0
 ///                 and at most (size of @p data_array - start).
 ///                 <!-- min 0 -->
-///                 <!-- max arglength(data_array) - start -->
 ///
 HAPI_DECL HAPI_CreateCOPImage( const HAPI_Session * session,
                                HAPI_NodeId parent_node_id,
