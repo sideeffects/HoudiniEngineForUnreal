@@ -45,6 +45,7 @@
 #include "HoudiniPCGTranslator.h"
 #include "Misc/StringBuilder.h"
 #include "HoudiniPCGManagedResource.h"
+#include "HoudiniOutputTranslator.h"
 
 #define LOCTEXT_NAMESPACE "PCGCachedCookable"
 

@@ -41,10 +41,14 @@ bool UHoudiniPCGManagedResource::Release(bool bHardRelease, TSet<TSoftObjectPtr<
 	bIsMarkedUnused = true;
 	if (bHardRelease)
 	{
-		this->PCGComponent->Cookable->Release();
-		this->PCGComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-		this->PCGComponent->DestroyComponent();
-		this->PCGComponent = nullptr;
+		if(IsValid(PCGComponent))
+		{
+			if (IsValid(PCGComponent->Cookable))
+			PCGComponent->Cookable->Release();
+			PCGComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+			PCGComponent->DestroyComponent();
+			PCGComponent = nullptr;
+		}
 	}
 	return bHardRelease;
 }

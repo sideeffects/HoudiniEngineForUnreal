@@ -254,35 +254,44 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 	// See if we have an existing managed resource.
 	//----------------------------------------------------------------------------------------------------------------------------------------
 
-	UHoudiniPCGManagedResource* ManagedResources = nullptr;
-	Context->SourceComponent->ForEachManagedResource([&ManagedResources, ResourceCrc, &Context](UPCGManagedResource* InResource)
+	UHoudiniPCGManagedResource* ManagedResource = nullptr;
+	Context->SourceComponent->ForEachManagedResource([&ManagedResource, ResourceCrc, &Context](UPCGManagedResource* InResource)
 		{
 			if(!InResource->GetCrc().IsValid() || InResource->GetCrc() != ResourceCrc && InResource->IsA<UPCGManagedResource>())
 				return;
 
-			ManagedResources = Cast<UHoudiniPCGManagedResource>(InResource);
+			ManagedResource = Cast<UHoudiniPCGManagedResource>(InResource);
 		});
 
 	//----------------------------------------------------------------------------------------------------------------------------------------
 	// If we didn't find a managed resource, we need to cook off a new one.
 	//----------------------------------------------------------------------------------------------------------------------------------------
 
-	if(!ManagedResources)
+	if (ManagedResource)
+	{
+		if(!IsValid(ManagedResource->PCGComponent) || !IsValid(ManagedResource->PCGComponent->Cookable))
+		{
+			// user probably manually deleted components or killed a session. Discard previous managed resource.
+			ManagedResource = nullptr;
+		}
+	}
+
+	if(!ManagedResource)
 	{
 		// No previous resource found, so create a new one and instantiate the HDA. Note that next time Execute is called, this ManagedResource
 		// will be found.
 
-		ManagedResources = NewObject<UHoudiniPCGManagedResource>(Context->SourceComponent.Get());;
-		ManagedResources->SetCrc(ResourceCrc);
-		ManagedResources->MarkAsUsed();
-		ManagedResources->PCGComponent = UHoudiniPCGComponent::CreatePCGComponent(Context->SourceComponent.Get());
-		Context->SourceComponent->AddToManagedResources(ManagedResources);
+		ManagedResource = NewObject<UHoudiniPCGManagedResource>(Context->SourceComponent.Get());;
+		ManagedResource->SetCrc(ResourceCrc);
+		ManagedResource->MarkAsUsed();
+		ManagedResource->PCGComponent = UHoudiniPCGComponent::CreatePCGComponent(Context->SourceComponent.Get());
+		Context->SourceComponent->AddToManagedResources(ManagedResource);
 
 		FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
 		HEM->AutoStartFirstSessionIfNeeded();
-		ManagedResources->PCGComponent->Cookable = NewObject<UHoudiniPCGCookable>();
-		ManagedResources->PCGComponent->Cookable->Instantiate(Settings->HoudiniAsset, nullptr, ManagedResources->PCGComponent);
-		ManagedResources->bExecuteInProgress = true;
+		ManagedResource->PCGComponent->Cookable = NewObject<UHoudiniPCGCookable>();
+		ManagedResource->PCGComponent->Cookable->Instantiate(Settings->HoudiniAsset, nullptr, ManagedResource->PCGComponent);
+		ManagedResource->bExecuteInProgress = true;
 		return false;
 	}
 
@@ -290,21 +299,21 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 	// If we found managed resource, and we haven't started cooking, see if we can reuse the result. If not, start a cook
 	//----------------------------------------------------------------------------------------------------------------------------------------
 
-	ManagedResources->MarkAsReused();
+	ManagedResource->MarkAsReused();
 
-	if(!ManagedResources->bExecuteInProgress)
+	if(!ManagedResource->bExecuteInProgress)
 	{
 		// If the resource is not being executed (ie. not cooking) then see if the inputs changed. If they did change
 		// we must start a new cook. If not, we can reuse the existing results.
 
 		bool bInputsChanged = false;
-		bInputsChanged |= ManagedResources->PCGComponent->Cookable->ApplyParametersToCookable(Context);
-		bInputsChanged |= ManagedResources->PCGComponent->Cookable->ApplyInputsToCookable(Context);
+		bInputsChanged |= ManagedResource->PCGComponent->Cookable->ApplyParametersToCookable(Context);
+		bInputsChanged |= ManagedResource->PCGComponent->Cookable->ApplyInputsToCookable(Context);
 
 		if(bInputsChanged)
 		{
 			// Inputs changed so start a new cook and return since cooking will not be instant.
-			ManagedResources->PCGComponent->Cookable->Cook();
+			ManagedResource->PCGComponent->Cookable->Cook();
 			return false;
 		}
 
@@ -316,9 +325,9 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 	// If we get here, we are waiting on Houdini. So perform state checks.
 	//----------------------------------------------------------------------------------------------------------------------------------------
 
-	UHoudiniPCGCookable* Cookable = ManagedResources->PCGComponent->Cookable.Get();
+	UHoudiniPCGCookable* Cookable = ManagedResource->PCGComponent->Cookable.Get();
 
-	switch(ManagedResources->PCGComponent->Cookable->State)
+	switch(ManagedResource->PCGComponent->Cookable->State)
 	{
 	case EPCGCookableState::Initializing:
 		// Still initializing, wait.
@@ -339,7 +348,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 		// Done - process results.
 		ProcessCookableOutput(Context, Cookable);
 		Cookable->State = EPCGCookableState::Idle;
-		ManagedResources->bExecuteInProgress = false;
+		ManagedResource->bExecuteInProgress = false;
 		return true;
 
 	case EPCGCookableState::Idle:

@@ -58,6 +58,7 @@ public:
 	UPROPERTY()
 	TObjectPtr<UHoudiniPCGComponent> PCGComponent;
 
+	UPROPERTY()
 	bool bExecuteInProgress = true;
 
 
