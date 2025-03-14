@@ -668,6 +668,33 @@ UHoudiniAssetComponent::OnHoudiniAssetChanged()
 }
 
 void
+UHoudiniAssetComponent::SetCookingEnabled(const bool& bInCookingEnabled)
+{ 
+	if (GetCookable())
+		GetCookable()->SetCookingEnabled(bInCookingEnabled);
+
+	bEnableCooking = bInCookingEnabled; 
+}
+
+void
+UHoudiniAssetComponent::SetHasBeenLoaded(const bool& InLoaded)
+{ 
+	if (GetCookable())
+		GetCookable()->SetHasBeenLoaded(InLoaded);
+
+	bHasBeenLoaded = InLoaded; 
+}
+
+void
+UHoudiniAssetComponent::SetHasBeenDuplicated(const bool& InDuplicated)
+{
+	if (GetCookable())
+		GetCookable()->SetHasBeenDuplicated(InDuplicated);
+
+	bHasBeenDuplicated = InDuplicated; 
+}
+
+void
 UHoudiniAssetComponent::QueuePreCookCallback(const TFunction<void(UHoudiniAssetComponent*)>& CallbackFn)
 {
 	PreCookCallbacks.Add(CallbackFn);
@@ -1043,6 +1070,27 @@ UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
 	}
 
 	return true;
+}
+
+void
+UHoudiniAssetComponent::AddDownstreamHoudiniAsset(UHoudiniAssetComponent* InDownstreamAsset)
+{ 
+	// TODO COOKABLE
+	DownstreamHoudiniAssets.Add(InDownstreamAsset); 
+}
+
+void
+UHoudiniAssetComponent::RemoveDownstreamHoudiniAsset(UHoudiniAssetComponent* InRemoveDownstreamAsset)
+{ 
+	// TODO COOKABLE
+	DownstreamHoudiniAssets.Remove(InRemoveDownstreamAsset); 
+}
+
+void
+UHoudiniAssetComponent::ClearDownstreamHoudiniAsset()
+{
+	// TODO COOKABLE
+	DownstreamHoudiniAssets.Empty();
 }
 
 bool
@@ -1847,20 +1895,62 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent & PropertyC
 	{
 		SetHasComponentTransformChanged(true);
 	}
-	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UHoudiniAssetComponent, bOverrideGlobalProxyStaticMeshSettings)
-			|| PropertyName == GET_MEMBER_NAME_CHECKED(UHoudiniAssetComponent, bEnableProxyStaticMeshRefinementByTimerOverride)
-			|| PropertyName == GET_MEMBER_NAME_CHECKED(UHoudiniAssetComponent, ProxyMeshAutoRefineTimeoutSecondsOverride))
+	else if (PropertyName == 
+		GET_MEMBER_NAME_CHECKED(UHoudiniAssetComponent, bOverrideGlobalProxyStaticMeshSettings))
 	{
-		ClearRefineMeshesTimer();
+		if (GetCookable())
+			GetCookable()->SetOverrideGlobalProxyStaticMeshSettings(bOverrideGlobalProxyStaticMeshSettings);
+
 		// Reset the timer
+		ClearRefineMeshesTimer();
 		// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
 		SetRefineMeshesTimer();
+	}
+	else if (PropertyName == 
+		GET_MEMBER_NAME_CHECKED(UHoudiniAssetComponent, bEnableProxyStaticMeshOverride))
+	{
+		if (GetCookable())
+			GetCookable()->SetEnableProxyStaticMeshOverride(bEnableProxyStaticMeshOverride);
+	}
+	else if (PropertyName == 
+		GET_MEMBER_NAME_CHECKED(UHoudiniAssetComponent, bEnableProxyStaticMeshRefinementByTimerOverride))
+	{
+		if (GetCookable())
+			GetCookable()->SetEnableProxyStaticMeshRefinementByTimerOverride(bEnableProxyStaticMeshRefinementByTimerOverride);
+
+		// Reset the timer
+		ClearRefineMeshesTimer();
+		// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+		SetRefineMeshesTimer();
+	}
+	else if (PropertyName ==
+		GET_MEMBER_NAME_CHECKED(UHoudiniAssetComponent, ProxyMeshAutoRefineTimeoutSecondsOverride))
+	{
+		if (GetCookable())
+			GetCookable()->SetProxyMeshAutoRefineTimeoutSecondsOverride(ProxyMeshAutoRefineTimeoutSecondsOverride);
+
+		// Reset the timer
+		ClearRefineMeshesTimer();
+		// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+		SetRefineMeshesTimer();
+	}
+	else if (PropertyName == 
+		GET_MEMBER_NAME_CHECKED(UHoudiniAssetComponent, bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride))
+	{
+		if (GetCookable())
+			GetCookable()->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride);
+	}
+	else if (PropertyName == 
+		GET_MEMBER_NAME_CHECKED(UHoudiniAssetComponent, bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride))
+	{
+		if (GetCookable())
+			GetCookable()->SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride);
 	}
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UHoudiniAssetComponent, Mobility))
 	{
 		// Changed GetAttachChildren to 'GetAllDescendants' due to HoudiniMeshSplitInstanceComponent 
 		// not propagating property changes to their own child StaticMeshComponents.
-		TArray< USceneComponent * > LocalAttachChildren;
+		TArray<USceneComponent *> LocalAttachChildren;
 		GetChildrenComponents(true, LocalAttachChildren);
 
 		// Mobility was changed, we need to update it for all attached components as well.
@@ -2243,6 +2333,35 @@ UHoudiniAssetComponent::SetHasComponentTransformChanged(const bool& InHasChanged
 	}
 }
 
+
+void
+UHoudiniAssetComponent::SetAssetCookCount(const int32& InCount)
+{ 
+	if (GetCookable())
+		GetCookable()->SetCookCount(InCount);
+
+	AssetCookCount = InCount; 
+}
+
+void
+UHoudiniAssetComponent::SetRecookRequested(const bool& InRecook)
+{
+	if (GetCookable())
+		GetCookable()->SetRecookRequested(InRecook);
+
+	bRecookRequested = InRecook;
+}
+
+void
+UHoudiniAssetComponent::SetRebuildRequested(const bool& InRebuild)
+{
+	if (GetCookable())
+		GetCookable()->SetRebuildRequested(InRebuild);
+
+	bRebuildRequested = InRebuild; 
+}
+
+
 void UHoudiniAssetComponent::SetOutputNodeIds(const TArray<int32>& OutputNodes)
 {
 	NodeIdsToCook = OutputNodes;
@@ -2275,6 +2394,25 @@ bool UHoudiniAssetComponent::HasOutputNodeChanged(const int& NodeId, const int& 
 	}
 	return true;
 }
+
+TArray<int32>
+UHoudiniAssetComponent::GetOutputNodeIds() const
+{
+	if (GetCookable())
+		return GetCookable()->GetNodeIdsToCook();
+
+	return NodeIdsToCook; 
+}
+
+TMap<int32, int32>
+UHoudiniAssetComponent::GetOutputNodeCookCounts() const
+{ 
+	if (GetCookable())
+		return GetCookable()->GetNodesToCookCookCounts();
+
+	return OutputNodeCookCounts; 
+}
+
 
 void UHoudiniAssetComponent::ClearOutputNodes()
 {
@@ -3400,6 +3538,33 @@ UHoudiniAssetComponent::GetAssetStateResult() const
 
 }
 
+FGuid& 
+UHoudiniAssetComponent::GetHapiGUID()
+{
+	if (GetCookable())
+		return GetCookable()->GetHapiGUID();
+
+	return HapiGUID; 
+}
+
+FString
+UHoudiniAssetComponent::GetHapiAssetName() const
+{
+	if (GetCookable())
+		return GetCookable()->GetHapiAssetName();
+
+	return HapiAssetName; 
+}
+
+FGuid
+UHoudiniAssetComponent::GetComponentGUID() const
+{
+	if (GetCookable())
+		return GetCookable()->GetCookableGUID();
+
+	return ComponentGUID; 
+}
+
 UHoudiniCookable*
 UHoudiniAssetComponent::GetCookable() const
 {
@@ -3486,6 +3651,25 @@ UHoudiniAssetComponent::GetPDGAssetLink()
 
 	return PDGAssetLink;
 };
+
+int32
+UHoudiniAssetComponent::GetAssetCookCount() const
+{ 
+	if (GetCookable())
+		GetCookable()->GetCookCount();
+
+	return AssetCookCount; 
+}
+
+bool
+UHoudiniAssetComponent::IsFullyLoaded() const
+{ 
+	if (GetCookable())
+		return GetCookable()->IsFullyLoaded();
+
+	return bFullyLoaded; 
+}
+
 
 
 bool

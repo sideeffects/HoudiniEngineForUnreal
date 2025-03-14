@@ -235,8 +235,8 @@ FHoudiniOutputTranslator::ProcessOutputs(
 	PackageParams.TempCookFolder = HC->OutputData->GetTemporaryCookFolderOrDefault();
 
 	PackageParams.OuterPackage = CookableComponent ? CookableComponent->GetComponentLevel() : nullptr;
-	PackageParams.HoudiniAssetName = HC->IsHoudiniAssetSupported() ? HC->HoudiniAssetData->HapiAssetName : HC->NodeName;
-	PackageParams.HoudiniAssetActorName = HC->GetDisplayName(); //HC->GetOwner()->GetActorNameOrLabel();
+	PackageParams.HoudiniAssetName = HC->GetHoudiniAssetName();
+	PackageParams.HoudiniAssetActorName = HC->GetDisplayName();
 	PackageParams.ComponentGUID = HC->CookableGUID;
 	PackageParams.ObjectName = FString();
 

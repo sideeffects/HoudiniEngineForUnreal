@@ -160,9 +160,9 @@ public:
 	virtual FString GetHoudiniAssetName() const;
 
 	EHoudiniAssetStateResult GetAssetStateResult() const;
-	FGuid& GetHapiGUID() { return HapiGUID; };
-	FString GetHapiAssetName() const { return HapiAssetName; };
-	FGuid GetComponentGUID() const { return ComponentGUID; };
+	FGuid& GetHapiGUID();
+	FString GetHapiAssetName() const;
+	FGuid GetComponentGUID() const;
 
 	int32 GetNumInputs() const;
 	int32 GetNumOutputs() const;
@@ -210,9 +210,9 @@ public:
 
 	//bool GetEditorPropertiesNeedFullUpdate() const { return bEditorPropertiesNeedFullUpdate; };
 
-	int32 GetAssetCookCount() const { return AssetCookCount; };
+	int32 GetAssetCookCount() const;
 
-	bool IsFullyLoaded() const { return bFullyLoaded; };
+	bool IsFullyLoaded() const;
 
 	bool IsOverrideGlobalProxyStaticMeshSettings() const;
 	virtual bool IsProxyStaticMeshEnabled() const;
@@ -293,19 +293,14 @@ public:
 	void SetAssetState(EHoudiniAssetState InNewState);
 	void SetAssetStateResult(EHoudiniAssetStateResult InAssetStateResult);
 
-	//void SetHapiGUID(const FGuid& InGUID) { HapiGUID = InGUID; };
-	//void SetComponentGUID(const FGuid& InGUID) { ComponentGUID = InGUID; };
-
 	//UFUNCTION(BlueprintSetter)
 	virtual void SetHoudiniAsset(UHoudiniAsset * NewHoudiniAsset);
 
-	void SetCookingEnabled(const bool& bInCookingEnabled) { bEnableCooking = bInCookingEnabled; };
+	void SetCookingEnabled(const bool& bInCookingEnabled);
 	
-	void SetHasBeenLoaded(const bool& InLoaded) { bHasBeenLoaded = InLoaded; };
+	void SetHasBeenLoaded(const bool& InLoaded);
 
-	void SetHasBeenDuplicated(const bool& InDuplicated) { bHasBeenDuplicated = InDuplicated; };
-
-	//void SetEditorPropertiesNeedFullUpdate(const bool& InUpdate) { bEditorPropertiesNeedFullUpdate = InUpdate; };
+	void SetHasBeenDuplicated(const bool& InDuplicated);
 
 	bool SetTemporaryCookFolder(const FDirectoryPath& InDirectoryPath);
 	bool SetBakeFolder(const FDirectoryPath& InDirectoryPath);
@@ -325,19 +320,19 @@ public:
 	void MarkAsBlueprintModified();
 	
 	//
-	void SetAssetCookCount(const int32& InCount) { AssetCookCount = InCount; };
+	void SetAssetCookCount(const int32& InCount);
 	//
-	void SetRecookRequested(const bool& InRecook) { bRecookRequested = InRecook; };
+	void SetRecookRequested(const bool& InRecook);
 	//
-	void SetRebuildRequested(const bool& InRebuild) { bRebuildRequested = InRebuild; };
+	void SetRebuildRequested(const bool& InRebuild);
 	//
 	void SetHasComponentTransformChanged(const bool& InHasChanged);
 
 	// Set an array of output nodes being tracked.
 	// This will remove any cook counts for nodes that are not in this list.
 	void SetOutputNodeIds(const TArray<int32>& OutputNodes);
-	TArray<int32> GetOutputNodeIds() const { return NodeIdsToCook; }
-	TMap<int32, int32> GetOutputNodeCookCounts() const { return OutputNodeCookCounts; }
+	TArray<int32> GetOutputNodeIds() const;
+	TMap<int32, int32> GetOutputNodeCookCounts() const;
 	
 	// Store the latest cook count that was processed for this output node. 
 	void SetOutputNodeCookCount(const int& NodeId, const int& CookCount);
@@ -368,11 +363,11 @@ public:
 	virtual void OnHoudiniAssetChanged();
 
 	//
-	void AddDownstreamHoudiniAsset(UHoudiniAssetComponent* InDownstreamAsset) { DownstreamHoudiniAssets.Add(InDownstreamAsset); };
+	void AddDownstreamHoudiniAsset(UHoudiniAssetComponent* InDownstreamAsset);
 	//
-	void RemoveDownstreamHoudiniAsset(UHoudiniAssetComponent* InRemoveDownstreamAsset) { DownstreamHoudiniAssets.Remove(InRemoveDownstreamAsset); };
+	void RemoveDownstreamHoudiniAsset(UHoudiniAssetComponent* InRemoveDownstreamAsset);
 	//
-	void ClearDownstreamHoudiniAsset() { DownstreamHoudiniAssets.Empty(); };
+	void ClearDownstreamHoudiniAsset();
 	//
 	bool NotifyCookedToDownstreamAssets();
 	//

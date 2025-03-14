@@ -425,6 +425,10 @@ public:
 	UHoudiniPDGAssetLink* GetPDGAssetLink();
 	FString GetHoudiniAssetName() const;
 
+	FGuid& GetHapiGUID();
+	FString GetHapiAssetName() const;
+	FGuid GetCookableGUID() const;
+
 	bool IsCookingEnabled() const { return bEnableCooking; };
 	bool HasBeenLoaded() const { return bHasBeenLoaded; };
 	bool HasBeenDuplicated() const { return bHasBeenDuplicated; };
@@ -491,6 +495,8 @@ public:
 	// method is overridden by HoudiniAssetBlueprintComponent.
 	virtual bool HasOpenEditor() const { return false; };
 
+	int32 GetCookCount() const { return CookCount; };
+
 	bool WasLastCookSuccessful() const;
 
 	// TODO COOKABLE: Move to component?
@@ -522,6 +528,9 @@ public:
 	TArray<TObjectPtr<UHoudiniHandleComponent>>& GetHandleComponents();
 
 	void GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const;
+
+	TArray<int32> GetNodeIdsToCook() const;
+	TMap<int32, int32> GetNodesToCookCookCounts() const;
 
 	TArray<FHoudiniBakedOutput>& GetBakedOutputs();
 	const TArray<FHoudiniBakedOutput>& GetBakedOutputs() const;
@@ -592,6 +601,13 @@ public:
 	bool SetBakeFolderPath(const FString& NewPath);
 	bool SetTemporaryCookFolder(const FDirectoryPath& InPath);
 	bool SetBakeFolder(const FDirectoryPath& InPath);
+
+	void SetCookingEnabled(const bool& bInCookingEnabled);
+	void SetHasBeenLoaded(const bool& InLoaded);
+	void SetHasBeenDuplicated(const bool& InDuplicated);
+	void SetCookCount(const int32& InCount);
+	void SetRecookRequested(const bool& InRecook);
+	void SetRebuildRequested(const bool& InRebuild);
 
 	// Set to True to force the next cook to not build a proxy mesh (regardless of global or override settings) and
 	// instead build a UStaticMesh directly (if applicable for the output type).

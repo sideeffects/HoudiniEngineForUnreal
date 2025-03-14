@@ -896,6 +896,8 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 	{
 		case EHoudiniInputType::World:
 		{
+			// TODO COOKABLE
+			// Use a cookable array for downstream insteaad of HAC array
 			UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(GetOuter());
 			if (OuterHAC && !InputSettings.bImportAsReference) 
 			{

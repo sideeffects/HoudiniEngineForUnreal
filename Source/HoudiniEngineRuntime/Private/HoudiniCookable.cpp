@@ -478,6 +478,28 @@ UHoudiniCookable::GetBakeFolderOrDefault()
 	return !OutputData->BakeFolder.Path.IsEmpty() ? OutputData->BakeFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
 }
 
+FGuid&
+UHoudiniCookable::GetHapiGUID()
+{
+	return HapiGUID;
+}
+
+FString
+UHoudiniCookable::GetHapiAssetName() const
+{
+	if(IsHoudiniAssetSupported())
+		return HoudiniAssetData->HapiAssetName;
+
+	// TODO COOKABLE: return empty? return name?
+	return NodeName;
+}
+
+FGuid
+UHoudiniCookable::GetCookableGUID() const
+{
+	return CookableGUID;
+}
+
 bool
 UHoudiniCookable::SetTemporaryCookFolderPath(const FString& NewPath)
 {
@@ -1486,6 +1508,18 @@ UHoudiniCookable::GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const
 	}
 }
 
+TArray<int32>
+UHoudiniCookable::GetNodeIdsToCook() const
+{
+	return NodeIdsToCook;
+}
+
+TMap<int32, int32>
+UHoudiniCookable::GetNodesToCookCookCounts() const
+{
+	return NodesToCookCookCounts;
+}
+
 bool
 UHoudiniCookable::IsOverrideGlobalProxyStaticMeshSettings() const
 {
@@ -2010,6 +2044,42 @@ UHoudiniCookable::SetCookOnTransformChange(bool bEnable)
 		return;
 
 	ComponentData->bCookOnTransformChange = bEnable;
+}
+
+void
+UHoudiniCookable::SetCookingEnabled(const bool& bInCookingEnabled)
+{
+	bEnableCooking = bInCookingEnabled;
+}
+
+void
+UHoudiniCookable::SetHasBeenLoaded(const bool& InLoaded)
+{
+	bHasBeenLoaded = InLoaded;
+}
+
+void
+UHoudiniCookable::SetHasBeenDuplicated(const bool& InDuplicated)
+{
+	bHasBeenDuplicated = InDuplicated;
+}
+
+void
+UHoudiniCookable::SetCookCount(const int32& InCount)
+{
+	CookCount = InCount;
+}
+
+void
+UHoudiniCookable::SetRecookRequested(const bool& InRecook)
+{
+	bRecookRequested = InRecook;
+}
+
+void
+UHoudiniCookable::SetRebuildRequested(const bool& InRebuild)
+{
+	bRebuildRequested = InRebuild;
 }
 
 bool
