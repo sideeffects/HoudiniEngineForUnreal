@@ -41,7 +41,7 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer & ObjectInitiali
 	//PrimaryActorTick.bCanEverTick = true;
 	//PrimaryActorTick.bStartWithTickEnabled = true;
 
-	bool bUseCookable = true;
+	bool bUseCookable = false;
 	if (!bUseCookable)
 	{
 		// Create Houdini component and attach it to a root component.
