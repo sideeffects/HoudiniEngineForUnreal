@@ -673,6 +673,9 @@ public:
 	virtual void SetComponentSupported(bool bSupport) { bHasComponent = bSupport; };
 	virtual void SetPDGSupported(bool bSupport) { bHasPDG = bSupport; };
 
+	// Turn On/Off Notifications & Unreal UI
+	void SetSlateNotifications(bool bOnOff) { bDoSlateNotifications = bOnOff;  }
+	void SetUpdateEditorProperties(bool bOnOff) { bUpdateEditorProperties = bOnOff;  }
 
 	//------------------------------------------------------------------------------------------------
 	// Delegates / Public API
@@ -711,6 +714,12 @@ public:
 	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate; };
 
 protected:
+
+	UPROPERTY(Transient)
+	bool bDoSlateNotifications;
+
+	UPROPERTY(Transient)
+	bool bUpdateEditorProperties;
 
 	// Id of the corresponding Houdini node.
 	UPROPERTY(DuplicateTransient)

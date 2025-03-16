@@ -365,6 +365,8 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 	PDGData = CreateDefaultSubobject<UCookablePDGData>(TEXT("PDGData"));
 
 	bNeedToUpdateEditorProperties = false;
+	bDoSlateNotifications = true;
+	bUpdateEditorProperties = true;
 
 	/*
 	//

@@ -54,33 +54,41 @@ void UHoudiniPCGComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 
 UHoudiniPCGComponent* UHoudiniPCGComponent::CreatePCGComponent(UPCGComponent* UnrealPCComponent)
 {
-	UWorld* World = UnrealPCComponent->GetWorld();
+	const bool bUseHoudiniActor = false;
 
-	AHoudiniPCGActor* HoudiniPCGActor = nullptr;
-	for(TActorIterator<AHoudiniPCGActor> It(World); It; ++It)
+
+	USceneComponent* RootComponent = UnrealPCComponent->GetOwner()->GetRootComponent();
+	AActor* Owner = UnrealPCComponent->GetOwner();
+
+	if(bUseHoudiniActor)
 	{
-		HoudiniPCGActor = *It;
-		if(HoudiniPCGActor)
-			break;
-	}
+		UWorld* World = UnrealPCComponent->GetWorld();
+		AHoudiniPCGActor* HoudiniPCGActor = nullptr;
+		for(TActorIterator<AHoudiniPCGActor> It(World); It; ++It)
+		{
+			HoudiniPCGActor = *It;
+			if(HoudiniPCGActor)
+				break;
+		}
 
-	if (HoudiniPCGActor == nullptr)
-	{
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = nullptr;
-		SpawnParams.Instigator = nullptr;
-		FVector SpawnLocation = UnrealPCComponent->GetOwner()->GetActorLocation();
-		FRotator SpawnRotation = UnrealPCComponent->GetOwner()->GetActorRotation();
+		if(HoudiniPCGActor == nullptr)
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = nullptr;
+			SpawnParams.Instigator = nullptr;
+			FVector SpawnLocation = UnrealPCComponent->GetOwner()->GetActorLocation();
+			FRotator SpawnRotation = UnrealPCComponent->GetOwner()->GetActorRotation();
 
-		HoudiniPCGActor = World->SpawnActor<AHoudiniPCGActor>(AHoudiniPCGActor::StaticClass(), SpawnLocation, SpawnRotation, SpawnParams);
-	}
+			HoudiniPCGActor = World->SpawnActor<AHoudiniPCGActor>(AHoudiniPCGActor::StaticClass(), SpawnLocation, SpawnRotation, SpawnParams);
+		}
 
-	USceneComponent* RootComponent = HoudiniPCGActor->GetRootComponent();
-	if(!RootComponent)
-	{
-		RootComponent = NewObject< USceneComponent>(HoudiniPCGActor);
-		HoudiniPCGActor->SetRootComponent(RootComponent);
-		HoudiniPCGActor->AddInstanceComponent(RootComponent);
+		RootComponent = HoudiniPCGActor->GetRootComponent();
+		if(!RootComponent)
+		{
+			RootComponent = NewObject< USceneComponent>(HoudiniPCGActor);
+			HoudiniPCGActor->SetRootComponent(RootComponent);
+			HoudiniPCGActor->AddInstanceComponent(RootComponent);
+		}
 	}
 
 	UHoudiniPCGComponent* PCGComponent = NewObject<UHoudiniPCGComponent>(RootComponent);
@@ -88,7 +96,7 @@ UHoudiniPCGComponent* UHoudiniPCGComponent::CreatePCGComponent(UPCGComponent* Un
 	ComponentTransform.SetScale3D(FVector3d::One());
 	PCGComponent->SetWorldTransform(ComponentTransform);
 	PCGComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
-	HoudiniPCGActor->AddInstanceComponent(PCGComponent);
+	Owner->AddInstanceComponent(PCGComponent);
 	PCGComponent->RegisterComponent();
 	PCGComponent->PCGComponent = UnrealPCComponent;
 

@@ -73,7 +73,7 @@ void UHoudiniPCGCookable::Cook()
 
 void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAssetPCGSettings* Owner, UHoudiniPCGComponent* Component)
 {
-	Cookable = NewObject<UHoudiniCookable>();
+	Cookable = NewObject<UHoudiniCookable>(this);
 	State = EPCGCookableState::Initializing;
 	auto OutputDelegateHandle = Cookable->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
 		{
@@ -83,6 +83,8 @@ void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAsset
 				this->State = EPCGCookableState::Done;
 		});
 
+	Cookable->SetSlateNotifications(false);
+	Cookable->SetUpdateEditorProperties(false);
 	Cookable->SetParameterSupported(true);
 	Cookable->SetInputSupported(true);
 	Cookable->SetOutputSupported(false); // Don't produce outputs in Unreal during instantiate.

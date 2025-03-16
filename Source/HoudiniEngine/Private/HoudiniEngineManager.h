@@ -96,7 +96,8 @@ protected:
 	// Returns true if the given task's status was properly found
 	bool UpdateTaskStatus(
 		FGuid& OutTaskGUID,
-		FHoudiniEngineTaskInfo& OutTaskInfo);
+		FHoudiniEngineTaskInfo& OutTaskInfo,
+		bool bNotifications = true);
 
 	// Start a task to instantiate the given HoudiniAsset
 	// Return true if the task was successfully created
@@ -112,7 +113,7 @@ protected:
 		UHoudiniAssetComponent* HAC, EHoudiniAssetState& NewState);
 
 	bool UpdateInstantiating(
-		UHoudiniCookable* HC, EHoudiniAssetState& NewState);
+		UHoudiniCookable* HC, EHoudiniAssetState& NewState, bool bDoNotifications);
 
 	// Start a task to instantiate the Houdini Asset with the given node Id
 	// Returns true if the task was successfully created
@@ -130,6 +131,7 @@ protected:
 		FGuid& HapiGUID, 
 		const FString& DisplayName, 
 		EHoudiniAssetState& OutNewState,
+		bool bDoNotifications,
 		bool& OutSuccess);
 
 	// Called to update template components. 

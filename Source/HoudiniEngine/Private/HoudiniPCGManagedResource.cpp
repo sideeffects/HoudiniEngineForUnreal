@@ -44,9 +44,12 @@ bool UHoudiniPCGManagedResource::Release(bool bHardRelease, TSet<TSoftObjectPtr<
 		if(IsValid(PCGComponent))
 		{
 			if (IsValid(PCGComponent->Cookable))
-			PCGComponent->Cookable->Release();
+				PCGComponent->Cookable->Release();
+			AActor* Owner = PCGComponent->GetOwner();
 			PCGComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 			PCGComponent->DestroyComponent();
+			GEditor->NoteSelectionChange();
+
 			PCGComponent = nullptr;
 		}
 	}

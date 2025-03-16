@@ -544,11 +544,11 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 		}
 #if WITH_EDITORONLY_DATA
 		// See if we need to update this HDA's details panel
-		if (CurrentCookable->bNeedToUpdateEditorProperties)
+		if (CurrentCookable->bNeedToUpdateEditorProperties && CurrentCookable->bUpdateEditorProperties)
 		{
 			// Only do an update if the HAC is selected
 			AActor* Owner = CurrentCookable->GetOwner();
-			if (Owner && Owner->IsSelectedInEditor())
+			if (Owner && Owner->IsSelectedInEditor() && CurrentCookable->bUpdateEditorProperties)
 				FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 			CurrentCookable->bNeedToUpdateEditorProperties = false;
@@ -901,7 +901,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			EHoudiniAssetState NewState = EHoudiniAssetState::Cooking;
 			bool bSuccess = false;
 			bool state = UpdateCooking(
-				HAC->GetHapiGUID(), HAC->GetDisplayName(), NewState, bSuccess);
+				HAC->GetHapiGUID(), HAC->GetDisplayName(), NewState, true, bSuccess);
 			if (state)
 			{
 				HAC->bLastCookSuccess = bSuccess;
@@ -1322,7 +1322,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessCookable - Instantiating);
 			EHoudiniAssetState NewState = EHoudiniAssetState::Instantiating;
-			if (UpdateInstantiating(HC, NewState))
+			if (UpdateInstantiating(HC, NewState , HC->bDoSlateNotifications))
 			{
 				// We need to update the HAC's state
 				HC->SetCurrentState(NewState);
@@ -1410,7 +1410,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 			
 			bool bCookSuccess = false; 
 			EHoudiniAssetState NewState = EHoudiniAssetState::Cooking;			
-			bool state = UpdateCooking(HC->HapiGUID, HC->GetDisplayName(), NewState, bCookSuccess);
+			bool state = UpdateCooking(HC->HapiGUID, HC->GetDisplayName(), NewState,  HC->bDoSlateNotifications, bCookSuccess);
 			if (state)
 			{
 				HC->bLastCookSuccess = bCookSuccess;
@@ -1874,7 +1874,7 @@ FHoudiniEngineManager::UpdateInstantiating(UHoudiniAssetComponent* HAC, EHoudini
 }
 
 bool
-FHoudiniEngineManager::UpdateInstantiating(UHoudiniCookable* HC, EHoudiniAssetState& NewState)
+FHoudiniEngineManager::UpdateInstantiating(UHoudiniCookable* HC, EHoudiniAssetState& NewState, bool bDoNotifications)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::UpdateInstantiating);
 
@@ -1889,7 +1889,7 @@ FHoudiniEngineManager::UpdateInstantiating(UHoudiniCookable* HC, EHoudiniAssetSt
 
 	// Get the current task's progress
 	FHoudiniEngineTaskInfo TaskInfo;
-	if (!UpdateTaskStatus(HC->HapiGUID, TaskInfo)
+	if (!UpdateTaskStatus(HC->HapiGUID, TaskInfo, bDoNotifications)
 		|| TaskInfo.TaskType != EHoudiniEngineTaskType::AssetInstantiation)
 	{
 		// Couldnt get a valid task info
@@ -2087,7 +2087,7 @@ FHoudiniEngineManager::StartTaskAssetCooking(
 
 bool
 FHoudiniEngineManager::UpdateCooking(
-	FGuid& HapiTaskGUID, const FString& DisplayName, EHoudiniAssetState& OutNewState, bool& OutSuccess)
+	FGuid& HapiTaskGUID, const FString& DisplayName, EHoudiniAssetState& OutNewState, bool bDoNotifications, bool& OutSuccess)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::UpdateCooking);
 
@@ -2097,7 +2097,7 @@ FHoudiniEngineManager::UpdateCooking(
 
 	// Get the current task's progress
 	FHoudiniEngineTaskInfo TaskInfo;
-	if (!UpdateTaskStatus(HapiTaskGUID, TaskInfo)
+	if (!UpdateTaskStatus(HapiTaskGUID, TaskInfo, bDoNotifications)
 		|| TaskInfo.TaskType != EHoudiniEngineTaskType::AssetCooking)
 	{
 		// Couldnt get a valid task info
@@ -2533,7 +2533,8 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 	bool bNeedsToTriggerViewportUpdate = false;
 	if (HC->bLastCookSuccess)
 	{
-		FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nProcessing outputs..."), false);
+		if (HC->bDoSlateNotifications)
+			FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nProcessing outputs..."), false);
 
 		//
 		// PARAMETERS
@@ -2802,7 +2803,8 @@ FHoudiniEngineManager::UpdateProcess(UHoudiniCookable* HC)
 
 	// Indicate we're done processing the asset
 	FString DisplayName = HC->GetDisplayName();
-	FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nFinished processing outputs"), true);
+	if (HC->bDoSlateNotifications)
+		FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nFinished processing outputs"), true);
 
 	return true;
 }
@@ -2867,7 +2869,7 @@ FHoudiniEngineManager::StartTaskAssetDelete(const HAPI_NodeId& InNodeId, FGuid& 
 }
 
 bool
-FHoudiniEngineManager::UpdateTaskStatus(FGuid& OutTaskGUID, FHoudiniEngineTaskInfo& OutTaskInfo)
+FHoudiniEngineManager::UpdateTaskStatus(FGuid& OutTaskGUID, FHoudiniEngineTaskInfo& OutTaskInfo, bool bDoNotifications)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::UpdateTaskStatus);
 
@@ -2881,7 +2883,7 @@ FHoudiniEngineManager::UpdateTaskStatus(FGuid& OutTaskGUID, FHoudiniEngineTaskIn
 		return false;
 	}
 
-	if (EHoudiniEngineTaskState::None != OutTaskInfo.TaskState)
+	if (bDoNotifications && EHoudiniEngineTaskState::None != OutTaskInfo.TaskState)
 	{
 		FHoudiniEngine::Get().UpdateCookingNotification(OutTaskInfo.StatusText, false);
 	}
@@ -2912,7 +2914,8 @@ FHoudiniEngineManager::UpdateTaskStatus(FGuid& OutTaskGUID, FHoudiniEngineTaskIn
 				break;
 
 			// Terminate the current notification
-			FHoudiniEngine::Get().UpdateCookingNotification(OutTaskInfo.StatusText, false);
+			if (bDoNotifications)
+				FHoudiniEngine::Get().UpdateCookingNotification(OutTaskInfo.StatusText, false);
 
 		}
 		break;

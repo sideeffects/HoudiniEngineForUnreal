@@ -96,6 +96,8 @@ FHoudiniEngineScheduler::TaskDescription(
 void
 FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask & Task)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineScheduler::TaskInstantiateAsset);
+
 	FString AssetN;
 	FHoudiniEngineString(Task.AssetHapiName).ToFString(AssetN);
 
@@ -270,6 +272,8 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask & Task)
 void
 FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask & Task)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineScheduler::TaskCookAsset);
+
 	if (!FHoudiniEngineUtils::IsInitialized())
 	{
 		HOUDINI_LOG_ERROR(
@@ -461,6 +465,8 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask & Task)
 void
 FHoudiniEngineScheduler::TaskDeleteAsset(const FHoudiniEngineTask & Task)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineScheduler::TaskDeleteAsset);
+
 	HOUDINI_LOG_MESSAGE(
 		TEXT("HAPI Asynchronous Destruction Started for %s. ")
 		TEXT("AssetId = %d"),
@@ -503,6 +509,8 @@ FHoudiniEngineScheduler::AddResponseMessageTaskInfo(
 void
 FHoudiniEngineScheduler::ProcessQueuedTasks()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineScheduler::ProcessQueuedTasks);
+
 	while (!bStopping)
 	{
 		while (true)

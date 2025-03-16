@@ -289,7 +289,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 		FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
 		HEM->AutoStartFirstSessionIfNeeded();
-		ManagedResource->PCGComponent->Cookable = NewObject<UHoudiniPCGCookable>();
+		ManagedResource->PCGComponent->Cookable = NewObject<UHoudiniPCGCookable>(ManagedResource->PCGComponent);
 		ManagedResource->PCGComponent->Cookable->Instantiate(Settings->HoudiniAsset, nullptr, ManagedResource->PCGComponent);
 		ManagedResource->bExecuteInProgress = true;
 		return false;

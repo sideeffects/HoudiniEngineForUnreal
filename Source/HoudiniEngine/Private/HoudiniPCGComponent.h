@@ -46,7 +46,7 @@ public:
 
 	static UHoudiniPCGComponent* CreatePCGComponent(UPCGComponent* UnrealPCGComponent);
 
-	UPROPERTY(Transient)
+	UPROPERTY()
 	TObjectPtr<UHoudiniPCGCookable> Cookable;
 
 	UPROPERTY()
