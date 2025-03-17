@@ -59,6 +59,10 @@ public:
 
 	void SetDefaultValues();
 
+	bool SetValuesIfChanged(const TArray<int>& NewValues);
+
+	const TArray<int>& GetDefaultValues() { return DefaultValues; };
+
 protected:
 
 	// Values of this property.

@@ -39,14 +39,16 @@ const FName HDAInputObject = FName(FString(TEXT("hda_input")));
 
 FString FHoudiniPCGUtils::ParameterInputPinName = FString(TEXT("Parameters"));
 
-void FHoudiniPCGUtils::UnrealToHoudini(const FVector3d& UnrealVector, float HoudiniVector[3])
+void
+FHoudiniPCGUtils::UnrealToHoudini(const FVector3d& UnrealVector, float HoudiniVector[3])
 {
 	HoudiniVector[0] = static_cast<float>(UnrealVector.X);
 	HoudiniVector[1] = static_cast<float>(UnrealVector.Z);
 	HoudiniVector[2] = static_cast<float>(UnrealVector.Y);
 }
 
-TArray<FHoudiniPCGObjectOutput> FHoudiniPCGUtils::GetPCGOutputData(const UHoudiniOutput* HoudiniOutput)
+TArray<FHoudiniPCGObjectOutput>
+FHoudiniPCGUtils::GetPCGOutputData(const UHoudiniOutput* HoudiniOutput)
 {
 	TArray<FHoudiniPCGObjectOutput> Outputs;
 
@@ -79,7 +81,8 @@ TArray<FHoudiniPCGObjectOutput> FHoudiniPCGUtils::GetPCGOutputData(const UHoudin
 	return Outputs;
 }
 
-bool FHoudiniPCGUtils::HasPCGOutputs(const UHoudiniOutput* HoudiniOutput)
+bool
+FHoudiniPCGUtils::HasPCGOutputs(const UHoudiniOutput* HoudiniOutput)
 {
 	for (auto & It : HoudiniOutput->GetOutputObjects())
 	{
@@ -94,7 +97,8 @@ bool FHoudiniPCGUtils::HasPCGOutputs(const UHoudiniOutput* HoudiniOutput)
 	return false;
 }
 
-EHoudiniPCGInputType FHoudiniPCGUtils::GetInputType(const UPCGData* PCGData)
+EHoudiniPCGInputType
+FHoudiniPCGUtils::GetInputType(const UPCGData* PCGData)
 {
 	if(PCGData->IsA<UPCGPointData>())
 		return EHoudiniPCGInputType::PCGData;
@@ -114,7 +118,8 @@ EHoudiniPCGInputType FHoudiniPCGUtils::GetInputType(const UPCGData* PCGData)
 	}
 }
 
-bool UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const UPCGData* PCGData)
+bool
+UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const UPCGData* PCGData)
 {
 	bool bInputsChanged = false;
 
@@ -167,7 +172,8 @@ bool UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const
 	return false;
 }
 
-bool UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata)
+bool
+UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata)
 {
 	FHoudiniPCGAttributes Attributes(Metadata, HDAInputObject);
 
@@ -179,9 +185,9 @@ bool UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput,
 	NewInputPaths.Reserve(NumRows);
 	for(int Row = 0; Row < NumRows; Row++)
 	{
-		FString Path;
-		FHoudiniPCGUtils::GetValueAsString(Path, Row, Attributes);
-		NewInputPaths.Add(Path);
+		TArray<FString> DefaultPaths = {};
+		TArray<FString> Paths = FHoudiniPCGUtils::GetValueAsString(DefaultPaths, Attributes, Row);
+		NewInputPaths.Append(Paths);
 	}
 	NewInputPaths.Sort();
 
@@ -231,104 +237,210 @@ bool UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput,
 	return bInputsChanged;
 }
 
-bool FHoudiniPCGUtils::GetValueAsString(FString& Result, int Index, const FHoudiniPCGAttributes& Attributes)
+TArray<FString>
+FHoudiniPCGUtils::GetValueAsString(const TArray<FString> & Defaults, const FHoudiniPCGAttributes& Attributes, int Index)
 {
+	// Always return at least one result.
+	TArray<FString> Result = Defaults;
+	if(Result.IsEmpty())
+		Result.SetNum(1);
+
 	if(Attributes.Strings)
 	{
-		Result = Attributes.Strings->GetValueFromItemKey(Index);
-		return true;
+		Result[0] = Attributes.Strings->GetValueFromItemKey(Index);
+	}
+	else if(Attributes.Names)
+	{
+		Result[0] = Attributes.Names->GetValueFromItemKey(Index).ToString();
 	}
 	else if(Attributes.SoftObjectPaths)
 	{
-		Result = Attributes.SoftObjectPaths->GetValueFromItemKey(Index).ToString();
-		return true;
+		Result[0] = Attributes.SoftObjectPaths->GetValueFromItemKey(Index).ToString();
+	}
+	else if(Attributes.SoftClassPaths)
+	{
+		Result[0] = Attributes.SoftObjectPaths->GetValueFromItemKey(Index).ToString();
 	}
 	else if (Attributes.Floats)
 	{
-		Result = FString::SanitizeFloat(Attributes.Floats->GetValueFromItemKey(Index));
-		return true;
+		Result[0] = FString::SanitizeFloat(Attributes.Floats->GetValueFromItemKey(Index));
 	}
-	else if (Attributes.Ints)
+	else if (Attributes.Int32s)
 	{
-		Result = FString::FromInt(Attributes.Ints->GetValueFromItemKey(Index));
-		return true;
+		Result[0] = FString::FromInt(Attributes.Int32s->GetValueFromItemKey(Index));
 	}
-	return false;
+	else if(Attributes.Int64s)
+	{
+		Result[0] = FString::FromInt(static_cast<int>(Attributes.Int64s->GetValueFromItemKey(Index)));
+	}
+	else if(Attributes.Bools)
+	{
+		Result[0] = Attributes.Bools->GetValueFromItemKey(Index) ? FString(TEXT("1")) : FString(TEXT("0"));
+	}
+	else
+	{
+		HOUDINI_LOG_ERROR(TEXT("Could not type convert parameter %s to string."), *Attributes.Name);
+	}
+	return Result;
 }
 
-bool FHoudiniPCGUtils::GetValueAsInt(int& Result, int Index, const FHoudiniPCGAttributes& Attributes)
+TArray<int>
+FHoudiniPCGUtils::GetValueAsInt(const TArray<int> & Defaults, const FHoudiniPCGAttributes& Attributes, int Index)
 {
+	// Always return at least one result.
+	TArray<int> Result = Defaults;
+	if(Result.IsEmpty())
+		Result.SetNum(1);
+
 	if(Attributes.Strings)
 	{
 		FString StringValue = Attributes.Strings->GetValueFromItemKey(Index);
-		Result = FCString::Atoi(*StringValue);
-		return true;
+		Result[0] = FCString::Atoi(*StringValue);
 	}
 	else if(Attributes.Floats)
 	{
 		float FloatValue = Attributes.Floats->GetValueFromItemKey(Index);
-		Result = static_cast<int>(FloatValue);
-		return true;
+		Result[0] = static_cast<int>(FloatValue);
 	}
 	else if(Attributes.Doubles)
 	{
-		Result = static_cast<int>(Attributes.Doubles->GetValueFromItemKey(Index));
-		return true;
+		Result[0] = static_cast<int>(Attributes.Doubles->GetValueFromItemKey(Index));
 	}
-	else if(Attributes.Ints)
+	else if(Attributes.Int32s)
 	{
-		Result = Attributes.Ints->GetValueFromItemKey(Index);
-		return true;
+		Result[0] = Attributes.Int32s->GetValueFromItemKey(Index);
 	}
-	return false;
+	else if(Attributes.Int64s)
+	{
+		Result[0] = static_cast<int32>(Attributes.Int64s->GetValueFromItemKey(Index));
+	}
+
+	else
+	{
+		HOUDINI_LOG_ERROR(TEXT("Could not type convert parameter %s to int."), *Attributes.Name);
+	}
+	return Result;
 }
 
-bool FHoudiniPCGUtils::GetValueAsFloat(float& Result, int Index, const FHoudiniPCGAttributes& Attributes)
+TArray<float>
+FHoudiniPCGUtils::GetValueAsFloat(const TArray<float>& DefaultValues, const FHoudiniPCGAttributes& Attributes, int RowIndex)
 {
+	// Always return at least one result.
+	TArray<float> Result = DefaultValues;
+	if(Result.IsEmpty())
+		Result.SetNum(1);
+
 	if(Attributes.Strings)
 	{
-		FString StringValue = Attributes.Strings->GetValueFromItemKey(Index);
-		Result = FCString::Atof(*StringValue);
-		return true;
+		FString StringValue = Attributes.Strings->GetValueFromItemKey(RowIndex);
+		Result[0] = FCString::Atof(*StringValue);
 	}
 	else if(Attributes.Floats)
 	{
-		Result = Attributes.Floats->GetValueFromItemKey(Index);
-		return true;
+		Result[0] = Attributes.Floats->GetValueFromItemKey(RowIndex);
 	}
 	else if(Attributes.Doubles)
 	{
-		Result = static_cast<float>(Attributes.Doubles->GetValueFromItemKey(Index));
-		return true;
+		Result[0] = static_cast<float>(Attributes.Doubles->GetValueFromItemKey(RowIndex));
 	}
-	else if(Attributes.Ints)
+	else if(Attributes.Int32s)
 	{
-		int IntValue = Attributes.Ints->GetValueFromItemKey(Index);
-		Result = static_cast<float>(IntValue);
-		return true;
+		int IntValue = Attributes.Int32s->GetValueFromItemKey(RowIndex);
+		Result[0] = static_cast<float>(IntValue);
 	}
-	return false;
+	else if(Attributes.Int64s)
+	{
+		int Int64Value = Attributes.Int64s->GetValueFromItemKey(RowIndex);
+		Result[0] = static_cast<float>(Int64Value);
+	}
+	else if(Attributes.Bools)
+	{
+		Result[0] = Attributes.Bools->GetValueFromItemKey(RowIndex) ? 1.0f : 0.0f;
+	}
+	else if(Attributes.Vector2ds)
+	{
+		// NOTE: We do not convert UE->H space because we don't know what this represents. a point? a vector?
+		// something else?
+		FVector2d Vec = Attributes.Vector2ds->GetValueFromItemKey(RowIndex);
+		Result.SetNum(2);
+		Result[0] = Vec.X;
+		Result[1] = Vec.Y;
+	}
+	else if (Attributes.Vector3ds)
+	{
+		// NOTE: We do not convert UE->H space because we don't know what this represents. a point? a vector?
+		// something else?
+		FVector3d Vec = Attributes.Vector3ds->GetValueFromItemKey(RowIndex);
+		Result.SetNum(3);
+		Result[0] = Vec.X;
+		Result[1] = Vec.Y;
+		Result[2] = Vec.Z;
+	}
+	else if(Attributes.Vector4ds)
+	{
+		// NOTE: We do not convert UE->H space because we don't know what this represents. a point? a vector?
+		// something else?
+		FVector4d Vec = Attributes.Vector4ds->GetValueFromItemKey(RowIndex);
+		Result.SetNum(4);
+		Result[0] = Vec.X;
+		Result[1] = Vec.Y;
+		Result[2] = Vec.Z;
+		Result[3] = Vec.W;
+	}
+	else if(Attributes.Quats)
+	{
+		// NOTE: We do not convert UE->H space because we don't know what this represents. a point? a vector?
+		// something else?
+		FQuat Quat = Attributes.Quats->GetValueFromItemKey(RowIndex);
+		FVector4d Vec = FHoudiniPCGUtils::UnrealToHoudiniQuat(Quat);
+		Result.SetNum(4);
+		Result[0] = Vec.X;
+		Result[1] = Vec.Y;
+		Result[2] = Vec.Z;
+		Result[3] = Vec.W;
+	}
+	else if(Attributes.Rotators)
+	{
+		FRotator Rotator = Attributes.Rotators->GetValueFromItemKey(RowIndex);
+		Result.SetNum(3);
+		Result[0] = Rotator.Roll;
+		Result[1] = Rotator.Yaw;
+		Result[2] = Rotator.Pitch;
+	}
+	else
+	{
+		HOUDINI_LOG_ERROR(TEXT("Could not type convert parameter %s to float."), *Attributes.Name);
+	}
+
+	return Result;
 }
 
 FHoudiniPCGAttributes::FHoudiniPCGAttributes(const UPCGMetadata* Metadata, const FName& ParameterName)
 {
-	// Cache off all attribute types we might be interest in.
-	this->Ints = Metadata->GetConstTypedAttribute<int>(ParameterName);
+	// Cache off all attribute types we might be interested in.
+	this->Int32s = Metadata->GetConstTypedAttribute<int>(ParameterName);
 	this->Floats = Metadata->GetConstTypedAttribute<float>(ParameterName);
 	this->Doubles = Metadata->GetConstTypedAttribute<double>(ParameterName);
 	this->Strings = Metadata->GetConstTypedAttribute<FString>(ParameterName);
+	this->Bools = Metadata->GetConstTypedAttribute<bool>(ParameterName);
+	this->Rotators = Metadata->GetConstTypedAttribute<FRotator>(ParameterName);
+	this->Names = Metadata->GetConstTypedAttribute<FName>(ParameterName);
 	this->SoftObjectPaths = Metadata->GetConstTypedAttribute<FSoftObjectPath>(ParameterName);
+	this->SoftClassPaths = Metadata->GetConstTypedAttribute<FSoftClassPath>(ParameterName);
 	this->NumRows = Metadata->GetItemCountForChild();
+	this->Name = ParameterName.ToString();
 }
 
-FString FHoudiniPCGUtils::GetHDAInputName(int Index)
+FString
+FHoudiniPCGUtils::GetHDAInputName(int Index)
 {
 	// Name of the pin that exposes HDA input "Index".
 	FString PinName = FString::Printf(TEXT("Input %d"), Index);
 	return PinName;
 }
 
-FVector3d FHoudiniPCGUtils::HoudiniToUnrealPosition(float HoudiniVector[3])
+FVector3d
+FHoudiniPCGUtils::HoudiniToUnrealPosition(float HoudiniVector[3])
 {
 	FVector3d Position;
 	Position.X = HoudiniVector[0] * 100.0;
@@ -337,7 +449,8 @@ FVector3d FHoudiniPCGUtils::HoudiniToUnrealPosition(float HoudiniVector[3])
 	return Position;
 }
 
-FVector3d FHoudiniPCGUtils::HoudiniToUnrealVector(float HoudiniVector[3])
+FVector3d
+FHoudiniPCGUtils::HoudiniToUnrealVector(float HoudiniVector[3])
 {
 	FVector3d Position;
 	Position.X = HoudiniVector[0];
@@ -346,13 +459,15 @@ FVector3d FHoudiniPCGUtils::HoudiniToUnrealVector(float HoudiniVector[3])
 	return Position;
 }
 
-FQuat FHoudiniPCGUtils::HoudiniToUnrealQuat(float HoudiniQuat[4])
+FQuat
+FHoudiniPCGUtils::HoudiniToUnrealQuat(float HoudiniQuat[4])
 {
 	FQuat Result(HoudiniQuat[0], HoudiniQuat[2], HoudiniQuat[1], -HoudiniQuat[3]);
 	return Result;
 }
 
-FVector4d FHoudiniPCGUtils::UnrealToHoudiniQuat(const FQuat& Quat)
+FVector4d
+FHoudiniPCGUtils::UnrealToHoudiniQuat(const FQuat& Quat)
 {
 	FVector4d Result;
 	Result[0] = Quat.X;

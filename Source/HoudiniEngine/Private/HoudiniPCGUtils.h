@@ -30,19 +30,6 @@
 
 class UHoudiniInput;
 
-struct FHoudiniPCGAttribute
-{
-	FString Name;
-	HAPI_AttributeInfo AttributeInfo;
-	EPCGMetadataTypes PCGStorageType = EPCGMetadataTypes::Unknown;
-};
-
-struct FHoudiniPCGNodeName
-{
-	FString UnLoopedName;
-	FString LoopedName;
-};
-
 struct FHoudiniPCGObjectOutput
 {
 	int OutputIndex = -1;
@@ -62,12 +49,22 @@ struct FHoudiniPCGAttributes
 {
 	FHoudiniPCGAttributes(const UPCGMetadata* Metadata, const FName & ParameterNames);
 
-	const FPCGMetadataAttribute<int >* Ints;
+	FString Name;
+	int NumRows;
 	const FPCGMetadataAttribute<float>* Floats;
 	const FPCGMetadataAttribute<double>* Doubles;
+	const FPCGMetadataAttribute<int32>* Int32s;
+	const FPCGMetadataAttribute<int64>* Int64s;
+	const FPCGMetadataAttribute<FVector2d>* Vector2ds;
+	const FPCGMetadataAttribute<FVector>* Vector3ds;
+	const FPCGMetadataAttribute<FVector4d>* Vector4ds;
+	const FPCGMetadataAttribute<FQuat>* Quats;
 	const FPCGMetadataAttribute<FString>* Strings;
+	const FPCGMetadataAttribute<bool>* Bools;
+	const FPCGMetadataAttribute<FRotator>* Rotators;
+	const FPCGMetadataAttribute<FName>* Names;
 	const FPCGMetadataAttribute<FSoftObjectPath>* SoftObjectPaths;
-	int NumRows;
+	const FPCGMetadataAttribute<FSoftClassPath>* SoftClassPaths;
 };
 
 class UHoudiniPCGCookable;
@@ -101,7 +98,7 @@ public:
 
 	static TArray<FHoudiniPCGObjectOutput> GetPCGOutputData(const UHoudiniOutput * HoudiniOutput);
 
-	static bool GetValueAsString(FString& Result, int Index, const FHoudiniPCGAttributes & Attributes);
-	static bool GetValueAsInt(int& Result, int Index, const FHoudiniPCGAttributes& Attributes);
-	static bool GetValueAsFloat(float& Result, int Index, const FHoudiniPCGAttributes& Attributes);
+	static TArray<FString> GetValueAsString(const TArray<FString>& DefaultValues, const FHoudiniPCGAttributes & Attributes, int RowIndex);
+	static TArray<int> GetValueAsInt(const TArray<int>& DefaultValues, const FHoudiniPCGAttributes& Attributes, int RowIndex);
+	static TArray<float> GetValueAsFloat(const TArray<float> & DefaultValues, const FHoudiniPCGAttributes& Attributes, int RowIndex);
 };

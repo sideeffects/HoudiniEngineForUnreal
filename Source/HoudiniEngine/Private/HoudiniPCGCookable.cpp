@@ -46,6 +46,7 @@
 #include "Misc/StringBuilder.h"
 #include "HoudiniPCGManagedResource.h"
 #include "HoudiniOutputTranslator.h"
+#include <HoudiniParameterToggle.h>
 
 #define LOCTEXT_NAMESPACE "PCGCachedCookable"
 
@@ -164,59 +165,47 @@ bool UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data, FPCGCo
 {
 	const UPCGMetadata* Metadata = Data->ConstMetadata();
 
-	const FName ParameterNamesId = TEXT("hda_parameter_name");
-	const FName ParameterValuesId = TEXT("hda_parameter_value");
+	TArray<FName> AttributeNames;
+	TArray<EPCGMetadataTypes> AttributeTypes;
 
-	TMap<FString, int> ParameterMap;
-
-	FHoudiniPCGAttributes Attributes(Metadata, ParameterValuesId);
-
-	if(const FPCGMetadataAttribute<FString>* ParameterNames = static_cast<const FPCGMetadataAttribute<FString>*>(Metadata->GetConstAttribute(ParameterNamesId)))
+	Metadata->GetAttributes(AttributeNames, AttributeTypes);
+	TSet<FString> AttributeSet;
+	for (FName & AttrName : AttributeNames)
 	{
-		// Create a map of parameter names to parameters, to avoid an O(n^2) lookup
-
-		for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
-		{
-			FString ParameterName = ParameterNames->GetValueFromItemKey(Index);
-			ParameterMap.Add(ParameterName, Index);
-		}
+		AttributeSet.Add(AttrName.ToString());
 	}
 
 	bool bChanged = false;
 
-	// For each parameter in the HDA we need to set its values. Since parameters may have been removed from PCG input we can't just change the values, we need
-	// to consider reverting to defaults. We do this by getting the defaults, over-writing them with any user specified values, and then writing them back
-	// only if changed.
-
-	for(auto& Parameter : this->Cookable->GetParameterData()->Parameters)
+	for (auto & Parameter : this->Cookable->GetParameterData()->Parameters)
 	{
-		const FString& ParameterName = Parameter->GetParameterName();
+		FString ParameterName = Parameter->GetParameterName();
+		if (!AttributeSet.Contains(ParameterName))
+			continue;
 
-		if(UHoudiniParameterFloat* ParameterFloat = Cast<UHoudiniParameterFloat>(Parameter))
+		FHoudiniPCGAttributes Attributes(Metadata, FName(ParameterName));
+		if(UHoudiniParameterString* ParameterString = Cast<UHoudiniParameterString>(Parameter))
 		{
-			TArray<float> Values = ParameterFloat->GetDefaultValues();
-			if(int* Index = ParameterMap.Find(ParameterName))
-				FHoudiniPCGUtils::GetValueAsFloat(Values[0], *Index, Attributes);
-
-			bChanged |= ParameterFloat->SetValuesIfChanged(Values);
-		}
-		else if(UHoudiniParameterString* ParameterString = Cast<UHoudiniParameterString>(Parameter))
-		{
-			TArray<FString> Values = ParameterString->GetDefaultValues();
-			if(int* Index = ParameterMap.Find(ParameterName))
-				FHoudiniPCGUtils::GetValueAsString(Values[0], *Index, Attributes);
-
+			TArray<FString> Values = FHoudiniPCGUtils::GetValueAsString(ParameterString->GetDefaultValues(), Attributes, 0);
 			bChanged |= ParameterString->SetValuesIfChanged(Values);
+		}
+		else if(UHoudiniParameterFloat* ParameterFloat = Cast<UHoudiniParameterFloat>(Parameter))
+		{
+			TArray<float> Values = FHoudiniPCGUtils::GetValueAsFloat(ParameterFloat->GetDefaultValues(), Attributes, 0);
+			bChanged |= ParameterFloat->SetValuesIfChanged(Values);
 		}
 		else if(UHoudiniParameterInt* ParameterInt = Cast<UHoudiniParameterInt>(Parameter))
 		{
-			TArray<int> Values = ParameterInt->GetDefaultValues();
-			if(int* Index = ParameterMap.Find(ParameterName))
-				FHoudiniPCGUtils::GetValueAsInt(Values[0], *Index, Attributes);
-
+			TArray<int> Values = FHoudiniPCGUtils::GetValueAsInt(ParameterInt->GetDefaultValues(), Attributes, 0);
 			bChanged |= ParameterInt->SetValuesIfChanged(Values);
 		}
+		else if(UHoudiniParameterToggle* ParameterToggle = Cast<UHoudiniParameterToggle>(Parameter))
+		{
+			TArray<int> Values = FHoudiniPCGUtils::GetValueAsInt(ParameterToggle->GetDefaultValues(), Attributes, 0);
+			bChanged |= ParameterToggle->SetValuesIfChanged(Values);
+		}
 	}
+
 	return bChanged;
 }
 

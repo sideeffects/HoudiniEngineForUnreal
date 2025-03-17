@@ -103,6 +103,8 @@ TArray<FPCGPinProperties> UHoudiniDigitalAssetPCGSettings::InputPinProperties() 
 		FString PinName = FHoudiniPCGUtils::ParameterInputPinName;
 		FPCGPinProperties& InputPinProperty = PinProperties.Emplace_GetRef(FName(PinName), EPCGDataType::Any, /*bAllowMultipleConnections=*/false);
 		InputPinProperty.SetNormalPin();
+		InputPinProperty.bAllowMultipleData = true;
+		InputPinProperty.SetAllowMultipleConnections(true);
 	}
 
 	return PinProperties;

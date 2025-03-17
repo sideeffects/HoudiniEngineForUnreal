@@ -88,7 +88,7 @@ public:
 
 	void SetDefaultValues();
 
-	const TArray<int> GetDefaultValues() { return DefaultValues; };
+	const TArray<int>& GetDefaultValues() { return DefaultValues; };
 	bool SetValuesIfChanged(const TArray<int>& Values);
 
 protected:
