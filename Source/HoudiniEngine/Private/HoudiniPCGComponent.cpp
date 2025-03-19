@@ -54,8 +54,7 @@ void UHoudiniPCGComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 
 UHoudiniPCGComponent* UHoudiniPCGComponent::CreatePCGComponent(UPCGComponent* UnrealPCComponent)
 {
-	const bool bUseHoudiniActor = false;
-
+	const bool bUseHoudiniActor = true;
 
 	USceneComponent* RootComponent = UnrealPCComponent->GetOwner()->GetRootComponent();
 	AActor* Owner = UnrealPCComponent->GetOwner();

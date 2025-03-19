@@ -64,30 +64,42 @@ public:
 	UHoudiniPCGCookable(const FObjectInitializer& ObjectInitializer);
 	virtual ~UHoudiniPCGCookable() override;
 
-	void Cook();
+	// Instantiates a new HDA... instantiating is asynchronous.
 	void Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAssetPCGSettings * PCGSettings, UHoudiniPCGComponent * Component);
+
+	// UpdateAndCookIfNeeded() pulls the inputs and parameters from the context and updates the Houdini Cookable if needed.
+	// If anything change, a cook starts and the state updates. If the Cook Count changes, a new cook is also started.
+	// Returns true if a cook is in progress after this call.
+	bool UpdateAndCookIfNeeded(FPCGContext* Context);
+
+	// Release() releases() all data associated with the cook.
 	void Release();
 
-	bool ApplyInputsToCookable(FPCGContext* InContext);
-	bool ApplyParametersToCookable(FPCGContext* Context);
-	bool ApplyParametersToCookable(const UPCGData* Data, FPCGContext* Context);
+	// Updates the current cookable state.
+	bool Update(FPCGContext* Context);
 
-	void InvalidateCookable();
+private:
 
 	UPROPERTY()
 	TObjectPtr<UHoudiniCookable> Cookable;
 
-	static bool ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata);
-
-	static bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const UPCGData* Data);
-
-	static void CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
-
 	EPCGCookableState State = EPCGCookableState::Idle;
+	TArray<FSoftObjectPath> TrackedObjects;
+	int CookCount = -1;
 
-private:
 	static void CreateOutputsAsObjectReferences(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
 	static void CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
+
+	bool ApplyInputsToCookable(FPCGContext* InContext);
+	bool ApplyParametersToCookable(FPCGContext* Context);
+	bool ApplyParametersToCookable(const UPCGData* Data, FPCGContext* Context);
+	void OnCookingComplete(bool bSuccess);
+	void InvalidateCookable();
+	void ProcessCookableOutput(FPCGContext* Context);
+	void AddTrackedObjects(FPCGContext* Context);
+	bool ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata);
+	bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const UPCGData* Data);
+	void CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
 };
 
 

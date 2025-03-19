@@ -116,7 +116,12 @@ protected:
 	TObjectPtr<UHoudiniCookable> ParameterCookable;
 };
 
-struct FPCHoudiniDigitalAssetAttributesContext : public FPCGContext, public IPCGAsyncLoadingContext {};
+struct FPCHoudiniDigitalAssetAttributesContext : public FPCGContext, public IPCGAsyncLoadingContext
+{
+public:
+	bool bFirstTimeExecuted = true;
+
+};
 
 class FHoudiniDigitalAssetPCGElement : public IPCGElementWithCustomContext<FPCHoudiniDigitalAssetAttributesContext>
 {
@@ -126,7 +131,6 @@ public:
 protected:
 	virtual bool PrepareDataInternal(FPCGContext* InContext) const override;
 	virtual bool ExecuteInternal(FPCGContext* InContext) const override;
-
-	void ProcessCookableOutput(FPCGContext* Context, UHoudiniPCGCookable* Cookable) const;
+	virtual void AbortInternal(FPCGContext* Context) const;
 };
 

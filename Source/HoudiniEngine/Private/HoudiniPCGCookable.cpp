@@ -47,8 +47,13 @@
 #include "HoudiniPCGManagedResource.h"
 #include "HoudiniOutputTranslator.h"
 #include <HoudiniParameterToggle.h>
+#include <HoudiniEngineUtils.h>
+#include "HoudiniPCGInputObject.h"
 
 #define LOCTEXT_NAMESPACE "PCGCachedCookable"
+
+
+const FName HDAInputObject = FName(FString(TEXT("object")));
 
 UHoudiniPCGCookable::UHoudiniPCGCookable(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -60,28 +65,27 @@ UHoudiniPCGCookable::~UHoudiniPCGCookable()
 {
 }
 
-void UHoudiniPCGCookable::Cook()
+void UHoudiniPCGCookable::OnCookingComplete(bool bSuccess)
 {
-	// Ensure outputs are enabled. They may be disabled during instantiation.
-	Cookable->SetOutputSupported(true);
+	HOUDINI_PCG_MESSAGE(TEXT("UHoudiniPCGCookable::OnCookingComplete (%p)"), this);
 
-	State = EPCGCookableState::Cooking;
-	FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
-	HEM->AutoStartFirstSessionIfNeeded();
-
-	Cookable->MarkAsNeedCook();
+	if(this->State == EPCGCookableState::Initializing)
+		this->State = EPCGCookableState::Initialized;
+	else if(this->State == EPCGCookableState::Cooking)
+		this->State = EPCGCookableState::Done;
 }
 
 void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAssetPCGSettings* Owner, UHoudiniPCGComponent* Component)
 {
+	HOUDINI_PCG_MESSAGE(TEXT("UHoudiniPCGCookable::Instantiate (%p)"), this);
+
+	TrackedObjects.Empty();
+
 	Cookable = NewObject<UHoudiniCookable>(this);
 	State = EPCGCookableState::Initializing;
 	auto OutputDelegateHandle = Cookable->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
 		{
-			if (this->State == EPCGCookableState::Initializing)
-				this->State = EPCGCookableState::Initialized;
-			else if(this->State == EPCGCookableState::Cooking)
-				this->State = EPCGCookableState::Done;
+			this->OnCookingComplete(bSuccess);
 		});
 
 	Cookable->SetSlateNotifications(false);
@@ -102,9 +106,8 @@ void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAsset
 	FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(Cookable.Get());
 }
 
-UHoudiniPCGCookable* FindCacheEntry(FString& CacheId);
-
-void UHoudiniPCGCookable::InvalidateCookable()
+void
+UHoudiniPCGCookable::InvalidateCookable()
 {
 	if (IsValid(this->Cookable.Get()))
 	{
@@ -113,14 +116,23 @@ void UHoudiniPCGCookable::InvalidateCookable()
 	}
 }
 
-bool UHoudiniPCGCookable::ApplyParametersToCookable(FPCGContext* Context)
+bool
+UHoudiniPCGCookable::ApplyParametersToCookable(FPCGContext* Context)
 {
+	Cookable->SetOutputSupported(true);
+
 	const TArray<FPCGTaggedData> Inputs = Context->InputData.GetInputsByPin(FName(FHoudiniPCGUtils::ParameterInputPinName));
 
 	bool bChanged = false;
 	for(auto& TaggedData : Inputs)
 	{
 		bChanged |= ApplyParametersToCookable(TaggedData.Data, Context);
+	}
+
+	if (bChanged)
+	{
+		// Changing the parameters will start a cook.
+		State = EPCGCookableState::Cooking;
 	}
 	return bChanged;
 }
@@ -158,7 +170,27 @@ bool UHoudiniPCGCookable::ApplyInputsToCookable(FPCGContext* Context)
 			}
 		}
 	}
+
+	if(bInputsChanged)
+	{
+		// Changing the parameters will start a cook.
+		State = EPCGCookableState::Cooking;
+	}
+
 	return bInputsChanged;
+}
+
+void
+UHoudiniPCGCookable::AddTrackedObjects(FPCGContext* Context)
+{
+	FPCGDynamicTrackingHelper DynamicTracking;
+	DynamicTracking.EnableAndInitialize(Context, TrackedObjects.Num());
+	for(auto& TrackedObject : TrackedObjects)
+	{
+		DynamicTracking.AddToTracking(FPCGSelectionKey::CreateFromPath(TrackedObject), false);
+	}
+	DynamicTracking.Finalize(Context);
+	TrackedObjects.Empty();
 }
 
 bool UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data, FPCGContext* Context)
@@ -211,6 +243,8 @@ bool UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data, FPCGCo
 
 void UHoudiniPCGCookable::Release()
 {
+	HOUDINI_PCG_MESSAGE(TEXT("UHoudiniPCGCookable::Release (%p)"), this);
+
 	FHoudiniOutputTranslator::ClearAndRemoveOutputs(this->Cookable->GetOutputs());
 
 }
@@ -317,4 +351,233 @@ void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, 
 	TaggedOutput.Pin = OutputPinName;
 	TaggedOutput.Tags.Add(OutputPinName.ToString());
 }
+
+void
+UHoudiniPCGCookable::ProcessCookableOutput(FPCGContext* Context)
+{
+	const UHoudiniDigitalAssetPCGSettings* Settings = Context->GetInputSettings<UHoudiniDigitalAssetPCGSettings>();
+
+	if(!this->Cookable->GetOutputData())
+		return;
+
+	switch(Settings->OutputType)
+	{
+	case EHoudiniPCGOutputType::Cook:
+		for(int Index = 0; Index < this->Cookable->GetOutputData()->Outputs.Num(); Index++)
+		{
+
+			this->CreateOutputs(Context, Settings->GetOutputPinName(Index), this->Cookable->GetOutputData()->Outputs[Index]);
+		}
+		break;
+
+	case EHoudiniPCGOutputType::Bake:
+		for(int Index = 0; Index < this->Cookable->GetOutputData()->Outputs.Num(); Index++)
+		{
+			// TODO: Do actual baking, this is temp.
+			this->CreateOutputs(Context, Settings->GetOutputPinName(Index), this->Cookable->GetOutputData()->Outputs[Index]);
+		}
+		break;
+	default:
+		break;
+	}
+
+	AddTrackedObjects(Context);
+	State = EPCGCookableState::Idle;
+
+}
+
+
+bool UHoudiniPCGCookable::UpdateAndCookIfNeeded(FPCGContext* Context)
+{
+	bool bInputsChanged = false;
+	bInputsChanged |= this->ApplyParametersToCookable(Context);
+	bInputsChanged |= this->ApplyInputsToCookable(Context);
+
+	int CurrentCookCount = FHoudiniEngineUtils::HapiGetCookCount(Cookable->GetNodeId());
+
+	if (bInputsChanged)
+	{
+		HOUDINI_PCG_MESSAGE(TEXT("(%p) Inputs changed on Cookable, so moving to Cooking state."), this);
+		State = EPCGCookableState::Cooking;
+	}
+	else if (CurrentCookCount != CookCount)
+	{
+		HOUDINI_PCG_MESSAGE(TEXT("(%p) Last Processed Cook Count was %d vs %d - cooking"), this, CookCount, CurrentCookCount);
+		Cookable->MarkAsNeedCook();
+	}
+	else
+	{
+		HOUDINI_PCG_MESSAGE(TEXT("(%p) Nothing changed on Cookable, so moving to done state."), this);
+		State = EPCGCookableState::Done;
+	}
+	return bInputsChanged;
+}
+
+
+bool
+UHoudiniPCGCookable::Update(FPCGContext* Context)
+{
+	switch(this->State)
+	{
+	case EPCGCookableState::Initializing:
+		// Still initializing, wait.
+		return false;
+
+	case EPCGCookableState::Initialized:
+		// Initialized - so we set inputs and cook.
+		HOUDINI_PCG_MESSAGE(TEXT("Initialized Cookable (%p), now cooking"), this);
+		UpdateAndCookIfNeeded(Context);
+		return false;
+
+	case EPCGCookableState::Cooking:
+		// Still cooking, wait.
+		return false;
+
+	case EPCGCookableState::Done:
+		// Done - process results.
+		HOUDINI_PCG_MESSAGE(TEXT("DONE cooking Managed Resource (%p)"), this);
+		this->ProcessCookableOutput(Context);
+		CookCount = FHoudiniEngineUtils::HapiGetCookCount(Cookable->GetNodeId());
+		return true;
+
+	case EPCGCookableState::Idle:
+		// Shouldn't get here since if cooking is complete this function should not be called.
+		HOUDINI_LOG_ERROR(TEXT("Unexpected state: Idle. PCG Cooking failed."));
+		return true;
+
+	default:
+		// Shouldn't get here.
+		HOUDINI_LOG_ERROR(TEXT("Unexpected state: default. PCG Cooking failed."));
+		return true;
+	}
+}
+
+
+bool
+UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata)
+{
+	FHoudiniPCGAttributes Attributes(Metadata, HDAInputObject);
+
+	// Extract all soft object paths from the PCG node inputs.
+
+	int NumRows = Attributes.NumRows;
+	TArray<FString> NewInputPaths;
+	NewInputPaths.Reserve(NumRows);
+	for(int Row = 0; Row < NumRows; Row++)
+	{
+		TArray<FString> DefaultPaths = {};
+		TArray<FString> Paths = FHoudiniPCGUtils::GetValueAsString(DefaultPaths, Attributes, Row);
+		for(FString Path : Paths)
+		{
+			UObject* FoundObject = LoadObject<UObject>(nullptr, *Path);
+			if(FoundObject)
+			{
+				NewInputPaths.Add(Path);
+				TrackedObjects.Add(FSoftObjectPath(Path));
+			}
+		}
+	}
+	NewInputPaths.Sort();
+
+	// Geta list of current input objects.
+
+	TArray<FString> CurrentInputObjects;
+	for(int Index = 0; Index < HoudiniInput->GetNumberOfInputObjects(); Index++)
+	{
+		CurrentInputObjects.Add(HoudiniInput->GetInputObjectAt(Index)->GetPathName());
+	}
+	CurrentInputObjects.Sort();
+
+	// if inputs changed, set them
+	bool bInputsChanged = (CurrentInputObjects != NewInputPaths);
+	if(bInputsChanged)
+	{
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, 0);
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Curve, 0);
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, 0);
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, 0);
+
+		TArray<UObject*> WorldObjects;
+		TArray<UObject*> GeometryObjects;
+
+		for(int Index = 0; Index < NewInputPaths.Num(); Index++)
+		{
+			UObject* InputObject = StaticLoadObject(UObject::StaticClass(), nullptr, *NewInputPaths[Index]);
+			if(InputObject->IsA<AActor>())
+				WorldObjects.Add(InputObject);
+			else
+				GeometryObjects.Add(InputObject);
+		}
+
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, WorldObjects.Num());
+		for(int Index = 0; Index < WorldObjects.Num(); Index++)
+		{
+			HoudiniInput->SetInputObjectAt(EHoudiniInputType::World, Index, WorldObjects[Index]);
+		}
+
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, GeometryObjects.Num());
+		for(int Index = 0; Index < GeometryObjects.Num(); Index++)
+		{
+			HoudiniInput->SetInputObjectAt(EHoudiniInputType::Geometry, Index, GeometryObjects[Index]);
+		}
+	}
+
+	return bInputsChanged;
+}
+
+bool
+UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const UPCGData* PCGData)
+{
+	bool bInputsChanged = false;
+
+	if(HoudiniInput->GetInputType() != EHoudiniInputType::PCGInput)
+	{
+		bInputsChanged = true;
+		bool bOutBlueprintStructureModified;
+		HoudiniInput->SetInputType(EHoudiniInputType::PCGInput, bOutBlueprintStructureModified);
+	}
+
+	int ExistingObjectCount = 0;
+	ExistingObjectCount += HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
+	ExistingObjectCount += HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::Curve);
+	ExistingObjectCount += HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::World);
+
+	if(ExistingObjectCount > 0)
+	{
+		// Previous input used non-PCG type, so we must clear them and reupload.
+		bInputsChanged = true;
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, 0);
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Curve, 0);
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, 0);
+	}
+
+	UHoudiniPCGInputObject* NewInputData = NewObject<UHoudiniPCGInputObject>();
+	NewInputData->Initialize(PCGData);
+
+	if(HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::PCGInput) == 1)
+	{
+		UHoudiniPCGInputObject* Prev = Cast<UHoudiniPCGInputObject>(HoudiniInput->GetInputObjectAt(0));
+		if(!IsValid(Prev))
+		{
+			bInputsChanged = true;
+		}
+		else
+		{
+			bInputsChanged = (*Prev != *NewInputData);
+		}
+	}
+	else
+	{
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, 1);
+		bInputsChanged = true;
+	}
+
+	if(bInputsChanged)
+	{
+		HoudiniInput->SetInputObjectAt(EHoudiniInputType::PCGInput, 0, NewInputData);
+	}
+	return false;
+}
+
+
 #undef LOCTEXT_NAMESPACE

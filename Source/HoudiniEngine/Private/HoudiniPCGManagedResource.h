@@ -49,6 +49,7 @@ public:
 	virtual bool MoveResourceToNewActor(AActor* NewActor) override;
 	virtual void MarkAsUsed() override;
 	virtual void MarkAsReused() override;
+	virtual void PostLoad() override;
 
 #if WITH_EDITOR
 	virtual void ChangeTransientState(EPCGEditorDirtyMode NewEditingMode) override;
@@ -59,8 +60,7 @@ public:
 	TObjectPtr<UHoudiniPCGComponent> PCGComponent;
 
 	UPROPERTY()
-	bool bExecuteInProgress = true;
-
+	bool bInvalidateResource = false;
 
 };
 

@@ -35,7 +35,7 @@
 #include "HoudiniPCGInputObject.h"
 #include "PCGParamData.h"
 
-const FName HDAInputObject = FName(FString(TEXT("hda_input")));
+HOUDINI_PCG_DEFINE_LOG_CATEGORY();
 
 FString FHoudiniPCGUtils::ParameterInputPinName = FString(TEXT("Parameters"));
 
@@ -116,125 +116,6 @@ FHoudiniPCGUtils::GetInputType(const UPCGData* PCGData)
 	{
 		return EHoudiniPCGInputType::None;
 	}
-}
-
-bool
-UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const UPCGData* PCGData)
-{
-	bool bInputsChanged = false;
-
-	if (HoudiniInput->GetInputType() != EHoudiniInputType::PCGInput)
-	{
-		bInputsChanged = true;
-		bool bOutBlueprintStructureModified;
-		HoudiniInput->SetInputType(EHoudiniInputType::PCGInput, bOutBlueprintStructureModified);
-	}
-
-	int ExistingObjectCount = 0;
-	ExistingObjectCount += HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
-	ExistingObjectCount += HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::Curve);
-	ExistingObjectCount += HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::World);
-
-	if (ExistingObjectCount > 0)
-	{
-		// Previous input used non-PCG type, so we must clear them and reupload.
-		bInputsChanged = true;
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, 0);
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Curve, 0);
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, 0);
-	}
-
-	UHoudiniPCGInputObject* NewInputData = NewObject<UHoudiniPCGInputObject>();
-	NewInputData->Initialize(PCGData);
-
-	if (HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::PCGInput) == 1)
-	{
-		UHoudiniPCGInputObject * Prev = Cast<UHoudiniPCGInputObject>(HoudiniInput->GetInputObjectAt(0));
-		if (!IsValid(Prev))
-		{
-			bInputsChanged = true;
-		}
-		else
-		{
-			bInputsChanged = (*Prev != *NewInputData);
-		}
-	}
-	else
-	{
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, 1);
-		bInputsChanged = true;
-	}
-
-	if (bInputsChanged)
-	{
-		HoudiniInput->SetInputObjectAt(EHoudiniInputType::PCGInput, 0, NewInputData);
-	}
-	return false;
-}
-
-bool
-UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata)
-{
-	FHoudiniPCGAttributes Attributes(Metadata, HDAInputObject);
-
-
-	// Extract all soft object paths from the PCG node inputs.
-
-	int NumRows = Attributes.NumRows;
-	TArray<FString> NewInputPaths;
-	NewInputPaths.Reserve(NumRows);
-	for(int Row = 0; Row < NumRows; Row++)
-	{
-		TArray<FString> DefaultPaths = {};
-		TArray<FString> Paths = FHoudiniPCGUtils::GetValueAsString(DefaultPaths, Attributes, Row);
-		NewInputPaths.Append(Paths);
-	}
-	NewInputPaths.Sort();
-
-	// Geta list of current input objects.
-
-	TArray<FString> CurrentInputObjects;
-	for(int Index = 0; Index < HoudiniInput->GetNumberOfInputObjects(); Index++)
-	{
-		CurrentInputObjects.Add(HoudiniInput->GetInputObjectAt(Index)->GetPathName());
-	}
-	CurrentInputObjects.Sort();
-
-	// if inputs changed, set them
-	bool bInputsChanged = (CurrentInputObjects != NewInputPaths);
-	if(bInputsChanged)
-	{
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, 0);
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Curve, 0);
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, 0);
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, 0);
-
-		TArray<UObject*> WorldObjects;
-		TArray<UObject*> GeometryObjects;
-
-		for(int Index = 0; Index < NewInputPaths.Num(); Index++)
-		{
-			UObject* InputObject = StaticLoadObject(UObject::StaticClass(), nullptr, *NewInputPaths[Index]);
-			if(InputObject->IsA<AActor>())
-				WorldObjects.Add(InputObject);
-			else
-				GeometryObjects.Add(InputObject);
-		}
-
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, WorldObjects.Num());
-		for(int Index = 0; Index < WorldObjects.Num(); Index++)
-		{
-			HoudiniInput->SetInputObjectAt(EHoudiniInputType::World, Index, WorldObjects[Index]);
-		}
-
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, GeometryObjects.Num());
-		for(int Index = 0; Index < GeometryObjects.Num(); Index++)
-		{
-			HoudiniInput->SetInputObjectAt(EHoudiniInputType::Geometry, Index, GeometryObjects[Index]);
-		}
-	}
-
-	return bInputsChanged;
 }
 
 TArray<FString>

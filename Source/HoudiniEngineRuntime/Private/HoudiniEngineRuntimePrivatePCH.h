@@ -133,6 +133,29 @@ HOUDINIENGINEEDITOR_API DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineEditor, Log,
 	} \
 	while ( 0 )
 
+// ---------------------------------------------------------
+// PCG Debug Logging
+// ---------------------------------------------------------
+//#define HOUDINI_ENGINE_DEBUG_PCG (1)
+#if defined(HOUDINI_ENGINE_LOGGING) && defined(HOUDINI_ENGINE_DEBUG_PCG)
+		DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEnginePCG, Log, All);
+#define HOUDINI_PCG_DEFINE_LOG_CATEGORY() \
+			DEFINE_LOG_CATEGORY(LogHoudiniEnginePCG);
+#define HOUDINI_PCG_MESSAGE( HOUDINI_LOG_TEXT, ... ) \
+			HOUDINI_DEBUG_EXPAND_UE_LOG( PCG, Log, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ) 
+#define HOUDINI_PCG_FATAL( HOUDINI_LOG_TEXT, ... ) \
+			HOUDINI_DEBUG_EXPAND_UE_LOG( PCG, Fatal, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ) 
+#define HOUDINI_PCG_ERROR( HOUDINI_LOG_TEXT, ... ) \
+			HOUDINI_DEBUG_EXPAND_UE_LOG( PCG, Error, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ) 
+#define HOUDINI_PCG_WARNING( HOUDINI_LOG_TEXT, ... ) \
+			HOUDINI_DEBUG_EXPAND_UE_LOG( PCG, Warning, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ) 
+#else 
+#define HOUDINI_PCG_DEFINE_LOG_CATEGORY() 
+#define HOUDINI_PCG_MESSAGE( HOUDINI_LOG_TEXT, ... ) 
+#define HOUDINI_PCG_FATAL( HOUDINI_LOG_TEXT, ... ) 
+#define HOUDINI_PCG_ERROR( HOUDINI_LOG_TEXT, ... ) 
+#define HOUDINI_PCG_WARNING( HOUDINI_LOG_TEXT, ... ) 
+#endif
 
 // ---------------------------------------------------------
 // Blueprint Debug Logging

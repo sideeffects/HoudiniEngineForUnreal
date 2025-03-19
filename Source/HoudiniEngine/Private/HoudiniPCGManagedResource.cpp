@@ -77,6 +77,14 @@ void UHoudiniPCGManagedResource::MarkAsReused()
 	Super::MarkAsReused();
 }
 
+void UHoudiniPCGManagedResource::PostLoad()
+{
+	Super::PostLoad();
+
+	// Create a new cookable after deserializing.
+	bInvalidateResource = true;
+}
+
 bool UHoudiniPCGManagedResource::MoveResourceToNewActor(AActor* NewActor)
 {
 	return Super::MoveResourceToNewActor(NewActor);
