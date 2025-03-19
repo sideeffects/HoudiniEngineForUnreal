@@ -53,8 +53,6 @@
 #define LOCTEXT_NAMESPACE "PCGCachedCookable"
 
 
-const FName HDAInputObject = FName(FString(TEXT("object")));
-
 UHoudiniPCGCookable::UHoudiniPCGCookable(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -456,7 +454,7 @@ UHoudiniPCGCookable::Update(FPCGContext* Context)
 bool
 UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata)
 {
-	FHoudiniPCGAttributes Attributes(Metadata, HDAInputObject);
+	FHoudiniPCGAttributes Attributes(Metadata, FHoudiniPCGUtils::HDAInputObject);
 
 	// Extract all soft object paths from the PCG node inputs.
 

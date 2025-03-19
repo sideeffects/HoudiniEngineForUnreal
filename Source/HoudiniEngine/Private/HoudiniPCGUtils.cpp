@@ -38,6 +38,7 @@
 HOUDINI_PCG_DEFINE_LOG_CATEGORY();
 
 FString FHoudiniPCGUtils::ParameterInputPinName = FString(TEXT("Parameters"));
+FName FHoudiniPCGUtils::HDAInputObject = FName(FString(TEXT("object")));
 
 void
 FHoudiniPCGUtils::UnrealToHoudini(const FVector3d& UnrealVector, float HoudiniVector[3])
