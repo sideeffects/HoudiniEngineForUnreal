@@ -65,17 +65,33 @@ UHoudiniPCGCookable::~UHoudiniPCGCookable()
 
 void UHoudiniPCGCookable::OnCookingComplete(bool bSuccess)
 {
-	HOUDINI_PCG_MESSAGE(TEXT("UHoudiniPCGCookable::OnCookingComplete (%p)"), this);
+	HOUDINI_PCG_MESSAGE(TEXT("(%p) UHoudiniPCGCookable::OnCookingComplete"), this);
 
 	if(this->State == EPCGCookableState::Initializing)
+	{
+		HOUDINI_PCG_MESSAGE(TEXT("(%p)       Set to EPCGCookableState::Initialized"), this);
 		this->State = EPCGCookableState::Initialized;
+	}
 	else if(this->State == EPCGCookableState::Cooking)
+	{
+		HOUDINI_PCG_MESSAGE(TEXT("(%p)       Set to EPCGCookableState::Done"), this);
 		this->State = EPCGCookableState::Done;
+	}
+	else
+	{
+		// We were not expecting a cooking operation to complete. This is caused the HDA being modified
+		// most likely via session sync. So regen.
+		if (IsValid(PCGComponent))
+		{
+			PCGComponent->Generate();
+		}
+
+	}
 }
 
 void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAssetPCGSettings* Owner, UHoudiniPCGComponent* Component)
 {
-	HOUDINI_PCG_MESSAGE(TEXT("UHoudiniPCGCookable::Instantiate (%p)"), this);
+	HOUDINI_PCG_MESSAGE(TEXT("(%p) UHoudiniPCGCookable::Instantiate"), this);
 
 	TrackedObjects.Empty();
 
@@ -101,7 +117,10 @@ void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAsset
 	UCookableHoudiniAssetData* HAD = Cookable->GetHoudiniAssetData();
 	HAD->HoudiniAsset = Asset;
 
+
 	FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(Cookable.Get());
+
+
 }
 
 void
@@ -117,8 +136,6 @@ UHoudiniPCGCookable::InvalidateCookable()
 bool
 UHoudiniPCGCookable::ApplyParametersToCookable(FPCGContext* Context)
 {
-	Cookable->SetOutputSupported(true);
-
 	const TArray<FPCGTaggedData> Inputs = Context->InputData.GetInputsByPin(FName(FHoudiniPCGUtils::ParameterInputPinName));
 
 	bool bChanged = false;
@@ -247,19 +264,21 @@ void UHoudiniPCGCookable::Release()
 
 }
 
-void UHoudiniPCGCookable::CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutput)
+void UHoudiniPCGCookable::CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput)
 {
 	if(FHoudiniPCGUtils::HasPCGOutputs(HoudiniOutput))
 	{
-		CreateOutputsAsPCGData(Context, OutputPinName, HoudiniOutput);
+		CreateOutputsAsPCGData(Context, OutputPinName, TagName, HoudiniOutput);
 	}
 	else
 	{
-		CreateOutputsAsObjectReferences(Context, OutputPinName, HoudiniOutput);
+		TArray<FHoudiniPCGObjectOutput> Outputs = FHoudiniPCGUtils::GetPCGOutputData(HoudiniOutput);
+
+		CreateOutputsAsObjectReferences(Context, OutputPinName, TagName, Outputs);
 	}
 }
 
-void UHoudiniPCGCookable::CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutput)
+void UHoudiniPCGCookable::CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput)
 {
 	TArray<FPCGTaggedData>& TaggedDataArray = Context->OutputData.TaggedData;
 
@@ -274,7 +293,7 @@ void UHoudiniPCGCookable::CreateOutputsAsPCGData(FPCGContext* Context, const FNa
 				FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
 				TaggedOutput.Data = PCGOutputData->PointParams;
 				TaggedOutput.Pin = OutputPinName;
-				TaggedOutput.Tags.Add(TEXT("Points"));
+				TaggedOutput.Tags.Add(TagName + TEXT("-Points"));
 			}
 
 			if(PCGOutputData->VertexParams)
@@ -282,7 +301,7 @@ void UHoudiniPCGCookable::CreateOutputsAsPCGData(FPCGContext* Context, const FNa
 				FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
 				TaggedOutput.Data = PCGOutputData->VertexParams;
 				TaggedOutput.Pin = OutputPinName;
-				TaggedOutput.Tags.Add(TEXT("Vertices"));
+				TaggedOutput.Tags.Add(TagName + TEXT("-Vertices"));
 			}
 
 			if(PCGOutputData->PrimsParams)
@@ -290,7 +309,7 @@ void UHoudiniPCGCookable::CreateOutputsAsPCGData(FPCGContext* Context, const FNa
 				FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
 				TaggedOutput.Data = PCGOutputData->PrimsParams;
 				TaggedOutput.Pin = OutputPinName;
-				TaggedOutput.Tags.Add(TEXT("Prims"));
+				TaggedOutput.Tags.Add(TagName + TEXT("-Prims"));
 			}
 
 			if(PCGOutputData->DetailsParams)
@@ -298,15 +317,14 @@ void UHoudiniPCGCookable::CreateOutputsAsPCGData(FPCGContext* Context, const FNa
 				FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
 				TaggedOutput.Data = PCGOutputData->DetailsParams;
 				TaggedOutput.Pin = OutputPinName;
-				TaggedOutput.Tags.Add(TEXT("Details"));
+				TaggedOutput.Tags.Add(TagName + TEXT("-Details"));
 			}
 		}
 	}
 }
 
-void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutput)
+void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const TArray<FHoudiniPCGObjectOutput>& Outputs)
 {
-	TArray<FHoudiniPCGObjectOutput> Outputs = FHoudiniPCGUtils::GetPCGOutputData(HoudiniOutput);
 
 	UPCGParamData* ParamData = FPCGContext::NewObject_AnyThread<UPCGParamData>(Context);
 	UPCGMetadata* Metadata = ParamData->MutableMetadata();
@@ -314,12 +332,14 @@ void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, 
 	constexpr bool bAllowsInterpolation = false;
 	constexpr bool bOverrideParent = false;
 
-	const FName PCGOutputIndexName = FName(TEXT("OutputIndex"));
+	const FName PCGOutputIndexName = FName(TEXT("OutputObjectIndex"));
+	const FName PCGOutputTypeName = FName(TEXT("Type"));
 	const FName PCGOutputComponentName = FName(TEXT("Component"));
 	const FName PCGOutputActorName = FName(TEXT("Actor"));
 	const FName PCGOutputObjectName = FName(TEXT("Object"));
 
 	Metadata->CreateInteger32Attribute(PCGOutputIndexName, 0, bAllowsInterpolation, bOverrideParent);
+	Metadata->CreateStringAttribute(PCGOutputTypeName, FString(), bAllowsInterpolation, bOverrideParent);
 	Metadata->CreateSoftObjectPathAttribute(PCGOutputComponentName, FString(), bAllowsInterpolation, bOverrideParent);
 	Metadata->CreateSoftObjectPathAttribute(PCGOutputActorName, FString(), bAllowsInterpolation, bOverrideParent);
 	Metadata->CreateSoftObjectPathAttribute(PCGOutputObjectName, FString(), bAllowsInterpolation, bOverrideParent);
@@ -330,16 +350,20 @@ void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, 
 		const auto& Output = Outputs[Row];
 
 		FPCGMetadataAttribute<int32>* IntAttr = Metadata->GetMutableTypedAttribute<int32>(PCGOutputIndexName);
-		IntAttr->SetValue(Row, Output.OutputIndex);
+		IntAttr->SetValue(Row, Output.OutputObjectIndex);
 
-		FPCGMetadataAttribute<FSoftObjectPath>* StrAttr = Metadata->GetMutableTypedAttribute<FSoftObjectPath>(PCGOutputComponentName);
-		StrAttr->SetValue(Row, Output.ComponentPath);
+		FPCGMetadataAttribute<FString>* StrAttr = Metadata->GetMutableTypedAttribute<FString>(PCGOutputTypeName);
+		StrAttr->SetValue(Row, Output.OutputType);
 
-		StrAttr = Metadata->GetMutableTypedAttribute<FSoftObjectPath>(PCGOutputActorName);
-		StrAttr->SetValue(Row, Output.ActorPath);
+		FPCGMetadataAttribute<FSoftObjectPath>* PathAttr = Metadata->GetMutableTypedAttribute<FSoftObjectPath>(PCGOutputComponentName);
+		PathAttr = Metadata->GetMutableTypedAttribute<FSoftObjectPath>(PCGOutputComponentName);
+		PathAttr->SetValue(Row, Output.ComponentPath);
 
-		StrAttr = Metadata->GetMutableTypedAttribute<FSoftObjectPath>(PCGOutputObjectName);
-		StrAttr->SetValue(Row, Output.ObjectPath);
+		PathAttr = Metadata->GetMutableTypedAttribute<FSoftObjectPath>(PCGOutputActorName);
+		PathAttr->SetValue(Row, Output.ActorPath);
+
+		PathAttr = Metadata->GetMutableTypedAttribute<FSoftObjectPath>(PCGOutputObjectName);
+		PathAttr->SetValue(Row, Output.ObjectPath);
 
 	}
 
@@ -347,7 +371,7 @@ void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, 
 	FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
 	TaggedOutput.Data = ParamData;
 	TaggedOutput.Pin = OutputPinName;
-	TaggedOutput.Tags.Add(OutputPinName.ToString());
+	TaggedOutput.Tags.Add(TagName);
 }
 
 void
@@ -361,20 +385,16 @@ UHoudiniPCGCookable::ProcessCookableOutput(FPCGContext* Context)
 	switch(Settings->OutputType)
 	{
 	case EHoudiniPCGOutputType::Cook:
-		for(int Index = 0; Index < this->Cookable->GetOutputData()->Outputs.Num(); Index++)
-		{
-
-			this->CreateOutputs(Context, Settings->GetOutputPinName(Index), this->Cookable->GetOutputData()->Outputs[Index]);
-		}
-		break;
-
 	case EHoudiniPCGOutputType::Bake:
-		for(int Index = 0; Index < this->Cookable->GetOutputData()->Outputs.Num(); Index++)
+	{
+		auto& Outputs = this->Cookable->GetOutputData()->Outputs;
+		for(int Index = 0; Index < Outputs.Num(); Index++)
 		{
-			// TODO: Do actual baking, this is temp.
-			this->CreateOutputs(Context, Settings->GetOutputPinName(Index), this->Cookable->GetOutputData()->Outputs[Index]);
+			FString Tag = FString::Printf(TEXT("Output-%d"), Index);
+			CreateOutputs(Context, Settings->GetOutputPinName(0), Tag, this->Cookable->GetOutputData()->Outputs[Index]);
 		}
 		break;
+	}
 	default:
 		break;
 	}
@@ -385,30 +405,40 @@ UHoudiniPCGCookable::ProcessCookableOutput(FPCGContext* Context)
 }
 
 
-bool UHoudiniPCGCookable::UpdateAndCookIfNeeded(FPCGContext* Context)
+bool UHoudiniPCGCookable::UpdateAndCook(FPCGContext* Context)
 {
-	bool bInputsChanged = false;
-	bInputsChanged |= this->ApplyParametersToCookable(Context);
-	bInputsChanged |= this->ApplyInputsToCookable(Context);
+	Cookable->SetOutputSupported(true);
+
+	bool bHasBeenCooked = State == EPCGCookableState::Done || State == EPCGCookableState::Idle;
+
+	bool bParamsChanged = this->ApplyParametersToCookable(Context);
+	bool bInputsChanged = this->ApplyInputsToCookable(Context);
 
 	int CurrentCookCount = FHoudiniEngineUtils::HapiGetCookCount(Cookable->GetNodeId());
 
+	bool bCookCountChanged = this->CookCount != CurrentCookCount;
+	this->CookCount = CurrentCookCount;
+
 	if (bInputsChanged)
 	{
-		HOUDINI_PCG_MESSAGE(TEXT("(%p) Inputs changed on Cookable, so moving to Cooking state."), this);
 		State = EPCGCookableState::Cooking;
+		HOUDINI_PCG_MESSAGE(TEXT("(%p) Inputs changed on Cookable, expecting auto-cook."), this);
+		return true;
+
 	}
-	else if (CurrentCookCount != CookCount)
+	else if (bParamsChanged || bCookCountChanged || !bHasBeenCooked)
 	{
-		HOUDINI_PCG_MESSAGE(TEXT("(%p) Last Processed Cook Count was %d vs %d - cooking"), this, CookCount, CurrentCookCount);
+		State = EPCGCookableState::Cooking;
+		HOUDINI_PCG_MESSAGE(TEXT("(%p) Inputs not changed on cookable, but forcing cooking to get outputs."), this);
 		Cookable->MarkAsNeedCook();
+		return true;
 	}
 	else
 	{
-		HOUDINI_PCG_MESSAGE(TEXT("(%p) Nothing changed on Cookable, so moving to done state."), this);
+		// Node has been cooked and nothing has changed.
 		State = EPCGCookableState::Done;
+		return false;
 	}
-	return bInputsChanged;
 }
 
 
@@ -424,7 +454,7 @@ UHoudiniPCGCookable::Update(FPCGContext* Context)
 	case EPCGCookableState::Initialized:
 		// Initialized - so we set inputs and cook.
 		HOUDINI_PCG_MESSAGE(TEXT("Initialized Cookable (%p), now cooking"), this);
-		UpdateAndCookIfNeeded(Context);
+		UpdateAndCook(Context);
 		return false;
 
 	case EPCGCookableState::Cooking:
@@ -507,16 +537,28 @@ UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, cons
 				GeometryObjects.Add(InputObject);
 		}
 
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, WorldObjects.Num());
-		for(int Index = 0; Index < WorldObjects.Num(); Index++)
+		if (WorldObjects.Num())
 		{
-			HoudiniInput->SetInputObjectAt(EHoudiniInputType::World, Index, WorldObjects[Index]);
+			bool bBlueprintModified;
+			HoudiniInput->SetInputType(EHoudiniInputType::World, bBlueprintModified);
+
+			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, WorldObjects.Num());
+			for(int Index = 0; Index < WorldObjects.Num(); Index++)
+			{
+				HoudiniInput->SetInputObjectAt(EHoudiniInputType::World, Index, WorldObjects[Index]);
+			}
 		}
 
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, GeometryObjects.Num());
-		for(int Index = 0; Index < GeometryObjects.Num(); Index++)
+		if (GeometryObjects.Num())
 		{
-			HoudiniInput->SetInputObjectAt(EHoudiniInputType::Geometry, Index, GeometryObjects[Index]);
+			bool bBlueprintModified;
+			HoudiniInput->SetInputType(EHoudiniInputType::Geometry, bBlueprintModified);
+
+			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, GeometryObjects.Num());
+			for(int Index = 0; Index < GeometryObjects.Num(); Index++)
+			{
+				HoudiniInput->SetInputObjectAt(EHoudiniInputType::Geometry, Index, GeometryObjects[Index]);
+			}
 		}
 	}
 

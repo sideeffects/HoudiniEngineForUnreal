@@ -21,8 +21,8 @@
 */
 
 #include "HoudiniPCGManagedResource.h"
-
 #include "HoudiniPCGComponent.h"
+#include "PCGGraph.h"
 
 void UHoudiniPCGManagedResource::PostEditImport()
 {
@@ -41,19 +41,32 @@ bool UHoudiniPCGManagedResource::Release(bool bHardRelease, TSet<TSoftObjectPtr<
 	bIsMarkedUnused = true;
 	if (bHardRelease)
 	{
-		if(IsValid(PCGComponent))
+		if(IsValid(HoudiniPCGComponent))
 		{
-			if (IsValid(PCGComponent->Cookable))
-				PCGComponent->Cookable->Release();
-			AActor* Owner = PCGComponent->GetOwner();
-			PCGComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-			PCGComponent->DestroyComponent();
+			if (IsValid(HoudiniPCGComponent->Cookable))
+				HoudiniPCGComponent->Cookable->Release();
+			AActor* Owner = HoudiniPCGComponent->GetOwner();
+			HoudiniPCGComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+			HoudiniPCGComponent->DestroyComponent();
 			GEditor->NoteSelectionChange();
 
-			PCGComponent = nullptr;
+			HoudiniPCGComponent = nullptr;
 		}
 	}
+	if (PCGComponent)
+	{
+		PCGComponent->GetGraph()->OnGraphChangedDelegate.RemoveAll(this);
+	}
 	return bHardRelease;
+}
+
+void UHoudiniPCGManagedResource::OnGraphChanged(UPCGGraphInterface* InGraph, EPCGChangeType ChangeType)
+{
+	// We're really look for "Force Regenerate", but there are no such flags.
+	const bool bIsStructural = ((ChangeType & (EPCGChangeType::Edge | EPCGChangeType::Structural)) != EPCGChangeType::None);
+
+	if (bIsStructural)
+		bInvalidateResource = true;
 }
 
 bool UHoudiniPCGManagedResource::ReleaseIfUnused(TSet<TSoftObjectPtr<AActor>>& OutActorsToDelete)

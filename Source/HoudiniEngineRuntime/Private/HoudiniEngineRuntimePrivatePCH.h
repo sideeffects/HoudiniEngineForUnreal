@@ -136,7 +136,7 @@ HOUDINIENGINEEDITOR_API DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineEditor, Log,
 // ---------------------------------------------------------
 // PCG Debug Logging
 // ---------------------------------------------------------
-//#define HOUDINI_ENGINE_DEBUG_PCG (1)
+#define HOUDINI_ENGINE_DEBUG_PCG (1)
 #if defined(HOUDINI_ENGINE_LOGGING) && defined(HOUDINI_ENGINE_DEBUG_PCG)
 		DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEnginePCG, Log, All);
 #define HOUDINI_PCG_DEFINE_LOG_CATEGORY() \

@@ -80,7 +80,21 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 {
 	H_SCOPED_FUNCTION_TIMER();
 
-	UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InOutput);
+	FHoudiniLandscapeSettings LandscapeSettings;
+
+	if (UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InOutput))
+	{
+		// Pull settings from the HAC
+		LandscapeSettings.LocalToWorldTransform = HAC->GetComponentToWorld();
+		LandscapeSettings.bUseTempLayers = HAC->bLandscapeUseTempLayers;
+		LandscapeSettings.TempLayerSuffix = InPackageParams.GetPackageName() + HAC->GetComponentGUID().ToString();
+	}
+	else if (USceneComponent* SceneComponent = FHoudiniEngineUtils::GetOuterSceneComponent(InOutput))
+	{
+		// If attached to a scene component (which a cookable may be), use its transform.
+		LandscapeSettings.LocalToWorldTransform = SceneComponent->GetComponentToWorld();
+		LandscapeSettings.bUseTempLayers = false;
+	}
 
 	//------------------------------------------------------------------------------------------------------------------------------
 	// Get a list of layers to update from HDA
@@ -102,7 +116,7 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 	FHoudiniLayersToUnrealLandscapeMapping LandscapeMapping = FHoudiniLandscapeUtils::ResolveLandscapes(
 			CoookedLandscapeActorPrefix,
 			InPackageParams, 
-			HAC,
+			LandscapeSettings,
 			LandscapeMap,
 			Parts, 
 			InWorld, 
@@ -126,7 +140,7 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 
 		int Index = LandscapeMapping.HoudiniLayerToUnrealLandscape[&Part];
 		FHoudiniUnrealLandscapeTarget& Landscape = LandscapeMapping.TargetLandscapes[Index];
-		UHoudiniLandscapeTargetLayerOutput* Result = TranslateHeightFieldPart(InOutput, Landscape, Part, *HAC, ClearedLayers, InPackageParams);
+		UHoudiniLandscapeTargetLayerOutput* Result = TranslateHeightFieldPart(InOutput, Landscape, Part, LandscapeSettings, ClearedLayers, InPackageParams);
 		if (!Result)
 			continue;
 		AllOutputs.Add(Result);
@@ -531,7 +545,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		UHoudiniOutput* OwningOutput,
 		FHoudiniUnrealLandscapeTarget& Landscape,
 		FHoudiniHeightFieldPartData& Part,
-		UHoudiniAssetComponent& HAC,
+		const FHoudiniLandscapeSettings& LandscapeSettings,
 		FHoudiniClearedEditLayers& ClearedLayers,
 		const FHoudiniPackageParams& InPackageParams)
 {
@@ -572,9 +586,9 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	auto LayerPackageParams = InPackageParams;
 	FString CookedLayerName = BakedLayerName;
 
-	if (HAC.bLandscapeUseTempLayers)
+	if (LandscapeSettings.bUseTempLayers)
 	{
-		CookedLayerName = CookedLayerName + FString(" : ") + LayerPackageParams.GetPackageName() + HAC.GetComponentGUID().ToString();
+		CookedLayerName = CookedLayerName + FString(" : ") + LandscapeSettings.TempLayerSuffix;
 	}	
 
 	// ------------------------------------------------------------------------------------------------------------------
@@ -703,7 +717,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 			bFetchData);
 
 	// The transform we get from Houdini should be relative to the HDA:
-	HeightFieldData.Transform = HeightFieldData.Transform * HAC.GetComponentTransform();
+	HeightFieldData.Transform = HeightFieldData.Transform * LandscapeSettings.LocalToWorldTransform;
 
 	// If a new landscape was created, resize the layer to match the created landscape size. (We resize the landscape if it does
 	// not fit one of Unreal's predetermined sizes. Only do this for non-tiles.

@@ -56,8 +56,13 @@ public:
 #endif
 	//~End UPCGManagedResource interface
 
+	void OnGraphChanged(UPCGGraphInterface* InGraph, EPCGChangeType ChangeType);
+
 	UPROPERTY()
-	TObjectPtr<UHoudiniPCGComponent> PCGComponent;
+	TObjectPtr<UHoudiniPCGComponent> HoudiniPCGComponent;
+
+	UPROPERTY()
+	TObjectPtr<UPCGComponent> PCGComponent;
 
 	UPROPERTY()
 	bool bInvalidateResource = false;

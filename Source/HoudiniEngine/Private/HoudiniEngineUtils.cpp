@@ -1263,6 +1263,23 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 	}
 }
 
+USceneComponent* 
+FHoudiniEngineUtils::GetOuterSceneComponent(const UObject* Obj)
+{
+	if(!Obj)
+		return nullptr;
+
+	UObject* Outer = Obj->GetOuter();
+	while (Outer)
+	{
+		USceneComponent* SceneComponent = Cast<USceneComponent>(Outer);
+		if(SceneComponent)
+			return SceneComponent;
+		Outer = Outer->GetOuter();
+	}
+	return nullptr;
+}
+
 UHoudiniCookable*
 FHoudiniEngineUtils::GetOuterHoudiniCookable(const UObject* Obj)
 {

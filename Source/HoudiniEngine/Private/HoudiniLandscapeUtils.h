@@ -217,6 +217,12 @@ struct FHoudiniLandscapeSplineApplyLayerData
     TArray<TObjectPtr<ULandscapeSplineSegment>> SegmentsToApply;
 };
 
+struct FHoudiniLandscapeSettings
+{
+    FTransform LocalToWorldTransform = FTransform::Identity;
+    bool bUseTempLayers = false;
+    FString TempLayerSuffix;
+};
 
 struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 {
@@ -260,7 +266,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
     static FHoudiniLayersToUnrealLandscapeMapping ResolveLandscapes(const FString & CookedLandscapePrefix, 
 			const FHoudiniPackageParams& PackageParams, 
-            UHoudiniAssetComponent* HAC, 
+			const FHoudiniLandscapeSettings& LandscapeSettings,
             TMap<FString,ALandscape*>& LandsscapeMap, 
             TArray<FHoudiniHeightFieldPartData>& Parts, 
             UWorld* World, 

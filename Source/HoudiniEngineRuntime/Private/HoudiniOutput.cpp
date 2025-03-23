@@ -1322,7 +1322,18 @@ void FHoudiniOutputObject::DestroyCookedData()
 	// Destroy all objects
 	//--------------------------------------------------------------------------------------------------------------------
 
-	if (IsValid(OutputObject))
+	if (UHoudiniLandscapeTargetLayerOutput * LandscapeOutput = Cast<UHoudiniLandscapeTargetLayerOutput>(OutputObject))
+	{
+		// We can only clean up new landscapes. Modifications to existing landscapes are destructive, so not much
+		// we can do...
+
+		if (LandscapeOutput->bCreatedLandscape)
+		{
+			LandscapeOutput->Landscape->Destroy();
+			LandscapeOutput->Landscape = nullptr;
+		}
+	}
+	else if (IsValid(OutputObject))
 	{
 #if WITH_EDITOR
 		UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();

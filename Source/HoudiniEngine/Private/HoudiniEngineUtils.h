@@ -1352,6 +1352,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		static UHoudiniAssetComponent* GetOuterHoudiniAssetComponent(const UObject* Obj);
 
+		static USceneComponent* GetOuterSceneComponent(const UObject* Obj);
+
 		// Helper to create an input node (similar to the HAPI version, but allows for specifying a parent node id
 		static HAPI_Result CreateInputNode(const FString& InNodeLabel, HAPI_NodeId& OutNodeId, const int32 InParentNodeId=-1);
 

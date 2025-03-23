@@ -93,7 +93,7 @@ public:
 	TArray<FHoudiniPCGOutput> Outputs;
 
 	UPROPERTY(EditAnywhere)
-	EHoudiniPCGOutputType OutputType = EHoudiniPCGOutputType::Bake;
+	EHoudiniPCGOutputType OutputType = EHoudiniPCGOutputType::Cook;
 
 	UPROPERTY(EditAnywhere)
 	bool bExposeParameters = true;
@@ -132,5 +132,6 @@ protected:
 	virtual bool PrepareDataInternal(FPCGContext* InContext) const override;
 	virtual bool ExecuteInternal(FPCGContext* InContext) const override;
 	virtual void AbortInternal(FPCGContext* Context) const;
+	FPCGCrc SetCrc(FPCGContext* Context) const;
 };
 

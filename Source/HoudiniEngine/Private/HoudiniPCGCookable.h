@@ -25,8 +25,10 @@
 
 #include "UObject/ObjectMacros.h"
 #include "HoudiniCookable.h"
+#include "PCGComponent.h"
 #include "HoudiniPCGCookable.generated.h"
 
+struct FHoudiniPCGObjectOutput;
 class UPCGData;
 class UPCGMetadata;
 struct FPCGContext;
@@ -67,10 +69,8 @@ public:
 	// Instantiates a new HDA... instantiating is asynchronous.
 	void Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAssetPCGSettings * PCGSettings, UHoudiniPCGComponent * Component);
 
-	// UpdateAndCookIfNeeded() pulls the inputs and parameters from the context and updates the Houdini Cookable if needed.
-	// If anything change, a cook starts and the state updates. If the Cook Count changes, a new cook is also started.
-	// Returns true if a cook is in progress after this call.
-	bool UpdateAndCookIfNeeded(FPCGContext* Context);
+	// UpdateAndCook() pulls the inputs and parameters from the context and cooks the Houdini Cookable.
+	bool UpdateAndCook(FPCGContext* Context);
 
 	// Release() releases() all data associated with the cook.
 	void Release();
@@ -83,12 +83,15 @@ private:
 	UPROPERTY()
 	TObjectPtr<UHoudiniCookable> Cookable;
 
+	UPROPERTY()
+	TObjectPtr<UPCGComponent> PCGComponent;
+
 	EPCGCookableState State = EPCGCookableState::Idle;
 	TArray<FSoftObjectPath> TrackedObjects;
 	int CookCount = -1;
 
-	static void CreateOutputsAsObjectReferences(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
-	static void CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
+	static void CreateOutputsAsObjectReferences(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const TArray<FHoudiniPCGObjectOutput> & Outputs);
+	static void CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutputs);
 
 	bool ApplyInputsToCookable(FPCGContext* InContext);
 	bool ApplyParametersToCookable(FPCGContext* Context);
@@ -99,7 +102,7 @@ private:
 	void AddTrackedObjects(FPCGContext* Context);
 	bool ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata);
 	bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const UPCGData* Data);
-	void CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const UHoudiniOutput* HoudiniOutputs);
+	void CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutputs);
 };
 
 

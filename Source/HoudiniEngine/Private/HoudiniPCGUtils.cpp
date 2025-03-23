@@ -59,24 +59,41 @@ FHoudiniPCGUtils::GetPCGOutputData(const UHoudiniOutput* HoudiniOutput)
 		FHoudiniOutputObject& OutputObj = It.Value;
 
 		FHoudiniPCGObjectOutput& PCGOutputObject = Outputs.Emplace_GetRef();
-		PCGOutputObject.OutputIndex = ObjectIndex;
-		if(OutputObj.OutputObject)
-			PCGOutputObject.ObjectPath = OutputObj.OutputObject.GetPathName();
-		if(OutputObj.OutputComponents.Num() > 0)
+		PCGOutputObject.OutputObjectIndex = ObjectIndex;
+
+		if (UHoudiniLandscapeTargetLayerOutput * LandscapeOutput = Cast<UHoudiniLandscapeTargetLayerOutput>(OutputObj.OutputObject.Get()))
 		{
-			PCGOutputObject.ComponentPath = OutputObj.OutputComponents[0].GetPathName();
-			PCGOutputObject.ActorPath = OutputObj.OutputComponents[0]->GetOuter()->GetPathName();
+			PCGOutputObject.ActorPath = LandscapeOutput->GetPathName();
+			PCGOutputObject.OutputType = TEXT("Landscape");
 		}
-		else if(OutputObj.ProxyComponent)
+		else
 		{
-			PCGOutputObject.ComponentPath = OutputObj.ProxyComponent.GetPathName();
-			if(OutputObj.ProxyObject)
-				PCGOutputObject.ObjectPath = OutputObj.ProxyObject.GetPackage().GetPathName();
+			if(OutputObj.OutputObject)
+			{
+				PCGOutputObject.ObjectPath = OutputObj.OutputObject.GetPathName();
+
+				if(OutputObj.OutputObject->IsA<UStaticMesh>())
+					PCGOutputObject.OutputType = TEXT("Mesh");
+			}
+
+			if(OutputObj.OutputComponents.Num() > 0)
+			{
+				PCGOutputObject.ComponentPath = OutputObj.OutputComponents[0].GetPathName();
+				PCGOutputObject.ActorPath = OutputObj.OutputComponents[0]->GetOuter()->GetPathName();
+			}
+			else if(OutputObj.ProxyComponent)
+			{
+				PCGOutputObject.ComponentPath = OutputObj.ProxyComponent.GetPathName();
+				if(OutputObj.ProxyObject)
+					PCGOutputObject.ObjectPath = OutputObj.ProxyObject.GetPackage().GetPathName();
+			}
+			else if(OutputObj.OutputActors.Num() > 0)
+			{
+				PCGOutputObject.ActorPath = OutputObj.OutputActors[0]->GetPathName();
+			}
+
 		}
-		else if(OutputObj.OutputActors.Num() > 0)
-		{
-			PCGOutputObject.ActorPath = OutputObj.OutputActors[0]->GetPathName();
-		}
+
 		ObjectIndex++;
 	}
 	return Outputs;

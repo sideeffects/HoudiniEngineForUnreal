@@ -32,10 +32,11 @@ class UHoudiniInput;
 
 struct FHoudiniPCGObjectOutput
 {
-	int OutputIndex = -1;
+	int OutputObjectIndex = 0;
 	FSoftObjectPath ComponentPath;
 	FSoftObjectPath ActorPath;
 	FSoftObjectPath ObjectPath;
+	FString OutputType;
 };
 
 enum class EHoudiniPCGInputType

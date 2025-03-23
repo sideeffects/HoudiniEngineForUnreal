@@ -459,7 +459,7 @@ FHoudiniLayersToUnrealLandscapeMapping
 FHoudiniLandscapeUtils::ResolveLandscapes(
 	const FString& CookedLandscapePrefix,
 	const FHoudiniPackageParams& PackageParams, 
-	UHoudiniAssetComponent* HAC,
+	const FHoudiniLandscapeSettings& LandscapeSettings,
 	TMap<FString, ALandscape*>& LandscapeMap,
 	TArray<FHoudiniHeightFieldPartData>& Parts, 
 	UWorld * World, 
@@ -581,8 +581,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 			// Adjust the transform of the Landscape actor we are creating if this is a single tile.
 			LocalHeightFieldTransform = GetLandscapeActorTransformFromTileTransform(LocalHeightFieldTransform, HeightPart->TileInfo.GetValue());
 		}
-		FTransform HACTransform = HAC->GetComponentToWorld();
-		FTransform LandscapeTransform = LocalHeightFieldTransform * HACTransform;
+		FTransform LandscapeTransform = LocalHeightFieldTransform * LandscapeSettings.LocalToWorldTransform;
 		LandscapeActor->SetActorTransform(LandscapeTransform);
 
 		//---------------------------------------------------------------------------------------------------------------------------------

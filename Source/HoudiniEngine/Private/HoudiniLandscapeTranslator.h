@@ -34,6 +34,7 @@
 #include "EngineUtils.h"
 #include "HoudiniPackageParams.h"
 
+struct FHoudiniLandscapeSettings;
 class UHoudiniAssetComponent;
 class ULandscapeLayerInfoObject;
 struct FHoudiniGenericAttribute;
@@ -83,7 +84,7 @@ private:
 			UHoudiniOutput* OwningOutput,
 			FHoudiniUnrealLandscapeTarget& Landscape,
 			FHoudiniHeightFieldPartData& Part,
-			UHoudiniAssetComponent& HAC,
+			const FHoudiniLandscapeSettings& LandscapeSettings,
 			FHoudiniClearedEditLayers& ClearedLayers,
 			const FHoudiniPackageParams& InPackageParams);
 };
