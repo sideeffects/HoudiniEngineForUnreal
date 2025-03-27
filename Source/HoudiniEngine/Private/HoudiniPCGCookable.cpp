@@ -48,7 +48,7 @@
 #include "HoudiniOutputTranslator.h"
 #include <HoudiniParameterToggle.h>
 #include <HoudiniEngineUtils.h>
-#include "HoudiniPCGInputObject.h"
+#include "HoudiniPCGDataObject.h"
 
 #define LOCTEXT_NAMESPACE "PCGCachedCookable"
 
@@ -117,10 +117,7 @@ void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAsset
 	UCookableHoudiniAssetData* HAD = Cookable->GetHoudiniAssetData();
 	HAD->HoudiniAsset = Asset;
 
-
 	FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(Cookable.Get());
-
-
 }
 
 void
@@ -134,14 +131,14 @@ UHoudiniPCGCookable::InvalidateCookable()
 }
 
 bool
-UHoudiniPCGCookable::ApplyParametersToCookable(FPCGContext* Context)
+UHoudiniPCGCookable::ApplyParametersToCookable(FPCGContext* Context, bool& bError)
 {
 	const TArray<FPCGTaggedData> Inputs = Context->InputData.GetInputsByPin(FName(FHoudiniPCGUtils::ParameterInputPinName));
 
 	bool bChanged = false;
 	for(auto& TaggedData : Inputs)
 	{
-		bChanged |= ApplyParametersToCookable(TaggedData.Data, Context);
+		bChanged |= ApplyParametersToCookable(TaggedData.Data, Context, bError);
 	}
 
 	if (bChanged)
@@ -153,7 +150,7 @@ UHoudiniPCGCookable::ApplyParametersToCookable(FPCGContext* Context)
 }
 
 
-bool UHoudiniPCGCookable::ApplyInputsToCookable(FPCGContext* Context)
+bool UHoudiniPCGCookable::ApplyInputsToCookable(FPCGContext* Context, bool& bError)
 {
 	int NumInputs = this->Cookable->GetNumInputs();
 
@@ -165,24 +162,33 @@ bool UHoudiniPCGCookable::ApplyInputsToCookable(FPCGContext* Context)
 
 		const TArray<FPCGTaggedData>& ContextInputData = Context->InputData.GetInputsByPin(FName(InputName));
 
-		for(const FPCGTaggedData& InputData : ContextInputData)
-		{
-			auto InputType = FHoudiniPCGUtils::GetInputType(InputData.Data);
-			const UPCGMetadata* Metadata = InputData.Data->ConstMetadata();
+		if(ContextInputData.IsEmpty())
+			continue;
 
-			UHoudiniInput* Input = this->Cookable->GetInputAt(Index);
-			switch(InputType)
-			{
-			case EHoudiniPCGInputType::UnrealObjects:
-				bInputsChanged |= ApplyInputAsUnrealObjects(Input, Metadata);
-				break;
-			case EHoudiniPCGInputType::PCGData:
-				bInputsChanged |= ApplyInputAsPCGData(Input, InputData.Data);
-				break;
-			case EHoudiniPCGInputType::None:
-				HOUDINI_LOG_ERROR(TEXT("Unknown input type."));
-				break;
-			}
+		const FPCGTaggedData& InputData = ContextInputData[0];
+
+		if (ContextInputData.Num() > 2)
+		{
+			FHoudiniPCGUtils::LogVisualWarning(Context, FString::Printf(TEXT("More than one input on %s, just using first."), *InputData.Data->GetClass()->GetName()));
+		}
+		// Just use the first input for now. TODO: Support multiple.
+
+
+		auto InputType = FHoudiniPCGUtils::GetInputType(InputData.Data);
+		const UPCGMetadata* Metadata = InputData.Data->ConstMetadata();
+
+		UHoudiniInput* Input = this->Cookable->GetInputAt(Index);
+		switch(InputType)
+		{
+		case EHoudiniPCGInputType::UnrealObjects:
+			bInputsChanged |= ApplyInputAsUnrealObjects(Context, Input, Metadata, bError);
+			break;
+		case EHoudiniPCGInputType::PCGData:
+			bInputsChanged |= ApplyInputAsPCGData(Context, Input, InputData.Data);
+			break;
+		case EHoudiniPCGInputType::None:
+			FHoudiniPCGUtils::LogVisualError(Context, FString::Printf(TEXT("Input type is not supported %s"), *InputData.Data->GetClass()->GetName()));
+			break;
 		}
 	}
 
@@ -208,7 +214,7 @@ UHoudiniPCGCookable::AddTrackedObjects(FPCGContext* Context)
 	TrackedObjects.Empty();
 }
 
-bool UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data, FPCGContext* Context)
+bool UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data, FPCGContext* Context, bool& bError)
 {
 	const UPCGMetadata* Metadata = Data->ConstMetadata();
 
@@ -309,7 +315,7 @@ void UHoudiniPCGCookable::CreateOutputsAsPCGData(FPCGContext* Context, const FNa
 				FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
 				TaggedOutput.Data = PCGOutputData->PrimsParams;
 				TaggedOutput.Pin = OutputPinName;
-				TaggedOutput.Tags.Add(TagName + TEXT("-Prims"));
+				TaggedOutput.Tags.Add(TagName + TEXT("-Primitives"));
 			}
 
 			if(PCGOutputData->DetailsParams)
@@ -405,14 +411,19 @@ UHoudiniPCGCookable::ProcessCookableOutput(FPCGContext* Context)
 }
 
 
-bool UHoudiniPCGCookable::UpdateAndCook(FPCGContext* Context)
+bool UHoudiniPCGCookable::UpdateAndCook(FPCGContext* Context, bool & bError)
 {
 	Cookable->SetOutputSupported(true);
 
 	bool bHasBeenCooked = State == EPCGCookableState::Done || State == EPCGCookableState::Idle;
 
-	bool bParamsChanged = this->ApplyParametersToCookable(Context);
-	bool bInputsChanged = this->ApplyInputsToCookable(Context);
+	bool bParamsChanged = this->ApplyParametersToCookable(Context, bError);
+	if(bError)
+		return false;
+
+	bool bInputsChanged = this->ApplyInputsToCookable(Context, bError);
+	if(bError)
+		return false;
 
 	int CurrentCookCount = FHoudiniEngineUtils::HapiGetCookCount(Cookable->GetNodeId());
 
@@ -443,8 +454,10 @@ bool UHoudiniPCGCookable::UpdateAndCook(FPCGContext* Context)
 
 
 bool
-UHoudiniPCGCookable::Update(FPCGContext* Context)
+UHoudiniPCGCookable::Update(FPCGContext* Context, bool& bError)
 {
+	bError = false;
+
 	switch(this->State)
 	{
 	case EPCGCookableState::Initializing:
@@ -454,7 +467,7 @@ UHoudiniPCGCookable::Update(FPCGContext* Context)
 	case EPCGCookableState::Initialized:
 		// Initialized - so we set inputs and cook.
 		HOUDINI_PCG_MESSAGE(TEXT("Initialized Cookable (%p), now cooking"), this);
-		UpdateAndCook(Context);
+		UpdateAndCook(Context, bError);
 		return false;
 
 	case EPCGCookableState::Cooking:
@@ -470,7 +483,7 @@ UHoudiniPCGCookable::Update(FPCGContext* Context)
 
 	case EPCGCookableState::Idle:
 		// Shouldn't get here since if cooking is complete this function should not be called.
-		HOUDINI_LOG_ERROR(TEXT("Unexpected state: Idle. PCG Cooking failed."));
+		FHoudiniPCGUtils::LogVisualError(Context, TEXT("Unexpected state: Idle. PCG Cooking failed."));
 		return true;
 
 	default:
@@ -482,7 +495,7 @@ UHoudiniPCGCookable::Update(FPCGContext* Context)
 
 
 bool
-UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata)
+UHoudiniPCGCookable::ApplyInputAsUnrealObjects(FPCGContext* Context, UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata, bool& bError)
 {
 	FHoudiniPCGAttributes Attributes(Metadata, FHoudiniPCGUtils::HDAInputObject);
 
@@ -497,11 +510,21 @@ UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, cons
 		TArray<FString> Paths = FHoudiniPCGUtils::GetValueAsString(DefaultPaths, Attributes, Row);
 		for(FString Path : Paths)
 		{
-			UObject* FoundObject = LoadObject<UObject>(nullptr, *Path);
-			if(FoundObject)
+			if (!Path.IsEmpty())
 			{
-				NewInputPaths.Add(Path);
-				TrackedObjects.Add(FSoftObjectPath(Path));
+				UObject* FoundObject = LoadObject<UObject>(nullptr, *Path);
+				if(FoundObject)
+				{
+					NewInputPaths.Add(Path);
+					TrackedObjects.Add(FSoftObjectPath(Path));
+				}
+				else
+				{
+					FString ErrorText = FString::Printf(TEXT("Input object '%s' could not be found"), *Path);
+					FHoudiniPCGUtils::LogVisualError(Context, ErrorText);
+					bError = true;
+					return false;
+				}
 			}
 		}
 	}
@@ -520,6 +543,8 @@ UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, cons
 	bool bInputsChanged = (CurrentInputObjects != NewInputPaths);
 	if(bInputsChanged)
 	{
+		HoudiniInput->MarkChanged(true);
+
 		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, 0);
 		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Curve, 0);
 		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, 0);
@@ -531,7 +556,7 @@ UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, cons
 		for(int Index = 0; Index < NewInputPaths.Num(); Index++)
 		{
 			UObject* InputObject = StaticLoadObject(UObject::StaticClass(), nullptr, *NewInputPaths[Index]);
-			if(InputObject->IsA<AActor>())
+			if(IsValid(InputObject) && InputObject->IsA<AActor>())
 				WorldObjects.Add(InputObject);
 			else
 				GeometryObjects.Add(InputObject);
@@ -566,7 +591,7 @@ UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, cons
 }
 
 bool
-UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const UPCGData* PCGData)
+UHoudiniPCGCookable::ApplyInputAsPCGData(FPCGContext* Context, UHoudiniInput* HoudiniInput, const UPCGData* PCGData)
 {
 	bool bInputsChanged = false;
 
@@ -591,12 +616,12 @@ UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const UPCG
 		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, 0);
 	}
 
-	UHoudiniPCGInputObject* NewInputData = NewObject<UHoudiniPCGInputObject>();
+	UHoudiniPCGDataObject* NewInputData = NewObject<UHoudiniPCGDataObject>();
 	NewInputData->Initialize(PCGData);
 
 	if(HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::PCGInput) == 1)
 	{
-		UHoudiniPCGInputObject* Prev = Cast<UHoudiniPCGInputObject>(HoudiniInput->GetInputObjectAt(0));
+		UHoudiniPCGDataObject* Prev = Cast<UHoudiniPCGDataObject>(HoudiniInput->GetInputObjectAt(0));
 		if(!IsValid(Prev))
 		{
 			bInputsChanged = true;

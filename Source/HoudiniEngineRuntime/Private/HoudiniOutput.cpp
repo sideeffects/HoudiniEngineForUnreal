@@ -1329,8 +1329,11 @@ void FHoudiniOutputObject::DestroyCookedData()
 
 		if (LandscapeOutput->bCreatedLandscape)
 		{
-			LandscapeOutput->Landscape->Destroy();
-			LandscapeOutput->Landscape = nullptr;
+			if(IsValid(LandscapeOutput->Landscape))
+			{
+				LandscapeOutput->Landscape->Destroy();
+				LandscapeOutput->Landscape = nullptr;
+			}
 		}
 	}
 	else if (IsValid(OutputObject))

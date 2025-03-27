@@ -70,13 +70,13 @@ public:
 	void Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAssetPCGSettings * PCGSettings, UHoudiniPCGComponent * Component);
 
 	// UpdateAndCook() pulls the inputs and parameters from the context and cooks the Houdini Cookable.
-	bool UpdateAndCook(FPCGContext* Context);
+	bool UpdateAndCook(FPCGContext* Context, bool& bError);
 
 	// Release() releases() all data associated with the cook.
 	void Release();
 
 	// Updates the current cookable state.
-	bool Update(FPCGContext* Context);
+	bool Update(FPCGContext* Context, bool& bError);
 
 private:
 
@@ -93,15 +93,15 @@ private:
 	static void CreateOutputsAsObjectReferences(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const TArray<FHoudiniPCGObjectOutput> & Outputs);
 	static void CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutputs);
 
-	bool ApplyInputsToCookable(FPCGContext* InContext);
-	bool ApplyParametersToCookable(FPCGContext* Context);
-	bool ApplyParametersToCookable(const UPCGData* Data, FPCGContext* Context);
+	bool ApplyInputsToCookable(FPCGContext* InContext, bool& bErrors);
+	bool ApplyParametersToCookable(FPCGContext* Context, bool & bErrors);
+	bool ApplyParametersToCookable(const UPCGData* Data, FPCGContext* Context, bool & bErrors);
 	void OnCookingComplete(bool bSuccess);
 	void InvalidateCookable();
 	void ProcessCookableOutput(FPCGContext* Context);
 	void AddTrackedObjects(FPCGContext* Context);
-	bool ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata);
-	bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const UPCGData* Data);
+	bool ApplyInputAsUnrealObjects(FPCGContext* Context, UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata, bool& bErrors);
+	bool ApplyInputAsPCGData(FPCGContext* Context, UHoudiniInput* HoudiniInput, const UPCGData* Data);
 	void CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutputs);
 };
 

@@ -28,19 +28,19 @@
 
 #include <PCGData.h>
 
-#include "HoudiniPCGInputObject.h"
+#include "HoudiniPCGDataObject.h"
 #include "HAPI/HAPI_Common.h"
 #include "UObject/NameTypes.h"
 
 class UPCGPointData;
 class FUnrealObjectInputHandle;
-class UHoudiniPCGInputObject;
+class UHoudiniPCGDataObject;
 
 struct HOUDINIENGINE_API FUnrealPCGDataTranslator
 {
 public:
     static bool CreateInputNodeForPCGData(
-			UHoudiniPCGInputObject* PCGData,
+			UHoudiniPCGDataObject* PCGData,
             HAPI_NodeId& InputNodeId,
             const FString& InputNodeName,
             FUnrealObjectInputHandle& OutHandle,
@@ -48,18 +48,20 @@ public:
 
 protected:
     static bool CreateInputNodeForPCGParamData(
-        UHoudiniPCGInputObject* InputData,
+        UHoudiniPCGDataObject* InputData,
         HAPI_NodeId& InputNodeId);
 
 
 
-    static void SendToHoudini(FHoudiniPCGInputAttributeData<float>* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
-    static void SendToHoudini(FHoudiniPCGInputAttributeData<int>* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
-    static void SendToHoudini(FHoudiniPCGInputAttributeData<double>* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
-    static void SendToHoudini(FHoudiniPCGInputAttributeData<FString>* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
-    static void SendToHoudini(FHoudiniPCGInputAttributeData<int64>* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
-    static void SendToHoudini(FHoudiniPCGInputAttributeData<FVector2d>* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
-    static void SendToHoudini(FHoudiniPCGInputAttributeData<FVector>* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
-    static void SendToHoudini(FHoudiniPCGInputAttributeData<FVector4d>* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
-    static void SendToHoudini(FHoudiniPCGInputAttributeData<FQuat>* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+    static void SendToHoudini(UHoudiniPCGDataAttributeFloat* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+    static void SendToHoudini(UHoudiniPCGDataAttributeInt* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+    static void SendToHoudini(UHoudiniPCGDataAttributeDouble* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+    static void SendToHoudini(UHoudiniPCGDataAttributeString* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+    static void SendToHoudini(UHoudiniPCGDataAttributeInt64* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+    static void SendToHoudini(UHoudiniPCGDataAttributeVector2d* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+    static void SendToHoudini(UHoudiniPCGDataAttributeVector3d* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+    static void SendToHoudini(UHoudiniPCGDataAttributeVector4d* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+    static void SendToHoudini(UHoudiniPCGDataAttributeQuat* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+    static void SendToHoudini(UHoudiniPCGDataAttributeSoftObjectPath* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+    static void SendToHoudini(UHoudiniPCGDataAttributeSoftClassPath* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
 };

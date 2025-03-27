@@ -355,10 +355,19 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 		// cook.
 		//----------------------------------------------------------------------------------------------------------------------------------------
 
-		ManagedResource->MarkAsReused();
 
 		// Attempt to apply parameters, inputs. If a cook was started, return - we need to wait for it to complete asynchronouosly.
-		bool bCookStarted = ManagedResource->HoudiniPCGComponent->Cookable->UpdateAndCook(Context);
+		bool bError = false;
+		bool bCookStarted = ManagedResource->HoudiniPCGComponent->Cookable->UpdateAndCook(Context, bError);
+
+		if (bError)
+		{
+			HOUDINI_PCG_MESSAGE(TEXT("An error occured, not processing PCG node."));
+			return true;
+		}
+
+		ManagedResource->MarkAsReused();
+
 		if (bCookStarted)
 		{
 			// Nothing changed so we can re-use output as-is.
@@ -385,7 +394,14 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			return true;
 		}
 		UHoudiniPCGCookable* Cookable = ManagedResource->HoudiniPCGComponent->Cookable.Get();
-		bool bDone = Cookable->Update(Context);
+		bool bError = false;
+		bool bDone = Cookable->Update(Context, bError);
+
+		if (bError)
+		{
+			HOUDINI_PCG_MESSAGE(TEXT("An error occured waiting for cook to complete, not processing PCG node."));
+			return true;
+		}
 		return bDone;
 	}
 }

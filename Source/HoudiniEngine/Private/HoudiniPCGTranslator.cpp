@@ -36,9 +36,6 @@
 #include "Metadata/PCGMetadata.h"
 #include "PCGParamData.h"
 
-#define HOUDINI_PCG_PARAMS_OUTPUT_NAME "unreal_pcg_params"
-#define HOUDINI_PCG_POINT_OUTPUT_NAME "unreal_pcg_points"
-
 bool HasAttribute(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner, const FString & AttrName)
 {
 	TArray<FString> Attributes = FHoudiniEngineUtils::GetAttributeNames(FHoudiniEngine::Get().GetSession(), NodeId, PartId, Owner);
@@ -53,8 +50,6 @@ bool HasAttribute(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Ow
 
 bool FHoudiniPCGTranslator::IsPCGOutput(HAPI_NodeId NodeId, HAPI_PartId PartId)
 {
-	if(HasAttribute(NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, HOUDINI_PCG_POINT_OUTPUT_NAME))
-		return true;
 	if(HasAttribute(NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, HOUDINI_PCG_PARAMS_OUTPUT_NAME))
 		return true;
 	if(HasAttribute(NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_VERTEX, HOUDINI_PCG_PARAMS_OUTPUT_NAME))
@@ -118,7 +113,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 		FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, TCHAR_TO_UTF8(*Attribute), HAPI_ATTROWNER_POINT, &AttrInfo);
 		FHoudiniHapiAccessor Accessor(NodeId, PartId, TCHAR_TO_UTF8(*Attribute));
 
-		if (Attribute == TEXT("P"))
+		if (Attribute.Equals(TEXT("P"), ESearchCase::Type::IgnoreCase))
 		{
 			TArray<float> Values;
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
@@ -129,7 +124,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 				
 			}
 		}
-		else if(Attribute == TEXT("orient"))
+		else if(Attribute.Equals(TEXT("orient"), ESearchCase::Type::IgnoreCase))
 		{
 			TArray<float> Values;
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
@@ -140,7 +135,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 
 			}
 		}
-		else if(Attribute == TEXT("Scale") && AttrInfo.tupleSize == 3)
+		else if(Attribute.Equals(TEXT("scale"), ESearchCase::Type::IgnoreCase) && AttrInfo.tupleSize == 3)
 		{
 			TArray<float> Values;
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
@@ -150,7 +145,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 				Points[Index].Transform.SetScale3D(Scale);
 			}
 		}
-		else if(Attribute == TEXT("BoundsMin") && AttrInfo.tupleSize == 3)
+		else if(Attribute.Equals(TEXT("BoundsMin"), ESearchCase::Type::IgnoreCase) && AttrInfo.tupleSize == 3)
 		{
 			TArray<float> Values;
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
@@ -160,7 +155,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 				Points[Index].BoundsMin = BoundsMin;
 			}
 		}
-		else if(Attribute == TEXT("BoundsMax") && AttrInfo.tupleSize == 3)
+		else if(Attribute.Equals(TEXT("BoundsMax"), ESearchCase::Type::IgnoreCase) && AttrInfo.tupleSize == 3)
 		{
 			TArray<float> Values;
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
@@ -170,7 +165,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 				Points[Index].BoundsMax = BoundsMax;
 			}
 		}
-		else if(Attribute == TEXT("Cd") && AttrInfo.tupleSize == 3)
+		else if(Attribute.Equals(TEXT("Cd"), ESearchCase::Type::IgnoreCase) && AttrInfo.tupleSize == 3)
 		{
 			TArray<float> Values;
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
@@ -179,7 +174,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 				Points[Index].Color = FVector4(Values[Index * 3 + 0], Values[Index * 3 + 1], Values[Index * 3 + 2], 1.0f);
 			}
 		}
-		else if(Attribute == TEXT("Cd") && AttrInfo.tupleSize == 4)
+		else if(Attribute.Equals(TEXT("Cd"), ESearchCase::Type::IgnoreCase) && AttrInfo.tupleSize == 4)
 		{
 			TArray<float> Values;
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
@@ -188,7 +183,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 				Points[Index].Color = FVector4(Values[Index * 4 + 0], Values[Index * 4 + 1], Values[Index * 4 + 2], Values[Index * 4 + 3]);
 			}
 		}
-		else if(Attribute == TEXT("Steepness") && AttrInfo.tupleSize == 1)
+		else if(Attribute.Equals(TEXT("Steepness"), ESearchCase::Type::IgnoreCase) && AttrInfo.tupleSize == 1)
 		{
 			TArray<float> Values;
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
@@ -197,13 +192,22 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 				Points[Index].Steepness = Values[Index];
 			}
 		}
-		else if(Attribute == TEXT("Seed") && AttrInfo.tupleSize == 1)
+		else if(Attribute.Equals(TEXT("Seed"), ESearchCase::Type::IgnoreCase) && AttrInfo.tupleSize == 1)
 		{
 			TArray<float> Values;
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
 			for(int Index = 0; Index < Points.Num(); Index++)
 			{
 				Points[Index].Seed = Values[Index];
+			}
+		}
+		else if(Attribute.Equals(TEXT("Density"), ESearchCase::Type::IgnoreCase) && AttrInfo.tupleSize == 1)
+		{
+			TArray<float> Values;
+			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
+			for(int Index = 0; Index < Points.Num(); Index++)
+			{
+				Points[Index].Density = Values[Index];
 			}
 		}
 		else

@@ -41,7 +41,7 @@
 #include "UnrealObjectInputRuntimeUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniPCGUtils.h"
-#include "HoudiniPCGInputObject.h"
+#include "HoudiniPCGDataObject.h"
 
 
 namespace
@@ -104,54 +104,56 @@ namespace
 };
 
 bool FUnrealPCGDataTranslator::CreateInputNodeForPCGData(
-	UHoudiniPCGInputObject* PCGData,
+	UHoudiniPCGDataObject* PCGData,
 	HAPI_NodeId& InputNodeId,
 	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
 	bool bInputNodesCanBeDeleted)
 {
+	// Create Identifier and default name for this object.
+	FUnrealObjectInputOptions Options;
+	FUnrealObjectInputIdentifier Identifier = FUnrealObjectInputIdentifier(PCGData, Options, true);
 	FString FinalInputNodeName = InputNodeName;
+	FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 
-	FUnrealObjectInputIdentifier Identifier;
-	FUnrealObjectInputHandle ParentHandle;
-	HAPI_NodeId ParentNodeId = -1;
+	// Get handle.
+	FUnrealObjectInputHandle Handle;
 
+	// Not sure what this is doing...
+	if(FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 	{
-		const FUnrealObjectInputOptions Options;
-		Identifier = FUnrealObjectInputIdentifier(PCGData, Options, true);
-
-		FUnrealObjectInputHandle Handle;
-		if(FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+		HAPI_NodeId NodeId = -1;
+		if(FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
 		{
-			HAPI_NodeId NodeId = -1;
-			if(FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
-			{
-				if(!bInputNodesCanBeDeleted)
-					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
-
-				OutHandle = Handle;
-				InputNodeId = NodeId;
-				return true;
-			}
-		}
-
-		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
-		if(FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
-
-		// Set InputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
-		// (Option changes could mean that InputNodeId is associated with a completely different entry, albeit for
-		// the same asset, in the manager)
-		if(Handle.IsValid())
-		{
-			if(!FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId))
-				InputNodeId = -1;
-		}
-		else
-		{
-			InputNodeId = -1;
+			if(!bInputNodesCanBeDeleted)
+				FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+			OutHandle = Handle;
+			InputNodeId = NodeId;
+			return true;
 		}
 	}
+
+	// Make sure we have a parent node?
+	FUnrealObjectInputHandle ParentHandle;
+	HAPI_NodeId ParentNodeId = -1;
+	if(FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+	{
+		FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+	}
+
+	// Set InputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
+	// (Option changes could mean that InputNodeId is associated with a completely different entry, albeit for
+	// the same asset, in the manager)
+	if(Handle.IsValid())
+	{
+		if(!FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId))
+			InputNodeId = -1;
+	}
+	else
+	{
+		InputNodeId = -1;
+	}
+
 
 	// Create the input node
 	HAPI_NodeId NewNodeId = -1;
@@ -169,158 +171,28 @@ bool FUnrealPCGDataTranslator::CreateInputNodeForPCGData(
 		HAPI_NodeId PreviousInputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
 
 		if(FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputNodeId) != HAPI_RESULT_SUCCESS)
+		{
 			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *FinalInputNodeName);
+		}
 
 		if(FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputObjectNodeId) != HAPI_RESULT_SUCCESS)
+		{
 			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input object node for %s."), *FinalInputNodeName);
+		}
 	}
 
 
 	CreateInputNodeForPCGParamData(PCGData, InputNodeId);
 
-	return true;
-}
-#if 0
-bool FUnrealPCGDataTranslator::CreateInputNodeForPCGPointData(
-	UHoudiniPCGInputObject* PCGInputData,
-	HAPI_NodeId& InputNodeId)
-{
-	if(PCGInputData->Attributes.IsEmpty())
-		return true;
-
-	int NumRows = PCGInputData->Attributes[0]->GetNumValues();
-
-	HAPI_PartInfo Part;
-	FHoudiniApi::PartInfo_Init(&Part);
-	Part.id = 0;
-	Part.nameSH = 0;
-	Part.attributeCounts[HAPI_ATTROWNER_POINT] = 0;
-	Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 0;
-	Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
-	Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
-	Part.vertexCount = 0;
-	Part.faceCount = 0;
-	Part.pointCount = NumRows;
-	Part.type = HAPI_PARTTYPE_MESH;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), InputNodeId, 0, &Part), false);
-	const HAPI_PartId PartId = 0;
-
-	FHoudiniHapiAccessor Accessor;
-	HAPI_AttributeInfo Info;
-	{
-		Accessor.Init(InputNodeId, PartId, HAPI_ATTRIB_POSITION);
-		Accessor.AddAttribute(HAPI_ATTROWNER_POINT, HAPI_STORAGETYPE_FLOAT, 3, PCGPointData->GetNumPoints(), &Info);
-		TArray<float> Points;
-		Points.SetNum(PCGPointData->GetNumPoints());
-		for(int Index = 0; Index < PCGPointData->GetNumPoints(); Index++)
-		{
-			FHoudiniPCGUtils::UnrealToHoudini(PCGPointData->GetPoint(Index).Transform.GetLocation(), &Points[Index * 3]);
-		}
-
-		Accessor.SetAttributeData(Info, Points);
-	}
-
-	{
-		Accessor.Init(InputNodeId, PartId, HAPI_ATTRIB_NORMAL);
-		Accessor.AddAttribute(HAPI_ATTROWNER_POINT, HAPI_STORAGETYPE_FLOAT, 3, PCGPointData->GetNumPoints(), &Info);
-		TArray<float> Normals;
-		Normals.SetNum(PCGPointData->GetNumPoints());
-		for(int Index = 0; Index < PCGPointData->GetNumPoints(); Index++)
-		{
-			FHoudiniPCGUtils::UnrealToHoudini(PCGPointData->GetPoint(Index).Transform.GetRotation().GetAxisZ(), &Normals[Index * 3]);
-		}
-
-		Accessor.SetAttributeData(Info, Normals);
-	}
-
-	{
-		Accessor.Init(InputNodeId, PartId, HAPI_ATTRIB_COLOR);
-		Accessor.AddAttribute(HAPI_ATTROWNER_POINT, HAPI_STORAGETYPE_FLOAT, 4, PCGPointData->GetNumPoints(), &Info);
-		TArray<float> Colors;
-		Colors.SetNum(PCGPointData->GetNumPoints() * 4);
-		for(int Index = 0; Index < PCGPointData->GetNumPoints(); Index++)
-		{
-			auto PCGPoint = PCGPointData->GetPoint(Index);
-			Colors[Index * 4 + 0] = PCGPoint.Color.X;
-			Colors[Index * 4 + 1] = PCGPoint.Color.Y;
-			Colors[Index * 4 + 2] = PCGPoint.Color.Z;
-			Colors[Index * 4 + 3] = PCGPoint.Color.W;
-		}
-
-		Accessor.SetAttributeData(Info, Colors);
-	}
-
-	{
-		Accessor.Init(InputNodeId, PartId, HAPI_UNREAL_ATTRIB_PCG_STEEPNESS);
-		Accessor.AddAttribute(HAPI_ATTROWNER_POINT, HAPI_STORAGETYPE_FLOAT, 1, PCGPointData->GetNumPoints(), &Info);
-		TArray<float> Steepness;
-		Steepness.SetNum(PCGPointData->GetNumPoints());
-		for(int Index = 0; Index < PCGPointData->GetNumPoints(); Index++)
-		{
-			Steepness[Index] = PCGPointData->GetPoint(Index).Steepness;
-		}
-
-		Accessor.SetAttributeData(Info, Steepness);
-	}
-
-	{
-		Accessor.Init(InputNodeId, PartId, HAPI_UNREAL_ATTRIB_PCG_DENSITY);
-		Accessor.AddAttribute(HAPI_ATTROWNER_POINT, HAPI_STORAGETYPE_FLOAT, 1, PCGPointData->GetNumPoints(), &Info);
-		TArray<float> Density;
-		Density.SetNum(PCGPointData->GetNumPoints());
-		for(int Index = 0; Index < PCGPointData->GetNumPoints(); Index++)
-		{
-			Density[Index] = PCGPointData->GetPoint(Index).Steepness;
-		}
-
-		Accessor.SetAttributeData(Info, Density);
-	}
-
-	{
-		Accessor.Init(InputNodeId, PartId, HAPI_UNREAL_ATTRIB_PCG_SEED);
-		Accessor.AddAttribute(HAPI_ATTROWNER_POINT, HAPI_STORAGETYPE_FLOAT, 1, PCGPointData->GetNumPoints(), &Info);
-		TArray<float> Seed;
-		Seed.SetNum(PCGPointData->GetNumPoints());
-		for(int Index = 0; Index < PCGPointData->GetNumPoints(); Index++)
-		{
-			Seed[Index] = PCGPointData->GetPoint(Index).Seed;
-		}
-
-		Accessor.SetAttributeData(Info, Seed);
-	}
-
-	{
-		Accessor.Init(InputNodeId, PartId, HAPI_UNREAL_ATTRIB_PCG_BOUNDING_BOX_MIN);
-		Accessor.AddAttribute(HAPI_ATTROWNER_POINT, HAPI_STORAGETYPE_FLOAT, 3, PCGPointData->GetNumPoints(), &Info);
-		TArray<float> BoundingBoxMin;
-		BoundingBoxMin.SetNum(PCGPointData->GetNumPoints());
-		for(int Index = 0; Index < PCGPointData->GetNumPoints(); Index++)
-		{
-			FHoudiniPCGUtils::UnrealToHoudini(PCGPointData->GetPoint(Index).BoundsMin, &BoundingBoxMin[Index * 3]);
-		}
-
-		Accessor.SetAttributeData(Info, BoundingBoxMin);
-	}
-
-	{
-		Accessor.Init(InputNodeId, PartId, HAPI_UNREAL_ATTRIB_PCG_BOUNDING_BOX_MAX);
-		Accessor.AddAttribute(HAPI_ATTROWNER_POINT, HAPI_STORAGETYPE_FLOAT, 3, PCGPointData->GetNumPoints(), &Info);
-		TArray<float> BoundingBoxMax;
-		BoundingBoxMax.SetNum(PCGPointData->GetNumPoints());
-		for(int Index = 0; Index < PCGPointData->GetNumPoints(); Index++)
-		{
-			FHoudiniPCGUtils::UnrealToHoudini(PCGPointData->GetPoint(Index).BoundsMin, &BoundingBoxMax[Index * 3]);
-		}
-
-		Accessor.SetAttributeData(Info, BoundingBoxMax);
-	}
+	if(FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
+		OutHandle = Handle;
 
 	return true;
 }
-#endif
-bool FUnrealPCGDataTranslator::CreateInputNodeForPCGParamData(
-	UHoudiniPCGInputObject* PCGInputData,
+
+bool
+FUnrealPCGDataTranslator::CreateInputNodeForPCGParamData(
+	UHoudiniPCGDataObject* PCGInputData,
 	HAPI_NodeId& InputNodeId)
 {
 	if(PCGInputData->Attributes.IsEmpty())
@@ -347,35 +219,34 @@ bool FUnrealPCGDataTranslator::CreateInputNodeForPCGParamData(
 	int PartId = Part.id;
 
 	bool bFoundPositionAttr = false;
-	for(auto& Attribute : PCGInputData->Attributes)
+	for(auto& It : PCGInputData->Attributes)
 	{
-		FHoudiniPCGInputAttributeDataBase* Attr = Attribute.Get();
+		UHoudiniPCGDataAttributeBase* Attr = It.Get();
 
-		bFoundPositionAttr |= (Attr->Name == TEXT("P"));
+		bFoundPositionAttr |= (Attr->AttrName == TEXT("P"));
 
-		if(Attr->DataType == FHoudiniPCGInputAttributeData<float>::StaticType)
-			SendToHoudini(static_cast<FHoudiniPCGInputAttributeData<float> *>(Attr), InputNodeId, PartId, Owner);
-		else if(Attr->DataType == FHoudiniPCGInputAttributeData<double>::StaticType)
-			SendToHoudini(static_cast<FHoudiniPCGInputAttributeData<double> *>(Attr), InputNodeId, PartId, Owner);
-		else if(Attr->DataType == FHoudiniPCGInputAttributeData<int>::StaticType)
-			SendToHoudini(static_cast<FHoudiniPCGInputAttributeData<int> *>(Attr), InputNodeId, PartId, Owner);
-		else if(Attr->DataType == FHoudiniPCGInputAttributeData<int64>::StaticType)
-			SendToHoudini(static_cast<FHoudiniPCGInputAttributeData<int64> *>(Attr), InputNodeId, PartId, Owner);
-		else if(Attr->DataType == FHoudiniPCGInputAttributeData<FVector2d>::StaticType)
-			SendToHoudini(static_cast<FHoudiniPCGInputAttributeData<FVector2d> *>(Attr), InputNodeId, PartId, Owner);
-		else if(Attr->DataType == FHoudiniPCGInputAttributeData<FVector>::StaticType)
-			SendToHoudini(static_cast<FHoudiniPCGInputAttributeData<FVector> *>(Attr), InputNodeId, PartId, Owner);
-		else if(Attr->DataType == FHoudiniPCGInputAttributeData<FVector4d>::StaticType)
-			SendToHoudini(static_cast<FHoudiniPCGInputAttributeData<FVector4d> *>(Attr), InputNodeId, PartId, Owner);
-		else if(Attr->DataType == FHoudiniPCGInputAttributeData<FString>::StaticType)
-			SendToHoudini(static_cast<FHoudiniPCGInputAttributeData<FString> *>(Attr), InputNodeId, PartId, Owner);
-		else if(Attr->DataType == FHoudiniPCGInputAttributeData<FQuat>::StaticType)
-			SendToHoudini(static_cast<FHoudiniPCGInputAttributeData<FQuat> *>(Attr), InputNodeId, PartId, Owner);
+		if(auto* AttributeFloat = Cast<UHoudiniPCGDataAttributeFloat>(Attr))
+			SendToHoudini(AttributeFloat, InputNodeId, PartId, Owner);
+		else if(auto* AttributeDouble = Cast<UHoudiniPCGDataAttributeDouble>(Attr))
+			SendToHoudini(AttributeDouble, InputNodeId, PartId, Owner);
+		else if(auto* AttributeInt = Cast<UHoudiniPCGDataAttributeInt>(Attr))
+			SendToHoudini(AttributeInt, InputNodeId, PartId, Owner);
+		else if(auto* AttributeInt64 = Cast<UHoudiniPCGDataAttributeInt64>(Attr))
+			SendToHoudini(AttributeInt64, InputNodeId, PartId, Owner);
+		else if(auto* AttributeVector2d = Cast<UHoudiniPCGDataAttributeVector2d>(Attr))
+			SendToHoudini(AttributeVector2d, InputNodeId, PartId, Owner);
+		else if(auto* AttributeVector3d = Cast<UHoudiniPCGDataAttributeVector3d>(Attr))
+			SendToHoudini(AttributeVector3d, InputNodeId, PartId, Owner);
+		else if(auto* AttributeVector4d = Cast<UHoudiniPCGDataAttributeVector4d>(Attr))
+			SendToHoudini(AttributeVector4d, InputNodeId, PartId, Owner);
+		else if(auto* AttributeString = Cast<UHoudiniPCGDataAttributeString>(Attr))
+			SendToHoudini(AttributeString, InputNodeId, PartId, Owner);
+		else if(auto* AttributeSoftObjectPath = Cast<UHoudiniPCGDataAttributeSoftObjectPath>(Attr))
+			SendToHoudini(AttributeSoftObjectPath, InputNodeId, PartId, Owner);
+		else if(auto* AttributeSoftClassPath = Cast<UHoudiniPCGDataAttributeSoftClassPath>(Attr))
+			SendToHoudini(AttributeSoftClassPath, InputNodeId, PartId, Owner);
 		else
-		{
 			check(false);
-		}
-
 	}
 
 	if (!bFoundPositionAttr)
@@ -398,54 +269,83 @@ bool FUnrealPCGDataTranslator::CreateInputNodeForPCGParamData(
 
 
 
-void SendToHoudini(FHoudiniPCGInputAttributeData<float>* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+void SendToHoudini(UHoudiniPCGDataAttributeFloat* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
 
-void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<float> * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeFloat * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->Name.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 1,Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo,Data->Values);
 }
 
 
 
-void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<double> * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeDouble * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->Name.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT64, 1,Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo,Data->Values);
 }
 
-void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<int> * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeInt * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->Name.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_INT, 1,Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo,Data->Values);
 }
 
-void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<int64> * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeInt64 * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->Name.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_INT64, 1,Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo,Data->Values);
 }
 
-void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<FString>* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeString* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->Name.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_STRING, 1, Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo, Data->Values);
 }
 
-void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<FVector2d> * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeSoftObjectPath * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->Name.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_STRING, 1, Data->Values.Num(), &AttrInfo);
+
+	TArray<FString> StringValues;
+	StringValues.Reserve(Data->Values.Num());
+	for(auto& Path : Data->Values)
+		StringValues.Add(Path.ToString());
+
+	Accessor.SetAttributeData(AttrInfo, StringValues);
+}
+
+void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeSoftClassPath* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+{
+	HAPI_AttributeInfo AttrInfo;
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_STRING, 1, Data->Values.Num(), &AttrInfo);
+
+	TArray<FString> StringValues;
+	StringValues.Reserve(Data->Values.Num());
+	for(auto& Path : Data->Values)
+		StringValues.Add(Path.ToString());
+
+
+	Accessor.SetAttributeData(AttrInfo, StringValues);
+}
+
+void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector2d * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+{
+	HAPI_AttributeInfo AttrInfo;
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 2,Data->Values.Num(), &AttrInfo);
 
 	TArray<float> FloatValues;
@@ -459,10 +359,10 @@ void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<FVect
 }
 
 
-void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<FVector> * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector3d * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->Name.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 3,Data->Values.Num(), &AttrInfo);
 
 	TArray<float> FloatValues;
@@ -477,10 +377,10 @@ void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<FVect
 	Accessor.SetAttributeData(AttrInfo, FloatValues);
 }
 
-void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<FVector4d> * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector4d * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->Name.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 4, Data->Values.Num(), &AttrInfo);
 	TArray<float> FloatValues;
 	FloatValues.SetNum(Data->Values.Num() * 4);
@@ -495,10 +395,10 @@ void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<FVect
 	Accessor.SetAttributeData(AttrInfo, FloatValues);
 }
 
-void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<FQuat> * Data,HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeQuat * Data,HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->Name.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 4,Data->Values.Num(), &AttrInfo);
 
 	TArray<float> FloatValues;
@@ -515,10 +415,10 @@ void FUnrealPCGDataTranslator::SendToHoudini(FHoudiniPCGInputAttributeData<FQuat
 	Accessor.SetAttributeData(AttrInfo, FloatValues);
 }
 
-void SendToHoudini(FHoudiniPCGInputAttributeData<FString> * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+void SendToHoudini(UHoudiniPCGDataAttributeString * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->Name.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_STRING, 1,Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo,Data->Values);
 }

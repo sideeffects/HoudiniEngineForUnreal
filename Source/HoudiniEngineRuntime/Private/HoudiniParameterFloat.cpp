@@ -70,6 +70,7 @@ UHoudiniParameterFloat::SetValuesIfChanged(const TArray<float>& NewValues)
 	if (NewValues.Num() != Values.Num())
 	{
 		Values = NewValues;
+		bHasChanged = true;
 		return true;
 	}
 
@@ -78,6 +79,7 @@ UHoudiniParameterFloat::SetValuesIfChanged(const TArray<float>& NewValues)
 		if (Values[Index] != NewValues[Index])
 		{
 			Values = NewValues;
+			bHasChanged = true;
 			return true;
 		}
 	}

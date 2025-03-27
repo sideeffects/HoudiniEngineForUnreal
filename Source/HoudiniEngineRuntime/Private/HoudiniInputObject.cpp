@@ -81,7 +81,7 @@
 #include "PackedLevelActor/PackedLevelActor.h"
 #include "EngineUtils.h"
 #if defined(HOUDINI_USE_PCG)
-#include "HoudiniPCGInputObject.h"
+#include "HoudiniPCGDataObject.h"
 #endif
 //-----------------------------------------------------------------------------------------------------------------------------
 // Constructors
@@ -3187,7 +3187,7 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 			return EHoudiniInputObjectType::DataTable;
 		}
 #if defined(HOUDINI_USE_PCG)
-		else if(InObject->IsA(UHoudiniPCGInputObject::StaticClass()))
+		else if(InObject->IsA(UHoudiniPCGDataObject::StaticClass()))
 		{
 			return EHoudiniInputObjectType::PCGData;
 		}
@@ -3569,7 +3569,7 @@ UHoudiniInputPCGData::UHoudiniInputPCGData(const FObjectInitializer& ObjectIniti
 UHoudiniInputObject*
 UHoudiniInputPCGData::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
 {
-	FString InputObjectNameStr = "HoudiniInputObject_DT_" + InName;
+	FString InputObjectNameStr = "HoudiniInputObject_PCG_" + InName;
 	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputPCGData::StaticClass(), *InputObjectNameStr);
 
 	// We need to create a new object
@@ -3583,11 +3583,11 @@ UHoudiniInputPCGData::Create(UObject* InObject, UObject* InOuter, const FString&
 	return HoudiniInputObject;
 }
 
-UHoudiniPCGInputObject*
+UHoudiniPCGDataObject*
 UHoudiniInputPCGData::GetPCGData() const
 {
 #if defined(HOUDINI_USE_PCG)
-	return Cast<UHoudiniPCGInputObject>(InputObject.LoadSynchronous());
+	return Cast<UHoudiniPCGDataObject>(InputObject.LoadSynchronous());
 #else
 	return nullptr;
 #endif

@@ -315,6 +315,7 @@
 //#define HAPI_UNREAL_ATTRIB_OUTPUT_HOUDINI_CURVE				"houdini_output_curve"
 
 // PCG Attributes
+#define HOUDINI_PCG_PARAMS_OUTPUT_NAME                      "unreal_pcg_params"
 #define HAPI_UNREAL_ATTRIB_PCG_STEEPNESS                    "steepness"
 #define HAPI_UNREAL_ATTRIB_PCG_DENSITY                      "density"
 #define HAPI_UNREAL_ATTRIB_PCG_BOUNDING_BOX_MIN             "bounding_box_min"

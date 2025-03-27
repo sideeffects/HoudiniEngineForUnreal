@@ -24,46 +24,27 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "HoudiniPCGInputObject.h"
+#include "HoudiniPCGDataObject.h"
 
 #include <Data/PCGPointData.h>
 
 #include "UObject/TextProperty.h"
 #include "PCGParamData.h"
 
-// We use StaticType to identify which subclass FHoudiniPCGInputAttributeData was created.
-// Since this class has to be defined in HoudiniEngineRuntime we unfotuantely can't use
-// HAPI_StorageType instead. Ensure these values are unique. You could use a compile time
-// hash, but harder to read, etc.
-int FHoudiniPCGInputAttributeData<float>::StaticType = 1;
-int FHoudiniPCGInputAttributeData<double>::StaticType = 2;
-int FHoudiniPCGInputAttributeData<int>::StaticType = 3;
-int FHoudiniPCGInputAttributeData<int64>::StaticType = 4;
-int FHoudiniPCGInputAttributeData<FString>::StaticType = 5;
-int FHoudiniPCGInputAttributeData<FVector2d>::StaticType = 6;
-int FHoudiniPCGInputAttributeData<FVector>::StaticType = 7;
-int FHoudiniPCGInputAttributeData<FVector4d>::StaticType = 8;
-int FHoudiniPCGInputAttributeData<FQuat>::StaticType = 8;
 
-template<typename Type>
-FHoudiniPCGInputAttributeData<Type>::FHoudiniPCGInputAttributeData(const FName& AttributeName)
-{
-	Name = AttributeName;
-	DataType = FHoudiniPCGInputAttributeData<Type>::StaticType;
-}
 
-bool UHoudiniPCGInputObject::operator==(const UHoudiniPCGInputObject& Other) const
+bool UHoudiniPCGDataObject::operator==(const UHoudiniPCGDataObject& Other) const
 {
 	// very simple, optimize?
 	return (this->Attributes == Other.Attributes);
 }
 
-bool UHoudiniPCGInputObject::operator!=(const UHoudiniPCGInputObject& Other) const
+bool UHoudiniPCGDataObject::operator!=(const UHoudiniPCGDataObject& Other) const
 {
 	return !(*this == Other);
 }
 
-void UHoudiniPCGInputObject::Initialize(const UPCGData* PCGData)
+void UHoudiniPCGDataObject::Initialize(const UPCGData* PCGData)
 {
 	if(PCGData->IsA<UPCGParamData>())
 		Initialize(Cast<UPCGParamData>(PCGData));
@@ -72,14 +53,14 @@ void UHoudiniPCGInputObject::Initialize(const UPCGData* PCGData)
 }
 
 
-void UHoudiniPCGInputObject::Initialize(const UPCGPointData* PCGPointData)
+void UHoudiniPCGDataObject::Initialize(const UPCGPointData* PCGPointData)
 {
 	const UPCGMetadata* Metadata = PCGPointData->ConstMetadata();
 
 	const TArray<FPCGPoint> & Points = PCGPointData->GetPoints();
 
 	{
-		auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FVector>>(TEXT("P"));
+		auto AttrDest = CreateAttributeVector3d(TEXT("P"));
 		AttrDest->Values.SetNum(Points.Num());
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
@@ -92,7 +73,7 @@ void UHoudiniPCGInputObject::Initialize(const UPCGPointData* PCGPointData)
 	}
 
 	{
-		auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FVector>>(TEXT("Scale"));
+		auto AttrDest = CreateAttributeVector3d(TEXT("Scale"));
 		AttrDest->Values.SetNum(Points.Num());
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
@@ -105,33 +86,33 @@ void UHoudiniPCGInputObject::Initialize(const UPCGPointData* PCGPointData)
 	}
 
 	{
-		auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FVector4d>>(TEXT("BoundsMin"));
+		auto AttrDest = CreateAttributeVector3d(TEXT("BoundsMin"));
 		AttrDest->Values.SetNum(Points.Num());
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
 			FVector Value = Points[Index].BoundsMin;
-			AttrDest->Values[Index][0] = Value.X;
-			AttrDest->Values[Index][1] = Value.Z;
-			AttrDest->Values[Index][2] = Value.Y;
+			AttrDest->Values[Index][0] = Value.X * 100.0;
+			AttrDest->Values[Index][1] = Value.Z * 100.0;
+			AttrDest->Values[Index][2] = Value.Y * 100.0;
 		}
 		Attributes.Emplace(MoveTemp(AttrDest));
 	}
 
 	{
-		auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FVector4d>>(TEXT("BoundsMax"));
+		auto AttrDest = CreateAttributeVector3d(TEXT("BoundsMax"));
 		AttrDest->Values.SetNum(Points.Num());
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
 			FVector Value = Points[Index].BoundsMin;
-			AttrDest->Values[Index][0] = Value.X;
-			AttrDest->Values[Index][1] = Value.Z;
-			AttrDest->Values[Index][2] = Value.Y;
+			AttrDest->Values[Index][0] = Value.X * 100.0;
+			AttrDest->Values[Index][1] = Value.Z * 100.0;
+			AttrDest->Values[Index][2] = Value.Y * 100.0;
 		}
 		Attributes.Emplace(MoveTemp(AttrDest));
 	}
 
 	{
-		auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FVector4d>>(TEXT("Cd"));
+		auto AttrDest = CreateAttributeVector4d(TEXT("Cd"));
 		AttrDest->Values.SetNum(Points.Num());
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
@@ -145,7 +126,7 @@ void UHoudiniPCGInputObject::Initialize(const UPCGPointData* PCGPointData)
 	}
 
 	{
-		auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FVector4>>(TEXT("orient"));
+		auto AttrDest = CreateAttributeVector4d(TEXT("orient"));
 		AttrDest->Values.SetNum(Points.Num());
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
@@ -159,7 +140,7 @@ void UHoudiniPCGInputObject::Initialize(const UPCGPointData* PCGPointData)
 	}
 
 	{
-		auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<float>>(TEXT("Density"));
+		auto AttrDest = CreateAttributeFloat(TEXT("Density"));
 		AttrDest->Values.SetNum(Points.Num());
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
@@ -169,7 +150,7 @@ void UHoudiniPCGInputObject::Initialize(const UPCGPointData* PCGPointData)
 	}
 
 	{
-		auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<float>>(TEXT("Steepness"));
+		auto AttrDest = CreateAttributeFloat(TEXT("Steepness"));
 		AttrDest->Values.SetNum(Points.Num());
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
@@ -179,7 +160,7 @@ void UHoudiniPCGInputObject::Initialize(const UPCGPointData* PCGPointData)
 	}
 
 	{
-		auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<int32>>(TEXT("Seed"));
+		auto AttrDest = CreateAttributeInt(TEXT("Seed"));
 		AttrDest->Values.SetNum(Points.Num());
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
@@ -191,13 +172,13 @@ void UHoudiniPCGInputObject::Initialize(const UPCGPointData* PCGPointData)
 	AddMetaDataAttributes(Metadata);
 }
 
-void UHoudiniPCGInputObject::Initialize(const UPCGParamData* PCGParamData)
+void UHoudiniPCGDataObject::Initialize(const UPCGParamData* PCGParamData)
 {
 	const UPCGMetadata* Metadata = PCGParamData->ConstMetadata();
 	AddMetaDataAttributes(Metadata);
 }
 
-void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
+void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 {
 	TArray<FName> AttributeNames;
 	TArray<EPCGMetadataTypes> AttributeTypes;
@@ -209,15 +190,15 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 	for(int AttrIndex = 0; AttrIndex < AttributeTypes.Num(); AttrIndex++)
 	{
 		EPCGMetadataTypes AttrType = AttributeTypes[AttrIndex];
-		const FName& AttrName = AttributeNames[AttrIndex];
-		const FPCGMetadataAttributeBase* AttrBase = Metadata->GetConstAttribute(AttrName);
+		const FString & AttrName = AttributeNames[AttrIndex].ToString();
+		const FPCGMetadataAttributeBase* AttrBase = Metadata->GetConstAttribute(AttributeNames[AttrIndex]);
 
 		switch(AttrType)
 		{
 		case EPCGMetadataTypes::Float:
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<float>*>(AttrBase);
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<float>>(AttrName);
+			auto AttrDest = CreateAttributeFloat(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
@@ -231,7 +212,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		case EPCGMetadataTypes::Double:
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<double>*>(AttrBase);
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<double>>(AttrName);
+			auto AttrDest = CreateAttributeDouble(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
@@ -246,7 +227,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<int>*>(AttrBase);
 
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<int32>>(AttrName);
+			auto AttrDest = CreateAttributeInt(AttrName);
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
 			{
@@ -259,7 +240,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		case EPCGMetadataTypes::Integer64:
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<int64>*>(AttrBase);
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<int64>>(AttrName);
+			auto AttrDest = CreateAttributeInt64(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
@@ -274,7 +255,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<bool>*>(AttrBase);
 
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<int32>>(AttrName);
+			auto AttrDest = CreateAttributeInt(AttrName);
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
 			{
@@ -287,7 +268,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		case EPCGMetadataTypes::Vector2:
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FVector2d>*>(AttrBase);
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FVector2d>>(AttrName);
+			auto AttrDest = CreateAttributeVector2d(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 2);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
@@ -301,7 +282,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		case EPCGMetadataTypes::Vector:
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FVector>*>(AttrBase);
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FVector>>(AttrName);
+			auto AttrDest = CreateAttributeVector3d(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 3);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
@@ -315,7 +296,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		case EPCGMetadataTypes::Vector4:
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FVector4d>*>(AttrBase);
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FVector4d>>(AttrName);
+			auto AttrDest = CreateAttributeVector4d(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 4);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
@@ -329,7 +310,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		case EPCGMetadataTypes::Quaternion:
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FQuat>*>(AttrBase);
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FVector4d>>(AttrName);
+			auto AttrDest = CreateAttributeVector4d(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 4);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
@@ -347,7 +328,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		case EPCGMetadataTypes::String:
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FString>*>(AttrBase);
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FString>>(AttrName);
+			auto AttrDest = CreateAttributeString(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
@@ -361,7 +342,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		case EPCGMetadataTypes::Name:
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FName>*>(AttrBase);
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FString>>(AttrName);
+			auto AttrDest = CreateAttributeString(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
@@ -375,7 +356,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		case EPCGMetadataTypes::SoftObjectPath:
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FSoftObjectPath>*>(AttrBase);
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FString>>(AttrName);
+			auto AttrDest = CreateAttributeSoftObjectPath(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
@@ -389,7 +370,7 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 		case EPCGMetadataTypes::SoftClassPath:
 		{
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FSoftClassPath>*>(AttrBase);
-			auto AttrDest = MakeUnique<FHoudiniPCGInputAttributeData<FString>>(AttrName);
+			auto AttrDest = CreateAttributeSoftClassPath(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
@@ -404,5 +385,93 @@ void UHoudiniPCGInputObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			break;
 		}
 	}
+}
+
+
+UHoudiniPCGDataAttributeBase* UHoudiniPCGDataObject::FindAttribute(const FString& AttrName)
+{
+	for (auto& Attr : Attributes)
+	{
+		if(Attr->AttrName == AttrName)
+			return Attr.Get();
+	}
+	return nullptr;
+}
+
+UHoudiniPCGDataAttributeFloat* UHoudiniPCGDataObject::CreateAttributeFloat(const FString& AttributeName)
+{
+	auto* Result = NewObject<UHoudiniPCGDataAttributeFloat>(this, FName(AttributeName));
+	Result->AttrName = FName(AttributeName);
+	return Result;
+}
+
+UHoudiniPCGDataAttributeDouble * UHoudiniPCGDataObject::CreateAttributeDouble(const FString& AttributeName)
+{
+	auto* Result = NewObject<UHoudiniPCGDataAttributeDouble>(this, FName(AttributeName));
+	Result->AttrName = FName(AttributeName);
+	return Result;
+}
+
+UHoudiniPCGDataAttributeInt* UHoudiniPCGDataObject::CreateAttributeInt(const FString& AttributeName)
+{
+	auto* Result = NewObject<UHoudiniPCGDataAttributeInt>(this, FName(AttributeName));
+	Result->AttrName = FName(AttributeName);
+	return Result;
+}
+
+UHoudiniPCGDataAttributeInt64* UHoudiniPCGDataObject::CreateAttributeInt64(const FString& AttributeName)
+{
+	auto* Result = NewObject<UHoudiniPCGDataAttributeInt64>(this, FName(AttributeName));
+	Result->AttrName = FName(AttributeName);
+	return Result;
+}
+
+UHoudiniPCGDataAttributeString* UHoudiniPCGDataObject::CreateAttributeString(const FString& AttributeName)
+{
+	auto* Result = NewObject<UHoudiniPCGDataAttributeString>(this, FName(AttributeName));
+	Result->AttrName = FName(AttributeName);
+	return Result;
+}
+
+UHoudiniPCGDataAttributeVector2d * UHoudiniPCGDataObject::CreateAttributeVector2d(const FString& AttributeName)
+{
+	auto* Result = NewObject<UHoudiniPCGDataAttributeVector2d>(this, FName(AttributeName));
+	Result->AttrName = FName(AttributeName);
+	return Result;
+}
+
+UHoudiniPCGDataAttributeVector3d* UHoudiniPCGDataObject::CreateAttributeVector3d(const FString& AttributeName)
+{
+	auto* Result = NewObject<UHoudiniPCGDataAttributeVector3d>(this, FName(AttributeName));
+	Result->AttrName = FName(AttributeName);
+	return Result;
+}
+
+UHoudiniPCGDataAttributeVector4d* UHoudiniPCGDataObject::CreateAttributeVector4d(const FString& AttributeName)
+{
+	auto* Result = NewObject<UHoudiniPCGDataAttributeVector4d>(this, FName(AttributeName));
+	Result->AttrName = FName(AttributeName);
+	return Result;
+}
+
+UHoudiniPCGDataAttributeQuat * UHoudiniPCGDataObject::CreateAttributeQuat(const FString& AttributeName)
+{
+	auto* Result = NewObject<UHoudiniPCGDataAttributeQuat>(this, FName(AttributeName));
+	Result->AttrName = FName(AttributeName);
+	return Result;
+}
+
+UHoudiniPCGDataAttributeSoftObjectPath * UHoudiniPCGDataObject::CreateAttributeSoftObjectPath(const FString& AttributeName)
+{
+	auto* Result = NewObject<UHoudiniPCGDataAttributeSoftObjectPath>(this, FName(AttributeName));
+	Result->AttrName = FName(AttributeName);
+	return Result;
+}
+
+UHoudiniPCGDataAttributeSoftClassPath* UHoudiniPCGDataObject::CreateAttributeSoftClassPath(const FString& AttributeName)
+{
+	auto* Result = NewObject<UHoudiniPCGDataAttributeSoftClassPath>(this, FName(AttributeName));
+	Result->AttrName = FName(AttributeName);
+	return Result;
 }
 

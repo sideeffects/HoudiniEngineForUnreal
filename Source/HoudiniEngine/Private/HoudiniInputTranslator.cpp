@@ -92,7 +92,7 @@
 #include "UObject/TextProperty.h"
 #if defined(HOUDINI_USE_PCG)
 #include "PCGData.h"
-#include "HoudiniPCGInputObject.h"
+#include "HoudiniPCGDataObject.h"
 #endif
 
 #if WITH_EDITOR
@@ -5401,18 +5401,16 @@ FHoudiniInputTranslator::HapiCreateInputNodeForPCGData(
 	const bool& bInputNodesCanBeDeleted)
 {
 #if defined(HOUDINI_USE_PCG)
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::HapiCreateInputNodeForDataTable);
-
 	if(!IsValid(InInputObject))
 		return false;
-	UHoudiniPCGInputObject* PCGData = InInputObject->GetPCGData();
+
+	UHoudiniPCGDataObject* PCGData = InInputObject->GetPCGData();
 	if(!IsValid(PCGData))
 		return true;
 
 	FString PCGDataName = InNodeName + TEXT("_") + PCGData->GetName();
 	FHoudiniEngineUtils::SanitizeHAPIVariableName(PCGDataName);
 
-	FUnrealObjectInputHandle DTInputNodeHandle;
 	HAPI_NodeId InputNodeId = -1;
 
 	// Get the existing node id, if any
@@ -5428,8 +5426,13 @@ FHoudiniInputTranslator::HapiCreateInputNodeForPCGData(
 		}
 	}
 
-	if(!FUnrealPCGDataTranslator::CreateInputNodeForPCGData(PCGData, InputNodeId, PCGDataName, DTInputNodeHandle, bInputNodesCanBeDeleted))
+
+	FUnrealObjectInputHandle PCGInputNodeHandle;
+	if(!FUnrealPCGDataTranslator::CreateInputNodeForPCGData(PCGData, InputNodeId, PCGDataName, PCGInputNodeHandle, bInputNodesCanBeDeleted))
+	{
 		return false;
+	}
+
 
 	{
 		// The data table can have its own transform (geometry input), so we have to create a reference node that
@@ -5437,24 +5440,14 @@ FHoudiniInputTranslator::HapiCreateInputNodeForPCGData(
 		FUnrealObjectInputOptions Options;
 		static constexpr bool bIsLeaf = false;
 		FUnrealObjectInputIdentifier GeoInputRefNodeId(InInputObject, Options, bIsLeaf);
-		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { DTInputNodeHandle }, InInputObject->InputNodeHandle, true, bInputNodesCanBeDeleted);
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { PCGInputNodeHandle }, InInputObject->InputNodeHandle, true, bInputNodesCanBeDeleted);
 	}
 
 	if(!HapiSetGeoObjectTransform(InInputObject->GetInputObjectNodeId(), InInputObject->GetHoudiniObjectTransform()))
-		return false;
+	return false;
 
 	// Update the cached data and input settings
 	InInputObject->Update(PCGData, InInputSettings);
-
-	/*
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), InputNodeId), false);
-
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-		FHoudiniEngine::Get().GetSession(), InputNodeId, nullptr), false);
-	*/
 #endif
 	return true;
 }
@@ -5513,16 +5506,6 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(
 
 	// Update the cached data and input settings
 	InInputObject->Update(DataTable, InInputSettings);
-
-	/*
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CommitGeo(
-		FHoudiniEngine::Get().GetSession(), InputNodeId), false);
-
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CookNode(
-		FHoudiniEngine::Get().GetSession(), InputNodeId, nullptr), false);
-	*/
 
 	return true;
 }

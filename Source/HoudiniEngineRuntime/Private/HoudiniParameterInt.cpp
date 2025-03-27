@@ -68,6 +68,7 @@ UHoudiniParameterInt::SetValuesIfChanged(const TArray<int>& NewValues)
 	if(NewValues.Num() != Values.Num())
 	{
 		Values = NewValues;
+		bHasChanged = true;
 		return true;
 	}
 
@@ -76,6 +77,7 @@ UHoudiniParameterInt::SetValuesIfChanged(const TArray<int>& NewValues)
 		if(Values[Index] != NewValues[Index])
 		{
 			Values = NewValues;
+			bHasChanged = true;
 			return true;
 		}
 	}

@@ -32,7 +32,8 @@
 #include "HoudiniInput.h"
 #include "ConnectionDrawingPolicy.h"
 #include "HoudiniPCGTranslator.h"
-#include "HoudiniPCGInputObject.h"
+#include "HoudiniPCGDataObject.h"
+#include "Landscape.h"
 #include "PCGParamData.h"
 
 HOUDINI_PCG_DEFINE_LOG_CATEGORY();
@@ -63,8 +64,11 @@ FHoudiniPCGUtils::GetPCGOutputData(const UHoudiniOutput* HoudiniOutput)
 
 		if (UHoudiniLandscapeTargetLayerOutput * LandscapeOutput = Cast<UHoudiniLandscapeTargetLayerOutput>(OutputObj.OutputObject.Get()))
 		{
-			PCGOutputObject.ActorPath = LandscapeOutput->GetPathName();
 			PCGOutputObject.OutputType = TEXT("Landscape");
+			if (IsValid(LandscapeOutput->Landscape))
+				PCGOutputObject.ActorPath = LandscapeOutput->Landscape->GetPathName();
+			else if (IsValid(LandscapeOutput->LandscapeProxy))
+				PCGOutputObject.ActorPath = LandscapeOutput->LandscapeProxy->GetPathName();
 		}
 		else
 		{
@@ -376,3 +380,18 @@ FHoudiniPCGUtils::UnrealToHoudiniQuat(const FQuat& Quat)
 	return Result;
 }
 
+void
+FHoudiniPCGUtils::LogVisualWarning(FPCGContext* Context, const FString& WarningMessage)
+{
+	HOUDINI_LOG_ERROR(TEXT("Warning: %s"), *WarningMessage);
+	FText Text = FText::FromString(WarningMessage);
+	PCGE_LOG_C(Warning, GraphAndLog, Context, Text);
+}
+
+void
+FHoudiniPCGUtils::LogVisualError(FPCGContext* Context,  const FString& ErrorMessage)
+{
+	HOUDINI_LOG_ERROR(TEXT("Error: %s"), *ErrorMessage);
+	FText Text = FText::FromString(ErrorMessage);
+	PCGE_LOG_C(Error, GraphAndLog, Context, Text);
+}
