@@ -26,15 +26,17 @@
 
 #include "HoudiniEngineEditorUtils.h"
 
+#include "HoudiniAsset.h"
+#include "HoudiniAssetActor.h"
+#include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineEditor.h"
-#include "HoudiniRuntimeSettings.h"
-#include "HoudiniAssetActor.h"
-#include "HoudiniAssetComponent.h"
 #include "HoudiniGeoPartObject.h"
-#include "HoudiniAsset.h"
 #include "HoudiniOutput.h"
+#include "HoudiniRuntimeSettings.h"
+#include "HoudiniToolsEditor.h"
 
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
@@ -43,7 +45,6 @@
 #include "EditorViewportClient.h"
 #include "ActorFactories/ActorFactory.h"
 #include "FileHelpers.h"
-#include "HoudiniToolsEditor.h"
 #include "PropertyPathHelpers.h"
 #include "Components/SceneComponent.h"
 #include "UObject/UObjectIterator.h"
@@ -462,7 +463,11 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 					// First apply the preset when we reach the PreCook phase.
 					if (IsValid(InPreset))
 					{
-						FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
+						UHoudiniCookable* HC = HAC->GetCookable();
+						if(HC)
+							FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(InPreset, HC);
+						else
+							FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
 					}
 				});
 			}
@@ -523,7 +528,11 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 						// First apply the preset when we reach the PreCook phase.
 						if (IsValid(InPreset))
 						{
-							FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
+							UHoudiniCookable* HC = HAC->GetCookable();
+							if (HC)
+								FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(InPreset, HC);
+							else
+								FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
 						}
 					});
 				}
@@ -590,14 +599,28 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAssetAt(UHoudiniAsset* InHoudiniAss
 		AHoudiniAssetActor* HACActor = Cast<AHoudiniAssetActor>(CreatedActor);
 		if (IsValid(HACActor))
 		{
-			UHoudiniAssetComponent* HoudiniAssetComponent = HACActor->GetHoudiniAssetComponent();
-			HoudiniAssetComponent->QueuePreCookCallback([InPreset](UHoudiniAssetComponent* HAC)
+			UHoudiniCookable* HoudiniCookable = HACActor->GetHoudiniCookable();
+			if (HoudiniCookable)
 			{
-				if (IsValid(InPreset))
+				HoudiniCookable->QueuePreCookCallback([InPreset](UHoudiniCookable* HC)
 				{
-					FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
-				}
-			});
+					if (IsValid(InPreset))
+					{
+							FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(InPreset, HC);
+					}
+				});
+			}
+			else
+			{
+				UHoudiniAssetComponent* HoudiniAssetComponent = HACActor->GetHoudiniAssetComponent();
+				HoudiniAssetComponent->QueuePreCookCallback([InPreset](UHoudiniAssetComponent* HAC)
+				{
+					if (IsValid(InPreset))
+					{
+						FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
+					}
+				});
+			}
 		}
 	}
 

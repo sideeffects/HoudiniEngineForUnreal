@@ -28,6 +28,7 @@
 
 #include "CoreMinimal.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniPreset.h"
 
 class SHoudiniPresetUIBase : public SCompoundWidget //, public FNotifyHook
@@ -143,6 +144,7 @@ protected:
 
 	// Houdini Asset components from which we'll be creating a preset 
 	TWeakObjectPtr<UHoudiniAssetComponent> HoudiniAssetComponent;
+	TWeakObjectPtr<UHoudiniCookable> HoudiniCookable;
 
 	FString PresetName;
 	FString PresetLabel;

@@ -30,6 +30,7 @@
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetFactory.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
@@ -2755,7 +2756,9 @@ FHoudiniToolsEditor::GetUserCategoriesList(TArray<FString>& OutCategories)
 }
 
 
-void FHoudiniToolsEditor::CopySettingsToPreset(const UHoudiniAssetComponent* HAC,
+void 
+FHoudiniToolsEditor::CopySettingsToPreset(
+	const UHoudiniAssetComponent* HAC,
 	const bool bApplyAssetOptions,
 	const bool bApplyBakeOptions,
 	const bool bApplyMeshGenSettings,
@@ -2795,6 +2798,51 @@ void FHoudiniToolsEditor::CopySettingsToPreset(const UHoudiniAssetComponent* HAC
 	Preset->ProxyMeshAutoRefineTimeoutSecondsOverride = HAC->GetProxyMeshAutoRefineTimeoutSeconds();
 	Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = HAC->IsProxyStaticMeshRefinementOnPreSaveWorldEnabled();
 	Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = HAC->IsProxyStaticMeshRefinementOnPreBeginPIEEnabled();
+}
+
+
+void
+FHoudiniToolsEditor::CopySettingsToPreset(
+	const UHoudiniCookable* HC,
+	const bool bApplyAssetOptions,
+	const bool bApplyBakeOptions,
+	const bool bApplyMeshGenSettings,
+	const bool bApplyProxyMeshGenSettings,
+	UHoudiniPreset* Preset)
+{
+	// Populate Bake options
+	Preset->bApplyBakeOptions = bApplyBakeOptions;
+	Preset->HoudiniEngineBakeOption = HC->GetHoudiniEngineBakeOption();
+	Preset->bRemoveOutputAfterBake = HC->GetRemoveOutputAfterBake();
+	Preset->bRecenterBakedActors = HC->GetRecenterBakedActors();
+	Preset->bAutoBake = HC->IsBakeAfterNextCookEnabled();
+	Preset->bReplacePreviousBake = HC->GetReplacePreviousBake();
+
+	// Populate Asset Settings
+	Preset->bApplyAssetOptions = bApplyAssetOptions;
+	Preset->bCookOnParameterChange = HC->GetCookOnParameterChange();
+	Preset->bCookOnTransformChange = HC->GetCookOnTransformChange();
+	Preset->bCookOnAssetInputCook = HC->GetCookOnCookableInputCook();
+	Preset->bDoNotGenerateOutputs = HC->IsOutputless();
+	Preset->bUseOutputNodes = HC->GetUseOutputNodes();
+	Preset->bOutputTemplateGeos = HC->GetOutputTemplateGeos();
+
+	Preset->bUploadTransformsToHoudiniEngine = HC->GetUploadTransformsToHoudiniEngine();
+	Preset->bLandscapeUseTempLayers = HC->GetLandscapeUseTempLayers();
+
+	// Populate Mesh Gen Settings
+	Preset->bApplyStaticMeshGenSettings = bApplyMeshGenSettings;
+	Preset->StaticMeshGenerationProperties = HC->GetStaticMeshGenerationProperties();
+	Preset->StaticMeshBuildSettings = HC->GetStaticMeshBuildSettings();
+
+	// Populate Proxy Mesh Gen Settings
+	Preset->bApplyProxyMeshGenSettings = bApplyProxyMeshGenSettings;
+	Preset->bOverrideGlobalProxyStaticMeshSettings = HC->IsOverrideGlobalProxyStaticMeshSettings();
+	Preset->bEnableProxyStaticMeshOverride = HC->IsProxyStaticMeshEnabled();
+	Preset->bEnableProxyStaticMeshRefinementByTimerOverride = HC->IsProxyStaticMeshRefinementByTimerEnabled();
+	Preset->ProxyMeshAutoRefineTimeoutSecondsOverride = HC->GetProxyMeshAutoRefineTimeoutSeconds();
+	Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = HC->IsProxyStaticMeshRefinementOnPreSaveWorldEnabled();
+	Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = HC->IsProxyStaticMeshRefinementOnPreBeginPIEEnabled();
 }
 
 
@@ -2843,7 +2891,8 @@ FHoudiniToolsEditor::FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsse
 
 
 bool
-FHoudiniToolsEditor::CanApplyPresetToHoudiniAssetcomponent(const UHoudiniPreset* Preset,
+FHoudiniToolsEditor::CanApplyPresetToHoudiniAssetcomponent(
+	const UHoudiniPreset* Preset,
 	UHoudiniAssetComponent* HAC)
 {
 	if (!IsValid(Preset))
@@ -2869,6 +2918,33 @@ FHoudiniToolsEditor::CanApplyPresetToHoudiniAssetcomponent(const UHoudiniPreset*
 	return Preset->SourceHoudiniAsset == HAC->GetHoudiniAsset();
 }
 
+bool 
+FHoudiniToolsEditor::CanApplyPresetToHoudiniCookable(
+	const UHoudiniPreset* Preset,
+	UHoudiniCookable* HC)
+{
+	if (!IsValid(Preset))
+	{
+		return false;
+	}
+	if (!IsValid(HC))
+	{
+		return false;
+	}
+
+	if (!Preset->bApplyOnlyToSource)
+	{
+		// We can apply this preset to any HoudiniAsset
+		return true;
+	}
+
+	// We can only apply this preset to the SourceHoudiniAsset
+	if (!IsValid(Preset->SourceHoudiniAsset))
+	{
+		return false;
+	}
+	return Preset->SourceHoudiniAsset == HC->GetHoudiniAsset();
+}
 
 void
 FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
@@ -3194,6 +3270,339 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 	for(auto & Callback : Preset->PostInstantiationCallbacks)
 	{
 		Callback(Preset, HAC);
+	}
+}
+
+
+void
+FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
+	const UHoudiniPreset* Preset,
+	UHoudiniCookable* HC,
+	bool bReselectSelectedActors)
+{
+	if (!IsValid(HC) || !IsValid(Preset))
+		return;
+	/*
+	if (HC->IsA<UHoudiniNodeSyncComponent>())
+		return;
+	*/
+	if (!CanApplyPresetToHoudiniCookable(Preset, HC))
+		return;
+
+	// Try to upload changed parameters
+	FHoudiniParameterTranslator::UploadChangedParameters(HC->GetParameters(), HC->GetNodeId());
+
+	// Record a transaction for undo/redo
+	FScopedTransaction Transaction(
+		TEXT(HOUDINI_MODULE_EDITOR),
+		LOCTEXT("HoudiniPresets_ApplyToAssetComponent", "Apply Preset to Houdini Asset Component"),
+		HC->GetOuter());
+
+	HC->Modify();
+
+	if (Preset->bRevertHDAParameters)
+	{
+		// Reset parameters to default values?
+		for (int32 n = 0; n < HC->GetNumParameters(); ++n)
+		{
+			UHoudiniParameter* Parm = HC->GetParameterAt(n);
+			if (IsValid(Parm) && !Parm->IsDefault())
+			{
+				Parm->RevertToDefault();
+			}
+		}
+	}
+
+	// Populate Bake options
+	if (Preset->bApplyBakeOptions)
+	{
+		HC->SetHoudiniEngineBakeOption(Preset->HoudiniEngineBakeOption);
+		HC->SetRemoveOutputAfterBake(Preset->bRemoveOutputAfterBake);
+		HC->SetRecenterBakedActors(Preset->bRecenterBakedActors);
+		HC->SetBakeAfterNextCook(Preset->bAutoBake ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled);
+		HC->SetReplacePreviousBake(Preset->bReplacePreviousBake);
+	}
+
+	// Populate Asset Settings
+	if (Preset->bApplyAssetOptions)
+	{
+		HC->SetCookOnParameterChange(Preset->bCookOnParameterChange);
+		HC->SetCookOnTransformChange(Preset->bCookOnTransformChange);
+		HC->SetCookOnCookableInputCook(Preset->bCookOnAssetInputCook);
+		HC->SetOutputless(Preset->bDoNotGenerateOutputs);
+		HC->SetUseOutputNodes(Preset->bUseOutputNodes);
+		HC->SetOutputTemplateGeos(Preset->bOutputTemplateGeos);
+		HC->SetUploadTransformsToHoudiniEngine(Preset->bUploadTransformsToHoudiniEngine);
+		HC->SetLandscapeUseTempLayers(Preset->bLandscapeUseTempLayers);
+	}
+
+	// When recooking/rebuilding the HDA, force a full update of all params
+	const bool bForceFullUpdate = HC->HasRebuildBeenRequested() || HC->HasRecookBeenRequested() || HC->IsParameterDefinitionUpdateNeeded();
+	const bool bCacheRampParms = !HC->HasBeenLoaded() && !HC->HasBeenDuplicated();
+
+	// TODO: COOKABLE - replace me?
+	bool bNeedToUpdateEditorProperties = false;
+
+	// Update the parameters
+	FHoudiniParameterTranslator::UpdateParameters(
+		HC->GetNodeId(),
+		HC,
+		HC->GetParameters(),
+		HC->GetHoudiniAsset(),
+		HC->GetHapiAssetName(),
+		bForceFullUpdate,
+		bCacheRampParms,
+		bNeedToUpdateEditorProperties);
+
+	// Iterate over all the parameters and settings in the preset and apply it to the Houdini Asset Component.
+
+	// Apply all Multiparam parameters. Since multiparms may contain multiparms we need to perform a loop
+	// setting as many multiparms as we can, then updating parameters, then setting the remaining multiparams
+	// again, and repeat. Until we end up with no multiparams remaining or nothing changed on the last
+	// parameter update.
+
+	TSet<FString> UnprocessedMultiParms;
+
+	Preset->MultiParmParameters.GetKeys(UnprocessedMultiParms);
+
+	while (!UnprocessedMultiParms.IsEmpty())
+	{
+		// Create a temp array of all param names we haven't processed yet. Do this so we can modify UnprocessedMultiParms
+		// in the loop below.
+		TArray<FString> CurrentParms;
+		for (const FString& Element : UnprocessedMultiParms)
+			CurrentParms.Add(Element);
+
+		bool bProcessedAtLeastOne = false;
+
+		// now loop over all parms we haven't process and try to set them. If we can set them, remove them from the
+		// unprocessed set.
+		for (FString& ParmName : CurrentParms)
+		{
+			const FHoudiniPresetMultiParmValues& ParmValues = Preset->MultiParmParameters[ParmName];
+
+			UHoudiniParameter* Parm = HC->FindParameterByName(ParmName);
+			if (!IsValid(Parm))
+				continue;
+
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterMultiParm>(Parm));
+			UnprocessedMultiParms.Remove(ParmName);
+			bProcessedAtLeastOne = true;
+		}
+		if (!bProcessedAtLeastOne)
+			break;
+
+		FHoudiniParameterTranslator::UploadChangedParameters(HC->GetParameters(), HC->GetNodeId());
+		FHoudiniParameterTranslator::UpdateParameters(
+			HC->GetNodeId(),
+			HC,
+			HC->GetParameters(),
+			HC->GetHoudiniAsset(),
+			HC->GetHapiAssetName(),
+			bForceFullUpdate,
+			bCacheRampParms,
+			bNeedToUpdateEditorProperties);
+	}
+
+
+	if (Preset->MultiParmParameters.Num() > 0)
+	{
+		FHoudiniParameterTranslator::UploadChangedParameters(HC->GetParameters(), HC->GetNodeId());
+		FHoudiniParameterTranslator::UpdateParameters(
+			HC->GetNodeId(),
+			HC,
+			HC->GetParameters(),
+			HC->GetHoudiniAsset(),
+			HC->GetHapiAssetName(),
+			bForceFullUpdate,
+			bCacheRampParms,
+			bNeedToUpdateEditorProperties);
+	}
+
+	// Apply all the Int parameters
+	for (const auto& Entry : Preset->IntParameters)
+	{
+		const FString& ParmName = Entry.Key;
+		const FHoudiniPresetIntValues& ParmValues = Entry.Value;
+
+		UHoudiniParameter* Parm = HC->FindParameterByName(ParmName);
+		if (!IsValid(Parm))
+		{
+			continue;
+		}
+
+		const EHoudiniParameterType ParmType = Parm->GetParameterType();
+		switch (ParmType)
+		{
+		case EHoudiniParameterType::Int:
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterInt>(Parm));
+			break;
+		case EHoudiniParameterType::IntChoice:
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterChoice>(Parm));
+			break;
+		case EHoudiniParameterType::Toggle:
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterToggle>(Parm));
+			break;
+		default:;
+		}
+	}
+
+	// Apply all the Float parameters
+	for (const auto& Entry : Preset->FloatParameters)
+	{
+		const FString& ParmName = Entry.Key;
+		const FHoudiniPresetFloatValues& ParmValues = Entry.Value;
+
+		UHoudiniParameter* Parm = HC->FindParameterByName(ParmName);
+		if (!IsValid(Parm))
+		{
+			continue;
+		}
+
+		const EHoudiniParameterType ParmType = Parm->GetParameterType();
+		switch (ParmType)
+		{
+		case EHoudiniParameterType::Color:
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterColor>(Parm));
+			break;
+		case EHoudiniParameterType::Float:
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterFloat>(Parm));
+			break;
+		default:;
+		}
+	}
+
+	// Apply all the String parameters
+
+	for (const auto& Entry : Preset->StringParameters)
+	{
+		const FString& ParmName = Entry.Key;
+		const FHoudiniPresetStringValues& ParmValues = Entry.Value;
+
+		UHoudiniParameter* Parm = HC->FindParameterByName(ParmName);
+		if (!IsValid(Parm))
+		{
+			continue;
+		}
+
+		const EHoudiniParameterType ParmType = Parm->GetParameterType();
+		switch (ParmType)
+		{
+		case EHoudiniParameterType::File:
+		case EHoudiniParameterType::FileDir:
+		case EHoudiniParameterType::FileGeo:
+		case EHoudiniParameterType::FileImage:
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterFile>(Parm));
+			break;
+		case EHoudiniParameterType::String:
+		case EHoudiniParameterType::StringAssetRef:
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterString>(Parm));
+			break;
+		case EHoudiniParameterType::StringChoice:
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterChoice>(Parm));
+			break;
+		default:;
+		}
+	}
+
+	// Apply all the Ramp Float parameters
+	for (const auto& Entry : Preset->RampFloatParameters)
+	{
+		const FString& ParmName = Entry.Key;
+		const FHoudiniPresetRampFloatValues& ParmValues = Entry.Value;
+
+		UHoudiniParameter* Parm = HC->FindParameterByName(ParmName);
+		if (!IsValid(Parm))
+		{
+			continue;
+		}
+
+		const EHoudiniParameterType ParmType = Parm->GetParameterType();
+		switch (ParmType)
+		{
+		case EHoudiniParameterType::FloatRamp:
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterRampFloat>(Parm));
+			break;
+		default:;
+		}
+	}
+
+	// Apply all the Ramp Color parameters
+	for (const auto& Entry : Preset->RampColorParameters)
+	{
+		const FString& ParmName = Entry.Key;
+		const FHoudiniPresetRampColorValues& ParmValues = Entry.Value;
+
+		UHoudiniParameter* Parm = HC->FindParameterByName(ParmName);
+		if (!IsValid(Parm))
+		{
+			continue;
+		}
+
+		const EHoudiniParameterType ParmType = Parm->GetParameterType();
+		switch (ParmType)
+		{
+		case EHoudiniParameterType::ColorRamp:
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterRampColor>(Parm));
+			break;
+		default:;
+		}
+	}
+
+	// Apply inputs
+	for (const FHoudiniPresetInputValue& PresetInput : Preset->InputParameters)
+	{
+		if (PresetInput.InputType == EHoudiniInputType::Invalid)
+		{
+			continue;
+		}
+
+		if (PresetInput.bIsParameterInput)
+		{
+			// Parameter based input
+			UHoudiniParameterOperatorPath* Param = Cast<UHoudiniParameterOperatorPath>(HC->FindParameterByName(PresetInput.ParameterName));
+			if (IsValid(Param))
+			{
+				UHoudiniInput* Input = Param->HoudiniInput.Get();
+				FHoudiniPresetHelpers::ApplyPresetParameterValues(PresetInput, Input);
+			}
+		}
+		else
+		{
+			// Absolute input
+			UHoudiniInput* Input = HC->GetInputAt(PresetInput.InputIndex);
+			FHoudiniPresetHelpers::ApplyPresetParameterValues(PresetInput, Input);
+		}
+	}
+
+	if (Preset->bApplyStaticMeshGenSettings)
+	{
+		HC->SetStaticMeshGenerationProperties(Preset->StaticMeshGenerationProperties);
+		HC->SetStaticMeshBuildSettings(Preset->StaticMeshBuildSettings);
+	}
+
+	if (Preset->bApplyProxyMeshGenSettings)
+	{
+		// Populate Proxy Mesh Gen Settings
+		HC->SetOverrideGlobalProxyStaticMeshSettings(Preset->bOverrideGlobalProxyStaticMeshSettings);
+		HC->SetEnableProxyStaticMeshOverride(Preset->bEnableProxyStaticMeshOverride);
+		HC->SetEnableProxyStaticMeshRefinementByTimerOverride(Preset->bEnableProxyStaticMeshRefinementByTimerOverride);
+		HC->SetProxyMeshAutoRefineTimeoutSecondsOverride(Preset->ProxyMeshAutoRefineTimeoutSecondsOverride);
+		HC->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride);
+		HC->SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride);
+	}
+
+	// TODO COOKABLE
+	// Do something about bNeedToUpdateEditorProperties
+
+	if (bReselectSelectedActors)
+	{
+		FHoudiniEngineEditorUtils::ReselectSelectedActors();
+	}
+
+	for (auto& Callback : Preset->PostInstantiationCallbacks)
+	{
+		Callback(Preset, HC);
 	}
 }
 

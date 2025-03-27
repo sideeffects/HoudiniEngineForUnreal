@@ -104,6 +104,7 @@ UCookableParameterData::UCookableParameterData(const FObjectInitializer& ObjectI
 UCookableInputData::UCookableInputData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bCookOnInputChange(true)
+	, bCookOnCookableInputCook(true)
 {
 
 }
@@ -463,7 +464,7 @@ UHoudiniCookable::GetTemporaryCookFolder() const
 }
 
 FString
-UHoudiniCookable::GetTemporaryCookFolderOrDefault()
+UHoudiniCookable::GetTemporaryCookFolderOrDefault() const
 {
 	if (!IsOutputSupported())
 		return FString();
@@ -472,7 +473,7 @@ UHoudiniCookable::GetTemporaryCookFolderOrDefault()
 }
 
 FString
-UHoudiniCookable::GetBakeFolderOrDefault()
+UHoudiniCookable::GetBakeFolderOrDefault() const
 {
 	if (!IsOutputSupported())
 		return FString();
@@ -721,6 +722,13 @@ UHoudiniCookable::HandleOnPreInstantiation()
 	if (OnPreInstantiationDelegate.IsBound())
 		OnPreInstantiationDelegate.Broadcast(this);
 }
+
+void
+UHoudiniCookable::QueuePreCookCallback(const TFunction<void(UHoudiniCookable*)>& CallbackFn)
+{
+	PreCookCallbacks.Add(CallbackFn);
+}
+
 
 void
 UHoudiniCookable::HandleOnPreCook()
@@ -1943,13 +1951,13 @@ UHoudiniCookable::GetCookOnTransformChange() const
 {
 	return ComponentData->bCookOnTransformChange;
 }
-/*
+
 bool
-UHoudiniCookable::GetCookOnAssetInputCook()
+UHoudiniCookable::GetCookOnCookableInputCook() const
 {
-	return bCookOnAssetInputCook;
+	return InputData->bCookOnCookableInputCook;
 }
-*/
+
 
 bool
 UHoudiniCookable::IsOutputless() const
@@ -2001,13 +2009,13 @@ UHoudiniCookable::GetSplitMeshSupport() const
 
 
 FHoudiniStaticMeshGenerationProperties
-UHoudiniCookable::GetStaticMeshGenerationProperties()
+UHoudiniCookable::GetStaticMeshGenerationProperties() const
 {
 	return OutputData->StaticMeshGenerationProperties;
 }
 
 FMeshBuildSettings
-UHoudiniCookable::GetStaticMeshBuildSettings()
+UHoudiniCookable::GetStaticMeshBuildSettings() const
 {
 	return OutputData->StaticMeshBuildSettings;
 }
@@ -2046,6 +2054,15 @@ UHoudiniCookable::SetCookOnTransformChange(bool bEnable)
 		return;
 
 	ComponentData->bCookOnTransformChange = bEnable;
+}
+
+void
+UHoudiniCookable::SetCookOnCookableInputCook(bool bEnable)
+{
+	if (!IsInputSupported())
+		return;
+
+	InputData->bCookOnCookableInputCook = bEnable;
 }
 
 void

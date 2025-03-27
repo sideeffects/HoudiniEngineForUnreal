@@ -130,6 +130,9 @@ public:
 	UPROPERTY()
 	bool bCookOnInputChange; // bCookOnParameterChange
 
+	UPROPERTY()
+	bool bCookOnCookableInputCook;
+
 	// Accessors
 	int32 GetNumInputs() const { return Inputs.Num(); };
 	UHoudiniInput* GetInputAt(const int32& Idx) { return Inputs.IsValidIndex(Idx) ? Inputs[Idx] : nullptr; };
@@ -437,6 +440,7 @@ public:
 
 	bool GetCookOnParameterChange() const;
 	bool GetCookOnTransformChange() const;
+	bool GetCookOnCookableInputCook() const;
 	bool IsOutputless() const;
 	bool GetUseOutputNodes() const;
 	bool GetOutputTemplateGeos() const;
@@ -447,8 +451,8 @@ public:
 
 	FTransform GetLastComponentTransform() const;
 
-	FHoudiniStaticMeshGenerationProperties GetStaticMeshGenerationProperties();
-	FMeshBuildSettings GetStaticMeshBuildSettings();
+	FHoudiniStaticMeshGenerationProperties GetStaticMeshGenerationProperties() const;
+	FMeshBuildSettings GetStaticMeshBuildSettings() const;
 
 	// Feature data accessors
 	int32 GetNumInputs() const { return IsInputSupported() ? InputData->Inputs.Num() : 0; };
@@ -476,10 +480,10 @@ public:
 	FDirectoryPath GetTemporaryCookFolder() const;
 	// Returns the TemporaryCookFolder, if it is not empty. Otherwise returns the plugin default temporary
 	// cook folder. This function does not take the unreal_temp_folder attribute into account.
-	FString GetTemporaryCookFolderOrDefault();
+	FString GetTemporaryCookFolderOrDefault() const;
 	// Returns the BakeFolder, if it is not empty. Otherwise returns the plugin default bake folder. This
 	// function does not take the unreal_bake_folder attribute into account.
-	FString GetBakeFolderOrDefault();
+	FString GetBakeFolderOrDefault() const;
 
 	// Returns true if a parameter definition update (excluding values) is needed.
 	bool IsParameterDefinitionUpdateNeeded() const { return IsParameterSupported() ? ParameterData->bParameterDefinitionUpdateNeeded : false; };
@@ -621,7 +625,7 @@ public:
 
 	void SetCookOnParameterChange(bool bEnable);
 	void SetCookOnTransformChange(bool bEnable);
-	//void SetCookOnAssetInputCook(bool bEnable);
+	void SetCookOnCookableInputCook(bool bEnable);
 	void SetOutputless(bool bEnable);
 	void SetUseOutputNodes(bool bEnable);
 	void SetOutputTemplateGeos(bool bEnable);
@@ -703,6 +707,8 @@ public:
 	// Other public API delegates
 	void HandleOnPreOutputProcessing();
 	void HandleOnPostOutputProcessing();
+
+	void QueuePreCookCallback(const TFunction<void(UHoudiniCookable*)>& CallbackFn);
 
 	// Delegates
 	FOnPreInstantiationDelegate& GetOnPreInstantiationDelegate() { return OnPreInstantiationDelegate; };

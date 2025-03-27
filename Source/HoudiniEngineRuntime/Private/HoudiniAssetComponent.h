@@ -589,7 +589,7 @@ public:
 
 	// This asset will cook when its asset input cook
 	UPROPERTY()
-	bool bCookOnAssetInputCook; // NOT COOKABLE
+	bool bCookOnAssetInputCook; // COOKABLE - INPUT
 
 	// Enabling this will prevent the HDA from producing any output after cooking.
 	UPROPERTY()

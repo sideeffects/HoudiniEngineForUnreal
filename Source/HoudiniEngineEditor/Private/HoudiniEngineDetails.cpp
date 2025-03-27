@@ -2465,7 +2465,12 @@ FHoudiniEngineDetails::ConstructActionMenu(const TArray<TWeakObjectPtr<UHoudiniA
 								continue;
 							}
 
-							FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(Preset, HAC.Get(), true);
+							UHoudiniCookable* HC = HAC->GetCookable();
+							if(HC)
+								FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(Preset, HC, true);
+							else
+								FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(Preset, HAC.Get(), true);
+
 							bPresetApplied = true;
 						}
 					

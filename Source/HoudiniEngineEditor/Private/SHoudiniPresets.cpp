@@ -90,6 +90,7 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 {
 	TWeakObjectPtr<UHoudiniAssetComponent> HAC = InArgs._HoudiniAssetComponent.Get();
 	HoudiniAssetComponent = HAC;
+	HoudiniCookable = HAC->GetCookable();
 
 	if (!HAC.IsValid())
 	{
@@ -1323,6 +1324,12 @@ void SHoudiniPresetUIBase::OnPresetAssetChanged(const FAssetData& AssetData)
 FString SHoudiniPresetUIBase::GetPresetAssetBasePath() const
 {
 	FString PresetBasePath;
+
+	if (HoudiniCookable.IsValid() && IsValid(HoudiniCookable->GetHoudiniAsset()))
+	{
+		return FPaths::Combine(FPaths::GetPath(HoudiniCookable->GetHoudiniAsset()->GetPathName()), TEXT("Presets"));
+	}
+
 	if (HoudiniAssetComponent.IsValid() && IsValid(HoudiniAssetComponent->GetHoudiniAsset()))
 	{
 		return FPaths::Combine( FPaths::GetPath( HoudiniAssetComponent->GetHoudiniAsset()->GetPathName() ), TEXT("Presets") );
@@ -1379,16 +1386,17 @@ SHoudiniPresetUIBase::GetErrorText() const
 void
 SHoudiniPresetUIBase::SelectAllParameters()
 {
-	if (!HoudiniAssetComponent.IsValid())
+	if (!HoudiniAssetComponent.IsValid() && !HoudiniCookable.IsValid())
 	{
 		return;
 	}
 	
+	UHoudiniCookable* HC = HoudiniCookable.Get();
 	UHoudiniAssetComponent* HAC = HoudiniAssetComponent.Get();
-	const int32 NumParams = HAC->GetNumParameters();
+	const int32 NumParams = HC ? HC->GetNumParameters() : HAC->GetNumParameters();
 	for (int i = 0; i < NumParams; i++)
 	{
-		UHoudiniParameter* Param = HAC->GetParameterAt(i);
+		UHoudiniParameter* Param = HC ? HC->GetParameterAt(i) : HAC->GetParameterAt(i);
 		if (!IsValid(Param))
 		{
 			continue;
@@ -1412,6 +1420,7 @@ void SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Preset)
 	}
 	
 	const UHoudiniAssetComponent* HAC = HoudiniAssetComponent.Get();
+	const UHoudiniCookable* HC = HoudiniCookable.Get();
 
 	Preset->Modify();
 	
@@ -1424,9 +1433,9 @@ void SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Preset)
 	Preset->bRevertHDAParameters = bRevertHDAParameters;
 
 	Preset->bApplyTemporaryCookFolder = bApplyTempCookFolder;
-	Preset->TemporaryCookFolder = HAC->GetTemporaryCookFolderOrDefault();
+	Preset->TemporaryCookFolder = HC ? HC->GetTemporaryCookFolderOrDefault() : HAC->GetTemporaryCookFolderOrDefault();
 	Preset->bApplyBakeFolder = bApplyBakeFolder;
-	Preset->BakeFolder = HAC->GetBakeFolderOrDefault();
+	Preset->BakeFolder = HC ? HC->GetBakeFolderOrDefault() : HAC->GetBakeFolderOrDefault();
 
 	FHoudiniToolsEditor::CopySettingsToPreset(HAC, bApplyAssetOptions, bApplyBakeOptions, bApplyStaticMeshGenSettings, bApplyProxyMeshGenSettings, Preset);
 
@@ -1600,14 +1609,15 @@ TArray<FText> SHoudiniCreatePresetFromHDA::GetDescriptionLines()
 FReply
 SHoudiniCreatePresetFromHDA::HandleCreatePresetClicked()
 {
-	if (!HoudiniAssetComponent.IsValid())
-	{
-		return FReply::Handled();
-	}
-	const UHoudiniAssetComponent* HAC = HoudiniAssetComponent.Get();
+// 	if (!HoudiniAssetComponent.IsValid())
+// 	{
+// 		return FReply::Handled();
+// 	}
+// 	const UHoudiniAssetComponent* HAC = HoudiniAssetComponent.Get();
+
+	// TODO COOKABLE: valid check needed?
 	
 	const FString PresetBasePath = GetPresetAssetBasePath();
-
 	UHoudiniPresetFactory* Factory = NewObject<UHoudiniPresetFactory>();
 
 	const FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");

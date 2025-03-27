@@ -2720,10 +2720,8 @@ UHoudiniAssetComponent::GetCookOnTransformChange() const
 bool
 UHoudiniAssetComponent::GetCookOnAssetInputCook() const
 {
-	/*
 	if (GetCookable())
-		return GetCookable()->GetCookOnAssetInputCook();
-		*/
+		return GetCookable()->GetCookOnCookableInputCook();
 
 	return bCookOnAssetInputCook;
 }

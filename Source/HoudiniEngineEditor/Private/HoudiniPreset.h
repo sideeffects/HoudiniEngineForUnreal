@@ -565,7 +565,7 @@ public:
 
 	// Callback for when this preset has been instantiated.
 	// Used for testing.
-	TArray< TFunction<void(const UHoudiniPreset*, UHoudiniAssetComponent *)> > PostInstantiationCallbacks;
+	TArray< TFunction<void(const UHoudiniPreset*, UObject *)> > PostInstantiationCallbacks;
 
 
 };

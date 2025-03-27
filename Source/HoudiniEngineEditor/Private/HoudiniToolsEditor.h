@@ -311,19 +311,37 @@ public:
 		const bool bApplyProxyMeshGenSettings,
 		UHoudiniPreset* Preset);
 
+	static void CopySettingsToPreset(
+		const UHoudiniCookable* HC,
+		const bool bApplyAssetOptions,
+		const bool bApplyBakeOptions,
+		const bool bApplyMeshGenSettings,
+		const bool bApplyProxyMeshGenSettings,
+		UHoudiniPreset* Preset);
+
 	// Find all the presets that can be applied the given Houdini Asset. 
-	static void FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsset, TArray<UHoudiniPreset*>& OutPresets);
+	static void FindPresetsForHoudiniAsset(
+		const UHoudiniAsset* HoudiniAsset, TArray<UHoudiniPreset*>& OutPresets);
 
 	static bool CanApplyPresetToHoudiniAssetcomponent(
 		const UHoudiniPreset* Preset,
-		UHoudiniAssetComponent* HAC
-		);
+		UHoudiniAssetComponent* HAC);
+
+	static bool CanApplyPresetToHoudiniCookable(
+		const UHoudiniPreset* Preset,
+		UHoudiniCookable* HC);
+
 	// Apply the preset to the given HoudiniAssetComponent.
 	// Optionally, reselect selected actors to update the component visualizers.
 	// This is typically used in conjunction with UHoudiniAssetComponent::QueueOneShotPreCookCallback
 	static void ApplyPresetToHoudiniAssetComponent(
 		const UHoudiniPreset* Preset,
 		UHoudiniAssetComponent* HAC,
+		bool bReselectSelectedActors = true);
+
+	static void ApplyPresetToHoudiniCookable(
+		const UHoudiniPreset* Preset,
+		UHoudiniCookable* HC,
 		bool bReselectSelectedActors = true);
 
 	// Apply the given objects to the specified input index. The input type will automatically be determined (and set)
