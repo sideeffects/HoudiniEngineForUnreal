@@ -58,8 +58,7 @@ bool FHoudiniEditorTestLandscapeSplines_Simple::RunTest(const FString& Parameter
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TEXT("/Game/TestHDAs/LandscapeSplines/Test_LandscapeSpline"), FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
-	Context->GetHAC()->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Context->GetHAC()->SetEnableProxyStaticMeshOverride(false);
+	Context->SetProxyMeshEnabled(false);
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Create a small landscape and check it loads.
@@ -67,7 +66,7 @@ bool FHoudiniEditorTestLandscapeSplines_Simple::RunTest(const FString& Parameter
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
-		//	SET_HDA_PARAMETER(Context->GetHAC(), UHoudiniParameterInt, "size", LandscapeSize, 0);
+		//	SET_HDA_PARAMETER(Context, UHoudiniParameterInt, "size", LandscapeSize, 0);
 		Context->StartCookingHDA();
 		return true;
 	}));
@@ -75,7 +74,7 @@ bool FHoudiniEditorTestLandscapeSplines_Simple::RunTest(const FString& Parameter
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
 		TArray<UHoudiniOutput*> Outputs;
-		Context->GetHAC()->GetOutputs(Outputs);
+		Context->GetOutputs(Outputs);
 
 		// We should have two outputs, two meshes
 		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 2, return true);
@@ -143,8 +142,7 @@ bool FHoudiniEditorTestLandscapeSplines_WorldPartition::RunTest(const FString& P
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TEXT("/Game/TestHDAs/LandscapeSplines/Test_LandscapeSpline"), FTransform::Identity, true));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
-	Context->GetHAC()->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Context->GetHAC()->SetEnableProxyStaticMeshOverride(false);
+	Context->SetProxyMeshEnabled(false);
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Create a small landscape and check it loads.
@@ -152,7 +150,7 @@ bool FHoudiniEditorTestLandscapeSplines_WorldPartition::RunTest(const FString& P
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
-		//	SET_HDA_PARAMETER(Context->GetHAC(), UHoudiniParameterInt, "size", LandscapeSize, 0);
+		//	SET_HDA_PARAMETER(Context, UHoudiniParameterInt, "size", LandscapeSize, 0);
 		Context->StartCookingHDA();
 		return true;
 	}));
@@ -160,7 +158,7 @@ bool FHoudiniEditorTestLandscapeSplines_WorldPartition::RunTest(const FString& P
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
 		TArray<UHoudiniOutput*> Outputs;
-		Context->GetHAC()->GetOutputs(Outputs);
+		Context->GetOutputs(Outputs);
 
 		// We should have two outputs, two meshes
 		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 2, return true);

@@ -27,7 +27,8 @@
 #include "Misc/AutomationTest.h"
 
 
-UWorld* FHoudiniEditorUnitTestUtils::CreateEmptyMap(bool bOpenWorld)
+UWorld* 
+FHoudiniEditorUnitTestUtils::CreateEmptyMap(bool bOpenWorld)
 {
 	FString MapName = bOpenWorld ? TEXT("/Engine/Maps/Templates/OpenWorld.umap") : TEXT("/Engine/Maps/Templates/Template_Default.umap");
 
@@ -60,14 +61,17 @@ UHoudiniAssetComponent* FHoudiniEditorUnitTestUtils::LoadHDAIntoNewMap(
 }
 
 
-bool FHoudiniEditorUnitTestUtils::IsTemporary(UHoudiniAssetComponent* HAC, const FString& ObjectPath)
+bool
+FHoudiniEditorUnitTestUtils::IsTemporary(const FString& TempFolder, const FString& ObjectPath)
 {
-	FString TempFolder = HAC->GetTemporaryCookFolderOrDefault();
 	bool bIsTempAsset = ObjectPath.StartsWith(TempFolder);
 	return bIsTempAsset;
 }
 
-AActor* FHoudiniEditorUnitTestUtils::GetActorWithName(UWorld* World, FString& Name)
+
+
+AActor* 
+FHoudiniEditorUnitTestUtils::GetActorWithName(UWorld* World, FString& Name)
 {
 	if (!IsValid(World))
 		return nullptr;
@@ -85,7 +89,8 @@ AActor* FHoudiniEditorUnitTestUtils::GetActorWithName(UWorld* World, FString& Na
 }
 
 
-bool FHoudiniLatentTestCommand::Update()
+bool 
+FHoudiniLatentTestCommand::Update()
 {
 	double DeltaTime = FPlatformTime::Seconds() - Context->TimeStarted;
 	if (DeltaTime > Context->MaxTime)
@@ -143,7 +148,8 @@ bool FHoudiniLatentTestCommand::Update()
 	return bDone;
 }
 
-void FHoudiniTestContext::StartCookingHDA()
+void 
+FHoudiniTestContext::StartCookingHDA()
 {
 	if (HC)
 		HC->MarkAsNeedCook();
@@ -154,13 +160,15 @@ void FHoudiniTestContext::StartCookingHDA()
 	bPostOutputDelegateCalled = false;
 }
 
-void FHoudiniTestContext::WaitForTicks(int Count)
+void 
+FHoudiniTestContext::WaitForTicks(int Count)
 {
 	WaitTickFrame = Count + GFrameCounter;
 }
 
 
-void FHoudiniTestContext::StartCookingSelectedTOPNetwork()
+void 
+FHoudiniTestContext::StartCookingSelectedTOPNetwork()
 {
 	UHoudiniPDGAssetLink * AssetLink = HC ? HC->GetPDGAssetLink() : HAC->GetPDGAssetLink();
 	UTOPNetwork* TopNetwork = AssetLink->GetSelectedTOPNetwork();
@@ -178,7 +186,8 @@ void FHoudiniTestContext::StartCookingSelectedTOPNetwork()
 	bPDGCookInProgress = true;
 }
 
-TArray<FHoudiniEngineBakedActor> FHoudiniTestContext::BakeSelectedTopNetwork()
+TArray<FHoudiniEngineBakedActor> 
+FHoudiniTestContext::BakeSelectedTopNetwork()
 {
 	UHoudiniPDGAssetLink * PDGAssetLink = HAC->GetPDGAssetLink();
 
@@ -196,7 +205,8 @@ TArray<FHoudiniEngineBakedActor> FHoudiniTestContext::BakeSelectedTopNetwork()
 	return BakedActors;
 }
 
-FString FHoudiniEditorUnitTestUtils::GetAbsolutePathOfProjectFile(const FString& Object)
+FString 
+FHoudiniEditorUnitTestUtils::GetAbsolutePathOfProjectFile(const FString& Object)
 {
 	FString Path =  FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
 	FString File = Path + TEXT("/") + Object;
@@ -205,7 +215,8 @@ FString FHoudiniEditorUnitTestUtils::GetAbsolutePathOfProjectFile(const FString&
 
 }
 
-UHoudiniParameter* FHoudiniEditorUnitTestUtils::GetTypedParameter(UHoudiniAssetComponent* HAC, UClass* Class, const char* Name)
+UHoudiniParameter* 
+FHoudiniEditorUnitTestUtils::GetTypedParameter(UHoudiniAssetComponent* HAC, UClass* Class, const char* Name)
 {
 	FString ParamName = Name;
 	UHoudiniParameter * Parameter = HAC->FindParameterByName(FString(ParamName));
@@ -227,7 +238,31 @@ UHoudiniParameter* FHoudiniEditorUnitTestUtils::GetTypedParameter(UHoudiniAssetC
 		return nullptr;
 	}
 	return Parameter;
+}
 
+UHoudiniParameter*
+FHoudiniEditorUnitTestUtils::GetTypedParameter(UHoudiniCookable* HC, UClass* Class, const char* Name)
+{
+	FString ParamName = Name;
+	UHoudiniParameter* Parameter = HC->FindParameterByName(FString(ParamName));
+	if (!Parameter)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Could not find parameter called %s. Dumping Parameters:"), *ParamName);
+		for (int Index = 0; Index < HC->GetNumParameters(); Index++)
+		{
+			UHoudiniParameter* Param = HC->GetParameterAt(Index);
+			HOUDINI_LOG_ERROR(TEXT("Parameter %d name=%s label=%s class=%s"),
+				Index, *Param->GetParameterName(), *Param->GetParameterLabel(), *Param->GetClass()->GetName());
+		}
+		return nullptr;
+	}
+
+	if (!Parameter->IsA(Class))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Parameter '%s' is of wrong type. IsA '%s' expected '%s'"), *ParamName, *Parameter->GetClass()->GetName(), *Class->GetName());
+		return nullptr;
+	}
+	return Parameter;
 }
 
 FHoudiniTestContext::FHoudiniTestContext(
@@ -338,6 +373,108 @@ FHoudiniTestContext::GetCookable()
 	return HC;
 }
 
+void
+FHoudiniTestContext::GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const
+{
+	if (HC)
+		HC->GetOutputs(OutOutputs);
+	else if (HAC)
+		HAC->GetOutputs(OutOutputs);
+}
+
+TArray<FHoudiniBakedOutput>&
+FHoudiniTestContext::GetBakedOutputs()
+{
+	if (HC)
+		return HC->GetBakedOutputs();
+	else
+		return HAC->GetBakedOutputs();
+}
+
+
+bool
+FHoudiniTestContext::Bake(const FHoudiniBakeSettings& InBakeSettings)
+{
+	if (HC)
+	{
+		return FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
+			Cast<UHoudiniAssetComponent>(HC->GetComponent()),
+			InBakeSettings,
+			HC->GetHoudiniEngineBakeOption(),
+			HC->GetRemoveOutputAfterBake());
+	}
+	else if (HAC)
+	{
+		return FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
+			HAC,
+			InBakeSettings,
+			HAC->GetHoudiniEngineBakeOption(),
+			HAC->GetRemoveOutputAfterBake());
+	}
+
+	return false;
+}
+
+UHoudiniInput*
+FHoudiniTestContext::GetInputAt(const int Idx)
+{
+	if (HC)
+		return HC->GetInputAt(Idx);
+	else
+		return HAC->GetInputAt(Idx);
+}
+
+void
+FHoudiniTestContext::SetProxyMeshEnabled(const bool bEnabled)
+{
+	if (HC)
+	{
+		HC->SetOverrideGlobalProxyStaticMeshSettings(true);
+		HC->SetEnableProxyStaticMeshOverride(bEnabled);
+	}		
+	else
+	{
+		HAC->SetOverrideGlobalProxyStaticMeshSettings(true);
+		HAC->SetEnableProxyStaticMeshOverride(bEnabled);
+	}
+}
+
+FString
+FHoudiniTestContext::GetBakeFolderOrDefault() const
+{
+	if (HC)
+		return HC->GetBakeFolderOrDefault();
+	else
+		return HAC->GetBakeFolderOrDefault();
+}
+
+UWorld* 
+FHoudiniTestContext::GetWorld() const
+{
+	if (HC)
+		return HC->GetWorld();
+	else
+		return HAC->GetHACWorld();
+}
+
+UHoudiniPDGAssetLink*
+FHoudiniTestContext::GetPDGAssetLink()
+{
+	if (HC)
+		return HC->GetPDGAssetLink();
+	else
+		return HAC->GetPDGAssetLink();
+}
+
+FString
+FHoudiniTestContext::GetTemporaryCookFolderOrDefault() const
+{
+	if (HC)
+		return HC->GetTemporaryCookFolderOrDefault();
+	else
+		return HAC->GetTemporaryCookFolderOrDefault();
+}
+
 FHoudiniTestContext::~FHoudiniTestContext()
 {
 	if(HC)
@@ -346,12 +483,14 @@ FHoudiniTestContext::~FHoudiniTestContext()
 		HAC->GetOnPostOutputProcessingDelegate().Remove(OutputDelegateHandle);
 }
 
-bool FHoudiniTestContext::IsValid()
+bool 
+FHoudiniTestContext::IsValid()
 {
 	return (HAC != nullptr || HC != nullptr);
 }
 
-TArray<AActor*> FHoudiniEditorUnitTestUtils::GetOutputActors(TArray<FHoudiniBakedOutput>& BakedOutputs)
+TArray<AActor*>
+FHoudiniEditorUnitTestUtils::GetOutputActors(TArray<FHoudiniBakedOutput>& BakedOutputs)
 {
 	TArray<AActor*> Results;
 	for(auto & BakeOutput : BakedOutputs)

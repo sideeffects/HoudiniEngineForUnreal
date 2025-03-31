@@ -26,27 +26,30 @@
 
 #include "HoudiniEditorTestAnimation.h"
 
-#include "EditorAnimUtils.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "Engine/SkeletalMesh.h"
+#include "HoudiniCookable.h"
 #include "HoudiniParameterInt.h"
 #include "HoudiniParameterString.h"
 #include "HoudiniParameterToggle.h"
+
 #include "Animation/SkeletalMeshActor.h"
-#include "Chaos/HeightField.h"
 #include "Animation/Skeleton.h"
+#include "Chaos/HeightField.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "EditorAnimUtils.h"
+#include "Engine/SkeletalMesh.h"
+
 #if WITH_DEV_AUTOMATION_TESTS
 #include "HoudiniEditorTestUtils.h"
-
-#include "Misc/AutomationTest.h"
-#include "GenericPlatform/GenericPlatformProcess.h"
-#include "Components/InstancedStaticMeshComponent.h"
 #include "HoudiniEditorUnitTestUtils.h"
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
-#include "Engine/SkinnedAssetCommon.h"
-#endif
-#include "Animation/AnimSequence.h"
 
+#include "Animation/AnimSequence.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "GenericPlatform/GenericPlatformProcess.h"
+#include "Misc/AutomationTest.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
+	#include "Engine/SkinnedAssetCommon.h"
+#endif
 
 TMap<FName, TArray<FTransform>> FHoudiniEditorTestAnimationUtils::GetAnimationTransforms(const UAnimSequence* AnimSequence)
 {
@@ -82,8 +85,7 @@ bool FHoudiniEditorTestAnimationRoundtrip::RunTest(const FString& Parameters)
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestAnimationUtils::AnimationRoundtripHDA, FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
-	Context->GetHAC()->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Context->GetHAC()->SetEnableProxyStaticMeshOverride(false);
+	Context->SetProxyMeshEnabled(false);
 
 	UAnimSequence* OrigAnimSequence = LoadObject<UAnimSequence>(Context->World, TEXT("/Script/Engine.SkeletalMesh'/Game/TestObjects/Animation/MM_Walk_Fwd.MM_Walk_Fwd'"));
 
@@ -100,7 +102,7 @@ bool FHoudiniEditorTestAnimationRoundtrip::RunTest(const FString& Parameters)
 	{
 		bool bChanged = true;
 
-		UHoudiniInput * Input = Context->GetHAC()->GetInputAt(0);
+		UHoudiniInput* Input = Context->GetInputAt(0);
 
 		Input->InsertInputObjectAt(EHoudiniInputType::Geometry, 0);
 
@@ -119,7 +121,7 @@ bool FHoudiniEditorTestAnimationRoundtrip::RunTest(const FString& Parameters)
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
 		TArray<UHoudiniOutput*> Outputs;
-		Context->GetHAC()->GetOutputs(Outputs);
+		Context->GetOutputs(Outputs);
 
 		// We should have two outputs, two meshes
 		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 1, return true);
@@ -130,14 +132,9 @@ bool FHoudiniEditorTestAnimationRoundtrip::RunTest(const FString& Parameters)
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, OrigAnimSequence]()
 	{
 		FHoudiniBakeSettings BakeSettings;
+		Context->Bake(BakeSettings);
 
-		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
-			Context->GetHAC(),
-			BakeSettings,
-			Context->GetHAC()->GetHoudiniEngineBakeOption(),
-			Context->GetHAC()->GetRemoveOutputAfterBake());
-
-		auto BakedOutputs = Context->GetHAC()->GetBakedOutputs();
+		auto BakedOutputs = Context->GetBakedOutputs();
 
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 

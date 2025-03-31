@@ -703,6 +703,7 @@ public:
 	void HandleOnPreInstantiation();
 	void HandleOnPreCook();
 	void HandleOnPostCook();
+	void HandleOnPostBake(bool bInSuccess);
 
 	// Other public API delegates
 	void HandleOnPreOutputProcessing();

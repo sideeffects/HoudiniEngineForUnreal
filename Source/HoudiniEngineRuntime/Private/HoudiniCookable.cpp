@@ -770,6 +770,13 @@ UHoudiniCookable::HandleOnPostOutputProcessing()
 }
 
 void
+UHoudiniCookable::HandleOnPostBake(bool bInSuccess)
+{
+	if (OnPostBakeDelegate.IsBound())
+		OnPostBakeDelegate.Broadcast(this, bInSuccess);
+}
+
+void
 UHoudiniCookable::UpdateDormantStatus()
 {
 #if WITH_EDITOR

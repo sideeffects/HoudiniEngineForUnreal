@@ -27,17 +27,19 @@
 #include "HoudiniEditorMaterialTests.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
+
+#include "HoudiniCookable.h"
 #include "HoudiniEditorTestUtils.h"
 #include "HoudiniEditorUnitTestUtils.h"
-#include "TextureResource.h"
+
 #include "Engine/EngineTypes.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialExpressionMultiply.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionTextureSampleParameter2D.h"
-
 #include "Misc/AutomationTest.h"
+#include "TextureResource.h"
 
 FString FHoudiniEditorMaterialTests::EquivalenceTestMapName = TEXT("Materials");
 FString FHoudiniEditorMaterialTests::TestHDAPath = TEXT("/Game/TestHDAs/Materials/");
@@ -101,8 +103,8 @@ bool HoudiniEditorMaterialTest_Material_Textures::RunTest(const FString& Paramet
 	// Now create the test context.
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorMaterialTests::TestHDAPath + TEXT("Material_Textures"), FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
-	Context->GetHAC()->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Context->GetHAC()->SetEnableProxyStaticMeshOverride(false);
+
+	Context->SetProxyMeshEnabled(false);
 
 	// Start cooking the HDA.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
@@ -167,7 +169,8 @@ bool HoudiniEditorMaterialTest_Material_Textures::RunTest(const FString& Paramet
 
 		// We should have one output.
 		TArray<UHoudiniOutput*> Outputs;
-		Context->GetHAC()->GetOutputs(Outputs);
+		Context->GetOutputs(Outputs);
+
 		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 1, return true);
 
 		// And the one output should have a static mesh.

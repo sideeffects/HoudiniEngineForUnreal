@@ -74,8 +74,7 @@ bool FHoudiniEditorTestsPDGDataLayers::RunTest(const FString& Parameters)
 	// after the test returns.
 
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, HDAName, FTransform::Identity, true));
-	Context->GetHAC()->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Context->GetHAC()->SetEnableProxyStaticMeshOverride(false);
+	Context->SetProxyMeshEnabled(false);
 
 	// HDA Path and kick Cook.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
@@ -83,7 +82,7 @@ bool FHoudiniEditorTestsPDGDataLayers::RunTest(const FString& Parameters)
 		FString HDAPath = FHoudiniEditorUnitTestUtils::GetAbsolutePathOfProjectFile(TEXT("TestHDAS/DataLayers/CreateMeshWithDataLayer.hda"));
 		HOUDINI_LOG_MESSAGE(TEXT("Resolved HDA to %s"), *HDAPath);
 
-		SET_HDA_PARAMETER(Context->GetHAC(), UHoudiniParameterString, "hda_path", HDAPath, 0);
+		SET_HDA_PARAMETER(Context, UHoudiniParameterString, "hda_path", HDAPath, 0);
 		Context->StartCookingHDA();
 		return true;
 	}));
@@ -98,7 +97,7 @@ bool FHoudiniEditorTestsPDGDataLayers::RunTest(const FString& Parameters)
 	// Bake and check results.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
-		UHoudiniPDGAssetLink * AssetLink = Context->GetHAC()->GetPDGAssetLink();
+		UHoudiniPDGAssetLink * AssetLink = Context->GetPDGAssetLink();
 		UTOPNetwork * Network = AssetLink->GetTOPNetwork(0);
 		HOUDINI_TEST_NOT_NULL(Network);
 
@@ -156,8 +155,7 @@ bool FHoudiniEditorTestLandscapeDataLayers::RunTest(const FString& Parameters)
 	// after the test returns.
 
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, HDAName, FTransform::Identity, true));
-	Context->GetHAC()->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Context->GetHAC()->SetEnableProxyStaticMeshOverride(false);
+	Context->SetProxyMeshEnabled(false);
 
 	// HDA Path and kick Cook.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
@@ -170,14 +168,9 @@ bool FHoudiniEditorTestLandscapeDataLayers::RunTest(const FString& Parameters)
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
 		FHoudiniBakeSettings BakeSettings;
+		Context->Bake(BakeSettings);
 
-		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
-			Context->GetHAC(),
-			BakeSettings, 
-			Context->GetHAC()->GetHoudiniEngineBakeOption(),
-			Context->GetHAC()->GetRemoveOutputAfterBake());
-
-		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->GetHAC()->GetBakedOutputs();
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->GetBakedOutputs();
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 		auto& BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
@@ -235,8 +228,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesDataLayers, 
 	// after the test returns.
 
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, HDAName, FTransform::Identity, true));
-	Context->GetHAC()->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Context->GetHAC()->SetEnableProxyStaticMeshOverride(false);
+	Context->SetProxyMeshEnabled(false);
 
 	// HDA Path and kick Cook.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
@@ -249,14 +241,9 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesDataLayers, 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
 		FHoudiniBakeSettings BakeSettings;
+		Context->Bake(BakeSettings);
 
-		FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
-			Context->GetHAC(), 
-			BakeSettings,
-			Context->GetHAC()->GetHoudiniEngineBakeOption(),
-			Context->GetHAC()->GetRemoveOutputAfterBake());
-
-		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->GetHAC()->GetBakedOutputs();
+		TArray<FHoudiniBakedOutput>& BakedOutputs = Context->GetBakedOutputs();
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 		auto& BakedOutput = BakedOutputs[0];
 

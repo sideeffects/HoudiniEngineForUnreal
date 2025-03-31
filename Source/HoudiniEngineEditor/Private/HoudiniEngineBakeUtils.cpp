@@ -366,7 +366,8 @@ FHoudiniEngineBakeUtils::BakeHDAToActors(
 	}
 
 
-	FHoudiniBakeLevelInstanceUtils::CreateLevelInstances(HoudiniAssetComponent, NewActors, HoudiniAssetComponent->GetBakeFolderOrDefault(), BakedObjectData);
+	FHoudiniBakeLevelInstanceUtils::CreateLevelInstances(
+		HoudiniAssetComponent, NewActors, HoudiniAssetComponent->GetBakeFolderOrDefault(), BakedObjectData);
 
 	if (GEditor && NewActors.Num() > 0)
 		GEditor->NoteSelectionChange();

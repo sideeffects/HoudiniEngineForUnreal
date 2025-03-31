@@ -99,10 +99,21 @@ bool FHoudiniEditorTestPresetLoading::RunTest(const FString& Parameters)
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->GetHAC(), return true);
 
 		TMap<FString, UHoudiniParameter*> Parameters;
-		for(int Index = 0; Index < Context->GetHAC()->GetNumParameters();Index++)
+		if (Context->GetCookable())
 		{
-			auto * Parameter = Context->GetHAC()->GetParameterAt(Index);
-			Parameters.Add(Parameter->GetParameterName(), Parameter);
+			for (int Index = 0; Index < Context->GetCookable()->GetNumParameters(); Index++)
+			{
+				auto* Parameter = Context->GetCookable()->GetParameterAt(Index);
+				Parameters.Add(Parameter->GetParameterName(), Parameter);
+			}
+		}
+		else
+		{
+			for (int Index = 0; Index < Context->GetHAC()->GetNumParameters(); Index++)
+			{
+				auto* Parameter = Context->GetHAC()->GetParameterAt(Index);
+				Parameters.Add(Parameter->GetParameterName(), Parameter);
+			}
 		}
 
 		UHoudiniParameter * * Parm = nullptr;

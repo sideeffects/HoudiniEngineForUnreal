@@ -3345,8 +3345,12 @@ UHoudiniAssetComponent::HandleOnHoudiniAssetStateChange(UObject* InHoudiniAssetC
 		
 }
 
-void UHoudiniAssetComponent::HandleOnPreInstantiation()
+void 
+UHoudiniAssetComponent::HandleOnPreInstantiation()
 {
+	if (GetCookable())
+		GetCookable()->HandleOnPreInstantiation();
+
 	if (OnPreInstantiationDelegate.IsBound())
 		OnPreInstantiationDelegate.Broadcast(this);
 }
@@ -3354,6 +3358,9 @@ void UHoudiniAssetComponent::HandleOnPreInstantiation()
 void
 UHoudiniAssetComponent::HandleOnPreCook()
 {
+	if (GetCookable())
+		GetCookable()->HandleOnPreCook();
+
 	// Process the PreCookCallbacks array first
 	for(auto CallbackFn : PreCookCallbacks)
 	{
@@ -3368,6 +3375,9 @@ UHoudiniAssetComponent::HandleOnPreCook()
 void
 UHoudiniAssetComponent::HandleOnPostCook()
 {
+	if (GetCookable())
+		GetCookable()->HandleOnPostCook();
+
 	if (OnPostCookDelegate.IsBound())
 		OnPostCookDelegate.Broadcast(this, bLastCookSuccess);
 }
@@ -3375,6 +3385,9 @@ UHoudiniAssetComponent::HandleOnPostCook()
 void
 UHoudiniAssetComponent::HandleOnPreOutputProcessing()
 {
+	if (GetCookable())
+		GetCookable()->HandleOnPreOutputProcessing();
+
 	if (OnPreOutputProcessingDelegate.IsBound())
 	{
 		OnPreOutputProcessingDelegate.Broadcast(this, true);
@@ -3384,6 +3397,9 @@ UHoudiniAssetComponent::HandleOnPreOutputProcessing()
 void
 UHoudiniAssetComponent::HandleOnPostOutputProcessing()
 {
+	if (GetCookable())
+		GetCookable()->HandleOnPostOutputProcessing();
+
 	if (OnPostOutputProcessingDelegate.IsBound())
 	{
 		OnPostOutputProcessingDelegate.Broadcast(this, true);
@@ -3393,6 +3409,9 @@ UHoudiniAssetComponent::HandleOnPostOutputProcessing()
 void
 UHoudiniAssetComponent::HandleOnPostBake(bool bInSuccess)
 {
+	if (GetCookable())
+		GetCookable()->HandleOnPostBake(bInSuccess);
+
 	if (OnPostBakeDelegate.IsBound())
 		OnPostBakeDelegate.Broadcast(this, bInSuccess);
 }

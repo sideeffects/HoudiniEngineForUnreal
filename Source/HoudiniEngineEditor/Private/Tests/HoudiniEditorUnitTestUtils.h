@@ -207,11 +207,21 @@ struct FHoudiniEditorUnitTestUtils
 	// Finds an HAC parameter of a specific class.
 	static UHoudiniParameter * GetTypedParameter(UHoudiniAssetComponent * HAC, UClass * Class, const char* Name);
 
+	// Finds a Cookable parameter of a specific class.
+	static UHoudiniParameter* GetTypedParameter(UHoudiniCookable* HC, UClass* Class, const char* Name);
+
 	// Finds an HAC parameter of a specific class.
 	template <typename TYPED_PARAMETER>
 	static TYPED_PARAMETER*  GetTypedParameter(UHoudiniAssetComponent* HAC, const char * Name)
 	{
 		return Cast<TYPED_PARAMETER>(GetTypedParameter(HAC, TYPED_PARAMETER::StaticClass(), Name));
+	}
+
+	// Finds a Cookable parameter of a specific class.
+	template <typename TYPED_PARAMETER>
+	static TYPED_PARAMETER* GetTypedParameter(UHoudiniCookable* HC, const char* Name)
+	{
+		return Cast<TYPED_PARAMETER>(GetTypedParameter(HC, TYPED_PARAMETER::StaticClass(), Name));
 	}
 
 	// Returns only components on the exact type
@@ -248,7 +258,6 @@ struct FHoudiniEditorUnitTestUtils
 		TArray<AActor*> Results;
 		for (auto Actor : Actors)
 		{
-
 			TArray<UActorComponent*> Components;
 			Actor->GetComponents(Components);
 			for (auto Component : Components)
@@ -264,15 +273,19 @@ struct FHoudiniEditorUnitTestUtils
 	}
 
 	// Checks if an object was saved to the HAC's temp folder.
-	static bool IsTemporary(UHoudiniAssetComponent * HAC, const FString & ObjectPath);
+	static bool IsTemporary(const FString& TempFolder, const FString& ObjectPath);
 };
 
 
 // Helper macro to set parm, ensures the parameter is valid.
-#define SET_HDA_PARAMETER(_HAC, _PARAMETER_TYPE, _PARAMATER_NAME, _PARAMETER_VALUE, _PARAMETER_INDEX)\
+#define SET_HDA_PARAMETER(_CTX, _PARAMETER_TYPE, _PARAMETER_NAME, _PARAMETER_VALUE, _PARAMETER_INDEX)\
 	{\
-		_PARAMETER_TYPE* __Parameter = FHoudiniEditorUnitTestUtils::GetTypedParameter<_PARAMETER_TYPE>(_HAC, _PARAMATER_NAME);\
-		if (!TestNotNull(#_PARAMATER_NAME, __Parameter))\
+		_PARAMETER_TYPE* __Parameter = nullptr;\
+		if(_CTX->GetCookable())\
+			__Parameter = FHoudiniEditorUnitTestUtils::GetTypedParameter<_PARAMETER_TYPE>(_CTX->GetCookable(), _PARAMETER_NAME);\
+		else\
+			__Parameter = FHoudiniEditorUnitTestUtils::GetTypedParameter<_PARAMETER_TYPE>(_CTX->GetHAC(), _PARAMETER_NAME); \
+		if (!TestNotNull(#_PARAMETER_NAME, __Parameter))\
 		{\
 			return true;\
 		}\
@@ -280,10 +293,14 @@ struct FHoudiniEditorUnitTestUtils
 	}
 
 // Helper macro to set parm, ensures the parameter is valid.
-#define SET_HDA_PARAMETER_NUM_ELEMENTS(_HAC, _PARAMETER_TYPE, _PARAMATER_NAME, _PARAMETER_VALUE)\
+#define SET_HDA_PARAMETER_NUM_ELEMENTS(_CTX, _PARAMETER_TYPE, _PARAMETER_NAME, _PARAMETER_VALUE)\
 	{\
-		_PARAMETER_TYPE* __Parameter = FHoudiniEditorUnitTestUtils::GetTypedParameter<_PARAMETER_TYPE>(_HAC, _PARAMATER_NAME);\
-		if (!TestNotNull(#_PARAMATER_NAME, __Parameter))\
+		_PARAMETER_TYPE* __Parameter = nullptr;\
+		if(_CTX->GetCookable())\
+			__Parameter = FHoudiniEditorUnitTestUtils::GetTypedParameter<_PARAMETER_TYPE>(_CTX->GetCookable(), _PARAMETER_NAME);\
+		else\
+			__Parameter = FHoudiniEditorUnitTestUtils::GetTypedParameter<_PARAMETER_TYPE>(_CTX->GetHAC(), _PARAMETER_NAME);\
+		if (!TestNotNull(#_PARAMETER_NAME, __Parameter))\
 		{\
 			return true;\
 		}\
@@ -323,13 +340,24 @@ struct FHoudiniTestContext
 	UHoudiniAssetComponent* GetHAC();
 	UHoudiniCookable* GetCookable();
 
+	// Helper function to simplify the code when dealing with HAC and Cookables
+	bool Bake(const FHoudiniBakeSettings& InBakeSettings);
+	void GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const;
+	TArray<FHoudiniBakedOutput>& GetBakedOutputs();
+	UHoudiniInput* GetInputAt(const int Idx);
+	void SetProxyMeshEnabled(const bool bEnabled);
+	FString GetBakeFolderOrDefault() const;
+	UWorld* GetWorld() const;
+	UHoudiniPDGAssetLink* GetPDGAssetLink();
+	FString GetTemporaryCookFolderOrDefault() const;
+
 	//  Check if the context is valid. This will be false if, for example, the HDA failed to load.
 	bool IsValid();
 
 	// Bakes the top network. Synchronous, returns the baked actors.
 	TArray<FHoudiniEngineBakedActor> BakeSelectedTopNetwork();
 
-	double MaxTime = 120.0f;						// Max time (seconds) this test can run.
+	double MaxTime = 120.0f;					// Max time (seconds) this test can run.
 	double TimeStarted = 0.0f;					// Time this test started. Used to test for timeout.
 
 	FAutomationTestBase* Test = nullptr;		// Unit test underway
