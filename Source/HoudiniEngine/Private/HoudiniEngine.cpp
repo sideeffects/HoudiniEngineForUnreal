@@ -1152,12 +1152,13 @@ FHoudiniEngine::StopSession()
 }
 
 bool
-FHoudiniEngine::RestartSession()
+FHoudiniEngine::RestartSession(bool bShowNotifications)
 {
 	const HAPI_Session* const SessionPtr = GetSession();
 
 	FString StatusText = TEXT("Starting the Houdini Engine session...");
-	FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(StatusText), true, 4.0f);
+	if (bShowNotifications)
+		FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(StatusText), true, 4.0f);
 
 	// Make sure we stop the current session if it is still valid
 	bool bSuccess = false;

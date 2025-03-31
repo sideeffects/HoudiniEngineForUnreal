@@ -181,16 +181,23 @@ class HOUDINIENGINERUNTIME_API UHoudiniPCGDataObject : public UObject
 
     GENERATED_BODY()
 public:
-    void Initialize(const UPCGData* PCGParamaData);
+    void Initialize(const UPCGData* PCGParamaData, const TSet<FString> & Tags = {});
     void Initialize(const UPCGParamData* PCGParamaData);
     void Initialize(const UPCGPointData* PCGParamaData);
     bool operator==(const UHoudiniPCGDataObject& Other) const;
     bool operator!=(const UHoudiniPCGDataObject& Other) const;
+    int GetNumRows() const;
 
     UHoudiniPCGDataAttributeBase* FindAttribute(const FString& AttrName);
 
     UPROPERTY()
     TArray<TObjectPtr<UHoudiniPCGDataAttributeBase>> Attributes;
+
+    UPROPERTY()
+    EPCGDataType PCGDataType;
+
+    UPROPERTY()
+    TSet<FString> PCGTags;
 
 private:
 	void AddMetaDataAttributes(const UPCGMetadata* PCGParamaData);
@@ -209,4 +216,29 @@ private:
 
 };
 
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniPCGDataCollection : public UObject
+{
+    GENERATED_BODY()
 
+public:
+
+    bool operator==(const UHoudiniPCGDataCollection& Other) const;
+    bool operator!=(const UHoudiniPCGDataCollection& Other) const;
+
+    void AddObject(UHoudiniPCGDataObject * Object);
+
+    UPROPERTY()
+    TObjectPtr<UHoudiniPCGDataObject> Details;
+
+    UPROPERTY()
+    TObjectPtr<UHoudiniPCGDataObject> Primitives;
+
+
+    UPROPERTY()
+    TObjectPtr<UHoudiniPCGDataObject> Vertices;
+
+    UPROPERTY()
+    TObjectPtr<UHoudiniPCGDataObject> Points;
+
+};

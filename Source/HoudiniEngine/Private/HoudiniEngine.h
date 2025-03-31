@@ -139,7 +139,7 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 		// Stops the current session
 		bool StopSession();
 		// Stops, then creates a new session
-		bool RestartSession();
+		bool RestartSession(bool bShowNotifications=true);
 		// Creates a session, start HARS
 		bool CreateSession(const EHoudiniRuntimeSettingsSessionType& SessionType, FName OverrideServerPipeName=NAME_None);
 		// Connect to an existing HE session

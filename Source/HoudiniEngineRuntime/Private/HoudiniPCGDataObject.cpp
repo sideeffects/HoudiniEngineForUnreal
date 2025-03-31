@@ -44,8 +44,10 @@ bool UHoudiniPCGDataObject::operator!=(const UHoudiniPCGDataObject& Other) const
 	return !(*this == Other);
 }
 
-void UHoudiniPCGDataObject::Initialize(const UPCGData* PCGData)
+void UHoudiniPCGDataObject::Initialize(const UPCGData* PCGData, const TSet<FString> & Tags)
 {
+	PCGDataType = PCGData->GetDataType();
+	PCGTags = Tags;
 	if(PCGData->IsA<UPCGParamData>())
 		Initialize(Cast<UPCGParamData>(PCGData));
 	else if(PCGData->IsA<UPCGPointData>())
@@ -65,9 +67,9 @@ void UHoudiniPCGDataObject::Initialize(const UPCGPointData* PCGPointData)
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
 			FVector Position = Points[Index].Transform.GetLocation();
-			AttrDest->Values[Index][0] = Position.X * 100.0f;
-			AttrDest->Values[Index][1] = Position.Z * 100.0f;
-			AttrDest->Values[Index][2] = Position.Y * 100.0f;
+			AttrDest->Values[Index][0] = Position.X / 100.0f;
+			AttrDest->Values[Index][1] = Position.Z / 100.0f;
+			AttrDest->Values[Index][2] = Position.Y / 100.0f;
 		}
 		Attributes.Emplace(MoveTemp(AttrDest));
 	}
@@ -91,9 +93,9 @@ void UHoudiniPCGDataObject::Initialize(const UPCGPointData* PCGPointData)
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
 			FVector Value = Points[Index].BoundsMin;
-			AttrDest->Values[Index][0] = Value.X * 100.0;
-			AttrDest->Values[Index][1] = Value.Z * 100.0;
-			AttrDest->Values[Index][2] = Value.Y * 100.0;
+			AttrDest->Values[Index][0] = Value.X / 100.0;
+			AttrDest->Values[Index][1] = Value.Z / 100.0;
+			AttrDest->Values[Index][2] = Value.Y / 100.0;
 		}
 		Attributes.Emplace(MoveTemp(AttrDest));
 	}
@@ -104,9 +106,9 @@ void UHoudiniPCGDataObject::Initialize(const UPCGPointData* PCGPointData)
 		for(int Index = 0; Index < Points.Num(); Index++)
 		{
 			FVector Value = Points[Index].BoundsMin;
-			AttrDest->Values[Index][0] = Value.X * 100.0;
-			AttrDest->Values[Index][1] = Value.Z * 100.0;
-			AttrDest->Values[Index][2] = Value.Y * 100.0;
+			AttrDest->Values[Index][0] = Value.X / 100.0;
+			AttrDest->Values[Index][1] = Value.Z / 100.0;
+			AttrDest->Values[Index][2] = Value.Y / 100.0;
 		}
 		Attributes.Emplace(MoveTemp(AttrDest));
 	}
@@ -475,3 +477,61 @@ UHoudiniPCGDataAttributeSoftClassPath* UHoudiniPCGDataObject::CreateAttributeSof
 	return Result;
 }
 
+int UHoudiniPCGDataObject::GetNumRows() const
+{
+	return Attributes[0]->GetNumValues();
+}
+
+
+bool UHoudiniPCGDataCollection::operator==(const UHoudiniPCGDataCollection& Other) const
+{
+	auto CheckObjects = [](UHoudiniPCGDataObject* Obj1, UHoudiniPCGDataObject*Obj2)
+	{
+		if(IsValid(Obj1) && IsValid(Obj2))
+		{
+			return (*Obj1) == (*Obj2);
+		}
+		else if(Obj1 == nullptr && Obj2 == nullptr)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	};
+
+	bool bSame = true;
+	bSame &= CheckObjects(this->Details, Other.Details);
+	bSame &= CheckObjects(this->Vertices, Other.Vertices);
+	bSame &= CheckObjects(this->Primitives, Other.Primitives);
+	bSame &= CheckObjects(this->Points, Other.Points);
+	return bSame;
+
+	
+}
+
+bool UHoudiniPCGDataCollection::operator!=(const UHoudiniPCGDataCollection& Other) const
+{
+	return !(*this == Other);
+}
+
+void UHoudiniPCGDataCollection::AddObject(UHoudiniPCGDataObject* Object)
+{
+	if(Object->PCGDataType == EPCGDataType::Point)
+	{
+		Points = Object;
+	}
+	else if (Object->PCGTags.Contains(TEXT("Vertices")))
+	{
+		Vertices = Object;
+	}
+	else if(Object->PCGTags.Contains(TEXT("Primitives")))
+	{
+		Primitives = Object;
+	}
+	else if(Object->PCGTags.Contains(TEXT("Details")))
+	{
+		Details = Object;
+	}
+}

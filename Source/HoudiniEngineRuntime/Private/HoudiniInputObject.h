@@ -45,6 +45,7 @@
 #include "HoudiniInputObject.generated.h"
 
 class UHoudiniPCGDataObject;
+class UHoudiniPCGDataCollection;
 class ULandscapeSplineControlPoint;
 class UStaticMesh;
 class USkeletalMesh;
@@ -1104,7 +1105,8 @@ public:
 	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
 
 	// DataTable accessor
-	UHoudiniPCGDataObject* GetPCGData() const;
+
+	UHoudiniPCGDataCollection* GetPCGData() const;
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------

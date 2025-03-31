@@ -104,7 +104,7 @@ namespace
 };
 
 bool FUnrealPCGDataTranslator::CreateInputNodeForPCGData(
-	UHoudiniPCGDataObject* PCGData,
+	UHoudiniPCGDataCollection* PCGDataCollection,
 	HAPI_NodeId& InputNodeId,
 	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
@@ -112,7 +112,7 @@ bool FUnrealPCGDataTranslator::CreateInputNodeForPCGData(
 {
 	// Create Identifier and default name for this object.
 	FUnrealObjectInputOptions Options;
-	FUnrealObjectInputIdentifier Identifier = FUnrealObjectInputIdentifier(PCGData, Options, true);
+	FUnrealObjectInputIdentifier Identifier = FUnrealObjectInputIdentifier(PCGDataCollection, Options, true);
 	FString FinalInputNodeName = InputNodeName;
 	FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 
@@ -182,7 +182,7 @@ bool FUnrealPCGDataTranslator::CreateInputNodeForPCGData(
 	}
 
 
-	CreateInputNodeForPCGParamData(PCGData, InputNodeId);
+	CreateInputNodeForPCGParamData(PCGDataCollection, InputNodeId);
 
 	if(FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
 		OutHandle = Handle;
@@ -190,42 +190,28 @@ bool FUnrealPCGDataTranslator::CreateInputNodeForPCGData(
 	return true;
 }
 
-bool
-FUnrealPCGDataTranslator::CreateInputNodeForPCGParamData(
-	UHoudiniPCGDataObject* PCGInputData,
-	HAPI_NodeId& InputNodeId)
+void
+FUnrealPCGDataTranslator::SetAttributes(UHoudiniPCGDataObject* PCGDataObject, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
-	if(PCGInputData->Attributes.IsEmpty())
-		return true;
+	if(!PCGDataObject)
+		return;
 
-	int NumRows = PCGInputData->Attributes[0]->GetNumValues();
-
-	HAPI_PartInfo Part;
-	FHoudiniApi::PartInfo_Init(&Part);
-	Part.id = 0;
-	Part.nameSH = 0;
-	Part.attributeCounts[HAPI_ATTROWNER_POINT] = PCGInputData->Attributes.Num();
-	Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 0;
-	Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
-	Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
-	Part.vertexCount = 0;
-	Part.faceCount = 0;
-	Part.pointCount = NumRows;
-	Part.type = HAPI_PARTTYPE_MESH;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), InputNodeId, 0, &Part), false);
-
-	HAPI_AttributeOwner Owner = HAPI_ATTROWNER_POINT;
-	int PartId = Part.id;
-
-	bool bFoundPositionAttr = false;
-	for(auto& It : PCGInputData->Attributes)
+	for(auto& It : PCGDataObject->Attributes)
 	{
 		UHoudiniPCGDataAttributeBase* Attr = It.Get();
 
-		bFoundPositionAttr |= (Attr->AttrName == TEXT("P"));
+		if (Attr->AttrName == TEXT("__vertex_id") && Owner == HAPI_ATTROWNER_VERTEX)
+		{
+			auto* AttributeInt = Cast<UHoudiniPCGDataAttributeInt>(Attr);
+			if (!AttributeInt)
+			{
+				HOUDINI_LOG_ERROR(TEXT("__vertex_id must be an integer"));
+				return;
+			}
 
-		if(auto* AttributeFloat = Cast<UHoudiniPCGDataAttributeFloat>(Attr))
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(AttributeInt->Values, InputNodeId, PartId), );
+		}
+		else if(auto* AttributeFloat = Cast<UHoudiniPCGDataAttributeFloat>(Attr))
 			SendToHoudini(AttributeFloat, InputNodeId, PartId, Owner);
 		else if(auto* AttributeDouble = Cast<UHoudiniPCGDataAttributeDouble>(Attr))
 			SendToHoudini(AttributeDouble, InputNodeId, PartId, Owner);
@@ -248,16 +234,54 @@ FUnrealPCGDataTranslator::CreateInputNodeForPCGParamData(
 		else
 			check(false);
 	}
+}
 
-	if (!bFoundPositionAttr)
+bool
+FUnrealPCGDataTranslator::CreateInputNodeForPCGParamData(
+	UHoudiniPCGDataCollection* PCGCollection,
+	HAPI_NodeId& InputNodeId)
+{
+	if (!IsValid(PCGCollection->Points))
 	{
-		// We must have a point "P" Attribute. If one was not specified, add one.
-		HAPI_AttributeInfo AttrInfo;
-		FHoudiniHapiAccessor Accessor(InputNodeId, PartId, "P");
-		TArray<float> Positions;
-		Positions.SetNumZeroed(NumRows * 3);
-		Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 3, NumRows, &AttrInfo);
-		Accessor.SetAttributeData(AttrInfo, Positions);
+		HOUDINI_PCG_ERROR(TEXT("Not able to process a PCG Data without points"));
+		return false;
+	}
+
+	int NumPoints = PCGCollection->Points ? PCGCollection->Points->GetNumRows() : 0;
+	int NumPrims = PCGCollection->Primitives ? PCGCollection->Primitives->GetNumRows() : 0;
+	int NumVertices = PCGCollection->Vertices ? PCGCollection->Vertices->GetNumRows() : 0;
+	int NumDetails = PCGCollection->Details ? PCGCollection->Details->GetNumRows() : 0;
+
+	HAPI_PartInfo Part;
+	FHoudiniApi::PartInfo_Init(&Part);
+	Part.id = 0;
+	Part.nameSH = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_POINT] = PCGCollection->Points->Attributes.Num();
+	Part.attributeCounts[HAPI_ATTROWNER_PRIM] = PCGCollection->Primitives ? PCGCollection->Primitives->Attributes.Num() : 0;
+	Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = PCGCollection->Vertices ? PCGCollection->Vertices->Attributes.Num() : 0;
+	Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = PCGCollection->Details ? PCGCollection->Details->Attributes.Num() : 0;
+	Part.vertexCount = NumVertices;
+	Part.faceCount = NumPrims;
+	Part.pointCount = NumPoints;
+	Part.type = HAPI_PARTTYPE_MESH;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), InputNodeId, 0, &Part), false);
+
+	SetAttributes(PCGCollection->Points, InputNodeId, Part.id, HAPI_ATTROWNER_POINT);
+	SetAttributes(PCGCollection->Vertices, InputNodeId, Part.id, HAPI_ATTROWNER_VERTEX);
+	SetAttributes(PCGCollection->Primitives, InputNodeId, Part.id, HAPI_ATTROWNER_PRIM);
+	SetAttributes(PCGCollection->Details, InputNodeId, Part.id, HAPI_ATTROWNER_DETAIL);
+
+	// We need to generate array of face counts.
+	if (Part.faceCount)
+	{
+		TArray<int32> StaticMeshFaceCounts;
+		StaticMeshFaceCounts.SetNumUninitialized(Part.faceCount);
+		for(int32 n = 0; n < Part.faceCount; n++)
+			StaticMeshFaceCounts[n] = 3;
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
+			StaticMeshFaceCounts, InputNodeId, 0), false);
 	}
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(InputNodeId), false);
@@ -346,14 +370,14 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector2d * 
 {
 	HAPI_AttributeInfo AttrInfo;
 	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
-	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 2,Data->Values.Num(), &AttrInfo);
+	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 2, Data->Values.Num(), &AttrInfo);
 
 	TArray<float> FloatValues;
 	FloatValues.SetNum(Data->Values.Num() * 2);
 	for(int Index = 0; Index <Data->Values.Num(); Index++)
 	{
-		FloatValues[Index * 2 + 0] =Data->Values[Index].X;
-		FloatValues[Index * 2 + 1] =Data->Values[Index].Y;
+		FloatValues[Index * 2 + 0] = Data->Values[Index].X;
+		FloatValues[Index * 2 + 1] = Data->Values[Index].Y;
 	}
 	Accessor.SetAttributeData(AttrInfo, FloatValues);
 }
@@ -363,16 +387,16 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector3d * 
 {
 	HAPI_AttributeInfo AttrInfo;
 	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
-	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 3,Data->Values.Num(), &AttrInfo);
+	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 3, Data->Values.Num(), &AttrInfo);
 
 	TArray<float> FloatValues;
 	FloatValues.SetNum(Data->Values.Num() * 3);
 	for(int Index = 0; Index <Data->Values.Num(); Index++)
 	{
 		// Note, no intentional Unreal swizzling or scaling here, we don't know the type.
-		FloatValues[Index * 3 + 0] =Data->Values[Index].X;
-		FloatValues[Index * 3 + 1] =Data->Values[Index].Y;
-		FloatValues[Index * 3 + 2] =Data->Values[Index].Z;
+		FloatValues[Index * 3 + 0] = Data->Values[Index].X;
+		FloatValues[Index * 3 + 1] = Data->Values[Index].Y;
+		FloatValues[Index * 3 + 2] = Data->Values[Index].Z;
 	}
 	Accessor.SetAttributeData(AttrInfo, FloatValues);
 }

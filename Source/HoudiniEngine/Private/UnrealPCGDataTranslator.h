@@ -40,7 +40,7 @@ struct HOUDINIENGINE_API FUnrealPCGDataTranslator
 {
 public:
     static bool CreateInputNodeForPCGData(
-			UHoudiniPCGDataObject* PCGData,
+        UHoudiniPCGDataCollection* PCGData,
             HAPI_NodeId& InputNodeId,
             const FString& InputNodeName,
             FUnrealObjectInputHandle& OutHandle,
@@ -48,10 +48,10 @@ public:
 
 protected:
     static bool CreateInputNodeForPCGParamData(
-        UHoudiniPCGDataObject* InputData,
+        UHoudiniPCGDataCollection* InputData,
         HAPI_NodeId& InputNodeId);
 
-
+    static void SetAttributes(UHoudiniPCGDataObject* PCGDataObject, HAPI_NodeId Node, HAPI_PartId PartId,  HAPI_AttributeOwner Owner);
 
     static void SendToHoudini(UHoudiniPCGDataAttributeFloat* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
     static void SendToHoudini(UHoudiniPCGDataAttributeInt* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);

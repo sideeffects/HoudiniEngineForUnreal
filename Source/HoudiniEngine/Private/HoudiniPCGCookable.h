@@ -28,6 +28,8 @@
 #include "PCGComponent.h"
 #include "HoudiniPCGCookable.generated.h"
 
+class UHoudiniPCGDataObject;
+class UHoudiniPCGDataCollection;
 struct FHoudiniPCGObjectOutput;
 class UPCGData;
 class UPCGMetadata;
@@ -94,14 +96,27 @@ private:
 	static void CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutputs);
 
 	bool ApplyInputsToCookable(FPCGContext* InContext, bool& bErrors);
+
 	bool ApplyParametersToCookable(FPCGContext* Context, bool & bErrors);
+
 	bool ApplyParametersToCookable(const UPCGData* Data, FPCGContext* Context, bool & bErrors);
+
 	void OnCookingComplete(bool bSuccess);
+
 	void InvalidateCookable();
+
 	void ProcessCookableOutput(FPCGContext* Context);
+
 	void AddTrackedObjects(FPCGContext* Context);
-	bool ApplyInputAsUnrealObjects(FPCGContext* Context, UHoudiniInput* HoudiniInput, const UPCGMetadata* Metadata, bool& bErrors);
-	bool ApplyInputAsPCGData(FPCGContext* Context, UHoudiniInput* HoudiniInput, const UPCGData* Data);
+
+	bool ApplyInputAsUnrealObjects(FPCGContext* Context, UHoudiniInput* HoudiniInput, const TArray<FString> & InputObjects, bool& bErrors);
+
+	UHoudiniPCGDataObject* GetPCGDataObjects(FPCGContext* Context, const FPCGTaggedData& TaggedData);
+
+	TArray<FString> GetUnrealObjectPaths(FPCGContext* Context, const UPCGMetadata* Metadata, bool& bError);
+
+	bool ApplyInputAsPCGData(FPCGContext* Context, UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
+
 	void CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutputs);
 };
 

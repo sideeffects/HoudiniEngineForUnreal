@@ -139,8 +139,7 @@ void UHoudiniDigitalAssetPCGSettings::InstantiatePCGEditorHDA()
 
 	ParameterCookable = NewObject<UHoudiniCookable>(GetTransientPackage());
 
-	FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
-	HEM->AutoStartFirstSessionIfNeeded();
+	FHoudiniPCGUtils::StartSession();
 
 	ParameterCookable->SetHoudiniAssetSupported(true);
 	ParameterCookable->SetHoudiniAsset(this->HoudiniAsset);
@@ -151,6 +150,7 @@ void UHoudiniDigitalAssetPCGSettings::InstantiatePCGEditorHDA()
 
 	do
 	{
+		FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
 		HEM->ProcessCookable(ParameterCookable);
 	} while(ParameterCookable->GetCurrentState() != EHoudiniAssetState::None);
 
@@ -263,6 +263,15 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniDigitalAssetPCGElement::ExecuteInternal);
 
+	EHoudiniPCGSessionStatus Status = FHoudiniPCGUtils::StartSession();
+	if (Status == EHoudiniPCGSessionStatus::PCGSessionStatus_Error)
+	{
+		FHoudiniPCGUtils::LogVisualError(Context, TEXT("Could not create Houdini Session"));
+		return true;
+	}
+	else if(Status == EHoudiniPCGSessionStatus::PCGSessionStatus_Creating)
+		return false;
+
 	// This is the main function for processing PCG nodes. It should return true when processing is complete, otherwise
 	// false, which means it will be called again some time in the future (eg. a frame later).
 	//
@@ -340,8 +349,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			ManagedResource->HoudiniPCGComponent = UHoudiniPCGComponent::CreatePCGComponent(Context->SourceComponent.Get());
 			Context->SourceComponent->AddToManagedResources(ManagedResource);
 
-			FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
-			HEM->AutoStartFirstSessionIfNeeded();
+	FHoudiniPCGUtils::StartSession();
 			ManagedResource->HoudiniPCGComponent->Cookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
 			ManagedResource->HoudiniPCGComponent->Cookable->Instantiate(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
 			HOUDINI_PCG_MESSAGE(TEXT("(%p) Creating Managed Resource, Instantiating..."), ManagedResource);

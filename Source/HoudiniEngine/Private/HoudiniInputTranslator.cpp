@@ -5404,7 +5404,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForPCGData(
 	if(!IsValid(InInputObject))
 		return false;
 
-	UHoudiniPCGDataObject* PCGData = InInputObject->GetPCGData();
+	UHoudiniPCGDataCollection* DataCollection = InInputObject->GetPCGData();
+	if(!DataCollection)
+		return true;
+
+	UHoudiniPCGDataObject* PCGData = DataCollection->Points;
 	if(!IsValid(PCGData))
 		return true;
 
@@ -5428,7 +5432,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForPCGData(
 
 
 	FUnrealObjectInputHandle PCGInputNodeHandle;
-	if(!FUnrealPCGDataTranslator::CreateInputNodeForPCGData(PCGData, InputNodeId, PCGDataName, PCGInputNodeHandle, bInputNodesCanBeDeleted))
+	if(!FUnrealPCGDataTranslator::CreateInputNodeForPCGData(DataCollection, InputNodeId, PCGDataName, PCGInputNodeHandle, bInputNodesCanBeDeleted))
 	{
 		return false;
 	}

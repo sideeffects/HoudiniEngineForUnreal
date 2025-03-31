@@ -46,6 +46,13 @@ enum class EHoudiniPCGInputType
 	PCGData
 };
 
+enum class EHoudiniPCGSessionStatus
+{
+	PCGSessionStatus_None,
+	PCGSessionStatus_Creating,
+	PCGSessionStatus_Created,
+	PCGSessionStatus_Error
+};
 struct FHoudiniPCGAttributes
 {
 	FHoudiniPCGAttributes(const UPCGMetadata* Metadata, const FName & ParameterNames);
@@ -75,7 +82,9 @@ class HOUDINIENGINE_API FHoudiniPCGUtils
 public:
 
 	static FString ParameterInputPinName;;
-	static FName HDAInputObject;
+	static FName HDAInputObjectName;
+
+	static EHoudiniPCGSessionStatus StartSession();
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Conversion functions.
@@ -106,4 +115,11 @@ public:
 
 	static void LogVisualWarning(FPCGContext* Context, const FString& ErrorText);
 	static void LogVisualError(FPCGContext* Context, const FString & ErrorText);
+
+private:
+	// Synchronization primitive. 
+	static FCriticalSection CriticalSection;
+	static EHoudiniPCGSessionStatus SessionStatus;
+
+
 };

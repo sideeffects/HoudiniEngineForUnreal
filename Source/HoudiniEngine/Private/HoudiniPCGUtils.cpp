@@ -31,15 +31,19 @@
 #include "HoudiniPCGCookable.h"
 #include "HoudiniInput.h"
 #include "ConnectionDrawingPolicy.h"
+#include "HoudiniEngine.h"
 #include "HoudiniPCGTranslator.h"
 #include "HoudiniPCGDataObject.h"
 #include "Landscape.h"
 #include "PCGParamData.h"
+#include "Async/Async.h"
 
 HOUDINI_PCG_DEFINE_LOG_CATEGORY();
 
 FString FHoudiniPCGUtils::ParameterInputPinName = FString(TEXT("Parameters"));
-FName FHoudiniPCGUtils::HDAInputObject = FName(FString(TEXT("object")));
+FName FHoudiniPCGUtils::HDAInputObjectName = FName(FString(TEXT("object")));
+FCriticalSection FHoudiniPCGUtils::CriticalSection;
+EHoudiniPCGSessionStatus FHoudiniPCGUtils::SessionStatus;
 
 void
 FHoudiniPCGUtils::UnrealToHoudini(const FVector3d& UnrealVector, float HoudiniVector[3])
@@ -128,7 +132,7 @@ FHoudiniPCGUtils::GetInputType(const UPCGData* PCGData)
 	{
 		const UPCGMetadata* Metadata = PCGData->ConstMetadata();
 
-		const FPCGMetadataAttribute<FSoftObjectPath>* ObjectAttrs = static_cast<const FPCGMetadataAttribute<FSoftObjectPath>*>(Metadata->GetConstAttribute(HDAInputObject));
+		const FPCGMetadataAttribute<FSoftObjectPath>* ObjectAttrs = static_cast<const FPCGMetadataAttribute<FSoftObjectPath>*>(Metadata->GetConstAttribute(HDAInputObjectName));
 		if(ObjectAttrs)
 			return EHoudiniPCGInputType::UnrealObjects;
 		else
@@ -180,10 +184,6 @@ FHoudiniPCGUtils::GetValueAsString(const TArray<FString> & Defaults, const FHoud
 	{
 		Result[0] = Attributes.Bools->GetValueFromItemKey(Index) ? FString(TEXT("1")) : FString(TEXT("0"));
 	}
-	else
-	{
-		HOUDINI_LOG_ERROR(TEXT("Could not type convert parameter %s to string."), *Attributes.Name);
-	}
 	return Result;
 }
 
@@ -216,11 +216,6 @@ FHoudiniPCGUtils::GetValueAsInt(const TArray<int> & Defaults, const FHoudiniPCGA
 	else if(Attributes.Int64s)
 	{
 		Result[0] = static_cast<int32>(Attributes.Int64s->GetValueFromItemKey(Index));
-	}
-
-	else
-	{
-		HOUDINI_LOG_ERROR(TEXT("Could not type convert parameter %s to int."), *Attributes.Name);
 	}
 	return Result;
 }
@@ -310,10 +305,6 @@ FHoudiniPCGUtils::GetValueAsFloat(const TArray<float>& DefaultValues, const FHou
 		Result[1] = Rotator.Yaw;
 		Result[2] = Rotator.Pitch;
 	}
-	else
-	{
-		HOUDINI_LOG_ERROR(TEXT("Could not type convert parameter %s to float."), *Attributes.Name);
-	}
 
 	return Result;
 }
@@ -322,6 +313,10 @@ FHoudiniPCGAttributes::FHoudiniPCGAttributes(const UPCGMetadata* Metadata, const
 {
 	// Cache off all attribute types we might be interested in.
 	this->Int32s = Metadata->GetConstTypedAttribute<int>(ParameterName);
+	this->Int64s = Metadata->GetConstTypedAttribute<int64>(ParameterName);
+	this->Vector2ds = Metadata->GetConstTypedAttribute<FVector2d>(ParameterName);
+	this->Vector3ds = Metadata->GetConstTypedAttribute<FVector>(ParameterName);
+	this->Vector4ds = Metadata->GetConstTypedAttribute<FVector4d>(ParameterName);
 	this->Floats = Metadata->GetConstTypedAttribute<float>(ParameterName);
 	this->Doubles = Metadata->GetConstTypedAttribute<double>(ParameterName);
 	this->Strings = Metadata->GetConstTypedAttribute<FString>(ParameterName);
@@ -330,6 +325,8 @@ FHoudiniPCGAttributes::FHoudiniPCGAttributes(const UPCGMetadata* Metadata, const
 	this->Names = Metadata->GetConstTypedAttribute<FName>(ParameterName);
 	this->SoftObjectPaths = Metadata->GetConstTypedAttribute<FSoftObjectPath>(ParameterName);
 	this->SoftClassPaths = Metadata->GetConstTypedAttribute<FSoftClassPath>(ParameterName);
+	this->Quats = Metadata->GetConstTypedAttribute<FQuat>(ParameterName);
+	this->Bools = Metadata->GetConstTypedAttribute<bool>(ParameterName);
 	this->NumRows = Metadata->GetItemCountForChild();
 	this->Name = ParameterName.ToString();
 }
@@ -394,4 +391,49 @@ FHoudiniPCGUtils::LogVisualError(FPCGContext* Context,  const FString& ErrorMess
 	HOUDINI_LOG_ERROR(TEXT("Error: %s"), *ErrorMessage);
 	FText Text = FText::FromString(ErrorMessage);
 	PCGE_LOG_C(Error, GraphAndLog, Context, Text);
+}
+
+EHoudiniPCGSessionStatus
+FHoudiniPCGUtils::StartSession()
+{
+	FScopeLock Lock(&CriticalSection);
+
+	if (SessionStatus == EHoudiniPCGSessionStatus::PCGSessionStatus_Created)
+	{
+		// Make sure the session is still good.
+		if(!FHoudiniEngine::Get().GetSession())
+		{
+			SessionStatus = EHoudiniPCGSessionStatus::PCGSessionStatus_None;
+			HOUDINI_PCG_MESSAGE(TEXT("Houdini Session Lost..."));
+		}
+		else
+		{
+			return SessionStatus;
+		}
+	}
+
+	if (SessionStatus == EHoudiniPCGSessionStatus::PCGSessionStatus_None)
+	{
+		HOUDINI_PCG_MESSAGE(TEXT("Acquiring Session..."));
+		EHoudiniPCGSessionStatus* MakeLambdaHappy = &SessionStatus;
+		SessionStatus = EHoudiniPCGSessionStatus::PCGSessionStatus_Creating;
+		Async(EAsyncExecution::ThreadPool, [MakeLambdaHappy]()
+		{
+			bool bSuccess = FHoudiniEngine::Get().RestartSession(false);
+			*MakeLambdaHappy = bSuccess ? EHoudiniPCGSessionStatus::PCGSessionStatus_Created : EHoudiniPCGSessionStatus::PCGSessionStatus_Error;
+			if (bSuccess)
+			{
+				HOUDINI_PCG_MESSAGE(TEXT("Session Created..."));
+			}
+			else
+			{
+
+				HOUDINI_PCG_ERROR(TEXT("Session Not Created..."));
+			}
+		});
+	}
+
+	return SessionStatus;
+
+
 }

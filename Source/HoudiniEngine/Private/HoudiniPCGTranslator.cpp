@@ -272,6 +272,19 @@ void FHoudiniPCGTranslator::CreatePCGAttributes(UPCGMetadata* MetaData, TArray<F
 		FHoudiniApi::AttributeInfo_Init(&AttrInfo);
 		FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, TCHAR_TO_UTF8(*Attributes[AttrIndex]), Owner, &AttrInfo);
 
+		if (Attributes[AttrIndex] == TEXT("__vertex_id"))
+		{
+			TArray<int> VertexIds;
+			VertexIds.SetNumZeroed(PartInfo.vertexCount);
+			FHoudiniApi::GetVertexList(FHoudiniEngine::Get().GetSession(), NodeId, PartId, VertexIds.GetData(), 0, VertexIds.Num());
+
+			MetaData->CreateInteger32Attribute(*Attributes[AttrIndex], 0, false, false);
+			FPCGMetadataAttribute<int32>* MetaAttr = MetaData->GetMutableTypedAttribute<int32>(*Attributes[AttrIndex]);
+			check(VertexIds.Num() == MetaData->GetItemCountForChild());
+			MetaAttr->SetValues(EntryKeys, VertexIds);
+			continue;
+		}
+
 		switch (AttrInfo.storage)
 		{
 		case HAPI_STORAGETYPE_UINT8:

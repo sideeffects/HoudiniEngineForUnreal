@@ -363,14 +363,13 @@ bool FHoudiniEditorTestPCG_PCGNativeOutputs::RunTest(const FString& Parameters)
 		for (int TagIndex = 0; TagIndex < PCGDataAsset->Data.TaggedData.Num(); TagIndex++)
 		{
 			auto& TaggedData = PCGDataAsset->Data.TaggedData[TagIndex];
-			HOUDINI_TEST_EQUAL_ON_FAIL(TaggedData.Tags.Num(), 1, continue);
-			FString Tag = TaggedData.Tags.Array()[0];
+			TSet<FString> & Tags = TaggedData.Tags;
 
 			///////////////////////////////////////////////////////////////////////////////////////////////////////
 			// CHECK POINTS OUTPUT
 			///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-			if (Tag.EndsWith(TEXT("Points")))
+			if (Tags.Contains(TEXT("Points")))
 			{
 
 				TArray<FPCGPoint> ExpectedPoints;
@@ -410,7 +409,7 @@ bool FHoudiniEditorTestPCG_PCGNativeOutputs::RunTest(const FString& Parameters)
 			/// CHECK VERTICES
 			///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-			if(Tag.EndsWith(TEXT("Vertices")))
+			if(Tags.Contains(TEXT("Vertices")))
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
@@ -426,7 +425,7 @@ bool FHoudiniEditorTestPCG_PCGNativeOutputs::RunTest(const FString& Parameters)
 			/// CHECK PRIMITIVES
 			///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-			if(Tag.EndsWith(TEXT("Primitives")))
+			if(Tags.Contains(TEXT("Primitives")))
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
@@ -443,7 +442,7 @@ bool FHoudiniEditorTestPCG_PCGNativeOutputs::RunTest(const FString& Parameters)
 			/// CHECK DETAILS
 			///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-			if(Tag.EndsWith(TEXT("Details")))
+			if(Tags.Contains(TEXT("Details")))
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
@@ -517,14 +516,13 @@ bool FHoudiniEditorTestPCG_PCGNativeInputs::RunTest(const FString& Parameters)
 		for(int TagIndex = 0; TagIndex < PCGDataAsset->Data.TaggedData.Num(); TagIndex++)
 		{
 			auto& TaggedData = PCGDataAsset->Data.TaggedData[TagIndex];
-			HOUDINI_TEST_EQUAL_ON_FAIL(TaggedData.Tags.Num(), 1, continue);
-			FString Tag = TaggedData.Tags.Array()[0];
+			TSet<FString>&  Tags = TaggedData.Tags;
 
 			///////////////////////////////////////////////////////////////////////////////////////////////////////
 			// CHECK POINTS OUTPUT
 			///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-			if(Tag.EndsWith(TEXT("Points")))
+			if(Tags.Contains(TEXT("Points")))
 			{
 				const UPCGPointData* PCGPointData = Cast<UPCGPointData>(TaggedData.Data.Get());
 				HOUDINI_TEST_EQUAL(PCGPointData->GetNumPoints(), 148);
@@ -534,7 +532,7 @@ bool FHoudiniEditorTestPCG_PCGNativeInputs::RunTest(const FString& Parameters)
 			/// CHECK VERTICES
 			///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-			if(Tag.EndsWith(TEXT("Vertices")))
+			if(Tags.Contains(TEXT("Vertices")))
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* VerticesObject = NewObject<UHoudiniPCGDataObject>();
@@ -546,7 +544,7 @@ bool FHoudiniEditorTestPCG_PCGNativeInputs::RunTest(const FString& Parameters)
 			/// CHECK PRIMITIVES
 			///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-			if(Tag.EndsWith(TEXT("Primitives")))
+			if(Tags.Contains(TEXT("Primitives")))
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PrimitivesObject = NewObject<UHoudiniPCGDataObject>();
@@ -558,7 +556,107 @@ bool FHoudiniEditorTestPCG_PCGNativeInputs::RunTest(const FString& Parameters)
 			/// CHECK DETAILS
 			///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-			if(Tag.EndsWith(TEXT("Details")))
+			if(Tags.Contains(TEXT("Details")))
+			{
+				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
+				UHoudiniPCGDataObject* DetailsObject = NewObject<UHoudiniPCGDataObject>();
+				DetailsObject->Initialize(PCGParam);
+				// topology, primitive list and unreal_pcg_params
+				HOUDINI_TEST_EQUAL(DetailsObject->Attributes.Num(), 3);
+			}
+		}
+
+		return true;
+	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGNativeMultiInputs, "Houdini.UnitTests.PCG.PCGMultiInputs",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestPCG_PCGNativeMultiInputs::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGInputsOutputs/PCGMultipleInputsLevel.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	FString AssetPath = TEXT("/Game/");
+	FString AssetName = TEXT("PCG_Out");
+	FString PCGAssetFullPath = FString::Printf(TEXT("%s/%s"), *AssetPath, *AssetName);
+
+	UPCGGraphInstance* GraphInstance = Context->PCGComponent->GetGraphInstance();
+	GraphInstance->SetGraphParameter<FString>(FName("out_path"), AssetPath);
+	GraphInstance->SetGraphParameter<FString>(FName("out_name"), AssetName);
+
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+	{
+		Context->Generate(true, true);
+		return true;
+	}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
+	{
+		if(Context->State != EHoudiniTestPCGContextState::Done)
+			return false;
+
+		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+		// We should have one output...
+		HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 4, return true);
+
+		for(int TagIndex = 0; TagIndex < PCGDataAsset->Data.TaggedData.Num(); TagIndex++)
+		{
+			auto& TaggedData = PCGDataAsset->Data.TaggedData[TagIndex];
+			TSet<FString>& Tags = TaggedData.Tags;
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			// CHECK POINTS OUTPUT
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			if(Tags.Contains(TEXT("Points")))
+			{
+				const UPCGPointData* PCGPointData = Cast<UPCGPointData>(TaggedData.Data.Get());
+				HOUDINI_TEST_EQUAL(PCGPointData->GetNumPoints(), 148);
+			}
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			/// CHECK VERTICES
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			if(Tags.Contains(TEXT("Vertices")))
+			{
+				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
+				UHoudiniPCGDataObject* VerticesObject = NewObject<UHoudiniPCGDataObject>();
+				VerticesObject->Initialize(PCGParam);
+				HOUDINI_TEST_EQUAL(VerticesObject->Attributes.Num(), 0);
+			}
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			/// CHECK PRIMITIVES
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			if(Tags.Contains(TEXT("Primitives")))
+			{
+				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
+				UHoudiniPCGDataObject* PrimitivesObject = NewObject<UHoudiniPCGDataObject>();
+				PrimitivesObject->Initialize(PCGParam);
+				HOUDINI_TEST_EQUAL(PrimitivesObject->Attributes.Num(), 0);
+			}
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			/// CHECK DETAILS
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			if(Tags.Contains(TEXT("Details")))
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* DetailsObject = NewObject<UHoudiniPCGDataObject>();

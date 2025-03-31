@@ -3187,7 +3187,7 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 			return EHoudiniInputObjectType::DataTable;
 		}
 #if defined(HOUDINI_USE_PCG)
-		else if(InObject->IsA(UHoudiniPCGDataObject::StaticClass()))
+		else if(InObject->IsA(UHoudiniPCGDataCollection::StaticClass()))
 		{
 			return EHoudiniInputObjectType::PCGData;
 		}
@@ -3583,11 +3583,11 @@ UHoudiniInputPCGData::Create(UObject* InObject, UObject* InOuter, const FString&
 	return HoudiniInputObject;
 }
 
-UHoudiniPCGDataObject*
+UHoudiniPCGDataCollection*
 UHoudiniInputPCGData::GetPCGData() const
 {
 #if defined(HOUDINI_USE_PCG)
-	return Cast<UHoudiniPCGDataObject>(InputObject.LoadSynchronous());
+	return Cast<UHoudiniPCGDataCollection>(InputObject.LoadSynchronous());
 #else
 	return nullptr;
 #endif

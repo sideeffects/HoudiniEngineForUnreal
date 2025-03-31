@@ -2896,7 +2896,8 @@ FHoudiniEngineManager::UpdateTaskStatus(FGuid& OutTaskGUID, FHoudiniEngineTaskIn
 		{
 			// If the current task is finished
 			// Terminate the slate notification if they exist and delete/invalidate the task
-			FHoudiniEngine::Get().UpdateCookingNotification(OutTaskInfo.StatusText, true);
+			if(bDoNotifications)
+				FHoudiniEngine::Get().UpdateCookingNotification(OutTaskInfo.StatusText, true);
 			FHoudiniEngine::Get().RemoveTaskInfo(OutTaskGUID);
 			OutTaskGUID.Invalidate();
 		}
