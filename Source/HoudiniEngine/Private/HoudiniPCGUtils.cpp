@@ -396,7 +396,36 @@ FHoudiniPCGUtils::LogVisualError(FPCGContext* Context,  const FString& ErrorMess
 EHoudiniPCGSessionStatus
 FHoudiniPCGUtils::StartSession()
 {
+	if(FHoudiniEngine::Get().GetSession())
+	{
+		SessionStatus = EHoudiniPCGSessionStatus::PCGSessionStatus_Created;
+		return SessionStatus;
+	}
+	bool bSuccess = FHoudiniEngine::Get().RestartSession(false);
+	SessionStatus = bSuccess ? EHoudiniPCGSessionStatus::PCGSessionStatus_Created : EHoudiniPCGSessionStatus::PCGSessionStatus_Error;
+
+	if(bSuccess)
+	{
+		HOUDINI_PCG_MESSAGE(TEXT("Session Created..."));
+	}
+	else
+	{
+
+		HOUDINI_PCG_ERROR(TEXT("Session Not Created..."));
+	}
+	return SessionStatus;
+}
+
+EHoudiniPCGSessionStatus
+FHoudiniPCGUtils::StartSessionAsync()
+{
 	FScopeLock Lock(&CriticalSection);
+
+	if (FHoudiniEngine::Get().GetSession())
+	{
+		SessionStatus = EHoudiniPCGSessionStatus::PCGSessionStatus_Created;
+		return SessionStatus;
+	}
 
 	if (SessionStatus == EHoudiniPCGSessionStatus::PCGSessionStatus_Created)
 	{
@@ -415,12 +444,12 @@ FHoudiniPCGUtils::StartSession()
 	if (SessionStatus == EHoudiniPCGSessionStatus::PCGSessionStatus_None)
 	{
 		HOUDINI_PCG_MESSAGE(TEXT("Acquiring Session..."));
-		EHoudiniPCGSessionStatus* MakeLambdaHappy = &SessionStatus;
+		EHoudiniPCGSessionStatus* SessionStatusPtr = &SessionStatus;
 		SessionStatus = EHoudiniPCGSessionStatus::PCGSessionStatus_Creating;
-		Async(EAsyncExecution::ThreadPool, [MakeLambdaHappy]()
+		Async(EAsyncExecution::ThreadPool, [SessionStatusPtr]()
 		{
 			bool bSuccess = FHoudiniEngine::Get().RestartSession(false);
-			*MakeLambdaHappy = bSuccess ? EHoudiniPCGSessionStatus::PCGSessionStatus_Created : EHoudiniPCGSessionStatus::PCGSessionStatus_Error;
+			*SessionStatusPtr = bSuccess ? EHoudiniPCGSessionStatus::PCGSessionStatus_Created : EHoudiniPCGSessionStatus::PCGSessionStatus_Error;
 			if (bSuccess)
 			{
 				HOUDINI_PCG_MESSAGE(TEXT("Session Created..."));
@@ -434,6 +463,4 @@ FHoudiniPCGUtils::StartSession()
 	}
 
 	return SessionStatus;
-
-
 }

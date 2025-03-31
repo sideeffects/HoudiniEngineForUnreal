@@ -21,6 +21,7 @@
 *
 */
 
+#include "Async/Async.h"
 #if defined(HOUDINI_USE_PCG)
 
 #include "HoudiniPCGNode.h"
@@ -49,6 +50,15 @@
 void UHoudiniDigitalAssetPCGSettings::PostLoad()
 {
 	Super::PostLoad();
+
+	if(HoudiniAsset)
+		InitializationState = EHoudiniPCGInitState::Done;
+}
+
+void UHoudiniDigitalAssetPCGSettings::BeginDestroy()
+{
+	Super::BeginDestroy();
+	InitializationState = EHoudiniPCGInitState::Abort;
 }
 
 void UHoudiniDigitalAssetPCGSettings::GetStaticTrackedKeys(FPCGSelectionKeyToSettingsMap& OutKeysToSettings, TArray<TObjectPtr<const UPCGGraph>>& OutVisitedGraphs) const
@@ -71,7 +81,20 @@ void UHoudiniDigitalAssetPCGSettings::ApplyDeprecationBeforeUpdatePins(UPCGNode*
 
 FString UHoudiniDigitalAssetPCGSettings::GetAdditionalTitleInformation() const
 {
-	return FString::Printf(TEXT("%s"), HoudiniAsset ? *HoudiniAsset.GetFName().ToString() : TEXT("None"));
+	switch(InitializationState)
+	{
+	case EHoudiniPCGInitState::Initializing:
+		return TEXT("Initializing... please wait...");
+
+	case EHoudiniPCGInitState::Done:
+		return FString::Printf(TEXT("%s"), HoudiniAsset ? *HoudiniAsset.GetFName().ToString() : TEXT("None"));
+
+	case EHoudiniPCGInitState::Error:
+		return TEXT("* Error initializing *");
+	default:
+		return TEXT("Please set HDA");
+	}
+
 }
 
 TArray<FPCGPinProperties> UHoudiniDigitalAssetPCGSettings::OutputPinProperties() const
@@ -99,7 +122,7 @@ TArray<FPCGPinProperties> UHoudiniDigitalAssetPCGSettings::InputPinProperties() 
 		InputPinProperty.SetNormalPin();
 	}
 
-	if (bExposeParameters)
+	if (bExposeParameters && InitializationState == EHoudiniPCGInitState::Done)
 	{
 		FString PinName = FHoudiniPCGUtils::ParameterInputPinName;
 		FPCGPinProperties& InputPinProperty = PinProperties.Emplace_GetRef(FName(PinName), EPCGDataType::Any, /*bAllowMultipleConnections=*/false);
@@ -123,6 +146,9 @@ void UHoudiniDigitalAssetPCGSettings::PostEditChangeProperty(FPropertyChangedEve
 	if(PropertyName == GET_MEMBER_NAME_CHECKED(UHoudiniDigitalAssetPCGSettings, HoudiniAsset))
 	{
 		InstantiatePCGEditorHDA();
+
+		if(HoudiniAsset == nullptr)
+			InitializationState = EHoudiniPCGInitState::None;
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -137,24 +163,52 @@ void UHoudiniDigitalAssetPCGSettings::InstantiatePCGEditorHDA()
 		return;
 	}
 
-	ParameterCookable = NewObject<UHoudiniCookable>(GetTransientPackage());
+	ParameterCookable = nullptr;
 
-	FHoudiniPCGUtils::StartSession();
+	InitializationState = EHoudiniPCGInitState::Initializing;
 
-	ParameterCookable->SetHoudiniAssetSupported(true);
-	ParameterCookable->SetHoudiniAsset(this->HoudiniAsset);
-	ParameterCookable->SetParameterSupported(true);
-	ParameterCookable->SetInputSupported(true);
-	ParameterCookable->SetOutputSupported(true);
-	ParameterCookable->MarkAsNeedCook();
-
-	do
+	Async(EAsyncExecution::ThreadPool, [this]()
 	{
-		FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
-		HEM->ProcessCookable(ParameterCookable);
-	} while(ParameterCookable->GetCurrentState() != EHoudiniAssetState::None);
 
-	PopulateInputsAndOutputs();
+		auto Result = FHoudiniPCGUtils::StartSession();
+		if(Result == EHoudiniPCGSessionStatus::PCGSessionStatus_Error)
+		{
+			HOUDINI_LOG_ERROR(TEXT("Could not start Houdini Session"));
+			InitializationState = EHoudiniPCGInitState::Error;
+			return;
+		}
+
+		ParameterCookable = NewObject<UHoudiniCookable>(this);
+
+		ParameterCookable->SetHoudiniAssetSupported(true);
+		ParameterCookable->SetHoudiniAsset(this->HoudiniAsset);
+		ParameterCookable->SetParameterSupported(true);
+		ParameterCookable->SetInputSupported(true);
+		ParameterCookable->SetOutputSupported(true);
+		ParameterCookable->MarkAsNeedCook();
+		ParameterCookable->SetSlateNotifications(false);
+
+		do
+		{
+			if (InitializationState == EHoudiniPCGInitState::Abort)
+				return;
+
+			FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
+			HEM->ProcessCookable(ParameterCookable);
+			FPlatformProcess::Sleep(0.1f);
+
+		} while(ParameterCookable->GetCurrentState() != EHoudiniAssetState::None);
+
+		InitializationState = EHoudiniPCGInitState::Done;
+
+		AsyncTask(ENamedThreads::GameThread, [this]()
+		{
+			// Populating must be done on game thread.
+			this->PopulateInputsAndOutputs();
+		});
+
+	});
+
 }
 
 void UHoudiniDigitalAssetPCGSettings::PopulateInputsAndOutputs()
@@ -263,7 +317,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniDigitalAssetPCGElement::ExecuteInternal);
 
-	EHoudiniPCGSessionStatus Status = FHoudiniPCGUtils::StartSession();
+	EHoudiniPCGSessionStatus Status = FHoudiniPCGUtils::StartSessionAsync();
 	if (Status == EHoudiniPCGSessionStatus::PCGSessionStatus_Error)
 	{
 		FHoudiniPCGUtils::LogVisualError(Context, TEXT("Could not create Houdini Session"));
@@ -349,7 +403,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			ManagedResource->HoudiniPCGComponent = UHoudiniPCGComponent::CreatePCGComponent(Context->SourceComponent.Get());
 			Context->SourceComponent->AddToManagedResources(ManagedResource);
 
-	FHoudiniPCGUtils::StartSession();
+			FHoudiniPCGUtils::StartSessionAsync();
 			ManagedResource->HoudiniPCGComponent->Cookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
 			ManagedResource->HoudiniPCGComponent->Cookable->Instantiate(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
 			HOUDINI_PCG_MESSAGE(TEXT("(%p) Creating Managed Resource, Instantiating..."), ManagedResource);

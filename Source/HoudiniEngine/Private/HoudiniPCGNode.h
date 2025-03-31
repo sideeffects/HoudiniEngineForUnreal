@@ -45,6 +45,16 @@ struct FHoudiniPCGOutput
 public:
 };
 
+UENUM()
+enum class EHoudiniPCGInitState
+{
+	None,
+	Initializing,
+	Done,
+	Error,
+	Abort
+};
+
 UCLASS(MinimalAPI, BlueprintType, ClassGroup = (Procedural))
 class UHoudiniDigitalAssetPCGSettings : public UPCGSettings
 {
@@ -58,6 +68,7 @@ public:
 	void PopulateInputsAndOutputs();
 
 	virtual bool CanCullTaskIfUnwired() const { return false; }
+	virtual void BeginDestroy() override;
 
 #if WITH_EDITOR
 	//~Begin UPCGSettings interface
@@ -114,6 +125,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UHoudiniCookable> ParameterCookable;
+
+	EHoudiniPCGInitState InitializationState = EHoudiniPCGInitState::None;
+
 };
 
 struct FPCHoudiniDigitalAssetAttributesContext : public FPCGContext, public IPCGAsyncLoadingContext
