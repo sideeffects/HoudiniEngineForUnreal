@@ -166,12 +166,11 @@ UCookableInputData::NeedsToWaitForInputHoudiniAssets()
 UCookableOutputData::UCookableOutputData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, TemporaryCookFolder()
-	, bHasWorldOutputs()
 	, bOutputless(false)
 	, bOutputTemplateGeos(false)
 	, bUseOutputNodes(true)
 	, bSplitMeshSupport(false)
-	, bEnableCurveEditing(false)
+	, bEnableCurveEditing(true)
 	, HoudiniEngineBakeOption(EHoudiniEngineBakeOption::ToActor)
 	, BakeFolder()
 	, BakeAfterNextCook(EHoudiniBakeAfterNextCook::Disabled)
@@ -180,7 +179,6 @@ UCookableOutputData::UCookableOutputData(const FObjectInitializer& ObjectInitial
 	, bReplacePreviousBake(false)
 	, ActorBakeOption(EHoudiniEngineActorBakeOption::OneActorPerComponent)
 	, bLandscapeUseTempLayers(false)
-	, bHasProxyMeshSupport(true)
 	, bNoProxyMeshNextCookRequested(false)
 	, bOverrideGlobalProxyStaticMeshSettings(false)
 	, bEnableProxyStaticMeshOverride(false)
@@ -1141,10 +1139,12 @@ UHoudiniCookable::MarkAsNeedRecookOrRebuild(bool bDoRebuild)
 	// Reset some of the asset's flag
 	bHasBeenLoaded = true;
 	bPendingDelete = false;
-	bFullyLoaded = false; // ?? not needed? was rebuild only
 	// Indicate whether a recook or rebuild has been requested
 	bRecookRequested = bDoRebuild ? false : true;
 	bRebuildRequested = bDoRebuild ? true : false;
+	// ?? only when doing a rebuild
+	if (bDoRebuild)
+		bFullyLoaded = false;
 
 	// TODO COOKABLE: This was somehow only for recook ?
 	if (IsParameterSupported() && !bDoRebuild)
@@ -1957,6 +1957,12 @@ bool
 UHoudiniCookable::GetCookOnTransformChange() const
 {
 	return ComponentData->bCookOnTransformChange;
+}
+
+bool
+UHoudiniCookable::GetCookOnInputChange() const
+{
+	return InputData->bCookOnInputChange;
 }
 
 bool

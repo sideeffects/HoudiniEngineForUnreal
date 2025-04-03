@@ -81,6 +81,10 @@ enum EHoudiniPluginSerializationVersion
 	// from UHoudiniInput to a member FHoudiniInputObjectSettings struct: UHoudiniInput::InputSettings
 	VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_INPUT_OBJECT_SETTINGS_STRUCT = 101,
 
+	//----- VERSION 3 - HOUDINI21 - Introduces the Cookable ---------------------------------------------
+	// Commented until we enable cookables by default
+	//VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_V3_BASE = 300,
+
     // -----<new versions can be added before this line>-------------------------------------------------
     // - this needs to be the last line (see note below)
     VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_BASE_PLUS_ONE,

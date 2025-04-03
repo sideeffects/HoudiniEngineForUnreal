@@ -72,7 +72,7 @@ public:
 	uint32 SubAssetIndex;
 
 	// The asset name of the selected asset inside the asset library
-	UPROPERTY()//(DuplicateTransient)
+	UPROPERTY(DuplicateTransient)
 	FString HapiAssetName;
 };
 
@@ -103,7 +103,7 @@ public:
 	// Indicates that the parameter state (excluding values) on the HAC and the instantiated node needs to be synced.
 	// The most common use for this would be a newly instantiated HDA that has only a default parameter interface
 	// from its asset definition, and needs to sync pre-cook.
-	UPROPERTY()//(DuplicateTransient)
+	UPROPERTY(DuplicateTransient)
 	bool bParameterDefinitionUpdateNeeded;
 
 	// Try to find one of our parameter that matches another (name, type, size and enabled)
@@ -182,10 +182,6 @@ public:
 	UPROPERTY()
 	FDirectoryPath TemporaryCookFolder;
 
-	// ??
-	// Indicates if this can create world outputs (component/actors)
-	bool bHasWorldOutputs;
-
 	// Enabling this will prevent producing any output after cooking.
 	UPROPERTY()
 	bool bOutputless;
@@ -230,7 +226,7 @@ public:
 	FDirectoryPath BakeFolder;
 
 	// If true, bake the asset after its next cook.
-	UPROPERTY()//(DuplicateTransient)
+	UPROPERTY(DuplicateTransient)
 	EHoudiniBakeAfterNextCook BakeAfterNextCook;
 
 	// If true, then after a successful bake, outputs will be cleared and removed.
@@ -253,12 +249,10 @@ public:
 
 	//-----------------------------------
 	// PROXY MESH
-	UPROPERTY()
-	bool bHasProxyMeshSupport;
-	
+
 	// If true, don't build a proxy mesh next cook (regardless of global or override settings),
 	// instead build the UStaticMesh directly (if applicable for the output types).
-	UPROPERTY()//(DuplicateTransient)
+	UPROPERTY(DuplicateTransient)
 	bool bNoProxyMeshNextCookRequested;
 
 	// Override the global fast proxy mesh settings
@@ -285,7 +279,7 @@ public:
 	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes On PIE", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
 	bool bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
 
-	UPROPERTY(Transient)//, DuplicateTransient)
+	UPROPERTY(Transient, DuplicateTransient)
 	bool bAllowPlayInEditorRefinement;
 
 	// Timer that is used to trigger creation of UStaticMesh for all mesh outputs
@@ -314,16 +308,12 @@ public:
 	UPROPERTY()
 	TWeakObjectPtr<USceneComponent> Component; 
 	
-	// TODO COOKABLE: Needed?
-	UPROPERTY()
-	UClass* ComponentClass;
-	
 	// Used to compare transform changes and whether we need to
 	// send transform updates to Houdini.
-	UPROPERTY()//(DuplicateTransient)
+	UPROPERTY(DuplicateTransient)
 	FTransform LastComponentTransform;
 
-	UPROPERTY(Transient)//, DuplicateTransient)
+	UPROPERTY(Transient, DuplicateTransient)
 	bool bHasComponentTransformChanged;
 
 	// Enables uploading of transformation changes back to Houdini Engine.
@@ -384,6 +374,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniCookable : public UObject, public IHoudin
 	friend struct FHoudiniParameterTranslator;
 	//friend struct FHoudiniPDGManager;
 	friend struct FHoudiniHandleTranslator;
+	friend class UHoudiniAssetComponent;
 
 	// Delegate for when EHoudiniAssetState changes from InFromState to InToState on a HoudiniCookable (InHC)
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCookableStateChangeDelegate, UHoudiniCookable*, const EHoudiniAssetState, const EHoudiniAssetState);
@@ -440,6 +431,7 @@ public:
 
 	bool GetCookOnParameterChange() const;
 	bool GetCookOnTransformChange() const;
+	bool GetCookOnInputChange() const;
 	bool GetCookOnCookableInputCook() const;
 	bool IsOutputless() const;
 	bool GetUseOutputNodes() const;
@@ -722,12 +714,6 @@ public:
 
 protected:
 
-	UPROPERTY(Transient)
-	bool bDoSlateNotifications;
-
-	UPROPERTY(Transient)
-	bool bUpdateEditorProperties;
-
 	// Id of the corresponding Houdini node.
 	UPROPERTY(DuplicateTransient)
 	int32 NodeId;	// AssetId
@@ -797,7 +783,6 @@ protected:
 	UPROPERTY(Transient)
 	double LastTickTime;	// LastTickTime
 
-
 	// TODO COOKABLE: Assess if needed? 
 	UPROPERTY(DuplicateTransient)
 	bool bHasBeenLoaded;	// bHasBeenLoaded	
@@ -813,7 +798,6 @@ protected:
 	UPROPERTY()
 	bool bHasBeenDuplicated;	// bHasBeenDuplicated
 
-	
 	// Indicates whether or not this cookable should update its editor UI
 	// This is to prevent successive calls of the function for the same cookables 
 	UPROPERTY(Transient, DuplicateTransient)
@@ -910,4 +894,10 @@ protected:
 
 	// Store any PreCookCallbacks here until the Cookable is ready to process them during the PreCook event.
 	TArray<TFunction<void(UHoudiniCookable*)>> PreCookCallbacks;
+
+	UPROPERTY(Transient)
+	bool bDoSlateNotifications;
+
+	UPROPERTY(Transient)
+	bool bUpdateEditorProperties;
 };

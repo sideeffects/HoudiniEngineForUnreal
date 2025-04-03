@@ -561,6 +561,9 @@ protected:
 	ILevelInstanceInterface* GetLevelInstance() const;
 #endif
 
+	// Used to Convert this HAC's data to a cookable
+	bool TransferDataToCookable();
+
 public:
 
 
@@ -842,7 +845,7 @@ protected:
 	// If true, don't build a proxy mesh next cook (regardless of global or override settings),
 	// instead build the UStaticMesh directly (if applicable for the output types).
 	UPROPERTY(DuplicateTransient)
-	bool bNoProxyMeshNextCookRequested; // NOT COOKABLE
+	bool bNoProxyMeshNextCookRequested; // COOKABLE - OUTPUT
 	
 	// If true, bake the asset after its next cook.
 	UPROPERTY(DuplicateTransient)

@@ -118,6 +118,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	Ar.UsingCustomVersion(FHoudiniCustomSerializationVersion::GUID);
 
 	bool bLegacyComponent = false;
+	bool bV2Component = false;
 	if (Ar.IsLoading())
 	{
 		int32 Ver = Ar.CustomVer(FHoudiniCustomSerializationVersion::GUID);
@@ -125,6 +126,10 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		{
 			bLegacyComponent = true;
 		}
+		/*else if (Ver < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_V3_BASE)
+		{
+			bV2Component = true;
+		}*/
 	}
 
 	if (bLegacyComponent)
@@ -145,8 +150,47 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 	}
 	else
 	{
-		// Normal v2 serialization
+		// Normal serialization
 		Super::Serialize(Ar);
+
+		if (bV2Component)
+		{
+			HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniAssetComponent : V2 HAC will be converted to Cookable."));
+
+			// V2 component - we need to move data to the cookable
+			UObject* Outer = this->GetOuter();
+			bool bIsOuterCookable = Outer ? Outer->IsA<UHoudiniCookable>() : false;
+			if(bIsOuterCookable)
+				HOUDINI_LOG_WARNING(TEXT("Owner is a Cookable."));
+			else
+				HOUDINI_LOG_WARNING(TEXT("No Cookable Owner."));
+
+			AHoudiniAssetActor* HAA = Cast<AHoudiniAssetActor>(this->GetOwner());
+			UHoudiniCookable* HC = HAA ? HAA->GetHoudiniCookable() : nullptr;
+			if(!HC)
+				HOUDINI_LOG_WARNING(TEXT("Actor has a Cookable."));
+			else
+			{
+				// Move data to the cookable
+				if(!TransferDataToCookable())
+					HOUDINI_LOG_ERROR(TEXT("Unable to convert v2 Houdini Asset Component to Cookable - will need to be recreated."));
+
+				// Indicate that we are the cookable's component
+				HC->SetComponent(this);
+
+				// Set the Cookable as our outer?
+				this->Rename(nullptr, HC);
+
+				// Once everything is done - set ourselves as a component of the HAA.
+				// Why is this needed ?
+				HAA->SetRootComponent(this);
+				HAA->AddInstanceComponent(this);
+				//this->RegisterComponent();
+
+
+								
+			}
+		}
 	}
 }
 
@@ -3585,7 +3629,16 @@ UHoudiniAssetComponent::GetComponentGUID() const
 UHoudiniCookable*
 UHoudiniAssetComponent::GetCookable() const
 {
-	return Cast<UHoudiniCookable>(GetOuter());
+	UHoudiniCookable* HC = Cast<UHoudiniCookable>(GetOuter());
+	if (HC)
+		return HC;
+
+	// Try to get the Cookable via our Actor - we might be a loaded v2 HAC
+	AHoudiniAssetActor* HAA = Cast<AHoudiniAssetActor>(GetOwner());
+	if (HAA)
+		return HAA->GetHoudiniCookable();
+
+	return nullptr;
 }
 
 int32
@@ -3747,6 +3800,125 @@ UHoudiniAssetComponent::SetBakeFolder(const FDirectoryPath& InPath)
 		return false;
 
 	BakeFolder = InPath;
+
+	return true;
+}
+
+bool
+UHoudiniAssetComponent::TransferDataToCookable()
+{
+	UHoudiniCookable* HC = GetCookable();
+	if (!HC)
+		return false;
+
+	HC->SetHoudiniAsset(HoudiniAsset);
+
+	HC->SetCookOnParameterChange(bCookOnParameterChange);
+	HC->SetUploadTransformsToHoudiniEngine(bUploadTransformsToHoudiniEngine);
+	HC->SetCookOnTransformChange(bCookOnTransformChange);
+	HC->SetCookOnCookableInputCook(bCookOnAssetInputCook);
+	HC->SetOutputless(bOutputless);
+	HC->SetOutputTemplateGeos(bOutputTemplateGeos);
+	HC->SetUseOutputNodes(bUseOutputNodes);
+
+	HC->SetTemporaryCookFolder(TemporaryCookFolder);
+	HC->SetBakeFolder(BakeFolder);
+	HC->OutputData->bSplitMeshSupport = bSplitMeshSupport;
+	HC->SetStaticMeshGenerationProperties(StaticMeshGenerationProperties);
+	HC->SetStaticMeshBuildSettings(StaticMeshBuildSettings);
+
+	HC->SetOverrideGlobalProxyStaticMeshSettings(bOverrideGlobalProxyStaticMeshSettings);
+	HC->SetEnableProxyStaticMeshOverride(bEnableProxyStaticMeshOverride);
+	HC->SetEnableProxyStaticMeshRefinementByTimerOverride(bEnableProxyStaticMeshRefinementByTimerOverride);
+	HC->SetProxyMeshAutoRefineTimeoutSecondsOverride(ProxyMeshAutoRefineTimeoutSecondsOverride);
+	HC->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride);
+	HC->SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride);
+
+#if WITH_EDITORONLY_DATA
+	// bool bGenerateMenuExpanded; // NOT COOKABLE
+	// bool bBakeMenuExpanded; // NOT COOKABLE
+	// bool bAssetOptionMenuExpanded; // NOT COOKABLE
+	// bool bHelpAndDebugMenuExpanded; // NOT COOKABLE
+
+	HC->SetHoudiniEngineBakeOption(HoudiniEngineBakeOption);
+	HC->SetRemoveOutputAfterBake(bRemoveOutputAfterBake);
+	HC->SetRecenterBakedActors(bRecenterBakedActors);
+	HC->SetReplacePreviousBake(bReplacePreviousBake);
+	HC->SetActorBakeOption(ActorBakeOption);
+	HC->SetLandscapeUseTempLayers(bLandscapeUseTempLayers);
+	HC->SetEnableCurveEditing(bEnableCurveEditing);
+	
+	// bool bNeedToUpdateEditorProperties; // COOKABLE
+#endif
+
+	// HC->NodeId = AssetId; // COOKABLE - NodeId
+	// HC->SetNodeIdsToCook(NodeIdsToCook);
+	// HC->NodesToCookCookCounts(OutputNodeCookCounts);
+	// DownstreamHoudiniAssets; // NOT COOKABLE
+	// HC->CookableGUID = ComponentGUID;
+	// HC->HapiGUID = HapiGUID;
+	HC->HoudiniAssetData->HapiAssetName = HapiAssetName; // COOKABLE - Name
+	// HC->SetCurrentState(AssetState); // COOKABLE
+	// EHoudiniAssetState DebugLastAssetState; // NOT COOKABLE
+	// HC->SetCurrentStateResult(AssetStateResult); // COOKABLE
+	// LastComponentTransform; // COOKABLE - COMPONENT
+
+	HC->HoudiniAssetData->SubAssetIndex = SubAssetIndex;
+	// HC->SetCookCount(AssetCookCount); // COOKABLE - CookCount
+	// HC->SetHasBeenLoaded(bHasBeenLoaded); // COOKABLE
+	HC->SetHasBeenDuplicated(bHasBeenDuplicated); // COOKABLE
+	// HC->bPendingDelete = bPendingDelete;
+	// HC->SetRecookRequested(bRecookRequested);
+	// HC->SetRebuildRequested(bRebuildRequested);
+	// HC->SetCookingEnabled(bEnableCooking);
+	// HC->bForceNeedUpdate = bForceNeedUpdate;
+	// HC->bLastCookSuccess = bLastCookSuccess;
+	
+	// HC->ParameterData->bParameterDefinitionUpdateNeeded = bParameterDefinitionUpdateNeeded;
+	
+	// bBlueprintStructureModified; // NOT COOKABLE
+	// bBlueprintModified; // NOT COOKABLE
+	
+	// TODO COOKABLE: Check!
+	HC->ParameterData->Parameters = Parameters; // COOKABLE - PARAMETERS
+	//Parameters.Empty();
+
+	// TODO COOKABLE: Check!
+	HC->InputData->Inputs = Inputs; // COOKABLE - INPUTS
+	//Inputs.Empty();
+
+	// TODO COOKABLE: Check!
+	HC->OutputData->Outputs = Outputs; // COOKABLE - OUTPUTS
+	//Outputs.Empty();
+
+	// TODO COOKABLE: Check!
+	HC->OutputData->BakedOutputs = BakedOutputs; // COOKABLE - OUTPUTS
+	//BakedOutputs.Empty();
+
+	// TODO COOKABLE: Check!
+	HC->OutputData->UntrackedOutputs = UntrackedOutputs; // COOKABLE - OUTPUTS
+	//UntrackedOutputs.Empty();
+
+	// TODO COOKABLE: Check!
+	HC->ComponentData->HandleComponents = HandleComponents; // COOKABLE - COMPONENT
+	//HandleComponents.Empty();
+
+	// HC->SetHasComponentTransformChanged(bHasComponentTransformChanged); // COOKABLE - COMPONENT
+	// HC->bFullyLoaded = bFullyLoaded; // COOKABLE
+
+	// TODO COOKABLE: Check!
+	HC->PDGData->PDGAssetLink = PDGAssetLink;
+	//PDGAssetLink = nullptr;
+
+	// HC->PDGData->bIsPDGAssetLinkInitialized = bIsPDGAssetLinkInitialized; // COOKABLE - PDG
+	// HC->OutputData->RefineMeshesTimer = RefineMeshesTimer;  // COOKABLE - OUTPUTS
+	// HC->OutputData->OnRefineMeshesTimerDelegate = OnRefineMeshesTimerDelegate; // COOKABLE - OUTPUTS
+	// HC->SetNoProxyMeshNextCookRequested(bNoProxyMeshNextCookRequested);
+	// HC->SetBakeAfterNextCook(BakeAfterNextCook); // COOKABLE - OUTPUTS
+
+	// TODO: COOKABLE Check!
+	HC->ParameterData->ParameterPresetBuffer = ParameterPresetBuffer;
+	//ParameterPresetBuffer.Empty();
 
 	return true;
 }

@@ -34,8 +34,9 @@
  **/
 
 // General
+class UHoudiniAsset; 
 class UHoudiniAssetComponent;
-class UHoudiniAsset;
+class UHoudiniCookable;
 class UHoudiniParameter;
 class UHoudiniInput;
 class UHoudiniOutput;
@@ -97,7 +98,9 @@ enum class EHoudiniOutputType : uint8;
 class FHoudiniEditorEquivalenceUtils
 {
 public:
-	static bool IsEquivalent(const UHoudiniAssetComponent* A, const UHoudiniAssetComponent* B);
+	static bool IsEquivalent(UHoudiniCookable* A, UHoudiniCookable* B);
+	static bool IsEquivalent(UHoudiniAssetComponent* A, UHoudiniAssetComponent* B);
+
 	static bool IsEquivalent(const UHoudiniAsset* A, const UHoudiniAsset* B);
 	static bool IsEquivalent(const UHoudiniParameter* A, const UHoudiniParameter* B);
 	static bool IsEquivalent(const UHoudiniInput* A, const UHoudiniInput* B);

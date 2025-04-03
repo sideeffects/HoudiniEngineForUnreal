@@ -110,7 +110,7 @@ FHoudiniBakeLevelInstanceUtils::CreateLevelInstances(
 	// actors which share the same level instance information.
 	//----------------------------------------------------------------------------------------------------------------------------------
 
-	TMap< FHoudiniLevelInstanceParams, TArray<AActor*> > ActorsPerInstance;
+	TMap<FHoudiniLevelInstanceParams, TArray<AActor*>> ActorsPerInstance;
 	TMap<AActor*, int> ActorToBakedActor;
 
 	for (int Index = 0; Index < BakedActors.Num(); Index++)

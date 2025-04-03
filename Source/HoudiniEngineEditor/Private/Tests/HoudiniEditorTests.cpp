@@ -125,8 +125,6 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorRandomEquivalenceTest, "Ho
 
 bool HoudiniEditorRandomEquivalenceTest::RunTest(const FString & Parameters)
 {
-
-
 	// Really force editor size
 	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{

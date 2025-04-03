@@ -29,6 +29,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniParameter.h"
 #include "HoudiniOutput.h"
 #include "HoudiniHandleComponent.h"
@@ -72,9 +73,11 @@
 FAutomationTestBase* FHoudiniEditorEquivalenceUtils::TestBase = nullptr;
 #endif
 
-bool FHoudiniEditorEquivalenceUtils::TestExpressionErrorEnabled = true;
+bool 
+FHoudiniEditorEquivalenceUtils::TestExpressionErrorEnabled = true;
 
-bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniAssetComponent * A, const UHoudiniAssetComponent * B)
+bool 
+FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniAssetComponent * A, UHoudiniAssetComponent * B)
 {
 	const FString Header = "UHoudiniAssetComponent";
 
@@ -87,25 +90,25 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniAssetComponent *
 	   return true;
 	}
 
-	Result &= TestExpressionError(IsEquivalent(A->HoudiniAsset, B->HoudiniAsset), Header, "HoudiniAsset");
-	Result &= TestExpressionError(A->bCookOnParameterChange == B->bCookOnParameterChange, Header, "bCookOnParameterChange");
-	Result &= TestExpressionError(A->bUploadTransformsToHoudiniEngine == B->bUploadTransformsToHoudiniEngine, Header, "bUploadTransformsToHoudiniEngine");
-	Result &= TestExpressionError(A->bCookOnTransformChange == B->bCookOnTransformChange, Header, "bCookOnTransformChange");
-	Result &= TestExpressionError(A->bCookOnAssetInputCook == B->bCookOnAssetInputCook, Header, "bCookOnAssetInputCook");
-	Result &= TestExpressionError(A->bOutputless == B->bOutputless, Header, "bOutputless");
-	Result &= TestExpressionError(A->bOutputTemplateGeos == B->bOutputTemplateGeos, Header, "bOutputTemplateGeos");
-	Result &= TestExpressionError(A->bCookOnParameterChange == B->bCookOnParameterChange, Header, "bCookOnParameterChange");
+	Result &= TestExpressionError(IsEquivalent(A->GetHoudiniAsset(), B->GetHoudiniAsset()), Header, "HoudiniAsset");
+	Result &= TestExpressionError(A->GetCookOnParameterChange() == B->GetCookOnParameterChange(), Header, "bCookOnParameterChange");
+	Result &= TestExpressionError(A->GetUploadTransformsToHoudiniEngine() == B->GetUploadTransformsToHoudiniEngine(), Header, "bUploadTransformsToHoudiniEngine");
+	Result &= TestExpressionError(A->GetCookOnTransformChange() == B->GetCookOnTransformChange(), Header, "bCookOnTransformChange");
+	Result &= TestExpressionError(A->GetCookOnAssetInputCook() == B->GetCookOnAssetInputCook(), Header, "bCookOnAssetInputCook");
+	Result &= TestExpressionError(A->IsOutputless() == B->IsOutputless(), Header, "bOutputless");
+	Result &= TestExpressionError(A->GetOutputTemplateGeos() == B->GetOutputTemplateGeos(), Header, "bOutputTemplateGeos");
+	Result &= TestExpressionError(A->GetCookOnParameterChange() == B->GetCookOnParameterChange(), Header, "bCookOnParameterChange");
 	// We change the temporary cook folder to organize the tests. Do not test this.
-	// Result &= TestExpressionError(IsEquivalent(A->TemporaryCookFolder, B->TemporaryCookFolder), Header, "TemporaryCookFolder");
-	// Result &= TestExpressionError(IsEquivalent(A->BakeFolder, B->BakeFolder), Header, "BakeFolder");
-	Result &= TestExpressionError(IsEquivalent(A->StaticMeshGenerationProperties, B->StaticMeshGenerationProperties), Header, "StaticMeshGenerationProperties");
-	Result &= TestExpressionError(IsEquivalent(A->StaticMeshBuildSettings, B->StaticMeshBuildSettings), Header, "StaticMeshBuildSettings");
-	Result &= TestExpressionError(A->bOverrideGlobalProxyStaticMeshSettings == B->bOverrideGlobalProxyStaticMeshSettings, Header, "bOverrideGlobalProxyStaticMeshSettings");
-	Result &= TestExpressionError(A->bEnableProxyStaticMeshOverride == B->bEnableProxyStaticMeshOverride, Header, "bEnableProxyStaticMeshOverride");
-	Result &= TestExpressionError(A->bEnableProxyStaticMeshRefinementByTimerOverride == B->bEnableProxyStaticMeshRefinementByTimerOverride, Header, "bEnableProxyStaticMeshRefinementByTimerOverride");
-	Result &= TestExpressionError(A->ProxyMeshAutoRefineTimeoutSecondsOverride == B->ProxyMeshAutoRefineTimeoutSecondsOverride, Header, "ProxyMeshAutoRefineTimeoutSecondsOverride");
-	Result &= TestExpressionError(A->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride == B->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride, Header, "bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride");
-	Result &= TestExpressionError(A->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride == B->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride, Header, "bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride");
+	// Result &= TestExpressionError(IsEquivalent(A->GetTemporaryCookFolder(), B->GetTemporaryCookFolder()), Header, "TemporaryCookFolder");
+	// Result &= TestExpressionError(IsEquivalent(A->GetBakeFolder(), B->GetBakeFolder()), Header, "BakeFolder");
+	Result &= TestExpressionError(IsEquivalent(A->GetStaticMeshGenerationProperties(), B->GetStaticMeshGenerationProperties()), Header, "StaticMeshGenerationProperties");
+	Result &= TestExpressionError(IsEquivalent(A->GetStaticMeshBuildSettings(), B->GetStaticMeshBuildSettings()), Header, "StaticMeshBuildSettings");
+	Result &= TestExpressionError(A->IsOverrideGlobalProxyStaticMeshSettings() == B->IsOverrideGlobalProxyStaticMeshSettings(), Header, "bOverrideGlobalProxyStaticMeshSettings");
+	Result &= TestExpressionError(A->IsProxyStaticMeshEnabled() == B->IsProxyStaticMeshEnabled(), Header, "bEnableProxyStaticMeshOverride");
+	Result &= TestExpressionError(A->IsProxyStaticMeshRefinementByTimerEnabled() == B->IsProxyStaticMeshRefinementByTimerEnabled(), Header, "bEnableProxyStaticMeshRefinementByTimerOverride");
+	Result &= TestExpressionError(A->GetProxyMeshAutoRefineTimeoutSeconds() == B->GetProxyMeshAutoRefineTimeoutSeconds(), Header, "ProxyMeshAutoRefineTimeoutSecondsOverride");
+	Result &= TestExpressionError(A->IsProxyStaticMeshRefinementOnPreSaveWorldEnabled() == B->IsProxyStaticMeshRefinementOnPreSaveWorldEnabled(), Header, "bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride");
+	Result &= TestExpressionError(A->IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() == B->IsProxyStaticMeshRefinementOnPreBeginPIEEnabled(), Header, "bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride");
 
 	// Skip UI data
 	// #if WITH_EDITORONLY_DATA
@@ -122,6 +125,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniAssetComponent *
 	// Skip AssetId
 
 	// Note: Despite DownstreamHoudiniAssets being transient, want to test
+	// TODO: COOKABLE fix me!
 	Result &= TestExpressionError(A->DownstreamHoudiniAssets.Num() == B->DownstreamHoudiniAssets.Num(), Header, "DownstreamHoudiniAssets.Num");
 	for (int i = 0; i < FMath::Min(A->DownstreamHoudiniAssets.Num(), B->DownstreamHoudiniAssets.Num()); i++)
 	{
@@ -142,28 +146,28 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniAssetComponent *
 	// Skip AssetCookCount
 	// Skip DuplicateTransient cook flags:  bHasBeenLoaded, HasBeenDuplicated, bPendingDelete
 
-	Result &= TestExpressionError(A->Parameters.Num() == B->Parameters.Num(), Header, "Parameters.Num");
-	for (int i = 0; i < FMath::Min(A->Parameters.Num(), B->Parameters.Num()); i++)
+	Result &= TestExpressionError(A->GetNumParameters() == B->GetNumParameters(), Header, "Parameters.Num");
+	for (int i = 0; i < FMath::Min(A->GetNumParameters(), B->GetNumParameters()); i++)
 	{
-		Result &= TestExpressionError(IsEquivalent(A->Parameters[i], B->Parameters[i]), Header, "Parameters");
+		Result &= TestExpressionError(IsEquivalent(A->GetParameterAt(i), B->GetParameterAt(i)), Header, "Parameters");
 	}
 
-	Result &= TestExpressionError(A->Inputs.Num() == B->Inputs.Num(), Header, "Inputs.Num");
-	for (int i = 0; i < FMath::Min(A->Inputs.Num(), B->Inputs.Num()); i++)
+	Result &= TestExpressionError(A->GetNumInputs() == B->GetNumInputs(), Header, "Inputs.Num");
+	for (int i = 0; i < FMath::Min(A->GetNumInputs(), B->GetNumInputs()); i++)
 	{
-		Result &= TestExpressionError(IsEquivalent(A->Inputs[i], B->Inputs[i]), Header, "Inputs");
+		Result &= TestExpressionError(IsEquivalent(A->GetInputAt(i), B->GetInputAt(i)), Header, "Inputs");
 	}
 
-	Result &= TestExpressionError(A->Outputs.Num() == B->Outputs.Num(), Header, "Outputs.Num");
-	for (int i = 0; i < FMath::Min(A->Outputs.Num(), B->Outputs.Num()); i++)
+	Result &= TestExpressionError(A->GetNumOutputs() == B->GetNumOutputs(), Header, "Outputs.Num");
+	for (int i = 0; i < FMath::Min(A->GetNumOutputs(), B->GetNumOutputs()); i++)
 	{
-		Result &= TestExpressionError(IsEquivalent(A->Outputs[i], B->Outputs[i]), Header, "Outputs");
+		Result &= TestExpressionError(IsEquivalent(A->GetOutputAt(i), B->GetOutputAt(i)), Header, "Outputs");
 	}
 
-	Result &= TestExpressionError(A->BakedOutputs.Num() == B->BakedOutputs.Num(), Header, "BakedOutputs.Num");
-	for (int i = 0; i < FMath::Min(A->BakedOutputs.Num(), B->BakedOutputs.Num()); i++)
+	Result &= TestExpressionError(A->GetBakedOutputs().Num() == B->GetBakedOutputs().Num(), Header, "BakedOutputs.Num");
+	for (int i = 0; i < FMath::Min(A->GetBakedOutputs().Num(), B->GetBakedOutputs().Num()); i++)
 	{
-		Result &= TestExpressionError(IsEquivalent(A->BakedOutputs[i], B->BakedOutputs[i]), Header, "BakedOutputs");
+		Result &= TestExpressionError(IsEquivalent(A->GetBakedOutputs()[i], B->GetBakedOutputs()[i]), Header, "BakedOutputs");
 	}
 
 	// Result &= TestExpressionError(A->UntrackedOutputs.Num() == B->UntrackedOutputs.Num(), Header, "UntrackedOutputs.Num");
@@ -172,14 +176,14 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniAssetComponent *
 	// 	Result &= TestExpressionError(IsEquivalent(A->UntrackedOutputs[i].Get(), B->UntrackedOutputs[i].Get()), Header, "UntrackedOutputs");
 	// }
 
-	Result &= TestExpressionError(A->HandleComponents.Num() == B->HandleComponents.Num(), Header, "HandleComponents.Num");
-	for (int i = 0; i < FMath::Min(A->HandleComponents.Num(), A->HandleComponents.Num()); i++)
+	Result &= TestExpressionError(A->GetNumHandles() == B->GetNumHandles(), Header, "HandleComponents.Num");
+	for (int i = 0; i < FMath::Min(A->GetNumHandles(), A->GetNumHandles()); i++)
 	{
-		Result &= TestExpressionError(IsEquivalent(A->HandleComponents[i], B->HandleComponents[i]), Header, "HandleComponents");
+		Result &= TestExpressionError(IsEquivalent(A->GetHandleComponentAt(i), B->GetHandleComponentAt(i)), Header, "HandleComponents");
 	}
 
 	// Skip bHasComponentTransformChanged, bFullyLoaded
-	Result &= TestExpressionError(IsEquivalent(A->PDGAssetLink, B->PDGAssetLink), Header, "PDGAssetLink");
+	Result &= TestExpressionError(IsEquivalent(A->GetPDGAssetLink(), B->GetPDGAssetLink()), Header, "PDGAssetLink");
 
 	// Not sure if these are necessary
 	// Skip refine meshes timer/delegate
@@ -193,6 +197,148 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniAssetComponent *
 	// Skip LastTickTime
 	// Skip Version1CompatibilityHAC (Just for simplicity)
 	// Skip LastTIckTime
+	// Skip remaining delegates
+
+	return Result;
+}
+
+
+bool 
+FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniCookable* A, UHoudiniCookable* B)
+{
+	const FString Header = "UHoudiniCookable";
+
+	bool Result = true;
+	Result &= TestExpressionError((IsValid(A)) == (IsValid(B)), Header, "Null check");
+
+	if (!IsValid(A) || !IsValid(B))
+	{
+		return true;
+	}
+
+	// ASSET
+	Result &= TestExpressionError(A->IsHoudiniAssetSupported() == B->IsHoudiniAssetSupported(), Header, "IsHoudiniAssetSupported");
+	Result &= TestExpressionError(IsEquivalent(A->GetHoudiniAsset(), B->GetHoudiniAsset()), Header, "HoudiniAsset");
+	// Subasset index??
+
+	// PARAMS
+	Result &= TestExpressionError(A->IsParameterSupported() == B->IsParameterSupported(), Header, "IsParameterSupported");
+	Result &= TestExpressionError(A->GetNumParameters() == B->GetNumParameters(), Header, "Parameters.Num");
+	for (int i = 0; i < FMath::Min(A->GetNumParameters(), B->GetNumParameters()); i++)
+	{
+		Result &= TestExpressionError(IsEquivalent(A->GetParameterAt(i), B->GetParameterAt(i)), Header, "Parameters");
+	}
+	Result &= TestExpressionError(A->GetCookOnParameterChange() == B->GetCookOnParameterChange(), Header, "CookOnParameterChange");
+
+
+	// INPUTS
+	Result &= TestExpressionError(A->IsInputSupported() == B->IsInputSupported(), Header, "IsInputSupported");
+	Result &= TestExpressionError(A->GetNumInputs() == B->GetNumInputs(), Header, "Inputs.Num");
+	for (int i = 0; i < FMath::Min(A->GetNumInputs(), B->GetNumInputs()); i++)
+	{
+		Result &= TestExpressionError(IsEquivalent(A->GetInputAt(i), B->GetInputAt(i)), Header, "Inputs");
+	}
+	Result &= TestExpressionError(A->GetCookOnInputChange() == B->GetCookOnInputChange(), Header, "bCookOnInputChange");
+	Result &= TestExpressionError(A->GetCookOnCookableInputCook() == B->GetCookOnCookableInputCook(), Header, "bCookOnCookableInputCook");
+	// Note: Despite DownstreamHoudiniAssets being transient, want to test
+	// TODO: COOKABLE fix me!
+	/*
+	Result &= TestExpressionError(A->DownstreamHoudiniAssets.Num() == B->DownstreamHoudiniAssets.Num(), Header, "DownstreamHoudiniAssets.Num");
+	for (int i = 0; i < FMath::Min(A->DownstreamHoudiniAssets.Num(), B->DownstreamHoudiniAssets.Num()); i++)
+	{
+		Result &= TestExpressionError(IsEquivalent(A->DownstreamHoudiniAssets.Array()[i], B->DownstreamHoudiniAssets.Array()[i]), Header, "DownstreamHoudiniAssets");
+	}
+	*/
+
+	// OUTPUTS
+	Result &= TestExpressionError(A->IsOutputSupported() == B->IsOutputSupported(), Header, "IsOutputSupported");
+	Result &= TestExpressionError(A->GetNumOutputs() == B->GetNumOutputs(), Header, "Outputs.Num");
+	for (int i = 0; i < FMath::Min(A->GetNumOutputs(), B->GetNumOutputs()); i++)
+	{
+		Result &= TestExpressionError(IsEquivalent(A->GetOutputAt(i), B->GetOutputAt(i)), Header, "Outputs");
+	}
+	// We change the temporary cook folder to organize the tests. Do not test this.
+	// Result &= TestExpressionError(IsEquivalent(A->GetTemporaryCookFolder(), B->GetTemporaryCookFolder()), Header, "TemporaryCookFolder");
+	// Result &= TestExpressionError(IsEquivalent(A->GetBakeFolder(), B->GetBakeFolder()), Header, "BakeFolder");
+	// TODO : Untracked outputs?
+	// Result &= TestExpressionError(A->UntrackedOutputs.Num() == B->UntrackedOutputs.Num(), Header, "UntrackedOutputs.Num");
+	// for (int i = 0; i < FMath::Min(A->UntrackedOutputs.Num(), B->UntrackedOutputs.Num()); i++)
+	// {
+	// 	Result &= TestExpressionError(IsEquivalent(A->UntrackedOutputs[i].Get(), B->UntrackedOutputs[i].Get()), Header, "UntrackedOutputs");
+	// }
+	Result &= TestExpressionError(A->IsOutputless() == B->IsOutputless(), Header, "bOutputless");
+	Result &= TestExpressionError(A->GetOutputTemplateGeos() == B->GetOutputTemplateGeos(), Header, "bOutputTemplateGeos");
+	Result &= TestExpressionError(A->GetUseOutputNodes() == B->GetUseOutputNodes(), Header, "UseOutputNodes");
+	// TODO : split mesh support?
+	Result &= TestExpressionError(A->GetEnableCurveEditing() == B->GetEnableCurveEditing(), Header, "EnableCurveEditing");
+	Result &= TestExpressionError(IsEquivalent(A->GetStaticMeshGenerationProperties(), B->GetStaticMeshGenerationProperties()), Header, "StaticMeshGenerationProperties");
+	Result &= TestExpressionError(IsEquivalent(A->GetStaticMeshBuildSettings(), B->GetStaticMeshBuildSettings()), Header, "StaticMeshBuildSettings");
+	// BAKE
+	Result &= TestExpressionError(A->GetBakedOutputs().Num() == B->GetBakedOutputs().Num(), Header, "BakedOutputs.Num");
+	for (int i = 0; i < FMath::Min(A->GetBakedOutputs().Num(), B->GetBakedOutputs().Num()); i++)
+	{
+		Result &= TestExpressionError(IsEquivalent(A->GetBakedOutputs()[i], B->GetBakedOutputs()[i]), Header, "BakedOutputs");
+	}
+	Result &= TestExpressionError(A->GetHoudiniEngineBakeOption() == B->GetHoudiniEngineBakeOption(), Header, "HoudiniEngineBakeOption");
+	Result &= TestExpressionError(A->GetRemoveOutputAfterBake() == B->GetRemoveOutputAfterBake(), Header, "RemoveOutputAfterBake");
+	Result &= TestExpressionError(A->GetRecenterBakedActors() == B->GetRecenterBakedActors(), Header, "RecenterBakedActors");
+	Result &= TestExpressionError(A->GetReplacePreviousBake() == B->GetReplacePreviousBake(), Header, "ReplacePreviousBake");
+	Result &= TestExpressionError(A->GetActorBakeOption() == B->GetActorBakeOption(), Header, "ActorBakeOption");
+	Result &= TestExpressionError(A->GetLandscapeUseTempLayers() == B->GetLandscapeUseTempLayers(), Header, "LandscapeUseTempLayers");
+	// PROXY
+	Result &= TestExpressionError(A->IsOverrideGlobalProxyStaticMeshSettings() == B->IsOverrideGlobalProxyStaticMeshSettings(), Header, "bOverrideGlobalProxyStaticMeshSettings");
+	Result &= TestExpressionError(A->IsProxyStaticMeshEnabled() == B->IsProxyStaticMeshEnabled(), Header, "bEnableProxyStaticMeshOverride");
+	Result &= TestExpressionError(A->IsProxyStaticMeshRefinementByTimerEnabled() == B->IsProxyStaticMeshRefinementByTimerEnabled(), Header, "bEnableProxyStaticMeshRefinementByTimerOverride");
+	Result &= TestExpressionError(A->GetProxyMeshAutoRefineTimeoutSeconds() == B->GetProxyMeshAutoRefineTimeoutSeconds(), Header, "ProxyMeshAutoRefineTimeoutSecondsOverride");
+	Result &= TestExpressionError(A->IsProxyStaticMeshRefinementOnPreSaveWorldEnabled() == B->IsProxyStaticMeshRefinementOnPreSaveWorldEnabled(), Header, "bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride");
+	Result &= TestExpressionError(A->IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() == B->IsProxyStaticMeshRefinementOnPreBeginPIEEnabled(), Header, "bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride");
+	Result &= TestExpressionError(A->IsPlayInEditorRefinementAllowed() == B->IsPlayInEditorRefinementAllowed(), Header, "IsPlayInEditorRefinementAllowed");
+
+	// COMPONENT
+	Result &= TestExpressionError(A->IsComponentSupported() == B->IsComponentSupported(), Header, "IsComponentSupported");
+	Result &= TestExpressionError(IsEquivalent(A->GetComponent()->GetClass(), B->GetComponent()->GetClass()), Header, "GetComponent-Class");
+	Result &= TestExpressionError(IsEquivalent(A->GetLastComponentTransform(), B->GetLastComponentTransform()), Header, "GetLastComponentTransform");
+	Result &= TestExpressionError(A->GetUploadTransformsToHoudiniEngine() == B->GetUploadTransformsToHoudiniEngine(), Header, "UploadTransformsToHoudiniEngine");
+	Result &= TestExpressionError(A->GetCookOnTransformChange() == B->GetCookOnTransformChange(), Header, "CookOnTransformChange");
+	Result &= TestExpressionError(A->GetNumHandles() == B->GetNumHandles(), Header, "HandleComponents.Num");
+	for (int i = 0; i < FMath::Min(A->GetNumHandles(), A->GetNumHandles()); i++)
+	{
+		Result &= TestExpressionError(IsEquivalent(A->GetHandleComponentAt(i), B->GetHandleComponentAt(i)), Header, "HandleComponents");
+	}
+
+	// PDG
+	Result &= TestExpressionError(A->IsPDGSupported() == B->IsPDGSupported(), Header, "IsPDGSupported");	
+	Result &= TestExpressionError(IsEquivalent(A->GetPDGAssetLink(), B->GetPDGAssetLink()), Header, "PDGAssetLink");
+
+	// Skip UI data
+	// #if WITH_EDITORONLY_DATA
+	// 	Result &= TestExpressionError(A->bGenerateMenuExpanded == B->bGenerateMenuExpanded, Header, "bGenerateMenuExpanded");
+	// 	Result &= TestExpressionError(A->bBakeMenuExpanded == B->bBakeMenuExpanded, Header, "bBakeMenuExpanded");
+	// 	Result &= TestExpressionError(A->bAssetOptionMenuExpanded == B->bAssetOptionMenuExpanded, Header, "bAssetOptionMenuExpanded");
+	// 	Result &= TestExpressionError(A->bHelpAndDebugMenuExpanded == B->bHelpAndDebugMenuExpanded, Header, "bHelpAndDebugMenuExpanded");
+	// #endif
+	// 
+	// Skip bHasComponentTransformChanged, bFullyLoaded	
+	// Skip NodeId
+	// Skip ComponentGUID
+	// Skip HapiGUID
+	// SKip DebugLastAssetState
+	// Skip HapiAssetName
+	// Skip AssetState
+	// Skip DebugLastAssetState
+	// Skip AssetStateResult
+	// Skip SubAssetIndex
+	// Skip AssetCookCount
+	// Skip DuplicateTransient cook flags:  bHasBeenLoaded, HasBeenDuplicated, bPendingDelete
+
+	// Not sure if these are necessary
+	// Skip refine meshes timer/delegate
+	// Skip bNoProxyMeshNextCookRequested
+	// Skip bBakeAfterNextCook
+	// Skip delegates
+	// Skip bCachedIsPreview
+	// Skip LastTickTime
+	// Skip Version1CompatibilityHAC (Just for simplicity)
 	// Skip remaining delegates
 
 	return Result;

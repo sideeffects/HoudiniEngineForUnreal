@@ -823,10 +823,21 @@ void FHoudiniEditorTestUtils::RunDifferentialTest(
 				if (!FHoudiniEditorEquivalenceUtils::IsEquivalent(InAssetWrapper->GetHoudiniAssetComponent(), SceneHAC))
 				{
 					Test->AddError(FString::Printf(
-						TEXT("HDA is not equivalent. If this change is intended, then DELETE %s and %s and MOVE %s and %s to those locations, fix redirectors in the TestCached folder from the content browser and commit to dev_reg. Do not copy/paste as it will break essential DuplicateTransient references like OutputObjects."),
+						TEXT("HAC is not equivalent. If this change is intended, then DELETE %s and %s and MOVE %s and %s to those locations, fix redirectors in the TestCached folder from the content browser and commit to dev_reg. Do not copy/paste as it will break essential DuplicateTransient references like OutputObjects."),
 						*SavedLevelPath, *SavedAssetsPath, *TempLevelPath, *TempAssetsPath));
 
 				//	CreateTestTempLevel(Test, MapName, HDAAssetPath, ActorName, OnFinishedCallback, OnPreInstantiationCallback, OnPostInstantiationCallback);
+
+					return;
+				}
+
+				if (!FHoudiniEditorEquivalenceUtils::IsEquivalent(InAssetWrapper->GetHoudiniCookable(), SceneHAC->GetCookable()))
+				{
+					Test->AddError(FString::Printf(
+						TEXT("Cookable is not equivalent. If this change is intended, then DELETE %s and %s and MOVE %s and %s to those locations, fix redirectors in the TestCached folder from the content browser and commit to dev_reg. Do not copy/paste as it will break essential DuplicateTransient references like OutputObjects."),
+						*SavedLevelPath, *SavedAssetsPath, *TempLevelPath, *TempAssetsPath));
+
+					//	CreateTestTempLevel(Test, MapName, HDAAssetPath, ActorName, OnFinishedCallback, OnPreInstantiationCallback, OnPostInstantiationCallback);
 
 					return;
 				}
