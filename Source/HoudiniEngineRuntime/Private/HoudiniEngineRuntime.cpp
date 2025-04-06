@@ -472,7 +472,7 @@ FHoudiniEngineRuntime::UnRegisterHoudiniCookable(UHoudiniCookable* HC)
 			continue;
 		}
 
-		if (CurHC.Get() == CurHC)
+		if (CurHC.Get() == HC)
 			FoundIdx = n;
 	}
 
