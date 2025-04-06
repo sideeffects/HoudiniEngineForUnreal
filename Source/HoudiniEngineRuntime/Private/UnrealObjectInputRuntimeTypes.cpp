@@ -518,11 +518,6 @@ FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const FName& InPath)
 }
 
 
-FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const FUnrealObjectInputHandle& InHandle)
-	: FUnrealObjectInputIdentifier(InHandle.GetIdentifier())
-{
-}
-
 bool FUnrealObjectInputIdentifier::IsValid() const
 {
 	switch(NodeType)

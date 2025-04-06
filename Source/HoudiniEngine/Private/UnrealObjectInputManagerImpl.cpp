@@ -407,7 +407,7 @@ FUnrealObjectInputManagerImpl::EnsureParentsExist(
 	int32 GrandParentNodeId = -1;
 	if (GrandParentHandle.IsValid())
 	{
-		const FUnrealObjectInputNode* Node = nullptr;
+		FUnrealObjectInputNode* Node = nullptr;
 		if (GetNode(GrandParentHandle, Node))
 			GrandParentNodeId = Node->GetHAPINodeId();
 	}
@@ -581,7 +581,7 @@ FUnrealObjectInputManagerImpl::Clear()
 	// Destroy the Node structs
 	for (auto& Entry : InputNodes)
 	{
-		FUnrealObjectInputNode* const Node = Entry.Value;
+		FUnrealObjectInputNode* Node = Entry.Value;
 		if (!Node)
 			continue;
 

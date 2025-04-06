@@ -286,9 +286,6 @@ public:
 	/** Construct an identifier for a container associated with a path. Analogous to directories. */
 	FUnrealObjectInputIdentifier(const FName& InPath);
 
-	/** Construct from a handle (copies the handle's identifier). */
-	FUnrealObjectInputIdentifier(const class FUnrealObjectInputHandle& InHandle);
-
 	/**
 	 * Returns true if the identifier is valid.
 	 * A leaf identifier is valid if it has a valid Object.
