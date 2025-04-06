@@ -42,6 +42,7 @@
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniPCGUtils.h"
 #include "HoudiniPCGDataObject.h"
+#include <UnrealObjectInputManager.h>
 
 
 namespace
@@ -105,89 +106,45 @@ namespace
 
 bool FUnrealPCGDataTranslator::CreateInputNodeForPCGData(
 	UHoudiniPCGDataCollection* PCGDataCollection,
-	HAPI_NodeId& InputNodeId,
 	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
 	bool bInputNodesCanBeDeleted)
 {
-	// Create Identifier and default name for this object.
-	FUnrealObjectInputOptions Options;
-	FUnrealObjectInputIdentifier Identifier = FUnrealObjectInputIdentifier(PCGDataCollection, Options, true);
-	FString FinalInputNodeName = InputNodeName;
-	FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
 
-	// Get handle.
-	FUnrealObjectInputHandle Handle;
+	// Create handles for each input node that will be merged together.
 
-	// Not sure what this is doing...
-	if(FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+	TSet<FUnrealObjectInputHandle> Handles;
+	switch (PCGDataCollection->Type)
 	{
-		HAPI_NodeId NodeId = -1;
-		if(FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
+	case EHoudiniPCGDataType::InputPCGGeometry:
 		{
-			if(!bInputNodesCanBeDeleted)
-				FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
-			OutHandle = Handle;
-			InputNodeId = NodeId;
-			return true;
+			FUnrealObjectInputHandle Handle = CreateInputNodeForPCGAttrData(InputNodeName, PCGDataCollection, bInputNodesCanBeDeleted);
+			Handles.Add(Handle);
 		}
-	}
+		break;
 
-	// Make sure we have a parent node?
-	FUnrealObjectInputHandle ParentHandle;
-	HAPI_NodeId ParentNodeId = -1;
-	if(FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-	{
-		FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
-	}
-
-	// Set InputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
-	// (Option changes could mean that InputNodeId is associated with a completely different entry, albeit for
-	// the same asset, in the manager)
-	if(Handle.IsValid())
-	{
-		if(!FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId))
-			InputNodeId = -1;
-	}
-	else
-	{
-		InputNodeId = -1;
-	}
-
-
-	// Create the input node
-	HAPI_NodeId NewNodeId = -1;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateInputNode(FinalInputNodeName, NewNodeId, ParentNodeId), false);
-
-	if(!FHoudiniEngineUtils::IsHoudiniNodeValid(NewNodeId))
-		return false;
-
-	HAPI_NodeId PreviousInputNodeId = InputNodeId;
-	InputNodeId = NewNodeId;
-	HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(NewNodeId);
-
-	if(PreviousInputNodeId >= 0)
-	{
-		HAPI_NodeId PreviousInputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
-
-		if(FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputNodeId) != HAPI_RESULT_SUCCESS)
+	case EHoudiniPCGDataType::InputPCGSplines:
 		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *FinalInputNodeName);
+			TArray<FUnrealObjectInputHandle> SplineHandles = CreateInputNodeForPCGSplineData(InputNodeName, PCGDataCollection, bInputNodesCanBeDeleted);
+			Handles.Append(SplineHandles);
 		}
+		break;
 
-		if(FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputObjectNodeId) != HAPI_RESULT_SUCCESS)
-		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input object node for %s."), *FinalInputNodeName);
-		}
+	default:
+		break;
 	}
 
+	// Merge all nodes into the input.
 
-	CreateInputNodeForPCGParamData(PCGDataCollection, InputNodeId);
+	const FUnrealObjectInputIdentifier MergeNodeIdentifier(PCGDataCollection, {}, false);
+	FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(MergeNodeIdentifier, Handles, OutHandle, true, bInputNodesCanBeDeleted);
 
-	if(FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, InputNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted))
-		OutHandle = Handle;
+	HAPI_NodeId MergeNodeId = FUnrealObjectInputUtils::GetHAPINodeId(MergeNodeIdentifier);
 
-	return true;
+	HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(MergeNodeId);
+	FUnrealObjectInputUtils::AddNodeOrUpdateNode(MergeNodeIdentifier, MergeNodeId, OutHandle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted);
+
+	return OutHandle.IsValid();
 }
 
 void
@@ -236,16 +193,151 @@ FUnrealPCGDataTranslator::SetAttributes(UHoudiniPCGDataObject* PCGDataObject, HA
 	}
 }
 
-bool
-FUnrealPCGDataTranslator::CreateInputNodeForPCGParamData(
-	UHoudiniPCGDataCollection* PCGCollection,
-	HAPI_NodeId& InputNodeId)
+FUnrealObjectInputHandle
+FUnrealPCGDataTranslator::CreateInputNode(const FString & Name, UObject * Object, bool bInputNodesCanBeDeleted)
 {
-	if (!IsValid(PCGCollection->Points))
+	// Create Identifier for this object and handle
+	FUnrealObjectInputOptions Options;
+	FUnrealObjectInputIdentifier Identifier = FUnrealObjectInputIdentifier(Object, Options, true);
+	FUnrealObjectInputHandle Handle;
+
+	if(FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+	{
+		return Identifier;
+	}
+
+
+	// Make sure we have a parent node.
+	FUnrealObjectInputHandle ParentHandle;
+
+	FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted);
+	HAPI_NodeId ParentNodeId = FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle);
+
+	// Create the input node
+	FString FinalInputNodeName = Name;
+	FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+	HAPI_NodeId NewNodeId = FHoudiniEngineUtils::CreateInputHapiNode(FinalInputNodeName, ParentNodeId);
+	if(!FHoudiniEngineUtils::IsHoudiniNodeValid(NewNodeId))
+		return {};
+
+	// Remove previous node and its parent.
+	HAPI_NodeId PreviousInputNodeId = FUnrealObjectInputUtils::GetHAPINodeId(Handle);
+	if(PreviousInputNodeId != INDEX_NONE)
+	{
+		HAPI_NodeId PreviousInputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
+
+		if(FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputNodeId) != HAPI_RESULT_SUCCESS)
+		{
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *FinalInputNodeName);
+		}
+
+		if(FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputObjectNodeId) != HAPI_RESULT_SUCCESS)
+		{
+			HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input object node for %s."), *FinalInputNodeName);
+		}
+	}
+
+	HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(NewNodeId);
+	FUnrealObjectInputUtils::AddNodeOrUpdateNode(Identifier, NewNodeId, Handle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted);
+
+	return Handle;
+}
+
+TArray<FUnrealObjectInputHandle>
+FUnrealPCGDataTranslator::CreateInputNodeForPCGSplineData(const FString& InputNodeName, UHoudiniPCGDataCollection* PCGDataCollection, bool bInputNodesCanBeDeleted)
+{
+	TArray<FUnrealObjectInputHandle> Results;
+
+	for(auto& SplineObject : PCGDataCollection->Splines)
+	{
+		FUnrealObjectInputHandle Handle = CreateInputNodeForPCGSplineData(InputNodeName, SplineObject, bInputNodesCanBeDeleted);
+		Results.Add(Handle);
+	}
+	return Results;
+}
+
+FUnrealObjectInputHandle
+FUnrealPCGDataTranslator::CreateInputNodeForPCGSplineData(const FString& InputNodeName, UHoudiniPCGDataObject* PCGDataObject, bool bInputNodesCanBeDeleted)
+{
+	FString InputName = InputNodeName + PCGDataObject->GetName();
+	FUnrealObjectInputHandle Handle = FUnrealPCGDataTranslator::CreateInputNode(
+		InputName,
+		PCGDataObject,
+		bInputNodesCanBeDeleted);
+
+	if(!Handle.IsValid())
+		return Handle;
+
+	HAPI_NodeId NodeId = FUnrealObjectInputUtils::GetHAPINodeId(Handle);
+
+	UHoudiniPCGDataAttributeVector3d * PosAttr = Cast<UHoudiniPCGDataAttributeVector3d>(PCGDataObject->FindAttribute(TEXT("P")));
+	if(!PosAttr)
+		return {};
+
+	int NumSegments = 1;
+	int NumPositions = PosAttr->Values.Num();
+	int CurveCounts = NumPositions;
+
+	HAPI_PartInfo Part;
+	FHoudiniApi::PartInfo_Init(&Part);
+	Part.id = 0;
+	Part.nameSH = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_POINT] = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
+	Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
+	Part.type = HAPI_PARTTYPE_CURVE;
+	Part.pointCount = NumPositions;
+	Part.vertexCount = NumPositions;
+	Part.faceCount = NumSegments;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), NodeId, 0, &Part), {});
+
+	HAPI_CurveInfo CurveInfo;
+	FHoudiniApi::CurveInfo_Init(&CurveInfo);
+	CurveInfo.curveType = HAPI_CURVETYPE_LINEAR;
+	CurveInfo.curveCount = NumSegments;
+	CurveInfo.vertexCount = NumPositions;
+	CurveInfo.knotCount = 0;
+	CurveInfo.isPeriodic = false;
+	CurveInfo.isRational = false;
+	CurveInfo.order = 0;
+	CurveInfo.hasKnots = false;
+	CurveInfo.isClosed = PCGDataObject->bIsClosed;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetCurveInfo(FHoudiniEngine::Get().GetSession(), NodeId, 0, &CurveInfo), {});
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetCurveCounts(FHoudiniEngine::Get().GetSession(), NodeId, Part.id, &CurveCounts, 0, 1), {});
+
+	SendToHoudini(PosAttr, NodeId, Part.id, HAPI_ATTROWNER_POINT);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NodeId), {});
+
+	HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
+	CookOptions.maxVerticesPerPrimitive = -1;
+	CookOptions.refineCurveToLinear = false;
+	static constexpr bool bWaitForCompletion = false;
+	FHoudiniEngineUtils::HapiCookNode(NodeId, &CookOptions, bWaitForCompletion);
+
+	return Handle;
+}
+
+
+FUnrealObjectInputHandle
+FUnrealPCGDataTranslator::CreateInputNodeForPCGAttrData(const FString& InputNodeName,  UHoudiniPCGDataCollection* PCGCollection, bool bInputNodesCanBeDeleted)
+{
+	if(!IsValid(PCGCollection->Points))
 	{
 		HOUDINI_PCG_ERROR(TEXT("Not able to process a PCG Data without points"));
-		return false;
+		return {};
 	}
+
+	FUnrealObjectInputHandle Handle = FUnrealPCGDataTranslator::CreateInputNode(
+		InputNodeName,
+		PCGCollection,
+		bInputNodesCanBeDeleted);
+
+	if(!Handle.IsValid())
+		return Handle;
 
 	int NumPoints = PCGCollection->Points ? PCGCollection->Points->GetNumRows() : 0;
 	int NumPrims = PCGCollection->Primitives ? PCGCollection->Primitives->GetNumRows() : 0;
@@ -265,12 +357,14 @@ FUnrealPCGDataTranslator::CreateInputNodeForPCGParamData(
 	Part.pointCount = NumPoints;
 	Part.type = HAPI_PARTTYPE_MESH;
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), InputNodeId, 0, &Part), false);
+	HAPI_NodeId NodeId = FUnrealObjectInputUtils::GetHAPINodeId(Handle);
 
-	SetAttributes(PCGCollection->Points, InputNodeId, Part.id, HAPI_ATTROWNER_POINT);
-	SetAttributes(PCGCollection->Vertices, InputNodeId, Part.id, HAPI_ATTROWNER_VERTEX);
-	SetAttributes(PCGCollection->Primitives, InputNodeId, Part.id, HAPI_ATTROWNER_PRIM);
-	SetAttributes(PCGCollection->Details, InputNodeId, Part.id, HAPI_ATTROWNER_DETAIL);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), NodeId, 0, &Part), {});
+
+	SetAttributes(PCGCollection->Points, NodeId, Part.id, HAPI_ATTROWNER_POINT);
+	SetAttributes(PCGCollection->Vertices, NodeId, Part.id, HAPI_ATTROWNER_VERTEX);
+	SetAttributes(PCGCollection->Primitives, NodeId, Part.id, HAPI_ATTROWNER_PRIM);
+	SetAttributes(PCGCollection->Details, NodeId, Part.id, HAPI_ATTROWNER_DETAIL);
 
 	// We need to generate array of face counts.
 	if (Part.faceCount)
@@ -281,14 +375,14 @@ FUnrealPCGDataTranslator::CreateInputNodeForPCGParamData(
 			StaticMeshFaceCounts[n] = 3;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
-			StaticMeshFaceCounts, InputNodeId, 0), false);
+			StaticMeshFaceCounts, NodeId, 0), {});
 	}
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(InputNodeId), false);
-	if(!FHoudiniEngineUtils::HapiCookNode(InputNodeId, nullptr, true))
-		return false;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NodeId), {});
+	if(!FHoudiniEngineUtils::HapiCookNode(NodeId, nullptr, true))
+		return {};
 
-	return true;
+	return Handle;
 }
 
 
@@ -393,7 +487,6 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector3d * 
 	FloatValues.SetNum(Data->Values.Num() * 3);
 	for(int Index = 0; Index <Data->Values.Num(); Index++)
 	{
-		// Note, no intentional Unreal swizzling or scaling here, we don't know the type.
 		FloatValues[Index * 3 + 0] = Data->Values[Index].X;
 		FloatValues[Index * 3 + 1] = Data->Values[Index].Y;
 		FloatValues[Index * 3 + 2] = Data->Values[Index].Z;
@@ -410,7 +503,6 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector4d * 
 	FloatValues.SetNum(Data->Values.Num() * 4);
 	for(int Index = 0; Index <Data->Values.Num(); Index++)
 	{
-		// Note, no intentional Unreal swizzling or scaling here, we don't know the type.
 		FloatValues[Index * 4 + 0] = Data->Values[Index].X;
 		FloatValues[Index * 4 + 1] = Data->Values[Index].Y;
 		FloatValues[Index * 4 + 2] = Data->Values[Index].Z;

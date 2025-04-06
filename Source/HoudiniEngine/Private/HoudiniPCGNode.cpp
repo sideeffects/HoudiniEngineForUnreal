@@ -102,7 +102,7 @@ TArray<FPCGPinProperties> UHoudiniDigitalAssetPCGSettings::OutputPinProperties()
 	TArray<FPCGPinProperties> PinProperties;
 	for(int Index = 0; Index < Outputs.Num(); Index++)
 	{
-		PinProperties.Emplace(GetOutputPinName(Index), EPCGDataType::Param | EPCGDataType::Point, false);
+		PinProperties.Emplace(GetOutputPinName(Index), EPCGDataType::Param | EPCGDataType::Point | EPCGDataType::Spline, false);
 	}
 	return PinProperties;
 }
@@ -432,8 +432,8 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 		if (bCookStarted)
 		{
-			// Nothing changed so we can re-use output as-is.
-			HOUDINI_PCG_MESSAGE(TEXT("A cook was start."));
+			// Something changes, so cook is in progress
+			HOUDINI_PCG_MESSAGE(TEXT("A cook was started."));
 			return false;
 		}
 		else

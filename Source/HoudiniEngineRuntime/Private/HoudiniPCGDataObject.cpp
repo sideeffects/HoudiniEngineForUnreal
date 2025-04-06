@@ -52,12 +52,40 @@ void UHoudiniPCGDataObject::Initialize(const UPCGData* PCGData, const TSet<FStri
 		Initialize(Cast<UPCGParamData>(PCGData));
 	else if(PCGData->IsA<UPCGPointData>())
 		Initialize(Cast<UPCGPointData>(PCGData));
+	else if(PCGData->IsA<UPCGSplineData>())
+		Initialize(Cast<UPCGSplineData>(PCGData));
 }
 
+void UHoudiniPCGDataObject::Initialize(const UPCGSplineData* PCGSplineData)
+{
+	const UPCGMetadata* Metadata = PCGSplineData->ConstMetadata();
+	this->PCGDataType = PCGSplineData->GetDataType();
+
+	auto & SplineCurves = PCGSplineData->SplineStruct.SplineCurves;
+
+	auto& Points = SplineCurves.Position.Points;
+
+	auto AttrDest = CreateAttributeVector3d(TEXT("P"));
+	AttrDest->Values.SetNum(Points.Num());
+
+	for(int Index = 0; Index < Points.Num(); Index++)
+	{
+		FVector Position = PCGSplineData->GetTransform().TransformPosition(Points[Index].OutVal);
+
+		AttrDest->Values[Index][0] = Position.X / 100.0f;
+		AttrDest->Values[Index][1] = Position.Z / 100.0f;
+		AttrDest->Values[Index][2] = Position.Y / 100.0f;
+	}
+	Attributes.Emplace(MoveTemp(AttrDest));
+
+	bIsClosed = PCGSplineData->SplineStruct.IsClosedLoop();
+
+}
 
 void UHoudiniPCGDataObject::Initialize(const UPCGPointData* PCGPointData)
 {
 	const UPCGMetadata* Metadata = PCGPointData->ConstMetadata();
+	this->PCGDataType = PCGPointData->GetDataType();
 
 	const TArray<FPCGPoint> & Points = PCGPointData->GetPoints();
 
@@ -520,18 +548,27 @@ void UHoudiniPCGDataCollection::AddObject(UHoudiniPCGDataObject* Object)
 {
 	if(Object->PCGDataType == EPCGDataType::Point)
 	{
+		Type = EHoudiniPCGDataType::InputPCGGeometry;
 		Points = Object;
+	}
+	else if (Object->PCGDataType == EPCGDataType::Spline)
+	{
+		Type = EHoudiniPCGDataType::InputPCGSplines;
+		Splines.Add(Object);
 	}
 	else if (Object->PCGTags.Contains(TEXT("Vertices")))
 	{
+		Type = EHoudiniPCGDataType::InputPCGGeometry;
 		Vertices = Object;
 	}
 	else if(Object->PCGTags.Contains(TEXT("Primitives")))
 	{
+		Type = EHoudiniPCGDataType::InputPCGGeometry;
 		Primitives = Object;
 	}
 	else if(Object->PCGTags.Contains(TEXT("Details")))
 	{
+		Type = EHoudiniPCGDataType::InputPCGGeometry;
 		Details = Object;
 	}
 }

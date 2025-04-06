@@ -5398,7 +5398,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForPCGData(
 	const FString& InNodeName,
 	UHoudiniInputPCGData* InInputObject,
 	const FHoudiniInputObjectSettings& InInputSettings,
-	const bool& bInputNodesCanBeDeleted)
+	bool bInputNodesCanBeDeleted)
 {
 #if defined(HOUDINI_USE_PCG)
 	if(!IsValid(InInputObject))
@@ -5408,50 +5408,21 @@ FHoudiniInputTranslator::HapiCreateInputNodeForPCGData(
 	if(!DataCollection)
 		return true;
 
-	UHoudiniPCGDataObject* PCGData = DataCollection->Points;
-	if(!IsValid(PCGData))
-		return true;
-
-	FString PCGDataName = InNodeName + TEXT("_") + PCGData->GetName();
+	FString PCGDataName = InNodeName;
 	FHoudiniEngineUtils::SanitizeHAPIVariableName(PCGDataName);
 
-	HAPI_NodeId InputNodeId = -1;
-
-	// Get the existing node id, if any
-
-	// For the ref counted system the handle on the input object represents a reference node that has a single node
-	// it references: the data table. The reference node represents InObject with its Transform (geometry input).
-	{
-		TSet<FUnrealObjectInputHandle> ReferencedNodes;
-		if(FUnrealObjectInputUtils::GetReferencedNodes(InInputObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
-		{
-			const FUnrealObjectInputHandle Handle = ReferencedNodes.Array()[0];
-			FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId);
-		}
-	}
-
-
 	FUnrealObjectInputHandle PCGInputNodeHandle;
-	if(!FUnrealPCGDataTranslator::CreateInputNodeForPCGData(DataCollection, InputNodeId, PCGDataName, PCGInputNodeHandle, bInputNodesCanBeDeleted))
+	if(!FUnrealPCGDataTranslator::CreateInputNodeForPCGData(DataCollection, PCGDataName, PCGInputNodeHandle, bInputNodesCanBeDeleted))
 	{
 		return false;
 	}
 
-
-	{
-		// The data table can have its own transform (geometry input), so we have to create a reference node that
-		// represents InInputObject in the new input system that references the DataTable asset's input node handle
-		FUnrealObjectInputOptions Options;
-		static constexpr bool bIsLeaf = false;
-		FUnrealObjectInputIdentifier GeoInputRefNodeId(InInputObject, Options, bIsLeaf);
-		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { PCGInputNodeHandle }, InInputObject->InputNodeHandle, true, bInputNodesCanBeDeleted);
-	}
-
 	if(!HapiSetGeoObjectTransform(InInputObject->GetInputObjectNodeId(), InInputObject->GetHoudiniObjectTransform()))
-	return false;
+		return false;
 
 	// Update the cached data and input settings
-	InInputObject->Update(PCGData, InInputSettings);
+	InInputObject->Update(DataCollection, InInputSettings);
+	InInputObject->InputNodeHandle = PCGInputNodeHandle;
 #endif
 	return true;
 }
@@ -5641,6 +5612,8 @@ FHoudiniInputTranslator::CreateMergeSOP(
 bool
 FHoudiniInputTranslator::SetMergeSOPInputs(const HAPI_NodeId InMergeNodeId, const TArray<HAPI_NodeId>& InNodeIdsToConnect)
 {
+	FUnrealObjectInputManager* SM = FUnrealObjectInputManager::Get();
+
 	if (!FHoudiniEngineUtils::IsHoudiniNodeValid(InMergeNodeId))
 		return false;
 

@@ -7940,6 +7940,15 @@ FHoudiniEngineUtils::HapiCookNode(HAPI_NodeId InNodeId, HAPI_CookOptions* InCook
 	}
 }
 
+HAPI_NodeId FHoudiniEngineUtils::CreateInputHapiNode(const FString& InNodeLabel, HAPI_NodeId InParentNodeId)
+{
+	HAPI_NodeId OutNodeId = INDEX_NONE;
+	HAPI_Result Result = CreateInputNode(InNodeLabel, OutNodeId, InParentNodeId);
+	if(Result == HAPI_Result::HAPI_RESULT_SUCCESS)
+		return OutNodeId;
+	else
+		return INDEX_NONE;
+}
 
 HAPI_Result
 FHoudiniEngineUtils::CreateInputNode(const FString& InNodeLabel, HAPI_NodeId& OutNodeId, const int32 InParentNodeId)

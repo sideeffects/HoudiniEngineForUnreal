@@ -28,6 +28,7 @@
 
 #include <PCGData.h>
 #include "UObject/NameTypes.h"
+#include <Data/PCGSplineData.h>
 #include "HoudiniPCGDataObject.generated.h"
 
 class UPCGPointData;
@@ -184,6 +185,7 @@ public:
     void Initialize(const UPCGData* PCGParamaData, const TSet<FString> & Tags = {});
     void Initialize(const UPCGParamData* PCGParamaData);
     void Initialize(const UPCGPointData* PCGParamaData);
+    void Initialize(const UPCGSplineData* PCGSplineData);
     bool operator==(const UHoudiniPCGDataObject& Other) const;
     bool operator!=(const UHoudiniPCGDataObject& Other) const;
     int GetNumRows() const;
@@ -198,6 +200,9 @@ public:
 
     UPROPERTY()
     TSet<FString> PCGTags;
+
+    UPROPERTY()
+    bool bIsClosed = false;
 
 private:
 	void AddMetaDataAttributes(const UPCGMetadata* PCGParamaData);
@@ -216,6 +221,13 @@ private:
 
 };
 
+UENUM()
+enum class EHoudiniPCGDataType
+{
+    InputPCGNone,
+	InputPCGGeometry,
+    InputPCGSplines
+};
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniPCGDataCollection : public UObject
 {
@@ -229,6 +241,9 @@ public:
     void AddObject(UHoudiniPCGDataObject * Object);
 
     UPROPERTY()
+    EHoudiniPCGDataType Type;
+
+    UPROPERTY()
     TObjectPtr<UHoudiniPCGDataObject> Details;
 
     UPROPERTY()
@@ -240,5 +255,8 @@ public:
 
     UPROPERTY()
     TObjectPtr<UHoudiniPCGDataObject> Points;
+
+    UPROPERTY()
+    TArray<TObjectPtr<UHoudiniPCGDataObject>> Splines;
 
 };

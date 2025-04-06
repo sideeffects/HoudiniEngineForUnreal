@@ -3579,7 +3579,7 @@ UHoudiniInputPCGData::Create(UObject* InObject, UObject* InOuter, const FString&
 	HoudiniInputObject->Type = EHoudiniInputObjectType::PCGData;
 	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
-
+	HoudiniInputObject->SetTransform(FTransform::Identity);
 	return HoudiniInputObject;
 }
 

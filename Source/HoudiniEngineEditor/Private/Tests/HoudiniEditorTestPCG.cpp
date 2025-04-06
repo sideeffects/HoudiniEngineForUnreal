@@ -671,3 +671,69 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGNativeMultiInp
 
 	return true;
 }
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGSplines, "Houdini.UnitTests.PCG.PCGSplines",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestPCG_PCGSplines::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGSplines/PCGSplinesLevel.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	FString AssetPath = TEXT("/Game/");
+	FString AssetName = TEXT("PCG_Out");
+	FString PCGAssetFullPath = FString::Printf(TEXT("%s/%s"), *AssetPath, *AssetName);
+
+	UPCGGraphInstance* GraphInstance = Context->PCGComponent->GetGraphInstance();
+	GraphInstance->SetGraphParameter<FString>(FName("out_path"), AssetPath);
+	GraphInstance->SetGraphParameter<FString>(FName("out_name"), AssetName);
+
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+	{
+		Context->Generate(true, true);
+		return true;
+	}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
+	{
+		if(Context->State != EHoudiniTestPCGContextState::Done)
+			return false;
+
+		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+		// We should have one output...
+		HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 2, return true);
+
+		{
+			const UPCGSplineData* PCGSplineData = Cast<UPCGSplineData>(PCGDataAsset->Data.TaggedData[0].Data);
+			HOUDINI_TEST_EQUAL_ON_FAIL(PCGSplineData->SplineStruct.SplineCurves.Position.Points.Num(), 4, return true);
+
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[0].OutVal,FVector(-542.820597, 742.795944, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[1].OutVal, FVector(588.031721, 665.821791, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[2].OutVal, FVector(319.931078, -1339.993763, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[3].OutVal, FVector(864.991283, -1053.272057, 0.000000));
+		}
+
+		{
+			const UPCGSplineData* PCGSplineData = Cast<UPCGSplineData>(PCGDataAsset->Data.TaggedData[1].Data);
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points.Num(), 3);
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[0].OutVal, FVector(100.000000, 0.000000, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[1].OutVal, FVector(200.000000, 0.000000, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[2].OutVal, FVector(200.000000, -60.000002, 0.000000));
+		}
+
+		return true;
+	}));
+
+	return true;
+}

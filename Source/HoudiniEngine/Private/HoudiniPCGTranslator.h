@@ -29,6 +29,7 @@
 #include "HAPI/HAPI_Common.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "Data/PCGPointData.h"
+#include "Data/PCGSplineData.h"
 #include "HoudiniPCGTranslator.generated.h"
 
 class UHoudiniOutput;
@@ -53,6 +54,9 @@ public:
 	UPROPERTY()
 	TObjectPtr<UPCGPointData> PointParams = nullptr;
 
+	UPROPERTY()
+	TArray<TObjectPtr<UPCGSplineData>> SplineParams;
+
 };
 
 
@@ -60,6 +64,8 @@ struct HOUDINIENGINE_API FHoudiniPCGTranslator
 {
 public:
 	static void CreatePCGFromOutput(UHoudiniOutput* CurOutput);
+	static UHoudiniPCGOutputData* CreatePCGParamsOutput(UHoudiniOutput* CurOutput);
+	static UHoudiniPCGOutputData* CreatePCGSplinesOutput(UHoudiniOutput* CurOutput);
 
 	static bool IsPCGOutput(HAPI_NodeId NodeId, HAPI_PartId PartId);
 private:

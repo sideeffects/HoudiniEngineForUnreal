@@ -1890,6 +1890,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 							// the curve is actually a landscape spline!
 							CurrentPartType = EHoudiniPartType::LandscapeSpline;
 						}
+						else if(FHoudiniPCGTranslator::IsPCGOutput(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+						{
+							CurrentPartType = EHoudiniPartType::PCG;
+						}
 						else
 						{
 							// The curve is a curve!

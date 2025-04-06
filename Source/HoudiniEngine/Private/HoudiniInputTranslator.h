@@ -328,7 +328,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FString& InNodeName,
 		UHoudiniInputPCGData* InInputObject,
 		const FHoudiniInputObjectSettings& InInputSettings,
-		const bool& bInputNodesCanBeDeleted);
+		bool bInputNodesCanBeDeleted);
 
 	static bool HapiCreateInputNodeForDataTable(
 		const FString& InNodeName,

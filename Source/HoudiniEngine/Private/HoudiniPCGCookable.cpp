@@ -106,8 +106,11 @@ void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAsset
 	Cookable->SetUpdateEditorProperties(false);
 	Cookable->SetParameterSupported(true);
 	Cookable->SetInputSupported(true);
-	Cookable->SetOutputSupported(false); // Don't produce outputs in Unreal during instantiate.
 	Cookable->SetComponentSupported(Component ? true : false);
+	Cookable->SetEnableProxyStaticMeshOverride(false);
+	Cookable->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Cookable->SetOutputSupported(false); // Don't produce outputs in Unreal during instantiate.
+
 	if (Component)
 	{
 		Cookable->SetComponent(Component);
@@ -194,12 +197,6 @@ bool UHoudiniPCGCookable::ApplyInputsToCookable(FPCGContext* Context, bool& bErr
 						continue;
 
 					DataCollection->AddObject(PCGDataObject);
-				}
-
-				if(!DataCollection->Points)
-				{
-					DataCollection = nullptr;
-					FHoudiniPCGUtils::LogVisualError(Context, TEXT("Missing Point Data on PCG Input"));
 				}
 
 				if(DataCollection)
@@ -354,6 +351,17 @@ void UHoudiniPCGCookable::CreateOutputsAsPCGData(FPCGContext* Context, const FNa
 				TaggedOutput.Pin = OutputPinName;
 				TaggedOutput.Tags.Add(TEXT("Details"));
 				TaggedOutput.Tags.Add(TagName);
+			}
+
+			if(!PCGOutputData->SplineParams.IsEmpty())
+			{
+				for (auto Spline : PCGOutputData->SplineParams)
+				{
+					FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
+					TaggedOutput.Data = Spline;
+					TaggedOutput.Pin = OutputPinName;
+					TaggedOutput.Tags.Add(TEXT("Spline"));
+				}
 			}
 		}
 	}
@@ -637,8 +645,6 @@ UHoudiniPCGCookable::GetPCGDataObjects(FPCGContext* Context, const FPCGTaggedDat
 bool
 UHoudiniPCGCookable::ApplyInputAsPCGData(FPCGContext* Context, UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*>& PCGCollections)
 {
-	bool bInputsChanged = false;
-
 	// Was input previously set to Geometry, World, Curve or Geometry? If so, clear it out and set to PCG
 
 	if(HoudiniInput->GetInputType() != EHoudiniInputType::PCGInput)
@@ -650,50 +656,33 @@ UHoudiniPCGCookable::ApplyInputAsPCGData(FPCGContext* Context, UHoudiniInput* Ho
 		if(ExistingObjectCount > 0)
 		{
 			// Previous input used non-PCG type, so we must clear them and re-upload.
-			bInputsChanged = true;
 			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, 0);
 			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Curve, 0);
 			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, 0);
 		}
 
-		bInputsChanged = true;
-		bool bOutBlueprintStructureModified;
-		HoudiniInput->SetInputType(EHoudiniInputType::PCGInput, bOutBlueprintStructureModified);
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, 0);
+
 	}
 
-	// Get previous input objects
-	TArray<UObject*> PrevObjects;
-	for(int Index = 0; Index < HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::PCGInput); Index++)
+	// Clear out previous inputs then set the new number. This has the effect of deleting
+	// all previous PCG Data and reloading it all. Since PCG Data changes very frequently,
+	// this may not be too inefficent, but could look into using CRCs to prevent uploading
+	// data that hasn't changed?
+
+	bool bOutBlueprintStructureModified;
+	HoudiniInput->SetInputType(EHoudiniInputType::PCGInput, bOutBlueprintStructureModified);
+	HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, 0);
+	HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, PCGCollections.Num());
+
+	// Set the objects, if changed
+	for (int Index = 0; Index < PCGCollections.Num(); Index++)
 	{
-		UHoudiniPCGDataObject* Prev = Cast<UHoudiniPCGDataObject>(HoudiniInput->GetInputObjectAt(Index));
-		PrevObjects.Add(Prev);
+		HoudiniInput->SetInputObjectAt(EHoudiniInputType::PCGInput, 0, PCGCollections[Index]);
 	}
 
-	if (PrevObjects.Num() != PCGCollections.Num())
-	{
-		// Number of objects has changed, so just set new values
-		bInputsChanged = true;
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, PCGCollections.Num());
-		for (int Index = 0; Index < PCGCollections.Num(); Index++)
-		{
-			HoudiniInput->SetInputObjectAt(EHoudiniInputType::PCGInput, 0, PCGCollections[Index]);
-		}
-	}
-	else
-	{
-		// Set the objects, if changed
-		for (int Index = 0; Index < PCGCollections.Num(); Index++)
-		{
-			UHoudiniPCGDataCollection* Prev = Cast<UHoudiniPCGDataCollection>(HoudiniInput->GetInputObjectAt(Index));
-			if (!Prev || *Prev != *PCGCollections[Index] || true)
-			{
-				HoudiniInput->SetInputObjectAt(EHoudiniInputType::PCGInput, 0, PCGCollections[Index]);
-				bInputsChanged = true;
-			}
-		}
-	}
-	return bInputsChanged;
+	HoudiniInput->MarkChanged(true);
+
+	return true;
 }
 
 

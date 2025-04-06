@@ -29,6 +29,7 @@
 #include <PCGData.h>
 
 #include "HoudiniPCGDataObject.h"
+#include "UnrealObjectInputRuntimeTypes.h"
 #include "HAPI/HAPI_Common.h"
 #include "UObject/NameTypes.h"
 
@@ -41,15 +42,14 @@ struct HOUDINIENGINE_API FUnrealPCGDataTranslator
 public:
     static bool CreateInputNodeForPCGData(
         UHoudiniPCGDataCollection* PCGData,
-            HAPI_NodeId& InputNodeId,
             const FString& InputNodeName,
             FUnrealObjectInputHandle& OutHandle,
             bool bInputNodesCanBeDeleted);
 
 protected:
-    static bool CreateInputNodeForPCGParamData(
-        UHoudiniPCGDataCollection* InputData,
-        HAPI_NodeId& InputNodeId);
+    static FUnrealObjectInputHandle CreateInputNodeForPCGAttrData(const FString& InputNodeName, UHoudiniPCGDataCollection* InputData, bool bInputNodesCanBeDeleted);
+    static TArray<FUnrealObjectInputHandle> CreateInputNodeForPCGSplineData(const FString& InputNodeName, UHoudiniPCGDataCollection* InputData, bool bInputNodesCanBeDeleted);
+    static FUnrealObjectInputHandle CreateInputNodeForPCGSplineData(const FString& InputNodeName, UHoudiniPCGDataObject* InputData, bool bInputNodesCanBeDeleted);
 
     static void SetAttributes(UHoudiniPCGDataObject* PCGDataObject, HAPI_NodeId Node, HAPI_PartId PartId,  HAPI_AttributeOwner Owner);
 
@@ -64,4 +64,7 @@ protected:
     static void SendToHoudini(UHoudiniPCGDataAttributeQuat* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
     static void SendToHoudini(UHoudiniPCGDataAttributeSoftObjectPath* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
     static void SendToHoudini(UHoudiniPCGDataAttributeSoftClassPath* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+
+    static FUnrealObjectInputHandle CreateInputNode(const FString& Name, UObject* Object, bool bInputNodesCanBeDeleted);
+
 };

@@ -1357,6 +1357,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Helper to create an input node (similar to the HAPI version, but allows for specifying a parent node id
 		static HAPI_Result CreateInputNode(const FString& InNodeLabel, HAPI_NodeId& OutNodeId, const int32 InParentNodeId=-1);
 
+		// Simplified version of above version, using correct types.
+		static HAPI_NodeId CreateInputHapiNode(const FString& InNodeLabel, HAPI_NodeId InParentNodeId = INDEX_NONE);
+
 		// Helper to connect two nodes together
 		// Connects InNodeIdToConnect's OutputIndex to InNodeId's InputIndex
 		// (similar to the HAPI function, but allows for specifying a XformType for the created object merge when the two nodes aren't in the same subnet)

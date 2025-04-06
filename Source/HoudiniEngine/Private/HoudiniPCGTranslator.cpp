@@ -61,12 +61,55 @@ bool FHoudiniPCGTranslator::IsPCGOutput(HAPI_NodeId NodeId, HAPI_PartId PartId)
 	return false;
 }
 
-
-void FHoudiniPCGTranslator::CreatePCGFromOutput(UHoudiniOutput* CurOutput)
+UHoudiniPCGOutputData* FHoudiniPCGTranslator::CreatePCGSplinesOutput(UHoudiniOutput* CurOutput)
 {
-	if(CurOutput->GetHoudiniGeoPartObjects().IsEmpty())
-		return;
+	const auto& HGPO = CurOutput->GetHoudiniGeoPartObjects()[0];
 
+	UHoudiniPCGOutputData* Results = NewObject<UHoudiniPCGOutputData>(CurOutput);
+
+	HAPI_CurveInfo CurveInfo;
+	FHoudiniApi::CurveInfo_Init(&CurveInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetCurveInfo(FHoudiniEngine::Get().GetSession(), HGPO.AssetId, HGPO.PartId, &CurveInfo), nullptr);
+
+	TArray<int> CurveCounts;
+	CurveCounts.SetNum(CurveInfo.curveCount);
+
+	FHoudiniApi::CurveInfo_Init(&CurveInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetCurveCounts(FHoudiniEngine::Get().GetSession(), 
+	HGPO.AssetId, HGPO.PartId, CurveCounts.GetData(), 0, CurveCounts.Num()), nullptr);
+
+	TArray<float> Positions;
+	FHoudiniHapiAccessor PositionAccessor(HGPO.AssetId, HGPO.PartId, HAPI_ATTRIB_POSITION);
+	PositionAccessor.GetAttributeData(HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, Positions);
+
+	int CurveStart = 0;
+	for (int CurveIndex = 0; CurveIndex < CurveCounts.Num(); CurveIndex++)
+	{
+		TArray<FSplinePoint> SplinePoints;
+		SplinePoints.SetNum(CurveCounts[CurveIndex]);
+		for (int PosIndex = 0; PosIndex < SplinePoints.Num(); PosIndex++)
+		{
+			FVector Position;
+			int HapiOffset = (CurveStart + PosIndex) * 3;
+			Position.X = Positions[HapiOffset + 0] * 100.0;
+			Position.Y = Positions[HapiOffset + 2] * 100.0;
+			Position.Z = Positions[HapiOffset + 1] * 100.0;
+			SplinePoints[PosIndex].Position = Position;
+			SplinePoints[PosIndex].InputKey = static_cast<float>(PosIndex);
+		}
+		CurveStart += CurveCounts[CurveIndex];
+
+		UPCGSplineData* ParamData = NewObject<UPCGSplineData>();
+		ParamData->Initialize(SplinePoints, CurveInfo.isClosed, FTransform::Identity);
+		UPCGMetadata* MetaData = ParamData->MutableMetadata();
+		Results->SplineParams.Add(ParamData);
+	}
+
+	return Results;
+}
+
+UHoudiniPCGOutputData* FHoudiniPCGTranslator::CreatePCGParamsOutput(UHoudiniOutput* CurOutput)
+{
 	const auto& HGPO = CurOutput->GetHoudiniGeoPartObjects()[0];
 
 	UHoudiniPCGOutputData* Results = NewObject<UHoudiniPCGOutputData>(CurOutput);
@@ -75,16 +118,41 @@ void FHoudiniPCGTranslator::CreatePCGFromOutput(UHoudiniOutput* CurOutput)
 	Results->PrimsParams = CreatePCGAttributes(HGPO.GeoId, HGPO.PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_PRIM);
 	Results->VertexParams = CreatePCGAttributes(HGPO.GeoId, HGPO.PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_VERTEX);
 	Results->PointParams = CreatePCGPointData(HGPO.GeoId, HGPO.PartId);
+	return Results;
+}
 
-	FHoudiniOutputObjectIdentifier OutputIdentifier;
-	OutputIdentifier.ObjectId = HGPO.ObjectId;
-	OutputIdentifier.GeoId = HGPO.GeoId;
-	OutputIdentifier.PartId = HGPO.PartId;
-	OutputIdentifier.PartName = HGPO.PartName;
+void FHoudiniPCGTranslator::CreatePCGFromOutput(UHoudiniOutput* Output)
+{
+	if(Output->GetHoudiniGeoPartObjects().IsEmpty())
+		return;
 
-	FHoudiniOutputObject& NewOutputObject = CurOutput->GetOutputObjects().FindOrAdd(OutputIdentifier);
+	const auto& HGPO = Output->GetHoudiniGeoPartObjects()[0];
 
-	NewOutputObject.OutputObject = Results;
+
+	UHoudiniPCGOutputData* PCGOutput = nullptr;
+
+	switch (HGPO.PartInfo.Type)
+	{
+	case EHoudiniPartType::Curve:
+		PCGOutput = CreatePCGSplinesOutput(Output);
+		break;
+
+	default:
+		PCGOutput = CreatePCGParamsOutput(Output);
+		break;
+	}
+
+	if (PCGOutput)
+	{
+
+		FHoudiniOutputObjectIdentifier OutputIdentifier;
+		OutputIdentifier.ObjectId = HGPO.ObjectId;
+		OutputIdentifier.GeoId = HGPO.GeoId;
+		OutputIdentifier.PartId = HGPO.PartId;
+		OutputIdentifier.PartName = HGPO.PartName;
+		FHoudiniOutputObject& NewOutputObject = Output->GetOutputObjects().FindOrAdd(OutputIdentifier);
+		NewOutputObject.OutputObject = PCGOutput;
+	}
 }
 
 UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAPI_PartId PartId )
