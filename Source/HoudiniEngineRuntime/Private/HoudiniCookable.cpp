@@ -1712,9 +1712,6 @@ UHoudiniCookable::HasAnyProxyOutput() const
 void 
 UHoudiniCookable::SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bNoProxyMeshNextCookRequested = bInNoProxyMeshNextCookRequested; 
 }
 
@@ -1722,54 +1719,36 @@ UHoudiniCookable::SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookReq
 void
 UHoudiniCookable::SetOverrideGlobalProxyStaticMeshSettings(bool InEnable)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bOverrideGlobalProxyStaticMeshSettings = InEnable;
 }
 
 void
 UHoudiniCookable::SetEnableProxyStaticMeshOverride(bool InEnable)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bEnableProxyStaticMeshOverride = InEnable;
 }
 
 void
 UHoudiniCookable::SetEnableProxyStaticMeshRefinementByTimerOverride(bool InEnable)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bEnableProxyStaticMeshRefinementByTimerOverride = InEnable;
 }
 
 void
 UHoudiniCookable::SetProxyMeshAutoRefineTimeoutSecondsOverride(float InValue)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->ProxyMeshAutoRefineTimeoutSecondsOverride = InValue;
 }
 
 void
 UHoudiniCookable::SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bool InEnable)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = InEnable;
 }
 
 void
 UHoudiniCookable::SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bool InEnable)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = InEnable;
 }
 
@@ -1777,36 +1756,24 @@ UHoudiniCookable::SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bool I
 void
 UHoudiniCookable::SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->BakeAfterNextCook = InBakeAfterNextCook;
 }
 
 void
 UHoudiniCookable::SetActorBakeOption(const EHoudiniEngineActorBakeOption InBakeOption)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->ActorBakeOption = InBakeOption;
 }
 
 void
 UHoudiniCookable::SetAllowPlayInEditorRefinement(bool bEnabled)
 {
-	if (IsOutputSupported())
-		return;
-
 	OutputData->bAllowPlayInEditorRefinement = bEnabled;
 }
 
 bool
 UHoudiniCookable::IsPlayInEditorRefinementAllowed() const
 {
-	if (IsOutputSupported())
-		return false;
-
 	return OutputData->bAllowPlayInEditorRefinement;
 }
 
