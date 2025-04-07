@@ -443,21 +443,30 @@ FHoudiniPCGUtils::StartSessionAsync()
 
 	if (SessionStatus == EHoudiniPCGSessionStatus::PCGSessionStatus_None)
 	{
-		HOUDINI_PCG_MESSAGE(TEXT("Acquiring Session..."));
+		HOUDINI_PCG_MESSAGE(TEXT("No Unreal-Houdini Session found, will try to establish one."));
 		EHoudiniPCGSessionStatus* SessionStatusPtr = &SessionStatus;
 		SessionStatus = EHoudiniPCGSessionStatus::PCGSessionStatus_Creating;
 		Async(EAsyncExecution::ThreadPool, [SessionStatusPtr]()
 		{
+			bool bConnected = FHoudiniEngine::Get().ConnectSession(false);
+			if(bConnected)
+			{
+				HOUDINI_PCG_MESSAGE(TEXT("Connection to existing Houdini Session."));
+				SessionStatus = EHoudiniPCGSessionStatus::PCGSessionStatus_Created;
+				return;
+			}
+
+
 			bool bSuccess = FHoudiniEngine::Get().RestartSession(false);
 			*SessionStatusPtr = bSuccess ? EHoudiniPCGSessionStatus::PCGSessionStatus_Created : EHoudiniPCGSessionStatus::PCGSessionStatus_Error;
 			if (bSuccess)
 			{
-				HOUDINI_PCG_MESSAGE(TEXT("Session Created..."));
+				HOUDINI_PCG_MESSAGE(TEXT("Session Created."));
 			}
 			else
 			{
 
-				HOUDINI_PCG_ERROR(TEXT("Session Not Created..."));
+				HOUDINI_PCG_ERROR(TEXT("Session Not Created."));
 			}
 		});
 	}

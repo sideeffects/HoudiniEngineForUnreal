@@ -1234,7 +1234,7 @@ FHoudiniEngineCommands::StartAndConnectToSessionSync(
 	// Initialize HAPI with this session
 	if (!FHoudiniEngine::Get().InitializeHAPISession())
 	{
-		FHoudiniEngine::Get().StopTicking();
+		FHoudiniEngine::Get().StopTicking(true);
 		return false;
 	}
 
@@ -1242,14 +1242,14 @@ FHoudiniEngineCommands::StartAndConnectToSessionSync(
 	FHoudiniEngineUtils::MarkAllHACsAsNeedInstantiation();
 
 	// Start ticking
-	FHoudiniEngine::Get().StartTicking();
+	FHoudiniEngine::Get().StartTicking(true);
 
 	// Add a slate notification
-	FString Notification = TEXT("Succesfully connected to Session Sync...");
+	FString Notification = TEXT("Successfully connected to Session Sync...");
 	FHoudiniEngineUtils::CreateSlateNotification(Notification);
 
 	// ... and a log message
-	HOUDINI_LOG_MESSAGE(TEXT("Succesfully connected to Session Sync..."));
+	HOUDINI_LOG_MESSAGE(TEXT("Successfully connected to Session Sync..."));
 
 	return true;
 }
@@ -1373,10 +1373,8 @@ FHoudiniEngineCommands::CreateSession()
 void 
 FHoudiniEngineCommands::ConnectSession()
 {
-	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-
 	// Restart the current Houdini Engine Session
-	if (!FHoudiniEngine::Get().ConnectSession(HoudiniRuntimeSettings->SessionType))
+	if (!FHoudiniEngine::Get().ConnectSession(true))
 		return;
 
 	// We've successfully connected to a Houdini Engine session,
@@ -1746,7 +1744,7 @@ FHoudiniEngineCommands::RefineTriagedHoudiniProxyMesehesToStaticMeshes(
 			if (bRefinementDone)
 			{
 				// Don't tick during PIE. We'll resume ticking when PIE is stopped.
-				FHoudiniEngine::Get().StopTicking();
+				FHoudiniEngine::Get().StopTicking(true);
 			}
 		}
 	};

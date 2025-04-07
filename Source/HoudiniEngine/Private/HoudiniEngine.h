@@ -103,28 +103,18 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 		// Default cook options
 		static HAPI_CookOptions GetDefaultCookOptions();
 
-		// Creates a new session
-		bool StartSession(
-			const bool bStartAutomaticServer,
-			const float AutomaticServerTimeout,
-			const EHoudiniRuntimeSettingsSessionType SessionType,
-			const FString& ServerPipeName,
-			const int32 ServerPort,
-			const FString& ServerHost,
-			const int32 Index,
-			const int64 SharedMemoryBufferSize,
-			const bool bSharedMemoryCyclicBuffer);
+		// Stops, then creates a new session
+		bool RestartSession(bool bShowNotifications = true);
 
-		bool StartSessions(
-			const bool bStartAutomaticServer,
-			const float AutomaticServerTimeout,
-			const EHoudiniRuntimeSettingsSessionType SessionType,
-			const int32 MaxSessions,
-			const FString& ServerPipeName,
-			const int32 ServerPort,
-			const FString& ServerHost,
-			const int64 SharedMemoryBufferSize,
-			const bool bSharedMemoryCyclicBuffer);
+		// Connect to an existing HE session
+		bool ConnectSession(bool bShowNotificationsAndMessages);
+
+		// Stops the current session
+		bool StopSession();
+
+		// Creates a session, start HARS
+		bool CreateSession(const EHoudiniRuntimeSettingsSessionType& SessionType, FName OverrideServerPipeName = NAME_None);
+
 
 		// Creates a session sync session
 		bool SessionSyncConnect(
@@ -136,22 +126,47 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 			const int64 BufferSize,
 			const bool BufferCyclic);
 
-		// Stops the current session
-		bool StopSession();
-		// Stops, then creates a new session
-		bool RestartSession(bool bShowNotifications=true);
-		// Creates a session, start HARS
-		bool CreateSession(const EHoudiniRuntimeSettingsSessionType& SessionType, FName OverrideServerPipeName=NAME_None);
-		// Connect to an existing HE session
-		bool ConnectSession(const EHoudiniRuntimeSettingsSessionType& SessionType);
+private:
+		// Stops the current session. This function must be called inside a critical section, hence the "internal" name; the public
+		// functions ensure this lock is in effect.
+		bool StopSessionInternal();
 
+		// Creates a new session. This function must be called inside a critical section, hence the "internal" name; the public
+		// functions ensure this lock is in effect.
+		bool StartSessionInternal(
+			const bool bStartAutomaticServer,
+			const float AutomaticServerTimeout,
+			const bool bShowNotificationsAndMessages,
+			const EHoudiniRuntimeSettingsSessionType SessionType,
+			const FString& ServerPipeName,
+			const int32 ServerPort,
+			const FString& ServerHost,
+			const int32 Index,
+			const int64 SharedMemoryBufferSize,
+			const bool bSharedMemoryCyclicBuffer);
+
+		// Creates a new sessions. This function must be called inside a critical section, hence the "internal" name; the public
+		// functions ensure this lock is in effect.
+		bool StartSessionsInternal(
+			const bool bStartAutomaticServer,
+			const float AutomaticServerTimeout,
+			const bool bShowNotificationsAndMessages,
+			const EHoudiniRuntimeSettingsSessionType SessionType,
+			const int32 MaxSessions,
+			const FString& ServerPipeName,
+			const int32 ServerPort,
+			const FString& ServerHost,
+			const int64 SharedMemoryBufferSize,
+			const bool bSharedMemoryCyclicBuffer);
+
+public:
 		// Notifies active objects that a new session has been connected to. Called when sessions are None or Connected.
 		void OnSessionConnected();
 
 		// Starts the HoudiniEngineManager ticking
-		void StartTicking();
+		void StartTicking(bool bShowNotificationsAndMessages);
 		// Stops the HoudiniEngineManager ticking and invalidate the session
-		void StopTicking();
+		void StopTicking(bool bShowNotificationsAndMessages);
 
 		bool IsTicking() const;
 

@@ -622,9 +622,10 @@ FHoudiniEngine::GetDefaultCookOptions()
 }
 
 bool
-FHoudiniEngine::StartSession(
+FHoudiniEngine::StartSessionInternal(
 	const bool bStartAutomaticServer,
 	const float AutomaticServerTimeout,
+	const bool bShowNotificationsAndMessages,
 	const EHoudiniRuntimeSettingsSessionType SessionType,
 	const FString& ServerPipeName,
 	const int32 ServerPort,
@@ -785,7 +786,7 @@ FHoudiniEngine::StartSession(
 
 	FHoudiniEngine::Get().SetFirstSessionCreated(true);
 
-	if (SessionResult != HAPI_RESULT_SUCCESS || !&Sessions[Index])
+	if (SessionResult != HAPI_RESULT_SUCCESS || Sessions.IsEmpty() || !&Sessions[Index])
 	{
 		// Disable session sync as well?
 		bEnableSessionSync = false;
@@ -793,7 +794,7 @@ FHoudiniEngine::StartSession(
 		if (SessionType != EHoudiniRuntimeSettingsSessionType::HRSST_InProcess)
 		{
 			FString ConnectionError = FHoudiniEngineUtils::GetConnectionError();
-			if (!ConnectionError.IsEmpty())
+			if (!ConnectionError.IsEmpty() && bShowNotificationsAndMessages)
 				HOUDINI_LOG_ERROR(TEXT("Houdini Engine Session failed to connect -  %s"), *ConnectionError);
 		}
 
@@ -804,9 +805,10 @@ FHoudiniEngine::StartSession(
 }
 
 bool
-FHoudiniEngine::StartSessions(
+FHoudiniEngine::StartSessionsInternal(
 	const bool bStartAutomaticServer,
 	const float AutomaticServerTimeout,
+	const bool bShowNotificationsAndMessages,
 	const EHoudiniRuntimeSettingsSessionType SessionType,
 	const int32 MaxNumSessions,
 	const FString& ServerPipeName,
@@ -853,9 +855,10 @@ FHoudiniEngine::StartSessions(
 	{
 		Sessions.Emplace();
 
-		const bool bSuccess = StartSession(
+		const bool bSuccess = StartSessionInternal(
 			bStartAutomaticServer,
 			AutomaticServerTimeout,
+			bShowNotificationsAndMessages,
 			SessionType,
 			ServerPipeName,
 			ServerPort,
@@ -888,6 +891,8 @@ FHoudiniEngine::SessionSyncConnect(
 	const int64 BufferSize,
 	const bool BufferCyclic)
 {
+	FScopeLock Lock(&CriticalSection);
+
 	// HAPI needs to be initialized
 	if (!FHoudiniApi::IsHAPIInitialized())
 		return false;
@@ -1099,9 +1104,9 @@ FHoudiniEngine::InitializeHAPISession()
 		UploadSessionSyncInfoToHoudini();
 
 		// Indicate that Session Sync is enabled
-		FString Notification = TEXT("Houdini Engine Session Sync enabled.");
+		FString Notification = TEXT("Houdini Engine Session enabled.");
 		FHoudiniEngineUtils::CreateSlateNotification(Notification);
-		HOUDINI_LOG_MESSAGE(TEXT("Houdini Engine Session Sync enabled."));		
+		HOUDINI_LOG_MESSAGE(TEXT("Houdini Engine Session enabled."));		
 	}
 
 	return true;
@@ -1128,6 +1133,16 @@ FHoudiniEngine::OnSessionLost()
 bool
 FHoudiniEngine::StopSession()
 {
+	FScopeLock Lock(&CriticalSection);
+
+	return StopSessionInternal();
+}
+
+bool
+FHoudiniEngine::StopSessionInternal()
+{
+	FScopeLock Lock(&CriticalSection);
+
 	// HAPI needs to be initialized
 	if (!FHoudiniApi::IsHAPIInitialized())
 		return false;
@@ -1152,17 +1167,17 @@ FHoudiniEngine::StopSession()
 }
 
 bool
-FHoudiniEngine::RestartSession(bool bShowNotifications)
+FHoudiniEngine::RestartSession(bool bShowNotificationsAndMessages)
 {
-	const HAPI_Session* const SessionPtr = GetSession();
+	FScopeLock Lock(&CriticalSection);
 
 	FString StatusText = TEXT("Starting the Houdini Engine session...");
-	if (bShowNotifications)
+	if (bShowNotificationsAndMessages)
 		FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(StatusText), true, 4.0f);
 
 	// Make sure we stop the current session if it is still valid
 	bool bSuccess = false;
-	if (!StopSession())
+	if (!StopSessionInternal())
 	{
 		// StopSession returns false only if Houdini is not initialized
 		HOUDINI_LOG_ERROR(TEXT("Failed to restart the Houdini Engine session - HAPI Not initialized"));
@@ -1171,9 +1186,10 @@ FHoudiniEngine::RestartSession(bool bShowNotifications)
 	{
 		// Try to reconnect/start a new session
 		const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-		if (!StartSessions(
+		if (!StartSessionsInternal(
 			HoudiniRuntimeSettings->bStartAutomaticServer,
 			HoudiniRuntimeSettings->AutomaticServerTimeout,
+			bShowNotificationsAndMessages,
 			HoudiniRuntimeSettings->SessionType,
 			HoudiniRuntimeSettings->NumSessions,
 			HoudiniRuntimeSettings->ServerPipeName,
@@ -1190,7 +1206,8 @@ FHoudiniEngine::RestartSession(bool bShowNotifications)
 			// Now initialize HAPI with this session
 			if (!InitializeHAPISession())
 			{
-				HOUDINI_LOG_ERROR(TEXT("Failed to restart the Houdini Engine session - Failed to initialize HAPI"));	
+				if (bShowNotificationsAndMessages)
+					HOUDINI_LOG_ERROR(TEXT("Failed to restart the Houdini Engine session - Failed to initialize HAPI"));	
 				SetSessionStatus(EHoudiniSessionStatus::Failed);
 			}
 			else
@@ -1206,12 +1223,12 @@ FHoudiniEngine::RestartSession(bool bShowNotifications)
 	// Start ticking only if we successfully started the session
 	if (bSuccess)
 	{
-		StartTicking();
+		StartTicking(bShowNotificationsAndMessages);
 		return true;
 	}
 	else
 	{
-		StopTicking();
+		StopTicking(bShowNotificationsAndMessages);
 		return false;
 	}
 }
@@ -1247,6 +1264,8 @@ FHoudiniEngine::OnSessionConnected()
 bool
 FHoudiniEngine::CreateSession(const EHoudiniRuntimeSettingsSessionType& SessionType, FName OverrideServerPipeName)
 {
+	FScopeLock Lock(&CriticalSection);
+
 	FString StatusText = TEXT("Create the Houdini Engine session...");
 	FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(StatusText), true, 4.0f);
 
@@ -1256,9 +1275,10 @@ FHoudiniEngine::CreateSession(const EHoudiniRuntimeSettingsSessionType& SessionT
 	// Try to reconnect/start a new session
 	constexpr bool bStartAutomaticServer = true;
 	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-	if (!StartSessions(
+	if (!StartSessionsInternal(
 		bStartAutomaticServer,
 		HoudiniRuntimeSettings->AutomaticServerTimeout,
+		true, // bShowNotificationsAndMessages
 		SessionType,
 		HoudiniRuntimeSettings->NumSessions,
 		OverrideServerPipeName == NAME_None ? HoudiniRuntimeSettings->ServerPipeName : OverrideServerPipeName.ToString(),
@@ -1291,31 +1311,35 @@ FHoudiniEngine::CreateSession(const EHoudiniRuntimeSettingsSessionType& SessionT
 	// Start ticking only if we successfully started the session
 	if (bSuccess)
 	{
-		StartTicking();
+		StartTicking(true);
 		return true;
 	}
 	else
 	{
-		StopTicking();
+		StopTicking(true);
 		return false;
 	}
 }
 
 bool
-FHoudiniEngine::ConnectSession(const EHoudiniRuntimeSettingsSessionType& SessionType)
+FHoudiniEngine::ConnectSession(bool bShowNotificationsAndMessages)
 {
+	FScopeLock Lock(&CriticalSection);
+
 	FString StatusText = TEXT("Connecting to a Houdini Engine session...");
-	FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(StatusText), true, 4.0f);
+	if (bShowNotificationsAndMessages)
+		FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(StatusText), true, 4.0f);
 
 	// Make sure we stop the current session if it is still valid
 	bool bSuccess = false;
 
 	// Try to reconnect/start new sessions
 	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
-	if (!StartSessions(
+	if (!StartSessionsInternal(
 		false,
 		HoudiniRuntimeSettings->AutomaticServerTimeout,
-		SessionType,
+		bShowNotificationsAndMessages,
+		HoudiniRuntimeSettings->SessionType,
 		HoudiniRuntimeSettings->NumSessions,
 		HoudiniRuntimeSettings->ServerPipeName,
 		HoudiniRuntimeSettings->ServerPort,
@@ -1323,7 +1347,8 @@ FHoudiniEngine::ConnectSession(const EHoudiniRuntimeSettingsSessionType& Session
 		HoudiniRuntimeSettings->SharedMemoryBufferSize,
 		HoudiniRuntimeSettings->bSharedMemoryBufferCyclic))
 	{
-		HOUDINI_LOG_ERROR(TEXT("Failed to connect to the Houdini Engine Session"));
+		if(bShowNotificationsAndMessages)
+			HOUDINI_LOG_ERROR(TEXT("Failed to connect to the Houdini Engine Session"));
 		SetSessionStatus(EHoudiniSessionStatus::Failed);
 	}
 	else
@@ -1331,7 +1356,8 @@ FHoudiniEngine::ConnectSession(const EHoudiniRuntimeSettingsSessionType& Session
 		// Now initialize HAPI with this session
 		if (!InitializeHAPISession())
 		{
-			HOUDINI_LOG_ERROR(TEXT("Failed to connect to the Houdini Engine session - Failed to initialize HAPI"));
+			if (bShowNotificationsAndMessages)
+				HOUDINI_LOG_ERROR(TEXT("Failed to connect to the Houdini Engine session - Failed to initialize HAPI"));
 			SetSessionStatus(EHoudiniSessionStatus::Failed);
 		}
 		else
@@ -1347,36 +1373,41 @@ FHoudiniEngine::ConnectSession(const EHoudiniRuntimeSettingsSessionType& Session
 	// Start ticking only if we successfully started the session
 	if (bSuccess)
 	{
-		StartTicking();
+		StartTicking(bShowNotificationsAndMessages);
 		return true;
 	}
 	else
 	{
-		StopTicking();
+		StopTicking(bShowNotificationsAndMessages);
 		return false;
 	}
 }
 
 void
-FHoudiniEngine::StartTicking()
+FHoudiniEngine::StartTicking(bool bShowNotificationsAndMessages)
 {
 	// Finish the notification and display the results
-	FString StatusText = TEXT("Houdini Engine session connected.");
-	FHoudiniEngine::Get().FinishTaskSlateNotification(FText::FromString(StatusText));
+	if (bShowNotificationsAndMessages)
+	{
+		FString StatusText = TEXT("Houdini Engine session connected.");
+		FHoudiniEngine::Get().FinishTaskSlateNotification(FText::FromString(StatusText));
+	}
 
 	HoudiniEngineManager->StartHoudiniTicking();
 }
 
 void
-FHoudiniEngine::StopTicking()
+FHoudiniEngine::StopTicking(bool bShowNotificationsAndMessages)
 {
-	// Finish the notification and display the results
-	FString StatusText = TEXT("Failed to start the Houdini Engine session...");
-	FHoudiniEngine::Get().FinishTaskSlateNotification(FText::FromString(StatusText));
-
+	if(bShowNotificationsAndMessages)
+	{
+		// Finish the notification and display the results
+		FString StatusText = TEXT("Failed to start the Houdini Engine session...");
+		FHoudiniEngine::Get().FinishTaskSlateNotification(FText::FromString(StatusText));
+	}
 	HoudiniEngineManager->StopHoudiniTicking();
 
-	StopSession();	
+	StopSessionInternal();	
 }
 
 bool FHoudiniEngine::IsTicking() const

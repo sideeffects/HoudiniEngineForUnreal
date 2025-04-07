@@ -617,15 +617,11 @@ void
 FHoudiniEngineManager::AutoStartFirstSessionIfNeeded()
 {
 	// See if we should start the default "first" session
-	if (FHoudiniEngine::Get().GetSession() 
-		|| FHoudiniEngine::Get().GetFirstSessionCreated())
+	if (FHoudiniEngine::Get().GetSession() || FHoudiniEngine::Get().GetFirstSessionCreated())
 		return;
 
 	FString StatusText = TEXT("Initializing Houdini Engine...");
 	FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(StatusText), true, 4.0f);
-
-	// We want to yield for a bit.
-	//FPlatformProcess::Sleep(0.5f);
 
 	// Indicates that we've tried to start the session once no matter if it failed or succeed
 	FHoudiniEngine::Get().SetFirstSessionCreated(true);
