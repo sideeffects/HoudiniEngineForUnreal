@@ -117,10 +117,10 @@ public:
 	static void LogVisualWarning(FPCGContext* Context, const FString& ErrorText);
 	static void LogVisualError(FPCGContext* Context, const FString & ErrorText);
 
+	static EHoudiniPCGSessionStatus SessionStatus;
+
 private:
 	// Synchronization primitive. 
 	static FCriticalSection CriticalSection;
-	static EHoudiniPCGSessionStatus SessionStatus;
-
 
 };

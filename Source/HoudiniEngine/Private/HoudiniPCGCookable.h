@@ -40,6 +40,7 @@ class UHoudiniPCGManagedResource;
 
 enum class EPCGCookableState
 {
+	WaitingForSession,	// Waiting for Houdini Session to be created.
 	Initializing,		// Cookable is being loaded into Houdini
 	Initialized,		// Cookable has been loaded into Houdini. Parameters/Inputs can be accessed.
 	Idle,				// Doing nothing.
@@ -88,7 +89,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<UPCGComponent> PCGComponent;
 
-	EPCGCookableState State = EPCGCookableState::Idle;
+	EPCGCookableState State = EPCGCookableState::WaitingForSession;
 	TArray<FSoftObjectPath> TrackedObjects;
 	int CookCount = -1;
 

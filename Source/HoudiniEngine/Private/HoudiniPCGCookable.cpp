@@ -120,7 +120,8 @@ void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAsset
 	UCookableHoudiniAssetData* HAD = Cookable->GetHoudiniAssetData();
 	HAD->HoudiniAsset = Asset;
 
-	FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(Cookable.Get());
+	this->State = EPCGCookableState::WaitingForSession;
+	FHoudiniPCGUtils::StartSessionAsync();
 }
 
 void
@@ -494,12 +495,31 @@ bool UHoudiniPCGCookable::UpdateAndCook(FPCGContext* Context, bool & bError)
 bool
 UHoudiniPCGCookable::Update(FPCGContext* Context, bool& bError)
 {
+	// This is called every tick during a PCG Cookable. It updates internal state based off asyncnrohous operations.
+	// The user can cancel the PCG task if this takes too long, so there is no additional bailout mechanism.
+
 	bError = false;
 
 	switch(this->State)
 	{
+	case EPCGCookableState::WaitingForSession:
+		if (FHoudiniPCGUtils::SessionStatus == EHoudiniPCGSessionStatus::PCGSessionStatus_Created)
+		{
+			// A session already existed or was created. Now we can register the cookable with the
+			// runtime. This will trigger a cook.
+			this->State = EPCGCookableState::Initializing;
+			FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(Cookable.Get());
+		}
+		else if(FHoudiniPCGUtils::SessionStatus == EHoudiniPCGSessionStatus::PCGSessionStatus_Error)
+		{
+			this->State = EPCGCookableState::Done;
+			return true;
+		}
+
+		return false;
+
 	case EPCGCookableState::Initializing:
-		// Still initializing, wait.
+		// Still initializing, wait. 
 		return false;
 
 	case EPCGCookableState::Initialized:
