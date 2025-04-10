@@ -186,6 +186,11 @@ public:
 	UPROPERTY()
 	bool bOutputless;
 
+	// Enabling this allows scene components to be produced. Used to stop scene components
+	// being generated for meshes. Possibly other types in the future.
+	UPROPERTY()
+	bool bCreateSceneComponents;
+
 	// Enabling this will allow outputing the asset's templated geos
 	UPROPERTY()
 	bool bOutputTemplateGeos;

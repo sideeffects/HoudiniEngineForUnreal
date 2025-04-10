@@ -69,7 +69,8 @@ public:
 		TArray<TObjectPtr<UHoudiniOutput>>& OutNewOutputs,
 		bool bInAddOutputsToRootSet = false,
 		bool bInUseOutputNodes = true,
-		bool bGatherEditableCurves = true);
+		bool bGatherEditableCurves = true,
+		bool bCreateSceneComponents = true);
 
 	// Delete the HAPI node and remove InOutputs from the root set.
 	static bool CloseBGEOFile(const HAPI_NodeId& InNodeId);

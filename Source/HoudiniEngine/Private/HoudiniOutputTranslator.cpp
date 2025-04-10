@@ -105,7 +105,8 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		HAC->IsOutputless(),
 		HAC->GetOutputTemplateGeos(),
 		HAC->GetUseOutputNodes(),
-		HAC->GetEnableCurveEditing());
+		HAC->GetEnableCurveEditing(),
+		true /* bCreateSceneComponents */);
 
 	// 2. Update tags and generic attributes on HAC
 	UpdateOutputAttributesAndTags(HAC->GetOutputs(), HAC->GetOwner(), HAC);
@@ -139,7 +140,8 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		HC->OutputData->bOutputless,
 		HC->OutputData->bOutputTemplateGeos,
 		HC->OutputData->bUseOutputNodes,
-		HC->OutputData->bEnableCurveEditing);
+		HC->OutputData->bEnableCurveEditing,
+		HC->OutputData->bCreateSceneComponents);
 
 	// 2. Update tags and generic attributes on the Cookable's component (if any)
 	if (HC->IsComponentSupported() && HC->ComponentData)
@@ -285,14 +287,15 @@ FHoudiniOutputTranslator::UpdateOutputObjects(
 	bool bOutputless,
 	bool bOutputTemplateGeos,
 	bool bUseOutputNodes,
-	bool bEnableCurveEditing)
+	bool bEnableCurveEditing,
+	bool bCreateSceneComponents)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateOutputObjects);
 
 	//
 	// 1. Update the output objects
 	//
-	ClearAndRemoveOutputs(Outputs);
+	ClearAndRemoveOutputs(Outputs, false);
 
 	// Check if the HDA has been marked as not producing outputs
 	if (bOutputless)
@@ -301,7 +304,7 @@ FHoudiniOutputTranslator::UpdateOutputObjects(
 	TArray<TObjectPtr<UHoudiniOutput>> NewOutputs;
 	if (FHoudiniOutputTranslator::BuildAllOutputs(
 		InNodeId, InOuter, InNodeIdsToCook, InOutputNodeCookCounts,
-		Outputs, NewOutputs, bOutputTemplateGeos, bUseOutputNodes, bEnableCurveEditing))
+		Outputs, NewOutputs, bOutputTemplateGeos, bUseOutputNodes, bEnableCurveEditing, bCreateSceneComponents))
 	{
 		//ClearAndRemoveOutputs(Outputs);
 		// Replace with the new parameters
@@ -1183,7 +1186,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	TArray<TObjectPtr<UHoudiniOutput>>& OutNewOutputs,
 	bool InOutputTemplatedGeos,
 	bool InUseOutputNodes, 
-	bool bGatherEditableCurves)
+	bool bGatherEditableCurves,
+	bool bCreateSceneComponents)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs);
 
@@ -1229,7 +1233,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				RF_NoFlags);
 		Output->AddNewHGPO(currentHGPO);
 		Output->UpdateOutputType();
-
+		Output->bCreateSceneComponents = bCreateSceneComponents;
 		OutNewOutputs.Add(Output);
 
 		return true;
@@ -2338,11 +2342,12 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						continue;
 					}
 
-					// Mark if the HoudiniOutput is editable
 				}
 				// Ensure that we always update the 'Editable' state of the output since this
 				// may very well change between cooks (for example, the User is editina the HDA is session sync).
 				HoudiniOutput->SetIsEditableNode(currentHGPO.bIsEditable && bGatherEditableCurves);
+
+				HoudiniOutput->bCreateSceneComponents = bCreateSceneComponents;
 
 				// Add the HGPO to the output
 				HoudiniOutput->AddNewHGPO(currentHGPO);
@@ -2764,7 +2769,7 @@ FHoudiniOutputTranslator::CacheCurveInfo(const HAPI_CurveInfo& InCurveInfo, FHou
 
 
 void
-FHoudiniOutputTranslator::ClearAndRemoveOutputs(TArray<TObjectPtr<UHoudiniOutput>>& OutputsToClear)
+FHoudiniOutputTranslator::ClearAndRemoveOutputs(TArray<TObjectPtr<UHoudiniOutput>>& OutputsToClear, bool bDeleteAssets)
 {
 	// DO NOT MANUALLY DESTROY THE OLD/DANGLING OUTPUTS!
 	// This messes up unreal's Garbage collection and would cause crashes on duplication
@@ -2773,7 +2778,7 @@ FHoudiniOutputTranslator::ClearAndRemoveOutputs(TArray<TObjectPtr<UHoudiniOutput
 		if (!OldOutput)
 			continue;
 
-		OldOutput->DestroyCookedData();
+		OldOutput->DestroyCookedData(bDeleteAssets);
 	}
 
 	// Simply clearing the array is enough

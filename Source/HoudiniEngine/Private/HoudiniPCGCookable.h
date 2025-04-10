@@ -81,6 +81,9 @@ public:
 	// Updates the current cookable state.
 	bool Update(FPCGContext* Context, bool& bError);
 
+	UPROPERTY(EditAnywhere, Category = Settings)
+	bool bAutomaticallyDeleteAssets = true;
+
 private:
 
 	UPROPERTY()

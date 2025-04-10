@@ -406,6 +406,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			FHoudiniPCGUtils::StartSessionAsync();
 			ManagedResource->HoudiniPCGComponent->Cookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
 			ManagedResource->HoudiniPCGComponent->Cookable->Instantiate(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
+			ManagedResource->HoudiniPCGComponent->Cookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
 			HOUDINI_PCG_MESSAGE(TEXT("(%p) Creating Managed Resource, Instantiating..."), ManagedResource);
 
 			// Return now since instantiation is not instant.

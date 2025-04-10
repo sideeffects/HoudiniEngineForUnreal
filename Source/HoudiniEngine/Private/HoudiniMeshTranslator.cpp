@@ -329,7 +329,7 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 		}
 
 		// Check if we should create a Proxy/SMC
-		if (OutputObject.bProxyIsCurrent)
+		if (OutputObject.bProxyIsCurrent && InOutput->bCreateSceneComponents)
 		{
 			UObject *Mesh = OutputObject.ProxyObject;
 			if (!IsValid(Mesh) || !Mesh->IsA<UHoudiniStaticMesh>())
@@ -401,7 +401,7 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 
 			const FHoudiniGeoPartObject* FoundHGPO = nullptr;
 			UMeshComponent* MeshComponent = nullptr;
-			if (Mesh->IsA<UStaticMesh>())
+			if (Mesh->IsA<UStaticMesh>() && InOutput->bCreateSceneComponents)
 			{
 				TSubclassOf<UMeshComponent> ComponentType = UStaticMeshComponent::StaticClass();
 				bool bCreated = false;
@@ -443,7 +443,7 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 					}
 				}
 			}
-			else if (Mesh->IsA<USkeletalMesh>())
+			else if (Mesh->IsA<USkeletalMesh>() && InOutput->bCreateSceneComponents)
 			{
 				
 				TSubclassOf<UMeshComponent> SKComponentType = USkeletalMeshComponent::StaticClass();

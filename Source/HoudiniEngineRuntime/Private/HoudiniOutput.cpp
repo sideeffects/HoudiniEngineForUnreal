@@ -48,6 +48,7 @@
 #include "HoudiniFoliageUtils.h"
 #include "Engine/DataTable.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "HAL/FileManager.h"
 
 
 FHoudiniMaterialIdentifier::FHoudiniMaterialIdentifier(
@@ -534,6 +535,7 @@ UHoudiniOutput::UHoudiniOutput(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)
 	, Type(EHoudiniOutputType::Invalid)
 	, StaleCount(0)
+	, bCreateSceneComponents(true)
 	, bLandscapeWorldComposition(false)
 	, bIsEditableNode(false)
 	, bHasEditableNodeBuilt(false)
@@ -1262,7 +1264,7 @@ void DestroyComponent(UObject * Component)
 	}
 }
 
-void FHoudiniOutputObject::DestroyCookedData()
+void FHoudiniOutputObject::DestroyCookedData(bool bDeleteAssets)
 {
 	//--------------------------------------------------------------------------------------------------------------------
 	// Destroy all components
@@ -1292,6 +1294,44 @@ void FHoudiniOutputObject::DestroyCookedData()
 		SceneComponent->UnregisterComponent();
 		SceneComponent->DestroyComponent();
 	}
+
+
+	//--------------------------------------------------------------------------------------------------------------------
+	// Delete output packages, if they exist
+	//--------------------------------------------------------------------------------------------------------------------
+
+#if WITH_EDITOR
+	if(bDeleteAssets && IsValid(OutputObject))
+	{
+		TArray<FString> PackagesDeleted;
+
+		TArray<UObject*> ObjectsToDelete;
+		if(UPackage* Package = OutputObject->GetPackage())
+		{
+			ObjectsToDelete.Add(Package);
+			GetObjectsWithOuter(Package, ObjectsToDelete, true);
+
+			// Use ObjectTools to delete
+			ObjectTools::DeleteObjectsUnchecked(ObjectsToDelete);
+
+			// Also delete the package file from disk
+			FString PackagePath = Package->GetPathName();
+			FString FilePath = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
+
+			FString DirectoryPath = FPaths::GetPath(FilePath);
+
+			TArray<FString> Files;
+			TArray<FString> SubDirs;
+			IFileManager::Get().FindFiles(Files, *(DirectoryPath / TEXT("*")), true, false);
+			IFileManager::Get().FindFiles(SubDirs, *(DirectoryPath / TEXT("*")), false, true);
+
+			if(Files.IsEmpty() && SubDirs.IsEmpty())
+			{
+				IFileManager::Get().DeleteDirectory(*DirectoryPath, false, true);
+			}
+		}
+	}
+#endif
 
 	//--------------------------------------------------------------------------------------------------------------------
 	// Remove spline output
@@ -1369,16 +1409,17 @@ void FHoudiniOutputObject::DestroyCookedData()
 		}
 	}
 	OutputActors.Empty();
+
 }
 
 
-void UHoudiniOutput::DestroyCookedData()
+void UHoudiniOutput::DestroyCookedData(bool bDeleteAssets)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UHoudiniOutput::DestroyCookedData);
 	for (auto It : OutputObjects)
 	{
 		FHoudiniOutputObject* FoundOutputObject = &It.Value;
-		FoundOutputObject->DestroyCookedData();
+		FoundOutputObject->DestroyCookedData(bDeleteAssets);
 	}
 	OutputObjects.Empty();
 }

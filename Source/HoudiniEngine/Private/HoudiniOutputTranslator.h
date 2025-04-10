@@ -96,7 +96,8 @@ public:
 		TArray<TObjectPtr<UHoudiniOutput>>& OutNewOutputs,
 		bool InOutputTemplatedGeos,
 		bool InUseOutputNodes,
-		bool bGatherEditableCurves);
+		bool bGatherEditableCurves,
+		bool bCreateSceneComponents);
 
 	static bool UpdateChangedOutputs(
 		UHoudiniAssetComponent* HAC);
@@ -114,7 +115,7 @@ public:
 	static void CacheCurveInfo(const HAPI_CurveInfo& InCurveInfo, FHoudiniCurveInfo& OutCurveInfoCache);
 
 	// Helper to clear all outputs
-	static void ClearAndRemoveOutputs(TArray<TObjectPtr<UHoudiniOutput>>& OutputsToClear);
+	static void ClearAndRemoveOutputs(TArray<TObjectPtr<UHoudiniOutput>>& OutputsToClear, bool bDeleteAssets);
 
 	// Helper to clear an individual UHoudiniOutput
 	static void ClearOutput(UHoudiniOutput* Output);
@@ -133,7 +134,8 @@ protected:
 		bool bOutputless,
 		bool bOutputTemplateGeos,
 		bool bUseOutputNodes,
-		bool bEnableCurveEditing);
+		bool bEnableCurveEditing,
+		bool bCreateComponents);
 
 	// 2. Update tags and generic attributes on HAC
 	static bool UpdateOutputAttributesAndTags(

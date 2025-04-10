@@ -321,7 +321,7 @@ FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
 
 	if (bSuccess && bInRemoveHACOutputOnSuccess)
 	{
-		FHoudiniOutputTranslator::ClearAndRemoveOutputs(InHACToBake->GetOutputs());
+		FHoudiniOutputTranslator::ClearAndRemoveOutputs(InHACToBake->GetOutputs(), false);
 	}
 	
 	return bSuccess;

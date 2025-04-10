@@ -112,6 +112,12 @@ public:
 	UPROPERTY(EditAnywhere)
 	bool bForceCookOnDirty = true;
 
+	UPROPERTY(EditAnywhere, Category = Settings)
+	bool bCreateSceneComponents = true;
+
+	UPROPERTY(EditAnywhere, Category = Settings)
+	bool bAutomaticallyDeleteTempAssets = true;
+
 	FName GetOutputPinName(int Index) const;
 
 protected:

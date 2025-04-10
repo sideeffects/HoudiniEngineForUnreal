@@ -49,6 +49,7 @@
 #include <HoudiniParameterToggle.h>
 #include <HoudiniEngineUtils.h>
 #include "HoudiniPCGDataObject.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "PCGCachedCookable"
 
@@ -127,11 +128,14 @@ void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAsset
 void
 UHoudiniPCGCookable::InvalidateCookable()
 {
-	if (IsValid(this->Cookable.Get()))
-	{
-		FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this->Cookable.Get());
-		this->Cookable = nullptr; // Garbage Collection will clean this up.
-	}
+	FHoudiniOutputTranslator::ClearAndRemoveOutputs(this->Cookable->GetOutputs(), this->bAutomaticallyDeleteAssets);
+
+	if(!IsValid(this->Cookable.Get()))
+		return;
+
+	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this->Cookable.Get());
+
+	this->Cookable = nullptr; // Garbage Collection will clean this up.
 }
 
 bool
@@ -286,8 +290,6 @@ bool UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data, FPCGCo
 void UHoudiniPCGCookable::Release()
 {
 	HOUDINI_PCG_MESSAGE(TEXT("UHoudiniPCGCookable::Release (%p)"), this);
-
-	FHoudiniOutputTranslator::ClearAndRemoveOutputs(this->Cookable->GetOutputs());
 
 	InvalidateCookable();
 
@@ -453,6 +455,10 @@ UHoudiniPCGCookable::ProcessCookableOutput(FPCGContext* Context)
 bool UHoudiniPCGCookable::UpdateAndCook(FPCGContext* Context, bool & bError)
 {
 	Cookable->SetOutputSupported(true);
+
+	const UHoudiniDigitalAssetPCGSettings* Settings = Context->GetInputSettings<UHoudiniDigitalAssetPCGSettings>();
+
+	Cookable->GetOutputData()->bCreateSceneComponents = Settings->bCreateSceneComponents;
 
 	bool bHasBeenCooked = State == EPCGCookableState::Done || State == EPCGCookableState::Idle;
 

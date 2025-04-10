@@ -167,6 +167,7 @@ UCookableOutputData::UCookableOutputData(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 	, TemporaryCookFolder()
 	, bOutputless(false)
+	, bCreateSceneComponents (true)
 	, bOutputTemplateGeos(false)
 	, bUseOutputNodes(true)
 	, bSplitMeshSupport(false)

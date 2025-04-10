@@ -605,7 +605,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 
 	public:
 
-		void DestroyCookedData();
+		void DestroyCookedData(bool bDeleteAssets);
 
 		// The main output object
 		UPROPERTY()
@@ -727,7 +727,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniOutput : public UObject
 
 public:
 
-	void DestroyCookedData();
+	void DestroyCookedData(bool bDeleteAssets);
 
 	//------------------------------------------------------------------------------------------------
 	// Accessors
@@ -860,7 +860,6 @@ protected:
 	virtual void PostLoad() override;
 
 protected:
-
 	// Indicates the type of output we're dealing with
 	UPROPERTY()
 	EHoudiniOutputType Type;
@@ -888,6 +887,9 @@ protected:
 
 	// Indicates the number of stale HGPO
 	int32 StaleCount;
+
+	UPROPERTY()
+	bool bCreateSceneComponents = true;
 
 	UPROPERTY()
 	bool bLandscapeWorldComposition;
