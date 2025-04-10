@@ -42,6 +42,7 @@
 
 class IDetailCategoryBuilder;
 class UHoudiniAssetComponent;
+class UHoudiniCookable;
 class UHoudiniPDGAssetLink;
 class FMenuBuilder;
 class SBorder;
@@ -73,33 +74,57 @@ public:
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
+	// HE ICON
 	static void CreateHoudiniEngineIconWidget(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder);
 
+	// PRESET MENU
 	static void CreateHoudiniEngineActionWidget(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
+	// GENERATE
 	static void CreateGenerateWidgets(
-			IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-			const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
+	static void CreateGenerateWidgets(
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+
+	// BAKE
 	static void CreateBakeWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
+	static void CreateBakeWidgets(
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+
+	// PDG
 	static void CreatePDGBakeWidgets(
 		IDetailCategoryBuilder& InPDGCategory,
-		UHoudiniPDGAssetLink* InPDGAssetLink); 
+		UHoudiniPDGAssetLink* InPDGAssetLink);
+
+	// ASSET OPTIONS
+	static void CreateAssetOptionsWidgets(
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
 	static void CreateAssetOptionsWidgets(
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+
+	// HELP DEBUG
+	static void CreateHelpAndDebugWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
 	static void CreateHelpAndDebugWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
 
+	// NODE SYNC
 	static void CreateNodeSyncWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
@@ -125,6 +150,11 @@ public:
 		const TWeakObjectPtr<UHoudiniAssetComponent>& HoudiniAssetComponent,
 		int32 MenuSection);
 
+	static void AddHeaderRowForCookable(
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+		const TWeakObjectPtr<UHoudiniCookable>& HoudiniCookable,
+		int32 MenuSection);
+
 	static void AddHeaderRowForHoudiniPDGAssetLink(
 		IDetailCategoryBuilder& PDGCategoryBuilder,
 		const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink,
@@ -135,6 +165,17 @@ public:
 		FOnClicked& InOnExpanderClick,
 		TFunction<FText(void)>& InGetText,
 		TFunction<const FSlateBrush*(SButton* InExpanderArrow)>& InGetExpanderBrush);
+
+	// Adds a text row that indicate the status of the Houdini Session
+	static void AddSessionStatusRow(IDetailCategoryBuilder& InCategory);
+
+	static bool GetSessionStatusAndColor(FString& OutStatusString, FLinearColor& OutStatusColor);
+
+	// Adds a text row indicate we're using a Houdini indie license
+	static void AddIndieLicenseRow(IDetailCategoryBuilder& InCategory);
+
+	// Adds a text row indicate we're using a Houdini Edu license
+	static void AddEducationLicenseRow(IDetailCategoryBuilder& InCategory);
 
 	// Helper to check if InWeakObjectPointer is valid or not. If not valid, the filepath and line number where the check
 	// occurred is logged.
@@ -153,6 +194,14 @@ private:
 		const bool& bIsBakePath,
 		const TWeakObjectPtr<UHoudiniAssetComponent>& InMainHAC,
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
+
+
+	// Helper function that can be used to set either the bake/tempcook folder path on cookables
+	static void SetFolderPath(
+		const FText& InPathText,
+		const bool& bIsBakePath,
+		const TWeakObjectPtr<UHoudiniCookable>& InMainHC,
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
 };
 
 

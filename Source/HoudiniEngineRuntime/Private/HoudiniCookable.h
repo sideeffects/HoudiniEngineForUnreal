@@ -905,4 +905,20 @@ protected:
 
 	UPROPERTY(Transient)
 	bool bUpdateEditorProperties;
+
+#if WITH_EDITORONLY_DATA
+public:
+
+	UPROPERTY()
+	bool bGenerateMenuExpanded; // NOT COOKABLE? move to details?
+
+	UPROPERTY()
+	bool bBakeMenuExpanded; // NOT COOKABLE?
+
+	UPROPERTY()
+	bool bAssetOptionMenuExpanded; // NOT COOKABLE?
+
+	UPROPERTY()
+	bool bHelpAndDebugMenuExpanded; // NOT COOKABLE?
+#endif
 };

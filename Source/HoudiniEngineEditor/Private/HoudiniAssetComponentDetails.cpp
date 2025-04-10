@@ -73,124 +73,6 @@ FHoudiniAssetComponentDetails::FHoudiniAssetComponentDetails()
 	HoudiniEngineDetails = MakeShared<FHoudiniEngineDetails, ESPMode::NotThreadSafe>();
 }
 
-void 
-FHoudiniAssetComponentDetails::AddIndieLicenseRow(IDetailCategoryBuilder& InCategory)
-{
-	FText IndieText =
-		FText::FromString(TEXT("Houdini Engine Indie - For Limited Commercial Use Only"));
-
-	FSlateFontInfo LargeDetailsFont = IDetailLayoutBuilder::GetDetailFontBold();
-	LargeDetailsFont.Size += 2;
-
-	FSlateColor LabelColor = FLinearColor(1.0f, 1.0f, 0.0f, 1.0f);
-
-	InCategory.AddCustomRow(FText::GetEmpty())
-	[
-		SNew(STextBlock)
-		.Text(IndieText)
-		.ToolTipText(IndieText)
-		.Font(LargeDetailsFont)
-		.Justification(ETextJustify::Center)
-		.ColorAndOpacity(LabelColor)
-	];
-
-	InCategory.AddCustomRow(FText::GetEmpty())
-	[
-		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.Padding(0, 0, 5, 0)
-		[
-			SNew(SSeparator)
-			.Thickness(2.0f)
-		]
-	];
-}
-
-void
-FHoudiniAssetComponentDetails::AddEducationLicenseRow(IDetailCategoryBuilder& InCategory)
-{
-	FText EduText =
-		FText::FromString(TEXT("Houdini Engine Education - For Educationnal Use Only"));
-
-	FSlateFontInfo LargeDetailsFont = IDetailLayoutBuilder::GetDetailFontBold();
-	LargeDetailsFont.Size += 2;
-
-	FSlateColor LabelColor = FLinearColor(1.0f, 1.0f, 0.0f, 1.0f);
-
-	InCategory.AddCustomRow(FText::GetEmpty())
-	[
-		SNew(STextBlock)
-		.Text(EduText)
-		.ToolTipText(EduText)
-		.Font(LargeDetailsFont)
-		.Justification(ETextJustify::Center)
-		.ColorAndOpacity(LabelColor)
-	];
-
-	InCategory.AddCustomRow(FText::GetEmpty())
-	[
-		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.Padding(0, 0, 5, 0)
-		[
-			SNew(SSeparator)
-			.Thickness(2.0f)
-		]
-	];
-}
-
-
-void
-FHoudiniAssetComponentDetails::AddSessionStatusRow(IDetailCategoryBuilder& InCategory)
-{
-	FDetailWidgetRow& PDGStatusRow = InCategory.AddCustomRow(FText::FromString("PDG Status"))
-	.WholeRowContent()
-	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.FillWidth(1.0f)
-		.Padding(2.0f, 0.0f)
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		[
-			SNew(STextBlock)
-			.Text_Lambda([]()
-			{
-				FString StatusString;
-				FLinearColor StatusColor;
-				GetSessionStatusAndColor(StatusString, StatusColor);
-				return FText::FromString(StatusString);
-			})
-			.ColorAndOpacity_Lambda([]()
-			{
-				FString StatusString;
-				FLinearColor StatusColor;
-				GetSessionStatusAndColor(StatusString, StatusColor);
-				return FSlateColor(StatusColor);
-			})
-		]
-	];
-}
-
-bool
-FHoudiniAssetComponentDetails::GetSessionStatusAndColor(
-	FString& OutStatusString, FLinearColor& OutStatusColor)
-{
-	OutStatusString = FString();
-	OutStatusColor = FLinearColor::White;
-
-	bool result = FHoudiniEngine::Get().GetSessionStatusAndColor(OutStatusString, OutStatusColor);
-	return result;
-}
-
-void 
-FHoudiniAssetComponentDetails::AddBakeMenu(IDetailCategoryBuilder& InCategory, UHoudiniAssetComponent* HAC) 
-{
-	FString CategoryName = "Bake";
-	InCategory.AddGroup(FName(*CategoryName), FText::FromString(CategoryName), false, false);
-	
-}
-
 // TSharedPtr<SWidget> FHoudiniAssetComponentDetails::ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent> HAC)
 // {
 // 	FMenuBuilder MenuBuilder( true, NULL );
@@ -239,6 +121,7 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	TArray<TWeakObjectPtr<UObject>> ObjectsCustomized;
 	DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
 	
+	bool bHasCookable = false;
 	// Extract the Houdini Asset Component to detail
 	for (int32 i = 0; i < ObjectsCustomized.Num(); ++i)
 	{
@@ -249,11 +132,21 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		if (Object)
 		{
 			UHoudiniAssetComponent * HAC = Cast<UHoudiniAssetComponent>(Object);
-			if (IsValid(HAC))
-				HoudiniAssetComponents.Add(HAC);
+			if (!IsValid(HAC))
+				continue;
+
+			HoudiniAssetComponents.Add(HAC);
+			if (HAC->GetCookable())
+				bHasCookable = true;
 		}
 	}
-
+	/*
+	// If we have Cookable - do the cookable UI instead!
+	if (bHasCookable)
+	{
+		return FHoudiniCookableDetails::CustomizeDetails(DetailBuilder);
+	}
+	*/
 	// Check if we'll need to add indie license labels
 	bool bIsIndieLicense = FHoudiniEngine::Get().IsLicenseIndie();
 	bool bIsEduLicense = FHoudiniEngine::Get().IsLicenseEducation();
@@ -328,9 +221,9 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 			// If we are running Houdini Engine Indie license, we need to display a special label.
 			if (bIsIndieLicense)
-				AddIndieLicenseRow(HouEngineCategory);
+				FHoudiniEngineDetails::AddIndieLicenseRow(HouEngineCategory);
 			else if (bIsEduLicense)
-				AddEducationLicenseRow(HouEngineCategory);
+				FHoudiniEngineDetails::AddEducationLicenseRow(HouEngineCategory);
 
 			TArray<TWeakObjectPtr<UHoudiniAssetComponent>> MultiSelectedHACs;
 			for (auto& NextHACWeakPtr : HACs) 
@@ -385,9 +278,9 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 			// If we are running Houdini Engine Indie license, we need to display a special label.
 			if (bIsIndieLicense)
-				AddIndieLicenseRow(HouPDGCategory);
+				FHoudiniEngineDetails::AddIndieLicenseRow(HouPDGCategory);
 			else if (bIsEduLicense)
-				AddEducationLicenseRow(HouPDGCategory);
+				FHoudiniEngineDetails::AddEducationLicenseRow(HouPDGCategory);
 
 			// TODO: Handle multi selection of outputs like params/inputs?
 			PDGDetails->CreateWidget(HouPDGCategory, HPDGAL);
@@ -413,9 +306,9 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			if (MainComponent->GetNumParameters() > 0)
 			{
 				if (bIsIndieLicense)
-					AddIndieLicenseRow(HouParameterCategory);
+					FHoudiniEngineDetails::AddIndieLicenseRow(HouParameterCategory);
 				else if (bIsEduLicense)
-					AddEducationLicenseRow(HouParameterCategory);
+					FHoudiniEngineDetails::AddEducationLicenseRow(HouParameterCategory);
 			}
 
 			TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>> JoinedParams;
@@ -479,9 +372,9 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			if (MainComponent->GetNumHandles() > 0)
 			{
 				if (bIsIndieLicense)
-					AddIndieLicenseRow(HouHandleCategory);
+					FHoudiniEngineDetails::AddIndieLicenseRow(HouHandleCategory);
 				else if (bIsEduLicense)
-					AddEducationLicenseRow(HouHandleCategory);
+					FHoudiniEngineDetails::AddEducationLicenseRow(HouHandleCategory);
 			}
 
 			// Iterate through the component's Houdini handles
@@ -535,9 +428,9 @@ FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			if (MainComponent->GetNumInputs() > 0)
 			{
 				if (bIsIndieLicense)
-					AddIndieLicenseRow(HouInputCategory);
+					FHoudiniEngineDetails::AddIndieLicenseRow(HouInputCategory);
 				else if (bIsEduLicense)
-					AddEducationLicenseRow(HouInputCategory);
+					FHoudiniEngineDetails::AddEducationLicenseRow(HouInputCategory);
 			}
 
 			// Iterate through the component's inputs
