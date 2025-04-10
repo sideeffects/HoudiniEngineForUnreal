@@ -386,11 +386,12 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 
 	Bounds = FBox(ForceInitToZero);
 	*/
-
+#if WITH_EDITORONLY_DATA
 	bGenerateMenuExpanded = true;
 	bBakeMenuExpanded = true;
 	bAssetOptionMenuExpanded = true;
 	bHelpAndDebugMenuExpanded = true;
+#endif
 }
 
 UHoudiniCookable::~UHoudiniCookable()
