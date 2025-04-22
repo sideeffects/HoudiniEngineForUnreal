@@ -99,9 +99,6 @@ public:
 		bool bGatherEditableCurves,
 		bool bCreateSceneComponents);
 
-	static bool UpdateChangedOutputs(
-		UHoudiniAssetComponent* HAC);
-
 	// Helpers functions used to convert HAPI types
 	static EHoudiniGeoType ConvertHapiGeoType(const HAPI_GeoType& InType);
 	static EHoudiniPartType ConvertHapiPartType(const HAPI_PartType& InType);

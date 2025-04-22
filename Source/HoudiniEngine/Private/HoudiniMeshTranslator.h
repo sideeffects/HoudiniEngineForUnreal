@@ -394,6 +394,9 @@ public:
 		static int32 GenerateKDopAsSimpleCollision(const TArray<FVector>& InPositionArray, const TArray<FVector> &Dirs, FKAggregateGeom& OutAggregateCollisions);
 		static TArray<FVector> GetKdopDirections(const FString& SplitGroupName);
 
+		// Helper functions to remove unused/stale components
+		static bool RemoveAndDestroyComponent(UObject* InComponent);
+
 protected:
 		// Helper functions for the simple colliders generation
 		static void CalcBoundingBox(const TArray<FVector>& PositionArray, FVector& Center, FVector& Extents, FVector& LimitVec);
@@ -401,9 +404,6 @@ protected:
 		static void CalcBoundingSphere2(const TArray<FVector>& PositionArray, FSphere& sphere, FVector& LimitVec);
 		static void CalcBoundingSphyl(const TArray<FVector>& PositionArray, FSphere& sphere, float& length, FRotator& rotation, FVector& LimitVec);
 		
-		// Helper functions to remove unused/stale components
-		static bool RemoveAndDestroyComponent(UObject* InComponent);
-
 		// Helper to create a new mesh component
 		static UMeshComponent* CreateMeshComponent(UObject *InOuterComponent, const TSubclassOf<UMeshComponent>& InComponentType);
 

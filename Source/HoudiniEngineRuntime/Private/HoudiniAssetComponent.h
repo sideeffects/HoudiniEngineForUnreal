@@ -105,9 +105,6 @@ public:
 	// Indicates if the HAC needs to be updated
 	bool NeedUpdate() const;
 
-	// Indicates if any of the HAC's output components needs to be updated (no recook needed)
-	bool NeedOutputUpdate() const;
-
 	// Check whether any inputs / outputs / parameters have made blueprint modifications.
 	bool NeedBlueprintStructureUpdate() const;
 	bool NeedBlueprintUpdate() const;
@@ -252,9 +249,6 @@ public:
 	bool NeedUpdateParameters() const;
 	bool NeedUpdateInputs() const;
 
-	// Returns true if the component has any previous baked output recorded in its outputs
-	bool HasPreviousBakeOutput() const;
-
 	// Returns true if the last cook of the HDA was successful
 	bool WasLastCookSuccessful() const;
 
@@ -336,8 +330,7 @@ public:
 	
 	// Store the latest cook count that was processed for this output node. 
 	void SetOutputNodeCookCount(const int& NodeId, const int& CookCount);
-	// Compare the current node's cook count against the cached value. If they are different, return true. False otherwise.
-	bool HasOutputNodeChanged(const int& NodeId, const int& NewCookCount);
+
 	// Clear output nodes. This will also clear the output node cook counts.
 	void ClearOutputNodes();
 

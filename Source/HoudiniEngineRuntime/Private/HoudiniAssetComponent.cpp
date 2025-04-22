@@ -126,10 +126,10 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		{
 			bLegacyComponent = true;
 		}
-		/*else if (Ver < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_V3_BASE)
+		else if (Ver < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_V3_BASE)
 		{
 			bV2Component = true;
-		}*/
+		}
 	}
 
 	if (bLegacyComponent)
@@ -168,7 +168,7 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 			AHoudiniAssetActor* HAA = Cast<AHoudiniAssetActor>(this->GetOwner());
 			UHoudiniCookable* HC = HAA ? HAA->GetHoudiniCookable() : nullptr;
 			if(!HC)
-				HOUDINI_LOG_WARNING(TEXT("Actor has a Cookable."));
+				HOUDINI_LOG_WARNING(TEXT("Actor has no Cookable."));
 			else
 			{
 				// Move data to the cookable
@@ -369,7 +369,7 @@ UHoudiniAssetComponent::GetHACWorld() const
 	if (!IsValid(World))
 		World = GetOwner() ? GetOwner()->GetWorld() : nullptr;
 
-	return World; 
+	return World;
 }
 
 
@@ -796,29 +796,6 @@ UHoudiniAssetComponent::NeedUpdateInputs() const
 	return false;
 }
 
-bool
-UHoudiniAssetComponent::HasPreviousBakeOutput() const
-{
-	// Look for any bake output objects in the output array
-	for (const UHoudiniOutput* Output : Outputs)
-	{
-		if (!IsValid(Output))
-			continue;
-
-		if (BakedOutputs.Num() == 0)
-			return false;
-
-		for (const FHoudiniBakedOutput& BakedOutput : BakedOutputs)
-		{
-			if (BakedOutput.BakedOutputObjects.Num() > 0)
-				return true;
-		}
-	}
-
-	return false;
-}
-
-
 bool 
 UHoudiniAssetComponent::WasLastCookSuccessful() const 
 { 
@@ -1007,26 +984,6 @@ UHoudiniAssetComponent::PreventAutoUpdates()
 			}
 		}
 	}
-}
-
-// Indicates if any of the HAC's output components needs to be updated (no recook needed)
-bool
-UHoudiniAssetComponent::NeedOutputUpdate() const
-{
-	// Go through all outputs
-	for (auto CurrentOutput : Outputs)
-	{
-		if (!IsValid(CurrentOutput))
-			continue;
-
-		for (const auto& InstOutput : CurrentOutput->GetInstancedOutputs())
-		{
-			if (InstOutput.Value.bChanged)
-				return true;
-		}
-	}
-
-	return false;
 }
 
 bool UHoudiniAssetComponent::NeedBlueprintStructureUpdate() const
@@ -1593,6 +1550,9 @@ UHoudiniAssetComponent::UpdatePostDuplicate()
 
 void UHoudiniAssetComponent::OnFullyLoaded()
 {
+	if (GetCookable())
+		GetCookable()->bFullyLoaded = true;
+
 	bFullyLoaded = true;
 }
 
@@ -2033,10 +1993,12 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent & PropertyC
 
 		if (CategoryHoudiniGeneratedStaticMeshSettings == Category)
 		{
+			// TODO: COOKABLE
 			// We are changing one of the mesh generation properties, we need to update all static meshes.
 			// As the StaticMeshComponents map contains only top-level static mesh components only, use the StaticMeshes map instead
-			for (UHoudiniOutput* CurOutput : Outputs)
+			for (int Idx = 0; Idx < GetNumOutputs(); Idx++)
 			{
+				UHoudiniOutput* CurOutput = GetOutputAt(Idx);
 				if (!CurOutput)
 					continue;
 
@@ -2324,11 +2286,11 @@ UHoudiniAssetComponent::PostEditUndo()
 bool
 UHoudiniAssetComponent::ShouldTryToStartFirstSession() const
 {
-	if (!HoudiniAsset)
+	if (!GetHoudiniAsset())
 		return false;
 
 	// Only try to start the default session if we have an "active" HAC
-	switch (AssetState)
+	switch (GetAssetState())
 	{
 		case EHoudiniAssetState::NewHDA:
 		case EHoudiniAssetState::PreInstantiation:
@@ -2368,6 +2330,9 @@ UHoudiniAssetComponent::OnActorMoved(AActor* Actor)
 void 
 UHoudiniAssetComponent::SetHasComponentTransformChanged(const bool& InHasChanged)
 {
+	if (GetCookable())
+		return GetCookable()->SetHasComponentTransformChanged(InHasChanged);
+
 	// Only update the value if we're fully loaded
 	// This avoid triggering a recook when loading a level
 	if(bFullyLoaded)
@@ -2424,19 +2389,6 @@ void UHoudiniAssetComponent::SetOutputNodeIds(const TArray<int32>& OutputNodes)
 void UHoudiniAssetComponent::SetOutputNodeCookCount(const int& NodeId, const int& CookCount)
 {
 	OutputNodeCookCounts.Add(NodeId, CookCount);
-}
-
-bool UHoudiniAssetComponent::HasOutputNodeChanged(const int& NodeId, const int& NewCookCount)
-{
-	if (!OutputNodeCookCounts.Contains(NodeId))
-	{
-		return true;
-	}
-	if (OutputNodeCookCounts[NodeId] == NewCookCount)
-	{
-		return false;
-	}
-	return true;
 }
 
 TArray<int32>
@@ -2509,6 +2461,9 @@ UHoudiniAssetComponent::CalcBounds(const FTransform & LocalToWorld) const
 FBox
 UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreGeneratedLandscape) const
 {
+	// TODO: COOKABLE
+	// Using the wrong inputs/params for now
+
 	FBox BoxBounds(ForceInitToZero);
 
 	// This function may be called during destruction of the HAC, when the world is not set, so gracefully
@@ -2538,16 +2493,18 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 	// when using World Partition. So ignore inputs during cooking.
 	if (!IsRunningCookCommandlet())
 	{
-		for (auto & CurInput : Inputs) 
+		//TArray<TObjectPtr<UHoudiniInput>>& MyInputs = GetInputs();
+		for (auto& CurInput : Inputs)
 		{
-		if (!IsValid(CurInput))
-			continue;
+			if (!IsValid(CurInput))
+				continue;
 
-		BoxBounds += CurInput->GetBounds(this->GetHACWorld());
+			BoxBounds += CurInput->GetBounds(this->GetHACWorld());
 		}
 	} 
 
 	// Query the bounds for all input parameters
+	//TArray<TObjectPtr<UHoudiniParameter>>& MyParams = GetParameters();
 	for (auto & CurParam : Parameters) 
 	{
 		if (!IsValid(CurParam))
@@ -2928,6 +2885,9 @@ UHoudiniAssetComponent::SetEnableCurveEditing(bool bEnable)
 void
 UHoudiniAssetComponent::ClearRefineMeshesTimer()
 {
+	if (GetCookable())
+		return GetCookable()->ClearRefineMeshesTimer();
+
 	UWorld *World = GetHACWorld();
 	if (!World)
 	{
@@ -2941,6 +2901,9 @@ UHoudiniAssetComponent::ClearRefineMeshesTimer()
 void
 UHoudiniAssetComponent::SetRefineMeshesTimer()
 {
+	if (GetCookable())
+		return GetCookable()->SetRefineMeshesTimer();
+
 	UWorld* World = GetHACWorld();
 	if (!World)
 	{
@@ -2964,6 +2927,9 @@ UHoudiniAssetComponent::SetRefineMeshesTimer()
 void 
 UHoudiniAssetComponent::OnRefineMeshesTimerFired()
 {
+	if (GetCookable())
+		return GetCookable()->OnRefineMeshesTimerFired();
+
 	HOUDINI_LOG_MESSAGE(TEXT("UHoudiniAssetComponent::OnRefineMeshesTimerFired()"));
 	if (OnRefineMeshesTimerDelegate.IsBound())
 	{
@@ -3028,6 +2994,9 @@ UHoudiniAssetComponent::IsPlayInEditorRefinementAllowed() const
 bool
 UHoudiniAssetComponent::HasAnyOutputComponent() const
 {
+	if (GetCookable())
+		return GetCookable()->HasAnyOutputComponent();
+
 	for (UHoudiniOutput *Output : Outputs)
 	{
 		for(auto& CurrentOutputObject : Output->GetOutputObjects())
@@ -3187,6 +3156,9 @@ UHoudiniAssetComponent::IsComponentValid() const
 bool
 UHoudiniAssetComponent::IsInstantiatingOrCooking() const
 {
+	if(GetCookable())
+		GetCookable()->IsInstantiatingOrCooking();
+
 	return HapiGUID.IsValid();
 }
 
@@ -3563,11 +3535,6 @@ UHoudiniAssetComponent::ProcessBPTemplate(const bool& InIsGlobalCookingEnabled)
 		{
 			OnTemplateParametersChanged();
 		}
-	}
-
-	if (NeedOutputUpdate())
-	{
-		// TODO: Transfer template output changes over to the preview instance.
 	}
 }
 

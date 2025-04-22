@@ -662,12 +662,6 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 	// If cooking is paused, stay in the current state until cooking's resumed, unless we are in NewHDA
 	if (!FHoudiniEngine::Get().IsCookingEnabled() && AssetStateToProcess != EHoudiniAssetState::NewHDA)
 	{
-		// We can only handle output updates
-		if (AssetStateToProcess == EHoudiniAssetState::None && HAC->NeedOutputUpdate())
-		{
-			FHoudiniOutputTranslator::UpdateChangedOutputs(HAC);
-		}
-
 		// Refresh UI when pause cooking
 		if (!FHoudiniEngine::Get().HasUIFinishRefreshingWhenPausingCooking()) 
 		{
@@ -708,11 +702,6 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 				HAC->bForceNeedUpdate = false;
 				// Update the HAC's state
 				HAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
-			}
-			else if (HAC->NeedOutputUpdate())
-			{
-				// Output updates do not recquire the HDA to be instantiated
-				FHoudiniOutputTranslator::UpdateChangedOutputs(HAC);
 			}
 
 			// Update world input if we have any
@@ -993,10 +982,6 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			else if (HAC->bCookOnTransformChange && HAC->bUploadTransformsToHoudiniEngine && HAC->bHasComponentTransformChanged)
 			{
 				FHoudiniEngineUtils::UploadHACTransform(HAC);
-			}
-			else if (HAC->NeedOutputUpdate())
-			{
-				FHoudiniOutputTranslator::UpdateChangedOutputs(HAC);
 			}
 
 			// See if we need to get an update from Session Sync

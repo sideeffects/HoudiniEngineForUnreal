@@ -3467,21 +3467,6 @@ FHoudiniOutputDetails::CreateInstancerOutputWidget(
 	if (OnlyOneInstanceInstancers)
 		return;
 
-	// Classes allowed for instance variations.
-	const TArray<const UClass *> AllowedClasses = 
-	{
-		UStaticMesh::StaticClass(), USkeletalMesh::StaticClass(),
-		AActor::StaticClass(), UBlueprint::StaticClass(),
-		UFXSystemAsset::StaticClass(), USoundBase::StaticClass()
-	};
-
-	// Classes not allowed for instances variations (useless?)
-	TArray<const UClass *> DisallowedClasses =
-	{
-		UClass::StaticClass(), ULevel::StaticClass(), 
-		UMaterial::StaticClass(), UTexture::StaticClass()
-	};
-	
 	IDetailLayoutBuilder & DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
 	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
 

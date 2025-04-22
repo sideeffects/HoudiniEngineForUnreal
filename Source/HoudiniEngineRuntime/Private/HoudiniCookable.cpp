@@ -814,30 +814,6 @@ UHoudiniCookable::UpdateDormantStatus()
 }
 
 
-
-// Indicates if any of the cookable's outputs needs to be updated (no recook needed)
-bool
-UHoudiniCookable::NeedUpdateInstancedOutputs() const
-{
-	if (!IsOutputSupported())
-		return false;
-
-	// Go through all outputs
-	for (auto CurrentOutput : OutputData->Outputs)
-	{
-		if (!IsValid(CurrentOutput))
-			continue;
-
-		for (const auto& InstOutput : CurrentOutput->GetInstancedOutputs())
-		{
-			if (InstOutput.Value.bChanged)
-				return true;
-		}
-	}
-
-	return false;
-}
-
 bool
 UHoudiniCookable::NeedUpdateParameters() const
 {
@@ -1674,6 +1650,27 @@ UHoudiniCookable::IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const
 }
 
 bool
+UHoudiniCookable::HasAnyOutputComponent() const
+{
+	if (!IsOutputSupported())
+		return false;
+
+	for (UHoudiniOutput* Output : OutputData->Outputs)
+	{
+		for (auto& CurrentOutputObject : Output->GetOutputObjects())
+		{
+			for (auto Component : CurrentOutputObject.Value.OutputComponents)
+			{
+				if (Component)
+					return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool
 UHoudiniCookable::HasNoProxyMeshNextCookBeenRequested() const
 {
 	if (!IsOutputSupported())
@@ -1784,6 +1781,38 @@ UHoudiniCookable::IsPlayInEditorRefinementAllowed() const
 	return OutputData->bAllowPlayInEditorRefinement;
 }
 
+void
+UHoudiniCookable::SetRefineMeshesTimer()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Cannot SetRefineMeshesTimer, World is nullptr!"));
+		return;
+	}
+
+	// Check if timer-based proxy mesh refinement is enable for this component
+	const bool bEnableTimer = IsProxyStaticMeshRefinementByTimerEnabled();
+	const float TimeSeconds = GetProxyMeshAutoRefineTimeoutSeconds();
+	if (bEnableTimer)
+	{
+		World->GetTimerManager().SetTimer(OutputData->RefineMeshesTimer, this, &UHoudiniCookable::OnRefineMeshesTimerFired, 1.0f, false, TimeSeconds);
+	}
+	else
+	{
+		World->GetTimerManager().ClearTimer(OutputData->RefineMeshesTimer);
+	}
+}
+
+void
+UHoudiniCookable::OnRefineMeshesTimerFired()
+{
+	HOUDINI_LOG_MESSAGE(TEXT("UHoudiniAssetComponent::OnRefineMeshesTimerFired()"));
+	if (OutputData->OnRefineMeshesTimerDelegate.IsBound())
+	{
+		OutputData->OnRefineMeshesTimerDelegate.Broadcast(this);
+	}
+}
 
 bool
 UHoudiniCookable::IsHoudiniCookedDataAvailable(bool& bOutNeedsRebuildOrDelete, bool& bOutInvalidState) const
@@ -1945,6 +1974,11 @@ UHoudiniCookable::GetCookOnCookableInputCook() const
 	return InputData->bCookOnCookableInputCook;
 }
 
+bool
+UHoudiniCookable::IsInstantiatingOrCooking() const
+{
+	return HapiGUID.IsValid();
+}
 
 bool
 UHoudiniCookable::IsOutputless() const

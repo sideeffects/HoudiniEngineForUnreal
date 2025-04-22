@@ -224,8 +224,17 @@ FHoudiniMeshTranslator::CreateOrUpdateAllComponents(
 			}
 			else if (NewProxyMesh && (NewProxyMesh == OldProxyMesh))
 			{
-				// Remove it from the old map to avoid its destruction
-				OldOutputObjects.Remove(OutputIdentifier);
+				if (NewOutputObj.Value.ProxyComponent == FoundOldOutputObj->ProxyComponent)
+				{
+					// Remove it from the old map to avoid its destruction
+					OldOutputObjects.Remove(OutputIdentifier);
+				}
+				else
+				{
+					// The new proxy is the same as the old one
+					// Only destroy the proxy's component
+					FoundOldOutputObj->ProxyObject = nullptr;
+				}
 			}
 		}
 	}	

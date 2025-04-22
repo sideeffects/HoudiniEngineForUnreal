@@ -433,6 +433,7 @@ public:
 	bool HasBeenDuplicated() const { return bHasBeenDuplicated; };
 	bool HasRecookBeenRequested() const { return bRecookRequested; };
 	bool HasRebuildBeenRequested() const { return bRebuildRequested; };
+	bool IsInstantiatingOrCooking() const;
 
 	bool GetCookOnParameterChange() const;
 	bool GetCookOnTransformChange() const;
@@ -508,10 +509,6 @@ public:
 	// Indicates if the cookable needs to be updated
 	bool NeedUpdate() const;
 
-	// TODO COOKABLE: Unneeded?
-	// Indicates if any of the cookable's output components needs to be updated (no recook needed)
-	bool NeedUpdateInstancedOutputs() const;
-
 	// Derived blueprint based components will check whether the template component contains updates that needs to processed.
 
 	// Indicates if the cookable's parameters need an update
@@ -529,6 +526,7 @@ public:
 	TArray<TObjectPtr<UHoudiniHandleComponent>>& GetHandleComponents();
 
 	void GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const;
+	bool HasAnyOutputComponent() const;
 
 	TArray<int32> GetNodeIdsToCook() const;
 	TMap<int32, int32> GetNodesToCookCookCounts() const;
@@ -707,6 +705,9 @@ public:
 	void HandleOnPostOutputProcessing();
 
 	void QueuePreCookCallback(const TFunction<void(UHoudiniCookable*)>& CallbackFn);
+
+	void SetRefineMeshesTimer();
+	void OnRefineMeshesTimerFired();
 
 	// Delegates
 	FOnPreInstantiationDelegate& GetOnPreInstantiationDelegate() { return OnPreInstantiationDelegate; };

@@ -4021,6 +4021,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent(
 		UHoudiniInputHoudiniAsset* InObject,
 		const FHoudiniInputObjectSettings& InInputSettings)
 {
+	// TODO: COOKABLE
+
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent);
 
 	if (!IsValid(InObject))

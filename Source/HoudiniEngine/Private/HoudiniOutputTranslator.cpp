@@ -292,26 +292,28 @@ FHoudiniOutputTranslator::UpdateOutputObjects(
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateOutputObjects);
 
+	// Check if the HDA has been marked as not producing outputs
+	if (bOutputless)
+	{
+		ClearAndRemoveOutputs(Outputs, true);
+		return;
+	}
+
 	//
 	// 1. Update the output objects
 	//
 	ClearAndRemoveOutputs(Outputs, false);
-
-	// Check if the HDA has been marked as not producing outputs
-	if (bOutputless)
-		return;
 
 	TArray<TObjectPtr<UHoudiniOutput>> NewOutputs;
 	if (FHoudiniOutputTranslator::BuildAllOutputs(
 		InNodeId, InOuter, InNodeIdsToCook, InOutputNodeCookCounts,
 		Outputs, NewOutputs, bOutputTemplateGeos, bUseOutputNodes, bEnableCurveEditing, bCreateSceneComponents))
 	{
-		//ClearAndRemoveOutputs(Outputs);
+		ClearAndRemoveOutputs(Outputs, true);
+
 		// Replace with the new parameters
 		Outputs = NewOutputs;
 	}
-
-	return;
 }
 
 bool
@@ -868,8 +870,12 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 
 	bool bFoundProxies = false;
 	TArray<UHoudiniOutput*> InstancerOutputs;
-	for (auto& CurOutput : HAC->GetOutputs())
+	for(int Idx = 0; Idx < HAC->GetNumOutputs(); Idx++)
 	{
+		UHoudiniOutput* CurOutput = HAC->GetOutputAt(Idx);
+		if (!CurOutput)
+			continue;
+
 		const EHoudiniOutputType OutputType = CurOutput->GetType();
 		if (OutputType == EHoudiniOutputType::Mesh)
 		{
@@ -906,7 +912,26 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 	// Rebuild instancers if we built any static meshes from proxies
 	if (bFoundProxies)
 	{
-		FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(HAC->GetOutputs(), OuterComponent, PackageParams);
+		if (bInDestroyProxies)
+		{
+			// We need to destroy the proxies for the instancer outputs before rebuilding the instancer
+			for (auto& CurOutput : InstancerOutputs)
+			{
+				for (auto& CurOutputObject : CurOutput->OutputObjects)
+				{
+					if (CurOutputObject.Value.ProxyComponent)
+						FHoudiniMeshTranslator::RemoveAndDestroyComponent(CurOutputObject.Value.ProxyComponent);
+
+					if (IsValid(CurOutputObject.Value.ProxyObject))
+					{
+						CurOutputObject.Value.ProxyObject->MarkAsGarbage();
+					}
+				}
+			}
+		}
+
+		// Rebuild the instancers
+		FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(InstancerOutputs, HAC->GetOutputs(), OuterComponent, PackageParams);
 	}
 
 	return true;
@@ -2469,98 +2494,6 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	return true;
 }
 
-bool
-FHoudiniOutputTranslator::UpdateChangedOutputs(UHoudiniAssetComponent* HAC)
-{
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateChangedOutputs);
-
-	if (!IsValid(HAC))
-		return false;
-
-	UObject* OuterComponent = HAC;
-
-	FHoudiniPackageParams PackageParams;
-	PackageParams.PackageMode = FHoudiniPackageParams::GetDefaultStaticMeshesCookMode();
-	PackageParams.ReplaceMode = FHoudiniPackageParams::GetDefaultReplaceMode();
-
-	PackageParams.BakeFolder = HAC->GetBakeFolderOrDefault();
-	PackageParams.TempCookFolder = HAC->GetTemporaryCookFolderOrDefault();
-
-	PackageParams.OuterPackage = HAC->GetComponentLevel();
-	PackageParams.HoudiniAssetName = HAC->GetHoudiniAssetName();
-	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
-	PackageParams.ComponentGUID = HAC->GetComponentGUID();
-	PackageParams.ObjectName = FString();
-
-	TArray<UHoudiniOutput *> OutputsToUpdate;
-	// Iterate through the outputs array of HAC.
-	for (int32 Index = 0; Index < HAC->GetNumOutputs(); ++Index)
-	{
-		UHoudiniOutput* CurrentOutput = HAC->GetOutputAt(Index);
-		if (!CurrentOutput)
-			continue;
-
-		if (!HAC->IsOutputTypeSupported(CurrentOutput->GetType()))
-			continue;
-
-		switch (CurrentOutput->GetType())
-		{
-			case EHoudiniOutputType::Instancer:
-			{
-				bool bNeedToRecreateInstancers = false;
-				for (auto& Iter : CurrentOutput->GetInstancedOutputs())
-				{
-					FHoudiniInstancedOutput& InstOutput = Iter.Value;
-					if (!InstOutput.bChanged)
-						continue;
-
-					/*
-					FHoudiniInstanceTranslator::UpdateChangedInstancedOutput(
-						InstOutput, Iter.Key, CurrentOutput, HAC);
-					*/
-
-					// TODO:
-					// UpdateChangedInstancedOutput needs some improvements
-					// as it currently destroy too many components.
-					// For now, we'll update all the instancers
-					bNeedToRecreateInstancers = true;
-
-					InstOutput.MarkChanged(false);
-				}
-
-				if (bNeedToRecreateInstancers)
-				{
-					if (HAC->GetAssetState() == EHoudiniAssetState::NeedInstantiation || HAC->HasBeenLoaded())
-					{
-						// Instantiate the HDA if it's not been
-						// This is because CreateAllInstancersFromHoudiniOutput() actually reads the transform from HAPI
-						// Calling it on a HDA not yet instantiated causes a crash...
-						HAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
-					}
-					else
-					{
-						OutputsToUpdate.Add(CurrentOutput);
-
-					}
-				}
-			}
-			break;
-
-			case EHoudiniOutputType::Curve:
-			{
-				//FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(CurrentOutput, HAC);
-			}
-			break;
-
-			default:
-				break;
-		}
-	}
-
-	FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(OutputsToUpdate, HAC->GetOutputs(), HAC, PackageParams);
-
-	return true;
-}
 
 void
 FHoudiniOutputTranslator::CacheObjectInfo(const HAPI_ObjectInfo& InObjInfo, FHoudiniObjectInfo& OutObjInfoCache)

@@ -889,6 +889,13 @@ FHoudiniInstanceTranslator::CreateInstancer(
 
 	Output.DataLayers = Instancers.Settings.DataLayers;
 	Output.HLODLayers = Instancers.Settings.HLODLayers;
+
+	// For Houdini Mesh Proxy - we need to make sure the HSMC is only set on the output's proxy component
+	if (InstancerType == HoudiniStaticMeshComponent && Output.ProxyComponent != nullptr)
+	{
+		Output.OutputComponents.Empty();
+	}
+
 	return true;
 }
 
@@ -1149,6 +1156,7 @@ FHoudiniInstanceTranslator::CreateHoudiniStaticMeshInstancer(
 		ComponentOuter = ParentComponent->GetOwner();
 
 	UHoudiniStaticMeshComponent* HSMC = NewObject<UHoudiniStaticMeshComponent>(ComponentOuter, UHoudiniStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
+	Output.ProxyComponent = HSMC;
 	Output.OutputComponents.Add(HSMC);
 
 	// Change the creation method so the component is listed in the details panels
