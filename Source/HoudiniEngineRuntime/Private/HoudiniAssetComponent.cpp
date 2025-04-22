@@ -126,10 +126,10 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		{
 			bLegacyComponent = true;
 		}
-		else if (Ver < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_V3_BASE)
+		/*else if (Ver < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_V3_BASE)
 		{
 			bV2Component = true;
-		}
+		}*/
 	}
 
 	if (bLegacyComponent)
