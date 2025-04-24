@@ -90,9 +90,9 @@ void UHoudiniPCGCookable::OnCookingComplete(bool bSuccess)
 	}
 }
 
-void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAssetPCGSettings* Owner, UHoudiniPCGComponent* Component)
+void UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPCGSettings* Owner, UHoudiniPCGComponent* Component)
 {
-	HOUDINI_PCG_MESSAGE(TEXT("(%p) UHoudiniPCGCookable::Instantiate"), this);
+	HOUDINI_PCG_MESSAGE(TEXT("(%p) UHoudiniPCGCookable::CreateHoudiniCookable"), this);
 
 	TrackedObjects.Empty();
 
@@ -110,9 +110,12 @@ void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAsset
 	Cookable->SetComponentSupported(Component ? true : false);
 	Cookable->SetEnableProxyStaticMeshOverride(false);
 	Cookable->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Cookable->SetOutputSupported(false); // Don't produce outputs in Unreal during instantiate.
+	Cookable->SetAutoCook(false);
+	// Disable auto-cook, it improve this logic.
+	Cookable->GetParameterData()->bCookOnParameterChange = false;
+	Cookable->GetInputData()->bCookOnInputChange = false;
 
-	if (Component)
+	if(Component)
 	{
 		Cookable->SetComponent(Component);
 	}
@@ -120,7 +123,12 @@ void UHoudiniPCGCookable::Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAsset
 	Cookable->SetHoudiniAssetSupported(true);
 	UCookableHoudiniAssetData* HAD = Cookable->GetHoudiniAssetData();
 	HAD->HoudiniAsset = Asset;
+	this->State = EPCGCookableState::None;
+}
 
+void UHoudiniPCGCookable::Instantiate()
+{
+	HOUDINI_PCG_MESSAGE(TEXT("(%p) UHoudiniPCGCookable::Instantiate"), this);
 	this->State = EPCGCookableState::WaitingForSession;
 	FHoudiniPCGUtils::StartSessionAsync();
 }
@@ -161,8 +169,6 @@ UHoudiniPCGCookable::ApplyParametersToCookable(FPCGContext* Context, bool& bErro
 bool UHoudiniPCGCookable::ApplyInputsToCookable(FPCGContext* Context, bool& bError)
 {
 	int NumInputs = this->Cookable->GetNumInputs();
-
-	bool bInputsChanged = false;
 
 	for(int Index = 0; Index < NumInputs; Index++)
 	{
@@ -211,16 +217,10 @@ bool UHoudiniPCGCookable::ApplyInputsToCookable(FPCGContext* Context, bool& bErr
 			}
 			else
 			{
-				bInputsChanged |= ApplyInputAsPCGData(Context, Input, { });
+				// Do nothing.
 			}
 
 		}
-	}
-
-	if(bInputsChanged)
-	{
-		// Changing the parameters will start a cook.
-		State = EPCGCookableState::Cooking;
 	}
 
 	return bInputsChanged;
@@ -424,7 +424,7 @@ void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, 
 void
 UHoudiniPCGCookable::ProcessCookableOutput(FPCGContext* Context)
 {
-	const UHoudiniDigitalAssetPCGSettings* Settings = Context->GetInputSettings<UHoudiniDigitalAssetPCGSettings>();
+	const UHoudiniPCGSettings* Settings = Context->GetInputSettings<UHoudiniPCGSettings>();
 
 	if(!this->Cookable->GetOutputData())
 		return;
@@ -438,7 +438,7 @@ UHoudiniPCGCookable::ProcessCookableOutput(FPCGContext* Context)
 		for(int Index = 0; Index < Outputs.Num(); Index++)
 		{
 			FString Tag = FString::Printf(TEXT("Output-%d"), Index);
-			CreateOutputs(Context, Settings->GetOutputPinName(0), Tag, this->Cookable->GetOutputData()->Outputs[Index]);
+			CreateOutputs(Context, Settings->GetOutputPinName(), Tag, this->Cookable->GetOutputData()->Outputs[Index]);
 		}
 		break;
 	}
@@ -447,69 +447,76 @@ UHoudiniPCGCookable::ProcessCookableOutput(FPCGContext* Context)
 	}
 
 	AddTrackedObjects(Context);
-	State = EPCGCookableState::Idle;
+	State = EPCGCookableState::Done;
 
 }
 
 
-bool UHoudiniPCGCookable::UpdateAndCook(FPCGContext* Context, bool & bError)
+void UHoudiniPCGCookable::CopyParametersAndInputs(const UHoudiniPCGCookable * Other)
 {
+	bParamsChanged |= Cookable->SetParameterData(Other->Cookable->GetParameterData());
+	bInputsChanged |= Cookable->SetInputData(Other->Cookable->GetInputData());
+}
+
+bool UHoudiniPCGCookable::UpdateParametersAndInputs(FPCGContext* Context)
+{
+	bool bError = false;
 	Cookable->SetOutputSupported(true);
 
-	const UHoudiniDigitalAssetPCGSettings* Settings = Context->GetInputSettings<UHoudiniDigitalAssetPCGSettings>();
+	const UHoudiniPCGSettings* Settings = nullptr;
+	if(Context)
+		Settings = Context->GetInputSettings<UHoudiniPCGSettings>();
 
-	Cookable->GetOutputData()->bCreateSceneComponents = Settings->bCreateSceneComponents;
+	Cookable->GetOutputData()->bCreateSceneComponents = Settings ? Settings->bCreateSceneComponents : false;
 
-	bool bHasBeenCooked = State == EPCGCookableState::Done || State == EPCGCookableState::Idle;
-
-	bool bParamsChanged = this->ApplyParametersToCookable(Context, bError);
-	if(bError)
-		return false;
-
-	bool bInputsChanged = this->ApplyInputsToCookable(Context, bError);
-	if(bError)
-		return false;
-
-	int CurrentCookCount = FHoudiniEngineUtils::HapiGetCookCount(Cookable->GetNodeId());
-
-	bool bCookCountChanged = this->CookCount != CurrentCookCount;
-	this->CookCount = CurrentCookCount;
-
-	if (bInputsChanged)
+	if(Context)
 	{
-		State = EPCGCookableState::Cooking;
-		HOUDINI_PCG_MESSAGE(TEXT("(%p) Inputs changed on Cookable, expecting auto-cook."), this);
-		return true;
+		bParamsChanged |= this->ApplyParametersToCookable(Context, bError);
+		if(bError)
+			return false;
 
+		bInputsChanged |= this->ApplyInputsToCookable(Context, bError);
+		if(bError)
+			return false;
 	}
-	else if (bParamsChanged || bCookCountChanged || !bHasBeenCooked)
-	{
-		State = EPCGCookableState::Cooking;
-		HOUDINI_PCG_MESSAGE(TEXT("(%p) Inputs not changed on cookable, but forcing cooking to get outputs."), this);
-		Cookable->MarkAsNeedCook();
-		return true;
-	}
-	else
-	{
-		// Node has been cooked and nothing has changed.
-		State = EPCGCookableState::Done;
-		return false;
-	}
+
+	//int CurrentCookCount = FHoudiniEngineUtils::HapiGetCookCount(Cookable->GetNodeId());
+	//bool bCookCountChanged = this->CookCount != CurrentCookCount;
+	//this->CookCount = CurrentCookCount;
+
+	return true;
+}
+
+bool UHoudiniPCGCookable::NeedsCook()
+{
+
+	bool bHasBeenCooked = State == EPCGCookableState::Done;
+
+	return (bInputsChanged || bParamsChanged || !bHasBeenCooked);
 }
 
 
-bool
-UHoudiniPCGCookable::Update(FPCGContext* Context, bool& bError)
+void UHoudiniPCGCookable::StartCook()
 {
-	// This is called every tick during a PCG Cookable. It updates internal state based off asyncnrohous operations.
-	// The user can cancel the PCG task if this takes too long, so there is no additional bailout mechanism.
+	ensure(NeedsCook());
+	State = EPCGCookableState::Cooking;
+	HOUDINI_PCG_MESSAGE(TEXT("(%p) Inputs not changed on cookable, but forcing cooking to get outputs."), this);
+	Cookable->MarkAsNeedCook();
+	bInputsChanged = false;
+	bParamsChanged = false;
+}
 
-	bError = false;
+
+void
+UHoudiniPCGCookable::Update(FPCGContext* Context)
+{
+	// This is called every tick during a PCG Cook. It updates internal state based off async operations.
+	// The user can cancel the PCG task if this takes too long, so there is no additional bailout mechanism.
 
 	switch(this->State)
 	{
 	case EPCGCookableState::WaitingForSession:
-		if (FHoudiniPCGUtils::SessionStatus == EHoudiniPCGSessionStatus::PCGSessionStatus_Created)
+		if(FHoudiniPCGUtils::SessionStatus == EHoudiniPCGSessionStatus::PCGSessionStatus_Created)
 		{
 			// A session already existed or was created. Now we can register the cookable with the
 			// runtime. This will trigger a cook.
@@ -518,42 +525,32 @@ UHoudiniPCGCookable::Update(FPCGContext* Context, bool& bError)
 		}
 		else if(FHoudiniPCGUtils::SessionStatus == EHoudiniPCGSessionStatus::PCGSessionStatus_Error)
 		{
-			this->State = EPCGCookableState::Done;
-			return true;
+			this->State = EPCGCookableState::Initialized;
 		}
-
-		return false;
+		break;
 
 	case EPCGCookableState::Initializing:
 		// Still initializing, wait. 
-		return false;
+		break;
 
 	case EPCGCookableState::Initialized:
-		// Initialized - so we set inputs and cook.
-		HOUDINI_PCG_MESSAGE(TEXT("Initialized Cookable (%p), now cooking"), this);
-		UpdateAndCook(Context, bError);
-		return false;
+		break;
 
 	case EPCGCookableState::Cooking:
 		// Still cooking, wait.
-		return false;
+		break;
 
 	case EPCGCookableState::Done:
 		// Done - process results.
 		HOUDINI_PCG_MESSAGE(TEXT("DONE cooking Managed Resource (%p)"), this);
 		this->ProcessCookableOutput(Context);
 		CookCount = FHoudiniEngineUtils::HapiGetCookCount(Cookable->GetNodeId());
-		return true;
-
-	case EPCGCookableState::Idle:
-		// Shouldn't get here since if cooking is complete this function should not be called.
-		FHoudiniPCGUtils::LogVisualError(Context, TEXT("Unexpected state: Idle. PCG Cooking failed."));
-		return true;
+		break;
 
 	default:
 		// Shouldn't get here.
 		HOUDINI_LOG_ERROR(TEXT("Unexpected state: default. PCG Cooking failed."));
-		return true;
+		break;
 	}
 }
 
@@ -612,8 +609,8 @@ UHoudiniPCGCookable::ApplyInputAsUnrealObjects(FPCGContext* Context, UHoudiniInp
 	CurrentInputObjects.Sort();
 
 	// if inputs changed, set them
-	bool bInputsChanged = (CurrentInputObjects != NewInputPaths);
-	if(bInputsChanged)
+	bool bThisInputChanged = (CurrentInputObjects != NewInputPaths);
+	if(bThisInputChanged)
 	{
 		HoudiniInput->MarkChanged(true);
 		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, 0);
@@ -657,7 +654,7 @@ UHoudiniPCGCookable::ApplyInputAsUnrealObjects(FPCGContext* Context, UHoudiniInp
 		}
 	}
 
-	return bInputsChanged;
+	return bThisInputChanged;
 }
 
 UHoudiniPCGDataObject*

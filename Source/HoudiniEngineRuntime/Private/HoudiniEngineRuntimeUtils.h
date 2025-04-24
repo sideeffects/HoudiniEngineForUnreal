@@ -392,6 +392,8 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		// Returns false if InActorComponent is null / invalid.
 		static bool AddOrSetAsInstanceComponent(UActorComponent* InActorComponent);
 
+
+		static void ForceDetailsPanelToUpdate();
 	protected:
 		// taken from FPaths::GetTCharPtr
 		FORCEINLINE static const TCHAR* GetTCharPtr(const TCHAR* Ptr)

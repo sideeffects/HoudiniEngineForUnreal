@@ -57,6 +57,7 @@
 #include "Engine/Selection.h"
 #include "Engine/SkeletalMesh.h"
 #include "EngineUtils.h"
+#include "HoudiniCookable.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Framework/SlateDelegates.h"
 #include "IDetailCustomization.h"
@@ -380,6 +381,10 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 	if (HAC)
 	{
 		SupportedChoices = FHoudiniEngineEditor::Get().GetBlueprintInputTypeChoiceLabels();
+	}
+	else if (UHoudiniCookable* HC = MainInput->GetTypedOuter<UHoudiniCookable>())
+	{
+		SupportedChoices = FHoudiniEngineEditor::Get().GetPCGInputTypeChoiceLabels();
 	}
 	else
 	{

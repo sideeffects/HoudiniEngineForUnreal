@@ -1533,12 +1533,15 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 						int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
 						if (CookCount >= 0 && CookCount != HC->CookCount)
 						{
-							// The cook count has changed on the Houdini side,
-							// this indicates that the user has changed something in Houdini so we need to trigger an update
-							HC->SetCurrentState(EHoudiniAssetState::PreCook);
+							if (HC->bAutoCook)
+							{
+								// The cook count has changed on the Houdini side,
+								// this indicates that the user has changed something in Houdini so we need to trigger an update
+								HC->SetCurrentState(EHoudiniAssetState::PreCook);
+								// Make sure to update the cookcount to prevent loop cooking
+								HC->CookCount = CookCount;
+							}
 
-							// Make sure to update the cookcount to prevent loop cooking
-							HC->CookCount = CookCount;
 						}
 					}
 				}
@@ -2415,13 +2418,13 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC)
 				bCacheRampParms,
 				HAC->bNeedToUpdateEditorProperties);
 
-			// Update our inputs
+			// Update our inputs, LoadedInputs to false so that we do not delete inputs.
 			FHoudiniInputTranslator::UpdateInputs(
 				HAC->GetAssetId(),
 				HAC,
 				HAC->Inputs,
 				HAC->Parameters,
-				HAC->bHasBeenLoaded);
+				false);
 
 			// Update the HDA's parameter preset
 			if (!FHoudiniEngineUtils::GetAssetPreset(HAC->AssetId, HAC->ParameterPresetBuffer))
@@ -2541,7 +2544,8 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		//
 		// INPUTS
 		//
-		// TODO COOKABLE: Do asset preset after input (obj path param?)
+		// TODO COOKABLE: Do asset preset after input (obj path param?).
+		// Set bLoadedInputs to false so as not to delete outputs.
 		if (HC->IsInputSupported())
 		{
 			// Update our inputs
@@ -2550,7 +2554,7 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 				HC,
 				HC->InputData->Inputs,
 				HC->ParameterData->Parameters,
-				HC->HasBeenLoaded());
+				false);
 		}
 
 		// Update the HDA's parameter preset

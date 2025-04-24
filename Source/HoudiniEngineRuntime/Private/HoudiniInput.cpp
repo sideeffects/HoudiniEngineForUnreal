@@ -618,6 +618,12 @@ UHoudiniInput::InputTypeToString(const EHoudiniInputType& InInputType)
 		}
 		break;
 
+		case EHoudiniInputType::PCGInput:
+		{
+			InputTypeStr = TEXT("PCG Input");
+		}
+		break;
+
 		case EHoudiniInputType::Invalid:
 		{
 			InputTypeStr = TEXT("INVALID INPUT");
@@ -648,6 +654,10 @@ UHoudiniInput::StringToInputType(const FString& InInputTypeString)
 	else if (InInputTypeString.StartsWith(TEXT("World"), ESearchCase::IgnoreCase))
 	{
 		return EHoudiniInputType::World;
+	}
+	else if(InInputTypeString.StartsWith(TEXT("PCG"), ESearchCase::IgnoreCase))
+	{
+		return EHoudiniInputType::PCGInput;
 	}
 
 	return EHoudiniInputType::Invalid;
@@ -806,7 +816,10 @@ UHoudiniInput::SetKeepWorldTransform(const bool& bInKeepWorldTransform)
 
 void 
 UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlueprintStructureModified)
-{ 
+{
+	USceneComponent* OuterComp = Cast<USceneComponent>(GetOuter());
+
+
 	if (InInputType == Type)
 		return;
 
@@ -921,8 +934,12 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 		{
 			if (GetNumberOfInputObjects() == 0)
 			{
-				CreateNewCurveInputObject(bOutBlueprintStructureModified);
-				MarkChanged(true);
+				// Create a curve input, but only if part of an actor.
+				if(IsValid(OuterComp))
+				{
+					CreateNewCurveInputObject(bOutBlueprintStructureModified);
+					MarkChanged(true);
+				}
 			}
 			else
 			{
@@ -976,6 +993,8 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 		default:
 			break;
 	}
+
+	FHoudiniEngineRuntimeUtils::ForceDetailsPanelToUpdate();
 }
 
 UHoudiniInputObject*

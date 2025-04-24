@@ -59,6 +59,7 @@
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
+
 TSharedRef< IDetailCustomization >
 FHoudiniCookableDetails::MakeInstance()
 {
@@ -120,7 +121,11 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 	// Get all components which are being customized.
 	TArray<TWeakObjectPtr<UObject>> ObjectsCustomized;
 	DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
-	
+
+
+	// Components which are being customized.
+	TArray<TWeakObjectPtr<UHoudiniCookable>> HoudiniCookable;
+
 	// Extract the Houdini Asset Component to detail
 	for (int32 i = 0; i < ObjectsCustomized.Num(); ++i)
 	{
@@ -359,6 +364,9 @@ FHoudiniCookableDetails::CreateParameterDetails(
 	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables,
 	const FString& MultiSelectionIdentifier)
 {
+	if(InCookables.IsEmpty())
+		return;
+
 	TWeakObjectPtr<UHoudiniCookable> MainCookable = InCookables[0];
 	if (!IsValidWeakPointer(MainCookable))
 		return;
@@ -493,6 +501,9 @@ FHoudiniCookableDetails::CreateInputDetails(
 	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables,
 	const FString& MultiSelectionIdentifier)
 {
+	if(InCookables.IsEmpty())
+		return;
+
 	TWeakObjectPtr<UHoudiniCookable> MainCookable = InCookables[0];
 	if (!IsValidWeakPointer(MainCookable))
 		return;

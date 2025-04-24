@@ -45,6 +45,7 @@
 	#include "HoudiniEditorAssetStateSubsystemInterface.h"
 #endif
 
+#include "HoudiniParameterInt.h"
 #include "Components/SplineComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedFoliageActor.h"
@@ -68,8 +69,6 @@ UCookableParameterData::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 
 	return nullptr;
 }
-
-
 
 //
 // HOUDINI ASSET DATA
@@ -400,6 +399,107 @@ UHoudiniCookable::~UHoudiniCookable()
 	// Unregister ourself so our houdini nodes can be deleted.
 	//FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
 }
+
+template <typename Type> bool HoudiniCheckAndSetValue(Type & Dest, Type & Src)
+{
+	if(Dest == Src)
+		return false;
+	Dest = Src;
+	return true;
+}
+
+bool HoudiniAreObjectsEqual(const UObject* A, const UObject*B)
+{
+	if(!IsValid(A) && !IsValid(B))
+		return true;
+
+	if(!IsValid(A) || !IsValid(B))
+		return false;
+
+	if(A->GetClass() != B->GetClass())
+		return false;
+
+	for(TFieldIterator<FProperty> PropIt(A->GetClass()); PropIt; ++PropIt)
+	{
+		FProperty* Property = *PropIt;
+
+		const void* ValueA = Property->ContainerPtrToValuePtr<void>(A);
+		const void* ValueB = Property->ContainerPtrToValuePtr<void>(B);
+
+		if(!Property->Identical(ValueA, ValueB))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool UHoudiniCookable::SetParameterData(UCookableParameterData* InParameterData)
+{
+	bool bChanged = false;
+	bChanged |= HoudiniCheckAndSetValue(ParameterData->bCookOnParameterChange, InParameterData->bCookOnParameterChange);
+	bChanged |= HoudiniCheckAndSetValue(ParameterData->ParameterPresetBuffer, InParameterData->ParameterPresetBuffer);
+	bChanged |= HoudiniCheckAndSetValue(ParameterData->bParameterDefinitionUpdateNeeded, InParameterData->bParameterDefinitionUpdateNeeded);
+
+	if(ParameterData->Parameters.Num() != InParameterData->Parameters.Num())
+	{
+		ParameterData->Parameters.SetNum(InParameterData->Parameters.Num());
+		bChanged = true;
+	}
+
+	for (int Index = 0; Index < ParameterData->Parameters.Num(); Index++)
+	{
+		if (!HoudiniCheckAndSetValue(ParameterData->Parameters[Index], InParameterData->Parameters[Index]))
+		{
+			bChanged = true;
+			if(IsValid(InParameterData->Parameters[Index]))
+			{
+				ParameterData->Parameters[Index] = DuplicateObject(InParameterData->Parameters[Index], this);
+				ParameterData->Parameters[Index]->MarkChanged(true);
+			}
+			else
+			{
+				ParameterData->Parameters[Index] = nullptr;
+			}
+		}
+	}
+
+	return bChanged;
+}
+
+bool UHoudiniCookable::SetInputData(UCookableInputData* InInputData)
+{
+	bool bChanged = false;
+	bChanged |= HoudiniCheckAndSetValue(InputData->bCookOnInputChange, InInputData->bCookOnInputChange);
+	bChanged |= HoudiniCheckAndSetValue(InputData->bCookOnCookableInputCook, InInputData->bCookOnCookableInputCook);
+
+	if(InputData->Inputs.Num() != InInputData->Inputs.Num())
+	{
+		InputData->Inputs.SetNum(InInputData->Inputs.Num());
+		bChanged = true;
+	}
+
+	for(int Index = 0; Index < InputData->Inputs.Num(); Index++)
+	{
+		if(!HoudiniAreObjectsEqual(InputData->Inputs[Index], InInputData->Inputs[Index]))
+		{
+			bChanged = true;
+			if(IsValid(InInputData->Inputs[Index]))
+			{
+				InputData->Inputs[Index] = DuplicateObject(InInputData->Inputs[Index], this);
+				InputData->Inputs[Index]->MarkChanged(true);
+			}
+			else
+			{
+				InputData->Inputs[Index] = nullptr;
+			}
+		}
+	}
+
+	return bChanged;
+}
+
+
 
 UHoudiniAsset*
 UHoudiniCookable::GetHoudiniAsset()

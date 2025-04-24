@@ -49,6 +49,7 @@
 #include "Engine/DataTable.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "HAL/FileManager.h"
+#include "Materials/Material.h"
 
 
 FHoudiniMaterialIdentifier::FHoudiniMaterialIdentifier(
@@ -1305,29 +1306,39 @@ void FHoudiniOutputObject::DestroyCookedData(bool bDeleteAssets)
 	{
 		TArray<FString> PackagesDeleted;
 
-		TArray<UObject*> ObjectsToDelete;
-		if(UPackage* Package = OutputObject->GetPackage())
+		bool bCanDelete = false;
+		if(OutputObject->IsA<UStaticMesh>() ||
+			OutputObject->IsA<UMaterial>())
 		{
-			ObjectsToDelete.Add(Package);
-			GetObjectsWithOuter(Package, ObjectsToDelete, true);
+			bCanDelete = true;
+		}
 
-			// Use ObjectTools to delete
-			ObjectTools::DeleteObjectsUnchecked(ObjectsToDelete);
-
-			// Also delete the package file from disk
-			FString PackagePath = Package->GetPathName();
-			FString FilePath = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
-
-			FString DirectoryPath = FPaths::GetPath(FilePath);
-
-			TArray<FString> Files;
-			TArray<FString> SubDirs;
-			IFileManager::Get().FindFiles(Files, *(DirectoryPath / TEXT("*")), true, false);
-			IFileManager::Get().FindFiles(SubDirs, *(DirectoryPath / TEXT("*")), false, true);
-
-			if(Files.IsEmpty() && SubDirs.IsEmpty())
+		if (bCanDelete)
+		{
+			TArray<UObject*> ObjectsToDelete;
+			if(UPackage* Package = OutputObject->GetPackage())
 			{
-				IFileManager::Get().DeleteDirectory(*DirectoryPath, false, true);
+				ObjectsToDelete.Add(Package);
+				GetObjectsWithOuter(Package, ObjectsToDelete, true);
+
+				// Use ObjectTools to delete
+				ObjectTools::DeleteObjectsUnchecked(ObjectsToDelete);
+
+				// Also delete the package file from disk
+				FString PackagePath = Package->GetPathName();
+				FString FilePath = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
+
+				FString DirectoryPath = FPaths::GetPath(FilePath);
+
+				TArray<FString> Files;
+				TArray<FString> SubDirs;
+				IFileManager::Get().FindFiles(Files, *(DirectoryPath / TEXT("*")), true, false);
+				IFileManager::Get().FindFiles(SubDirs, *(DirectoryPath / TEXT("*")), false, true);
+
+				if(Files.IsEmpty() && SubDirs.IsEmpty())
+				{
+					IFileManager::Get().DeleteDirectory(*DirectoryPath, false, true);
+				}
 			}
 		}
 	}

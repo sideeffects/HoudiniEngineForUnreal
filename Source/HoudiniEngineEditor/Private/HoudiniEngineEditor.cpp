@@ -90,6 +90,9 @@
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 	#include "Subsystems/PlacementSubsystem.h"
 #endif
+#if defined(HOUDINI_USE_PCG)
+#include "HoudiniPCGDetails.h"
+#endif
 #include "Templates/SharedPointer.h"
 #include "UnrealEdGlobals.h"
 #include "Toolkits/AssetEditorModeUILayer.h"
@@ -297,15 +300,10 @@ FHoudiniEngineEditor::RegisterDetails()
 	PropertyModule.RegisterCustomClassLayout(
 		TEXT("HoudiniRuntimeSettings"),
 		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniRuntimeSettingsDetails::MakeInstance));
-#if defined(HOUIDNI_USE_PCG)
-	PropertyModule.RegisterCustomClassLayout(
-		TEXT("HoudiniPCGComponent"),
-		FOnGetDetailCustomizationInstance::CreateStatic(&UHoudiniPCGComponentDetails::MakeInstance));
-#if 0
+#if defined(HOUDINI_USE_PCG)
 	PropertyModule.RegisterCustomClassLayout(
 		TEXT("HoudiniPCGSettings"),
-		FOnGetDetailCustomizationInstance::CreateStatic(&UHoudiniPCGComponentDetails::MakeInstance));
-#endif
+		FOnGetDetailCustomizationInstance::CreateStatic(&UHoudiniPCGSettingsCustomization::MakeInstance));
 #endif
 }
 
@@ -319,11 +317,8 @@ FHoudiniEngineEditor::UnregisterDetails()
 
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniAssetComponent"));
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniRuntimeSettings"));
-#if defined(HOUIDNI_USE_PCG)
-		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniPCGComponent"));
-#if 0
+#if defined(HOUDINI_USE_PCG)
 		PropertyModule.UnregisterCustomClassLayout(TEXT("HoudiniPCGSettings"));
-#endif
 #endif
 	}
 }
@@ -962,6 +957,10 @@ FHoudiniEngineEditor::InitializeWidgetResource()
 	InputTypeChoiceLabels.Add(MakeShareable(new FString(UHoudiniInput::InputTypeToString(EHoudiniInputType::World))));
 	InputTypeChoiceLabels.Add(MakeShareable(new FString(UHoudiniInput::InputTypeToString(EHoudiniInputType::Curve))));
 
+	PCGInputTypeChoiceLabels.Reset();
+	PCGInputTypeChoiceLabels.Add(MakeShareable(new FString(UHoudiniInput::InputTypeToString(EHoudiniInputType::Geometry))));
+	PCGInputTypeChoiceLabels.Add(MakeShareable(new FString(UHoudiniInput::InputTypeToString(EHoudiniInputType::World))));
+	PCGInputTypeChoiceLabels.Add(MakeShareable(new FString(UHoudiniInput::InputTypeToString(EHoudiniInputType::PCGInput))));
 
 	BlueprintInputTypeChoiceLabels.Reset();
 	BlueprintInputTypeChoiceLabels.Add(MakeShareable(new FString(UHoudiniInput::InputTypeToString(EHoudiniInputType::Geometry))));

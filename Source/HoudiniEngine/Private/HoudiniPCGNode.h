@@ -38,25 +38,8 @@ enum class EHoudiniPCGOutputType : uint8
 	Bake,
 };
 
-USTRUCT()
-struct FHoudiniPCGOutput
-{
-	GENERATED_BODY()
-public:
-};
-
-UENUM()
-enum class EHoudiniPCGInitState
-{
-	None,
-	Initializing,
-	Done,
-	Error,
-	Abort
-};
-
-UCLASS(MinimalAPI, BlueprintType, ClassGroup = (Procedural))
-class UHoudiniDigitalAssetPCGSettings : public UPCGSettings
+UCLASS(BlueprintType, ClassGroup = (Procedural))
+class HOUDINIENGINE_API UHoudiniPCGSettings : public UPCGSettings
 {
 	GENERATED_BODY()
 
@@ -86,6 +69,8 @@ public:
 	virtual TArray<FPCGPinProperties> OutputPinProperties() const override;
 	virtual TArray<FPCGPinProperties> InputPinProperties() const override;
 
+	void ResetFromHDA();
+
 	UPROPERTY(EditAnywhere, Category = Settings, meta = (PCG_Overridable))
 	TObjectPtr<UHoudiniAsset> HoudiniAsset;
 
@@ -97,17 +82,13 @@ public:
 	// Properties
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Geometry, meta = (PCG_Overridable))
-	TArray<TObjectPtr<UObject>> Inputs;
-
-	UPROPERTY(EditAnywhere, Category = Geometry, meta = (PCG_Overridable))
-	TArray<FHoudiniPCGOutput> Outputs;
+	// Keep track of number of inputs... don't just used the cookable value so we don't break connections when the number
+	// of inputs changes.
+	UPROPERTY()
+	int NumInputs = 0;
 
 	UPROPERTY(EditAnywhere)
 	EHoudiniPCGOutputType OutputType = EHoudiniPCGOutputType::Cook;
-
-	UPROPERTY(EditAnywhere)
-	bool bExposeParameters = true;
 
 	UPROPERTY(EditAnywhere)
 	bool bForceCookOnDirty = true;
@@ -118,7 +99,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = Settings)
 	bool bAutomaticallyDeleteTempAssets = true;
 
-	FName GetOutputPinName(int Index) const;
+	FName GetOutputPinName() const;
+
+	UPROPERTY()
+	TObjectPtr<UHoudiniPCGCookable> ParameterCookable;
 
 protected:
 #if WITH_EDITOR
@@ -127,19 +111,20 @@ protected:
 	virtual FPCGElementPtr CreateElement() const override;
 	// ~End UPCGSettings interface
 
-	void InstantiatePCGEditorHDA();
-
-	UPROPERTY(Transient)
-	TObjectPtr<UHoudiniCookable> ParameterCookable;
-
-	EHoudiniPCGInitState InitializationState = EHoudiniPCGInitState::None;
-
+	void InstantiateParameterCookable();
 };
 
+enum class EHoudiniPCGConextState
+{
+	None,
+	Instantiating,
+	Cooking,
+	Done
+};
 struct FPCHoudiniDigitalAssetAttributesContext : public FPCGContext, public IPCGAsyncLoadingContext
 {
 public:
-	bool bFirstTimeExecuted = true;
+	EHoudiniPCGConextState ContextState = EHoudiniPCGConextState::None;
 
 };
 
@@ -148,6 +133,7 @@ class FHoudiniDigitalAssetPCGElement : public IPCGElementWithCustomContext<FPCHo
 public:
 	virtual bool IsCacheable(const UPCGSettings* InSettings) const;
 	virtual bool CanExecuteOnlyOnMainThread(FPCGContext* Context) const override { return false; }
+
 protected:
 	virtual bool PrepareDataInternal(FPCGContext* InContext) const override;
 	virtual bool ExecuteInternal(FPCGContext* InContext) const override;

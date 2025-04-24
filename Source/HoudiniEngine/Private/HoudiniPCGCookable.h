@@ -34,18 +34,21 @@ struct FHoudiniPCGObjectOutput;
 class UPCGData;
 class UPCGMetadata;
 struct FPCGContext;
-class UHoudiniDigitalAssetPCGSettings;
+class UHoudiniPCGSettings;
 class UHoudiniPCGComponent;
 class UHoudiniPCGManagedResource;
 
 enum class EPCGCookableState
 {
+	None,				// Create, but nothing happening
 	WaitingForSession,	// Waiting for Houdini Session to be created.
-	Initializing,		// Cookable is being loaded into Houdini
+	Initializing,		// Cookable is being loaded into Houdini for the first time.
 	Initialized,		// Cookable has been loaded into Houdini. Parameters/Inputs can be accessed.
-	Idle,				// Doing nothing.
+
+	// Typically Setting parameters and inputs occurs between Initialized and Cooked.
+
 	Cooking,			// Cookable is cooking.
-	Done				// Cookable is done cookiing and outputs have been processed.
+	Done				// Cookable is done cooking and outputs have been processed.
 };
 
 UCLASS()
@@ -54,7 +57,7 @@ class HOUDINIENGINE_API UHoudiniPCGCookable  : public UObject
 	// This class wraps a single UHoudiniCookable for use in PCG. It contains additional state
 	// and information to link it to the PCG classes. Its used in two circumstances.
 	//
-	// 1. Each UHoudiniDigitalAssetPCGSettings contains a FHoudiniPCGCookable which is used
+	// 1. Each UHoudiniPCGSettings contains a FHoudiniPCGCookable which is used
 	//		to obtain parameter, input and output information about the HDA. Its results
 	//		(cooked or baked) are never used, its just used for determining inputs and outputs in the
 	//		PCG Graph editor.
@@ -70,29 +73,44 @@ public:
 	virtual ~UHoudiniPCGCookable() override;
 
 	// Instantiates a new HDA... instantiating is asynchronous.
-	void Instantiate(UHoudiniAsset* Asset, UHoudiniDigitalAssetPCGSettings * PCGSettings, UHoudiniPCGComponent * Component);
+	void CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPCGSettings* PCGSettings, UHoudiniPCGComponent* Component);
 
-	// UpdateAndCook() pulls the inputs and parameters from the context and cooks the Houdini Cookable.
-	bool UpdateAndCook(FPCGContext* Context, bool& bError);
+	// Instantiates a new HDA... instantiating is asynchronous.
+	void Instantiate();
+
+	// UpdateParametersAndInputs() pulls the inputs and parameters from the context and cooks the Houdini Cookable.
+	// Returns true if succeeded, fals if failed. bParamsChanged && bInputsChanged are updated.
+	bool UpdateParametersAndInputs(FPCGContext* Context);
+
+	void StartCook();
+	bool NeedsCook();
+
+	void CopyParametersAndInputs(const UHoudiniPCGCookable * Other);
 
 	// Release() releases() all data associated with the cook.
 	void Release();
 
 	// Updates the current cookable state.
-	bool Update(FPCGContext* Context, bool& bError);
+	void Update(FPCGContext* Context);
 
 	UPROPERTY(EditAnywhere, Category = Settings)
 	bool bAutomaticallyDeleteAssets = true;
 
-private:
-
 	UPROPERTY()
 	TObjectPtr<UHoudiniCookable> Cookable;
+
+
+	EPCGCookableState State = EPCGCookableState::None;
+
+	bool bParamsChanged = false;
+	bool bInputsChanged = false;
+
+private:
+
 
 	UPROPERTY()
 	TObjectPtr<UPCGComponent> PCGComponent;
 
-	EPCGCookableState State = EPCGCookableState::WaitingForSession;
 	TArray<FSoftObjectPath> TrackedObjects;
 	int CookCount = -1;
 

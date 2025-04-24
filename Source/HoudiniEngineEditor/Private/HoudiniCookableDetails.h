@@ -92,9 +92,6 @@ private:
 		const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object);
 
 	// TSharedPtr<SWidget> ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent> HAC);
-	
-	// Components which are being customized.
-	TArray<TWeakObjectPtr<UHoudiniCookable>> HoudiniCookable;
 
 	// Structure holding the output's details
 	TSharedPtr<FHoudiniOutputDetails, ESPMode::NotThreadSafe> OutputDetails;

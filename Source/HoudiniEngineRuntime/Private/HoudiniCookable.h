@@ -416,6 +416,9 @@ public:
 	UCookableComponentData* GetComponentData() { return IsComponentSupported() ? ComponentData : nullptr; };
 	UCookablePDGData* GetPDGData() { return IsPDGSupported() ? PDGData : nullptr; };
 
+	bool SetParameterData(UCookableParameterData * ParameterData);
+	bool SetInputData(UCookableInputData*);
+
 	USceneComponent* GetComponent() const;
 	AActor* GetOwner() const;
 	UWorld* GetWorld() const;
@@ -676,6 +679,7 @@ public:
 	void SetSlateNotifications(bool bOnOff) { bDoSlateNotifications = bOnOff;  }
 	void SetUpdateEditorProperties(bool bOnOff) { bUpdateEditorProperties = bOnOff;  }
 
+	void SetAutoCook(bool bOnOff) { bAutoCook = bOnOff;  }
 	//------------------------------------------------------------------------------------------------
 	// Delegates / Public API
 	//------------------------------------------------------------------------------------------------
@@ -756,6 +760,9 @@ protected:
 	// Number of times this has been cooked.
 	UPROPERTY(DuplicateTransient)
 	int32 CookCount;	// AssetCookCount
+
+	UPROPERTY()
+	bool bAutoCook = true;
 
 	// Ids of the nodes that should also be cooked with this cookable
 	// This can be used for additional outputs or templated nodes if used.

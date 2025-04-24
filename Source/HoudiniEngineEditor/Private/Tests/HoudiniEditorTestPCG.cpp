@@ -737,3 +737,353 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGSplines, "Houd
 
 	return true;
 }
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGParametersDefaults, "Houdini.UnitTests.PCG.Parameters.Defaults",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestPCG_PCGParametersDefaults::RunTest(const FString& Parameters)
+{
+	// This test uses a simple HDA which reads its parameter and sets it back on the output. It tests whether the HDA can process
+	// its default parameter.
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGTestParameters/PCGTestParametersDefaultLevel.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+	{
+		Context->Generate(true, true);
+		return true;
+	}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context]()
+	{
+		if(Context->State != EHoudiniTestPCGContextState::Done)
+			return false;
+
+		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/ParametersOutput");
+
+		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *OutputPath));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+		// We should have one output...
+		HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 4, return true);
+
+		for(int TagIndex = 0; TagIndex < PCGDataAsset->Data.TaggedData.Num(); TagIndex++)
+		{
+			auto& TaggedData = PCGDataAsset->Data.TaggedData[TagIndex];
+			TSet<FString>& Tags = TaggedData.Tags;
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			/// CHECK DETAILS for the results.
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			if(Tags.Contains(TEXT("Details")))
+			{
+				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
+				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
+				PCGDataObject->Initialize(PCGParam);
+
+				{
+					UHoudiniPCGDataAttributeInt* TestOutput = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("test_output")));
+					HOUDINI_TEST_NOT_NULL_ON_FAIL(TestOutput, continue);
+					HOUDINI_TEST_EQUAL_ON_FAIL(TestOutput->Values.Num(), 1, return true);
+					HOUDINI_TEST_EQUAL_ON_FAIL(TestOutput->Values[0], 3, return true);
+
+				}
+				{
+					UHoudiniPCGDataAttributeInt* Attrs = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("unreal_pcg_params")));
+					HOUDINI_TEST_NOT_NULL_ON_FAIL(Attrs, continue);
+					HOUDINI_TEST_EQUAL(Attrs->Values.Num(), 1);
+				}
+			}
+		}
+
+		return true;
+	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGParametersSet, "Houdini.UnitTests.PCG.Parameters.Set",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestPCG_PCGParametersSet::RunTest(const FString& Parameters)
+{
+	// This test uses a simple HDA which reads its parameter and sets it back on the output. It tests whether the HDA can process
+	// a set parameter.
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGTestParameters/PCGTestParametersSetLevel.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+	{
+		Context->Generate(true, true);
+		return true;
+	}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context]()
+	{
+		if(Context->State != EHoudiniTestPCGContextState::Done)
+			return false;
+
+		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/ParametersOutput");
+
+		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *OutputPath));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+		// We should have one output...
+		HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 4, return true);
+
+		for(int TagIndex = 0; TagIndex < PCGDataAsset->Data.TaggedData.Num(); TagIndex++)
+		{
+			auto& TaggedData = PCGDataAsset->Data.TaggedData[TagIndex];
+			TSet<FString>& Tags = TaggedData.Tags;
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			/// CHECK DETAILS for the results.
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			if(Tags.Contains(TEXT("Details")))
+			{
+				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
+				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
+				PCGDataObject->Initialize(PCGParam);
+
+				{
+					UHoudiniPCGDataAttributeInt* TestOutput = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("test_output")));
+					HOUDINI_TEST_NOT_NULL_ON_FAIL(TestOutput, continue);
+					HOUDINI_TEST_EQUAL_ON_FAIL(TestOutput->Values.Num(), 1, return true);
+					HOUDINI_TEST_EQUAL_ON_FAIL(TestOutput->Values[0], 5, return true);
+
+				}
+				{
+					UHoudiniPCGDataAttributeInt* Attrs = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("unreal_pcg_params")));
+					HOUDINI_TEST_NOT_NULL_ON_FAIL(Attrs, continue);
+					HOUDINI_TEST_EQUAL(Attrs->Values.Num(), 1);
+				}
+			}
+		}
+
+		return true;
+	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGParametersOverride, "Houdini.UnitTests.PCG.Parameters.Overrides",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestPCG_PCGParametersOverride::RunTest(const FString& Parameters)
+{
+	// This test uses a simple HDA which reads its parameter and sets it back on the output. It tests whether the HDA can process
+	// a set parameter.
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGTestParameters/PCGTestParametersOverridesLevel.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+	{
+		Context->Generate(true, true);
+		return true;
+	}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context]()
+	{
+		if(Context->State != EHoudiniTestPCGContextState::Done)
+			return false;
+
+		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/ParametersOutput");
+
+		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *OutputPath));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+		// We should have one output...
+		HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 4, return true);
+
+		for(int TagIndex = 0; TagIndex < PCGDataAsset->Data.TaggedData.Num(); TagIndex++)
+		{
+			auto& TaggedData = PCGDataAsset->Data.TaggedData[TagIndex];
+			TSet<FString>& Tags = TaggedData.Tags;
+
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			/// CHECK DETAILS for the results.
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			if(Tags.Contains(TEXT("Details")))
+			{
+				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
+				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
+				PCGDataObject->Initialize(PCGParam);
+
+				{
+					UHoudiniPCGDataAttributeInt* TestOutput = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("test_output")));
+					HOUDINI_TEST_NOT_NULL_ON_FAIL(TestOutput, continue);
+					HOUDINI_TEST_EQUAL_ON_FAIL(TestOutput->Values.Num(), 1, return true);
+					HOUDINI_TEST_EQUAL_ON_FAIL(TestOutput->Values[0], 9, return true);
+
+				}
+				{
+					UHoudiniPCGDataAttributeInt* Attrs = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("unreal_pcg_params")));
+					HOUDINI_TEST_NOT_NULL_ON_FAIL(Attrs, continue);
+					HOUDINI_TEST_EQUAL(Attrs->Values.Num(), 1);
+				}
+			}
+		}
+
+		return true;
+	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_InputSet, "Houdini.UnitTests.PCG.Inputs.Set",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestPCG_InputSet::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGTestInputs/PCGTestInputsSetLevel.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Test 1: Load a cube, then use it to generate a new cube.
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+	{
+		Context->Generate(true, true);
+		return true;
+	}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context]()
+	{
+		if(Context->State != EHoudiniTestPCGContextState::Done)
+			return false;
+
+		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/InputsOutput");
+
+		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *OutputPath));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+		// We should have one output...
+		HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 1, return true);
+		// ... it should have data ...
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[0].Data.Get(), return true);
+		// ... which we'll now convert to an PCGDataObject so we can easily ready it...
+		UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
+		PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+
+		// ... check we have a mesh
+		UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object")));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMesh, return true);
+
+		// ... check the mesh's bounding box.
+		FBox Box = StaticMesh->GetBoundingBox();
+
+		HOUDINI_TEST_EQUAL(Box.Min.X, -50.0);
+		HOUDINI_TEST_EQUAL(Box.Min.Y, -50.0);
+		HOUDINI_TEST_EQUAL(Box.Min.Z, -50.0);
+		HOUDINI_TEST_EQUAL(Box.Max.X, 250.0); // <- duplicated: 2 extra boxes, so add 2x100
+		HOUDINI_TEST_EQUAL(Box.Max.Y, 50.0);
+		HOUDINI_TEST_EQUAL(Box.Max.Z, 50.0);
+
+		// ... check we have a mesh component
+		UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("component")));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMeshComponent, return true);
+
+		return true;
+	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_InputOverride, "Houdini.UnitTests.PCG.Inputs.Override",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestPCG_InputOverride::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGTestInputs/PCGTestInputsOverrideLevel.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Test 1: Load a cube, then use it to generate a new cube.
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+		{
+			Context->Generate(true, true);
+			return true;
+		}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context]()
+		{
+			if(Context->State != EHoudiniTestPCGContextState::Done)
+				return false;
+
+			FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/InputsOutput");
+
+			UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *OutputPath));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+			// We should have one output...
+			HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 1, return true);
+			// ... it should have data ...
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[0].Data.Get(), return true);
+			// ... which we'll now convert to an PCGDataObject so we can easily ready it...
+			UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
+			PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+
+			// ... check we have a mesh
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object")));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMesh, return true);
+
+			// ... check the mesh's bounding box.
+			FBox Box = StaticMesh->GetBoundingBox();
+
+			HOUDINI_TEST_EQUAL(Box.Min.X, -50.0);
+			HOUDINI_TEST_EQUAL(Box.Min.Y, -50.0);
+			HOUDINI_TEST_EQUAL(Box.Min.Z, -50.0);
+			HOUDINI_TEST_EQUAL(Box.Max.X, 450.0); // <- duplicated: 2 extra boxes, so add 2x100
+			HOUDINI_TEST_EQUAL(Box.Max.Y, 50.0);
+			HOUDINI_TEST_EQUAL(Box.Max.Z, 50.0);
+
+			// ... check we have a mesh component
+			UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("component")));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMeshComponent, return true);
+
+			return true;
+		}));
+
+	return true;
+}

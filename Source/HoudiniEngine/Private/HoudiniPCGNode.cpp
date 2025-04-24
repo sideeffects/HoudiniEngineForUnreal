@@ -44,24 +44,21 @@
 #include "HoudiniPCGCookable.h"
 #include "HoudiniPCGManagedResource.h"
 
-#define LOCTEXT_NAMESPACE "UHoudiniDigitalAssetPCGSettings"
+#define LOCTEXT_NAMESPACE "UHoudiniPCGSettings"
 
 
-void UHoudiniDigitalAssetPCGSettings::PostLoad()
+void UHoudiniPCGSettings::PostLoad()
 {
 	Super::PostLoad();
 
-	if(HoudiniAsset)
-		InitializationState = EHoudiniPCGInitState::Done;
 }
 
-void UHoudiniDigitalAssetPCGSettings::BeginDestroy()
+void UHoudiniPCGSettings::BeginDestroy()
 {
 	Super::BeginDestroy();
-	InitializationState = EHoudiniPCGInitState::Abort;
 }
 
-void UHoudiniDigitalAssetPCGSettings::GetStaticTrackedKeys(FPCGSelectionKeyToSettingsMap& OutKeysToSettings, TArray<TObjectPtr<const UPCGGraph>>& OutVisitedGraphs) const
+void UHoudiniPCGSettings::GetStaticTrackedKeys(FPCGSelectionKeyToSettingsMap& OutKeysToSettings, TArray<TObjectPtr<const UPCGGraph>>& OutVisitedGraphs) const
 {
 	if(!HoudiniAsset)
 	{
@@ -74,55 +71,56 @@ void UHoudiniDigitalAssetPCGSettings::GetStaticTrackedKeys(FPCGSelectionKeyToSet
 	OutKeysToSettings.FindOrAdd(Key).Emplace(this, /*bCulling=*/false);
 }
 
-void UHoudiniDigitalAssetPCGSettings::ApplyDeprecationBeforeUpdatePins(UPCGNode* InOutNode, TArray<TObjectPtr<UPCGPin>>& InputPins, TArray<TObjectPtr<UPCGPin>>& OutputPins)
+void UHoudiniPCGSettings::ApplyDeprecationBeforeUpdatePins(UPCGNode* InOutNode, TArray<TObjectPtr<UPCGPin>>& InputPins, TArray<TObjectPtr<UPCGPin>>& OutputPins)
 {
 	Super::ApplyDeprecationBeforeUpdatePins(InOutNode, InputPins, OutputPins);
 }
 
-FString UHoudiniDigitalAssetPCGSettings::GetAdditionalTitleInformation() const
+FString UHoudiniPCGSettings::GetAdditionalTitleInformation() const
 {
-	switch(InitializationState)
+	if (!IsValid(ParameterCookable) || !IsValid(ParameterCookable->Cookable))
 	{
-	case EHoudiniPCGInitState::Initializing:
+		return TEXT("No HDA set.");
+	}
+
+	auto State = ParameterCookable->State;
+
+	switch(State)
+	{
+	case EPCGCookableState::WaitingForSession:
+		return TEXT("Establishing Houdini Session...");
+
+	case EPCGCookableState::Initializing:
+		return TEXT("Initializing...");
+
+	case EPCGCookableState::Cooking:
 		return TEXT("Initializing... please wait...");
 
-	case EHoudiniPCGInitState::Done:
+	case EPCGCookableState::Done:
+	case EPCGCookableState::None:
 		return FString::Printf(TEXT("%s"), HoudiniAsset ? *HoudiniAsset.GetFName().ToString() : TEXT("None"));
 
-	case EHoudiniPCGInitState::Error:
-		return TEXT("* Error initializing *");
 	default:
-		return TEXT("Please set HDA");
+		return TEXT("* Error initializing *");
 	}
-
 }
 
-TArray<FPCGPinProperties> UHoudiniDigitalAssetPCGSettings::OutputPinProperties() const
+TArray<FPCGPinProperties> UHoudiniPCGSettings::OutputPinProperties() const
 {
 	TArray<FPCGPinProperties> PinProperties;
-	for(int Index = 0; Index < Outputs.Num(); Index++)
-	{
-		PinProperties.Emplace(GetOutputPinName(Index), EPCGDataType::Param | EPCGDataType::Point | EPCGDataType::Spline, false);
-	}
+	PinProperties.Emplace(GetOutputPinName(), EPCGDataType::Param | EPCGDataType::Point | EPCGDataType::Spline, false);
 	return PinProperties;
 }
 
-FName UHoudiniDigitalAssetPCGSettings::GetOutputPinName(int Index) const
+FName UHoudiniPCGSettings::GetOutputPinName() const
 {
-	return FName(*FString::Printf(TEXT("Output %d"), Index));
+	return FName(*FString::Printf(TEXT("Outputs")));
 }
 
-TArray<FPCGPinProperties> UHoudiniDigitalAssetPCGSettings::InputPinProperties() const
+TArray<FPCGPinProperties> UHoudiniPCGSettings::InputPinProperties() const
 {
 	TArray<FPCGPinProperties> PinProperties;
-	for(int Index = 0; Index < Inputs.Num(); Index++)
-	{
-		FString PinName = FHoudiniPCGUtils::GetHDAInputName(Index);
-		FPCGPinProperties& InputPinProperty = PinProperties.Emplace_GetRef(FName(PinName), EPCGDataType::Any, /*bAllowMultipleConnections=*/false);
-		InputPinProperty.SetNormalPin();
-	}
 
-	if (bExposeParameters && InitializationState == EHoudiniPCGInitState::Done)
 	{
 		FString PinName = FHoudiniPCGUtils::ParameterInputPinName;
 		FPCGPinProperties& InputPinProperty = PinProperties.Emplace_GetRef(FName(PinName), EPCGDataType::Any, /*bAllowMultipleConnections=*/false);
@@ -131,130 +129,154 @@ TArray<FPCGPinProperties> UHoudiniDigitalAssetPCGSettings::InputPinProperties() 
 		InputPinProperty.SetAllowMultipleConnections(true);
 	}
 
+	for(int Index = 0; Index < NumInputs; Index++)
+	{
+		FString PinName = FHoudiniPCGUtils::GetHDAInputName(Index);
+		FPCGPinProperties& InputPinProperty = PinProperties.Emplace_GetRef(FName(PinName), EPCGDataType::Any, /*bAllowMultipleConnections=*/false);
+		InputPinProperty.SetNormalPin();
+	}
+
 	return PinProperties;
 }
 
 
-FPCGElementPtr UHoudiniDigitalAssetPCGSettings::CreateElement() const
+FPCGElementPtr UHoudiniPCGSettings::CreateElement() const
 {
 	return MakeShared<FHoudiniDigitalAssetPCGElement>();
 }
 
-void UHoudiniDigitalAssetPCGSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
+void UHoudiniPCGSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
 {
 	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if(PropertyName == GET_MEMBER_NAME_CHECKED(UHoudiniDigitalAssetPCGSettings, HoudiniAsset))
+	if(PropertyName == GET_MEMBER_NAME_CHECKED(UHoudiniPCGSettings, HoudiniAsset))
 	{
-		InstantiatePCGEditorHDA();
-
 		if(HoudiniAsset == nullptr)
-			InitializationState = EHoudiniPCGInitState::None;
+		{
+			if(IsValid(ParameterCookable))
+			{
+				ParameterCookable = nullptr;
+			}
+		}
+
+
+		InstantiateParameterCookable();
+
+		FHoudiniEngineRuntimeUtils::ForceDetailsPanelToUpdate();
+
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
-void UHoudiniDigitalAssetPCGSettings::InstantiatePCGEditorHDA()
+#include "Editor.h"
+#include "IDetailsView.h"
+#include "PropertyEditorModule.h"
+#include "Modules/ModuleManager.h"
+
+void RefreshDetailsForObject(UObject* TargetObject)
+{
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	PropertyEditorModule.UpdatePropertyViews({ TargetObject });
+}
+
+void UHoudiniPCGSettings::InstantiateParameterCookable()
 {
 	if(HoudiniAsset == nullptr)
 	{
-		this->Inputs.SetNum(0);
-		this->Outputs.SetNum(0);
+		this->Modify();
+
+		// Do not auto reset inputs and outputs. Its annoying when changing HDA for this to break.
+		//this->Inputs.SetNum(0);
+		//this->Outputs.SetNum(0);
+
+		ParameterCookable = nullptr;
+		this->MarkPackageDirty();
+		RefreshDetailsForObject(this);
 		return;
 	}
 
 	ParameterCookable = nullptr;
 
-	InitializationState = EHoudiniPCGInitState::Initializing;
-
 	Async(EAsyncExecution::ThreadPool, [this]()
 	{
+		ParameterCookable = NewObject<UHoudiniPCGCookable>(this);
 
-		auto Result = FHoudiniPCGUtils::StartSession();
-		if(Result == EHoudiniPCGSessionStatus::PCGSessionStatus_Error)
-		{
-			HOUDINI_LOG_ERROR(TEXT("Could not start Houdini Session"));
-			InitializationState = EHoudiniPCGInitState::Error;
-			return;
-		}
-
-		ParameterCookable = NewObject<UHoudiniCookable>(this);
-
-		ParameterCookable->SetHoudiniAssetSupported(true);
-		ParameterCookable->SetHoudiniAsset(this->HoudiniAsset);
-		ParameterCookable->SetParameterSupported(true);
-		ParameterCookable->SetInputSupported(true);
-		ParameterCookable->SetOutputSupported(true);
-		ParameterCookable->MarkAsNeedCook();
-		ParameterCookable->SetSlateNotifications(false);
+		ParameterCookable->CreateHoudiniCookable(HoudiniAsset, nullptr, nullptr);
+		ParameterCookable->Cookable->SetOutputSupported(false);
+		ParameterCookable->Instantiate();
 
 		do
 		{
-			if (InitializationState == EHoudiniPCGInitState::Abort)
-				return;
+			// Cook has been cancelled
+			if(ParameterCookable == nullptr)
+				break;
 
-			FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
-			HEM->ProcessCookable(ParameterCookable);
+			if(ParameterCookable->State == EPCGCookableState::Initialized)
+				break;
+
+			auto PrevState = ParameterCookable->State;
+
+			ParameterCookable->Update(nullptr);
+
+			if (ParameterCookable->State != PrevState)
+			{
+				// For UI update.
+				this->Modify();
+			}
 			FPlatformProcess::Sleep(0.1f);
 
-		} while(ParameterCookable->GetCurrentState() != EHoudiniAssetState::None);
+		} while(true);
 
-		InitializationState = EHoudiniPCGInitState::Done;
-
-		AsyncTask(ENamedThreads::GameThread, [this]()
+		if (ParameterCookable)
 		{
-			// Populating must be done on game thread.
-			this->PopulateInputsAndOutputs();
-		});
+			// The paramter cookable will not be recooked once its initialized, so set to Done.
+			ParameterCookable->State = EPCGCookableState::Done;
+			AsyncTask(ENamedThreads::GameThread, [this]()
+				{
+					// Populating must be done on game thread.
+					this->PopulateInputsAndOutputs();
+
+				});
+		}
 
 	});
 
 }
 
-void UHoudiniDigitalAssetPCGSettings::PopulateInputsAndOutputs()
+void UHoudiniPCGSettings::ResetFromHDA()
 {
-	UCookableInputData* InputData = ParameterCookable->GetInputData();
-	this->Inputs.SetNum(InputData ? ParameterCookable->GetInputData()->Inputs.Num() : 0);
-	FProperty* Prop = FindFProperty<FProperty>(GetClass(), GET_MEMBER_NAME_CHECKED(UHoudiniDigitalAssetPCGSettings, Inputs));
-	if(Prop)
-	{
-		FPropertyChangedEvent PropertyChangedEvent(Prop);
-		PostEditChangeProperty(PropertyChangedEvent);
-	}
-
-	UCookableOutputData* OutputData = ParameterCookable->GetOutputData();
-	if (OutputData == nullptr)
-	{
-		this->Outputs.SetNum(0);
-	}
-	else
-	{
-		int NumOutputs = 1;
-		NumOutputs += ParameterCookable->GetOutputData()->Outputs.Num();
-			this->Outputs.SetNum(OutputData ? ParameterCookable->GetOutputData()->Outputs.Num() : 0);
-		Prop = FindFProperty<FProperty>(GetClass(), GET_MEMBER_NAME_CHECKED(UHoudiniDigitalAssetPCGSettings, Outputs));
-		if(Prop)
-		{
-			FPropertyChangedEvent PropertyChangedEvent(Prop);
-			PostEditChangeProperty(PropertyChangedEvent);
-		}
-	}
-
-	int NumOutputs = 1;
-	this->Outputs.SetNum(NumOutputs);
-	Prop = FindFProperty<FProperty>(GetClass(), GET_MEMBER_NAME_CHECKED(UHoudiniDigitalAssetPCGSettings, Outputs));
-	if(Prop)
-	{
-		FPropertyChangedEvent PropertyChangedEvent(Prop);
-		PostEditChangeProperty(PropertyChangedEvent);
-	}
-
 	this->Modify();
+	FPropertyChangedEvent PropertyChangedEvent(
+		FindFProperty<FProperty>(UHoudiniPCGSettings::StaticClass(), GET_MEMBER_NAME_CHECKED(UHoudiniPCGSettings, HoudiniAsset)));
+
+	PostEditChangeProperty(PropertyChangedEvent);
+	
+
+}
+
+void UHoudiniPCGSettings::PopulateInputsAndOutputs()
+{
+	this->Modify();
+
+	UCookableInputData* InputData = ParameterCookable->Cookable->GetInputData();
+	NumInputs = InputData ? ParameterCookable->Cookable->GetInputData()->Inputs.Num() : 0;
+	FProperty* Prop = FindFProperty<FProperty>(GetClass(), GET_MEMBER_NAME_CHECKED(UHoudiniPCGSettings, NumInputs));
+	if(Prop)
+	{
+		FPropertyChangedEvent PropertyChangedEvent(Prop);
+		PostEditChangeProperty(PropertyChangedEvent);
+	}
+
+	this->MarkPackageDirty();
+
+	FHoudiniEngineRuntimeUtils::ForceDetailsPanelToUpdate();
+
 }
 
 FPCGCrc FHoudiniDigitalAssetPCGElement::SetCrc(FPCGContext* Context) const
 {
-	const UHoudiniDigitalAssetPCGSettings* Settings = Context->GetInputSettings<UHoudiniDigitalAssetPCGSettings>();
+	const UHoudiniPCGSettings* Settings = Context->GetInputSettings<UHoudiniPCGSettings>();
 
 	// Calculate the Crc. We include the Stack as this gives us a unique CRC for each loop instance. We do include the inputs CRC
 	// as this would force a new cookable everytime inputs change, and we don't want that for performance reasons. Instead, we check
@@ -300,7 +322,7 @@ bool FHoudiniDigitalAssetPCGElement::PrepareDataInternal(FPCGContext* Context) c
 	FPCHoudiniDigitalAssetAttributesContext* ThisContext = static_cast<FPCHoudiniDigitalAssetAttributesContext*>(Context);
 	check(ThisContext);
 
-	const UHoudiniDigitalAssetPCGSettings* Settings = Context->GetInputSettings<UHoudiniDigitalAssetPCGSettings>();
+	const UHoudiniPCGSettings* Settings = Context->GetInputSettings<UHoudiniPCGSettings>();
 	if(!Settings || !Settings->HoudiniAsset)
 		return true;
 
@@ -314,17 +336,10 @@ bool FHoudiniDigitalAssetPCGElement::PrepareDataInternal(FPCGContext* Context) c
 
 bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 {
-
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniDigitalAssetPCGElement::ExecuteInternal);
 
-	EHoudiniPCGSessionStatus Status = FHoudiniPCGUtils::StartSessionAsync();
-	if (Status == EHoudiniPCGSessionStatus::PCGSessionStatus_Error)
-	{
-		FHoudiniPCGUtils::LogVisualError(Context, TEXT("Could not create Houdini Session"));
-		return true;
-	}
-	else if(Status == EHoudiniPCGSessionStatus::PCGSessionStatus_Creating)
-		return false;
+	FPCHoudiniDigitalAssetAttributesContext* HDAContext = static_cast<FPCHoudiniDigitalAssetAttributesContext*>(Context);
+	check(HDAContext);
 
 	// This is the main function for processing PCG nodes. It should return true when processing is complete, otherwise
 	// false, which means it will be called again some time in the future (eg. a frame later).
@@ -332,15 +347,8 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 	// When called for the first time, this function creates a UHoudiniPCGManagedResource which is used to keep
 	// track of a UHoudiniPCGComponent - there is one UHoudiniPCGComponent per execution of a PCG Node - note
 	// that in a PCG loop, this is one per loop. The UHoudiniPCGComponent keeps track of the cookable (and its outputs).
-	//
-	// Possibly the bFirstTimeExecuted isn't needed, and we could move some of this into PrepareDataInternal() or
-	// PreExecute(), but Epic's PCG nodes seem to put the logic here, so I'll keep it here for now. Some of the logic
-	// is easier this way too.
 
-	FPCHoudiniDigitalAssetAttributesContext* HDAContext = static_cast<FPCHoudiniDigitalAssetAttributesContext*>(Context);
-	check(HDAContext);
-
-	const UHoudiniDigitalAssetPCGSettings* Settings = Context->GetInputSettings<UHoudiniDigitalAssetPCGSettings>();
+	const UHoudiniPCGSettings* Settings = Context->GetInputSettings<UHoudiniPCGSettings>();
 
 	if(!Settings || !Settings->HoudiniAsset.Get())
 	{
@@ -348,7 +356,11 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 		return true;
 	}
 
-
+	if (!IsValid(Settings->ParameterCookable))
+	{
+		HOUDINI_PCG_MESSAGE(TEXT("No Parameter Cookable found. Internal error."));
+		return true;
+	}
 	FPCGCrc ResourceCrc = SetCrc(Context);
 
 	//----------------------------------------------------------------------------------------------------------------------------------------
@@ -364,17 +376,17 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			ManagedResource = Cast<UHoudiniPCGManagedResource>(InResource);
 		});
 
-	if (HDAContext->bFirstTimeExecuted)
+	switch(HDAContext->ContextState)
+	{
+	case EHoudiniPCGConextState::None:
 	{
 		HOUDINI_PCG_MESSAGE(TEXT("First time called with context %p"), HDAContext);
-
-		HDAContext->bFirstTimeExecuted = false;
 
 		// If the Managed Resource is invalid, don't use it.
 
 		if(ManagedResource)
 		{
-			if(	!IsValid(ManagedResource->HoudiniPCGComponent) || 
+			if(!IsValid(ManagedResource->HoudiniPCGComponent) ||
 				!IsValid(ManagedResource->HoudiniPCGComponent->Cookable) ||
 				ManagedResource->bInvalidateResource)
 			{
@@ -391,6 +403,8 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 		{
 			// No previous resource found, so create a new one and instantiate the HDA. Note that next time Execute is called, this ManagedResource
 			// will be found.
+			// NOTE: We instantiate, then once the HDA is ready in Houdini, we set parameters and cooked. This seems to be necessary to avoid
+			// paramters getting overridden on the first cook. Possibly a slight rework of Houdini Engine Manager could fix this.
 
 			ManagedResource = NewObject<UHoudiniPCGManagedResource>(Context->SourceComponent.Get());
 			ManagedResource->PCGComponent = Context->SourceComponent.Get();
@@ -403,70 +417,95 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			ManagedResource->HoudiniPCGComponent = UHoudiniPCGComponent::CreatePCGComponent(Context->SourceComponent.Get());
 			Context->SourceComponent->AddToManagedResources(ManagedResource);
 
-			FHoudiniPCGUtils::StartSessionAsync();
-			ManagedResource->HoudiniPCGComponent->Cookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
-			ManagedResource->HoudiniPCGComponent->Cookable->Instantiate(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
-			ManagedResource->HoudiniPCGComponent->Cookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
-			HOUDINI_PCG_MESSAGE(TEXT("(%p) Creating Managed Resource, Instantiating..."), ManagedResource);
+			UHoudiniPCGCookable * PCGCookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
+			PCGCookable->CreateHoudiniCookable(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
+			PCGCookable->Instantiate();
+			PCGCookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
+			ManagedResource->HoudiniPCGComponent->Cookable = PCGCookable;
+			HOUDINI_PCG_MESSAGE(TEXT("(%p) Creating Managed Resource, Instantiating..."), PCGCookable);
 
 			// Return now since instantiation is not instant.
-			return false;
-		}
-
-		//----------------------------------------------------------------------------------------------------------------------------------------
-		// We have a managed resource... update the cookable, and if that triggered a cook, we're done. If not, we can just re-use the last
-		// cook.
-		//----------------------------------------------------------------------------------------------------------------------------------------
-
-
-		// Attempt to apply parameters, inputs. If a cook was started, return - we need to wait for it to complete asynchronouosly.
-		bool bError = false;
-		bool bCookStarted = ManagedResource->HoudiniPCGComponent->Cookable->UpdateAndCook(Context, bError);
-
-		if (bError)
-		{
-			HOUDINI_PCG_MESSAGE(TEXT("An error occured, not processing PCG node."));
-			return true;
-		}
-
-		ManagedResource->MarkAsReused();
-
-		if (bCookStarted)
-		{
-			// Something changes, so cook is in progress
-			HOUDINI_PCG_MESSAGE(TEXT("A cook was started."));
+			HDAContext->ContextState = EHoudiniPCGConextState::Instantiating;
 			return false;
 		}
 		else
 		{
-			// Nothing changed so we can re-use output as-is.
-			HOUDINI_PCG_MESSAGE(TEXT("Nothing Changed: returning Managed Resource."));
-			return true;
+			// We have a managed resource... update the cookable, and if that triggered a cook, we're done. If not, we can just re-use the last cook.
+			// Attempt to apply parameters, inputs. If a cook was started, return - we need to wait for it to complete asynchronouosly.
+
+			ManagedResource->HoudiniPCGComponent->Cookable->CopyParametersAndInputs(Settings->ParameterCookable);
+			bool bSuccess = ManagedResource->HoudiniPCGComponent->Cookable->UpdateParametersAndInputs(Context);
+			if(!bSuccess)
+			{
+				HOUDINI_PCG_MESSAGE(TEXT("An error occured, not processing PCG node."));
+				return true;
+			}
+
+			ManagedResource->MarkAsReused();
+
+			if(ManagedResource->HoudiniPCGComponent->Cookable->NeedsCook())
+			{
+				// Something changed, so we must cook.
+				ManagedResource->HoudiniPCGComponent->Cookable->StartCook();
+				HOUDINI_PCG_MESSAGE(TEXT("A cook was started."));
+				HDAContext->ContextState = EHoudiniPCGConextState::Cooking;
+				return false;
+			}
+			else
+			{
+				// Nothing changed so we can re-use output as-is.
+				HOUDINI_PCG_MESSAGE(TEXT("Nothing Changed: returning Managed Resource."));
+				HDAContext->ContextState = EHoudiniPCGConextState::Done;
+				return true;
+			}
 		}
 	}
-	else
+	case EHoudiniPCGConextState::Instantiating:
 	{
-		//----------------------------------------------------------------------------------------------------------------------------------------
-		// Not the first time we've been called with this Context, so wait for the Cookable to cook.
-		//----------------------------------------------------------------------------------------------------------------------------------------
+		UHoudiniPCGCookable* Cookable = ManagedResource->HoudiniPCGComponent->Cookable.Get();
+		Cookable->Update(HDAContext);
 
-		if (!IsValid(ManagedResource->HoudiniPCGComponent))
+		if (Cookable->State == EPCGCookableState::Initialized)
+		{
+			Cookable->Cookable->SetOutputSupported(true);
+			Cookable->CopyParametersAndInputs(Settings->ParameterCookable);
+			Cookable->UpdateParametersAndInputs(Context);
+			if (Cookable->NeedsCook())
+			{
+
+				HDAContext->ContextState = EHoudiniPCGConextState::Cooking;
+				Cookable->StartCook();
+				return false;
+			}
+			else
+			{
+				HDAContext->ContextState = EHoudiniPCGConextState::Done;
+				return true;
+			}
+		}
+		return false;
+	}
+	break;
+	case EHoudiniPCGConextState::Cooking:
+	{
+		// Wait for cooking to complete.
+		if(!IsValid(ManagedResource->HoudiniPCGComponent))
 		{
 			// User delete component mid-cook?
 			HOUDINI_PCG_MESSAGE(TEXT("Houdini PCG Component lost..."));
 			return true;
 		}
 		UHoudiniPCGCookable* Cookable = ManagedResource->HoudiniPCGComponent->Cookable.Get();
-		bool bError = false;
-		bool bDone = Cookable->Update(Context, bError);
+		Cookable->Update(Context);
 
-		if (bError)
-		{
-			HOUDINI_PCG_MESSAGE(TEXT("An error occured waiting for cook to complete, not processing PCG node."));
-			return true;
-		}
-		return bDone;
+		bool bPCGComplete = Cookable->State == EPCGCookableState::Done;
+		return bPCGComplete;
 	}
+	break;
+	default:
+		break;
+	}
+	return true;
 }
 
 bool
