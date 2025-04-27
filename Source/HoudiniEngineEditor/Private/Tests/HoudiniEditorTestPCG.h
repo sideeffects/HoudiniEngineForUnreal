@@ -36,7 +36,7 @@ class FHoudiniEditorTestPCG
 public:
 
 
-	static UObject* GetOutputObject(UHoudiniPCGDataObject* InputObject, const FString& Field);
+	static UObject* GetOutputObject(UHoudiniPCGDataObject* InputObject, const FString& Field, int Index = 0);
 };
 
 #endif

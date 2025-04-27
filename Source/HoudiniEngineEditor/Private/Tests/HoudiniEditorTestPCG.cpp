@@ -120,13 +120,13 @@ void EHoudiniTestPCGContext::Generate(bool bCleanup, bool bGenerate)
 	}
 }
 
-UObject* FHoudiniEditorTestPCG::GetOutputObject(UHoudiniPCGDataObject* PCGDataObject, const FString & Field)
+UObject* FHoudiniEditorTestPCG::GetOutputObject(UHoudiniPCGDataObject* PCGDataObject, const FString & Field, int Index)
 {
 	auto * Attr = Cast<UHoudiniPCGDataAttributeSoftObjectPath>(PCGDataObject->FindAttribute(Field));
 	if(!IsValid(Attr) || Attr->Values.IsEmpty())
 		return nullptr;
 
-	const FString & ObjectPath = Attr->Values[0].ToString();
+	const FString & ObjectPath = Attr->Values[Index].ToString();
 
 	UObject* Object = StaticLoadObject(UObject::StaticClass(), nullptr, *ObjectPath);
 	return Object;
@@ -1084,6 +1084,80 @@ bool FHoudiniEditorTestPCG_InputOverride::RunTest(const FString& Parameters)
 
 			return true;
 		}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_ForLoops, "Houdini.UnitTests.PCG.Inputs.ForLoops",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestPCG_ForLoops::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGForLoops/PCGForLoopsLevel.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Test 1: Load a cube, then use it to generate a new cube.
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+	{
+		Context->Generate(true, true);
+		return true;
+	}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context]()
+	{
+		if(Context->State != EHoudiniTestPCGContextState::Done)
+			return false;
+
+		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/TestForLoop");
+
+		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *OutputPath));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+		// We should have 5 outputs...
+		HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 1, return true);
+
+		// ... it should have data ...
+
+
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[0].Data.Get(), return true);
+		// ... which we'll now convert to an PCGDataObject so we can easily ready it...
+		UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
+		PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+
+
+		// ... check we have a mesh for each point
+		for(int Index = 0; Index < 5; Index++)
+		{
+
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object"), Index));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMesh, return true);
+
+			// ... check the mesh's bounding box.
+			FBox Box = StaticMesh->GetBoundingBox();
+
+			double expectedSize = 100.0 * static_cast<double>(Index + 1);
+
+			double size = Box.Max.X - Box.Min.X;
+
+			// Accurate to 1% as copy to points is not that accurate.
+			HOUDINI_TEST_EQUAL(size, expectedSize, expectedSize * 0.01);
+
+			// ... check we have a mesh component
+			UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("component")));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMeshComponent, return true);
+		}
+			
+
+		return true;
+	}));
 
 	return true;
 }

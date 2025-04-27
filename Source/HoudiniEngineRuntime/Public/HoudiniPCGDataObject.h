@@ -205,7 +205,7 @@ public:
     bool bIsClosed = false;
 
 private:
-	void AddMetaDataAttributes(const UPCGMetadata* PCGParamaData);
+	void AddMetaDataAttributes(const UPCGMetadata* PCGParamaData, int NumRows);
 
     UHoudiniPCGDataAttributeString* CreateAttributeString(const FString& AttributeName);
     UHoudiniPCGDataAttributeVector4d* CreateAttributeVector4d(const FString& AttributeName);

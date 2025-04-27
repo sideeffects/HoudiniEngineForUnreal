@@ -71,7 +71,7 @@ public:
 
 	void ResetFromHDA();
 
-	UPROPERTY(EditAnywhere, Category = Settings, meta = (PCG_Overridable))
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UHoudiniAsset> HoudiniAsset;
 
 	/** By default, data table loading is asynchronous, can force it synchronous if needed. */

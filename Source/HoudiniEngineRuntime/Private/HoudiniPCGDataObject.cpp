@@ -199,29 +199,38 @@ void UHoudiniPCGDataObject::Initialize(const UPCGPointData* PCGPointData)
 		Attributes.Emplace(MoveTemp(AttrDest));
 	}
 
-	AddMetaDataAttributes(Metadata);
+	AddMetaDataAttributes(Metadata, Points.Num());
 }
 
 void UHoudiniPCGDataObject::Initialize(const UPCGParamData* PCGParamData)
 {
 	const UPCGMetadata* Metadata = PCGParamData->ConstMetadata();
-	AddMetaDataAttributes(Metadata);
+	AddMetaDataAttributes(Metadata, 0);
 }
 
-void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
+void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetadata, int DefaultNumRows)
 {
 	TArray<FName> AttributeNames;
 	TArray<EPCGMetadataTypes> AttributeTypes;
 
-	Metadata->GetAttributes(AttributeNames, AttributeTypes);
+	ParamMetadata->GetAttributes(AttributeNames, AttributeTypes);
 
-	int NumRows = Metadata->GetItemCountForChild();
-
+	
 	for(int AttrIndex = 0; AttrIndex < AttributeTypes.Num(); AttrIndex++)
 	{
 		EPCGMetadataTypes AttrType = AttributeTypes[AttrIndex];
 		const FString & AttrName = AttributeNames[AttrIndex].ToString();
-		const FPCGMetadataAttributeBase* AttrBase = Metadata->GetConstAttribute(AttributeNames[AttrIndex]);
+
+		const FPCGMetadataAttributeBase* AttrBase = ParamMetadata->GetConstAttribute(AttributeNames[AttrIndex]);
+
+		const UPCGMetadata* Metadata = AttrBase->GetMetadata();
+		int NumRows = Metadata->GetItemCountForChild();
+
+		// Normally Metadata->GetItemCountForChild() will return the number of rows of metadata, however, when reading
+		// points, if the attributes just contain a default value, this will return zero. So this function takes
+		// DefaultNumRows which should equal the number of points for point date.
+		if(NumRows == 0)
+			NumRows = DefaultNumRows;
 
 		switch(AttrType)
 		{
@@ -231,7 +240,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			auto AttrDest = CreateAttributeFloat(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
 			}
@@ -245,7 +254,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			auto AttrDest = CreateAttributeDouble(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
 			}
@@ -259,7 +268,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 
 			auto AttrDest = CreateAttributeInt(AttrName);
 			AttrDest->Values.SetNum(NumRows * 1);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
 			}
@@ -273,7 +282,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			auto AttrDest = CreateAttributeInt64(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
 			}
@@ -287,7 +296,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 
 			auto AttrDest = CreateAttributeInt(AttrName);
 			AttrDest->Values.SetNum(NumRows * 1);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index) ? 1 : 0;
 			}
@@ -301,7 +310,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			auto AttrDest = CreateAttributeVector2d(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 2);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
 			}
@@ -315,7 +324,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			auto AttrDest = CreateAttributeVector3d(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 3);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
 			}
@@ -329,7 +338,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			auto AttrDest = CreateAttributeVector4d(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 4);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
 			}
@@ -343,7 +352,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			auto AttrDest = CreateAttributeVector4d(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 4);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				FQuat Quat = Attr->GetValueFromItemKey(Index);
 				AttrDest->Values[Index].X = Quat.X;
@@ -361,7 +370,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			auto AttrDest = CreateAttributeString(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
 			}
@@ -375,7 +384,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			auto AttrDest = CreateAttributeString(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index).ToString();
 			}
@@ -389,7 +398,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			auto AttrDest = CreateAttributeSoftObjectPath(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index).ToString();
 			}
@@ -403,7 +412,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* Metadata)
 			auto AttrDest = CreateAttributeSoftClassPath(AttrName);
 
 			AttrDest->Values.SetNum(NumRows * 1);
-			for(int Index = 0; Index < Metadata->GetItemCountForChild(); Index++)
+			for(int Index = 0; Index < NumRows; Index++)
 			{
 				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index).ToString();
 			}
