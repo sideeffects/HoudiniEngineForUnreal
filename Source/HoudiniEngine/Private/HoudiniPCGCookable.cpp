@@ -676,39 +676,29 @@ UHoudiniPCGCookable::GetPCGDataObjects(const FPCGTaggedData& TaggedData)
 }
 
 bool
-UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*>& PCGCollections)
+UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*>& NewPCGCollections)
 {
-	// Was input previously set to Geometry, World, Curve or Geometry? If so, clear it out and set to PCG
+	// Set PCG data. TODO: Check CRCs from PCG to see if data is actually changed.
 
 	if(HoudiniInput->GetInputType() != EHoudiniInputType::PCGInput)
 	{
-		int ExistingObjectCount = 0;
-		ExistingObjectCount += HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::Geometry);
-		ExistingObjectCount += HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::Curve);
-		ExistingObjectCount += HoudiniInput->GetNumberOfInputObjects(EHoudiniInputType::World);
-		if(ExistingObjectCount > 0)
-		{
-			// Previous input used non-PCG type, so we must clear them and re-upload.
-			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, 0);
-			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Curve, 0);
-			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, 0);
-		}
+		HOUDINI_LOG_ERROR(TEXT("World output is set to %s when receiving PCG Data"), *HoudiniInput->GetInputTypeAsString());
+		return false;
 	}
+#if 0
+	TArray<UHoudiniPCGDataCollection*> CurrentInputObjects;
+	for(int Index = 0; Index < HoudiniInput->GetNumberOfInputObjects(); Index++)
+	{
+		CurrentInputObjects.Add(HoudiniInput->GetInputObjectAt(Index)->GetPathName());
+	}
+#endif
 
-	// Clear out previous inputs then set the new number. This has the effect of deleting
-	// all previous PCG Data and reloading it all. Since PCG Data changes very frequently,
-	// this may not be too inefficent, but could look into using CRCs to prevent uploading
-	// data that hasn't changed?
-
-	bool bOutBlueprintStructureModified;
-	HoudiniInput->SetInputType(EHoudiniInputType::PCGInput, bOutBlueprintStructureModified);
-	HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, 0);
-	HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, PCGCollections.Num());
+	HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, NewPCGCollections.Num());
 
 	// Set the objects, if changed
-	for (int Index = 0; Index < PCGCollections.Num(); Index++)
+	for (int Index = 0; Index < NewPCGCollections.Num(); Index++)
 	{
-		HoudiniInput->SetInputObjectAt(EHoudiniInputType::PCGInput, 0, PCGCollections[Index]);
+		HoudiniInput->SetInputObjectAt(EHoudiniInputType::PCGInput, 0, NewPCGCollections[Index]);
 	}
 
 	HoudiniInput->MarkChanged(true);

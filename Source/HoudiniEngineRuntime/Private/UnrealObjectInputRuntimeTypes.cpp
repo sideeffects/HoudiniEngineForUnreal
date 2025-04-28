@@ -705,6 +705,9 @@ FUnrealObjectInputHandle::DeInitialize()
 	if (!bIsInitialized)
 		return;
 
+#if 0
+	// I think is warning is not valid, since the Garbage Collector can determine that "this" needs to be destroyed while
+	// the object is still valid.
 	if (!Identifier.IsValid())
 	{
 		// Should not happen...
@@ -712,6 +715,7 @@ FUnrealObjectInputHandle::DeInitialize()
 		bIsInitialized = false;
 		return;
 	}
+#endif
 
 	if (FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get())
 	{
