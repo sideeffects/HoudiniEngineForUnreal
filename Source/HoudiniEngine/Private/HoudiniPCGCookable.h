@@ -117,11 +117,11 @@ private:
 	static void CreateOutputsAsObjectReferences(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const TArray<FHoudiniPCGObjectOutput> & Outputs);
 	static void CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutputs);
 
-	bool ApplyInputsToCookable(FPCGContext* InContext, bool& bErrors);
+	bool ApplyInputsToCookable(const FPCGContext* InContext);
 
-	bool ApplyParametersToCookable(FPCGContext* Context, bool & bErrors);
+	bool ApplyParametersToCookable(const FPCGContext* Context);
 
-	bool ApplyParametersToCookable(const UPCGData* Data, FPCGContext* Context, bool & bErrors);
+	bool ApplyParametersToCookable(const UPCGData* Data);
 
 	void OnCookingComplete(bool bSuccess);
 
@@ -129,15 +129,15 @@ private:
 
 	void ProcessCookableOutput(FPCGContext* Context);
 
-	void AddTrackedObjects(FPCGContext* Context);
+	void AddTrackedObjects(const FPCGContext* Context);
 
-	bool ApplyInputAsUnrealObjects(FPCGContext* Context, UHoudiniInput* HoudiniInput, const TArray<FString> & InputObjects, bool& bErrors);
+	bool ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const TArray<FString> & InputObjects);
 
-	UHoudiniPCGDataObject* GetPCGDataObjects(FPCGContext* Context, const FPCGTaggedData& TaggedData);
+	UHoudiniPCGDataObject* GetPCGDataObjects(const FPCGTaggedData& TaggedData);
 
-	TArray<FString> GetUnrealObjectPaths(FPCGContext* Context, const UPCGMetadata* Metadata, bool& bError);
+	TArray<FString> GetUnrealObjectPaths(const FPCGContext* Context, const UPCGMetadata* Metadata);
 
-	bool ApplyInputAsPCGData(FPCGContext* Context, UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
+	bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
 
 	void CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutputs);
 };

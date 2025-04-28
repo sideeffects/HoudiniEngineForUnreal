@@ -114,8 +114,8 @@ public:
 	static TArray<int> GetValueAsInt(const TArray<int>& DefaultValues, const FHoudiniPCGAttributes& Attributes, int RowIndex);
 	static TArray<float> GetValueAsFloat(const TArray<float> & DefaultValues, const FHoudiniPCGAttributes& Attributes, int RowIndex);
 
-	static void LogVisualWarning(FPCGContext* Context, const FString& ErrorText);
-	static void LogVisualError(FPCGContext* Context, const FString & ErrorText);
+	static void LogVisualWarning(const FPCGContext* Context, const FString& ErrorText);
+	static void LogVisualError(const FPCGContext* Context, const FString & ErrorText);
 
 	static EHoudiniPCGSessionStatus SessionStatus;
 

@@ -378,7 +378,7 @@ FHoudiniPCGUtils::UnrealToHoudiniQuat(const FQuat& Quat)
 }
 
 void
-FHoudiniPCGUtils::LogVisualWarning(FPCGContext* Context, const FString& WarningMessage)
+FHoudiniPCGUtils::LogVisualWarning(const FPCGContext* Context, const FString& WarningMessage)
 {
 	HOUDINI_LOG_ERROR(TEXT("Warning: %s"), *WarningMessage);
 	FText Text = FText::FromString(WarningMessage);
@@ -386,7 +386,7 @@ FHoudiniPCGUtils::LogVisualWarning(FPCGContext* Context, const FString& WarningM
 }
 
 void
-FHoudiniPCGUtils::LogVisualError(FPCGContext* Context,  const FString& ErrorMessage)
+FHoudiniPCGUtils::LogVisualError(const FPCGContext* Context,  const FString& ErrorMessage)
 {
 	HOUDINI_LOG_ERROR(TEXT("Error: %s"), *ErrorMessage);
 	FText Text = FText::FromString(ErrorMessage);

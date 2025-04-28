@@ -147,14 +147,14 @@ UHoudiniPCGCookable::InvalidateCookable()
 }
 
 bool
-UHoudiniPCGCookable::ApplyParametersToCookable(FPCGContext* Context, bool& bError)
+UHoudiniPCGCookable::ApplyParametersToCookable(const FPCGContext* Context)
 {
 	const TArray<FPCGTaggedData> Inputs = Context->InputData.GetInputsByPin(FName(FHoudiniPCGUtils::ParameterInputPinName));
 
 	bool bChanged = false;
 	for(auto& TaggedData : Inputs)
 	{
-		bChanged |= ApplyParametersToCookable(TaggedData.Data, Context, bError);
+		bChanged |= ApplyParametersToCookable(TaggedData.Data);
 	}
 
 	if (bChanged)
@@ -166,7 +166,7 @@ UHoudiniPCGCookable::ApplyParametersToCookable(FPCGContext* Context, bool& bErro
 }
 
 
-bool UHoudiniPCGCookable::ApplyInputsToCookable(FPCGContext* Context, bool& bError)
+bool UHoudiniPCGCookable::ApplyInputsToCookable(const FPCGContext* Context)
 {
 	int NumInputs = this->Cookable->GetNumInputs();
 
@@ -178,47 +178,58 @@ bool UHoudiniPCGCookable::ApplyInputsToCookable(FPCGContext* Context, bool& bErr
 
 		const TArray<FPCGTaggedData>& ContextInputData = Context->InputData.GetInputsByPin(FName(InputName));
 
+		if(ContextInputData.IsEmpty())
+			continue;
+
 		// See if the input contains objects, going through each tagged data.
+
 		TArray<FString> UnrealObjectPaths;
-		for (const FPCGTaggedData& InputData : ContextInputData)
+		for(const FPCGTaggedData& InputData : ContextInputData)
 		{
 			const UPCGMetadata* Metadata = InputData.Data->ConstMetadata();
-			TArray<FString> UnrealObjects = GetUnrealObjectPaths(Context, Metadata, bError);
-			if (!bError && !UnrealObjects.IsEmpty())
+			TArray<FString> UnrealObjects = GetUnrealObjectPaths(Context, Metadata);
+			if(!UnrealObjects.IsEmpty())
 			{
 				UnrealObjectPaths.Append(UnrealObjects);
 			}
 		}
 
-		if (!UnrealObjectPaths.IsEmpty())
+		switch (Input->GetInputType())
 		{
-			// Looks like we have Unreal objects, so set those on the current input.
-			bInputsChanged |= ApplyInputAsUnrealObjects(Context, Input, UnrealObjectPaths, bError);
-		}
-		else
-		{
-			if (ContextInputData.Num())
+		case EHoudiniInputType::PCGInput:
 			{
-				UHoudiniPCGDataCollection* DataCollection = NewObject<UHoudiniPCGDataCollection>(this);
-
-				for(const FPCGTaggedData& InputData : ContextInputData)
+				if(ContextInputData.Num())
 				{
-					UHoudiniPCGDataObject* PCGDataObject = GetPCGDataObjects(Context, InputData);
-					if(!PCGDataObject)
-						continue;
+					UHoudiniPCGDataCollection* DataCollection = NewObject<UHoudiniPCGDataCollection>(this);
 
-					DataCollection->AddObject(PCGDataObject);
+					for(const FPCGTaggedData& InputData : ContextInputData)
+					{
+						UHoudiniPCGDataObject* PCGDataObject = GetPCGDataObjects(InputData);
+						if(!PCGDataObject)
+							continue;
+
+						DataCollection->AddObject(PCGDataObject);
+					}
+
+					if(DataCollection)
+						bInputsChanged |= ApplyInputAsPCGData(Input, { DataCollection });
+					else
+						bInputsChanged |= ApplyInputAsPCGData(Input, { });
 				}
-
-				if(DataCollection)
-					bInputsChanged |= ApplyInputAsPCGData(Context, Input, { DataCollection });
-				else
-					bInputsChanged |= ApplyInputAsPCGData(Context, Input, { });
 			}
-			else
+			break;
+		case EHoudiniInputType::Geometry:
 			{
-				// Do nothing.
+				// Looks like we have Unreal objects, so set those on the current input.
+				bInputsChanged |= ApplyInputAsUnrealObjects(Input, UnrealObjectPaths);
 			}
+			break;
+		case EHoudiniInputType::World:
+			{
+				// Looks like we have Unreal objects, so set those on the current input.
+				bInputsChanged |= ApplyInputAsUnrealObjects(Input, UnrealObjectPaths);
+			}
+			break;
 
 		}
 	}
@@ -227,7 +238,7 @@ bool UHoudiniPCGCookable::ApplyInputsToCookable(FPCGContext* Context, bool& bErr
 }
 
 void
-UHoudiniPCGCookable::AddTrackedObjects(FPCGContext* Context)
+UHoudiniPCGCookable::AddTrackedObjects(const FPCGContext* Context)
 {
 	FPCGDynamicTrackingHelper DynamicTracking;
 	DynamicTracking.EnableAndInitialize(Context, TrackedObjects.Num());
@@ -239,7 +250,7 @@ UHoudiniPCGCookable::AddTrackedObjects(FPCGContext* Context)
 	TrackedObjects.Empty();
 }
 
-bool UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data, FPCGContext* Context, bool& bError)
+bool UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data)
 {
 	const UPCGMetadata* Metadata = Data->ConstMetadata();
 
@@ -460,7 +471,6 @@ void UHoudiniPCGCookable::CopyParametersAndInputs(const UHoudiniPCGCookable * Ot
 
 bool UHoudiniPCGCookable::UpdateParametersAndInputs(FPCGContext* Context)
 {
-	bool bError = false;
 	Cookable->SetOutputSupported(true);
 
 	const UHoudiniPCGSettings* Settings = nullptr;
@@ -471,13 +481,9 @@ bool UHoudiniPCGCookable::UpdateParametersAndInputs(FPCGContext* Context)
 
 	if(Context)
 	{
-		bParamsChanged |= this->ApplyParametersToCookable(Context, bError);
-		if(bError)
-			return false;
+		bParamsChanged |= this->ApplyParametersToCookable(Context);
 
-		bInputsChanged |= this->ApplyInputsToCookable(Context, bError);
-		if(bError)
-			return false;
+		bInputsChanged |= this->ApplyInputsToCookable(Context);
 	}
 
 	//int CurrentCookCount = FHoudiniEngineUtils::HapiGetCookCount(Cookable->GetNodeId());
@@ -555,7 +561,7 @@ UHoudiniPCGCookable::Update(FPCGContext* Context)
 }
 
 TArray<FString>
-UHoudiniPCGCookable::GetUnrealObjectPaths(FPCGContext* Context, const UPCGMetadata* Metadata, bool& bError)
+UHoudiniPCGCookable::GetUnrealObjectPaths(const FPCGContext* Context, const UPCGMetadata* Metadata)
 {
 	FHoudiniPCGAttributes Attributes(Metadata, FHoudiniPCGUtils::HDAInputObjectName);
 
@@ -582,7 +588,6 @@ UHoudiniPCGCookable::GetUnrealObjectPaths(FPCGContext* Context, const UPCGMetada
 				{
 					FString ErrorText = FString::Printf(TEXT("Input object '%s' could not be found"), *Path);
 					FHoudiniPCGUtils::LogVisualError(Context, ErrorText);
-					bError = true;
 					return {};
 				}
 			}
@@ -593,13 +598,12 @@ UHoudiniPCGCookable::GetUnrealObjectPaths(FPCGContext* Context, const UPCGMetada
 
 
 bool
-UHoudiniPCGCookable::ApplyInputAsUnrealObjects(FPCGContext* Context, UHoudiniInput* HoudiniInput, const TArray<FString>& InputObjects, bool& bError)
+UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const TArray<FString>& InputObjects)
 {
-
 	TArray<FString> NewInputPaths = InputObjects;
 	NewInputPaths.Sort();
 
-	// Geta list of current input objects.
+	// First, get list of the current objects. and compare to last set of objects. if its changed, we need to uploaded.
 
 	TArray<FString> CurrentInputObjects;
 	for(int Index = 0; Index < HoudiniInput->GetNumberOfInputObjects(); Index++)
@@ -608,57 +612,63 @@ UHoudiniPCGCookable::ApplyInputAsUnrealObjects(FPCGContext* Context, UHoudiniInp
 	}
 	CurrentInputObjects.Sort();
 
-	// if inputs changed, set them
+	// if inputs not changed, do nothing more.
 	bool bThisInputChanged = (CurrentInputObjects != NewInputPaths);
-	if(bThisInputChanged)
+	if(!bThisInputChanged)
+		return false;
+
+	HoudiniInput->MarkChanged(true);
+
+	TArray<UObject*> WorldObjects;
+	TArray<UObject*> GeometryObjects;
+
+	for(int Index = 0; Index < NewInputPaths.Num(); Index++)
 	{
-		HoudiniInput->MarkChanged(true);
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, 0);
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Curve, 0);
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, 0);
-		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, 0);
-
-		TArray<UObject*> WorldObjects;
-		TArray<UObject*> GeometryObjects;
-
-		for(int Index = 0; Index < NewInputPaths.Num(); Index++)
-		{
-			UObject* InputObject = StaticLoadObject(UObject::StaticClass(), nullptr, *NewInputPaths[Index]);
-			if(IsValid(InputObject) && InputObject->IsA<AActor>())
-				WorldObjects.Add(InputObject);
-			else
-				GeometryObjects.Add(InputObject);
-		}
-
-		if (WorldObjects.Num())
-		{
-			bool bBlueprintModified;
-			HoudiniInput->SetInputType(EHoudiniInputType::World, bBlueprintModified);
-
-			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, WorldObjects.Num());
-			for(int Index = 0; Index < WorldObjects.Num(); Index++)
-			{
-				HoudiniInput->SetInputObjectAt(EHoudiniInputType::World, Index, WorldObjects[Index]);
-			}
-		}
-		else if (GeometryObjects.Num())
-		{
-			bool bBlueprintModified;
-			HoudiniInput->SetInputType(EHoudiniInputType::Geometry, bBlueprintModified);
-
-			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, GeometryObjects.Num());
-			for(int Index = 0; Index < GeometryObjects.Num(); Index++)
-			{
-				HoudiniInput->SetInputObjectAt(EHoudiniInputType::Geometry, Index, GeometryObjects[Index]);
-			}
-		}
+		UObject* InputObject = StaticLoadObject(UObject::StaticClass(), nullptr, *NewInputPaths[Index]);
+		if(IsValid(InputObject) && InputObject->IsA<AActor>())
+			WorldObjects.Add(InputObject);
+		else
+			GeometryObjects.Add(InputObject);
 	}
 
-	return bThisInputChanged;
+
+	if (HoudiniInput->GetInputType() == EHoudiniInputType::World)
+	{
+
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, WorldObjects.Num());
+		for(int Index = 0; Index < WorldObjects.Num(); Index++)
+		{
+			HoudiniInput->SetInputObjectAt(EHoudiniInputType::World, Index, WorldObjects[Index]);
+		}
+
+		if (GeometryObjects.Num())
+		{
+			HOUDINI_LOG_ERROR(TEXT("Found Geometry objects when setting World Objects. Ignored. Only one type is supported."));
+		}
+	}
+	else if(HoudiniInput->GetInputType() == EHoudiniInputType::Geometry)
+	{
+		HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Geometry, GeometryObjects.Num());
+		for(int Index = 0; Index < GeometryObjects.Num(); Index++)
+		{
+			HoudiniInput->SetInputObjectAt(EHoudiniInputType::Geometry, Index, GeometryObjects[Index]);
+		}
+
+		if(WorldObjects.Num())
+		{
+			HOUDINI_LOG_ERROR(TEXT("Found World objects when setting Geometry Objects. Ignored. Only one type is supported."));
+		}
+	}
+	else
+	{
+		HOUDINI_LOG_ERROR(TEXT("Did not expect to encounter input type: %s. Ensure input types are set correclty in the PCG Graph."), *HoudiniInput->GetInputTypeAsString());
+	}
+
+	return true;
 }
 
 UHoudiniPCGDataObject*
-UHoudiniPCGCookable::GetPCGDataObjects(FPCGContext* Context, const FPCGTaggedData& TaggedData)
+UHoudiniPCGCookable::GetPCGDataObjects(const FPCGTaggedData& TaggedData)
 {
 	UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
 	PCGDataObject->Initialize(TaggedData.Data, TaggedData.Tags);
@@ -666,7 +676,7 @@ UHoudiniPCGCookable::GetPCGDataObjects(FPCGContext* Context, const FPCGTaggedDat
 }
 
 bool
-UHoudiniPCGCookable::ApplyInputAsPCGData(FPCGContext* Context, UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*>& PCGCollections)
+UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*>& PCGCollections)
 {
 	// Was input previously set to Geometry, World, Curve or Geometry? If so, clear it out and set to PCG
 
@@ -683,8 +693,6 @@ UHoudiniPCGCookable::ApplyInputAsPCGData(FPCGContext* Context, UHoudiniInput* Ho
 			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::Curve, 0);
 			HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::World, 0);
 		}
-
-
 	}
 
 	// Clear out previous inputs then set the new number. This has the effect of deleting
