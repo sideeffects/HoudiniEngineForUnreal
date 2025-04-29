@@ -397,12 +397,13 @@ FHoudiniTestContext::Bake(const FHoudiniBakeSettings& InBakeSettings)
 {
 	if (HC)
 	{
-		return FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
-			Cast<UHoudiniAssetComponent>(HC->GetComponent()),
+		return FHoudiniEngineBakeUtils::BakeCookable(
+			HC,
 			InBakeSettings,
 			HC->GetHoudiniEngineBakeOption(),
 			HC->GetRemoveOutputAfterBake());
 	}
+	/*
 	else if (HAC)
 	{
 		return FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
@@ -411,6 +412,7 @@ FHoudiniTestContext::Bake(const FHoudiniBakeSettings& InBakeSettings)
 			HAC->GetHoudiniEngineBakeOption(),
 			HAC->GetRemoveOutputAfterBake());
 	}
+	*/
 
 	return false;
 }

@@ -179,7 +179,9 @@ public:
 	const TArray<FHoudiniBakedOutput>& GetBakedOutputs() const;
 		
 	TArray<TObjectPtr<UHoudiniParameter>>& GetParameters();
+	const TArray<TObjectPtr<UHoudiniParameter>>& GetParameters() const;
 	TArray<TObjectPtr<UHoudiniInput>>& GetInputs();
+	const TArray<TObjectPtr<UHoudiniInput>>& GetInputs() const;
 	TArray<TObjectPtr<UHoudiniOutput>>& GetOutputs();
 	TArray<TObjectPtr<UHoudiniHandleComponent>>& GetHandleComponents();
 
@@ -228,14 +230,14 @@ public:
 	EHoudiniBakeAfterNextCook GetBakeAfterNextCook() const;
 	EHoudiniEngineActorBakeOption GetActorBakeOption() const;
 
-	FOnPreInstantiationDelegate& GetOnPreInstantiationDelegate() { return OnPreInstantiationDelegate; }
-	FOnPreCookDelegate& GetOnPreCookDelegate() { return OnPreCookDelegate; }
-	FOnPostCookDelegate& GetOnPostCookDelegate() { return OnPostCookDelegate; }
-	FOnPostBakeDelegate& GetOnPostBakeDelegate() { return OnPostBakeDelegate; }
-	FOnPreOutputProcessingDelegate& GetOnPreOutputProcessingDelegate() { return OnPreOutputProcessingDelegate; }
-	FOnPostOutputProcessingDelegate& GetOnPostOutputProcessingDelegate() { return OnPostOutputProcessingDelegate; }
+	FOnPreInstantiationDelegate& GetOnPreInstantiationDelegate() { return OnPreInstantiationDelegate_DEPRECATED; }
+	FOnPreCookDelegate& GetOnPreCookDelegate() { return OnPreCookDelegate_DEPRECATED; }
+	FOnPostCookDelegate& GetOnPostCookDelegate() { return OnPostCookDelegate_DEPRECATED; }
+	FOnPostBakeDelegate& GetOnPostBakeDelegate() { return OnPostBakeDelegate_DEPRECATED; }
+	FOnPreOutputProcessingDelegate& GetOnPreOutputProcessingDelegate() { return OnPreOutputProcessingDelegate_DEPRECATED; }
+	FOnPostOutputProcessingDelegate& GetOnPostOutputProcessingDelegate() { return OnPostOutputProcessingDelegate_DEPRECATED; }
 
-	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate; }
+	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate_DEPRECATED; }
 
 	// Register a callback that will be fired once during the next PreCook event, after which the callback
 	// will be removed from the queue.
@@ -376,7 +378,7 @@ public:
 	
 	// Called by RefineMeshesTimer when the timer is triggered.
 	// Checks for any UHoudiniStaticMesh in Outputs and bakes UStaticMesh for them via FHoudiniMeshTranslator.	 
-	FOnRefineMeshesTimerDelegate& GetOnRefineMeshesTimerDelegate() { return OnRefineMeshesTimerDelegate; }
+	FOnRefineMeshesTimerDelegate& GetOnRefineMeshesTimerDelegate() { return OnRefineMeshesTimerDelegate_DEPRECATED; }
 
 	// Returns true if the asset is valid for cook/bake
 	virtual bool IsComponentValid() const;
@@ -496,7 +498,7 @@ public:
 	virtual void HandleOnHoudiniAssetStateChange(UObject* InHoudiniAssetContext, const EHoudiniAssetState InFromState, const EHoudiniAssetState InToState) override;
 	
 	FORCEINLINE
-	virtual FOnHoudiniAssetStateChange& GetOnHoudiniAssetStateChangeDelegate() override { return OnHoudiniAssetStateChangeDelegate; }
+	virtual FOnHoudiniAssetStateChange& GetOnHoudiniAssetStateChangeDelegate() override { return OnHoudiniAssetStateChangeDelegate_DEPRECATED; }
 	
 	//
 	// End: IHoudiniAssetStateEvents
@@ -564,20 +566,20 @@ public:
 
 	// Houdini Asset associated with this component.
 	/*Category = HoudiniAsset, EditAnywhere, meta = (DisplayPriority=0)*/
-	UPROPERTY(Category = HoudiniAsset, EditAnywhere)// BlueprintSetter = SetHoudiniAsset, BlueprintReadWrite, )
-	TObjectPtr<UHoudiniAsset> HoudiniAsset; // COOKABLE - ASSET
+	UPROPERTY()// BlueprintSetter = SetHoudiniAsset, BlueprintReadWrite, )
+	TObjectPtr<UHoudiniAsset> HoudiniAsset_DEPRECATED; // COOKABLE - ASSET
 
 	// Automatically cook when a parameter or input is changed
 	UPROPERTY()
-	bool bCookOnParameterChange; // COOKABLE - PARAMETER + INPUT
+	bool bCookOnParameterChange_DEPRECATED; // COOKABLE - PARAMETER + INPUT
 
 	// Enables uploading of transformation changes back to Houdini Engine.
 	UPROPERTY()
-	bool bUploadTransformsToHoudiniEngine; // COOKABLE - COMPONENT
+	bool bUploadTransformsToHoudiniEngine_DEPRECATED; // COOKABLE - COMPONENT
 
 	// Transform changes automatically trigger cooks.
 	UPROPERTY()
-	bool bCookOnTransformChange; // COOKABLE - COMPONENT
+	bool bCookOnTransformChange_DEPRECATED; // COOKABLE - COMPONENT
 
 	// Houdini materials will be converted to Unreal Materials.
 	//UPROPERTY()
@@ -585,123 +587,123 @@ public:
 
 	// This asset will cook when its asset input cook
 	UPROPERTY()
-	bool bCookOnAssetInputCook; // COOKABLE - INPUT
+	bool bCookOnAssetInputCook_DEPRECATED; // COOKABLE - INPUT
 
 	// Enabling this will prevent the HDA from producing any output after cooking.
 	UPROPERTY()
-	bool bOutputless; // COOKABLE - OUTPUT
+	bool bOutputless_DEPRECATED; // COOKABLE - OUTPUT
 
 	// Enabling this will allow outputing the asset's templated geos
 	UPROPERTY()
-	bool bOutputTemplateGeos; // COOKABLE - OUTPUT
+	bool bOutputTemplateGeos_DEPRECATED; // COOKABLE - OUTPUT
 
 	// Enabling this will allow outputing the asset's output nodes
 	UPROPERTY()
-	bool bUseOutputNodes; // COOKABLE - OUTPUT
+	bool bUseOutputNodes_DEPRECATED; // COOKABLE - OUTPUT
 
 
 	// Temporary cook folder
 	UPROPERTY()
-	FDirectoryPath TemporaryCookFolder; // COOKABLE - OUTPUT
+	FDirectoryPath TemporaryCookFolder_DEPRECATED; // COOKABLE - OUTPUT
 
 	// Folder used for baking this asset's outputs (unless set by prim/detail attribute on the output). Falls back to
 	// the default from the plugin settings if not set.
 	UPROPERTY()
-	FDirectoryPath BakeFolder; // COOKABLE - OUTPUT
+	FDirectoryPath BakeFolder_DEPRECATED; // COOKABLE - OUTPUT
 	
 	// Whether or not to support multiple mesh outputs on one HDA output. This is currently in Alpha  testing.
-	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 0))
-	bool bSplitMeshSupport = false; // COOKABLE - OUTPUT
+	UPROPERTY()
+	bool bSplitMeshSupport_DEPRECATED = false; // COOKABLE - OUTPUT
 
 	// Generation properties for the Static Meshes generated by this Houdini Asset
-	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 1)/*, meta = (ShowOnlyInnerProperties)*/)
-	FHoudiniStaticMeshGenerationProperties StaticMeshGenerationProperties; // COOKABLE - OUTPUT
+	UPROPERTY()
+	FHoudiniStaticMeshGenerationProperties StaticMeshGenerationProperties_DEPRECATED; // COOKABLE - OUTPUT
 
 	// Build Settings to be used when generating the Static Meshes for this Houdini Asset
-	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 2))
-	FMeshBuildSettings StaticMeshBuildSettings; // COOKABLE - OUTPUT
+	UPROPERTY()
+	FMeshBuildSettings StaticMeshBuildSettings_DEPRECATED; // COOKABLE - OUTPUT
 
 	// Override the global fast proxy mesh settings on this component?
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere/*, meta = (DisplayAfter = "StaticMeshGenerationProperties")*/)
-	bool bOverrideGlobalProxyStaticMeshSettings; // COOKABLE - OUTPUT
+	UPROPERTY()
+	bool bOverrideGlobalProxyStaticMeshSettings_DEPRECATED; // COOKABLE - OUTPUT
 
 	// For StaticMesh outputs: should a fast proxy be created first?
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Enable Proxy Static Mesh", EditCondition="bOverrideGlobalProxyStaticMeshSettings"))
-	bool bEnableProxyStaticMeshOverride; // COOKABLE - OUTPUT
+	UPROPERTY()
+	bool bEnableProxyStaticMeshOverride_DEPRECATED; // COOKABLE - OUTPUT
 
 	// If fast proxy meshes are being created, must it be baked as a StaticMesh after a period of no updates?
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes After a Timeout", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
-	bool bEnableProxyStaticMeshRefinementByTimerOverride; // COOKABLE - OUTPUT
+	UPROPERTY()
+	bool bEnableProxyStaticMeshRefinementByTimerOverride_DEPRECATED; // COOKABLE - OUTPUT
 	
 	// If the option to automatically refine the proxy mesh via a timer has been selected, this controls the timeout in seconds.
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Proxy Mesh Auto Refine Timeout Seconds", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride && bEnableProxyStaticMeshRefinementByTimerOverride"))
-	float ProxyMeshAutoRefineTimeoutSecondsOverride; // COOKABLE - OUTPUT
+	UPROPERTY()
+	float ProxyMeshAutoRefineTimeoutSecondsOverride_DEPRECATED; // COOKABLE - OUTPUT
 
 	// Automatically refine proxy meshes to UStaticMesh before the map is saved
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes When Saving a Map", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
-	bool bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride; // COOKABLE - OUTPUT
+	UPROPERTY()
+	bool bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride_DEPRECATED; // COOKABLE - OUTPUT
 
 	// Automatically refine proxy meshes to UStaticMesh before starting a play in editor session
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes On PIE", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
-	bool bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride; // COOKABLE - OUTPUT
+	UPROPERTY()
+	bool bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride_DEPRECATED; // COOKABLE - OUTPUT
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
-	bool bGenerateMenuExpanded; // NOT COOKABLE
+	bool bGenerateMenuExpanded_DEPRECATED; // COOKABLE
 
 	UPROPERTY()
-	bool bBakeMenuExpanded; // NOT COOKABLE
+	bool bBakeMenuExpanded_DEPRECATED; // COOKABLE
 
 	UPROPERTY()
-	bool bAssetOptionMenuExpanded; // NOT COOKABLE
+	bool bAssetOptionMenuExpanded_DEPRECATED; // COOKABLE
 
 	UPROPERTY()
-	bool bHelpAndDebugMenuExpanded; // NOT COOKABLE
+	bool bHelpAndDebugMenuExpanded_DEPRECATED; // COOKABLE
 
 	UPROPERTY()
-	EHoudiniEngineBakeOption HoudiniEngineBakeOption; // COOKABLE - OUTPUT
+	EHoudiniEngineBakeOption HoudiniEngineBakeOption_DEPRECATED; // COOKABLE - OUTPUT
 
 	// If true, then after a successful bake, the HACs outputs will be cleared and removed.
 	UPROPERTY()
-	bool bRemoveOutputAfterBake; // COOKABLE - OUTPUT
+	bool bRemoveOutputAfterBake_DEPRECATED; // COOKABLE - OUTPUT
 
 	// If true, recenter baked actors to their bounding box center after bake
 	UPROPERTY()
-	bool bRecenterBakedActors; // COOKABLE - OUTPUT
+	bool bRecenterBakedActors_DEPRECATED; // COOKABLE - OUTPUT
 
 	// If true, replace the previously baked output (if any) instead of creating new objects
 	UPROPERTY()
-	bool bReplacePreviousBake; // COOKABLE - OUTPUT
+	bool bReplacePreviousBake_DEPRECATED; // COOKABLE - OUTPUT
 
 	UPROPERTY()
-	EHoudiniEngineActorBakeOption ActorBakeOption; // COOKABLE - OUTPUT
+	EHoudiniEngineActorBakeOption ActorBakeOption_DEPRECATED; // COOKABLE - OUTPUT
 
 	UPROPERTY()
-	bool bLandscapeUseTempLayers; // COOKABLE - OUTPUT
+	bool bLandscapeUseTempLayers_DEPRECATED; // COOKABLE - OUTPUT
 
 	UPROPERTY()
-	bool bEnableCurveEditing; // COOKABLE - OUTPUT
+	bool bEnableCurveEditing_DEPRECATED; // COOKABLE - OUTPUT
 
 	// Indicates whether or not this component should update the editor's UI
 	// This is to prevent successive calls of the function for the same HDAs 
 	UPROPERTY(Transient, DuplicateTransient)
-	bool bNeedToUpdateEditorProperties; // COOKABLE
+	bool bNeedToUpdateEditorProperties_DEPRECATED; // COOKABLE
 #endif
 
 protected:
 
 	// Id of corresponding Houdini asset.
 	UPROPERTY(DuplicateTransient)
-	int32 AssetId; // COOKABLE - NodeId
+	int32 AssetId_DEPRECATED; // COOKABLE - NodeId
 
 	// Ids of the nodes that should be cook for this HAC
 	// This is for additional output and templated nodes if they are used.
 	UPROPERTY(Transient, DuplicateTransient)
-	TArray<int32> NodeIdsToCook; // COOKABLE
+	TArray<int32> NodeIdsToCook_DEPRECATED; // COOKABLE
 
 	// Cook counts for nodes in the NodeIdsToCook array.
 	UPROPERTY(Transient, DuplicateTransient)
-	TMap<int32, int32> OutputNodeCookCounts; // COOKABLE - NodesToCookCookCounts
+	TMap<int32, int32> OutputNodeCookCounts_DEPRECATED; // COOKABLE - NodesToCookCookCounts
 
 	// List of dependent downstream HACs that have us as an asset input
 	UPROPERTY(DuplicateTransient)
@@ -709,32 +711,28 @@ protected:
 
 	// Unique GUID created by component.
 	UPROPERTY(DuplicateTransient)
-	FGuid ComponentGUID; // COOKABLE - CookableGUID
+	FGuid ComponentGUID_DEPRECATED; // COOKABLE - CookableGUID
 
 	// GUID used to track asynchronous cooking requests.
 	UPROPERTY(DuplicateTransient)
-	FGuid HapiGUID; // COOKABLE
+	FGuid HapiGUID_DEPRECATED; // COOKABLE
 
 	// The asset name of the selected asset inside the asset library
 	UPROPERTY(DuplicateTransient)
-	FString HapiAssetName; // COOKABLE - Name
+	FString HapiAssetName_DEPRECATED; // COOKABLE - Name
 
 	// Current state of the asset
 	UPROPERTY(DuplicateTransient)
-	EHoudiniAssetState AssetState; // COOKABLE
-
-	// Last asset state logged.
-	UPROPERTY(DuplicateTransient)
-	mutable EHoudiniAssetState DebugLastAssetState; // NOT COOKABLE
+	EHoudiniAssetState AssetState_DEPRECATED; // COOKABLE
 
 	// Result of the current asset's state
 	UPROPERTY(DuplicateTransient)
-	EHoudiniAssetStateResult AssetStateResult; // COOKABLE
+	EHoudiniAssetStateResult AssetStateResult_DEPRECATED; // COOKABLE
 
 	// Used to compare transform changes and whether we need to
 	// send transform updates to Houdini.
 	UPROPERTY(DuplicateTransient)
-	FTransform LastComponentTransform; // COOKABLE - COMPONENT
+	FTransform LastComponentTransform_DEPRECATED; // COOKABLE - COMPONENT
 
 	//// Contains the context for keeping track of shared 
 	//// Houdini data.
@@ -743,45 +741,45 @@ protected:
 
 	// Subasset index
 	UPROPERTY()
-	uint32 SubAssetIndex; // COOKABLE - ASSET
+	uint32 SubAssetIndex_DEPRECATED; // COOKABLE - ASSET
 	
 	// Number of times this asset has been cooked.
 	UPROPERTY(DuplicateTransient)
-	int32 AssetCookCount; // COOKABLE - CookCount
+	int32 AssetCookCount_DEPRECATED; // COOKABLE - CookCount
 
 	// 
 	UPROPERTY(DuplicateTransient)
-	bool bHasBeenLoaded; // COOKABLE
+	bool bHasBeenLoaded_DEPRECATED; // COOKABLE
 
 	// Sometimes, specifically when editing level instances, the Unreal Editor will duplicate the HDA,
 	// then duplicate it again, before we get a change to call UpdatePostDuplicate().
 	// So bHasBeenDuplicated should not be cleared and is so not marked DuplicateTransient.
 	UPROPERTY()
-	bool bHasBeenDuplicated; // COOKABLE
+	bool bHasBeenDuplicated_DEPRECATED; // COOKABLE
 
 	UPROPERTY(DuplicateTransient)
-	bool bPendingDelete; // COOKABLE
+	bool bPendingDelete_DEPRECATED; // COOKABLE
 
 	UPROPERTY(DuplicateTransient)
-	bool bRecookRequested; // COOKABLE
+	bool bRecookRequested_DEPRECATED; // COOKABLE
 
 	UPROPERTY(DuplicateTransient)
-	bool bRebuildRequested; // COOKABLE
+	bool bRebuildRequested_DEPRECATED; // COOKABLE
 
 	UPROPERTY(DuplicateTransient)
-	bool bEnableCooking; // COOKABLE
+	bool bEnableCooking_DEPRECATED; // COOKABLE
 
 	UPROPERTY(DuplicateTransient)
-	bool bForceNeedUpdate; // COOKABLE
+	bool bForceNeedUpdate_DEPRECATED; // COOKABLE
 
 	UPROPERTY(DuplicateTransient)
-	bool bLastCookSuccess; // COOKABLE
+	bool bLastCookSuccess_DEPRECATED; // COOKABLE
 
 	// Indicates that the parameter state (excluding values) on the HAC and the instantiated node needs to be synced.
 	// The most common use for this would be a newly instantiated HDA that has only a default parameter interface
 	// from its asset definition, and needs to sync pre-cook.
 	UPROPERTY(DuplicateTransient)
-	bool bParameterDefinitionUpdateNeeded; // COOKABLE - PARAMETERS
+	bool bParameterDefinitionUpdateNeeded_DEPRECATED; // COOKABLE - PARAMETERS
 
 	UPROPERTY(DuplicateTransient)
 	bool bBlueprintStructureModified; // NOT COOKABLE
@@ -793,78 +791,78 @@ protected:
 	//bool bEditorPropertiesNeedFullUpdate;
 
 	UPROPERTY(Instanced)
-	TArray<TObjectPtr<UHoudiniParameter>> Parameters; // COOKABLE - PARAMETERS
+	TArray<TObjectPtr<UHoudiniParameter>> Parameters_DEPRECATED; // COOKABLE - PARAMETERS
 
 	UPROPERTY(Instanced)
-	TArray<TObjectPtr<UHoudiniInput>> Inputs; // COOKABLE - INPUTS
+	TArray<TObjectPtr<UHoudiniInput>> Inputs_DEPRECATED; // COOKABLE - INPUTS
 	
 	UPROPERTY(Instanced)
-	TArray<TObjectPtr<UHoudiniOutput>> Outputs; // COOKABLE - OUTPUTS
+	TArray<TObjectPtr<UHoudiniOutput>> Outputs_DEPRECATED; // COOKABLE - OUTPUTS
 
 	// The baked outputs from the last bake.
 	UPROPERTY()
-	TArray<FHoudiniBakedOutput> BakedOutputs; // COOKABLE - OUTPUTS
+	TArray<FHoudiniBakedOutput> BakedOutputs_DEPRECATED; // COOKABLE - OUTPUTS
 
 	// Any actors that aren't explicitly
 	// tracked by output objects should be registered
 	// here so that they can be cleaned up.
 	UPROPERTY()
-	TArray<TWeakObjectPtr<AActor>> UntrackedOutputs; // COOKABLE - OUTPUTS
+	TArray<TWeakObjectPtr<AActor>> UntrackedOutputs_DEPRECATED; // COOKABLE - OUTPUTS
 
 	UPROPERTY()
-	TArray<TObjectPtr<UHoudiniHandleComponent>> HandleComponents; // COOKABLE - COMPONENT
+	TArray<TObjectPtr<UHoudiniHandleComponent>> HandleComponents_DEPRECATED; // COOKABLE - COMPONENT
 
 	UPROPERTY(Transient, DuplicateTransient)
-	bool bHasComponentTransformChanged; // COOKABLE - COMPONENT
+	bool bHasComponentTransformChanged_DEPRECATED; // COOKABLE - COMPONENT
 
 	UPROPERTY(Transient, DuplicateTransient)
-	bool bFullyLoaded; // COOKABLE
+	bool bFullyLoaded_DEPRECATED; // COOKABLE
 
 	UPROPERTY()
-	TObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink; // COOKABLE - PDG
+	TObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink_DEPRECATED; // COOKABLE - PDG
 
 	UPROPERTY()
-	bool bIsPDGAssetLinkInitialized; // COOKABLE - PDG
+	bool bIsPDGAssetLinkInitialized_DEPRECATED; // COOKABLE - PDG
 
 	// Timer that is used to trigger creation of UStaticMesh for all mesh outputs
 	// that still have UHoudiniStaticMeshes. The timer is cleared on PreCook and reset
 	// at the end of the PostCook.
 	UPROPERTY()
-	FTimerHandle RefineMeshesTimer;  // COOKABLE - OUTPUTS
+	FTimerHandle RefineMeshesTimer_DEPRECATED;  // COOKABLE - OUTPUTS
 
 	// Delegate that is used to broadcast when RefineMeshesTimer fires
-	FOnRefineMeshesTimerDelegate OnRefineMeshesTimerDelegate; // COOKABLE - OUTPUTS
+	FOnRefineMeshesTimerDelegate OnRefineMeshesTimerDelegate_DEPRECATED; // COOKABLE - OUTPUTS
 
 	// If true, don't build a proxy mesh next cook (regardless of global or override settings),
 	// instead build the UStaticMesh directly (if applicable for the output types).
 	UPROPERTY(DuplicateTransient)
-	bool bNoProxyMeshNextCookRequested; // COOKABLE - OUTPUT
+	bool bNoProxyMeshNextCookRequested_DEPRECATED; // COOKABLE - OUTPUT
 	
 	// If true, bake the asset after its next cook.
 	UPROPERTY(DuplicateTransient)
-	EHoudiniBakeAfterNextCook BakeAfterNextCook; // COOKABLE - OUTPUTS
+	EHoudiniBakeAfterNextCook BakeAfterNextCook_DEPRECATED; // COOKABLE - OUTPUTS
 
 	// Delegate to broadcast before instantiation
 	// Arguments are (HoudiniAssetComponent* HAC)
-	FOnPreInstantiationDelegate OnPreInstantiationDelegate; // COOKABLE
+	FOnPreInstantiationDelegate OnPreInstantiationDelegate_DEPRECATED; // COOKABLE
 
 	// Delegate to broadcast after a post cook event
 	// Arguments are (HoudiniAssetComponent* HAC, bool IsSuccessful)
-	FOnPreCookDelegate OnPreCookDelegate; // COOKABLE
+	FOnPreCookDelegate OnPreCookDelegate_DEPRECATED; // COOKABLE
 
 	// Delegate to broadcast after a post cook event
 	// Arguments are (HoudiniAssetComponent* HAC, bool IsSuccessful)
-	FOnPostCookDelegate OnPostCookDelegate; // COOKABLE
+	FOnPostCookDelegate OnPostCookDelegate_DEPRECATED; // COOKABLE
 
 	// Delegate to broadcast after baking the HAC. Not called when just baking individual outputs directly.
 	// Arguments are (HoudiniAssetComponent* HAC, bool bIsSuccessful)
-	FOnPostBakeDelegate OnPostBakeDelegate; // COOKABLE
+	FOnPostBakeDelegate OnPostBakeDelegate_DEPRECATED; // COOKABLE
 
-	FOnPostOutputProcessingDelegate OnPostOutputProcessingDelegate; // COOKABLE
-	FOnPreOutputProcessingDelegate OnPreOutputProcessingDelegate; // COOKABLE
+	FOnPostOutputProcessingDelegate OnPostOutputProcessingDelegate_DEPRECATED; // COOKABLE
+	FOnPreOutputProcessingDelegate OnPreOutputProcessingDelegate_DEPRECATED; // COOKABLE
 
 	// Delegate that is broadcast when the asset state changes (HAC version).
-	FOnAssetStateChangeDelegate OnAssetStateChangeDelegate; // COOKABLE
+	FOnAssetStateChangeDelegate OnAssetStateChangeDelegate_DEPRECATED; // COOKABLE
 
 	// Cached flag of whether this object is considered to be a 'preview' component or not.
 	// This is typically useful in destructors when references to the World, for example, 
@@ -875,29 +873,29 @@ protected:
 	// The last timestamp this component was ticked
 	// used to prioritize/limit the number of HAC processed per tick
 	UPROPERTY(Transient)
-	double LastTickTime; // COOKABLE
+	double LastTickTime_DEPRECATED; // COOKABLE
 
 	// The last timestamp this component received a session sync update ping
 	// used to limit the frequency at which we ping HDAs for session sync updates
 	UPROPERTY(Transient)
-	double LastLiveSyncPingTime; // COOKABLE - COMPONENT
+	double LastLiveSyncPingTime_DEPRECATED; // COOKABLE - COMPONENT
 
 	UPROPERTY()
-	TArray<int8> ParameterPresetBuffer; // COOKABLE - PARAMETERS
+	TArray<int8> ParameterPresetBuffer_DEPRECATED; // COOKABLE - PARAMETERS
 
 	//
 	// Begin: IHoudiniAssetStateEvents
 	//
 
 	// Delegate that is broadcast when AssetState changes
-	FOnHoudiniAssetStateChange OnHoudiniAssetStateChangeDelegate; // COOKABLE
+	FOnHoudiniAssetStateChange OnHoudiniAssetStateChangeDelegate_DEPRECATED; // COOKABLE
 
 	//
 	// End: IHoudiniAssetStateEvents
 	//
 
 	// Store any PreCookCallbacks here until they HAC is ready to process them during the PreCook event.
-	TArray< TFunction<void(UHoudiniAssetComponent*)> > PreCookCallbacks; // COOKABLE
+	TArray< TFunction<void(UHoudiniAssetComponent*)> > PreCookCallbacks_DEPRECATED; // COOKABLE
 	
 #if WITH_EDITORONLY_DATA
 
@@ -909,7 +907,7 @@ public:
 
 protected:
 	UPROPERTY(Transient, DuplicateTransient)
-	bool bAllowPlayInEditorRefinement; // COOKABLE - OUTPUTS
+	bool bAllowPlayInEditorRefinement_DEPRECATED; // COOKABLE - OUTPUTS
 
 #endif
 	

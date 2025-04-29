@@ -171,7 +171,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 					.HAlign(HAlign_Center)
 					.OnClicked_Lambda([InPDGAssetLink]()
 					{
-						// TODO: RESET USELESS? 
+						// TODO: RESET USELESS? this is just a UI refresh - change name ?
 						FHoudiniPDGDetails::RefreshUI(InPDGAssetLink);
 						return FReply::Handled();
 					})

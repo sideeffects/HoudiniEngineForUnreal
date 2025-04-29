@@ -1382,7 +1382,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const ALandscapeProxy* A, cons
 	}
 
 	// TODO: Not sure what's important to test here
-
 	return Result;
 }
 
@@ -2111,8 +2110,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniLandscapeTargetL
 	}
 
 	// TODO: Add here
-
-
 	return Result;
 }
 
@@ -2149,8 +2146,8 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UMaterialInterface* A, c
 
 	// Result &= TestExpressionError(A->GetHeight() == B->GetHeight(), Header, "Height");
 	// Result &= TestExpressionError(A->GetWidth() == B->GetWidth(), Header, "Width");
-	// TODO: Not sure what to test here.
 	
+	// TODO: Not sure what to test here.	
 	return Result;
 }
 

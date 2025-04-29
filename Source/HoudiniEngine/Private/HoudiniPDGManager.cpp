@@ -1285,11 +1285,13 @@ FHoudiniPDGManager::RefreshPDGAssetLinkUI(UHoudiniPDGAssetLink* InAssetLink)
 	// else, just update the workitemtally
 	InAssetLink->UpdateWorkItemTally();
 
-	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InAssetLink->GetOuter());
-	if (!IsValid(HAC))
+	UHoudiniAssetComponent* ParentHAC = Cast<UHoudiniAssetComponent>(InAssetLink->GetOuter());
+	UHoudiniCookable* ParentHC = Cast<UHoudiniCookable>(InAssetLink->GetOuter());
+
+	if (!IsValid(ParentHAC) && !IsValid(ParentHC))
 		return;
 	
-	AActor* ActorOwner = HAC->GetOwner();
+	AActor* ActorOwner = ParentHC ? ParentHC->GetOwner() : ParentHAC->GetOwner();
 	if (ActorOwner != nullptr && ActorOwner->IsSelected())
 	{
 		FHoudiniEngineUtils::UpdateEditorProperties(true);
@@ -1582,7 +1584,7 @@ FHoudiniPDGManager::SyncAndPruneWorkItems(UTOPNode* InTOPNode)
 
 	// Remove any work result entries with invalid IDs or where the WorkItemID is not in the set of ids returned by
 	// HAPI (only if we could get the IDs from HAPI).
-	const FGuid HoudiniComponentGuid(InTOPNode->GetHoudiniComponentGuid());
+	const FGuid CookableGUID(InTOPNode->GetHoudiniCookableGuid());
 	int32 NumRemoved = 0;
 	const int32 NumWorkItemsInArray = InTOPNode->WorkResult.Num();
 	for (int32 Index = NumWorkItemsInArray - 1; Index >= 0; --Index)
@@ -1593,7 +1595,7 @@ FHoudiniPDGManager::SyncAndPruneWorkItems(UTOPNode* InTOPNode)
 			HOUDINI_PDG_WARNING(
 				TEXT("Pruning a FTOPWorkResult entry from TOP Node %d, WorkItemID %d, WorkItemIndex %d, Array Index %d"),
 				InTOPNode->NodeId, WorkResult.WorkItemID, WorkResult.WorkItemIndex, Index);
-			WorkResult.ClearAndDestroyResultObjects(HoudiniComponentGuid);
+			WorkResult.ClearAndDestroyResultObjects(CookableGUID);
 			InTOPNode->WorkResult.RemoveAt(Index);
 			InTOPNode->OnWorkItemRemoved(WorkResult.WorkItemID);
 			NumRemoved++;
@@ -1638,17 +1640,23 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 		PackageParams.BakeFolder = FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
 		PackageParams.TempCookFolder = FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
 
-		// AActor* ParentActor = nullptr;
 		UObject* AssetLinkParent = AssetLink->GetOuter();
 		UHoudiniAssetComponent* HAC = AssetLinkParent != nullptr ? Cast<UHoudiniAssetComponent>(AssetLinkParent) : nullptr;
-		if (HAC)
+		UHoudiniCookable* HC = AssetLinkParent != nullptr ? Cast<UHoudiniCookable>(AssetLinkParent) : nullptr;
+		if (HC)
+		{
+			AActor* Owner = HC->GetOwner();
+			PackageParams.OuterPackage = Owner ? Cast<UObject>(Owner->GetLevel()) : Cast<UObject>(HC->GetPackage());
+			PackageParams.HoudiniAssetName = HC->GetHoudiniAssetName();
+			PackageParams.HoudiniAssetActorName = Owner ? Owner->GetActorNameOrLabel() : HC->GetName();
+			PackageParams.ComponentGUID = HC->GetCookableGUID();
+		}
+		else if (HAC)
 		{
 			PackageParams.OuterPackage = HAC->GetComponentLevel();
 			PackageParams.HoudiniAssetName = HAC->GetHoudiniAssetName();
 			PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
 			PackageParams.ComponentGUID = HAC->GetComponentGUID();
-
-			// ParentActor = HAC->GetOwner();
 		}
 		else
 		{
@@ -1853,13 +1861,19 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 		// Set package params outer
 		UObject* AssetLinkParent = AssetLink->GetOuter();
 		UHoudiniAssetComponent* HAC = AssetLinkParent != nullptr ? Cast<UHoudiniAssetComponent>(AssetLinkParent) : nullptr;
-		if (HAC)
+		UHoudiniCookable* HC = AssetLinkParent != nullptr ? Cast<UHoudiniCookable>(AssetLinkParent) : nullptr;
+		if (HC)
+		{
+			AActor* Owner = HC->GetOwner();
+			PackageParams.OuterPackage = Owner ? Cast<UObject>(Owner->GetLevel()) : Cast<UObject>(HC->GetPackage());
+		}
+		else if (HAC)
 		{
 			PackageParams.OuterPackage = HAC->GetComponentLevel();
 		}
 		else
 		{
-			PackageParams.OuterPackage = AssetLinkParent->GetOutermost();
+			PackageParams.OuterPackage = AssetLinkParent->GetPackage();
 		}
 
 		// Construct UHoudiniOutputs

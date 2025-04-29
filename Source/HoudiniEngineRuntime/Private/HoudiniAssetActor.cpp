@@ -41,7 +41,7 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer & ObjectInitiali
 	//PrimaryActorTick.bCanEverTick = true;
 	//PrimaryActorTick.bStartWithTickEnabled = true;
 
-	bool bUseCookable = false;
+	bool bUseCookable = true;
 	if (!bUseCookable)
 	{
 		// Create Houdini component and attach it to a root component.
@@ -145,16 +145,6 @@ AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 		UHoudiniAsset* HoudiniAsset = HoudiniCookable->GetHoudiniAsset();
 		if (IsValid(HoudiniAsset))
 			Objects.AddUnique(HoudiniAsset);
-
-		return true;
-	}
-
-	// TODO COOKABLE: REMOVE ME!
-	if (IsValid(HoudiniAssetComponent))
-	{
-		UHoudiniAsset* HoudiniAsset = HoudiniAssetComponent->GetHoudiniAsset();
-		if (IsValid(HoudiniAsset))
-			Objects.AddUnique(HoudiniAsset);
 	}
 
 	return true;
@@ -167,10 +157,12 @@ AHoudiniAssetActor::PostEditChangeProperty(FPropertyChangedEvent & PropertyChang
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	// TODO COOKABLE: HANDLE ME!
+	if (!IsValid(HoudiniCookable))
+		return;
 
 	// Some property changes need to be forwarded to the component (ie Transform)
-	if (!IsValid(HoudiniAssetComponent))
+	USceneComponent* SC = HoudiniCookable->GetComponent();
+	if (!IsValid(SC))
 		return;
 
 	FProperty* Property = PropertyChangedEvent.MemberProperty;
@@ -178,11 +170,11 @@ AHoudiniAssetActor::PostEditChangeProperty(FPropertyChangedEvent & PropertyChang
 		return;
 
 	FName PropertyName = Property->GetFName();
-	if (PropertyName == HoudiniAssetComponent->GetRelativeLocationPropertyName()
-		|| PropertyName == HoudiniAssetComponent->GetRelativeRotationPropertyName()
-		|| PropertyName == HoudiniAssetComponent->GetRelativeScale3DPropertyName())
+	if (PropertyName == SC->GetRelativeLocationPropertyName()
+		|| PropertyName == SC->GetRelativeRotationPropertyName()
+		|| PropertyName == SC->GetRelativeScale3DPropertyName())
 	{
-		HoudiniAssetComponent->SetHasComponentTransformChanged(true);
+		HoudiniCookable->SetHasComponentTransformChanged(true);
 	}
 }
 #endif
@@ -201,15 +193,7 @@ AHoudiniAssetActor::IsUsedForPreview() const
 UHoudiniPDGAssetLink*
 AHoudiniAssetActor::GetPDGAssetLink() const
 {
-	// TODO COOKABLE: REMOVE ME!
-	if (IsValid(HoudiniCookable))
-	{
-		return HoudiniCookable->GetPDGAssetLink();
-	}
-	else
-	{
-		return IsValid(HoudiniAssetComponent) ? HoudiniAssetComponent->GetPDGAssetLink() : nullptr;
-	}
+	return IsValid(HoudiniCookable) ? HoudiniCookable->GetPDGAssetLink() : nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE

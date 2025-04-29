@@ -3022,7 +3022,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 		HAC->GetHapiAssetName(),
 		bForceFullUpdate,
 		bCacheRampParms,
-		HAC->bNeedToUpdateEditorProperties);
+		HAC->bNeedToUpdateEditorProperties_DEPRECATED);
 
 	// Iterate over all the parameters and settings in the preset and apply it to the Houdini Asset Component.
 
@@ -3071,7 +3071,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 			HAC->GetHapiAssetName(),
 			bForceFullUpdate,
 			bCacheRampParms,
-			HAC->bNeedToUpdateEditorProperties);
+			HAC->bNeedToUpdateEditorProperties_DEPRECATED);
 	}
 
 
@@ -3086,7 +3086,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 			HAC->GetHapiAssetName(),
 			bForceFullUpdate,
 			bCacheRampParms,
-			HAC->bNeedToUpdateEditorProperties);
+			HAC->bNeedToUpdateEditorProperties_DEPRECATED);
 	}
 
 	// Apply all the Int parameters
@@ -3362,7 +3362,6 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 	// parameter update.
 
 	TSet<FString> UnprocessedMultiParms;
-
 	Preset->MultiParmParameters.GetKeys(UnprocessedMultiParms);
 
 	while (!UnprocessedMultiParms.IsEmpty())
@@ -3594,7 +3593,6 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 
 	// TODO COOKABLE
 	// Do something about bNeedToUpdateEditorProperties
-
 	if (bReselectSelectedActors)
 	{
 		FHoudiniEngineEditorUtils::ReselectSelectedActors();

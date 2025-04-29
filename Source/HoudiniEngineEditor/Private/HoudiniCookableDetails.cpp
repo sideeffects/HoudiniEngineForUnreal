@@ -27,6 +27,7 @@
 #include "HoudiniCookableDetails.h"
 
 #include "HoudiniAsset.h"
+#include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
@@ -146,11 +147,21 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 			if (IsValid(HAC))
 			{
 				HC = HAC->GetCookable();
-				if (!IsValid(HC))
-					continue;
+				if (IsValid(HC))
+					HoudiniCookable.Add(HC);
+				
+				continue;
+			}
 
-				HoudiniCookable.Add(HC);
-			}	
+			AHoudiniAssetActor* HAA = Cast<AHoudiniAssetActor>(Object);
+			if (IsValid(HAA))
+			{
+				HC = HAA->GetHoudiniCookable();
+				if(IsValid(HC))
+					HoudiniCookable.Add(HC);
+
+				continue;
+			}
 		}
 	}
 
@@ -160,7 +171,6 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 
 	// To handle multiselection parameter edit, we try to group the selected components by their houdini assets
 	// TODO? ignore multiselection if all are not the same HDA?
-	// TODO? do the same for inputs
 	TMap<TWeakObjectPtr<UHoudiniAsset>, TArray<TWeakObjectPtr<UHoudiniCookable>>> HoudiniAssetToCookables;
 	for (auto currentHC : HoudiniCookable)
 	{
@@ -207,7 +217,6 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		// 1. NODE SYNC DETAILS
 		//		
 		// TODO: Handle NodeSync better?
-		//bool bIsNodeSyncComponent = MainComponent->IsA<UHoudiniNodeSyncComponent>();
 		bool bIsNodeSyncComponent = MainCookable->GetComponent() ? MainCookable->GetComponent()->IsA<UHoudiniNodeSyncComponent>() : false;		
 		if (bIsNodeSyncComponent)
 		{
@@ -354,7 +363,7 @@ FHoudiniCookableDetails::CreatePDGDetails(
 	else if (bIsEduLicense)
 		FHoudiniEngineDetails::AddEducationLicenseRow(HouPDGCategory);
 
-	// TODO: Handle multi selection of outputs like params/inputs?
+	// TODO: Handle multi selection ?
 	PDGDetails->CreateWidget(HouPDGCategory, HPDGAL);
 }
 

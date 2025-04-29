@@ -170,6 +170,9 @@ public:
 
 	FString GetTemporaryCookFolderOrDefault() const;
 
+	// Called by RefineMeshesTimer when the timer is triggered.
+	FOnRefineMeshesTimerDelegate& GetOnRefineMeshesTimerDelegate() { return OnRefineMeshesTimerDelegate; }
+
 	UPROPERTY(Instanced)
 	TArray<TObjectPtr<UHoudiniOutput>> Outputs;
 
@@ -310,7 +313,7 @@ public:
 
 	UCookableComponentData();
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere)
 	TWeakObjectPtr<USceneComponent> Component; 
 	
 	// Used to compare transform changes and whether we need to
@@ -422,6 +425,7 @@ public:
 	USceneComponent* GetComponent() const;
 	AActor* GetOwner() const;
 	UWorld* GetWorld() const;
+	ULevel* GetLevel() const;
 	bool IsOwnerSelected() const;
 	UHoudiniAsset* GetHoudiniAsset();
 	UHoudiniPDGAssetLink* GetPDGAssetLink();
@@ -450,7 +454,11 @@ public:
 	bool GetEnableCurveEditing() const;
 	bool GetSplitMeshSupport() const;
 
+	// Returns the last cached transform for the component - identity if not supported
 	FTransform GetLastComponentTransform() const;
+
+	// Returns the current component transform - identity if not supported
+	FTransform GetComponentTransform() const;
 
 	FHoudiniStaticMeshGenerationProperties GetStaticMeshGenerationProperties() const;
 	FMeshBuildSettings GetStaticMeshBuildSettings() const;
@@ -524,7 +532,9 @@ public:
 	bool NeedUpdateOutputs() const;
 
 	TArray<TObjectPtr<UHoudiniParameter>>& GetParameters();
+	const TArray<TObjectPtr<UHoudiniParameter>>& GetParameters() const;
 	TArray<TObjectPtr<UHoudiniInput>>& GetInputs();
+	const TArray<TObjectPtr<UHoudiniInput>>& GetInputs() const;
 	TArray<TObjectPtr<UHoudiniOutput>>& GetOutputs();
 	TArray<TObjectPtr<UHoudiniHandleComponent>>& GetHandleComponents();
 
@@ -643,6 +653,8 @@ public:
 	void SetStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InHSMGP);
 	void SetStaticMeshBuildSettings(const FMeshBuildSettings& InMBS);
 
+	void SetNeedToUpdateEditorProperties(const bool& bNeedToUpdate) { bNeedToUpdateEditorProperties = bNeedToUpdate; };
+
 	//------------------------------------------------------------------------------------------------
 	// Supported Features
 	//------------------------------------------------------------------------------------------------
@@ -677,7 +689,7 @@ public:
 
 	// Turn On/Off Notifications & Unreal UI
 	void SetSlateNotifications(bool bOnOff) { bDoSlateNotifications = bOnOff;  }
-	void SetUpdateEditorProperties(bool bOnOff) { bUpdateEditorProperties = bOnOff;  }
+	void SetAllowUpdateEditorProperties(bool bOnOff) { bAllowUpdateEditorProperties = bOnOff;  }
 
 	void SetAutoCook(bool bOnOff) { bAutoCook = bOnOff;  }
 	//------------------------------------------------------------------------------------------------
@@ -826,7 +838,7 @@ protected:
 	bool bHasHoudiniAsset;
 
 	// Structure containing the HDA data
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCookableHoudiniAssetData> HoudiniAssetData;
 
 	// PARAMETERS
@@ -835,7 +847,7 @@ protected:
 	bool bHasParameters;
 
 	// Structure containing the HDA data
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCookableParameterData> ParameterData;
 
 	// INPUTS
@@ -844,7 +856,7 @@ protected:
 	bool bHasInputs;
 
 	// Structure containing the HDA data
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCookableInputData> InputData;
 
 	// OUTPUTS
@@ -853,7 +865,7 @@ protected:
 	bool bHasOutputs;
 
 	// Structure containing the HDA data
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCookableOutputData> OutputData;
 
 	// COMPONENTS / TRANSFORM?
@@ -862,7 +874,7 @@ protected:
 	bool bHasComponent; // bIsInWorld?
 
 	// Structure containing the HDA data
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCookableComponentData> ComponentData;
 
 	// PDG
@@ -871,7 +883,7 @@ protected:
 	bool bHasPDG;
 
 	// Structure containing the HDA data
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCookablePDGData> PDGData;
 
 	//
@@ -912,7 +924,7 @@ protected:
 	bool bDoSlateNotifications;
 
 	UPROPERTY(Transient)
-	bool bUpdateEditorProperties;
+	bool bAllowUpdateEditorProperties;
 
 #if WITH_EDITORONLY_DATA
 public:

@@ -43,7 +43,7 @@ class UHoudiniLandscapeSplineTargetLayerOutput;
 struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 {
 	static bool BakeLandscape(
-		const UHoudiniAssetComponent* HoudiniAssetComponent,
+		const UHoudiniCookable* InCookable,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		FHoudiniEngineBakeState& InBakeState,
@@ -60,7 +60,7 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		FHoudiniClearedEditLayers& ClearedLayers);
 
 	static TArray<FHoudiniEngineBakedActor>  MoveCookedToBakedLandscapes(
-		const UHoudiniAssetComponent* HoudiniAssetComponent,
+		const UHoudiniCookable* InCookable,
 		const FName & OutlinerFolder,
 		const TArray<UHoudiniOutput*>& InOutputs, 
 		FHoudiniEngineBakeState& InBakeState,
@@ -95,7 +95,7 @@ struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
 		TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& SegmentsToApplyToLayers);
 
 	static bool BakeLandscapeSplines(
-		const UHoudiniAssetComponent* HoudiniAssetComponent,
+		const UHoudiniCookable* InCookable,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		FHoudiniEngineBakeState& InBakeState,

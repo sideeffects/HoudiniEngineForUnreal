@@ -828,18 +828,18 @@ UHoudiniEditorNodeSyncSubsystem::FetchFromHoudini()
 			HNSC->SetHoudiniAssetState(EHoudiniAssetState::NewHDA);
 
 			// Disable proxies
-			HNSC->bOverrideGlobalProxyStaticMeshSettings = true;
-			HNSC->bEnableProxyStaticMeshOverride = false;
+			HNSC->bOverrideGlobalProxyStaticMeshSettings_DEPRECATED = true;
+			HNSC->bEnableProxyStaticMeshOverride_DEPRECATED = false;
 			//HNSC->StaticMeshMethod = EHoudiniStaticMeshMethod::FMeshDescription;
 
 			// AutoBake?
 			HNSC->SetBakeAfterNextCook(NodeSyncOptions.bAutoBake ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled);
-			HNSC->bRemoveOutputAfterBake = true;
+			HNSC->bRemoveOutputAfterBake_DEPRECATED = true;
 
 			// Other options
-			HNSC->bUseOutputNodes = NodeSyncOptions.bUseOutputNodes;
-			HNSC->bReplacePreviousBake = NodeSyncOptions.bReplaceExisting;
-			HNSC->BakeFolder.Path = NodeSyncOptions.UnrealAssetFolder;
+			HNSC->bUseOutputNodes_DEPRECATED = NodeSyncOptions.bUseOutputNodes;
+			HNSC->bReplacePreviousBake_DEPRECATED = NodeSyncOptions.bReplaceExisting;
+			HNSC->BakeFolder_DEPRECATED.Path = NodeSyncOptions.UnrealAssetFolder;
 
 			// Make sure we the actor has a unique name/label
 			FString ActorNameAndLabel = NodeSyncOptions.GetUnrealActorLabel(PathIdx);

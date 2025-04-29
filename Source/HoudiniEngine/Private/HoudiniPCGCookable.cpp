@@ -104,7 +104,7 @@ void UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPC
 		});
 
 	Cookable->SetSlateNotifications(false);
-	Cookable->SetUpdateEditorProperties(false);
+	Cookable->SetAllowUpdateEditorProperties(false);
 	Cookable->SetParameterSupported(true);
 	Cookable->SetInputSupported(true);
 	Cookable->SetComponentSupported(Component ? true : false);

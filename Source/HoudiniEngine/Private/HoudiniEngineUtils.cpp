@@ -358,16 +358,16 @@ FHoudiniEngineUtils::GetConnectionError()
 }
 
 void
-FHoudiniEngineUtils::MarkAllHACsAsNeedInstantiation()
-{	
-	// Notify all the HoudiniAssetComponents that they need to re instantiate themselves in the new Houdini engine session.
-	for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
+FHoudiniEngineUtils::MarkAllCookablesAsNeedInstantiation()
+{
+	// Notify all the Cookables that they need to re instantiate themselves in the new Houdini engine session.
+	for (TObjectIterator<UHoudiniCookable> Itr; Itr; ++Itr)
 	{
-		UHoudiniAssetComponent * HoudiniAssetComponent = *Itr;
-		if (!IsValid(HoudiniAssetComponent))
+		UHoudiniCookable* HC = *Itr;
+		if (!IsValid(HC))
 			continue;
 
-		HoudiniAssetComponent->MarkAsNeedInstantiation();
+		HC->MarkAsNeedInstantiation();
 	}
 }
 
@@ -1025,7 +1025,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutput(
 void
 FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	UWorld* const InWorldContext,
-	const UHoudiniAssetComponent* HoudiniAssetComponent,
+	const UHoudiniCookable* InCookable,
 	const FHoudiniOutputObjectIdentifier& InIdentifier,
 	const FHoudiniOutputObject& InOutputObject,
 	const bool bInHasPreviousBakeData,
@@ -1052,7 +1052,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	const FString DefaultBakeFolder = !InDefaultBakeFolder.IsEmpty() ? InDefaultBakeFolder :
 		FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
 
-	const bool bIsHACValid = IsValid(HoudiniAssetComponent);
+	const bool bIsHCValid = IsValid(InCookable);
 	
 	// If InHoudiniAssetName was specified, use that, otherwise use the name of the UHoudiniAsset used by the
 	// HoudiniAssetComponent
@@ -1061,9 +1061,9 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	{
 		HoudiniAssetName = InHoudiniAssetName;
 	}
-	else if (bIsHACValid)
+	else if (bIsHCValid)
 	{
-		HoudiniAssetName = HoudiniAssetComponent->GetHoudiniAssetName();
+		HoudiniAssetName = InCookable->GetHoudiniAssetName();
 	}
 
 	// If InHoudiniAssetActorName was specified, use that, otherwise use the name of the owner of HoudiniAssetComponent
@@ -1072,15 +1072,15 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	{
 		HoudiniAssetActorName = InHoudiniAssetActorName;
 	}
-	else if (bIsHACValid && IsValid(HoudiniAssetComponent->GetOwner()))
+	else if (bIsHCValid && IsValid(InCookable->GetOwner()))
 	{
-		HoudiniAssetActorName = HoudiniAssetComponent->GetOwner()->GetActorNameOrLabel();
+		HoudiniAssetActorName = InCookable->GetOwner()->GetActorNameOrLabel();
 	}	
 
 	// Get the HAC's GUID, if the HAC is valid
-	TOptional<FGuid> ComponentGuid;
-	if (bIsHACValid)
-		ComponentGuid = HoudiniAssetComponent->GetComponentGUID();
+	TOptional<FGuid> CookableGuid;
+	if (bIsHCValid)
+		CookableGuid = InCookable->GetCookableGUID();
 
 	const bool bHasBakeNameUIOverride = !InOutputObject.BakeName.IsEmpty();
 	FillInPackageParamsForBakingOutput(
@@ -1092,7 +1092,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 		HoudiniAssetActorName,
 		InReplaceMode,
 		bAutomaticallySetAttemptToLoadMissingPackages,
-		ComponentGuid);
+		CookableGuid);
 
 	// If ObjectName is empty and InDefaultObjectName are empty, generate a default via GetPackageName
 	const FString DefaultObjectName = OutPackageParams.ObjectName.IsEmpty() && InDefaultObjectName.IsEmpty()
@@ -1102,7 +1102,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 
 	const TMap<FString, FString>& CachedAttributes = InOutputObject.CachedAttributes;
 	TMap<FString, FString> Tokens = InOutputObject.CachedTokens;
-	OutPackageParams.UpdateTokensFromParams(InWorldContext, HoudiniAssetComponent, Tokens);
+	OutPackageParams.UpdateTokensFromParams(InWorldContext, InCookable->GetComponent(), Tokens);
 	OutResolver.SetCachedAttributes(CachedAttributes);
 	OutResolver.SetTokensFromStringMap(Tokens);
 
@@ -1148,7 +1148,7 @@ FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
 	if (!bInSkipObjectNameResolutionAndUseDefault || !bInSkipBakeFolderResolutionAndUseDefault)
 	{
 		// Update the tokens from the package params
-		OutPackageParams.UpdateTokensFromParams(InWorldContext, HoudiniAssetComponent, Tokens);
+		OutPackageParams.UpdateTokensFromParams(InWorldContext, InCookable->GetComponent(), Tokens);
 		OutResolver.SetTokensFromStringMap(Tokens);
 
 #if defined(HOUDINI_ENGINE_DEBUG_BAKING) && HOUDINI_ENGINE_DEBUG_BAKING
@@ -3154,33 +3154,9 @@ FHoudiniEngineUtils::ConvertHoudiniRotEulerToUnrealVector(const TArray<float>& I
 }
 
 bool
-FHoudiniEngineUtils::UploadHACTransform(UHoudiniAssetComponent* HAC)
-{
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::UploadHACTransform);
-
-	if (!HAC || !HAC->GetUploadTransformsToHoudiniEngine())
-		return false;
-
-	// Indicates the HAC has been fully loaded
-	// TODO: Check! (replaces fullyloaded)
-	if (!HAC->IsFullyLoaded())
-		return false;
-
-	if (HAC->GetAssetCookCount() > 0 && HAC->GetAssetId() >= 0)
-	{
-		if (!FHoudiniEngineUtils::HapiSetAssetTransform(HAC->GetAssetId(), HAC->GetComponentTransform()))
-			return false;
-	}
-
-	HAC->SetHasComponentTransformChanged(false);
-
-	return true;
-}
-
-bool
 FHoudiniEngineUtils::UploadCookableTransform(UHoudiniCookable* HC)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::UploadHACTransform);
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::UploadCookableTransform);
 
 	if (!HC || !HC->IsComponentSupported())
 		return false;

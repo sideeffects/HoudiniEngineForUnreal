@@ -25,13 +25,17 @@
 */
 
 #include "HoudiniBakeLevelInstanceUtils.h"
-#include "Editor.h"
+
+#include "HoudiniCookable.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniEngineBakeUtils.h"
+#include "HoudiniOutput.h"
+
+#include "Editor.h"
 #include "LevelInstance/LevelInstanceActor.h"
 #include "LevelInstance/LevelInstanceTypes.h"
 #include "LevelInstance/LevelInstanceSubsystem.h"
-#include "HoudiniOutput.h"
-#include "HoudiniEngineBakeUtils.h"
+
 
 ILevelInstanceInterface * FHoudiniBakeLevelInstanceUtils::CreateLevelInstance(
 	const FHoudiniLevelInstanceParams& Params, 
@@ -97,13 +101,17 @@ FHoudiniBakeLevelInstanceUtils::GetHoudiniObject(
 
 bool
 FHoudiniBakeLevelInstanceUtils::CreateLevelInstances(
-	UHoudiniAssetComponent * HAC, 
-	const TArray<FHoudiniEngineBakedActor>& BakedActors,
-	const FString& BakeFolder,
+	UHoudiniCookable* HC, 
+	const TArray<FHoudiniEngineBakedActor>& BakedActors,	
 	FHoudiniBakedObjectData& BakedObjectData)
 {
+	if (!HC)
+		return false;
+
 	TArray<UHoudiniOutput*> CookedOutputs;
-	HAC->GetOutputs(CookedOutputs);
+	HC->GetOutputs(CookedOutputs);
+
+	FString BakeFolder = HC->GetBakeFolderOrDefault();
 
 	//----------------------------------------------------------------------------------------------------------------------------------
 	// Go through all baked actors and find any which have valid information about level instancing. Build a list of level

@@ -82,18 +82,19 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 
 	FHoudiniLandscapeSettings LandscapeSettings;
 
-	if (UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InOutput))
+	if (UHoudiniCookable* HC = FHoudiniEngineUtils::GetOuterHoudiniCookable(InOutput))
 	{
 		// Pull settings from the HAC
-		LandscapeSettings.LocalToWorldTransform = HAC->GetComponentToWorld();
-		LandscapeSettings.bUseTempLayers = HAC->bLandscapeUseTempLayers;
-		LandscapeSettings.TempLayerSuffix = InPackageParams.GetPackageName() + HAC->GetComponentGUID().ToString();
+		LandscapeSettings.LocalToWorldTransform = HC->GetComponent() ? HC->GetComponent()->GetComponentToWorld() : FTransform::Identity;
+		LandscapeSettings.bUseTempLayers = HC->GetLandscapeUseTempLayers();
+		LandscapeSettings.TempLayerSuffix = InPackageParams.GetPackageName() + HC->GetCookableGUID().ToString();
 	}
 	else if (USceneComponent* SceneComponent = FHoudiniEngineUtils::GetOuterSceneComponent(InOutput))
 	{
+		// TODO: ? unecessary?
 		// If attached to a scene component (which a cookable may be), use its transform.
 		LandscapeSettings.LocalToWorldTransform = SceneComponent->GetComponentToWorld();
-		LandscapeSettings.bUseTempLayers = false;
+		LandscapeSettings.bUseTempLayers = HC->GetLandscapeUseTempLayers();
 	}
 
 	//------------------------------------------------------------------------------------------------------------------------------

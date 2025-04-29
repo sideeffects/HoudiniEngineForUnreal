@@ -28,12 +28,12 @@
 
 #include "HAPI/HAPI_Common.h"
 #include "CoreMinimal.h"
-#include "HoudiniAssetComponent.h"
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniEngineOutputStats.h"
 #include "HoudiniOutput.h"
 
 class UHoudiniOutput;
+class UHoudiniCookable;
 class ILevelInstanceInterface;
 class AActor;
 struct FHoudiniBakedOutput;
@@ -45,9 +45,8 @@ class FHoudiniBakeLevelInstanceUtils
 public:
 
 	static bool CreateLevelInstances(
-		UHoudiniAssetComponent * HAC, 
+		UHoudiniCookable* HC,
 		const TArray<FHoudiniEngineBakedActor> & BakedActors,
-		const FString& BakeFolder,
 		FHoudiniBakedObjectData& BakedObjectData);
 
 protected:

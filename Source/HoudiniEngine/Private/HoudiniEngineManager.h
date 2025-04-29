@@ -58,14 +58,12 @@ public:
 	
 	bool Tick(float DeltaTime);
 
-	// Updates / Process a component
-	void ProcessComponent(UHoudiniAssetComponent* HAC);
-
+	// Updates / Process a cookable
 	void ProcessCookable(UHoudiniCookable* HC);
 
-	// Build UStaticMesh for all UHoudiniStaticMesh in a HAC.
-	// This is fired by the OnRefinedMeshesTimerDelegate on a HAC
-	void BuildStaticMeshesForAllHoudiniStaticMeshes(UHoudiniAssetComponent* HAC);
+	// Build UStaticMesh for all UHoudiniStaticMesh on a Cookable.
+	// This is fired by the OnRefinedMeshesTimerDelegate on a Cookable.
+	void BuildStaticMeshesForAllHoudiniStaticMeshes(UHoudiniCookable* HC);
 
 	void StartPDGCommandlet()
 	{
@@ -110,9 +108,6 @@ protected:
 	// Updates progress of the instantiation task
 	// Returns true if a state change should be made
 	bool UpdateInstantiating(
-		UHoudiniAssetComponent* HAC, EHoudiniAssetState& NewState);
-
-	bool UpdateInstantiating(
 		UHoudiniCookable* HC, EHoudiniAssetState& NewState, bool bDoNotifications);
 
 	// Start a task to instantiate the Houdini Asset with the given node Id
@@ -135,19 +130,15 @@ protected:
 		bool& OutSuccess);
 
 	// Called to update template components. 
-	bool PreCookTemplate(UHoudiniAssetComponent* HAC);
+	//bool PreCookTemplate(UHoudiniAssetComponent* HAC);
 
 	// Called to update all houdini nodes/params/inputs before a cook has started
-	bool PreCook(UHoudiniAssetComponent* HAC);
 	bool PreCook(UHoudiniCookable* HC);
 
 	// Called after a cook has finished 
-	bool PostCook(UHoudiniAssetComponent* HAC);
 	bool PostCook(UHoudiniCookable* HC);
 
-	bool StartTaskAssetProcess(UHoudiniAssetComponent* HAC);
 	bool StartTaskAssetProcess(UHoudiniCookable* HC); 
-	bool UpdateProcess(UHoudiniAssetComponent* HAC);	
 	bool UpdateProcess(UHoudiniCookable* HC);
 
 	// Starts a rebuild task (delete then re instantiate)
@@ -163,7 +154,6 @@ protected:
 		FGuid& OutTaskGUID,
 		bool bShouldDeleteParent);
 
-	bool IsCookingEnabledForHoudiniAsset(UHoudiniAssetComponent* HAC);
 	bool IsCookingEnabledForCookable(UHoudiniCookable* HC);
 
 	// Syncs the houdini viewport to Unreal's viewport

@@ -39,8 +39,6 @@ class USceneComponent;
 
 struct HOUDINIENGINE_API FHoudiniHandleTranslator 
 {
-	static bool BuildHandles(UHoudiniAssetComponent* HAC);
-
 	static bool BuildHandles(UHoudiniCookable* HC);
 
 	static bool BuildAllHandles(

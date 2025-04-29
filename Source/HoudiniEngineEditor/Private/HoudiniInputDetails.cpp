@@ -30,6 +30,7 @@
 
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetBlueprintComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniInput.h"
 #include "HoudiniInputWidgets.h"
 #include "HoudiniLandscapeTranslator.h"
@@ -3067,13 +3068,13 @@ FHoudiniInputDetails::AddCurveInputUI(
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
-		UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(MainInput->GetOuter());
-		if (!IsValid(OuterHAC))
+		UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(MainInput->GetOuter());
+		if (!IsValid(OuterHC))
 			return;
 
-		// Do not insert input object when the HAC does not finish cooking
-		EHoudiniAssetState CurrentHACState = OuterHAC->GetAssetState();
-		if (CurrentHACState >= EHoudiniAssetState::PreCook && CurrentHACState <= EHoudiniAssetState::Processing)
+		// Do not insert input object when the Cookable does not finish cooking
+		EHoudiniAssetState CurrentHCState = OuterHC->GetCurrentState();
+		if (CurrentHCState >= EHoudiniAssetState::PreCook && CurrentHCState <= EHoudiniAssetState::Processing)
 			return;
 
 		// Clear the to be inserted object array, which records the pointers of the input objects to be inserted.
@@ -3098,7 +3099,7 @@ FHoudiniInputDetails::AddCurveInputUI(
 		MainInput->SetInputObjectsNumber(EHoudiniInputType::Curve, NewInputCount);
 
 		if (bBlueprintStructureModified)
-			FHoudiniEngineRuntimeUtils::MarkBlueprintAsStructurallyModified(OuterHAC);
+			FHoudiniEngineRuntimeUtils::MarkBlueprintAsStructurallyModified(OuterHC->GetComponent());
 
 		if (CategoryBuilder.IsParentLayoutValid())
 			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
@@ -3416,8 +3417,8 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
-	UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(MainInput->GetOuter());
-	if (!IsValid(OuterHAC))
+	UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(MainInput->GetOuter());
+	if (!IsValid(OuterHC))
 		return;
 
 	TArray<TObjectPtr<UHoudiniInputObject>>* CurveInputs = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
@@ -3463,15 +3464,15 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 		return FoundHoudiniSplineComponent;
 	};
 
-	auto DeleteCurveAtIdx = [InInputs, InObjIdx, OuterHAC, CurveInputs, &CategoryBuilder]()
+	auto DeleteCurveAtIdx = [InInputs, InObjIdx, OuterHC, CurveInputs, &CategoryBuilder]()
 	{
-		if (!IsValid(OuterHAC))
+		if (!IsValid(OuterHC))
 			return;
 
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
 			LOCTEXT("HoudiniInputChange", "Houdini Input: Deleted a curve input."),
-			OuterHAC);
+			OuterHC);
 		
 		int CurveInputsNum = CurveInputs->Num();
 		for (auto& CurInput : InInputs)
@@ -3505,9 +3506,9 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
 	};
 
-	auto ChangedClosedCurve = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC, &CategoryBuilder](ECheckBoxState NewState)
+	auto ChangedClosedCurve = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHC, &CategoryBuilder](ECheckBoxState NewState)
 	{
-		if (!IsValid(OuterHAC))
+		if (!IsValid(OuterHC))
 			return;
 
 		bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -3515,7 +3516,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
 			LOCTEXT("HoudiniCurveInputChangeClosed", "Houdini Input: Changed Curve Closed"),
-			OuterHAC);
+			OuterHC);
 
 		for (auto& Input : InInputs)
 		{
@@ -3539,9 +3540,9 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
 	};
 
-	auto ChangedReversedCurve = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC, &CategoryBuilder](ECheckBoxState NewState)
+	auto ChangedReversedCurve = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHC, &CategoryBuilder](ECheckBoxState NewState)
 	{
-		if (!IsValid(OuterHAC))
+		if (!IsValid(OuterHC))
 			return;
 
 		bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -3549,7 +3550,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
 			LOCTEXT("HoudiniCurveInputChangeReversed", "Houdini Input: Changed Curve Reversed"),
-			OuterHAC);
+			OuterHC);
 
 		for (auto& Input : InInputs)
 		{
@@ -3572,9 +3573,9 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 			CategoryBuilder.GetParentLayout().ForceRefreshDetails();
 	};
 
-	auto ChangedVisibleCurve = [GetHoudiniSplineComponentAtIdx, InInputs, OuterHAC, InObjIdx, &CategoryBuilder](ECheckBoxState NewState)
+	auto ChangedVisibleCurve = [GetHoudiniSplineComponentAtIdx, InInputs, OuterHC, InObjIdx, &CategoryBuilder](ECheckBoxState NewState)
 	{
-		if (!IsValid(OuterHAC))
+		if (!IsValid(OuterHC))
 			return;
 
 		bool bNewState = (NewState == ECheckBoxState::Checked);
@@ -3582,7 +3583,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
 			LOCTEXT("HoudiniCurveInputChangeVisible", "Houdini Input: Changed Curve Visible"),
-			OuterHAC);
+			OuterHC);
 
 		for (auto& Input : InInputs)
 		{
@@ -3768,9 +3769,9 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 		return FText::FromString(FHoudiniEngineEditorUtils::HoudiniCurveTypeToString(HoudiniSplineComponent->GetCurveType()));
 	};
 
-	auto OnCurveTypeChanged = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC](TSharedPtr<FString> InNewChoice)
+	auto OnCurveTypeChanged = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHC](TSharedPtr<FString> InNewChoice)
 	{
-		if (!IsValid(OuterHAC))
+		if (!IsValid(OuterHC))
 			return;
 
 		if (!InNewChoice.IsValid())
@@ -3781,7 +3782,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
 			LOCTEXT("HoudiniCurveInputChangeType", "Houdini Input: Changed Curve Type"),
-			OuterHAC);
+			OuterHC);
 
 		for (auto& Input : InInputs)
 		{
@@ -3813,9 +3814,9 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 		return FText::FromString(FHoudiniEngineEditorUtils::HoudiniCurveMethodToString(HoudiniSplineComponent->GetCurveMethod()));
 	};
 
-	auto OnCurveMethodChanged = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC](TSharedPtr<FString> InNewChoice)
+	auto OnCurveMethodChanged = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHC](TSharedPtr<FString> InNewChoice)
 	{
-		if (!IsValid(OuterHAC))
+		if (!IsValid(OuterHC))
 			return;
 
 		if (!InNewChoice.IsValid())
@@ -3826,7 +3827,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
 			LOCTEXT("HoudiniCurveInputChangeMethod", "Houdini Input: Changed Curve Method"),
-			OuterHAC);
+			OuterHC);
 
 		for (auto& Input : InInputs)
 		{
@@ -3952,9 +3953,9 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 		TSharedPtr<SNumericEntryBox<int>> NumericEntryBox;
 		int32 Idx = 0;
 
-		auto OnBreakpointParameterizationChanged = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC](TSharedPtr<FString> InNewChoice)
+		auto OnBreakpointParameterizationChanged = [GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHC](TSharedPtr<FString> InNewChoice)
 		{
-			if (!IsValid(OuterHAC))
+			if (!IsValid(OuterHC))
 				return;
 
 			if (!InNewChoice.IsValid())
@@ -3965,7 +3966,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 			FScopedTransaction Transaction(
 				TEXT(HOUDINI_MODULE_EDITOR),
 				LOCTEXT("HoudiniCurveInputChangeBreakpointParameterization", "Houdini Input: Changed Curve Breakpoint Parameterization"),
-				OuterHAC);
+				OuterHC);
 
 			for (auto& Input : InInputs)
 			{
@@ -4022,15 +4023,15 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 				.MinSliderValue(HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MIN)
 				.MaxSliderValue(HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MAX)
 				.Value(HoudiniSplineComponent->GetCurveOrder())
-				.OnValueChanged_Lambda([GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC](int Val)
+				.OnValueChanged_Lambda([GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHC](int Val)
 				{
-					if (!IsValid(OuterHAC))
+					if (!IsValid(OuterHC))
 						return;
 
 					FScopedTransaction Transaction(
 						TEXT(HOUDINI_MODULE_EDITOR),
 						LOCTEXT("HoudiniChangeCurveOrder", "Houdini Input: Changed curve order"),
-						OuterHAC);
+						OuterHC);
 
 					for (auto& Input : InInputs)
 					{
@@ -4057,15 +4058,15 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 				.ButtonStyle(_GetEditorStyle(), "NoBorder")
 				.ContentPadding(0)
 				.Visibility(HoudiniSplineComponent->GetCurveOrder() != HAPI_UNREAL_ATTRIB_HAPI_INPUT_CURVE_ORDER_MIN ? EVisibility::Visible : EVisibility::Hidden)
-				.OnClicked_Lambda([GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHAC]()
+				.OnClicked_Lambda([GetHoudiniSplineComponentAtIdx, InInputs, InObjIdx, OuterHC]()
 				{
-					if (!IsValid(OuterHAC))
+					if (!IsValid(OuterHC))
 						return FReply::Handled();
 
 					FScopedTransaction Transaction(
 						TEXT(HOUDINI_MODULE_EDITOR),
 						LOCTEXT("HoudiniCurveInputChangeMethod", "Houdini Input: Changed Curve Method"),
-						OuterHAC);
+						OuterHC);
 
 					for (auto& Input : InInputs)
 					{
@@ -4150,11 +4151,11 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 			if (!IsValidWeakPointer(NextInput))
 				continue;
 
-			UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(NextInput->GetOuter());
-			if (!IsValid(OuterHAC))
+			UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(NextInput->GetOuter());
+			if (!IsValid(OuterHC))
 				continue;
 
-			AActor* OwnerActor = OuterHAC->GetOwner();
+			AActor* OwnerActor = OuterHC->GetOwner();
 			if (!IsValid(OwnerActor))
 				continue;
 
@@ -4177,8 +4178,8 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 				continue;
 
 			FHoudiniPackageParams PackageParams;
-			PackageParams.BakeFolder = OuterHAC->GetBakeFolderOrDefault();
-			PackageParams.HoudiniAssetName = OuterHAC->GetName();
+			PackageParams.BakeFolder = OuterHC->GetBakeFolderOrDefault();
+			PackageParams.HoudiniAssetName = OuterHC->GetName();
 			PackageParams.GeoId = NextInput->GetAssetNodeId();
 			PackageParams.PackageMode = EPackageMode::Bake;
 			PackageParams.ObjectId = Index;
@@ -4189,7 +4190,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 			if (bBakeToBlueprint)
 			{
 				FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToBlueprint(
-					OuterHAC,
+					OuterHC,
 					HoudiniSplineComponent,
 					PackageParams,
 					BakeSettings,
@@ -4198,7 +4199,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 			else
 			{
 				FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToActor(
-					OuterHAC,
+					OuterHC,
 					HoudiniSplineComponent,
 					PackageParams,
 					BakeSettings,
@@ -4259,10 +4260,11 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetCollapsed(
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
 	if (!IsValidWeakPointer(MainInput))
 		return;
-
-	UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(MainInput->GetOuter());
-	if (!IsValid(OuterHAC))
+	/*
+	UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(MainInput->GetOuter());
+	if (!IsValid(OuterHC))
 		return;
+	*/
 
 	TArray<TObjectPtr<UHoudiniInputObject>>* CurveInputs = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
 	if (!CurveInputs)
@@ -7439,38 +7441,6 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 
 			AllSelectedActors.Add(CurrentActor);
 		}
-
-/*
-		// TODO: Fix! Selected instances still dont send their parent actor...
-		// ... also add all actors owning the selected components
-		// TODO: Improve - only send the selected components and not their actors?
-		for (FSelectionIterator It(*SelectedComponents); It; ++It)
-		{
-			UActorComponent* CurrentComponent = Cast<UActorComponent>(*It);
-			if (!CurrentComponent)
-				continue;
-
-			AActor* CurrentActor = CurrentComponent->GetOwner();
-			if (!CurrentActor)
-				continue;
-
-			AllSelectedActors.AddUnique(CurrentActor);
-		}
-
-		// ... also look at the selected editable components
-		for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
-		{
-			USceneComponent* SceneComponent = Cast<USceneComponent>(*It);
-			if (!SceneComponent)
-				continue;
-
-			AActor* CurrentActor = SceneComponent->GetOwner();
-			if (!CurrentActor)
-				continue;
-
-			AllSelectedActors.AddUnique(CurrentActor);
-		}
-*/
 
 		// Create a transaction
 		FScopedTransaction Transaction(

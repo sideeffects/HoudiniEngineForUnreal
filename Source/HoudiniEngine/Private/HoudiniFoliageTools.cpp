@@ -141,6 +141,8 @@ FHoudiniFoliageTools::GetFoliageTypes(const ULevel* DesiredLevel, const UStaticM
 TArray<FFoliageInfo*> FHoudiniFoliageTools::GetAllFoliageInfo(UWorld * World, UFoliageType* FoliageType)
 {
 	TArray<FFoliageInfo*> Results;
+	if (!IsValid(World))
+		return Results;
 
 	for (TActorIterator<AActor> It(World, AInstancedFoliageActor::StaticClass()); It; ++It)
 	{

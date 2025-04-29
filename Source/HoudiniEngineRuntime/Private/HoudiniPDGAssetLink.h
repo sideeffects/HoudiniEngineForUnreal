@@ -379,14 +379,12 @@ public:
 
 	void Reset();
 
-	/** Get the owning/outer UHoudiniPDGAssetLink of this UTOPNode. */
+	// Get the owning/outer UHoudiniPDGAssetLink of this UTOPNode.
 	UHoudiniPDGAssetLink* GetOuterAssetLink() const;
 
-	/**
-	 * Get the Guid of the HoudiniAssetComponent that owns the AssetLink. Returns an invalid Guid if the HAC or
-	 * asset link could not be found / is invalid.
-	 */
-	FGuid GetHoudiniComponentGuid() const;
+	// Get the Guid of the Cookable that owns the AssetLink. 
+	// Returns an invalid Guid if the HAC or asset link could not be found / is invalid.
+	FGuid GetHoudiniCookableGuid() const;
 
 	const FWorkItemTallyBase& GetWorkItemTally() const
 	{
@@ -730,16 +728,16 @@ public:
 	// Results must be tagged with 'file', and must have a file path, otherwise will not be loaded.
 	//void LoadResults(FTOPNode TOPNode, HAPI_PDG_WorkitemInfo workItemInfo, HAPI_PDG_WorkitemResultInfo[] resultInfos, HAPI_PDG_WorkitemId workItemID)
 
-	// Return the first UHoudiniAssetComponent in the parent chain. If this asset link is not
-	// owned by a HoudiniAssetComponent, a nullptr will be returned.
-	UHoudiniAssetComponent* GetOuterHoudiniAssetComponent() const;
+	// Return the first UHoudiniCookable in the parent chain. 
+	// If this asset link is not owned by a HoudiniCookable, a nullptr will be returned.
+	UHoudiniCookable* GetOuterHoudiniCookable() const;
 
-	// Helper function to get the GUID of the owning HoudiniAssetComponent. Returns an invalid FGuid if
-	// GetOuterHoudiniAssetComponent() returns null.
-	FGuid GetOuterHoudiniComponentGuid() const;
+	// Helper function to get the GUID of the owning HoudiniCookable.
+	// Returns an invalid FGuid if GetOuterHoudiniAssetComponent() returns null.
+	FGuid GetOuterCookableGuid() const;
 
-	// Gets the temporary cook folder. If the parent of this asset link is a HoudiniAssetComponent use that, otherwise
-	// use the default static mesh temporary cook folder.
+	// Gets the temporary cook folder. If the parent of this asset link is a HoudiniCookable use that,
+	// otherwise use the default static mesh temporary cook folder.
 	FDirectoryPath GetTemporaryCookFolder() const;
 
 	// Get the actor that owns this PDG asset link. If the asset link is owned by a component,

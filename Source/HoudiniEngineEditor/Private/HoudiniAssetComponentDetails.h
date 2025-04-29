@@ -28,6 +28,7 @@
 
 #include "CoreMinimal.h"
 #include "IDetailCustomization.h"
+#include "HoudiniCookableDetails.h"
 #include "HoudiniPDGDetails.h"
 #include "HoudiniOutputDetails.h"
 #include "HoudiniParameterDetails.h"
@@ -71,4 +72,7 @@ private:
 
 	// Structure holding the HoudiniAsset details
 	TSharedPtr<FHoudiniEngineDetails, ESPMode::NotThreadSafe> HoudiniEngineDetails;
+
+	// Structure holding the Cookable details
+	TSharedPtr<FHoudiniCookableDetails> CookableDetails;
 };

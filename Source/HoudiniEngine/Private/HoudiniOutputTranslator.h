@@ -57,15 +57,7 @@ struct HOUDINIENGINE_API FHoudiniOutputTranslator
 public:
 
 	// 
-	static bool UpdateOutputs(UHoudiniAssetComponent* HAC);
-
-	// 
 	static bool UpdateOutputs(UHoudiniCookable* HC);
-
-	//
-	static bool ProcessOutputs(
-		UHoudiniAssetComponent* HAC,
-		bool& bOutHasHoudiniStaticMeshOutput);
 
 	//
 	static bool ProcessOutputs(
@@ -74,7 +66,7 @@ public:
 
 	//
 	static bool BuildStaticMeshesOnHoudiniProxyMeshOutputs(
-		UHoudiniAssetComponent* HAC,
+		UHoudiniCookable* HC,
 		bool bInDestroyProxies = false);
 
 	//

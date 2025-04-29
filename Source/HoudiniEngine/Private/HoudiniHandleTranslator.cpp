@@ -38,27 +38,6 @@
 #include "HoudiniHandleComponent.h"
 #include "HoudiniParameter.h"
 
-bool
-FHoudiniHandleTranslator::BuildHandles(UHoudiniAssetComponent* HAC) 
-{
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniHandleTranslator::BuildHandles);
-
-	if (!IsValid(HAC))
-		return false;
-
-	TArray<TObjectPtr<UHoudiniHandleComponent>> NewHandles;
-	if (FHoudiniHandleTranslator::BuildAllHandles(
-		HAC->GetAssetId(),
-		HAC,
-		HAC->GetHandleComponents(),
-		NewHandles,
-		HAC->GetParameters()))
-	{
-		HAC->HandleComponents = NewHandles;
-	}
-
-	return true;
-}
 
 bool
 FHoudiniHandleTranslator::BuildHandles(UHoudiniCookable* HC)

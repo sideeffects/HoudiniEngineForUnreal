@@ -29,12 +29,12 @@
 UHoudiniNodeSyncComponent::UHoudiniNodeSyncComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bForceNeedUpdate = false;
+	bForceNeedUpdate_DEPRECATED = false;
 
 	// AssetState will be updated by changes to the HoudiniAsset
 	// or parameter changes on the Component template.
-	AssetState = EHoudiniAssetState::None;
-	bHasBeenLoaded = false;
+	AssetState_DEPRECATED = EHoudiniAssetState::None;
+	bHasBeenLoaded_DEPRECATED = false;
 
 	/*
 	// Disable proxy mesh by default (unsupported for now)

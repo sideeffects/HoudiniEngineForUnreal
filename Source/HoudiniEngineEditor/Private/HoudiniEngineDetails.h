@@ -70,9 +70,6 @@ public:
 class FHoudiniEngineDetails : public TSharedFromThis<FHoudiniEngineDetails, ESPMode::NotThreadSafe>
 {
 public:
-	static void CreateWidget(
-		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
 	// HE ICON
 	static void CreateHoudiniEngineIconWidget(
@@ -86,17 +83,9 @@ public:
 	// GENERATE
 	static void CreateGenerateWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
-
-	static void CreateGenerateWidgets(
-		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
 
 	// BAKE
-	static void CreateBakeWidgets(
-		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
-
 	static void CreateBakeWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
@@ -109,17 +98,9 @@ public:
 	// ASSET OPTIONS
 	static void CreateAssetOptionsWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
-
-	static void CreateAssetOptionsWidgets(
-		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
 
 	// HELP DEBUG
-	static void CreateHelpAndDebugWidgets(
-		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
-
 	static void CreateHelpAndDebugWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
@@ -144,11 +125,6 @@ public:
 
 	static TSharedPtr<SWidget> ConstructActionMenu(
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs, class IDetailLayoutBuilder*);
-
-	static void AddHeaderRowForHoudiniAssetComponent(
-		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TWeakObjectPtr<UHoudiniAssetComponent>& HoudiniAssetComponent,
-		int32 MenuSection);
 
 	static void AddHeaderRowForCookable(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
@@ -187,14 +163,6 @@ public:
 		const int32 InLineNumber=INDEX_NONE);
 
 private:
-
-	// Helper function that can be used to set either the bake/tempcook folder path
-	static void SetFolderPath(
-		const FText& InPathText,
-		const bool& bIsBakePath,
-		const TWeakObjectPtr<UHoudiniAssetComponent>& InMainHAC,
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
-
 
 	// Helper function that can be used to set either the bake/tempcook folder path on cookables
 	static void SetFolderPath(

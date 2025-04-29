@@ -306,7 +306,6 @@ UCookablePDGData::SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink)
 UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// TODO COOKABLE
 	NodeId = -1;
 	CurrentState = EHoudiniAssetState::NewHDA;
 	CurrentStateResult = EHoudiniAssetStateResult::None;
@@ -334,38 +333,26 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 	//LastLiveSyncPingTime = 0.0;
 
 	bHasHoudiniAsset = false;
-/*	HoudiniAssetData = NewObject<UCookableHoudiniAssetData>(
-		this, UCookableHoudiniAssetData::StaticClass(), NAME_None, RF_NoFlags);*/
 	HoudiniAssetData = CreateDefaultSubobject<UCookableHoudiniAssetData>(TEXT("HoudiniAssetData"));
 
 	bHasInputs = false;
-/*	InputData = NewObject<UCookableInputData>(
-		this, UCookableInputData::StaticClass(), NAME_None, RF_NoFlags);*/
 	InputData = CreateDefaultSubobject<UCookableInputData>(TEXT("InputData"));
 
 	bHasParameters = false;
-/*	ParameterData = NewObject<UCookableParameterData>(
-		this, UCookableParameterData::StaticClass(), NAME_None, RF_NoFlags);*/
 	ParameterData = CreateDefaultSubobject<UCookableParameterData>(TEXT("ParameterData"));
 	
 	bHasComponent = false;
-/*	ComponentData = NewObject<UCookableComponentData>(
-		this, UCookableComponentData::StaticClass(), NAME_None, RF_NoFlags);*/
 	ComponentData = CreateDefaultSubobject<UCookableComponentData>(TEXT("ComponentData"));
 
 	bHasOutputs = false;
-/*	OutputData = NewObject<UCookableOutputData>(
-		this, UCookableOutputData::StaticClass(), NAME_None, RF_NoFlags);*/
 	OutputData = CreateDefaultSubobject<UCookableOutputData>(TEXT("OutputData"));
 
 	bHasPDG = false;
-/*	PDGData = NewObject<UCookablePDGData>(
-		this, UCookablePDGData::StaticClass(), NAME_None, RF_NoFlags);*/
 	PDGData = CreateDefaultSubobject<UCookablePDGData>(TEXT("PDGData"));
 
 	bNeedToUpdateEditorProperties = false;
 	bDoSlateNotifications = true;
-	bUpdateEditorProperties = true;
+	bAllowUpdateEditorProperties = true;
 
 	/*
 	//
@@ -395,9 +382,8 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 
 UHoudiniCookable::~UHoudiniCookable()
 {
-	// TODO COOKABLE
 	// Unregister ourself so our houdini nodes can be deleted.
-	//FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
+	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
 }
 
 template <typename Type> bool HoudiniCheckAndSetValue(Type & Dest, Type & Src)
@@ -545,9 +531,24 @@ UHoudiniCookable::GetOwner() const
 UWorld*
 UHoudiniCookable::GetWorld() const
 {
-	// TODO COOKABLE:
-	// ?? return GetComponent()->GetWold() first? though it should be same...
+	// Should we return GetComponent()->GetWold() first? it should be same as the Actor's world...
 	return GetOwner() ? GetOwner()->GetWorld() : nullptr;
+}
+
+
+ULevel* 
+UHoudiniCookable::GetLevel() const
+{
+	USceneComponent* MyComp = GetComponent();
+	AActor* MyOwner = MyComp ? MyComp->GetOwner() : nullptr;
+
+	if (MyOwner)
+		return MyOwner->GetLevel();
+	
+	if(MyComp)
+		return MyComp->GetTypedOuter<ULevel>();
+	
+	return nullptr;
 }
 
 FDirectoryPath
@@ -799,7 +800,6 @@ UHoudiniCookable::HandleOnHoudiniAssetStateChange(UObject* InHoudiniAssetContext
 	if (StateChangedDelegate.IsBound())
 		StateChangedDelegate.Broadcast(this, InFromState, InToState);
 
-	// TODO: not needed?
 	FOnCookableStateChangeDelegate& CookableStateChangeDelegate = GetOnCookableStateChangeDelegate();
 	if (CookableStateChangeDelegate.IsBound())
 		CookableStateChangeDelegate.Broadcast(this, InFromState, InToState);
@@ -1083,7 +1083,7 @@ UHoudiniCookable::UpdatePostDuplicate()
 {
 	if (IsComponentSupported() && IsValid(ComponentData->Component.Get()))
 	{
-		// TODO COOKABLE:
+		// TODO:
 		// - Keep the output objects/components (remove duplicatetransient on the output object uproperties)
 		// - Duplicate created objects (ie SM) and materials
 		// - Update the output components to use these instead
@@ -1577,8 +1577,20 @@ UHoudiniCookable::GetParameters()
 	return ParameterData->Parameters;
 }
 
+const TArray<TObjectPtr<UHoudiniParameter>>&
+UHoudiniCookable::GetParameters() const
+{
+	return ParameterData->Parameters;
+}
+
 TArray<TObjectPtr<UHoudiniInput>>&
 UHoudiniCookable::GetInputs()
+{
+	return InputData->Inputs;
+}
+
+const TArray<TObjectPtr<UHoudiniInput>>&
+UHoudiniCookable::GetInputs() const
 {
 	return InputData->Inputs;
 }
@@ -2110,6 +2122,18 @@ UHoudiniCookable::GetLastComponentTransform() const
 	return ComponentData->LastComponentTransform;
 }
 
+FTransform
+UHoudiniCookable::GetComponentTransform() const 
+{
+	if (!IsComponentSupported())
+		return FTransform::Identity;
+
+	if (!GetComponent())
+		return FTransform::Identity;
+
+	return GetComponent()->GetComponentTransform();
+}
+
 bool
 UHoudiniCookable::GetLandscapeUseTempLayers() const
 {
@@ -2410,7 +2434,6 @@ UHoudiniCookable::OnDestroy(bool bDestroyingHierarchy)
 
 					if (IsInGameThread() && IsGarbageCollecting())
 					{
-						// TODO: ??
 						// Calling DeleteInstancesForComponent during GC will cause unreal to crash... 
 						HOUDINI_LOG_WARNING(TEXT("%s: Unable to clear foliage instances because of GC"), GetOwner() ? *(GetOwner()->GetName()) : *GetName());
 					}

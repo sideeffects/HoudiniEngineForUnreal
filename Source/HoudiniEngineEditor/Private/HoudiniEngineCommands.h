@@ -32,8 +32,8 @@
 #include "HoudiniEngineRuntimeCommon.h"
 #include "HoudiniRuntimeSettings.h"
 
-class UHoudiniAssetComponent;
 class AHoudiniAssetActor;
+class UHoudiniCookable;
 struct FSlowTask;
 
 static const FName NodeSyncTabName("HoudiniNodeSync");
@@ -44,8 +44,8 @@ static const FName ExamplesTabName("Examples");
 class FHoudiniEngineCommands : public TCommands<FHoudiniEngineCommands>
 {
 public:
-	// Multi-cast delegate type for broadcasting when proxy mesh refinement of a HAC is complete. 
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnHoudiniProxyMeshesRefinedDelegate, UHoudiniAssetComponent* const, const EHoudiniProxyRefineResult);
+	// Multi-cast delegate type for broadcasting when proxy mesh refinement of a Cookable is complete. 
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnHoudiniProxyMeshesRefinedDelegate, UHoudiniCookable* const, const EHoudiniProxyRefineResult);
 	
 	FHoudiniEngineCommands();
 
@@ -152,11 +152,11 @@ public:
 
 	// Helper function for building static meshes for all assets using HoudiniStaticMesh
 	// If bSilent is false, show a progress dialog.
-	// If bRefineAll is true, then all components with HoudiniStaticMesh meshes will be
+	// If bRefineAll is true, then all Cookables with HoudiniStaticMesh meshes will be
 	// refined to UStaticMesh. Otherwise, bOnPreSaveWorld and bOnPrePIEBeginPlay is checked
 	// against the settings of the component to determine if refinement should take place.
 	// If bOnPreSaveWorld is true, then OnPreSaveWorld should be the World that is being saved. In
-	// that case, only proxy meshes attached to components from that world will be refined.
+	// that case, only proxy meshes attached to Cookables from that world will be refined.
 	static EHoudiniProxyRefineRequestResult RefineHoudiniProxyMeshesToStaticMeshes(bool bOnlySelectedActors, bool bSilent=false, bool bRefineAll=true, bool bOnPreSaveWorld=false, UWorld *PreSaveWorld=nullptr, bool bOnPrePIEBeginPlay=false);
 
 	// Refine all proxy meshes on UHoudiniAssetCompoments of InActorsToRefine.
@@ -268,53 +268,61 @@ public:
 
 protected:
 
-	// Triage a HoudiniAssetComponent with UHoudiniStaticMesh as needing cooking or if a UStaticMesh can be immediately built
-	static void TriageHoudiniAssetComponentsForProxyMeshRefinement(UHoudiniAssetComponent* InHAC, bool bRefineAll, bool bOnPreSaveWorld, UWorld *OnPreSaveWorld, bool bOnPreBeginPIE, TArray<UHoudiniAssetComponent*> &OutToRefine, TArray<UHoudiniAssetComponent*> &OutToCook, TArray<UHoudiniAssetComponent*> &OutSkipped);
-
-	static EHoudiniProxyRefineRequestResult RefineTriagedHoudiniProxyMesehesToStaticMeshes(
-		const TArray<UHoudiniAssetComponent*>& InComponentsToRefine,
-		const TArray<UHoudiniAssetComponent*>& InComponentsToCook,
-		const TArray<UHoudiniAssetComponent*>& InSkippedComponents,
+	// Triage a cookable with UHoudiniStaticMesh as needing cooking or if a UStaticMesh can be immediately built
+	static void TriageHoudiniCookablesForProxyMeshRefinement(
+		UHoudiniCookable* InHC,
+		bool bRefineAll, 
+		bool bOnPreSaveWorld,
+		UWorld *OnPreSaveWorld, 
+		bool bOnPreBeginPIE, 
+		TArray<UHoudiniCookable*> &OutToRefine,
+		TArray<UHoudiniCookable*> &OutToCook,
+		TArray<UHoudiniCookable*> &OutSkipped);
+	
+	static EHoudiniProxyRefineRequestResult RefineTriagedHoudiniProxyMeshesToStaticMeshes(
+		const TArray<UHoudiniCookable*>& InCookablesToRefine,
+		const TArray<UHoudiniCookable*>& InCookablesToCook,
+		const TArray<UHoudiniCookable*>& InSkippedCookables,
 		bool bInSilent=false,
 		bool bInRefineAll=true,
 		bool bInOnPreSaveWorld=false,
 		UWorld* InOnPreSaveWorld=nullptr,
 		bool bInOnPrePIEBeginPlay=false);
-
-	// Called in a background thread by RefineHoudiniProxyMeshesToStaticMeshes when some components need to be cooked to generate UStaticMeshes. Checks and waits for
+	
+	// Called in a background thread by RefineHoudiniProxyMeshesToStaticMeshes when some Cookables need to be cooked to generate UStaticMeshes. Checks and waits for
 	// cooking of each component to complete, and then calls RefineHoudiniProxyMeshesToStaticMeshesNotifyDone on the main thread.
 	static void RefineHoudiniProxyMeshesToStaticMeshesWithCookInBackgroundThread(
-		const TArray<UHoudiniAssetComponent*> &InComponentsToCook,
+		const TArray<UHoudiniCookable*> &InCookablesToCook,
 		TSharedPtr<FSlowTask,
 		ESPMode::ThreadSafe> InTaskProgress,
-		const uint32 InNumSkippedComponents,
+		const uint32 InNumSkippedCookables,
 		bool bInOnPreSaveWorld,
 		UWorld *InOnPreSaveWorld,
-		const TArray<UHoudiniAssetComponent*> &InSuccessfulComponents,
-		const TArray<UHoudiniAssetComponent*> &InFailedComponents,
-		const TArray<UHoudiniAssetComponent*> &InSkippedComponents);
+		const TArray<UHoudiniCookable*> &InSuccessfulCookables,
+		const TArray<UHoudiniCookable*> &InFailedCookables,
+		const TArray<UHoudiniCookable*> &InSkippedCookables);
 
 	// Display a notification / end/close progress dialog, when refining mesh proxies to static meshes is complete
 	static void RefineHoudiniProxyMeshesToStaticMeshesNotifyDone(
-		const uint32 InNumTotalComponents,
+		const uint32 InNumTotalCookables,
 		FSlowTask* const InTaskProgress,
 		const bool bCancelled,
 		const bool bOnPreSaveWorld,
 		UWorld* const InOnPreSaveWorld,
-		const TArray<UHoudiniAssetComponent*> &InSuccessfulComponents,
-		const TArray<UHoudiniAssetComponent*> &InFailedComponents,
-		const TArray<UHoudiniAssetComponent*> &InSkippedComponents);
+		const TArray<UHoudiniCookable*> &InSuccessfulCookables,
+		const TArray<UHoudiniCookable*> &InFailedCookables,
+		const TArray<UHoudiniCookable*> &InSkippedCookables);
 
-	// Handle OnPostSaveWorld for refining proxy meshes: this saves all the dirty UPackages of the UStaticMeshes that were created during RefineHoudiniProxyMeshesToStaticMeshes
-	// if it was called as a result of a PreSaveWorld.
+	// Handle OnPostSaveWorld for refining proxy meshes: this saves all the dirty UPackages of the UStaticMeshes
+	// that were created during RefineHoudiniProxyMeshesToStaticMeshes if it was called as a result of a PreSaveWorld.
 	static void RefineProxyMeshesHandleOnPostSaveWorld(
-		const TArray<UHoudiniAssetComponent*> &InSuccessfulComponents,
+		const TArray<UHoudiniCookable*> &InSuccessfulCookables,
 		uint32 InSaveFlags,
 		UWorld* InWorld,
 		bool bInSuccess);
 
 	static void SetAllowPlayInEditorRefinement(
-		const TArray<UHoudiniAssetComponent*>& InComponents, bool bEnabled);
+		const TArray<UHoudiniCookable*>& InCookables, bool bEnabled);
 
 	// Start and connect to Session Sync
 	static bool StartAndConnectToSessionSync(

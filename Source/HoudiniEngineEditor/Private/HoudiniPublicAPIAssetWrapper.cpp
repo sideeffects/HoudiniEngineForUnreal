@@ -285,14 +285,18 @@ UHoudiniPublicAPIAssetWrapper::BakeAllOutputs_Implementation()
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
-	FHoudiniBakeSettings BakeSettings;
-	BakeSettings.SetFromHAC(HAC);
+	UHoudiniCookable* HC = HAC->GetCookable();
+	if (!IsValid(HC))
+		return false;
 
-	return FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(
-		HAC,
+	FHoudiniBakeSettings BakeSettings;
+	BakeSettings.SetFromCookable(HC);
+
+	return FHoudiniEngineBakeUtils::BakeCookable(
+		HC,
 		BakeSettings,
-		HAC->GetHoudiniEngineBakeOption(),
-		HAC->GetRemoveOutputAfterBake());
+		HC->GetHoudiniEngineBakeOption(),
+		HC->GetRemoveOutputAfterBake());
 }
 
 bool
@@ -306,12 +310,16 @@ UHoudiniPublicAPIAssetWrapper::BakeAllOutputsWithSettings_Implementation(
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
 
+	UHoudiniCookable* HC = HAC->GetCookable();
+	if (!IsValid(HC))
+		return false;
+
 	FHoudiniBakeSettings BakeSettings;
 	BakeSettings.bReplaceActors = bInReplacePreviousBake;
 	BakeSettings.bReplaceAssets = bInReplacePreviousBake;
 	BakeSettings.bRecenterBakedActors = bInRecenterBakedActors;
 
-	return FHoudiniEngineBakeUtils::BakeHoudiniAssetComponent(HAC, BakeSettings, InBakeOption, bInRemoveTempOutputsOnSuccess);
+	return FHoudiniEngineBakeUtils::BakeCookable(HC, BakeSettings, InBakeOption, bInRemoveTempOutputsOnSuccess);
 }
 
 bool
@@ -511,6 +519,7 @@ UHoudiniPublicAPIAssetWrapper::GetValidHoudiniAssetComponentWithError(UHoudiniAs
 bool
 UHoudiniPublicAPIAssetWrapper::GetValidOutputAtWithError(const int32 InOutputIndex, UHoudiniOutput*& OutOutput) const
 {
+	// TODO: COOKABLE ME
 	UHoudiniAssetComponent* HAC = nullptr;
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
@@ -3050,10 +3059,6 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(
 	const FName InBakeName, 
 	const EHoudiniLandscapeOutputBakeType InLandscapeBakeType)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
-		return false;
-
 	UHoudiniOutput* Output = nullptr;
 	if (!GetValidOutputAtWithError(InIndex, Output))
 		return false;
@@ -3131,13 +3136,21 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(
 		return false;
 	}
 
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return false;
+
+	UHoudiniCookable* HC = HAC->GetCookable();
+	if (!IsValid(HC))
+		return false;
+
 	TArray<UHoudiniOutput*> AllOutputs;
-	HAC->GetOutputs(AllOutputs);
+	HC->GetOutputs(AllOutputs);
 
 	FHoudiniBakeSettings BakeSettings;
-	BakeSettings.SetFromHAC(HAC);
+	BakeSettings.SetFromCookable(HC);
 
-	void SetFromHAC(UHoudiniAssetComponent * HAC);
+	//TODO: COOKABLE ME!
 	FHoudiniOutputDetails::OnBakeOutputObject(
 		InBakeName.IsNone() ? OutputObject->BakeName : InBakeName.ToString(),
 		ObjectToBake,
@@ -3146,9 +3159,9 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(
 		HoudiniGeoPartObject,
 		HAC,
 		Output,
-		HAC->GetBakeFolderOrDefault(),
+		HC->GetBakeFolderOrDefault(),
 		BakeSettings,
-		HAC->GetTemporaryCookFolderOrDefault(),
+		HC->GetTemporaryCookFolderOrDefault(),
 		InLandscapeBakeType,
 		AllOutputs);
 
@@ -4608,11 +4621,16 @@ UHoudiniPublicAPIAssetWrapper::GetValidTOPNodeByPathWithError(
 void
 UHoudiniPublicAPIAssetWrapper::ProcessComponentSynchronous_Implementation()
 {
+	// TODO: Cookable me!
 	UHoudiniAssetComponent* HAC = nullptr;
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return;
 
 	if (!FHoudiniEngine::Get().IsCookingEnabled())
+		return;
+
+	UHoudiniCookable* HC = HAC->GetCookable();
+	if (!HC)
 		return;
 
 	// Node Sync component cant be processed
@@ -4626,7 +4644,7 @@ UHoudiniPublicAPIAssetWrapper::ProcessComponentSynchronous_Implementation()
 	bool bIsStillProcessing = true;
 	while (bIsStillProcessing)
 	{
-		EHoudiniAssetState CurrentState = HAC->GetAssetState();
+		EHoudiniAssetState CurrentState = HC->GetCurrentState();
 		if (CurrentState == EHoudiniAssetState::NeedInstantiation)
 		{
 			// We can exit here.
@@ -4636,8 +4654,8 @@ UHoudiniPublicAPIAssetWrapper::ProcessComponentSynchronous_Implementation()
 		{
 			// When reaching the none state - we want to process the component
 			// one last time in case some changes trigger an update/cook
-			HEM->ProcessComponent(HAC);
-			if (HAC->GetAssetState() == EHoudiniAssetState::None)
+			HEM->ProcessCookable(HC);
+			if (HC->GetCurrentState() == EHoudiniAssetState::None)
 			{
 				// The component is not active anymore - we can return
 				bIsStillProcessing = false;
@@ -4646,7 +4664,7 @@ UHoudiniPublicAPIAssetWrapper::ProcessComponentSynchronous_Implementation()
 		else
 		{
 			// Keep processing the component until we reach an inactive state
-			HEM->ProcessComponent(HAC);
+			HEM->ProcessCookable(HC);
 		}
 	}
 }

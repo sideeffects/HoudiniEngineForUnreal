@@ -1338,9 +1338,9 @@ bool FHoudiniEditorTestUtils::CreateSessionIfInvalid(const FName& SessionPipeNam
 	if (bSuccess)
 	{
 		// We've successfully created the Houdini Engine session,
-		// We now need to notify all the HoudiniAssetComponent that they need to re instantiate 
+		// We now need to notify all the cookables that they need to re instantiate 
 		// themselves in the new Houdini engine session.
-		FHoudiniEngineUtils::MarkAllHACsAsNeedInstantiation();
+		FHoudiniEngineUtils::MarkAllCookablesAsNeedInstantiation();
 	}
 
 	return bSuccess;

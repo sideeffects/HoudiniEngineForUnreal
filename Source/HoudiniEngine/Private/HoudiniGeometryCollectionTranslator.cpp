@@ -1,6 +1,7 @@
 #include "HoudiniGeometryCollectionTranslator.h"
 
 #include "HoudiniApi.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineString.h"
@@ -126,10 +127,10 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 
 			GeometryCollectionActor->GetGeometryCollectionComponent()->SetRestCollection(GeometryCollection);
 
-			UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(HoudiniOutput);
-			if (IsValid(HAC))
+			UHoudiniCookable* HC = FHoudiniEngineUtils::GetOuterHoudiniCookable(HoudiniOutput);
+			if (IsValid(HC) && HC->GetComponent())
 			{
-				GeometryCollectionActor->AttachToComponent(HAC, FAttachmentTransformRules::KeepWorldTransform);
+				GeometryCollectionActor->AttachToComponent(HC->GetComponent(), FAttachmentTransformRules::KeepWorldTransform);
 			}
 
 			ActorTransform = ParentComponent->GetOwner()->GetTransform();

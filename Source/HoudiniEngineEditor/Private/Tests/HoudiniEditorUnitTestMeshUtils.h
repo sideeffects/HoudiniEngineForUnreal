@@ -44,7 +44,6 @@ struct FHoudiniTestMeshData
 {
 	// This struct stores the expected mesh data.
 	// TODO: This just contains vertex positions and colors, should be expanded to include UVs and triangles.
-
 	FString ToString();
 
 	TArray<FVector3f> VertexPositions;

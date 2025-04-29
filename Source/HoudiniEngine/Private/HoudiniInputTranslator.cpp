@@ -30,6 +30,7 @@
 #include "HoudiniApi.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniDataLayerUtils.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEnginePrivatePCH.h"
@@ -4273,18 +4274,18 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 		&& Actor->IsA<AHoudiniAssetActor>())
 	{
 		AHoudiniAssetActor *HAA = Cast<AHoudiniAssetActor>(Actor);
-		UHoudiniAssetComponent *HAC = HAA->GetHoudiniAssetComponent();
-		if (IsValid(HAC))
+		UHoudiniCookable* HC = HAA->GetHoudiniCookable();
+		if (IsValid(HC))
 		{
-			if (HAC->HasAnyCurrentProxyOutput())
+			if (HC->HasAnyCurrentProxyOutput())
 			{
 				bool bPendingDeleteOrRebuild = false;
 				bool bInvalidState = false;
-				const bool bIsHoudiniCookedDataAvailable = HAC->IsHoudiniCookedDataAvailable(bPendingDeleteOrRebuild, bInvalidState);
+				const bool bIsHoudiniCookedDataAvailable = HC->IsHoudiniCookedDataAvailable(bPendingDeleteOrRebuild, bInvalidState);
 				if (bIsHoudiniCookedDataAvailable)
 				{
 					// Build the static mesh
-					FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(HAC);
+					FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(HC);
 					// Update the input object since a new StaticMeshComponent could have been created
 					UObject *InputObject = InObject->GetObject();
 					if (IsValid(InputObject))
@@ -4296,11 +4297,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 				else if (!bPendingDeleteOrRebuild && !bInvalidState)
 				{
 					// Request a cook with no proxy output
-					HAC->MarkAsNeedCook();
-					HAC->SetNoProxyMeshNextCookRequested(true);
+					HC->MarkAsNeedCook();
+					HC->SetNoProxyMeshNextCookRequested(true);
 				}
 			}
-			else if (InObject->GetActorComponents().Num() == 0 && HAC->HasAnyOutputComponent())
+			else if (InObject->GetActorComponents().Num() == 0 && HC->HasAnyOutputComponent())
 			{
 				// The HAC has non-proxy output components, but the InObject does not have any
 				// actor components. This can arise after a cook if previously there were only

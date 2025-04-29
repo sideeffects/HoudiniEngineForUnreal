@@ -29,15 +29,15 @@
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniLandscapeRuntimeUtils.h"
 #include "HoudiniOutput.h"
 
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "GameFramework/Actor.h"
+#include "InstancedFoliageActor.h"
 #include "Landscape.h"
 #include "UObject/MetaData.h"
-#include "HoudiniLandscapeRuntimeUtils.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "InstancedFoliageActor.h"
 
 #if WITH_EDITOR
 	#include "FileHelpers.h"
@@ -519,13 +519,13 @@ UTOPNode::SetLoadedWorkResultsToDelete()
 }
 
 FGuid
-UTOPNode::GetHoudiniComponentGuid() const
+UTOPNode::GetHoudiniCookableGuid() const
 {
 	UHoudiniPDGAssetLink const* const AssetLink = GetOuterAssetLink();
 	if (!IsValid(AssetLink))
 		return FGuid();
 	
-	return AssetLink->GetOuterHoudiniComponentGuid();
+	return AssetLink->GetOuterCookableGuid();
 }
 
 void
@@ -540,7 +540,7 @@ UTOPNode::DeleteWorkResultObjectOutputs(const int32 InWorkResultArrayIndex, cons
 	
 	FTOPWorkResultObject& WRO = WorkItem.ResultObjects[InWorkResultObjectArrayIndex];
 	// Delete and clean up that WRObj
-	WRO.DestroyResultOutputs(GetHoudiniComponentGuid());
+	WRO.DestroyResultOutputs(GetHoudiniCookableGuid());
 	if (bInDeleteOutputActors)
 		WRO.GetOutputActorOwner().DestroyOutputActor();
 	WRO.State = EPDGWorkResultState::Deleted;
@@ -1182,10 +1182,10 @@ UHoudiniPDGAssetLink::ClearTOPNodeWorkItemResults(UTOPNode* TOPNode)
 
 	TOPNode->OnDirtyNode();
 
-	const FGuid HoudiniComponentGuid(TOPNode->GetHoudiniComponentGuid());
+	const FGuid CookableGuid(TOPNode->GetHoudiniCookableGuid());
 	for(FTOPWorkResult& CurrentWorkResult : TOPNode->WorkResult)
 	{
-		CurrentWorkResult.ClearAndDestroyResultObjects(HoudiniComponentGuid);
+		CurrentWorkResult.ClearAndDestroyResultObjects(CookableGuid);
 	}
 	TOPNode->WorkResult.Empty();
 
@@ -1230,7 +1230,7 @@ UHoudiniPDGAssetLink::ClearWorkItemResultByID(const int32& InWorkItemID, UTOPNod
 	FTOPWorkResult* WorkResult = GetWorkResultByID(InWorkItemID, InTOPNode);
 	if (WorkResult)
 	{
-		WorkResult->ClearAndDestroyResultObjects(InTOPNode->GetHoudiniComponentGuid());
+		WorkResult->ClearAndDestroyResultObjects(InTOPNode->GetHoudiniCookableGuid());
 		// TODO: Should we destroy the FTOPWorkResult struct entirely here?
 		//TOPNode.WorkResult.RemoveByPredicate
 
@@ -1267,9 +1267,9 @@ UHoudiniPDGAssetLink::GetWorkResultByID(const int32& InWorkItemID, UTOPNode* InT
 FDirectoryPath
 UHoudiniPDGAssetLink::GetTemporaryCookFolder() const
 {
-	UHoudiniAssetComponent* HAC = GetOuterHoudiniAssetComponent();
-	if (HAC)
-		return HAC->GetTemporaryCookFolder();
+	UHoudiniCookable* HC = GetOuterHoudiniCookable();
+	if (HC)
+		return HC->GetTemporaryCookFolder();
 	
 	FDirectoryPath TempPath;
 	TempPath.Path = FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
@@ -1277,13 +1277,13 @@ UHoudiniPDGAssetLink::GetTemporaryCookFolder() const
 }
 
 FGuid
-UHoudiniPDGAssetLink::GetOuterHoudiniComponentGuid() const
+UHoudiniPDGAssetLink::GetOuterCookableGuid() const
 {
-	UHoudiniAssetComponent const* const HAC = GetOuterHoudiniAssetComponent();
-	if (!IsValid(HAC))
+	UHoudiniCookable* HC = GetOuterHoudiniCookable();
+	if (!IsValid(HC))
 		return FGuid();
 
-	return HAC->GetComponentGUID();
+	return HC->GetCookableGUID();
 }
 
 void
@@ -1599,16 +1599,12 @@ UHoudiniPDGAssetLink::UpdatePostDuplicate()
 	}
 }
 
-UHoudiniAssetComponent* 
-UHoudiniPDGAssetLink::GetOuterHoudiniAssetComponent() const
+UHoudiniCookable* 
+UHoudiniPDGAssetLink::GetOuterHoudiniCookable() const
 {
 	UHoudiniCookable* FoundHC = Cast<UHoudiniCookable>(GetTypedOuter<UHoudiniCookable>());
 	if (FoundHC)
-		return Cast<UHoudiniAssetComponent>(FoundHC->GetComponent());
-
-	UHoudiniAssetComponent* FoundHAC = Cast<UHoudiniAssetComponent>(GetTypedOuter<UHoudiniAssetComponent>());
-	if (FoundHAC)
-		return FoundHAC;
+		return FoundHC;
 
 	return nullptr;
 }

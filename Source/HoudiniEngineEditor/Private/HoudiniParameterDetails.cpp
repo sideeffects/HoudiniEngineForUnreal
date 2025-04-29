@@ -3092,6 +3092,7 @@ FHoudiniParameterDetails::CreateWidgetFile(
 	const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 	const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams)
 {
+	// TODO: Cookable me!
 	TArray<TWeakObjectPtr<UHoudiniParameterFile>> FileParams;
 	if (!CastParameters<UHoudiniParameterFile>(InParams, FileParams))
 		return;
@@ -3137,9 +3138,9 @@ FHoudiniParameterDetails::CreateWidgetFile(
 			// Check if the path is relative to the asset
 			if (IsValid(HoudiniAssetComponent))
 			{
-				if (IsValid(HoudiniAssetComponent->HoudiniAsset))
+				if (IsValid(HoudiniAssetComponent->GetHoudiniAsset()))
 				{
-					FString AssetFilePath = FPaths::GetPath(HoudiniAssetComponent->HoudiniAsset->AssetFileName);
+					FString AssetFilePath = FPaths::GetPath(HoudiniAssetComponent->GetHoudiniAsset()->AssetFileName);
 					if (FPaths::FileExists(AssetFilePath))
 					{
 						FString UpdatedFileWidgetPath = FPaths::Combine(*AssetFilePath, *PickedPath);

@@ -25,43 +25,46 @@
 */
 
 #include "HoudiniEngineEditorPrivatePCH.h"
-#include "HoudiniEngineUtils.h"
-#include "HoudiniAsset.h"
-#include "HoudiniOutput.h"
-#include "HoudiniSplineComponent.h"
-#include "HoudiniPackageParams.h"
-#include "HoudiniEnginePrivatePCH.h"
-#include "UnrealLandscapeTranslator.h"
-#include "HoudiniStringResolver.h"
-#include "HoudiniEngineCommands.h"
-#include "HoudiniLandscapeUtils.h"
-#include "HoudiniLandscapeSplineTranslator.h"
 
+#include "HoudiniAsset.h"
+#include "HoudiniBakeLandscape.h"
+#include "HoudiniCookable.h"
+#include "HoudiniEngineBakeUtils.h"
+#include "HoudiniEngineCommands.h"
+#include "HoudiniEngineOutputStats.h"
+#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniLandscapeRuntimeUtils.h"
+#include "HoudiniLandscapeSplineTranslator.h"
+#include "HoudiniLandscapeUtils.h"
+#include "HoudiniMeshTranslator.h"
+#include "HoudiniOutput.h"
+#include "HoudiniPackageParams.h"
+#include "HoudiniSplineComponent.h"
+#include "HoudiniStringResolver.h"
+#include "UnrealLandscapeTranslator.h"
+
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "Components/AudioComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Containers/UnrealString.h"
+#include "Editor.h"
 #include "Engine/World.h"
+#include "FileHelpers.h"
+#include "GameFramework/Actor.h"
+#include "Kismet2/BlueprintEditorUtils.h"
+#include "Landscape.h"
+#include "LandscapeEdit.h"
+#include "LandscapeInfo.h"
+#include "LandscapeProxy.h"
+#include "LandscapeSplineActor.h"
+#include "LandscapeStreamingProxy.h"
+#include "PackageTools.h"
 #include "RawMesh.h"
 #include "UObject/Package.h"
 #include "UObject/MetaData.h"
-#include "AssetRegistry/AssetRegistryModule.h"
-#include "LandscapeProxy.h"
-#include "LandscapeInfo.h"
-#include "GameFramework/Actor.h"
-#include "Editor.h"
-#include "LandscapeStreamingProxy.h"
-#include "HoudiniBakeLandscape.h"
-#include "HoudiniEngineOutputStats.h"
-#include "FileHelpers.h"
-#include "HoudiniEngineBakeUtils.h"
-#include "HoudiniMeshTranslator.h"
-#include "LandscapeEdit.h"
-#include "PackageTools.h"
-#include "Containers/UnrealString.h"
-#include "Components/AudioComponent.h"
-#include "Kismet2/BlueprintEditorUtils.h"
-#include "Landscape.h"
-#include "HoudiniLandscapeRuntimeUtils.h"
 #include "WorldPartition/WorldPartition.h"
-#include "LandscapeSplineActor.h"
+
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	#include "LandscapeEditLayer.h"
@@ -196,7 +199,7 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 
 bool
 FHoudiniLandscapeBake::BakeLandscape(
-	const UHoudiniAssetComponent* HoudiniAssetComponent,
+	const UHoudiniCookable* InCookable,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
 	FHoudiniEngineBakeState& InBakeState,
@@ -243,7 +246,7 @@ FHoudiniLandscapeBake::BakeLandscape(
 
 		FHoudiniPackageParams PackageParams;
 		FHoudiniEngineBakeUtils::ResolvePackageParams(
-			HoudiniAssetComponent,
+			InCookable,
 			Output,
 			Elem.Key,
 			Elem.Value,
@@ -320,8 +323,8 @@ FHoudiniLandscapeBake::BakeLandscape(
 
 TArray<FHoudiniEngineBakedActor>
 FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
-	const UHoudiniAssetComponent* HAC,
-	const FName & InFallbackWorldOutlinerFolder,
+	const UHoudiniCookable* InCookable,
+	const FName& InFallbackWorldOutlinerFolder,
 	const TArray<UHoudiniOutput*>& InOutputs,
 	FHoudiniEngineBakeState& InBakeState,
 	const FHoudiniBakeSettings& BakeSettings,
@@ -359,7 +362,7 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 			FHoudiniPackageParams PackageParams;
 			FHoudiniAttributeResolver Resolver;
 			FHoudiniEngineBakeUtils::ResolvePackageParamsWithResolver(
-				HAC,
+				InCookable,
 				HoudiniOutput,
 				Elem.Key,
 				Elem.Value,
@@ -393,7 +396,7 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 			{
 				ULandscapeLayerInfoObject* CookedLayerInfoObject = LayerOutput->LayerInfoObjects[Index];
 
-				FString TempFolder = HAC->GetTemporaryCookFolderOrDefault();
+				FString TempFolder = InCookable->GetTemporaryCookFolderOrDefault();
 
 				if (CookedLayerInfoObject->GetPathName().StartsWith(TempFolder))
 				{
@@ -690,7 +693,7 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 }
 
 bool FHoudiniLandscapeBake::BakeLandscapeSplines(
-	const UHoudiniAssetComponent* HoudiniAssetComponent,
+	const UHoudiniCookable* InCookable,
 	const int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
 	FHoudiniEngineBakeState& InBakeState,
@@ -739,7 +742,7 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 
 		FHoudiniPackageParams PackageParams;
 		FHoudiniEngineBakeUtils::ResolvePackageParams(
-			HoudiniAssetComponent,
+			InCookable,
 			Output,
 			ObjectIdentifier,
 			OutputObject,

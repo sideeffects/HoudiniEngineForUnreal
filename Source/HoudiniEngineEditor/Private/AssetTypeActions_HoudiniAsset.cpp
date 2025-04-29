@@ -27,26 +27,24 @@
 #include "AssetTypeActions_HoudiniAsset.h"
 
 #include "HoudiniAsset.h"
-
-#include "HoudiniEngineEditorPrivatePCH.h"
-#include "HoudiniEngineStyle.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
-#include "HoudiniAssetComponent.h"
+#include "HoudiniEngineEditor.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
-
-#include "EditorReimportHandler.h"
-#include "HoudiniEngineEditor.h"
+#include "HoudiniEngineStyle.h"
 #include "HoudiniToolsEditor.h"
 #include "HoudiniToolTypes.h"
+
+#include "EditorFramework/AssetImportData.h"
+#include "EditorReimportHandler.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "HAL/FileManager.h"
-#include "EditorFramework/AssetImportData.h"
+#include "Internationalization/Internationalization.h"
 #include "LevelEditor.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UObjectIterator.h"
-
-#include "Internationalization/Internationalization.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -371,12 +369,12 @@ FAssetTypeActions_HoudiniAsset::ExecuteRebuildAllInstances(TArray<TWeakObjectPtr
 		FReimportManager::Instance()->Reimport(HoudiniAsset, true);
 
 		// Rebuilds all instances of that asset in the scene
-		for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
+		for (TObjectIterator<UHoudiniCookable> Itr; Itr; ++Itr)
 		{
-			UHoudiniAssetComponent * Component = *Itr;
-			if (Component && (Component->GetHoudiniAsset() == HoudiniAsset))
+			UHoudiniCookable* Cookable = *Itr;
+			if (IsValid(Cookable) && (Cookable->GetHoudiniAsset() == HoudiniAsset))
 			{
-				Component->MarkAsNeedRebuild();
+				Cookable->MarkAsNeedRebuild();
 			}
 		}
 	}

@@ -643,19 +643,19 @@ FHoudiniEngineEditorUtils::SaveAllHoudiniTemporaryCookData(UWorld *InSaveWorld)
 	// FHoudiniEngineUtils::CreateSlateNotification(Notification);
 
 	TArray<UPackage*> PackagesToSave;
-	for (TObjectIterator<UHoudiniAssetComponent> Itr; Itr; ++Itr)
+	for (TObjectIterator<UHoudiniCookable> Itr; Itr; ++Itr)
 	{
-		UHoudiniAssetComponent * HAC = *Itr;
-		if (!IsValid(HAC))
+		UHoudiniCookable* HC = *Itr;
+		if (!IsValid(HC))
 			continue;
 
-		if (InSaveWorld && InSaveWorld != HAC->GetHACWorld())
+		if (InSaveWorld && InSaveWorld != HC->GetWorld())
 			continue;
 
-		const int32 NumOutputs = HAC->GetNumOutputs();
+		const int32 NumOutputs = HC->GetNumOutputs();
 		for (int32 Index = 0; Index < NumOutputs; ++Index)
 		{
-			UHoudiniOutput *Output = HAC->GetOutputAt(Index);
+			UHoudiniOutput *Output = HC->GetOutputAt(Index);
 			if (!IsValid(Output))
 				continue;
 

@@ -123,9 +123,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Return a string description for a Houdini Engine session connection error.
 		static const FString GetConnectionError();
 
-		// Helper function used to indicate to all HAC that they need to be instantiated in the new HE session
+		// Helper function used to indicate to all cookables that they need to be instantiated in the new HE session
 		// Needs to be call after starting/restarting/connecting/session syncing a HE session..
-		static void MarkAllHACsAsNeedInstantiation();
+		static void MarkAllCookablesAsNeedInstantiation();
 
 		// Return the errors, warning and messages on a specified node
 		static const FString GetNodeErrorsWarningsAndMessages(HAPI_NodeId InNodeId);
@@ -136,8 +136,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		static const FString GetAssetHelpURL(HAPI_NodeId InNodeId);
 
-		// Updates the Object transform of a Houdini Asset Component
-		static bool UploadHACTransform(UHoudiniAssetComponent* HAC);
+		// Updates the Object transform of a cookable
 		static bool UploadCookableTransform(UHoudiniCookable* HC);
 
 		// Convert FString to std::string
@@ -1251,7 +1250,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// HoudiniAssetComponent.
 		static void FillInPackageParamsForBakingOutputWithResolver(
 			UWorld* const InWorldContext,
-			const UHoudiniAssetComponent* HoudiniAssetComponent,
+			const UHoudiniCookable* InCookable,
 			const FHoudiniOutputObjectIdentifier& InIdentifier,
 			const FHoudiniOutputObject& InOutputObject,
 			const bool bInHasPreviousBakeData,

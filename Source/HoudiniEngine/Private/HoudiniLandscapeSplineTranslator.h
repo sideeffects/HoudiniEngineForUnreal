@@ -48,7 +48,7 @@
 class ULandscapeSplineControlPoint;
 class ULandscapeSplineSegment;
 struct FLandscapeSplineSegmentConnection;
-class UHoudiniAssetComponent;
+class UHoudiniCookable;
 struct FHoudiniPackageParams;
 struct FHoudiniLandscapeSplineInfo;
 struct FHoudiniLandscapeSplineData;
@@ -79,7 +79,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeSplineTranslator
 		TMap<ALandscape*, TSet<FName>>& InClearedLayers,
 		TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& SegmentsToApplyToLayers,
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects,
-		UHoudiniAssetComponent* InHAC=nullptr);
+		UHoudiniCookable* InHC = nullptr);
 
 private:
 	static void DeleteTempLandscapeLayers(UHoudiniOutput* InOutput);
@@ -88,13 +88,14 @@ private:
 		ULandscapeSplineSegment* InSegment,
 		const FHoudiniLandscapeSplineData& InSplineData,
 		int InVertexIndex,
-		UHoudiniAssetComponent* InHAC,
+		UHoudiniCookable* InHC,
 		const FHoudiniPackageParams& InPackageParams,
 		UHoudiniLandscapeSplinesOutput& InOutputObject);
 
 	static void UpdateNonReservedEditLayers(
 		const FHoudiniLandscapeSplineInfo& InSplineInfo,
-		TMap<ALandscape*, TSet<FName>>& InClearedLayers,
+		TMap<ALandscape*, 
+		TSet<FName>>& InClearedLayers,
 		TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& InSegmentsToApplyToLayers);
 
 	static ULandscapeSplineControlPoint* GetOrCreateControlPoint(
@@ -121,7 +122,10 @@ private:
 		const FTransform& InTransformToApply,
 		int InPointIndex);
 
-	static bool SetSegmentData(ULandscapeSplineSegment* InSegment, const FHoudiniLandscapeSplineData& InSplineData, int InVertexIndex);
+	static bool SetSegmentData(
+		ULandscapeSplineSegment* InSegment, 
+		const FHoudiniLandscapeSplineData& InSplineData,
+		int InVertexIndex);
 	
 	static bool SetConnectionData(
 		FLandscapeSplineSegmentConnection& InConnection,
@@ -129,7 +133,10 @@ private:
 		const FHoudiniLandscapeSplineData& InSplineData,
 		int InPointIndex);
 
-	static void GetCachedAttributes(FHoudiniOutputObject * OutputObject, const FHoudiniGeoPartObject& InHGPO, const FHoudiniLandscapeSplineInfo& SplineInfo);
+	static void GetCachedAttributes(
+		FHoudiniOutputObject * OutputObject, 
+		const FHoudiniGeoPartObject& InHGPO,
+		const FHoudiniLandscapeSplineInfo& SplineInfo);
 
 	static FVector ConvertPositionToVector(const float* InPosition);
 

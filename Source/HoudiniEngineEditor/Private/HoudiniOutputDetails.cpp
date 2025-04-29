@@ -241,7 +241,6 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 
 	// TODO: Get bake base name
 	FString Label = Landscape->GetName();
-
 	if (!LandscapePointer->EditLayerName.IsNone())
 	{
 		Label = FString::Format(TEXT("{0} ({1})"), {Label, (LandscapePointer->EditLayerName.ToString())});
@@ -396,37 +395,34 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 					.HAlign(HAlign_Center)
 					.Text(LOCTEXT("BakeOutputLandscape", "Bake Output"))
 					.IsEnabled(true)
-					.OnClicked_Lambda([InOutput, OutputIdentifier, HAC, HC, HGPO, Landscape, LandscapeOutputBakeType]()
+					.OnClicked_Lambda([InOutput, OutputIdentifier, HC, HGPO, Landscape, LandscapeOutputBakeType]()
 					{
 						if (!InOutput.IsValid() || !Landscape.IsValid())
 							return FReply::Handled();
 
-						if (!HAC.IsValid() && !HC.IsValid())
+						if (!HC.IsValid())
 							return FReply::Handled();
 
 						FHoudiniBakeSettings BakeSettings;
-						if (HC.IsValid())
-							BakeSettings.SetFromCookable(HC.Get());
-						else
-							BakeSettings.SetFromHAC(HAC.Get());
+						BakeSettings.SetFromCookable(HC.Get());
 
 						FHoudiniOutputObject const* const FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
 						if (FoundOutputObject)
 						{
 							TArray<UHoudiniOutput*> AllOutputs;
-							AllOutputs.Reserve(HC.IsValid() ? HC->GetNumOutputs() : HAC->GetNumOutputs());
-							HAC->GetOutputs(AllOutputs);
+							AllOutputs.Reserve(HC->GetNumOutputs());
+							HC->GetOutputs(AllOutputs);
 							FHoudiniOutputDetails::OnBakeOutputObject(
 								FoundOutputObject->BakeName,
 								Landscape.Get(),
 								OutputIdentifier,
 								*FoundOutputObject,
 								HGPO,
-								HC.IsValid() ? (UObject*)HC.Get() : (UObject*)HAC.Get(),
+								(UObject*)HC.Get(),
 								InOutput.Get(),
-								HC.IsValid() ? HC->GetBakeFolderOrDefault() : HAC->GetBakeFolderOrDefault(),
+								HC->GetBakeFolderOrDefault(),
 								BakeSettings,
-								HC.IsValid() ? HC->GetTemporaryCookFolderOrDefault() : HAC->GetTemporaryCookFolderOrDefault(),
+								HC->GetTemporaryCookFolderOrDefault(),
 								LandscapeOutputBakeType,
 								AllOutputs);
 						}
@@ -1702,12 +1698,12 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 		.Text(LOCTEXT("OutputCurveBakeButtonText", "Bake Output"))
 		.IsEnabled(true)
 		.ToolTipText(LOCTEXT("OutputCurveBakeButtonUnrealSplineTooltipText", "Bake this output curve to an Actor with a Spline Component."))
-		.OnClicked_Lambda([InOutput, SplineComponent, OutputIdentifier, HAC, HC, OutputCurveName]()
+		.OnClicked_Lambda([InOutput, SplineComponent, OutputIdentifier, HC, OutputCurveName]()
 		{
 			if (!SplineComponent.IsValid() || !InOutput.IsValid())
 				return FReply::Handled();
 
-			if(!HAC.IsValid() && !HC.IsValid())
+			if(!HC.IsValid())
 				return FReply::Handled();
 
 			FHoudiniOutputObject* const OutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
@@ -1715,17 +1711,8 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 				return FReply::Handled();
 
 			TArray<UHoudiniOutput*> AllOutputs;
-			if (HC.IsValid())
-			{
-				AllOutputs.Reserve(HC->GetNumOutputs());
-				HC->GetOutputs(AllOutputs);
-			}
-			else
-			{
-				AllOutputs.Reserve(HAC->GetNumOutputs());
-				HAC->GetOutputs(AllOutputs);
-			}
-
+			AllOutputs.Reserve(HC->GetNumOutputs());
+			HC->GetOutputs(AllOutputs);
 
 			FHoudiniGeoPartObject HoudiniGeoPartObject;
 			for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects()) 
@@ -1738,10 +1725,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 			}
 
 			FHoudiniBakeSettings BakeSettings;
-			if (HC.IsValid())
-				BakeSettings.SetFromCookable(HC.Get());
-			else
-				BakeSettings.SetFromHAC(HAC.Get());
+			BakeSettings.SetFromCookable(HC.Get());
 
 			FHoudiniOutputDetails::OnBakeOutputObject(
 				OutputCurveName,
@@ -1749,11 +1733,11 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 				OutputIdentifier,
 				*OutputObject,
 				HoudiniGeoPartObject,
-				HC.IsValid() ? (UObject*)HC.Get() : (UObject*)HAC.Get(),
+				(UObject*)HC.Get(),
 				InOutput.Get(),
-				HC.IsValid() ? HC->GetBakeFolderOrDefault() : HAC->GetBakeFolderOrDefault(),
+				HC->GetBakeFolderOrDefault(),
 				BakeSettings,
-				HC.IsValid() ? HC->GetTemporaryCookFolderOrDefault() : HAC->GetTemporaryCookFolderOrDefault(),
+				HC->GetTemporaryCookFolderOrDefault(),
 				EHoudiniLandscapeOutputBakeType::InValid,
 				AllOutputs);
 
@@ -2071,9 +2055,9 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 					.HAlign( HAlign_Center )
 					.Text( LOCTEXT( "BakeOutputMesh", "Bake Output" ) )
 					.IsEnabled(true)
-					.OnClicked_Lambda([BakeName, StaticMesh, OutputIdentifier, InOutput, HAC, HC]()
+					.OnClicked_Lambda([BakeName, StaticMesh, OutputIdentifier, InOutput, HC]()
 					{
-						if (!StaticMesh.IsValid() || !InOutput.IsValid())
+						if (!StaticMesh.IsValid() || !InOutput.IsValid() || !HC.IsValid())
 							return FReply::Handled();
 						
 						FHoudiniOutputObject* const FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
@@ -2084,23 +2068,11 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 						FString TempCookFolder;
 						FString BakeFolder;
 						FHoudiniBakeSettings BakeSettings;
-						if (HC.IsValid())
-						{
-							AllOutputs.Reserve(HC->GetNumOutputs());
-							HC->GetOutputs(AllOutputs);
-							TempCookFolder = HC->GetTemporaryCookFolderOrDefault();
-							BakeFolder = HC->GetBakeFolderOrDefault();
-							BakeSettings.SetFromCookable(HC.Get());
-						}
-						else
-						{
-							AllOutputs.Reserve(HAC->GetNumOutputs());
-							HAC->GetOutputs(AllOutputs);
-
-							TempCookFolder = HAC->GetTemporaryCookFolderOrDefault();
-							BakeFolder = HAC->GetBakeFolderOrDefault();
-							BakeSettings.SetFromHAC(HAC.Get());
-						}
+						AllOutputs.Reserve(HC->GetNumOutputs());
+						HC->GetOutputs(AllOutputs);
+						TempCookFolder = HC->GetTemporaryCookFolderOrDefault();
+						BakeFolder = HC->GetBakeFolderOrDefault();
+						BakeSettings.SetFromCookable(HC.Get());
 
 						FHoudiniGeoPartObject HoudiniGeoPartObject;
 						for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
@@ -2118,7 +2090,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 							OutputIdentifier,
 							*FoundOutputObject,
 							HoudiniGeoPartObject,
-							HC.IsValid() ? (UObject*)HC.Get() : (UObject*)HAC.Get(),
+							(UObject*)HC.Get(),
 							InOutput.Get(),
 							BakeFolder,
 							BakeSettings,
@@ -2787,28 +2759,6 @@ FHoudiniOutputDetails::OnThumbnailDoubleClick(
 	return FReply::Handled();
 }
 
-/*
-FReply
-FHoudiniOutputDetails::OnBakeStaticMesh(UStaticMesh * StaticMesh, UHoudiniAssetComponent * HoudiniAssetComponent, FHoudiniGeoPartObject& GeoPartObject)
-{
-	if (IsValid(HoudiniAssetComponent) && IsValid(StaticMesh))
-	{
-		FHoudiniPackageParams PackageParms;
-
-		FHoudiniEngineBakeUtils::BakeStaticMesh(HoudiniAssetComponent, GeoPartObject, StaticMesh, PackageParms);
-		// TODO: Bake the SM
-		
-		// We need to locate corresponding geo part object in component.
-		const FHoudiniGeoPartObject& HoudiniGeoPartObject = HoudiniAssetComponent->LocateGeoPartObject(StaticMesh);
-
-		// (void)FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackage(
-		//	StaticMesh, HoudiniAssetComponent, HoudiniGeoPartObject, EBakeMode::ReplaceExisitingAssets);		
-	}
-
-	return FReply::Handled();
-}
-*/
-
 bool
 FHoudiniOutputDetails::OnMaterialInterfaceDraggedOver(TArrayView<FAssetData> InAssets) const
 {
@@ -2970,88 +2920,6 @@ FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
 
 	return RetValue;
 }
-/*
-FReply
-FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
-	ALandscapeProxy * Landscape, UHoudiniOutput * InOutput, int32 MaterialIdx)
-{
-	bool bViewportNeedsUpdate = false;
-
-	// TODO: Handle me!
-	for (TArray< UHoudiniAssetComponent * >::TIterator
-		IterComponents(HoudiniAssetComponents); IterComponents; ++IterComponents)
-	{
-		UHoudiniAssetComponent * HoudiniAssetComponent = *IterComponents;
-		if (!HoudiniAssetComponent)
-			continue;
-
-		TWeakObjectPtr<ALandscapeProxy>* FoundLandscapePtr = HoudiniAssetComponent->LandscapeComponents.Find(*HoudiniGeoPartObject);
-		if (!FoundLandscapePtr)
-			continue;
-
-		ALandscapeProxy* FoundLandscape = FoundLandscapePtr->Get();
-		if (!FoundLandscape || !FoundLandscape->IsValidLowLevel())
-			continue;
-
-		if (FoundLandscape != Landscape)
-			continue;
-
-		// Retrieve the material interface which is being replaced.
-		UMaterialInterface * MaterialInterface = MaterialIdx == 0 ? Landscape->GetLandscapeMaterial() : Landscape->GetLandscapeHoleMaterial();
-		UMaterialInterface * MaterialInterfaceReplacement = Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get());
-
-		bool bMaterialRestored = false;
-		FString MaterialShopName;
-		if (!HoudiniAssetComponent->GetReplacementMaterialShopName(*HoudiniGeoPartObject, MaterialInterface, MaterialShopName))
-		{
-			// This material was not replaced so there's no need to reset it
-			continue;
-		}
-
-		// Remove the replacement
-		HoudiniAssetComponent->RemoveReplacementMaterial(*HoudiniGeoPartObject, MaterialShopName);
-
-		// Try to find the original assignment, if not, we'll use the default material
-		UMaterialInterface * AssignedMaterial = HoudiniAssetComponent->GetAssignmentMaterial(MaterialShopName);
-		if (AssignedMaterial)
-			MaterialInterfaceReplacement = AssignedMaterial;
-
-		// Replace material on the landscape
-		Landscape->Modify();
-
-		if (MaterialIdx == 0)
-			Landscape->LandscapeMaterial = MaterialInterfaceReplacement;
-		else
-			Landscape->LandscapeHoleMaterial = MaterialInterfaceReplacement;
-
-		//Landscape->UpdateAllComponentMaterialInstances();
-
-		// As UpdateAllComponentMaterialInstances() is not accessible to us, we'll try to access the Material's UProperty 
-		// to trigger a fake Property change event that will call the Update function...
-		UProperty* FoundProperty = FindField< UProperty >(Landscape->GetClass(), (MaterialIdx == 0) ? TEXT("LandscapeMaterial") : TEXT("LandscapeHoleMaterial"));
-		if (FoundProperty)
-		{
-			FPropertyChangedEvent PropChanged(FoundProperty, EPropertyChangeType::ValueSet);
-			Landscape->PostEditChangeProperty(PropChanged);
-		}
-		else
-		{
-			// The only way to update the material for now is to recook/recreate the landscape...
-			HoudiniAssetComponent->StartTaskAssetCookingManual();
-		}
-
-		HoudiniAssetComponent->UpdateEditorProperties(false);
-		bViewportNeedsUpdate = true;
-	}
-
-	if (GEditor && bViewportNeedsUpdate)
-	{
-		GEditor->RedrawAllViewports();
-	}
-
-	return FReply::Handled();
-}
-*/
 
 void
 FHoudiniOutputDetails::OnBrowseTo(const TWeakObjectPtr<UObject> InObject)
@@ -3635,33 +3503,30 @@ FHoudiniOutputDetails::CreateDefaultOutputWidget(
 	// Get thumbnail pool for this builder.
 	TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool = HouOutputCategory.GetParentLayout().GetThumbnailPool();
 
-	// TODO
-	// This is just a temporary placeholder displaying name/output type
-	{
-		FString OutputNameStr = InOutput->GetName();
-		FText OutputTooltip = GetOutputTooltip(InOutput);
+	// Default widget displaying name/output type
+	FString OutputNameStr = InOutput->GetName();
+	FText OutputTooltip = GetOutputTooltip(InOutput);
 
-		// Create a new detail row
-		// Name 
-		FText OutputNameTxt = GetOutputDebugName(InOutput);
-		FString OutputRowString = TEXT("Output ") + OutputNameStr;
-		FDetailWidgetRow & Row = HouOutputCategory.AddCustomRow(FText::FromString(OutputRowString));
-		Row.NameWidget.Widget =
-			SNew(STextBlock)
-			.Text(OutputNameTxt)
-			.ToolTipText(OutputTooltip)
-			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+	// Create a new detail row
+	// Name 
+	FText OutputNameTxt = GetOutputDebugName(InOutput);
+	FString OutputRowString = TEXT("Output ") + OutputNameStr;
+	FDetailWidgetRow & Row = HouOutputCategory.AddCustomRow(FText::FromString(OutputRowString));
+	Row.NameWidget.Widget =
+		SNew(STextBlock)
+		.Text(OutputNameTxt)
+		.ToolTipText(OutputTooltip)
+		.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
-		// Value
-		FText OutputTypeTxt = GetOutputDebugDescription(InOutput);
-		Row.ValueWidget.Widget =
-			SNew(STextBlock)
-			.Text(OutputTypeTxt)
-			.ToolTipText(OutputTooltip)
-			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+	// Value
+	FText OutputTypeTxt = GetOutputDebugDescription(InOutput);
+	Row.ValueWidget.Widget =
+		SNew(STextBlock)
+		.Text(OutputTypeTxt)
+		.ToolTipText(OutputTooltip)
+		.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 
-		Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	}
+	Row.ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 }
 
 void
@@ -3690,13 +3555,12 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 	// Determine the relevant WorldContext based on the output owner
 	UWorld* WorldContext = OutputOwner ? OutputOwner->GetWorld() : GWorld;
 
-	// TODO COOKABLE: UPDATE ME
-	UHoudiniAssetComponent* const HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(OutputOwner);
-	check(IsValid(HAC));
+	UHoudiniCookable* const HC = FHoudiniEngineUtils::GetOuterHoudiniCookable(OutputOwner);
+	check(IsValid(HC));
 
-	TArray<FHoudiniBakedOutput>& AllBakedOutputs = HAC->GetBakedOutputs();
+	TArray<FHoudiniBakedOutput>& AllBakedOutputs = HC->GetBakedOutputs();
 
-	// Check if we have previously baked this object on this HAC
+	// Check if we have previously baked this object on this Cookable
 	bool bHasPreviousBakeData = false;
 	FHoudiniBakedOutputObject BakedObjectEntry;
 	const int32 OutputIndex = InAllOutputs.IndexOfByKey(InOutput);
@@ -3710,8 +3574,8 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 		}
 	}
 	
-	const FString HoudiniAssetName = HAC->GetHoudiniAssetName();
-	const FString HoudiniAssetActorName = IsValid(HAC->GetOwner()) ? HAC->GetOwner()->GetActorNameOrLabel() : TEXT("");
+	const FString HoudiniAssetName = HC->GetHoudiniAssetName();
+	const FString HoudiniAssetActorName = IsValid(HC->GetOwner()) ? HC->GetOwner()->GetActorNameOrLabel() : TEXT("");
 	const bool bAutomaticallySetAttemptToLoadMissingPackages = true;
 	const bool bSkipObjectNameResolutionAndUseDefault = !InBakeName.IsEmpty();  // If InBakeName is set use it as is for the object name
 	const bool bSkipBakeFolderResolutionAndUseDefault = false;
@@ -3745,7 +3609,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 	}
 	
 	FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-		WorldContext, HAC, OutputIdentifier, InOutputObject, bHasPreviousBakeData, BakedOutputObject->GetName(),
+		WorldContext, HC, OutputIdentifier, InOutputObject, bHasPreviousBakeData, BakedOutputObject->GetName(),
 		PackageParams, Resolver, BakeFolder, EPackageReplaceMode::ReplaceExistingAssets,
 		HoudiniAssetName, HoudiniAssetActorName,
 		bAutomaticallySetAttemptToLoadMissingPackages, bSkipObjectNameResolutionAndUseDefault,
@@ -3781,7 +3645,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 				AActor* BakedActor;
 				USplineComponent* BakedSplineComponent;
 				FHoudiniEngineBakeUtils::BakeCurve(
-					HAC, SplineComponent, GWorld->GetCurrentLevel(), PackageParams, BakeSettings, FName(PackageParams.ObjectName), BakedActor, BakedSplineComponent, NewBakeOutput);
+					HC, SplineComponent, GWorld->GetCurrentLevel(), PackageParams, BakeSettings, FName(PackageParams.ObjectName), BakedActor, BakedSplineComponent, NewBakeOutput);
 
 				BakedObjectEntry.Actor = FSoftObjectPath(BakedActor).ToString();
 				BakedObjectEntry.BakedComponent = FSoftObjectPath(BakedSplineComponent).ToString();
@@ -3821,7 +3685,9 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 }
 
 FReply
-FHoudiniOutputDetails::OnRefineClicked(const TWeakObjectPtr<UObject> ObjectToRefine, const TWeakObjectPtr<UHoudiniOutput> InOutput)
+FHoudiniOutputDetails::OnRefineClicked(
+	const TWeakObjectPtr<UObject> ObjectToRefine,
+	const TWeakObjectPtr<UHoudiniOutput> InOutput)
 {	
 	// TODO: Actually refine only the selected ProxyMesh
 	// For now, refine all the selection
@@ -3890,7 +3756,6 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 
 	// TODO: GetBakingBaseName!
 	FString SkelLabel;
-
 	if (Skeleton.IsValid())
 		SkelLabel = Skeleton->GetName();
 

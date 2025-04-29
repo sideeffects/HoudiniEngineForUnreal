@@ -34,6 +34,7 @@
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetComponentDetails.h"
+#include "HoudiniCookableDetails.h"
 #include "HoudiniEditorNodeSyncSubsystem.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineCommands.h"
@@ -296,6 +297,11 @@ FHoudiniEngineEditor::RegisterDetails()
 	PropertyModule.RegisterCustomClassLayout(
 		TEXT("HoudiniAssetComponent"),
 		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniAssetComponentDetails::MakeInstance));
+		//FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniCookableDetails::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
+		TEXT("HoudiniAssetActor"),
+		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniCookableDetails::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
 		TEXT("HoudiniRuntimeSettings"),
@@ -1312,49 +1318,54 @@ FHoudiniEngineEditor::ExtendContextMenu()
 		TArray< FContentBrowserMenuExtender_SelectedAssets >& CBMenuExtenderDelegates = ContentBrowserModule.GetAllAssetViewContextMenuExtenders();
 
 		CBMenuExtenderDelegates.Add(FContentBrowserMenuExtender_SelectedAssets::CreateLambda([this](const TArray<FAssetData>& SelectedAssets)
+		{
+			TSharedRef<FExtender> Extender(new FExtender());
+
+			bool bShouldExtendAssetActions = true;
+			for (const FAssetData& Asset : SelectedAssets)
 			{
-				TSharedRef<FExtender> Extender(new FExtender());
-
-				bool bShouldExtendAssetActions = true;
-				for (const FAssetData& Asset : SelectedAssets)
-				{
-					// TODO: Foliage Types? BP ?
+				// TODO: Foliage Types? BP ?
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
-						if ((Asset.AssetClassPath != USkeletalMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UStaticMesh::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UAnimSequence::StaticClass()->GetClassPathName()) && (Asset.AssetClassPath != UTexture2D::StaticClass()->GetClassPathName()))
+				if ((Asset.AssetClassPath != USkeletalMesh::StaticClass()->GetClassPathName())
+					&& (Asset.AssetClassPath != UStaticMesh::StaticClass()->GetClassPathName())
+					&& (Asset.AssetClassPath != UAnimSequence::StaticClass()->GetClassPathName())
+					&& (Asset.AssetClassPath != UTexture2D::StaticClass()->GetClassPathName()))
 #else
-						if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()) && (Asset.AssetClass != UAnimSequence::StaticClass()->GetFName()) && (Asset.AssetClass != UTexture2D::StaticClass()->GetFName()))
+				if ((Asset.AssetClass != USkeletalMesh::StaticClass()->GetFName()) 
+					&& (Asset.AssetClass != UStaticMesh::StaticClass()->GetFName()) 
+					&& (Asset.AssetClass != UAnimSequence::StaticClass()->GetFName())
+					&& (Asset.AssetClass != UTexture2D::StaticClass()->GetFName()))
 #endif
-					{
-						bShouldExtendAssetActions = false;
-						break;
-					}
-				}
-
-				if (bShouldExtendAssetActions)
 				{
-					Extender->AddMenuExtension(
-						"GetAssetActions",
-						EExtensionHook::After,
-						nullptr,
-						FMenuExtensionDelegate::CreateLambda(
-							[SelectedAssets, this](FMenuBuilder& MenuBuilder)
-							{
-								MenuBuilder.AddMenuEntry(
-									LOCTEXT("CB_Extension_SendToHoudini", "Send To Houdini"),
-									LOCTEXT("CB_Extension_SendToHoudini_Tooltip", "Send this asset to houdini"),
-									FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
-									FUIAction(
-										FExecuteAction::CreateLambda([SelectedAssets, this]() { SendToHoudini_CB(SelectedAssets); }),
-										FCanExecuteAction::CreateLambda([=] { return (SelectedAssets.Num() > 0); })
-									)
-								);
-							})
-					);
+					bShouldExtendAssetActions = false;
+					break;
 				}
-
-				return Extender;
 			}
-		));
+
+			if (bShouldExtendAssetActions)
+			{
+				Extender->AddMenuExtension(
+					"GetAssetActions",
+					EExtensionHook::After,
+					nullptr,
+					FMenuExtensionDelegate::CreateLambda(
+						[SelectedAssets, this](FMenuBuilder& MenuBuilder)
+						{
+							MenuBuilder.AddMenuEntry(
+								LOCTEXT("CB_Extension_SendToHoudini", "Send To Houdini"),
+								LOCTEXT("CB_Extension_SendToHoudini_Tooltip", "Send this asset to houdini"),
+								FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
+								FUIAction(
+									FExecuteAction::CreateLambda([SelectedAssets, this]() { SendToHoudini_CB(SelectedAssets); }),
+									FCanExecuteAction::CreateLambda([=] { return (SelectedAssets.Num() > 0); })
+								)
+							);
+						})
+				);
+			}
+
+			return Extender;
+		}));
 		ContentBrowserExtenderDelegateHandle = CBMenuExtenderDelegates.Last().GetHandle();
 
 	}

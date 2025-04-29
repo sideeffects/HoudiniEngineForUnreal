@@ -62,24 +62,24 @@ UHoudiniAssetBlueprintComponent::UHoudiniAssetBlueprintComponent(const FObjectIn
 	}
 #endif
 
-	bForceNeedUpdate = false;
+	bForceNeedUpdate_DEPRECATED = false;
 	bHoudiniAssetChanged = false;
 	bIsInBlueprintEditor = false;
 	bCanDeleteHoudiniNodes = false;
 
 	// AssetState will be updated by changes to the HoudiniAsset
 	// or parameter changes on the Component template.
-	AssetState = EHoudiniAssetState::None;
+	AssetState_DEPRECATED = EHoudiniAssetState::None;
 	bHasRegisteredComponentTemplate = false;
-	bHasBeenLoaded = false;
+	bHasBeenLoaded_DEPRECATED = false;
 	bUpdatedFromTemplate = false;
 
 	// Disable proxy mesh by default (unsupported for now)
-	bOverrideGlobalProxyStaticMeshSettings = true;
-	bEnableProxyStaticMeshOverride = false;
-	bEnableProxyStaticMeshRefinementByTimerOverride = false;
-	bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = false;
-	bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = false;
+	bOverrideGlobalProxyStaticMeshSettings_DEPRECATED = true;
+	bEnableProxyStaticMeshOverride_DEPRECATED = false;
+	bEnableProxyStaticMeshRefinementByTimerOverride_DEPRECATED = false;
+	bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride_DEPRECATED = false;
+	bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride_DEPRECATED = false;
 
 	// Set default mobility to Movable
 	Mobility = EComponentMobility::Movable;
@@ -137,18 +137,18 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 
 	// Populate / update the outputs for the template from the preview / instance.
 	// TODO: Wrap the Blueprint manipulation in a transaction
-	TArray<TObjectPtr<UHoudiniOutput>>& TemplateOutputs = CachedTemplateComponent->Outputs;
+	TArray<TObjectPtr<UHoudiniOutput>>& TemplateOutputs = CachedTemplateComponent->Outputs_DEPRECATED;
 	TSet<TObjectPtr<UHoudiniOutput>> StaleTemplateOutputs(TemplateOutputs);
 
-	TemplateOutputs.SetNum(Outputs.Num());
+	TemplateOutputs.SetNum(Outputs_DEPRECATED.Num());
 	CachedOutputNodes.Empty();
 
-	for (int i = 0; i < Outputs.Num(); i++)
+	for (int i = 0; i < Outputs_DEPRECATED.Num(); i++)
 	{
 		// Find a output on the template that corresponds to this output from the instance.
 		UHoudiniOutput* TemplateOutput = nullptr;
 		UHoudiniOutput* InstanceOutput = nullptr;
-		InstanceOutput = Outputs[i];
+		InstanceOutput = Outputs_DEPRECATED[i];
 		
 		//check(InstanceOutput)
 		if (!IsValid(InstanceOutput))
@@ -458,11 +458,11 @@ UHoudiniAssetBlueprintComponent::CopyStateToTemplateComponent()
 	CachedTemplateComponent->MarkPackageDirty();
 	PostEditChange();
 
-	CachedTemplateComponent->AssetId = AssetId;
-	CachedTemplateComponent->HapiGUID = HapiGUID;
-	CachedTemplateComponent->AssetCookCount = AssetCookCount;
-	CachedTemplateComponent->AssetStateResult = AssetStateResult;
-	CachedTemplateComponent->bLastCookSuccess = bLastCookSuccess;
+	CachedTemplateComponent->AssetId_DEPRECATED = AssetId_DEPRECATED;
+	CachedTemplateComponent->HapiGUID_DEPRECATED = HapiGUID_DEPRECATED;
+	CachedTemplateComponent->AssetCookCount_DEPRECATED = AssetCookCount_DEPRECATED;
+	CachedTemplateComponent->AssetStateResult_DEPRECATED = AssetStateResult_DEPRECATED;
+	CachedTemplateComponent->bLastCookSuccess_DEPRECATED = bLastCookSuccess_DEPRECATED;
 
 #if WITH_EDITOR
 	// TODO: Do we need to handle this right now or can we wait for the next Houdini Engine manager tick to process it?
@@ -494,7 +494,7 @@ UHoudiniAssetBlueprintComponent::CopyStateFromTemplateComponent(UHoudiniAssetBlu
 	// Make sure all TransientDuplicate properties from the Template Component needed by this transient component
 	// gets copied.
 
-	ComponentGUID = FromComponent->ComponentGUID;
+	ComponentGUID_DEPRECATED = FromComponent->ComponentGUID_DEPRECATED;
 
 	/*
 	{
@@ -512,7 +512,7 @@ UHoudiniAssetBlueprintComponent::CopyStateFromTemplateComponent(UHoudiniAssetBlu
 	// This state should not be shared between template / instance components.
 	//bFullyLoaded = FromComponent->bFullyLoaded;
 
-	bNoProxyMeshNextCookRequested = FromComponent->bNoProxyMeshNextCookRequested;
+	bNoProxyMeshNextCookRequested_DEPRECATED = FromComponent->bNoProxyMeshNextCookRequested_DEPRECATED;
 	
 	// Reconstruct outputs and update them to point to component instances as opposed to templates.
 	UObject* TemplateOuter = CachedTemplateComponent->GetOuter();
@@ -528,11 +528,11 @@ UHoudiniAssetBlueprintComponent::CopyStateFromTemplateComponent(UHoudiniAssetBlu
 	// Copy outputs to component template
 	// -----------------------------------------------------
 
-	TArray<TObjectPtr<UHoudiniOutput>>& TemplateOutputs = CachedTemplateComponent->Outputs;
+	TArray<TObjectPtr<UHoudiniOutput>>& TemplateOutputs = CachedTemplateComponent->Outputs_DEPRECATED;
 	
-	TSet<UHoudiniOutput*> StaleInstanceOutputs(Outputs);
+	TSet<UHoudiniOutput*> StaleInstanceOutputs(Outputs_DEPRECATED);
 	
-	Outputs.SetNum(TemplateOutputs.Num());
+	Outputs_DEPRECATED.SetNum(TemplateOutputs.Num());
 
 	for (int i = 0; i < TemplateOutputs.Num(); i++)
 	{
@@ -540,7 +540,7 @@ UHoudiniAssetBlueprintComponent::CopyStateFromTemplateComponent(UHoudiniAssetBlu
 		if (!IsValid(TemplateOutput))
 			continue;
 
-		UHoudiniOutput* InstanceOutput = Outputs[i];
+		UHoudiniOutput* InstanceOutput = Outputs_DEPRECATED[i];
 		if (!(InstanceOutput->GetOuter() == this))
 			InstanceOutput = nullptr;
 
@@ -562,7 +562,7 @@ UHoudiniAssetBlueprintComponent::CopyStateFromTemplateComponent(UHoudiniAssetBlu
 				InstanceOutput->ClearFlags(RF_ArchetypeObject|RF_DefaultSubObject);
 		}
 
-		Outputs[i] = InstanceOutput;
+		Outputs_DEPRECATED[i] = InstanceOutput;
 
 		if (!IsValid(InstanceOutput))
 			continue;
@@ -673,8 +673,8 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 
 	// TODO: Add support for input components
 	{
-		TArray<TObjectPtr<UHoudiniInput>>& FromInputs = FromComponent->Inputs;
-		TSet<UHoudiniInput*> StaleInputs(Inputs);
+		TArray<TObjectPtr<UHoudiniInput>>& FromInputs = FromComponent->Inputs_DEPRECATED;
+		TSet<UHoudiniInput*> StaleInputs(Inputs_DEPRECATED);
 		USimpleConstructionScript* SCS = GetSCS();
 		USCS_Node* SCSHACNode = nullptr;
 
@@ -683,7 +683,7 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 			SCSHACNode = FindSCSNodeForTemplateComponentInClassHierarchy(CachedTemplateComponent.Get());
 		}
 		
-		Inputs.SetNum(FromInputs.Num());
+		Inputs_DEPRECATED.SetNum(FromInputs.Num());
 		for (int i = 0; i < FromInputs.Num(); i++)
 		{
 			UHoudiniInput* FromInput = nullptr;
@@ -692,7 +692,7 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 
 			check(FromInput);
 
-			ToInput = Inputs[i];
+			ToInput = Inputs_DEPRECATED[i];
 
 			if (ToInput)
 			{
@@ -733,7 +733,7 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 
 			UpdateInputObjectComponentReferences(SCS, FromInput, ToInput, bCopyInputObjectComponentProperties, bCreateSCSNodes, SCSHACNode, &bOutBlueprintStructureChanged);
 
-			Inputs[i] = ToInput;
+			Inputs_DEPRECATED[i] = ToInput;
 			InputMapping.Add(FromInput, ToInput);
 
 			if (bClearChangedToInputs)
@@ -779,8 +779,8 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 	// -----------------------------------------------------
 	TMap<UHoudiniParameter*, UHoudiniParameter*> ParameterMapping;
 	
-	TArray<TObjectPtr<UHoudiniParameter>>& FromParameters = FromComponent->Parameters;
-	Parameters.SetNum(FromParameters.Num());
+	TArray<TObjectPtr<UHoudiniParameter>>& FromParameters = FromComponent->Parameters_DEPRECATED;
+	Parameters_DEPRECATED.SetNum(FromParameters.Num());
 
 	for (int i = 0; i < FromParameters.Num(); i++)
 	{
@@ -791,9 +791,9 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 
 		check(FromParameter);
 
-		if (Parameters.IsValidIndex(i))
+		if (Parameters_DEPRECATED.IsValidIndex(i))
 		{
-			ToParameter = Parameters[i];
+			ToParameter = Parameters_DEPRECATED[i];
 		}
 
 		if (ToParameter)
@@ -816,7 +816,7 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 		{
 			// TODO: Check whether parameters are the same to avoid recreating them.
 			ToParameter = FromParameter->DuplicateAndCopyState(this, ClearFlags, SetFlags);
-			Parameters[i] = ToParameter;
+			Parameters_DEPRECATED[i] = ToParameter;
 		}
 		
 		check(ToParameter);
@@ -832,7 +832,7 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 	}
 
 	// Apply remappings on the new parameters
-	for (UHoudiniParameter* ToParameter : Parameters)
+	for (UHoudiniParameter* ToParameter : Parameters_DEPRECATED)
 	{
 		ToParameter->RemapParameters(ParameterMapping);
 		ToParameter->RemapInputs(InputMapping);
@@ -842,9 +842,9 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 	FPropertyChangedEvent Evt(ParametersProperty);
 	PostEditChangeProperty(Evt);
 
-	bEnableCooking = FromComponent->bEnableCooking;
-	bRecookRequested = FromComponent->bRecookRequested;
-	bRebuildRequested = FromComponent->bRebuildRequested;
+	bEnableCooking_DEPRECATED = FromComponent->bEnableCooking_DEPRECATED;
+	bRecookRequested_DEPRECATED = FromComponent->bRecookRequested_DEPRECATED;
+	bRebuildRequested_DEPRECATED = FromComponent->bRebuildRequested_DEPRECATED;
 }
 
 void
@@ -1101,12 +1101,12 @@ UHoudiniAssetBlueprintComponent::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes
 {
 	bCanDeleteHoudiniNodes = bInCanDeleteNodes;
 	
-	for (UHoudiniInput* Input : Inputs)
+	for (UHoudiniInput* Input : Inputs_DEPRECATED)
 	{
 		Input->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
 	}
 
-	for (UHoudiniOutput* Output : Outputs)
+	for (UHoudiniOutput* Output : Outputs_DEPRECATED)
 	{
 		Output->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
 	}
@@ -1327,7 +1327,7 @@ void UHoudiniAssetBlueprintComponent::OnPrePreInstantiation()
 	// We need to flag our inputs and parameters appropriately in order to preserve their values.
 
 	// We need to mark all our parameters as changed/not triggering update
-	for (auto CurrentParam : Parameters)
+	for (auto CurrentParam : Parameters_DEPRECATED)
 	{
 		if (CurrentParam)
 		{
@@ -1337,7 +1337,7 @@ void UHoudiniAssetBlueprintComponent::OnPrePreInstantiation()
 	}
 
 	// We need to mark all our inputs as changed/not triggering update
-	for (auto CurrentInput : Inputs)
+	for (auto CurrentInput : Inputs_DEPRECATED)
 	{
 		if (CurrentInput)
 		{
@@ -1358,7 +1358,7 @@ UHoudiniAssetBlueprintComponent::NotifyHoudiniRegisterCompleted()
 
 		// If the template is being registered, we need to invalidate the AssetId here since it likely 
 		// contains a stale asset id from its last cook.
-		AssetId = -1;
+		AssetId_DEPRECATED = -1;
 		// Template component's have very limited update requirements / capabilities.
 		// Mostly just cache parameters and cook state.
 		SetAssetState(EHoudiniAssetState::ProcessTemplate); 
@@ -1410,8 +1410,8 @@ UHoudiniAssetBlueprintComponent::OnComponentCreated()
 		// Clear these to ensure that we're not sharing references with the component template (otherwise
 		// the shared objects will get deleted when the component instance gets destroyed).
 		// These objects will be properly duplicated when copying state from the component template.
-		Inputs.Empty();
-		Parameters.Empty();
+		Inputs_DEPRECATED.Empty();
+		Parameters_DEPRECATED.Empty();
 	}
 
 	// Wait until InitializeComponent() for blueprint construction to complete before we start caching blueprint data.
@@ -1454,7 +1454,7 @@ UHoudiniAssetBlueprintComponent::OnRegister()
 		// We're initializing the asset id for HAC template here since it doesn't get unloaded
 		// from memory, for example, between Blueprint Editor open/close so we need to make sure
 		// that the AssetId has indeed been reset between registrations.
-		AssetId = -1;
+		AssetId_DEPRECATED = -1;
 	}
 
 	//TickInitialization();
@@ -1492,26 +1492,26 @@ UHoudiniAssetBlueprintComponent::GetComponentInstanceData() const
 	TStructOnScope<FActorComponentInstanceData> ComponentInstanceData = MakeStructOnScope<FActorComponentInstanceData, FHoudiniAssetBlueprintInstanceData>(this);
 	FHoudiniAssetBlueprintInstanceData* InstanceData = ComponentInstanceData.Cast<FHoudiniAssetBlueprintInstanceData>();
 
-	InstanceData->AssetId = AssetId;
-	InstanceData->AssetState = AssetState;
-	InstanceData->SubAssetIndex = SubAssetIndex;
-	InstanceData->ComponentGUID = ComponentGUID;
-	InstanceData->HapiGUID = HapiGUID;
-	InstanceData->HoudiniAsset = HoudiniAsset;
+	InstanceData->AssetId = AssetId_DEPRECATED;
+	InstanceData->AssetState = AssetState_DEPRECATED;
+	InstanceData->SubAssetIndex = SubAssetIndex_DEPRECATED;
+	InstanceData->ComponentGUID = ComponentGUID_DEPRECATED;
+	InstanceData->HapiGUID = HapiGUID_DEPRECATED;
+	InstanceData->HoudiniAsset = HoudiniAsset_DEPRECATED;
 	InstanceData->SourceName = GetPathName();
-	InstanceData->AssetCookCount = AssetCookCount;
-	InstanceData->bHasBeenLoaded = bHasBeenLoaded;
-	InstanceData->bHasBeenDuplicated = bHasBeenDuplicated;
-	InstanceData->bPendingDelete = bPendingDelete;
-	InstanceData->bRecookRequested = bRecookRequested;
-	InstanceData->bEnableCooking = bEnableCooking;
-	InstanceData->bForceNeedUpdate = bForceNeedUpdate;
-	InstanceData->bLastCookSuccess = bLastCookSuccess;
+	InstanceData->AssetCookCount = AssetCookCount_DEPRECATED;
+	InstanceData->bHasBeenLoaded = bHasBeenLoaded_DEPRECATED;
+	InstanceData->bHasBeenDuplicated = bHasBeenDuplicated_DEPRECATED;
+	InstanceData->bPendingDelete = bPendingDelete_DEPRECATED;
+	InstanceData->bRecookRequested = bRecookRequested_DEPRECATED;
+	InstanceData->bEnableCooking = bEnableCooking_DEPRECATED;
+	InstanceData->bForceNeedUpdate = bForceNeedUpdate_DEPRECATED;
+	InstanceData->bLastCookSuccess = bLastCookSuccess_DEPRECATED;
 	InstanceData->bRegisteredComponentTemplate = bHasRegisteredComponentTemplate;
 
 	InstanceData->Inputs.Empty();
 
-	for (UHoudiniInput* Input : Inputs)
+	for (UHoudiniInput* Input : Inputs_DEPRECATED)
 	{
 		if (!Input)
 			continue;
@@ -1522,7 +1522,7 @@ UHoudiniAssetBlueprintComponent::GetComponentInstanceData() const
 	// Cache the current outputs
 	InstanceData->Outputs.Empty();
 	int OutputIndex = 0;
-	for(UHoudiniOutput* Output : Outputs)
+	for(UHoudiniOutput* Output : Outputs_DEPRECATED)
 	{
 		if (!Output)
 			continue;
@@ -1555,18 +1555,18 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 		USimpleConstructionScript* SCS = GetSCS();
 		check(SCS);
 
-		TArray<UHoudiniInput*> StaleInputs(Inputs);
+		TArray<UHoudiniInput*> StaleInputs(Inputs_DEPRECATED);
 
 		// We need to update references contain in inputs / outputs to point to new reconstructed components.
 		const int32 NumInputs = InstanceData->Inputs.Num();
-		Inputs.SetNum(NumInputs);
+		Inputs_DEPRECATED.SetNum(NumInputs);
 		for (int i = 0; i < NumInputs; ++i)
 		{
 			UHoudiniInput* FromInput = InstanceData->Inputs[i];
 			if (!IsValid(FromInput))
 				continue;
 
-			UHoudiniInput* ToInput = Inputs[i];
+			UHoudiniInput* ToInput = Inputs_DEPRECATED[i];
 			if (IsValid(ToInput))
 			{
 				bool bIsValid = true;
@@ -1597,7 +1597,7 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 			UpdateInputObjectComponentReferences(SCS, FromInput, ToInput, true, false);
 #endif
 
-			Inputs[i] = ToInput;
+			Inputs_DEPRECATED[i] = ToInput;
 		}
 
 		// We need to update FHoudiniOutputObject SceneComponent references to
@@ -1616,8 +1616,8 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 			// NOTE: Output objects are going to be empty here since they dissapear during actor reconstruction.
 			// We'll need to repopulate from the instance data.
 
-			check(Outputs.IsValidIndex(OutputData.OutputIndex));
-			UHoudiniOutput* Output = Outputs[OutputData.OutputIndex];
+			check(Outputs_DEPRECATED.IsValidIndex(OutputData.OutputIndex));
+			UHoudiniOutput* Output = Outputs_DEPRECATED[OutputData.OutputIndex];
 			check(Output);
 			TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = Output->GetOutputObjects();
 			FHoudiniOutputObject NewObject = OutputData.OutputObject;
@@ -1651,26 +1651,26 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 #endif
 		}
 	
-		AssetId = InstanceData->AssetId;
-		SubAssetIndex = InstanceData->SubAssetIndex;
-		ComponentGUID = InstanceData->ComponentGUID;
-		HapiGUID = InstanceData->HapiGUID;
+		AssetId_DEPRECATED = InstanceData->AssetId;
+		SubAssetIndex_DEPRECATED = InstanceData->SubAssetIndex;
+		ComponentGUID_DEPRECATED = InstanceData->ComponentGUID;
+		HapiGUID_DEPRECATED = InstanceData->HapiGUID;
 	
 		// Apply the previous HoudiniAsset to the component
 		// so that we can compare it against the template during CopyStateFromTemplate() calls to see whether it changed.
-		HoudiniAsset = InstanceData->HoudiniAsset;
+		HoudiniAsset_DEPRECATED = InstanceData->HoudiniAsset;
 
-		AssetCookCount = InstanceData->AssetCookCount;
-		bHasBeenLoaded = InstanceData->bHasBeenLoaded;
-		bHasBeenDuplicated = InstanceData->bHasBeenDuplicated;
-		bPendingDelete = InstanceData->bPendingDelete;
-		bRecookRequested = InstanceData->bRecookRequested;
-		bEnableCooking = InstanceData->bEnableCooking;
-		bForceNeedUpdate = InstanceData->bForceNeedUpdate;
-		bLastCookSuccess = InstanceData->bLastCookSuccess;
+		AssetCookCount_DEPRECATED = InstanceData->AssetCookCount;
+		bHasBeenLoaded_DEPRECATED = InstanceData->bHasBeenLoaded;
+		bHasBeenDuplicated_DEPRECATED = InstanceData->bHasBeenDuplicated;
+		bPendingDelete_DEPRECATED = InstanceData->bPendingDelete;
+		bRecookRequested_DEPRECATED = InstanceData->bRecookRequested;
+		bEnableCooking_DEPRECATED = InstanceData->bEnableCooking;
+		bForceNeedUpdate_DEPRECATED = InstanceData->bForceNeedUpdate;
+		bLastCookSuccess_DEPRECATED = InstanceData->bLastCookSuccess;
 		bHasRegisteredComponentTemplate = InstanceData->bRegisteredComponentTemplate;
 
-		AssetState = InstanceData->AssetState;
+		AssetState_DEPRECATED = InstanceData->AssetState;
 		
 		SetCanDeleteHoudiniNodes(false);
 
@@ -1748,14 +1748,14 @@ UHoudiniAssetBlueprintComponent::OnFullyLoaded()
 		if (!PreviewActor)
 		{
 			bIsInBlueprintEditor = false;
-			AssetState = EHoudiniAssetState::None;
+			AssetState_DEPRECATED = EHoudiniAssetState::None;
 			return;
 		}
 
 		if (OwningActor && PreviewActor != OwningActor)  
 		{
 			bIsInBlueprintEditor = false;
-			AssetState = EHoudiniAssetState::None;
+			AssetState_DEPRECATED = EHoudiniAssetState::None;
 			return;
 		}
 	}
@@ -1775,8 +1775,8 @@ UHoudiniAssetBlueprintComponent::OnFullyLoaded()
 
 	if (IsTemplate())
 	{	
-		AssetId = -1;
-		AssetState = EHoudiniAssetState::ProcessTemplate;
+		AssetId_DEPRECATED = -1;
+		AssetState_DEPRECATED = EHoudiniAssetState::ProcessTemplate;
 	}
 
 	if (IsPreview()) 
@@ -1793,8 +1793,8 @@ UHoudiniAssetBlueprintComponent::OnFullyLoaded()
 		{
 		
 			// The HoudiniAsset has changed, so we need to force the PreviewInstance to re-instantiate
-			AssetState = EHoudiniAssetState::NeedInstantiation;
-			bForceNeedUpdate = true;
+			AssetState_DEPRECATED = EHoudiniAssetState::NeedInstantiation;
+			bForceNeedUpdate_DEPRECATED = true;
 			bHoudiniAssetChanged = false;
 			// TODO: Make this better?
 			CachedTemplateComponent->bHoudiniAssetChanged = false;
@@ -1810,7 +1810,7 @@ UHoudiniAssetBlueprintComponent::OnFullyLoaded()
 			// opportunity to invalidate asset/node ids but now that it has reregistered (without going
 			// through the normal initialization process) we will have to force a call to MarkAsNeedInstantiation
 			// during the next OnTemplateParametersChangedHandler() invocation.
-			bHasBeenLoaded = true;
+			bHasBeenLoaded_DEPRECATED = true;
 		}
 	}
 }
@@ -1857,8 +1857,8 @@ UHoudiniAssetBlueprintComponent::OnHoudiniAssetChanged()
 		SetCanDeleteHoudiniNodes(true);
 		InvalidateData();
 		SetCanDeleteHoudiniNodes(false);
-		Parameters.Empty();
-		Inputs.Empty();
+		Parameters_DEPRECATED.Empty();
+		Inputs_DEPRECATED.Empty();
 	}
 
 	Super::OnHoudiniAssetChanged();
@@ -1973,7 +1973,7 @@ UHoudiniAssetBlueprintComponent::SetToggleValueAt(FString Name, bool Value, int 
 void 
 UHoudiniAssetBlueprintComponent::OnTemplateParametersChangedHandler(UHoudiniAssetComponent* InComponentTemplate)
 {	
-	if (!(AssetState == EHoudiniAssetState::None || AssetState == EHoudiniAssetState::NeedInstantiation || AssetState == EHoudiniAssetState::NeedRebuild))
+	if (!(AssetState_DEPRECATED == EHoudiniAssetState::None || AssetState_DEPRECATED == EHoudiniAssetState::NeedInstantiation || AssetState_DEPRECATED == EHoudiniAssetState::NeedRebuild))
 		// Don't process parameter changes since we're already cooking -- it is going to break things badly if we do.
 		return;
 
@@ -2006,7 +2006,7 @@ UHoudiniAssetBlueprintComponent::OnTemplateParametersChangedHandler(UHoudiniAsse
 		// will clobber the inputs and parameter states on this component.
 
 		// If we already have a valid asset id, keep it.
-		if (AssetId >= 0)
+		if (AssetId_DEPRECATED >= 0)
 		{
 			MarkAsNeedCook();
 		}
@@ -2016,12 +2016,12 @@ UHoudiniAssetBlueprintComponent::OnTemplateParametersChangedHandler(UHoudiniAsse
 		}
 		
 		bHasRegisteredComponentTemplate = false;
-		bFullyLoaded = true; // MarkAsNeedInstantiation sets this to false. Force to true.
+		bFullyLoaded_DEPRECATED = true; // MarkAsNeedInstantiation sets this to false. Force to true.
 		// While MarkAsNeedInstantiation() sets ParametersChanged to true, it does not
 		// set the 'NeedToTriggerUpdate' flag (both of which needs to be true in order
 		// to trigger an HDA update) so we are going to force NeedUpdate() to return true
 		// in order to get an initial cook.
-		bForceNeedUpdate = true;
+		bForceNeedUpdate_DEPRECATED = true;
 	}
 
 	bUpdatedFromTemplate = true;
@@ -2035,18 +2035,18 @@ UHoudiniAssetBlueprintComponent::InvalidateData()
 		// Ensure transient properties are invalidated/released for parameters, inputs and outputs as if the
 		// the object was undergoing destruction since the template component will likely be reregistered
 		// without being destroyed.
-		for(UHoudiniParameter* Param : Parameters)
+		for(UHoudiniParameter* Param : Parameters_DEPRECATED)
 		{
 			Param->InvalidateData();
 		}
 		
-		for(UHoudiniInput* Input : Inputs)
+		for(UHoudiniInput* Input : Inputs_DEPRECATED)
 		{
 			Input->InvalidateData();
 		}
 
-		FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(AssetId, true);
-		AssetId = -1;
+		FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(AssetId_DEPRECATED, true);
+		AssetId_DEPRECATED = -1;
 	}
 }
 

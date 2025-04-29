@@ -64,7 +64,7 @@ UHoudiniAssetActorFactory::GetAssetFromActorInstance(AActor * Instance)
 	check(Instance->IsA(NewActorClass));
 	AHoudiniAssetActor * HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(Instance);
 
-	if (HoudiniAssetActor->HoudiniCookable)
+	if (HoudiniAssetActor->GetHoudiniCookable())
 	{
 		// Get the HDA via the Cookable
 		if (HoudiniAssetActor->HoudiniCookable->IsHoudiniAssetSupported())
@@ -72,12 +72,8 @@ UHoudiniAssetActorFactory::GetAssetFromActorInstance(AActor * Instance)
 			return HoudiniAssetActor->HoudiniCookable->GetHoudiniAsset();
 		}
 	}
-	
-	// TODO COOKABLE: REMOVE ME!
-	{
-		check(HoudiniAssetActor->GetHoudiniAssetComponent());
-		return HoudiniAssetActor->GetHoudiniAssetComponent()->HoudiniAsset;
-	}
+
+	return nullptr;
 }
 
 void
@@ -89,39 +85,21 @@ UHoudiniAssetActorFactory::PostSpawnActor(UObject * Asset, AActor * NewActor)
 	AHoudiniAssetActor * HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(NewActor);
 
 	UHoudiniCookable* HC = HoudiniAssetActor->GetHoudiniCookable();
-	if (HC)
-	{
-		USceneComponent* CookableComponent = HC->GetComponent();
-		check(CookableComponent);
+	check(HC);
 
-		FHoudiniEngineUtils::AddHoudiniLogoToComponent(CookableComponent);
+	USceneComponent* CookableComponent = HC->GetComponent();
+	check(CookableComponent);
 
-		if (!HoudiniAssetActor->IsUsedForPreview())
-		{
-			if (IsValid(HoudiniAsset))
-			{
-				HC->SetHoudiniAsset(HoudiniAsset);
-			}
-
-			FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(HoudiniAssetActor->HoudiniCookable);
-		}
-
-		return;
-	}
-
-	// TODO COOKABLE: REMOVE ME!
-	UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
-	check(HoudiniAssetComponent);
-	FHoudiniEngineUtils::AddHoudiniLogoToComponent(HoudiniAssetComponent);
+	FHoudiniEngineUtils::AddHoudiniLogoToComponent(CookableComponent);
 
 	if (!HoudiniAssetActor->IsUsedForPreview())
 	{
 		if (IsValid(HoudiniAsset))
 		{
-			HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
+			HC->SetHoudiniAsset(HoudiniAsset);
 		}
 
-		FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
+		FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(HoudiniAssetActor->HoudiniCookable);
 	}
 }
 

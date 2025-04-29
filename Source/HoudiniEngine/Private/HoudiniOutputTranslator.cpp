@@ -85,34 +85,6 @@
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
-//
-bool
-FHoudiniOutputTranslator::UpdateOutputs(
-	UHoudiniAssetComponent* HAC)
-{
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateOutputs);
-
-	if (!IsValid(HAC))
-		return false;
-
-	// 1. Update the output objects
-	UpdateOutputObjects(
-		HAC->GetAssetId(),
-		HAC->GetOutputs(),
-		HAC->GetOutputNodeIds(),
-		HAC->GetOutputNodeCookCounts(),
-		HAC,
-		HAC->IsOutputless(),
-		HAC->GetOutputTemplateGeos(),
-		HAC->GetUseOutputNodes(),
-		HAC->GetEnableCurveEditing(),
-		true /* bCreateSceneComponents */);
-
-	// 2. Update tags and generic attributes on HAC
-	UpdateOutputAttributesAndTags(HAC->GetOutputs(), HAC->GetOwner(), HAC);
-
-	return true;
-}
 
 //
 bool
@@ -153,62 +125,6 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	return true;
 }
 
-//
-bool
-FHoudiniOutputTranslator::ProcessOutputs(
-	UHoudiniAssetComponent * HAC,
-	bool& bOutHasHoudiniStaticMeshOutput)
-{
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::ProcessOutputs);
-
-	// 3. Create the outputs and components
-	FHoudiniPackageParams PackageParams;
-	PackageParams.PackageMode = FHoudiniPackageParams::GetDefaultStaticMeshesCookMode();
-	PackageParams.ReplaceMode = FHoudiniPackageParams::GetDefaultReplaceMode();
-
-	PackageParams.BakeFolder = HAC->GetBakeFolderOrDefault();
-	PackageParams.TempCookFolder = HAC->GetTemporaryCookFolderOrDefault();
-
-	PackageParams.OuterPackage = HAC->GetComponentLevel();
-	PackageParams.HoudiniAssetName = HAC->GetHoudiniAssetName();
-	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
-	PackageParams.ComponentGUID = HAC->GetComponentGUID();
-	PackageParams.ObjectName = FString();
-
-	TArray<UPackage*> CreatedPackages;
-	if (!CreateAllOutputs(
-		HAC->GetOutputs(),
-		HAC->GetInputs(),
-		PackageParams,
-		HAC,
-		HAC->GetHACWorld(),
-		HAC->IsProxyStaticMeshEnabled(),
-		HAC->HasNoProxyMeshNextCookBeenRequested(),
-		HAC->IsBakeAfterNextCookEnabled(),
-		HAC->GetSplitMeshSupport(),
-		HAC->GetStaticMeshGenerationProperties(),
-		HAC->GetStaticMeshBuildSettings(),
-		bOutHasHoudiniStaticMeshOutput,
-		CreatedPackages))
-		return false;
-
-	// 4. Output cleanup
-	CleanOutputsPostCreate(HAC->GetOutputs(), HAC->GetHACWorld(), HAC->HasBeenLoaded());
-
-	// 5. 
-	UpdateDataLayersAndLevelInstanceOnOutput(HAC->GetOutputs());
-
-	// 6. Save all created packages	
-	if (CreatedPackages.Num() > 0)
-	{
-		// Save created packages. For example, we don't want landscape layers deleted 
-		// along with the HDA.
-		FEditorFileUtils::PromptForCheckoutAndSave(CreatedPackages, true, false);
-	}
-
-	return true;
-}
-
 
 //
 bool
@@ -224,10 +140,6 @@ FHoudiniOutputTranslator::ProcessOutputs(
 	if (!HC->IsOutputSupported() || !HC->OutputData)
 		return false;
 
-	UActorComponent* CookableComponent = nullptr;
-	if (HC->IsComponentSupported() && HC->ComponentData)
-		CookableComponent = HC->ComponentData->Component.Get();
-
 	// 3. Create the outputs and components
 	FHoudiniPackageParams PackageParams;
 	PackageParams.PackageMode = FHoudiniPackageParams::GetDefaultStaticMeshesCookMode();
@@ -236,7 +148,10 @@ FHoudiniOutputTranslator::ProcessOutputs(
 	PackageParams.BakeFolder = HC->OutputData->GetBakeFolderOrDefault();
 	PackageParams.TempCookFolder = HC->OutputData->GetTemporaryCookFolderOrDefault();
 
-	PackageParams.OuterPackage = CookableComponent ? CookableComponent->GetComponentLevel() : nullptr;
+	PackageParams.OuterPackage = HC->GetLevel();
+	if (!PackageParams.OuterPackage)
+		PackageParams.OuterPackage = HC->GetPackage();
+
 	PackageParams.HoudiniAssetName = HC->GetHoudiniAssetName();
 	PackageParams.HoudiniAssetActorName = HC->GetDisplayName();
 	PackageParams.ComponentGUID = HC->CookableGUID;
@@ -845,24 +760,26 @@ FHoudiniOutputTranslator::UpdateDataLayersAndLevelInstanceOnOutput(
 
 
 bool
-FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAssetComponent* HAC, bool bInDestroyProxies)
+FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniCookable* HC, bool bInDestroyProxies)
 {
-	if (!IsValid(HAC))
+	if (!IsValid(HC))
 		return false;
 
-	UObject* OuterComponent = HAC;
+	UObject* OuterComponent = HC->GetComponent();
+	if(!OuterComponent)
+		OuterComponent = HC;
 
 	FHoudiniPackageParams PackageParams;
 	PackageParams.PackageMode = FHoudiniPackageParams::GetDefaultStaticMeshesCookMode();
 	PackageParams.ReplaceMode = FHoudiniPackageParams::GetDefaultReplaceMode();
 
-	PackageParams.BakeFolder = HAC->GetBakeFolderOrDefault();
-	PackageParams.TempCookFolder = HAC->GetTemporaryCookFolderOrDefault();
+	PackageParams.BakeFolder = HC->GetBakeFolderOrDefault();
+	PackageParams.TempCookFolder = HC->GetTemporaryCookFolderOrDefault();
 
-	PackageParams.OuterPackage = HAC->GetComponentLevel();
-	PackageParams.HoudiniAssetName = HAC->GetHoudiniAssetName();
-	PackageParams.HoudiniAssetActorName = HAC->GetOwner()->GetActorNameOrLabel();
-	PackageParams.ComponentGUID = HAC->GetComponentGUID();
+	PackageParams.OuterPackage = HC->GetPackage();
+	PackageParams.HoudiniAssetName = HC->GetHoudiniAssetName();
+	PackageParams.HoudiniAssetActorName = HC->GetOwner()->GetActorNameOrLabel();
+	PackageParams.ComponentGUID = HC->GetCookableGUID();
 	PackageParams.ObjectName = FString();
 
 	// Keep track of all generated houdini materials to avoid recreating them over and over
@@ -870,9 +787,9 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 
 	bool bFoundProxies = false;
 	TArray<UHoudiniOutput*> InstancerOutputs;
-	for(int Idx = 0; Idx < HAC->GetNumOutputs(); Idx++)
+	for(int Idx = 0; Idx < HC->GetNumOutputs(); Idx++)
 	{
-		UHoudiniOutput* CurOutput = HAC->GetOutputAt(Idx);
+		UHoudiniOutput* CurOutput = HC->GetOutputAt(Idx);
 		if (!CurOutput)
 			continue;
 
@@ -886,9 +803,9 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 					CurOutput,
 					PackageParams,
 					EHoudiniStaticMeshMethod::FMeshDescription,
-					HAC->GetSplitMeshSupport(),
-					HAC->GetStaticMeshGenerationProperties(),
-					HAC->GetStaticMeshBuildSettings(),
+					HC->GetSplitMeshSupport(),
+					HC->GetStaticMeshGenerationProperties(),
+					HC->GetStaticMeshBuildSettings(),
 					AllOutputMaterials,
 					OuterComponent,
 					true,  // bInTreatExistingMaterialsAsUpToDate
@@ -931,7 +848,7 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 		}
 
 		// Rebuild the instancers
-		FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(InstancerOutputs, HAC->GetOutputs(), OuterComponent, PackageParams);
+		FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(InstancerOutputs, HC->GetOutputs(), OuterComponent, PackageParams);
 	}
 
 	return true;

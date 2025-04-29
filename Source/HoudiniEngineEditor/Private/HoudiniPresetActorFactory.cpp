@@ -74,7 +74,7 @@ UHoudiniPresetActorFactory::GetAssetFromActorInstance(AActor * Instance)
 	AHoudiniAssetActor * HoudiniAssetActor = CastChecked<AHoudiniAssetActor>(Instance);
 
 	check(HoudiniAssetActor->GetHoudiniAssetComponent());
-	return HoudiniAssetActor->GetHoudiniAssetComponent()->HoudiniAsset;
+	return HoudiniAssetActor->GetHoudiniAssetComponent()->HoudiniAsset_DEPRECATED;
 }
 
 void

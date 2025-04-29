@@ -27,6 +27,7 @@
 #include "HoudiniLandscapeSplineTranslator.h"
 
 #include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineAttributes.h"
 #include "HoudiniEnginePrivatePCH.h"
@@ -80,7 +81,7 @@ FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(
 	if (InOutput->GetType() != EHoudiniOutputType::LandscapeSpline)
 		return false;
 
-	UHoudiniAssetComponent* HAC = FHoudiniEngineUtils::GetOuterHoudiniAssetComponent(InOutput);
+	UHoudiniCookable* HC = FHoudiniEngineUtils::GetOuterHoudiniCookable(InOutput);
 
 	// Delete any temporary landscape layers created during the last cook
 	DeleteTempLandscapeLayers(InOutput);
@@ -88,10 +89,10 @@ FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(
 	// If we have a valid HAC, look for the first valid output landscape to use as a fallback if the spline does
 	// not specify a landscape target
 	ALandscapeProxy* FallbackLandscape = nullptr;
-	if (IsValid(HAC))
+	if (IsValid(HC))
 	{
 		TArray<UHoudiniOutput*> Outputs;
-		HAC->GetOutputs(Outputs);
+		HC->GetOutputs(Outputs);
 		for (UHoudiniOutput const* const Output : Outputs)
 		{
 			if (!IsValid(Output) || Output->GetType() == EHoudiniOutputType::Landscape)
@@ -117,8 +118,7 @@ FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(
 
 	// Keep track of segments we need to apply to edit layers per landscape. We apply after processing all HGPO for
 	// this output.
-	TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData> SegmentsToApplyToLayers;
-	
+	TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData> SegmentsToApplyToLayers;	
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject> NewOutputObjects;
 
 	// Iterate on all the output's HGPOs
@@ -140,7 +140,7 @@ FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(
 			InClearedLayers,
 			SegmentsToApplyToLayers,
 			NewOutputObjects,
-			HAC);
+			HC);
 	}
 
 	// Apply splines to user specified edit layers and reserved spline layers
@@ -153,8 +153,8 @@ FHoudiniLandscapeSplineTranslator::ProcessLandscapeSplineOutput(
 	InOutput->MarkPackageDirty();
 
 #if WITH_EDITORONLY_DATA
-	if(IsValid(HAC) && HAC->IsOwnerSelected())
-		HAC->bNeedToUpdateEditorProperties = true;
+	if(IsValid(HC) && HC->IsOwnerSelected())
+		HC->SetNeedToUpdateEditorProperties(true);
 #endif
 
 	return true;
@@ -284,7 +284,7 @@ FHoudiniLandscapeSplineTranslator::AddSegmentToOutputObject(
 	ULandscapeSplineSegment* InSegment,
 	const FHoudiniLandscapeSplineData& InSplineData,
 	int InVertexIndex,
-	UHoudiniAssetComponent* InHAC,
+	UHoudiniCookable* InHC,
 	const FHoudiniPackageParams& InPackageParams,
 	UHoudiniLandscapeSplinesOutput& InOutputObject)
 {
@@ -314,11 +314,11 @@ FHoudiniLandscapeSplineTranslator::AddSegmentToOutputObject(
 	const FName BakedLayerName = EditLayerName;
 
 	// For the cooked name, but the layer name first so it is easier to read in the Landscape Editor UI.
-	if (IsValid(InHAC) && InHAC->GetLandscapeUseTempLayers())
+	if (IsValid(InHC) && InHC->GetLandscapeUseTempLayers())
 	{
 		EditLayerName = *(
 			EditLayerName.ToString() + FString(" : ")
-			+ InPackageParams.GetPackageName() + InHAC->GetComponentGUID().ToString());
+			+ InPackageParams.GetPackageName() + InHC->GetCookableGUID().ToString());
 	}
 
 	// Now that we have the final cooked / temp edit layer name, find or create the Layer Output object for this layer
@@ -380,17 +380,17 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSpline(
 	TMap<ALandscape*, TSet<FName>>& InClearedLayers,
 	TMap<TTuple<ALandscape*, FName>, FHoudiniLandscapeSplineApplyLayerData>& SegmentsToApplyToLayers,
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects,
-	UHoudiniAssetComponent* InHAC)
+	UHoudiniCookable* InHC)
 {
 #if ENGINE_MAJOR_VERSION < 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 0)
 	HOUDINI_LOG_WARNING(TEXT("Landscape Spline Output is only supported in UE5.1+"));
 	return false;
 #else
 
-	FTransform HACTransform = IsValid(InHAC) ? InHAC->GetComponentTransform() : FTransform::Identity;
+	FTransform HCTransform = IsValid(InHC) ? InHC->GetComponentTransform() : FTransform::Identity;
 
-	// Find the fallback landscape to use, either InFallbackLandscape if valid, otherwise the first one we find in the
-	// world
+	// Find the fallback landscape to use, either InFallbackLandscape if valid, 
+	// otherwise the first one we find in the world
 	bool bIsUsingWorldPartition = IsValid(InWorld->GetWorldPartition());
 	ALandscapeProxy* FallbackLandscape = InFallbackLandscape;
 	if (!IsValid(FallbackLandscape))
@@ -429,7 +429,6 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSpline(
 			CurvePointCounts[Index] = 1000;
 		}
 	}
-	
 
 	// Extract all target landscapes refs as prim attributes
 	TArray<FString> LandscapeRefs;
@@ -539,7 +538,7 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSpline(
 					FHoudiniEngineUtils::SafeRenameActor(SplineInfo.LandscapeSplineActor, SplineInfo.SplineActorPackageParams.GetPackageName());
 				}
 				
-				SplineInfo.LandscapeSplineActor->SetActorTransform(HACTransform);
+				SplineInfo.LandscapeSplineActor->SetActorTransform(HCTransform);
 				SplineInfo.SplinesComponent = SplineInfo.LandscapeSplineActor->GetSplinesComponent();
 			}
 			else 
@@ -612,7 +611,7 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSpline(
 		// the inverse of the LandscapeSplinesComponent's transform.
 		// For world partition, we set the LandscapeSplineActor's transform to the HAC's transform
 		const FTransform TransformToApply = !bIsUsingWorldPartition
-			? HACTransform.GetRelativeTransform(SplineInfo.SplinesComponent->GetComponentTransform()) 
+			? HCTransform.GetRelativeTransform(SplineInfo.SplinesComponent->GetComponentTransform()) 
 			: FTransform::Identity;
 
 		TArray<TObjectPtr<ULandscapeSplineControlPoint>>& ControlPoints = SplineInfo.SplinesComponent->GetControlPoints();
@@ -722,7 +721,7 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSpline(
 #endif
 
 					// Add the segment to the appropriate LayerOutput. Will create the LayerOutput if necessary.
-					AddSegmentToOutputObject(Segment, HoudiniCurveData, CurvePointArrayIdx, InHAC, SplineInfo.LayerPackageParams, *SplineInfo.SplinesOutputObject);
+					AddSegmentToOutputObject(Segment, HoudiniCurveData, CurvePointArrayIdx, InHC, SplineInfo.LayerPackageParams, *SplineInfo.SplinesOutputObject);
 					Segments.Add(Segment);
 				}
 
