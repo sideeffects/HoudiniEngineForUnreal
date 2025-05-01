@@ -31,7 +31,6 @@
 #include "HoudiniPackageParams.h"
 #include "LevelInstance/LevelInstanceActor.h"
 #include "Materials/MaterialExpression.h"
-#include "HoudiniOutputDetails.h"
 #include "HoudiniEngineOutputStats.h"
 
 #include "HoudiniEngineBakeUtils.generated.h"
@@ -72,7 +71,7 @@ enum class EHoudiniLandscapeOutputBakeType : uint8;
 
 // Use this structure to pass bake settings to bake functions. Previously the code would
 // pass each of there individually which was hard to maintain.
-struct FHoudiniBakeSettings
+struct HOUDINIENGINE_API FHoudiniBakeSettings
 {
 	void SetFromCookable(UHoudiniCookable* HC);
 
@@ -113,7 +112,7 @@ enum class EHoudiniInstancerComponentType : uint8
 // Helper struct to track actors created/used when baking, with
 // the intended bake name (before making it unique), and their
 // output index and output object identifier.
-struct HOUDINIENGINEEDITOR_API FHoudiniEngineBakedActor
+struct HOUDINIENGINE_API FHoudiniEngineBakedActor
 {
 	FHoudiniEngineBakedActor();
 
@@ -254,7 +253,7 @@ protected:
 };
 
 
-struct HOUDINIENGINEEDITOR_API FHoudiniEngineBakeUtils
+struct HOUDINIENGINE_API FHoudiniEngineBakeUtils
 {
 public:
 

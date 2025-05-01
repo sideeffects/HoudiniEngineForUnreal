@@ -24,13 +24,10 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "HoudiniEngineEditorPrivatePCH.h"
-
 #include "HoudiniAsset.h"
 #include "HoudiniBakeLandscape.h"
 #include "HoudiniCookable.h"
 #include "HoudiniEngineBakeUtils.h"
-#include "HoudiniEngineCommands.h"
 #include "HoudiniEngineOutputStats.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineUtils.h"

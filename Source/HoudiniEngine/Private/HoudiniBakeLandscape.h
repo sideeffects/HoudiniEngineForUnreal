@@ -40,7 +40,7 @@ class UPackage;
 class UHoudiniLandscapeTargetLayerOutput;
 class UHoudiniLandscapeSplineTargetLayerOutput;
 
-struct HOUDINIENGINEEDITOR_API FHoudiniLandscapeBake
+struct HOUDINIENGINE_API FHoudiniLandscapeBake
 {
 	static bool BakeLandscape(
 		const UHoudiniCookable* InCookable,

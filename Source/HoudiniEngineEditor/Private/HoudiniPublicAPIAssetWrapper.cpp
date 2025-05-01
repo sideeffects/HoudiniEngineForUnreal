@@ -592,7 +592,7 @@ UHoudiniPublicAPIAssetWrapper::ClearHoudiniAssetObject_Implementation()
 
 	bAssetLinkSetupAttemptComplete = false;
 	
-	FHoudiniEngineCommands::GetOnHoudiniProxyMeshesRefinedDelegate().Remove(OnHoudiniProxyMeshesRefinedDelegateHandle);
+	FHoudiniEngineUtils::GetOnHoudiniProxyMeshesRefinedDelegate().Remove(OnHoudiniProxyMeshesRefinedDelegateHandle);
 
 	UHoudiniCookable* const HC = GetHoudiniCookable();
 	if (IsValid(HC))
@@ -704,7 +704,7 @@ UHoudiniPublicAPIAssetWrapper::WrapHoudiniAssetObject_Implementation(UObject* In
 		}
 	}
 
-	OnHoudiniProxyMeshesRefinedDelegateHandle = FHoudiniEngineCommands::GetOnHoudiniProxyMeshesRefinedDelegate().AddUFunction(this, TEXT("HandleOnHoudiniProxyMeshesRefinedGlobal"));
+	OnHoudiniProxyMeshesRefinedDelegateHandle = FHoudiniEngineUtils::GetOnHoudiniProxyMeshesRefinedDelegate().AddUFunction(this, TEXT("HandleOnHoudiniProxyMeshesRefinedGlobal"));
 
 	// PDG asset link bindings: We attempt to bind to PDG here, but it likely is not available yet.
 	// We have to wait until post instantiation in order to know if there is a PDG asset link

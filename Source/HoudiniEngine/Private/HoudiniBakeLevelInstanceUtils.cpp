@@ -76,16 +76,6 @@ ILevelInstanceInterface * FHoudiniBakeLevelInstanceUtils::CreateLevelInstance(
 #endif
 }
 
-uint32 GetTypeHash(const FHoudiniLevelInstanceParams& Params)
-{
-	return (GetTypeHash((int32)Params.Type) + 23 * GetTypeHash(Params.OutputName));
-}
-
-bool operator==(const FHoudiniLevelInstanceParams & p1, const FHoudiniLevelInstanceParams & p2)
-{
-	return p1.Type == p2.Type && p1.OutputName == p2.OutputName;
-}
-
 const UHoudiniOutput*
 FHoudiniBakeLevelInstanceUtils::GetHoudiniObject(
 	const FHoudiniOutputObjectIdentifier Id, 

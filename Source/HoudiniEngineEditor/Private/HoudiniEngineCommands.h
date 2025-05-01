@@ -44,8 +44,7 @@ static const FName ExamplesTabName("Examples");
 class FHoudiniEngineCommands : public TCommands<FHoudiniEngineCommands>
 {
 public:
-	// Multi-cast delegate type for broadcasting when proxy mesh refinement of a Cookable is complete. 
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnHoudiniProxyMeshesRefinedDelegate, UHoudiniCookable* const, const EHoudiniProxyRefineResult);
+
 	
 	FHoudiniEngineCommands();
 
@@ -176,10 +175,6 @@ public:
 
 	// Calls the FUnrealObjectInputManager::Clear() function on the input manager singleton.
 	static void ClearInputManager();
-
-	static FDelegateHandle& GetOnPostSaveWorldRefineProxyMeshesHandle() { return OnPostSaveWorldRefineProxyMeshesHandle; }
-
-	static FOnHoudiniProxyMeshesRefinedDelegate& GetOnHoudiniProxyMeshesRefinedDelegate() { return OnHoudiniProxyMeshesRefinedDelegate; }
 
 public:
 
@@ -332,10 +327,6 @@ protected:
 		const int64 BufferSize,
 		const bool BufferCyclic);
 
-	// Delegate that is set up to refined proxy meshes post save world (it removes itself afterwards)
-	static FDelegateHandle OnPostSaveWorldRefineProxyMeshesHandle;
 
-	// Delegate for broadcasting when proxy mesh refinement of a HAC's output is complete.
-	static FOnHoudiniProxyMeshesRefinedDelegate OnHoudiniProxyMeshesRefinedDelegate; 
 };
 

@@ -26,7 +26,6 @@
 
 #include "HoudiniEngineBakeUtils.h"
 
-#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEnginePrivatePCH.h"
 
 #include "HoudiniAsset.h"
@@ -35,8 +34,6 @@
 #include "HoudiniCookable.h"
 #include "HoudiniDataLayerUtils.h"
 #include "HoudiniEngine.h"
-#include "HoudiniEngineCommands.h"
-#include "HoudiniEngineEditor.h"
 #include "HoudiniEngineOutputStats.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
@@ -8447,7 +8444,7 @@ FHoudiniEngineBakeUtils::CheckForAndRefineHoudiniProxyMesh(
 			AHoudiniAssetActor* HoudiniActor = Cast<AHoudiniAssetActor>(InCookable->GetOwner());
 			if (IsValid(HoudiniActor))
 			{
-				FHoudiniEngineCommands::RefineHoudiniProxyMeshActorArrayToStaticMeshes({ HoudiniActor });
+				FHoudiniEngineUtils::RefineHoudiniProxyMeshActorArrayToStaticMeshes({ HoudiniActor });
 			}
 		}
 		else if (!bNeedsRebuildOrDelete && !bInvalidState)

@@ -459,6 +459,16 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLevelInstanceParams
 	FString OutputName;
 };
 
+inline uint32 GetTypeHash(const FHoudiniLevelInstanceParams& Params)
+{
+	return (GetTypeHash((int32)Params.Type) + 23 * GetTypeHash(Params.OutputName));
+}
+
+inline bool operator==(const FHoudiniLevelInstanceParams& p1, const FHoudiniLevelInstanceParams& p2)
+{
+	return p1.Type == p2.Type && p1.OutputName == p2.OutputName;
+}
+
 USTRUCT()
 struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 {

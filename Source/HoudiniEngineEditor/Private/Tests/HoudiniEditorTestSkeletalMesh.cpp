@@ -48,6 +48,7 @@
 	#include "PhysicsEngine/BodySetup.h"
 	#include "PhysicsEngine/SkeletalBodySetup.h"
 #endif
+#include "PhysicsEngine/PhysicsAsset.h"
 
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestSkeletalMeshElectra, "Houdini.UnitTests.SkeletalMesh.Electra",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)

@@ -56,6 +56,7 @@
 #include "HoudiniInput.h"
 #include "HoudiniParameter.h"
 #include "HoudiniRuntimeSettings.h"
+#include "HoudiniOutputTranslator.h"
 
 #if WITH_EDITOR
 	#include "SAssetSelectionWidget.h"
@@ -102,8 +103,12 @@
 	#include "EditorModes.h"	
 	#include "Interfaces/IMainFrameModule.h"
 #endif
+#include "UObject/ObjectSaveContext.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
+
+
+FHoudiniEngineUtils::FOnHoudiniProxyMeshesRefinedDelegate FHoudiniEngineUtils::OnHoudiniProxyMeshesRefinedDelegate = FHoudiniEngineUtils::FOnHoudiniProxyMeshesRefinedDelegate();
 
 // HAPI_Result strings
 const FString kResultStringSuccess(TEXT("Success"));
@@ -8531,5 +8536,554 @@ void FHoudiniEngineUtils::DumpPart(HAPI_NodeId NodeId, HAPI_PartId PartId, FStri
 	}
 }
 
+EHoudiniProxyRefineRequestResult
+FHoudiniEngineUtils::RefineHoudiniProxyMeshActorArrayToStaticMeshes(const TArray<AHoudiniAssetActor*>& InActorsToRefine, bool bSilent)
+{
+	const bool bRefineAll = true;
+	const bool bOnPreSaveWorld = false;
+	UWorld* OnPreSaveWorld = nullptr;
+	const bool bOnPreBeginPIE = false;
+
+	// First find the Cookables that have meshes that we must refine
+	TArray<UHoudiniCookable*> CookablesToRefine;
+	TArray<UHoudiniCookable*> CookablesToCook;
+	// Cookables that would be candidates for refinement/cooking, but have errors
+	TArray<UHoudiniCookable*> SkippedCookables;
+	for(const AHoudiniAssetActor* HoudiniAssetActor : InActorsToRefine)
+	{
+		if(!IsValid(HoudiniAssetActor))
+			continue;
+
+		UHoudiniCookable* HoudiniCookable = HoudiniAssetActor->GetHoudiniCookable();
+		if(!IsValid(HoudiniCookable))
+			continue;
+
+		// Check if we should consider this component for proxy mesh refinement or cooking, based on its settings and
+		// flags passed to the function.
+		TriageHoudiniCookablesForProxyMeshRefinement(HoudiniCookable, bRefineAll, bOnPreSaveWorld, OnPreSaveWorld, bOnPreBeginPIE, CookablesToRefine, CookablesToCook, SkippedCookables);
+	}
+
+	// TODO: Cookable me!
+
+	return RefineTriagedHoudiniProxyMeshesToStaticMeshes(
+		CookablesToRefine,
+		CookablesToCook,
+		SkippedCookables,
+		bSilent,
+		bRefineAll,
+		bOnPreSaveWorld,
+		OnPreSaveWorld,
+		bOnPreBeginPIE
+	);
+}
+
+
+void
+FHoudiniEngineUtils::TriageHoudiniCookablesForProxyMeshRefinement(
+	UHoudiniCookable* InHC,
+	bool bRefineAll,
+	bool bOnPreSaveWorld,
+	UWorld* OnPreSaveWorld,
+	bool bOnPreBeginPIE,
+	TArray<UHoudiniCookable*>& OutToRefine,
+	TArray<UHoudiniCookable*>& OutToCook,
+	TArray<UHoudiniCookable*>& OutSkipped)
+{
+	if(!IsValid(InHC))
+		return;
+
+	// Make sure that the cookable's World and Owner are valid
+	AActor* Owner = InHC->GetOwner();
+	if(!IsValid(Owner))
+		return;
+
+	UWorld* World = InHC->GetWorld();
+
+	// No need to return here if we're just starting PIE
+	if(bOnPreSaveWorld && !IsValid(World))
+		return;
+
+	if(bOnPreSaveWorld && OnPreSaveWorld && OnPreSaveWorld != World)
+		return;
+
+	// Check if we should consider this component for proxy mesh refinement based on its settings and
+	// flags passed to the function
+	if(bRefineAll ||
+		(bOnPreSaveWorld && InHC->IsProxyStaticMeshRefinementOnPreSaveWorldEnabled()) ||
+		(bOnPreBeginPIE && InHC->IsProxyStaticMeshRefinementOnPreBeginPIEEnabled()))
+	{
+		TArray<UPackage*> ProxyMeshPackagesToSave;
+		TArray<UHoudiniCookable*> CookablesWithProxiesToSave;
+
+		if(InHC->HasAnyCurrentProxyOutput())
+		{
+			// Get the state of the asset and check if it is cooked
+			// If it is not cook, request a cook. We can only build the UStaticMesh
+			// if the data from the cook is available
+			// If the state is not pre-cook, or None (cooked), then the state is invalid,
+			// log an error and skip the component
+			bool bNeedsRebuildOrDelete = false;
+			bool bUnsupportedState = false;
+			const bool bCookedDataAvailable = InHC->IsHoudiniCookedDataAvailable(bNeedsRebuildOrDelete, bUnsupportedState);
+			if(bCookedDataAvailable)
+			{
+				OutToRefine.Add(InHC);
+				CookablesWithProxiesToSave.Add(InHC);
+			}
+			else if(!bUnsupportedState && !bNeedsRebuildOrDelete)
+			{
+				InHC->MarkAsNeedCook();
+				// Force the output of the cook to be directly created as a UStaticMesh and not a proxy
+				InHC->SetNoProxyMeshNextCookRequested(true);
+				OutToCook.Add(InHC);
+				CookablesWithProxiesToSave.Add(InHC);
+			}
+			else
+			{
+				OutSkipped.Add(InHC);
+				const EHoudiniAssetState State = InHC->GetCurrentState();
+				HOUDINI_LOG_ERROR(TEXT("Could not refine %s, the asset is in an unsupported state: %s"), *(InHC->GetPathName()), *(UEnum::GetValueAsString(State)));
+			}
+		}
+		else if(InHC->HasAnyProxyOutput())
+		{
+			// If the HC has non-current proxies, destroy them
+			// TODO: Make this its own command?
+			const uint32 NumOutputs = InHC->GetNumOutputs();
+			for(uint32 Index = 0; Index < NumOutputs; ++Index)
+			{
+				UHoudiniOutput* Output = InHC->GetOutputAt(Index);
+				if(!IsValid(Output))
+					continue;
+
+				TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = Output->GetOutputObjects();
+				for(auto& CurrentPair : OutputObjects)
+				{
+					FHoudiniOutputObject& CurrentOutputObject = CurrentPair.Value;
+					if(!CurrentOutputObject.bProxyIsCurrent)
+					{
+						// The proxy is not current, delete it and its component
+						USceneComponent* FoundProxyComponent = Cast<USceneComponent>(CurrentOutputObject.ProxyComponent);
+						if(IsValid(FoundProxyComponent))
+						{
+							// Remove from the HoudiniAssetActor
+							if(FoundProxyComponent->GetOwner())
+								FoundProxyComponent->GetOwner()->RemoveOwnedComponent(FoundProxyComponent);
+
+							FoundProxyComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+							FoundProxyComponent->UnregisterComponent();
+							FoundProxyComponent->DestroyComponent();
+						}
+
+						UObject* ProxyObject = CurrentOutputObject.ProxyObject;
+						if(!IsValid(ProxyObject))
+							continue;
+
+						ProxyObject->MarkAsGarbage();
+						ProxyObject->MarkPackageDirty();
+						UPackage* const Package = ProxyObject->GetPackage();
+						if(IsValid(Package))
+							ProxyMeshPackagesToSave.Add(Package);
+					}
+				}
+			}
+		}
+
+		for(UHoudiniCookable* const HC : CookablesWithProxiesToSave)
+		{
+			const uint32 NumOutputs = HC->GetNumOutputs();
+			for(uint32 Index = 0; Index < NumOutputs; ++Index)
+			{
+				UHoudiniOutput* Output = HC->GetOutputAt(Index);
+				if(!IsValid(Output))
+					continue;
+
+				TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = Output->GetOutputObjects();
+				for(auto& CurrentPair : OutputObjects)
+				{
+					FHoudiniOutputObject& CurrentOutputObject = CurrentPair.Value;
+					if(CurrentOutputObject.bProxyIsCurrent && CurrentOutputObject.ProxyObject)
+					{
+						UPackage* const Package = CurrentOutputObject.ProxyObject->GetPackage();
+						if(IsValid(Package) && Package->IsDirty())
+							ProxyMeshPackagesToSave.Add(Package);
+					}
+				}
+			}
+		}
+
+		if(ProxyMeshPackagesToSave.Num() > 0)
+		{
+			TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+			FEditorFileUtils::PromptForCheckoutAndSave(ProxyMeshPackagesToSave, true, false);
+		}
+	}
+}
+
+
+EHoudiniProxyRefineRequestResult
+FHoudiniEngineUtils::RefineTriagedHoudiniProxyMeshesToStaticMeshes(
+	const TArray<UHoudiniCookable*>& InCookablesToRefine,
+	const TArray<UHoudiniCookable*>& InCookablesToCook,
+	const TArray<UHoudiniCookable*>& InSkippedCookables,
+	bool bInSilent,
+	bool bInRefineAll,
+	bool bInOnPreSaveWorld,
+	UWorld* InOnPreSaveWorld,
+	bool bInOnPrePIEBeginPlay)
+{
+	// Slate notification text
+	FString Notification = TEXT("Refining Houdini proxy meshes to static meshes...");
+
+	const uint32 NumCookablesToCook = InCookablesToCook.Num();
+	const uint32 NumCookablesToRefine = InCookablesToRefine.Num();
+	const uint32 NumCookablesToProcess = NumCookablesToCook + NumCookablesToRefine;
+
+	TArray<UHoudiniCookable*> SuccessfulCookables;
+	TArray<UHoudiniCookable*> FailedCookables;
+	TArray<UHoudiniCookable*> SkippedCookables(InSkippedCookables);
+
+	auto AllowPlayInEditorRefinementFn = [&bInOnPrePIEBeginPlay, &InCookablesToCook, &InCookablesToRefine](bool bEnabled, bool bRefinementDone) {
+		if(bInOnPrePIEBeginPlay)
+		{
+			// Flag the cookables that need cooking / refinement as cookable in PIE mode. 
+			// No other cooking will be allowed.
+			// Once refinement is done, we'll unset these flags again.
+			SetAllowPlayInEditorRefinement(InCookablesToCook, true);
+			SetAllowPlayInEditorRefinement(InCookablesToRefine, true);
+			if(bRefinementDone)
+			{
+				// Don't tick during PIE. We'll resume ticking when PIE is stopped.
+				FHoudiniEngine::Get().StopTicking(true);
+			}
+		}
+		};
+
+	AllowPlayInEditorRefinementFn(true, false);
+
+	if(NumCookablesToProcess > 0)
+	{
+		// The task progress pointer is potentially going to be shared with a background thread and tasks
+		// on the main thread, so make it thread safe
+		TSharedPtr<FSlowTask, ESPMode::ThreadSafe> TaskProgress = MakeShareable(new FSlowTask((float)NumCookablesToProcess, FText::FromString(Notification)));
+		TaskProgress->Initialize();
+		if(!bInSilent)
+			TaskProgress->MakeDialog(true);
+
+		// Iterate over the Cookables for which we can build UStaticMesh, and build the meshes
+		bool bCancelled = false;
+		for(uint32 ComponentIndex = 0; ComponentIndex < NumCookablesToRefine; ++ComponentIndex)
+		{
+			UHoudiniCookable* Cookable = InCookablesToRefine[ComponentIndex];
+			TaskProgress->EnterProgressFrame(1.0f);
+			const bool bDestroyProxies = true;
+			FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(Cookable, bDestroyProxies);
+
+			SuccessfulCookables.Add(Cookable);
+
+			bCancelled = TaskProgress->ShouldCancel();
+			if(bCancelled)
+			{
+				for(uint32 SkippedIndex = ComponentIndex + 1; SkippedIndex < NumCookablesToRefine; ++SkippedIndex)
+				{
+					SkippedCookables.Add(InCookablesToRefine[ComponentIndex]);
+				}
+				break;
+			}
+		}
+
+		if(bCancelled && NumCookablesToCook > 0)
+		{
+			for(UHoudiniCookable* const HC : InCookablesToCook)
+			{
+				SkippedCookables.Add(HC);
+			}
+		}
+
+		if(NumCookablesToCook > 0 && !bCancelled)
+		{
+			// Now use an async task to check on the progress of the cooking Cookables
+			Async(EAsyncExecution::Thread, [InCookablesToCook, TaskProgress, NumCookablesToProcess,
+				bInOnPreSaveWorld, InOnPreSaveWorld,
+				SuccessfulCookables, FailedCookables, SkippedCookables]() {
+					RefineHoudiniProxyMeshesToStaticMeshesWithCookInBackgroundThread(
+						InCookablesToCook, TaskProgress, NumCookablesToProcess, bInOnPreSaveWorld, InOnPreSaveWorld,
+						SuccessfulCookables, FailedCookables, SkippedCookables);
+				});
+
+			// We have to wait for cook(s) before completing refinement
+			return EHoudiniProxyRefineRequestResult::PendingCooks;
+		}
+		else
+		{
+			RefineHoudiniProxyMeshesToStaticMeshesNotifyDone(
+				NumCookablesToProcess, TaskProgress.Get(), bCancelled, bInOnPreSaveWorld, InOnPreSaveWorld,
+				SuccessfulCookables, FailedCookables, SkippedCookables);
+
+			// We didn't have to cook anything, so refinement is complete.
+			AllowPlayInEditorRefinementFn(false, true);
+			return EHoudiniProxyRefineRequestResult::Refined;
+		}
+	}
+
+	// Nothing to refine
+	AllowPlayInEditorRefinementFn(false, true);
+	return EHoudiniProxyRefineRequestResult::None;
+}
+
+void
+FHoudiniEngineUtils::RefineHoudiniProxyMeshesToStaticMeshesNotifyDone(
+	const uint32 InNumTotalCookables,
+	FSlowTask* const InTaskProgress,
+	const bool bCancelled,
+	const bool bOnPreSaveWorld,
+	UWorld* const InOnPreSaveWorld,
+	const TArray<UHoudiniCookable*>& InSuccessfulCookables,
+	const TArray<UHoudiniCookable*>& InFailedCookables,
+	const TArray<UHoudiniCookable*>& InSkippedCookables)
+{
+	FString Notification;
+	const uint32 NumSkippedCookables = InSkippedCookables.Num();
+	const uint32 NumFailedToCook = InFailedCookables.Num();
+	if(NumSkippedCookables + NumFailedToCook > 0)
+	{
+		if(bCancelled)
+		{
+			Notification = FString::Printf(TEXT("Refinement cancelled after completing %d / %d cookables. The remaining Cookables were skipped, in an invalid state, or could not be cooked. See the log for details."), NumSkippedCookables + NumFailedToCook, InNumTotalCookables);
+		}
+		else
+		{
+			Notification = FString::Printf(TEXT("Failed to refine %d / %d Cookables, the Cookables were in an invalid state, and were either not cooked or could not be cooked. See the log for details."), NumSkippedCookables + NumFailedToCook, InNumTotalCookables);
+		}
+		FHoudiniEngineUtils::CreateSlateNotification(Notification);
+		HOUDINI_LOG_ERROR(TEXT("%s"), *Notification);
+	}
+	else if(InNumTotalCookables > 0)
+	{
+		Notification = TEXT("Done: Refining Houdini proxy meshes to static meshes.");
+		HOUDINI_LOG_MESSAGE(TEXT("%s"), *Notification);
+	}
+	if(InTaskProgress)
+	{
+		InTaskProgress->Destroy();
+	}
+	if(bOnPreSaveWorld && InSuccessfulCookables.Num() > 0)
+	{
+		FDelegateHandle& OnPostSaveWorldHandle = FHoudiniEngineUtils::GetOnPostSaveWorldRefineProxyMeshesHandle();
+		if(OnPostSaveWorldHandle.IsValid())
+		{
+			if(FEditorDelegates::PostSaveWorldWithContext.Remove(OnPostSaveWorldHandle))
+				OnPostSaveWorldHandle.Reset();
+		}
+
+		// Save the dirty static meshes in InSuccessfulCookables OnPostSaveWorld
+		// TODO: Remove? This may not be necessary now as we save all dirty temporary cook data in 
+		// PostSaveWorldWithContext() already (Static Meshes, Materials...)
+		OnPostSaveWorldHandle = FEditorDelegates::PostSaveWorldWithContext.AddLambda(
+			[InSuccessfulCookables, bOnPreSaveWorld, InOnPreSaveWorld](UWorld* InWorld, FObjectPostSaveContext InContext)
+			{
+				if(bOnPreSaveWorld && InOnPreSaveWorld && InOnPreSaveWorld != InWorld)
+					return;
+
+				RefineProxyMeshesHandleOnPostSaveWorld(InSuccessfulCookables, InContext.GetSaveFlags(), InWorld, InContext.SaveSucceeded());
+
+				FDelegateHandle& OnPostSaveWorldHandle = FHoudiniEngineUtils::GetOnPostSaveWorldRefineProxyMeshesHandle();
+				if(OnPostSaveWorldHandle.IsValid())
+				{
+					if(FEditorDelegates::PostSaveWorldWithContext.Remove(OnPostSaveWorldHandle))
+						OnPostSaveWorldHandle.Reset();
+				}
+			});
+	}
+
+	SetAllowPlayInEditorRefinement(InSuccessfulCookables, false);
+	SetAllowPlayInEditorRefinement(InFailedCookables, false);
+	SetAllowPlayInEditorRefinement(InSkippedCookables, false);
+
+	// Broadcast refinement result per cookable
+	for(UHoudiniCookable* const HC : InSuccessfulCookables)
+	{
+		if(OnHoudiniProxyMeshesRefinedDelegate.IsBound())
+			OnHoudiniProxyMeshesRefinedDelegate.Broadcast(HC, EHoudiniProxyRefineResult::Success);
+	}
+	for(UHoudiniCookable* const HC : InFailedCookables)
+	{
+		if(OnHoudiniProxyMeshesRefinedDelegate.IsBound())
+			OnHoudiniProxyMeshesRefinedDelegate.Broadcast(HC, EHoudiniProxyRefineResult::Failed);
+	}
+	for(UHoudiniCookable* const HC : InSkippedCookables)
+	{
+		if(OnHoudiniProxyMeshesRefinedDelegate.IsBound())
+			OnHoudiniProxyMeshesRefinedDelegate.Broadcast(HC, EHoudiniProxyRefineResult::Skipped);
+	}
+
+	// Update details to display the new inputs
+	FHoudiniEngineUtils::UpdateEditorProperties(true);
+}
+
+void
+FHoudiniEngineUtils::RefineProxyMeshesHandleOnPostSaveWorld(const TArray<UHoudiniCookable*>& InSuccessfulCookables, uint32 InSaveFlags, UWorld* InWorld, bool bInSuccess)
+{
+	TArray<UPackage*> PackagesToSave;
+
+	for(UHoudiniCookable* HC : InSuccessfulCookables)
+	{
+		if(!IsValid(HC))
+			continue;
+
+		const int32 NumOutputs = HC->GetNumOutputs();
+		for(int32 Index = 0; Index < NumOutputs; ++Index)
+		{
+			UHoudiniOutput* Output = HC->GetOutputAt(Index);
+			if(!IsValid(Output))
+				continue;
+
+			if(Output->GetType() != EHoudiniOutputType::Mesh)
+				continue;
+
+			for(auto& OutputObjectPair : Output->GetOutputObjects())
+			{
+				UObject* Obj = OutputObjectPair.Value.OutputObject;
+				if(!IsValid(Obj))
+					continue;
+
+				UStaticMesh* SM = Cast<UStaticMesh>(Obj);
+				if(!SM)
+					continue;
+
+				UPackage* Package = SM->GetOutermost();
+				if(!IsValid(Package))
+					continue;
+
+				if(Package->IsDirty() && Package->IsFullyLoaded() && Package != GetTransientPackage())
+				{
+					PackagesToSave.Add(Package);
+				}
+			}
+		}
+	}
+
+	UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, true);
+}
+
+void
+FHoudiniEngineUtils::RefineHoudiniProxyMeshesToStaticMeshesWithCookInBackgroundThread(
+	const TArray<UHoudiniCookable*>& InCookablesToCook,
+	TSharedPtr<FSlowTask, ESPMode::ThreadSafe> InTaskProgress,
+	const uint32 InNumCookablesToProcess,
+	bool bInOnPreSaveWorld,
+	UWorld* InOnPreSaveWorld,
+	const TArray<UHoudiniCookable*>& InSuccessfulCookables,
+	const TArray<UHoudiniCookable*>& InFailedCookables,
+	const TArray<UHoudiniCookable*>& InSkippedCookables)
+{
+	// Copy to a double linked list so that we can loop through
+	// to check progress of each component and remove it easily
+	// if it has completed/failed
+	TDoubleLinkedList<UHoudiniCookable*> CookList;
+	for(UHoudiniCookable* HC : InCookablesToCook)
+	{
+		CookList.AddTail(HC);
+	}
+
+	// Add the successfully cooked Cookables to the incoming successful Cookables (previously refined)
+	TArray<UHoudiniCookable*> SuccessfulCookables(InSuccessfulCookables);
+	TArray<UHoudiniCookable*> FailedCookables(InFailedCookables);
+	TArray<UHoudiniCookable*> SkippedCookables(InSkippedCookables);
+
+	bool bCancelled = false;
+	uint32 NumFailedToCook = 0;
+	while(CookList.Num() > 0 && !bCancelled)
+	{
+		TDoubleLinkedList<UHoudiniCookable*>::TDoubleLinkedListNode* Node = CookList.GetHead();
+		while(Node && !bCancelled)
+		{
+			TDoubleLinkedList<UHoudiniCookable*>::TDoubleLinkedListNode* Next = Node->GetNextNode();
+			UHoudiniCookable* HC = Node->GetValue();
+
+			if(IsValid(HC))
+			{
+				const EHoudiniAssetState State = HC->GetCurrentState();
+				const EHoudiniAssetStateResult ResultState = HC->GetCurrentStateResult();
+				bool bUpdateProgress = false;
+				if(State == EHoudiniAssetState::None)
+				{
+					// Cooked, count as success, remove node
+					CookList.RemoveNode(Node);
+					SuccessfulCookables.Add(HC);
+					bUpdateProgress = true;
+				}
+				else if(ResultState != EHoudiniAssetStateResult::None && ResultState != EHoudiniAssetStateResult::Working)
+				{
+					// Failed, remove node
+					HOUDINI_LOG_ERROR(TEXT("Failed to cook %s to obtain static mesh."), *(HC->GetPathName()));
+					CookList.RemoveNode(Node);
+					FailedCookables.Add(HC);
+					bUpdateProgress = true;
+					NumFailedToCook++;
+				}
+
+				if(bUpdateProgress && InTaskProgress.IsValid())
+				{
+					// Update progress only on the main thread, and check for cancellation request
+					bCancelled = Async(EAsyncExecution::TaskGraphMainThread, [InTaskProgress]() {
+						InTaskProgress->EnterProgressFrame(1.0f);
+						return InTaskProgress->ShouldCancel();
+						}).Get();
+				}
+			}
+			else
+			{
+				SkippedCookables.Add(HC);
+				CookList.RemoveNode(Node);
+			}
+
+			Node = Next;
+		}
+		FPlatformProcess::Sleep(0.01f);
+	}
+
+	if(bCancelled)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Mesh refinement cancelled while waiting for %d Cookables to cook."), CookList.Num());
+		// Mark any remaining HCs in the cook list as skipped
+		TDoubleLinkedList<UHoudiniCookable*>::TDoubleLinkedListNode* Node = CookList.GetHead();
+		while(Node)
+		{
+			TDoubleLinkedList<UHoudiniCookable*>::TDoubleLinkedListNode* const Next = Node->GetNextNode();
+			UHoudiniCookable* HC = Node->GetValue();
+			if(HC)
+				SkippedCookables.Add(HC);
+			CookList.RemoveNode(Node);
+			Node = Next;
+		}
+	}
+
+	// Cooking is done, or failed, display the notifications on the main thread
+	Async(EAsyncExecution::TaskGraphMainThread, [InNumCookablesToProcess, InTaskProgress, bCancelled,
+		bInOnPreSaveWorld, InOnPreSaveWorld,
+		SuccessfulCookables, FailedCookables, SkippedCookables]()
+		{
+			RefineHoudiniProxyMeshesToStaticMeshesNotifyDone(
+				InNumCookablesToProcess, InTaskProgress.Get(), bCancelled,
+				bInOnPreSaveWorld, InOnPreSaveWorld,
+				SuccessfulCookables, FailedCookables, SkippedCookables);
+		});
+}
+
+FDelegateHandle FHoudiniEngineUtils::OnPostSaveWorldRefineProxyMeshesHandle = FDelegateHandle();
+
+void
+FHoudiniEngineUtils::SetAllowPlayInEditorRefinement(
+	const TArray<UHoudiniCookable*>& InCookables,
+	bool bEnabled)
+{
+#if WITH_EDITORONLY_DATA
+	for(UHoudiniCookable* Cookable : InCookables)
+	{
+		Cookable->SetAllowPlayInEditorRefinement(false);
+	}
+#endif
+}
 
 #undef LOCTEXT_NAMESPACE

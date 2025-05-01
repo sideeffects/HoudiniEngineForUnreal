@@ -32,6 +32,7 @@
 #include "Misc/Optional.h"
 #include <string>
 
+#include "HoudiniAssetActor.h"
 #include "HoudiniGenericAttribute.h"
 #include "HoudiniOutput.h"
 #include "HoudiniPackageParams.h"
@@ -81,6 +82,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 	friend struct FUnrealMeshTranslator;
 
 	public:
+
+		// Multi-cast delegate type for broadcasting when proxy mesh refinement of a Cookable is complete. 
+		DECLARE_MULTICAST_DELEGATE_TwoParams(FOnHoudiniProxyMeshesRefinedDelegate, UHoudiniCookable* const, const EHoudiniProxyRefineResult);
 
 		// Force deletes an Unreal Object without throwing up warning dialogs.
 		static void ForceDeleteObject(UObject* Object);
@@ -1476,5 +1480,76 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static bool FocusUsingParameterWidgetMetaData(
 			TSharedRef<SWidget> AncestorWidget,
 			const FHoudiniParameterWidgetMetaData& ParameterWidgetMetaData);
+
+public:
+		// Refine all proxy meshes on UHoudiniAssetCompoments of InActorsToRefine.
+		static EHoudiniProxyRefineRequestResult RefineHoudiniProxyMeshActorArrayToStaticMeshes(const TArray<AHoudiniAssetActor*>& InActorsToRefine, bool bSilent = false);
+
+		// Triage a cookable with UHoudiniStaticMesh as needing cooking or if a UStaticMesh can be immediately built
+		static void TriageHoudiniCookablesForProxyMeshRefinement(
+			UHoudiniCookable* InHC,
+			bool bRefineAll,
+			bool bOnPreSaveWorld,
+			UWorld* OnPreSaveWorld,
+			bool bOnPreBeginPIE,
+			TArray<UHoudiniCookable*>& OutToRefine,
+			TArray<UHoudiniCookable*>& OutToCook,
+			TArray<UHoudiniCookable*>& OutSkipped);
+
+		static EHoudiniProxyRefineRequestResult RefineTriagedHoudiniProxyMeshesToStaticMeshes(
+			const TArray<UHoudiniCookable*>& InCookablesToRefine,
+			const TArray<UHoudiniCookable*>& InCookablesToCook,
+			const TArray<UHoudiniCookable*>& InSkippedCookables,
+			bool bInSilent = false,
+			bool bInRefineAll = true,
+			bool bInOnPreSaveWorld = false,
+			UWorld* InOnPreSaveWorld = nullptr,
+			bool bInOnPrePIEBeginPlay = false);
+
+		static void SetAllowPlayInEditorRefinement(
+			const TArray<UHoudiniCookable*>& InCookables, bool bEnabled);
+
+		// Called in a background thread by RefineHoudiniProxyMeshesToStaticMeshes when some Cookables need to be cooked to generate UStaticMeshes. Checks and waits for
+	// cooking of each component to complete, and then calls RefineHoudiniProxyMeshesToStaticMeshesNotifyDone on the main thread.
+		static void RefineHoudiniProxyMeshesToStaticMeshesWithCookInBackgroundThread(
+			const TArray<UHoudiniCookable*>& InCookablesToCook,
+			TSharedPtr<FSlowTask,
+			ESPMode::ThreadSafe> InTaskProgress,
+			const uint32 InNumSkippedCookables,
+			bool bInOnPreSaveWorld,
+			UWorld* InOnPreSaveWorld,
+			const TArray<UHoudiniCookable*>& InSuccessfulCookables,
+			const TArray<UHoudiniCookable*>& InFailedCookables,
+			const TArray<UHoudiniCookable*>& InSkippedCookables);
+
+		// Display a notification / end/close progress dialog, when refining mesh proxies to static meshes is complete
+		static void RefineHoudiniProxyMeshesToStaticMeshesNotifyDone(
+			const uint32 InNumTotalCookables,
+			FSlowTask* const InTaskProgress,
+			const bool bCancelled,
+			const bool bOnPreSaveWorld,
+			UWorld* const InOnPreSaveWorld,
+			const TArray<UHoudiniCookable*>& InSuccessfulCookables,
+			const TArray<UHoudiniCookable*>& InFailedCookables,
+			const TArray<UHoudiniCookable*>& InSkippedCookables);
+
+		static FDelegateHandle& GetOnPostSaveWorldRefineProxyMeshesHandle() { return OnPostSaveWorldRefineProxyMeshesHandle; }
+
+
+		// Delegate that is set up to refined proxy meshes post save world (it removes itself afterwards)
+		static FDelegateHandle OnPostSaveWorldRefineProxyMeshesHandle;
+
+		// Delegate for broadcasting when proxy mesh refinement of a HAC's output is complete.
+		static FOnHoudiniProxyMeshesRefinedDelegate OnHoudiniProxyMeshesRefinedDelegate;
+
+		static FOnHoudiniProxyMeshesRefinedDelegate& GetOnHoudiniProxyMeshesRefinedDelegate() { return OnHoudiniProxyMeshesRefinedDelegate; }
+
+		// Handle OnPostSaveWorld for refining proxy meshes: this saves all the dirty UPackages of the UStaticMeshes
+	// that were created during RefineHoudiniProxyMeshesToStaticMeshes if it was called as a result of a PreSaveWorld.
+		static void RefineProxyMeshesHandleOnPostSaveWorld(
+			const TArray<UHoudiniCookable*>& InSuccessfulCookables,
+			uint32 InSaveFlags,
+			UWorld* InWorld,
+			bool bInSuccess);
 };
 
