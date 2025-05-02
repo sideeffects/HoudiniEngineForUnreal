@@ -35,9 +35,9 @@ class SHoudiniPresetUIBase : public SCompoundWidget //, public FNotifyHook
 {
 public:
 	SLATE_BEGIN_ARGS( SHoudiniPresetUIBase )
-		: _HoudiniAssetComponent(nullptr)
+		: _HoudiniCookable(nullptr)
 	{}
-	SLATE_ATTRIBUTE(TWeakObjectPtr<UHoudiniAssetComponent>, HoudiniAssetComponent)
+	SLATE_ATTRIBUTE(TWeakObjectPtr<UHoudiniCookable>, HoudiniCookable)
 	SLATE_END_ARGS();
 
 	SHoudiniPresetUIBase();
@@ -142,8 +142,7 @@ protected:
 	void CloseWindow();
 
 
-	// Houdini Asset components from which we'll be creating a preset 
-	TWeakObjectPtr<UHoudiniAssetComponent> HoudiniAssetComponent;
+	// Houdini Asset components from which we'll be creating a preset
 	TWeakObjectPtr<UHoudiniCookable> HoudiniCookable;
 
 	FString PresetName;
@@ -192,8 +191,8 @@ protected:
 class SHoudiniCreatePresetFromHDA : public SHoudiniPresetUIBase
 {
 public:
-	// Create a dialog to create a preset from the given HoudiniAssetComponent
-	static void CreateDialog(TWeakObjectPtr<UHoudiniAssetComponent> HAC);
+	// Create a dialog to create a preset from the given Cookable
+	static void CreateDialog(TWeakObjectPtr<UHoudiniCookable> HC);
 	
 protected:
 	virtual TSharedPtr<SWidget> CreateActionButtonsRow() override;
@@ -209,8 +208,8 @@ protected:
 class SHoudiniUpdatePresetFromHDA : public SHoudiniPresetUIBase
 {
 public:
-	// Create a dialog to update the selected preset (in the content browser) from the given HoudiniAssetComponent
-	static void CreateDialog(TWeakObjectPtr<UHoudiniAssetComponent> HAC);
+	// Create a dialog to update the selected preset (in the content browser) from the given Cookable
+	static void CreateDialog(TWeakObjectPtr<UHoudiniCookable> HC);
 
 protected:
 	TWeakObjectPtr<UHoudiniPreset> Preset;

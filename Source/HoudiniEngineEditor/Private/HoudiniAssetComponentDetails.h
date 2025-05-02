@@ -56,22 +56,9 @@ private:
 	FReply OnThumbnailDoubleClick(
 		const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object);
 
-	// TSharedPtr<SWidget> ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent> HAC);
-	
 	// Components which are being customized.
 	TArray<TWeakObjectPtr<UHoudiniAssetComponent>> HoudiniAssetComponents;
 
-	// Structure holding the output's details
-	TSharedPtr<FHoudiniOutputDetails, ESPMode::NotThreadSafe> OutputDetails;
-
-	// Structure holding the parameter's details
-	TSharedPtr<FHoudiniParameterDetails, ESPMode::NotThreadSafe> ParameterDetails;
-
-	// Structure holding the PDG Asset Link's details
-	TSharedPtr<FHoudiniPDGDetails, ESPMode::NotThreadSafe> PDGDetails;
-
-	// Structure holding the HoudiniAsset details
-	TSharedPtr<FHoudiniEngineDetails, ESPMode::NotThreadSafe> HoudiniEngineDetails;
 
 	// Structure holding the Cookable details
 	TSharedPtr<FHoudiniCookableDetails> CookableDetails;

@@ -55,7 +55,7 @@ bool FHoudiniEditorTestOutput::RunTest(const FString & Parameters)
 {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	/// This test enusres that we can cook an HDA multiple times and the outputs are removed on each recook. The test HDA
+	/// This test ensures that we can cook an HDA multiple times and the outputs are removed on each recook. The test HDA
 	///	can create multiple outputs based off the parameters. By changing the parameters we can get different scenarios on
 	///	the same HDA.
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -180,6 +180,10 @@ bool FHoudiniEditorTestOutput::RunTest(const FString & Parameters)
 
 			// Check there are no outputs.
 			HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 0, return true);
+
+			// Check that we have valid context data
+			bool bNoData = Context->Data.IsEmpty();
+			HOUDINI_TEST_EQUAL_ON_FAIL(bNoData, false, return true);
 
 			// Check the landscape actor (whose name was cached from the last test) is deleted.
 			FString LandscapeName = Context->Data[TEXT("landscape")];

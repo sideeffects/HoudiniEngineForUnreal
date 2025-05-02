@@ -1301,7 +1301,7 @@ FHoudiniEngineUtils::GetOuterHoudiniCookable(const UObject* Obj)
 	if (IsValid(OuterHC))
 		return OuterHC;
 
-	// Finally check if the Object itself is a HaC
+	// Finally check if the Object itself is a HC
 	UObject* NonConstObj = const_cast<UObject*>(Obj);
 	OuterHC = Cast<UHoudiniCookable>(NonConstObj);
 	if (IsValid(OuterHC))

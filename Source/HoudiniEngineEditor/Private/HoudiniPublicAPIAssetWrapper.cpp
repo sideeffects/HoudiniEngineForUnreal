@@ -222,31 +222,31 @@ UHoudiniPublicAPIAssetWrapper::CanWrapHoudiniObject(UObject* InObject)
 	if (!IsValid(InObject))
 		return false;
 
-	return InObject->IsA<AHoudiniAssetActor>() || InObject->IsA<UHoudiniAssetComponent>();
+	return InObject->IsA<AHoudiniAssetActor>() || InObject->IsA<UHoudiniAssetComponent>() || InObject->IsA<UHoudiniCookable>();
 }
 
 bool 
 UHoudiniPublicAPIAssetWrapper::GetTemporaryCookFolder_Implementation(FDirectoryPath& OutDirectoryPath) const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	OutDirectoryPath = HAC->GetTemporaryCookFolder();
+	OutDirectoryPath = HC->GetTemporaryCookFolder();
 	return true;
 }
 
 bool 
 UHoudiniPublicAPIAssetWrapper::SetTemporaryCookFolder_Implementation(const FDirectoryPath& InDirectoryPath) const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	if (HAC->GetTemporaryCookFolder().Path != InDirectoryPath.Path)
+	if (HC->GetTemporaryCookFolder().Path != InDirectoryPath.Path)
 	{
-		HAC->SetTemporaryCookFolder(InDirectoryPath);
-		HAC->Modify();
+		HC->SetTemporaryCookFolder(InDirectoryPath);
+		HC->Modify();
 	}
 
 	return true;
@@ -255,24 +255,24 @@ UHoudiniPublicAPIAssetWrapper::SetTemporaryCookFolder_Implementation(const FDire
 bool 
 UHoudiniPublicAPIAssetWrapper::GetBakeFolder_Implementation(FDirectoryPath& OutDirectoryPath) const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	OutDirectoryPath = HAC->GetBakeFolder();
+	OutDirectoryPath = HC->GetBakeFolder();
 	return true;
 }
 
 bool 
 UHoudiniPublicAPIAssetWrapper::SetBakeFolder_Implementation(const FDirectoryPath& InDirectoryPath) const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	if(HAC->SetBakeFolder(InDirectoryPath))
+	if(HC->SetBakeFolder(InDirectoryPath))
 	{
-		HAC->Modify();
+		HC->Modify();
 	}
 
 	return true;
@@ -281,12 +281,8 @@ UHoudiniPublicAPIAssetWrapper::SetBakeFolder_Implementation(const FDirectoryPath
 bool
 UHoudiniPublicAPIAssetWrapper::BakeAllOutputs_Implementation()
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
-		return false;
-
-	UHoudiniCookable* HC = HAC->GetCookable();
-	if (!IsValid(HC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	FHoudiniBakeSettings BakeSettings;
@@ -306,12 +302,8 @@ UHoudiniPublicAPIAssetWrapper::BakeAllOutputsWithSettings_Implementation(
 	bool bInRemoveTempOutputsOnSuccess,
 	bool bInRecenterBakedActors)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
-		return false;
-
-	UHoudiniCookable* HC = HAC->GetCookable();
-	if (!IsValid(HC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	FHoudiniBakeSettings BakeSettings;
@@ -325,15 +317,15 @@ UHoudiniPublicAPIAssetWrapper::BakeAllOutputsWithSettings_Implementation(
 bool
 UHoudiniPublicAPIAssetWrapper::SetAutoBakeEnabled_Implementation(const bool bInAutoBakeEnabled)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	EHoudiniBakeAfterNextCook bAutoBake = bInAutoBakeEnabled ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled;
-	if (HAC->GetBakeAfterNextCook() != bAutoBake)
+	if (HC->GetBakeAfterNextCook() != bAutoBake)
 	{
-		HAC->SetBakeAfterNextCook(bAutoBake);
-		HAC->Modify();
+		HC->SetBakeAfterNextCook(bAutoBake);
+		HC->Modify();
 	}
 
 	return true;
@@ -342,24 +334,24 @@ UHoudiniPublicAPIAssetWrapper::SetAutoBakeEnabled_Implementation(const bool bInA
 bool
 UHoudiniPublicAPIAssetWrapper::IsAutoBakeEnabled_Implementation() const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	return HAC->IsBakeAfterNextCookEnabled();
+	return HC->IsBakeAfterNextCookEnabled();
 }
 
 bool
 UHoudiniPublicAPIAssetWrapper::SetBakeMethod_Implementation(const EHoudiniEngineBakeOption InBakeMethod)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	if (HAC->GetHoudiniEngineBakeOption() != InBakeMethod)
+	if (HC->GetHoudiniEngineBakeOption() != InBakeMethod)
 	{
-		HAC->SetHoudiniEngineBakeOption(InBakeMethod);
-		HAC->Modify();
+		HC->SetHoudiniEngineBakeOption(InBakeMethod);
+		HC->Modify();
 	}
 
 	return true;
@@ -368,11 +360,11 @@ UHoudiniPublicAPIAssetWrapper::SetBakeMethod_Implementation(const EHoudiniEngine
 bool
 UHoudiniPublicAPIAssetWrapper::GetBakeMethod_Implementation(EHoudiniEngineBakeOption& OutBakeMethod)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	OutBakeMethod = HAC->GetHoudiniEngineBakeOption();
+	OutBakeMethod = HC->GetHoudiniEngineBakeOption();
 
 	return true;
 }
@@ -380,11 +372,11 @@ UHoudiniPublicAPIAssetWrapper::GetBakeMethod_Implementation(EHoudiniEngineBakeOp
 bool
 UHoudiniPublicAPIAssetWrapper::SetRemoveOutputAfterBake_Implementation(const bool bInRemoveOutputAfterBake)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	HAC->SetRemoveOutputAfterBake(bInRemoveOutputAfterBake);
+	HC->SetRemoveOutputAfterBake(bInRemoveOutputAfterBake);
 
 	return true;
 }
@@ -392,24 +384,24 @@ UHoudiniPublicAPIAssetWrapper::SetRemoveOutputAfterBake_Implementation(const boo
 bool
 UHoudiniPublicAPIAssetWrapper::GetRemoveOutputAfterBake_Implementation() const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	return HAC->GetRemoveOutputAfterBake();
+	return HC->GetRemoveOutputAfterBake();
 }
 
 bool
 UHoudiniPublicAPIAssetWrapper::SetRecenterBakedActors_Implementation(const bool bInRecenterBakedActors)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	if (HAC->GetRecenterBakedActors() != bInRecenterBakedActors)
+	if (HC->GetRecenterBakedActors() != bInRecenterBakedActors)
 	{
-		HAC->SetRecenterBakedActors(bInRecenterBakedActors);
-		HAC->Modify();
+		HC->SetRecenterBakedActors(bInRecenterBakedActors);
+		HC->Modify();
 	}
 
 	return true;
@@ -418,24 +410,24 @@ UHoudiniPublicAPIAssetWrapper::SetRecenterBakedActors_Implementation(const bool 
 bool
 UHoudiniPublicAPIAssetWrapper::GetRecenterBakedActors_Implementation() const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	return HAC->GetRecenterBakedActors();
+	return HC->GetRecenterBakedActors();
 }
 
 bool
 UHoudiniPublicAPIAssetWrapper::SetReplacePreviousBake_Implementation(const bool bInReplacePreviousBake)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	if (HAC->GetReplacePreviousBake() != bInReplacePreviousBake)
+	if (HC->GetReplacePreviousBake() != bInReplacePreviousBake)
 	{
-		HAC->SetReplacePreviousBake(bInReplacePreviousBake);
-		HAC->Modify();
+		HC->SetReplacePreviousBake(bInReplacePreviousBake);
+		HC->Modify();
 	}
 
 	return true;
@@ -444,22 +436,22 @@ UHoudiniPublicAPIAssetWrapper::SetReplacePreviousBake_Implementation(const bool 
 bool
 UHoudiniPublicAPIAssetWrapper::GetReplacePreviousBake_Implementation() const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	return HAC->GetReplacePreviousBake();
+	return HC->GetReplacePreviousBake();
 }
 
 TArray<AActor*>
 UHoudiniPublicAPIAssetWrapper::GetBakedOutputActors_Implementation()
 {
 	TArray<AActor*> OutputActors;
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return OutputActors;
 
-	const TArray<FHoudiniBakedOutput>& BakedOutputs = HAC->GetBakedOutputs();
+	const TArray<FHoudiniBakedOutput>& BakedOutputs = HC->GetBakedOutputs();
 	for (const FHoudiniBakedOutput& BakedOutput : BakedOutputs) 
 	{
 		for (const auto& BakedPair : BakedOutput.BakedOutputObjects) 
@@ -479,7 +471,6 @@ UHoudiniPublicAPIAssetWrapper::GetBakedOutputActors_Implementation()
 			ALandscape* BakedLandscape = BakedPair.Value.GetLandscapeIfValid(true);
 			if (BakedLandscape)
 				OutputActors.Add(BakedLandscape);
-
 		}
 	}
 
@@ -517,15 +508,29 @@ UHoudiniPublicAPIAssetWrapper::GetValidHoudiniAssetComponentWithError(UHoudiniAs
 }
 
 bool
+UHoudiniPublicAPIAssetWrapper::GetValidHoudiniCookableWithError(UHoudiniCookable*& OutHC) const
+{
+	UHoudiniCookable* const HC = GetHoudiniCookable();
+	if (!IsValid(HC))
+	{
+		SetErrorMessage(
+			TEXT("Could not find a valid HoudiniCookable for the wrapped asset, or no asset has been wrapped."));
+		return false;
+	}
+
+	OutHC = HC;
+	return true;
+}
+
+bool
 UHoudiniPublicAPIAssetWrapper::GetValidOutputAtWithError(const int32 InOutputIndex, UHoudiniOutput*& OutOutput) const
 {
-	// TODO: COOKABLE ME
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	// Check if InOutputIndex is a valid/in-range index
-	const int32 NumOutputs = HAC->GetNumOutputs();
+	const int32 NumOutputs = HC->GetNumOutputs();
 	if (InOutputIndex < 0 || InOutputIndex >= NumOutputs)
 	{
 		SetErrorMessage(FString::Printf(
@@ -533,7 +538,7 @@ UHoudiniPublicAPIAssetWrapper::GetValidOutputAtWithError(const int32 InOutputInd
 		return false;
 	}
 	
-	UHoudiniOutput* const Output= HAC->GetOutputAt(InOutputIndex);
+	UHoudiniOutput* const Output= HC->GetOutputAt(InOutputIndex);
 	if (!IsValid(Output))
 	{
 		SetErrorMessage(FString::Printf(TEXT("Output at index %d is invalid."), InOutputIndex));
@@ -549,24 +554,20 @@ UHoudiniPDGAssetLink*
 UHoudiniPublicAPIAssetWrapper::GetHoudiniPDGAssetLink() const
 { 
 	UHoudiniCookable* const HC = GetHoudiniCookable();
-	if (IsValid(HC))
-		return HC->GetPDGAssetLink();
-
-	UHoudiniAssetComponent* const HAC = GetHoudiniAssetComponent();
-	if (!IsValid(HAC))
+	if (!IsValid(HC))
 		return nullptr;
 
-	return HAC->GetPDGAssetLink();
+	return HC->GetPDGAssetLink();
 }
 
 bool
 UHoudiniPublicAPIAssetWrapper::GetValidHoudiniPDGAssetLinkWithError(UHoudiniPDGAssetLink*& OutAssetLink) const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	UHoudiniPDGAssetLink* const AssetLink = HAC->GetPDGAssetLink();
+	UHoudiniPDGAssetLink* const AssetLink = HC->GetPDGAssetLink();
 	if (!IsValid(AssetLink))
 	{
 		SetErrorMessage(
@@ -603,17 +604,6 @@ UHoudiniPublicAPIAssetWrapper::ClearHoudiniAssetObject_Implementation()
 			HC->GetOnPostCookDelegate().Remove(OnPostCookDelegateHandle);
 		if (OnPostBakeDelegateHandle.IsValid())
 			HC->GetOnPostBakeDelegate().Remove(OnPostBakeDelegateHandle);
-	}
-
-	UHoudiniAssetComponent* const HAC = GetHoudiniAssetComponent();
-	if (IsValid(HAC))
-	{
-		if (OnAssetStateChangeDelegateHandle.IsValid())
-			HAC->GetOnAssetStateChangeDelegate().Remove(OnAssetStateChangeDelegateHandle);
-		if (OnPostCookDelegateHandle.IsValid())
-			HAC->GetOnPostCookDelegate().Remove(OnPostCookDelegateHandle);
-		if (OnPostBakeDelegateHandle.IsValid())
-			HAC->GetOnPostBakeDelegate().Remove(OnPostBakeDelegateHandle);
 	}
 	
 	OnPDGPostTOPNetworkCookDelegateHandle.Reset();
@@ -671,7 +661,7 @@ UHoudiniPublicAPIAssetWrapper::WrapHoudiniAssetObject_Implementation(UObject* In
 	{
 		CachedHoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InHoudiniAssetObjectToWrap);
 		CachedHoudiniAssetActor = Cast<AHoudiniAssetActor>(CachedHoudiniAssetComponent->GetOwner());
-		CachedHoudiniCookable = Cast<UHoudiniCookable>(InHoudiniAssetObjectToWrap);
+		CachedHoudiniCookable = CachedHoudiniAssetComponent->GetCookable();
 	}
 	else if (HoudiniAssetObject->IsA<UHoudiniCookable>())
 	{
@@ -690,25 +680,12 @@ UHoudiniPublicAPIAssetWrapper::WrapHoudiniAssetObject_Implementation(UObject* In
 		OnPostCookDelegateHandle = HC->GetOnPostCookDelegate().AddUFunction(this, TEXT("HandleOnHoudiniCookablePostCook"));
 		OnPostBakeDelegateHandle = HC->GetOnPostBakeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniCookablePostBake"));
 	}
-	else
-	{
-		UHoudiniAssetComponent* const HAC = GetHoudiniAssetComponent();
-		if (IsValid(HAC))
-		{
-			// Bind to HandleOnHoudiniAssetStateChange from the HAC: we also implement IHoudiniAssetStateEvents, and
-			// in the default implementation HandleOnHoudiniAssetStateChange will call the appropriate Handle functions
-			// for PostInstantiate, PostCook etc
-			OnAssetStateChangeDelegateHandle = HAC->GetOnAssetStateChangeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniAssetComponentStateChange"));
-			OnPostCookDelegateHandle = HAC->GetOnPostCookDelegate().AddUFunction(this, TEXT("HandleOnHoudiniAssetComponentPostCook"));
-			OnPostBakeDelegateHandle = HAC->GetOnPostBakeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniAssetComponentPostBake"));
-		}
-	}
 
 	OnHoudiniProxyMeshesRefinedDelegateHandle = FHoudiniEngineUtils::GetOnHoudiniProxyMeshesRefinedDelegate().AddUFunction(this, TEXT("HandleOnHoudiniProxyMeshesRefinedGlobal"));
 
 	// PDG asset link bindings: We attempt to bind to PDG here, but it likely is not available yet.
 	// We have to wait until post instantiation in order to know if there is a PDG asset link
-	// for this HDA. This is checked again in HandleOnHoudiniAssetComponentStateChange and sets
+	// for this HDA. This is checked again in HandleOnHoudiniCookableStateChange and sets
 	// bAssetLinkSetupAttemptComplete.
 	BindToPDGAssetLink();
 
@@ -762,11 +739,11 @@ UHoudiniPublicAPIAssetWrapper::DeleteInstantiatedAsset_Implementation()
 bool
 UHoudiniPublicAPIAssetWrapper::Rebuild_Implementation()
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	HAC->MarkAsNeedRebuild();
+	HC->MarkAsNeedRebuild();
 
 	return true;
 }
@@ -774,11 +751,11 @@ UHoudiniPublicAPIAssetWrapper::Rebuild_Implementation()
 bool
 UHoudiniPublicAPIAssetWrapper::Recook_Implementation()
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	HAC->MarkAsNeedCook();
+	HC->MarkAsNeedCook();
 	
 	return true;
 }
@@ -786,15 +763,15 @@ UHoudiniPublicAPIAssetWrapper::Recook_Implementation()
 bool
 UHoudiniPublicAPIAssetWrapper::SetAutoCookingEnabled_Implementation(const bool bInSetEnabled)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	if (HAC->IsCookingEnabled() == bInSetEnabled)
+	if (HC->IsCookingEnabled() == bInSetEnabled)
 		return false;
 
-	HAC->SetCookingEnabled(bInSetEnabled);
-	HAC->Modify();
+	HC->SetCookingEnabled(bInSetEnabled);
+	HC->Modify();
 
 	return true;
 }
@@ -802,25 +779,25 @@ UHoudiniPublicAPIAssetWrapper::SetAutoCookingEnabled_Implementation(const bool b
 bool
 UHoudiniPublicAPIAssetWrapper::IsAutoCookingEnabled_Implementation() const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	return HAC->IsCookingEnabled();
+	return HC->IsCookingEnabled();
 }
 
 bool
 UHoudiniPublicAPIAssetWrapper::SetDoNotGenerateOutputs_Implementation(const bool bInSetEnabled)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	if (HAC->IsOutputless() == bInSetEnabled)
+	if (HC->IsOutputless() == bInSetEnabled)
 		return false;
 
-	HAC->SetOutputless(bInSetEnabled);
-	HAC->Modify();
+	HC->SetOutputless(bInSetEnabled);
+	HC->Modify();
 
 	return true;
 }
@@ -828,26 +805,26 @@ UHoudiniPublicAPIAssetWrapper::SetDoNotGenerateOutputs_Implementation(const bool
 bool
 UHoudiniPublicAPIAssetWrapper::IsDoNotGenerateOutputsEnabled_Implementation() const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	return HAC->IsOutputless();
+	return HC->IsOutputless();
 }
 
 
 bool
 UHoudiniPublicAPIAssetWrapper::SetCookOnParameterOrInputChanges_Implementation(const bool bInSetEnabled)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	if (HAC->GetCookOnParameterChange() == bInSetEnabled)
+	if (HC->GetCookOnParameterChange() == bInSetEnabled)
 		return false;
 
-	HAC->SetCookOnParameterChange(bInSetEnabled);
-	HAC->Modify();
+	HC->SetCookOnParameterChange(bInSetEnabled);
+	HC->Modify();
 
 	return true;
 }
@@ -855,25 +832,25 @@ UHoudiniPublicAPIAssetWrapper::SetCookOnParameterOrInputChanges_Implementation(c
 bool
 UHoudiniPublicAPIAssetWrapper::IsCookOnParameterOrInputChangesEnabled_Implementation() const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	return HAC->GetCookOnParameterChange();
+	return HC->GetCookOnParameterChange();
 }
 
 bool
 UHoudiniPublicAPIAssetWrapper::SetCookOnTransformChange_Implementation(const bool bInSetEnabled)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	if (HAC->GetCookOnTransformChange() == bInSetEnabled)
+	if (HC->GetCookOnTransformChange() == bInSetEnabled)
 		return false;
 
-	HAC->SetCookOnTransformChange(bInSetEnabled);
-	HAC->Modify();
+	HC->SetCookOnTransformChange(bInSetEnabled);
+	HC->Modify();
 
 	return true;
 }
@@ -881,16 +858,21 @@ UHoudiniPublicAPIAssetWrapper::SetCookOnTransformChange_Implementation(const boo
 bool
 UHoudiniPublicAPIAssetWrapper::IsCookOnTransformChangeEnabled_Implementation() const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	return HAC->GetCookOnTransformChange();
+	return HC->GetCookOnTransformChange();
 }
 
 bool
 UHoudiniPublicAPIAssetWrapper::SetCookOnAssetInputCook_Implementation(const bool bInSetEnabled)
 {
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+	
+	// TODO: COOKABLE ME!
 	UHoudiniAssetComponent* HAC = nullptr;
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
@@ -906,7 +888,12 @@ UHoudiniPublicAPIAssetWrapper::SetCookOnAssetInputCook_Implementation(const bool
 
 bool
 UHoudiniPublicAPIAssetWrapper::IsCookOnAssetInputCookEnabled_Implementation() const
-{
+{	
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	// TODO: COOKABLE ME!
 	UHoudiniAssetComponent* HAC = nullptr;
 	if (!GetValidHoudiniAssetComponentWithError(HAC))
 		return false;
@@ -2514,16 +2501,16 @@ UHoudiniPublicAPIAssetWrapper::TriggerButtonParameter_Implementation(FName InBut
 bool
 UHoudiniPublicAPIAssetWrapper::GetParameterTuples_Implementation(TMap<FName, FHoudiniParameterTuple>& OutParameterTuples) const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	const int32 NumParameters = HAC->GetNumParameters();
+	const int32 NumParameters = HC->GetNumParameters();
 	OutParameterTuples.Empty(NumParameters);
 	OutParameterTuples.Reserve(NumParameters);
 	for (int32 Index = 0; Index < NumParameters; ++Index)
 	{
-		const UHoudiniParameter* const Param = HAC->GetParameterAt(Index);
+		const UHoudiniParameter* const Param = HC->GetParameterAt(Index);
 		const EHoudiniParameterType ParameterType = Param->GetParameterType();
 		const int32 TupleSize = Param->GetTupleSize();
 		const FName PTName(Param->GetParameterName());
@@ -2621,8 +2608,8 @@ UHoudiniPublicAPIAssetWrapper::GetParameterTuples_Implementation(TMap<FName, FHo
 bool
 UHoudiniPublicAPIAssetWrapper::SetParameterTuples_Implementation(const TMap<FName, FHoudiniParameterTuple>& InParameterTuples)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	bool bSuccess = true;
@@ -2733,15 +2720,15 @@ UHoudiniPublicAPIAssetWrapper::CreateEmptyInput_Implementation(TSubclassOf<UHoud
 int32
 UHoudiniPublicAPIAssetWrapper::GetNumNodeInputs_Implementation() const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return -1;
 
 	int32 NumNodeInputs = 0;
-	const int32 NumInputs = HAC->GetNumInputs();
+	const int32 NumInputs = HC->GetNumInputs();
 	for (int32 Index = 0; Index < NumInputs; ++Index)
 	{
-		UHoudiniInput const* const Input = HAC->GetInputAt(Index);
+		UHoudiniInput const* const Input = HC->GetInputAt(Index);
 		if (!IsValid(Input))
 			continue;
 
@@ -2755,8 +2742,8 @@ UHoudiniPublicAPIAssetWrapper::GetNumNodeInputs_Implementation() const
 bool
 UHoudiniPublicAPIAssetWrapper::SetInputAtIndex_Implementation(const int32 InNodeInputIndex, const UHoudiniPublicAPIInput* InInput)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	UHoudiniInput* HoudiniInput = GetHoudiniNodeInputByIndex(InNodeInputIndex);
@@ -2772,7 +2759,7 @@ UHoudiniPublicAPIAssetWrapper::SetInputAtIndex_Implementation(const int32 InNode
 
 	// Update the details panel (mostly for when new curves/components are created where visualizers are driven
 	// through the details panel)
-	FHoudiniEngineEditorUtils::ReselectComponentOwnerIfSelected(HAC);
+	FHoudiniEngineEditorUtils::ReselectComponentOwnerIfSelected(HC->GetComponent());
 
 	return bSuccess;
 }
@@ -2780,8 +2767,8 @@ UHoudiniPublicAPIAssetWrapper::SetInputAtIndex_Implementation(const int32 InNode
 bool
 UHoudiniPublicAPIAssetWrapper::GetInputAtIndex_Implementation(const int32 InNodeInputIndex, UHoudiniPublicAPIInput*& OutInput)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	const UHoudiniInput* HoudiniInput = GetHoudiniNodeInputByIndex(InNodeInputIndex);
@@ -2822,15 +2809,15 @@ UHoudiniPublicAPIAssetWrapper::SetInputsAtIndices_Implementation(const TMap<int3
 bool
 UHoudiniPublicAPIAssetWrapper::GetInputsAtIndices_Implementation(TMap<int32, UHoudiniPublicAPIInput*>& OutInputs)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	bool bAnyFailures = false;
-	const int32 NumInputs = HAC->GetNumInputs();
+	const int32 NumInputs = HC->GetNumInputs();
 	for (int32 Index = 0; Index < NumInputs; ++Index)
 	{
-		UHoudiniInput const* const HoudiniInput = HAC->GetInputAt(Index);
+		UHoudiniInput const* const HoudiniInput = HC->GetInputAt(Index);
 		if (!IsValid(HoudiniInput) || HoudiniInput->IsObjectPathParameter())
 			continue;
 		
@@ -2853,8 +2840,8 @@ UHoudiniPublicAPIAssetWrapper::GetInputsAtIndices_Implementation(TMap<int32, UHo
 bool
 UHoudiniPublicAPIAssetWrapper::SetInputParameter_Implementation(const FName& InParameterName, const UHoudiniPublicAPIInput* InInput)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	UHoudiniInput* HoudiniInput = FindValidHoudiniNodeInputParameter(InParameterName);
@@ -2870,7 +2857,7 @@ UHoudiniPublicAPIAssetWrapper::SetInputParameter_Implementation(const FName& InP
 
 	// Update the details panel (mostly for when new curves/components are created where visualizers are driven
 	// through the details panel)
-	FHoudiniEngineEditorUtils::ReselectComponentOwnerIfSelected(HAC);
+	FHoudiniEngineEditorUtils::ReselectComponentOwnerIfSelected(HC->GetComponent());
 
 	return bSuccess;
 }
@@ -2878,8 +2865,8 @@ UHoudiniPublicAPIAssetWrapper::SetInputParameter_Implementation(const FName& InP
 bool
 UHoudiniPublicAPIAssetWrapper::GetInputParameter_Implementation(const FName& InParameterName, UHoudiniPublicAPIInput*& OutInput)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	const UHoudiniInput* HoudiniInput = FindValidHoudiniNodeInputParameter(InParameterName);
@@ -2920,15 +2907,15 @@ UHoudiniPublicAPIAssetWrapper::SetInputParameters_Implementation(const TMap<FNam
 bool
 UHoudiniPublicAPIAssetWrapper::GetInputParameters_Implementation(TMap<FName, UHoudiniPublicAPIInput*>& OutInputs)
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	bool bAnyFailures = false;
-	const int32 NumInputs = HAC->GetNumInputs();
+	const int32 NumInputs = HC->GetNumInputs();
 	for (int32 Index = 0; Index < NumInputs; ++Index)
 	{
-		UHoudiniInput const* const HoudiniInput = HAC->GetInputAt(Index);
+		UHoudiniInput const* const HoudiniInput = HC->GetInputAt(Index);
 		if (!IsValid(HoudiniInput) || !HoudiniInput->IsObjectPathParameter())
 			continue;
 		
@@ -2951,11 +2938,11 @@ UHoudiniPublicAPIAssetWrapper::GetInputParameters_Implementation(TMap<FName, UHo
 int32
 UHoudiniPublicAPIAssetWrapper::GetNumOutputs_Implementation() const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return -1;
 
-	return HAC->GetNumOutputs();
+	return HC->GetNumOutputs();
 }
 
 EHoudiniOutputType
@@ -3136,12 +3123,8 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(
 		return false;
 	}
 
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
-		return false;
-
-	UHoudiniCookable* HC = HAC->GetCookable();
-	if (!IsValid(HC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
 	TArray<UHoudiniOutput*> AllOutputs;
@@ -3157,7 +3140,7 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(
 		Identifier,
 		*OutputObject,
 		HoudiniGeoPartObject,
-		HAC,
+		HC,
 		Output,
 		HC->GetBakeFolderOrDefault(),
 		BakeSettings,
@@ -3171,11 +3154,11 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(
 bool
 UHoudiniPublicAPIAssetWrapper::HasAnyCurrentProxyOutput_Implementation() const
 {
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	return HAC->HasAnyCurrentProxyOutput();
+	return HC->HasAnyCurrentProxyOutput();
 }
 
 bool
@@ -3573,90 +3556,6 @@ UHoudiniPublicAPIAssetWrapper::BindToPDGAssetLink()
 }
 
 void
-UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniAssetComponentStateChange(UHoudiniAssetComponent* InHAC, const EHoudiniAssetState InFromState, const EHoudiniAssetState InToState)
-{
-	if (!IsValid(InHAC))
-		return;
-	
-	if (InHAC != GetHoudiniAssetComponent())
-	{
-		SetErrorMessage(FString::Printf(
-			TEXT("HandleOnHoudiniAssetComponentStateChange: unexpected InHAC: %s, expected the wrapper's HAC."),
-			IsValid(InHAC) ? *InHAC->GetName() : TEXT("")));
-		return;
-	}
-
-	if (InToState == EHoudiniAssetState::PreInstantiation)
-	{
-		if (OnPreInstantiationDelegate.IsBound())
-			OnPreInstantiationDelegate.Broadcast(this);
-	}
-	
-	if (InFromState == EHoudiniAssetState::Instantiating && InToState == EHoudiniAssetState::PreCook)
-	{
-		// PDG link setup / bindings: we have to wait until post instantiation to check if we have an asset link and
-		// configure bindings
-		if (!bAssetLinkSetupAttemptComplete)
-		{
-			BindToPDGAssetLink();
-			bAssetLinkSetupAttemptComplete = true;
-		}
-		
-		if (OnPostInstantiationDelegate.IsBound())
-			OnPostInstantiationDelegate.Broadcast(this);
-	}
-	
-	if (InFromState == EHoudiniAssetState::PreProcess)
-	{
-		if (OnPreProcessStateExitedDelegate.IsBound())
-			OnPreProcessStateExitedDelegate.Broadcast(this);
-	}
-	
-	if (InFromState == EHoudiniAssetState::Processing && InToState == EHoudiniAssetState::None)
-	{
-		if (OnPostProcessingDelegate.IsBound())
-			OnPostProcessingDelegate.Broadcast(this);
-	}
-}
-
-void
-UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniAssetComponentPostCook(UHoudiniAssetComponent* InHAC, const bool bInCookSuccess)
-{
-	if (!IsValid(InHAC))
-		return;
-	
-	if (InHAC != GetHoudiniAssetComponent())
-	{
-		SetErrorMessage(FString::Printf(
-			TEXT("HandleOnHoudiniAssetComponentPostCook: unexpected InHAC: %s, expected the wrapper's HAC."),
-			IsValid(InHAC) ? *InHAC->GetName() : TEXT("")));
-		return;
-	}
-
-	if (OnPostCookDelegate.IsBound())
-		OnPostCookDelegate.Broadcast(this, bInCookSuccess);
-}
-
-void
-UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniAssetComponentPostBake(UHoudiniAssetComponent* InHAC, const bool bInBakeSuccess)
-{
-	if (!IsValid(InHAC))
-		return;
-	
-	if (InHAC != GetHoudiniAssetComponent())
-	{
-		SetErrorMessage(FString::Printf(
-			TEXT("HandleOnHoudiniAssetComponentPostBake: unexpected InHAC: %s, expected the wrapper's HAC."),
-			IsValid(InHAC) ? *InHAC->GetName() : TEXT("")));
-		return;
-	}
-
-	if (OnPostBakeDelegate.IsBound())
-		OnPostBakeDelegate.Broadcast(this, bInBakeSuccess);
-}
-
-
-void
 UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniCookableStateChange(UHoudiniCookable* InHC, const EHoudiniAssetState InFromState, const EHoudiniAssetState InToState)
 {
 	if (!IsValid(InHC))
@@ -3776,12 +3675,12 @@ UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniPDGAssetLinkPostBake(UHoudiniPDGAs
 }
 
 void
-UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniProxyMeshesRefinedGlobal(UHoudiniAssetComponent* InHAC, const EHoudiniProxyRefineResult InResult)
+UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniProxyMeshesRefinedGlobal(UHoudiniCookable* InHC, const EHoudiniProxyRefineResult InResult)
 {
-	if (!IsValid(InHAC))
+	if (!IsValid(InHC))
 		return;
 	
-	if (InHAC != GetHoudiniAssetComponent())
+	if (InHC != GetHoudiniCookable())
 		return;
 
 	if (OnProxyMeshesRefinedDelegate.IsBound())
@@ -3794,14 +3693,14 @@ UHoudiniPublicAPIAssetWrapper::FindValidParameterByName(const FName& InParameter
 	AActor* const Actor = GetHoudiniAssetActor();
 	const FString ActorName = IsValid(Actor) ? Actor->GetActorNameOrLabel() : FString();
 	
-	UHoudiniAssetComponent* const HAC = GetHoudiniAssetComponent();
-	if (!IsValid(HAC))
+	UHoudiniCookable* const HC = GetHoudiniCookable();
+	if (!IsValid(HC))
 	{
-		SetErrorMessage(FString::Printf(TEXT("Could not find HAC on Actor '%s'"), *ActorName));
+		SetErrorMessage(FString::Printf(TEXT("Could not find Cookable on Actor '%s'"), *ActorName));
 		return nullptr;
 	}
 
-	UHoudiniParameter* const Param = HAC->FindParameterByName(InParameterTupleName.ToString());
+	UHoudiniParameter* const Param = HC->FindParameterByName(InParameterTupleName.ToString());
 	if (!IsValid(Param))
 	{
 		SetErrorMessage(FString::Printf(
@@ -4431,14 +4330,14 @@ UHoudiniPublicAPIAssetWrapper::GetHoudiniNodeInputByIndex(const int32 InNodeInpu
 	if (InNodeInputIndex < 0)
 		return nullptr;
 	
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return nullptr;
 
-	const int32 NumInputs = HAC->GetNumInputs();
+	const int32 NumInputs = HC->GetNumInputs();
 	for (int32 Index = 0; Index < NumInputs; ++Index)
 	{
-		UHoudiniInput* const Input = HAC->GetInputAt(Index);
+		UHoudiniInput* const Input = HC->GetInputAt(Index);
 		if (!IsValid(Input))
 			continue;
 		if (Input->GetInputIndex() == InNodeInputIndex)
@@ -4454,14 +4353,14 @@ UHoudiniPublicAPIAssetWrapper::GetHoudiniNodeInputByIndex(const int32 InNodeInpu
 	if (InNodeInputIndex < 0)
 		return nullptr;
 	
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return nullptr;
 
-	const int32 NumInputs = HAC->GetNumInputs();
+	const int32 NumInputs = HC->GetNumInputs();
 	for (int32 Index = 0; Index < NumInputs; ++Index)
 	{
-		UHoudiniInput const* const Input = HAC->GetInputAt(Index);
+		UHoudiniInput const* const Input = HC->GetInputAt(Index);
 		if (!IsValid(Input))
 			continue;
 		if (Input->GetInputIndex() == InNodeInputIndex)
@@ -4477,15 +4376,15 @@ UHoudiniPublicAPIAssetWrapper::FindValidHoudiniNodeInputParameter(const FName& I
 	if (InInputParameterName == NAME_None)
 		return nullptr;
 	
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return nullptr;
 
 	const FString InputParameterName = InInputParameterName.ToString();
-	const int32 NumInputs = HAC->GetNumInputs();
+	const int32 NumInputs = HC->GetNumInputs();
 	for (int32 Index = 0; Index < NumInputs; ++Index)
 	{
-		UHoudiniInput* const Input = HAC->GetInputAt(Index);
+		UHoudiniInput* const Input = HC->GetInputAt(Index);
 		if (!IsValid(Input))
 			continue;
 		if (Input->IsObjectPathParameter() && Input->GetInputName() == InputParameterName)
@@ -4501,15 +4400,15 @@ UHoudiniPublicAPIAssetWrapper::FindValidHoudiniNodeInputParameter(const FName& I
 	if (InInputParameterName == NAME_None)
 		return nullptr;
 	
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return nullptr;
 
 	const FString InputParameterName = InInputParameterName.ToString();
-	const int32 NumInputs = HAC->GetNumInputs();
+	const int32 NumInputs = HC->GetNumInputs();
 	for (int32 Index = 0; Index < NumInputs; ++Index)
 	{
-		UHoudiniInput const* const Input = HAC->GetInputAt(Index);
+		UHoudiniInput const* const Input = HC->GetInputAt(Index);
 		if (!IsValid(Input))
 			continue;
 		if (Input->IsObjectPathParameter() && Input->GetInputName() == InputParameterName)
@@ -4621,20 +4520,16 @@ UHoudiniPublicAPIAssetWrapper::GetValidTOPNodeByPathWithError(
 void
 UHoudiniPublicAPIAssetWrapper::ProcessComponentSynchronous_Implementation()
 {
-	// TODO: Cookable me!
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
 		return;
 
 	if (!FHoudiniEngine::Get().IsCookingEnabled())
 		return;
 
-	UHoudiniCookable* HC = HAC->GetCookable();
-	if (!HC)
-		return;
-
 	// Node Sync component cant be processed
-	if (HAC->IsA<UHoudiniNodeSyncComponent>())
+	USceneComponent* CookableComponent = HC->GetComponent();
+	if (CookableComponent && CookableComponent->IsA<UHoudiniNodeSyncComponent>())
 		return;
 
 	FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();

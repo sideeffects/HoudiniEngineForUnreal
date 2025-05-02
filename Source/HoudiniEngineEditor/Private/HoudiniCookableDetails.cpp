@@ -75,54 +75,12 @@ FHoudiniCookableDetails::FHoudiniCookableDetails()
 	HoudiniEngineDetails = MakeShared<FHoudiniEngineDetails, ESPMode::NotThreadSafe>();
 }
 
-// TSharedPtr<SWidget> FHoudiniCookableDetails::ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent> HAC)
-// {
-// 	FMenuBuilder MenuBuilder( true, NULL );
-//
-// 	if (!HAC.IsValid())
-// 	{
-// 		return MenuBuilder.MakeWidget();
-// 	}
-//
-// 	MenuBuilder.BeginSection("AssetCreate", LOCTEXT("HDAActionMenu_SectionCreate", "Create"));
-//
-// 	// Options - Create Preset
-// 	MenuBuilder.AddMenuEntry(
-// 		FText::FromString("Create Preset"),
-// 		FText::FromString("Create a new preset from the current HoudiniAssetComponent parameters."),
-// 		FSlateIcon(),
-// 		FUIAction(
-// 			FExecuteAction::CreateLambda([HAC]() -> void
-// 			{
-// 				SHoudiniCreatePresetFromHDA::CreateDialog(HAC);
-// 			}),
-// 			FCanExecuteAction()
-// 		)
-// 	);
-// 	
-// 	// SHoudiniCreatePresetFromHDA::Create(HAC);
-//
-// 	MenuBuilder.EndSection();
-//
-// 	MenuBuilder.BeginSection("Modify", LOCTEXT("HDAActionMenu_SectionModify", "Modify"));
-//
-// 	// Presets submenu
-// 	// MenuBuilder.AddSubMenu( LOCTEXT("HDAActionMenu_SubmenuPresets", "Presets")
-// 	// 	,
-// 	// 	)
-// 	MenuBuilder.EndSection();
-//
-// 	return MenuBuilder.MakeWidget();
-// }
-
-
 void
 FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 	// Get all components which are being customized.
 	TArray<TWeakObjectPtr<UObject>> ObjectsCustomized;
 	DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
-
 
 	// Components which are being customized.
 	TArray<TWeakObjectPtr<UHoudiniCookable>> HoudiniCookable;
@@ -295,9 +253,8 @@ FHoudiniCookableDetails::CreateHoudiniEngineDetails(
 	// Houdini Engine Icon
 	HoudiniEngineDetails->CreateHoudiniEngineIconWidget(HouEngineCategory);
 
-	// TODO COOKABLE: Handle presets!
 	// Widget for HoudiniAsset related actions. Currently only contains things for Presets.
-	//HoudiniEngineDetails->CreateHoudiniEngineActionWidget(HouEngineCategory, MultiSelectedHCs);
+	HoudiniEngineDetails->CreateHoudiniEngineActionWidget(HouEngineCategory, InCookables);
 
 	// Houdini Engine Session Status
 	HoudiniEngineDetails->AddSessionStatusRow(HouEngineCategory);

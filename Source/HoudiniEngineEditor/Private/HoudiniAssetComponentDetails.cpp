@@ -68,53 +68,8 @@ FHoudiniAssetComponentDetails::MakeInstance()
 
 FHoudiniAssetComponentDetails::FHoudiniAssetComponentDetails()
 {
-	OutputDetails = MakeShared<FHoudiniOutputDetails, ESPMode::NotThreadSafe>();
-	ParameterDetails = MakeShared<FHoudiniParameterDetails, ESPMode::NotThreadSafe>();
-	PDGDetails = MakeShared<FHoudiniPDGDetails, ESPMode::NotThreadSafe>();
-	HoudiniEngineDetails = MakeShared<FHoudiniEngineDetails, ESPMode::NotThreadSafe>();
 	CookableDetails = MakeShared<FHoudiniCookableDetails>();
 }
-
-// TSharedPtr<SWidget> FHoudiniAssetComponentDetails::ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent> HAC)
-// {
-// 	FMenuBuilder MenuBuilder( true, NULL );
-//
-// 	if (!HAC.IsValid())
-// 	{
-// 		return MenuBuilder.MakeWidget();
-// 	}
-//
-// 	MenuBuilder.BeginSection("AssetCreate", LOCTEXT("HDAActionMenu_SectionCreate", "Create"));
-//
-// 	// Options - Create Preset
-// 	MenuBuilder.AddMenuEntry(
-// 		FText::FromString("Create Preset"),
-// 		FText::FromString("Create a new preset from the current HoudiniAssetComponent parameters."),
-// 		FSlateIcon(),
-// 		FUIAction(
-// 			FExecuteAction::CreateLambda([HAC]() -> void
-// 			{
-// 				SHoudiniCreatePresetFromHDA::CreateDialog(HAC);
-// 			}),
-// 			FCanExecuteAction()
-// 		)
-// 	);
-// 	
-// 	// SHoudiniCreatePresetFromHDA::Create(HAC);
-//
-// 	MenuBuilder.EndSection();
-//
-// 	MenuBuilder.BeginSection("Modify", LOCTEXT("HDAActionMenu_SectionModify", "Modify"));
-//
-// 	// Presets submenu
-// 	// MenuBuilder.AddSubMenu( LOCTEXT("HDAActionMenu_SubmenuPresets", "Presets")
-// 	// 	,
-// 	// 	)
-// 	MenuBuilder.EndSection();
-//
-// 	return MenuBuilder.MakeWidget();
-// }
-
 
 void
 FHoudiniAssetComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)

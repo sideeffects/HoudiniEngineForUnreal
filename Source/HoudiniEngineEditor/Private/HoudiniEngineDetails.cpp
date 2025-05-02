@@ -173,21 +173,19 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 	Row.IsEnabled(false);
 }
 
-
 void
 FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
+	const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
 {
 	// TODO : COOKABLE ME!
-
-	if (InHACs.Num() <= 0)
+	if (InCookables.Num() <= 0)
 		return;
 
-	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
+	const TWeakObjectPtr<UHoudiniCookable>& MainHC = InCookables[0];
 	IDetailLayoutBuilder* SavedLayoutBuilder = &HoudiniEngineCategoryBuilder.GetParentLayout();
 
-	if (!IsValidWeakPointer(MainHAC))
+	if (!IsValidWeakPointer(MainHC))
 		return;
 
 	// Skip drawing the icon if the icon image is not loaded correctly.
@@ -213,9 +211,9 @@ FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(
 		.ForegroundColor( FSlateColor::UseForeground() )
 		.ButtonStyle( FAppStyle::Get(), "SimpleButton" )
 		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
-		.OnGetMenuContent_Lambda([InHACs, SavedLayoutBuilder]() -> TSharedRef<SWidget>
+		.OnGetMenuContent_Lambda([InCookables, SavedLayoutBuilder]() -> TSharedRef<SWidget>
 		{
-			return ConstructActionMenu(InHACs, SavedLayoutBuilder).ToSharedRef();
+			return ConstructActionMenu(InCookables, SavedLayoutBuilder).ToSharedRef();
 		})
 		.ButtonContent()
 		[
@@ -2306,17 +2304,18 @@ FHoudiniEngineDetails::GetHoudiniAssetThumbnailBorder(TSharedPtr< SBorder > Houd
 }
 
 TSharedPtr<SWidget>
-FHoudiniEngineDetails::ConstructActionMenu(const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs, class IDetailLayoutBuilder* LayoutBuilder)
+FHoudiniEngineDetails::ConstructActionMenu(
+	const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables,
+	class IDetailLayoutBuilder* LayoutBuilder)
 {
-	// TODO: COOKABLE ME!
 	FMenuBuilder MenuBuilder(true, NULL);
 
-	const int32 NumHACs = InHACs.Num();
-	if (NumHACs == 0)
+	const int32 NumHCs = InCookables.Num();
+	if (NumHCs == 0)
 		return MenuBuilder.MakeWidget();
 
-	TWeakObjectPtr<UHoudiniAssetComponent> HAC = InHACs[0];
-	if (!HAC.IsValid())
+	TWeakObjectPtr<UHoudiniCookable> HC = InCookables[0];
+	if (!HC.IsValid())
 	{
 		return MenuBuilder.MakeWidget();
 	}
@@ -2329,9 +2328,9 @@ FHoudiniEngineDetails::ConstructActionMenu(const TArray<TWeakObjectPtr<UHoudiniA
 		FText::FromString("Create a new preset from the current HoudiniAssetComponent parameters."),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateLambda([HAC]() -> void
+			FExecuteAction::CreateLambda([HC]() -> void
 			{
-				SHoudiniCreatePresetFromHDA::CreateDialog(HAC);
+				SHoudiniCreatePresetFromHDA::CreateDialog(HC);
 			}),
 			FCanExecuteAction()
 		)
@@ -2347,13 +2346,13 @@ FHoudiniEngineDetails::ConstructActionMenu(const TArray<TWeakObjectPtr<UHoudiniA
 		FText::FromString("Update the Houdini Preset that is currently selected in the content browser."),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateLambda([HAC]() -> void
+			FExecuteAction::CreateLambda([HC]() -> void
 			{
-				SHoudiniUpdatePresetFromHDA::CreateDialog(HAC);
+				SHoudiniUpdatePresetFromHDA::CreateDialog(HC);
 			}),
-			FCanExecuteAction::CreateLambda([NumHACs]() -> bool
+			FCanExecuteAction::CreateLambda([NumHCs]() -> bool
 			{
-				if (NumHACs != 1)
+				if (NumHCs != 1)
 				{
 					return false;
 				}
@@ -2375,7 +2374,7 @@ FHoudiniEngineDetails::ConstructActionMenu(const TArray<TWeakObjectPtr<UHoudiniA
 	MenuBuilder.EndSection();
 
 	TArray<UHoudiniPreset*> Presets;
-	FHoudiniToolsEditor::FindPresetsForHoudiniAsset(HAC->GetHoudiniAsset(), Presets);
+	FHoudiniToolsEditor::FindPresetsForHoudiniAsset(HC->GetHoudiniAsset(), Presets);
 
 	Algo::Sort(Presets, [](const UHoudiniPreset* LHS, const UHoudiniPreset* RHS) { return LHS->Name < RHS->Name; });
 
@@ -2434,34 +2433,28 @@ FHoudiniEngineDetails::ConstructActionMenu(const TArray<TWeakObjectPtr<UHoudiniA
 		// Menu entry for preset
 		MenuBuilder.AddMenuEntry(
 			FUIAction(
-				FExecuteAction::CreateLambda([Preset, InHACs, LayoutBuilder]() -> void
+				FExecuteAction::CreateLambda([Preset, InCookables, LayoutBuilder]() -> void
+				{
+					bool bPresetApplied = false;
+					for (TWeakObjectPtr<UHoudiniCookable> HC : InCookables)
 					{
-						bool bPresetApplied = false;
-						for (TWeakObjectPtr<UHoudiniAssetComponent> HAC : InHACs)
+						// Apply preset on Houdini Asset Component
+						if (!HC.IsValid())
 						{
-							// Apply preset on Houdini Asset Component
-							if (!HAC.IsValid())
-							{
-								HOUDINI_LOG_WARNING(TEXT("Could not apply preset. HoudiniAssetComponent reference is no longer valid."));
-								continue;
-							}
-
-							UHoudiniCookable* HC = HAC->GetCookable();
-							if(HC)
-								FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(Preset, HC, true);
-							else
-								FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(Preset, HAC.Get(), true);
-
-							bPresetApplied = true;
+							HOUDINI_LOG_WARNING(TEXT("Could not apply preset. Cookable reference is no longer valid."));
+							continue;
 						}
+
+						FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(Preset, HC.Get(), true);
+						bPresetApplied = true;
+					}
 					
-						if (bPresetApplied && LayoutBuilder)
-						{
-							LayoutBuilder->ForceRefreshDetails();
-						}
-					}),
-					FCanExecuteAction()
-				),
+					if (bPresetApplied && LayoutBuilder)
+					{
+						LayoutBuilder->ForceRefreshDetails();
+					}
+				}),
+				FCanExecuteAction()),
 			PresetItem,
 			NAME_None,
 			FText::FromString(Preset->Description)

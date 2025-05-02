@@ -78,7 +78,7 @@ public:
 	// PRESET MENU
 	static void CreateHoudiniEngineActionWidget(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
 
 	// GENERATE
 	static void CreateGenerateWidgets(
@@ -124,7 +124,8 @@ public:
 	//static TSharedRef< SWidget > OnGetHoudiniAssetMenuContent(TArray<UHoudiniAssetComponent*> InHACs);
 
 	static TSharedPtr<SWidget> ConstructActionMenu(
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs, class IDetailLayoutBuilder*);
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables,
+		class IDetailLayoutBuilder*);
 
 	static void AddHeaderRowForCookable(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,

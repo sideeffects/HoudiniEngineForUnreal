@@ -296,8 +296,7 @@ FHoudiniEngineEditor::RegisterDetails()
 	// Register details presenter for our component type and runtime settings.
 	PropertyModule.RegisterCustomClassLayout(
 		TEXT("HoudiniAssetComponent"),
-		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniAssetComponentDetails::MakeInstance));
-		//FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniCookableDetails::MakeInstance));
+		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniCookableDetails::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
 		TEXT("HoudiniAssetActor"),

@@ -1422,18 +1422,6 @@ protected:
 	
 	/** Handler that is bound to the wrapped HAC's state change delegate. */
 	UFUNCTION()
-	void HandleOnHoudiniAssetComponentStateChange(UHoudiniAssetComponent* InHAC, const EHoudiniAssetState InFromState, const EHoudiniAssetState InToState);
-
-	/** Handler that is bound to the wrapped HAC's PostCook delegate. */
-	UFUNCTION()
-	void HandleOnHoudiniAssetComponentPostCook(UHoudiniAssetComponent* InHAC, const bool bInCookSuccess);
-
-	/** Handler that is bound to the wrapped HAC's PostBake delegate. */
-	UFUNCTION()
-	void HandleOnHoudiniAssetComponentPostBake(UHoudiniAssetComponent* InHAC, const bool bInBakeSuccess);
-
-	/** Handler that is bound to the wrapped HAC's state change delegate. */
-	UFUNCTION()
 	void HandleOnHoudiniCookableStateChange(UHoudiniCookable* InHC, const EHoudiniAssetState InFromState, const EHoudiniAssetState InToState);
 
 	/** Handler that is bound to the wrapped HAC's PostCook delegate. */
@@ -1458,7 +1446,7 @@ protected:
 	 * #OnProxyMeshesRefinedDelegate is broadcast.
 	 */
 	UFUNCTION()
-	void HandleOnHoudiniProxyMeshesRefinedGlobal(UHoudiniAssetComponent* InHAC, const EHoudiniProxyRefineResult InResult);
+	void HandleOnHoudiniProxyMeshesRefinedGlobal(UHoudiniCookable* InHC, const EHoudiniProxyRefineResult InResult);
 
 	/**
 	 * Helper function for getting the instantiated asset's AHoudiniAssetActor. If there is no valid
@@ -1475,6 +1463,13 @@ protected:
 	 * @return true if the wrapped asset has a valid HoudiniAssetComponent, false otherwise.
 	 */
 	bool GetValidHoudiniAssetComponentWithError(UHoudiniAssetComponent*& OutHAC) const;
+
+	/** Helper function for getting the instantiated asset's Cookable.
+	 *If there is no valid Cookable an error is set with SetErrorMessage() and false is returned.
+	 * @param OutHAC Set to the HoudiniAssetComponent of the wrapped asset, if found.
+	 * @return true if the wrapped asset has a valid HoudiniAssetComponent, false otherwise.
+	 */
+	bool GetValidHoudiniCookableWithError(UHoudiniCookable*& OutHC) const;
 
 	/**
 	 * Helper function for getting a valid output at the specified index. If there is no valid

@@ -91,8 +91,6 @@ private:
 	FReply OnThumbnailDoubleClick(
 		const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object);
 
-	// TSharedPtr<SWidget> ConstructActionMenu(TWeakObjectPtr<UHoudiniAssetComponent> HAC);
-
 	// Structure holding the output's details
 	TSharedPtr<FHoudiniOutputDetails, ESPMode::NotThreadSafe> OutputDetails;
 
