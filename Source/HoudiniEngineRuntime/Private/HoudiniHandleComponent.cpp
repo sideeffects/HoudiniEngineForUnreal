@@ -42,6 +42,15 @@
 #endif
 
 #include "Serialization/CustomVersion.h"
+#include "HAL/IConsoleManager.h"
+
+static TAutoConsoleVariable<float> CVarHoudiniEngineHandleTickTime(
+	TEXT("HoudiniEngine.HandleTickTime"),
+	0.5,
+	TEXT("The frequency (in s) at which handles will be updated.\n")
+	TEXT("<= 0.0: Disable updates\n")
+	TEXT("0.5: Default\n")
+);
 
 void
 UHoudiniHandleComponent::Serialize(FArchive& Ar)
@@ -87,7 +96,11 @@ UHoudiniHandleParameter::UHoudiniHandleParameter(const FObjectInitializer & Obje
 
 UHoudiniHandleComponent::UHoudiniHandleComponent(const FObjectInitializer & ObjectInitializer)
 	:Super(ObjectInitializer) 
-{};
+{
+	bNeedToUpdateTransform = false;
+	bWantsOnUpdateTransform = true;
+	LastSentTransform = FTransform::Identity;
+};
 
 
 bool 
@@ -241,3 +254,40 @@ UHoudiniHandleComponent::GetBounds() const
 	return BoxBounds + GetComponentLocation();
 }
 
+
+void
+UHoudiniHandleComponent::OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
+{
+	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
+
+#if WITH_EDITOR
+	//if (UpdateTransformFlags != EUpdateTransformFlags::PropagateFromParent)
+	{
+		FTransform NewTransform = GetRelativeTransform();
+		if (!NewTransform.Equals(LastSentTransform))
+		{
+			bNeedToUpdateTransform = true;
+			dLastTransformUpdateTime = FPlatformTime::Seconds();
+		}
+	}
+#endif
+}
+
+bool
+UHoudiniHandleComponent::IsTransformUpdateNeeded()
+{
+	if (!bNeedToUpdateTransform)
+		return false;
+
+	// Use a timer to reduce the frequency of handle updates
+	double dHandleTick = CVarHoudiniEngineHandleTickTime.GetValueOnAnyThread();
+	if (dHandleTick < 0)
+		return false;
+
+	double dNow = FPlatformTime::Seconds();	
+	double dTimeDiff = dNow - dLastTransformUpdateTime;
+	if (dTimeDiff < 0.0 || dTimeDiff < dHandleTick)
+		return false;
+
+	return true;
+}

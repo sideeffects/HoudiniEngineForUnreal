@@ -1335,6 +1335,14 @@ public:
 	bool GetPDGBakingReplacementMode(EPDGBakePackageReplaceModeOption& OutBakingReplacementMode) const;
 
 	/**
+	 * Helper function for manually processing the wrapped component until it reaches a blocking state
+	 * This means that instantiating, cooking and processing of the HDA will be blocking, as the function
+	 * only returns once all processing is finished.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	void ProcessComponentSynchronous();
+
+	/**
 	 * Getter for the OnPreInstantiationDelegate, broadcast before the HDA is instantiated. The HDA's default parameter
 	 * definitions are available, but the node has not yet been instantiated in HAPI/Houdini Engine. Parameter values
 	 * can be set at this point.
@@ -1566,7 +1574,6 @@ protected:
 		int32& OutNetworkIndex,
 		int32& OutNodeIndex,
 		UTOPNode*& OutNode) const;
-
 
 	//
 	// TSoftObjectPtr seems to potentially cause race conditions when running the UE test framework

@@ -410,12 +410,20 @@ FHoudiniLandscapeRuntimeUtils::DeleteLandscapeSplineCookedData(UHoudiniOutput* c
 
 int32
 FHoudiniLandscapeRuntimeUtils::GetOrGenerateValidControlPointId(
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	TObjectPtr<ULandscapeSplineControlPoint>& InControlPoint,
+#else
 	ULandscapeSplineControlPoint const* const InControlPoint,
+#endif
 	TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 	int32& InNextControlPointId)
 {
 	// Look for the id of ControlPoint in the map
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	const TSoftObjectPtr<ULandscapeSplineControlPoint> ControlPointPtr(InControlPoint.Get());
+#else
 	const TSoftObjectPtr<ULandscapeSplineControlPoint> ControlPointPtr(InControlPoint);
+#endif
 	int32 ControlPointId = INDEX_NONE;
 	if (int32 const* const ControlPointIdPtr = InControlPointIdMap.Find(ControlPointPtr))
 		ControlPointId = *ControlPointIdPtr;

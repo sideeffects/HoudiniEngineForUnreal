@@ -703,7 +703,7 @@ UHoudiniEditorNodeSyncSubsystem::GatherAllFetchNodeIds(
 				FHoudiniEngine::Get().GetSession(),
 				InFetchNodeId,
 				HAPI_NODETYPE_OBJ,
-				HAPI_NODEFLAGS_OBJ_SUBNET,
+				HAPI_NODEFLAGS_OBJ_SUBNET | HAPI_NODEFLAGS_NON_BYPASS,
 				true,
 				&NumObjSubnets
 			),

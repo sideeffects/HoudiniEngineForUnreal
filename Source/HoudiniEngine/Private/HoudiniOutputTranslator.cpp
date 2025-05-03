@@ -39,6 +39,7 @@
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniInput.h"
@@ -107,7 +108,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		TMap<HAPI_NodeId, int32> OutputNodeCookCounts = HAC->GetOutputNodeCookCounts();
 		if (FHoudiniOutputTranslator::BuildAllOutputs(
 			HAC->GetAssetId(), HAC, OutputNodes, OutputNodeCookCounts,
-			HAC->Outputs, NewOutputs, HAC->bOutputTemplateGeos, HAC->bUseOutputNodes))
+			HAC->Outputs, NewOutputs, HAC->bOutputTemplateGeos, HAC->bUseOutputNodes, HAC->bEnableCurveEditing))
 		{
 			// NOTE: For now we are currently forcing all outputs to be cleared here. There is still an issue where, in some
 			// circumstances, landscape tiles disappear when clearing outputs after processing.
@@ -438,7 +439,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 				{
 					ALandscapeProxy* OutputLandscape = LayerOutput->Landscape;
 
-					if (OutputLandscape)
+					if (OutputLandscape && !LayerOutput->PropertyAttributes.IsEmpty())
 					{
 						FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(OutputLandscape, LayerOutput->PropertyAttributes);
 						OutputLandscape->GetLandscapeInfo()->FixupProxiesTransform();
@@ -686,8 +687,11 @@ FHoudiniOutputTranslator::UpdateOutputs(
 			FHoudiniOutputObjectIdentifier & Id = It.Key;
 			FHoudiniOutputObject & Obj = It.Value;
 
-			Obj.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(Id.GeoId, Id.PartId);
-			Obj.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(Id.GeoId, Id.PartId);
+			if (Obj.DataLayers.IsEmpty())
+				Obj.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(Id.GeoId, Id.PartId);
+
+			if (Obj.HLODLayers.IsEmpty())
+				Obj.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(Id.GeoId, Id.PartId);
 		}
 	}
 
@@ -787,6 +791,10 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniAss
 bool
 FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 {
+	// Nothing to do for Node Sync Components!
+	if (HAC->IsA<UHoudiniNodeSyncComponent>())
+		return true;
+
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateLoadedOutputs);
 
 	HAPI_NodeId & AssetId = HAC->AssetId;
@@ -815,10 +823,16 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(UHoudiniAssetComponent* HAC)
 
 		// Start by getting the number of editable nodes
 		int32 EditableNodeCount = 0;
-		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
-			FHoudiniEngine::Get().GetSession(),
-			CurrentHapiObjectInfo.nodeId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
-			true, &EditableNodeCount));
+		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateLoadedOutputs-ComposeChildNodeList-EditableNodes);
+			HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
+				FHoudiniEngine::Get().GetSession(),
+				CurrentHapiObjectInfo.nodeId,
+				HAPI_NODETYPE_SOP, 
+				HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
+				true,
+				&EditableNodeCount));
+		}
 
 		if (EditableNodeCount > 0)
 		{
@@ -1009,6 +1023,10 @@ FHoudiniOutputTranslator::UploadChangedEditableOutput(
 	if (!IsValid(HAC))
 		return false;
 
+	// Nothing to do for Node Sync Components!
+	if (HAC->IsA<UHoudiniNodeSyncComponent>())
+		return true;
+
 	TArray<UHoudiniOutput*> &Outputs = HAC->Outputs;
 
 	// Iterate through the outputs array of HAC.
@@ -1054,9 +1072,12 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	const TMap<HAPI_NodeId, int32>& OutputNodeCookCounts,
 	TArray<UHoudiniOutput*>& InOldOutputs,
 	TArray<UHoudiniOutput*>& OutNewOutputs,
-	const bool& InOutputTemplatedGeos,
-	const bool& InUseOutputNodes)
+	bool InOutputTemplatedGeos,
+	bool InUseOutputNodes, 
+	bool bGatherEditableCurves)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs);
+
 	// NOTE: This function still gathers output nodes from the asset id. This is old behaviour.
 	//       Output nodes are now being gathered before cooking starts and is passed in through
 	//       the OutputNodes array. Clean up this function by only using output nodes from the
@@ -1134,9 +1155,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	int32 EditableNodeCount = 0;
 	if (bAssetHasChildren)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs-ComposeChildNodeList-EditableNodes);
 		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
 			FHoudiniEngine::Get().GetSession(),
-			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
+			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
 			true, &EditableNodeCount));
 	}
 	
@@ -1167,7 +1189,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				continue;
 
 			// We only handle editable curves for now
-			if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE)
+			if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE || !bGatherEditableCurves)
 				continue;
 
 			// Add this geo to the geo info array
@@ -1208,6 +1230,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	TSet<HAPI_NodeId> AllObjectIds;
 	if (bUseOutputFromSubnets)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs-ComposeChildNodeList-AllSubnets);
+
 		int NumObjSubnets;
 		TArray<HAPI_NodeId> ObjectIds;
 		HOUDINI_CHECK_ERROR_RETURN(
@@ -1215,10 +1239,9 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				FHoudiniEngine::Get().GetSession(),
 				AssetId,
 				HAPI_NODETYPE_OBJ,
-				HAPI_NODEFLAGS_OBJ_SUBNET,
+				HAPI_NODEFLAGS_OBJ_SUBNET | HAPI_NODEFLAGS_NON_BYPASS,
 				true,
-				&NumObjSubnets
-				),
+				&NumObjSubnets),
 			false);
 
 		ObjectIds.SetNumUninitialized(NumObjSubnets);
@@ -1227,8 +1250,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				FHoudiniEngine::Get().GetSession(),
 				AssetId,
 				ObjectIds.GetData(),
-				NumObjSubnets
-				),
+				NumObjSubnets),
 			false);
 		AllObjectIds.Append(ObjectIds);
 	}
@@ -2068,23 +2090,30 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					FHoudiniApi::VolumeInfo_Init(&CurrentHapiVolumeInfo);
 
 					bool bVolumeValid = true;
-					if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetVolumeInfo(
+
+					HAPI_Result Result = FHoudiniApi::GetVolumeInfo(
 						FHoudiniEngine::Get().GetSession(),
 						CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id,
-						&CurrentHapiVolumeInfo))
+						&CurrentHapiVolumeInfo);
+
+					if (HAPI_RESULT_SUCCESS != Result)
 					{
+						HOUDINI_LOG_ERROR(TEXT("Failed to get VolumeInfo (%d)"), *FHoudiniEngineUtils::GetErrorDescription(Result));
 						bVolumeValid = false;
 					}
 					else if (CurrentHapiVolumeInfo.tupleSize != 1)
 					{
+						HOUDINI_LOG_ERROR(TEXT("Invalid tuple size (%d)"), CurrentHapiVolumeInfo.tupleSize);
 						bVolumeValid = false;
 					}
 					else if (CurrentHapiVolumeInfo.zLength != 1)
 					{
+						HOUDINI_LOG_ERROR(TEXT("Invalid zlength (%d)"), CurrentHapiVolumeInfo.zLength);
 						bVolumeValid = false;
 					}
 					else if (CurrentHapiVolumeInfo.storage != HAPI_STORAGETYPE_FLOAT)
 					{
+						HOUDINI_LOG_ERROR(TEXT("Invalid storage (%d)"), CurrentHapiVolumeInfo.storage);
 						bVolumeValid = false;
 					}
 
@@ -2283,7 +2312,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				}
 				// Ensure that we always update the 'Editable' state of the output since this
 				// may very well change between cooks (for example, the User is editina the HDA is session sync).
-				HoudiniOutput->SetIsEditableNode(currentHGPO.bIsEditable);
+				HoudiniOutput->SetIsEditableNode(currentHGPO.bIsEditable && bGatherEditableCurves);
 
 				// Add the HGPO to the output
 				HoudiniOutput->AddNewHGPO(currentHGPO);

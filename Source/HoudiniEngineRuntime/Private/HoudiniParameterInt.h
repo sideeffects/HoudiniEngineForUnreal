@@ -64,7 +64,7 @@ public:
 
 	int32* GetValuesPtr() { return Values.Num() > 0 ? &Values[0] : nullptr; };
 
-	int32 GetNumberOfValues() { return Values.Num(); };
+	int32 GetNumberOfValues() const { return Values.Num(); };
 
 	bool IsDefaultValueAtIndex(const int32& Idx) const;
 	bool IsDefault() const override;

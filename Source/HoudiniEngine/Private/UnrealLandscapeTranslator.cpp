@@ -2455,8 +2455,18 @@ bool FUnrealLandscapeTranslator::SendTargetLayersToHoudini(
 
 	bool bSuccess = true;
 
+	// Send target layers to Houdini. Note, we always need to create and commit a Mask or the Volume Info won't function
+	// correctly.
 	if (Options.bExportMergedPaintLayers)
+	{
 		bSuccess &= SendCombinedTargetLayersToHoudini(LandscapeProxy, HeightFieldId, PartId, MergeId, MaskId, HeightFieldVolumeInfo, XSize, YSize, OutMergeInputIndex);
+	}
+	else
+	{
+		InitDefaultHeightfieldMask(HeightFieldVolumeInfo, MaskId);
+		ApplyAttributesToHeightfieldNode(MaskId, PartId, LandscapeProxy);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(MaskId), false);
+	}
 
 	if (Options.bExportPaintLayersPerEditLayer)
 		bSuccess &= SendAllEditLayerTargetLayersToHoudini(LandscapeProxy, HeightFieldId, PartId, MergeId, MaskId, HeightFieldVolumeInfo, XSize, YSize, OutMergeInputIndex);
@@ -2569,7 +2579,11 @@ bool FUnrealLandscapeTranslator::SendAllEditLayerTargetLayersToHoudini(
 		int32 NumTargetLayers = LandscapeInfo->Layers.Num();
 		for (int32 TargetLayerIndex = 0; TargetLayerIndex < NumTargetLayers; TargetLayerIndex++)
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+			const FName & EditLayerName = LandscapeProxy->GetLandscapeActor()->GetLayerConst(EditLayerIndex)->Name;
+#else
 			const FName & EditLayerName = LandscapeProxy->GetLandscapeActor()->GetLayer(EditLayerIndex)->Name;
+#endif
 			const FName & TargetLayerName = LandscapeInfo->Layers[TargetLayerIndex].GetLayerName();
 
 			FHoudiniExtents Extents = FHoudiniLandscapeUtils::GetLandscapeExtents(LandscapeProxy);

@@ -135,54 +135,6 @@ FHoudiniEngineUtils::PackageGUIDComponentNameLength = 12;
 const int32
 FHoudiniEngineUtils::PackageGUIDItemNameLength = 8;
 
-template <typename DataType>
-TArray<int> RunLengthEncode(const DataType* Data, int TupleSize, int Count, const float MaxCompressionRatio = 0.25f)
-{
-	// Run length encode the data.
-    // If this function returns an empty array it means the desired compression ratio could not be met.
-
-    auto CompareTuple = [TupleSize] (const DataType* StartA, const DataType* StartB)
-    {
-        for (int Index = 0; Index < TupleSize; Index++)
-        {
-            if (StartA[Index] != StartB[Index])
-                return false;
-        }
-        return true;
-    };
-
-    TArray<int> EncodedData;
-    if (Count == 0)
-        return EncodedData;
-
-	// Guess of size needed.
-    EncodedData.Reserve(static_cast<int>(MaxCompressionRatio * Count));
-
-	// The first run always begins on element zero.
-    int Start = 0;
-    EncodedData.Add(Start);
-
-	// Created a run length encoded array based off the input data. eg.
-    // [ 0, 0, 0, 1, 1, 2, 3 ] will return [ 0, 3, 5, 6]
-
-    for(int Index = 0; Index < Count * TupleSize; Index += TupleSize)
-    {
-        if (!CompareTuple(&Data[Start], &Data[Index]))
-        {
-		    // The value changed, so start a new run
-            Start = Index;
-            EncodedData.Add(Start / TupleSize);
-        }
-    }
-
-    // Check we've made a decent compression ratio. If not return an empty array.
-    float Ratio = float(EncodedData.Num() / float(Count));
-    if (Ratio > MaxCompressionRatio)
-        EncodedData.SetNum(0);
-
-    return EncodedData;
-}
-
 // Maximum size of the data that can be sent via thrift
 //#define THRIFT_MAX_CHUNKSIZE			100 * 1024 * 1024 // This is supposedly the current limit in thrift, but still seems to be too large
 #define THRIFT_MAX_CHUNKSIZE			10 * 1024 * 1024
@@ -665,6 +617,20 @@ FHoudiniEngineUtils::RescanWorldPath(UWorld* InWorld)
 	AssetRegistry.ScanPathsSynchronous(Packages, true);
 }
 
+TArray<AActor*>
+FHoudiniEngineUtils::FindActorsWithNameNoNumber(UClass* InClass, UWorld* InWorld, const FString& InActorName)
+{
+	TArray<AActor*> Results;
+
+	for (TActorIterator<AActor> ActorIt(InWorld, InClass); ActorIt; ++ActorIt)
+	{
+		AActor * Actor = *ActorIt;
+		if (Actor->GetFName().GetPlainNameString() == InActorName)
+			Results.Add(Actor);
+	}
+	return Results;
+}
+
 AActor*
 FHoudiniEngineUtils::FindOrRenameInvalidActorGeneric(UClass* InClass, UWorld* InWorld, const FString& InName, AActor*& OutFoundActor)
 {
@@ -718,7 +684,11 @@ void FHoudiniEngineUtils::LogPackageInfo(const UPackage* InPackage)
 	}
 
 	HOUDINI_LOG_MESSAGE(TEXT(" = Filename: %s"), *(InPackage->GetLoadedPath().GetPackageName()));
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	HOUDINI_LOG_MESSAGE(TEXT(" = Package Id: %s"), *(LexToString(InPackage->GetPackageId())));
+#else
 	HOUDINI_LOG_MESSAGE(TEXT(" = Package Id: %d"), InPackage->GetPackageId().ValueForDebugging());
+#endif
 	HOUDINI_LOG_MESSAGE(TEXT(" = File size: %d"), InPackage->GetFileSize());
 	HOUDINI_LOG_MESSAGE(TEXT(" = Contains map: %d"), InPackage->ContainsMap());
 	HOUDINI_LOG_MESSAGE(TEXT(" = Is Fully Loaded: %d"), InPackage->IsFullyLoaded());
@@ -1274,6 +1244,7 @@ FHoudiniEngineUtils::GatherLandscapeInputs(
 	UHoudiniAssetComponent* HAC,
 	TArray<ALandscapeProxy*>& AllInputLandscapes)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherLandscapeInputs);
 	if (!IsValid(HAC))
 		return;
 
@@ -1944,9 +1915,9 @@ FHoudiniEngineUtils::OpenSubassetSelectionWindow(TArray<HAPI_StringHandle>& Asse
 	TSharedRef<SWindow> Window = SNew(SWindow)
 		.Title(LOCTEXT("WindowTitle", "Select an asset to instantiate"))
 		.ClientSize(FVector2D(640, 480))
-		.SupportsMinimize(false)
-		.SupportsMaximize(false)
-		.HasCloseButton(false);
+		.SupportsMinimize(true)
+		.SupportsMaximize(true)
+		.HasCloseButton(true);
 
 	Window->SetContent(SAssignNew(AssetSelectionWidget, SAssetSelectionWidget)
 		.WidgetWindow(Window)
@@ -2009,8 +1980,9 @@ FHoudiniEngineUtils::GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString
 }
 
 bool
-FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray< char > & PresetBuffer)
+FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray<int8>& PresetBuffer)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GetAssetPreset);
 	PresetBuffer.Empty();
 
 	HAPI_NodeId NodeId;
@@ -2023,6 +1995,9 @@ FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray< char
 	else
 		NodeId = AssetNodeId;
 
+	if (NodeId < 0)
+		return false;
+
 	int32 BufferLength = 0;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPresetBufLength(
 		FHoudiniEngine::Get().GetSession(), NodeId,
@@ -2031,7 +2006,7 @@ FHoudiniEngineUtils::GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray< char
 	PresetBuffer.SetNumZeroed(BufferLength);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetPreset(
 		FHoudiniEngine::Get().GetSession(), NodeId,
-		&PresetBuffer[0], PresetBuffer.Num()), false);
+		(char*)(PresetBuffer.GetData()), PresetBuffer.Num()), false);
 
 	return true;
 }
@@ -2200,13 +2175,17 @@ FHoudiniEngineUtils::HapiGetObjectInfos(const HAPI_NodeId& InNodeId, TArray<HAPI
 		}
 		else
 		{
-			// This OBJ has children
-			// See if we should add ourself by looking for immediate display SOP 
 			int32 ImmediateSOP = 0;
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
-				FHoudiniEngine::Get().GetSession(), NodeInfo.id,
-				HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_DISPLAY,
-				false, &ImmediateSOP), false);
+			{
+				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiGetObjectInfos-ComposeChildNodeList);
+
+				// This OBJ has children
+				// See if we should add ourself by looking for immediate display SOP 
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
+					FHoudiniEngine::Get().GetSession(), NodeInfo.id,
+					HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_DISPLAY,
+					false, &ImmediateSOP), false);
+			}
 
 			bool bAddSelf = ImmediateSOP > 0;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeObjectList(
@@ -2340,7 +2319,7 @@ bool FHoudiniEngineUtils::ContainsSopNodes(const HAPI_NodeId& NodeId)
 			FHoudiniEngine::Get().GetSession(),
 			NodeId,
 			HAPI_NODETYPE_SOP,
-			HAPI_NODEFLAGS_ANY,
+			HAPI_NODEFLAGS_NON_BYPASS,
 			false,
 			&ChildCount
 		),
@@ -2368,9 +2347,10 @@ bool FHoudiniEngineUtils::GetOutputIndex(const HAPI_NodeId& InNodeId, int32& Out
 
 bool
 FHoudiniEngineUtils::GatherAllAssetOutputs(
-	const HAPI_NodeId& AssetId,
-	const bool bUseOutputNodes,
-	const bool bOutputTemplatedGeos,
+	HAPI_NodeId AssetId,
+	bool bUseOutputNodes,
+	bool bOutputTemplatedGeos,
+	bool bGatherEditableCurves,
 	TArray<HAPI_NodeId>& OutOutputNodes)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs);
@@ -2379,9 +2359,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 	
 	// Ensure the asset has a valid node ID
 	if (AssetId < 0)
-	{
 		return false;
-	}
 
 	// Get the AssetInfo
 	HAPI_AssetInfo AssetInfo;
@@ -2392,8 +2370,17 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 	// Get the Asset NodeInfo
 	HAPI_NodeInfo AssetNodeInfo;
 	FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId, &AssetNodeInfo), false);
+	HAPI_Result NodeResult = FHoudiniApi::GetNodeInfo(
+		FHoudiniEngine::Get().GetSession(), AssetId, &AssetNodeInfo);
+
+	if (HAPI_RESULT_SUCCESS != NodeResult)
+	{
+		// Don't log invalid argument errors here
+		if (NodeResult != HAPI_RESULT_INVALID_ARGUMENT)
+			HOUDINI_CHECK_ERROR_RETURN(NodeResult, false);
+		else
+			return false;
+	}
 
 	FString CurrentAssetName;
 	{
@@ -2418,7 +2405,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 	{
 		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
 			FHoudiniEngine::Get().GetSession(),
-			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE,
+			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
 			true, &EditableNodeCount));
 	}
 	
@@ -2449,7 +2436,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 				continue;
 
 			// We only handle editable curves for now
-			if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE)
+			if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE || !bGatherEditableCurves)
 				continue;
 
 			// Add this geo to the geo info array
@@ -2495,7 +2482,7 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 				FHoudiniEngine::Get().GetSession(),
 				AssetId,
 				HAPI_NODETYPE_OBJ,
-				HAPI_NODEFLAGS_OBJ_SUBNET,
+				HAPI_NODEFLAGS_OBJ_SUBNET | HAPI_NODEFLAGS_NON_BYPASS,
 				true,
 				&NumObjSubnets
 				),
@@ -4444,8 +4431,8 @@ FHoudiniEngineUtils::HapiSetHeightFieldData(
 
 HAPI_Result
 FHoudiniEngineUtils::HapiGetHeightFieldData(
-	const HAPI_NodeId& InNodeId,
-	const HAPI_PartId& InPartId,
+	HAPI_NodeId InNodeId,
+	HAPI_PartId InPartId,
 	TArray<float>& OutFloatValues)
 {
     H_SCOPED_FUNCTION_TIMER();
@@ -4772,9 +4759,9 @@ FHoudiniEngineUtils::HapiGetGroupNames(
 }
 
 bool FHoudiniEngineUtils::HapiGetGroupMembership(
-	HAPI_NodeId GeoId, const HAPI_PartId& PartId,
+	HAPI_NodeId GeoId, const HAPI_PartId PartId,
 	const HAPI_GroupType& GroupType, const FString& GroupName,
-	int32 & OutGroupMembership)
+	int32 & OutGroupMembership, int Start, int Length)
 {
 	OutGroupMembership = 0;
 
@@ -4784,7 +4771,7 @@ bool FHoudiniEngineUtils::HapiGetGroupMembership(
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupMembership(
 			FHoudiniEngine::Get().GetSession(),
 			GeoId, PartId, GroupType, ConvertedGroupName.c_str(),
-			&AllEqual, &OutGroupMembership, 0, 1), false);
+			&AllEqual, &OutGroupMembership, Start, Length), false);
 
 	return true;
 }

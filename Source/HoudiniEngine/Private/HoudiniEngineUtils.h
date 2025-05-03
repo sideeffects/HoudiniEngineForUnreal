@@ -203,9 +203,10 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static bool GetOutputIndex(const HAPI_NodeId& InNodeId, int32& OutOutputIndex);
 
 		static bool GatherAllAssetOutputs(
-			const HAPI_NodeId& InAssetId,
-			const bool bUseOutputNodes,
-			const bool bOutputTemplatedGeos,
+			HAPI_NodeId InAssetId,
+			bool bUseOutputNodes,
+			bool bOutputTemplatedGeos,
+			bool bGatherEditableCurves,
 			TArray<HAPI_NodeId>& OutOutputNodes); 
 
 		// Get the immediate output geo infos for the given Geometry object network.
@@ -243,9 +244,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			TArray<int32>& OutGroupMembership, bool& OutAllEquals);
 
 		static bool HapiGetGroupMembership(
-			HAPI_NodeId GeoId, const HAPI_PartId & PartId,
+			HAPI_NodeId GeoId, HAPI_PartId PartId,
 			const HAPI_GroupType& GroupType, const FString& GroupName,
-			int32 & OutGroupMembership);
+			int32 & OutGroupMembership, int Start = 0, int Length = 1);
 
 		// HAPI : Given vertex list, retrieve new vertex list for a specified group.
 		// Return number of processed valid index vertices for this split.
@@ -419,7 +420,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static bool GetHoudiniAssetName(const HAPI_NodeId& AssetNodeId, FString & NameString);
 
 		// Gets preset data for a given asset.
-		static bool GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray< char > & PresetBuffer);
+		static bool GetAssetPreset(const HAPI_NodeId& AssetNodeId, TArray<int8>& PresetBuffer);
 
 		// HAPI : Set asset transform.
 		static bool HapiSetAssetTransform(const HAPI_NodeId& AssetNodeId, const FTransform & Transform);
@@ -685,8 +686,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Helper function to get Heightfield data
 		// The data will be read in chunks if too large for thrift
 		static HAPI_Result HapiGetHeightFieldData(
-			const HAPI_NodeId& InNodeId,
-			const HAPI_PartId& InPartId,
+			HAPI_NodeId InNodeId,
+			HAPI_PartId InPartId,
 			TArray<float>& OutFloatValues);
 
 		static bool HapiGetParameterDataAsString(
@@ -1148,6 +1149,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			return Cast<T>( FindOrRenameInvalidActorGeneric(T::StaticClass(), InWorld, InName, OutFoundActor) );
 		}
 
+		// Finds actors with the same Name, but without the post fix number.
+		static TArray<AActor*> FindActorsWithNameNoNumber(UClass* InClass, UWorld* InWorld, const FString & InName);
+
 		// Moves an actor to the specified level
 		static bool MoveActorToLevel(AActor* InActor, ULevel* InDesiredLevel);
 	
@@ -1288,6 +1292,53 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			TArray<TArray<float>>& OutPartUVSets,
 			TArray<HAPI_AttributeInfo>& OutAttribInfoUVSets);
 
+		template <typename DataType>
+		static TArray<int> RunLengthEncode(const DataType* Data, int TupleSize, int Count, const float MaxCompressionRatio = 0.25f)
+		{
+			// Run length encode the data.
+			// If this function returns an empty array it means the desired compression ratio could not be met.
+
+			auto CompareTuple = [TupleSize](const DataType* StartA, const DataType* StartB)
+			{
+				for (int Index = 0; Index < TupleSize; Index++)
+				{
+					if (StartA[Index] != StartB[Index])
+						return false;
+				}
+				return true;
+			};
+
+			TArray<int> EncodedData;
+			if (Count == 0)
+				return EncodedData;
+
+			// Guess of size needed.
+			EncodedData.Reserve(static_cast<int>(MaxCompressionRatio * Count));
+
+			// The first run always begins on element zero.
+			int Start = 0;
+			EncodedData.Add(Start);
+
+			// Created a run length encoded array based off the input data. eg.
+			// [ 0, 0, 0, 1, 1, 2, 3 ] will return [ 0, 3, 5, 6]
+
+			for (int Index = 0; Index < Count * TupleSize; Index += TupleSize)
+			{
+				if (!CompareTuple(&Data[Start], &Data[Index]))
+				{
+					// The value changed, so start a new run
+					Start = Index;
+					EncodedData.Add(Start / TupleSize);
+				}
+			}
+
+			// Check we've made a decent compression ratio. If not return an empty array.
+			float Ratio = float(EncodedData.Num() / float(Count));
+			if (Ratio > MaxCompressionRatio)
+				EncodedData.SetNum(0);
+
+			return EncodedData;
+		}
 	protected:
 		
 		// Computes the XX.YY.ZZZ version string using HAPI_Version

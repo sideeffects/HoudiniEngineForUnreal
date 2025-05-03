@@ -532,8 +532,17 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// Returns the ULandscapeLayerInfoObject, if valid and found in LandscapeLayers, otherwise nullptr
 		ULandscapeLayerInfoObject* GetLandscapeLayerInfoIfValid(const FName& InLayerName, const bool bInTryLoad=true) const;
 
+		// Returns the Generated Landscape Actor if valid
+		ALandscape* GetLandscapeIfValid(bool bInTryLoad=true) const;
+
 		// Returns BakedSkeleton if valid, otherwise nullptr
 		USkeleton* GetBakedSkeletonIfValid(bool bInTryLoad=true) const;
+
+		// Returns the generated or modified Foliage actors if valid
+		TArray<AActor*> GetFoliageActorsIfValid(bool bInTryLoad=true) const;
+
+		// Returns an array of valid instanced actors
+		TArray<AActor*> GetInstancedActorsIfValid(bool bInTryLoad=true) const;
 
 		// The actor that the baked output was associated with
 		UPROPERTY()
@@ -575,6 +584,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		UPROPERTY()
 		UFoliageType* FoliageType = nullptr;
 
+		// Foliage Actor Instances
+		UPROPERTY()
+		TArray<FString> FoliageActors;
+	
 		// All exported level instance actors.
 		UPROPERTY()
 		TArray<FString> LevelInstanceActors;
@@ -615,6 +628,14 @@ struct FHoudiniDataLayer
 	bool bCreateIfNeeded = false;
 };
 
+USTRUCT()
+struct FHoudiniAttributeDataLayer
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	TArray<FHoudiniDataLayer> DataLayers;
+};
 
 USTRUCT()
 struct FHoudiniHLODLayer
@@ -724,11 +745,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		UPROPERTY()
 		UWorld* World = nullptr;
 
-		// Data Layers which should be applied (during Baking only).
+		// Data Layers which should be applied (during Baking only). There can be multiple data layers per actor.
 		UPROPERTY()
 		TArray<FHoudiniDataLayer> DataLayers;
 
-		// HLOD Layers which should be applied (during Baking only).
+		// HLOD Layers which should be applied (during Baking only). Currently UE only supports one HLOD layer
+		// per Actor, but we store this an array, since changing that would cause issues.
 		UPROPERTY()
 		TArray<FHoudiniHLODLayer> HLODLayers;
 

@@ -82,8 +82,11 @@ TArray<float> FHoudiniEditorTestLandscapes::GetLandscapeHeightValues(ALandscape 
 	TArray<float> HoudiniValues;
 	TArray<uint16> Values;
 	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		auto EditLayer = LandscapeActor->GetLayerConst(0);
+#else
 		auto EditLayer = LandscapeActor->GetLayer(0);
-
+#endif
 		int NumPoints = LandscapeVertSize.X * LandscapeVertSize.Y;
 		Values.SetNum(NumPoints);
 

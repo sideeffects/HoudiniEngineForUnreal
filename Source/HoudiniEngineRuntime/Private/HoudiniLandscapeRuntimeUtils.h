@@ -143,7 +143,11 @@ struct HOUDINIENGINERUNTIME_API FHoudiniLandscapeRuntimeUtils
      * @return The control point id. 
      */
      static int32 GetOrGenerateValidControlPointId(
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		TObjectPtr<ULandscapeSplineControlPoint>& InControlPoint,
+#else
 		ULandscapeSplineControlPoint const* const InControlPoint,
+#endif
 		TMap<TSoftObjectPtr<ULandscapeSplineControlPoint>, int32>& InControlPointIdMap,
 		int32& InNextControlPointId);
 };

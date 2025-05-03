@@ -81,6 +81,10 @@
 
 #include "ComponentReregisterContext.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
+	#include "LevelInstance/LevelInstanceInterface.h"
+#endif
+#include "LevelInstance/LevelInstanceSubsystem.h"
 
 // Macro to update given properties on all children components of the HAC.
 #define HOUDINI_UPDATE_ALL_CHILD_COMPONENTS( COMPONENT_CLASS, PROPERTY ) \
@@ -242,6 +246,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	ActorBakeOption = EHoudiniEngineActorBakeOption::OneActorPerComponent;
 	bAllowPlayInEditorRefinement = false;
 	bNeedToUpdateEditorProperties = false;
+	bLandscapeUseTempLayers = false;
+	bEnableCurveEditing = true;
 #endif
 
 	//
@@ -267,6 +273,10 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 
 	// Initialize the default SM Build settings with the plugin's settings default values
 	StaticMeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+
+	//bWantsOnUpdateTransform = true;
+
+	bIsPDGAssetLinkInitialized = false;
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
@@ -977,7 +987,7 @@ UHoudiniAssetComponent::MarkAsNeedRebuild()
 	bFullyLoaded = false;
 
 	//bEditorPropertiesNeedFullUpdate = true;
-
+	/*
 	// We need to mark all our parameters as changed/trigger update
 	for (auto CurrentParam : Parameters)
 	{
@@ -992,6 +1002,7 @@ UHoudiniAssetComponent::MarkAsNeedRebuild()
 		CurrentParam->MarkChanged(true);
 		CurrentParam->SetNeedsToTriggerUpdate(true);
 	}
+	*/
 
 	// We need to mark all of our editable curves as changed
 	for (auto Output : Outputs)
@@ -1974,6 +1985,38 @@ UHoudiniAssetComponent::PostEditUndo()
 
 #endif
 
+bool
+UHoudiniAssetComponent::ShouldTryToStartFirstSession() const
+{
+	if (!HoudiniAsset)
+		return false;
+
+	// Only try to start the default session if we have an "active" HAC
+	switch (AssetState)
+	{
+		case EHoudiniAssetState::NewHDA:
+		case EHoudiniAssetState::PreInstantiation:
+		case EHoudiniAssetState::Instantiating:
+		case EHoudiniAssetState::PreCook:
+		case EHoudiniAssetState::Cooking:
+			return true;
+
+		case EHoudiniAssetState::NeedInstantiation:
+		case EHoudiniAssetState::PostCook:
+		case EHoudiniAssetState::PreProcess:
+		case EHoudiniAssetState::Processing:
+		case EHoudiniAssetState::None:
+		case EHoudiniAssetState::NeedRebuild:
+		case EHoudiniAssetState::NeedDelete:
+		case EHoudiniAssetState::Deleting:
+		case EHoudiniAssetState::ProcessTemplate:
+		case EHoudiniAssetState::Dormant:
+			return false;
+	};
+
+	return false;
+}
+
 
 #if WITH_EDITOR
 void
@@ -2573,4 +2616,58 @@ UHoudiniAssetComponent::HandleOnPostBake(bool bInSuccess)
 {
 	if (OnPostBakeDelegate.IsBound())
 		OnPostBakeDelegate.Broadcast(this, bInSuccess);
+}
+
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
+ILevelInstanceInterface*
+UHoudiniAssetComponent::GetLevelInstance() const
+{
+	// Find the level instanced which "owns" this HDA, if it exists.
+
+	AActor* Actor = Cast<AActor>(this->GetOwner());
+	if (!Actor)
+		return nullptr;
+
+	UWorld* World = Actor->GetWorld();
+	if (!World)
+		return nullptr;
+
+	ULevelInstanceSubsystem* LevelInstanceSystem = World->GetSubsystem<ULevelInstanceSubsystem>();
+	if (!LevelInstanceSystem)
+		return nullptr;
+
+	return LevelInstanceSystem->GetOwningLevelInstance(Actor->GetLevel());
+}
+#endif
+
+void
+UHoudiniAssetComponent::UpdateDormantStatus()
+{
+#if WITH_EDITOR
+	// This function checks if we should go into or out of doermant status.
+#if (ENGINE_MAJOR_VERSION <= 5 && ENGINE_MINOR_VERSION < 1)
+	return;
+#else
+	ILevelInstanceInterface* LevelInstance = GetLevelInstance();
+	if (!LevelInstance)
+		return;
+
+	if (GetAssetState() == EHoudiniAssetState::Dormant)
+	{
+		// If this HDA was previously dormant, and the level instance is editable, it means
+		// the level instance has just been made editable. So reset to a state where the HDA
+		// can be used.
+		if (LevelInstance->IsEditing())
+			this->SetAssetState(EHoudiniAssetState::None);
+	}
+	else if (GetAssetState() == EHoudiniAssetState::None)
+	{
+		// If we're not doing anything, and the level instance not editable, flip the state
+		// back to dormant. This highlights a potential problem that the user could  commit
+		// a level instance before its finished cooking, but I'm not sure we can prevent that.
+		if (!LevelInstance->IsEditing())
+			this->SetAssetState(EHoudiniAssetState::Dormant);
+	}
+#endif
+#endif
 }

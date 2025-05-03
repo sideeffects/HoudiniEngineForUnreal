@@ -39,6 +39,7 @@
 #include "HoudiniStaticMeshComponent.h"
 #include "HoudiniStaticMesh.h"
 #include "HoudiniFoliageTools.h"
+#include "HoudiniHLODLayerUtils.h"
 
 //#include "HAPI/HAPI_Common.h"
 
@@ -70,6 +71,7 @@
 	#include "MeshPaintHelpers.h"
 #endif
 #include "HoudiniFoliageUtils.h"
+#include "HoudiniMeshTranslator.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -86,7 +88,8 @@ bool
 FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 	const FHoudiniGeoPartObject& InHGPO,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
-	FHoudiniInstancedOutputPartData& OutInstancedOutputPartData)
+	FHoudiniInstancedOutputPartData& OutInstancedOutputPartData,
+	TSet<UObject*>& OutInvisibleObjects)
 {
 	// Get if force to use HISM from attribute
 	OutInstancedOutputPartData.bForceHISM = HasHISMAttribute(InHGPO.GeoId, InHGPO.PartId);
@@ -103,7 +106,8 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 			OutInstancedOutputPartData.OriginalInstancedIndices,
 			OutInstancedOutputPartData.SplitAttributeName,
 			OutInstancedOutputPartData.SplitAttributeValues,
-			OutInstancedOutputPartData.PerSplitAttributes))
+			OutInstancedOutputPartData.PerSplitAttributes,
+			OutInvisibleObjects))
 		return false;
 	
 	// Check if this is a No-Instancers ( unreal_split_instances )
@@ -176,6 +180,8 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 	// See if we have instancer material overrides
 	if (!GetMaterialOverridesFromAttributes(InHGPO.GeoId, InHGPO.PartId, 0, InHGPO.InstancerType, OutInstancedOutputPartData.MaterialAttributes))
 		OutInstancedOutputPartData.MaterialAttributes.Empty();
+	OutInstancedOutputPartData.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(InHGPO.GeoId, InHGPO.PartId, HAPI_GROUPTYPE_POINT);
+	OutInstancedOutputPartData.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(InHGPO.GeoId, InHGPO.PartId, HAPI_ATTROWNER_POINT);
 
 	return true;
 }
@@ -284,6 +290,8 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 	// The default SM to be used if the instanced object has not been found (when using attribute instancers)
 	UStaticMesh * DefaultReferenceSM = FHoudiniEngine::Get().GetHoudiniDefaultReferenceMesh().Get();
 
+	TSet<UObject*> InvisibleObjects;
+
 	// Iterate on all of the output's HGPO, creating meshes as we go
 	for (const FHoudiniGeoPartObject& CurHGPO : InOutput->HoudiniGeoPartObjects)
 	{
@@ -306,7 +314,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 		}
 		if (!InstancedOutputPartDataPtr)
 		{
-			if (!PopulateInstancedOutputPartData(CurHGPO, InAllOutputs, InstancedOutputPartDataTmp))
+			if (!PopulateInstancedOutputPartData(CurHGPO, InAllOutputs, InstancedOutputPartDataTmp, InvisibleObjects))
 				continue;
 			InstancedOutputPartDataPtr = &InstancedOutputPartDataTmp;
 		}
@@ -472,8 +480,14 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			if (NewInstancerComponents.IsEmpty() && NewInstancerActors.IsEmpty())
 				continue;
 
+
 			for(auto NewInstancerComponent : NewInstancerComponents)
 			{
+				if (InvisibleObjects.Contains(InstancedObject))
+				{
+					NewInstancerComponent->SetVisibleFlag(false);	
+				}
+
 				// Copy the per-instance custom data if we have any
 				if (InstancedOutputPartData.PerInstanceCustomData.Num() > 0)
 				{
@@ -556,6 +570,16 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 
 			if(InstancedOutputPartData.AllBakeActorClassNames.IsValidIndex(FirstOriginalInstanceIndex) && !InstancedOutputPartData.AllBakeActorClassNames[FirstOriginalInstanceIndex].IsEmpty())
 				NewOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_ACTOR_CLASS, InstancedOutputPartData.AllBakeActorClassNames[FirstOriginalInstanceIndex]);
+
+			if(InstancedOutputPartData.HLODLayers.IsValidIndex(FirstOriginalInstanceIndex))
+			{
+				NewOutputObject.HLODLayers.Add(InstancedOutputPartData.HLODLayers[FirstOriginalInstanceIndex]);
+			}
+
+			if (InstancedOutputPartData.DataLayers.IsValidIndex(FirstOriginalInstanceIndex))
+			{
+				NewOutputObject.DataLayers = InstancedOutputPartData.DataLayers[FirstOriginalInstanceIndex].DataLayers;
+			}
 
 			// TODO: Check if we should apply the same logic to other cached attributes?
 			// When using PDG, we have one bake folder per PDG output (array size 1)
@@ -930,7 +954,8 @@ FHoudiniInstanceTranslator::GetInstancerObjectsAndTransforms(
 	TArray<TArray<int32>>& OutInstancedIndices,
 	FString& OutSplitAttributeName,
 	TArray<FString>& OutSplitAttributeValues,
-	TMap<FString, FHoudiniInstancedOutputPerSplitAttributes>& OutPerSplitAttributes)
+	TMap<FString, FHoudiniInstancedOutputPerSplitAttributes>& OutPerSplitAttributes,
+	TSet<UObject*>& OutInvisibleObjects)
 {
 	TArray<UObject*> InstancedObjects;
 	TArray<TArray<FTransform>> InstancedTransforms;
@@ -1015,6 +1040,9 @@ FHoudiniInstanceTranslator::GetInstancerObjectsAndTransforms(
 
 					const FHoudiniOutputObject& CurrentOutputObject = OutObjPair.Value;
 
+					if (CurrentOutputObject.bIsImplicit)
+						continue;
+
 					// In the case of a single-instance we can use the proxy (if it is current)
 					// FHoudiniOutputTranslator::UpdateOutputs doesn't allow proxies if there is more than one instance in an output
 					if (InstancedHGPOTransforms[HGPOIdx].Num() <= 1 && CurrentOutputObject.bProxyIsCurrent 
@@ -1025,6 +1053,13 @@ FHoudiniInstanceTranslator::GetInstancerObjectsAndTransforms(
 					else if (IsValid(CurrentOutputObject.OutputObject))
 					{
 						ObjectsToInstance.Add(CurrentOutputObject.OutputObject);
+
+						EHoudiniSplitType SplitType = FHoudiniMeshTranslator::GetSplitTypeFromSplitName(OutObjPair.Key.SplitIdentifier);
+						if (SplitType == EHoudiniSplitType::InvisibleComplexCollider)
+						{
+							OutInvisibleObjects.Add(CurrentOutputObject.OutputObject);
+						}
+
 					}
 				}
 			}
@@ -1822,9 +1857,9 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 			SplitIndicesMap.FindOrAdd(SplitAttrValue).Add(CurrentIndices[InstIdx]);
 			
 			// Record attributes for any split value we have not yet seen
+			FHoudiniInstancedOutputPerSplitAttributes& PerSplitAttributes = OutPerSplitAttributes.FindOrAdd(SplitAttrValue);
 			if (bHasAnyPerSplitAttributes)
 			{
-				FHoudiniInstancedOutputPerSplitAttributes& PerSplitAttributes = OutPerSplitAttributes.FindOrAdd(SplitAttrValue);
 				if (bHasLevelPaths && PerSplitAttributes.LevelPath.IsEmpty() && AllLevelPaths.IsValidIndex(InstIdx))
 				{
 					PerSplitAttributes.LevelPath = AllLevelPaths[InstIdx];
@@ -1842,6 +1877,10 @@ FHoudiniInstanceTranslator::GetAttributeInstancerObjectsAndTransforms(
 					PerSplitAttributes.BakeOutlinerFolder = AllBakeOutlinerFolders[InstIdx];
 				}
 			}
+
+			PerSplitAttributes.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(InHGPO.GeoId, InHGPO.PartId, HAPI_GroupType::HAPI_GROUPTYPE_POINT, InstIdx);
+			PerSplitAttributes.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(InHGPO.GeoId, InHGPO.PartId, HAPI_ATTROWNER_POINT, InstIdx);
+
 		}
 
 		// Add the objects, transform, split values to the final arrays

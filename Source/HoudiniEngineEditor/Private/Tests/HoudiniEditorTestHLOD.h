@@ -25,56 +25,9 @@
 */
 
 #pragma once
+#if WITH_DEV_AUTOMATION_TESTS
 
-#include "HoudiniParameter.h"
+#include "CoreMinimal.h"
 
-#include "HoudiniParameterFile.generated.h"
+#endif
 
-UCLASS()
-class HOUDINIENGINERUNTIME_API UHoudiniParameterFile : public UHoudiniParameter
-{
-	GENERATED_UCLASS_BODY()
-
-	friend class FHoudiniEditorEquivalenceUtils;
-
-public:
-
-	// Create instance of this class.
-	static UHoudiniParameterFile * Create(
-		UObject* Outer,
-		const FString& ParamName);
-
-	// Accessors
-	FString GetFileFilters() const { return Filters; };
-	bool IsReadOnly() const { return bIsReadOnly; };
-	FString GetValueAt(int32 Index) const { return Values[Index]; };
-	int32 GetNumValues() const { return Values.Num(); };
-
-	void SetNumberOfValues(const uint32& NumValues) { Values.SetNum(NumValues); };
-	bool SetValueAt(const FString& InValue, const uint32& Index);
-
-	bool IsDefault() const override;
-
-	// Mutators
-	void SetFileFilters(const FString& InFilters) { Filters = InFilters; };
-	void SetReadOnly(const bool& InReadOnly) { bIsReadOnly = InReadOnly; };
-
-	void SetDefaultValues();
-
-protected:
-
-	// Values of this property.
-	UPROPERTY()
-	TArray<FString> Values;
-
-	UPROPERTY()
-	TArray<FString> DefaultValues;
-
-	// Filters of this property.
-	UPROPERTY()
-	FString Filters;
-
-	// Is the file parameter read-only?
-	UPROPERTY()
-	bool bIsReadOnly;
-};

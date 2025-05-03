@@ -37,6 +37,7 @@ struct FHoudiniPackageParams;
 struct FHoudiniDataLayer;
 class AActor;
 class FName;
+struct FHoudiniAttributeDataLayer;
 
 // Determine if we can enable data layers or not. The public API still exists in all versions
 // to minimize the number of defines in the code.
@@ -53,15 +54,12 @@ struct FHoudiniUnrealDataLayerInfo
 	FString Name;
 };
 
-
 class HOUDINIENGINE_API FHoudiniDataLayerUtils
 {
 public:
-	// Extracts the data layer from the Houdini Geo/Part and applies it to the Actor. Normally
-	// called after cooking/baking.
-	static void ApplyDataLayersToActor(const FHoudiniPackageParams& Params, AActor* Actor, const TArray<FHoudiniDataLayer>& Layers);
-
 	static TArray<FHoudiniDataLayer> GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId);
+	static TArray<FHoudiniDataLayer> GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_GroupType GroupType, int Index);
+	static TArray<FHoudiniAttributeDataLayer> GetDataLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_GroupType GroupType);
 
 	// Using this cache, create Houdini Groups for this Actor.
 	static HAPI_NodeId AddGroupsFromDataLayers(AActor* Actor, HAPI_NodeId ParentNodeId, HAPI_NodeId InputNodeId);
@@ -75,8 +73,18 @@ public:
 	static bool SetVexCode(HAPI_NodeId VexNodeId, AActor* Actor);
 
 #if HOUDINI_ENABLE_DATA_LAYERS
+	// Extracts the data layer from the Houdini Geo/Part and applies it to the Actor. Normally
+	// called after cooking/baking.
+	static void ApplyDataLayersToActor(AActor* Actor, TArray<FHoudiniDataLayer>& DataLayers, TMap<FString, UDataLayerInstance*>& DataLayerLookup);
+
 	static void AddActorToLayer(const FHoudiniPackageParams& Params, AWorldDataLayers* WorldDataLayers, AActor* Actor, const FHoudiniDataLayer& Layer);
 	static UDataLayerAsset* CreateDataLayerAsset(const FHoudiniPackageParams& Params, const FString & LayerName);
+
+	static UDataLayerInstance* FindOrCreateDataLayerInstance(
+		const FHoudiniPackageParams& Params,
+		AWorldDataLayers* WorldDataLayers,
+		const FHoudiniDataLayer& Layer);
+
 
 #endif
 

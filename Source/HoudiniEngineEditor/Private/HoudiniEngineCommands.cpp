@@ -2068,4 +2068,45 @@ FHoudiniEngineCommands::DumpGenericAttribute(const TArray<FString>& Args)
 	}
 }
 
+
+void
+FHoudiniEngineCommands::CleanHoudiniEngineSession()
+{
+	// HAPI needs to be initialized
+	if (!FHoudiniApi::IsHAPIInitialized())
+	{
+		HOUDINI_LOG_ERROR(TEXT("Unable to clean the current Houdini Engine Session - HAPI is not initialized."));
+		return;
+	}
+
+	// We need a current session
+	const HAPI_Session* CurrentSession = FHoudiniEngine::Get().GetSession();
+	if (!CurrentSession)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Unable to clean the current Houdini Engine Session - no current session."));
+		return;
+	}
+
+	// We need the current session to be valid
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::IsSessionValid(CurrentSession))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Unable to clean the current Houdini Engine Session - the current session is invalid."));
+		return;
+	}
+
+	HAPI_Result Result;
+	HOUDINI_CHECK_ERROR_GET(&Result, FHoudiniApi::Cleanup(CurrentSession));
+	if (HAPI_RESULT_SUCCESS != Result)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Failed to clean up the current Houdini Engine Session."));
+	}
+	else
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Succesfully cleaned up the current Houdini Engine Session."));
+
+		// We need to reinitialize the session after the clean up
+		FHoudiniEngine::Get().InitializeHAPISession();
+	}
+}
+
 #undef LOCTEXT_NAMESPACE

@@ -616,4 +616,7 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 					TMap<HAPI_NodeId, UMaterialInterface*> & MapHoudiniMatIdToUnrealInterface,
 					TMap<FHoudiniMaterialIdentifier, UMaterialInterface*> & MapHoudiniMatAttributesToUnrealInterface,
 					TMap<UHoudiniStaticMesh*, TMap<UMaterialInterface*, int32>> & MapUnrealMaterialInterfaceToUnrealIndexPerMesh);
+
+		bool IsGammaCorrectionDisabled(HAPI_NodeId Node, HAPI_PartId PartId);
+
 };

@@ -752,7 +752,8 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 			BakeSettings,
 			InBakeFolder,
 			BakedObjectData);
-
+		
+		AllBakedActors.Append(BakedLandscapeActors);
 		NewBakedActors.Append(BakedLandscapeActors);
 	}
 
@@ -775,8 +776,71 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 		}
 	}
 
-	for (FHoudiniEngineBakedActor& BakedActor : NewBakedActors)
+	// Create package params we will use for data layers and HLODs. Code is simpler if we do this up front.
+	TArray<FHoudiniPackageParams> PackageParams;
+	PackageParams.SetNum(NewBakedActors.Num());
+
+	for (int Index = 0; Index < NewBakedActors.Num(); Index++)
 	{
+		FHoudiniEngineBakedActor& BakedActor = NewBakedActors[Index];
+		UHoudiniOutput* Output = InOutputs[BakedActor.OutputIndex];
+		FHoudiniOutputObject& OutputObject = Output->GetOutputObjects()[BakedActor.OutputObjectIdentifier];
+
+		const bool bHasPreviousBakeData = InBakeState.FindOldBakedOutputObject(BakedActor.OutputIndex, BakedActor.OutputObjectIdentifier) != nullptr;
+
+		const EPackageReplaceMode AssetPackageReplaceMode = BakeSettings.bReplaceAssets ? EPackageReplaceMode::ReplaceExistingAssets : EPackageReplaceMode::CreateNewAssets;
+		FHoudiniAttributeResolver Resolver;
+		FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
+			BakedActor.Actor->GetWorld(),
+			HoudiniAssetComponent,
+			BakedActor.OutputObjectIdentifier,
+			OutputObject,
+			bHasPreviousBakeData,
+			"",
+			PackageParams[Index],
+			Resolver,
+			InBakeFolder.Path,
+			AssetPackageReplaceMode);
+	}
+
+	// Due to a bug in 5.3 and earlier we need to create all the data layers in one go and store their values,
+	// since there seem to be a delay in creating new data layers.
+#if HOUDINI_ENABLE_DATA_LAYERS
+	TMap<FString, UDataLayerInstance*> DataLayerLookup;
+
+	for(int Index = 0; Index < NewBakedActors.Num(); Index++)
+	{
+		FHoudiniEngineBakedActor& BakedActor = NewBakedActors[Index];
+		UHoudiniOutput* Output = InOutputs[BakedActor.OutputIndex];
+		FHoudiniOutputObject& OutputObject = Output->GetOutputObjects()[BakedActor.OutputObjectIdentifier];
+
+		UWorld* World = BakedActor.Actor->GetWorld();
+
+		AWorldDataLayers* WorldDataLayers = World->GetWorldDataLayers();
+		if(!WorldDataLayers)
+		{
+			if (!OutputObject.DataLayers.IsEmpty())
+				HOUDINI_LOG_ERROR(TEXT("Unable to apply Data Layer because this map is not world partitioned."));
+			continue;
+		}
+
+		for(auto& DataLayer : OutputObject.DataLayers)
+		{
+			if (!DataLayerLookup.Contains(DataLayer.Name))
+			{
+				UDataLayerInstance* DataLayerInstance = FHoudiniDataLayerUtils::FindOrCreateDataLayerInstance(PackageParams[Index], WorldDataLayers, DataLayer);
+				if(DataLayerInstance)
+				{
+					DataLayerLookup.Add(DataLayer.Name, DataLayerInstance);
+				}
+			}
+		}
+	}
+#endif
+
+	for(int Index = 0; Index < NewBakedActors.Num(); Index++)
+	{
+		FHoudiniEngineBakedActor& BakedActor = NewBakedActors[Index];
 		UHoudiniOutput* Output = InOutputs[BakedActor.OutputIndex];
 		FHoudiniOutputObject& OutputObject = Output->GetOutputObjects()[BakedActor.OutputObjectIdentifier];
 
@@ -784,26 +848,10 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 		
 		if (IsValid(BakedActor.Actor))
 		{
-			const EPackageReplaceMode AssetPackageReplaceMode = BakeSettings.bReplaceAssets
-				? EPackageReplaceMode::ReplaceExistingAssets
-				: EPackageReplaceMode::CreateNewAssets;
-
-			FHoudiniPackageParams PackageParams;
-			FHoudiniAttributeResolver Resolver;
-			FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-				BakedActor.Actor->GetWorld(),
-				HoudiniAssetComponent, 
-				BakedActor.OutputObjectIdentifier,
-				OutputObject,
-				bHasPreviousBakeData,
-				"",
-				PackageParams, 
-				Resolver,
-				InBakeFolder.Path, 
-				AssetPackageReplaceMode);
-
-			FHoudiniDataLayerUtils::ApplyDataLayersToActor(PackageParams, BakedActor.Actor, OutputObject.DataLayers);
-			FHoudiniHLODLayerUtils::ApplyHLODLayersToActor(PackageParams, BakedActor.Actor, OutputObject.HLODLayers);
+#if HOUDINI_ENABLE_DATA_LAYERS
+			FHoudiniDataLayerUtils::ApplyDataLayersToActor(BakedActor.Actor, OutputObject.DataLayers, DataLayerLookup);
+#endif
+			FHoudiniHLODLayerUtils::ApplyHLODLayersToActor(PackageParams[Index], BakedActor.Actor, OutputObject.HLODLayers);
 		}
 	}
 	
@@ -1000,7 +1048,7 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		// Copy all cooked instances to reference the baked instances.
 		auto Instances = FHoudiniFoliageTools::GetAllFoliageInstances(DesiredWorld, OutputObject->FoliageType);
 
-		FHoudiniFoliageTools::SpawnFoliageInstances(DesiredWorld, TargetFoliageType, Instances, {});
+		TArray<AInstancedFoliageActor*> FoliageActors = FHoudiniFoliageTools::SpawnFoliageInstances(DesiredWorld, TargetFoliageType, Instances, {});
 
 		TArray<FVector> InstancesPositions;
 		InstancesPositions.Reserve(Instances.Num());
@@ -1009,9 +1057,17 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 			InstancesPositions.Add(Instance.Location);	
 		}
 
+		TArray<FString> ActorInstancePaths;
+		ActorInstancePaths.Reserve(FoliageActors.Num());
+		for (auto & Instance : FoliageActors) 
+		{
+			ActorInstancePaths.Add(Instance->GetPathName());
+		}
+
 		// Store back output object.
 		BakedObject.FoliageType = TargetFoliageType;
 		BakedObject.FoliageInstancePositions = InstancesPositions;
+		BakedObject.FoliageActors = ActorInstancePaths;
 		InBakeState.SetNewBakedOutputObject(InOutputIndex, Identifier, BakedObject);
     }
 
@@ -1179,47 +1235,43 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors(
 		    NewBakedActors.Append(OutputBakedActors);
 		}
 
-		for (auto & Actor : CurrentOutputObject.OutputActors)
-		{
-			if (!IsValid(Actor.Get()))
-				continue;
-
-			OutputBakedActors.Reset();
-
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 
-			ALevelInstance * LevelInstance = Cast<ALevelInstance>(Actor.Get());
-			if (IsValid(LevelInstance))
+		// Bake any level instances. They will be stored on the OutputActors member, 
+		// but we want to return one output for all instances on  this output, so do
+		// them all at once.
+
+		if (!CurrentOutputObject.OutputActors.IsEmpty())
+		{
+			OutputBakedActors.Reset();
+
+			FHoudiniEngineBakedActor BakedActorEntry;
+			if (BakeInstancerOutputToActors_LevelInstances(
+				HoudiniAssetComponent,
+				InOutputIndex,
+				InAllOutputs,
+				InBakeState,
+				Pair.Key,
+				CurrentOutputObject,
+				InBakeFolder,
+				InTempCookFolder,
+				BakeSettings,
+				AllBakedActors,
+				BakedActorEntry,
+				BakedObjectData,
+				InOutAlreadyBakedStaticMeshMap,
+				InOutAlreadyBakedMaterialsMap,
+				InFallbackActor,
+				InFallbackWorldOutlinerFolder))
 			{
-				FHoudiniEngineBakedActor BakedActorEntry;
-				if (BakeInstancerOutputToActors_LevelInstances(
-					LevelInstance,
-					HoudiniAssetComponent,
-					InOutputIndex,
-					InAllOutputs,
-					InBakeState,
-					Pair.Key,
-					CurrentOutputObject,
-					InBakeFolder,
-					InTempCookFolder,
-					BakeSettings,
-					AllBakedActors,
-					BakedActorEntry,
-					BakedObjectData,
-					InOutAlreadyBakedStaticMeshMap,
-					InOutAlreadyBakedMaterialsMap,
-					InFallbackActor,
-					InFallbackWorldOutlinerFolder))
-				{
-					OutputBakedActors.Add(BakedActorEntry);
-				}
+				OutputBakedActors.Add(BakedActorEntry);
 			}
-#endif
 
 			AllBakedActors.Append(OutputBakedActors);
 			NewBakedActors.Append(OutputBakedActors);
 		}
-
+		
+#endif
 	}
 
 	OutActors = MoveTemp(NewBakedActors);
@@ -1664,7 +1716,6 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 }
 
 bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
-	ALevelInstance* LevelInstance,
 	const UHoudiniAssetComponent* HoudiniAssetComponent,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
@@ -1696,61 +1747,75 @@ bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
 		World, HoudiniAssetComponent, InOutputObjectIdentifier, InOutputObject, bHasPreviousBakeData, ObjectName,
 		InstancerPackageParams, InstancerResolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
-	const FName OutlinerPath = GetOutlinerFolderPath(
-		InstancerResolver,
-		FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
+	const FName OutlinerPath = GetOutlinerFolderPath(InstancerResolver, FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 
-	if (!IsValid(LevelInstance))
-		return false;
-
-	FActorSpawnParameters Parameters;
-	Parameters.Template = LevelInstance;
-
-	AActor * BakedActor = LevelInstance->GetWorld()->SpawnActor<ALevelInstance>(Parameters);
-	BakedActor->bDefaultOutlinerExpansionState = false;
-	BakedActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	BakedActor->SetActorTransform(LevelInstance->GetActorTransform()); // WHY IS THIS NEEDED? Don't know, but it is...
-
-	BakedActor->SetActorLabel(LevelInstance->GetActorLabel());
-	BakedObjectData.BakeStats.NotifyObjectsCreated(BakedActor->GetClass()->GetName(), 1);
-
-	const FString* BackActorPrefix = InOutputObject.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_BAKE_ACTOR);
-	FString BakedName;
-
-	if (BackActorPrefix == nullptr || BackActorPrefix->IsEmpty())
+	for (auto & Actor : InOutputObject.OutputActors)
 	{
-		BakedName = LevelInstance->GetActorLabel();
+		ALevelInstance* LevelInstance = Cast<ALevelInstance>(Actor.Get());
+		if (!IsValid(LevelInstance))
+			continue;
+
+		// Determine the name for the baked actor. Destroy any old ones if needed.
+		const FString* BackActorPrefix = InOutputObject.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_BAKE_ACTOR);
+		FName BakedName;
+
+		if (BackActorPrefix == nullptr || BackActorPrefix->IsEmpty())
+		{
+			BakedName = LevelInstance->GetFName();
+		}
+		else
+		{
+			BakedName = FName(*BackActorPrefix);
+		}
+
+		// If replacing existing bake assets, find thsoe actors with the same name and delete them. But only if they are not
+		// attached to the HDA Actor as this means they are cooked (temp) objects.
+
+		if(AssetPackageReplaceMode == EPackageReplaceMode::ReplaceExistingAssets)
+		{
+			TArray<AActor*> Actors = FHoudiniEngineUtils::FindActorsWithNameNoNumber(AActor::StaticClass(), World, BakedName.GetPlainNameString());
+			for (AActor* OldBakedActor : Actors)
+			{
+				if (OldBakedActor->GetOwner() != HoudiniAssetComponent->GetOwner())
+				{
+					OldBakedActor->Destroy();
+				}
+			}
+		}
+
+		FActorSpawnParameters Parameters;
+		Parameters.Template = LevelInstance;
+		Parameters.Name = BakedName;
+		Parameters.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Requested;
+		AActor * BakedActor = World->SpawnActor<ALevelInstance>(Parameters);
+		BakedActor->bDefaultOutlinerExpansionState = false;
+		BakedActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		BakedActor->SetActorTransform(LevelInstance->GetActorTransform()); // WHY IS THIS NEEDED? Don't know, but it is...
+
+		BakedActor->SetActorLabel(LevelInstance->GetActorLabel());
+		BakedObjectData.BakeStats.NotifyObjectsCreated(BakedActor->GetClass()->GetName(), 1);
+		BakedActor->SetActorLabel(BakedName.ToString());
+		BakedActor->SetFolderPath(OutlinerPath);
+
+		BakedOutputObject.LevelInstanceActors.Add(BakedActor->GetPathName());
+
+		if (HoudiniAssetComponent->bRemoveOutputAfterBake)
+		{
+			LevelInstance->Destroy();
+		}
+
+		OutBakedActorEntry.OutputIndex = InOutputIndex;
+		OutBakedActorEntry.Actor = BakedActor;
+		OutBakedActorEntry.ActorBakeName = FName(BakedActor->GetName());
+		OutBakedActorEntry.OutputObjectIdentifier = InOutputObjectIdentifier;
+
 	}
-	else
-	{
-		BakedName = *BackActorPrefix;
-	}
-
-	AActor* FoundActor = FHoudiniEngineUtils::FindOrRenameInvalidActor<AActor>(World, BakedName, FoundActor);
-	if (FoundActor)
-		FoundActor->Destroy(); // nuke it!
-
-
-	BakedActor->SetActorLabel(BakedName);
-
-	BakedOutputObject.LevelInstanceActors.Add(BakedActor->GetPathName());
-
-	BakedActor->SetFolderPath(OutlinerPath);
-
-	if (HoudiniAssetComponent->bRemoveOutputAfterBake)
-	{
-		LevelInstance->Destroy();
-	}
-
-	OutBakedActorEntry.OutputIndex = InOutputIndex;
-	OutBakedActorEntry.Actor = BakedActor;
-	OutBakedActorEntry.ActorBakeName = FName(BakedActor->GetName());
-	OutBakedActorEntry.OutputObjectIdentifier = InOutputObjectIdentifier;
 
 	// Set the updated baked output object in the state
 	InBakeState.SetNewBakedOutputObject(InOutputIndex, InOutputObjectIdentifier, BakedOutputObject);
-	
+
 	return true;
+
 #else
     return false;
 #endif
@@ -4395,6 +4460,14 @@ FHoudiniEngineBakeUtils::BakeHoudiniCurveOutputToActors(
 		OutputBakedActor.OutputIndex = InOutputIndex;
 		OutputBakedActor.OutputObjectIdentifier = Identifier;
 
+		// Don't forget to copy the tags to the curve's actor
+		if (FoundHGPO && IsValid(OutputBakedActor.Actor))
+		{
+			FHoudiniEngineUtils::KeepOrClearActorTags(OutputBakedActor.Actor, true, false, FoundHGPO);
+			// Add actor tags from generic property attributes
+			FHoudiniEngineUtils::ApplyTagsToActorOnly(FoundHGPO->GenericPropertyAttributes, OutputBakedActor.Actor->Tags);
+		}
+
 		AllBakedActors.Add(OutputBakedActor);
 		NewBakedActors.Add(OutputBakedActor);
 
@@ -5614,7 +5687,12 @@ FHoudiniEngineBakeUtils::BakeHeightfield(
 				0, 0, XSize-1, YSize-1,
 				InLandscapeInfo->ComponentNumSubsections, InLandscapeInfo->SubsectionSizeQuads,
 				HeightmapDataPerLayers, NULL,
-				MaterialLayerDataPerLayer, ImportLayerType);
+				MaterialLayerDataPerLayer,
+				ImportLayerType
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+				, MakeArrayView<FLandscapeLayer>({})
+#endif
+			);
 
 			BakedLandscapeProxy->StaticLightingLOD = FMath::DivideAndRoundUp(FMath::CeilLogTwo((XSize * YSize) / (2048 * 2048) + 1), (uint32)2);
 
@@ -5679,15 +5757,16 @@ FHoudiniEngineBakeUtils::BakeCurve(
 	FHoudiniBakedObjectData& BakedObjectData,
 	FName InOverrideFolderPath,
 	AActor* InActor,
-	UActorFactory* InActorFactory)
+	TSubclassOf<AActor> BakeActorClass)
 {
 	if (!IsValid(InActor))
 	{
-		TSubclassOf<AActor> BakeActorClass = nullptr;
 		UActorFactory* Factory = nullptr;
-		if (IsValid(InActorFactory))
+		if (IsValid(BakeActorClass))
 		{
-			Factory = InActorFactory;
+			Factory = GEditor->FindActorFactoryForActorClass(BakeActorClass);
+			if (!Factory)
+				Factory = GEditor->FindActorFactoryByClass(UActorFactoryClass::StaticClass());
 		}
 		else
 		{
@@ -5729,7 +5808,7 @@ FHoudiniEngineBakeUtils::BakeCurve(
 	// We duplicated the InSplineComponent, so we don't have to copy all of its properties, but we must set the
 	// world transform
 	DuplicatedSplineComponent->SetWorldTransform(InSplineComponent->GetComponentTransform());
-	
+
 	FAssetRegistryModule::AssetCreated(DuplicatedSplineComponent);
 	DuplicatedSplineComponent->RegisterComponent();
 
@@ -5810,10 +5889,24 @@ FHoudiniEngineBakeUtils::BakeCurve(
 			RemovePreviouslyBakedComponent(PrevComponent);
 		}
 	}
-	
+
+	TSubclassOf<AActor> BakeActorClass = GetBakeActorClassOverride(InOutputObject);
+
 	USplineComponent* NewSplineComponent = nullptr;
 	const FName OutlinerFolderPath = GetOutlinerFolderPath(InResolver, *(PackageParams.HoudiniAssetActorName));
-	if (!BakeCurve(InHoudiniAssetComponent, SplineComponent, DesiredLevel, PackageParams, BakeSettings, BakeActorName, FoundActor, NewSplineComponent, BakedObjectData, OutlinerFolderPath, FoundActor))
+	if (!BakeCurve(
+		InHoudiniAssetComponent, 
+		SplineComponent, 
+		DesiredLevel, 
+		PackageParams, 
+		BakeSettings, 
+		BakeActorName, 
+		FoundActor, 
+		NewSplineComponent, 
+		BakedObjectData, 
+		OutlinerFolderPath, 
+		FoundActor, 
+		BakeActorClass))
 		return false;
 
 	InBakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();

@@ -1852,6 +1852,74 @@ HAPI_DECL HAPI_GetAssetDefinitionParmValues(
     int choice_start,
     int choice_length );
 
+/// @brief
+///
+/// @ingroup Assets
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      library_id
+///                 Returned by ::HAPI_LoadAssetLibraryFromFile().
+///                 <!-- source ::HAPI_LoadAssetLibraryFromFile -->
+///
+/// @param[in]      asset_name
+///                 Name of the asset that the parm tag is being retrieved from.
+///
+/// @param[in]      parm_id
+///                 Id of the parm that the tag belongs to.
+///
+/// @param[in]      tag_index
+///                 The index of the parm tag to retrieve the name of.
+///
+/// @param[out]     tag_name
+///                 The string handle for the specified parm tag's name.
+///
+HAPI_DECL HAPI_GetAssetDefinitionParmTagName(
+    const HAPI_Session * session,
+    HAPI_AssetLibraryId library_id,
+    const char * asset_name,
+    HAPI_ParmId parm_id,
+    int tag_index,
+    HAPI_StringHandle * tag_name );
+
+/// @brief
+///
+/// @ingroup Assets
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      library_id
+///                 Returned by ::HAPI_LoadAssetLibraryFromFile().
+///                 <!-- source ::HAPI_LoadAssetLibraryFromFile -->
+///
+/// @param[in]      asset_name
+///                 Name of the asset that the parm tag is being retrieved from.
+///
+/// @param[in]      parm_id
+///                 Id of the parm that the tag belongs to.
+///
+/// @param[in]      tag_name
+///                 The name of the parm tag to retrieve the value of.
+///
+/// @param[out]     tag_value
+///                 The string handle for the specified parm tag's value.
+///
+HAPI_DECL HAPI_GetAssetDefinitionParmTagValue(
+    const HAPI_Session * session,
+    HAPI_AssetLibraryId library_id,
+    const char * asset_name,
+    HAPI_ParmId parm_id,
+    const char * tag_name,
+    HAPI_StringHandle * tag_value );
+
 /// @brief  Gets the number of HDAs that have been loaded by Houdini.
 ///
 ///         @note This only includes HDAs that have been loaded from disk.

@@ -70,7 +70,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 		return false;
 
 	if (InputBrushObject->ShouldIgnoreThisInput())
-		return true;
+		return false;
 
 	const bool bUseRefCountedInputSystem = FUnrealObjectInputRuntimeUtils::IsRefCountedInputSystemEnabled();
 	FString FinalInputNodeName = NodeName;

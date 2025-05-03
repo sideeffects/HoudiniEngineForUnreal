@@ -134,7 +134,7 @@ protected:
 
 	void SelectAllParameters();
 
-	void PopulateAssetFromUI(UHoudiniPreset* Asset);
+	void PopulateAssetFromUI(UHoudiniPreset* Preset);
 	
 	FReply HandleCancelClicked();
 
@@ -171,6 +171,8 @@ protected:
 	// Parameters, inputs and their values that should be kept for this preset
 	bool bSelectAll;
 	TSet<FString> KeepParameters;
+	TMap<FString, TArray<FString>> MultiParmChildren;
+	TMap<FString, FString> MultiParmParent;
 	TSet<int> KeepInputs;
 	
 	TMap<FString, FHoudiniPresetFloatValues> FloatValues;
@@ -178,7 +180,10 @@ protected:
 	TMap<FString, FHoudiniPresetStringValues> StringValues;
 	TMap<FString, FHoudiniPresetRampFloatValues> RampFloatValues;
 	TMap<FString, FHoudiniPresetRampColorValues> RampColorValues;
+	TMap<FString, FHoudiniPresetMultiParmValues> MultiParmValues;
+
 	TArray<FHoudiniPresetInputValue> InputValues;
+
 };
 
 

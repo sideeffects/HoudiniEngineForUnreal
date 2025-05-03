@@ -30,6 +30,7 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 #include "HoudiniAsset.h"
+#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterButton.h"
 #include "HoudiniParameterButtonStrip.h"
@@ -79,6 +80,10 @@ FHoudiniParameterTranslator::UpdateParameters(UHoudiniAssetComponent* HAC)
 
 	if (!IsValid(HAC))
 		return false;
+
+	// Nothing to do for Node Sync Components!
+	if (HAC->IsA<UHoudiniNodeSyncComponent>())
+		return true;
 
 	// When recooking/rebuilding the HDA, force a full update of all params
 	const bool bForceFullUpdate = HAC->HasRebuildBeenRequested() || HAC->HasRecookBeenRequested() || HAC->IsParameterDefinitionUpdateNeeded();
@@ -141,6 +146,10 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(UHoudiniAssetComponent* HAC)
 
 	if (!IsValid(HAC))
 		return false;
+
+	// Nothing to do for Node Sync Components!
+	if (HAC->IsA<UHoudiniNodeSyncComponent>())
+		return true;
 
 	// Update all the parameters using the loaded parameter object
 	// We set "UpdateValues" to false because we do not want to "read" the parameter value
@@ -2612,9 +2621,12 @@ bool
 FHoudiniParameterTranslator::UploadChangedParameters( UHoudiniAssetComponent * HAC )
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadChangedParameters);
-
 	if (!IsValid(HAC))
 		return false;
+
+	// Nothing to do for Node Sync Components!
+	if (HAC->IsA<UHoudiniNodeSyncComponent>())
+		return true;
 
 	TMap<FString, UHoudiniParameter*> RampsToRevert;
 	// First upload all parameters, including the current child parameters/points of ramps, and then process

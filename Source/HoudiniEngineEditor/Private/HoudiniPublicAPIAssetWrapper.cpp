@@ -29,10 +29,13 @@
 
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniEngine.h"
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniEngineCommands.h"
 #include "HoudiniEngineEditorUtils.h"
+#include "HoudiniEngineManager.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniOutputDetails.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterButton.h"
@@ -51,6 +54,9 @@
 #include "HoudiniPublicAPIBlueprintLib.h"
 #include "HoudiniPublicAPIInputTypes.h"
 #include <Selection.h>
+#include "Landscape.h"
+#include "LandscapeInfo.h"
+#include "LandscapeStreamingProxy.h"
 
 FHoudiniPublicAPIRampPoint::FHoudiniPublicAPIRampPoint()
 	: Position(0)
@@ -451,10 +457,21 @@ UHoudiniPublicAPIAssetWrapper::GetBakedOutputActors_Implementation()
 		for (const auto& BakedPair : BakedOutput.BakedOutputObjects) 
 		{
 			AActor* Actor = BakedPair.Value.GetActorIfValid(true);
-			if (!Actor)
-				continue;
+			if (Actor)
+				OutputActors.Add(Actor);
 
-			OutputActors.Add(Actor);
+			// Get valid Foliage Actors
+			OutputActors.Append(BakedPair.Value.GetFoliageActorsIfValid(true));
+
+			// Get valid instanced actors
+			TArray<AActor*> InstancedActors = BakedPair.Value.GetInstancedActorsIfValid(true);
+			OutputActors.Append(InstancedActors);
+
+			// Get valid Landscape and Proxies
+			ALandscape* BakedLandscape = BakedPair.Value.GetLandscapeIfValid(true);
+			if (BakedLandscape)
+				OutputActors.Add(BakedLandscape);
+
 		}
 	}
 
@@ -4443,4 +4460,50 @@ UHoudiniPublicAPIAssetWrapper::GetValidTOPNodeByPathWithError(
 	OutNodeIndex = NodeIndex;
 	OutNode = Node;
 	return true;
+}
+
+void
+UHoudiniPublicAPIAssetWrapper::ProcessComponentSynchronous_Implementation()
+{
+	UHoudiniAssetComponent* HAC = nullptr;
+	if (!GetValidHoudiniAssetComponentWithError(HAC))
+		return;
+
+	if (!FHoudiniEngine::Get().IsCookingEnabled())
+		return;
+
+	// Node Sync component cant be processed
+	if (HAC->IsA<UHoudiniNodeSyncComponent>())
+		return;
+
+	FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
+	if (!HEM)
+		return;
+
+	bool bIsStillProcessing = true;
+	while (bIsStillProcessing)
+	{
+		EHoudiniAssetState CurrentState = HAC->GetAssetState();
+		if (CurrentState == EHoudiniAssetState::NeedInstantiation)
+		{
+			// We can exit here.
+			bIsStillProcessing = false;
+		}
+		else if (CurrentState == EHoudiniAssetState::None)
+		{
+			// When reaching the none state - we want to process the component
+			// one last time in case some changes trigger an update/cook
+			HEM->ProcessComponent(HAC);
+			if (HAC->GetAssetState() == EHoudiniAssetState::None)
+			{
+				// The component is not active anymore - we can return
+				bIsStillProcessing = false;
+			}
+		}
+		else
+		{
+			// Keep processing the component until we reach an inactive state
+			HEM->ProcessComponent(HAC);
+		}
+	}
 }

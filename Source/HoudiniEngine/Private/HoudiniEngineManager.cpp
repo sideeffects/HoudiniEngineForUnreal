@@ -45,6 +45,9 @@
 #include "Misc/ScopedSlowTask.h"
 #include "Containers/Ticker.h"
 #include "HAL/IConsoleManager.h"
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
+	#include "LevelInstance/LevelInstanceInterface.h"
+#endif
 
 #if WITH_EDITOR
 	#include "Editor.h"
@@ -231,7 +234,10 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 				// 3. Add the "Current" HAC
 				ComponentsToProcess.Add(CurrentComponent);
 			}
-
+			if (CurrentComponent->GetAssetState() == EHoudiniAssetState::Dormant)
+			{
+				CurrentComponent->UpdateDormantStatus();
+			}
 			// Set the LastTickTime on the "current" HAC to 0 to ensure it's treated first
 			if (nIdx == CurrentIndex)
 			{
@@ -335,6 +341,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 				case EHoudiniAssetState::NeedRebuild:
 				case EHoudiniAssetState::NeedDelete:
 				case EHoudiniAssetState::Deleting:
+				case EHoudiniAssetState::Dormant:
 					bKeepProcessing = false;
 					break;
 			}
@@ -428,13 +435,7 @@ FHoudiniEngineManager::AutoStartFirstSessionIfNeeded(UHoudiniAssetComponent* InC
 		|| !InCurrentHAC)
 		return;
 
-	// Only try to start the default session if we have an "active" HAC
-	const EHoudiniAssetState CurrentState = InCurrentHAC->GetAssetState();
-	if (CurrentState == EHoudiniAssetState::NewHDA
-		|| CurrentState == EHoudiniAssetState::PreInstantiation
-		|| CurrentState == EHoudiniAssetState::Instantiating
-		|| CurrentState == EHoudiniAssetState::PreCook
-		|| CurrentState == EHoudiniAssetState::Cooking)
+	if(InCurrentHAC->ShouldTryToStartFirstSession())
 	{
 		FString StatusText = TEXT("Initializing Houdini Engine...");
 		FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(StatusText), true, 4.0f);
@@ -509,6 +510,16 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 	{
 		case EHoudiniAssetState::NeedInstantiation:
 		{
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
+			// If this HDA is part of an uneditable level instance, mark it as dormant.
+			auto * LevelInstance = HAC->GetLevelInstance();
+			if (LevelInstance && !LevelInstance->IsEditing())
+			{
+				HAC->SetAssetState(EHoudiniAssetState::Dormant);
+				break;
+			}
+#endif
+
 			// Do nothing unless the HAC has been updated
 			if (HAC->NeedUpdate())
 			{
@@ -579,6 +590,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 				{
 					// We couldnt create the node, change the state back to NeedInstantiation
 					HAC->SetAssetState(EHoudiniAssetState::NeedInstantiation);
+					HAC->bRecookRequested = false;
 				}
 			}
 			else
@@ -642,7 +654,7 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			{
 				// Gather output nodes for the HAC
 				TArray<int32> OutputNodes;
-				FHoudiniEngineUtils::GatherAllAssetOutputs(HAC->GetAssetId(), HAC->bUseOutputNodes, HAC->bOutputTemplateGeos, OutputNodes);
+				FHoudiniEngineUtils::GatherAllAssetOutputs(HAC->GetAssetId(), HAC->bUseOutputNodes, HAC->bOutputTemplateGeos, HAC->bEnableCurveEditing, OutputNodes);
 				HAC->SetOutputNodeIds(OutputNodes);
 				
 				FGuid TaskGUID = HAC->GetHapiGUID();
@@ -734,12 +746,25 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 			// Update world inputs if we have any
 			FHoudiniInputTranslator::UpdateWorldInputs(HAC);
 
+			// Update our handles if needed
+			// This may modify parameters so we need to call this before NeedUpdate
+			FHoudiniHandleTranslator::UpdateHandlesIfNeeded(HAC);
+
 			// Do nothing unless the HAC has been updated
 			if (HAC->NeedUpdate())
 			{
 				HAC->bForceNeedUpdate = false;
+
 				// Update the HAC's state
-				HAC->SetAssetState(EHoudiniAssetState::PreCook);
+				// Cook for valid nodes - instantiate for invalid nodes
+				if (FHoudiniEngineUtils::IsHoudiniNodeValid(HAC->GetAssetId()))
+					HAC->SetAssetState(EHoudiniAssetState::PreCook);
+				else
+				{
+					// Mark as needcook first to make sure we preserve/upload all params/inputs
+					HAC->MarkAsNeedCook();
+					HAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
+				}
 			}
 			else if (HAC->bCookOnTransformChange && HAC->bUploadTransformsToHoudiniEngine && HAC->bHasComponentTransformChanged)
 			{
@@ -789,9 +814,22 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 		{
 			if (!bIsNodeSyncComponent)
 			{
+				// Make sure no parameters are changed before getting the preset
+				FHoudiniParameterTranslator::UploadChangedParameters(HAC);
+
+				if (!FHoudiniEngineUtils::GetAssetPreset(HAC->AssetId, HAC->ParameterPresetBuffer))
+				{
+					HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's parameter preset, rebuilt asset may have lost its parameters."));
+					HAC->ParameterPresetBuffer.Empty();
+				}
+
 				// Do not delete nodes for NodeSync components!
 				StartTaskAssetRebuild(HAC->AssetId, HAC->HapiGUID);
 			}
+
+			// We want to check again for PDG after a rebuild
+			HAC->bIsPDGAssetLinkInitialized = false;
+
 			HAC->MarkAsNeedCook();
 			HAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
 			break;
@@ -816,6 +854,9 @@ FHoudiniEngineManager::ProcessComponent(UHoudiniAssetComponent* HAC)
 		{
 			break;
 		}
+
+		case EHoudiniAssetState::Dormant:
+			break;
 	}
 }
 
@@ -865,11 +906,13 @@ FHoudiniEngineManager::StartTaskAssetInstantiation(UHoudiniAsset* HoudiniAsset, 
 	if (HoudiniRuntimeSettings && AssetNames.Num() > 1)
 		bShowMultiAssetDialog = HoudiniRuntimeSettings->bShowMultiAssetDialog;
 
-	// TODO: Add multi selection dialog
 	if (bShowMultiAssetDialog )
 	{
-		// TODO: Implement
-		FHoudiniEngineUtils::OpenSubassetSelectionWindow(AssetNames, PickedAssetName);
+		if(!FHoudiniEngineUtils::OpenSubassetSelectionWindow(AssetNames, PickedAssetName))
+		{
+			HOUDINI_LOG_ERROR(TEXT("Cancelling asset instantiation - no asset choosen in the selection window."));
+			return false;
+		}
 	}
 #endif
 
@@ -979,14 +1022,6 @@ FHoudiniEngineManager::UpdateInstantiating(UHoudiniAssetComponent* HAC, EHoudini
 			// Retrieve the current component-to-world transform for this component.
 			if (!FHoudiniEngineUtils::HapiSetAssetTransform(TaskInfo.AssetId, HAC->GetComponentTransform()))
 				HOUDINI_LOG_MESSAGE(TEXT("Failed to upload the initial Transform back to HAPI."));
-		}
-
-		// Only initalize the PDG Asset Link if this Asset is a PDG Asset
-		// InitializePDGAssetLink may take a while to execute on non PDG HDA,
-		// So we want to avoid calling it if possible
-		if (FHoudiniPDGManager::IsPDGAsset(HAC->AssetId))
-		{
-			PDGManager.InitializePDGAssetLink(HAC);
 		}
 
 		// Initial update/create of inputs
@@ -1207,10 +1242,37 @@ FHoudiniEngineManager::PreCook(UHoudiniAssetComponent* HAC)
 
 	if (HAC->HasBeenLoaded() || HAC->IsParameterDefinitionUpdateNeeded())
 	{
-		// This will sync parameter definitions but not upload values to HAPI or fetch values for existing parameters
-		// in Unreal. It will creating missing parameters in Unreal.
-		FHoudiniParameterTranslator::UpdateLoadedParameters(HAC);
-		HAC->bParameterDefinitionUpdateNeeded = false;
+		bool bPresetSuccess = false;
+		if (!HAC->ParameterPresetBuffer.IsEmpty())
+		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PreCook-SetPreset);
+
+			// If we have stored parameter preset - restore them
+			HAPI_Result Res = FHoudiniApi::SetPreset(
+				FHoudiniEngine::Get().GetSession(), 
+				HAC->AssetId,
+				HAPI_PRESETTYPE_BINARY,
+				"hapi",
+				(char *)(HAC->ParameterPresetBuffer.GetData()),
+				HAC->ParameterPresetBuffer.Num());
+
+			if (Res == HAPI_RESULT_SUCCESS)
+				bPresetSuccess = true;
+		}
+
+		if(!bPresetSuccess)
+		{
+			// This will sync parameter definitions but not upload values to HAPI or fetch values for existing parameters
+			// in Unreal. It will creating missing parameters in Unreal.
+			FHoudiniParameterTranslator::UpdateLoadedParameters(HAC);
+			HAC->bParameterDefinitionUpdateNeeded = false;
+		}
+		else
+		{
+			// We've successfully applied the parameter presets
+			// Clean it up until next cook 
+			HAC->ParameterPresetBuffer.Empty();
+		}
 	}
 	
 	// Upload the changed/parameters back to HAPI
@@ -1281,19 +1343,20 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 
 		FHoudiniInputTranslator::UpdateInputs(HAC);
 
+		// Update the HDA's parameter preset
+		if (!FHoudiniEngineUtils::GetAssetPreset(HAC->AssetId, HAC->ParameterPresetBuffer))
+		{
+			HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset."));
+			HAC->ParameterPresetBuffer.Empty();
+		}
+
 		bool bHasHoudiniStaticMeshOutput = false;
 		bool ForceUpdate = HAC->HasRebuildBeenRequested() || HAC->HasRecookBeenRequested();
 		FHoudiniOutputTranslator::UpdateOutputs(HAC, ForceUpdate, bHasHoudiniStaticMeshOutput);
 		HAC->SetNoProxyMeshNextCookRequested(false);
 
-		// Handles have to be updated after parameters
-		FHoudiniHandleTranslator::UpdateHandles(HAC);  
-
-		// Clear the HasBeenLoaded flag
-		if (HAC->HasBeenLoaded())
-		{
-			HAC->SetHasBeenLoaded(false);
-		}
+		// Handles have to be built after the parameters
+		FHoudiniHandleTranslator::BuildHandles(HAC);
 
 		// Clear the HasBeenDuplicated flag
 		if (HAC->HasBeenDuplicated())
@@ -1340,6 +1403,24 @@ FHoudiniEngineManager::PostCook(UHoudiniAssetComponent* HAC, const bool& bSucces
 		HAC->SetOutputNodeCookCount(NodeId, NodeCookCount);
 	}
 
+	// See if we need to initialize the PDG Asset Link for this HDA
+	if (!HAC->bIsPDGAssetLinkInitialized)
+	{
+		if (FHoudiniPDGManager::IsPDGAsset(HAC->AssetId))
+		{
+			PDGManager.InitializePDGAssetLink(HAC);
+		}
+
+		// Only do this once per HDA - only check again on rebuild
+		HAC->bIsPDGAssetLinkInitialized = true;
+	}
+
+	// Clear the HasBeenLoaded flag
+	if (HAC->HasBeenLoaded())
+	{
+		HAC->SetHasBeenLoaded(false);
+	}
+
 	// If we have downstream HDAs, we need to tell them we're done cooking
 	HAC->NotifyCookedToDownstreamAssets();
 	
@@ -1382,19 +1463,12 @@ bool
 FHoudiniEngineManager::StartTaskAssetRebuild(const HAPI_NodeId& InAssetId, FGuid& OutTaskGUID)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::StartTaskAssetRebuild);
-
 	// Check this HAC doesn't already have a running task
 	if (OutTaskGUID.IsValid())
 		return false;
 
 	if (InAssetId >= 0)
 	{
-		/* TODO: Handle Asset Preset
-		if (!FHoudiniEngineUtils::GetAssetPreset(AssetId, PresetBuffer))
-		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset, rebuilt asset may have lost its parameters."));
-		}
-		*/
 		// Delete the asset
 		if (!StartTaskAssetDelete(InAssetId, OutTaskGUID, true))
 		{

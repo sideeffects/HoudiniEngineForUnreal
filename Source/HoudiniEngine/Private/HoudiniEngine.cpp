@@ -338,7 +338,10 @@ FHoudiniEngine::ShutdownModule()
 	// Perform HAPI finalization.
 	if ( FHoudiniApi::IsHAPIInitialized() )
 	{
-		FHoudiniApi::Cleanup(GetSession());
+		// Only cleanup if we're not using SessionSync!
+		if (!bEnableSessionSync)
+			FHoudiniApi::Cleanup(GetSession());
+
 		FHoudiniApi::CloseSession(GetSession());
 		SessionStatus = EHoudiniSessionStatus::Invalid;
 	}
@@ -981,10 +984,13 @@ FHoudiniEngine::StopSession(HAPI_Session*& SessionPtr)
 	if (!FHoudiniApi::IsHAPIInitialized())
 		return false;
 
+	// If the current session is valid, clean up and close the session
 	if (HAPI_RESULT_SUCCESS == FHoudiniApi::IsSessionValid(SessionPtr))
 	{
-		// SessionPtr is valid, clean up and close the session
-		FHoudiniApi::Cleanup(SessionPtr);
+		// Only cleanup if we're not using SessionSync!
+		if(!bEnableSessionSync)
+			FHoudiniApi::Cleanup(SessionPtr);
+
 		FHoudiniApi::CloseSession(SessionPtr);
 	}
 

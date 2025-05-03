@@ -43,6 +43,9 @@
 #include "Materials/Material.h"
 #include "WorldPartition/WorldPartition.h"
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	#include "LandscapeEditLayer.h"
+#endif
 
 /** Per mesh attribute data for a landscape spline segment. */
 struct FLandscapeSplineSegmentMeshAttributes
@@ -285,7 +288,7 @@ struct FLandscapeSplineInfo
 };
 
 
-FVector 
+FVector
 ConvertPositionToVector(const float* InPosition)
 {
 	// Swap Y/Z and convert meters to centimeters
@@ -430,8 +433,12 @@ FHoudiniLandscapeSplineTranslator::UpdateNonReservedEditLayers(
 	TSet<FName>& ClearedLayersForLandscape = ClearedLayers.FindOrAdd(InSplineInfo.Landscape);
 
 	// If the landscape has a reserved splines layer, then we don't have track the segments to apply. Just record the
-	// landscape with its reserved layer.
+	// landscape with its reserved layer.	
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	const FLandscapeLayer* ReservedSplinesLayer = InSplineInfo.Landscape->FindLayerOfType(ULandscapeEditLayerSplines::StaticClass());
+#else
 	FLandscapeLayer* const ReservedSplinesLayer = InSplineInfo.Landscape->GetLandscapeSplinesReservedLayer();
+#endif
 	if (ReservedSplinesLayer)
 	{
 		FHoudiniLandscapeSplineApplyLayerData& LayerData = SegmentsToApplyToLayers.FindOrAdd({ InSplineInfo.Landscape, ReservedSplinesLayer->Name});
@@ -456,7 +463,11 @@ FHoudiniLandscapeSplineTranslator::UpdateNonReservedEditLayers(
 		const FName CookedEditLayer = *LayerOutput->CookedEditLayer;
 
 		// Create layer if it does not exist
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		const FLandscapeLayer* const UnrealEditLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(InSplineInfo.Landscape, CookedEditLayer);
+#else
 		FLandscapeLayer* const UnrealEditLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(InSplineInfo.Landscape, CookedEditLayer);
+#endif
 		if (!UnrealEditLayer)
 		{
 			HOUDINI_LOG_ERROR(TEXT("Could not find edit layer %s and failed to create it: %s"), *CookedEditLayer.ToString(), *(InSplineInfo.Landscape->GetActorLabel()));
@@ -643,13 +654,6 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSplinesFromHoudiniGeoPar
 	HOUDINI_LOG_WARNING(TEXT("Landscape Spline Output is only supported in UE5.1+"));
 	return false;
 #else
-	// If we're not forcing the rebuild then only recreate if the HGPO is marked has changed.
-	if (!bInForceRebuild && (!InHGPO.bHasGeoChanged || !InHGPO.bHasPartChanged))
-	{
-		// Simply reuse the existing splines
-		OutputSplines = InCurrentSplines;
-		return true;
-	}
 
 	if (!IsValid(InWorld))
 		return false;

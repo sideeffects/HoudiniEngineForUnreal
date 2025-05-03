@@ -216,7 +216,26 @@ public:
 			OutTokens.Add("world", ValueT( FPaths::GetPath(WorldContext->GetPathName()) ));
 
 		if(HACOrOuterComponent && HACOrOuterComponent->GetOutermost())
-			OutTokens.Add("hda_level", ValueT( HACOrOuterComponent->GetOutermost()->GetPathName() ));
+		{
+			UWorld* World = HACOrOuterComponent->GetWorld();
+			if(World)
+			{
+				FString LevelName;
+				if(World->IsPartitionedWorld())
+				{
+					ULevel* CurrentLevel = World->GetCurrentLevel();
+					if(CurrentLevel)
+					{
+						LevelName = CurrentLevel->GetOutermost()->GetPathName();
+					}
+				}
+				else
+				{
+					LevelName = HACOrOuterComponent->GetOutermost()->GetPathName();
+				}
+				OutTokens.Add("hda_level", ValueT(LevelName));
+			}
+		}
 
 		OutTokens.Add("object_name", ValueT( ObjectName ));
 		OutTokens.Add("object_id", ValueT( FString::FromInt(ObjectId) ));

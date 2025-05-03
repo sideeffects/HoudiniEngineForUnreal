@@ -1,6 +1,6 @@
 # Houdini Engine for Unreal - Version 2
 
-> The source code in this branch is intended to be used with Unreal Engine 5.0 and 5.1
+> The source code in this branch is intended to be used with Unreal Engine 5.4 and 5.3, but should also be compatible with previous versions of UE5.
 
 Welcome to the repository for the Houdini Engine For Unreal Plugin.
 
@@ -16,18 +16,20 @@ Please send bug reports, feature requests and questions to [Side FX's support](h
 
 # Compatibility
 
-Currently, the plugins has [binaries](https://github.com/sideeffects/HoudiniEngineForUnreal/releases) that have been built for UE5.0, UE4.27 and UE4.26, and is linked with the latest production build of Houdini.
+Currently, the plugins has [binaries](https://github.com/sideeffects/HoudiniEngineForUnreal/releases) that have been built for UE5.4, UE5.3, and is linked with the latest production build of Houdini.
 
-Source code for the plugin is available on this repository for UE5.1, UE5.0, UE4.27, UE4.26.
+Source code for the plugin is available on this repository for UE5.
 
-> Please note that UE5.1 and UE5.0 use the same source files/branches, the 5.0 sources are also intended to be used with 5.1.
+> Please note that all UE5.X versions of the plugin use the same source files/branches, the sources in the 5.0 branch are also intended to be used with more recent versions of the plugin (ie 5.4 , 5.3 etc.)
+
+In general, we support the latest two releases of UE5.X, but will try to make the source code compatible with previous versions of Unreal.
 
 # Installing the plugin
 01. In this GitHub repository, click **Releases** on the right side. 
 02. Download the Houdini Engine version zip file that matches your Houdini version.  
 03. Extract the **HoudiniEngine** folder to the **Plugins\Runtime** of your Unreal Directory. You can either copy it to Unreal's engine version directory or your Unreal project directory.
 
-    In this example, Unreal's directory location is `C:\Program Files\Epic Games\UE_5.0\Engine\Plugins\Runtime\HoudiniEngine` and the project directory is `C:\Unreal Projects\MyGameProject\Plugins\HoudiniEngine`
+    In this example, Unreal's directory location is `C:\Program Files\Epic Games\UE_5.4\Engine\Plugins\Runtime\HoudiniEngine` and the project directory is `C:\Unreal Projects\MyGameProject\Plugins\HoudiniEngine`
 
     **Note: For Unreal Engine 5, you must use Unreal's project directory.** 
 
@@ -49,8 +51,8 @@ You can learn how to export an Houdini Digital Assets (HDA), import it into Unre
 01. Get the UE source code from: https://github.com/EpicGames/UnrealEngine/releases
 01. Within the UE source, navigate to `Engine/Plugins/Runtime`, and clone this repo into a folder named `HoudiniEngine`. Alternatively, you can also install the plugin in your project, in the `Plugins/Runtime` directory.
 01. Download and install the correct build of 64-bit Houdini. To get the build number, look at the header of `Source/HoudiniEngine/HoudiniEngine.Build.cs`, under `Houdini Version`.
-01. Generate the UE4 Project Files (by running `GenerateProjectFiles`) and build Unreal, either in x64 `Debug Editor` or x64 `Development Editor`.
-01. When starting the Unreal Engine editor, go to Plug-ins menu and make sure to enable the `HoudiniEngine v2` plug-in (in the `Rendering` section). Restart UE4 if you had to enable it.
+01. Generate the UE Project Files (by running `GenerateProjectFiles`) and build Unreal, either in x64 `Debug Editor` or x64 `Development Editor`.
+01. When starting the Unreal Engine editor, go to Plug-ins menu and make sure to enable the `HoudiniEngine v2` plug-in (in the `Rendering` section). Restart UE if you had to enable it.
 01. To confirm that the plug-in has been successfully installed and enabled, you can check that the editor main menu bar now has a new "Houdini Engine" menu, between "Edit" and "Window".
 01. You should now be able to import Houdini Digital Assets (HDA) `.otl` or `.hda` files or drag and drop them into the `Content Browser`.
 01. Once you have an HDA in the `Content Browser` you should be able to drag it into the Editor viewport. This will spawn a new Houdini Asset Actor. Geometry cooking will be done in a separate thread and geometry will be displayed once the cooking is complete. At this point you will be able to see asset parameters in the `Details` pane. Modifying any of the parameters will force the asset to recook and possibly update its geometry.

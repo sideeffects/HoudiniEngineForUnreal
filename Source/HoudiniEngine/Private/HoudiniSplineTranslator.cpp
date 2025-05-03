@@ -1784,15 +1784,6 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 	const bool& bIsLinear,
 	const bool& bIsClosed) 
 {
-	// If we're not forcing the rebuild
-	// No need to recreate something that hasn't changed
-	if (!InForceRebuild && (!InHGPO.bHasGeoChanged || !InHGPO.bHasPartChanged))
-	{
-		// Simply reuse the existing meshes
-		OutSplines = InSplines;
-		return true;
-	}
-
 	if (!IsValid(InOuterComponent))
 		return false;
 

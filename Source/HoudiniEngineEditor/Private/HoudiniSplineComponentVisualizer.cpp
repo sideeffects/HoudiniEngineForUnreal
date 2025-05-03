@@ -480,8 +480,7 @@ FHoudiniSplineComponentVisualizer::GetWidgetLocation(
 	if (!IsValid(EditedHoudiniSplineComponent))
 		return false;
 	
-	TArray<int32> & EditedControlPointsIndexes = EditedHoudiniSplineComponent->EditedControlPointsIndexes;
-
+	TArray<int32>& EditedControlPointsIndexes = EditedHoudiniSplineComponent->EditedControlPointsIndexes;
 	if (EditedControlPointsIndexes.Num() <= 0)
 		return false;
 
@@ -1113,5 +1112,33 @@ FHoudiniSplineComponentVisualizer::IsCookOnCurveChanged(UHoudiniSplineComponent 
 	//
 	// return Input->GetCookOnCurveChange();
 };
+
+
+bool 
+FHoudiniSplineComponentVisualizer::GetCustomInputCoordinateSystem(const FEditorViewportClient* ViewportClient, FMatrix& OutMatrix) const
+{
+	if (ViewportClient->GetWidgetCoordSystemSpace() == COORD_Local || ViewportClient->GetWidgetMode() == UE::Widget::WM_Rotate)
+	{
+ 		UHoudiniSplineComponent* EditedHoudiniSplineComponent = GetEditedHoudiniSplineComponent();
+		if (!IsValid(EditedHoudiniSplineComponent))
+			return false;
+
+		TArray<int32>& EditedControlPointsIndexes = EditedHoudiniSplineComponent->EditedControlPointsIndexes;
+		if (EditedControlPointsIndexes.Num() <= 0)
+			return false;
+		
+		// Use the first selected point for the coordinates
+		int32 PtIndex = EditedControlPointsIndexes[0];
+		if (!EditedHoudiniSplineComponent->CurvePoints.IsValidIndex(PtIndex))
+			return false;
+
+		FTransform FirstPointTransform = EditedHoudiniSplineComponent->CurvePoints[EditedControlPointsIndexes[0]];
+		OutMatrix = FRotationMatrix(FRotator(FirstPointTransform.GetRotation()));
+		return true;
+	}
+
+	return false;
+}
+
 
 #undef LOCTEXT_NAMESPACE

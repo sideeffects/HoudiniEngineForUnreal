@@ -194,15 +194,15 @@ FString FHoudiniAttributeResolver::ResolveBakeFolder() const
 	const FString DefaultBakeFolder = FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
 	
 	constexpr bool bUseDefaultIfAttrValueEmpty = true;
-	FString BakeFolder = ResolveAttribute(
-		HAPI_UNREAL_ATTRIB_BAKE_FOLDER, TEXT("{bake}"), bUseDefaultIfAttrValueEmpty);
+	FString BakeFolder = ResolveAttribute(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, TEXT("{bake}"), bUseDefaultIfAttrValueEmpty);
 	if (BakeFolder.IsEmpty())
-		return DefaultBakeFolder;
+		BakeFolder = DefaultBakeFolder;
 
-	//if (BakeFolder.StartsWith("Game/"))
-	//{
-	//	BakeFolder = "/" + BakeFolder;
-	//}
+	if (!BakeFolder.StartsWith(TEXT("/")))
+	{
+		HOUDINI_LOG_WARNING(TEXT("Bake folder %s does not start with '/'. Adding '/' to avoid an Unreal crash."), *BakeFolder);
+		BakeFolder = TEXT("/") + BakeFolder;
+	}
 
 	//FString AbsoluteOverridePath;
 	//if (BakeFolder.StartsWith("/Game/"))

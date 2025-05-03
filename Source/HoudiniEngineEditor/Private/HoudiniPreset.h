@@ -31,6 +31,7 @@
 #include "HoudiniInput.h"
 #include "HoudiniRuntimeSettings.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniParameterMultiParm.h"
 #include "HoudiniToolData.h"
 
 #include "HoudiniPreset.generated.h"
@@ -171,6 +172,19 @@ struct FHoudiniPresetRampColorValues : public FHoudiniPresetBase
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TArray<FHoudiniPresetRampColorPoint> Points;
+};
+
+USTRUCT(BlueprintType)
+struct FHoudiniPresetMultiParmValues : public FHoudiniPresetBase
+{
+	GENERATED_BODY()
+
+	virtual EHoudiniPresetValueType GetValueType() override { return EHoudiniPresetValueType::Int; }
+
+	virtual FString ToString() override { return FString::Format(TEXT("Number of Elements: {0}"), { Count }); }
+
+	UPROPERTY(EditAnywhere, Category = "Houdini Preset")
+	int Count;
 };
 
 USTRUCT(BlueprintType)
@@ -330,59 +344,41 @@ struct FHoudiniPresetHelpers
 {
 	static bool IsSupportedInputType(const EHoudiniInputType InputType);
 	
-	// Generic version to populate our Preset value structs from Houdini Parameters.
-	static void PopulateFromParameter(UHoudiniParameterFloat* Parm, FHoudiniPresetFloatValues& Value);
-	static void PopulateFromParameter(UHoudiniParameterInt* Parm, FHoudiniPresetIntValues& Value);
-	static void PopulateFromParameter(UHoudiniParameterString* Parm, FHoudiniPresetStringValues& Value);
+	// GetParameterValues to return arrays of the type and a string version of the values.
+	static bool GetParameterValues(const UHoudiniParameterInt* Param, TMap<FString,FHoudiniPresetIntValues>& OutValues, FString& OutValueStr);
+	static bool GetParameterValues(const UHoudiniParameterChoice* Param, TMap<FString,FHoudiniPresetIntValues>& OutValues, FString& OutValueStr);
+	static bool GetParameterValues(const UHoudiniParameterToggle* Param, TMap<FString,FHoudiniPresetIntValues>& OutValues, FString& OutValueStr);
+	static bool GetParameterValues(const UHoudiniParameterFloat* Param, TMap<FString,FHoudiniPresetFloatValues>& OutValues, FString& OutValueStr);
+	static bool GetParameterValues(const UHoudiniParameterColor* Param, TMap<FString,FHoudiniPresetFloatValues>& OutValues, FString& OutValueStr);
+	static bool GetParameterValues(const UHoudiniParameterString* Param, TMap<FString,FHoudiniPresetStringValues>& OutValues, FString& OutValueStr);
+	static bool GetParameterValues(const UHoudiniParameterFile* Param, TMap<FString,FHoudiniPresetStringValues>& OutValues, FString& OutValueStr);
+	static bool GetParameterValues(const UHoudiniParameterChoice* Param, TMap<FString,FHoudiniPresetStringValues>& OutValues, FString& OutValueStr);
+	static bool GetParameterValues(const UHoudiniParameterMultiParm* Param, TMap<FString, FHoudiniPresetMultiParmValues>& OutValues, FString& OutValueStr);
 
-	// Ingest int parameters
-	static bool IngestParameter(UHoudiniParameterInt* Parm, TMap<FString,FHoudiniPresetIntValues>& OutValues, FString& OutValueStr);
-	static bool IngestParameter(UHoudiniParameterChoice* Parm, TMap<FString,FHoudiniPresetIntValues>& OutValues, FString& OutValueStr);
-	static bool IngestParameter(UHoudiniParameterToggle* Parm, TMap<FString,FHoudiniPresetIntValues>& OutValues, FString& OutValueStr);
-
-	// Ingest float parameters
-	static bool IngestParameter(UHoudiniParameterFloat* Parm, TMap<FString,FHoudiniPresetFloatValues>& OutValues, FString& OutValueStr);
-	static bool IngestParameter(UHoudiniParameterColor* Parm, TMap<FString,FHoudiniPresetFloatValues>& OutValues, FString& OutValueStr);
-
-	// Ingest string parameters
-	static bool IngestParameter(UHoudiniParameterString* Parm, TMap<FString,FHoudiniPresetStringValues>& OutValues, FString& OutValueStr);
-	static bool IngestParameter(UHoudiniParameterFile* Parm, TMap<FString,FHoudiniPresetStringValues>& OutValues, FString& OutValueStr);
-	static bool IngestParameter(UHoudiniParameterChoice* Parm, TMap<FString,FHoudiniPresetStringValues>& OutValues, FString& OutValueStr);
 
 	// Ingest ramp parameters
-	static bool IngestParameter(UHoudiniParameterRampFloat* Parm, TMap<FString,FHoudiniPresetRampFloatValues>& OutValues, FString& OutValueStr);
-	static bool IngestParameter(UHoudiniParameterRampColor* Parm, TMap<FString,FHoudiniPresetRampColorValues>& OutValues, FString& OutValueStr);
+	static bool GetParameterValues(const UHoudiniParameterRampFloat* Param, TMap<FString,FHoudiniPresetRampFloatValues>& OutValues, FString& OutValueStr);
+	static bool GetParameterValues(const UHoudiniParameterRampColor* Param, TMap<FString,FHoudiniPresetRampColorValues>& OutValues, FString& OutValueStr);
 
 	// Ingest input parameters
-	// static bool IngestParameterInput(UHoudiniParameterOperatorPath* Parm, TArray<FHoudiniPresetInputValue>& OutValues, FString& OutValueStr);
-	// static bool IngestAbsoluteInput(int32 InputIndex, UHoudiniInput* Parm, TArray<FHoudiniPresetInputValue>& OutValues, FString& OutValueStr);
-	static void IngestGenericInput(UHoudiniInput* Input, bool bIsParameterInput, const FString& ParameterName, TArray<FHoudiniPresetInputValue>& OutValues, FString& OutValueStr);
+	static void GetGenericInput(UHoudiniInput* Input, bool bIsParameterInput, const FString& ParameterName, TArray<FHoudiniPresetInputValue>& OutValues);
 	static void UpdateGenericInputSettings(FHoudiniPresetInputValue& Value, const UHoudiniInput* Input);
 	static void UpdateFromGeometryInput(FHoudiniPresetInputValue& Value, const UHoudiniInput* Input);
 	static void UpdateFromCurveInput(FHoudiniPresetInputValue& Value, const UHoudiniInput* Input);
 
 
 	// Preset Helpers
-	
-	// Int based parameters
 	static void ApplyPresetParameterValues(const FHoudiniPresetIntValues& Values, UHoudiniParameterInt* Param);
 	static void ApplyPresetParameterValues(const FHoudiniPresetIntValues& Values, UHoudiniParameterChoice* Param);
 	static void ApplyPresetParameterValues(const FHoudiniPresetIntValues& Values, UHoudiniParameterToggle* Param);
-
-	// Float based parameters
 	static void ApplyPresetParameterValues(const FHoudiniPresetFloatValues& Values, UHoudiniParameterFloat* Param);
 	static void ApplyPresetParameterValues(const FHoudiniPresetFloatValues& Values, UHoudiniParameterColor* Param);
-
-	// String based parameters
 	static void ApplyPresetParameterValues(const FHoudiniPresetStringValues& Values, UHoudiniParameterString* Param);
 	static void ApplyPresetParameterValues(const FHoudiniPresetStringValues& Values, UHoudiniParameterFile* Param);
 	static void ApplyPresetParameterValues(const FHoudiniPresetStringValues& Values, UHoudiniParameterChoice* Param);
-
-	// Ramp based parameters
 	static void ApplyPresetParameterValues(const FHoudiniPresetRampFloatValues& Values, UHoudiniParameterRampFloat* Param);
 	static void ApplyPresetParameterValues(const FHoudiniPresetRampColorValues& Values, UHoudiniParameterRampColor* Param);
-
-	// Input parameters
+	static void ApplyPresetParameterValues(const FHoudiniPresetMultiParmValues& Values, UHoudiniParameterMultiParm* Param);
 	static void ApplyPresetParameterValues(const FHoudiniPresetInputValue& PresetInput, UHoudiniInput* Input);
 
 protected:
@@ -520,6 +516,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	TMap<FString, FHoudiniPresetRampColorValues> RampColorParameters;
+
+	UPROPERTY(EditAnywhere, Category = "Houdini Preset")
+	TMap<FString, FHoudiniPresetMultiParmValues> MultiParmParameters;
 
 	// Inputs
 	

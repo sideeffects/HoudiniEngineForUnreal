@@ -535,7 +535,9 @@ enum HAPI_NodeFlags
     /// All TOP nodes except schedulers
     HAPI_NODEFLAGS_TOP_NONSCHEDULER = 1 << 13,
 
-    HAPI_NODEFLAGS_NON_BYPASS   = 1 << 14 /// Nodes that are not bypassed
+    /// Recursive Flag
+    /// Nodes that are not bypassed
+    HAPI_NODEFLAGS_NON_BYPASS   = 1 << 14 
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeFlags )
 typedef int HAPI_NodeFlagsBits;

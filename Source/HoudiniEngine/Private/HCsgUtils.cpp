@@ -682,7 +682,11 @@ void UHCsgUtils::FilterWorldThroughBrush
 					// Get rid of all the fragments we added.
 					Model->Nodes[GLastCoplanar].iPlane = INDEX_NONE;
 					const bool bAllowShrinking = false;
-					Model->Nodes.RemoveAt( GNumNodes, Model->Nodes.Num()-GNumNodes, bAllowShrinking );
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+					Model->Nodes.RemoveAt( GNumNodes, Model->Nodes.Num()-GNumNodes, bAllowShrinking ? EAllowShrinking::Yes : EAllowShrinking::No );
+#else
+					Model->Nodes.RemoveAt(GNumNodes, Model->Nodes.Num() - GNumNodes, bAllowShrinking);
+#endif
 				}
 				else
 				{

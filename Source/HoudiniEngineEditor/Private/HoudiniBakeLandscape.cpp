@@ -63,6 +63,10 @@
 #include "WorldPartition/WorldPartition.h"
 #include "LandscapeSplineActor.h"
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	#include "LandscapeEditLayer.h"
+#endif
+
 bool
 FHoudiniLandscapeBake::BakeLandscapeLayer(
 	FHoudiniPackageParams& PackageParams, 
@@ -89,7 +93,11 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	if (!LayerOutput.bCookedLayerRequiresBaking)
 		return true;
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	const FLandscapeLayer* BakedLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, FName(LayerOutput.BakedEditLayer));
+#else
 	FLandscapeLayer* BakedLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, FName(LayerOutput.BakedEditLayer));
+#endif
 	ULandscapeLayerInfoObject* TargetLayerInfo = OutputLandscape->GetLandscapeInfo()->GetLayerInfoByName(FName(LayerOutput.TargetLayer));
 
 	bool bWasLocked = LayerOutput.bLockLayer;
@@ -151,7 +159,11 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	}
 	else
 	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		const FLandscapeLayer* EditLayer = FHoudiniLandscapeUtils::GetEditLayer(OutputLandscape, FName(LayerOutput.CookedEditLayer));
+#else
 		FLandscapeLayer* EditLayer = FHoudiniLandscapeUtils::GetEditLayer(OutputLandscape, FName(LayerOutput.CookedEditLayer));
+#endif
 		HOUDINI_CHECK_RETURN(EditLayer != nullptr, false);
 		TArray<uint16_t> Values = FHoudiniLandscapeUtils::GetHeightData(OutputLandscape, Extents, EditLayer);
 
@@ -163,15 +175,19 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 
 	}
 
+	int EditLayerIndex = OutputLandscape->GetLayerIndex(FName(LayerOutput.BakedEditLayer));
 
-	if (bWasLocked  && BakedLayer)
+	if (bWasLocked && BakedLayer)
+	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		OutputLandscape->SetLayerLocked(EditLayerIndex, true);
+#else
 		BakedLayer->bLocked = true;
-
+#endif
+	}
 	//---------------------------------------------------------------------------------------------------------------------------
 	// Make sure baked layer is visible.
 	//---------------------------------------------------------------------------------------------------------------------------
-
-	int EditLayerIndex = OutputLandscape->GetLayerIndex(FName(LayerOutput.BakedEditLayer));
 	if (EditLayerIndex != INDEX_NONE)
 		OutputLandscape->SetLayerVisibility(EditLayerIndex, true);
 
@@ -440,6 +456,7 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 						PackageParams);
 
 				Results.Add(BakeActor);
+				BakedOutputObject.Landscape = *BakeActor.Actor->GetPathName();	
 				
 			}
 
@@ -610,7 +627,12 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 	const FName BakedEditLayer = *LayerOutput.BakedEditLayer;
 
 	// If the landscape has a reserved splines layer, then we don't create any named temp/bake layers on the landscape for splines
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	if (OutputLandscape->FindLayerOfType(ULandscapeEditLayerSplines::StaticClass()))
+#else
 	if (OutputLandscape->GetLandscapeSplinesReservedLayer())
+#endif
 	{
 		FHoudiniLandscapeSplineApplyLayerData& LayerData = SegmentsToApplyToLayers.FindOrAdd({ OutputLandscape, BakedEditLayer });
 		LayerData.bIsReservedSplineLayer = true;
@@ -628,7 +650,11 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 		return true;
 
 	// Ensure that the baked layer exists
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	const FLandscapeLayer* const BakedLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, BakedEditLayer);
+#else
 	FLandscapeLayer* const BakedLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, BakedEditLayer);
+#endif
 
 	//---------------------------------------------------------------------------------------------------------------------------
 	// Clear the layer, but only once per bake.

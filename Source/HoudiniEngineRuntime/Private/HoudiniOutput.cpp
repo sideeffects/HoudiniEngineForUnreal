@@ -114,7 +114,7 @@ UHoudiniLandscapeSplinesOutput::GetLayerSegments(const FName InEditLayer, TArray
 
 
 void
-UHoudiniLandscapeSplinesOutput::Clear(const bool bInClearTempLayers)
+UHoudiniLandscapeSplinesOutput::Clear(bool bInClearTempLayers)
 {
 	// Delete the splines (segments and control points)
 	FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesSegmentsAndControlPoints(this);
@@ -537,6 +537,24 @@ FHoudiniBakedOutputObject::GetLandscapeLayerInfoIfValid(const FName& InLayerName
 	return Cast<ULandscapeLayerInfoObject>(Object);
 }
 
+ALandscape*
+FHoudiniBakedOutputObject::GetLandscapeIfValid(bool bInTryLoad) const
+{
+    const FSoftObjectPath LandscapePath(Landscape);
+
+    if (!LandscapePath.IsValid())
+        return nullptr;
+
+    UObject* Object = LandscapePath.ResolveObject();
+    if (!Object && bInTryLoad)
+        Object = LandscapePath.TryLoad();
+
+    if (!IsValid(Object))
+        return nullptr;
+
+    return Cast<ALandscape>(Object);
+}
+
 USkeleton*
 FHoudiniBakedOutputObject::GetBakedSkeletonIfValid(bool bInTryLoad) const
 {
@@ -553,6 +571,63 @@ FHoudiniBakedOutputObject::GetBakedSkeletonIfValid(bool bInTryLoad) const
 		return nullptr;
 
 	return Cast<USkeleton>(Object);
+}
+
+TArray<AActor*>
+FHoudiniBakedOutputObject::GetFoliageActorsIfValid(bool bInTryLoad) const
+{
+	TArray<AActor*> ValidActors;
+
+    for (const FString& ActorPathString : FoliageActors)
+    {
+        FSoftObjectPath ActorPath(ActorPathString);
+
+        if (!ActorPath.IsValid())
+            continue;
+
+        UObject* ResolvedObject = ActorPath.ResolveObject();
+        if (!ResolvedObject && bInTryLoad)
+            ResolvedObject = ActorPath.TryLoad();
+
+        if (!IsValid(ResolvedObject))
+            continue;
+
+        AActor* ResolvedActor = Cast<AActor>(ResolvedObject);
+        if (ResolvedActor)
+        {
+            ValidActors.Add(ResolvedActor);
+        }
+    }
+
+    return ValidActors;
+}
+
+TArray<AActor*> FHoudiniBakedOutputObject::GetInstancedActorsIfValid(bool bInTryLoad) const
+{
+    TArray<AActor*> ValidActors;
+
+    for (const FString& ActorPathString : InstancedActors)
+    {
+        FSoftObjectPath ActorPath(ActorPathString);
+
+        if (!ActorPath.IsValid())
+            continue;
+
+        UObject* ResolvedObject = ActorPath.ResolveObject();
+        if (!ResolvedObject && bInTryLoad)
+            ResolvedObject = ActorPath.TryLoad();
+
+        if (!IsValid(ResolvedObject))
+            continue;
+
+        AActor* ResolvedActor = Cast<AActor>(ResolvedObject);
+        if (ResolvedActor)
+        {
+            ValidActors.Add(ResolvedActor);
+        }
+    }
+
+    return ValidActors;
 }
 
 UHoudiniOutput::UHoudiniOutput(const FObjectInitializer & ObjectInitializer)
@@ -1341,16 +1416,24 @@ void FHoudiniOutputObject::DestroyCookedData()
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------
+	// Remove spline output
+	//--------------------------------------------------------------------------------------------------------------------
+
+	// Destroy any segments that we previously created
+	UHoudiniLandscapeSplinesOutput* SplinesOutputObject = Cast<UHoudiniLandscapeSplinesOutput>(this->OutputObject);
+	if (IsValid(SplinesOutputObject))
+	{
+		SplinesOutputObject->Clear();
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------
 	// Destroy all objects
 	//--------------------------------------------------------------------------------------------------------------------
 
 	if (IsValid(OutputObject))
-		OutputObject->ConditionalBeginDestroy();
 
 	OutputObject = nullptr;
 
-	if (IsValid(ProxyObject))
-		ProxyObject->ConditionalBeginDestroy();
 	ProxyObject = nullptr;
 
 	//--------------------------------------------------------------------------------------------------------------------
@@ -1368,8 +1451,11 @@ void FHoudiniOutputObject::DestroyCookedData()
 
 	for (auto Actor : OutputActors)
 	{
-		Actor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		Actor->Destroy();
+		if (Actor.IsValid())
+		{
+			Actor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+			Actor->Destroy();
+		}
 	}
 	OutputActors.Empty();
 }

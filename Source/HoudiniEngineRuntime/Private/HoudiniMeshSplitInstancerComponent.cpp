@@ -106,6 +106,8 @@ UHoudiniMeshSplitInstancerComponent::OnComponentDestroyed( bool bDestroyingHiera
 void 
 UHoudiniMeshSplitInstancerComponent::AddReferencedObjects( UObject * InThis, FReferenceCollector & Collector )
 {
+    Super::AddReferencedObjects(InThis, Collector);
+
     UHoudiniMeshSplitInstancerComponent * ThisMSIC = Cast< UHoudiniMeshSplitInstancerComponent >(InThis);
     if ( IsValid(ThisMSIC) )
     {

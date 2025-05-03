@@ -270,7 +270,7 @@ public:
 		FHoudiniBakedObjectData& BakedObjectData,
 		FName InOverrideFolderPath=NAME_None,
 		AActor* InActor=nullptr,
-		UActorFactory* InActorFactory=nullptr);
+		TSubclassOf<AActor> BakeActorClass = nullptr);
 
 	static bool BakeCurve(
 		UHoudiniAssetComponent const* const InHoudiniAssetComponent,
@@ -401,7 +401,6 @@ public:
 		const FString& InFallbackWorldOutlinerFolder="");
 
 	static bool BakeInstancerOutputToActors_LevelInstances(
-		ALevelInstance * LevelInstance,
 		const UHoudiniAssetComponent* HoudiniAssetComponent,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,

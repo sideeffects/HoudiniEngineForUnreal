@@ -1307,7 +1307,11 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 					static constexpr int32 ConnectionIdx = 0;
 					OutSplinesData.PointConnectionSocketNames.Emplace(SegmentData.Segment->Connections[ConnectionIdx].SocketName.ToString());
 					OutSplinesData.PointConnectionTangentLengths.Add(SegmentData.Segment->Connections[ConnectionIdx].TangentLen);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+					TObjectPtr<ULandscapeSplineControlPoint> CPoint = SegmentData.Segment->Connections[ConnectionIdx].ControlPoint;
+#else
 					ULandscapeSplineControlPoint const* const CPoint = SegmentData.Segment->Connections[ConnectionIdx].ControlPoint;
+#endif
 					if (!IsValid(CPoint))
 					{
 						OutSplinesData.ControlPointAttributes.AddEmpty();
@@ -1324,7 +1328,11 @@ bool FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineData(
 					static constexpr int32 ConnectionIdx = 1;
 					OutSplinesData.PointConnectionSocketNames.Emplace(SegmentData.Segment->Connections[ConnectionIdx].SocketName.ToString());
 					OutSplinesData.PointConnectionTangentLengths.Add(SegmentData.Segment->Connections[ConnectionIdx].TangentLen);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+					TObjectPtr<ULandscapeSplineControlPoint> CPoint = SegmentData.Segment->Connections[ConnectionIdx].ControlPoint;
+#else
 					ULandscapeSplineControlPoint const* const CPoint = SegmentData.Segment->Connections[ConnectionIdx].ControlPoint;
+#endif
 					if (!IsValid(CPoint))
 					{
 						OutSplinesData.ControlPointAttributes.AddEmpty();
@@ -1454,7 +1462,11 @@ FUnrealLandscapeSplineTranslator::ExtractLandscapeSplineControlPointsData(
 	
 	for (int32 ControlPointIdx = 0; ControlPointIdx < NumControlPoints; ++ControlPointIdx)
 	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		TObjectPtr<ULandscapeSplineControlPoint> CPoint = ControlPoints[ControlPointIdx];
+#else
 		ULandscapeSplineControlPoint const* const CPoint = ControlPoints[ControlPointIdx];
+#endif
 		if (!IsValid(CPoint))
 			continue;
 

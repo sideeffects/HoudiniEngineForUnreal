@@ -709,31 +709,6 @@ FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 		return true;
 	}
 
-	// NOTE: We can't handle skeletal meshes here. Skeletal meshes now consist of multiple HGPOs and we have to
-	// aggregate the HGPO that belong to the same Skeletal Mesh and process them as a single unit.
-	// // Handle Skeletal Meshes here
-	// if (FHoudiniSkeletalMeshTranslator::HasSkeletalMeshData(InHGPO.GeoId, InHGPO.PartId))
-	// {
-	// 	FHoudiniSkeletalMeshTranslator SKMeshTranslator;
-	// 	SKMeshTranslator.SetHoudiniSkeletalMeshParts(InHGPO);
-	// 	SKMeshTranslator.SetInputObjects(InOutputObjects);
-	// 	SKMeshTranslator.SetOutputObjects(OutOutputObjects);
-	// 	SKMeshTranslator.SetPackageParams(InPackageParams, true);
-	//
-	// 	if (SKMeshTranslator.CreateSkeletalMesh_SkeletalMeshImportData())
-	// 	{
-	// 		// Copy the output objects/materials
-	// 		OutOutputObjects = SKMeshTranslator.OutputObjects;
-	// 		//AssignmentMaterialMap = SKMT.OutputAssignmentMaterials;
-	//
-	// 		return true;
-	// 	}
-	// 	else
-	// 	{
-	// 		return false;
-	// 	}
-	// }
-
 	// Create a new mesh translator to handle the output data creation
 	FHoudiniMeshTranslator CurrentTranslator;
 	CurrentTranslator.ForceRebuild = InForceRebuild;
@@ -3446,11 +3421,13 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 	///////////////////////////////////////////////////////////////////////
 	// THIS FUNCTION IS DEPRECATED AND WILL REMOVED IN THE NEXT RELEASE.
 	///////////////////////////////////////////////////////////////////////
-	
+
 	// Time limit for processing
 	bDoTiming = CVarHoudiniEngineMeshBuildTimer.GetValueOnAnyThread() != 0.0;
 
 	double time_start = FPlatformTime::Seconds();
+
+	bool bIsGammaCorrectionDisabled = IsGammaCorrectionDisabled(HGPO.GeoId, HGPO.PartId);
 
 	// Keep a copy of the initial package params, since PackageParams is modified in place when resolving attributes
 	FHoudiniPackageParams InitialPackageParams = PackageParams;
@@ -4469,7 +4446,15 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 					{
 						Color.A = FMath::Clamp(SplitColors[SplitIndex * AttribInfoColors.tupleSize + 3], 0.0f, 1.0f);
 					}
-					VertexInstanceColors[VertexInstanceID] = FVector4f(Color);
+
+					if (bIsGammaCorrectionDisabled)
+					{
+						// Mesh Description colors are always gamma corrected by Unreal. So we have to reverse the correction
+						// if this flag is enabled.
+						Color =  FLinearColor::FromSRGBColor(Color.ToFColor(false));
+					}
+					FVector4f VertexColor = FVector4f(Color);
+					VertexInstanceColors[VertexInstanceID] = VertexColor;
 
 					// UVs
 					for (int32 UVIndex = 0; UVIndex < SplitUVSets.Num(); UVIndex++)
@@ -4691,22 +4676,6 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			continue;
 		
 		const FHoudiniOutputObjectIdentifier& CurrentObjId = Current.Key;
-		// Update property attributes on the SM
-		TArray<FHoudiniGenericAttribute> PropertyAttributes;
-		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
-			CurrentObjId.GeoId,
-			CurrentObjId.PartId,
-			true,
-			CurrentObjId.PrimitiveIndex,
-			INDEX_NONE,
-			CurrentObjId.PointIndex,
-			PropertyAttributes))
-		{
-			// Defer post edit change calls until after all property values have been set, since the static mesh
-			// build function is called from PostEditChangeProperty.
-			constexpr bool bDeferPostEditChangePropertyCalls = true;
-			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SM, PropertyAttributes, 0, bDeferPostEditChangePropertyCalls);
-		}
 
 		UBodySetup * BodySetup = SM->GetBodySetup();
 		if (!BodySetup)
@@ -4813,6 +4782,22 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			MainBodySetup->CollisionTraceFlag = MainStaticMeshCTF;
 		}
 
+		// Update property attributes on the SM
+		TArray<FHoudiniGenericAttribute> PropertyAttributes;
+		if (FHoudiniEngineUtils::GetGenericPropertiesAttributes(
+			CurrentObjId.GeoId,
+			CurrentObjId.PartId,
+			true,
+			CurrentObjId.PrimitiveIndex,
+			INDEX_NONE,
+			CurrentObjId.PointIndex,
+			PropertyAttributes))
+		{
+			// Defer post edit change calls until after all property values have been set, since the static mesh
+			// build function is called from PostEditChangeProperty.
+			constexpr bool bDeferPostEditChangePropertyCalls = true;
+			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(SM, PropertyAttributes, 0, bDeferPostEditChangePropertyCalls);
+		}
 
 		if (bDoTiming)
 		{
@@ -4893,6 +4878,8 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 
 	// Keep a copy of the initial package params, since PackageParams is modified in place when resolving attributes
 	FHoudiniPackageParams InitialPackageParams = PackageParams;
+
+	bool bIsGammaCorrectionDisabled = IsGammaCorrectionDisabled(HGPO.GeoId, HGPO.PartId);
 
 	// Start by updating the vertex list
 	if (!UpdatePartVertexList())
@@ -5496,7 +5483,13 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMesh()
 							{
 								VertexLinearColor.A = 1.0f;
 							}
-							const FColor VertexColor = VertexLinearColor.ToFColor(false);
+
+							FColor VertexColor = VertexLinearColor.ToFColor(false);
+
+							// If Gamma correction is disabled, de-convert the color. Since SetTriangleVertexColor() will apply gamma.
+							if (bIsGammaCorrectionDisabled)
+								VertexColor = FLinearColor::FromSRGBColor(VertexColor).ToFColor(false);
+
 							FoundStaticMesh->SetTriangleVertexColor(TriangleIdx, TriWindingIndex[ElementIdx], VertexColor);
 						}
 					}
@@ -10135,6 +10128,25 @@ FHoudiniMeshTranslator::ProcessMaterialsForHSM(
 		FoundStaticMaterials.Empty();
 		FoundStaticMaterials.Add(FStaticMaterial(MaterialInterface));
 	}
+}
+
+
+bool FHoudiniMeshTranslator::IsGammaCorrectionDisabled(HAPI_NodeId  NodeId, HAPI_PartId PartId)
+{
+	HAPI_AttributeInfo AttributeInfo;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
+
+	TArray<int> Values;
+	FHoudiniEngineUtils::HapiGetAttributeDataAsInteger(
+		NodeId, PartId,
+		HAPI_UNREAL_ATTRIB_DISABLE_GAMMA_CORRECTION,
+		AttributeInfo,
+		Values);
+
+	if (Values.IsEmpty())
+		return false;
+
+	return Values[0] != 0;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -68,7 +68,8 @@ public:
 		TArray<UHoudiniOutput*>& InOldOutputs, 
 		TArray<UHoudiniOutput*>& OutNewOutputs, 
 		bool bInAddOutputsToRootSet = false,
-		bool bInUseOutputNodes = true);
+		bool bInUseOutputNodes = true,
+		bool bGatherEditableCurves = true);
 
 	// Delete the HAPI node and remove InOutputs from the root set.
 	static bool CloseBGEOFile(const HAPI_NodeId& InNodeId);

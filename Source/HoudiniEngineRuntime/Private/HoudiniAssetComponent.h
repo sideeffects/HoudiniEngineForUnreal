@@ -268,6 +268,9 @@ public:
 	// cook folder. This function does not take the unreal_temp_folder attribute into account.
 	FString GetTemporaryCookFolderOrDefault() const;
 
+	// Returns true if this asset should try to start a session
+	virtual bool ShouldTryToStartFirstSession() const;
+
 	//------------------------------------------------------------------------------------------------
 	// Mutators
 	//------------------------------------------------------------------------------------------------
@@ -515,6 +518,12 @@ protected:
 	// Set asset state
 	void SetAssetState(EHoudiniAssetState InNewState);
 
+	void UpdateDormantStatus();
+
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
+	ILevelInstanceInterface* GetLevelInstance() const;
+#endif
+
 public:
 
 	// Houdini Asset associated with this component.
@@ -638,6 +647,9 @@ public:
 	UPROPERTY()
 	bool bLandscapeUseTempLayers;
 
+	UPROPERTY()
+	bool bEnableCurveEditing;
+
 	// Indicates whether or not this component should update the editor's UI
 	// This is to prevent successive calls of the function for the same HDAs 
 	UPROPERTY(Transient, DuplicateTransient)
@@ -709,7 +721,10 @@ protected:
 	UPROPERTY(DuplicateTransient)
 	bool bHasBeenLoaded;
 
-	UPROPERTY(DuplicateTransient)
+	// Sometimes, specifically when editing level instances, the Unreal Editor will duplicate the HDA,
+	// then duplicate it again, before we get a change to call UpdatePostDuplicate().
+	// So bHasBeenDuplicated should not be cleared and is so not marked DuplicateTransient.
+	UPROPERTY()
 	bool bHasBeenDuplicated;
 
 	UPROPERTY(DuplicateTransient)
@@ -776,6 +791,9 @@ protected:
 	UPROPERTY()
 	UHoudiniPDGAssetLink* PDGAssetLink;
 
+	UPROPERTY()
+	bool bIsPDGAssetLinkInitialized;
+
 	// Timer that is used to trigger creation of UStaticMesh for all mesh outputs
 	// that still have UHoudiniStaticMeshes. The timer is cleared on PreCook and reset
 	// at the end of the PostCook.
@@ -835,6 +853,9 @@ protected:
 	// used to limit the frequency at which we ping HDAs for session sync updates
 	UPROPERTY(Transient)
 	double LastLiveSyncPingTime;
+
+	UPROPERTY()
+	TArray<int8> ParameterPresetBuffer;
 
 	//
 	// Begin: IHoudiniAssetStateEvents

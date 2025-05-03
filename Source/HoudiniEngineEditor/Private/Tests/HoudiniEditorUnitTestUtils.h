@@ -58,6 +58,7 @@ class UHoudiniAssetComponent;
 
 #define HOUDINI_TEST_EQUAL(A,...)	TestEqual(#A, A, __VA_ARGS__)
 #define HOUDINI_TEST_EQUAL_ON_FAIL(A,B,_FAIL)	if (!TestEqual(#A, A, B)) _FAIL;
+#define HOUDINI_TEST_EQUALISH_ON_FAIL(A,B, C, _FAIL)	if (!TestEqual(#A, A, B, C)) _FAIL;
 #define HOUDINI_TEST_NOT_EQUAL(A,B)	TestNotEqual(#A, A, B)
 #define HOUDINI_TEST_NOT_EQUAL_ON_FAIL(A,B,_FAIL)	if (!TestNotEqual(#A, A, B)) _FAIL;
 #define HOUDINI_TEST_NOT_NULL(A)	TestNotNull(#A, A)
@@ -173,6 +174,24 @@ struct FHoudiniEditorUnitTestUtils
 						OBJECT_TYPE* Out = Cast<OBJECT_TYPE>(OutputObject.Value.OutputObject);
 						Results.Add(Out);
 					}
+				}
+			}
+		}
+		return  Results;
+	}
+
+	// Helper function to return foliage objects from an output.
+	static TArray<FHoudiniOutputObject*> GetOutputsWithFoliageType(const TArray<UHoudiniOutput*>& Outputs)
+	{
+		TArray<FHoudiniOutputObject*> Results;
+
+		for (UHoudiniOutput* Output : Outputs)
+		{
+			for (auto& OutputObject : Output->GetOutputObjects())
+			{
+				if (OutputObject.Value.FoliageType)
+				{
+					Results.Add(&OutputObject.Value);
 				}
 			}
 		}

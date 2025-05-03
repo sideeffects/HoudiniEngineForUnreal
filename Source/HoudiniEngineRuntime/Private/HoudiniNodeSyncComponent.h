@@ -56,6 +56,9 @@ public:
 	// Node Sync component shall NOT delete nodes!
 	virtual bool CanDeleteHoudiniNodes() const { return false; }
 
+	// Node Sync component should never auto start a session without being touched
+	virtual bool ShouldTryToStartFirstSession() const override { return false; };
+
 protected:
 
 	UPROPERTY()

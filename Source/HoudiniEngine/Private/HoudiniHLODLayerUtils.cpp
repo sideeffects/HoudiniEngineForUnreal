@@ -28,6 +28,8 @@
 
 #include "HoudiniEngine.h"
 #include "WorldPartition/HLOD/HLODLayer.h"
+#include "Landscape.h"
+#include "LandscapeStreamingProxy.h"
 
 void FHoudiniHLODLayerUtils::AddActorToHLOD(AActor* Actor, const FString& AssetRef)
 {
@@ -43,6 +45,54 @@ void FHoudiniHLODLayerUtils::AddActorToHLOD(AActor* Actor, const FString& AssetR
 
 	Actor->SetHLODLayer(HLODLayer);
 #endif
+}
+
+TArray<FHoudiniHLODLayer>
+FHoudiniHLODLayerUtils::GetHLODLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner, int Index)
+{
+	HAPI_AttributeInfo AttribInfo;
+	TArray<FString> HLODNames;
+	if(!FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+		NodeId, PartId, HAPI_UNREAL_ATTRIB_HLOD_LAYER,
+		AttribInfo, HLODNames, 1, Owner, Index, 1))
+	{
+		return {};
+	}
+	if(HLODNames.IsEmpty())
+		return {};
+
+	FHoudiniHLODLayer Layer;
+	Layer.Name = HLODNames[0];
+
+	TArray<FHoudiniHLODLayer> Results;
+	Results.Add(Layer);
+	return Results;
+
+}
+
+TArray<FHoudiniHLODLayer>
+FHoudiniHLODLayerUtils::GetHLODLayers(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+{
+	TArray<FString> HLODNames;
+	HAPI_AttributeInfo AttribInfo;
+	if(!FHoudiniEngineUtils::HapiGetAttributeDataAsString(
+		NodeId, PartId, HAPI_UNREAL_ATTRIB_HLOD_LAYER,
+		AttribInfo, HLODNames, 1, Owner))
+	{
+		return {};
+	}
+
+	if(HLODNames.IsEmpty())
+		return {};
+
+	TArray<FHoudiniHLODLayer> Results;
+	Results.SetNum(HLODNames.Num());
+	for (int Index = 0; Index < HLODNames.Num(); Index++)
+	{
+		Results[Index].Name = HLODNames[Index];
+	}
+
+	return Results;
 }
 
 TArray<FHoudiniHLODLayer>
@@ -79,10 +129,26 @@ void FHoudiniHLODLayerUtils::ApplyHLODLayersToActor(const FHoudiniPackageParams&
 	if (Layers.Num() == 0)
 		return;
 
-	for (auto& Layer : Layers)
+	const FHoudiniHLODLayer & Layer = Layers[0];
+
+	AddActorToHLOD(Actor, Layer.Name);
+	
+	if(ALandscape* Landscape = Cast<ALandscape>(Actor))
 	{
-		AddActorToHLOD(Actor, Layer.Name);
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 1
+		TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Landscape->GetLandscapeInfo()->StreamingProxies;
+#else
+		TArray<TObjectPtr<ALandscapeStreamingProxy>> Proxies = Landscape->GetLandscapeInfo()->Proxies;
+#endif
+
+		for(TWeakObjectPtr<ALandscapeStreamingProxy> Child : Proxies)
+		{
+			ALandscapeStreamingProxy* LandscapeProxy = Child.Get();
+			AddActorToHLOD(Cast<AActor>(LandscapeProxy), Layer.Name);
+		}
 	}
+
 }
 
 void FHoudiniHLODLayerUtils::SetVexCode(HAPI_NodeId VexNodeId, AActor * Actor)

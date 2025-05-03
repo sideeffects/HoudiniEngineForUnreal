@@ -117,6 +117,10 @@ public:
 
 	FBox GetBounds() const;
 
+	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
+
+	bool IsTransformUpdateNeeded();
+
 public:
 	UPROPERTY()
 	TArray<UHoudiniHandleParameter*> XformParms;
@@ -127,6 +131,11 @@ public:
 	UPROPERTY()
 	UHoudiniHandleParameter* RotOrderParm;
 
+	UPROPERTY()
+	FTransform LastSentTransform;
+
+	bool bNeedToUpdateTransform;
+
 private:
 	UPROPERTY()
 	EHoudiniHandleType HandleType;
@@ -134,4 +143,5 @@ private:
 	UPROPERTY()
 	FString HandleName;
 
+	double dLastTransformUpdateTime;
 };

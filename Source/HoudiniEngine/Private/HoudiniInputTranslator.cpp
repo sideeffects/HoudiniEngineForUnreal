@@ -38,6 +38,7 @@
 #include "HoudiniInput.h"
 #include "HoudiniInputObject.h"
 #include "HoudiniMeshUtils.h"
+#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniOutputTranslator.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterOperatorPath.h"
@@ -128,6 +129,10 @@ FHoudiniInputTranslator::UpdateInputs(UHoudiniAssetComponent* HAC)
 {
 	if (!IsValid(HAC))
 		return false;
+
+	// Nothing to do for Node Sync Components!
+	if (HAC->IsA<UHoudiniNodeSyncComponent>())
+		return true;
 
 	if (!FHoudiniInputTranslator::BuildAllInputs(HAC->GetAssetId(), HAC, HAC->Inputs, HAC->Parameters))
 	{
@@ -769,6 +774,13 @@ FHoudiniInputTranslator::UploadChangedInputs(UHoudiniAssetComponent * HAC)
 
 	if (!IsValid(HAC))
 		return false;
+
+	// Nothing to do for Node Sync Components!
+	if (HAC->IsA<UHoudiniNodeSyncComponent>())
+		return true;
+
+	// Disabled, this seems to be unused and is fairly costly to run in large levels/worlds
+	//HoudiniUnrealDataLayersCache DataLayerCache = FHoudiniUnrealDataLayersCache::MakeCache(HAC->GetWorld());
 
 	//for (auto CurrentInput : HAC->Inputs)
 	for(int32 InputIdx = 0; InputIdx < HAC->GetNumInputs(); InputIdx++)
@@ -4979,6 +4991,10 @@ FHoudiniInputTranslator::UpdateLoadedInputs(UHoudiniAssetComponent* HAC)
 
 	if (!IsValid(HAC))
 		return false;
+
+	// Nothing to do for Node Sync Components!
+	if (HAC->IsA<UHoudiniNodeSyncComponent>())
+		return true;
 
 	// We need to call BuildAllInputs here to update all the inputs,
 	// and make sure that the object path parameter inputs' parameter ids are up to date
