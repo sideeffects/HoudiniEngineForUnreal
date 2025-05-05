@@ -150,7 +150,9 @@
 #include "UObject/UObjectGlobals.h"
 #include "UserDefinedStructure/UserDefinedStructEditorData.h"
 #include "HoudiniFoliageUtils.h"
-
+#if defined(HOUDINI_USE_PCG)
+#include "HoudiniPCGDataObject.h"
+#endif
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "Animation/AnimSequence.h"
 
@@ -670,6 +672,26 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 				AlreadyBakedMaterialsMap,
 				InFallbackActor,
 				InFallbackWorldOutlinerFolder);
+			}
+			break;
+
+		case EHoudiniOutputType::PCG:
+			{
+				FHoudiniEngineBakeUtils::BakePCGData(
+					InCookable,
+					OutputIdx,
+					InOutputs,
+					InBakeState,
+					InBakeFolder,
+					InTempCookFolder,
+					BakeSettings,
+					AllBakedActors,
+					OutputBakedActors,
+					BakedObjectData,
+					AlreadyBakedStaticMeshMap,
+					AlreadyBakedMaterialsMap,
+					InFallbackActor,
+					InFallbackWorldOutlinerFolder);
 			}
 			break;
 
@@ -3612,6 +3634,52 @@ UDataTable* FHoudiniEngineBakeUtils::CreateBakedDataTable(
 
 	return BakedDataTable;
 }
+
+bool
+FHoudiniEngineBakeUtils::BakePCGData(
+	const UHoudiniCookable* InCookable,
+	int32 InOutputIndex,
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	FHoudiniEngineBakeState& InBakeState,
+	const FDirectoryPath& InBakeFolder,
+	const FDirectoryPath& InTempCookFolder,
+	const FHoudiniBakeSettings& BakeSettings,
+	const TArray<FHoudiniEngineBakedActor>& InBakedActors,
+	TArray<FHoudiniEngineBakedActor>& OutActors,
+	FHoudiniBakedObjectData& BakedObjectData,
+	TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
+	TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
+	AActor* InFallbackActor,
+	const FString& InFallbackWorldOutlinerFolder)
+{
+#if defined(HOUDINI_USE_PCG)
+	if((InOutputIndex < 0) || !InAllOutputs.IsValidIndex(InOutputIndex))
+		return false;
+
+	// Get previously cooked output.
+	UHoudiniOutput* CookedOutput = InAllOutputs[InOutputIndex];
+	if(!IsValid(CookedOutput))
+		return false;
+
+	FHoudiniBakedOutput & BakedOutputs = InBakeState.GetNewBakedOutputs()[InOutputIndex];
+
+	for (auto It : CookedOutput->GetOutputObjects())
+	{
+		UHoudiniPCGOutputData* CookedPCGData = Cast<UHoudiniPCGOutputData>(It.Value.OutputObject);
+
+		UHoudiniPCGOutputData* BakedPCGData = Cast<UHoudiniPCGOutputData>(StaticDuplicateObject(CookedPCGData, GetTransientPackage()));
+
+		FHoudiniBakedOutputObject BakedOutputObject;
+		BakedOutputObject.PCGOutputData = BakedPCGData;
+		BakedOutputs.BakedOutputObjects.Emplace(It.Key, BakedOutputObject);
+	}
+
+	return true;
+#else
+	return false;
+#endif
+}
+
 
 bool
 FHoudiniEngineBakeUtils::BakeDataTables(

@@ -50,6 +50,9 @@
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "HAL/FileManager.h"
 #include "Materials/Material.h"
+#if defined(HOUIDNI_USE_PCG)
+#include "HoudiniPCGDataObject.h"
+#endif
 
 
 FHoudiniMaterialIdentifier::FHoudiniMaterialIdentifier(
@@ -1434,3 +1437,4 @@ void UHoudiniOutput::DestroyCookedData(bool bDeleteAssets)
 	}
 	OutputObjects.Empty();
 }
+

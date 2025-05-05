@@ -50,6 +50,7 @@
 #include <HoudiniEngineUtils.h>
 #include "HoudiniPCGDataObject.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "HoudiniEngineBakeUtils.h"
 
 #define LOCTEXT_NAMESPACE "PCGCachedCookable"
 
@@ -75,8 +76,8 @@ void UHoudiniPCGCookable::OnCookingComplete(bool bSuccess)
 	}
 	else if(this->State == EPCGCookableState::Cooking)
 	{
-		HOUDINI_PCG_MESSAGE(TEXT("(%p)       Set to EPCGCookableState::Done"), this);
-		this->State = EPCGCookableState::Done;
+		HOUDINI_PCG_MESSAGE(TEXT("(%p)       Set to EPCGCookableState::CookingComplete"), this);
+		this->State = EPCGCookableState::CookingComplete;
 	}
 	else
 	{
@@ -96,7 +97,7 @@ void UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPC
 
 	TrackedObjects.Empty();
 
-	Cookable = NewObject<UHoudiniCookable>(this);
+	Cookable = NewObject<UHoudiniCookable>(this, NAME_None, RF_Public);
 	State = EPCGCookableState::Initializing;
 	auto OutputDelegateHandle = Cookable->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
 		{
@@ -114,6 +115,7 @@ void UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPC
 	// Disable auto-cook, it improve this logic.
 	Cookable->GetParameterData()->bCookOnParameterChange = false;
 	Cookable->GetInputData()->bCookOnInputChange = false;
+	Cookable->SetPDGSupported(true);
 
 	if(Component)
 	{
@@ -306,84 +308,126 @@ void UHoudiniPCGCookable::Release()
 
 }
 
-void UHoudiniPCGCookable::CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput)
+void UHoudiniPCGCookable::ProcessBakedOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput)
 {
 	if(FHoudiniPCGUtils::HasPCGOutputs(HoudiniOutput))
 	{
-		CreateOutputsAsPCGData(Context, OutputPinName, TagName, HoudiniOutput);
+		CopyBakedPCGOutputDataToPinData(Context, OutputPinName, TagName, HoudiniOutput);
 	}
 	else
 	{
-		TArray<FHoudiniPCGObjectOutput> Outputs = FHoudiniPCGUtils::GetPCGOutputData(HoudiniOutput);
-
-		CreateOutputsAsObjectReferences(Context, OutputPinName, TagName, Outputs);
+		CreateOutputPinFromBakedData(Context, OutputPinName, TagName, HoudiniOutput);
 	}
 }
 
-void UHoudiniPCGCookable::CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput)
+void UHoudiniPCGCookable::ProcessCookedOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput)
 {
-	TArray<FPCGTaggedData>& TaggedDataArray = Context->OutputData.TaggedData;
+	if(FHoudiniPCGUtils::HasPCGOutputs(HoudiniOutput))
+	{
+		CopyCookedPCGOutputDataToPinData(Context, OutputPinName, TagName, HoudiniOutput);
+	}
+	else
+	{
+		CreateOutputPinFromCookedData(Context, OutputPinName, TagName, HoudiniOutput);
+	}
+}
 
+void UHoudiniPCGCookable::CopyCookedPCGOutputDataToPinData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput)
+{
 	for(auto& It : HoudiniOutput->GetOutputObjects())
 	{
 		auto& Object = It.Value;
 
 		if(UHoudiniPCGOutputData* PCGOutputData = Cast<UHoudiniPCGOutputData>(Object.OutputObject))
 		{
-			if(PCGOutputData->PointParams)
-			{
-				FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
-				TaggedOutput.Data = PCGOutputData->PointParams;
-				TaggedOutput.Pin = OutputPinName;
-				TaggedOutput.Tags.Add(TEXT("Points"));
-				TaggedOutput.Tags.Add(TagName);
-
-			}
-
-			if(PCGOutputData->VertexParams)
-			{
-				FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
-				TaggedOutput.Data = PCGOutputData->VertexParams;
-				TaggedOutput.Pin = OutputPinName;
-				TaggedOutput.Tags.Add(TEXT("Vertices"));
-				TaggedOutput.Tags.Add(TagName);
-			}
-
-			if(PCGOutputData->PrimsParams)
-			{
-				FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
-				TaggedOutput.Data = PCGOutputData->PrimsParams;
-				TaggedOutput.Pin = OutputPinName;
-				TaggedOutput.Tags.Add(TEXT("Primitives"));
-				TaggedOutput.Tags.Add(TagName);
-			}
-
-			if(PCGOutputData->DetailsParams)
-			{
-				FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
-				TaggedOutput.Data = PCGOutputData->DetailsParams;
-				TaggedOutput.Pin = OutputPinName;
-				TaggedOutput.Tags.Add(TEXT("Details"));
-				TaggedOutput.Tags.Add(TagName);
-			}
-
-			if(!PCGOutputData->SplineParams.IsEmpty())
-			{
-				for (auto Spline : PCGOutputData->SplineParams)
-				{
-					FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
-					TaggedOutput.Data = Spline;
-					TaggedOutput.Pin = OutputPinName;
-					TaggedOutput.Tags.Add(TEXT("Spline"));
-				}
-			}
+			CopyPCGOutputDataToPinData(Context, OutputPinName, TagName, PCGOutputData);
 		}
 	}
 }
 
-void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const TArray<FHoudiniPCGObjectOutput>& Outputs)
+void UHoudiniPCGCookable::CopyBakedPCGOutputDataToPinData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput)
 {
+	for(auto& It : HoudiniOutput->BakedOutputObjects)
+	{
+		auto& Object = It.Value;
 
+		if(UHoudiniPCGOutputData* PCGOutputData = Cast<UHoudiniPCGOutputData>(Object.PCGOutputData))
+		{
+			CopyPCGOutputDataToPinData(Context, OutputPinName, TagName, PCGOutputData);
+		}
+	}
+}
+
+void UHoudiniPCGCookable::CopyPCGOutputDataToPinData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniPCGOutputData* PCGOutputData)
+{
+	TArray<FPCGTaggedData>& TaggedDataArray = Context->OutputData.TaggedData;
+
+
+	if(PCGOutputData->PointParams)
+	{
+		FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
+		TaggedOutput.Data = PCGOutputData->PointParams;
+		TaggedOutput.Pin = OutputPinName;
+		TaggedOutput.Tags.Add(TEXT("Points"));
+		TaggedOutput.Tags.Add(TagName);
+	}
+
+	if(PCGOutputData->VertexParams)
+	{
+		FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
+		TaggedOutput.Data = PCGOutputData->VertexParams;
+		TaggedOutput.Pin = OutputPinName;
+		TaggedOutput.Tags.Add(TEXT("Vertices"));
+		TaggedOutput.Tags.Add(TagName);
+	}
+
+	if(PCGOutputData->PrimsParams)
+	{
+		FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
+		TaggedOutput.Data = PCGOutputData->PrimsParams;
+		TaggedOutput.Pin = OutputPinName;
+		TaggedOutput.Tags.Add(TEXT("Primitives"));
+		TaggedOutput.Tags.Add(TagName);
+	}
+
+	if(PCGOutputData->DetailsParams)
+	{
+		FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
+		TaggedOutput.Data = PCGOutputData->DetailsParams;
+		TaggedOutput.Pin = OutputPinName;
+		TaggedOutput.Tags.Add(TEXT("Details"));
+		TaggedOutput.Tags.Add(TagName);
+	}
+
+	if(!PCGOutputData->SplineParams.IsEmpty())
+	{
+		for (auto Spline : PCGOutputData->SplineParams)
+		{
+			FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
+			TaggedOutput.Data = Spline;
+			TaggedOutput.Pin = OutputPinName;
+			TaggedOutput.Tags.Add(TEXT("Spline"));
+		}
+	}
+}
+
+
+void UHoudiniPCGCookable::CreateOutputPinFromBakedData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput)
+{
+	TArray<FHoudiniPCGObjectOutput> Outputs = FHoudiniPCGUtils::GetPCGOutputData(HoudiniOutput);
+
+	CreateOutputPinData(Context, OutputPinName, TagName, Outputs);
+}
+
+void UHoudiniPCGCookable::CreateOutputPinFromCookedData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput)
+{
+	TArray<FHoudiniPCGObjectOutput> Outputs = FHoudiniPCGUtils::GetPCGOutputData(HoudiniOutput);
+
+	CreateOutputPinData(Context, OutputPinName, TagName, Outputs);
+}
+
+void UHoudiniPCGCookable::CreateOutputPinData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const TArray<FHoudiniPCGObjectOutput> & Outputs)
+{
 	UPCGParamData* ParamData = FPCGContext::NewObject_AnyThread<UPCGParamData>(Context);
 	UPCGMetadata* Metadata = ParamData->MutableMetadata();
 
@@ -433,35 +477,42 @@ void UHoudiniPCGCookable::CreateOutputsAsObjectReferences(FPCGContext* Context, 
 }
 
 void
-UHoudiniPCGCookable::ProcessCookableOutput(FPCGContext* Context)
+UHoudiniPCGCookable::ProcessCookedOutput(FPCGContext* Context)
 {
 	const UHoudiniPCGSettings* Settings = Context->GetInputSettings<UHoudiniPCGSettings>();
 
-	if(!this->Cookable->GetOutputData())
+	UCookableOutputData* OutputData = this->Cookable->GetOutputData();
+	if(!OutputData)
 		return;
 
-	switch(Settings->OutputType)
+	auto& Outputs = OutputData->Outputs;
+	for(int Index = 0; Index < Outputs.Num(); Index++)
 	{
-	case EHoudiniPCGOutputType::Cook:
-	case EHoudiniPCGOutputType::Bake:
-	{
-		auto& Outputs = this->Cookable->GetOutputData()->Outputs;
-		for(int Index = 0; Index < Outputs.Num(); Index++)
-		{
-			FString Tag = FString::Printf(TEXT("Output-%d"), Index);
-			CreateOutputs(Context, Settings->GetOutputPinName(), Tag, this->Cookable->GetOutputData()->Outputs[Index]);
-		}
-		break;
+		FString Tag = FString::Printf(TEXT("Output-%d"), Index);
+		ProcessCookedOutputs(Context, Settings->GetOutputPinName(), Tag, Outputs[Index]);
 	}
-	default:
-		break;
+	
+	AddTrackedObjects(Context);
+}
+
+void
+UHoudiniPCGCookable::ProcessBakedOutput(FPCGContext* Context)
+{
+	const UHoudiniPCGSettings* Settings = Context->GetInputSettings<UHoudiniPCGSettings>();
+
+	UCookableOutputData* OutputData = this->Cookable->GetOutputData();
+	if(!OutputData)
+		return;
+
+	auto& Outputs = OutputData->BakedOutputs;
+	for(int Index = 0; Index < Outputs.Num(); Index++)
+	{
+		FString Tag = FString::Printf(TEXT("Output-%d"), Index);
+		ProcessBakedOutputs(Context, Settings->GetOutputPinName(), Tag, &Outputs[Index]);
 	}
 
 	AddTrackedObjects(Context);
-	State = EPCGCookableState::Done;
-
 }
-
 
 void UHoudiniPCGCookable::CopyParametersAndInputs(const UHoudiniPCGCookable * Other)
 {
@@ -496,7 +547,7 @@ bool UHoudiniPCGCookable::UpdateParametersAndInputs(FPCGContext* Context)
 bool UHoudiniPCGCookable::NeedsCook()
 {
 
-	bool bHasBeenCooked = State == EPCGCookableState::Done;
+	bool bHasBeenCooked = State == EPCGCookableState::CookingComplete;
 
 	return (bInputsChanged || bParamsChanged || !bHasBeenCooked);
 }
@@ -505,14 +556,53 @@ bool UHoudiniPCGCookable::NeedsCook()
 void UHoudiniPCGCookable::StartCook()
 {
 	ensure(NeedsCook());
-	State = EPCGCookableState::Cooking;
-	HOUDINI_PCG_MESSAGE(TEXT("(%p) Inputs not changed on cookable, but forcing cooking to get outputs."), this);
-	Cookable->MarkAsNeedCook();
+
 	bInputsChanged = false;
 	bParamsChanged = false;
+
+	State = EPCGCookableState::Cooking;
+
+	if (UHoudiniPDGAssetLink* PDGAssetLink = Cookable->GetPDGAssetLink())
+	{
+		HOUDINI_PCG_MESSAGE(TEXT("(%p) Starting to Cook with PDG."), this);
+
+		UTOPNetwork* TopNetwork = PDGAssetLink->GetSelectedTOPNetwork();
+#if 1
+		//this->bPDGPostCookDelegateCalled = false;
+
+		PDGTopNetworkCookedDelegate = TopNetwork->GetOnPostCookDelegate().AddLambda([this](UTOPNetwork* Link, bool bSuccess)
+		{
+			HOUDINI_PCG_MESSAGE(TEXT("(%p) Gob Shite."), this);
+
+			this->OnCookingComplete(bSuccess);
+			Link->GetOnPostCookDelegate().Remove(PDGTopNetworkCookedDelegate);
+			PDGTopNetworkCookedDelegate.Reset();
+			return;
+		});
+#endif
+		FHoudiniPDGManager::CookOutput(TopNetwork);
+	}
+	else
+	{
+		// Non-PDG
+		HOUDINI_PCG_MESSAGE(TEXT("(%p) Starting to Cook."), this);
+		Cookable->MarkAsNeedCook();
+	}
+
 }
 
+void
+UHoudiniPCGCookable::Bake()
+{
+	const bool bInRemoveHACOutputOnSuccess = false;
 
+	FHoudiniBakeSettings BakeSettings;
+
+	FHoudiniEngineBakeUtils::BakeCookable(Cookable, 
+		BakeSettings, 
+		EHoudiniEngineBakeOption::ToActor,
+		bInRemoveHACOutputOnSuccess);
+}
 void
 UHoudiniPCGCookable::Update(FPCGContext* Context)
 {
@@ -546,10 +636,9 @@ UHoudiniPCGCookable::Update(FPCGContext* Context)
 		// Still cooking, wait.
 		break;
 
-	case EPCGCookableState::Done:
-		// Done - process results.
+	case EPCGCookableState::CookingComplete:
+		// CookingComplete - process results.
 		HOUDINI_PCG_MESSAGE(TEXT("DONE cooking Managed Resource (%p)"), this);
-		this->ProcessCookableOutput(Context);
 		CookCount = FHoudiniEngineUtils::HapiGetCookCount(Cookable->GetNodeId());
 		break;
 

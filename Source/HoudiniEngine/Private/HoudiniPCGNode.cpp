@@ -96,7 +96,7 @@ FString UHoudiniPCGSettings::GetAdditionalTitleInformation() const
 	case EPCGCookableState::Cooking:
 		return TEXT("Initializing... please wait...");
 
-	case EPCGCookableState::Done:
+	case EPCGCookableState::CookingComplete:
 	case EPCGCookableState::None:
 		return FString::Printf(TEXT("%s"), HoudiniAsset ? *HoudiniAsset.GetFName().ToString() : TEXT("None"));
 
@@ -204,6 +204,7 @@ void UHoudiniPCGSettings::InstantiateParameterCookable()
 
 		ParameterCookable->CreateHoudiniCookable(HoudiniAsset, nullptr, nullptr);
 		ParameterCookable->Cookable->SetOutputSupported(false);
+		ParameterCookable->Cookable->SetPDGSupported(true);
 		ParameterCookable->Instantiate();
 
 		do
@@ -230,8 +231,8 @@ void UHoudiniPCGSettings::InstantiateParameterCookable()
 
 		if (ParameterCookable)
 		{
-			// The paramter cookable will not be recooked once its initialized, so set to Done.
-			ParameterCookable->State = EPCGCookableState::Done;
+			// The paramter cookable will not be recooked once its initialized, so set to CookingComplete.
+			ParameterCookable->State = EPCGCookableState::CookingComplete;
 			AsyncTask(ENamedThreads::GameThread, [this]()
 				{
 					// Populating must be done on game thread.
@@ -472,7 +473,6 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			Cookable->UpdateParametersAndInputs(Context);
 			if (Cookable->NeedsCook())
 			{
-
 				HDAContext->ContextState = EHoudiniPCGConextState::Cooking;
 				Cookable->StartCook();
 				return false;
@@ -498,8 +498,23 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 		UHoudiniPCGCookable* Cookable = ManagedResource->HoudiniPCGComponent->Cookable.Get();
 		Cookable->Update(Context);
 
-		bool bPCGComplete = Cookable->State == EPCGCookableState::Done;
-		return bPCGComplete;
+		if (Cookable->State == EPCGCookableState::CookingComplete)
+		{
+			if (Settings->OutputType == EHoudiniPCGOutputType::Cook)
+			{
+				Cookable->ProcessCookedOutput(Context);
+			}
+			else
+			{
+				Cookable->Bake();
+				Cookable->ProcessBakedOutput(Context);
+			}
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 	break;
 	default:

@@ -34,6 +34,10 @@
 #include "Misc/StringFormatArg.h"
 #include "HoudiniGenericAttribute.h"
 #include "UObject/SoftObjectPtr.h"
+#if defined(HOUDINI_USE_PCG)
+#include "PCGParamData.h"
+#include "Data/PCGSplineData.h"
+#endif
 #include "HoudiniOutput.generated.h"
 
 class UFoliageType;
@@ -113,6 +117,7 @@ public:
 	FName EditLayerName;
 };
 
+class UHoudiniOutput;
 
 USTRUCT()
 struct HOUDINIENGINERUNTIME_API FHoudiniExtents
@@ -568,6 +573,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// For skeletal meshes, this is the physics that was baked for the skeletal mesh.
 		UPROPERTY()
 		FString BakedPhysicsAsset;
+
+		// PCG Output Object. Referenced asa UObject so it compiles in non-PCG builds.
+		UPROPERTY()
+		TObjectPtr<UObject> PCGOutputData;
 
 };
 

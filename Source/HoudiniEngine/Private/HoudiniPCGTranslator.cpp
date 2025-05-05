@@ -515,9 +515,3 @@ void FHoudiniPCGTranslator::CreatePCGStringAttribute(UPCGMetadata* Metadata, con
 	MetaAttr->SetValues(EntryKeys, Values);
 }
 
-
-UHoudiniPCGOutputData::UHoudiniPCGOutputData(class FObjectInitializer const& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-	
-}

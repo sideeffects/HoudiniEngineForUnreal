@@ -33,8 +33,7 @@
 UENUM()
 enum class EHoudiniPCGOutputType : uint8
 {
-	Ignore = 0,
-	Cook,
+	Cook = 1,
 	Bake,
 };
 
@@ -71,7 +70,7 @@ public:
 
 	void ResetFromHDA();
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UHoudiniAsset> HoudiniAsset;
 
 	/** By default, data table loading is asynchronous, can force it synchronous if needed. */

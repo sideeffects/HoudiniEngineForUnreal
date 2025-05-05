@@ -107,6 +107,7 @@ void UHoudiniPCGSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 		TArray<TWeakObjectPtr<UHoudiniCookable>> Cookables;
 		Cookables.Add(Cookable);
+		CookableDetails->CreateHoudiniEngineDetails(DetailBuilder, Cookables);
 		CookableDetails->CreateInputDetails(DetailBuilder, Cookables);
 		CookableDetails->CreateParameterDetails(DetailBuilder, Cookables);
 	}

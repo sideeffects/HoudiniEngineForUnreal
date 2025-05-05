@@ -644,6 +644,21 @@ public:
 		AActor* InFallbackActor = nullptr,
 		const FString& InFallbackWorldOutlinerFolder = TEXT(""));
 
+	static bool BakePCGData(
+		const UHoudiniCookable* InCookable,
+		int32 InOutputIndex,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		FHoudiniEngineBakeState& InBakeState,
+		const FDirectoryPath& InBakeFolder,
+		const FDirectoryPath& InTempCookFolder,
+		const FHoudiniBakeSettings& BakeSettings,
+		const TArray<FHoudiniEngineBakedActor>& InBakedActors,
+		TArray<FHoudiniEngineBakedActor>& OutActors,
+		FHoudiniBakedObjectData& BakedObjectData,
+		TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
+		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
+		AActor* InFallbackActor = nullptr,
+		const FString& InFallbackWorldOutlinerFolder = TEXT(""));
 
 	static UAnimSequence* CreateBakedAnimSequence(
 		const FString& ObjectName,

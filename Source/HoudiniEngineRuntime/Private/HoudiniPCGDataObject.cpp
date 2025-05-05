@@ -581,3 +581,9 @@ void UHoudiniPCGDataCollection::AddObject(UHoudiniPCGDataObject* Object)
 		Details = Object;
 	}
 }
+
+UHoudiniPCGOutputData::UHoudiniPCGOutputData(class FObjectInitializer const& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}

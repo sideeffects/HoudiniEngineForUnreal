@@ -71,7 +71,9 @@ public:
 	UPROPERTY()
 	bool bIsTabsShown;
 
-	UPROPERTY()
+	// NOTE: TabFolders was previously not transient, but it just seems to be set and cleared in the details panel.
+	// Having it non-transient creates error when duplicating properties.
+	UPROPERTY(Transient)
 	TArray<TObjectPtr<UHoudiniParameterFolder>> TabFolders;
 
 

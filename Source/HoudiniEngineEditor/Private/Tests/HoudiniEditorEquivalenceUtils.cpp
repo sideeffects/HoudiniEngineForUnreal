@@ -1642,11 +1642,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFolderL
 
 	Result &= TestExpressionError(A->bIsTabMenu == B->bIsTabMenu, Header, "bIsTabMenu");
 	Result &= TestExpressionError(A->bIsTabsShown == B->bIsTabsShown, Header, "bIsTabsShown");
-	Result &= TestExpressionError(A->TabFolders.Num() == B->TabFolders.Num(), Header, "TabFolders.Num");
-	for (int i = 0; i < FMath::Min(A->TabFolders.Num(), B->TabFolders.Num()); i++)
-	{
-		Result &= TestExpressionError(IsEquivalent(A->TabFolders[i], B->TabFolders[i]), Header, "TabFolders");
-	}
 
 	return Result;
 }

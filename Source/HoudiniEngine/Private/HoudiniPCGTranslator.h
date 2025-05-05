@@ -28,37 +28,11 @@
 
 #include "HAPI/HAPI_Common.h"
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniOutput.h"
 #include "Data/PCGPointData.h"
 #include "Data/PCGSplineData.h"
-#include "HoudiniPCGTranslator.generated.h"
 
-class UHoudiniOutput;
-class UPCGMetadata;
-class UPCGParamData;
-
-UCLASS()
-class UHoudiniPCGOutputData : public UObject
-{
-public:
-	GENERATED_UCLASS_BODY()
-
-	UPROPERTY()
-	TObjectPtr<UPCGParamData> DetailsParams = nullptr;
-
-	UPROPERTY()
-	TObjectPtr<UPCGParamData> PrimsParams = nullptr;
-
-	UPROPERTY()
-	TObjectPtr<UPCGParamData> VertexParams = nullptr;
-
-	UPROPERTY()
-	TObjectPtr<UPCGPointData> PointParams = nullptr;
-
-	UPROPERTY()
-	TArray<TObjectPtr<UPCGSplineData>> SplineParams;
-
-};
-
+class UHoudiniPCGOutputData;
 
 struct HOUDINIENGINE_API FHoudiniPCGTranslator
 {

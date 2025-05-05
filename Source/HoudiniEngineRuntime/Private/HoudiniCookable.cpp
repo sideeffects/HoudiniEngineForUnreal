@@ -420,6 +420,7 @@ bool HoudiniAreObjectsEqual(const UObject* A, const UObject*B)
 	return true;
 }
 
+
 bool UHoudiniCookable::SetParameterData(UCookableParameterData* InParameterData)
 {
 	bool bChanged = false;
@@ -435,12 +436,17 @@ bool UHoudiniCookable::SetParameterData(UCookableParameterData* InParameterData)
 
 	for (int Index = 0; Index < ParameterData->Parameters.Num(); Index++)
 	{
-		if (!HoudiniCheckAndSetValue(ParameterData->Parameters[Index], InParameterData->Parameters[Index]))
+		if (!HoudiniAreObjectsEqual(ParameterData->Parameters[Index], InParameterData->Parameters[Index]))
 		{
 			bChanged = true;
 			if(IsValid(InParameterData->Parameters[Index]))
 			{
-				ParameterData->Parameters[Index] = DuplicateObject(InParameterData->Parameters[Index], this);
+
+		//		ParameterData->Parameters[Index] = DuplicateObject(InParameterData->Parameters[Index], ParameterData);
+				ParameterData->Parameters[Index] = NewObject<UHoudiniParameter>(ParameterData, InParameterData->Parameters[Index].GetClass());
+			//	UEngine::FCopyPropertiesForUnrelatedObjectsParams Params;
+				UEngine::CopyPropertiesForUnrelatedObjects(InParameterData->Parameters[Index], ParameterData->Parameters[Index]);
+
 				ParameterData->Parameters[Index]->MarkChanged(true);
 			}
 			else

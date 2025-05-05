@@ -260,3 +260,29 @@ public:
     TArray<TObjectPtr<UHoudiniPCGDataObject>> Splines;
 
 };
+
+class UPCGMetadata;
+class UPCGParamData;
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniPCGOutputData : public UObject
+{
+public:
+    GENERATED_UCLASS_BODY()
+
+    UPROPERTY()
+    TObjectPtr<UPCGParamData> DetailsParams = nullptr;
+
+    UPROPERTY()
+    TObjectPtr<UPCGParamData> PrimsParams = nullptr;
+
+    UPROPERTY()
+    TObjectPtr<UPCGParamData> VertexParams = nullptr;
+
+    UPROPERTY()
+    TObjectPtr<UPCGPointData> PointParams = nullptr;
+
+    UPROPERTY()
+    TArray<TObjectPtr<UPCGSplineData>> SplineParams;
+
+};

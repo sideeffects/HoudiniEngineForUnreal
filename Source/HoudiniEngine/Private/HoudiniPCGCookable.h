@@ -25,6 +25,7 @@
 
 #include "UObject/ObjectMacros.h"
 #include "HoudiniCookable.h"
+#include "HoudiniPCGDataObject.h"
 #include "PCGComponent.h"
 #include "HoudiniPCGCookable.generated.h"
 
@@ -48,7 +49,7 @@ enum class EPCGCookableState
 	// Typically Setting parameters and inputs occurs between Initialized and Cooked.
 
 	Cooking,			// Cookable is cooking.
-	Done				// Cookable is done cooking and outputs have been processed.
+	CookingComplete		// Cookable is done cooking and outputs have been processed.
 };
 
 UCLASS()
@@ -93,10 +94,13 @@ public:
 	// Updates the current cookable state.
 	void Update(FPCGContext* Context);
 
+	// Bake the Cookable
+	void Bake();
+
 	UPROPERTY(EditAnywhere, Category = Settings)
 	bool bAutomaticallyDeleteAssets = true;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TObjectPtr<UHoudiniCookable> Cookable;
 
 
@@ -105,17 +109,27 @@ public:
 	bool bParamsChanged = false;
 	bool bInputsChanged = false;
 
-private:
+	void ProcessCookedOutput(FPCGContext* Context);
+	void ProcessBakedOutput(FPCGContext* Context);
 
+private:
 
 	UPROPERTY()
 	TObjectPtr<UPCGComponent> PCGComponent;
 
 	TArray<FSoftObjectPath> TrackedObjects;
 	int CookCount = -1;
+	FDelegateHandle PDGTopNetworkCookedDelegate;
 
-	static void CreateOutputsAsObjectReferences(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const TArray<FHoudiniPCGObjectOutput> & Outputs);
-	static void CreateOutputsAsPCGData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutputs);
+	void ProcessCookedOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput);
+	void ProcessBakedOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput);
+	static void CreateOutputPinFromCookedData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput);
+	static void CreateOutputPinFromBakedData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput);
+	static void CreateOutputPinData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const TArray<FHoudiniPCGObjectOutput> & Outputs);
+	static void CopyCookedPCGOutputDataToPinData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput);
+	static void CopyBakedPCGOutputDataToPinData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput);
+
+	static void CopyPCGOutputDataToPinData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniPCGOutputData* PCGOutput);
 
 	bool ApplyInputsToCookable(const FPCGContext* InContext);
 
@@ -127,8 +141,6 @@ private:
 
 	void InvalidateCookable();
 
-	void ProcessCookableOutput(FPCGContext* Context);
-
 	void AddTrackedObjects(const FPCGContext* Context);
 
 	bool ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const TArray<FString> & InputObjects);
@@ -139,7 +151,6 @@ private:
 
 	bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
 
-	void CreateOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutputs);
 };
 
 

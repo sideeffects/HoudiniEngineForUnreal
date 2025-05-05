@@ -32,6 +32,7 @@ class UHoudiniInput;
 
 struct FHoudiniPCGObjectOutput
 {
+	// Data to be output on the output pin of the executed node.
 	int OutputObjectIndex = 0;
 	FSoftObjectPath ComponentPath;
 	FSoftObjectPath ActorPath;
@@ -106,9 +107,11 @@ public:
 
 	static FString GetHDAInputName(int Index);
 
-	static bool HasPCGOutputs(const UHoudiniOutput* HoudiniOutputs);
+	static bool HasPCGOutputs(const UHoudiniOutput* HoudiniOutput);
+	static bool HasPCGOutputs(const FHoudiniBakedOutput* HoudiniOutput);
 
 	static TArray<FHoudiniPCGObjectOutput> GetPCGOutputData(const UHoudiniOutput * HoudiniOutput);
+	static TArray<FHoudiniPCGObjectOutput> GetPCGOutputData(const FHoudiniBakedOutput * BakedOutput);
 
 	static TArray<FString> GetValueAsString(const TArray<FString>& DefaultValues, const FHoudiniPCGAttributes & Attributes, int RowIndex);
 	static TArray<int> GetValueAsInt(const TArray<int>& DefaultValues, const FHoudiniPCGAttributes& Attributes, int RowIndex);
@@ -119,6 +122,7 @@ public:
 
 	static EHoudiniPCGSessionStatus SessionStatus;
 
+	static FString GetTypeStringFromObject(UObject * Object);
 private:
 	// Synchronization primitive. 
 	static FCriticalSection CriticalSection;

@@ -100,7 +100,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		return false;
 
 
-	UObject* Outer = HC->IsComponentSupported() ? HC->ComponentData->Component.Get() : Cast<UObject>(HC);
+	UObject* Outer = Cast<UObject>(HC);
 
 	// 1. Update the output objects
 	UpdateOutputObjects(

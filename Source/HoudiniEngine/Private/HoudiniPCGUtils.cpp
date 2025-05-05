@@ -54,6 +54,61 @@ FHoudiniPCGUtils::UnrealToHoudini(const FVector3d& UnrealVector, float HoudiniVe
 }
 
 TArray<FHoudiniPCGObjectOutput>
+FHoudiniPCGUtils::GetPCGOutputData(const FHoudiniBakedOutput* BakedOutput)
+{
+	TArray<FHoudiniPCGObjectOutput> Outputs;
+
+	int ObjectIndex = 0;
+	for(auto It : BakedOutput->BakedOutputObjects)
+	{
+		auto& BakedOutputObject = It.Value;
+
+		FHoudiniPCGObjectOutput& PCGOutputObject = Outputs.Emplace_GetRef();
+		PCGOutputObject.OutputObjectIndex = ObjectIndex;
+		PCGOutputObject.ActorPath = BakedOutputObject.Actor;
+		PCGOutputObject.ComponentPath = BakedOutputObject.BakedComponent;
+		PCGOutputObject.ObjectPath = BakedOutputObject.BakedObject;
+
+		if (PCGOutputObject.ActorPath.IsValid())
+		{
+			UObject* LoadedObject = StaticLoadObject(UObject::StaticClass(), nullptr, *PCGOutputObject.ActorPath.ToString());
+			if(IsValid(LoadedObject))
+				PCGOutputObject.OutputType = FHoudiniPCGUtils::GetTypeStringFromObject(LoadedObject);
+		}
+
+		if (PCGOutputObject.OutputType.IsEmpty())
+		{
+			if(PCGOutputObject.ObjectPath.IsValid())
+			{
+				UObject* LoadedObject = StaticLoadObject(UObject::StaticClass(), nullptr, *PCGOutputObject.ObjectPath.ToString());
+				if(IsValid(LoadedObject))
+					PCGOutputObject.OutputType = FHoudiniPCGUtils::GetTypeStringFromObject(LoadedObject);
+			}
+		}
+
+		ObjectIndex++;
+	}
+	return Outputs;
+}
+
+FString FHoudiniPCGUtils::GetTypeStringFromObject(UObject* Object)
+{
+	if (Object->IsA<UStaticMesh>())
+	{
+		return TEXT("Mesh");
+	}
+	else if (Object->IsA<UHoudiniLandscapeTargetLayerOutput>() || Object->IsA<ALandscapeProxy>())
+	{
+		return TEXT("Landscape");
+	}
+	else
+	{
+		return TEXT("");
+	}
+}
+
+
+TArray<FHoudiniPCGObjectOutput>
 FHoudiniPCGUtils::GetPCGOutputData(const UHoudiniOutput* HoudiniOutput)
 {
 	TArray<FHoudiniPCGObjectOutput> Outputs;
@@ -65,10 +120,10 @@ FHoudiniPCGUtils::GetPCGOutputData(const UHoudiniOutput* HoudiniOutput)
 
 		FHoudiniPCGObjectOutput& PCGOutputObject = Outputs.Emplace_GetRef();
 		PCGOutputObject.OutputObjectIndex = ObjectIndex;
+		PCGOutputObject.OutputType = GetTypeStringFromObject(OutputObj.OutputObject.Get());
 
 		if (UHoudiniLandscapeTargetLayerOutput * LandscapeOutput = Cast<UHoudiniLandscapeTargetLayerOutput>(OutputObj.OutputObject.Get()))
 		{
-			PCGOutputObject.OutputType = TEXT("Landscape");
 			if (IsValid(LandscapeOutput->Landscape))
 				PCGOutputObject.ActorPath = LandscapeOutput->Landscape->GetPathName();
 			else if (IsValid(LandscapeOutput->LandscapeProxy))
@@ -79,9 +134,6 @@ FHoudiniPCGUtils::GetPCGOutputData(const UHoudiniOutput* HoudiniOutput)
 			if(OutputObj.OutputObject)
 			{
 				PCGOutputObject.ObjectPath = OutputObj.OutputObject.GetPathName();
-
-				if(OutputObj.OutputObject->IsA<UStaticMesh>())
-					PCGOutputObject.OutputType = TEXT("Mesh");
 			}
 
 			if(OutputObj.OutputComponents.Num() > 0)
@@ -122,6 +174,20 @@ FHoudiniPCGUtils::HasPCGOutputs(const UHoudiniOutput* HoudiniOutput)
 	}
 	return false;
 }
+
+bool
+FHoudiniPCGUtils::HasPCGOutputs(const FHoudiniBakedOutput* HoudiniOutput)
+{
+	for(auto& It : HoudiniOutput->BakedOutputObjects)
+	{
+		auto& Object = It.Value;
+
+		if(IsValid(Object.PCGOutputData))
+			return true;
+	}
+	return false;
+}
+
 
 EHoudiniPCGInputType
 FHoudiniPCGUtils::GetInputType(const UPCGData* PCGData)
