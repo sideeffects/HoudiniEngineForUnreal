@@ -3087,7 +3087,6 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(
 	FHoudiniBakeSettings BakeSettings;
 	BakeSettings.SetFromHAC(HAC);
 
-	void SetFromHAC(UHoudiniAssetComponent * HAC);
 	FHoudiniOutputDetails::OnBakeOutputObject(
 		InBakeName.IsNone() ? OutputObject->BakeName : InBakeName.ToString(),
 		ObjectToBake,

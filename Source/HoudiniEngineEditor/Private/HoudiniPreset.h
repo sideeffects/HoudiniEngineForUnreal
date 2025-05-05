@@ -184,7 +184,7 @@ struct FHoudiniPresetMultiParmValues : public FHoudiniPresetBase
 	virtual FString ToString() override { return FString::Format(TEXT("Number of Elements: {0}"), { Count }); }
 
 	UPROPERTY(EditAnywhere, Category = "Houdini Preset")
-	int Count;
+	int Count = 0;
 };
 
 USTRUCT(BlueprintType)
