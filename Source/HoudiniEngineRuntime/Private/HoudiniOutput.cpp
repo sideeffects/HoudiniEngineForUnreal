@@ -27,6 +27,7 @@
 #include "HoudiniOutput.h"
 
 #include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
 #include "HoudiniSplineComponent.h"
@@ -663,12 +664,15 @@ UHoudiniOutput::GetBounds() const
 				    CurCurveBound += Trans.GetLocation();
 			    }
 
-			    UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(GetOuter());
-			    if (IsValid(OuterHAC))
-				    BoxBounds += CurCurveBound.MoveTo(OuterHAC->GetComponentLocation());
+				UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(GetOuter());
+				if (IsValid(OuterHC))
+				{
+					USceneComponent* OuterComp = OuterHC->GetComponent();
+					if (IsValid(OuterComp))
+						BoxBounds += CurCurveBound.MoveTo(OuterComp->GetComponentLocation());
+				}
 			}
 		}
-
 	}
 	break;
 

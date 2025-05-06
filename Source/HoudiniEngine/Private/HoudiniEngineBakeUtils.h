@@ -38,7 +38,6 @@
 struct FHoudiniEngineBakedActor;
 class UDataTable;
 class ULevelInstanceComponent;
-class UHoudiniAssetComponent;
 class UHoudiniOutput;
 class ALandscapeProxy;
 class UStaticMesh;

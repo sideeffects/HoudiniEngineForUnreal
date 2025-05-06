@@ -325,9 +325,6 @@ public:
 	UPROPERTY()
 	bool bLastCookSuccess;
 
-	/*UPROPERTY(DuplicateTransient)
-	TSet<UHoudiniAssetComponent*> DownstreamHoudiniAssets;*/
-
 	UPROPERTY()
 	FGuid ComponentGUID;
 

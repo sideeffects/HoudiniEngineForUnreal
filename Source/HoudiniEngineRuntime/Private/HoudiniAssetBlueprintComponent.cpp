@@ -1436,13 +1436,16 @@ UHoudiniAssetBlueprintComponent::OnRegister()
 	if (IsPreview())
 	{
 		check(CachedTemplateComponent.Get());
+
+		UHoudiniCookable* CachedCookable = CachedTemplateComponent->GetCookable();
+
 		// Ensure that the component template has been registered since it needs to be processed for parameter updates by the HE manager.
-		if (!FHoudiniEngineRuntime::Get().IsComponentRegistered(CachedTemplateComponent.Get()))
+		if (!FHoudiniEngineRuntime::Get().IsCookableRegistered(CachedCookable))
 		{
 			// The template component has not been registered yet, which means that we're probably busy opening a Blueprint editor and this
 			// preview component will need to be updated.
 		
-			FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(CachedTemplateComponent.Get(), true);
+			FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(CachedCookable, true);
 			CachedTemplateComponent->SetCanDeleteHoudiniNodes(false);
 			// Since we're likely opening a fresh blueprint editor, we'll need to instantiate the HDA.
 			bHasRegisteredComponentTemplate = true;

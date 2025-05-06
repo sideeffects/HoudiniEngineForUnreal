@@ -467,7 +467,7 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 			if (!IsValid(CurInputObject))
 				continue;
 
-			if (CurInputObject->Type == EHoudiniInputObjectType::HoudiniAssetComponent)
+			if (CurInputObject->Type == EHoudiniInputObjectType::HoudiniAssetComponent || CurInputObject->Type == EHoudiniInputObjectType::HoudiniCookable)
 			{
 				// Houdini Asset Input, we don't want to destroy / invalidate the input HDA!
 				// Just remove this input object's node Id from the CreatedInputDataAssetIds array
@@ -1137,14 +1137,14 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 			//if (InInput->GetInputType() == EHoudiniInputType::Asset_DEPRECATED)
 			if (InInput->IsAssetInput())
 			{
-				UHoudiniAssetComponent * OuterHAC = Cast<UHoudiniAssetComponent>(InInput->GetOuter());
-				HAPI_NodeId  AssetId = OuterHAC->GetAssetId();
+				UHoudiniCookable * OuterHC = Cast<UHoudiniCookable>(InInput->GetOuter());
+				HAPI_NodeId  OuterNodeId = OuterHC->GetNodeId();
 
 				// Disconnect the asset input
 				if (InputNodeId >= 0 && InInput->GetInputIndex() >= 0)
 				{
 					HOUDINI_CHECK_ERROR(FHoudiniApi::DisconnectNodeInput(
-						FHoudiniEngine::Get().GetSession(), AssetId, InInput->GetInputIndex()));
+						FHoudiniEngine::Get().GetSession(), OuterNodeId, InInput->GetInputIndex()));
 				}
 			}
 			else if (InInput->GetInputType() == EHoudiniInputType::World)
@@ -1566,9 +1566,10 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 
 		case EHoudiniInputObjectType::HoudiniAssetActor:
 		case EHoudiniInputObjectType::HoudiniAssetComponent:
+		case EHoudiniInputObjectType::HoudiniCookable:
 		{
 			UHoudiniInputHoudiniAsset* InputHAC = Cast<UHoudiniInputHoudiniAsset>(InInputObject);
-			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent(
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniCookable(
 				ObjBaseName,
 				InputHAC,
 				InputSettings);
@@ -2549,6 +2550,12 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActorReference(
 			{
 				// Ref
 				UObject* Obj = CurComponent->GetObject();
+				if (Obj->IsA(UHoudiniCookable::StaticClass()))
+				{
+					UHoudiniCookable* HC = Cast<UHoudiniCookable>(Obj);
+					Obj = HC->GetComponent();
+				}
+
 				FString AssetRef = FString();
 				if (IsValid(Obj))
 					AssetRef = UHoudiniInputObject::FormatAssetReference(Obj->GetFullName());
@@ -4017,35 +4024,40 @@ FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniSplineComponent(
 }
 
 bool
-FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent(
+FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniCookable(
 		const FString& InObjNodeName,
 		UHoudiniInputHoudiniAsset* InObject,
 		const FHoudiniInputObjectSettings& InInputSettings)
 {
-	// TODO: COOKABLE
-
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent);
-
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniCookable);
 	if (!IsValid(InObject))
 		return false;
 
-	UHoudiniAssetComponent* InputHAC = InObject->GetHoudiniAssetComponent();
-	if (!IsValid(InputHAC))
-		return true;
+	UHoudiniCookable* InputHC = InObject->GetHoudiniCookable();
+	if (!IsValid(InputHC))
+	{
+		UHoudiniAssetComponent* InputHAC = InObject->GetHoudiniAssetComponent();
+		if (!IsValid(InputHAC))
+			return true;
 
-	if (!InputHAC->CanDeleteHoudiniNodes())
-		return true;
+		if (!InputHAC->CanDeleteHoudiniNodes())
+			return true;
+
+		InputHC = InputHAC->GetCookable();
+		if (!IsValid(InputHC))
+			return true;
+	}
 
 	UHoudiniInput* HoudiniInput = Cast<UHoudiniInput>(InObject->GetOuter());
 	if (!IsValid(HoudiniInput))
 		return true;
 
-	UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(HoudiniInput->GetOuter());
-	if (!IsValid(OuterHAC))
+	UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(HoudiniInput->GetOuter());
+	if (!IsValid(OuterHC))
 		return true;
 
 	// Do not allow using ourself as an input, terrible things would happen
-	if (InputHAC->GetAssetId() == OuterHAC->GetAssetId())
+	if (InputHC->GetNodeId() == OuterHC->GetNodeId())
 		return false;
 
 	// If previously imported as ref, delete the input node.
@@ -4070,9 +4082,6 @@ FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent(
 
 	// If this object is in an Asset input, we need to set the InputNodeId directly
 	// to avoid creating extra merge nodes. World inputs should not do that!
-
-	// TODO: CHECK ME!
-	//bool bIsAssetInput = HoudiniInput->GetInputType() == EHoudiniInputType::Asset_DEPRECATED;
 	bool bIsAssetInput = HoudiniInput->IsAssetInput();
 
 	if (InInputSettings.bImportAsReference) 
@@ -4091,57 +4100,51 @@ FHoudiniInputTranslator::HapiCreateInputNodeForHoudiniAssetComponent(
 		FUnrealObjectInputHandle InputNodeHandle;
 		if (!FHoudiniInputTranslator::CreateInputNodeForReference(
 				InputNodeId,
-				InputHAC,
+				InputHC->GetOwner(),
 				HAName,
 				InObject->GetTransform(),
 				InInputSettings.bImportAsReferenceRotScaleEnabled,
 				InputNodeHandle,
-				InObject->CanDeleteHoudiniNodes())) // do not delete previous node if it was HAC
+				InObject->CanDeleteHoudiniNodes())) // do not delete previous node if it was HC
 			return false;
 
 		InObject->SetInputNodeId(InputNodeId);
-
 		if (bIsAssetInput)
 			HoudiniInput->SetInputNodeId(InObject->GetInputNodeId());
 	}
 
-	InputHAC->AddDownstreamHoudiniAsset(OuterHAC);
-
-	//if (HAC->NeedsInitialization())
-	//	HAC->MarkAsNeedInstantiation();
-
-	//HoudiniInput->SetAssetNodeId(HAC->GetAssetId());
+	InputHC->AddDownstreamCookable(OuterHC);
 
 	// TODO: This might be uneeded as this function should only be called
-	// after we're not  wiating on the input asset...
-	if (InputHAC->GetAssetState() == EHoudiniAssetState::NeedInstantiation)
+	// after we're not waiting on the input asset...
+	if (InputHC->GetCurrentState() == EHoudiniAssetState::NeedInstantiation)
 	{
 		// If the input HAC needs to be instantiated, tell it do so
-		InputHAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
+		InputHC->SetCurrentState(EHoudiniAssetState::PreInstantiation);
 		// Mark this object's input as changed so we can properly update after the input HDA's done instantiating/cooking
 		HoudiniInput->MarkChanged(true);
 	}
 
-	if (InputHAC->NeedsInitialization() || InputHAC->NeedUpdate())
+	//if (InputHC->NeedsInitialization() || InputHC->NeedUpdate())
+	if (InputHC->NeedUpdate())
 		return false;
 
 	if (!InInputSettings.bImportAsReference)
 	{
 		if (bIsAssetInput)
-			HoudiniInput->SetInputNodeId(InputHAC->GetAssetId());
+			HoudiniInput->SetInputNodeId(InputHC->GetNodeId());
 
-		InObject->SetInputNodeId(InputHAC->GetAssetId());
+		InObject->SetInputNodeId(InputHC->GetNodeId());
 	}
 
 	InObject->SetInputObjectNodeId(InObject->GetInputNodeId());
 	
 	bool bReturn = InObject->GetInputNodeId() > -1;
-
 	if(bIsAssetInput)
 		bReturn = FHoudiniInputTranslator::ConnectInputNode(HoudiniInput);
 
 	// Update the cached data and input settings
-	InObject->Update(InputHAC, InInputSettings);
+	InObject->Update(InputHC, InInputSettings);
 
 	return bReturn;
 }

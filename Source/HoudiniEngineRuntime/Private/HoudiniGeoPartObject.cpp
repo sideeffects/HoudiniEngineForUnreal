@@ -75,22 +75,6 @@ FHoudiniGeoPartObject::Equals(const FHoudiniGeoPartObject & GeoPartObject, const
 {
 	// TODO: This will likely need some improvement!
 
-	/*
-	// Object/Geo/Part IDs must match
-	if (ObjectId != GeoPartObject.ObjectId || GeoId != GeoPartObject.GeoId || PartId != GeoPartObject.PartId)
-		return false;
-
-	if (!bIgnoreSplit)
-	{
-		// If the split type and index match, we're equal...
-		if (SplitType == GeoPartObject.SplitType && SplitIndex == GeoPartObject.SplitIndex)
-			return true;
-
-		// ... if not we should compare our names
-		return CompareNames(GeoPartObject, bIgnoreSplit);
-	}
-	*/
-
 	// See if objects / geo / part ids  match
 	bool MatchingIDs = true;
 	if (ObjectId != GeoPartObject.ObjectId || GeoId != GeoPartObject.GeoId || PartId != GeoPartObject.PartId)

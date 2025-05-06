@@ -55,6 +55,7 @@ class USkeletalMeshComponent;
 class UInstancedStaticMeshComponent;
 class USplineComponent;
 class UHoudiniAssetComponent;
+class UHoudiniCookable;
 class AActor;
 class ALandscapeProxy;
 class ABrush;
@@ -81,7 +82,7 @@ enum class EHoudiniInputObjectType : uint8
 	InstancedStaticMeshComponent,
 	SplineComponent,
 	HoudiniSplineComponent,
-	HoudiniAssetComponent,
+	HoudiniAssetComponent,		// TODO: Change to cookable?
 	Actor,
 	Landscape,
 	Brush,
@@ -102,6 +103,7 @@ enum class EHoudiniInputObjectType : uint8
 	PackedLevelActor,
 	PCGData,
 	Texture,
+	HoudiniCookable
 };
 
 
@@ -733,20 +735,25 @@ public:
 	virtual void Update(UObject * InObject, const FHoudiniInputObjectSettings& InSettings) override;
 
 	// Getter for the asset Id of the tracked HAC. Updated via Update().
-	int32 GetAssetId() const { return AssetId; }
+	int32 GetNodeId() const { return NodeId; }
+
+	// Cookable accessor
+	UHoudiniCookable* GetHoudiniCookable();
 
 	// UHoudiniAssetComponent accessor
+	// TODO: Legacy - replaced by GetCookable
 	UHoudiniAssetComponent* GetHoudiniAssetComponent();
 public:
 
 	// The output index of the node that we want to use as input
 	UPROPERTY()
-	int32 AssetOutputIndex;
+	int32 OutputIndex;
 
 protected:
-	// The asset ID recorded at the last Update().
+
+	// The node ID recorded at the last Update().
 	UPROPERTY()
-	int32 AssetId;
+	int32 NodeId;
 
 };
 

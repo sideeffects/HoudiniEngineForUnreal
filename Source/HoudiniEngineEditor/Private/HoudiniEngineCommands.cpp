@@ -661,7 +661,7 @@ FHoudiniEngineCommands::PauseAssetCooking()
 
 	// We need to refresh UI when pause cooking. Set refresh UI counter to be the number of current registered HCs.
 	if (!bCurrentCookingEnabled)
-		FHoudiniEngine::Get().SetUIRefreshCountWhenPauseCooking( FHoudiniEngineRuntime::Get().GetRegisteredHoudiniComponentCount() );
+		FHoudiniEngine::Get().SetUIRefreshCountWhenPauseCooking( FHoudiniEngineRuntime::Get().GetRegisteredHoudiniCookableCount() );
 
 	// Add a slate notification
 	FString Notification = TEXT("Houdini Engine cooking paused");

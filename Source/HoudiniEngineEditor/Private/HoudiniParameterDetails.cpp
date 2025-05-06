@@ -1434,7 +1434,7 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(
 					continue;
 
 				// Do not allow mode change when the Houdini asset component is cooking
-				if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(NextSelectedParam.Get()))
+				if (FHoudiniEngineUtils::IsHoudiniCookableCooking(NextSelectedParam.Get()))
 					continue;
 
 				switch (MainParam->GetParameterType())
@@ -1447,7 +1447,7 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(
 							continue;
 
 						// Do not sync the selected color ramp parameter if its parent HDA is being cooked
-						if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(ColorRampParameter))
+						if (FHoudiniEngineUtils::IsHoudiniCookableCooking(ColorRampParameter))
 							continue;
 
 						// Sync the Cached curve points at update mode switch.
@@ -1464,7 +1464,7 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(
 							continue;
 
 						// Do not sync the selected float ramp parameter if its parent HDA is being cooked
-						if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(FloatRampParameter))
+						if (FHoudiniEngineUtils::IsHoudiniCookableCooking(FloatRampParameter))
 							continue;
 
 						// Sync the Cached curve points at update mode switch.
@@ -1491,7 +1491,7 @@ FHoudiniParameterDetails::CreateNameWidgetWithAutoUpdate(
 					continue;
 
 				// Do not allow mode change when the Houdini asset component is cooking
-				if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(NextSelectedParam.Get()))
+				if (FHoudiniEngineUtils::IsHoudiniCookableCooking(NextSelectedParam.Get()))
 					continue;
 
 				NextSelectedParam->SetAutoUpdate(false);

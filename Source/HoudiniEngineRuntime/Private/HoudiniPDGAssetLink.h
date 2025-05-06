@@ -815,12 +815,6 @@ private:
 	
 public:
 
-	//UPROPERTY()
-	//UHoudiniAsset*				HoudiniAsset;
-
-	//UPROPERTY()
-	//UHoudiniAssetComponent*		ParentHAC;
-
 	UPROPERTY(DuplicateTransient, NonTransactional)
 	FString						AssetName;
 

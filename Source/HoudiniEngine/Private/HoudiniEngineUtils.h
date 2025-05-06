@@ -458,8 +458,8 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Triggers an update the details panel
 		static void UpdateBlueprintEditor(UHoudiniAssetComponent* HAC);
 
-		// Check if the Houdini asset component is being cooked
-		static bool IsHoudiniAssetComponentCooking(UObject* InObj);
+		// Check if a cookable or parent cookable is being cooked
+		static bool IsHoudiniCookableCooking(UObject* InObj);
 
 		// Helper function to set float attribute data
 		// The data will be sent in chunks if too large for thrift

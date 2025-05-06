@@ -36,7 +36,6 @@ class UHoudiniAssetComponent;
 class UHoudiniCookable;
 class UHoudiniPDGAssetLink;
 
-
 UCLASS(hidecategories = (Input), ConversionRoot, meta = (ChildCanTick), Blueprintable)
 class HOUDINIENGINERUNTIME_API AHoudiniAssetActor : public AActor
 {

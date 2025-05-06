@@ -30,7 +30,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniInput.h"
 #include "HoudiniOutput.h"
-#include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "HoudiniSplineComponent.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"
@@ -205,13 +205,6 @@ FHoudiniSplineTranslator::ConvertQuaternionRotationToVectorData(const TArray<flo
 			Itr += 4;
 		}
 	}
-}
-
-void
-FHoudiniSplineTranslator::UpdateHoudiniInputCurves(UHoudiniAssetComponent* HAC)
-{
-	for (UHoudiniInput * NextInput : HAC->GetInputs())
-		UpdateHoudiniInputCurves(NextInput);
 }
 
 void
@@ -1563,17 +1556,20 @@ FHoudiniSplineTranslator::CreateHoudiniSplineComponentFromHoudiniEditableNode(co
 }
 
 UHoudiniSplineComponent*
-FHoudiniSplineTranslator::CreateOutputHoudiniSplineComponent(UHoudiniAssetComponent* OuterHAC, TArray<FVector>& CurvePoints, const TArray<FVector>& CurveRotations, const TArray<FVector>& CurveScales)
+FHoudiniSplineTranslator::CreateOutputHoudiniSplineComponent(
+	UHoudiniCookable* OuterHC,
+	TArray<FVector>& CurvePoints,
+	const TArray<FVector>& CurveRotations,
+	const TArray<FVector>& CurveScales)
 {
-	if (!IsValid(OuterHAC))
+	if (!IsValid(OuterHC))
 		return nullptr;
 
-	UObject* Outer = nullptr;
-	if (IsValid(OuterHAC))
-		Outer = OuterHAC->GetOwner() ? OuterHAC->GetOwner() : OuterHAC->GetOuter();
+	USceneComponent* OuterComp = OuterHC->GetComponent();
+	if (!IsValid(OuterComp))
+		return nullptr;
 
-	UHoudiniSplineComponent *NewHoudiniSplineComponent = NewObject<UHoudiniSplineComponent>(Outer, UHoudiniSplineComponent::StaticClass(), NAME_None, RF_Transactional);
-
+	UHoudiniSplineComponent *NewHoudiniSplineComponent = NewObject<UHoudiniSplineComponent>(OuterHC, UHoudiniSplineComponent::StaticClass(), NAME_None, RF_Transactional);
 	if (!NewHoudiniSplineComponent)
 		return nullptr;
 
@@ -1600,7 +1596,7 @@ FHoudiniSplineTranslator::CreateOutputHoudiniSplineComponent(UHoudiniAssetCompon
 	NewHoudiniSplineComponent->CurveType = EHoudiniCurveType::Polygon;
 	NewHoudiniSplineComponent->bIsOutputCurve = true;
 
-	NewHoudiniSplineComponent->AttachToComponent(OuterHAC, FAttachmentTransformRules::KeepRelativeTransform);
+	NewHoudiniSplineComponent->AttachToComponent(OuterComp, FAttachmentTransformRules::KeepRelativeTransform);
 	NewHoudiniSplineComponent->RegisterComponent();
 
 	ReselectSelectedActors();

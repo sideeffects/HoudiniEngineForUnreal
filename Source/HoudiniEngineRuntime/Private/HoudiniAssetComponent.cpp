@@ -327,7 +327,7 @@ UHoudiniAssetComponent::~UHoudiniAssetComponent()
 	// This gets called in UnRegisterHoudiniComponent, with appropriate checks. Don't call it here.
 	//FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(AssetId, true);
 
-	FHoudiniEngineRuntime::Get().UnRegisterHoudiniComponent(this);
+	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(GetCookable());
 }
 
 void UHoudiniAssetComponent::PostInitProperties()
@@ -352,14 +352,7 @@ void UHoudiniAssetComponent::PostInitProperties()
 	}
 
 	// Register ourself to the HER singleton
-	if (GetCookable())
-	{
-		FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(GetCookable());
-	}
-	else
-	{
-		RegisterHoudiniComponent(this);
-	}
+	FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(GetCookable());
 }
 
 UWorld* 
@@ -702,7 +695,6 @@ UHoudiniAssetComponent::SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(
 void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset * InHoudiniAsset)
 {
-	// TODO COOKABLE: HANDLE THIS
 	// Check the asset validity
 	if (!IsValid(InHoudiniAsset))
 		return;
@@ -715,7 +707,9 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset * InHoudiniAsset)
 void 
 UHoudiniAssetComponent::OnHoudiniAssetChanged()
 {
-	// TODO COOKABLE: HANDLE THIS
+	if (GetCookable())
+		return GetCookable()->OnHoudiniAssetChanged();
+
 	// TODO: clear input/params/outputs?
 	Parameters_DEPRECATED.Empty();
 
@@ -998,19 +992,24 @@ UHoudiniAssetComponent::PreventAutoUpdates()
 
 bool UHoudiniAssetComponent::NeedBlueprintStructureUpdate() const
 {
-	// TODO: Add similar flags to inputs, parametsr
+	// TODO: Add similar flags to inputs, parameters
 	return bBlueprintStructureModified;
 }
 
 bool UHoudiniAssetComponent::NeedBlueprintUpdate() const
 {
-	// TODO: Add similar flags to inputs, parametsr
+	// TODO: Add similar flags to inputs, parameters
 	return bBlueprintModified;
 }
 
 bool 
 UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
 {
+	if (GetCookable())
+		return GetCookable()->NotifyCookedToDownstreamCookables();
+
+	// TODO: Cookable - clean me
+
 	// Before notifying, clean up our downstream assets
 	// - check that they are still valid
 	// - check that we are still connected to one of its asset input
@@ -1085,28 +1084,43 @@ UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
 
 void
 UHoudiniAssetComponent::AddDownstreamHoudiniAsset(UHoudiniAssetComponent* InDownstreamAsset)
-{ 
-	// TODO COOKABLE
+{
+	if (!IsValid(InDownstreamAsset))
+		return;
+
+	if (GetCookable())
+		return GetCookable()->AddDownstreamCookable(InDownstreamAsset->GetCookable());
+
 	DownstreamHoudiniAssets.Add(InDownstreamAsset); 
 }
 
 void
 UHoudiniAssetComponent::RemoveDownstreamHoudiniAsset(UHoudiniAssetComponent* InRemoveDownstreamAsset)
 { 
-	// TODO COOKABLE
+	if (!IsValid(InRemoveDownstreamAsset))
+		return;
+
+	if (GetCookable())
+		return GetCookable()->RemoveDownstreamCookable(InRemoveDownstreamAsset->GetCookable());
+
 	DownstreamHoudiniAssets.Remove(InRemoveDownstreamAsset); 
 }
 
 void
 UHoudiniAssetComponent::ClearDownstreamHoudiniAsset()
 {
-	// TODO COOKABLE
+	if (GetCookable())
+		return GetCookable()->ClearDownstreamCookable();
+
 	DownstreamHoudiniAssets.Empty();
 }
 
 bool
 UHoudiniAssetComponent::NeedsToWaitForInputHoudiniAssets()
 {
+	if (GetCookable())
+		return GetCookable()->InputData->NeedsToWaitForInputHoudiniAssets();
+
 	for (auto& CurrentInput : Inputs_DEPRECATED)
 	{
 		if (!IsValid(CurrentInput))
@@ -1163,7 +1177,7 @@ UHoudiniAssetComponent::BeginDestroy()
 	//FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(AssetId, true);
 
 	// Unregister ourself so our houdini node can be deleted
-	FHoudiniEngineRuntime::Get().UnRegisterHoudiniComponent(this);
+	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(GetCookable());
 
 	Super::BeginDestroy();
 }
@@ -1436,14 +1450,16 @@ UHoudiniAssetComponent::PostLoad()
 	SetHasBeenDuplicated(false);
 
 	// We need to register ourself
+	// TODO: Cookable - clean me up
 	if (GetCookable())
 	{
 		FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(GetCookable());
 	}
 	else
 	{
-		RegisterHoudiniComponent(this);
+		HOUDINI_LOG_ERROR(TEXT("Post Loading an HAC with no Cookable!!! Trouble ahead!!"));
 	}
+
 
 	// Register our PDG Asset link if we have any
 
@@ -1581,8 +1597,9 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 		return Super::OnComponentDestroyed(bDestroyingHierarchy);
 	}
 
+	// TODO: Cookable - clean me up!
 	// Unregister ourself so our houdini node can be deleted
-	FHoudiniEngineRuntime::Get().UnRegisterHoudiniComponent(this);
+	//FHoudiniEngineRuntime::Get().UnRegisterHoudiniComponent(this);
 
 	HoudiniAsset_DEPRECATED = nullptr;
 
@@ -1744,11 +1761,16 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
 }
 
-void UHoudiniAssetComponent::RegisterHoudiniComponent(UHoudiniAssetComponent* InComponent)
+void
+UHoudiniAssetComponent::RegisterHoudiniComponent(UHoudiniAssetComponent* InComponent)
 {
+	UHoudiniCookable* MyCookable = GetCookable();
+	if (!IsValid(MyCookable))
+		return;
+
 	// Registration of this component is wrapped in this virtual function to allow
 	// derived classed to override this behaviour.
-	FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(InComponent);
+	FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(MyCookable);
 }
 
 void
@@ -2269,6 +2291,11 @@ UHoudiniAssetComponent::PostEditUndo()
 		}
 		else
 		{
+			// TODO: Cookable - clean me!!
+
+			HOUDINI_LOG_ERROR(TEXT("PostEditUndo called on a HAC with no cookable!!! Trouble Ahead!!"));
+
+			/*
 			if (!FHoudiniEngineRuntime::Get().IsComponentRegistered(this))
 			{
 				MarkAsNeedInstantiation();
@@ -2277,7 +2304,7 @@ UHoudiniAssetComponent::PostEditUndo()
 				bHasBeenDuplicated_DEPRECATED = false;
 
 				RegisterHoudiniComponent(this);
-			}
+			}*/
 		}
 	}
 }
@@ -2814,10 +2841,8 @@ UHoudiniAssetComponent::SetCookOnTransformChange(bool bEnable)
 void
 UHoudiniAssetComponent::SetCookOnAssetInputCook(bool bEnable)
 {
-	/*
 	if (GetCookable())
-		return GetCookable()->SetCookOnAssetInputCook(bEnable);
-	*/
+		return GetCookable()->SetCookOnCookableInputCook(bEnable);
 
 	bCookOnAssetInputCook_DEPRECATED = bEnable;
 }
@@ -3512,7 +3537,7 @@ UHoudiniAssetComponent::ProcessBPTemplate(const bool& InIsGlobalCookingEnabled)
 		// This component template no longer has an open editor and can be deregistered.
 		// TODO: Replace this polling mechanism with an "On Asset Closed" event if we
 		// can find one that actually works.
-		FHoudiniEngineRuntime::Get().UnRegisterHoudiniComponent(this);
+		FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(GetCookable());
 		return;
 	}
 
@@ -3820,6 +3845,16 @@ UHoudiniAssetComponent::TransferDataToCookable()
 	// HC->SetNodeIdsToCook(NodeIdsToCook);
 	// HC->NodesToCookCookCounts(OutputNodeCookCounts);
 	// DownstreamHoudiniAssets; // NOT COOKABLE
+	// 
+	for (auto& CurHAC : DownstreamHoudiniAssets)
+	{
+		UHoudiniCookable* CurHC = CurHAC->GetCookable();
+		if (!IsValid(CurHC))
+			continue;
+
+		HC->InputData->DownstreamCookables.Add(CurHC);
+	}
+	
 	// HC->CookableGUID = ComponentGUID;
 	// HC->HapiGUID = HapiGUID;
 	HC->HoudiniAssetData->HapiAssetName = HapiAssetName_DEPRECATED; // COOKABLE - Name

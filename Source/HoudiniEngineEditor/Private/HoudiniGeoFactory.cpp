@@ -107,8 +107,7 @@ UHoudiniGeoFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName 
 		return Super::FactoryCreateFile(InClass, InParent, InName, Flags, Filename, Parms, Warn, bOutOperationCanceled);
 
 	//
-	// TODO:
-	// Handle import settings here?
+	// TODO: Handle import settings here?
 	// 
 	UObject* Success = Import(InClass, Cast<UPackage>(InParent), InName.ToString(), Filename, Flags, false);
 	if (!Success) 

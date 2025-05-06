@@ -755,6 +755,27 @@ UHoudiniCookable::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 	HoudiniAssetData->HoudiniAsset = InHoudiniAsset;
 }
 
+void
+UHoudiniCookable::OnHoudiniAssetChanged()
+{
+	// TODO: clear input/params/outputs?
+	if(IsParameterSupported())
+		ParameterData->Parameters.Empty();
+
+	if (IsInputSupported())
+		InputData->Inputs.Empty();
+
+	if (IsOutputSupported())
+		OutputData->Outputs.Empty();
+
+	// The asset has been changed, mark us as needing to be reinstantiated
+	MarkAsNeedInstantiation();
+
+	// Force an update on the next tick
+	bForceNeedUpdate = true;
+}
+
+
 void UHoudiniCookable::SetComponent(USceneComponent* InComp)
 {
 	if (!IsComponentSupported())
@@ -2494,11 +2515,106 @@ UHoudiniCookable::OnDestroy(bool bDestroyingHierarchy)
 		}
 #endif
 	}
+}
 
-	// TODO: COOKABLE - Likely not needed!
-	// this function should already be called by the component's OnComponentDestroy
-	/*if (IsComponentSupported())
+bool
+UHoudiniCookable::NotifyCookedToDownstreamCookables()
+{
+	// Before notifying, clean up our downstream cookables
+	// - check that they are still valid
+	// - check that we are still connected to one of its inputs
+	// - check that the asset has the CookOnAssetInputCook trigger enabled
+	TArray<UHoudiniCookable*> DownstreamToDelete;
+	for (auto& CurrentDownstreamHC : InputData->DownstreamCookables)
 	{
-		GetComponent()->OnComponentDestroyed(bDestroyingHierarchy);
-	}*/
+		// Remove the downstream connection by default,
+		// unless we actually were properly connected to one of this HDA's input.
+		bool bRemoveDownstream = true;
+		if (IsValid(CurrentDownstreamHC))
+		{
+			// Go through the HAC's input
+			for (auto& CurrentDownstreamInput : CurrentDownstreamHC->GetInputs())
+			{
+				if (!IsValid(CurrentDownstreamInput))
+					continue;
+
+				EHoudiniInputType CurrentDownstreamInputType = CurrentDownstreamInput->GetInputType();
+
+				// Require an asset input type, not just all World/NewWorld
+				if (!CurrentDownstreamInput->IsAssetInput())
+					continue;
+
+				// Ensure that we are an input object of that input
+				if (!CurrentDownstreamInput->ContainsInputObject(this, CurrentDownstreamInputType))
+					continue;
+
+				// We are an input to this HDA
+				// Make sure that the 
+				if (!CurrentDownstreamInput->GetImportAsReference())
+				{
+					const TArray<TObjectPtr<UHoudiniInputObject>>* ObjectArray = CurrentDownstreamInput->GetHoudiniInputObjectArray(CurrentDownstreamInputType);
+					if (ObjectArray)
+					{
+						for (auto& CurrentInputObject : (*ObjectArray))
+						{
+							if (!IsValid(CurrentInputObject))
+								continue;
+
+							if (CurrentInputObject->GetObject() != this)
+								continue;
+
+							CurrentInputObject->SetInputNodeId(GetNodeId());
+							CurrentInputObject->SetInputObjectNodeId(GetNodeId());
+						}
+					}
+				}
+
+				if (CurrentDownstreamHC->GetCookOnCookableInputCook())
+				{
+					// Mark that HAC's input has changed
+					CurrentDownstreamInput->MarkChanged(true);
+				}
+				bRemoveDownstream = false;
+			}
+		}
+
+		if (bRemoveDownstream)
+		{
+			DownstreamToDelete.Add(CurrentDownstreamHC);
+		}
+	}
+
+	for (auto ToDelete : DownstreamToDelete)
+	{
+		InputData->DownstreamCookables.Remove(ToDelete);
+	}
+
+	return true;
+}
+
+void
+UHoudiniCookable::AddDownstreamCookable(UHoudiniCookable* InDownstreamCookable)
+{
+	if (!IsValid(InDownstreamCookable))
+		return;
+
+	if (!IsInputSupported())
+		return;
+		
+	InputData->DownstreamCookables.Add(InDownstreamCookable);
+}
+
+void
+UHoudiniCookable::RemoveDownstreamCookable(UHoudiniCookable* InDownstreamCookable)
+{
+	if (!IsInputSupported())
+		return;
+
+	InputData->DownstreamCookables.Remove(InDownstreamCookable);
+}
+
+void
+UHoudiniCookable::ClearDownstreamCookable()
+{
+	InputData->DownstreamCookables.Empty();
 }

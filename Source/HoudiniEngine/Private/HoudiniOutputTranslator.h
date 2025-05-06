@@ -32,7 +32,6 @@
 
 class UHoudiniOutput;
 class UHoudiniInput;
-class UHoudiniAssetComponent;
 class AActor;
 class UActorComponent;
 class USceneComponent;

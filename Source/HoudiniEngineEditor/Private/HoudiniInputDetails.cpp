@@ -283,7 +283,7 @@ FHoudiniInputDetails::CreateNameWidget(
 FText
 FHoudiniInputDetails::GetInputTooltip(const TWeakObjectPtr<UHoudiniInput>& InParam)
 {
-	// TODO
+	// TODO: Add input tooltip
 	return FText();
 }
 
@@ -7402,7 +7402,7 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 					UHoudiniInputHoudiniAsset* InputHAC = Cast<UHoudiniInputHoudiniAsset>(CurInputObject);
 					if (IsValid(InputHAC))
 					{
-						Actor = InputHAC->GetHoudiniAssetComponent() ? InputHAC->GetHoudiniAssetComponent()->GetOwner() : nullptr;
+						Actor = InputHAC->GetHoudiniCookable() ? InputHAC->GetHoudiniCookable()->GetOwner() : nullptr;
 					}
 				}
 

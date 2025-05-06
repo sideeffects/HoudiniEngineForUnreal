@@ -403,18 +403,6 @@ FHoudiniEngine::RetrieveTaskInfo(const FGuid& InHapiGUID, FHoudiniEngineTaskInfo
 	return false;
 }
 
-/*
-void
-FHoudiniEngine::AddHoudiniAssetComponent(UHoudiniAssetComponent* HAC)
-{
-	if (!IsValid(HAC))
-		return;
-
-	if (HoudiniEngineManager)
-		HoudiniEngineManager->AddComponent(HAC);
-}
-*/
-
 const FString &
 FHoudiniEngine::GetLibHAPILocation() const
 {
@@ -1236,18 +1224,9 @@ FHoudiniEngine::RestartSession(bool bShowNotificationsAndMessages)
 void 
 FHoudiniEngine::OnSessionConnected()
 {
-	// This function is called whenever the plugin connects to a new session. Its exists
-	// because Houdini Asset Components need to know when this happens so they can invalidate
+	// This function is called whenever the plugin connects to a new session.
+	// It exists because Houdini Cookables need to know when this happens so they can invalidate
 	// their HAPI info, eg. node ids, left over from previous sessions.
-
-	for (int Index = 0; Index < FHoudiniEngineRuntime::Get().GetRegisteredHoudiniComponentCount(); Index++)
-	{
-		UHoudiniAssetComponent* HAC = FHoudiniEngineRuntime::Get().GetRegisteredHoudiniComponentAt(Index);
-		if (HAC && IsValid(HAC))
-		{
-			HAC->OnSessionConnected();
-		}
-	}
 
 	// Do the same thing for cookable
 	int32 NumCookable = FHoudiniEngineRuntime::Get().GetRegisteredHoudiniCookableCount();

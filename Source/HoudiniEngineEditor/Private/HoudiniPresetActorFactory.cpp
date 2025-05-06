@@ -117,21 +117,6 @@ UHoudiniPresetActorFactory::PostSpawnActor(UObject* InObject, AActor* NewActor)
 			}
 		});
 	}
-	else
-	{
-		HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
-		FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
-
-		// Apply the preset once the HoudiniAssetComponent has reached the PreCookCallback
-		// (which is when both the HAC inputs and parameters have been initialized).
-		HoudiniAssetComponent->QueuePreCookCallback([Preset](UHoudiniAssetComponent* InHoudiniAssetComponent)
-		{
-			if (IsValid(InHoudiniAssetComponent) && IsValid(Preset))
-			{
-				FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(Preset, InHoudiniAssetComponent);
-			}
-		});
-	}
 }
 
 void
@@ -148,23 +133,21 @@ UHoudiniPresetActorFactory::PostCreateBlueprint(UObject* InObject, AActor * CDO)
 	UHoudiniAsset* HoudiniAsset = Preset->SourceHoudiniAsset;
 	if (HoudiniAsset)
 	{
-		AHoudiniAssetActor * HoudiniAssetActor = CastChecked< AHoudiniAssetActor >(CDO);
-		UHoudiniAssetComponent * HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
+		AHoudiniAssetActor* HoudiniAssetActor = CastChecked< AHoudiniAssetActor >(CDO);
+		UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
 		check(HoudiniAssetComponent);
 
-		FHoudiniEngineUtils::AddHoudiniLogoToComponent(HoudiniAssetComponent);
+		UHoudiniCookable* Cookable = HoudiniAssetActor->GetHoudiniCookable();
+		check(Cookable);
 
+		FHoudiniEngineUtils::AddHoudiniLogoToComponent(HoudiniAssetComponent);
 		if (!HoudiniAssetActor->IsUsedForPreview())
 		{
-			HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
-			FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
+			Cookable->SetHoudiniAsset(HoudiniAsset);
+			FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(Cookable);
 
 			// We probably need to wait for a cook before we can apply the preset?
-			UHoudiniCookable* HC = HoudiniAssetComponent->GetCookable();
-			if (HC)
-				FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(Preset, HC);
-			else
-				FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(Preset, HoudiniAssetComponent);
+			FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(Preset, Cookable);
 		}
 	}
 }

@@ -36,11 +36,8 @@
 #include "HoudiniSplineComponent.generated.h"
 
 class UHoudiniAssetComponent;
-
 enum class EHoudiniCurveType : int8;
-
 enum class EHoudiniCurveMethod : int8;
-
 class UHoudiniInputObject;
 
 UCLASS(Blueprintable, BlueprintType, EditInlineNew, config = Engine, meta = (BlueprintSpawnableComponent))

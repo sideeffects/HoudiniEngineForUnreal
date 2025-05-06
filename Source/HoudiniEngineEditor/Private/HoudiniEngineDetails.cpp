@@ -178,7 +178,6 @@ FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 	const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
 {
-	// TODO : COOKABLE ME!
 	if (InCookables.Num() <= 0)
 		return;
 

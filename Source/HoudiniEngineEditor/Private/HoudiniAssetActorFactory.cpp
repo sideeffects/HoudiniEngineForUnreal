@@ -121,8 +121,11 @@ UHoudiniAssetActorFactory::PostCreateBlueprint(UObject * Asset, AActor * CDO)
 
 		if (!HoudiniAssetActor->IsUsedForPreview())
 		{
-			HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
-			FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
+			UHoudiniCookable* Cookable = HoudiniAssetActor->GetHoudiniCookable();
+			check(Cookable);
+
+			Cookable->SetHoudiniAsset(HoudiniAsset);
+			FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(Cookable);
 		}
 	}
 }

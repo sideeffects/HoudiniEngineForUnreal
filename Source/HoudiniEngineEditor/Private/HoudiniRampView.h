@@ -609,7 +609,7 @@ public:
 			return;
 		}
 
-		if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(MainParameter.Get()))
+		if (FHoudiniEngineUtils::IsHoudiniCookableCooking(MainParameter.Get()))
 		{
 			return;
 		}
@@ -633,7 +633,7 @@ private:
 		if (!Param || !MainParam)
 			return;
 
-		if (FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(Param))
+		if (FHoudiniEngineUtils::IsHoudiniCookableCooking(Param))
 			return;
 
 		const bool bCookingEnabled = FHoudiniEngine::Get().IsCookingEnabled();

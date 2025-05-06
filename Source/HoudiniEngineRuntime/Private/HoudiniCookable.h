@@ -133,6 +133,11 @@ public:
 	UPROPERTY()
 	bool bCookOnCookableInputCook;
 
+	// TODO: Cookable Move to output data?
+	// List of dependent downstream Cookables that have us as an asset input
+	UPROPERTY(DuplicateTransient)
+	TSet<TObjectPtr<UHoudiniCookable>> DownstreamCookables;
+
 	// Accessors
 	int32 GetNumInputs() const { return Inputs.Num(); };
 	UHoudiniInput* GetInputAt(const int32& Idx) { return Inputs.IsValidIndex(Idx) ? Inputs[Idx] : nullptr; };
@@ -296,7 +301,6 @@ public:
 	UPROPERTY()
 	FTimerHandle RefineMeshesTimer;
 
-	// TODO COOKABLE
 	// Delegate that is used to broadcast when RefineMeshesTimer fires
 	FOnRefineMeshesTimerDelegate OnRefineMeshesTimerDelegate;
 };
@@ -604,6 +608,7 @@ public:
 
 	void OnDestroy(bool bDestroyingHierarchy);
 	void OnSessionConnected();
+	void OnHoudiniAssetChanged();
 
 	void SetComponent(USceneComponent* InComp);
 	void SetHoudiniAssetComponent(UHoudiniAssetComponent* InComp);
@@ -654,6 +659,11 @@ public:
 	void SetStaticMeshBuildSettings(const FMeshBuildSettings& InMBS);
 
 	void SetNeedToUpdateEditorProperties(const bool& bNeedToUpdate) { bNeedToUpdateEditorProperties = bNeedToUpdate; };
+
+	bool NotifyCookedToDownstreamCookables();
+	void AddDownstreamCookable(UHoudiniCookable* InDownstreamCookable);
+	void RemoveDownstreamCookable(UHoudiniCookable* InDownstreamCookable);
+	void ClearDownstreamCookable();
 
 	//------------------------------------------------------------------------------------------------
 	// Supported Features

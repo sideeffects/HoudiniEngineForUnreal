@@ -872,16 +872,11 @@ UHoudiniPublicAPIAssetWrapper::SetCookOnAssetInputCook_Implementation(const bool
 	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 	
-	// TODO: COOKABLE ME!
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
+	if (HC->GetCookOnCookableInputCook() == bInSetEnabled)
 		return false;
 
-	if (HAC->GetCookOnAssetInputCook() == bInSetEnabled)
-		return false;
-
-	HAC->SetCookOnAssetInputCook(bInSetEnabled);
-	HAC->Modify();
+	HC->SetCookOnCookableInputCook(bInSetEnabled);
+	HC->Modify();
 
 	return true;
 }
@@ -893,12 +888,7 @@ UHoudiniPublicAPIAssetWrapper::IsCookOnAssetInputCookEnabled_Implementation() co
 	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	// TODO: COOKABLE ME!
-	UHoudiniAssetComponent* HAC = nullptr;
-	if (!GetValidHoudiniAssetComponentWithError(HAC))
-		return false;
-
-	return HAC->GetCookOnAssetInputCook();
+	return HC->GetCookOnCookableInputCook();
 }
 
 
@@ -3133,7 +3123,6 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(
 	FHoudiniBakeSettings BakeSettings;
 	BakeSettings.SetFromCookable(HC);
 
-	//TODO: COOKABLE ME!
 	FHoudiniOutputDetails::OnBakeOutputObject(
 		InBakeName.IsNone() ? OutputObject->BakeName : InBakeName.ToString(),
 		ObjectToBake,

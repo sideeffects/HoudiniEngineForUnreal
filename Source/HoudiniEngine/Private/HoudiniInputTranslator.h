@@ -37,7 +37,6 @@ class AActor;
 class UHoudiniInput;
 class UHoudiniParameter;
 class UHoudiniAssetComponent;
-
 class UHoudiniInputObject;
 class UHoudiniInputStaticMesh;
 class UHoudiniInputSkeletalMesh;
@@ -139,8 +138,7 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	static bool UploadHoudiniInputTransform(
 		UHoudiniInput* InInput, UHoudiniInputObject* InInputObject);
 
-	// Updates/ticks world inputs in the given HAC
-	//static bool UpdateWorldInputs(UHoudiniAssetComponent* HAC);
+	// Updates/ticks world inputs
 	static bool UpdateWorldInputs(TArray<TObjectPtr<UHoudiniInput>>& InInputs, AActor* InActorOwner);
 
 	// Updates/ticks the given world input
@@ -280,10 +278,10 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FHoudiniInputObjectSettings& InInputSettings,
 		bool bInputNodesCanBeDeleted);
 
-	static bool	HapiCreateInputNodeForHoudiniAssetComponent(
+	static bool	HapiCreateInputNodeForHoudiniCookable(
 		const FString& InObjNodeName,
 		UHoudiniInputHoudiniAsset* InObject,
-		const FHoudiniInputObjectSettings& InInputSettings);
+		const FHoudiniInputObjectSettings& InInputSettings);	
 
 	static bool HapiCreateInputNodesForActorComponents(
 		UHoudiniInput* const InInput,

@@ -31,7 +31,6 @@
 
 #include "Templates/SharedPointer.h"
 
-class UHoudiniAssetComponent;
 class UHoudiniCookable;
 class UHoudiniHandleComponent;
 class UHoudiniParameter;
@@ -47,8 +46,6 @@ struct HOUDINIENGINE_API FHoudiniHandleTranslator
 		TArray<TObjectPtr<UHoudiniHandleComponent>>& CurrentHandles,
 		TArray<TObjectPtr<UHoudiniHandleComponent>>& NewHandles,
 		TArray<TObjectPtr<UHoudiniParameter>>& InParameters);
-
-	//static void ClearHandles(UHoudiniAssetComponent* HAC);
 
 	static HAPI_RSTOrder GetHapiRSTOrder(const TSharedPtr<FString> & StrPtr);
 

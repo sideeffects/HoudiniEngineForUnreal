@@ -225,10 +225,14 @@ void UHoudiniInput::PostEditUndo()
 			 bool bUndoInsert = false;
 			 bool bUndoDeletedObjArrayEmptied = false;
 
-			 TArray< USceneComponent* > childActor;
-			 UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(GetOuter());
-			 if (IsValid(OuterHAC))
-				 childActor = OuterHAC->GetAttachChildren();
+			 TArray<USceneComponent*> childActor;
+			 UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(GetOuter());
+			 if (IsValid(OuterHC))
+			 {
+				 USceneComponent* OuterComponent = OuterHC->GetComponent();
+				 if (IsValid(OuterComponent))
+					 childActor = OuterComponent->GetAttachChildren();
+			 }
 
 			 // Undo delete input objects action
 			 for (int Index = 0; Index < GetNumberOfInputObjects(); ++Index)
@@ -238,12 +242,10 @@ void UHoudiniInput::PostEditUndo()
 					 continue;
 
 				 UHoudiniInputHoudiniSplineComponent * HoudiniSplineInputObject = Cast<UHoudiniInputHoudiniSplineComponent>(InputObject);
-
 				 if (!IsValid(HoudiniSplineInputObject))
 					 continue;
 
 				 UHoudiniSplineComponent* SplineComponent = HoudiniSplineInputObject->GetCurveComponent();
-
 				 if (!IsValid(SplineComponent))
 					 continue;
 
@@ -327,10 +329,13 @@ void UHoudiniInput::PostEditUndo()
 
 	 if (bBlueprintStructureChanged)
 	 {
-		 UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(GetOuter());
-		 FHoudiniEngineRuntimeUtils::MarkBlueprintAsStructurallyModified(OuterHAC);
+		 UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(GetOuter());
+		 if (IsValid(OuterHC))
+		 {
+			 UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(OuterHC->GetComponent());
+			 FHoudiniEngineRuntimeUtils::MarkBlueprintAsStructurallyModified(OuterHAC);
+		 }		 
 	 }
-
 }
 #endif
 
@@ -412,10 +417,13 @@ UHoudiniInput::GetBounds(UWorld * World)
 				CurCurveBound += Trans.GetLocation();
 			}
 
-			UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(GetOuter());
-
-			if (IsValid(OuterHAC))
-				BoxBounds += CurCurveBound.MoveTo(OuterHAC->GetComponentLocation());
+			UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(GetOuter());
+			if (IsValid(OuterHC))
+			{
+				USceneComponent* OuterComp = OuterHC->GetComponent();
+				if (IsValid(OuterComp))
+					BoxBounds += CurCurveBound.MoveTo(OuterComp->GetComponentLocation());
+			}			
 		}
 	}
 	break;
@@ -441,11 +449,13 @@ UHoudiniInput::GetBounds(UWorld * World)
 			else if (IsValid(CurInAsset = Cast<UHoudiniInputHoudiniAsset>(WorldInputObjects[Idx])))
 			{
 				// World Input now also support HoudiniAssets
-				UHoudiniAssetComponent* CurInHAC = CurInAsset->GetHoudiniAssetComponent();
-				if (!IsValid(CurInHAC))
+				UHoudiniCookable* CurInHC = CurInAsset->GetHoudiniCookable();
+				if (!IsValid(CurInHC))
 					continue;
 
-				BoxBounds += CurInHAC->GetAssetBounds(nullptr, false);
+				UHoudiniAssetComponent* CookableComp = Cast<UHoudiniAssetComponent>(CurInHC->GetComponent());
+				if(IsValid(CookableComp))
+					BoxBounds += CookableComp->GetAssetBounds(nullptr, false);
 			}
 			else if (IsValid(CurInLandscape = Cast<UHoudiniInputLandscape>(WorldInputObjects[Idx])))
 			{
@@ -530,10 +540,12 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 		if ( InputSettings.bLandscapeAutoSelectComponent )
 		{
 			// Get our asset's or our connected input asset's bounds
-			UHoudiniAssetComponent* AssetComponent = Cast<UHoudiniAssetComponent>(GetOuter());
-			if (IsValid(AssetComponent))
+			UHoudiniCookable* OuterCookable = Cast<UHoudiniCookable>(GetOuter());
+			if (IsValid(OuterCookable))
 			{
-				Bounds = AssetComponent->GetAssetBounds(this, true);
+				UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(OuterCookable->GetComponent());
+				if(IsValid(OuterHAC))
+					Bounds = OuterHAC->GetAssetBounds(this, true);
 			}
 		}
 	
@@ -818,8 +830,6 @@ void
 UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlueprintStructureModified)
 {
 	USceneComponent* OuterComp = Cast<USceneComponent>(GetOuter());
-
-
 	if (InInputType == Type)
 		return;
 
@@ -909,22 +919,20 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 	{
 		case EHoudiniInputType::World:
 		{
-			// TODO COOKABLE
-			// Use a cookable array for downstream insteaad of HAC array
-			UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(GetOuter());
-			if (OuterHAC && !InputSettings.bImportAsReference) 
+			UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(GetOuter());
+			if (OuterHC && !InputSettings.bImportAsReference)
 			{
-				for (auto& CurrentInput : *GetHoudiniInputObjectArray(Type)) 
+				for (auto& CurrentInput : *GetHoudiniInputObjectArray(EHoudiniInputType::World))
 				{
 					UHoudiniInputHoudiniAsset* HoudiniAssetInput = Cast<UHoudiniInputHoudiniAsset>(CurrentInput);
 					if (!IsValid(HoudiniAssetInput))
 						continue;
 
-					UHoudiniAssetComponent* CurrentHAC = HoudiniAssetInput->GetHoudiniAssetComponent();
-					if (!IsValid(CurrentHAC))
+					UHoudiniCookable* CurrentHC = HoudiniAssetInput->GetHoudiniCookable();
+					if (!IsValid(CurrentHC))
 						continue;
 
-					CurrentHAC->AddDownstreamHoudiniAsset(OuterHAC);
+					CurrentHC->AddDownstreamCookable(OuterHC);
 				}
 			}
 		}
@@ -1220,7 +1228,7 @@ void UHoudiniInput::InvalidateData()
 
 		if (InputObject->IsA<UHoudiniInputHoudiniAsset>())
 		{
-			// When the input object is a HoudiniAssetComponent, 
+			// When the input object is a Cookable, 
 			// we need to be sure that this HDA node id is not in CreatedDataNodeIds
 			// We dont want to delete the input HDA node!
 			const int32 ObjInputNodeId = InputObject->GetInputNodeId();
@@ -2132,7 +2140,7 @@ UHoudiniInput::HasChanged()
 		return true;
 
 	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(Type);
-	if (!ensure(InputObjectsPtr))
+	if (!InputObjectsPtr)
 		return false;
 
 	for (auto CurrentInputObject : (*InputObjectsPtr))
@@ -2183,8 +2191,8 @@ UHoudiniInput::NeedsToTriggerUpdate()
 FString 
 UHoudiniInput::GetNodeBaseName() const
 {
-	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(GetOuter());
-	FString NodeBaseName = HAC ? HAC->GetDisplayName() : TEXT("HoudiniAsset");
+	UHoudiniCookable* HC = Cast<UHoudiniCookable>(GetOuter());
+	FString NodeBaseName = HC ? HC->GetDisplayName() : TEXT("HoudiniAsset");
 
 	// Unfortunately CreateInputNode always prefix with input_...
 	if (IsObjectPathParameter())

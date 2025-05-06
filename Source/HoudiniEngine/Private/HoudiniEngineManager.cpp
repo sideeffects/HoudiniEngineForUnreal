@@ -1606,9 +1606,8 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		HC->bHasBeenLoaded = false;
 	}
 
-	// TODO COOKABLE: DOWNSTREAM
-	// If we have downstream HDAs, we need to tell them we're done cooking
-	//HAC->NotifyCookedToDownstreamAssets();
+	// If we have downstream cookables, we need to tell them we're done cooking
+	HC->NotifyCookedToDownstreamCookables();
 
 	// Clear the rebuild/recook flags
 	HC->bRecookRequested = false;

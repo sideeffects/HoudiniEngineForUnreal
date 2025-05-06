@@ -32,7 +32,6 @@
 #include "HoudiniEnginePrivatePCH.h"
 
 class UHoudiniAsset;
-class UHoudiniAssetComponent;
 class UHoudiniCookable;
 class UHoudiniParameter;
 class UHoudiniParameterFile;

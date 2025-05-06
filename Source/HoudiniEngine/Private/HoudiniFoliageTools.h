@@ -29,7 +29,6 @@
 
 struct FHoudiniEngineOutputStats;
 class UHoudiniOutput;
-class UHoudiniAssetComponent;
 struct FHoudiniOutputObjectIdentifier;
 struct FHoudiniOutputObject;
 class AInstancedFoliageActor;

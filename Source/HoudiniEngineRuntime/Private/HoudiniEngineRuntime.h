@@ -54,26 +54,6 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngineRuntime : public IModuleInterface
 		static bool IsInitialized();
 
 		//
-		// Houdini Asset Component registry
-		//
-		// Ensure that the registered components are all still valid
-		void CleanUpRegisteredHoudiniComponents();
-
-		void RegisterHoudiniComponent(UHoudiniAssetComponent* HAC, bool bAllowArchetype=false);
-
-		void UnRegisterHoudiniComponent(UHoudiniAssetComponent* HAC);
-		void UnRegisterHoudiniComponent(const int32& ValidIdx);
-
-		bool IsComponentRegistered(UHoudiniAssetComponent* HAC) const;
-
-		int32 GetRegisteredHoudiniComponentCount();
-
-		UHoudiniAssetComponent* GetRegisteredHoudiniComponentAt(const int32& Index);
-
-		virtual TArray<TWeakObjectPtr<UHoudiniAssetComponent>>* GetRegisteredHoudiniComponents() { return &RegisteredHoudiniComponents; };
-
-
-		//
 		// Houdini Cookable registry
 		//
 		void CleanUpRegisteredHoudiniCookables();
@@ -127,9 +107,6 @@ class HOUDINIENGINERUNTIME_API FHoudiniEngineRuntime : public IModuleInterface
 
 		// Singleton instance.
 		static FHoudiniEngineRuntime * HoudiniEngineRuntimeInstance;
-
-		// Array of HAC
-		TArray<TWeakObjectPtr<UHoudiniAssetComponent>> RegisteredHoudiniComponents;
 
 		// Array of Cookable
 		TArray<TWeakObjectPtr<UHoudiniCookable>> RegisteredHoudiniCookables;

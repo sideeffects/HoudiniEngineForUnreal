@@ -33,7 +33,7 @@
 
 class UHoudiniInput;
 class UHoudiniOutput;
-class UHoudiniAssetComponent;
+class UHoudiniCookable;
 class UHoudiniSplineComponent;
 class USceneComponent;
 class USplineComponent;
@@ -55,11 +55,9 @@ struct HOUDINIENGINE_API FHoudiniSplineTranslator
 	// Get all cooked Houdini curves of an input.
 	static void UpdateHoudiniInputCurves(UHoudiniInput* Input);
 
-	// Get all cooked Houdini curves of inputs in an HAC.
-	static void UpdateHoudiniInputCurves(UHoudiniAssetComponent* HAC);
-
 	// Upload Houdini spline component data to the curve node, and then sync the Houdini Spline Component with the curve node.
-	static bool HapiUpdateNodeForHoudiniSplineComponent(UHoudiniSplineComponent* HoudiniSplineComponent, bool bInSetRotAndScaleAttributes);
+	static bool HapiUpdateNodeForHoudiniSplineComponent(
+		UHoudiniSplineComponent* HoudiniSplineComponent, bool bInSetRotAndScaleAttributes);
 
 	// Indicates if the node is a valid curve input node
 	static bool IsCurveInputNodeValid(const HAPI_NodeId& InNodeId, const bool& bLegacyNode = false);
@@ -109,15 +107,20 @@ struct HOUDINIENGINE_API FHoudiniSplineTranslator
 		const bool& InIsLegacyCurve);
 
 	// Create a Houdini spline component from a given editable node. (Only called once when first build the editable node.)
-	static UHoudiniSplineComponent* CreateHoudiniSplineComponentFromHoudiniEditableNode(const int32 & GeoId, const FString & PartName, UObject* OuterComponent);
+	static UHoudiniSplineComponent* CreateHoudiniSplineComponentFromHoudiniEditableNode(
+		const int32 & GeoId, const FString & PartName, UObject* OuterComponent);
 
 	// Helper functions.
 	static void ExtractStringPositions(const FString& Positions, TArray<FVector>& OutPositions);
 
-	static void ConvertPositionToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
-	static void ConvertScaleToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
-	static void ConvertEulerRotationToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
-	static void ConvertQuaternionRotationToVectorData(const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
+	static void ConvertPositionToVectorData(
+		const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
+	static void ConvertScaleToVectorData(
+		const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
+	static void ConvertEulerRotationToVectorData(
+		const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
+	static void ConvertQuaternionRotationToVectorData(
+		const TArray<float>& InRawData, TArray<TArray<FVector>>& OutVectorData, const TArray<int32>& CurveCounts);
 
 	static void CreatePositionsString(const TArray<FVector>& InPositions, FString& OutPositionString);
 
@@ -144,7 +147,7 @@ struct HOUDINIENGINE_API FHoudiniSplineTranslator
 		const bool& bIsClosed);
 
 	static UHoudiniSplineComponent* CreateOutputHoudiniSplineComponent(
-		UHoudiniAssetComponent* OuterHAC,
+		UHoudiniCookable* OuterHC,
 		TArray<FVector>& CurvePoints,
 		const TArray<FVector>& CurveRotations,
 		const TArray<FVector>& CurveScales);

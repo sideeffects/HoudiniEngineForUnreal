@@ -85,33 +85,48 @@ AHoudiniAssetActor::SetNodeSyncActor(bool bNodeSyncActor)
 	if (IsNodeSyncActor() == bNodeSyncActor)
 		return;
 
-	// Destroy the existing component
+	// TODO: COOKABLE CHECK ME!
+	if (bNodeSyncActor)
+	{
+		// Already a nodesync component
+		if (HoudiniAssetComponent->IsA<UHoudiniNodeSyncComponent>())
+			return;
+	}
+	else
+	{
+		// Already NOT a nodesync component
+		if (!HoudiniAssetComponent->IsA<UHoudiniNodeSyncComponent>())
+			return;
+	}
+		
+	// Remove and destroy the existing component
+	RemoveInstanceComponent(HoudiniAssetComponent);
 	HoudiniAssetComponent->DestroyComponent();
-
+	
+	// Get our cookable as it will be the outer
+	UHoudiniCookable* MyCookable = GetHoudiniCookable();
 	if (bNodeSyncActor)
 	{
 		// Create a new NodeSyncComponent to replace it
-		HoudiniAssetComponent = NewObject<UHoudiniNodeSyncComponent>(this);
-		RootComponent = HoudiniAssetComponent;
-	
-		HoudiniAssetComponent->RegisterComponent();
-		//HoudiniAssetComponent->AttachToActor(this);
-		AddInstanceComponent(HoudiniAssetComponent);
-
-		FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
+		HoudiniAssetComponent = NewObject<UHoudiniNodeSyncComponent>(MyCookable);
 	}
 	else
 	{
 		// Create a new HoudiniAssetComponent to replace it
-		HoudiniAssetComponent = NewObject<UHoudiniAssetComponent>(this);
-		RootComponent = HoudiniAssetComponent;
-
-		HoudiniAssetComponent->RegisterComponent();
-		//HoudiniAssetComponent->AttachToActor(this);
-		AddInstanceComponent(HoudiniAssetComponent);
-
-		FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
+		HoudiniAssetComponent = NewObject<UHoudiniAssetComponent>(MyCookable);		
 	}
+
+	// Set/Register/Add the new component
+	RootComponent = HoudiniAssetComponent;
+	HoudiniAssetComponent->RegisterComponent();
+	AddInstanceComponent(HoudiniAssetComponent);
+
+	// Update our cookable's component
+	MyCookable->SetComponent(HoudiniAssetComponent);
+
+	// TODO: Not necessary?
+	FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(MyCookable);
+	//FHoudiniEngineRuntime::Get().RegisterHoudiniComponent(HoudiniAssetComponent);
 }
 
 // Indicates if this Actor is a NodeSyncActor

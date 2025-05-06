@@ -267,27 +267,6 @@ FHoudiniHandleTranslator::BuildAllHandles(
 	return true;
 }
 
-/*
-void
-FHoudiniHandleTranslator::ClearHandles(UHoudiniAssetComponent* HAC) 
-{
-	if (!IsValid(HAC))
-		return;
-
-	for (auto& HandleComponent : HAC->HandleComponents) 
-	{
-		if (!HandleComponent)
-			continue;
-
-		HandleComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-		HandleComponent->UnregisterComponent();
-		HandleComponent->DestroyComponent();
-	}
-
-	HAC->HandleComponents.Empty();
-}
-*/
-
 HAPI_RSTOrder 
 FHoudiniHandleTranslator::GetHapiRSTOrder(const TSharedPtr<FString> & StrPtr) 
 {

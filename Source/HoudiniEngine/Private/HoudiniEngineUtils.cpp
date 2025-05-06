@@ -3347,43 +3347,27 @@ FHoudiniEngineUtils::GetLicenseType(FString & LicenseType)
 	return true;
 }
 
-// Check if the Houdini asset component (or parent HAC of a parameter) is being cooked
+// Check if the cookable (or parent cookable) is being cooked
 bool
-FHoudiniEngineUtils::IsHoudiniAssetComponentCooking(UObject* InObj) 
+FHoudiniEngineUtils::IsHoudiniCookableCooking(UObject* InObj)
 {
 	if (!InObj)
 		return false;
 
-	UHoudiniAssetComponent* HoudiniAssetComponent = nullptr;
-	if (InObj->IsA<UHoudiniAssetComponent>()) 
+	UHoudiniCookable* Cookable = nullptr;
+	if (InObj->IsA<UHoudiniCookable>())
 	{
-		HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InObj);
+		Cookable = Cast<UHoudiniCookable>(InObj);
 	}
-	else if (InObj->IsA<UHoudiniParameter>())
+	else
 	{
-		UHoudiniParameter* Parameter = Cast<UHoudiniParameter>(InObj);
-		if (!Parameter)
-			return false;
-
-		HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(Parameter->GetOuter());
-
-		// TODO COOKABLE: IMPROVE ME
-		if (!HoudiniAssetComponent)
-		{
-			UHoudiniCookable* HC = Cast<UHoudiniCookable>(Parameter->GetOuter());
-			if (HC)
-			{
-				EHoudiniAssetState AssetState = HC->GetCurrentState();
-				return AssetState >= EHoudiniAssetState::PreCook && AssetState <= EHoudiniAssetState::PostCook;
-			}
-		}
+		Cookable = Cast<UHoudiniCookable>(InObj->GetOuter());
 	}
 
-	if (!HoudiniAssetComponent)
+	if (!Cookable)
 		return false;
 
-	EHoudiniAssetState AssetState = HoudiniAssetComponent->GetAssetState();
-
+	EHoudiniAssetState AssetState = Cookable->GetCurrentState();
 	return AssetState >= EHoudiniAssetState::PreCook && AssetState <= EHoudiniAssetState::PostCook;
 }
 

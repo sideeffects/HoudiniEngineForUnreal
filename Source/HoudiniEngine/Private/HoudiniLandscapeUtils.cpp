@@ -26,7 +26,7 @@
 
 #include "HoudiniLandscapeUtils.h"
 #include "LandscapeEdit.h"
-#include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 #include "Landscape.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "UObject/UObjectGlobals.h"
@@ -70,19 +70,17 @@ FHoudiniLandscapeUtils::GetEditLayers(UHoudiniOutput& Output)
 }
 
 TSet<FString>
-FHoudiniLandscapeUtils::GetCookedLandscapeLayers(UHoudiniAssetComponent& HAC, ALandscape& Landscape)
+FHoudiniLandscapeUtils::GetCookedLandscapeLayers(UHoudiniCookable& HC, ALandscape& Landscape)
 {
 	TSet<FString> Layers;
-
-	for(int OutputIndex = 0; OutputIndex < HAC.GetNumOutputs(); OutputIndex++)
+	for(int OutputIndex = 0; OutputIndex < HC.GetNumOutputs(); OutputIndex++)
 	{
-		UHoudiniOutput* Output 	= HAC.GetOutputAt(OutputIndex);
+		UHoudiniOutput* Output 	= HC.GetOutputAt(OutputIndex);
 		if (!IsValid(Output))
 			continue;
 
-		TSet<UHoudiniLandscapeTargetLayerOutput * > LandscapeEditLayers = GetEditLayers(*Output);
-
-		for(UHoudiniLandscapeTargetLayerOutput * Layer : LandscapeEditLayers)
+		TSet<UHoudiniLandscapeTargetLayerOutput*> LandscapeEditLayers = GetEditLayers(*Output);
+		for(UHoudiniLandscapeTargetLayerOutput* Layer : LandscapeEditLayers)
 		{
 			if (Layer->Landscape == &Landscape)
 				Layers.Add(Layer->CookedEditLayer);
@@ -92,9 +90,9 @@ FHoudiniLandscapeUtils::GetCookedLandscapeLayers(UHoudiniAssetComponent& HAC, AL
 }
 
 void
-FHoudiniLandscapeUtils::SetNonCookedLayersVisibility(UHoudiniAssetComponent& HAC, ALandscape& Landscape, bool bVisible)
+FHoudiniLandscapeUtils::SetNonCookedLayersVisibility(UHoudiniCookable& HC, ALandscape& Landscape, bool bVisible)
 {
-	TSet<FString> CookedLayers = GetCookedLandscapeLayers(HAC, Landscape);
+	TSet<FString> CookedLayers = GetCookedLandscapeLayers(HC, Landscape);
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayers();
 #endif
@@ -102,7 +100,7 @@ FHoudiniLandscapeUtils::SetNonCookedLayersVisibility(UHoudiniAssetComponent& HAC
 	FString LayerName;
 	for(int LayerIndex = 0; LayerIndex < Landscape.GetLayerCount(); LayerIndex++)
 	{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5		
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		LayerName = Layers[LayerIndex].Name.ToString(); 
 #else
 		LayerName = Landscape.LandscapeLayers[LayerIndex].Name.ToString();
@@ -116,9 +114,9 @@ FHoudiniLandscapeUtils::SetNonCookedLayersVisibility(UHoudiniAssetComponent& HAC
 }
 
 void
-FHoudiniLandscapeUtils::SetCookedLayersVisibility(UHoudiniAssetComponent& HAC, ALandscape& Landscape, bool bVisible)
+FHoudiniLandscapeUtils::SetCookedLayersVisibility(UHoudiniCookable& HC, ALandscape& Landscape, bool bVisible)
 {
-	TSet<FString> CookedLayers = GetCookedLandscapeLayers(HAC, Landscape);
+	TSet<FString> CookedLayers = GetCookedLandscapeLayers(HC, Landscape);
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayers();
 #endif

@@ -3197,9 +3197,8 @@ bool FHoudiniParameterTranslator::UploadRampParameter(UHoudiniParameter* InParam
 	if (!IsValid(MultiParam))
 		return false;
 
-	// TODO Cookable me!
-	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InParam->GetOuter());
-	if (!HoudiniAssetComponent)
+	UHoudiniCookable* Cookable = Cast<UHoudiniCookable>(InParam->GetOuter());
+	if (!Cookable)
 		return false;
 
 	int32 InsertIndexStart = -1;
@@ -3265,12 +3264,12 @@ bool FHoudiniParameterTranslator::UploadRampParameter(UHoudiniParameter* InParam
 	// Step 3:  Set inserted parameter values (only if there are instances inserted)
 	if (InsertIndex > InsertIndexStart)
 	{
-		if (HoudiniAssetComponent) 
+		if (Cookable)
 		{
 			// Get the asset's info
 			HAPI_AssetInfo AssetInfo;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetInfo(
-				FHoudiniEngine::Get().GetSession(), HoudiniAssetComponent->GetAssetId(), &AssetInfo), false);
+				FHoudiniEngine::Get().GetSession(), Cookable->GetNodeId(), &AssetInfo), false);
 
 			int32 Idx = 0;
 			int32 InstanceCount = -1;

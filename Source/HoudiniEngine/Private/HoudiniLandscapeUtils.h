@@ -34,7 +34,7 @@
 #include "HAPI/HAPI_Common.h"
 #include "UObject/Class.h"
 
-class UHoudiniAssetComponent;
+class UHoudiniCookable;
 class UHoudiniLandscapeTargetLayerOutput;
 class UHoudiniOutput;
 class ALandscape;
@@ -227,13 +227,13 @@ struct FHoudiniLandscapeSettings
 struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 {
 	
-    static TSet<FString> GetCookedLandscapeLayers(UHoudiniAssetComponent& HAC, ALandscape& Landscape);
+    static TSet<FString> GetCookedLandscapeLayers(UHoudiniCookable& HC, ALandscape& Landscape);
 
     static TSet<UHoudiniLandscapeTargetLayerOutput *> GetEditLayers(UHoudiniOutput& Output);
 
-    static void SetNonCookedLayersVisibility(UHoudiniAssetComponent& HAC, ALandscape& Landscape,  bool bVisible);
+    static void SetNonCookedLayersVisibility(UHoudiniCookable& HC, ALandscape& Landscape,  bool bVisible);
 
-    static void SetCookedLayersVisibility(UHoudiniAssetComponent& HAC, ALandscape& Landscape, bool bVisible);
+    static void SetCookedLayersVisibility(UHoudiniCookable& HC, ALandscape& Landscape, bool bVisible);
     
 	static void RealignHeightFieldData(TArray<float>& Data, float ZeroPoint, float Scale);
 
