@@ -571,20 +571,23 @@ void UHoudiniPCGCookable::StartCook()
 		HOUDINI_PCG_MESSAGE(TEXT("(%p) Starting to Cook with PDG."), this);
 
 		UTOPNetwork* TopNetwork = PDGAssetLink->GetSelectedTOPNetwork();
-#if 1
-		//this->bPDGPostCookDelegateCalled = false;
 
 		PDGTopNetworkCookedDelegate = TopNetwork->GetOnPostCookDelegate().AddLambda([this](UTOPNetwork* Link, bool bSuccess)
 		{
-			HOUDINI_PCG_MESSAGE(TEXT("(%p) Gob Shite."), this);
+			HOUDINI_PCG_MESSAGE(TEXT("(%p)  PCG OnPostCookDelegate Called."), this);
 
 			this->OnCookingComplete(bSuccess);
 			Link->GetOnPostCookDelegate().Remove(PDGTopNetworkCookedDelegate);
 			PDGTopNetworkCookedDelegate.Reset();
 			return;
 		});
-#endif
-		FHoudiniPDGManager::CookOutput(TopNetwork);
+
+		UTOPNode* const TOPNode = PDGAssetLink->GetSelectedTOPNode();
+		if(IsValid(TOPNode))
+		{
+			PDGAssetLink->ClearTOPNodeWorkItemResults(TOPNode);
+			FHoudiniPDGManager::CookTOPNode(TOPNode);
+		}
 	}
 	else
 	{
