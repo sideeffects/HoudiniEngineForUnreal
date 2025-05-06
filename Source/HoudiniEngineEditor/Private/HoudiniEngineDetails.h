@@ -67,6 +67,21 @@ public:
 		void Construct(const FArguments & InArgs);
 };
 
+struct EHoudiniDetailsFlags 
+{
+	// Controls the UI for the Houdini Details Planel. The defaults are for for HACs, but its customized
+	// for PCG, where some settings should not be used.
+
+	bool bAutoBake = true;
+	bool bBakeButton = true;
+	bool bDisplayOnOutputLess = false;
+	bool bAssetOptions = true;
+	bool bGenerateBar = true;
+	bool bReplacePreviousBake = false;
+
+	static EHoudiniDetailsFlags Defaults;
+};
+
 class FHoudiniEngineDetails : public TSharedFromThis<FHoudiniEngineDetails, ESPMode::NotThreadSafe>
 {
 public:
@@ -88,7 +103,8 @@ public:
 	// BAKE
 	static void CreateBakeWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
+		const EHoudiniDetailsFlags& DetailsFlags);
 
 	// PDG
 	static void CreatePDGBakeWidgets(
@@ -111,6 +127,33 @@ public:
 		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
 
 	static void CreateInstallInfoWindow();
+
+	static void AddRemovedHDAOutputAfterBakeCheckBox(const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, 
+		TSharedPtr<SVerticalBox>& LeftColumnVerticalBox);
+
+	static void AddRenterBakedActorsCheckbox(const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, 
+		TSharedPtr<SVerticalBox>& LeftColumnVerticalBox);
+
+	static void AddAutoBakeCheckbox(const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, 
+		TSharedPtr<SVerticalBox>& RightColumnVerticalBox);
+
+	static void AddReplaceCheckbox(const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, 
+		TSharedPtr<SVerticalBox>& RightColumnVerticalBox);
+
+	static void AddBakeFolderSelector(
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder, 
+		const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+
+	static void AddBakeControlBar(
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder, 
+		const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, 
+		EHoudiniDetailsFlags DetailsFlags);
 
 	static FReply ShowCookLog(const TArray<HAPI_NodeId>& InNodeIds);
 

@@ -228,7 +228,8 @@ void
 FHoudiniCookableDetails::CreateHoudiniEngineDetails(
 	IDetailLayoutBuilder& DetailBuilder,
 	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables,
-	const FString& MultiSelectionIdentifier)
+	const FString& MultiSelectionIdentifier,
+	const EHoudiniDetailsFlags& DetailsFlags)
 {
 	FString HoudiniEngineCategoryName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_MAIN);
 	HoudiniEngineCategoryName += MultiSelectionIdentifier;
@@ -260,13 +261,15 @@ FHoudiniCookableDetails::CreateHoudiniEngineDetails(
 	HoudiniEngineDetails->AddSessionStatusRow(HouEngineCategory);
 
 	// Create Generate Category
-	HoudiniEngineDetails->CreateGenerateWidgets(HouEngineCategory, InCookables);
+	if (DetailsFlags.bGenerateBar)
+		HoudiniEngineDetails->CreateGenerateWidgets(HouEngineCategory, InCookables);
 
 	// Create Bake Category
-	HoudiniEngineDetails->CreateBakeWidgets(HouEngineCategory, InCookables);
+	HoudiniEngineDetails->CreateBakeWidgets(HouEngineCategory, InCookables, DetailsFlags);
 
 	// Create Asset Options Category
-	HoudiniEngineDetails->CreateAssetOptionsWidgets(HouEngineCategory, InCookables);
+	if (DetailsFlags.bAssetOptions)
+		HoudiniEngineDetails->CreateAssetOptionsWidgets(HouEngineCategory, InCookables);
 
 	// Create Help and Debug Category
 	HoudiniEngineDetails->CreateHelpAndDebugWidgets(HouEngineCategory, InCookables);

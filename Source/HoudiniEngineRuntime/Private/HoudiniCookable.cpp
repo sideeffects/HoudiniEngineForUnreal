@@ -560,36 +560,24 @@ UHoudiniCookable::GetLevel() const
 FDirectoryPath
 UHoudiniCookable::GetBakeFolder() const
 {
-	if (!IsOutputSupported())
-		return FDirectoryPath();
-
 	return OutputData->BakeFolder;
 }
 
 FDirectoryPath
 UHoudiniCookable::GetTemporaryCookFolder() const
 {
-	if (!IsOutputSupported())
-		return FDirectoryPath();
-
 	return OutputData->TemporaryCookFolder;
 }
 
 FString
 UHoudiniCookable::GetTemporaryCookFolderOrDefault() const
 {
-	if (!IsOutputSupported())
-		return FString();
-
 	return !OutputData->TemporaryCookFolder.Path.IsEmpty() ? OutputData->TemporaryCookFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
 }
 
 FString
 UHoudiniCookable::GetBakeFolderOrDefault() const
 {
-	if (!IsOutputSupported())
-		return FString();
-
 	return !OutputData->BakeFolder.Path.IsEmpty() ? OutputData->BakeFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
 }
 
@@ -618,9 +606,6 @@ UHoudiniCookable::GetCookableGUID() const
 bool
 UHoudiniCookable::SetTemporaryCookFolderPath(const FString& NewPath)
 {
-	if (!IsOutputSupported())
-		return false;
-
 	if (OutputData->TemporaryCookFolder.Path.Equals(NewPath))
 		return false;
 
@@ -635,9 +620,6 @@ UHoudiniCookable::SetTemporaryCookFolderPath(const FString& NewPath)
 bool
 UHoudiniCookable::SetBakeFolderPath(const FString& NewPath)
 {
-	if (!IsOutputSupported())
-		return false;
-
 	if (OutputData->BakeFolder.Path.Equals(NewPath))
 		return false;
 
@@ -652,9 +634,6 @@ UHoudiniCookable::SetBakeFolderPath(const FString& NewPath)
 bool
 UHoudiniCookable::SetTemporaryCookFolder(const FDirectoryPath& InPath)
 {
-	if (!IsOutputSupported())
-		return false;
-
 	if (OutputData->TemporaryCookFolder.Path.Equals(InPath.Path))
 		return false;
 
@@ -666,9 +645,6 @@ UHoudiniCookable::SetTemporaryCookFolder(const FDirectoryPath& InPath)
 bool
 UHoudiniCookable::SetBakeFolder(const FDirectoryPath& InPath)
 {
-	if (!IsOutputSupported())
-		return false;
-
 	if (OutputData->BakeFolder.Path.Equals(InPath.Path))
 		return false;
 
@@ -1662,18 +1638,12 @@ UHoudiniCookable::GetNodesToCookCookCounts() const
 bool
 UHoudiniCookable::IsOverrideGlobalProxyStaticMeshSettings() const
 {
-	if (!IsOutputSupported())
-		return false;
-
 	return OutputData->bOverrideGlobalProxyStaticMeshSettings;
 }
 
 bool
 UHoudiniCookable::IsProxyStaticMeshEnabled() const
 {
-	if (!IsOutputSupported())
-		return false;
-
 	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
 	{
 		return OutputData->bEnableProxyStaticMeshOverride;
@@ -1695,9 +1665,6 @@ UHoudiniCookable::IsProxyStaticMeshEnabled() const
 bool
 UHoudiniCookable::IsProxyStaticMeshRefinementByTimerEnabled() const
 {
-	if (!IsOutputSupported())
-		return false;
-
 	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
 	{
 		return OutputData->bEnableProxyStaticMeshOverride && OutputData->bEnableProxyStaticMeshRefinementByTimerOverride;
@@ -1719,9 +1686,6 @@ UHoudiniCookable::IsProxyStaticMeshRefinementByTimerEnabled() const
 float
 UHoudiniCookable::GetProxyMeshAutoRefineTimeoutSeconds() const
 {
-	if (!IsOutputSupported())
-		return 5.0f;
-
 	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
 	{
 		return OutputData->ProxyMeshAutoRefineTimeoutSecondsOverride;
@@ -1743,9 +1707,6 @@ UHoudiniCookable::GetProxyMeshAutoRefineTimeoutSeconds() const
 bool
 UHoudiniCookable::IsProxyStaticMeshRefinementOnPreSaveWorldEnabled() const
 {
-	if (!IsOutputSupported())
-		return false;
-
 	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
 	{
 		return OutputData->bEnableProxyStaticMeshOverride && OutputData->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
@@ -1767,9 +1728,6 @@ UHoudiniCookable::IsProxyStaticMeshRefinementOnPreSaveWorldEnabled() const
 bool
 UHoudiniCookable::IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const
 {
-	if (!IsOutputSupported())
-		return false;
-
 	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
 	{
 		return OutputData->bEnableProxyStaticMeshOverride && OutputData->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
@@ -1992,18 +1950,12 @@ UHoudiniCookable::IsHoudiniCookedDataAvailable(bool& bOutNeedsRebuildOrDelete, b
 bool
 UHoudiniCookable::IsBakeAfterNextCookEnabled() const 
 {
-	if (!IsOutputSupported())
-		return false;
-
 	return OutputData->BakeAfterNextCook != EHoudiniBakeAfterNextCook::Disabled; 
 }
 
 EHoudiniBakeAfterNextCook
 UHoudiniCookable::GetBakeAfterNextCook() const
 {
-	if (!IsOutputSupported())
-		return EHoudiniBakeAfterNextCook::Disabled;
-
 	return OutputData->BakeAfterNextCook;
 }
 
@@ -2029,18 +1981,12 @@ UHoudiniCookable::GetBakedOutputs() const
 EHoudiniEngineBakeOption
 UHoudiniCookable::GetHoudiniEngineBakeOption() const
 {
-	if (!IsOutputSupported())
-		return EHoudiniEngineBakeOption::ToActor;
-
 	return OutputData->HoudiniEngineBakeOption;
 }
 
 void
 UHoudiniCookable::SetHoudiniEngineBakeOption(const EHoudiniEngineBakeOption& InBakeOption)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->HoudiniEngineBakeOption = InBakeOption;
 }
 
@@ -2053,9 +1999,6 @@ UHoudiniCookable::GetReplacePreviousBake() const
 void
 UHoudiniCookable::SetReplacePreviousBake(bool bInReplace)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bReplacePreviousBake = bInReplace;
 }
 
@@ -2068,9 +2011,6 @@ UHoudiniCookable::GetRemoveOutputAfterBake() const
 void
 UHoudiniCookable::SetRemoveOutputAfterBake(bool bInRemove)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bRemoveOutputAfterBake = bInRemove;
 }
 
@@ -2083,9 +2023,6 @@ UHoudiniCookable::GetRecenterBakedActors() const
 void
 UHoudiniCookable::SetRecenterBakedActors(bool bInRecenter)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bRecenterBakedActors = bInRecenter;
 }
 
@@ -2195,18 +2132,12 @@ UHoudiniCookable::GetStaticMeshBuildSettings() const
 void
 UHoudiniCookable::SetStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InHSMGP)
 {
-	if (!IsOutputSupported())
-		return;
-
 	 OutputData->StaticMeshGenerationProperties = InHSMGP;
 };
 
 void
 UHoudiniCookable::SetStaticMeshBuildSettings(const FMeshBuildSettings& InMBS)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->StaticMeshBuildSettings = InMBS;
 };
 
@@ -2293,9 +2224,6 @@ UHoudiniCookable::SetCookOnAssetInputCook(bool bEnable)
 void
 UHoudiniCookable::SetOutputless(bool bEnable)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bOutputless = bEnable;
 }
 
@@ -2311,9 +2239,6 @@ UHoudiniCookable::SetUseOutputNodes(bool bEnable)
 void
 UHoudiniCookable::SetOutputTemplateGeos(bool bEnable)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bOutputTemplateGeos = bEnable;
 }
 
@@ -2329,18 +2254,12 @@ UHoudiniCookable::SetUploadTransformsToHoudiniEngine(bool bEnable)
 void
 UHoudiniCookable::SetLandscapeUseTempLayers(bool bEnable)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bLandscapeUseTempLayers = bEnable;
 }
 
 void
 UHoudiniCookable::SetEnableCurveEditing(bool bEnable)
 {
-	if (!IsOutputSupported())
-		return;
-
 	OutputData->bEnableCurveEditing = bEnable;
 }
 

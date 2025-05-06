@@ -107,7 +107,17 @@ void UHoudiniPCGSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 		TArray<TWeakObjectPtr<UHoudiniCookable>> Cookables;
 		Cookables.Add(Cookable);
-		CookableDetails->CreateHoudiniEngineDetails(DetailBuilder, Cookables);
+
+		EHoudiniDetailsFlags Flags;
+		Flags.bAutoBake = false;
+		Flags.bBakeButton = false;
+		Flags.bDisplayOnOutputLess = true;
+		Flags.bAssetOptions = false;
+		Flags.bGenerateBar = false;
+		Flags.bReplacePreviousBake = false;
+
+		CookableDetails->CreateHoudiniEngineDetails(DetailBuilder, Cookables, FString(), Flags);
+
 		CookableDetails->CreateInputDetails(DetailBuilder, Cookables);
 		CookableDetails->CreateParameterDetails(DetailBuilder, Cookables);
 	}

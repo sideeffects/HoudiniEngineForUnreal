@@ -53,7 +53,8 @@ public:
 	void CreateHoudiniEngineDetails(
 		IDetailLayoutBuilder& DetailBuilder,
 		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables,
-		const FString& MultiSelectionIdentifier = FString());
+		const FString& MultiSelectionIdentifier = FString(),
+		const EHoudiniDetailsFlags& DetailsFlags = EHoudiniDetailsFlags::Defaults);
 
 	void CreateNodeSyncDetails(
 		IDetailLayoutBuilder& DetailBuilder,
