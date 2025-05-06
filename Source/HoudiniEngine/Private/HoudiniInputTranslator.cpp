@@ -39,7 +39,6 @@
 #include "HoudiniInput.h"
 #include "HoudiniInputObject.h"
 #include "HoudiniMeshUtils.h"
-#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniOutputTranslator.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterOperatorPath.h"

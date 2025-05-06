@@ -31,7 +31,6 @@
 #include "HoudiniEngineStyle.h"
 #include "HoudiniEngine.h"
 #include "HoudiniAsset.h"
-#include "HoudiniAssetComponent.h"
 
 #include "HoudiniEngineRuntimeUtils.h"
 

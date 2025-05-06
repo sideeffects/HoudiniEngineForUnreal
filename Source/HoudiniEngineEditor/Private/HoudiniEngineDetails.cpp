@@ -1853,11 +1853,8 @@ FHoudiniEngineDetails::CreateHelpAndDebugWidgets(
 	if (!IsValidWeakPointer(MainHC))
 		return;
 
-	bool bIsNodeSyncComponent = MainHC->IsA<UHoudiniNodeSyncComponent>();
-
 	// Header Row
 	FHoudiniEngineDetails::AddHeaderRowForCookable(HoudiniEngineCategoryBuilder, MainHC, HOUDINI_ENGINE_UI_SECTION_HELP_AND_DEBUG);
-
 	if (!MainHC->bHelpAndDebugMenuExpanded)
 		return;
 
@@ -2979,21 +2976,18 @@ FHoudiniEngineDetails::GetSessionStatusAndColor(
 void
 FHoudiniEngineDetails::CreateNodeSyncWidgets(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
+	const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
 {
-	// TODO: COOKABLE ME!
-	if (InHACs.Num() <= 0)
+	if (InCookables.Num() <= 0)
 		return;
 
-	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
-	if (!IsValidWeakPointer(MainHAC))
+	const TWeakObjectPtr<UHoudiniCookable>& MainHC = InCookables[0];
+	if (!IsValidWeakPointer(MainHC))
 		return;
 
-	bool bIsNodeSyncComponent = MainHAC->IsA<UHoudiniNodeSyncComponent>();
-	if (!bIsNodeSyncComponent)
+	const TWeakObjectPtr<UHoudiniNodeSyncComponent>& MainHNSC = Cast<UHoudiniNodeSyncComponent>(MainHC->GetComponent());
+	if (!IsValidWeakPointer(MainHNSC))
 		return;
-
-	const TWeakObjectPtr<UHoudiniNodeSyncComponent>& MainHNSC = Cast<UHoudiniNodeSyncComponent>(MainHAC);
 
 	//FHoudiniEngineDetails::AddHeaderRowForHoudiniAssetComponent(HoudiniEngineCategoryBuilder, MainHAC, HOUDINI_ENGINE_UI_SECTION_GENERATE);
 
@@ -3005,15 +2999,15 @@ FHoudiniEngineDetails::CreateNodeSyncWidgets(
 		return MainHNSC->GetLiveSyncEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
-	auto OnCheckStateLiveSyncLambda = [InHACs](ECheckBoxState NewState)
+	auto OnCheckStateLiveSyncLambda = [InCookables](ECheckBoxState NewState)
 	{
 		bool bChecked = (NewState == ECheckBoxState::Checked);
-		for (auto& NextHAC : InHACs)
+		for (auto& NextHC : InCookables)
 		{
-			if (!IsValidWeakPointer(NextHAC))
+			if (!IsValidWeakPointer(NextHC))
 				continue;
 
-			const TWeakObjectPtr<UHoudiniNodeSyncComponent>& NextHNSC = Cast<UHoudiniNodeSyncComponent>(NextHAC);
+			const TWeakObjectPtr<UHoudiniNodeSyncComponent>& NextHNSC = Cast<UHoudiniNodeSyncComponent>(NextHC->GetComponent());
 			if (!IsValidWeakPointer(NextHNSC))
 				continue;
 
@@ -3025,7 +3019,7 @@ FHoudiniEngineDetails::CreateNodeSyncWidgets(
 		}
 	};
 
-	auto UpdateNodePath = [InHACs](const FString& NewPath)
+	auto UpdateNodePath = [InCookables](const FString& NewPath)
 	{
 		UHoudiniEditorNodeSyncSubsystem* HoudiniSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
 		if (!IsValid(HoudiniSubsystem))
@@ -3041,12 +3035,12 @@ FHoudiniEngineDetails::CreateNodeSyncWidgets(
 		}
 
 		// Change the node path
-		for (auto& NextHAC : InHACs)
+		for (auto& NextHC : InCookables)
 		{
-			if (!IsValidWeakPointer(NextHAC))
+			if (!IsValidWeakPointer(NextHC))
 				continue;
 
-			const TWeakObjectPtr<UHoudiniNodeSyncComponent>& NextHNSC = Cast<UHoudiniNodeSyncComponent>(NextHAC);
+			const TWeakObjectPtr<UHoudiniNodeSyncComponent>& NextHNSC = Cast<UHoudiniNodeSyncComponent>(NextHC->GetComponent());
 			if (!IsValidWeakPointer(NextHNSC))
 				continue;
 
@@ -3059,7 +3053,7 @@ FHoudiniEngineDetails::CreateNodeSyncWidgets(
 		}
 	};
 
-	auto OnFetchPathTextCommittedLambda = [InHACs, MainHNSC, UpdateNodePath](const FText& Val, ETextCommit::Type TextCommitType)
+	auto OnFetchPathTextCommittedLambda = [InCookables, MainHNSC, UpdateNodePath](const FText& Val, ETextCommit::Type TextCommitType)
 	{
 		if (!IsValidWeakPointer(MainHNSC))
 			return;
@@ -3068,7 +3062,7 @@ FHoudiniEngineDetails::CreateNodeSyncWidgets(
 		UpdateNodePath(NewPathStr);
 	};
 
-	auto OnFetchFolderBrowseButtonClickedLambda = [InHACs, MainHNSC, UpdateNodePath]()
+	auto OnFetchFolderBrowseButtonClickedLambda = [InCookables, MainHNSC, UpdateNodePath]()
 	{
 		UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
 		if (!HoudiniEditorNodeSyncSubsystem)
@@ -3203,15 +3197,15 @@ FHoudiniEngineDetails::CreateNodeSyncWidgets(
 			.HAlign(HAlign_Center)
 			.ToolTipText(LOCTEXT("FetchFromHoudiniLabel", "Fetch the data from Houdini"))
 			.Visibility(EVisibility::Visible)
-			.OnClicked_Lambda([InHACs]()
+			.OnClicked_Lambda([InCookables]()
 			{
 				// Change the node path
-				for (auto& NextHAC : InHACs)
+				for (auto& NextHC : InCookables)
 				{
-					if (!IsValidWeakPointer(NextHAC))
+					if (!IsValidWeakPointer(NextHC))
 						continue;
 
-					const TWeakObjectPtr<UHoudiniNodeSyncComponent>& NextHNSC = Cast<UHoudiniNodeSyncComponent>(NextHAC);
+					const TWeakObjectPtr<UHoudiniNodeSyncComponent>& NextHNSC = Cast<UHoudiniNodeSyncComponent>(NextHC->GetComponent());
 					if (!IsValidWeakPointer(NextHNSC))
 						continue;
 

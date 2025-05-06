@@ -190,8 +190,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 	const TArray<UHoudiniOutput*>& InAllOutputs,
 	UObject* InOuterComponent,
 	const FHoudiniPackageParams& InPackageParams,
-	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* InPreBuiltInstancedOutputPartData
-)
+	const TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>* InPreBuiltInstancedOutputPartData)
 {
 	if (!IsValid(InOutput))
 		return false;

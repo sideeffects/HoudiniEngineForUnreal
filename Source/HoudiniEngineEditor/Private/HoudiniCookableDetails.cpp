@@ -174,11 +174,9 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		//
 		// 1. NODE SYNC DETAILS
 		//		
-		// TODO: Handle NodeSync better?
 		bool bIsNodeSyncComponent = MainCookable->GetComponent() ? MainCookable->GetComponent()->IsA<UHoudiniNodeSyncComponent>() : false;		
 		if (bIsNodeSyncComponent)
 		{
-			// TODO: COOKABLE - node sync!
 			CreateNodeSyncDetails(DetailBuilder, HCs, MultiSelectionIdentifier);
 		}
 
@@ -286,11 +284,10 @@ FHoudiniCookableDetails::CreateNodeSyncDetails(
 	FString HoudiniNodeSyncCategoryName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_NODESYNC);
 	HoudiniNodeSyncCategoryName += MultiSelectionIdentifier;
 
-	// TODO: COOKABLE - Handle Node sync
 	// Create Houdini Engine details category
-	//IDetailCategoryBuilder& HouNodeSyncCategory =
-	//	DetailBuilder.EditCategory(*HoudiniNodeSyncCategoryName, FText::FromString("Houdini - Node Sync"), ECategoryPriority::Important);
-	//HoudiniEngineDetails->CreateNodeSyncWidgets(HouNodeSyncCategory, InCookables);
+	IDetailCategoryBuilder& HouNodeSyncCategory =
+		DetailBuilder.EditCategory(*HoudiniNodeSyncCategoryName, FText::FromString("Houdini - Node Sync"), ECategoryPriority::Important);
+	HoudiniEngineDetails->CreateNodeSyncWidgets(HouNodeSyncCategory, InCookables);
 }
 
 void

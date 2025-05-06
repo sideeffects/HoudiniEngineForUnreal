@@ -332,6 +332,8 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 	LastTickTime = 0.0;
 	//LastLiveSyncPingTime = 0.0;
 
+	//bCanDeleteHoudiniNodes = true;
+
 	bHasHoudiniAsset = false;
 	HoudiniAssetData = CreateDefaultSubobject<UCookableHoudiniAssetData>(TEXT("HoudiniAssetData"));
 
@@ -1028,11 +1030,6 @@ UHoudiniCookable::NeedUpdate() const
 	if (!IsFullyLoaded())
 		return false;
 
-	/*
-	// We must have a valid asset, unless we're a NodeSync component
-	if (!IsValid(HoudiniAsset) && !IsA<UHoudiniNodeSyncComponent>())
-		return false;
-	*/
 	// If we support HDAs - we should have one assigned.
 	if (IsHoudiniAssetSupported() && !HoudiniAssetData->HoudiniAsset)
 		return false;
@@ -2127,6 +2124,22 @@ FMeshBuildSettings
 UHoudiniCookable::GetStaticMeshBuildSettings() const
 {
 	return OutputData->StaticMeshBuildSettings;
+}
+
+
+bool
+UHoudiniCookable::CanDeleteHoudiniNodes() const
+{ 
+	// TODO: Cookable - Make this a member instead of relying on components?
+	// Our Component dictates if we're allowed to delete our nodes
+	if (IsComponentSupported() && GetComponent())
+	{
+		UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(GetComponent());
+		if (IsValid(HAC))
+			return HAC->CanDeleteHoudiniNodes();
+	}
+
+	return true;
 }
 
 void

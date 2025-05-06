@@ -28,29 +28,26 @@
 
 UHoudiniNodeSyncComponent::UHoudiniNodeSyncComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-{
-	bForceNeedUpdate_DEPRECATED = false;
+{	
+	// Not needed?
+	//bForceNeedUpdate_DEPRECATED = false;
 
 	// AssetState will be updated by changes to the HoudiniAsset
 	// or parameter changes on the Component template.
-	AssetState_DEPRECATED = EHoudiniAssetState::None;
-	bHasBeenLoaded_DEPRECATED = false;
-
-	/*
+	SetHoudiniAssetState(EHoudiniAssetState::None);
+	SetHasBeenLoaded(false);
+	
 	// Disable proxy mesh by default (unsupported for now)
-	bOverrideGlobalProxyStaticMeshSettings = true;
-	bEnableProxyStaticMeshOverride = false;
-	bEnableProxyStaticMeshRefinementByTimerOverride = false;
-	bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = false;
-	bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = false;
-	StaticMeshMethod = EHoudiniStaticMeshMethod::RawMesh;
-	*/
+	SetOverrideGlobalProxyStaticMeshSettings(true);
+	SetEnableProxyStaticMeshOverride(false);
+	SetEnableProxyStaticMeshRefinementByTimerOverride(false);
+	SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(false);
+	SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(false);
 
 	// Set default mobility to Movable
 	Mobility = EComponentMobility::Movable;
 
 	bLiveSyncEnabled = true;
-
 	FetchStatus = EHoudiniNodeSyncStatus::None;
 	FetchMessage = FString();
 }

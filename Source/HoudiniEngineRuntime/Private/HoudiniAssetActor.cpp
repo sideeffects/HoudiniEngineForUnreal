@@ -109,11 +109,25 @@ AHoudiniAssetActor::SetNodeSyncActor(bool bNodeSyncActor)
 	{
 		// Create a new NodeSyncComponent to replace it
 		HoudiniAssetComponent = NewObject<UHoudiniNodeSyncComponent>(MyCookable);
+
+		// Update our cookable to reflect node sync feature support
+		MyCookable->SetHoudiniAssetSupported(false);
+		MyCookable->SetInputSupported(false);
+		MyCookable->SetParameterSupported(false);
+		MyCookable->SetPDGSupported(false);
+		//MyCookable->SetCanDeleteHoudiniNodes(false);
 	}
 	else
 	{
 		// Create a new HoudiniAssetComponent to replace it
-		HoudiniAssetComponent = NewObject<UHoudiniAssetComponent>(MyCookable);		
+		HoudiniAssetComponent = NewObject<UHoudiniAssetComponent>(MyCookable);
+
+		// Re-enable disabled node sync features
+		MyCookable->SetHoudiniAssetSupported(true);
+		MyCookable->SetInputSupported(true);
+		MyCookable->SetParameterSupported(true);
+		MyCookable->SetPDGSupported(true);
+		//MyCookable->SetCanDeleteHoudiniNodes(true);
 	}
 
 	// Set/Register/Add the new component

@@ -124,7 +124,7 @@ public:
 	// NODE SYNC
 	static void CreateNodeSyncWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs);
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
 
 	static void CreateInstallInfoWindow();
 

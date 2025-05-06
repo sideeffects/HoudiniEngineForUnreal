@@ -471,26 +471,11 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 	UHoudiniNodeSyncComponent* MyHNSC = HC->IsComponentSupported() ? Cast<UHoudiniNodeSyncComponent>(HC->ComponentData->Component) : nullptr;
 	UHoudiniAssetBlueprintComponent* MyHABC = HC->IsComponentSupported() ? Cast<UHoudiniAssetBlueprintComponent>(HC->ComponentData->Component) : nullptr;
 
-	// TODO COOKABLE:
-	/*bool bIsNodeSyncComponent = HAC->IsA<UHoudiniNodeSyncComponent>();
-	// No need to process a component not tied to an asset..
-	if (!bIsNodeSyncComponent && !HAC->GetHoudiniAsset())
-		return;*/
-
 	const EHoudiniAssetState CurrentStateToProcess = HC->GetCurrentState();
 
 	// If cooking is paused, stay in the current state until cooking's resumed, unless we are in NewHDA
 	if (!FHoudiniEngine::Get().IsCookingEnabled() && CurrentStateToProcess != EHoudiniAssetState::NewHDA)
 	{
-		// TODO COOKABLE: Might not be needed anymore ?
-		// We can only handle output updates
-		/*
-		if (CurrentStateToProcess == EHoudiniAssetState::None && HC->NeedUpdateInstancedOutputs())
-		{			
-			//FHoudiniOutputTranslator::UpdateChangedOutputs(HAC);
-		}
-		*/
-
 		// Refresh UI when pause cooking
 		if (!FHoudiniEngine::Get().HasUIFinishRefreshingWhenPausingCooking())
 		{
@@ -660,10 +645,10 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 						NextState = EHoudiniAssetState::NeedInstantiation;
 					}
 				}
-
-				// Update the Cookable's state
-				HC->SetCurrentState(NextState);
 			}
+
+			// Update the Cookable's state
+			HC->SetCurrentState(NextState);
 
 			break;
 		}
@@ -867,14 +852,6 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 			{
 				FHoudiniEngineUtils::UploadCookableTransform(HC);
 			}
-			/*
-			// TODO COOKABLE: Might not be needed anymore ?
-			else if (HC->NeedUpdateInstancedOutputs())
-			{
-				// Output updates do not require the HDA to be instantiated
-				FHoudiniOutputTranslator::UpdateChangedOutputs(MyHAC);
-			}
-			*/
 
 			if (HC->IsComponentSupported())
 			{
@@ -883,11 +860,9 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 					&& FHoudiniEngine::Get().IsSyncWithHoudiniCookEnabled()
 					&& HC->GetCurrentState() == EHoudiniAssetState::None;
 
-				// TODO COOKABLE: Better NodeSync handling?
 				if (MyHNSC)
 				{
-					UHoudiniNodeSyncComponent* HNSC = Cast<UHoudiniNodeSyncComponent>(HC->ComponentData->Component);
-					bEnableLiveSync = HNSC ? HNSC->GetLiveSyncEnabled() : false;
+					bEnableLiveSync = MyHNSC ? MyHNSC->GetLiveSyncEnabled() : false;
 				}
 
 				if (bEnableLiveSync)
@@ -910,7 +885,6 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 								// Make sure to update the cookcount to prevent loop cooking
 								HC->CookCount = CookCount;
 							}
-
 						}
 					}
 				}
@@ -1414,8 +1388,6 @@ FHoudiniEngineManager::PreCook(UHoudiniCookable* HC)
 		// // Handle loaded parameters
 		// FHoudiniParameterTranslator::UpdateLoadedParameters(HAC);
 
-		// Nothing to do for Node Sync Components!
-		//if (!HC->IsA<UHoudiniNodeSyncComponent>())
 		if(HC->IsInputSupported())
 		{
 			// Handle loaded inputs

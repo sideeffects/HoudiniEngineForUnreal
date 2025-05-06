@@ -1146,6 +1146,12 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 
 	// See if we are a NodeSync component
 	bool bIsNodeSyncComponent = InOuterObject ? InOuterObject->IsA<UHoudiniNodeSyncComponent>() : false;
+	UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(InOuterObject);
+	if (IsValid(OuterHC))
+	{
+		UHoudiniNodeSyncComponent* OuterHNSC = Cast<UHoudiniNodeSyncComponent>(OuterHC->GetComponent());
+		bIsNodeSyncComponent = IsValid(OuterHNSC);
+	}
 
 	// Get the AssetInfo
 	HAPI_AssetInfo AssetInfo;
@@ -1424,7 +1430,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				GeoInfos,
 				ForceNodesToCook);
 			
-		} // if (bObjectIsVisible)
+		}
 
 		// Iterates through the geos we want to process
 		for (int32 GeoIdx = 0; GeoIdx < GeoInfos.Num(); GeoIdx++)

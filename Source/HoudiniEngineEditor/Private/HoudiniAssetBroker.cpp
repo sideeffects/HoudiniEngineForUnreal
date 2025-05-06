@@ -45,9 +45,9 @@ FHoudiniAssetBroker::GetSupportedAssetClass()
 bool
 FHoudiniAssetBroker::AssignAssetToComponent(UActorComponent * InComponent, UObject * InAsset)
 {
-	if (UHoudiniAssetComponent * HoudiniAssetComponent = Cast< UHoudiniAssetComponent >(InComponent))
+	if (UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
 	{
-		UHoudiniAsset * HoudiniAsset = Cast< UHoudiniAsset >(InAsset);
+		UHoudiniAsset* HoudiniAsset = Cast<UHoudiniAsset>(InAsset);
 		if (HoudiniAsset || !InAsset)
 		{
 			HoudiniAssetComponent->SetHoudiniAsset(HoudiniAsset);
@@ -61,7 +61,7 @@ FHoudiniAssetBroker::AssignAssetToComponent(UActorComponent * InComponent, UObje
 UObject *
 FHoudiniAssetBroker::GetAssetFromComponent(UActorComponent * InComponent)
 {
-	if (UHoudiniAssetComponent * HoudiniAssetComponent = Cast< UHoudiniAssetComponent >(InComponent))
+	if (UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InComponent))
 	{
 		return HoudiniAssetComponent->GetHoudiniAsset();
 	}

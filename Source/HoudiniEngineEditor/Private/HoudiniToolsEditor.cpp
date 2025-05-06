@@ -2932,6 +2932,13 @@ FHoudiniToolsEditor::CanApplyPresetToHoudiniCookable(
 		return false;
 	}
 
+	if (IsValid(HC->GetComponent()))
+	{
+		// We can't apply presets to Node Sync components
+		if (HC->GetComponent()->IsA<UHoudiniNodeSyncComponent>())
+			return false;
+	}
+
 	if (!Preset->bApplyOnlyToSource)
 	{
 		// We can apply this preset to any HoudiniAsset
@@ -3282,10 +3289,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 {
 	if (!IsValid(HC) || !IsValid(Preset))
 		return;
-	/*
-	if (HC->IsA<UHoudiniNodeSyncComponent>())
-		return;
-	*/
+	
 	if (!CanApplyPresetToHoudiniCookable(Preset, HC))
 		return;
 

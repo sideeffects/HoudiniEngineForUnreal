@@ -671,7 +671,7 @@ public:
 
 	// Whether or not this component should be able to delete the Houdini nodes
 	// that correspond to the HoudiniAsset when being deregistered. 
-	virtual bool CanDeleteHoudiniNodes() const { return true; }
+	virtual bool CanDeleteHoudiniNodes() const;
 
 	virtual bool IsInputTypeSupported(EHoudiniInputType InType) { return IsInputSupported(); };
 	virtual bool IsOutputTypeSupported(EHoudiniOutputType InType) { return IsOutputSupported(); };
