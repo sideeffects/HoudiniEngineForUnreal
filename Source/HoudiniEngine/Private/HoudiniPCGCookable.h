@@ -89,7 +89,7 @@ public:
 	void CopyParametersAndInputs(const UHoudiniPCGCookable * Other);
 
 	// Release() releases() all data associated with the cook.
-	void Release();
+	void Release(UWorld * World);
 
 	// Updates the current cookable state.
 	void Update(FPCGContext* Context);
@@ -111,6 +111,8 @@ public:
 
 	void ProcessCookedOutput(FPCGContext* Context);
 	void ProcessBakedOutput(FPCGContext* Context);
+
+	void DeleteBakedOutput(UWorld* World);
 
 private:
 
@@ -151,6 +153,11 @@ private:
 
 	bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
 
+	static void DeleteBakedActor(FString& ActorPath);
+	static void DeleteBakedComponent(const FString& ActorPath);
+	static void DeleteBakedObject(FString& ObjectPath);
+	static void DeleteLandscapeLayer(TMap<FName, FString>& LandscapeLayers);
+	static void DeleteFoliage(UWorld* World, UFoliageType* FoliageType, const TArray<FVector>& FoliageInstancePositions);
 };
 
 

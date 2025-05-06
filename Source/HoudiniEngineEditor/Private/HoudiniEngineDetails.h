@@ -77,7 +77,7 @@ struct EHoudiniDetailsFlags
 	bool bDisplayOnOutputLess = false;
 	bool bAssetOptions = true;
 	bool bGenerateBar = true;
-	bool bReplacePreviousBake = false;
+	bool bReplacePreviousBake = true;
 
 	static EHoudiniDetailsFlags Defaults;
 };

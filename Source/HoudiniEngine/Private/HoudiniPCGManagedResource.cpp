@@ -44,7 +44,7 @@ bool UHoudiniPCGManagedResource::Release(bool bHardRelease, TSet<TSoftObjectPtr<
 		if(IsValid(HoudiniPCGComponent))
 		{
 			if (IsValid(HoudiniPCGComponent->Cookable))
-				HoudiniPCGComponent->Cookable->Release();
+				HoudiniPCGComponent->Cookable->Release(HoudiniPCGComponent->GetWorld());
 			AActor* Owner = HoudiniPCGComponent->GetOwner();
 			HoudiniPCGComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 			HoudiniPCGComponent->DestroyComponent();

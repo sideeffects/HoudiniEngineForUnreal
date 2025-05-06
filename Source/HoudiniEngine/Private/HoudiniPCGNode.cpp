@@ -446,6 +446,9 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 			if(ManagedResource->HoudiniPCGComponent->Cookable->NeedsCook())
 			{
+				// Remove previous baked output before cooking. (Cooked output is already cleaned up).
+				ManagedResource->HoudiniPCGComponent->Cookable->DeleteBakedOutput(Context->SourceComponent->GetWorld());
+
 				// Something changed, so we must cook.
 				ManagedResource->HoudiniPCGComponent->Cookable->StartCook();
 				HOUDINI_PCG_MESSAGE(TEXT("A cook was started."));

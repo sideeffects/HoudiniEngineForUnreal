@@ -51,6 +51,8 @@
 #include "HoudiniPCGDataObject.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "HoudiniEngineBakeUtils.h"
+#include "HoudiniFoliageTools.h"
+#include "Materials/Material.h"
 
 #define LOCTEXT_NAMESPACE "PCGCachedCookable"
 
@@ -300,9 +302,11 @@ bool UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data)
 	return bChanged;
 }
 
-void UHoudiniPCGCookable::Release()
+void UHoudiniPCGCookable::Release(UWorld * World)
 {
 	HOUDINI_PCG_MESSAGE(TEXT("UHoudiniPCGCookable::Release (%p)"), this);
+
+	DeleteBakedOutput(World);
 
 	InvalidateCookable();
 
@@ -774,13 +778,6 @@ UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArr
 		HOUDINI_LOG_ERROR(TEXT("World output is set to %s when receiving PCG Data"), *HoudiniInput->GetInputTypeAsString());
 		return false;
 	}
-#if 0
-	TArray<UHoudiniPCGDataCollection*> CurrentInputObjects;
-	for(int Index = 0; Index < HoudiniInput->GetNumberOfInputObjects(); Index++)
-	{
-		CurrentInputObjects.Add(HoudiniInput->GetInputObjectAt(Index)->GetPathName());
-	}
-#endif
 
 	HoudiniInput->SetInputObjectsNumber(EHoudiniInputType::PCGInput, NewPCGCollections.Num());
 
@@ -795,5 +792,121 @@ UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArr
 	return true;
 }
 
+void UHoudiniPCGCookable::DeleteBakedActor(FString & ActorPath)
+{
+	if(ActorPath.IsEmpty())
+		return;
+
+	UObject* Actor = StaticLoadObject(UObject::StaticClass(), nullptr, *ActorPath);
+	;
+	if(AActor* SceneActor = Cast<AActor>(Actor))
+	{
+		SceneActor->GetWorld()->DestroyActor(SceneActor);
+	}
+}
+
+void UHoudiniPCGCookable::DeleteBakedComponent(const FString& ComponentPath)
+{
+	if(ComponentPath.IsEmpty())
+		return;
+
+	UObject* Component = StaticLoadObject(UObject::StaticClass(), nullptr, *ComponentPath);
+	;
+	if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+	{
+		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+		SceneComponent->UnregisterComponent();
+		SceneComponent->DestroyComponent();
+	}
+
+}
+
+void UHoudiniPCGCookable::DeleteBakedObject(FString& ObjectPath)
+{
+#if WITH_EDITOR
+	UObject* Object = StaticLoadObject(UObject::StaticClass(), nullptr, *ObjectPath);
+	if(!IsValid(Object))
+		return;
+
+	TArray<FString> PackagesDeleted;
+
+	if(!Object->IsA<UStaticMesh>() && !Object->IsA<UMaterial>())
+	{
+		// Only delete selected types of objects.
+		return;
+	}
+
+	TArray<UObject*> ObjectsToDelete;
+	if(UPackage* Package = Object->GetPackage())
+	{
+		ObjectsToDelete.Add(Package);
+		GetObjectsWithOuter(Package, ObjectsToDelete, true);
+
+		// Use ObjectTools to delete
+		ObjectTools::DeleteObjectsUnchecked(ObjectsToDelete);
+	}
+#endif
+}
+
+void UHoudiniPCGCookable::DeleteLandscapeLayer(TMap<FName, FString> & LandscapeLayers)
+{
+	// TODO? We don't really support landscapes in PCG, but we could?
+}
+
+void UHoudiniPCGCookable::DeleteFoliage(UWorld * World, UFoliageType * FoliageType, const TArray<FVector> & FoliageInstancePositions)
+{
+	FHoudiniFoliageTools::RemoveFoliageInstances(World, FoliageType, FoliageInstancePositions);
+}
+
+void UHoudiniPCGCookable::DeleteBakedOutput(UWorld* World)
+{
+	if(!IsValid(this->Cookable))
+		return;
+
+	TArray<FHoudiniBakedOutput>& BakedOutputs =  this->Cookable->GetBakedOutputs();
+
+	for (FHoudiniBakedOutput & BakedOutput : BakedOutputs)
+	{
+		for (auto It : BakedOutput.BakedOutputObjects)
+		{
+			FHoudiniBakedOutputObject & BakedOutputObject =  It.Value;
+
+			DeleteBakedActor(BakedOutputObject.Actor);
+			DeleteBakedObject(BakedOutputObject.BakedObject);
+			DeleteBakedComponent(BakedOutputObject.Actor);
+
+			for (FString & ActorPath : BakedOutputObject.InstancedActors)
+			{
+				DeleteBakedActor(ActorPath);
+			}
+
+			for(FString& ActorPath : BakedOutputObject.LevelInstanceActors)
+			{
+				DeleteBakedActor(ActorPath);
+			}
+			for(FString& ComponentPath : BakedOutputObject.InstancedComponents)
+			{
+				DeleteBakedActor(ComponentPath);
+			}
+
+
+			DeleteLandscapeLayer(BakedOutputObject.LandscapeLayers);
+
+
+			DeleteBakedActor(BakedOutputObject.Actor);
+
+			DeleteFoliage(World, BakedOutputObject.FoliageType.Get(), BakedOutputObject.FoliageInstancePositions);
+
+			for(FString& FoliageActor : BakedOutputObject.FoliageActors)
+			{
+				DeleteBakedActor(FoliageActor);
+			}
+
+			DeleteBakedObject(BakedOutputObject.BakedSkeleton);
+			DeleteBakedObject(BakedOutputObject.BakedPhysicsAsset);
+		}
+	}
+	BakedOutputs.Empty();
+}
 
 #undef LOCTEXT_NAMESPACE
