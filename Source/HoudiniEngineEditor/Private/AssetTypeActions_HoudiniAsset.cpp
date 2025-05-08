@@ -430,8 +430,8 @@ FAssetTypeActions_HoudiniAsset::ExecuteApplyAssetToSelection(TArray<TWeakObjectP
 	if (!HoudiniAsset || !(HoudiniAsset->AssetImportData))
 		return;
 
-
 	FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(HoudiniAsset, InType, EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY);
+
 	/*
 	// Creating a temporary tool for the selected asset
 	TSoftObjectPtr<UHoudiniAsset> HoudiniAssetPtr(HoudiniAsset);

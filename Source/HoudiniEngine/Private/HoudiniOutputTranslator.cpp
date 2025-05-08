@@ -145,8 +145,8 @@ FHoudiniOutputTranslator::ProcessOutputs(
 	PackageParams.PackageMode = FHoudiniPackageParams::GetDefaultStaticMeshesCookMode();
 	PackageParams.ReplaceMode = FHoudiniPackageParams::GetDefaultReplaceMode();
 
-	PackageParams.BakeFolder = HC->OutputData->GetBakeFolderOrDefault();
-	PackageParams.TempCookFolder = HC->OutputData->GetTemporaryCookFolderOrDefault();
+	PackageParams.BakeFolder = HC->GetBakeFolderOrDefault();
+	PackageParams.TempCookFolder = HC->GetTemporaryCookFolderOrDefault();
 
 	PackageParams.OuterPackage = HC->GetLevel();
 	if (!PackageParams.OuterPackage)
@@ -159,17 +159,17 @@ FHoudiniOutputTranslator::ProcessOutputs(
 
 	TArray<UPackage*> CreatedPackages;
 	if (!CreateAllOutputs(
-		HC->OutputData->Outputs,
-		HC->InputData->Inputs, // TODO COOKABLE: Handle no input support?
+		HC->GetOutputs(),
+		HC->GetInputs(),
 		PackageParams,
 		HC->GetComponent(), // TODO COOKABLE: Use Cookable / Component here ? - need to split
 		HC->GetWorld(),
-		HC->OutputData->IsProxyStaticMeshEnabled(),
-		HC->OutputData->bNoProxyMeshNextCookRequested,
-		HC->OutputData->IsBakeAfterNextCookEnabled(),
-		HC->OutputData->bSplitMeshSupport,
-		HC->OutputData->StaticMeshGenerationProperties,
-		HC->OutputData->StaticMeshBuildSettings,
+		HC->IsProxyStaticMeshEnabled(),
+		HC->HasNoProxyMeshNextCookBeenRequested(),
+		HC->IsBakeAfterNextCookEnabled(),
+		HC->GetSplitMeshSupport(),
+		HC->GetStaticMeshGenerationProperties(),
+		HC->GetStaticMeshBuildSettings(),
 		bOutHasHoudiniStaticMeshOutput,
 		CreatedPackages))
 		return false;

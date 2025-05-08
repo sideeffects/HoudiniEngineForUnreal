@@ -2224,7 +2224,10 @@ FHoudiniEngineUtils::HapiGetNodePath(const FHoudiniGeoPartObject& InHGPO, FStrin
 
 
 bool
-FHoudiniEngineUtils::HapiGetObjectInfos(HAPI_NodeId InNodeId, TArray<HAPI_ObjectInfo>& OutObjectInfos, TArray<HAPI_Transform>& OutObjectTransforms)
+FHoudiniEngineUtils::HapiGetObjectInfos(
+	HAPI_NodeId InNodeId,
+	TArray<HAPI_ObjectInfo>& OutObjectInfos,
+	TArray<HAPI_Transform>& OutObjectTransforms)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiGetObjectInfos);
 
@@ -2237,13 +2240,10 @@ FHoudiniEngineUtils::HapiGetObjectInfos(HAPI_NodeId InNodeId, TArray<HAPI_Object
 	int32 ObjectCount = 0;
 	if (NodeInfo.type == HAPI_NODETYPE_SOP)
 	{
+		// Add one object info
 		ObjectCount = 1;
 		OutObjectInfos.SetNumUninitialized(1);
 		FHoudiniApi::ObjectInfo_Init(&(OutObjectInfos[0]));
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjectInfo(
-			FHoudiniEngine::Get().GetSession(),
-			NodeInfo.parentId, &OutObjectInfos[0]), false);
 
 		// Use the identity transform
 		OutObjectTransforms.SetNumUninitialized(1);
@@ -2254,6 +2254,27 @@ FHoudiniEngineUtils::HapiGetObjectInfos(HAPI_NodeId InNodeId, TArray<HAPI_Object
 		OutObjectTransforms[0].scale[1] = 1.0f;
 		OutObjectTransforms[0].scale[2] = 1.0f;
 		OutObjectTransforms[0].rstOrder = HAPI_SRT;
+
+		// Make sure our parent is an OBJ node
+		HAPI_NodeId ParentId = NodeInfo.parentId;
+		bool bParentIsObj = false;
+		while (!bParentIsObj && ParentId >= 0)
+		{
+			HAPI_NodeInfo ParentNodeInfo;
+			FHoudiniApi::NodeInfo_Init(&ParentNodeInfo);
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+				FHoudiniEngine::Get().GetSession(),
+				ParentId, &ParentNodeInfo), false);
+
+			if (ParentNodeInfo.type == HAPI_NODETYPE_OBJ)
+				bParentIsObj = true;
+			else
+				ParentId = ParentNodeInfo.parentId;
+		}
+
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetObjectInfo(
+			FHoudiniEngine::Get().GetSession(),
+			ParentId, &OutObjectInfos[0]), false);
 	}
 	else if (NodeInfo.type == HAPI_NODETYPE_OBJ)
 	{

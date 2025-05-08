@@ -2755,52 +2755,6 @@ FHoudiniToolsEditor::GetUserCategoriesList(TArray<FString>& OutCategories)
 	Settings->UserToolCategories.GetKeys(OutCategories);
 }
 
-
-void 
-FHoudiniToolsEditor::CopySettingsToPreset(
-	const UHoudiniAssetComponent* HAC,
-	const bool bApplyAssetOptions,
-	const bool bApplyBakeOptions,
-	const bool bApplyMeshGenSettings,
-	const bool bApplyProxyMeshGenSettings,
-	UHoudiniPreset* Preset)
-{
-	// Populate Bake options
-	Preset->bApplyBakeOptions = bApplyBakeOptions;
-	Preset->HoudiniEngineBakeOption = HAC->GetHoudiniEngineBakeOption();
-	Preset->bRemoveOutputAfterBake = HAC->GetRemoveOutputAfterBake();
-	Preset->bRecenterBakedActors = HAC->GetRecenterBakedActors();
-	Preset->bAutoBake = HAC->IsBakeAfterNextCookEnabled();
-	Preset->bReplacePreviousBake = HAC->GetReplacePreviousBake();
-
-	// Populate Asset Settings
-	Preset->bApplyAssetOptions = bApplyAssetOptions;
-	Preset->bCookOnParameterChange = HAC->GetCookOnParameterChange();
-	Preset->bCookOnTransformChange = HAC->GetCookOnTransformChange();
-	Preset->bCookOnAssetInputCook = HAC->GetCookOnAssetInputCook();
-	Preset->bDoNotGenerateOutputs = HAC->IsOutputless();
-	Preset->bUseOutputNodes = HAC->GetUseOutputNodes();
-	Preset->bOutputTemplateGeos = HAC->GetOutputTemplateGeos();
-
-	Preset->bUploadTransformsToHoudiniEngine = HAC->GetUploadTransformsToHoudiniEngine();
-	Preset->bLandscapeUseTempLayers = HAC->GetLandscapeUseTempLayers();
-
-	// Populate Mesh Gen Settings
-	Preset->bApplyStaticMeshGenSettings = bApplyMeshGenSettings;
-	Preset->StaticMeshGenerationProperties = HAC->GetStaticMeshGenerationProperties();
-	Preset->StaticMeshBuildSettings = HAC->GetStaticMeshBuildSettings();
-
-	// Populate Proxy Mesh Gen Settings
-	Preset->bApplyProxyMeshGenSettings = bApplyProxyMeshGenSettings;
-	Preset->bOverrideGlobalProxyStaticMeshSettings = HAC->IsOverrideGlobalProxyStaticMeshSettings();
-	Preset->bEnableProxyStaticMeshOverride = HAC->IsProxyStaticMeshEnabled();
-	Preset->bEnableProxyStaticMeshRefinementByTimerOverride = HAC->IsProxyStaticMeshRefinementByTimerEnabled();
-	Preset->ProxyMeshAutoRefineTimeoutSecondsOverride = HAC->GetProxyMeshAutoRefineTimeoutSeconds();
-	Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = HAC->IsProxyStaticMeshRefinementOnPreSaveWorldEnabled();
-	Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = HAC->IsProxyStaticMeshRefinementOnPreBeginPIEEnabled();
-}
-
-
 void
 FHoudiniToolsEditor::CopySettingsToPreset(
 	const UHoudiniCookable* HC,
@@ -2889,35 +2843,6 @@ FHoudiniToolsEditor::FindPresetsForHoudiniAsset(const UHoudiniAsset* HoudiniAsse
 	}
 }
 
-
-bool
-FHoudiniToolsEditor::CanApplyPresetToHoudiniAssetcomponent(
-	const UHoudiniPreset* Preset,
-	UHoudiniAssetComponent* HAC)
-{
-	if (!IsValid(Preset))
-	{
-		return false;
-	}
-	if (!IsValid(HAC))
-	{
-		return false;
-	}
-
-	if (!Preset->bApplyOnlyToSource)
-	{
-		// We can apply this preset to any HoudiniAsset
-		return true;
-	}
-
-	// We can only apply this preset to the SourceHoudiniAsset
-	if (!IsValid(Preset->SourceHoudiniAsset))
-	{
-		return false;
-	}
-	return Preset->SourceHoudiniAsset == HAC->GetHoudiniAsset();
-}
-
 bool 
 FHoudiniToolsEditor::CanApplyPresetToHoudiniCookable(
 	const UHoudiniPreset* Preset,
@@ -2952,334 +2877,6 @@ FHoudiniToolsEditor::CanApplyPresetToHoudiniCookable(
 	}
 	return Preset->SourceHoudiniAsset == HC->GetHoudiniAsset();
 }
-
-void
-FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
-	const UHoudiniPreset* Preset,
-	UHoudiniAssetComponent* HAC,
-	bool bReselectSelectedActors)
-{
-	if (!IsValid(HAC) || !IsValid(Preset))
-		return;
-
-	if (HAC->IsA<UHoudiniNodeSyncComponent>())
-		return;
-
-	if (!CanApplyPresetToHoudiniAssetcomponent(Preset, HAC))	
-		return;
-
-	// Try to upload changed parameters
-	FHoudiniParameterTranslator::UploadChangedParameters(HAC->GetParameters(), HAC->GetAssetId());
-
-	// Record a transaction for undo/redo
-	FScopedTransaction Transaction(
-		TEXT(HOUDINI_MODULE_EDITOR),
-		LOCTEXT("HoudiniPresets_ApplyToAssetComponent", "Apply Preset to Houdini Asset Component"),
-		HAC->GetOuter());
-
-	HAC->Modify();
-
-	if (Preset->bRevertHDAParameters)
-	{
-		// Reset parameters to default values?
-		for (int32 n = 0; n < HAC->GetNumParameters(); ++n)
-		{
-			UHoudiniParameter* Parm = HAC->GetParameterAt(n);
-
-			if (IsValid(Parm) && !Parm->IsDefault())
-			{
-				Parm->RevertToDefault();
-			}
-		}
-	}
-
-	// Populate Bake options
-	if (Preset->bApplyBakeOptions)
-	{
-		HAC->SetHoudiniEngineBakeOption(Preset->HoudiniEngineBakeOption);
-		HAC->SetRemoveOutputAfterBake(Preset->bRemoveOutputAfterBake);
-		HAC->SetRecenterBakedActors(Preset->bRecenterBakedActors);
-		HAC->SetBakeAfterNextCook(Preset->bAutoBake ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled);
-		HAC->SetReplacePreviousBake(Preset->bReplacePreviousBake);
-	}
-
-	// Populate Asset Settings
-	if (Preset->bApplyAssetOptions)
-	{
-		HAC->SetCookOnParameterChange(Preset->bCookOnParameterChange);
-		HAC->SetCookOnTransformChange(Preset->bCookOnTransformChange);
-		HAC->SetCookOnAssetInputCook(Preset->bCookOnAssetInputCook);
-		HAC->SetOutputless(Preset->bDoNotGenerateOutputs);
-		HAC->SetUseOutputNodes(Preset->bUseOutputNodes);
-		HAC->SetOutputTemplateGeos(Preset->bOutputTemplateGeos);
-		HAC->SetUploadTransformsToHoudiniEngine(Preset->bUploadTransformsToHoudiniEngine);
-		HAC->SetLandscapeUseTempLayers(Preset->bLandscapeUseTempLayers);
-	}
-
-	// When recooking/rebuilding the HDA, force a full update of all params
-	const bool bForceFullUpdate = HAC->HasRebuildBeenRequested() || HAC->HasRecookBeenRequested() || HAC->IsParameterDefinitionUpdateNeeded();
-	const bool bCacheRampParms = !HAC->HasBeenLoaded() && !HAC->HasBeenDuplicated();
-
-	// Update the parameters
-	FHoudiniParameterTranslator::UpdateParameters(
-		HAC->GetAssetId(),
-		HAC,
-		HAC->GetParameters(),
-		HAC->GetHoudiniAsset(),
-		HAC->GetHapiAssetName(),
-		bForceFullUpdate,
-		bCacheRampParms,
-		HAC->bNeedToUpdateEditorProperties_DEPRECATED);
-
-	// Iterate over all the parameters and settings in the preset and apply it to the Houdini Asset Component.
-
-	// Apply all Multiparam parameters. Since multiparms may contain multiparms we need to perform a loop
-	// setting as many multiparms as we can, then updating parameters, then setting the remaining multiparams
-	// again, and repeat. Until we end up with no multiparams remaining or nothing changed on the last
-	// parameter update.
-
-	TSet<FString> UnprocessedMultiParms;
-	
-	Preset->MultiParmParameters.GetKeys(UnprocessedMultiParms);
-
-	while(!UnprocessedMultiParms.IsEmpty())
-	{
-		// Create a temp array of all param names we haven't processed yet. Do this so we can modify UnprocessedMultiParms
-		// in the loop below.
-		TArray<FString> CurrentParms;
-		for (const FString& Element : UnprocessedMultiParms)
-			CurrentParms.Add(Element);
-
-		bool bProcessedAtLeastOne = false;
-
-		// now loop over all parms we haven't process and try to set them. If we can set them, remove them from the
-		// unprocessed set.
-		for (FString& ParmName : CurrentParms)
-		{
-			const FHoudiniPresetMultiParmValues& ParmValues = Preset->MultiParmParameters[ParmName];
-
-			UHoudiniParameter* Parm = HAC->FindParameterByName(ParmName);
-			if (!IsValid(Parm))
-				continue;
-
-			FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterMultiParm>(Parm));
-			UnprocessedMultiParms.Remove(ParmName);
-			bProcessedAtLeastOne = true;
-		}
-		if (!bProcessedAtLeastOne)
-			break;
-
-		FHoudiniParameterTranslator::UploadChangedParameters(HAC->GetParameters(), HAC->GetAssetId());
-		FHoudiniParameterTranslator::UpdateParameters(
-			HAC->GetAssetId(),
-			HAC,
-			HAC->GetParameters(),
-			HAC->GetHoudiniAsset(),
-			HAC->GetHapiAssetName(),
-			bForceFullUpdate,
-			bCacheRampParms,
-			HAC->bNeedToUpdateEditorProperties_DEPRECATED);
-	}
-
-
-	if (Preset->MultiParmParameters.Num() > 0)
-	{
-		FHoudiniParameterTranslator::UploadChangedParameters(HAC->GetParameters(), HAC->GetAssetId());
-		FHoudiniParameterTranslator::UpdateParameters(
-			HAC->GetAssetId(),
-			HAC,
-			HAC->GetParameters(),
-			HAC->GetHoudiniAsset(),
-			HAC->GetHapiAssetName(),
-			bForceFullUpdate,
-			bCacheRampParms,
-			HAC->bNeedToUpdateEditorProperties_DEPRECATED);
-	}
-
-	// Apply all the Int parameters
-	for( const auto& Entry : Preset->IntParameters )
-	{
-		const FString& ParmName = Entry.Key;
-		const FHoudiniPresetIntValues& ParmValues = Entry.Value;
-		
-		UHoudiniParameter* Parm = HAC->FindParameterByName( ParmName );
-		if (!IsValid(Parm))
-		{
-			continue;
-		}
-		
-		const EHoudiniParameterType ParmType = Parm->GetParameterType();
-		switch(ParmType)
-		{
-			case EHoudiniParameterType::Int:
-				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterInt>(Parm));
-				break;
-			case EHoudiniParameterType::IntChoice:
-				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterChoice>(Parm));
-				break;
-			case EHoudiniParameterType::Toggle:
-				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterToggle>(Parm));
-				break;
-			default: ;
-		}
-	}
-
-	// Apply all the Float parameters
-	for( const auto& Entry : Preset->FloatParameters )
-	{
-		const FString& ParmName = Entry.Key;
-		const FHoudiniPresetFloatValues& ParmValues = Entry.Value;
-
-		UHoudiniParameter* Parm = HAC->FindParameterByName( ParmName );
-		if (!IsValid(Parm))
-		{
-			continue;
-		}
-		
-		const EHoudiniParameterType ParmType = Parm->GetParameterType();
-		switch(ParmType)
-		{
-			case EHoudiniParameterType::Color:
-				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterColor>(Parm));
-				break;
-			case EHoudiniParameterType::Float:
-				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterFloat>(Parm));
-				break;
-			default: ;
-		}
-	}
-
-	// Apply all the String parameters
-
-	for( const auto& Entry : Preset->StringParameters )
-	{
-		const FString& ParmName = Entry.Key;
-		const FHoudiniPresetStringValues& ParmValues = Entry.Value;
-
-		UHoudiniParameter* Parm = HAC->FindParameterByName( ParmName );
-		if (!IsValid(Parm))
-		{
-			continue;
-		}
-		
-		const EHoudiniParameterType ParmType = Parm->GetParameterType();
-		switch(ParmType)
-		{
-			case EHoudiniParameterType::File:
-			case EHoudiniParameterType::FileDir:
-			case EHoudiniParameterType::FileGeo:
-			case EHoudiniParameterType::FileImage:
-				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterFile>(Parm));
-				break;
-			case EHoudiniParameterType::String:
-			case EHoudiniParameterType::StringAssetRef:
-				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterString>(Parm));
-				break;
-			case EHoudiniParameterType::StringChoice:
-				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterChoice>(Parm));
-				break;
-			default: ;
-		}
-	}
-
-	// Apply all the Ramp Float parameters
-	for( const auto& Entry : Preset->RampFloatParameters )
-	{
-		const FString& ParmName = Entry.Key;
-		const FHoudiniPresetRampFloatValues& ParmValues = Entry.Value;
-
-		UHoudiniParameter* Parm = HAC->FindParameterByName( ParmName );
-		if (!IsValid(Parm))
-		{
-			continue;
-		}
-		
-		const EHoudiniParameterType ParmType = Parm->GetParameterType();
-		switch(ParmType)
-		{
-			case EHoudiniParameterType::FloatRamp:
-				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterRampFloat>(Parm));
-				break;
-			default: ;
-		}
-	}
-
-	// Apply all the Ramp Color parameters
-	for( const auto& Entry : Preset->RampColorParameters )
-	{
-		const FString& ParmName = Entry.Key;
-		const FHoudiniPresetRampColorValues& ParmValues = Entry.Value;
-
-		UHoudiniParameter* Parm = HAC->FindParameterByName( ParmName );
-		if (!IsValid(Parm))
-		{
-			continue;
-		}
-		
-		const EHoudiniParameterType ParmType = Parm->GetParameterType();
-		switch(ParmType)
-		{
-			case EHoudiniParameterType::ColorRamp:
-				FHoudiniPresetHelpers::ApplyPresetParameterValues(ParmValues, Cast<UHoudiniParameterRampColor>(Parm));
-				break;
-			default: ;
-		}
-	}
-
-	// Apply inputs
-	for(const FHoudiniPresetInputValue& PresetInput : Preset->InputParameters )
-	{
-		if (PresetInput.InputType == EHoudiniInputType::Invalid)
-		{
-			continue;
-		}
-		
-		if (PresetInput.bIsParameterInput)
-		{
-			// Parameter based input
-			UHoudiniParameterOperatorPath* Param = Cast<UHoudiniParameterOperatorPath>( HAC->FindParameterByName(PresetInput.ParameterName) );
-			if (IsValid(Param))
-			{
-				UHoudiniInput* Input = Param->HoudiniInput.Get();
-				FHoudiniPresetHelpers::ApplyPresetParameterValues(PresetInput, Input);
-			}
-		}
-		else
-		{
-			// Absolute input
-			UHoudiniInput* Input = HAC->GetInputAt( PresetInput.InputIndex );
-			FHoudiniPresetHelpers::ApplyPresetParameterValues(PresetInput, Input);
-		}
-	}
-
-	if (Preset->bApplyStaticMeshGenSettings)
-	{
-		HAC->SetStaticMeshGenerationProperties(Preset->StaticMeshGenerationProperties);
-		HAC->SetStaticMeshBuildSettings(Preset->StaticMeshBuildSettings);
-	}
-
-	if (Preset->bApplyProxyMeshGenSettings)
-	{
-		// Populate Proxy Mesh Gen Settings
-		HAC->SetOverrideGlobalProxyStaticMeshSettings(Preset->bOverrideGlobalProxyStaticMeshSettings);
-		HAC->SetEnableProxyStaticMeshOverride(Preset->bEnableProxyStaticMeshOverride);
-		HAC->SetEnableProxyStaticMeshRefinementByTimerOverride(Preset->bEnableProxyStaticMeshRefinementByTimerOverride);
-		HAC->SetProxyMeshAutoRefineTimeoutSecondsOverride(Preset->ProxyMeshAutoRefineTimeoutSecondsOverride);
-		HAC->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride);
-		HAC->SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride);
-	}
-
-	if (bReselectSelectedActors)
-	{
-		FHoudiniEngineEditorUtils::ReselectSelectedActors();
-	}
-
-	for(auto & Callback : Preset->PostInstantiationCallbacks)
-	{
-		Callback(Preset, HAC);
-	}
-}
-
 
 void
 FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
@@ -3610,7 +3207,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 
 void FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(
 	const TMap<UObject*, int32>& InputObjects,
-	UHoudiniAssetComponent* HAC)
+	UHoudiniCookable* HC)
 {
 	if (InputObjects.Num() <= 0)
 		return;
@@ -3631,11 +3228,10 @@ void FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(
 	TArray<int32> InputIsCleared;
 	TMap<int32, FInputTypeCount> TypeCountMap;
 	
-	const int32 NumInputs = HAC->GetNumInputs();
+	const int32 NumInputs = HC->GetNumInputs();
 	for (int32 InputIndex = 0; InputIndex < NumInputs; InputIndex++)
 	{
-		UHoudiniInput* CurrentInput = HAC->GetInputAt(InputIndex);
-		
+		UHoudiniInput* CurrentInput = HC->GetInputAt(InputIndex);		
 		if (!IsValid(CurrentInput))
 			continue;
 		
@@ -3646,7 +3242,7 @@ void FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(
 	// Try to apply the supplied Object to the Input
 	for (TMap< UObject*, int32 >::TConstIterator IterToolPreset(InputObjects); IterToolPreset; ++IterToolPreset)
 	{
-		UObject * Object = IterToolPreset.Key();
+		UObject* Object = IterToolPreset.Key();
 		if (!IsValid(Object))
 			continue;
 
@@ -3655,7 +3251,6 @@ void FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(
 			continue;
 
 		FInputTypeCount& Count = TypeCountMap.FindOrAdd(InputNumber);
-
 
 		UBlueprint* BlueprintObj = Cast<UBlueprint>(Object);
 
@@ -3733,13 +3328,16 @@ void FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(
 
 	if (bBPStructureModified)
 	{
-		HAC->MarkAsBlueprintStructureModified();
+		UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(HC->GetComponent());
+		if(IsValid(HAC))
+			HAC->MarkAsBlueprintStructureModified();
 	}
 #endif
 	
 }
 
-void FHoudiniToolsEditor::ApplyPresetToSelectedHoudiniAssetActors(const UHoudiniPreset* Preset, bool bReselectSelectedActors)
+void 
+FHoudiniToolsEditor::ApplyPresetToSelectedHoudiniAssetActors(const UHoudiniPreset* Preset, bool bReselectSelectedActors)
 {
 	USelection* Selection = GEditor->GetSelectedActors();
 	TArray<AActor*> SelectedActors;
@@ -3751,10 +3349,10 @@ void FHoudiniToolsEditor::ApplyPresetToSelectedHoudiniAssetActors(const UHoudini
 		const AHoudiniAssetActor* HouActor = Cast<AHoudiniAssetActor>(SelectedActor);
 		if (IsValid(HouActor))
 		{
-			UHoudiniAssetComponent* HAC = HouActor->GetHoudiniAssetComponent();
-			if (IsValid(HAC))
+			UHoudiniCookable* HC = HouActor->GetHoudiniCookable();
+			if (IsValid(HC))
 			{
-				ApplyPresetToHoudiniAssetComponent(Preset, HAC, false);
+				ApplyPresetToHoudiniCookable(Preset, HC, false);
 			}
 		}
 	}
@@ -3824,8 +3422,8 @@ FHoudiniToolsEditor::LaunchHoudiniToolPropertyEditor(const TSharedPtr<FHoudiniTo
 		ToolName += TEXT(" (") + HoudiniAsset->AssetFileName + TEXT(")");
 	}
 	
-	UHoudiniToolEditorProperties* ToolProperties = NewObject<UHoudiniToolEditorProperties>( GetTransientPackage(), FName( *ToolName ) );
-	// ToolProperties->AddToRoot();
+	UHoudiniToolEditorProperties* ToolProperties = 
+		NewObject<UHoudiniToolEditorProperties>( GetTransientPackage(), FName( *ToolName ) );
 
 	// Set the default values for this asset
 	ToolProperties->Name = ToolData->Name.ToString();
@@ -3840,13 +3438,12 @@ FHoudiniToolsEditor::LaunchHoudiniToolPropertyEditor(const TSharedPtr<FHoudiniTo
 	ToolProperties->HoudiniPreset = HoudiniPreset;
 
 	TArray<UObject *> ActiveHoudiniTools;
-	ActiveHoudiniTools.Add( ToolProperties );
-
+	ActiveHoudiniTools.Add(ToolProperties);
 
 	TSharedPtr<FHoudiniTool> EditingTool = ToolData;
 
 	// Create a new property editor window
-	TSharedRef< SWindow > Window = CreateFloatingDetailsView(
+	TSharedRef<SWindow> Window = CreateFloatingDetailsView(
 		ActiveHoudiniTools,
 		ViewIdentifier,
 		FVector2D(450,650),
@@ -3872,28 +3469,29 @@ TSharedRef<SWindow>
 FHoudiniToolsEditor::CreateFloatingDetailsView(
 	TArray<UObject*>& InObjects,
 	FName InViewIdentifier,
-	const FVector2D InClientSize, const TFunction<void(TArray<UObject*>)> OnSaveClickedFn)
+	const FVector2D InClientSize,
+	const TFunction<void(TArray<UObject*>)> OnSaveClickedFn)
 {
 	TSharedRef<SWindow> NewSlateWindow = SNew(SWindow)
 		.Title(NSLOCTEXT("PropertyEditor", "WindowTitle", "Houdini Tools Property Editor"))
 		.ClientSize(InClientSize);
 
 	// If the main frame exists parent the window to it
-	TSharedPtr< SWindow > ParentWindow;
-	if ( FModuleManager::Get().IsModuleLoaded("MainFrame") )
+	TSharedPtr<SWindow> ParentWindow;
+	if (FModuleManager::Get().IsModuleLoaded("MainFrame"))
 	{
 		IMainFrameModule& MainFrame = FModuleManager::GetModuleChecked<IMainFrameModule>("MainFrame");
 		ParentWindow = MainFrame.GetParentWindow();
 	}
 
-	if ( ParentWindow.IsValid() )
+	if (ParentWindow.IsValid())
 	{
 		// Parent the window to the main frame 
-		FSlateApplication::Get().AddWindowAsNativeChild( NewSlateWindow, ParentWindow.ToSharedRef() );
+		FSlateApplication::Get().AddWindowAsNativeChild(NewSlateWindow, ParentWindow.ToSharedRef());
 	}
 	else
 	{
-		FSlateApplication::Get().AddWindow( NewSlateWindow );
+		FSlateApplication::Get().AddWindow(NewSlateWindow);
 	}
 
 	FDetailsViewArgs Args;
@@ -3909,11 +3507,11 @@ FHoudiniToolsEditor::CreateFloatingDetailsView(
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	const TSharedRef<IDetailsView> DetailView = PropertyEditorModule.CreateDetailView( Args );
-	DetailView->SetObjects( InObjects );
+	DetailView->SetObjects(InObjects);
 	TWeakPtr<SWindow> WindowWeakPtr = NewSlateWindow;
 
 	NewSlateWindow->SetContent(
-		SNew( SBorder )
+		SNew(SBorder)
 		.BorderImage(_GetBrush(TEXT("PropertyWindow.WindowBorder")))
 		.BorderImage(FAppStyle::Get().GetBrush("Brushes.Panel"))
 		[
@@ -3948,8 +3546,8 @@ FHoudiniToolsEditor::CreateFloatingDetailsView(
 					.Content()
 					[
 						SNew(STextBlock)
-						.TextStyle( &_GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("PrimaryButtonText") )
-						.Text( LOCTEXT("HoudiniTools_Details_Save","Save") )
+						.TextStyle( &_GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("PrimaryButtonText"))
+						.Text( LOCTEXT("HoudiniTools_Details_Save","Save"))
 					]
 					.OnClicked_Lambda([WindowWeakPtr, OnSaveClickedFn, InObjects]() -> FReply
 					{
@@ -3973,8 +3571,8 @@ FHoudiniToolsEditor::CreateFloatingDetailsView(
 					.Content()
 					[
 						SNew(STextBlock)
-						.TextStyle( &_GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("ButtonText") )
-						.Text( LOCTEXT("HoudiniTools_Details_Cancel","Cancel") )
+						.TextStyle( &_GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("ButtonText"))
+						.Text( LOCTEXT("HoudiniTools_Details_Cancel","Cancel"))
 					]
 					.OnClicked_Lambda([WindowWeakPtr]() -> FReply
 					{
@@ -3994,10 +3592,12 @@ FHoudiniToolsEditor::CreateFloatingDetailsView(
 
 
 void
-FHoudiniToolsEditor::HandleHoudiniAssetPropertyEditorSaveClicked(TSharedPtr<FHoudiniTool> InToolData, TArray<UObject *>& InObjects)
+FHoudiniToolsEditor::HandleHoudiniAssetPropertyEditorSaveClicked(
+	TSharedPtr<FHoudiniTool> InToolData,
+	TArray<UObject *>& InObjects)
 {
 	// Sanity check, we can only edit one tool at a time!
-	if ( InObjects.Num() != 1 )
+	if (InObjects.Num() != 1)
 		return;
 
 	if (!InToolData.IsValid())
@@ -4016,9 +3616,9 @@ FHoudiniToolsEditor::HandleHoudiniAssetPropertyEditorSaveClicked(TSharedPtr<FHou
 	TArray<UHoudiniAsset*> ReimportAssets;
 
 	TArray< FHoudiniTool > EditedToolArray;
-	for ( int32 ObjIdx = 0; ObjIdx < InObjects.Num(); ObjIdx++ )
+	for (int32 ObjIdx = 0; ObjIdx < InObjects.Num(); ObjIdx++)
 	{
-		UHoudiniToolEditorProperties* ToolProperties = Cast< UHoudiniToolEditorProperties >( InObjects[ ObjIdx ] );
+		UHoudiniToolEditorProperties* ToolProperties = Cast<UHoudiniToolEditorProperties>( InObjects[ ObjIdx ] );
 		if ( !ToolProperties )
 			continue;
 
@@ -4074,10 +3674,7 @@ FHoudiniToolsEditor::HandleHoudiniAssetPropertyEditorSaveClicked(TSharedPtr<FHou
 			HOUDINI_LOG_WARNING(TEXT("The specified AssetPath does not exist. Source Asset Path will remain unchanged"));
 		}
 
-		
-
 		bool bModifiedIcon = false;
-
 		if (ToolProperties->IconPath.FilePath.Len() > 0)
 		{
 			bModified = true;
@@ -4117,7 +3714,6 @@ FHoudiniToolsEditor::HandleHoudiniAssetPropertyEditorSaveClicked(TSharedPtr<FHou
 	}
 
 	FAssetRegistryModule& AssetRegistry = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-	
 
 	for (UHoudiniAsset* Asset : ReimportAssets)
 	{
@@ -4127,10 +3723,12 @@ FHoudiniToolsEditor::HandleHoudiniAssetPropertyEditorSaveClicked(TSharedPtr<FHou
 
 
 void
-FHoudiniToolsEditor::HandleHoudiniPresetPropertyEditorSaveClicked(TSharedPtr<FHoudiniTool> InToolData, TArray<UObject *>& InObjects)
+FHoudiniToolsEditor::HandleHoudiniPresetPropertyEditorSaveClicked(
+	TSharedPtr<FHoudiniTool> InToolData,
+	TArray<UObject *>& InObjects)
 {
 	// Sanity check, we can only edit one tool at a time!
-	if ( InObjects.Num() != 1 )
+	if (InObjects.Num() != 1)
 		return;
 
 	if (!InToolData.IsValid())
@@ -4155,15 +3753,14 @@ FHoudiniToolsEditor::HandleHoudiniPresetPropertyEditorSaveClicked(TSharedPtr<FHo
 	// Reimport assets from their new sources.
 	TArray<UHoudiniAsset*> ReimportAssets;
 
-	TArray< FHoudiniTool > EditedToolArray;
-	for ( int32 ObjIdx = 0; ObjIdx < InObjects.Num(); ObjIdx++ )
+	TArray<FHoudiniTool> EditedToolArray;
+	for (int32 ObjIdx = 0; ObjIdx < InObjects.Num(); ObjIdx++)
 	{
-		UHoudiniToolEditorProperties* ToolProperties = Cast< UHoudiniToolEditorProperties >( InObjects[ ObjIdx ] );
-		if ( !ToolProperties )
+		UHoudiniToolEditorProperties* ToolProperties = Cast<UHoudiniToolEditorProperties>(InObjects[ObjIdx]);
+		if (!ToolProperties)
 			continue;
 		
 		bool bModified = false;
-
 		// Helper macro for Property assignments and modify flag management
 		#define ASSIGNFN(Src, Dst) \
 		{\
@@ -4180,12 +3777,11 @@ FHoudiniToolsEditor::HandleHoudiniPresetPropertyEditorSaveClicked(TSharedPtr<FHo
 		ASSIGNFN(ToolProperties->ToolTip, HoudiniPreset->Description);
 		
 		bool bModifiedIcon = false;
-		
 		if (ToolProperties->IconPath.FilePath.Len() > 0)
 		{
 			bModified = true;
 			bModifiedIcon = true;
-			FHoudiniToolsRuntimeUtils::LoadFHImageFromFile( ToolProperties->IconPath.FilePath, HoudiniPreset->IconImageData );
+			FHoudiniToolsRuntimeUtils::LoadFHImageFromFile(ToolProperties->IconPath.FilePath, HoudiniPreset->IconImageData);
 			FHoudiniToolsRuntimeUtils::UpdateAssetThumbnailFromImageData(HoudiniPreset, HoudiniPreset->IconImageData);
 		}
 		else if (ToolProperties->bClearCachedIcon)
@@ -4235,7 +3831,5 @@ FHoudiniToolsEditor::Shutdown()
 	}
 	CachedTextures.Empty();
 }
-
-
 
 #undef LOCTEXT_NAMESPACE

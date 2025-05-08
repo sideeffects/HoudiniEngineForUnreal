@@ -1641,7 +1641,7 @@ FHoudiniEngineManager::UpdateProcess(UHoudiniCookable* HC)
 			// If any outputs have HoudiniStaticMeshes, and if timer based refinement is enabled on the HAC,
 			// set the RefineMeshesTimer and ensure BuildStaticMeshesForAllHoudiniStaticMeshes is bound to
 			// the RefineMeshesTimerFired delegate of the HAC
-			if (bHasHoudiniStaticMeshOutput && HC->OutputData->IsProxyStaticMeshRefinementByTimerEnabled())
+			if (bHasHoudiniStaticMeshOutput && HC->IsProxyStaticMeshRefinementByTimerEnabled())
 			{
 				// TODO COOKABLE: UPDATE REFINE TIMERS AND DELEGATES!!!!!!
 				if (!HC->OutputData->GetOnRefineMeshesTimerDelegate().IsBoundToObject(this))

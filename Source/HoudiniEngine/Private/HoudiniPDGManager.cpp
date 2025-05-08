@@ -695,6 +695,14 @@ FHoudiniPDGManager::Update()
 			PDGAssetLinks.RemoveAt(Idx);
 			continue;
 		}
+
+		// Remove PDG AL that dont have a valid/registered cookable
+		UHoudiniCookable* OuterHC = CurPDGAssetLink->GetOuterHoudiniCookable();
+		if (!IsValid(OuterHC) ||!FHoudiniEngineRuntime::Get().IsCookableRegistered(OuterHC))
+		{
+			PDGAssetLinks.RemoveAt(Idx);
+			continue;
+		}
 	}
 
 	// Do nothing if we dont have any valid PDG asset Link

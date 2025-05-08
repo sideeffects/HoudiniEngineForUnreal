@@ -164,17 +164,6 @@ public:
 	// Declare the delegate that is broadcast when RefineMeshesTimer fires
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRefineMeshesTimerDelegate, UHoudiniCookable*);
 
-	bool IsProxyStaticMeshEnabled() const;
-
-	// Returns true if the asset should be bake after the next cook
-	bool IsBakeAfterNextCookEnabled() const;
-
-	bool IsProxyStaticMeshRefinementByTimerEnabled() const;
-
-	FString GetBakeFolderOrDefault() const;
-
-	FString GetTemporaryCookFolderOrDefault() const;
-
 	// Called by RefineMeshesTimer when the timer is triggered.
 	FOnRefineMeshesTimerDelegate& GetOnRefineMeshesTimerDelegate() { return OnRefineMeshesTimerDelegate; }
 
@@ -673,8 +662,8 @@ public:
 	// that correspond to the HoudiniAsset when being deregistered. 
 	virtual bool CanDeleteHoudiniNodes() const;
 
-	virtual bool IsInputTypeSupported(EHoudiniInputType InType) { return IsInputSupported(); };
-	virtual bool IsOutputTypeSupported(EHoudiniOutputType InType) { return IsOutputSupported(); };
+	virtual bool IsInputTypeSupported(EHoudiniInputType InType);
+	virtual bool IsOutputTypeSupported(EHoudiniOutputType InType);
 
 	// Feature accessors
 	virtual bool IsHoudiniAssetSupported() const { return bHasHoudiniAsset && HoudiniAssetData; };
@@ -743,6 +732,13 @@ public:
 	FOnPreOutputProcessingDelegate& GetOnPreOutputProcessingDelegate() { return OnPreOutputProcessingDelegate; };
 	FOnPostOutputProcessingDelegate& GetOnPostOutputProcessingDelegate() { return OnPostOutputProcessingDelegate; };
 	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate; };
+
+protected:
+	// Do any object - specific cleanup required immediately after loading an object.
+	// This is not called for newly - created objects, and by default will always execute on the game thread.
+	virtual void PostLoad() override;
+
+	virtual void PostEditImport() override;
 
 protected:
 

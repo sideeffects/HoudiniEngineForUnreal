@@ -29,12 +29,14 @@
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 #include "HoudiniAsset.h"
+#include "HoudiniAssetBlueprintComponent.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniHandleComponent.h"
 #include "HoudiniInstancedActorComponent.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
+#include "HoudiniNodeSyncComponent.h"
 #include "HoudiniOutput.h"
 #include "HoudiniParameter.h"
 #include "HoudiniParameterButton.h"
@@ -201,59 +203,6 @@ UCookableOutputData::UCookableOutputData(const FObjectInitializer& ObjectInitial
 		bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = HoudiniRuntimeSettings->bEnableProxyStaticMeshRefinementOnPreSaveWorld;
 		bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = HoudiniRuntimeSettings->bEnableProxyStaticMeshRefinementOnPreBeginPIE;
 	}
-}
-
-bool
-UCookableOutputData::IsProxyStaticMeshEnabled() const
-{
-	if (bOverrideGlobalProxyStaticMeshSettings)
-	{
-		return bEnableProxyStaticMeshOverride;
-	}
-	else
-	{
-		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-		if (HoudiniRuntimeSettings)
-		{
-			return HoudiniRuntimeSettings->bEnableProxyStaticMesh;
-		}
-		else
-		{
-			return false;
-		}
-	}
-}
-
-bool 
-UCookableOutputData::IsBakeAfterNextCookEnabled() const 
-{ 
-	// Returns true if the asset should be bake after the next cook
-	return BakeAfterNextCook != EHoudiniBakeAfterNextCook::Disabled; 
-}
-
-bool
-UCookableOutputData::IsProxyStaticMeshRefinementByTimerEnabled() const
-{
-	if (bOverrideGlobalProxyStaticMeshSettings)
-		return bEnableProxyStaticMeshOverride && bEnableProxyStaticMeshRefinementByTimerOverride;
-
-	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
-	if (HoudiniRuntimeSettings)
-		return HoudiniRuntimeSettings->bEnableProxyStaticMesh && HoudiniRuntimeSettings->bEnableProxyStaticMeshRefinementByTimer;
-
-	return false;
-}
-
-FString
-UCookableOutputData::GetBakeFolderOrDefault() const
-{
-	return !BakeFolder.Path.IsEmpty() ? BakeFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
-}
-
-FString
-UCookableOutputData::GetTemporaryCookFolderOrDefault() const
-{
-	return !TemporaryCookFolder.Path.IsEmpty() ? TemporaryCookFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
 }
 
 
@@ -667,6 +616,13 @@ UHoudiniCookable::ShouldTryToStartFirstSession() const
 	if(IsHoudiniAssetSupported() && !HoudiniAssetData->HoudiniAsset)
 		return false;
 
+	if (GetComponent())
+	{
+		// We dont want NodeSync components to automatically start sessions
+		if (GetComponent()->IsA<UHoudiniNodeSyncComponent>())
+			return false;
+	}
+
 	// Only try to start the default session if we have an "active" HAC
 	switch (CurrentState)
 	{
@@ -948,6 +904,42 @@ UHoudiniCookable::NeedUpdateParameters() const
 
 	return false;
 }
+
+bool 
+UHoudiniCookable::IsInputTypeSupported(EHoudiniInputType InType)
+{ 
+	if (!IsInputSupported())
+		return false;
+
+	if (GetComponent())
+	{
+		// If we have a component, let it decide what input types are supported
+		UHoudiniAssetComponent* MyHAC = Cast<UHoudiniAssetComponent>(GetComponent());
+		if (MyHAC)
+			return MyHAC->IsInputTypeSupported(InType);
+	}
+
+	return true; 
+};
+
+bool
+UHoudiniCookable::IsOutputTypeSupported(EHoudiniOutputType InType)
+{
+	if (!IsOutputSupported())
+		return false;
+
+	if (GetComponent())
+	{
+		// If we have a component, let it decide what output types it supprots
+		UHoudiniAssetComponent* MyHAC = Cast<UHoudiniAssetComponent>(GetComponent());
+		if (MyHAC)
+			return MyHAC->IsOutputTypeSupported(InType);
+	}
+
+	return true; 
+}
+
+
 
 bool
 UHoudiniCookable::NeedUpdateInputs() const
@@ -1607,7 +1599,6 @@ UHoudiniCookable::GetHandleComponents()
 	return ComponentData->HandleComponents;
 }
 
-
 void
 UHoudiniCookable::GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const
 {
@@ -1641,6 +1632,13 @@ UHoudiniCookable::IsOverrideGlobalProxyStaticMeshSettings() const
 bool
 UHoudiniCookable::IsProxyStaticMeshEnabled() const
 {
+	// BP don't support Proxies for now
+	if (GetComponent())
+	{
+		if (GetComponent()->IsA<UHoudiniAssetBlueprintComponent>())
+			return false;
+	}
+
 	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
 	{
 		return OutputData->bEnableProxyStaticMeshOverride;
@@ -2549,4 +2547,45 @@ void
 UHoudiniCookable::ClearDownstreamCookable()
 {
 	InputData->DownstreamCookables.Empty();
+}
+
+void
+UHoudiniCookable::PostLoad()
+{
+	Super::PostLoad();
+
+	// Mark as need instantiation
+	MarkAsNeedInstantiation();
+
+	// Component has been loaded, not duplicated
+	SetHasBeenDuplicated(false);
+
+	// We need to register ourself
+	FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(this);
+
+	// TODO: Not necessary anymore?
+#if WITH_EDITORONLY_DATA
+	auto MaxValue = StaticEnum<EHoudiniEngineBakeOption>()->GetMaxEnumValue() - 1;
+	if (static_cast<int>(OutputData->HoudiniEngineBakeOption) > MaxValue)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Invalid Bake Type found, setting to To Actor. Possibly Foliage, which is deprecated, use the unreal_foliage attribute instead."));
+		OutputData->HoudiniEngineBakeOption = EHoudiniEngineBakeOption::ToActor;
+	}
+#endif
+}
+
+void
+UHoudiniCookable::PostEditImport()
+{
+	Super::PostEditImport();
+
+	MarkAsNeedInstantiation();
+
+	// Component has been duplicated, not loaded
+	// We do need the loaded flag to reapply parameters, inputs
+	// and properly update some of the output objects
+	SetHasBeenDuplicated(true);
+
+	SetCurrentState(EHoudiniAssetState::PreInstantiation);
+	SetCurrentStateResult(EHoudiniAssetStateResult::None);
 }

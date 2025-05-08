@@ -822,24 +822,28 @@ UHoudiniEditorNodeSyncSubsystem::FetchFromHoudini()
 			// Add the Houdini logo back to the NodeSync component
 			FHoudiniEngineUtils::AddHoudiniLogoToComponent(HNSC);
 
-			// Set the Node Sync options
-			// Fetch node path
+			// Set the Fetch node path on the component
 			HNSC->SetFetchNodePath(CurrentFetchNodePath);
-			HNSC->SetHoudiniAssetState(EHoudiniAssetState::NewHDA);
+
+			// Set the Node Sync options
+			UHoudiniCookable* HC = HNSC->GetCookable();
+			if (!IsValid(HC))
+				return FailImportAndReturn();
+			
+			HC->SetCurrentState(EHoudiniAssetState::NewHDA);
 
 			// Disable proxies
-			HNSC->SetOverrideGlobalProxyStaticMeshSettings(true);
-			HNSC->SetEnableProxyStaticMeshOverride(false);
-			//HNSC->StaticMeshMethod = EHoudiniStaticMeshMethod::FMeshDescription;
+			HC->SetOverrideGlobalProxyStaticMeshSettings(true);
+			HC->SetEnableProxyStaticMeshOverride(false);
 
-			// AutoBake?
-			HNSC->SetBakeAfterNextCook(NodeSyncOptions.bAutoBake ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled);
-			HNSC->SetRemoveOutputAfterBake(true);
+			// AutoBake
+			HC->SetBakeAfterNextCook(NodeSyncOptions.bAutoBake ? EHoudiniBakeAfterNextCook::Always : EHoudiniBakeAfterNextCook::Disabled);
+			HC->SetRemoveOutputAfterBake(true);
 
 			// Other options
-			HNSC->SetUseOutputNodes(NodeSyncOptions.bUseOutputNodes);
-			HNSC->SetReplacePreviousBake(NodeSyncOptions.bReplaceExisting);
-			HNSC->SetBakeFolderPath(NodeSyncOptions.UnrealAssetFolder);
+			HC->SetUseOutputNodes(NodeSyncOptions.bUseOutputNodes);
+			HC->SetReplacePreviousBake(NodeSyncOptions.bReplaceExisting);
+			HC->SetBakeFolderPath(NodeSyncOptions.UnrealAssetFolder);
 
 			// Make sure we the actor has a unique name/label
 			FString ActorNameAndLabel = NodeSyncOptions.GetUnrealActorLabel(PathIdx);

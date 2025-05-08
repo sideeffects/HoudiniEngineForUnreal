@@ -1425,7 +1425,8 @@ SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Preset)
 	Preset->bApplyBakeFolder = bApplyBakeFolder;
 	Preset->BakeFolder = HC->GetBakeFolderOrDefault();
 
-	FHoudiniToolsEditor::CopySettingsToPreset(HC, bApplyAssetOptions, bApplyBakeOptions, bApplyStaticMeshGenSettings, bApplyProxyMeshGenSettings, Preset);
+	FHoudiniToolsEditor::CopySettingsToPreset(
+		HC, bApplyAssetOptions, bApplyBakeOptions, bApplyStaticMeshGenSettings, bApplyProxyMeshGenSettings, Preset);
 
 	// Transfer int params that we want to keep (checked by the user)
 	Preset->IntParameters.Empty();

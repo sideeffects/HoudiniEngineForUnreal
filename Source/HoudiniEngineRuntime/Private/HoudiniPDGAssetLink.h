@@ -816,51 +816,51 @@ private:
 public:
 
 	UPROPERTY(DuplicateTransient, NonTransactional)
-	FString						AssetName;
+	FString AssetName;
 
 	// The full path to the HDA in HAPI
 	UPROPERTY(DuplicateTransient, NonTransactional)
-	FString						AssetNodePath;
+	FString AssetNodePath;
 
 	UPROPERTY(DuplicateTransient, NonTransactional)
-	int32						AssetID;
+	int32 AssetID;
 
 	UPROPERTY()
-	TArray<TObjectPtr<UTOPNetwork>>		AllTOPNetworks;
+	TArray<TObjectPtr<UTOPNetwork>> AllTOPNetworks;
 
 	UPROPERTY()
-	int32						SelectedTOPNetworkIndex;
+	int32 SelectedTOPNetworkIndex;
 
 	UPROPERTY(Transient, NonTransactional)
-	EPDGLinkState				LinkState;
+	EPDGLinkState LinkState;
 
 	UPROPERTY()
-	bool						bAutoCook;
+	bool bAutoCook;
 	UPROPERTY()
-	bool						bUseTOPNodeFilter;
+	bool bUseTOPNodeFilter;
 	UPROPERTY()
-	bool						bUseTOPOutputFilter;
+	bool bUseTOPOutputFilter;
 	UPROPERTY()
-	FString						TOPNodeFilter;
+	FString TOPNodeFilter;
 	UPROPERTY()
-	FString						TOPOutputFilter;
+	FString TOPOutputFilter;
 
 	UPROPERTY(NonTransactional)
-	int32						NumWorkItems;
+	int32 NumWorkItems;
 	UPROPERTY(Transient, NonTransactional)
-	FAggregatedWorkItemTally		WorkItemTally;
+	FAggregatedWorkItemTally WorkItemTally;
 
 	UPROPERTY()
-	FString						OutputCachePath;
+	FString OutputCachePath;
 
 	UPROPERTY(Transient)
-	bool						bNeedsUIRefresh;
+	bool bNeedsUIRefresh;
 
 	// A parent actor to serve as the parent of any output actors
 	// that are created.
 	// If null, then output actors are created under a folder
 	UPROPERTY(EditAnywhere, Category="Output")
-	TObjectPtr<AActor>					 	OutputParentActor;
+	TObjectPtr<AActor> OutputParentActor;
 
 	// Folder used for baking PDG outputs
 	UPROPERTY()

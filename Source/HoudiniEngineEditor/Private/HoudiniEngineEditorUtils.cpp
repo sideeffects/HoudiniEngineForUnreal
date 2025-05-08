@@ -374,7 +374,11 @@ FHoudiniEngineEditorUtils::GetMeanWorldSelectionTransform()
 }
 
 void
-FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset, const EHoudiniToolType& InType, const EHoudiniToolSelectionType& InSelectionType, UHoudiniPreset* InPreset)
+FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(
+	UHoudiniAsset* InHoudiniAsset, 
+	const EHoudiniToolType& InType,
+	const EHoudiniToolSelectionType& InSelectionType,
+	UHoudiniPreset* InPreset)
 {
 	if (!InHoudiniAsset)
 		return;
@@ -392,11 +396,11 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 		return;
 
 	// Get the current Level Editor Selection
-	TArray<UObject * > WorldSelection;
+	TArray<UObject*> WorldSelection;
 	int32 WorldSelectionCount = FHoudiniEngineEditorUtils::GetWorldSelection(WorldSelection);
 
 	// Get the current Content browser selection
-	TArray<UObject *> ContentBrowserSelection;
+	TArray<UObject*> ContentBrowserSelection;
 	int32 ContentBrowserSelectionCount = FHoudiniEngineEditorUtils::GetContentBrowserSelection(ContentBrowserSelection);
 
 	// By default, Content browser selection has a priority over the world selection
@@ -452,22 +456,19 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 			if (!HoudiniAssetActor)
 				continue;
 
-			UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
-			if (!HoudiniAssetComponent)
+			UHoudiniCookable* HoudiniCookable = HoudiniAssetActor->GetHoudiniCookable();
+			if (!HoudiniCookable)
 				continue;
 
 			if (IsValid(InPreset))
 			{
-				HoudiniAssetComponent->QueuePreCookCallback([InPreset](UHoudiniAssetComponent* HAC)
+				HoudiniCookable->QueuePreCookCallback([InPreset](UHoudiniCookable* HC)
 				{
 					// First apply the preset when we reach the PreCook phase.
 					if (IsValid(InPreset))
 					{
-						UHoudiniCookable* HC = HAC->GetCookable();
 						if(HC)
 							FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(InPreset, HC);
-						else
-							FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
 					}
 				});
 			}
@@ -475,10 +476,10 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 			// Create and set the input preset for this HDA and selected Object
 			TMap<UObject*, int32> InputPreset;
 			InputPreset.Add(CurrentSelectedObject, 0);
-			HoudiniAssetComponent->QueuePreCookCallback([InputPreset](UHoudiniAssetComponent* HAC)
+			HoudiniCookable->QueuePreCookCallback([InputPreset](UHoudiniCookable* HC)
 			{
 				// Apply the inputs once the HDA has reached its PreCookCallback
-				FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(InputPreset, HAC);
+				FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(InputPreset, HC);
 			});
 
 			// Select the Actor we just created
@@ -498,8 +499,8 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 		{
 			TMap<UObject*, int32> InputPresets;
 			AHoudiniAssetActor* HoudiniAssetActor = (AHoudiniAssetActor*)CreatedActor;
-			UHoudiniAssetComponent* HoudiniAssetComponent = HoudiniAssetActor ? HoudiniAssetActor->GetHoudiniAssetComponent() : nullptr;
-			if (HoudiniAssetComponent)
+			UHoudiniCookable* HoudiniCookable = HoudiniAssetActor ? HoudiniAssetActor->GetHoudiniCookable() : nullptr;
+			if (HoudiniCookable)
 			{
 				// Build the preset map
 				int InputIndex = 0;
@@ -523,27 +524,23 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 
 				if (IsValid(InPreset))
 				{
-					HoudiniAssetComponent->QueuePreCookCallback([InPreset](UHoudiniAssetComponent* HAC)
+					HoudiniCookable->QueuePreCookCallback([InPreset](UHoudiniCookable* HC)
 					{
 						// First apply the preset when we reach the PreCook phase.
-						if (IsValid(InPreset))
+						if (IsValid(InPreset) && IsValid(HC))
 						{
-							UHoudiniCookable* HC = HAC->GetCookable();
-							if (HC)
-								FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(InPreset, HC);
-							else
-								FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
+							FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(InPreset, HC);
 						}
 					});
 				}
 
 				// Set the input preset on the HoudiniAssetComponent
-				if ( InputPresets.Num() > 0 )
+				if (InputPresets.Num() > 0)
 				{
-					HoudiniAssetComponent->QueuePreCookCallback([InputPresets](UHoudiniAssetComponent* HAC)
+					HoudiniCookable->QueuePreCookCallback([InputPresets](UHoudiniCookable* HC)
 					{
 						// Apply the inputs once the HDA has reached its PreCookCallback
-						FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(InputPresets, HAC);
+						FHoudiniToolsEditor::ApplyObjectsAsHoudiniAssetInputs(InputPresets, HC);
 					});
 				}
 			}
@@ -559,7 +556,12 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(UHoudiniAsset* InHoudiniAsset
 }
 
 AActor*
-FHoudiniEngineEditorUtils::InstantiateHoudiniAssetAt(UHoudiniAsset* InHoudiniAsset, const FTransform& InTransform, UWorld* InSpawnInWorld, ULevel* InSpawnInLevelOverride, UHoudiniPreset* InPreset)
+FHoudiniEngineEditorUtils::InstantiateHoudiniAssetAt(
+	UHoudiniAsset* InHoudiniAsset,
+	const FTransform& InTransform,
+	UWorld* InSpawnInWorld,
+	ULevel* InSpawnInLevelOverride,
+	UHoudiniPreset* InPreset)
 {
 	if (!InHoudiniAsset)
 		return nullptr;
@@ -606,18 +608,7 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAssetAt(UHoudiniAsset* InHoudiniAss
 				{
 					if (IsValid(InPreset))
 					{
-							FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(InPreset, HC);
-					}
-				});
-			}
-			else
-			{
-				UHoudiniAssetComponent* HoudiniAssetComponent = HACActor->GetHoudiniAssetComponent();
-				HoudiniAssetComponent->QueuePreCookCallback([InPreset](UHoudiniAssetComponent* HAC)
-				{
-					if (IsValid(InPreset))
-					{
-						FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(InPreset, HAC);
+						FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(InPreset, HC);
 					}
 				});
 			}

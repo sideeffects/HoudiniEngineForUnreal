@@ -92,7 +92,8 @@ public:
 	// Get the path of the houdini asset / preset relative to its owning package. This version doesn't
 	// search for a PackageAsset from the given object, instead it assumes that the given package asset is the
 	// owner of AssetObject. This is to save us from searching for the owning package if we already have it.
-	static bool ResolveHoudiniAssetRelativePath(const UObject* AssetObject, const UHoudiniToolsPackageAsset* OwningPackageAsset, FString& OutPath);
+	static bool ResolveHoudiniAssetRelativePath(
+		const UObject* AssetObject, const UHoudiniToolsPackageAsset* OwningPackageAsset, FString& OutPath);
 
 	static FAssetData GetAssetDataByObject(const UObject* AssetObject);
 	
@@ -110,11 +111,14 @@ public:
 	// Add the given tool the exclusion list of the owning package for the given category.
 	// If the package name was added to the Category exclusion list (or if it was already present), return true.
 	// If the given category cannot be found in the package, return false.
-	static bool ExcludeToolFromPackageCategory(UObject* Object, const FString& CategoryName, bool bAddCategoryIfMissing);
+	static bool ExcludeToolFromPackageCategory(
+		UObject* Object, const FString& CategoryName, bool bAddCategoryIfMissing);
 	
-	static bool CanRemoveToolExcludeFromPackageCategory(UObject* Object, const FString& CategoryName);
+	static bool CanRemoveToolExcludeFromPackageCategory(
+		UObject* Object, const FString& CategoryName);
 
-	static bool RemoveToolExcludeFromPackageCategory(UObject* Object, const FString& CategoryName);
+	static bool RemoveToolExcludeFromPackageCategory(
+		UObject* Object, const FString& CategoryName);
 
 	void FindHoudiniToolsPackages(TArray<UHoudiniToolsPackageAsset*>& HoudiniToolPackages ) const;
 
@@ -131,9 +135,11 @@ public:
 	
 	// Find all the HoudiniTools in the given tools package, in the Unreal project.
 	// FHoudiniTools are cached for reuse.
-	void FindHoudiniToolsInPackage(const UHoudiniToolsPackageAsset* ToolsPackage, TArray<TSharedPtr<FHoudiniTool>>& OutHoudiniTools);
+	void FindHoudiniToolsInPackage(
+		const UHoudiniToolsPackageAsset* ToolsPackage, TArray<TSharedPtr<FHoudiniTool>>& OutHoudiniTools);
 
-	static void FindHoudiniAssetsInPackage(const UHoudiniToolsPackageAsset* ToolsPackage, TArray<UHoudiniAsset*>& OutAssets);
+	static void FindHoudiniAssetsInPackage(
+		const UHoudiniToolsPackageAsset* ToolsPackage, TArray<UHoudiniAsset*>& OutAssets);
 
 	// Apply the category rules to the given HoudiniTool. Append all valid categories for the HoudiniTool in OutCategories.  
 	static void ApplyCategories(
@@ -142,8 +148,7 @@ public:
 		const TSharedPtr<FHoudiniTool>& HoudiniTool,
 		const bool bIgnoreExclusionRules,
 		TArray<FString>& OutIncludeCategories,
-		TArray<FString>& OutExcludeCategories
-		);
+		TArray<FString>& OutExcludeCategories);
 
 	// Apply category rules to an asset inside a HoudiniToolsPackage.
 	// The OutCategories will contain all the categories in which this asset should be displayed.
@@ -156,8 +161,7 @@ public:
 		const TArray<FString>& ExcludeRules,
 		const bool bIgnoreExclusionRules, 
 		TArray<FString>& OutIncludeCategories, 
-		TArray<FString>& OutExcludeCategories 
-		);
+		TArray<FString>& OutExcludeCategories);
 
 	// Check whether the given name is a valid package name. If not, return the reason.
 	static bool IsValidPackageName(const FString& PkgName, FText* OutFailReason);
@@ -304,14 +308,6 @@ public:
 	// --------------------------------
 
 	static void CopySettingsToPreset(
-		const UHoudiniAssetComponent* HAC,
-		const bool bApplyAssetOptions,
-		const bool bApplyBakeOptions,
-		const bool bApplyMeshGenSettings,
-		const bool bApplyProxyMeshGenSettings,
-		UHoudiniPreset* Preset);
-
-	static void CopySettingsToPreset(
 		const UHoudiniCookable* HC,
 		const bool bApplyAssetOptions,
 		const bool bApplyBakeOptions,
@@ -321,24 +317,16 @@ public:
 
 	// Find all the presets that can be applied the given Houdini Asset. 
 	static void FindPresetsForHoudiniAsset(
-		const UHoudiniAsset* HoudiniAsset, TArray<UHoudiniPreset*>& OutPresets);
-
-	static bool CanApplyPresetToHoudiniAssetcomponent(
-		const UHoudiniPreset* Preset,
-		UHoudiniAssetComponent* HAC);
+		const UHoudiniAsset* HoudiniAsset,
+		TArray<UHoudiniPreset*>& OutPresets);
 
 	static bool CanApplyPresetToHoudiniCookable(
 		const UHoudiniPreset* Preset,
 		UHoudiniCookable* HC);
 
-	// Apply the preset to the given HoudiniAssetComponent.
+	// Apply the preset to the given Cookable.
 	// Optionally, reselect selected actors to update the component visualizers.
-	// This is typically used in conjunction with UHoudiniAssetComponent::QueueOneShotPreCookCallback
-	static void ApplyPresetToHoudiniAssetComponent(
-		const UHoudiniPreset* Preset,
-		UHoudiniAssetComponent* HAC,
-		bool bReselectSelectedActors = true);
-
+	// This is typically used in conjunction with UHoudiniCookable::QueueOneShotPreCookCallback
 	static void ApplyPresetToHoudiniCookable(
 		const UHoudiniPreset* Preset,
 		UHoudiniCookable* HC,
@@ -346,14 +334,15 @@ public:
 
 	// Apply the given objects to the specified input index. The input type will automatically be determined (and set)
 	// based on the types of the mapped inputs.
-	// This is typically used in conjunction with UHoudiniAssetComponent::QueueOneShotPreCookCallback
+	// This is typically used in conjunction with UHoudiniCookable::QueueOneShotPreCookCallback
 	static void ApplyObjectsAsHoudiniAssetInputs(
 		const TMap<UObject*, int32>& InputObjects,
-		UHoudiniAssetComponent* HAC
-		);
+		UHoudiniCookable* HAC);
 
 	// Apply the given preset to the currently selected actors. Optionally reselecting them to update viewport drawings.
-	static void ApplyPresetToSelectedHoudiniAssetActors(const UHoudiniPreset* Preset, bool bReselectSelectedActors=true);
+	static void ApplyPresetToSelectedHoudiniAssetActors(
+		const UHoudiniPreset* Preset,
+		bool bReselectSelectedActors=true);
 
 	// --------------------------------
 	// Editors
@@ -365,8 +354,7 @@ public:
 		TArray<UObject*>& InObjects,
 		FName InViewIdentifier,
 		const FVector2D InClientSize=FVector2D(400,550),
-		const TFunction<void(TArray<UObject*> /*InObjects*/)> OnSaveClickedFn = nullptr
-		);
+		const TFunction<void(TArray<UObject*> /*InObjects*/)> OnSaveClickedFn = nullptr);
 
 protected:
 
@@ -388,7 +376,7 @@ public:
 protected:
 	
 	// Categories
-	TMap< FHoudiniToolCategory, TSharedPtr<FHoudiniToolList> > Categories;
+	TMap<FHoudiniToolCategory, TSharedPtr<FHoudiniToolList>> Categories;
 
 	TMap<FString, UTexture2D*> CachedTextures;
 };
