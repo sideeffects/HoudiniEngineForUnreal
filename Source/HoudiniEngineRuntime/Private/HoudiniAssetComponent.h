@@ -102,44 +102,12 @@ public:
 	// Returns the Owner actor / HAC name
 	FString	GetDisplayName() const;
 
-	// Indicates if the HAC needs to be updated
-	bool NeedUpdate() const;
-
 	// Check whether any inputs / outputs / parameters have made blueprint modifications.
 	bool NeedBlueprintStructureUpdate() const;
 	bool NeedBlueprintUpdate() const;
 
-	// Prevents automatic triggering of updates on this HAC in its current state.
-	// This is to prevent endless cook/instantiation loops when an issue happens
-	void PreventAutoUpdates();
-
-	// Try to find one of our parameter that matches another (name, type, size and enabled)
-	UHoudiniParameter* FindMatchingParameter(UHoudiniParameter* InOtherParam);
-
-	// Try to find one of our input that matches another one (name, isobjpath, index / parmId)
-	UHoudiniInput* FindMatchingInput(UHoudiniInput* InOtherInput);
-
-	// Try to find one of our handle that matches another one (name and handle type)
-	UHoudiniHandleComponent* FindMatchingHandle(UHoudiniHandleComponent* InOtherHandle);
-
 	// Finds a parameter by name
 	UHoudiniParameter* FindParameterByName(const FString& InParamName);
-
-	// Returns True if the component has at least one mesh output of class U
-	template <class U>
-	bool HasMeshOutputObjectOfClass() const;
-
-	// Returns True if the component has at least one mesh output with a current proxy
-	bool HasAnyCurrentProxyOutput() const;
-
-	// Returns True if the component has at least one proxy mesh output (not necessarily current/displayed)
-	bool HasAnyProxyOutput() const;
-
-	// Returns True if the component has at least one non-proxy output component amongst its outputs
-	bool HasAnyOutputComponent() const;
-
-	// Returns true if the component has InOutputObjectToFind in its output object
-	bool HasOutputObject(UObject* InOutputObjectToFind) const;
 
 	/** Getter for the cached world pointer, will return null if the component is not actually spawned in a level */
 	virtual UWorld* GetHACWorld() const;
@@ -207,10 +175,6 @@ public:
 	FHoudiniStaticMeshGenerationProperties GetStaticMeshGenerationProperties() const;
 	FMeshBuildSettings GetStaticMeshBuildSettings() const;
 
-	//bool GetEditorPropertiesNeedFullUpdate() const { return bEditorPropertiesNeedFullUpdate; };
-
-	int32 GetAssetCookCount() const;
-
 	bool IsFullyLoaded() const;
 
 	bool IsOverrideGlobalProxyStaticMeshSettings() const;
@@ -219,32 +183,10 @@ public:
 	float GetProxyMeshAutoRefineTimeoutSeconds() const;
 	bool IsProxyStaticMeshRefinementOnPreSaveWorldEnabled() const;
 	bool IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const;
-	// If true, then the next cook should not build proxy meshes, regardless of global or override settings,
-	// but should instead directly build UStaticMesh
-	bool HasNoProxyMeshNextCookBeenRequested() const;
-	// Returns true if the asset state indicates that it has been cooked in this session, false otherwise.
-	bool IsHoudiniCookedDataAvailable(bool &bOutNeedsRebuildOrDelete, bool &bOutInvalidState) const;
-	// Returns true if the asset should be bake after the next cook
-	bool IsBakeAfterNextCookEnabled() const;
-	// Get the BakeAfterNextCook setting
-	EHoudiniBakeAfterNextCook GetBakeAfterNextCook() const;
-	EHoudiniEngineActorBakeOption GetActorBakeOption() const;
 
-	FOnPreInstantiationDelegate& GetOnPreInstantiationDelegate() { return OnPreInstantiationDelegate_DEPRECATED; }
-	FOnPreCookDelegate& GetOnPreCookDelegate() { return OnPreCookDelegate_DEPRECATED; }
-	FOnPostCookDelegate& GetOnPostCookDelegate() { return OnPostCookDelegate_DEPRECATED; }
-	FOnPostBakeDelegate& GetOnPostBakeDelegate() { return OnPostBakeDelegate_DEPRECATED; }
-	FOnPreOutputProcessingDelegate& GetOnPreOutputProcessingDelegate() { return OnPreOutputProcessingDelegate_DEPRECATED; }
+
 	FOnPostOutputProcessingDelegate& GetOnPostOutputProcessingDelegate() { return OnPostOutputProcessingDelegate_DEPRECATED; }
-
 	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate_DEPRECATED; }
-
-	// Register a callback that will be fired once during the next PreCook event, after which the callback
-	// will be removed from the queue.
-	// This is typically used when applying presets during HDA instantiation where we need to wait for
-	// the HoudiniAssetComponent to reach it's PreCook phase before we execute the callback to populate the HAC
-	// with the desired preset / input values.
-	void QueuePreCookCallback(const TFunction<void(UHoudiniAssetComponent*)>& CallbackFn);
 
 	// Derived blueprint based components will check whether the template
 	// component contains updates that needs to processed.
@@ -271,9 +213,6 @@ public:
 	// cook folder. This function does not take the unreal_temp_folder attribute into account.
 	FString GetTemporaryCookFolderOrDefault() const;
 
-	// Returns true if this asset should try to start a session
-	virtual bool ShouldTryToStartFirstSession() const;
-
 	EHoudiniEngineBakeOption GetHoudiniEngineBakeOption() const;
 
 	bool GetReplacePreviousBake() const;
@@ -283,7 +222,6 @@ public:
 	//------------------------------------------------------------------------------------------------
 	// Mutators
 	//------------------------------------------------------------------------------------------------
-	void SetAssetId(const int& InAssetId);
 
 	// Set asset state
 	void SetAssetState(EHoudiniAssetState InNewState);
@@ -317,28 +255,9 @@ public:
 	
 	//
 	void SetAssetCookCount(const int32& InCount);
-	//
-	void SetRecookRequested(const bool& InRecook);
-	//
-	void SetRebuildRequested(const bool& InRebuild);
+
 	//
 	void SetHasComponentTransformChanged(const bool& InHasChanged);
-
-	// Set an array of output nodes being tracked.
-	// This will remove any cook counts for nodes that are not in this list.
-	void SetOutputNodeIds(const TArray<int32>& OutputNodes);
-	TArray<int32> GetOutputNodeIds() const;
-	TMap<int32, int32> GetOutputNodeCookCounts() const;
-	
-	// Store the latest cook count that was processed for this output node. 
-	void SetOutputNodeCookCount(const int& NodeId, const int& CookCount);
-
-	// Clear output nodes. This will also clear the output node cook counts.
-	void ClearOutputNodes();
-
-	// Set to True to force the next cook to not build a proxy mesh (regardless of global or override settings) and
-	// instead build a UStaticMesh directly (if applicable for the output type).
-	void SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested);
 
 	void SetOverrideGlobalProxyStaticMeshSettings(bool InEnable);
 	void SetEnableProxyStaticMeshOverride(bool InEnable);
@@ -347,26 +266,8 @@ public:
 	void SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bool InEnable);
 	void SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bool InEnable);
 
-	// Set whether or not bake after cooking (disabled, always or once).
-	void SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook);
-
-	void SetActorBakeOption(const EHoudiniEngineActorBakeOption& InBakeOption);
-
-	//
-	void SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink);
 	//
 	virtual void OnHoudiniAssetChanged();
-
-	//
-	void AddDownstreamHoudiniAsset(UHoudiniAssetComponent* InDownstreamAsset);
-	//
-	void RemoveDownstreamHoudiniAsset(UHoudiniAssetComponent* InRemoveDownstreamAsset);
-	//
-	void ClearDownstreamHoudiniAsset();
-	//
-	bool NotifyCookedToDownstreamAssets();
-	//
-	bool NeedsToWaitForInputHoudiniAssets();
 
 	// Clear/disable the RefineMeshesTimer.
 	void ClearRefineMeshesTimer();
@@ -376,14 +277,8 @@ public:
 
 	virtual void OnRefineMeshesTimerFired();
 	
-	// Called by RefineMeshesTimer when the timer is triggered.
-	// Checks for any UHoudiniStaticMesh in Outputs and bakes UStaticMesh for them via FHoudiniMeshTranslator.	 
-	FOnRefineMeshesTimerDelegate& GetOnRefineMeshesTimerDelegate() { return OnRefineMeshesTimerDelegate_DEPRECATED; }
-
 	// Returns true if the asset is valid for cook/bake
 	virtual bool IsComponentValid() const;
-	// Return false if this component has no cooking or instantiation in progress.
-	bool IsInstantiatingOrCooking() const;
 
 	// HoudiniEngineTick will be called by HoudiniEngineManager::Tick()
 	virtual void HoudiniEngineTick();
@@ -419,7 +314,6 @@ public:
 	virtual bool HasOpenEditor() const { return false; };
 
 	void SetStaticMeshGenerationProperties(UStaticMesh* InStaticMesh);
-
 	void SetStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InHSMGP);
 	void SetStaticMeshBuildSettings(const FMeshBuildSettings& InMBS);
 
@@ -535,13 +429,12 @@ protected:
 	// Allow the object to perform any cleanup for properties which shouldn't be duplicated or
 	// Are unsupported by the script serialization
 	virtual void PostEditImport() override;
-		
+	
 	//
 	void OnActorMoved(AActor* Actor);
 
 	// 
 	void UpdatePostDuplicate();
-
 	//
 	//static void AddReferencedObjects(UObject * InThis, FReferenceCollector & Collector);
 
@@ -549,15 +442,12 @@ protected:
 	// Should be call PostLoad and PostProcessing
 	void UpdatePhysicsState();
 
-	// Mutators
-	void UpdateDormantStatus();
-
 #if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 0)
 	ILevelInstanceInterface* GetLevelInstance() const;
 #endif
 
 	// Used to Convert this HAC's data to a cookable
-	bool TransferDataToCookable();
+	bool TransferDataToCookable(UHoudiniCookable* HC);
 
 public:
 
@@ -707,7 +597,7 @@ protected:
 
 	// List of dependent downstream HACs that have us as an asset input
 	UPROPERTY(DuplicateTransient)
-	TSet<TObjectPtr<UHoudiniAssetComponent>> DownstreamHoudiniAssets; // NOT COOKABLE
+	TSet<TObjectPtr<UHoudiniAssetComponent>> DownstreamHoudiniAssets; // COOKABLE - DownstreamCookables
 
 	// Unique GUID created by component.
 	UPROPERTY(DuplicateTransient)
@@ -898,12 +788,6 @@ protected:
 	TArray< TFunction<void(UHoudiniAssetComponent*)> > PreCookCallbacks_DEPRECATED; // COOKABLE
 	
 #if WITH_EDITORONLY_DATA
-
-public:
-	// Sets whether this HDA is allowed to be cooked in PIE
-	// for the purposes of refinement.
-	void SetAllowPlayInEditorRefinement(bool bEnabled);
-	bool IsPlayInEditorRefinementAllowed() const;
 
 protected:
 	UPROPERTY(Transient, DuplicateTransient)

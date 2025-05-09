@@ -1751,14 +1751,14 @@ UHoudiniAssetBlueprintComponent::OnFullyLoaded()
 		if (!PreviewActor)
 		{
 			bIsInBlueprintEditor = false;
-			AssetState_DEPRECATED = EHoudiniAssetState::None;
+			SetAssetState(EHoudiniAssetState::None);
 			return;
 		}
 
-		if (OwningActor && PreviewActor != OwningActor)  
+		if (OwningActor && PreviewActor != OwningActor)
 		{
 			bIsInBlueprintEditor = false;
-			AssetState_DEPRECATED = EHoudiniAssetState::None;
+			SetAssetState(EHoudiniAssetState::None);
 			return;
 		}
 	}

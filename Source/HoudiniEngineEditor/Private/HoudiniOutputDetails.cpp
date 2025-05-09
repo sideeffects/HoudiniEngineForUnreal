@@ -789,11 +789,6 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 	if (!IsValidWeakPointer(InOutput))
 		return;
 
-	const TWeakObjectPtr<UHoudiniAssetComponent>& HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
-	const TWeakObjectPtr<UHoudiniCookable>& HC = Cast<UHoudiniCookable>(InOutput->GetOuter());
-	if (!IsValidWeakPointer(HAC) && !IsValidWeakPointer(HC))
-		return;
-
 	// Go through this output's object
 	int32 OutputObjIdx = 0;
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
@@ -1863,9 +1858,8 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	if (!IsValidWeakPointer(StaticMesh))
 		return;
 
-	const TWeakObjectPtr<UHoudiniAssetComponent>& HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
 	const TWeakObjectPtr<UHoudiniCookable>& HC = Cast<UHoudiniCookable>(InOutput->GetOuter());
-	if (!IsValidWeakPointer(HAC) && !IsValidWeakPointer(HC))
+	if (!IsValidWeakPointer(HC))
 		return;
 	
 	FHoudiniOutputObject* FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);

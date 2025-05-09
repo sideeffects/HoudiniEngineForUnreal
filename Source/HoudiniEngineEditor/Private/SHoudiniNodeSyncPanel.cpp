@@ -63,8 +63,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 SHoudiniNodeSyncPanel::SHoudiniNodeSyncPanel()
 	: SelectedActors(true, nullptr)
 {	
-/*	MBS_Ptr = MakeShared<TStructOnScope<FMeshBuildSettings>>();
-	HSMGP_Ptr = MakeShared<TStructOnScope<FHoudiniStaticMeshGenerationProperties>>();*/
+
 }
 
 

@@ -240,11 +240,11 @@ FHoudiniEditorEquivalenceUtils::IsEquivalent(UHoudiniCookable* A, UHoudiniCookab
 	}
 	Result &= TestExpressionError(A->GetCookOnInputChange() == B->GetCookOnInputChange(), Header, "bCookOnInputChange");
 	Result &= TestExpressionError(A->GetCookOnCookableInputCook() == B->GetCookOnCookableInputCook(), Header, "bCookOnCookableInputCook");
-	// Note: Despite DownstreamHoudiniAssets being transient, want to test
-	Result &= TestExpressionError(A->GetInputData()->DownstreamCookables.Num() == B->GetInputData()->DownstreamCookables.Num(), Header, "DownstreamHoudiniAssets.Num");
+	// Note: Despite DownstreamCookables being transient, want to test
+	Result &= TestExpressionError(A->GetInputData()->DownstreamCookables.Num() == B->GetInputData()->DownstreamCookables.Num(), Header, "DownstreamCookables.Num");
 	for (int i = 0; i < FMath::Min(A->GetInputData()->DownstreamCookables.Num(), B->GetInputData()->DownstreamCookables.Num()); i++)
 	{
-		Result &= TestExpressionError(IsEquivalent(A->GetInputData()->DownstreamCookables.Array()[i], B->GetInputData()->DownstreamCookables.Array()[i]), Header, "DownstreamHoudiniAssets");
+		Result &= TestExpressionError(IsEquivalent(A->GetInputData()->DownstreamCookables.Array()[i], B->GetInputData()->DownstreamCookables.Array()[i]), Header, "DownstreamCookables");
 	}
 
 	// OUTPUTS

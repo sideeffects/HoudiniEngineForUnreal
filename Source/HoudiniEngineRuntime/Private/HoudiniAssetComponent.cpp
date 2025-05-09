@@ -155,40 +155,35 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 
 		if (bV2Component)
 		{
-			HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniAssetComponent : V2 HAC will be converted to Cookable."));
+			HOUDINI_LOG_MESSAGE(TEXT("Loading deprecated version of UHoudiniAssetComponent : V2 HAC will be converted to Cookable."));
 
 			// V2 component - we need to move data to the cookable
-			UObject* Outer = this->GetOuter();
-			bool bIsOuterCookable = Outer ? Outer->IsA<UHoudiniCookable>() : false;
-			if(bIsOuterCookable)
-				HOUDINI_LOG_WARNING(TEXT("Owner is a Cookable."));
-			else
-				HOUDINI_LOG_WARNING(TEXT("No Cookable Owner."));
-
 			AHoudiniAssetActor* HAA = Cast<AHoudiniAssetActor>(this->GetOwner());
 			UHoudiniCookable* HC = HAA ? HAA->GetHoudiniCookable() : nullptr;
-			if(!HC)
+			if (!HC)
+			{
 				HOUDINI_LOG_WARNING(TEXT("Actor has no Cookable."));
+			}
 			else
 			{
 				// Move data to the cookable
-				if(!TransferDataToCookable())
+				if (!TransferDataToCookable(HC))
+				{
 					HOUDINI_LOG_ERROR(TEXT("Unable to convert v2 Houdini Asset Component to Cookable - will need to be recreated."));
+				}
+				else
+				{
+					// Indicate that we are the cookable's component
+					HC->SetComponent(this);
 
-				// Indicate that we are the cookable's component
-				HC->SetComponent(this);
+					// Set the Cookable as our outer
+					this->Rename(nullptr, HC);
 
-				// Set the Cookable as our outer?
-				this->Rename(nullptr, HC);
-
-				// Once everything is done - set ourselves as a component of the HAA.
-				// Why is this needed ?
-				HAA->SetRootComponent(this);
-				HAA->AddInstanceComponent(this);
-				//this->RegisterComponent();
-
-
-								
+					// Once everything is done - set ourselves as a component of the HAA.
+					// Why is this needed ?
+					HAA->SetRootComponent(this);
+					HAA->AddInstanceComponent(this);
+				}
 			}
 		}
 	}
@@ -629,14 +624,6 @@ UHoudiniAssetComponent::IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const
 	}
 }
 
-bool
-UHoudiniAssetComponent::HasNoProxyMeshNextCookBeenRequested() const 
-{ 
-	if (GetCookable())
-		return GetCookable()->HasNoProxyMeshNextCookBeenRequested();
-
-	return bNoProxyMeshNextCookRequested_DEPRECATED; 
-}
 
 void
 UHoudiniAssetComponent::SetOverrideGlobalProxyStaticMeshSettings(bool InEnable)
@@ -747,36 +734,12 @@ UHoudiniAssetComponent::SetHasBeenDuplicated(const bool& InDuplicated)
 	bHasBeenDuplicated_DEPRECATED = InDuplicated; 
 }
 
-void
-UHoudiniAssetComponent::QueuePreCookCallback(const TFunction<void(UHoudiniAssetComponent*)>& CallbackFn)
-{
-	PreCookCallbacks_DEPRECATED.Add(CallbackFn);
-}
 
 bool
 UHoudiniAssetComponent::NeedUpdateParameters() const
 {
-	// This is being split into a separate function to that it can
-	// be called separately for component templates.
-	if (!bCookOnParameterChange_DEPRECATED)
-		return false;
-
-	// Go through all our parameters, return true if they have been updated
-	for (auto CurrentParm : Parameters_DEPRECATED)
-	{
-		if (!IsValid(CurrentParm))
-			continue;
-
-		if (!CurrentParm->HasChanged())
-			continue;
-
-		// See if the parameter doesn't require an update 
-		// (because it has failed to upload previously or has been loaded)
-		if (!CurrentParm->NeedsToTriggerUpdate())
-			continue;
-		
-		return true;
-	}
+	if (GetCookable())
+		return GetCookable()->NeedUpdateParameters();
 
 	return false;
 }
@@ -784,23 +747,8 @@ UHoudiniAssetComponent::NeedUpdateParameters() const
 bool 
 UHoudiniAssetComponent::NeedUpdateInputs() const
 {
-	// Go through all our inputs, return true if they have been updated
-	for (auto CurrentInput : Inputs_DEPRECATED)
-	{
-		if (!IsValid(CurrentInput))
-			continue;
-
-		if (!CurrentInput->HasChanged())
-			continue;
-
-		// See if the input doesn't require an update 
-		// (because it has failed to upload previously or has been loaded)
-		if (!CurrentInput->NeedsToTriggerUpdate())
-			continue;
-
-		HOUDINI_LOG_DISPLAY(TEXT("[UHoudiniAssetBlueprintComponent::NeedUpdateInputs()] Inputs need update for component: %s"), *(GetPathName()));
-		return true;
-	}
+	if (GetCookable())
+		return GetCookable()->NeedUpdateInputs();
 
 	return false;
 }
@@ -859,136 +807,6 @@ UHoudiniAssetComponent::GetTemporaryCookFolderOrDefault() const
 	return !TemporaryCookFolder_DEPRECATED.Path.IsEmpty() ? TemporaryCookFolder_DEPRECATED.Path : FHoudiniEngineRuntime::Get().GetDefaultTemporaryCookFolder();
 }
 
-bool
-UHoudiniAssetComponent::NeedUpdate() const
-{	
-	TRACE_CPUPROFILER_EVENT_SCOPE(UHoudiniAssetComponent::NeedUpdate);
-
-	// It is important to check this when dealing with Blueprints since the
-	// preview components start receiving events from the template component
-	// before the preview component have finished initialization.
-	if (!IsFullyLoaded())
-		return false;
-
-	// We must have a valid asset, unless we're a NodeSync component
-	if (!IsValid(HoudiniAsset_DEPRECATED) && !IsA<UHoudiniNodeSyncComponent>())
-		return false;
-
-	if (bForceNeedUpdate_DEPRECATED || bRecookRequested_DEPRECATED)
-		return true;
-	
-	// If we don't want to cook on parameter/input change dont bother looking for updates
-	if (!bCookOnParameterChange_DEPRECATED && !bRecookRequested_DEPRECATED && !bRebuildRequested_DEPRECATED)
-		return false;
-
-	// Check if the HAC's transform has changed and we need to cook because of it
-	if (bCookOnTransformChange_DEPRECATED && bHasComponentTransformChanged_DEPRECATED && bUploadTransformsToHoudiniEngine_DEPRECATED)
-		return true;
-
-	if (NeedUpdateParameters())
-		return true;
-
-	if (NeedUpdateInputs())
-		return true;
-
-	// Go through all outputs, filter the editable nodes. Return true if they have been updated.
-	for (auto CurrentOutput : Outputs_DEPRECATED)
-	{
-		if (!IsValid(CurrentOutput))
-			continue;
-		
-		// We only care about editable outputs
-		if (!CurrentOutput->IsEditableNode())
-			continue;
-
-		// Trigger an update if the output object is marked as modified by user.
-		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = CurrentOutput->GetOutputObjects();
-		for (auto& NextPair : OutputObjects)
-		{
-			for(auto Component : NextPair.Value.OutputComponents)
-			{
-			    // For now, only editable curves can trigger update
-			    UHoudiniSplineComponent* HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(Component);
-			    if (!HoudiniSplineComponent)
-				    continue;
-
-			    // Output curves cant trigger an update!
-			    if (HoudiniSplineComponent->bIsOutputCurve)
-				    continue;
-
-			    if (HoudiniSplineComponent->NeedsToTriggerUpdate())
-				    return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-void
-UHoudiniAssetComponent::PreventAutoUpdates()
-{
-	// It is important to check this when dealing with Blueprints since the
-	// preview components start receiving events from the template component
-	// before the preview component have finished initialization.
-	if (!IsFullyLoaded())
-		return;
-
-	bForceNeedUpdate_DEPRECATED = false;
-	bRecookRequested_DEPRECATED = false;
-	bRebuildRequested_DEPRECATED = false;
-	bHasComponentTransformChanged_DEPRECATED = false;
-
-	// Go through all our parameters, prevent them from triggering updates
-	for (auto CurrentParm : Parameters_DEPRECATED)
-	{
-		if (!IsValid(CurrentParm))
-			continue;
-
-		// Prevent the parm from triggering an update
-		CurrentParm->SetNeedsToTriggerUpdate(false);
-	}
-
-	// Same with inputs
-	for (auto CurrentInput : Inputs_DEPRECATED)
-	{
-		if (!IsValid(CurrentInput))
-			continue;
-
-		// Prevent the input from triggering an update
-		CurrentInput->SetNeedsToTriggerUpdate(false);
-	}
-
-	// Go through all outputs, filter the editable nodes.
-	for (auto CurrentOutput : Outputs_DEPRECATED)
-	{
-		if (!IsValid(CurrentOutput))
-			continue;
-
-		// We only care about editable outputs
-		if (!CurrentOutput->IsEditableNode())
-			continue;
-
-		// Trigger an update if the output object is marked as modified by user.
-		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = CurrentOutput->GetOutputObjects();
-		for (auto& NextPair : OutputObjects)
-		{
-			// For now, only editable curves can trigger update
-			for(auto Component : NextPair.Value.OutputComponents)
-			{
-			    UHoudiniSplineComponent* HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(Component);
-			    if (!HoudiniSplineComponent)
-				    continue;
-
-			    // Output curves cant trigger an update!
-			    if (HoudiniSplineComponent->bIsOutputCurve)
-				    continue;
-
-			    HoudiniSplineComponent->SetNeedsToTriggerUpdate(false);
-			}
-		}
-	}
-}
 
 bool UHoudiniAssetComponent::NeedBlueprintStructureUpdate() const
 {
@@ -1000,170 +818,6 @@ bool UHoudiniAssetComponent::NeedBlueprintUpdate() const
 {
 	// TODO: Add similar flags to inputs, parameters
 	return bBlueprintModified;
-}
-
-bool 
-UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
-{
-	if (GetCookable())
-		return GetCookable()->NotifyCookedToDownstreamCookables();
-
-	// TODO: Cookable - clean me
-
-	// Before notifying, clean up our downstream assets
-	// - check that they are still valid
-	// - check that we are still connected to one of its asset input
-	// - check that the asset has the CookOnAssetInputCook trigger enabled
-	TArray<UHoudiniAssetComponent*> DownstreamToDelete;	
-	for(auto& CurrentDownstreamHAC : DownstreamHoudiniAssets)
-	{
-		// Remove the downstream connection by default,
-		// unless we actually were properly connected to one of this HDA's input.
-		bool bRemoveDownstream = true;
-		if (IsValid(CurrentDownstreamHAC))
-		{
-			// Go through the HAC's input
-			for (auto& CurrentDownstreamInput : CurrentDownstreamHAC->GetInputs())
-			{
-				if (!IsValid(CurrentDownstreamInput))
-					continue;
-
-				EHoudiniInputType CurrentDownstreamInputType = CurrentDownstreamInput->GetInputType();
-				
-				// Require an asset input type, not just all World/NewWorld
-				if (!CurrentDownstreamInput->IsAssetInput())
-					continue;
-
-				// Ensure that we are an input object of that input
-				if (!CurrentDownstreamInput->ContainsInputObject(this, CurrentDownstreamInputType))
-					continue;
-
-				// We are an input to this HDA
-				// Make sure that the 
-				if (!CurrentDownstreamInput->GetImportAsReference())
-				{
-					const TArray<TObjectPtr<UHoudiniInputObject>>* ObjectArray = CurrentDownstreamInput->GetHoudiniInputObjectArray(CurrentDownstreamInputType);
-					if (ObjectArray)
-					{
-						for (auto& CurrentInputObject : (*ObjectArray))
-						{
-							if (!IsValid(CurrentInputObject))
-								continue;
-
-							if (CurrentInputObject->GetObject() != this)
-								continue;
-
-							CurrentInputObject->SetInputNodeId(GetAssetId());
-							CurrentInputObject->SetInputObjectNodeId(GetAssetId());
-						}
-					}
-				}
-
-				if (CurrentDownstreamHAC->GetCookOnAssetInputCook())
-				{
-					// Mark that HAC's input has changed
-					CurrentDownstreamInput->MarkChanged(true);
-				}
-				bRemoveDownstream = false;
-			}
-		}
-
-		if (bRemoveDownstream)
-		{
-			DownstreamToDelete.Add(CurrentDownstreamHAC);
-		}
-	}
-
-	for (auto ToDelete : DownstreamToDelete)
-	{
-		DownstreamHoudiniAssets.Remove(ToDelete);
-	}
-
-	return true;
-}
-
-void
-UHoudiniAssetComponent::AddDownstreamHoudiniAsset(UHoudiniAssetComponent* InDownstreamAsset)
-{
-	if (!IsValid(InDownstreamAsset))
-		return;
-
-	if (GetCookable())
-		return GetCookable()->AddDownstreamCookable(InDownstreamAsset->GetCookable());
-
-	DownstreamHoudiniAssets.Add(InDownstreamAsset); 
-}
-
-void
-UHoudiniAssetComponent::RemoveDownstreamHoudiniAsset(UHoudiniAssetComponent* InRemoveDownstreamAsset)
-{ 
-	if (!IsValid(InRemoveDownstreamAsset))
-		return;
-
-	if (GetCookable())
-		return GetCookable()->RemoveDownstreamCookable(InRemoveDownstreamAsset->GetCookable());
-
-	DownstreamHoudiniAssets.Remove(InRemoveDownstreamAsset); 
-}
-
-void
-UHoudiniAssetComponent::ClearDownstreamHoudiniAsset()
-{
-	if (GetCookable())
-		return GetCookable()->ClearDownstreamCookable();
-
-	DownstreamHoudiniAssets.Empty();
-}
-
-bool
-UHoudiniAssetComponent::NeedsToWaitForInputHoudiniAssets()
-{
-	if (GetCookable())
-		return GetCookable()->InputData->NeedsToWaitForInputHoudiniAssets();
-
-	for (auto& CurrentInput : Inputs_DEPRECATED)
-	{
-		if (!IsValid(CurrentInput))
-			continue;
-
-		EHoudiniInputType CurrentInputType = CurrentInput->GetInputType();
-		if (!CurrentInput->IsAssetInput())
-			continue;
-
-		TArray<TObjectPtr<UHoudiniInputObject>>* ObjectArray = CurrentInput->GetHoudiniInputObjectArray(CurrentInputType);
-		if (!ObjectArray)
-			continue;
-
-		for (auto& CurrentInputObject : (*ObjectArray))
-		{
-			// Get the input HDA
-			UHoudiniAssetComponent* InputHAC = CurrentInputObject 
-				? Cast<UHoudiniAssetComponent>(CurrentInputObject->GetObject()) 
-				: nullptr;
-
-			if (!InputHAC)
-				continue;
-
-			// If the input HDA needs to be instantiated, force him to instantiate
-			// if the input HDA is in any other state than None, we need to wait for him
-			// to finish whatever it's doing
-			if (InputHAC->GetAssetState() == EHoudiniAssetState::NeedInstantiation)
-			{
-				// Tell the input HAC to instantiate
-				InputHAC->SetAssetState(EHoudiniAssetState::PreInstantiation);
-
-				// We need to wait
-				return true;
-			}
-			else if (InputHAC->GetAssetState() != EHoudiniAssetState::None)
-			{
-				// We need to wait
-				return true;
-			}
-		}
-	}
-
-	return false;
 }
 
 void
@@ -1187,176 +841,15 @@ UHoudiniAssetComponent::MarkAsNeedCook()
 {
 	if (GetCookable())
 		return GetCookable()->MarkAsNeedCook();
-
-	// Force the asset state to NeedCook
-	//AssetCookCount = 0;
-	bHasBeenLoaded_DEPRECATED = true;
-	bPendingDelete_DEPRECATED = false;
-	bRecookRequested_DEPRECATED = true;
-	bRebuildRequested_DEPRECATED = false;
-
-	//bEditorPropertiesNeedFullUpdate = true;
-
-	// We need to mark all our parameters as changed/trigger update
-	for (auto CurrentParam : Parameters_DEPRECATED)
-	{
-		if (!IsValid(CurrentParam))
-			continue;
-
-		// Do not trigger parameter update for Button/Button strip when recooking
-		// As we don't want to trigger the buttons
-		if (CurrentParam->IsA<UHoudiniParameterButton>() || CurrentParam->IsA<UHoudiniParameterButtonStrip>())
-			continue;
-
-		CurrentParam->MarkChanged(true);
-		CurrentParam->SetNeedsToTriggerUpdate(true);
-	}
-
-	// We need to mark all of our editable curves as changed
-	for (auto Output : Outputs_DEPRECATED)
-	{
-		if (!IsValid(Output) || Output->GetType() != EHoudiniOutputType::Curve || !Output->IsEditableNode())
-			continue;
-
-		for (auto& OutputObjectEntry : Output->GetOutputObjects())
-		{
-			FHoudiniOutputObject& OutputObject = OutputObjectEntry.Value;
-			if (OutputObject.CurveOutputProperty.CurveOutputType != EHoudiniCurveOutputType::HoudiniSpline)
-				continue;
-
-            for(auto Component : OutputObject.OutputComponents)
-            {
-			    UHoudiniSplineComponent* SplineComponent = Cast<UHoudiniSplineComponent>(Component);
-			    if (!IsValid(SplineComponent))
-				    continue;
-
-			    // This sets bHasChanged and bNeedsToTriggerUpdate
-			    SplineComponent->MarkChanged(true);
-            }
-		}
-	}
-
-	// We need to mark all our inputs as changed/trigger update
-	for (auto CurrentInput : Inputs_DEPRECATED)
-	{
-		if (!IsValid(CurrentInput))
-			continue;
-		CurrentInput->MarkChanged(true);
-		CurrentInput->SetNeedsToTriggerUpdate(true);
-		CurrentInput->MarkDataUploadNeeded(true);
-
-		FHoudiniInputObjectSettings CurrentInputSettings(CurrentInput);
-
-		// In addition to marking the input as changed/need update, we also need to make sure that any changes on the
-		// Unreal side have been recorded for the input before sending to Houdini. For that we also mark each input
-		// object as changed/need update and explicitly call the Update function on each input object. For example, for
-		// input actors this would recreate the Houdini input actor components from the actor's components, picking up
-		// any new components since the last call to Update.
-		TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectArray = CurrentInput->GetHoudiniInputObjectArray(CurrentInput->GetInputType());
-		if (InputObjectArray && InputObjectArray->Num() > 0)
-		{
-			for (auto CurrentInputObject : *InputObjectArray)
-			{
-				if (!IsValid(CurrentInputObject))
-					continue;
-
-				UObject* const Object = CurrentInputObject->GetObject();
-				if (IsValid(Object))
-					CurrentInputObject->Update(Object, CurrentInputSettings);
-
-				CurrentInputObject->MarkChanged(true);
-				CurrentInputObject->SetNeedsToTriggerUpdate(true);
-				CurrentInputObject->MarkTransformChanged(true);
-			}
-		}
-	}
-
-	// Clear the static mesh bake timer
-	ClearRefineMeshesTimer();
 }
 
 void
 UHoudiniAssetComponent::MarkAsNeedRebuild()
 {
-	//
 	if (GetCookable())
-	{
-		GetCookable()->MarkAsNeedRebuild();
-		return;
-	}
+		return GetCookable()->MarkAsNeedRebuild();
 
-	// Invalidate the asset ID
-	//AssetId = -1;
-
-	// Force the asset state to NeedRebuild
-	SetAssetState(EHoudiniAssetState::NeedRebuild);
-	AssetStateResult_DEPRECATED = EHoudiniAssetStateResult::None;
-
-	// Reset some of the asset's flag
-	//AssetCookCount = 0;
-	bHasBeenLoaded_DEPRECATED = true;
-	bPendingDelete_DEPRECATED = false;
-	bRecookRequested_DEPRECATED = false;
-	bRebuildRequested_DEPRECATED = true;
-	bFullyLoaded_DEPRECATED = false;
-
-	//bEditorPropertiesNeedFullUpdate = true;
-	/*
-	// We need to mark all our parameters as changed/trigger update
-	for (auto CurrentParam : Parameters)
-	{
-		if (!IsValid(CurrentParam))
-			continue;
-
-		// Do not trigger parameter update for Button/Button strip when rebuilding
-		// As we don't want to trigger the buttons
-		if (CurrentParam->IsA<UHoudiniParameterButton>() || CurrentParam->IsA<UHoudiniParameterButtonStrip>())
-			continue;
-
-		CurrentParam->MarkChanged(true);
-		CurrentParam->SetNeedsToTriggerUpdate(true);
-	}
-	*/
-
-	// We need to mark all of our editable curves as changed
-	for (auto Output : Outputs_DEPRECATED)
-	{
-		if (!IsValid(Output) || Output->GetType() != EHoudiniOutputType::Curve || !Output->IsEditableNode())
-			continue;
-
-		for (auto& OutputObjectEntry : Output->GetOutputObjects())
-		{
-			FHoudiniOutputObject& OutputObject = OutputObjectEntry.Value;
-			if (OutputObject.CurveOutputProperty.CurveOutputType != EHoudiniCurveOutputType::HoudiniSpline)
-				continue;
-
-			for(auto Component : OutputObject.OutputComponents)
-			{
-			    UHoudiniSplineComponent* SplineComponent = Cast<UHoudiniSplineComponent>(Component);
-			    if (!IsValid(SplineComponent))
-				    continue;
-
-			    // This sets bHasChanged and bNeedsToTriggerUpdate
-			    SplineComponent->MarkChanged(true);
-			}
-		}
-	}
-
-	// Uncomment this for building regression tests that need a clean output.
-	//Outputs.Empty();
-
-	// We need to mark all our inputs as changed/trigger update
-	for (auto CurrentInput : Inputs_DEPRECATED)
-	{
-		if (!IsValid(CurrentInput))
-			continue;
-		CurrentInput->MarkChanged(true);
-		CurrentInput->SetNeedsToTriggerUpdate(true);
-		CurrentInput->MarkDataUploadNeeded(true);
-	}
-
-	// Clear the static mesh bake timer
-	ClearRefineMeshesTimer();
+	return;
 }
 
 // Marks the asset as needing to be instantiated
@@ -1365,75 +858,16 @@ UHoudiniAssetComponent::MarkAsNeedInstantiation()
 {
 	if (GetCookable())
 		return GetCookable()->MarkAsNeedInstantiation();
-
-	// Invalidate the asset ID
-	AssetId_DEPRECATED = -1;
-
-	if (Parameters_DEPRECATED.Num() <= 0 && Inputs_DEPRECATED.Num() <= 0 && Outputs_DEPRECATED.Num() <= 0)
-	{
-		// The asset has no parameters or inputs.
-		// This likely indicates it has never cooked/been instantiated.
-		// Set its state to NewHDA to force its instantiation
-		// so that we can have its parameters/input interface
-		SetAssetState(EHoudiniAssetState::NewHDA);
-	}
-	else
-	{
-		// The asset has cooked before since we have a parameter/input interface
-		// Set its state to need instantiation so that the asset is instantiated
-		// after being modified
-		SetAssetState(EHoudiniAssetState::NeedInstantiation);
-	}
-
-	AssetStateResult_DEPRECATED = EHoudiniAssetStateResult::None;
-
-	// Reset some of the asset's flag
-	AssetCookCount_DEPRECATED = 0;
-	bHasBeenLoaded_DEPRECATED = true;
-	bPendingDelete_DEPRECATED = false;
-	bRecookRequested_DEPRECATED = false;
-	bRebuildRequested_DEPRECATED = false;
-	bFullyLoaded_DEPRECATED = false;
-
-	//bEditorPropertiesNeedFullUpdate = true;
-
-	// We need to mark all our parameters as changed/not triggering update
-	for (auto CurrentParam : Parameters_DEPRECATED)
-	{
-		if (CurrentParam)
-		{
-			CurrentParam->MarkChanged(true);
-			CurrentParam->SetNeedsToTriggerUpdate(false);
-		}
-	}
-
-	// We need to mark all our inputs as changed/not triggering update
-	for (auto CurrentInput : Inputs_DEPRECATED)
-	{
-		if (CurrentInput)
-		{
-			CurrentInput->MarkChanged(true);
-			CurrentInput->SetNeedsToTriggerUpdate(false);
-			CurrentInput->MarkDataUploadNeeded(true);
-		}
-	}
-
-	/*if (!CanInstantiateAsset())
-	{
-		AssetState = EHoudiniAssetState::None;
-		AssetStateResult = EHoudiniAssetStateResult::None;
-	}*/
-
-	// Clear the static mesh bake timer
-	ClearRefineMeshesTimer();
 }
 
-void UHoudiniAssetComponent::MarkAsBlueprintStructureModified()
+void 
+UHoudiniAssetComponent::MarkAsBlueprintStructureModified()
 {
 	bBlueprintStructureModified = true;
 }
 
-void UHoudiniAssetComponent::MarkAsBlueprintModified()
+void 
+UHoudiniAssetComponent::MarkAsBlueprintModified()
 {
 	bBlueprintModified = true;
 }
@@ -1442,6 +876,13 @@ void
 UHoudiniAssetComponent::PostLoad()
 {
 	Super::PostLoad();
+
+	// TODO: Cookable ?? Needed??
+	//if (GetCookable())
+	//	GetCookable()->PostLoad();
+
+	// We still need this PostLoad function as saved v2 component don't have
+	// a cookable, dso dont call the cookable's PostLoad function
 
 	// Mark as need instantiation
 	MarkAsNeedInstantiation();
@@ -1476,18 +917,13 @@ UHoudiniAssetComponent::PostLoad()
 #endif
 }
 
-void
-UHoudiniAssetComponent::CreateRenderState_Concurrent(FRegisterComponentContext* Context)
-{
-	// Just call parent class for now.
-	Super::CreateRenderState_Concurrent(Context);
-}
 
-void 
+void
 UHoudiniAssetComponent::PostEditImport()
 {
 	Super::PostEditImport();
 
+	// TODO: Cookable ?? Needed??
 	MarkAsNeedInstantiation();
 
 	// Component has been duplicated, not loaded
@@ -1499,77 +935,17 @@ UHoudiniAssetComponent::PostEditImport()
 	SetAssetStateResult(EHoudiniAssetStateResult::None);
 }
 
+
 void
-UHoudiniAssetComponent::UpdatePostDuplicate()
+UHoudiniAssetComponent::CreateRenderState_Concurrent(FRegisterComponentContext* Context)
 {
-	// TODO:
-	// - Keep the output objects/components (remove duplicatetransient on the output object uproperties)
-	// - Duplicate created objects (ie SM) and materials
-	// - Update the output components to use these instead
-	// This should remove the need for a cook on duplicate
-
-	// For now, we simply clean some of the HAC's component manually
-	const TArray<USceneComponent*> Children = GetAttachChildren();
-
-	for (auto & NextChild : Children) 
-	{
-		if (!IsValid(NextChild))
-			continue;
-
-		// We don't want to remove components that were added in a Blueprint Template
-		if (NextChild->IsCreatedByConstructionScript())
-			continue;
-
-		USceneComponent * ComponentToRemove = nullptr;
-		if (NextChild->IsA<UStaticMeshComponent>()) 
-		{
-			// This also covers UStaticMeshComponent derived instancers, such as UInstancedStaticMeshComponent,
-			// and UHierarchicalInstancedStaticMeshComponent
-			ComponentToRemove = NextChild;
-		}
-		else if (NextChild->IsA<UHoudiniStaticMeshComponent>())
-		{
-			ComponentToRemove = NextChild;
-		}
-		else if (NextChild->IsA<USplineComponent>())
-		{
-			ComponentToRemove = NextChild;
-		}
-		else if (NextChild->IsA<UHoudiniInstancedActorComponent>())
-		{
-			// The actors attached to the HoudiniAssetActor are not duplicated, so we only 
-			// have to handle the component.
-			ComponentToRemove = NextChild;
-		}
-		/*  do not destroy attached duplicated editable curves, they are needed to restore editable curves
-		else if (NextChild->IsA<UHoudiniSplineComponent>())  
-		{
-			// Remove duplicated editable curve output's Houdini Spline Component, since they will be re-built at duplication.
-			UHoudiniSplineComponent * HoudiniSplineComponent = Cast<UHoudiniSplineComponent>(NextChild);
-			if (HoudiniSplineComponent && HoudiniSplineComponent->IsEditableOutputCurve())
-				ComponentToRemove = NextChild;
-		}
-		*/
-		if (ComponentToRemove)
-		{
-			ComponentToRemove->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-			ComponentToRemove->UnregisterComponent();
-			ComponentToRemove->DestroyComponent();
-		}
-	}
-
-	// if there is an associated PDG asset link, call its UpdatePostDuplicate to cleanup references to
-	// to the original instance's PDG output actors
-	if (IsValid(GetPDGAssetLink()))
-	{
-		GetPDGAssetLink()->UpdatePostDuplicate();
-	}
-	
-	SetHasBeenDuplicated(false);
+	// Just call parent class for now.
+	Super::CreateRenderState_Concurrent(Context);
 }
 
 
-void UHoudiniAssetComponent::OnFullyLoaded()
+void
+UHoudiniAssetComponent::OnFullyLoaded()
 {
 	if (GetCookable())
 		GetCookable()->bFullyLoaded = true;
@@ -1596,10 +972,6 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 		// Call our super
 		return Super::OnComponentDestroyed(bDestroyingHierarchy);
 	}
-
-	// TODO: Cookable - clean me up!
-	// Unregister ourself so our houdini node can be deleted
-	//FHoudiniEngineRuntime::Get().UnRegisterHoudiniComponent(this);
 
 	HoudiniAsset_DEPRECATED = nullptr;
 
@@ -1783,68 +1155,6 @@ UHoudiniAssetComponent::OnRegister()
 	// before being able to perform state transfers.
 }
 
-UHoudiniParameter*
-UHoudiniAssetComponent::FindMatchingParameter(UHoudiniParameter* InOtherParam)
-{
-	if (!IsValid(InOtherParam))
-		return nullptr;
-
-	if (GetCookable())
-		return GetCookable()->FindMatchingParameter(InOtherParam);
-
-	for (auto CurrentParam : Parameters_DEPRECATED)
-	{
-		if (!IsValid(CurrentParam))
-			continue;
-
-		if (CurrentParam->Matches(*InOtherParam))
-			return CurrentParam;
-	}
-
-	return nullptr;
-}
-
-UHoudiniInput*
-UHoudiniAssetComponent::FindMatchingInput(UHoudiniInput* InOtherInput)
-{
-	if (!IsValid(InOtherInput))
-		return nullptr;
-
-	if (GetCookable())
-		return GetCookable()->FindMatchingInput(InOtherInput);
-
-	for (auto CurrentInput : Inputs_DEPRECATED)
-	{
-		if (!IsValid(CurrentInput))
-			continue;
-
-		if (CurrentInput->Matches(*InOtherInput))
-			return CurrentInput;
-	}
-
-	return nullptr;
-}
-
-UHoudiniHandleComponent* 
-UHoudiniAssetComponent::FindMatchingHandle(UHoudiniHandleComponent* InOtherHandle) 
-{
-	if (!IsValid(InOtherHandle))
-		return nullptr;
-
-	if (GetCookable())
-		return GetCookable()->FindMatchingHandle(InOtherHandle);
-
-	for (auto CurrentHandle : HandleComponents_DEPRECATED) 
-	{
-		if (!IsValid(CurrentHandle))
-			continue;
-
-		if (CurrentHandle->Matches(*InOtherHandle))
-			return CurrentHandle;
-	}
-
-	return nullptr;
-}
 
 UHoudiniParameter*
 UHoudiniAssetComponent::FindParameterByName(const FString& InParamName)
@@ -2272,76 +1582,30 @@ UHoudiniAssetComponent::PostEditUndo()
 {
 	Super::PostEditUndo();
 
-	if (IsValid(this))
+	if (!IsValid(this))
+		return;
+
+	if(!GetCookable())
 	{
-		// Make sure we are registered with the HER singleton
-		// We could be undoing a HoudiniActor delete
+		HOUDINI_LOG_ERROR(TEXT("PostEditUndo called on a HAC with no cookable!!! Trouble Ahead!!"));
+		return;
+	}
 
-		if (GetCookable())
-		{
-			if (!FHoudiniEngineRuntime::Get().IsCookableRegistered(GetCookable()))
-			{
-				MarkAsNeedInstantiation();
+	// Make sure we are registered with the HER singleton
+	// We could be undoing a HoudiniActor delete
+	if (!FHoudiniEngineRuntime::Get().IsCookableRegistered(GetCookable()))
+	{
+		MarkAsNeedInstantiation();
 
-				// Component has been loaded, not duplicated
-				SetHasBeenDuplicated(false);
+		// Component has been loaded, not duplicated
+		SetHasBeenDuplicated(false);
 
-				FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(GetCookable());
-			}
-		}
-		else
-		{
-			// TODO: Cookable - clean me!!
-
-			HOUDINI_LOG_ERROR(TEXT("PostEditUndo called on a HAC with no cookable!!! Trouble Ahead!!"));
-
-			/*
-			if (!FHoudiniEngineRuntime::Get().IsComponentRegistered(this))
-			{
-				MarkAsNeedInstantiation();
-
-				// Component has been loaded, not duplicated
-				bHasBeenDuplicated_DEPRECATED = false;
-
-				RegisterHoudiniComponent(this);
-			}*/
-		}
+		FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(GetCookable());
 	}
 }
 
 #endif
 
-bool
-UHoudiniAssetComponent::ShouldTryToStartFirstSession() const
-{
-	if (!GetHoudiniAsset())
-		return false;
-
-	// Only try to start the default session if we have an "active" HAC
-	switch (GetAssetState())
-	{
-		case EHoudiniAssetState::NewHDA:
-		case EHoudiniAssetState::PreInstantiation:
-		case EHoudiniAssetState::Instantiating:
-		case EHoudiniAssetState::PreCook:
-		case EHoudiniAssetState::Cooking:
-			return true;
-
-		case EHoudiniAssetState::NeedInstantiation:
-		case EHoudiniAssetState::PostCook:
-		case EHoudiniAssetState::PreProcess:
-		case EHoudiniAssetState::Processing:
-		case EHoudiniAssetState::None:
-		case EHoudiniAssetState::NeedRebuild:
-		case EHoudiniAssetState::NeedDelete:
-		case EHoudiniAssetState::Deleting:
-		case EHoudiniAssetState::ProcessTemplate:
-		case EHoudiniAssetState::Dormant:
-			return false;
-	};
-
-	return false;
-}
 
 
 #if WITH_EDITOR
@@ -2379,85 +1643,6 @@ UHoudiniAssetComponent::SetAssetCookCount(const int32& InCount)
 
 	AssetCookCount_DEPRECATED = InCount; 
 }
-
-void
-UHoudiniAssetComponent::SetRecookRequested(const bool& InRecook)
-{
-	if (GetCookable())
-		GetCookable()->SetRecookRequested(InRecook);
-
-	bRecookRequested_DEPRECATED = InRecook;
-}
-
-void
-UHoudiniAssetComponent::SetRebuildRequested(const bool& InRebuild)
-{
-	if (GetCookable())
-		GetCookable()->SetRebuildRequested(InRebuild);
-
-	bRebuildRequested_DEPRECATED = InRebuild; 
-}
-
-
-void UHoudiniAssetComponent::SetOutputNodeIds(const TArray<int32>& OutputNodes)
-{
-	NodeIdsToCook_DEPRECATED = OutputNodes;
-	// Remove stale entries from OutputNodeCookCounts:
-	TArray<int32> CachedNodeIds;
-	OutputNodeCookCounts_DEPRECATED.GetKeys(CachedNodeIds);
-	for(const int32 NodeId : CachedNodeIds)
-	{
-		if (!NodeIdsToCook_DEPRECATED.Contains(NodeId))
-		{
-			OutputNodeCookCounts_DEPRECATED.Remove(NodeId);
-		}
-	}
-}
-
-void UHoudiniAssetComponent::SetOutputNodeCookCount(const int& NodeId, const int& CookCount)
-{
-	OutputNodeCookCounts_DEPRECATED.Add(NodeId, CookCount);
-}
-
-TArray<int32>
-UHoudiniAssetComponent::GetOutputNodeIds() const
-{
-	if (GetCookable())
-		return GetCookable()->GetNodeIdsToCook();
-
-	return NodeIdsToCook_DEPRECATED; 
-}
-
-TMap<int32, int32>
-UHoudiniAssetComponent::GetOutputNodeCookCounts() const
-{ 
-	if (GetCookable())
-		return GetCookable()->GetNodesToCookCookCounts();
-
-	return OutputNodeCookCounts_DEPRECATED; 
-}
-
-
-void UHoudiniAssetComponent::ClearOutputNodes()
-{
-	NodeIdsToCook_DEPRECATED.Empty();
-	OutputNodeCookCounts_DEPRECATED.Empty();
-}
-
-void
-UHoudiniAssetComponent::SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink)
-{
-	// Check the object validity
-	if (!IsValid(InPDGAssetLink))
-		return;
-
-	// If it is the same object, do nothing.
-	if (InPDGAssetLink == PDGAssetLink_DEPRECATED)
-		return;
-
-	PDGAssetLink_DEPRECATED = InPDGAssetLink;
-}
-
 
 FBoxSphereBounds
 UHoudiniAssetComponent::CalcBounds(const FTransform & LocalToWorld) const
@@ -2961,204 +2146,6 @@ UHoudiniAssetComponent::OnRefineMeshesTimerFired()
 }
 
 bool
-UHoudiniAssetComponent::HasAnyCurrentProxyOutput() const
-{
-	if (GetCookable())
-		return GetCookable()->HasAnyCurrentProxyOutput();
-
-	for (const UHoudiniOutput *Output : Outputs_DEPRECATED)
-	{
-		if (Output->HasAnyCurrentProxy())
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool
-UHoudiniAssetComponent::HasAnyProxyOutput() const
-{
-	if (GetCookable())
-		return GetCookable()->HasAnyCurrentProxyOutput();
-
-	for (const UHoudiniOutput *Output : Outputs_DEPRECATED)
-	{
-		if (Output->HasAnyProxy())
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-#if WITH_EDITORONLY_DATA
-void 
-UHoudiniAssetComponent::SetAllowPlayInEditorRefinement(bool bEnabled) 
-{
-	if (GetCookable())
-		return GetCookable()->SetAllowPlayInEditorRefinement(bEnabled);
-
-	bAllowPlayInEditorRefinement_DEPRECATED = bEnabled; 
-}
-
-bool 
-UHoudiniAssetComponent::IsPlayInEditorRefinementAllowed() const 
-{
-	if (GetCookable())
-		return GetCookable()->IsPlayInEditorRefinementAllowed();
-
-	return bAllowPlayInEditorRefinement_DEPRECATED;
-}
-#endif
-
-bool
-UHoudiniAssetComponent::HasAnyOutputComponent() const
-{
-	if (GetCookable())
-		return GetCookable()->HasAnyOutputComponent();
-
-	for (UHoudiniOutput *Output : Outputs_DEPRECATED)
-	{
-		for(auto& CurrentOutputObject : Output->GetOutputObjects())
-		{
-			for(auto Component : CurrentOutputObject.Value.OutputComponents)
-			{
-			    if(Component)
-				    return true;
-			}
-		}
-	}
-
-	return false;
-}
-
-bool
-UHoudiniAssetComponent::HasOutputObject(UObject* InOutputObjectToFind) const
-{
-	for (const auto& CurOutput : Outputs_DEPRECATED)
-	{
-		for (const auto& CurOutputObject : CurOutput->GetOutputObjects())
-		{
-			if (CurOutputObject.Value.OutputObject == InOutputObjectToFind)
-				return true;
-			if (CurOutputObject.Value.ProxyObject == InOutputObjectToFind)
-				return true;
-			if (CurOutputObject.Value.ProxyComponent == InOutputObjectToFind)
-				return true;
-
-			for(auto Component : CurOutputObject.Value.OutputComponents)
-			{
-				if (Component == InOutputObjectToFind)
-				    return true;
-			}
-
-		}
-	}
-
-	return false;
-}
-
-bool
-UHoudiniAssetComponent::IsHoudiniCookedDataAvailable(bool &bOutNeedsRebuildOrDelete, bool &bOutInvalidState) const
-{
-	if (GetCookable())
-		return GetCookable()->IsHoudiniCookedDataAvailable(bOutNeedsRebuildOrDelete, bOutInvalidState);
-
-	// Get the state of the asset and check if it is pre-cook, cooked, pending delete/rebuild or invalid
-	bOutNeedsRebuildOrDelete = false;
-	bOutInvalidState = false;
-	switch (AssetState_DEPRECATED)
-	{
-	case EHoudiniAssetState::NewHDA:
-	case EHoudiniAssetState::NeedInstantiation:
-	case EHoudiniAssetState::PreInstantiation:
-	case EHoudiniAssetState::Instantiating:
-	case EHoudiniAssetState::PreCook:
-	case EHoudiniAssetState::Cooking:
-	case EHoudiniAssetState::PostCook:
-	case EHoudiniAssetState::PreProcess:
-	case EHoudiniAssetState::Processing:
-		return false;
-		break;
-	case EHoudiniAssetState::None:
-		return true;
-		break;
-	case EHoudiniAssetState::NeedRebuild:
-	case EHoudiniAssetState::NeedDelete:
-	case EHoudiniAssetState::Deleting:
-		bOutNeedsRebuildOrDelete = true;
-		break;
-	default:
-		bOutInvalidState = true;
-		break;
-	}
-
-	return false;
-}
-
-bool
-UHoudiniAssetComponent::IsBakeAfterNextCookEnabled() const
-{ 
-	if (GetCookable())
-		return GetCookable()->IsBakeAfterNextCookEnabled();
-
-	return BakeAfterNextCook_DEPRECATED != EHoudiniBakeAfterNextCook::Disabled; 
-}
-
-EHoudiniBakeAfterNextCook
-UHoudiniAssetComponent::GetBakeAfterNextCook() const
-{
-	if (GetCookable())
-		return GetCookable()->GetBakeAfterNextCook();
-
-	return BakeAfterNextCook_DEPRECATED; 
-}
-
-#if WITH_EDITORONLY_DATA
-EHoudiniEngineActorBakeOption
-UHoudiniAssetComponent::GetActorBakeOption() const
-{
-	if (GetCookable())
-		return GetCookable()->GetActorBakeOption();
-
-	return ActorBakeOption_DEPRECATED;
-}
-#endif
-
-
-void 
-UHoudiniAssetComponent::SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested)
-{
-	if (GetCookable())
-		return GetCookable()->SetNoProxyMeshNextCookRequested(bInNoProxyMeshNextCookRequested);
-
-	bNoProxyMeshNextCookRequested_DEPRECATED = bInNoProxyMeshNextCookRequested;
-}
-
-void
-UHoudiniAssetComponent::SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook)
-{ 
-	if (GetCookable())
-		return GetCookable()->SetBakeAfterNextCook(InBakeAfterNextCook);
-
-	BakeAfterNextCook_DEPRECATED = InBakeAfterNextCook; 
-}
-
-#if WITH_EDITORONLY_DATA
-void 
-UHoudiniAssetComponent::SetActorBakeOption(const EHoudiniEngineActorBakeOption& InBakeOption)
-{
-	if (GetCookable())
-		return GetCookable()->SetActorBakeOption(InBakeOption);
-
-	ActorBakeOption_DEPRECATED = InBakeOption;
-}
-#endif
-
-bool
 UHoudiniAssetComponent::IsComponentValid() const
 {
 	if (!IsValidLowLevel())
@@ -3176,24 +2163,7 @@ UHoudiniAssetComponent::IsComponentValid() const
 	return true;
 }
 
-bool
-UHoudiniAssetComponent::IsInstantiatingOrCooking() const
-{
-	if(GetCookable())
-		GetCookable()->IsInstantiatingOrCooking();
 
-	return HapiGUID_DEPRECATED.IsValid();
-}
-
-
-void 
-UHoudiniAssetComponent::SetStaticMeshBuildSettings(const FMeshBuildSettings& InMBS)
-{ 
-	if (GetCookable())
-		return GetCookable()->SetStaticMeshBuildSettings(InMBS);
-
-	StaticMeshBuildSettings_DEPRECATED = InMBS;
-};
 
 void
 UHoudiniAssetComponent::SetStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InHSMGP)
@@ -3494,38 +2464,6 @@ void UHoudiniAssetComponent::OnSessionConnected()
 }
 
 void
-UHoudiniAssetComponent::UpdateDormantStatus()
-{
-#if WITH_EDITOR
-	// This function checks if we should go into or out of doermant status.
-#if (ENGINE_MAJOR_VERSION <= 5 && ENGINE_MINOR_VERSION < 1)
-	return;
-#else
-	ILevelInstanceInterface* LevelInstance = GetLevelInstance();
-	if (!LevelInstance)
-		return;
-
-	if (GetAssetState() == EHoudiniAssetState::Dormant)
-	{
-		// If this HDA was previously dormant, and the level instance is editable, it means
-		// the level instance has just been made editable. So reset to a state where the HDA
-		// can be used.
-		if (LevelInstance->IsEditing())
-			this->SetAssetState(EHoudiniAssetState::None);
-	}
-	else if (GetAssetState() == EHoudiniAssetState::None)
-	{
-		// If we're not doing anything, and the level instance not editable, flip the state
-		// back to dormant. This highlights a potential problem that the user could  commit
-		// a level instance before its finished cooking, but I'm not sure we can prevent that.
-		if (!LevelInstance->IsEditing())
-			this->SetAssetState(EHoudiniAssetState::Dormant);
-	}
-#endif
-#endif
-}
-
-void
 UHoudiniAssetComponent::ProcessBPTemplate(const bool& InIsGlobalCookingEnabled)
 {
 	// Handle template processing (for BP)
@@ -3623,6 +2561,7 @@ UHoudiniAssetComponent::GetCookable() const
 	if (HC)
 		return HC;
 
+	// TODO: Cookable - this shouldnt be needed anymore
 	// Try to get the Cookable via our Actor - we might be a loaded v2 HAC
 	AHoudiniAssetActor* HAA = Cast<AHoudiniAssetActor>(GetOwner());
 	if (HAA)
@@ -3712,14 +2651,6 @@ UHoudiniAssetComponent::GetPDGAssetLink()
 	return PDGAssetLink_DEPRECATED;
 };
 
-int32
-UHoudiniAssetComponent::GetAssetCookCount() const
-{ 
-	if (GetCookable())
-		GetCookable()->GetCookCount();
-
-	return AssetCookCount_DEPRECATED; 
-}
 
 bool
 UHoudiniAssetComponent::IsFullyLoaded() const
@@ -3795,9 +2726,8 @@ UHoudiniAssetComponent::SetBakeFolder(const FDirectoryPath& InPath)
 }
 
 bool
-UHoudiniAssetComponent::TransferDataToCookable()
+UHoudiniAssetComponent::TransferDataToCookable(UHoudiniCookable* HC)
 {
-	UHoudiniCookable* HC = GetCookable();
 	if (!HC)
 		return false;
 
@@ -3844,7 +2774,7 @@ UHoudiniAssetComponent::TransferDataToCookable()
 	// HC->NodeId = AssetId; // COOKABLE - NodeId
 	// HC->SetNodeIdsToCook(NodeIdsToCook);
 	// HC->NodesToCookCookCounts(OutputNodeCookCounts);
-	// DownstreamHoudiniAssets; // NOT COOKABLE
+	
 	// 
 	for (auto& CurHAC : DownstreamHoudiniAssets)
 	{
@@ -3854,6 +2784,7 @@ UHoudiniAssetComponent::TransferDataToCookable()
 
 		HC->InputData->DownstreamCookables.Add(CurHC);
 	}
+	//DownstreamHoudiniAssets_DEPRECATED.Empty();
 	
 	// HC->CookableGUID = ComponentGUID;
 	// HC->HapiGUID = HapiGUID;
