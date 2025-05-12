@@ -27,6 +27,7 @@
 #include "HoudiniCookable.h"
 #include "HoudiniPCGDataObject.h"
 #include "PCGComponent.h"
+#include "HoudiniPDGAssetLink.h"
 #include "HoudiniPCGCookable.generated.h"
 
 class UHoudiniPCGDataObject;
@@ -108,6 +109,7 @@ public:
 
 	bool bParamsChanged = false;
 	bool bInputsChanged = false;
+	UTOPNode* TOPNode = nullptr;
 
 	void ProcessCookedOutput(FPCGContext* Context);
 	void ProcessBakedOutput(FPCGContext* Context);
@@ -116,14 +118,11 @@ public:
 
 private:
 
-	UPROPERTY()
-	TObjectPtr<UPCGComponent> PCGComponent;
-
 	TArray<FSoftObjectPath> TrackedObjects;
 	int CookCount = -1;
 	FDelegateHandle PDGTopNetworkCookedDelegate;
 
-	void ProcessCookedOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput);
+	void ProcessCookedOutput(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput);
 	void ProcessBakedOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput);
 	static void CreateOutputPinFromCookedData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput);
 	static void CreateOutputPinFromBakedData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput);
@@ -140,6 +139,8 @@ private:
 	bool ApplyParametersToCookable(const UPCGData* Data);
 
 	void OnCookingComplete(bool bSuccess);
+
+	void OnCookingCompleteInternal(bool bSuccess);
 
 	void InvalidateCookable();
 

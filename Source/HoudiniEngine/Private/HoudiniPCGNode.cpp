@@ -391,7 +391,8 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 				!IsValid(ManagedResource->HoudiniPCGComponent->Cookable) ||
 				ManagedResource->bInvalidateResource)
 			{
-				HOUDINI_PCG_MESSAGE(TEXT("(%p) Invalid Managed Resource Found, ignoring."), ManagedResource);
+				HOUDINI_PCG_MESSAGE(TEXT("(%p) Invalid Managed Resource Found, ignoring."), ManagedResource->HoudiniPCGComponent->Cookable.Get());
+				ManagedResource->DestroyCookable();
 				ManagedResource = nullptr;
 			}
 		}
@@ -420,6 +421,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 			UHoudiniPCGCookable * PCGCookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
 			PCGCookable->CreateHoudiniCookable(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
+			PCGCookable->Cookable->SetUpdateUI(false);
 			PCGCookable->Instantiate();
 			PCGCookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
 			ManagedResource->HoudiniPCGComponent->Cookable = PCGCookable;

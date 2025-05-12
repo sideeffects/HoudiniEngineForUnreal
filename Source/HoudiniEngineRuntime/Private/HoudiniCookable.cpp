@@ -334,7 +334,7 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 UHoudiniCookable::~UHoudiniCookable()
 {
 	// Unregister ourself so our houdini nodes can be deleted.
-	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
+//	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
 }
 
 template <typename Type> bool HoudiniCheckAndSetValue(Type & Dest, Type & Src)
@@ -2278,9 +2278,6 @@ UHoudiniCookable::SetEnableCurveEditing(bool bEnable)
 void
 UHoudiniCookable::OnDestroy(bool bDestroyingHierarchy)
 {
-	// Unregister ourself so our houdini node can be deleted
-	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
-
 	if(IsHoudiniAssetSupported())
 		HoudiniAssetData->HoudiniAsset = nullptr;
 
@@ -2441,10 +2438,14 @@ UHoudiniCookable::OnDestroy(bool bDestroyingHierarchy)
 				// modified.
 				PDGData->PDGAssetLink->Modify();
 				PDGData->PDGAssetLink->ClearAllTOPData();
+				PDGData->PDGAssetLink->ConditionalBeginDestroy();
 			}
 		}
 #endif
 	}
+
+	// Unregister ourself so our houdini node can be deleted
+	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
 }
 
 bool

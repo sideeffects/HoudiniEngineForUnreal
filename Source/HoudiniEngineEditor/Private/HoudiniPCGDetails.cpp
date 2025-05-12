@@ -118,6 +118,11 @@ void UHoudiniPCGSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 		CookableDetails->CreateHoudiniEngineDetails(DetailBuilder, Cookables, FString(), Flags);
 
+		if(Cookable->IsPDGSupported())
+		{
+			CookableDetails->CreatePDGDetails(DetailBuilder, Cookables);
+		}
+
 		CookableDetails->CreateInputDetails(DetailBuilder, Cookables);
 		CookableDetails->CreateParameterDetails(DetailBuilder, Cookables);
 	}

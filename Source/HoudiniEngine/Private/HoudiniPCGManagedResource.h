@@ -51,6 +51,8 @@ public:
 	virtual void MarkAsReused() override;
 	virtual void PostLoad() override;
 
+	void DestroyCookable();
+
 #if WITH_EDITOR
 	virtual void ChangeTransientState(EPCGEditorDirtyMode NewEditingMode) override;
 #endif

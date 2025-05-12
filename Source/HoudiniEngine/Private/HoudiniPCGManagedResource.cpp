@@ -36,6 +36,17 @@ void UHoudiniPCGManagedResource::PostApplyToComponent()
 	// In this case, we want to preserve the data, so we need to do nothing
 }
 
+void UHoudiniPCGManagedResource::DestroyCookable()
+{
+	if(IsValid(HoudiniPCGComponent))
+	{
+		if(IsValid(HoudiniPCGComponent->Cookable))
+			HoudiniPCGComponent->Cookable->Release(HoudiniPCGComponent->GetWorld());
+		HoudiniPCGComponent->Cookable = nullptr;
+	}
+
+}
+
 bool UHoudiniPCGManagedResource::Release(bool bHardRelease, TSet<TSoftObjectPtr<AActor>>& /*OutActorsToDelete*/)
 {
 	bIsMarkedUnused = true;
@@ -43,8 +54,9 @@ bool UHoudiniPCGManagedResource::Release(bool bHardRelease, TSet<TSoftObjectPtr<
 	{
 		if(IsValid(HoudiniPCGComponent))
 		{
-			if (IsValid(HoudiniPCGComponent->Cookable))
-				HoudiniPCGComponent->Cookable->Release(HoudiniPCGComponent->GetWorld());
+			DestroyCookable();
+
+
 			AActor* Owner = HoudiniPCGComponent->GetOwner();
 			HoudiniPCGComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 			HoudiniPCGComponent->DestroyComponent();

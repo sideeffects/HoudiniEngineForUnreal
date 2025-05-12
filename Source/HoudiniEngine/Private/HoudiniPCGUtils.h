@@ -112,6 +112,7 @@ public:
 
 	static TArray<FHoudiniPCGObjectOutput> GetPCGOutputData(const UHoudiniOutput * HoudiniOutput);
 	static TArray<FHoudiniPCGObjectOutput> GetPCGOutputData(const FHoudiniBakedOutput * BakedOutput);
+	static TArray<FHoudiniPCGObjectOutput> GetPCGOutputData(const FTOPWorkResult* WorkItem);
 
 	static TArray<FString> GetValueAsString(const TArray<FString>& DefaultValues, const FHoudiniPCGAttributes & Attributes, int RowIndex);
 	static TArray<int> GetValueAsInt(const TArray<int>& DefaultValues, const FHoudiniPCGAttributes& Attributes, int RowIndex);

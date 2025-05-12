@@ -69,8 +69,15 @@ UHoudiniPCGCookable::~UHoudiniPCGCookable()
 
 void UHoudiniPCGCookable::OnCookingComplete(bool bSuccess)
 {
-	HOUDINI_PCG_MESSAGE(TEXT("(%p) UHoudiniPCGCookable::OnCookingComplete"), this);
+	// Ignore this callback when processing PDG, we'll check the state.
+	if (TOPNode)
+		return;
 
+	OnCookingCompleteInternal(bSuccess);
+}
+
+void UHoudiniPCGCookable::OnCookingCompleteInternal(bool bSuccess)
+{
 	if(this->State == EPCGCookableState::Initializing)
 	{
 		HOUDINI_PCG_MESSAGE(TEXT("(%p)       Set to EPCGCookableState::Initialized"), this);
@@ -80,16 +87,6 @@ void UHoudiniPCGCookable::OnCookingComplete(bool bSuccess)
 	{
 		HOUDINI_PCG_MESSAGE(TEXT("(%p)       Set to EPCGCookableState::CookingComplete"), this);
 		this->State = EPCGCookableState::CookingComplete;
-	}
-	else
-	{
-		// We were not expecting a cooking operation to complete. This is caused the HDA being modified
-		// most likely via session sync. So regen.
-		if (IsValid(PCGComponent))
-		{
-			PCGComponent->Generate();
-		}
-
 	}
 }
 
@@ -114,7 +111,6 @@ void UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPC
 	Cookable->SetEnableProxyStaticMeshOverride(false);
 	Cookable->SetOverrideGlobalProxyStaticMeshSettings(true);
 	Cookable->SetAutoCook(false);
-	// Disable auto-cook, it improve this logic.
 	Cookable->GetParameterData()->bCookOnParameterChange = false;
 	Cookable->GetInputData()->bCookOnInputChange = false;
 	Cookable->SetPDGSupported(true);
@@ -142,12 +138,30 @@ UHoudiniPCGCookable::InvalidateCookable()
 {
 	FHoudiniOutputTranslator::ClearAndRemoveOutputs(this->Cookable->GetOutputs(), this->bAutomaticallyDeleteAssets);
 
+	if(UHoudiniPDGAssetLink * PDGAssetLink = Cookable->GetPDGAssetLink())
+	{
+		TOPNode = PDGAssetLink->GetSelectedTOPNode();
+		if(IsValid(TOPNode))
+		{
+			PDGAssetLink->ClearTOPNodeWorkItemResults(TOPNode);
+		}
+		TOPNode = nullptr;
+
+	//	FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
+	//	HEM->PDGManager.RemoveAssetLink(PDGAssetLink);
+
+	//	this->Cookable->GetPDGData()->SetPDGAssetLink(nullptr);
+	}
+
 	if(!IsValid(this->Cookable.Get()))
 		return;
 
-	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this->Cookable.Get());
+	//FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this->Cookable.Get());
 
-	this->Cookable = nullptr; // Garbage Collection will clean this up.
+	this->Cookable->OnDestroy(true);
+
+	this->Cookable = nullptr; 
+	
 }
 
 bool
@@ -324,7 +338,7 @@ void UHoudiniPCGCookable::ProcessBakedOutputs(FPCGContext* Context, const FName&
 	}
 }
 
-void UHoudiniPCGCookable::ProcessCookedOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput)
+void UHoudiniPCGCookable::ProcessCookedOutput(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput)
 {
 	if(FHoudiniPCGUtils::HasPCGOutputs(HoudiniOutput))
 	{
@@ -485,18 +499,43 @@ UHoudiniPCGCookable::ProcessCookedOutput(FPCGContext* Context)
 {
 	const UHoudiniPCGSettings* Settings = Context->GetInputSettings<UHoudiniPCGSettings>();
 
+	AddTrackedObjects(Context);
+
 	UCookableOutputData* OutputData = this->Cookable->GetOutputData();
 	if(!OutputData)
 		return;
 
-	auto& Outputs = OutputData->Outputs;
-	for(int Index = 0; Index < Outputs.Num(); Index++)
+	if (UHoudiniPDGAssetLink* PDGAssetLink = this->Cookable->GetPDGAssetLink())
 	{
-		FString Tag = FString::Printf(TEXT("Output-%d"), Index);
-		ProcessCookedOutputs(Context, Settings->GetOutputPinName(), Tag, Outputs[Index]);
+		UTOPNetwork* Network = PDGAssetLink->GetTOPNetwork(0);
+		for(UTOPNode* Node : Network->AllTOPNodes)
+		{
+			int Index = 0;
+			for (FTOPWorkResult& WorkResult : Node->WorkResult)
+			{
+				for (FTOPWorkResultObject & ResultObject :  WorkResult.ResultObjects)
+				{
+					TArray<TObjectPtr<UHoudiniOutput>>& Outputs = ResultObject.GetResultOutputs();
+					for (auto & Ptr : Outputs)
+					{
+						FString Tag = FString::Printf(TEXT("Output-%d"), Index++);
+						ProcessCookedOutput(Context, Settings->GetOutputPinName(), Tag, Ptr);
+					}
+
+				}
+			}
+		}
+
 	}
-	
-	AddTrackedObjects(Context);
+	else
+	{
+		auto& Outputs = OutputData->Outputs;
+		for(int Index = 0; Index < Outputs.Num(); Index++)
+		{
+			FString Tag = FString::Printf(TEXT("Output-%d"), Index);
+			ProcessCookedOutput(Context, Settings->GetOutputPinName(), Tag, Outputs[Index]);
+		}
+	}
 }
 
 void
@@ -522,6 +561,14 @@ void UHoudiniPCGCookable::CopyParametersAndInputs(const UHoudiniPCGCookable * Ot
 {
 	bParamsChanged |= Cookable->SetParameterData(Other->Cookable->GetParameterData());
 	bInputsChanged |= Cookable->SetInputData(Other->Cookable->GetInputData());
+
+	UHoudiniPDGAssetLink* ThisPDGAssetLink =  Cookable->GetPDGAssetLink();
+	UHoudiniPDGAssetLink* OtherPDGAssetLink = Other->Cookable->GetPDGAssetLink();
+	if (OtherPDGAssetLink)
+	{
+
+	}
+
 }
 
 bool UHoudiniPCGCookable::UpdateParametersAndInputs(FPCGContext* Context)
@@ -540,10 +587,6 @@ bool UHoudiniPCGCookable::UpdateParametersAndInputs(FPCGContext* Context)
 
 		bInputsChanged |= this->ApplyInputsToCookable(Context);
 	}
-
-	//int CurrentCookCount = FHoudiniEngineUtils::HapiGetCookCount(Cookable->GetNodeId());
-	//bool bCookCountChanged = this->CookCount != CurrentCookCount;
-	//this->CookCount = CurrentCookCount;
 
 	return true;
 }
@@ -570,22 +613,13 @@ void UHoudiniPCGCookable::StartCook()
 	{
 		HOUDINI_PCG_MESSAGE(TEXT("(%p) Starting to Cook with PDG."), this);
 
-		UTOPNetwork* TopNetwork = PDGAssetLink->GetSelectedTOPNetwork();
-
-		PDGTopNetworkCookedDelegate = TopNetwork->GetOnPostCookDelegate().AddLambda([this](UTOPNetwork* Link, bool bSuccess)
-		{
-			HOUDINI_PCG_MESSAGE(TEXT("(%p)  PCG OnPostCookDelegate Called."), this);
-
-			this->OnCookingComplete(bSuccess);
-			Link->GetOnPostCookDelegate().Remove(PDGTopNetworkCookedDelegate);
-			PDGTopNetworkCookedDelegate.Reset();
-			return;
-		});
-
-		UTOPNode* const TOPNode = PDGAssetLink->GetSelectedTOPNode();
+		HOUDINI_LOG_MESSAGE(TEXT("################>>> Cookable %p AssetLink %p"), this, PDGAssetLink);
+		UWorld* World= this->GetWorld();
+		PDGAssetLink->SetOutputWorld(World);
+		TOPNode = PDGAssetLink->GetSelectedTOPNode();
 		if(IsValid(TOPNode))
 		{
-			PDGAssetLink->ClearTOPNodeWorkItemResults(TOPNode);
+			FHoudiniPDGManager::DirtyTOPNode(TOPNode);
 			FHoudiniPDGManager::CookTOPNode(TOPNode);
 		}
 	}
@@ -593,6 +627,7 @@ void UHoudiniPCGCookable::StartCook()
 	{
 		// Non-PDG
 		HOUDINI_PCG_MESSAGE(TEXT("(%p) Starting to Cook."), this);
+		TOPNode = nullptr;
 		Cookable->MarkAsNeedCook();
 	}
 
@@ -640,7 +675,15 @@ UHoudiniPCGCookable::Update(FPCGContext* Context)
 		break;
 
 	case EPCGCookableState::Cooking:
-		// Still cooking, wait.
+		// Still cooking, if PDG, did we finish.
+		if (TOPNode)
+		{
+			if (TOPNode->NodeState == EPDGNodeState::Cook_Complete)
+			{
+				OnCookingCompleteInternal(true);
+			}
+
+		}
 		break;
 
 	case EPCGCookableState::CookingComplete:

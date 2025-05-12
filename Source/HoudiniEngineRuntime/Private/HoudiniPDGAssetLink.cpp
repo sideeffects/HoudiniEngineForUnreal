@@ -928,6 +928,20 @@ UHoudiniPDGAssetLink::SelectTOPNetwork(const int32& AtIndex)
 	SelectedTOPNetworkIndex = AtIndex;
 }
 
+UWorld*
+UHoudiniPDGAssetLink::GetOutputWorld()
+{
+	if(IsValid(OutputWorld))
+		return OutputWorld;
+	else
+		return GetWorld();
+}
+
+void
+UHoudiniPDGAssetLink::SetOutputWorld(UWorld * World)
+{
+	OutputWorld = World;
+}
 
 void
 UHoudiniPDGAssetLink::SelectTOPNode(UTOPNetwork* InTOPNetwork, const int32& AtIndex)

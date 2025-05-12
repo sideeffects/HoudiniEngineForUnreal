@@ -809,6 +809,9 @@ public:
 	}
 #endif
 
+	void SetOutputWorld(UWorld * InWorld);
+	UWorld* GetOutputWorld();
+
 private:
 
 	void ClearAllTOPData();
@@ -866,6 +869,8 @@ public:
 	UPROPERTY()
 	FDirectoryPath BakeFolder;
 
+	UPROPERTY()
+	UWorld* OutputWorld = nullptr;
 	//
 	// Notifications
 	//

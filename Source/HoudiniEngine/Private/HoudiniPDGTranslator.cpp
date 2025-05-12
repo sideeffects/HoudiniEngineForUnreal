@@ -111,7 +111,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 		AActor* WorkItemOutputActor = WROOutputActorOwner.GetOutputActor();
 		if (!IsValid(WorkItemOutputActor))
 		{
-			UWorld* World = InAssetLink->GetWorld();
+			UWorld* World = InAssetLink->GetOutputWorld();
 			if (!IsValid(World))
 				World = InAssetLink->GetOwnerActor() ? InAssetLink->GetOwnerActor()->GetWorld() : nullptr;
 
@@ -216,7 +216,7 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 	AActor* WorkItemOutputActor = WROOutputActorOwner.GetOutputActor();
 	if (!IsValid(WorkItemOutputActor))
 	{
-		UWorld* World = InAssetLink->GetWorld();
+		UWorld* World = InAssetLink->GetOutputWorld();
 		if (!IsValid(World))
 			World = InAssetLink->GetOwnerActor() ? InAssetLink->GetOwnerActor()->GetWorld() : nullptr;
 

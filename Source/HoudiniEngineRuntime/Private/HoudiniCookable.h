@@ -399,6 +399,7 @@ public:
 	//------------------------------------------------------------------------------------------------
 
 	int32 GetNodeId() const { return NodeId; };
+	void SetNodeId(int InNodeId) { NodeId = InNodeId;  }
 
 	EHoudiniAssetState GetCurrentState() const { return CurrentState; };
 	EHoudiniAssetStateResult GetCurrentStateResult() const { return CurrentStateResult; };
@@ -733,6 +734,9 @@ public:
 	FOnPostOutputProcessingDelegate& GetOnPostOutputProcessingDelegate() { return OnPostOutputProcessingDelegate; };
 	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate; };
 
+	bool GetUpdateUI() { return bShouldUpdateUI;  }
+	void SetUpdateUI(bool bOnOff) { bShouldUpdateUI = bOnOff; }
+
 protected:
 	// Do any object - specific cleanup required immediately after loading an object.
 	// This is not called for newly - created objects, and by default will always execute on the game thread.
@@ -781,6 +785,9 @@ protected:
 
 	UPROPERTY()
 	bool bAutoCook = true;
+
+	UPROPERTY()
+	bool bShouldUpdateUI = false;
 
 	// Ids of the nodes that should also be cooked with this cookable
 	// This can be used for additional outputs or templated nodes if used.

@@ -329,6 +329,7 @@ FHoudiniEngineRuntime::UnRegisterHoudiniCookable(const int32& ValidIndex)
 		if (CurHC && CurHC->CanDeleteHoudiniNodes())
 		{
 			MarkNodeIdAsPendingDelete(CurHC->GetNodeId(), true);
+			CurHC->SetNodeId(INDEX_NONE);
 		}
 	}
 

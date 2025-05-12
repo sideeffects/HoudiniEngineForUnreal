@@ -348,7 +348,7 @@ FHoudiniEngineBakeUtils::BakeCookableToActors(
 	FHoudiniEngineBakeUtils::SaveBakedPackages(BakedObjectData.PackagesToSave);
 
 	// Recenter and select the baked actors
-	if (GEditor && NewActors.Num() > 0)
+	if (InCookable->GetUpdateUI() && GEditor && NewActors.Num() > 0)
 		GEditor->SelectNone(false, true);
 	
 	for (const FHoudiniEngineBakedActor& Entry : NewActors)
@@ -359,14 +359,14 @@ FHoudiniEngineBakeUtils::BakeCookableToActors(
 		if (BakeSettings.bRecenterBakedActors)
 			CenterActorToBoundingBoxCenter(Entry.Actor);
 
-		if (GEditor)
+		if (GEditor && InCookable->GetUpdateUI())
 			GEditor->SelectActor(Entry.Actor, true, false);
 	}
 
 	FHoudiniBakeLevelInstanceUtils::CreateLevelInstances(
 		InCookable, NewActors, BakedObjectData);
 
-	if (GEditor && NewActors.Num() > 0)
+	if (GEditor && InCookable->GetUpdateUI() && NewActors.Num() > 0)
 		GEditor->NoteSelectionChange();
 
 	{

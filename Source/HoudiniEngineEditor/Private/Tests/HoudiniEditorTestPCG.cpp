@@ -45,6 +45,7 @@ enum class EHoudiniTestPCGContextState : int
 {
 	None,
 	Cleanup,
+	Cleaned,
 	Generate,
 	Done
 };
@@ -53,16 +54,20 @@ class EHoudiniTestPCGContext
 {
 public:
 	void LoadPCGTestMap(const FString& MapName);
-	void Generate(bool bCleanup, bool bGenerate);
 
-	void OnGraphCleaned(UPCGComponent* PCGComponent_);
-	void OnGraphGenerated(UPCGComponent* PCGComponent_);
+	void CleanupAndGenerateAsync();
 
+	void GenerateAsync();
+
+	bool Update();
+	
 	UPCGComponent* PCGComponent = nullptr;
 	EHoudiniTestPCGContextState State = EHoudiniTestPCGContextState::None;
 
-	bool bDoGenerate;
-	bool bDoCleanup;
+private:
+	void OnGraphCleaned(UPCGComponent* PCGComponent_);
+	void OnGraphGenerated(UPCGComponent* PCGComponent_);
+	bool bDoGenerateAfterClean;
 };
 
 
@@ -88,37 +93,54 @@ void EHoudiniTestPCGContext::LoadPCGTestMap(const FString & MapName)
 
 void EHoudiniTestPCGContext::OnGraphCleaned(UPCGComponent* PCGComponent_)
 {
-	if(this->bDoGenerate)
-	{
-		PCGComponent->GenerateLocal(true);
-		this->State = EHoudiniTestPCGContextState::Generate;
-	}
-	else
-	{
-		this->State = EHoudiniTestPCGContextState::Done;
-	}
+	this->State = EHoudiniTestPCGContextState::Cleaned;
 }
 
 void EHoudiniTestPCGContext::OnGraphGenerated(UPCGComponent* PCGComponent_)
 {
-	this->State = EHoudiniTestPCGContextState::Done;
+	if (this->State == EHoudiniTestPCGContextState::Generate)
+	{
+		this->State = EHoudiniTestPCGContextState::Done;
+	}
+
 }		
 
-void EHoudiniTestPCGContext::Generate(bool bCleanup, bool bGenerate)
+void EHoudiniTestPCGContext::GenerateAsync()
 {
-	bDoGenerate = bGenerate;
-	bDoCleanup = bCleanup;
+	this->State = EHoudiniTestPCGContextState::Generate;
+	PCGComponent->Generate();
+}
 
-	if(bCleanup && PCGComponent->bGenerated)
+void EHoudiniTestPCGContext::CleanupAndGenerateAsync()
+{
+	this->bDoGenerateAfterClean = true;
+
+	if(PCGComponent->bGenerated)
 	{
 		this->State = EHoudiniTestPCGContextState::Cleanup;
 		PCGComponent->Cleanup();
 	}
-	else if(bGenerate)
+	else
 	{
-		this->State = EHoudiniTestPCGContextState::Generate;
-		PCGComponent->GenerateLocal(true);
+		this->State = EHoudiniTestPCGContextState::Cleaned;
 	}
+}
+
+bool EHoudiniTestPCGContext::Update()
+{
+	switch(this->State)
+	{
+	case EHoudiniTestPCGContextState::Cleaned:
+		if(bDoGenerateAfterClean)
+		{
+			GenerateAsync();
+		}
+		break;
+	default:
+		break;
+	}
+
+	return this->State == EHoudiniTestPCGContextState::Done;
 }
 
 UObject* FHoudiniEditorTestPCG::GetOutputObject(UHoudiniPCGDataObject* PCGDataObject, const FString & Field, int Index)
@@ -163,14 +185,14 @@ bool FHoudiniEditorTestPCG_MeshesCooked::RunTest(const FString& Parameters)
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	AddCommand(new FFunctionLatentCommand([Context]
-	{
-		Context->Generate(true, true);
-		return true;
-	}));
+		{
+			Context->CleanupAndGenerateAsync();
+			return true;
+		}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
+		if(!Context->Update())
 			return false;
 
 		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
@@ -216,14 +238,14 @@ bool FHoudiniEditorTestPCG_MeshesCooked::RunTest(const FString& Parameters)
 
 		Context->State = EHoudiniTestPCGContextState::Generate;
 		GraphInstance->SetGraphParameter<float>(FName("scale_factor"), 2.0f);
-		Context->Generate(true, true);
+		Context->CleanupAndGenerateAsync();
 	
 		return true;
 	}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
+		if(!Context->Update())
 			return false;
 
 		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
@@ -291,13 +313,13 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_MeshesBaked, "Hou
 
 	AddCommand(new FFunctionLatentCommand([Context]
 	{
-		Context->Generate(true, true);
+		Context->CleanupAndGenerateAsync();
 		return true;
 	}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
+		if(!Context->Update())
 			return false;
 
 		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
@@ -365,15 +387,15 @@ bool FHoudiniEditorTestPCG_LandscapesCooked::RunTest(const FString& Parameters)
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	AddCommand(new FFunctionLatentCommand([Context]
-	{
-		Context->Generate(true, true);
-		return true;
-	}));
+		{
+			Context->CleanupAndGenerateAsync();
+			return true;
+		}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
-			return false;
+			if(!Context->Update())
+				return false;
 
 		UPCGDataAsset* MyObject = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(MyObject, return true);
@@ -421,13 +443,13 @@ bool FHoudiniEditorTestPCG_PCGNativeOutputsCooked::RunTest(const FString& Parame
 
 	AddCommand(new FFunctionLatentCommand([Context]
 	{
-		Context->Generate(true, true);
+		Context->CleanupAndGenerateAsync();
 		return true;
 	}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
+		if(!Context->Update())
 			return false;
 
 		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
@@ -573,13 +595,13 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGNativeOutputsB
 
 	AddCommand(new FFunctionLatentCommand([Context]
 	{
-		Context->Generate(true, true);
+		Context->CleanupAndGenerateAsync();
 		return true;
 	}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
+		if(!Context->Update())
 			return false;
 
 		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
@@ -726,13 +748,13 @@ bool FHoudiniEditorTestPCG_PCGNativeInputsCooked::RunTest(const FString& Paramet
 
 	AddCommand(new FFunctionLatentCommand([Context]
 	{
-		Context->Generate(true, true);
+		Context->CleanupAndGenerateAsync();
 		return true;
 	}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
+		if(!Context->Update())
 			return false;
 
 		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
@@ -826,13 +848,13 @@ bool FHoudiniEditorTestPCG_PCGNativeMultiInputsCooked::RunTest(const FString& Pa
 
 	AddCommand(new FFunctionLatentCommand([Context]
 	{
-		Context->Generate(true, true);
+		Context->CleanupAndGenerateAsync();
 		return true;
 	}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
+		if(!Context->Update())
 			return false;
 
 		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
@@ -926,15 +948,15 @@ bool FHoudiniEditorTestPCG_PCGSplinesCooked::RunTest(const FString& Parameters)
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	AddCommand(new FFunctionLatentCommand([Context]
-	{
-		Context->Generate(true, true);
-		return true;
-	}));
+		{
+			Context->CleanupAndGenerateAsync();
+			return true;
+		}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
-			return false;
+			if(!Context->Update())
+				return false;
 
 		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
@@ -992,13 +1014,13 @@ bool FHoudiniEditorTestPCG_PCGSplinesBaked::RunTest(const FString& Parameters)
 
 	AddCommand(new FFunctionLatentCommand([Context]
 	{
-		Context->Generate(true, true);
+		Context->CleanupAndGenerateAsync();
 		return true;
 	}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
+		if(!Context->Update())
 			return false;
 
 		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
@@ -1050,15 +1072,15 @@ bool FHoudiniEditorTestPCG_PCGParametersDefaultsCooked::RunTest(const FString& P
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	AddCommand(new FFunctionLatentCommand([Context]
-	{
-		Context->Generate(true, true);
-		return true;
-	}));
+		{
+			Context->CleanupAndGenerateAsync();
+			return true;
+		}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
-			return false;
+			if(!Context->Update())
+				return false;
 
 		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/ParametersOutput");
 
@@ -1124,14 +1146,14 @@ bool FHoudiniEditorTestPCG_PCGParametersSetCooked::RunTest(const FString& Parame
 
 	AddCommand(new FFunctionLatentCommand([Context]
 	{
-		Context->Generate(true, true);
+		Context->CleanupAndGenerateAsync();
 		return true;
 	}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
-			return false;
+			if(!Context->Update())
+				return false;
 
 		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/ParametersOutput");
 
@@ -1197,13 +1219,14 @@ bool FHoudiniEditorTestPCG_PCGParametersOverrideCooked::RunTest(const FString& P
 
 	AddCommand(new FFunctionLatentCommand([Context]
 	{
-		Context->Generate(true, true);
+		Context->CleanupAndGenerateAsync();
 		return true;
 	}));
 
+
 	AddCommand(new FFunctionLatentCommand([this, Context]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
+		if(!Context->Update())
 			return false;
 
 		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/ParametersOutput");
@@ -1268,15 +1291,15 @@ bool FHoudiniEditorTestPCG_InputSetCooked::RunTest(const FString& Parameters)
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	AddCommand(new FFunctionLatentCommand([Context]
-	{
-		Context->Generate(true, true);
-		return true;
-	}));
+		{
+			Context->CleanupAndGenerateAsync();
+			return true;
+		}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
-			return false;
+		if(!Context->Update())
+				return false;
 
 		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/InputsOutput");
 
@@ -1334,13 +1357,13 @@ bool FHoudiniEditorTestPCG_InputOverrideCooked::RunTest(const FString& Parameter
 
 	AddCommand(new FFunctionLatentCommand([Context]
 	{
-		Context->Generate(true, true);
+		Context->CleanupAndGenerateAsync();
 		return true;
 	}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
+		if(!Context->Update())
 			return false;
 
 		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/InputsOutput");
@@ -1399,13 +1422,13 @@ bool FHoudiniEditorTestPCG_ForLoopsCooked::RunTest(const FString& Parameters)
 
 	AddCommand(new FFunctionLatentCommand([Context]
 	{
-		Context->Generate(true, true);
+		Context->CleanupAndGenerateAsync();
 		return true;
 	}));
 
 	AddCommand(new FFunctionLatentCommand([this, Context]()
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
+		if(!Context->Update())
 			return false;
 
 		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/TestForLoop");
