@@ -794,5 +794,6 @@ protected:
 	bool bAllowPlayInEditorRefinement_DEPRECATED; // COOKABLE - OUTPUTS
 
 #endif
-	
+
+	bool bMigrateDataToCookableOnPostLoad;
 };

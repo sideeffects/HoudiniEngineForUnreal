@@ -114,7 +114,6 @@
 void
 UHoudiniAssetComponent::Serialize(FArchive& Ar)
 {
-	int64 InitialOffset = Ar.Tell();
 	Ar.UsingCustomVersion(FHoudiniCustomSerializationVersion::GUID);
 
 	bool bLegacyComponent = false;
@@ -128,63 +127,30 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 		}
 		else if (Ver < VER_HOUDINI_PLUGIN_SERIALIZATION_VERSION_V3_BASE)
 		{
-			bV2Component = true;
+			// V2 HAC component - enable this so we can transfer our data to the cookable during PostLoad()
+			bMigrateDataToCookableOnPostLoad = true;
+
+			HOUDINI_LOG_MESSAGE(TEXT("Loading deprecated version of UHoudiniAssetComponent : V2 HAC will be converted to Cookable."));
 		}
 	}
 
+	// 
+	Super::Serialize(Ar);
+
 	if (bLegacyComponent)
 	{
-		// Skip the v1 object
+		int64 InitialOffset = Ar.Tell();
+
+		// We will just skip the v1 HAC data
 		HOUDINI_LOG_WARNING(TEXT("Loading deprecated version of UHoudiniAssetComponent : serialization will be skipped."));
 
-		Super::Serialize(Ar);
-
-		// Skip v1 Serialized data
+		// Skip old Serialized data
 		if (FLinker* Linker = Ar.GetLinker())
 		{
 			int32 const ExportIndex = this->GetLinkerIndex();
 			FObjectExport& Export = Linker->ExportMap[ExportIndex];
 			Ar.Seek(InitialOffset + Export.SerialSize);
 			return;
-		}
-	}
-	else
-	{
-		// Normal serialization
-		Super::Serialize(Ar);
-
-		if (bV2Component)
-		{
-			HOUDINI_LOG_MESSAGE(TEXT("Loading deprecated version of UHoudiniAssetComponent : V2 HAC will be converted to Cookable."));
-
-			// V2 component - we need to move data to the cookable
-			AHoudiniAssetActor* HAA = Cast<AHoudiniAssetActor>(this->GetOwner());
-			UHoudiniCookable* HC = HAA ? HAA->GetHoudiniCookable() : nullptr;
-			if (!HC)
-			{
-				HOUDINI_LOG_WARNING(TEXT("Actor has no Cookable."));
-			}
-			else
-			{
-				// Move data to the cookable
-				if (!TransferDataToCookable(HC))
-				{
-					HOUDINI_LOG_ERROR(TEXT("Unable to convert v2 Houdini Asset Component to Cookable - will need to be recreated."));
-				}
-				else
-				{
-					// Indicate that we are the cookable's component
-					HC->SetComponent(this);
-
-					// Set the Cookable as our outer
-					this->Rename(nullptr, HC);
-
-					// Once everything is done - set ourselves as a component of the HAA.
-					// Why is this needed ?
-					HAA->SetRootComponent(this);
-					HAA->AddInstanceComponent(this);
-				}
-			}
 		}
 	}
 }
@@ -313,6 +279,8 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	//bWantsOnUpdateTransform = true;
 
 	bIsPDGAssetLinkInitialized_DEPRECATED = false;
+
+	bMigrateDataToCookableOnPostLoad = false;
 }
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
@@ -876,6 +844,43 @@ void
 UHoudiniAssetComponent::PostLoad()
 {
 	Super::PostLoad();
+
+	if (bMigrateDataToCookableOnPostLoad)
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Loading deprecated version of UHoudiniAssetComponent : V2 HAC will be converted to Cookable."));
+
+		// V2 component - we need to move data to the cookable
+		AHoudiniAssetActor* HAA = Cast<AHoudiniAssetActor>(this->GetOwner());
+		UHoudiniCookable* HC = HAA ? HAA->GetHoudiniCookable() : nullptr;
+		if (!HC)
+		{
+			HOUDINI_LOG_WARNING(TEXT("Actor has no Cookable."));
+		}
+		else
+		{
+			// Move data to the cookable
+			if (!TransferDataToCookable(HC))
+			{
+				HOUDINI_LOG_ERROR(TEXT("Unable to convert v2 Houdini Asset Component to Cookable - will need to be recreated."));
+			}
+			else
+			{
+				// Indicate that we are the cookable's component
+				HC->SetComponent(this);
+
+				// Set the Cookable as our outer
+				// TODO: UE doesn't like doing this on PostLoad (get stuck)
+				//this->Rename(nullptr, HC); 
+			
+				// Once everything is done - set ourselves as a component of the HAA.
+				// Why is this needed ?
+				HAA->SetRootComponent(this);
+				HAA->AddInstanceComponent(this);
+			}
+		}
+
+		bMigrateDataToCookableOnPostLoad = false;
+	}
 
 	// TODO: Cookable ?? Needed??
 	//if (GetCookable())
@@ -2561,8 +2566,8 @@ UHoudiniAssetComponent::GetCookable() const
 	if (HC)
 		return HC;
 
-	// TODO: Cookable - this shouldnt be needed anymore
 	// Try to get the Cookable via our Actor - we might be a loaded v2 HAC
+	// This is required for loaded v2 HAC - as the Cookable is not the HAC's outer
 	AHoudiniAssetActor* HAA = Cast<AHoudiniAssetActor>(GetOwner());
 	if (HAA)
 		return HAA->GetHoudiniCookable();
