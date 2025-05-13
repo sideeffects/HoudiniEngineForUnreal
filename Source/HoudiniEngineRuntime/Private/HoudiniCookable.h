@@ -744,6 +744,8 @@ protected:
 
 	virtual void PostEditImport() override;
 
+	virtual void BeginDestroy() override;
+
 protected:
 
 	// Id of the corresponding Houdini node.

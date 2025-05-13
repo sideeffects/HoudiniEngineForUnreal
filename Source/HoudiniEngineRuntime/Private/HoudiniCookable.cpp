@@ -2590,3 +2590,14 @@ UHoudiniCookable::PostEditImport()
 	SetCurrentState(EHoudiniAssetState::PreInstantiation);
 	SetCurrentStateResult(EHoudiniAssetStateResult::None);
 }
+
+void
+UHoudiniCookable::BeginDestroy()
+{
+	OnDestroy(true);
+
+	// Unregister ourself so our houdini node can be deleted
+	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
+
+	Super::BeginDestroy();
+}

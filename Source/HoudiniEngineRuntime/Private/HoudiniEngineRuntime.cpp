@@ -217,8 +217,8 @@ FHoudiniEngineRuntime::CleanUpRegisteredHoudiniCookables()
 			continue;
 		}
 
-		UHoudiniCookable* CurrentHAC = Ptr.Get();
-		if (!IsValid(CurrentHAC))
+		UHoudiniCookable* CurrentHC = Ptr.Get();
+		if (!IsValid(CurrentHC))
 		{
 			UnRegisterHoudiniCookable(Idx);
 			continue;
@@ -290,11 +290,12 @@ FHoudiniEngineRuntime::UnRegisterHoudiniCookable(UHoudiniCookable* HC)
 
 	FScopeLock ScopeLock(&CriticalSection);
 
+	/*	
 	int32 FoundIdx = -1;
 	for (int32 n = RegisteredHoudiniCookables.Num() - 1; n >= 0; n--)
 	{
 		TWeakObjectPtr<UHoudiniCookable>& CurHC = RegisteredHoudiniCookables[n];
-		if (!CurHC.IsValid() || CurHC.IsStale())
+		if (!CurHC.IsValid(true) || CurHC.IsStale(false))
 		{
 			// Remove stale/invalid HAC from Array?
 			RegisteredHoudiniCookables.RemoveAt(n);
@@ -306,6 +307,11 @@ FHoudiniEngineRuntime::UnRegisterHoudiniCookable(UHoudiniCookable* HC)
 	}
 
 	if (FoundIdx < 0 || !RegisteredHoudiniCookables.IsValidIndex(FoundIdx))
+		return;
+	*/
+
+	int32 FoundIdx = RegisteredHoudiniCookables.Find(HC);
+	if (!RegisteredHoudiniCookables.IsValidIndex(FoundIdx))
 		return;
 
 	HC->NotifyHoudiniPreUnregister();
@@ -321,14 +327,14 @@ FHoudiniEngineRuntime::UnRegisterHoudiniCookable(const int32& ValidIndex)
 		return;
 
 	FScopeLock ScopeLock(&CriticalSection);
-
 	TWeakObjectPtr<UHoudiniCookable> Ptr = RegisteredHoudiniCookables[ValidIndex];
-	if (Ptr.IsValid(true, false))
+
+	if (Ptr.IsValid(true, true))
 	{
-		UHoudiniCookable* CurHC = Ptr.Get();
-		if (CurHC && CurHC->CanDeleteHoudiniNodes())
+		UHoudiniCookable* HC = Ptr.GetEvenIfUnreachable();
+		if (HC && HC->CanDeleteHoudiniNodes() && HC->GetNodeId() >= 0)
 		{
-			MarkNodeIdAsPendingDelete(CurHC->GetNodeId(), true);
+			MarkNodeIdAsPendingDelete(HC->GetNodeId(), true);
 			CurHC->SetNodeId(INDEX_NONE);
 		}
 	}

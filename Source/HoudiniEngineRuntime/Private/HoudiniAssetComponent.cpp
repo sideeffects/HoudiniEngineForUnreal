@@ -791,8 +791,10 @@ bool UHoudiniAssetComponent::NeedBlueprintUpdate() const
 void
 UHoudiniAssetComponent::BeginDestroy()
 {
-	if (CanDeleteHoudiniNodes())
+	if (GetCookable())
 	{
+		// TODO: Cookable - Might not be needed?
+		GetCookable()->OnDestroy(true);
 	}
 
 	// Gets called through UnRegisterHoudiniComponent().
