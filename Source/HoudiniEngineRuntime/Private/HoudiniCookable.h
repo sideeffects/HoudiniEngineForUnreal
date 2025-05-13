@@ -747,7 +747,7 @@ protected:
 protected:
 
 	// Id of the corresponding Houdini node.
-	UPROPERTY(DuplicateTransient)
+	UPROPERTY(DuplicateTransient,Transient)
 	int32 NodeId;	// AssetId
 
 	// NEW: The name of the node we're creating/fetching

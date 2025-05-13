@@ -233,9 +233,6 @@ bool FHoudiniEditorTestPCG_MeshesCooked::RunTest(const FString& Parameters)
 
 	AddCommand(new FFunctionLatentCommand([Context, GraphInstance]
 	{
-		if(Context->State != EHoudiniTestPCGContextState::Done)
-			return false;
-
 		Context->State = EHoudiniTestPCGContextState::Generate;
 		GraphInstance->SetGraphParameter<float>(FName("scale_factor"), 2.0f);
 		Context->CleanupAndGenerateAsync();

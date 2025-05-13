@@ -1475,7 +1475,7 @@ FUnrealObjectInputModifier::DestroyHAPINodes()
 		return false;
 
 	bool bSuccess = true;
-	for (const FUnrealObjectInputHAPINodeId NodeId : HAPINodeIds)
+	for (FUnrealObjectInputHAPINodeId NodeId : HAPINodeIds)
 	{
 		if (!NodeId.IsValid())
 			continue;

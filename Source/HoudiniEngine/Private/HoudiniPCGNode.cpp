@@ -391,8 +391,11 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 				!IsValid(ManagedResource->HoudiniPCGComponent->Cookable) ||
 				ManagedResource->bInvalidateResource)
 			{
-				HOUDINI_PCG_MESSAGE(TEXT("(%p) Invalid Managed Resource Found, ignoring."), ManagedResource->HoudiniPCGComponent->Cookable.Get());
-				ManagedResource->DestroyCookable();
+				if (ManagedResource->HoudiniPCGComponent)
+				{
+					HOUDINI_PCG_MESSAGE(TEXT("(%p) Invalid Managed Resource Found, ignoring."), ManagedResource->HoudiniPCGComponent->Cookable.Get());
+					ManagedResource->DestroyCookable();
+				}
 				ManagedResource = nullptr;
 			}
 		}

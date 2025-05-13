@@ -79,7 +79,7 @@
         HAPI_Result ResultVariable = HAPI_PARAM_CALL; \
         if ( ResultVariable != HAPI_RESULT_SUCCESS ) \
         { \
-            HAPI_LOG_ROUTINE( TEXT( "Hapi failed: %s" ), *FHoudiniEngineUtils::GetErrorDescription() ); \
+            HAPI_LOG_ROUTINE( TEXT( "Hapi failed: %s (%s:%d)" ), *FHoudiniEngineUtils::GetErrorDescription(), TEXT(__FILE__), __LINE__); \
         } \
     } \
     while ( 0 )
@@ -94,7 +94,7 @@
         *HAPI_PARAM_RESULT = HAPI_PARAM_CALL; \
         if ( *HAPI_PARAM_RESULT != HAPI_RESULT_SUCCESS ) \
         { \
-            HAPI_LOG_ROUTINE( TEXT( "Hapi failed: %s" ), *FHoudiniEngineUtils::GetErrorDescription() ); \
+            HAPI_LOG_ROUTINE( TEXT( "Hapi failed: %s (%s:%d)" ), *FHoudiniEngineUtils::GetErrorDescription(), TEXT(__FILE__), __LINE__); \
         } \
     } \
     while ( 0 )
