@@ -113,7 +113,7 @@ protected:
 	void InstantiateParameterCookable();
 };
 
-enum class EHoudiniPCGConextState
+enum class EHoudiniPCGContextState
 {
 	None,
 	Instantiating,
@@ -123,7 +123,7 @@ enum class EHoudiniPCGConextState
 struct FPCHoudiniDigitalAssetAttributesContext : public FPCGContext, public IPCGAsyncLoadingContext
 {
 public:
-	EHoudiniPCGConextState ContextState = EHoudiniPCGConextState::None;
+	EHoudiniPCGContextState ContextState = EHoudiniPCGContextState::None;
 
 };
 

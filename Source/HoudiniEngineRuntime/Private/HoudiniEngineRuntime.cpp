@@ -310,13 +310,27 @@ FHoudiniEngineRuntime::UnRegisterHoudiniCookable(UHoudiniCookable* HC)
 		return;
 	*/
 
-	int32 FoundIdx = RegisteredHoudiniCookables.Find(HC);
-	if (!RegisteredHoudiniCookables.IsValidIndex(FoundIdx))
-		return;
+	int32 FoundIdx = -1;
+	for(int nIdx = 0; nIdx < RegisteredHoudiniCookables.Num(); nIdx++)
+	{
+		TWeakObjectPtr<UHoudiniCookable> Ptr = RegisteredHoudiniCookables[nIdx];
+		if(!Ptr.IsValid(true, true))
+			continue;
 
-	HC->NotifyHoudiniPreUnregister();
-	UnRegisterHoudiniCookable(FoundIdx);
-	HC->NotifyHoudiniPostUnregister();
+		UHoudiniCookable* CurrentHC = Ptr.GetEvenIfUnreachable();
+		if(CurrentHC && CurrentHC == HC)
+		{
+			FoundIdx = nIdx;
+			break;
+		}
+	}
+
+	if (FoundIdx != -1)
+	{
+		HC->NotifyHoudiniPreUnregister();
+		UnRegisterHoudiniCookable(FoundIdx);
+		HC->NotifyHoudiniPostUnregister();
+	}
 }
 
 

@@ -146,22 +146,13 @@ UHoudiniPCGCookable::InvalidateCookable()
 			PDGAssetLink->ClearTOPNodeWorkItemResults(TOPNode);
 		}
 		TOPNode = nullptr;
-
-	//	FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
-	//	HEM->PDGManager.RemoveAssetLink(PDGAssetLink);
-
-	//	this->Cookable->GetPDGData()->SetPDGAssetLink(nullptr);
 	}
 
 	if(!IsValid(this->Cookable.Get()))
 		return;
 
-	//FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this->Cookable.Get());
-
 	this->Cookable->OnDestroy(true);
-
 	this->Cookable = nullptr; 
-	
 }
 
 bool
@@ -248,6 +239,8 @@ bool UHoudiniPCGCookable::ApplyInputsToCookable(const FPCGContext* Context)
 				bInputsChanged |= ApplyInputAsUnrealObjects(Input, UnrealObjectPaths);
 			}
 			break;
+		default:
+			break;
 
 		}
 	}
@@ -316,14 +309,12 @@ bool UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data)
 	return bChanged;
 }
 
-void UHoudiniPCGCookable::Release(UWorld * World)
+void UHoudiniPCGCookable::DestroyCookable(UWorld * World)
 {
-	HOUDINI_PCG_MESSAGE(TEXT("UHoudiniPCGCookable::Release (%p)"), this);
+	HOUDINI_PCG_MESSAGE(TEXT("UHoudiniPCGCookable::DestroyCookable (%p)"), this);
 
 	DeleteBakedOutput(World);
-
 	InvalidateCookable();
-
 }
 
 void UHoudiniPCGCookable::ProcessBakedOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput)

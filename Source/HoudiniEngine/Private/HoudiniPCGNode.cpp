@@ -379,7 +379,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 	switch(HDAContext->ContextState)
 	{
-	case EHoudiniPCGConextState::None:
+	case EHoudiniPCGContextState::None:
 	{
 		HOUDINI_PCG_MESSAGE(TEXT("First time called with context %p"), HDAContext);
 
@@ -431,7 +431,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			HOUDINI_PCG_MESSAGE(TEXT("(%p) Creating Managed Resource, Instantiating..."), PCGCookable);
 
 			// Return now since instantiation is not instant.
-			HDAContext->ContextState = EHoudiniPCGConextState::Instantiating;
+			HDAContext->ContextState = EHoudiniPCGContextState::Instantiating;
 			return false;
 		}
 		else
@@ -457,19 +457,19 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 				// Something changed, so we must cook.
 				ManagedResource->HoudiniPCGComponent->Cookable->StartCook();
 				HOUDINI_PCG_MESSAGE(TEXT("A cook was started."));
-				HDAContext->ContextState = EHoudiniPCGConextState::Cooking;
+				HDAContext->ContextState = EHoudiniPCGContextState::Cooking;
 				return false;
 			}
 			else
 			{
 				// Nothing changed so we can re-use output as-is.
 				HOUDINI_PCG_MESSAGE(TEXT("Nothing Changed: returning Managed Resource."));
-				HDAContext->ContextState = EHoudiniPCGConextState::Done;
+				HDAContext->ContextState = EHoudiniPCGContextState::Done;
 				return true;
 			}
 		}
 	}
-	case EHoudiniPCGConextState::Instantiating:
+	case EHoudiniPCGContextState::Instantiating:
 	{
 		UHoudiniPCGCookable* Cookable = ManagedResource->HoudiniPCGComponent->Cookable.Get();
 		Cookable->Update(HDAContext);
@@ -481,20 +481,20 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			Cookable->UpdateParametersAndInputs(Context);
 			if (Cookable->NeedsCook())
 			{
-				HDAContext->ContextState = EHoudiniPCGConextState::Cooking;
+				HDAContext->ContextState = EHoudiniPCGContextState::Cooking;
 				Cookable->StartCook();
 				return false;
 			}
 			else
 			{
-				HDAContext->ContextState = EHoudiniPCGConextState::Done;
+				HDAContext->ContextState = EHoudiniPCGContextState::Done;
 				return true;
 			}
 		}
 		return false;
 	}
 	break;
-	case EHoudiniPCGConextState::Cooking:
+	case EHoudiniPCGContextState::Cooking:
 	{
 		// Wait for cooking to complete.
 		if(!IsValid(ManagedResource->HoudiniPCGComponent))

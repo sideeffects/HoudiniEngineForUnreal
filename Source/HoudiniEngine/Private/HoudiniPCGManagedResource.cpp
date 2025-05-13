@@ -41,7 +41,7 @@ void UHoudiniPCGManagedResource::DestroyCookable()
 	if(IsValid(HoudiniPCGComponent))
 	{
 		if(IsValid(HoudiniPCGComponent->Cookable))
-			HoudiniPCGComponent->Cookable->Release(HoudiniPCGComponent->GetWorld());
+			HoudiniPCGComponent->Cookable->DestroyCookable(HoudiniPCGComponent->GetWorld());
 		HoudiniPCGComponent->Cookable = nullptr;
 	}
 

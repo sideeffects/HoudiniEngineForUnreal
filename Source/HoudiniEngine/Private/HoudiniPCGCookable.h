@@ -89,8 +89,8 @@ public:
 
 	void CopyParametersAndInputs(const UHoudiniPCGCookable * Other);
 
-	// Release() releases() all data associated with the cook.
-	void Release(UWorld * World);
+	// DestroyCookable() releases() all data associated with the cook.
+	void DestroyCookable(UWorld * World);
 
 	// Updates the current cookable state.
 	void Update(FPCGContext* Context);
@@ -123,7 +123,9 @@ private:
 	FDelegateHandle PDGTopNetworkCookedDelegate;
 
 	void ProcessCookedOutput(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput);
+
 	void ProcessBakedOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput);
+
 	static void CreateOutputPinFromCookedData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput);
 	static void CreateOutputPinFromBakedData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput);
 	static void CreateOutputPinData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const TArray<FHoudiniPCGObjectOutput> & Outputs);
