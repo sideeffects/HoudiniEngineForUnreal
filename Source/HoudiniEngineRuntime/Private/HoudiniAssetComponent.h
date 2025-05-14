@@ -792,7 +792,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink;
 
-	UPROPERTY()
+	UPROPERTY(Transient, DuplicateTransient)
 	bool bIsPDGAssetLinkInitialized;
 
 	// Timer that is used to trigger creation of UStaticMesh for all mesh outputs
