@@ -352,7 +352,7 @@ public:
 	UPROPERTY()
 	TObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink;
 
-	UPROPERTY()
+	UPROPERTY(DuplicateTransient, Transient)
 	bool bIsPDGAssetLinkInitialized;
 };
 
