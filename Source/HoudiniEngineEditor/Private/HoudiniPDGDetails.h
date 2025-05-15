@@ -62,11 +62,14 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 
 		void CreateWidget(
 			IDetailCategoryBuilder & HouPDGCategory,
-			const TWeakObjectPtr<UHoudiniPDGAssetLink>&& InPDGAssetLink);
+			const TWeakObjectPtr<UHoudiniPDGAssetLink>&& InPDGAssetLink,
+			bool bIsPDG);
 			//UHoudiniAssetComponent* InHAC);
 
 		void AddPDGAssetWidget(
-			IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
+			IDetailCategoryBuilder& InPDGCategory, 
+			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink,
+			bool bIsPDG);
 
 		void AddWorkItemStatusWidget(
 			FDetailWidgetRow& InRow, const FString& TitleString, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InAssetLink, bool bInForSelectedNode);
@@ -78,10 +81,10 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 			IDetailCategoryBuilder& InPDGCategory, const EHoudiniBGEOCommandletStatus& InCommandletStatus);
 
 		void AddTOPNetworkWidget(
-			IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
+			IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, bool bISPCG);
 
 		void AddTOPNodeWidget(
-			IDetailGroup& InGroup, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
+			IDetailGroup& InGroup, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, bool bIsPCG);
 
 		static void RefreshPDGAssetLink(
 			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
@@ -90,7 +93,7 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, const bool& InFullUpdate = true);
 
 		static void 
-			CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
+			CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, bool bIsPCG);
 	protected:
 		// Helper function for getting the work item tally and color
 		static bool GetWorkItemTallyValueAndColor(

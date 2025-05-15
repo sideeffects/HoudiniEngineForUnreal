@@ -98,16 +98,17 @@ FormatTOPNodeName(
 void 
 FHoudiniPDGDetails::CreateWidget(
 	IDetailCategoryBuilder& HouPDGCategory,
-	const TWeakObjectPtr<UHoudiniPDGAssetLink>&& InPDGAssetLink)
+	const TWeakObjectPtr<UHoudiniPDGAssetLink>&& InPDGAssetLink,
+	bool bIsPCG)
 {
 	if (!IsValidWeakPointer(InPDGAssetLink))
 		return;
 
 	// PDG ASSET
-	FHoudiniPDGDetails::AddPDGAssetWidget(HouPDGCategory, InPDGAssetLink);
+	FHoudiniPDGDetails::AddPDGAssetWidget(HouPDGCategory, InPDGAssetLink, bIsPCG);
 	
 	// TOP NETWORKS
-	FHoudiniPDGDetails::AddTOPNetworkWidget(HouPDGCategory, InPDGAssetLink);
+	FHoudiniPDGDetails::AddTOPNetworkWidget(HouPDGCategory, InPDGAssetLink, bIsPCG);
 
 	// PDG EVENT MESSAGES
 }
@@ -115,7 +116,8 @@ FHoudiniPDGDetails::CreateWidget(
 
 void
 FHoudiniPDGDetails::AddPDGAssetWidget(
-	IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
+	IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink,
+	bool bIsPCG)
 {	
 	// PDG STATUS ROW
 	AddPDGAssetStatus(InPDGCategory, InPDGAssetLink);
@@ -470,6 +472,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 	}
 
 	// Checkbox: Autocook
+	if(!bIsPCG)
 	{
 		FText Tooltip = FText::FromString(TEXT("When enabled, the selected TOP Network's output will automatically cook after succesfully cooking the PDG Asset Link HDA."));
 		FDetailWidgetRow& PDGAutocookRow = InPDGCategory.AddCustomRow(FText::FromString("PDG Autocook"));
@@ -520,6 +523,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 			];
 	}
 	// Output parent actor selector
+	if(!bIsPCG)
 	{
 		IDetailPropertyRow* PDGOutputParentActorRow = InPDGCategory.AddExternalObjectProperty({ InPDGAssetLink.Get() }, "OutputParentActor");
 		if (PDGOutputParentActorRow)
@@ -537,7 +541,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 	}
 
 	// Add bake widgets for PDG output
-	CreatePDGBakeWidgets(InPDGCategory, InPDGAssetLink);
+	CreatePDGBakeWidgets(InPDGCategory, InPDGAssetLink, bIsPCG);
 
 	// TODO: move this to a better place: the baking code is in HoudiniEngineEditor, the PDG manager (that knows about
 	// when work object results are loaded is in HoudiniEngine and the PDGAssetLink is in HoudiniEngineRuntime). So
@@ -547,6 +551,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 	InPDGAssetLink->AutoBakeDelegateHandle = InPDGAssetLink->OnWorkResultObjectLoaded.AddStatic(FHoudiniEngineBakeUtils::CheckPDGAutoBakeAfterResultObjectLoaded);
 	
 	// WORK ITEM STATUS
+	if (!bIsPCG)
 	{
 		FDetailWidgetRow& PDGStatusRow = InPDGCategory.AddCustomRow(FText::FromString("PDG work item status"));
 		// Disable if PDG is not linked
@@ -880,7 +885,7 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 
 void
 FHoudiniPDGDetails::AddTOPNetworkWidget(
-	IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink )
+	IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, bool bIsPCG )
 {
 	auto DirtyAll = [this](const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
 	{
@@ -1042,6 +1047,7 @@ FHoudiniPDGDetails::AddTOPNetworkWidget(
 	}
 
 	// Buttons: DIRTY ALL / COOK OUTPUT
+	if (!bIsPCG)
 	{
 		TSharedRef<SHorizontalBox> DirtyAllHBox = SNew(SHorizontalBox);
 		TSharedPtr<SHorizontalBox> CookOutHBox = SNew(SHorizontalBox);
@@ -1179,6 +1185,7 @@ FHoudiniPDGDetails::AddTOPNetworkWidget(
 	}
 
 	// Buttons: PAUSE COOK / CANCEL COOK
+	if (!bIsPCG)
 	{
 		TSharedRef<SHorizontalBox> PauseHBox = SNew(SHorizontalBox);
 		TSharedPtr<SHorizontalBox> CancelHBox = SNew(SHorizontalBox);
@@ -1309,6 +1316,7 @@ FHoudiniPDGDetails::AddTOPNetworkWidget(
 	}
 
 	// Buttons: Unload Work Item Objects
+	if(!bIsPCG)
 	{
 		FDetailWidgetRow& PDGUnloadLoadWorkItemsRow = TOPNetWorkGrp.AddWidgetRow()
 		.WholeRowContent()
@@ -1367,7 +1375,7 @@ FHoudiniPDGDetails::AddTOPNetworkWidget(
 	}
 	
 	// TOP NODE WIDGETS
-	FHoudiniPDGDetails::AddTOPNodeWidget(TOPNetWorkGrp, InPDGAssetLink);
+	FHoudiniPDGDetails::AddTOPNodeWidget(TOPNetWorkGrp, InPDGAssetLink, bIsPCG);
 }
 
 bool
@@ -1392,7 +1400,7 @@ FHoudiniPDGDetails::GetSelectedTOPNodeStatusAndColor(const TWeakObjectPtr<UHoudi
 
 void
 FHoudiniPDGDetails::AddTOPNodeWidget(
-	IDetailGroup& InGroup, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink )
+	IDetailGroup& InGroup, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, bool bIsPCG )
 {	
 	if (!InPDGAssetLink->GetSelectedTOPNetwork())
 		return;
@@ -1585,6 +1593,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 	}
 
 	// TOP Node State
+	if(!bIsPCG)
 	{
 		FDetailWidgetRow& PDGNodeStateResultRow = TOPNodesGrp.AddWidgetRow();
 		DisableIfPDGNotLinked(PDGNodeStateResultRow, InPDGAssetLink);
@@ -1623,6 +1632,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 	}
 	
 	// Checkbox: Load Work Item Output Files
+	if(!bIsPCG)
 	{
 		auto ToolTipLambda = [InPDGAssetLink]()
 		{
@@ -1777,6 +1787,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 	}
 
 	// Buttons: DIRTY NODE / COOK NODE
+	if (!bIsPCG)
 	{
 		TSharedRef<SHorizontalBox> DirtyHBox = SNew(SHorizontalBox);
 		TSharedPtr<SHorizontalBox> CookHBox = SNew(SHorizontalBox);
@@ -1968,6 +1979,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 	}
 
 	// Buttons: Load Work Item Objects / Unload Work Item Objects
+	if (!bIsPCG)
 	{
 		TSharedPtr<SButton> UnloadWorkItemsButton;
 		TSharedPtr<SButton> LoadWorkItemsButton;
@@ -2069,6 +2081,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 	}
 
 	// TOP Node WorkItem Status
+	if(!bIsPCG)
 	{
 		if (InPDGAssetLink->GetSelectedTOPNode())
 		{
@@ -2104,7 +2117,7 @@ FHoudiniPDGDetails::RefreshUI(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGA
 }
 
 void 
-FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink) 
+FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, bool bIsPCG) 
 {
 	if (!IsValidWeakPointer(InPDGAssetLink))
 		return;
@@ -2616,94 +2629,98 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
             })
         ]
     ];
-	
-	RightColumnVerticalBox->AddSlot()
-    .AutoHeight()
-    .Padding(0.0f, 0.0f, 0.0f, 3.5f)
-    [
-        SNew(SBox)
-        .WidthOverride(160.f)
-        [
-            SAssignNew(CheckBoxAutoBake, SCheckBox)
-            .Content()
-            [
-                SNew(STextBlock).Text(LOCTEXT("HoudiniEngineUIAutoBakeCheckBox", "Auto Bake"))
-                .ToolTipText(LOCTEXT("HoudiniEngineUIAutoBakeCheckBoxToolTip", "Automatically bake work result objects as they are loaded."))
-                .Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-            ]
-            .IsChecked_Lambda([InPDGAssetLink]()
-            {
-                return InPDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-            })
-            .OnCheckStateChanged_Lambda([InPDGAssetLink](ECheckBoxState NewState)
-            {
-                const bool bNewState = (NewState == ECheckBoxState::Checked);
-        
-                if (!IsValidWeakPointer(InPDGAssetLink))
-                    return;
-        
-				// Record a transaction for undo/redo
-				FScopedTransaction Transaction(
-					TEXT(HOUDINI_MODULE_RUNTIME),
-					LOCTEXT("HoudiniPDGAssetLinkParameterChange", "Houdini PDG Asset Link Parameter: Changing a value"),
-					InPDGAssetLink.Get());
-			
-				InPDGAssetLink->Modify();
-                InPDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded = bNewState;
-        
-				// Notify that we have changed the property
-				FHoudiniEngineEditorUtils::NotifyPostEditChangeProperty(
-					GET_MEMBER_NAME_STRING_CHECKED(UHoudiniPDGAssetLink, bBakeAfterAllWorkResultObjectsLoaded), InPDGAssetLink.Get());
-            })
-        ]
-    ];
-        
-	RightColumnVerticalBox->AddSlot()
-	.AutoHeight()
-	.Padding(0.0f, 0.0f, 0.0f, 3.5f)
-	[
-		SNew(SBox)
-		.WidthOverride(160.f)
-		[
-			SAssignNew(CheckBoxAutoBakeWithFailedWorkItems, SCheckBox)
-			.Content()
+
+	if(!bIsPCG)
+	{
+		RightColumnVerticalBox->AddSlot()
+			.AutoHeight()
+			.Padding(0.0f, 0.0f, 0.0f, 3.5f)
 			[
-				SNew(STextBlock).Text(LOCTEXT("HoudiniEngineUIAutoBakeCheckBoxWithFailedWorkItems", "Auto Bake With Failed Work Items"))
-				.ToolTipText(LOCTEXT("HoudiniEngineUIAutoBakeCheckBoxWithFailedWorkItemsToolTip", "Automatically bake work result objects as they are loaded even for nodes with failed work items."))
-				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-			]
-			.IsEnabled_Lambda([InPDGAssetLink]()
-			{
-				if (!IsValidWeakPointer(InPDGAssetLink))
-					return false;
-				return InPDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded;
-			})
-			.IsChecked_Lambda([InPDGAssetLink]()
-			{
-			    return InPDGAssetLink->IsAutoBakeNodesWithFailedWorkItemsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-			})
-			.OnCheckStateChanged_Lambda([InPDGAssetLink](ECheckBoxState NewState)
-			{
-				const bool bNewState = (NewState == ECheckBoxState::Checked);
+				SNew(SBox)
+					.WidthOverride(160.f)
+					[
+						SAssignNew(CheckBoxAutoBake, SCheckBox)
+							.Content()
+							[
+								SNew(STextBlock).Text(LOCTEXT("HoudiniEngineUIAutoBakeCheckBox", "Auto Bake"))
+									.ToolTipText(LOCTEXT("HoudiniEngineUIAutoBakeCheckBoxToolTip", "Automatically bake work result objects as they are loaded."))
+									.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+							]
+							.IsChecked_Lambda([InPDGAssetLink]()
+								{
+									return InPDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+								})
+							.OnCheckStateChanged_Lambda([InPDGAssetLink](ECheckBoxState NewState)
+								{
+									const bool bNewState = (NewState == ECheckBoxState::Checked);
 
-				if (!IsValidWeakPointer(InPDGAssetLink))
-					return;
+									if(!IsValidWeakPointer(InPDGAssetLink))
+										return;
 
-				// Record a transaction for undo/redo
-				FScopedTransaction Transaction(
-					TEXT(HOUDINI_MODULE_RUNTIME),
-					LOCTEXT("HoudiniPDGAssetLinkParameterChange", "Houdini PDG Asset Link Parameter: Changing a value"),
-					InPDGAssetLink.Get());
+									// Record a transaction for undo/redo
+									FScopedTransaction Transaction(
+										TEXT(HOUDINI_MODULE_RUNTIME),
+										LOCTEXT("HoudiniPDGAssetLinkParameterChange", "Houdini PDG Asset Link Parameter: Changing a value"),
+										InPDGAssetLink.Get());
 
-				InPDGAssetLink->Modify();
-				InPDGAssetLink->SetAutoBakeNodesWithFailedWorkItemsEnabled(bNewState);
+									InPDGAssetLink->Modify();
+									InPDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded = bNewState;
 
-				// Notify that we have changed the property
-				FHoudiniEngineEditorUtils::NotifyPostEditChangeProperty(
-					UHoudiniPDGAssetLink::GetbAutoBakeNodesWithFailedWorkItemsPropertyName(), InPDGAssetLink.Get());
-			})
-		]
-	];
+									// Notify that we have changed the property
+									FHoudiniEngineEditorUtils::NotifyPostEditChangeProperty(
+										GET_MEMBER_NAME_STRING_CHECKED(UHoudiniPDGAssetLink, bBakeAfterAllWorkResultObjectsLoaded), InPDGAssetLink.Get());
+								})
+					]
+			];
+
+		RightColumnVerticalBox->AddSlot()
+			.AutoHeight()
+			.Padding(0.0f, 0.0f, 0.0f, 3.5f)
+			[
+				SNew(SBox)
+					.WidthOverride(160.f)
+					[
+						SAssignNew(CheckBoxAutoBakeWithFailedWorkItems, SCheckBox)
+							.Content()
+							[
+								SNew(STextBlock).Text(LOCTEXT("HoudiniEngineUIAutoBakeCheckBoxWithFailedWorkItems", "Auto Bake With Failed Work Items"))
+									.ToolTipText(LOCTEXT("HoudiniEngineUIAutoBakeCheckBoxWithFailedWorkItemsToolTip", "Automatically bake work result objects as they are loaded even for nodes with failed work items."))
+									.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+							]
+							.IsEnabled_Lambda([InPDGAssetLink]()
+								{
+									if(!IsValidWeakPointer(InPDGAssetLink))
+										return false;
+									return InPDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded;
+								})
+							.IsChecked_Lambda([InPDGAssetLink]()
+								{
+									return InPDGAssetLink->IsAutoBakeNodesWithFailedWorkItemsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+								})
+							.OnCheckStateChanged_Lambda([InPDGAssetLink](ECheckBoxState NewState)
+								{
+									const bool bNewState = (NewState == ECheckBoxState::Checked);
+
+									if(!IsValidWeakPointer(InPDGAssetLink))
+										return;
+
+									// Record a transaction for undo/redo
+									FScopedTransaction Transaction(
+										TEXT(HOUDINI_MODULE_RUNTIME),
+										LOCTEXT("HoudiniPDGAssetLinkParameterChange", "Houdini PDG Asset Link Parameter: Changing a value"),
+										InPDGAssetLink.Get());
+
+									InPDGAssetLink->Modify();
+									InPDGAssetLink->SetAutoBakeNodesWithFailedWorkItemsEnabled(bNewState);
+
+									// Notify that we have changed the property
+									FHoudiniEngineEditorUtils::NotifyPostEditChangeProperty(
+										UHoudiniPDGAssetLink::GetbAutoBakeNodesWithFailedWorkItemsPropertyName(), InPDGAssetLink.Get());
+								})
+					]
+			];
+	}
+
 
 	AdditionalBakeSettingsRow.WholeRowWidget.Widget = AdditionalBakeSettingsRowHorizontalBox;
 }

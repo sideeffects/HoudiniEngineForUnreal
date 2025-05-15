@@ -105,6 +105,11 @@ void UHoudiniPCGSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 
 		UHoudiniCookable* Cookable = Settings->ParameterCookable->Cookable;
 
+		if (!Settings->ParameterCookable->Cookable->GetIsPCG())
+		{
+			Settings->ParameterCookable->Cookable->SetIsPCG(true);
+		}
+
 		TArray<TWeakObjectPtr<UHoudiniCookable>> Cookables;
 		Cookables.Add(Cookable);
 

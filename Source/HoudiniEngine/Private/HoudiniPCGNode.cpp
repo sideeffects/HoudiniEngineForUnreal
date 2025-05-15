@@ -205,6 +205,7 @@ void UHoudiniPCGSettings::InstantiateParameterCookable()
 		ParameterCookable->CreateHoudiniCookable(HoudiniAsset, nullptr, nullptr);
 		ParameterCookable->Cookable->SetOutputSupported(false);
 		ParameterCookable->Cookable->SetPDGSupported(true);
+		ParameterCookable->Cookable->SetIsPCG(true);
 		ParameterCookable->Instantiate();
 
 		do
@@ -424,7 +425,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 			UHoudiniPCGCookable * PCGCookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
 			PCGCookable->CreateHoudiniCookable(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
-			PCGCookable->Cookable->SetUpdateUI(false);
+			PCGCookable->Cookable->SetIsPCG(true);
 			PCGCookable->Instantiate();
 			PCGCookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
 			ManagedResource->HoudiniPCGComponent->Cookable = PCGCookable;

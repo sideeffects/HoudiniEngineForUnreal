@@ -734,8 +734,8 @@ public:
 	FOnPostOutputProcessingDelegate& GetOnPostOutputProcessingDelegate() { return OnPostOutputProcessingDelegate; };
 	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate; };
 
-	bool GetUpdateUI() { return bShouldUpdateUI;  }
-	void SetUpdateUI(bool bOnOff) { bShouldUpdateUI = bOnOff; }
+	bool GetIsPCG() { return bIsPCG;  }
+	void SetIsPCG(bool bOnfOff) { bIsPCG = bOnfOff;  }
 
 protected:
 	// Do any object - specific cleanup required immediately after loading an object.
@@ -842,6 +842,11 @@ protected:
 	// This is to prevent successive calls of the function for the same cookables 
 	UPROPERTY(Transient, DuplicateTransient)
 	bool bNeedToUpdateEditorProperties;
+
+
+	// Used to enable certain detail panel widgets.
+	UPROPERTY()
+	bool bIsPCG;
 
 	//
 	// COOKABLE DATA

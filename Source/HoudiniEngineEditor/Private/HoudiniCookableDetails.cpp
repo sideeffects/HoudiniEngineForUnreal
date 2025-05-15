@@ -321,7 +321,7 @@ FHoudiniCookableDetails::CreatePDGDetails(
 		FHoudiniEngineDetails::AddEducationLicenseRow(HouPDGCategory);
 
 	// TODO: Handle multi selection ?
-	PDGDetails->CreateWidget(HouPDGCategory, HPDGAL);
+	PDGDetails->CreateWidget(HouPDGCategory, HPDGAL, MainCookable->GetIsPCG());
 }
 
 void
