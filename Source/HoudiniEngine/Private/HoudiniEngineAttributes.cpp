@@ -409,24 +409,33 @@ template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeData(const HA
 	int TotalCount;
 	if (IsHapiArrayType(AttributeInfo.storage))
 	{
-		if (!bCanBeArray)
-			return false;
-
-		TotalCount = AttributeInfo.totalArrayElements;
-		if (IndexCount != AttributeInfo.count)
+		if(!bCanBeArray)
 		{
-			HOUDINI_LOG_ERROR(TEXT("Cannot get a partial array from HAPI"));
+			HOUDINI_LOG_ERROR(TEXT("Attribute was array, but this was not allowed: %hs"), this->AttributeName);
 			return false;
 		}
+
+		if (IndexCount != 1)
+		{
+			// only fetch the first entry, or we'd end up with an array of arrays.
+			HOUDINI_LOG_ERROR(TEXT("Attribute was array, but index count was not 1: %hs"), this->AttributeName);
+			return false;
+		}
+
+		TArray<int> Sizes;
+		Results.SetNum(AttributeInfo.totalArrayElements);
+		return GetAttributeArrayData(AttributeInfo, Results, Sizes, 0, 1);
+
 	}
 	else
 	{
 		TotalCount = IndexCount * AttributeInfo.tupleSize;
+		Results.SetNum(TotalCount);
+
+		return GetAttributeData(AttributeInfo, Results.GetData(), IndexStart, IndexCount);
+
 	}
 
-	Results.SetNum(TotalCount);
-
-	return GetAttributeData(AttributeInfo, Results.GetData(), IndexStart, IndexCount);
 }
 
 template<typename DataType>
