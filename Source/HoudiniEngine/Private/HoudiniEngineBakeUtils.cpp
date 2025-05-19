@@ -7715,6 +7715,45 @@ bool FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(
 	return bSuccess;
 }
 
+
+bool FHoudiniEngineBakeUtils::BakePDGAssetLink(
+	UHoudiniPDGAssetLink* InPDGAssetLink)
+{
+	bool Result;
+
+	FHoudiniBakedObjectData BakedObjectData;
+	TArray<FHoudiniEngineBakedActor> BakedActors;
+
+	switch(InPDGAssetLink->HoudiniEngineBakeOption)
+	{
+	case EHoudiniEngineBakeOption::ToActor:
+	{
+		Result = FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(
+			InPDGAssetLink,
+			InPDGAssetLink->PDGBakeSelectionOption,
+			InPDGAssetLink->PDGBakePackageReplaceMode,
+			InPDGAssetLink->bRecenterBakedActors,
+			BakedObjectData,
+			BakedActors);
+	}
+	break;
+
+	case EHoudiniEngineBakeOption::ToBlueprint:
+	{
+		Result = FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(
+			InPDGAssetLink,
+			InPDGAssetLink->PDGBakeSelectionOption,
+			InPDGAssetLink->PDGBakePackageReplaceMode,
+			InPDGAssetLink->bRecenterBakedActors,
+			BakedObjectData);
+	}
+	break;
+	default:
+		Result = false;
+	}
+	return Result;
+}
+
 bool
 FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(
 	UHoudiniPDGAssetLink* InPDGAssetLink, 
@@ -8143,9 +8182,25 @@ FHoudiniEngineBakeUtils::BakePDGTOPNetworkBlueprints(
 }
 
 bool
-FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(UHoudiniPDGAssetLink* InPDGAssetLink, const EPDGBakeSelectionOption InBakeSelectionOption, const EPDGBakePackageReplaceModeOption InPDGBakePackageReplaceMode, bool bInRecenterBakedActors)
+FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(
+	UHoudiniPDGAssetLink* InPDGAssetLink, 
+	const EPDGBakeSelectionOption InBakeSelectionOption, 
+	const EPDGBakePackageReplaceModeOption InPDGBakePackageReplaceMode, 
+	bool bInRecenterBakedActors)
 {
 	FHoudiniBakedObjectData BakedObjectData;
+
+	return BakePDGAssetLinkBlueprints(InPDGAssetLink, InBakeSelectionOption, InPDGBakePackageReplaceMode, bInRecenterBakedActors, BakedObjectData);
+}
+
+bool
+FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(
+	UHoudiniPDGAssetLink* InPDGAssetLink, 
+	const EPDGBakeSelectionOption InBakeSelectionOption, 
+	const EPDGBakePackageReplaceModeOption InPDGBakePackageReplaceMode, 
+	bool bInRecenterBakedActors,
+	FHoudiniBakedObjectData& BakedObjectData)
+{
 
 	if (!IsValid(InPDGAssetLink))
 		return false;

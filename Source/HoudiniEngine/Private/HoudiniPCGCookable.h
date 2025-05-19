@@ -25,6 +25,7 @@
 
 #include "UObject/ObjectMacros.h"
 #include "HoudiniCookable.h"
+#include "HoudiniEngineBakeUtils.h"
 #include "HoudiniPCGDataObject.h"
 #include "PCGComponent.h"
 #include "HoudiniPDGAssetLink.h"
@@ -51,6 +52,16 @@ enum class EPCGCookableState
 
 	Cooking,			// Cookable is cooking.
 	CookingComplete		// Cookable is done cooking and outputs have been processed.
+};
+
+UCLASS()
+class UHoudiniPDGBakeOutput : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	TArray<FHoudiniBakedOutput> BakedOutputs;
 };
 
 UCLASS()
@@ -104,12 +115,14 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TObjectPtr<UHoudiniCookable> Cookable;
 
+	UPROPERTY()
+	UHoudiniPDGBakeOutput* PDGBakedOutput;
 
 	EPCGCookableState State = EPCGCookableState::None;
 
 	bool bParamsChanged = false;
 	bool bInputsChanged = false;
-	UTOPNode* TOPNode = nullptr;
+	UTOPNetwork * TOPNetwork = nullptr;
 
 	void ProcessCookedOutput(FPCGContext* Context);
 	void ProcessBakedOutput(FPCGContext* Context);
@@ -156,11 +169,13 @@ private:
 
 	bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
 
-	static void DeleteBakedActor(FString& ActorPath);
+	static void DeleteBakedActor(const FString& ActorPath);
 	static void DeleteBakedComponent(const FString& ActorPath);
-	static void DeleteBakedObject(FString& ObjectPath);
+	static void DeleteBakedObject(const FString& ObjectPath);
+	static void DeletePackage(UPackage* Package);
 	static void DeleteLandscapeLayer(TMap<FName, FString>& LandscapeLayers);
 	static void DeleteFoliage(UWorld* World, UFoliageType* FoliageType, const TArray<FVector>& FoliageInstancePositions);
+	void DeleteBakedOutputObject(UWorld* World, FHoudiniBakedOutputObject& BakedOutputObject);
 };
 
 

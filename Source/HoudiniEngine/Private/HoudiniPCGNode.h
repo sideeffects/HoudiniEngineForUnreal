@@ -70,7 +70,7 @@ public:
 
 	void ResetFromHDA();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = HoudiniPCG)
 	TObjectPtr<UHoudiniAsset> HoudiniAsset;
 
 	/** By default, data table loading is asynchronous, can force it synchronous if needed. */
@@ -86,17 +86,16 @@ public:
 	UPROPERTY()
 	int NumInputs = 0;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
 	EHoudiniPCGOutputType OutputType = EHoudiniPCGOutputType::Cook;
-
-	UPROPERTY(EditAnywhere)
-	bool bForceCookOnDirty = true;
-
-	UPROPERTY(EditAnywhere, Category = Settings)
+	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
 	bool bCreateSceneComponents = true;
 
-	UPROPERTY(EditAnywhere, Category = Settings)
+	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
 	bool bAutomaticallyDeleteTempAssets = true;
+
+	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
+	bool bUsePCGCache = false;
 
 	FName GetOutputPinName() const;
 

@@ -70,7 +70,7 @@ UHoudiniPCGCookable::~UHoudiniPCGCookable()
 void UHoudiniPCGCookable::OnCookingComplete(bool bSuccess)
 {
 	// Ignore this callback when processing PDG, we'll check the state.
-	if (TOPNode)
+	if (TOPNetwork)
 		return;
 
 	OnCookingCompleteInternal(bSuccess);
@@ -140,12 +140,12 @@ UHoudiniPCGCookable::InvalidateCookable()
 
 	if(UHoudiniPDGAssetLink * PDGAssetLink = Cookable->GetPDGAssetLink())
 	{
-		TOPNode = PDGAssetLink->GetSelectedTOPNode();
-		if(IsValid(TOPNode))
+		TOPNetwork = PDGAssetLink->GetSelectedTOPNetwork();
+		if(IsValid(TOPNetwork))
 		{
-			PDGAssetLink->ClearTOPNodeWorkItemResults(TOPNode);
+			PDGAssetLink->ClearTOPNetworkWorkItemResults(TOPNetwork);
 		}
-		TOPNode = nullptr;
+		TOPNetwork = nullptr;
 	}
 
 	if(!IsValid(this->Cookable.Get()))
@@ -496,12 +496,13 @@ UHoudiniPCGCookable::ProcessCookedOutput(FPCGContext* Context)
 	if(!OutputData)
 		return;
 
+
 	if (UHoudiniPDGAssetLink* PDGAssetLink = this->Cookable->GetPDGAssetLink())
 	{
-		UTOPNetwork* Network = PDGAssetLink->GetTOPNetwork(0);
+		int Index = 0;
+		UTOPNetwork* Network = PDGAssetLink->GetSelectedTOPNetwork();
 		for(UTOPNode* Node : Network->AllTOPNodes)
 		{
-			int Index = 0;
 			for (FTOPWorkResult& WorkResult : Node->WorkResult)
 			{
 				for (FTOPWorkResultObject & ResultObject :  WorkResult.ResultObjects)
@@ -512,7 +513,6 @@ UHoudiniPCGCookable::ProcessCookedOutput(FPCGContext* Context)
 						FString Tag = FString::Printf(TEXT("Output-%d"), Index++);
 						ProcessCookedOutput(Context, Settings->GetOutputPinName(), Tag, Ptr);
 					}
-
 				}
 			}
 		}
@@ -538,11 +538,23 @@ UHoudiniPCGCookable::ProcessBakedOutput(FPCGContext* Context)
 	if(!OutputData)
 		return;
 
-	auto& Outputs = OutputData->BakedOutputs;
-	for(int Index = 0; Index < Outputs.Num(); Index++)
+	if(UHoudiniPDGAssetLink* PDGAssetLink = this->Cookable->GetPDGAssetLink())
 	{
-		FString Tag = FString::Printf(TEXT("Output-%d"), Index);
-		ProcessBakedOutputs(Context, Settings->GetOutputPinName(), Tag, &Outputs[Index]);
+		auto& Outputs = this->PDGBakedOutput->BakedOutputs;
+		for(int Index = 0; Index < Outputs.Num(); Index++)
+		{
+			FString Tag = FString::Printf(TEXT("Output-%d"), Index);
+			ProcessBakedOutputs(Context, Settings->GetOutputPinName(), Tag, &Outputs[Index]);
+		}
+	}
+	else
+	{
+		auto& Outputs = OutputData->BakedOutputs;
+		for(int Index = 0; Index < Outputs.Num(); Index++)
+		{
+			FString Tag = FString::Printf(TEXT("Output-%d"), Index);
+			ProcessBakedOutputs(Context, Settings->GetOutputPinName(), Tag, &Outputs[Index]);
+		}
 	}
 
 	AddTrackedObjects(Context);
@@ -607,18 +619,27 @@ void UHoudiniPCGCookable::StartCook()
 		HOUDINI_LOG_MESSAGE(TEXT("################>>> Cookable %p AssetLink %p"), this, PDGAssetLink);
 		UWorld* World= this->GetWorld();
 		PDGAssetLink->SetOutputWorld(World);
-		TOPNode = PDGAssetLink->GetSelectedTOPNode();
-		if(IsValid(TOPNode))
+		PDGAssetLink->GetSelectedTOPNetwork();
+		TOPNetwork = PDGAssetLink->GetSelectedTOPNetwork();
+
+		TOPNetwork->GetOnPostCookDelegate().AddLambda([this](UTOPNetwork* Link, bool bSuccess)
 		{
-			FHoudiniPDGManager::DirtyTOPNode(TOPNode);
-			FHoudiniPDGManager::CookTOPNode(TOPNode);
+			if (State == EPCGCookableState::Cooking)
+			{
+				OnCookingCompleteInternal(bSuccess);
+			}
+		});
+		if(IsValid(TOPNetwork))
+		{
+			FHoudiniPDGManager::DirtyAll(TOPNetwork);
+			FHoudiniPDGManager::CookOutput(TOPNetwork);
 		}
 	}
 	else
 	{
 		// Non-PDG
 		HOUDINI_PCG_MESSAGE(TEXT("(%p) Starting to Cook."), this);
-		TOPNode = nullptr;
+		TOPNetwork = nullptr;
 		Cookable->MarkAsNeedCook();
 	}
 
@@ -629,12 +650,34 @@ UHoudiniPCGCookable::Bake()
 {
 	const bool bInRemoveHACOutputOnSuccess = false;
 
-	FHoudiniBakeSettings BakeSettings;
+	if (Cookable->IsPDGSupported() && Cookable->GetPDGAssetLink())
+	{
+		FHoudiniEngineBakeUtils::BakePDGAssetLink(Cookable->GetPDGAssetLink());
 
-	FHoudiniEngineBakeUtils::BakeCookable(Cookable, 
-		BakeSettings, 
-		EHoudiniEngineBakeOption::ToActor,
-		bInRemoveHACOutputOnSuccess);
+		this->PDGBakedOutput = NewObject<UHoudiniPDGBakeOutput>(this);
+
+		auto AssetLink = Cookable->GetPDGAssetLink();
+		UTOPNetwork* TopNetwork = AssetLink->GetSelectedTOPNetwork();
+		for (auto Node : TOPNetwork->AllTOPNodes)
+		{
+			for (auto & It : Node->GetBakedWorkResultObjectsOutputs())
+			{
+				FHoudiniPDGWorkResultObjectBakedOutput & Result = It.Value;
+
+				this->PDGBakedOutput->BakedOutputs.Append(Result.BakedOutputs);
+			}
+		}
+	}
+	else
+	{
+		FHoudiniBakeSettings BakeSettings;
+
+		FHoudiniEngineBakeUtils::BakeCookable(Cookable,
+			BakeSettings,
+			EHoudiniEngineBakeOption::ToActor,
+			bInRemoveHACOutputOnSuccess);
+
+	}
 }
 void
 UHoudiniPCGCookable::Update(FPCGContext* Context)
@@ -666,15 +709,7 @@ UHoudiniPCGCookable::Update(FPCGContext* Context)
 		break;
 
 	case EPCGCookableState::Cooking:
-		// Still cooking, if PDG, did we finish.
-		if (TOPNode)
-		{
-			if (TOPNode->NodeState == EPDGNodeState::Cook_Complete)
-			{
-				OnCookingCompleteInternal(true);
-			}
-
-		}
+		// Still cooking
 		break;
 
 	case EPCGCookableState::CookingComplete:
@@ -829,7 +864,7 @@ UHoudiniPCGCookable::ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArr
 	return true;
 }
 
-void UHoudiniPCGCookable::DeleteBakedActor(FString & ActorPath)
+void UHoudiniPCGCookable::DeleteBakedActor(const FString & ActorPath)
 {
 	if(ActorPath.IsEmpty())
 		return;
@@ -858,7 +893,21 @@ void UHoudiniPCGCookable::DeleteBakedComponent(const FString& ComponentPath)
 
 }
 
-void UHoudiniPCGCookable::DeleteBakedObject(FString& ObjectPath)
+void UHoudiniPCGCookable::DeletePackage(UPackage* Package)
+{
+	if(!Package)
+		return;
+
+	TArray<UObject*> ObjectsToDelete;
+	ObjectsToDelete.Add(Package);
+	GetObjectsWithOuter(Package, ObjectsToDelete, true);
+
+	// Use ObjectTools to delete
+	ObjectTools::DeleteObjectsUnchecked(ObjectsToDelete);
+}
+
+
+void UHoudiniPCGCookable::DeleteBakedObject(const FString& ObjectPath)
 {
 #if WITH_EDITOR
 	UObject* Object = StaticLoadObject(UObject::StaticClass(), nullptr, *ObjectPath);
@@ -873,15 +922,7 @@ void UHoudiniPCGCookable::DeleteBakedObject(FString& ObjectPath)
 		return;
 	}
 
-	TArray<UObject*> ObjectsToDelete;
-	if(UPackage* Package = Object->GetPackage())
-	{
-		ObjectsToDelete.Add(Package);
-		GetObjectsWithOuter(Package, ObjectsToDelete, true);
-
-		// Use ObjectTools to delete
-		ObjectTools::DeleteObjectsUnchecked(ObjectsToDelete);
-	}
+	DeletePackage(Object->GetPackage());
 #endif
 }
 
@@ -893,6 +934,41 @@ void UHoudiniPCGCookable::DeleteLandscapeLayer(TMap<FName, FString> & LandscapeL
 void UHoudiniPCGCookable::DeleteFoliage(UWorld * World, UFoliageType * FoliageType, const TArray<FVector> & FoliageInstancePositions)
 {
 	FHoudiniFoliageTools::RemoveFoliageInstances(World, FoliageType, FoliageInstancePositions);
+}
+
+void UHoudiniPCGCookable::DeleteBakedOutputObject(UWorld* World, FHoudiniBakedOutputObject& BakedOutputObject)
+{
+	DeleteBakedActor(BakedOutputObject.Actor);
+	DeleteBakedObject(BakedOutputObject.BakedObject);
+	DeleteBakedComponent(BakedOutputObject.Actor);
+
+	for (FString & ActorPath : BakedOutputObject.InstancedActors)
+	{
+		DeleteBakedActor(ActorPath);
+	}
+
+	for(FString& ActorPath : BakedOutputObject.LevelInstanceActors)
+	{
+		DeleteBakedActor(ActorPath);
+	}
+	for(FString& ComponentPath : BakedOutputObject.InstancedComponents)
+	{
+		DeleteBakedActor(ComponentPath);
+	}
+
+	DeleteLandscapeLayer(BakedOutputObject.LandscapeLayers);
+
+	DeleteBakedActor(BakedOutputObject.Actor);
+
+	DeleteFoliage(World, BakedOutputObject.FoliageType.Get(), BakedOutputObject.FoliageInstancePositions);
+
+	for(FString& FoliageActor : BakedOutputObject.FoliageActors)
+	{
+		DeleteBakedActor(FoliageActor);
+	}
+
+	DeleteBakedObject(BakedOutputObject.BakedSkeleton);
+	DeleteBakedObject(BakedOutputObject.BakedPhysicsAsset);
 }
 
 void UHoudiniPCGCookable::DeleteBakedOutput(UWorld* World)
@@ -908,42 +984,29 @@ void UHoudiniPCGCookable::DeleteBakedOutput(UWorld* World)
 		{
 			FHoudiniBakedOutputObject & BakedOutputObject =  It.Value;
 
-			DeleteBakedActor(BakedOutputObject.Actor);
-			DeleteBakedObject(BakedOutputObject.BakedObject);
-			DeleteBakedComponent(BakedOutputObject.Actor);
-
-			for (FString & ActorPath : BakedOutputObject.InstancedActors)
-			{
-				DeleteBakedActor(ActorPath);
-			}
-
-			for(FString& ActorPath : BakedOutputObject.LevelInstanceActors)
-			{
-				DeleteBakedActor(ActorPath);
-			}
-			for(FString& ComponentPath : BakedOutputObject.InstancedComponents)
-			{
-				DeleteBakedActor(ComponentPath);
-			}
-
-
-			DeleteLandscapeLayer(BakedOutputObject.LandscapeLayers);
-
-
-			DeleteBakedActor(BakedOutputObject.Actor);
-
-			DeleteFoliage(World, BakedOutputObject.FoliageType.Get(), BakedOutputObject.FoliageInstancePositions);
-
-			for(FString& FoliageActor : BakedOutputObject.FoliageActors)
-			{
-				DeleteBakedActor(FoliageActor);
-			}
-
-			DeleteBakedObject(BakedOutputObject.BakedSkeleton);
-			DeleteBakedObject(BakedOutputObject.BakedPhysicsAsset);
+			DeleteBakedOutputObject(World, BakedOutputObject);
 		}
 	}
 	BakedOutputs.Empty();
+
+	// Delete PDG Output
+
+	if (this->PDGBakedOutput)
+	{
+		for (auto & BakedOutput : this->PDGBakedOutput->BakedOutputs)
+		{
+			for(auto It : BakedOutput.BakedOutputObjects)
+			{
+				FHoudiniBakedOutputObject& BakedOutputObject = It.Value;
+
+				DeleteBakedOutputObject(World, BakedOutputObject);
+			}
+		}
+
+		this->PDGBakedOutput->ConditionalBeginDestroy();
+		this->PDGBakedOutput = nullptr;
+	}
+
 }
 
 #undef LOCTEXT_NAMESPACE

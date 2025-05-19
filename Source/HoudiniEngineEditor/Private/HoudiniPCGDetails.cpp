@@ -71,7 +71,7 @@ void UHoudiniPCGSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 			continue;
 
 
-		IDetailCategoryBuilder& SettingsCategory = DetailBuilder.EditCategory(TEXT("Settings"));
+		IDetailCategoryBuilder& SettingsCategory = DetailBuilder.EditCategory(TEXT("HoudiniPCG"));
 
 		SettingsCategory.AddCustomRow(FText::GetEmpty()).ValueContent()
 			.MaxDesiredWidth(120.f)

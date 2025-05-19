@@ -1405,6 +1405,9 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 	if (!InPDGAssetLink->GetSelectedTOPNetwork())
 		return;
 
+	if(bIsPCG)
+		return;
+
 	FString GroupLabel = TEXT("TOP Nodes");
 	IDetailGroup& TOPNodesGrp = InGroup.AddGroup(FName(*GroupLabel), FText::FromString(GroupLabel), true);
 

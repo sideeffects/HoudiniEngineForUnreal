@@ -948,6 +948,8 @@ public:
 		TArray<FHoudiniEngineBakedActor>& OutBakedActors,
 		FHoudiniBakedObjectData& BakedObjectData);
 
+	static bool BakePDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink);
+
 	// Bake PDG output. This bakes assets from TOP networks and nodes according to
 	// InPDGAssetLink->PDGBakeSelectionOption. It uses the existing output actors in the level, but breaks any links
 	// from these actors to the PDG link and moves the actors out of the parent Folder/ detaches from the parent
@@ -1003,6 +1005,13 @@ public:
 		const EPDGBakeSelectionOption InBakeSelectionOption, 
 		const EPDGBakePackageReplaceModeOption InPDGBakePackageReplaceMode, 
 		bool bInRecenterBakedActors);
+
+	static bool BakePDGAssetLinkBlueprints(
+		UHoudiniPDGAssetLink* InPDGAssetLink,
+		const EPDGBakeSelectionOption InBakeSelectionOption,
+		const EPDGBakePackageReplaceModeOption InPDGBakePackageReplaceMode,
+		bool bInRecenterBakedActors,
+		FHoudiniBakedObjectData& BakedObjectData);
 
 	// End: PDG Baking
 

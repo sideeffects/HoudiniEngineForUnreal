@@ -61,9 +61,13 @@ void UHoudiniPCGDataObject::Initialize(const UPCGSplineData* PCGSplineData)
 	const UPCGMetadata* Metadata = PCGSplineData->ConstMetadata();
 	this->PCGDataType = PCGSplineData->GetDataType();
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 5
 	auto & SplineCurves = PCGSplineData->SplineStruct.SplineCurves;
-
 	auto& Points = SplineCurves.Position.Points;
+#else
+	auto& Points = PCGSplineData->SplineStruct.GetSplinePointsPosition().Points;
+#endif
+
 
 	auto AttrDest = CreateAttributeVector3d(TEXT("P"));
 	AttrDest->Values.SetNum(Points.Num());

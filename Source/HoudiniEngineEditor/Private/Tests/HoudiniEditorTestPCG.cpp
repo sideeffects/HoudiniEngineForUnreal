@@ -1473,3 +1473,123 @@ bool FHoudiniEditorTestPCG_ForLoopsCooked::RunTest(const FString& Parameters)
 
 	return true;
 }
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PDGCooked, "Houdini.UnitTests.PCG.PDG.Cooked",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestPCG_PDGCooked::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGPDG/PCGPDGTestLevel.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Test 1: Load a cube, then use it to generate a new cube.
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+	{
+		Context->CleanupAndGenerateAsync();
+		return true;
+	}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context]()
+	{
+		if(!Context->Update())
+			return false;
+
+		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/TestPDGOutput");
+
+		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *OutputPath));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+		// We should have 5 outputs...
+		HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 6, return true);
+
+		// ... it should have data ...
+
+		// ... check we have a mesh for each point
+		for(int Index = 0; Index < 6; Index++)
+		{
+
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[Index].Data.Get(), return true);
+			// ... which we'll now convert to an PCGDataObject so we can easily ready it...
+			UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
+			PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object"), 0));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMesh, return true);
+
+			// ... check we have a mesh component
+			UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("component")));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMeshComponent, return true);
+		}
+		return true;
+	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PDGBaked, "Houdini.UnitTests.PCG.PDG.Baked",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestPCG_PDGBaked::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGPDG/PCGPDGTestLevelBaked.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Test 1: Load a cube, then use it to generate a new cube.
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+	{
+		Context->CleanupAndGenerateAsync();
+		return true;
+	}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context]()
+	{
+		if(!Context->Update())
+			return false;
+
+		FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/TestPDGOutput");
+
+		UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *OutputPath));
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+		// We should have 5 outputs...
+		HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 6, return true);
+
+		// ... it should have data ...
+
+		// ... check we have a mesh for each point
+		for(int Index = 0; Index < 6; Index++)
+		{
+
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[Index].Data.Get(), return true);
+			// ... which we'll now convert to an PCGDataObject so we can easily ready it...
+			UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
+			PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object"), 0));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMesh, return true);
+
+			// ... check we have a mesh component
+			UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("component")));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMeshComponent, return true);
+		}
+		return true;
+	}));
+
+	return true;
+}

@@ -535,7 +535,8 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 bool
 FHoudiniDigitalAssetPCGElement::IsCacheable(const UPCGSettings* InSettings) const
 {
-	return false;
+	const UHoudiniPCGSettings* Settings = Cast<const UHoudiniPCGSettings>(InSettings);
+	return Settings->bUsePCGCache;
 }
 
 #undef LOCTEXT_NAMESPACE
