@@ -68,6 +68,8 @@ AHoudiniAssetActor::AHoudiniAssetActor(const FObjectInitializer & ObjectInitiali
 			HoudiniCookable->SetOutputSupported(true);
 			HoudiniCookable->SetComponentSupported(true);
 			HoudiniCookable->SetPDGSupported(true);
+			HoudiniCookable->SetBakingSupported(true);
+			HoudiniCookable->SetProxySupported(true);
 
 			// Assign the HAC to the Cookable
 			HoudiniCookable->SetComponent(HoudiniAssetComponent);

@@ -161,12 +161,6 @@ public:
 
 	UCookableOutputData();
 
-	// Declare the delegate that is broadcast when RefineMeshesTimer fires
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRefineMeshesTimerDelegate, UHoudiniCookable*);
-
-	// Called by RefineMeshesTimer when the timer is triggered.
-	FOnRefineMeshesTimerDelegate& GetOnRefineMeshesTimerDelegate() { return OnRefineMeshesTimerDelegate; }
-
 	UPROPERTY(Instanced)
 	TArray<TObjectPtr<UHoudiniOutput>> Outputs;
 
@@ -212,6 +206,24 @@ public:
 	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 2))
 	FMeshBuildSettings StaticMeshBuildSettings;
 
+	UPROPERTY()
+	bool bLandscapeUseTempLayers;
+};
+
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UCookableBakingData : public UObject
+{
+	GENERATED_UCLASS_BODY()
+
+	friend class UHoudiniCookable;
+
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostBakeDelegate, UHoudiniCookable*, bool);
+
+public:
+
+	FOnPostBakeDelegate& GetOnPostBakeDelegate() { return OnPostBakeDelegate; };
+
 	//-----------------------------------
 	// BAKE
 
@@ -221,7 +233,7 @@ public:
 	// Bake Options
 	UPROPERTY()
 	EHoudiniEngineBakeOption HoudiniEngineBakeOption;
-	
+
 	// Folder used for baking this asset's outputs (unless set by prim/detail attribute on the output). Falls back to
 	// the default from the plugin settings if not set.
 	UPROPERTY()
@@ -246,8 +258,26 @@ public:
 	UPROPERTY()
 	EHoudiniEngineActorBakeOption ActorBakeOption;
 
-	UPROPERTY()
-	bool bLandscapeUseTempLayers;
+	// Delegate to broadcast after baking the HAC. Not called when just baking individual outputs directly.
+	// Arguments are (HoudiniAssetComponent* HAC, bool bIsSuccessful)
+	FOnPostBakeDelegate OnPostBakeDelegate;
+
+};
+
+UCLASS()
+class HOUDINIENGINERUNTIME_API UCookableProxyData : public UObject
+{
+	GENERATED_UCLASS_BODY()
+
+	friend class UHoudiniCookable;
+
+public:
+
+	// Declare the delegate that is broadcast when RefineMeshesTimer fires
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnRefineMeshesTimerDelegate, UHoudiniCookable*);
+
+	// Called by RefineMeshesTimer when the timer is triggered.
+	FOnRefineMeshesTimerDelegate& GetOnRefineMeshesTimerDelegate() { return OnRefineMeshesTimerDelegate; }
 
 	//-----------------------------------
 	// PROXY MESH
@@ -262,23 +292,23 @@ public:
 	bool bOverrideGlobalProxyStaticMeshSettings;
 
 	// For StaticMesh outputs: should a fast proxy be created first?
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Enable Proxy Static Mesh", EditCondition="bOverrideGlobalProxyStaticMeshSettings"))
+	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName = "Enable Proxy Static Mesh", EditCondition = "bOverrideGlobalProxyStaticMeshSettings"))
 	bool bEnableProxyStaticMeshOverride;
 
 	// If fast proxy meshes are being created, must it be baked as a StaticMesh after a period of no updates?
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes After a Timeout", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
+	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName = "Refine Proxy Static Meshes After a Timeout", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
 	bool bEnableProxyStaticMeshRefinementByTimerOverride;
-	
+
 	// If the option to automatically refine the proxy mesh via a timer has been selected, this controls the timeout in seconds.
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Proxy Mesh Auto Refine Timeout Seconds", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride && bEnableProxyStaticMeshRefinementByTimerOverride"))
+	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName = "Proxy Mesh Auto Refine Timeout Seconds", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride && bEnableProxyStaticMeshRefinementByTimerOverride"))
 	float ProxyMeshAutoRefineTimeoutSecondsOverride;
 
 	// Automatically refine proxy meshes to UStaticMesh before the map is saved
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes When Saving a Map", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
+	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName = "Refine Proxy Static Meshes When Saving a Map", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
 	bool bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
 
 	// Automatically refine proxy meshes to UStaticMesh before starting a play in editor session
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes On PIE", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
+	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName = "Refine Proxy Static Meshes On PIE", EditCondition = "bOverrideGlobalProxyStaticMeshSettings && bEnableProxyStaticMeshOverride"))
 	bool bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
 
 	UPROPERTY(Transient, DuplicateTransient)
@@ -293,7 +323,6 @@ public:
 	// Delegate that is used to broadcast when RefineMeshesTimer fires
 	FOnRefineMeshesTimerDelegate OnRefineMeshesTimerDelegate;
 };
-
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UCookableComponentData : public UObject
@@ -384,8 +413,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniCookable : public UObject, public IHoudin
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreInstantiationDelegate, UHoudiniCookable*);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreCookDelegate, UHoudiniCookable*);
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostCookDelegate, UHoudiniCookable*, bool);
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostBakeDelegate, UHoudiniCookable*, bool);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostCookDelegate, UHoudiniCookable*, bool);	
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPreOutputProcessingDelegate, UHoudiniCookable*, bool);
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostOutputProcessingDelegate, UHoudiniCookable*, bool);
 	
@@ -412,6 +440,8 @@ public:
 	UCookableOutputData* GetOutputData() { return IsOutputSupported() ? OutputData : nullptr;};
 	UCookableComponentData* GetComponentData() { return IsComponentSupported() ? ComponentData : nullptr; };
 	UCookablePDGData* GetPDGData() { return IsPDGSupported() ? PDGData : nullptr; };
+	UCookableBakingData* GetBakingData() { return IsBakingSupported() ? BakingData : nullptr; };
+	UCookableProxyData* GetProxyData() { return IsProxySupported() ? ProxyData : nullptr; };
 
 	bool SetParameterData(UCookableParameterData * ParameterData);
 	bool SetInputData(UCookableInputData*);
@@ -673,6 +703,8 @@ public:
 	virtual bool IsOutputSupported() const { return bHasOutputs && OutputData; };
 	virtual bool IsComponentSupported() const { return bHasComponent && ComponentData; };
 	virtual bool IsPDGSupported() const { return bHasPDG && PDGData; };
+	virtual bool IsBakingSupported() const { return IsOutputSupported() && bHasBaking && BakingData; };
+	virtual bool IsProxySupported() const { return IsOutputSupported() && bHasProxy && ProxyData; };
 
 	// Needed for BP support
 	virtual void NotifyHoudiniRegisterCompleted() {};
@@ -686,6 +718,8 @@ public:
 	virtual void SetOutputSupported(bool bSupport) { bHasOutputs = bSupport; };
 	virtual void SetComponentSupported(bool bSupport) { bHasComponent = bSupport; };
 	virtual void SetPDGSupported(bool bSupport) { bHasPDG = bSupport; };
+	virtual void SetBakingSupported(bool bSupport) { bHasBaking = bSupport; };
+	virtual void SetProxySupported(bool bSupport) { bHasProxy = bSupport; };
 
 	// Turn On/Off Notifications & Unreal UI
 	void SetSlateNotifications(bool bOnOff) { bDoSlateNotifications = bOnOff;  }
@@ -729,7 +763,6 @@ public:
 	FOnPreInstantiationDelegate& GetOnPreInstantiationDelegate() { return OnPreInstantiationDelegate; };
 	FOnPreCookDelegate& GetOnPreCookDelegate() { return OnPreCookDelegate; };
 	FOnPostCookDelegate& GetOnPostCookDelegate() { return OnPostCookDelegate; };
-	FOnPostBakeDelegate& GetOnPostBakeDelegate() { return OnPostBakeDelegate; };
 	FOnPreOutputProcessingDelegate& GetOnPreOutputProcessingDelegate() { return OnPreOutputProcessingDelegate; };
 	FOnPostOutputProcessingDelegate& GetOnPostOutputProcessingDelegate() { return OnPostOutputProcessingDelegate; };
 	FOnAssetStateChangeDelegate& GetOnAssetStateChangeDelegate() { return OnAssetStateChangeDelegate; };
@@ -866,7 +899,7 @@ protected:
 	UPROPERTY()
 	bool bHasParameters;
 
-	// Structure containing the HDA data
+	// Structure containing the parameter data
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCookableParameterData> ParameterData;
 
@@ -875,7 +908,7 @@ protected:
 	UPROPERTY()
 	bool bHasInputs;
 
-	// Structure containing the HDA data
+	// Structure containing the input data
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCookableInputData> InputData;
 
@@ -884,16 +917,16 @@ protected:
 	UPROPERTY()
 	bool bHasOutputs;
 
-	// Structure containing the HDA data
+	// Structure containing the output data
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCookableOutputData> OutputData;
 
-	// COMPONENTS / TRANSFORM?
+	// COMPONENTS / TRANSFORM
 	// Indicates if this cookable has a component/is placed in the level
 	UPROPERTY()
 	bool bHasComponent; // bIsInWorld?
 
-	// Structure containing the HDA data
+	// Structure containing the component's data
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCookableComponentData> ComponentData;
 
@@ -902,9 +935,25 @@ protected:
 	UPROPERTY()
 	bool bHasPDG;
 
-	// Structure containing the HDA data
+	// Structure containing the PDG data
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCookablePDGData> PDGData;
+
+	// Baking
+	// Indicates if this cookable has access to baking
+	UPROPERTY()
+	bool bHasBaking;
+	// Structure containing the Baking data
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UCookableBakingData> BakingData;
+
+	// Proxy
+	// Indicates if this cookable canm use proxy meshes
+	UPROPERTY()
+	bool bHasProxy;
+	// Structure containing the Proxy data
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UCookableProxyData> ProxyData;
 
 	//
 	// Public API delegates
@@ -928,9 +977,6 @@ protected:
 	// Arguments are (HoudiniAssetComponent* HAC, bool IsSuccessful)
 	FOnPostCookDelegate OnPostCookDelegate;
 
-	// Delegate to broadcast after baking the HAC. Not called when just baking individual outputs directly.
-	// Arguments are (HoudiniAssetComponent* HAC, bool bIsSuccessful)
-	FOnPostBakeDelegate OnPostBakeDelegate;
 	FOnPostOutputProcessingDelegate OnPostOutputProcessingDelegate;
 	FOnPreOutputProcessingDelegate OnPreOutputProcessingDelegate;
 

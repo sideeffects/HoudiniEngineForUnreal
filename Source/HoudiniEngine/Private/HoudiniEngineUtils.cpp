@@ -8568,8 +8568,6 @@ FHoudiniEngineUtils::RefineHoudiniProxyMeshActorArrayToStaticMeshes(const TArray
 		TriageHoudiniCookablesForProxyMeshRefinement(HoudiniCookable, bRefineAll, bOnPreSaveWorld, OnPreSaveWorld, bOnPreBeginPIE, CookablesToRefine, CookablesToCook, SkippedCookables);
 	}
 
-	// TODO: Cookable me!
-
 	return RefineTriagedHoudiniProxyMeshesToStaticMeshes(
 		CookablesToRefine,
 		CookablesToCook,

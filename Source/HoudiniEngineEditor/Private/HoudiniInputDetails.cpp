@@ -221,7 +221,7 @@ FHoudiniInputDetails::CreateWidget(
 		CreateNameWidget(MainInput, *Row, true, InInputs.Num());
 
 	// Create a vertical Box for storing the UI
-	TSharedRef< SVerticalBox > VerticalBox = SNew(SVerticalBox);
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 
 	// ComboBox :  Input Type
 	const IDetailsView* DetailsView = HouInputCategory.GetParentLayout().GetDetailsView();

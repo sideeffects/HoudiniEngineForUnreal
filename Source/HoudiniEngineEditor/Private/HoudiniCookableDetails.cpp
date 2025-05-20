@@ -41,22 +41,26 @@
 #include "HoudiniNodeSyncComponent.h"
 #include "HoudiniOutput.h"
 #include "HoudiniOutputDetails.h"
+#include "SHoudiniPresets.h"
+
+
+#include "Chaos/AABB.h"
+#include "DetailCategoryBuilder.h"
+#include "DetailLayoutBuilder.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "IDetailGroup.h"
+#include "PropertyCustomizationHelpers.h"
+#include "SAssetDropTarget.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SNumericEntryBox.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Images/SLayeredImage.h"
 #include "Widgets/Layout/SSeparator.h"
 #include "Widgets/Layout/SBox.h"
-#include "Widgets/Images/SImage.h"
-#include "HoudiniEngineEditorPrivatePCH.h"
 
-#include "PropertyCustomizationHelpers.h"
-#include "DetailLayoutBuilder.h"
-#include "DetailCategoryBuilder.h"
-#include "SHoudiniPresets.h"
-#include "Chaos/AABB.h"
-#include "Chaos/AABB.h"
-#include "Framework/MultiBox/MultiBoxBuilder.h"
-#include "Widgets/Images/SLayeredImage.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -167,12 +171,22 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		}
 
 		//
-		// 0. HOUDINI ASSET DETAILS
+		// HOUDINI ENGINE DETAILS
 		//
 		CreateHoudiniEngineDetails(DetailBuilder, HCs, MultiSelectionIdentifier);
+
+
+		//
+		// HOUDINI ASSET DETAILS
+		//
+		if (MainCookable->IsHoudiniAssetSupported())
+		{
+			CreateHoudiniAssetDetails(DetailBuilder, HCs);
+		}
+		
 		
 		//
-		// 1. NODE SYNC DETAILS
+		// NODE SYNC DETAILS
 		//		
 		bool bIsNodeSyncComponent = MainCookable->GetComponent() ? MainCookable->GetComponent()->IsA<UHoudiniNodeSyncComponent>() : false;		
 		if (bIsNodeSyncComponent)
@@ -181,7 +195,7 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		}
 
 		//
-		//  2. PDG ASSET LINK (if available)
+		// PDG ASSET LINK (if available)
 		//
 		if (MainCookable->IsPDGSupported())
 		{
@@ -189,7 +203,7 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		}
 
 		//
-		// 3. PARAMETER DETAILS
+		// PARAMETER DETAILS
 		//
 		if (MainCookable->IsParameterSupported())
 		{
@@ -197,7 +211,7 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		}
 
 		//
-		// 4. HANDLE DETAILS
+		// HANDLE DETAILS
 		//
 		if (MainCookable->IsComponentSupported())
 		{
@@ -205,7 +219,7 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		}
 
 		//
-		// 5. INPUT DETAILS
+		// INPUT DETAILS
 		//
 		if (MainCookable->IsInputSupported())
 		{
@@ -213,11 +227,19 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		}
 
 		//
-		// 6. OUTPUT DETAILS
+		// OUTPUT DETAILS
 		//
 		if (MainCookable->IsOutputSupported())
 		{
 			CreateOutputDetails(DetailBuilder, HCs, MultiSelectionIdentifier);
+		}
+
+		//
+		// PROXY SETTINGS
+		//
+		if (MainCookable->IsProxySupported())
+		{
+			CreateProxyDetails(DetailBuilder, HCs);
 		}
 	}
 }
@@ -253,7 +275,7 @@ FHoudiniCookableDetails::CreateHoudiniEngineDetails(
 	HoudiniEngineDetails->CreateHoudiniEngineIconWidget(HouEngineCategory);
 
 	// Widget for HoudiniAsset related actions. Currently only contains things for Presets.
-	HoudiniEngineDetails->CreateHoudiniEngineActionWidget(HouEngineCategory, InCookables);
+	//HoudiniEngineDetails->CreateHoudiniEngineActionWidget(HouEngineCategory, InCookables);
 
 	// Houdini Engine Session Status
 	HoudiniEngineDetails->AddSessionStatusRow(HouEngineCategory);
@@ -271,6 +293,22 @@ FHoudiniCookableDetails::CreateHoudiniEngineDetails(
 
 	// Create Help and Debug Category
 	HoudiniEngineDetails->CreateHelpAndDebugWidgets(HouEngineCategory, InCookables);
+}
+
+void
+FHoudiniCookableDetails::CreateHoudiniAssetDetails(
+	IDetailLayoutBuilder& DetailBuilder,
+	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
+{
+	if (InCookables.IsEmpty())
+		return;
+
+	// Create the HDA details category
+	FString AssetCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_HDA);
+	IDetailCategoryBuilder& HouAssetCategory =
+		DetailBuilder.EditCategory(*AssetCatName, FText::GetEmpty(), ECategoryPriority::Important);
+
+	HoudiniEngineDetails->CreateHoudiniAssetDetails(HouAssetCategory, InCookables);
 }
 
 
@@ -584,5 +622,477 @@ FHoudiniCookableDetails::CreateOutputDetails(
 		OutputDetails->CreateWidget(HouOutputCategory, EditedOutputs);
 	}
 }
+
+
+void 
+FHoudiniCookableDetails::CreateProxyDetails(
+	IDetailLayoutBuilder& DetailBuilder,
+	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
+{
+	TWeakObjectPtr<UHoudiniCookable> MainCookable = InCookables[0];
+	if (!IsValidWeakPointer(MainCookable))
+		return;
+
+	if (!MainCookable->IsProxySupported())
+		return;
+
+	// Create the Proxy details category
+	FString ProxyCatName = _TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PROXY);
+	// If we have selected more than one component that have different HDAs, 
+	// we need to create multiple categories one for each different HDA
+	// OutputCatName += MultiSelectionIdentifier;
+	
+	IDetailCategoryBuilder& HouProxyCategory =
+		DetailBuilder.EditCategory(*ProxyCatName, FText::GetEmpty(), ECategoryPriority::Important);
+
+	FString Label = _TEXT("Proxy Mesh Settings");
+	IDetailGroup& ProxyGrp = HouProxyCategory.AddGroup(FName(*Label), FText::FromString(Label));
+
+	// Lambda used to trigger a refine of the cookables if necessary
+	auto RefineCookablesIfNeeded = [InCookables]()
+	{
+		TArray<AHoudiniAssetActor*> ActorsToRefine;
+		for (auto CurCookable : InCookables)
+		{
+			if (!IsValidWeakPointer(CurCookable))
+				continue;
+
+			AHoudiniAssetActor* CurActor = Cast<AHoudiniAssetActor>(CurCookable->GetOwner());
+			if (!IsValid(CurActor))
+				continue;
+
+			if(!CurCookable->IsProxyStaticMeshEnabled())
+				ActorsToRefine.Add(CurActor);
+		}
+		
+		FHoudiniEngineUtils::RefineHoudiniProxyMeshActorArrayToStaticMeshes(ActorsToRefine);
+	};
+
+	//
+	// Override Global Proxy Mesh Setting
+	//
+	//HouProxyCategory.AddCustomRow()
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Override Global Proxy Mesh Setting"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+
+				return MainCookable->IsOverrideGlobalProxyStaticMeshSettings() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, RefineCookablesIfNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const bool bNewState = (NewState == ECheckBoxState::Checked);
+				if (MainCookable->IsOverrideGlobalProxyStaticMeshSettings() == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniOverrideProxyChange", "Houdini Input: Override Global Proxy Mesh Settings"),
+					MainCookable->GetOuter());
+
+					for (auto CurCookable : InCookables)
+					{
+						if (!IsValidWeakPointer(CurCookable))
+							continue;
+
+						if (CurCookable->IsOverrideGlobalProxyStaticMeshSettings() == bNewState)
+							continue;
+
+						CurCookable->Modify();
+						CurCookable->SetOverrideGlobalProxyStaticMeshSettings(bNewState);
+						// Reset the timer
+						CurCookable->ClearRefineMeshesTimer();
+						// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+						CurCookable->SetRefineMeshesTimer();
+						// Refine if needed
+						RefineCookablesIfNeeded();
+					}
+			})
+		]
+	];
+
+
+	// Enable Proxy Mesh
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Enable Proxy Mesh"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+
+				return MainCookable->IsProxyStaticMeshEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.IsEnabled_Lambda([MainCookable]() {return MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, RefineCookablesIfNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const bool bNewState = (NewState == ECheckBoxState::Checked);
+				if (MainCookable->IsProxyStaticMeshEnabled() == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniOverrideProxyEnable", "Houdini: Override Proxy Mesh Enabled"),
+					MainCookable->GetOuter());
+
+					for (auto CurCookable : InCookables)
+					{
+						if (!IsValidWeakPointer(CurCookable))
+							continue;
+
+						if (CurCookable->IsProxyStaticMeshEnabled() == bNewState)
+							continue;
+
+						CurCookable->Modify();
+						CurCookable->SetEnableProxyStaticMeshOverride(bNewState);
+						// Reset the timer
+						CurCookable->ClearRefineMeshesTimer();
+						// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+						CurCookable->SetRefineMeshesTimer();
+						// Refine if needed
+						RefineCookablesIfNeeded();
+					}
+			})
+		]
+	];
+
+	// Refine Proxy Meshes after a timeout
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Refine Proxy Meshes after a timeout"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+
+				return MainCookable->GetProxyData()->bEnableProxyStaticMeshRefinementByTimerOverride ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.IsEnabled_Lambda([MainCookable]() {return MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const bool bNewState = (NewState == ECheckBoxState::Checked);
+				if (MainCookable->GetProxyData()->bEnableProxyStaticMeshRefinementByTimerOverride == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniOverrideProxyByTimerEnable", "Houdini: Override Proxy Mesh Refine by Timer"),
+					MainCookable->GetOuter());
+
+					for (auto CurCookable : InCookables)
+					{
+						if (!IsValidWeakPointer(CurCookable))
+							continue;
+
+						if (CurCookable->GetProxyData()->bEnableProxyStaticMeshRefinementByTimerOverride == bNewState)
+							continue;
+
+						CurCookable->Modify();
+						CurCookable->SetEnableProxyStaticMeshRefinementByTimerOverride(bNewState);
+						// Reset the timer
+						CurCookable->ClearRefineMeshesTimer();
+						// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+						CurCookable->SetRefineMeshesTimer();
+					}
+			})
+		]
+	];
+
+	//
+	// Proxy Mesh Auto Refine Timeout Seconds
+	//
+		
+	// Lambdas for slider begin
+	auto SliderBegin = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniProxyMeshTimerChange", "Houdini: Changing Proxy Mesh refinement Timer value"),
+			Cookables[0]->GetOuter());
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+			
+			Cookables[Idx]->GetProxyData()->Modify();
+		}
+	};
+
+	// Lambdas for slider end
+	auto SliderEnd = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		// Mark the value as changed to trigger an update
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			// TODO: Mark changed or equivalent?
+		}
+	};
+
+	// Lambdas for changing the parameter value
+	auto ChangeFloatValueAt = [](const float& Value, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+		
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniProxyMeshTimerChange", "Houdini: Changing Proxy Mesh refinement Timer value"),
+			Cookables[0]->GetOuter() );
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			Cookables[Idx]->SetProxyMeshAutoRefineTimeoutSecondsOverride(Value);
+
+			if (DoChange)
+			{
+				Cookables[Idx]->GetProxyData()->Modify();
+
+				// Reset the timer
+				Cookables[Idx]->ClearRefineMeshesTimer();
+				// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+				Cookables[Idx]->SetRefineMeshesTimer();
+			}
+		}
+	};
+
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Proxy Mesh Auto-refine Timeout Seconds"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(SNumericEntryBox<float>)
+				.AllowSpin(true)
+
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+
+				.MinValue(0)
+				.MaxValue(3600)
+
+				.MinSliderValue(0)
+				.MaxSliderValue(60)
+
+				.Value_Lambda([MainCookable]() { return MainCookable->GetProxyMeshAutoRefineTimeoutSeconds(); })
+				.OnValueChanged_Lambda([InCookables, ChangeFloatValueAt](float Val)
+					{ 
+						ChangeFloatValueAt(Val, false, InCookables); 
+					})
+
+				.OnValueCommitted_Lambda([InCookables, ChangeFloatValueAt](float Val, ETextCommit::Type TextCommitType)
+					{	
+						ChangeFloatValueAt(Val, true, InCookables);
+					})
+				.OnBeginSliderMovement_Lambda([InCookables, SliderBegin]()
+					{
+						SliderBegin(InCookables);
+					})
+				.OnEndSliderMovement_Lambda([InCookables, SliderEnd](const float NewValue)
+					{ 
+						SliderEnd(InCookables);
+					})
+				.SliderExponent(1.0f)
+			]
+		]
+	];
+
+	// Refine Proxy Static Mesh when saving a Map
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Auto-refine Proxy Meshes when saving a Map"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+
+				return MainCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.IsEnabled_Lambda([MainCookable]() {return MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const bool bNewState = (NewState == ECheckBoxState::Checked);
+				if (MainCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniOverrideProxyRefineOnMapSave", "Houdini: Override Proxy Mesh Refine on Map Save"),
+					MainCookable->GetOuter());
+
+					for (auto CurCookable : InCookables)
+					{
+						if (!IsValidWeakPointer(CurCookable))
+							continue;
+
+						if (CurCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride == bNewState)
+							continue;
+
+						CurCookable->Modify();
+						CurCookable->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bNewState);
+						// Reset the timer
+						CurCookable->ClearRefineMeshesTimer();
+						// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+						CurCookable->SetRefineMeshesTimer();
+					}
+			})
+		]
+	];
+
+	// Refine Proxy Meshes on PIE
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Auto-refine Proxy Meshes when Playing-In-Editor."))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+
+				return MainCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.IsEnabled_Lambda([MainCookable]() {return MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const bool bNewState = (NewState == ECheckBoxState::Checked);
+				if (MainCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniOverrideProxyRefineOnPIE", "Houdini: Override Proxy Mesh Refine on PIE"),
+					MainCookable->GetOuter());
+
+					for (auto CurCookable : InCookables)
+					{
+						if (!IsValidWeakPointer(CurCookable))
+							continue;
+
+						if (CurCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride == bNewState)
+							continue;
+
+						CurCookable->Modify();
+						CurCookable->SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bNewState);
+						// Reset the timer
+						CurCookable->ClearRefineMeshesTimer();
+						// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+						CurCookable->SetRefineMeshesTimer();
+					}
+			})
+		]
+	];
+}
+
 
 #undef LOCTEXT_NAMESPACE

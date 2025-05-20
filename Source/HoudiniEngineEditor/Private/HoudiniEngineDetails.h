@@ -90,7 +90,12 @@ public:
 	static void CreateHoudiniEngineIconWidget(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder);
 
-	// PRESET MENU
+	// HOUDINI ASSET + PRESET MENU
+	static void CreateHoudiniAssetDetails(
+		IDetailCategoryBuilder& HoudiniAssetCategory,
+		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
+
+	// PRESET MENU (FULL ROW - unused)
 	static void CreateHoudiniEngineActionWidget(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);

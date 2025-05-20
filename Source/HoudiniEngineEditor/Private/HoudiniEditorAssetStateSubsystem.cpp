@@ -62,8 +62,8 @@ UHoudiniEditorAssetStateSubsystem::NotifyOfHoudiniAssetStateChange(UObject* InHo
 		FHoudiniEngineBakeUtils::BakeCookable(
 			HC,
 			BakeSettings,
-			HC->GetOutputData()->HoudiniEngineBakeOption,
-			HC->GetOutputData()->bRemoveOutputAfterBake);
+			HC->GetBakingData()->HoudiniEngineBakeOption,
+			HC->GetBakingData()->bRemoveOutputAfterBake);
 
 		if (HC->GetBakeAfterNextCook() == EHoudiniBakeAfterNextCook::Once)
 			HC->SetBakeAfterNextCook(EHoudiniBakeAfterNextCook::Disabled);

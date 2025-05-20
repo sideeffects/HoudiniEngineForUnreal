@@ -56,6 +56,10 @@ public:
 		const FString& MultiSelectionIdentifier = FString(),
 		const EHoudiniDetailsFlags& DetailsFlags = EHoudiniDetailsFlags::Defaults);
 
+	void CreateHoudiniAssetDetails(
+		IDetailLayoutBuilder& DetailBuilder,
+		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
+
 	void CreateNodeSyncDetails(
 		IDetailLayoutBuilder& DetailBuilder,
 		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables,
@@ -85,6 +89,10 @@ public:
 		IDetailLayoutBuilder& DetailBuilder,
 		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables,
 		const FString& MultiSelectionIdentifier = FString());
+
+	void CreateProxyDetails(
+		IDetailLayoutBuilder& DetailBuilder,
+		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
 
 private:
 

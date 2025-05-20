@@ -175,6 +175,309 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 	Row.IsEnabled(false);
 }
 
+
+
+void
+FHoudiniEngineDetails::CreateHoudiniAssetDetails(
+	IDetailCategoryBuilder& HouAssetCategory,
+	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
+{
+	if (InCookables.IsEmpty())
+		return;
+
+	TWeakObjectPtr<UHoudiniCookable> MainCookable = InCookables[0];
+	if (!IsValidWeakPointer(MainCookable))
+		return;
+
+	if (!MainCookable->IsHoudiniAssetSupported())
+		return;
+
+	// Add the preset menu
+	//HoudiniEngineDetails->CreateHoudiniEngineActionWidget(HouAssetCategory, InCookables);
+
+	FText AssetNameText = FText::GetEmpty();
+	UHoudiniAsset* MainHDA = MainCookable->GetHoudiniAsset();
+	if (MainHDA)
+		AssetNameText = FText::FromString(MainCookable->GetHapiAssetName());
+
+	// Create thumbnail for this HDA.
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = HouAssetCategory.GetParentLayout().GetThumbnailPool();
+	TSharedPtr< FAssetThumbnail > HDAThumbnail =
+		MakeShareable(new FAssetThumbnail(MainHDA, 64, 64, AssetThumbnailPool));
+
+	// Create a widget row, or get the given row.
+	FDetailWidgetRow* Row = &(HouAssetCategory.AddCustomRow(AssetNameText));
+	if (!Row)
+		return;
+
+	// Add a name for the HDA row
+	Row->NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("HoudiniAssetName", "Houdini Asset"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	];
+
+	// Lambda for updating the Houdini asset
+	auto UpdateHoudiniAsset = [MainHDA](const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables, UObject* InObject)
+	{
+		if (!IsValid(MainHDA))
+			return;
+
+		if (!InObject->IsA<UHoudiniAsset>())
+			return;
+
+		UHoudiniAsset* NewHDA = Cast<UHoudiniAsset>(InObject);
+		if (!IsValid(NewHDA))
+			return;
+
+		// TODO: Transaction on all cookable?
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniAssetChange", "Houdini Engine: Changed the Houdini Asset."),
+			MainHDA->GetOuter());
+
+		for (auto CurCookable : InCookables)
+		{
+			if (!IsValidWeakPointer(CurCookable))
+				continue;
+
+			if (!CurCookable->IsHoudiniAssetSupported())
+				continue;
+
+			// Update the HDA then notify the change - which will force a reinstantiate of the cookable
+			CurCookable->SetHoudiniAsset(NewHDA);
+			CurCookable->OnHoudiniAssetChanged();
+		}
+	};
+
+	// Create a vertical Box for storing the UI
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+	const IDetailsView* DetailsView = HouAssetCategory.GetParentLayout().GetDetailsView();
+
+	// Add the Preset menu
+	//TSharedRef<SHorizontalBox> Box = SNew(SHorizontalBox);
+	TSharedPtr<SImage> Image;
+	TSharedPtr<SLayeredImage> OptionsImage = SNew(SLayeredImage)
+	.Image(FAppStyle::Get().GetBrush("DetailsView.ViewOptions"))
+	.ColorAndOpacity(FSlateColor::UseForeground());
+
+	IDetailLayoutBuilder* SavedLayoutBuilder = &HouAssetCategory.GetParentLayout();
+	/*
+	VerticalBox->AddSlot()
+	.Padding(0, 5, 0, 0)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SComboButton)
+			.HasDownArrow(false)
+			.ContentPadding(0)
+			.ForegroundColor(FSlateColor::UseForeground())
+			.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
+			.OnGetMenuContent_Lambda([InCookables, SavedLayoutBuilder]() -> TSharedRef<SWidget>
+			{
+				return FHoudiniEngineDetails::ConstructActionMenu(InCookables, SavedLayoutBuilder).ToSharedRef();
+			})
+			.ButtonContent()
+			[
+				OptionsImage.ToSharedRef()
+			]
+		]
+	];*/
+
+	// Add the Houdini Asset Picker
+	VerticalBox->AddSlot()
+	.Padding(0, 5, 0, 0)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.FillWidth(0.9f)
+		[
+			SNew(SObjectPropertyEntryBox)
+			.ObjectPath_Lambda([MainHDA]()
+			{
+				if (IsValid(MainHDA))
+					return MainHDA->GetPathName();
+
+				return FString();
+			})
+			.AllowedClass(UHoudiniAsset::StaticClass())
+			.OnObjectChanged_Lambda([InCookables, UpdateHoudiniAsset](const FAssetData& InAssetData)
+			{
+				UHoudiniAsset* HDA = Cast<UHoudiniAsset>(InAssetData.GetAsset());
+				if (IsValid(HDA))
+					UpdateHoudiniAsset(InCookables, HDA);
+			})
+			.AllowCreate(false)
+			.AllowClear(true)
+			.DisplayUseSelected(true)
+			.DisplayBrowse(true)
+			.DisplayThumbnail(true)
+			.ThumbnailPool(AssetThumbnailPool/*UThumbnailManager::Get().GetSharedThumbnailPool()*/)
+			.NewAssetFactories(TArray<UFactory*>())
+		]
+		+ SHorizontalBox::Slot()
+		.FillWidth(0.1f)
+		.HAlign(HAlign_Right)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.FillHeight(0.5f)
+			[
+				SNew(SComboButton)
+				.HasDownArrow(false)
+				.ContentPadding(0)
+				.ForegroundColor(FSlateColor::UseForeground())
+				.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+				.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
+				.ToolTipText(LOCTEXT("HoudiniAssetPresetButton", "Houdini Asset Presets."))
+				.OnGetMenuContent_Lambda([InCookables, SavedLayoutBuilder]() -> TSharedRef<SWidget>
+				{
+					return FHoudiniEngineDetails::ConstructActionMenu(InCookables, SavedLayoutBuilder).ToSharedRef();
+				})
+				.ButtonContent()
+				[
+					OptionsImage.ToSharedRef()
+				]
+			]
+			+ SVerticalBox::Slot()
+			.FillHeight(0.5f)
+		]
+	];
+	/*
+	TSharedPtr<SHorizontalBox> HorizontalBox;
+	VerticalBox->AddSlot()
+	.Padding(0, 5, 0, 0)
+	.AutoHeight()
+	[
+		SNew(SAssetDropTarget)
+		.bSupportsMultiDrop(false)
+		.OnAreAssetsAcceptableForDrop_Lambda([](TArrayView<FAssetData> InAssets)
+		{
+			for (auto& CurAssetData : InAssets)
+			{
+				if (CurAssetData.GetClass() == UHoudiniAsset::StaticClass())
+					return true;
+			}
+
+			return false;
+		})
+		.OnAssetsDropped_Lambda([InCookables, UpdateHoudiniAsset](const FDragDropEvent&, TArrayView<FAssetData> InAssets)
+		{
+			UHoudiniAsset* HDA = nullptr;
+			for (auto& CurAssetData : InAssets)
+			{
+				HDA = Cast<UHoudiniAsset>(CurAssetData.GetAsset());
+				if (IsValid(HDA))
+					break;
+			}
+
+			UpdateHoudiniAsset(InCookables, HDA);
+		})
+		[
+			SAssignNew(HorizontalBox, SHorizontalBox)
+		]
+	];
+
+	HorizontalBox->AddSlot()
+	.Padding(0)
+	.AutoWidth()
+	[
+		SNew(SBorder)
+		.BorderImage(_GetEditorStyle().GetBrush(TEXT("AssetThumbnail.AssetBackground")))
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.OnMouseDoubleClick_Lambda([MainHDA](const FGeometry&, const FPointerEvent&)
+		{
+			if (GEditor && MainHDA)
+				GEditor->EditObject(MainHDA);
+
+			return FReply::Handled();
+		})
+		[
+			SNew(SBox)
+			.WidthOverride(64)
+			.HeightOverride(64)
+			.ToolTipText(AssetNameText)
+			[
+				HDAThumbnail->MakeThumbnailWidget()
+			]
+		]
+	];
+
+	TSharedPtr<SVerticalBox> ComboAndButtonBox;
+	HorizontalBox->AddSlot()
+	.FillWidth(1)
+	.Padding(4, 0, 5, 0)
+	.VAlign(VAlign_Center)
+	[
+		SAssignNew(ComboAndButtonBox, SVerticalBox)
+	];
+
+	// Add Combo box : Houdini Asset
+	TSharedPtr<SComboButton> HDAComboButton;
+	ComboAndButtonBox->AddSlot()
+	.FillHeight(1)
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.Padding(0)
+		.VAlign(VAlign_Center)
+		[
+			SAssignNew(HDAComboButton, SComboButton)
+			.ButtonContent()
+			[
+				SNew(STextBlock)
+				.TextStyle(_GetEditorStyle(), TEXT("PropertyEditor.AssetClass"))
+				.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+				.ColorAndOpacity(_GetEditorStyle().GetColor(TEXT("AssetThumbnail"), ".ColorAndOpacity"))
+				.Text(AssetNameText)
+			]
+		]
+	];
+
+	TWeakPtr<SComboButton> WeakHDAComboButton(HDAComboButton);
+	HDAComboButton->SetOnGetMenuContent(FOnGetContent::CreateLambda(
+		[MainHDA, InCookables, WeakHDAComboButton, UpdateHoudiniAsset]()
+		{
+			TArray<const UClass*> AllowedClasses = { UHoudiniAsset::StaticClass() };
+			UObject* DefaultObj = MainHDA;
+
+			TArray<UFactory*> NewAssetFactories;
+			return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
+				FAssetData(DefaultObj),
+				true,
+				AllowedClasses,
+				NewAssetFactories,
+				FOnShouldFilterAsset(),
+				FOnAssetSelected::CreateLambda(
+					[MainHDA, InCookables, WeakHDAComboButton, UpdateHoudiniAsset](const FAssetData& AssetData)
+					{
+						TSharedPtr<SComboButton> ComboButton = WeakHDAComboButton.Pin();
+						if (ComboButton.IsValid())
+						{
+							ComboButton->SetIsOpen(false);
+							UObject* Object = AssetData.GetAsset();
+							UpdateHoudiniAsset(InCookables, Object);
+						}
+					}
+				),
+				FSimpleDelegate::CreateLambda([]() {}));
+		}));
+
+	*/
+
+	// Set the widget in the row we created
+	Row->ValueWidget.Widget = VerticalBox;
+	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
+}
+
 void
 FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
@@ -214,7 +517,7 @@ FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(
 		.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
 		.OnGetMenuContent_Lambda([InCookables, SavedLayoutBuilder]() -> TSharedRef<SWidget>
 		{
-			return ConstructActionMenu(InCookables, SavedLayoutBuilder).ToSharedRef();
+			return FHoudiniEngineDetails::ConstructActionMenu(InCookables, SavedLayoutBuilder).ToSharedRef();
 		})
 		.ButtonContent()
 		[
@@ -967,8 +1270,8 @@ FHoudiniEngineDetails::AddBakeControlBar(
 			bool bRemoveOutputAfterBake;
 
 			BakeSettings.SetFromCookable(MainHC.Get());
-			BakeOption = MainHC->GetOutputData()->HoudiniEngineBakeOption;
-			bRemoveOutputAfterBake = MainHC->GetOutputData()->bRemoveOutputAfterBake;
+			BakeOption = MainHC->GetBakingData()->HoudiniEngineBakeOption;
+			bRemoveOutputAfterBake = MainHC->GetBakingData()->bRemoveOutputAfterBake;
 
 			for(auto& CurrentHC : InHCs)
 			{
@@ -1211,7 +1514,7 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	if (!IsValidWeakPointer(MainHC))
 		return;
 
-	if (!MainHC->IsOutputSupported() && !DetailsFlags.bDisplayOnOutputLess)
+	if (!MainHC->IsBakingSupported() && !DetailsFlags.bDisplayOnOutputLess)
 		return;
 
 	FHoudiniEngineDetails::AddHeaderRowForCookable(HoudiniEngineCategoryBuilder, MainHC, HOUDINI_ENGINE_UI_SECTION_BAKE);
@@ -1228,25 +1531,25 @@ FHoudiniEngineDetails::CreateBakeWidgets(
 	TSharedPtr<SVerticalBox> RightColumnVerticalBox;
 
 	AdditionalBakeSettingsRowHorizontalBox->AddSlot()
-		.Padding(30.0f, 5.0f, 0.0f, 0.0f)
-		.MaxWidth(200.f)
+	.Padding(30.0f, 5.0f, 0.0f, 0.0f)
+	.MaxWidth(200.f)
+	[
+		SNew(SBox)
+		.WidthOverride(200.f)
 		[
-			SNew(SBox)
-				.WidthOverride(200.f)
-				[
-					SAssignNew(LeftColumnVerticalBox, SVerticalBox)
-				]
-		];
+			SAssignNew(LeftColumnVerticalBox, SVerticalBox)
+		]
+	];
 
 	AdditionalBakeSettingsRowHorizontalBox->AddSlot()
-		.Padding(20.0f, 5.0f, 0.0f, 0.0f)
-		.MaxWidth(200.f)
+	.Padding(20.0f, 5.0f, 0.0f, 0.0f)
+	.MaxWidth(200.f)
+	[
+		SNew(SBox)
 		[
-			SNew(SBox)
-				[
-					SAssignNew(RightColumnVerticalBox, SVerticalBox)
-				]
-		];
+			SAssignNew(RightColumnVerticalBox, SVerticalBox)
+		]
+	];
 
 	AddRemovedHDAOutputAfterBakeCheckBox(MainHC, InHCs, LeftColumnVerticalBox);
 
@@ -2597,19 +2900,27 @@ FHoudiniEngineDetails::ShowCookLog(const TArray<HAPI_NodeId>& InNodeIds)
 FReply
 FHoudiniEngineDetails::ShowAssetHelp(HAPI_NodeId InNodeId)
 {
+	FString AssetHelp;
 	if (InNodeId < 0)
-		return FReply::Handled();
-
-	// If we have a help URL, then open it
-	const FString AssetHelpURL = FHoudiniEngineUtils::GetAssetHelpURL(InNodeId);
-	if (AssetHelpURL.StartsWith(TEXT("http://")) || AssetHelpURL.StartsWith(TEXT("https://")) || AssetHelpURL.StartsWith(TEXT("file://")))
 	{
-		FPlatformProcess::LaunchURL(*AssetHelpURL, nullptr, nullptr);
-		return FReply::Handled();
+		AssetHelp = TEXT(" --- This Houdini asset has not cooked yet - please recook it or rebuild it first --- ");
 	}
-	
-	// If not, get the help string
-	const FString AssetHelp = FHoudiniEngineUtils::GetAssetHelp(InNodeId);
+	else
+	{
+		// If we have a help URL, then open it
+		const FString AssetHelpURL = FHoudiniEngineUtils::GetAssetHelpURL(InNodeId);
+		if (AssetHelpURL.StartsWith(TEXT("http://")) || AssetHelpURL.StartsWith(TEXT("https://")) || AssetHelpURL.StartsWith(TEXT("file://")))
+		{
+			FPlatformProcess::LaunchURL(*AssetHelpURL, nullptr, nullptr);
+			return FReply::Handled();
+		}
+
+		// If not, get the help string
+		AssetHelp = FHoudiniEngineUtils::GetAssetHelp(InNodeId);
+		if (AssetHelp.IsEmpty())
+			AssetHelp = TEXT(" --- No help found for this Houdini Asset --- ");
+
+	}
 	
 	// Check if the main frame is loaded. When using the old main frame it may not be.
 	TSharedPtr<SWindow> ParentWindow;

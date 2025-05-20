@@ -192,8 +192,8 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 				UWorld* World = CurrentCookable->GetWorld();
 				if (World && (World->IsPlayingReplay() || World->IsPlayInEditor()))
 				{
-					UCookableOutputData* CurrentOutputData = CurrentCookable->GetOutputData();
-					if (CurrentOutputData && !CurrentOutputData->bAllowPlayInEditorRefinement)
+					UCookableProxyData* ProxyData = CurrentCookable->GetProxyData();
+					if (ProxyData && !ProxyData->bAllowPlayInEditorRefinement)
 					{
 						// This cookable's component's world is current in PIE and this HDA is NOT allowed to cook / refine in PIE.
 						continue;
@@ -1519,13 +1519,14 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		//
 		// OUTPUTS
 		//
-		bool bHasHoudiniStaticMeshOutput = false;
 		if (HC->IsOutputSupported())
 		{
 			// Update our output objects
 			// We will process them at the processing stage
 			FHoudiniOutputTranslator::UpdateOutputs(HC);
-			HC->OutputData->bNoProxyMeshNextCookRequested = false;
+
+			if(HC->IsProxySupported())
+				HC->ProxyData->bNoProxyMeshNextCookRequested = false;
 		}
 
 		//
@@ -1612,7 +1613,9 @@ FHoudiniEngineManager::UpdateProcess(UHoudiniCookable* HC)
 	// ?? this was unused
 	//bool bForceOutputUpdate = HAC->HasRebuildBeenRequested() || HAC->HasRecookBeenRequested();
 	FHoudiniOutputTranslator::ProcessOutputs(HC, bHasHoudiniStaticMeshOutput);
-	HC->OutputData->bNoProxyMeshNextCookRequested = false;
+	
+	if (HC->IsProxySupported())
+		HC->ProxyData->bNoProxyMeshNextCookRequested = false;
 
 	//
 	// COMPONENTS
@@ -1636,16 +1639,15 @@ FHoudiniEngineManager::UpdateProcess(UHoudiniCookable* HC)
 			MyComponent->UpdateBounds();
 		}
 
-		if (HC->IsOutputSupported())
+		if (HC->IsProxySupported())
 		{
 			// If any outputs have HoudiniStaticMeshes, and if timer based refinement is enabled on the HAC,
 			// set the RefineMeshesTimer and ensure BuildStaticMeshesForAllHoudiniStaticMeshes is bound to
 			// the RefineMeshesTimerFired delegate of the HAC
 			if (bHasHoudiniStaticMeshOutput && HC->IsProxyStaticMeshRefinementByTimerEnabled())
 			{
-				// TODO COOKABLE: UPDATE REFINE TIMERS AND DELEGATES!!!!!!
-				if (!HC->OutputData->GetOnRefineMeshesTimerDelegate().IsBoundToObject(this))
-					HC->OutputData->GetOnRefineMeshesTimerDelegate().AddRaw(this, &FHoudiniEngineManager::BuildStaticMeshesForAllHoudiniStaticMeshes);
+				if (!HC->ProxyData->GetOnRefineMeshesTimerDelegate().IsBoundToObject(this))
+					HC->ProxyData->GetOnRefineMeshesTimerDelegate().AddRaw(this, &FHoudiniEngineManager::BuildStaticMeshesForAllHoudiniStaticMeshes);
 				HC->SetRefineMeshesTimer();
 			}
 		}

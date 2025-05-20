@@ -603,7 +603,7 @@ UHoudiniPublicAPIAssetWrapper::ClearHoudiniAssetObject_Implementation()
 		if (OnPostCookDelegateHandle.IsValid())
 			HC->GetOnPostCookDelegate().Remove(OnPostCookDelegateHandle);
 		if (OnPostBakeDelegateHandle.IsValid())
-			HC->GetOnPostBakeDelegate().Remove(OnPostBakeDelegateHandle);
+			HC->GetBakingData()->GetOnPostBakeDelegate().Remove(OnPostBakeDelegateHandle);
 	}
 	
 	OnPDGPostTOPNetworkCookDelegateHandle.Reset();
@@ -678,7 +678,7 @@ UHoudiniPublicAPIAssetWrapper::WrapHoudiniAssetObject_Implementation(UObject* In
 		// for PostInstantiate, PostCook etc
 		OnAssetStateChangeDelegateHandle = HC->GetOnAssetStateChangeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniCookableStateChange"));
 		OnPostCookDelegateHandle = HC->GetOnPostCookDelegate().AddUFunction(this, TEXT("HandleOnHoudiniCookablePostCook"));
-		OnPostBakeDelegateHandle = HC->GetOnPostBakeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniCookablePostBake"));
+		OnPostBakeDelegateHandle = HC->GetBakingData()->GetOnPostBakeDelegate().AddUFunction(this, TEXT("HandleOnHoudiniCookablePostBake"));
 	}
 
 	OnHoudiniProxyMeshesRefinedDelegateHandle = FHoudiniEngineUtils::GetOnHoudiniProxyMeshesRefinedDelegate().AddUFunction(this, TEXT("HandleOnHoudiniProxyMeshesRefinedGlobal"));

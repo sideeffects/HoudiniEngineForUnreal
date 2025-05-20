@@ -9147,14 +9147,14 @@ FHoudiniBakeSettings::SetFromCookable(UHoudiniCookable* HC)
 	if (!HC->IsOutputSupported())
 		return;
 
-	UCookableOutputData* OutputData = HC->GetOutputData();
-	if (!OutputData)
+	UCookableBakingData* BakingData = HC->GetBakingData();
+	if (!BakingData)
 		return;
 
-	bReplaceActors = OutputData->bReplacePreviousBake;
-	bReplaceAssets = OutputData->bReplacePreviousBake;
-	bRecenterBakedActors = OutputData->bRecenterBakedActors;
-	ActorBakeOption = OutputData->ActorBakeOption;
+	bReplaceActors = BakingData->bReplacePreviousBake;
+	bReplaceAssets = BakingData->bReplacePreviousBake;
+	bRecenterBakedActors = BakingData->bRecenterBakedActors;
+	ActorBakeOption = BakingData->ActorBakeOption;
 }
 
 #undef LOCTEXT_NAMESPACE

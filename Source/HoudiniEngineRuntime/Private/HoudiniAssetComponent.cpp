@@ -2826,7 +2826,7 @@ UHoudiniAssetComponent::TransferDataToCookable(UHoudiniCookable* HC)
 	HC->OutputData->Outputs = Outputs_DEPRECATED; // COOKABLE - OUTPUTS
 	Outputs_DEPRECATED.Empty();
 
-	HC->OutputData->BakedOutputs = BakedOutputs_DEPRECATED; // COOKABLE - OUTPUTS
+	HC->BakingData->BakedOutputs = BakedOutputs_DEPRECATED; // COOKABLE - OUTPUTS
 	BakedOutputs_DEPRECATED.Empty();
 
 	HC->OutputData->UntrackedOutputs = UntrackedOutputs_DEPRECATED; // COOKABLE - OUTPUTS

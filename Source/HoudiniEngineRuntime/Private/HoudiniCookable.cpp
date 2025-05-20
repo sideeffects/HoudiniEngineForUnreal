@@ -173,6 +173,18 @@ UCookableOutputData::UCookableOutputData(const FObjectInitializer& ObjectInitial
 	, bUseOutputNodes(true)
 	, bSplitMeshSupport(false)
 	, bEnableCurveEditing(true)
+	, bLandscapeUseTempLayers(false)
+{
+	StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
+	StaticMeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+}
+
+
+//
+// BAKE DATA
+//
+UCookableBakingData::UCookableBakingData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, HoudiniEngineBakeOption(EHoudiniEngineBakeOption::ToActor)
 	, BakeFolder()
 	, BakeAfterNextCook(EHoudiniBakeAfterNextCook::Disabled)
@@ -180,7 +192,16 @@ UCookableOutputData::UCookableOutputData(const FObjectInitializer& ObjectInitial
 	, bRecenterBakedActors(false)
 	, bReplacePreviousBake(false)
 	, ActorBakeOption(EHoudiniEngineActorBakeOption::OneActorPerComponent)
-	, bLandscapeUseTempLayers(false)
+{
+
+}
+
+
+//
+// PROXY DATA
+//
+UCookableProxyData::UCookableProxyData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 	, bNoProxyMeshNextCookRequested(false)
 	, bOverrideGlobalProxyStaticMeshSettings(false)
 	, bEnableProxyStaticMeshOverride(false)
@@ -190,9 +211,6 @@ UCookableOutputData::UCookableOutputData(const FObjectInitializer& ObjectInitial
 	, bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(true)
 	, bAllowPlayInEditorRefinement(false)
 {
-	StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
-	StaticMeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
-
 	// Initialize default proxy settings
 	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
 	if (HoudiniRuntimeSettings)
@@ -300,6 +318,12 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 
 	bHasPDG = false;
 	PDGData = CreateDefaultSubobject<UCookablePDGData>(TEXT("PDGData"));
+
+	bHasBaking = false;
+	BakingData = CreateDefaultSubobject<UCookableBakingData>(TEXT("BakingData"));
+
+	bHasProxy = false;
+	ProxyData = CreateDefaultSubobject<UCookableProxyData>(TEXT("ProxyData"));
 
 	bNeedToUpdateEditorProperties = false;
 	bIsPCG = false;
@@ -512,7 +536,7 @@ UHoudiniCookable::GetLevel() const
 FDirectoryPath
 UHoudiniCookable::GetBakeFolder() const
 {
-	return OutputData->BakeFolder;
+	return BakingData->BakeFolder;
 }
 
 FDirectoryPath
@@ -530,7 +554,7 @@ UHoudiniCookable::GetTemporaryCookFolderOrDefault() const
 FString
 UHoudiniCookable::GetBakeFolderOrDefault() const
 {
-	return !OutputData->BakeFolder.Path.IsEmpty() ? OutputData->BakeFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
+	return !BakingData->BakeFolder.Path.IsEmpty() ? BakingData->BakeFolder.Path : FHoudiniEngineRuntime::Get().GetDefaultBakeFolder();
 }
 
 FGuid&
@@ -572,13 +596,13 @@ UHoudiniCookable::SetTemporaryCookFolderPath(const FString& NewPath)
 bool
 UHoudiniCookable::SetBakeFolderPath(const FString& NewPath)
 {
-	if (OutputData->BakeFolder.Path.Equals(NewPath))
+	if (BakingData->BakeFolder.Path.Equals(NewPath))
 		return false;
 
-	if (OutputData->BakeFolder.Path == NewPath)
+	if (BakingData->BakeFolder.Path == NewPath)
 		return false;
 
-	OutputData->BakeFolder.Path = NewPath;
+	BakingData->BakeFolder.Path = NewPath;
 
 	return true;
 }
@@ -597,10 +621,10 @@ UHoudiniCookable::SetTemporaryCookFolder(const FDirectoryPath& InPath)
 bool
 UHoudiniCookable::SetBakeFolder(const FDirectoryPath& InPath)
 {
-	if (OutputData->BakeFolder.Path.Equals(InPath.Path))
+	if (BakingData->BakeFolder.Path.Equals(InPath.Path))
 		return false;
 
-	OutputData->BakeFolder = InPath;
+	BakingData->BakeFolder = InPath;
 
 	return true;
 }
@@ -839,8 +863,8 @@ UHoudiniCookable::HandleOnPostOutputProcessing()
 void
 UHoudiniCookable::HandleOnPostBake(bool bInSuccess)
 {
-	if (OnPostBakeDelegate.IsBound())
-		OnPostBakeDelegate.Broadcast(this, bInSuccess);
+	if (BakingData->OnPostBakeDelegate.IsBound())
+		BakingData->OnPostBakeDelegate.Broadcast(this, bInSuccess);
 }
 
 void
@@ -1162,14 +1186,14 @@ UHoudiniCookable::SetHasComponentTransformChanged(bool InHasChanged)
 void
 UHoudiniCookable::ClearRefineMeshesTimer()
 {
-	if (!IsOutputSupported())
+	if (!IsProxySupported())
 		return;
 
 	UWorld* World = GetWorld();
 	if (!World)
 		return;
 
-	World->GetTimerManager().ClearTimer(OutputData->RefineMeshesTimer);
+	World->GetTimerManager().ClearTimer(ProxyData->RefineMeshesTimer);
 }
 
 
@@ -1627,7 +1651,7 @@ UHoudiniCookable::GetNodesToCookCookCounts() const
 bool
 UHoudiniCookable::IsOverrideGlobalProxyStaticMeshSettings() const
 {
-	return OutputData->bOverrideGlobalProxyStaticMeshSettings;
+	return ProxyData->bOverrideGlobalProxyStaticMeshSettings;
 }
 
 bool
@@ -1640,9 +1664,12 @@ UHoudiniCookable::IsProxyStaticMeshEnabled() const
 			return false;
 	}
 
-	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
+	if (!IsProxySupported())
+		return false;
+
+	if (ProxyData->bOverrideGlobalProxyStaticMeshSettings)
 	{
-		return OutputData->bEnableProxyStaticMeshOverride;
+		return ProxyData->bEnableProxyStaticMeshOverride;
 	}
 	else
 	{
@@ -1661,9 +1688,12 @@ UHoudiniCookable::IsProxyStaticMeshEnabled() const
 bool
 UHoudiniCookable::IsProxyStaticMeshRefinementByTimerEnabled() const
 {
-	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
+	if (!IsProxySupported())
+		return false;
+
+	if (ProxyData->bOverrideGlobalProxyStaticMeshSettings)
 	{
-		return OutputData->bEnableProxyStaticMeshOverride && OutputData->bEnableProxyStaticMeshRefinementByTimerOverride;
+		return ProxyData->bEnableProxyStaticMeshOverride && ProxyData->bEnableProxyStaticMeshRefinementByTimerOverride;
 	}
 	else
 	{
@@ -1682,9 +1712,9 @@ UHoudiniCookable::IsProxyStaticMeshRefinementByTimerEnabled() const
 float
 UHoudiniCookable::GetProxyMeshAutoRefineTimeoutSeconds() const
 {
-	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
+	if (ProxyData->bOverrideGlobalProxyStaticMeshSettings)
 	{
-		return OutputData->ProxyMeshAutoRefineTimeoutSecondsOverride;
+		return ProxyData->ProxyMeshAutoRefineTimeoutSecondsOverride;
 	}
 	else
 	{
@@ -1703,9 +1733,12 @@ UHoudiniCookable::GetProxyMeshAutoRefineTimeoutSeconds() const
 bool
 UHoudiniCookable::IsProxyStaticMeshRefinementOnPreSaveWorldEnabled() const
 {
-	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
+	if (!IsProxySupported())
+		return false;
+
+	if (ProxyData->bOverrideGlobalProxyStaticMeshSettings)
 	{
-		return OutputData->bEnableProxyStaticMeshOverride && OutputData->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
+		return ProxyData->bEnableProxyStaticMeshOverride && ProxyData->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
 	}
 	else
 	{
@@ -1724,9 +1757,12 @@ UHoudiniCookable::IsProxyStaticMeshRefinementOnPreSaveWorldEnabled() const
 bool
 UHoudiniCookable::IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const
 {
-	if (OutputData->bOverrideGlobalProxyStaticMeshSettings)
+	if (!IsProxySupported())
+		return false;
+
+	if (ProxyData->bOverrideGlobalProxyStaticMeshSettings)
 	{
-		return OutputData->bEnableProxyStaticMeshOverride && OutputData->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
+		return ProxyData->bEnableProxyStaticMeshOverride && ProxyData->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
 	}
 	else
 	{
@@ -1766,16 +1802,16 @@ UHoudiniCookable::HasAnyOutputComponent() const
 bool
 UHoudiniCookable::HasNoProxyMeshNextCookBeenRequested() const
 {
-	if (!IsOutputSupported())
+	if (!IsProxySupported())
 		return false;
 
-	return OutputData->bNoProxyMeshNextCookRequested;
+	return ProxyData->bNoProxyMeshNextCookRequested;
 }
 
 bool
 UHoudiniCookable::HasAnyCurrentProxyOutput() const
 {
-	if (!IsOutputSupported())
+	if (!IsProxySupported())
 		return false;
 
 	for (const UHoudiniOutput* Output : OutputData->Outputs)
@@ -1809,74 +1845,77 @@ UHoudiniCookable::HasAnyProxyOutput() const
 void 
 UHoudiniCookable::SetNoProxyMeshNextCookRequested(bool bInNoProxyMeshNextCookRequested)
 {
-	OutputData->bNoProxyMeshNextCookRequested = bInNoProxyMeshNextCookRequested; 
+	ProxyData->bNoProxyMeshNextCookRequested = bInNoProxyMeshNextCookRequested; 
 }
 
 
 void
 UHoudiniCookable::SetOverrideGlobalProxyStaticMeshSettings(bool InEnable)
 {
-	OutputData->bOverrideGlobalProxyStaticMeshSettings = InEnable;
+	ProxyData->bOverrideGlobalProxyStaticMeshSettings = InEnable;
 }
 
 void
 UHoudiniCookable::SetEnableProxyStaticMeshOverride(bool InEnable)
 {
-	OutputData->bEnableProxyStaticMeshOverride = InEnable;
+	ProxyData->bEnableProxyStaticMeshOverride = InEnable;
 }
 
 void
 UHoudiniCookable::SetEnableProxyStaticMeshRefinementByTimerOverride(bool InEnable)
 {
-	OutputData->bEnableProxyStaticMeshRefinementByTimerOverride = InEnable;
+	ProxyData->bEnableProxyStaticMeshRefinementByTimerOverride = InEnable;
 }
 
 void
 UHoudiniCookable::SetProxyMeshAutoRefineTimeoutSecondsOverride(float InValue)
 {
-	OutputData->ProxyMeshAutoRefineTimeoutSecondsOverride = InValue;
+	ProxyData->ProxyMeshAutoRefineTimeoutSecondsOverride = InValue;
 }
 
 void
 UHoudiniCookable::SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bool InEnable)
 {
-	OutputData->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = InEnable;
+	ProxyData->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = InEnable;
 }
 
 void
 UHoudiniCookable::SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bool InEnable)
 {
-	OutputData->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = InEnable;
+	ProxyData->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = InEnable;
 }
 
 
 void
 UHoudiniCookable::SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook)
 {
-	OutputData->BakeAfterNextCook = InBakeAfterNextCook;
+	BakingData->BakeAfterNextCook = InBakeAfterNextCook;
 }
 
 void
 UHoudiniCookable::SetActorBakeOption(const EHoudiniEngineActorBakeOption InBakeOption)
 {
-	OutputData->ActorBakeOption = InBakeOption;
+	BakingData->ActorBakeOption = InBakeOption;
 }
 
 void
 UHoudiniCookable::SetAllowPlayInEditorRefinement(bool bEnabled)
 {
-	OutputData->bAllowPlayInEditorRefinement = bEnabled;
+	ProxyData->bAllowPlayInEditorRefinement = bEnabled;
 }
 
 bool
 UHoudiniCookable::IsPlayInEditorRefinementAllowed() const
 {
-	return OutputData->bAllowPlayInEditorRefinement;
+	return ProxyData->bAllowPlayInEditorRefinement;
 }
 
 void
 UHoudiniCookable::SetRefineMeshesTimer()
 {
+	if (!IsProxySupported())
+		return;
+
 	UWorld* World = GetWorld();
 	if (!World)
 	{
@@ -1889,21 +1928,24 @@ UHoudiniCookable::SetRefineMeshesTimer()
 	const float TimeSeconds = GetProxyMeshAutoRefineTimeoutSeconds();
 	if (bEnableTimer)
 	{
-		World->GetTimerManager().SetTimer(OutputData->RefineMeshesTimer, this, &UHoudiniCookable::OnRefineMeshesTimerFired, 1.0f, false, TimeSeconds);
+		World->GetTimerManager().SetTimer(ProxyData->RefineMeshesTimer, this, &UHoudiniCookable::OnRefineMeshesTimerFired, 1.0f, false, TimeSeconds);
 	}
 	else
 	{
-		World->GetTimerManager().ClearTimer(OutputData->RefineMeshesTimer);
+		World->GetTimerManager().ClearTimer(ProxyData->RefineMeshesTimer);
 	}
 }
 
 void
 UHoudiniCookable::OnRefineMeshesTimerFired()
 {
+	if (!IsProxySupported())
+		return;
+
 	HOUDINI_LOG_MESSAGE(TEXT("UHoudiniAssetComponent::OnRefineMeshesTimerFired()"));
-	if (OutputData->OnRefineMeshesTimerDelegate.IsBound())
+	if (ProxyData->OnRefineMeshesTimerDelegate.IsBound())
 	{
-		OutputData->OnRefineMeshesTimerDelegate.Broadcast(this);
+		ProxyData->OnRefineMeshesTimerDelegate.Broadcast(this);
 	}
 }
 
@@ -1946,80 +1988,80 @@ UHoudiniCookable::IsHoudiniCookedDataAvailable(bool& bOutNeedsRebuildOrDelete, b
 bool
 UHoudiniCookable::IsBakeAfterNextCookEnabled() const 
 {
-	return OutputData->BakeAfterNextCook != EHoudiniBakeAfterNextCook::Disabled; 
+	return BakingData->BakeAfterNextCook != EHoudiniBakeAfterNextCook::Disabled; 
 }
 
 EHoudiniBakeAfterNextCook
 UHoudiniCookable::GetBakeAfterNextCook() const
 {
-	return OutputData->BakeAfterNextCook;
+	return BakingData->BakeAfterNextCook;
 }
 
 EHoudiniEngineActorBakeOption
 UHoudiniCookable::GetActorBakeOption() const
 {
-	return OutputData->ActorBakeOption;
+	return BakingData->ActorBakeOption;
 }
 
 TArray<FHoudiniBakedOutput>& 
 UHoudiniCookable::GetBakedOutputs() 
 {
-	return OutputData->BakedOutputs;
+	return BakingData->BakedOutputs;
 }
 
 const TArray<FHoudiniBakedOutput>&
 UHoudiniCookable::GetBakedOutputs() const
 { 
-	return OutputData->BakedOutputs;
+	return BakingData->BakedOutputs;
 }
 
 
 EHoudiniEngineBakeOption
 UHoudiniCookable::GetHoudiniEngineBakeOption() const
 {
-	return OutputData->HoudiniEngineBakeOption;
+	return BakingData->HoudiniEngineBakeOption;
 }
 
 void
 UHoudiniCookable::SetHoudiniEngineBakeOption(const EHoudiniEngineBakeOption& InBakeOption)
 {
-	OutputData->HoudiniEngineBakeOption = InBakeOption;
+	BakingData->HoudiniEngineBakeOption = InBakeOption;
 }
 
 bool
 UHoudiniCookable::GetReplacePreviousBake() const
 {
-	return OutputData->bReplacePreviousBake;
+	return BakingData->bReplacePreviousBake;
 }
 
 void
 UHoudiniCookable::SetReplacePreviousBake(bool bInReplace)
 {
-	OutputData->bReplacePreviousBake = bInReplace;
+	BakingData->bReplacePreviousBake = bInReplace;
 }
 
 bool
 UHoudiniCookable::GetRemoveOutputAfterBake() const
 {
-	return OutputData->bRemoveOutputAfterBake;
+	return BakingData->bRemoveOutputAfterBake;
 }
 
 void
 UHoudiniCookable::SetRemoveOutputAfterBake(bool bInRemove)
 {
-	OutputData->bRemoveOutputAfterBake = bInRemove;
+	BakingData->bRemoveOutputAfterBake = bInRemove;
 }
 
 bool
 UHoudiniCookable::GetRecenterBakedActors() const
 {
-	return OutputData->bRecenterBakedActors;
+	return BakingData->bRecenterBakedActors;
 }
 
 void
 UHoudiniCookable::SetRecenterBakedActors(bool bInRecenter)
 {
-	OutputData->bRecenterBakedActors = bInRecenter;
+	BakingData->bRecenterBakedActors = bInRecenter;
 }
 
 bool
@@ -2565,13 +2607,16 @@ UHoudiniCookable::PostLoad()
 	// We need to register ourself
 	FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(this);
 
-	// TODO: Not necessary anymore?
 #if WITH_EDITORONLY_DATA
-	auto MaxValue = StaticEnum<EHoudiniEngineBakeOption>()->GetMaxEnumValue() - 1;
-	if (static_cast<int>(OutputData->HoudiniEngineBakeOption) > MaxValue)
+	if (IsBakingSupported())
 	{
-		HOUDINI_LOG_WARNING(TEXT("Invalid Bake Type found, setting to To Actor. Possibly Foliage, which is deprecated, use the unreal_foliage attribute instead."));
-		OutputData->HoudiniEngineBakeOption = EHoudiniEngineBakeOption::ToActor;
+		// TODO: Not necessary anymore?
+		auto MaxValue = StaticEnum<EHoudiniEngineBakeOption>()->GetMaxEnumValue() - 1;
+		if (static_cast<int>(BakingData->HoudiniEngineBakeOption) > MaxValue)
+		{
+			HOUDINI_LOG_WARNING(TEXT("Invalid Bake Type found, setting to To Actor. Possibly Foliage, which is deprecated, use the unreal_foliage attribute instead."));
+			BakingData->HoudiniEngineBakeOption = EHoudiniEngineBakeOption::ToActor;
+		}
 	}
 #endif
 }

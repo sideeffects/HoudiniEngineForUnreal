@@ -114,6 +114,8 @@ void UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPC
 	Cookable->GetParameterData()->bCookOnParameterChange = false;
 	Cookable->GetInputData()->bCookOnInputChange = false;
 	Cookable->SetPDGSupported(true);
+	Cookable->SetBakingSupported(true);
+	Cookable->SetProxySupported(true);
 
 	if(Component)
 	{
@@ -534,10 +536,6 @@ UHoudiniPCGCookable::ProcessBakedOutput(FPCGContext* Context)
 {
 	const UHoudiniPCGSettings* Settings = Context->GetInputSettings<UHoudiniPCGSettings>();
 
-	UCookableOutputData* OutputData = this->Cookable->GetOutputData();
-	if(!OutputData)
-		return;
-
 	if(UHoudiniPDGAssetLink* PDGAssetLink = this->Cookable->GetPDGAssetLink())
 	{
 		auto& Outputs = this->PDGBakedOutput->BakedOutputs;
@@ -549,7 +547,11 @@ UHoudiniPCGCookable::ProcessBakedOutput(FPCGContext* Context)
 	}
 	else
 	{
-		auto& Outputs = OutputData->BakedOutputs;
+		UCookableBakingData* BakingData = this->Cookable->GetBakingData();
+		if(!BakingData)
+			return;
+
+		auto& Outputs = BakingData->BakedOutputs;
 		for(int Index = 0; Index < Outputs.Num(); Index++)
 		{
 			FString Tag = FString::Printf(TEXT("Output-%d"), Index);
