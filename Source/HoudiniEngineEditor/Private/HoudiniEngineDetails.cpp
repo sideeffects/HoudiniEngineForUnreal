@@ -192,9 +192,6 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 	if (!MainCookable->IsHoudiniAssetSupported())
 		return;
 
-	// Add the preset menu
-	//HoudiniEngineDetails->CreateHoudiniEngineActionWidget(HouAssetCategory, InCookables);
-
 	FText AssetNameText = FText::GetEmpty();
 	UHoudiniAsset* MainHDA = MainCookable->GetHoudiniAsset();
 	if (MainHDA)
@@ -256,39 +253,12 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 	const IDetailsView* DetailsView = HouAssetCategory.GetParentLayout().GetDetailsView();
 
 	// Add the Preset menu
-	//TSharedRef<SHorizontalBox> Box = SNew(SHorizontalBox);
 	TSharedPtr<SImage> Image;
 	TSharedPtr<SLayeredImage> OptionsImage = SNew(SLayeredImage)
 	.Image(FAppStyle::Get().GetBrush("DetailsView.ViewOptions"))
 	.ColorAndOpacity(FSlateColor::UseForeground());
 
 	IDetailLayoutBuilder* SavedLayoutBuilder = &HouAssetCategory.GetParentLayout();
-	/*
-	VerticalBox->AddSlot()
-	.Padding(0, 5, 0, 0)
-	.AutoHeight()
-	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.FillWidth(1.0f)
-		.HAlign(HAlign_Right)
-		[
-			SNew(SComboButton)
-			.HasDownArrow(false)
-			.ContentPadding(0)
-			.ForegroundColor(FSlateColor::UseForeground())
-			.ButtonStyle(FAppStyle::Get(), "SimpleButton")
-			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ViewOptions")))
-			.OnGetMenuContent_Lambda([InCookables, SavedLayoutBuilder]() -> TSharedRef<SWidget>
-			{
-				return FHoudiniEngineDetails::ConstructActionMenu(InCookables, SavedLayoutBuilder).ToSharedRef();
-			})
-			.ButtonContent()
-			[
-				OptionsImage.ToSharedRef()
-			]
-		]
-	];*/
 
 	// Add the Houdini Asset Picker
 	VerticalBox->AddSlot()
@@ -350,128 +320,6 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 			.FillHeight(0.5f)
 		]
 	];
-	/*
-	TSharedPtr<SHorizontalBox> HorizontalBox;
-	VerticalBox->AddSlot()
-	.Padding(0, 5, 0, 0)
-	.AutoHeight()
-	[
-		SNew(SAssetDropTarget)
-		.bSupportsMultiDrop(false)
-		.OnAreAssetsAcceptableForDrop_Lambda([](TArrayView<FAssetData> InAssets)
-		{
-			for (auto& CurAssetData : InAssets)
-			{
-				if (CurAssetData.GetClass() == UHoudiniAsset::StaticClass())
-					return true;
-			}
-
-			return false;
-		})
-		.OnAssetsDropped_Lambda([InCookables, UpdateHoudiniAsset](const FDragDropEvent&, TArrayView<FAssetData> InAssets)
-		{
-			UHoudiniAsset* HDA = nullptr;
-			for (auto& CurAssetData : InAssets)
-			{
-				HDA = Cast<UHoudiniAsset>(CurAssetData.GetAsset());
-				if (IsValid(HDA))
-					break;
-			}
-
-			UpdateHoudiniAsset(InCookables, HDA);
-		})
-		[
-			SAssignNew(HorizontalBox, SHorizontalBox)
-		]
-	];
-
-	HorizontalBox->AddSlot()
-	.Padding(0)
-	.AutoWidth()
-	[
-		SNew(SBorder)
-		.BorderImage(_GetEditorStyle().GetBrush(TEXT("AssetThumbnail.AssetBackground")))
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		.OnMouseDoubleClick_Lambda([MainHDA](const FGeometry&, const FPointerEvent&)
-		{
-			if (GEditor && MainHDA)
-				GEditor->EditObject(MainHDA);
-
-			return FReply::Handled();
-		})
-		[
-			SNew(SBox)
-			.WidthOverride(64)
-			.HeightOverride(64)
-			.ToolTipText(AssetNameText)
-			[
-				HDAThumbnail->MakeThumbnailWidget()
-			]
-		]
-	];
-
-	TSharedPtr<SVerticalBox> ComboAndButtonBox;
-	HorizontalBox->AddSlot()
-	.FillWidth(1)
-	.Padding(4, 0, 5, 0)
-	.VAlign(VAlign_Center)
-	[
-		SAssignNew(ComboAndButtonBox, SVerticalBox)
-	];
-
-	// Add Combo box : Houdini Asset
-	TSharedPtr<SComboButton> HDAComboButton;
-	ComboAndButtonBox->AddSlot()
-	.FillHeight(1)
-	[
-		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-		.Padding(0)
-		.VAlign(VAlign_Center)
-		[
-			SAssignNew(HDAComboButton, SComboButton)
-			.ButtonContent()
-			[
-				SNew(STextBlock)
-				.TextStyle(_GetEditorStyle(), TEXT("PropertyEditor.AssetClass"))
-				.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
-				.ColorAndOpacity(_GetEditorStyle().GetColor(TEXT("AssetThumbnail"), ".ColorAndOpacity"))
-				.Text(AssetNameText)
-			]
-		]
-	];
-
-	TWeakPtr<SComboButton> WeakHDAComboButton(HDAComboButton);
-	HDAComboButton->SetOnGetMenuContent(FOnGetContent::CreateLambda(
-		[MainHDA, InCookables, WeakHDAComboButton, UpdateHoudiniAsset]()
-		{
-			TArray<const UClass*> AllowedClasses = { UHoudiniAsset::StaticClass() };
-			UObject* DefaultObj = MainHDA;
-
-			TArray<UFactory*> NewAssetFactories;
-			return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(
-				FAssetData(DefaultObj),
-				true,
-				AllowedClasses,
-				NewAssetFactories,
-				FOnShouldFilterAsset(),
-				FOnAssetSelected::CreateLambda(
-					[MainHDA, InCookables, WeakHDAComboButton, UpdateHoudiniAsset](const FAssetData& AssetData)
-					{
-						TSharedPtr<SComboButton> ComboButton = WeakHDAComboButton.Pin();
-						if (ComboButton.IsValid())
-						{
-							ComboButton->SetIsOpen(false);
-							UObject* Object = AssetData.GetAsset();
-							UpdateHoudiniAsset(InCookables, Object);
-						}
-					}
-				),
-				FSimpleDelegate::CreateLambda([]() {}));
-		}));
-
-	*/
 
 	// Set the widget in the row we created
 	Row->ValueWidget.Widget = VerticalBox;

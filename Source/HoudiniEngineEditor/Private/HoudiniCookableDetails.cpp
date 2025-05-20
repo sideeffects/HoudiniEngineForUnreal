@@ -637,7 +637,7 @@ FHoudiniCookableDetails::CreateProxyDetails(
 		return;
 
 	// Create the Proxy details category
-	FString ProxyCatName = _TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PROXY);
+	FString ProxyCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PROXY);
 	// If we have selected more than one component that have different HDAs, 
 	// we need to create multiple categories one for each different HDA
 	// OutputCatName += MultiSelectionIdentifier;
@@ -645,7 +645,7 @@ FHoudiniCookableDetails::CreateProxyDetails(
 	IDetailCategoryBuilder& HouProxyCategory =
 		DetailBuilder.EditCategory(*ProxyCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
-	FString Label = _TEXT("Proxy Mesh Settings");
+	FString Label = TEXT("Proxy Mesh Settings");
 	IDetailGroup& ProxyGrp = HouProxyCategory.AddGroup(FName(*Label), FText::FromString(Label));
 
 	// Lambda used to trigger a refine of the cookables if necessary
