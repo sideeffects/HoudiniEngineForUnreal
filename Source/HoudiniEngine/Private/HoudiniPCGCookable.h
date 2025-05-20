@@ -122,10 +122,10 @@ public:
 	UHoudiniPDGBakeOutput* PDGBakedOutput;
 
 	EPCGCookableState State = EPCGCookableState::None;
+	bool bIsCookingPDG = false;
 
 	bool bParamsChanged = false;
 	bool bInputsChanged = false;
-	UTOPNetwork * TOPNetwork = nullptr;
 
 	void ProcessCookedOutput(FPCGContext* Context);
 	void ProcessBakedOutput(FPCGContext* Context);
@@ -168,13 +168,13 @@ private:
 
 	void AddTrackedObjects(const FPCGContext* Context);
 
-	bool ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const TArray<FString> & InputObjects);
+	static bool ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const TArray<FString> & InputObjects);
 
-	UHoudiniPCGDataObject* GetPCGDataObjects(const FPCGTaggedData& TaggedData);
+	static UHoudiniPCGDataObject* GetPCGDataObjects(const FPCGTaggedData& TaggedData);
 
 	TArray<FString> GetUnrealObjectPaths(const FPCGContext* Context, const UPCGMetadata* Metadata);
 
-	bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
+	static bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
 
 	static void DeleteBakedActor(const FString& ActorPath);
 	static void DeleteBakedComponent(const FString& ActorPath);
