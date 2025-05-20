@@ -110,6 +110,8 @@ protected:
 	// ~End UPCGSettings interface
 
 	void InstantiateParameterCookable();
+	void OnParameterCookableCooked();
+
 };
 
 enum class EHoudiniPCGContextState

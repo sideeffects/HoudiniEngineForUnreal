@@ -78,18 +78,36 @@ void UHoudiniPCGCookable::OnCookingComplete(bool bSuccess)
 
 void UHoudiniPCGCookable::OnCookingCompleteInternal(bool bSuccess)
 {
-	if(this->State == EPCGCookableState::Initializing)
+	switch (this->State)
 	{
+	case EPCGCookableState::Initializing:
 		HOUDINI_PCG_MESSAGE(TEXT("(%p)       Set to EPCGCookableState::Initialized"), this);
 		this->State = EPCGCookableState::Initialized;
-	}
-	else if(this->State == EPCGCookableState::Cooking)
-	{
+		break;
+
+	default:
 		HOUDINI_PCG_MESSAGE(TEXT("(%p)       Set to EPCGCookableState::CookingComplete"), this);
 		this->State = EPCGCookableState::CookingComplete;
+
+		if(OnPostOutputProcessingDelegate.IsBound())
+			OnPostOutputProcessingDelegate.Broadcast(this, bSuccess);
+		break;
 	}
+
 }
 
+void UHoudiniPCGCookable::PostLoad()
+{
+	Super::PostLoad();
+
+	State = EPCGCookableState::Loaded;
+
+	auto OutputDelegateHandle = Cookable->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
+		{
+			this->OnCookingComplete(bSuccess);
+		});
+
+}
 void UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPCGSettings* Owner, UHoudiniPCGComponent* Component)
 {
 	HOUDINI_PCG_MESSAGE(TEXT("(%p) UHoudiniPCGCookable::CreateHoudiniCookable"), this);

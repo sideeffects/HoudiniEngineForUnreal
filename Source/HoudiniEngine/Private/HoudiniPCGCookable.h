@@ -43,7 +43,8 @@ class UHoudiniPCGManagedResource;
 
 enum class EPCGCookableState
 {
-	None,				// Create, but nothing happening
+	None,				// Create, but nothing happening.
+	Loaded,				// Loaded, but not loaded into Houdini.
 	WaitingForSession,	// Waiting for Houdini Session to be created.
 	Initializing,		// Cookable is being loaded into Houdini for the first time.
 	Initialized,		// Cookable has been loaded into Houdini. Parameters/Inputs can be accessed.
@@ -109,6 +110,8 @@ public:
 	// Bake the Cookable
 	void Bake();
 
+	void PostLoad();
+
 	UPROPERTY(EditAnywhere, Category = Settings)
 	bool bAutomaticallyDeleteAssets = true;
 
@@ -128,6 +131,10 @@ public:
 	void ProcessBakedOutput(FPCGContext* Context);
 
 	void DeleteBakedOutput(UWorld* World);
+
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostOutputProcessingDelegate, UHoudiniPCGCookable*, bool);
+
+	FOnPostOutputProcessingDelegate OnPostOutputProcessingDelegate;
 
 private:
 

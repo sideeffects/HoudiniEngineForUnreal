@@ -37,6 +37,7 @@
 #include "Landscape.h"
 #include "PCGParamData.h"
 #include "Async/Async.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 HOUDINI_PCG_DEFINE_LOG_CATEGORY();
 
@@ -91,20 +92,57 @@ FHoudiniPCGUtils::GetPCGOutputData(const FHoudiniBakedOutput* BakedOutput)
 	return Outputs;
 }
 
-FString FHoudiniPCGUtils::GetTypeStringFromObject(UObject* Object)
+FString FHoudiniPCGUtils::GetTypeStringFromObject(UObject * Object)
 {
-	if (Object->IsA<UStaticMesh>())
+	if(Object->IsA<UStaticMesh>())
 	{
 		return TEXT("Mesh");
 	}
-	else if (Object->IsA<UHoudiniLandscapeTargetLayerOutput>() || Object->IsA<ALandscapeProxy>())
+	else if(Object->IsA<UHoudiniLandscapeTargetLayerOutput>() || Object->IsA<ALandscapeProxy>())
 	{
 		return TEXT("Landscape");
 	}
-	else
+	return TEXT("");
+}
+
+FString FHoudiniPCGUtils::GetTypeStringFromComponent(USceneComponent* Component)
+{
+	if(IsValid(Component))
 	{
-		return TEXT("");
+		if(IsValid(Component))
+		{
+			if(Component->IsA<UInstancedStaticMeshComponent>())
+			{
+				return TEXT("InstancedStaticMesh");
+			}
+		}
 	}
+	return TEXT("");
+}
+
+
+FString FHoudiniPCGUtils::GetTypeStringFromOutputObject(const FHoudiniOutputObject& OutputObject)
+{
+	if (IsValid(OutputObject.OutputObject))
+	{
+		FString Result = GetTypeStringFromObject(OutputObject.OutputObject);
+		if(!Result.IsEmpty())
+			return Result;
+	}
+
+
+	if (!OutputObject.OutputComponents.IsEmpty())
+	{
+		USceneComponent* SceneComponent = Cast<USceneComponent>(OutputObject.OutputComponents[0]);
+		if (IsValid(SceneComponent))
+		{
+			FString Result = GetTypeStringFromComponent(SceneComponent);
+			if(!Result.IsEmpty())
+				return Result;
+		}
+	}
+
+	return TEXT("");
 }
 
 
@@ -120,7 +158,7 @@ FHoudiniPCGUtils::GetPCGOutputData(const UHoudiniOutput* HoudiniOutput)
 
 		FHoudiniPCGObjectOutput& PCGOutputObject = Outputs.Emplace_GetRef();
 		PCGOutputObject.OutputObjectIndex = ObjectIndex;
-		PCGOutputObject.OutputType = GetTypeStringFromObject(OutputObj.OutputObject.Get());
+		PCGOutputObject.OutputType = GetTypeStringFromOutputObject(OutputObj);
 
 		if (UHoudiniLandscapeTargetLayerOutput * LandscapeOutput = Cast<UHoudiniLandscapeTargetLayerOutput>(OutputObj.OutputObject.Get()))
 		{

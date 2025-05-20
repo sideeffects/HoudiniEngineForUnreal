@@ -123,7 +123,11 @@ public:
 
 	static EHoudiniPCGSessionStatus SessionStatus;
 
-	static FString GetTypeStringFromObject(UObject * Object);
+	static FString GetTypeStringFromOutputObject(const FHoudiniOutputObject & OutputObject);
+
+	static FString GetTypeStringFromObject(UObject* Object);
+	static FString GetTypeStringFromComponent(USceneComponent* Component);
+
 private:
 	// Synchronization primitive. 
 	static FCriticalSection CriticalSection;

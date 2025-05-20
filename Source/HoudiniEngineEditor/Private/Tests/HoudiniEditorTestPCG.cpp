@@ -39,6 +39,7 @@
 #include "HoudiniPCGDataObject.h"
 #include "Landscape.h"
 #include "PCGParamData.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMeshActor.h"
 
 enum class EHoudiniTestPCGContextState : int
@@ -1119,6 +1120,72 @@ bool FHoudiniEditorTestPCG_PCGParametersDefaultsCooked::RunTest(const FString& P
 
 		return true;
 	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGParametersMultiparm, "Houdini.UnitTests.PCG.Parameters.Defaults.Multiparm",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestPCG_PCGParametersMultiparm::RunTest(const FString& Parameters)
+{
+	// This test uses a simple HDA which reads its parameter and sets it back on the output. It tests whether the HDA can process
+	// its default parameter.
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGTestParameters/PCGMultiTestParmsLevel.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+		{
+			Context->CleanupAndGenerateAsync();
+			return true;
+		}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context]()
+		{
+			if(!Context->Update())
+				return false;
+
+			FString OutputPath = TEXT("/Game/HoudiniEngine/Temp/ParametersOutput");
+
+			UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *OutputPath));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+			// We should have one output...
+			HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 2, return true);
+
+			UInstancedStaticMeshComponent* ISM = nullptr;
+
+			for (int Index = 0; Index < 2; Index++)
+			{
+				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
+				PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[Index].Data.Get());
+
+				if (!IsValid(ISM))
+					ISM = Cast<UInstancedStaticMeshComponent>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("component")));
+
+			}
+
+			// The HDA creates 5 instances, jamming a 100.0 * instance number in the transform
+
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(ISM, return true);
+			HOUDINI_TEST_EQUAL(ISM->GetNumInstances(), 5);
+			for (int Index = 0; Index < 5; Index++)
+			{
+				FTransform Transform;
+				ISM->GetInstanceTransform(Index, Transform);
+				HOUDINI_TEST_EQUAL(Transform.GetLocation().X, (Index + 1) * 500.0);
+			}
+
+			return true;
+		}));
 
 	return true;
 }

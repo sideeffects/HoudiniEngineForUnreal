@@ -51,6 +51,10 @@ void UHoudiniPCGSettings::PostLoad()
 {
 	Super::PostLoad();
 
+	ParameterCookable->OnPostOutputProcessingDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
+		{
+			OnParameterCookableCooked();
+		});
 }
 
 void UHoudiniPCGSettings::BeginDestroy()
@@ -97,8 +101,11 @@ FString UHoudiniPCGSettings::GetAdditionalTitleInformation() const
 		return TEXT("Initializing... please wait...");
 
 	case EPCGCookableState::CookingComplete:
-	case EPCGCookableState::None:
+	case EPCGCookableState::Loaded:
 		return FString::Printf(TEXT("%s"), HoudiniAsset ? *HoudiniAsset.GetFName().ToString() : TEXT("None"));
+
+	case EPCGCookableState::None:
+		return TEXT("None");
 
 	default:
 		return TEXT("* Error initializing *");
@@ -147,6 +154,8 @@ FPCGElementPtr UHoudiniPCGSettings::CreateElement() const
 
 void UHoudiniPCGSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
 {
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
 	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 	if(PropertyName == GET_MEMBER_NAME_CHECKED(UHoudiniPCGSettings, HoudiniAsset))
 	{
@@ -158,14 +167,10 @@ void UHoudiniPCGSettings::PostEditChangeProperty(FPropertyChangedEvent& Property
 			}
 		}
 
-
 		InstantiateParameterCookable();
 
 		FHoudiniEngineRuntimeUtils::ForceDetailsPanelToUpdate();
-
 	}
-
-	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 #include "Editor.h"
@@ -178,6 +183,13 @@ void RefreshDetailsForObject(UObject* TargetObject)
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	PropertyEditorModule.UpdatePropertyViews({ TargetObject });
+}
+
+void UHoudiniPCGSettings::OnParameterCookableCooked()
+{
+	this->Modify(); // Optional: for Undo support
+	FHoudiniEngineRuntimeUtils::ForceDetailsPanelToUpdate();
+
 }
 
 void UHoudiniPCGSettings::InstantiateParameterCookable()
@@ -206,6 +218,12 @@ void UHoudiniPCGSettings::InstantiateParameterCookable()
 		ParameterCookable->Cookable->SetOutputSupported(false);
 		ParameterCookable->Cookable->SetPDGSupported(true);
 		ParameterCookable->Cookable->SetIsPCG(true);
+		ParameterCookable->Cookable->GetParameterData()->bCookOnParameterChange = true;
+		ParameterCookable->OnPostOutputProcessingDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
+			{
+				OnParameterCookableCooked();
+			});
+
 		ParameterCookable->Instantiate();
 
 		do
