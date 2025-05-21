@@ -687,7 +687,7 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 		!ClearedLayers.Contains(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer))
 	{
 		ClearedLayers.Add(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer);
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 		OutputLandscape->ClearLayer(BakedLayer->EditLayer->GetGuid(), nullptr, ELandscapeClearMode::Clear_Heightmap);
 #else
 		OutputLandscape->ClearLayer(BakedLayer->Guid, nullptr, ELandscapeClearMode::Clear_Heightmap);
