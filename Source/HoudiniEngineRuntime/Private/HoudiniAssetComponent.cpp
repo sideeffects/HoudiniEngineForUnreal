@@ -1661,7 +1661,7 @@ UHoudiniAssetComponent::CalcBounds(const FTransform & LocalToWorld) const
 
 	LocalBounds = FBoxSphereBounds(BoundingBox);
 	// fix for offset bounds - maintain local bounds origin
-	LocalBounds.TransformBy(LocalToWorld);
+	LocalBounds = LocalBounds.TransformBy(LocalToWorld);
 
 	const auto & LocalAttachedChildren = GetAttachChildren();
 	for (int32 Idx = 0; Idx < LocalAttachedChildren.Num(); ++Idx)

@@ -43,6 +43,7 @@
 #include "Materials/MaterialInstanceConstant.h"
 #include "HoudiniMaterialTranslator.h"
 #include "PackageTools.h"
+#include "LandscapeEditLayer.h"
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
 #include "LandscapeUtils.h"
@@ -93,15 +94,23 @@ void
 FHoudiniLandscapeUtils::SetNonCookedLayersVisibility(UHoudiniCookable& HC, ALandscape& Landscape, bool bVisible)
 {
 	TSet<FString> CookedLayers = GetCookedLandscapeLayers(HC, Landscape);
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayersConst();
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayers();
 #endif
 
 	FString LayerName;
-	for(int LayerIndex = 0; LayerIndex < Landscape.GetLayerCount(); LayerIndex++)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	for(int LayerIndex = 0; LayerIndex < Landscape.GetLayersConst().Num(); LayerIndex++)
+#else
+	for (int LayerIndex = 0; LayerIndex < Landscape.GetLayerCount(); LayerIndex++)
+#endif
 	{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
-		LayerName = Layers[LayerIndex].Name.ToString(); 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		LayerName = Layers[LayerIndex].EditLayer->GetName().ToString();
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+		LayerName = Layers[LayerIndex].Name.ToString();
 #else
 		LayerName = Landscape.LandscapeLayers[LayerIndex].Name.ToString();
 #endif
@@ -117,14 +126,22 @@ void
 FHoudiniLandscapeUtils::SetCookedLayersVisibility(UHoudiniCookable& HC, ALandscape& Landscape, bool bVisible)
 {
 	TSet<FString> CookedLayers = GetCookedLandscapeLayers(HC, Landscape);
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayersConst();
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayers();
 #endif
 
 	FString LayerName;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	for (int LayerIndex = 0; LayerIndex < Landscape.GetLayersConst().Num(); LayerIndex++)
+#else
 	for (int LayerIndex = 0; LayerIndex < Landscape.GetLayerCount(); LayerIndex++)
+#endif
 	{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		LayerName = Layers[LayerIndex].EditLayer.GetName();
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		LayerName = Layers[LayerIndex].Name.ToString();
 #else
 		LayerName = Landscape.LandscapeLayers[LayerIndex].Name.ToString();
@@ -204,8 +221,12 @@ FHoudiniLandscapeUtils::GetHeightData(
 
 	TArray<uint16> Values;
 	Values.SetNum(NumPoints);
-
-	FScopedSetLandscapeEditingLayer Scope(Landscape, EditLayer->Guid, [&] { /*Landscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); */});
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	FGuid LayerGuid = EditLayer->EditLayer->GetGuid();
+#else
+	FGuid LayerGuid = EditLayer->Guid;
+#endif
+	FScopedSetLandscapeEditingLayer Scope(Landscape, LayerGuid, [&] { /*Landscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); */});
 
 	FLandscapeEditDataInterface LandscapeEdit(Landscape->GetLandscapeInfo());
 	LandscapeEdit.SetShouldDirtyPackage(false);
@@ -321,7 +342,12 @@ FHoudiniLandscapeUtils::GetLayerData(ALandscape* Landscape, const FHoudiniExtent
 #endif
 	ULandscapeLayerInfoObject* TargetLayerInfo = Landscape->GetLandscapeInfo()->GetLayerInfoByName(TargetLayerName);
 
-	FScopedSetLandscapeEditingLayer Scope(Landscape, EditLayer->Guid, [&] { /*Landscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); */});
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	FGuid LayerGuid = EditLayer->EditLayer->GetGuid();
+#else
+	FGuid LayerGuid = EditLayer->Guid;
+#endif
+	FScopedSetLandscapeEditingLayer Scope(Landscape, LayerGuid, [&] { /*Landscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); */});
 
 	FLandscapeEditDataInterface LandscapeEdit(Landscape->GetLandscapeInfo());
 	LandscapeEdit.SetShouldDirtyPackage(false);
@@ -484,7 +510,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 			{
 				// reuse a previously cooked landscape. We assume that any primitve on the same HDA want's the same
 				// actor if they have the same name.
-				LandscapeMap[Part.TargetLandscapeName];
+				//LandscapeMap[Part.TargetLandscapeName];
 				Result.HoudiniLayerToUnrealLandscape.Add(&Part, Result.TargetLandscapes.Num());
 				FHoudiniUnrealLandscapeTarget LandscapeTarget;
 				LandscapeTarget.Proxy = LandscapeMap[Part.TargetLandscapeName];
@@ -871,10 +897,7 @@ TArray<ULandscapeLayerInfoObject*> FHoudiniLandscapeUtils::CreateTargetLayerInfo
 			return true;
 		});
 
-	UE::Landscape::FLayerInfoFinder LayerInfoFinder;
-
 	auto LandscapeTargetLayers = LandscapeProxy->GetTargetLayers();
-
 	for(FName TargetLayerName : LayerNames)
 	{
 		// if the landscape info already exists, don't create one.
@@ -1411,7 +1434,9 @@ bool
 FHoudiniLandscapeUtils::ApplyLandscapeSplinesToReservedLayer(ALandscape* const InLandscape)
 {
 	if (!IsValid(InLandscape)
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		|| !InLandscape->FindEditLayerOfType(ULandscapeEditLayerSplines::StaticClass()))
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		|| !InLandscape->FindLayerOfType(ULandscapeEditLayerSplines::StaticClass()))
 #else
 		|| !InLandscape->GetLandscapeSplinesReservedLayer())
@@ -1486,7 +1511,11 @@ FHoudiniLandscapeUtils::ApplySegmentsToLandscapeEditLayers(
 
 		// Apply splines to layer
 		static constexpr bool bUpdateOnlySelected = true;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		Landscape->UpdateLandscapeSplines(Layer->EditLayer->GetGuid(), bUpdateOnlySelected);
+#else
 		Landscape->UpdateLandscapeSplines(Layer->Guid, bUpdateOnlySelected);
+#endif
 
 		// Unselect the segments and their control points
 		for (ULandscapeSplineSegment* const Segment : LayerData.SegmentsToApply)

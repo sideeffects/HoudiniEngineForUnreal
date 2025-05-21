@@ -176,16 +176,24 @@ FHoudiniLandscapeSplineTranslator::UpdateNonReservedEditLayers(
 
 	// If the landscape has a reserved splines layer, then we don't have track the segments to apply. Just record the
 	// landscape with its reserved layer.	
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	ULandscapeEditLayerBase* ReservedSplinesLayer = InSplineInfo.Landscape->FindEditLayerOfType(ULandscapeEditLayerSplines::StaticClass());
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	const FLandscapeLayer* ReservedSplinesLayer = InSplineInfo.Landscape->FindLayerOfType(ULandscapeEditLayerSplines::StaticClass());
 #else
 	FLandscapeLayer* const ReservedSplinesLayer = InSplineInfo.Landscape->GetLandscapeSplinesReservedLayer();
 #endif
 	if (ReservedSplinesLayer)
 	{
-		FHoudiniLandscapeSplineApplyLayerData& LayerData = InSegmentsToApplyToLayers.FindOrAdd({ InSplineInfo.Landscape, ReservedSplinesLayer->Name});
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		FName ReservedName = ReservedSplinesLayer->GetName();
+#else
+		FName ReservedName = ReservedSplinesLayer->Name;
+#endif
+		FHoudiniLandscapeSplineApplyLayerData& LayerData = InSegmentsToApplyToLayers.FindOrAdd({ InSplineInfo.Landscape, ReservedName });
 		LayerData.Landscape = InSplineInfo.Landscape;
-		LayerData.EditLayerName = ReservedSplinesLayer->Name;
+		LayerData.EditLayerName = ReservedName;
 		LayerData.bIsReservedSplineLayer = true;
 		return;
 	}
@@ -223,7 +231,11 @@ FHoudiniLandscapeSplineTranslator::UpdateNonReservedEditLayers(
 		// Clear layer if requested and not yet cleared
 		if (LayerOutput->bClearLayer && !ClearedLayersForLandscape.Contains(CookedEditLayer))
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+			InSplineInfo.Landscape->ClearLayer(UnrealEditLayer->EditLayer->GetGuid(), nullptr, ELandscapeClearMode::Clear_Heightmap);
+#else
 			InSplineInfo.Landscape->ClearLayer(UnrealEditLayer->Guid, nullptr, ELandscapeClearMode::Clear_Heightmap);
+#endif
 			ClearedLayersForLandscape.Add(CookedEditLayer);
 		}
 
