@@ -43,7 +43,9 @@
 #include "LandscapeStreamingProxy.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 #include "LandscapeEditLayer.h"
+#endif
 #include "LightMap.h"
 #include "Engine/MapBuildDataRegistry.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"

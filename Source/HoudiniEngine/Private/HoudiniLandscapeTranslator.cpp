@@ -54,7 +54,9 @@
 #include "FileHelpers.h"
 #include "HAL/IConsoleManager.h"
 #include "LandscapeEdit.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 #include "LandscapeEditLayer.h"
+#endif
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "Misc/Guid.h"

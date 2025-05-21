@@ -43,7 +43,9 @@
 #include "Materials/MaterialInstanceConstant.h"
 #include "HoudiniMaterialTranslator.h"
 #include "PackageTools.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 #include "LandscapeEditLayer.h"
+#endif
 #include "LandscapeSplineControlPoint.h"
 #include "LandscapeSplineSegment.h"
 #include "LandscapeUtils.h"

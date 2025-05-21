@@ -52,7 +52,9 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Landscape.h"
 #include "LandscapeEdit.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 #include "LandscapeEditLayer.h"
+#endif
 #include "LandscapeInfo.h"
 #include "LandscapeProxy.h"
 #include "LandscapeSplineActor.h"
