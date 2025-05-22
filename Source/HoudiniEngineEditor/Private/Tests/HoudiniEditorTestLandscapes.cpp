@@ -41,6 +41,10 @@
 #include "HoudiniEditorUnitTestUtils.h"
 #include "LandscapeEdit.h"
 #include <HoudiniLandscapeUtils.h>
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+#include "LandscapeEditLayer.h"
+#endif
+#include "Misc/AutomationTest.h"
 
 TArray<FString> FHoudiniEditorTestLandscapes::CheckLandscapeValues(
 	TArray<float> & Results, 
@@ -84,14 +88,19 @@ TArray<float> FHoudiniEditorTestLandscapes::GetLandscapeHeightValues(ALandscape 
 	TArray<uint16> Values;
 	{
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
-		auto EditLayer = LandscapeActor->GetLayerConst(0);
+		auto MyEditLayer = LandscapeActor->GetLayerConst(0);
 #else
-		auto EditLayer = LandscapeActor->GetLayer(0);
+		auto MyEditLayer = LandscapeActor->GetLayer(0);
 #endif
 		int NumPoints = LandscapeVertSize.X * LandscapeVertSize.Y;
 		Values.SetNum(NumPoints);
 
-		FScopedSetLandscapeEditingLayer Scope(LandscapeActor, EditLayer->Guid, [&] {});
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		FGuid LayerGuid = MyEditLayer->EditLayer->GetGuid();
+#else
+		FGuid LayerGuid = MyEditLayer->Guid;
+#endif
+		FScopedSetLandscapeEditingLayer Scope(LandscapeActor, LayerGuid, [&] {});
 
 		FLandscapeEditDataInterface LandscapeEdit(LandscapeActor->GetLandscapeInfo());
 		LandscapeEdit.SetShouldDirtyPackage(false);
@@ -652,7 +661,10 @@ bool FHoudiniEditorTestLandscapes_EditLayers::RunTest(const FString& Parameters)
 
 		// check Edit Layer
 		{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayersConst().Num(), 1);
+			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayerConst(0)->EditLayer->GetName().ToString(), FString(TEXT("Edit Layer")));
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayerCount(), 1);
 			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayerConst(0)->Name.ToString(), FString(TEXT("Edit Layer")));
 #else
@@ -754,9 +766,12 @@ bool FHoudiniEditorTestLandscapes_ModifyExisting::RunTest(const FString& Paramet
 
 		// check Edit Layer
 		{
-
-
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayersConst().Num(), 3);
+			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayerConst(0)->EditLayer->GetName().ToString(), FString(TEXT("Layer")));
+			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayerConst(1)->EditLayer->GetName().ToString(), FString(TEXT("Edit Layer 1")));
+			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayerConst(2)->EditLayer->GetName().ToString(), FString(TEXT("Edit Layer 2")));
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayerCount(), 3);
 			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayerConst(0)->Name.ToString(), FString(TEXT("Layer")));
 			HOUDINI_TEST_EQUAL(LandscapeActor->GetLayerConst(1)->Name.ToString(), FString(TEXT("Edit Layer 1")));

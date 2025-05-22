@@ -26,37 +26,42 @@
 
 #include "HoudiniLandscapeTranslator.h"
 
-#include "HoudiniMaterialTranslator.h"
 
-#include "HoudiniAssetComponent.h"
-#include "HoudiniGeoPartObject.h"
-#include "HoudiniEngineString.h"
 #include "HoudiniApi.h"
+#include "HoudiniAssetComponent.h"
 #include "HoudiniEngine.h"
-#include "HoudiniEngineUtils.h"
-#include "HoudiniEngineRuntime.h"
-#include "HoudiniRuntimeSettings.h"
-#include "HoudiniEnginePrivatePCH.h"
-#include "HoudiniPackageParams.h"
-#include "HoudiniInput.h"
-#include "HoudiniEngineRuntimeUtils.h"
-#include "FileHelpers.h"
-#include "Editor.h"
-#include "LandscapeLayerInfoObject.h"
-#include "LandscapeInfo.h"
-#include "LandscapeEdit.h"
-#include "AssetRegistry/AssetRegistryModule.h"
-#include "PhysicalMaterials/PhysicalMaterial.h"
-#include "HoudiniLandscapeUtils.h"
-#include "AssetToolsModule.h"
 #include "HoudiniEngineAttributes.h"
-#include "HoudiniEngineTimers.h"
-#include "Misc/Guid.h"
-#include "Engine/LevelBounds.h"
-#include "HAL/IConsoleManager.h"
-#include "Engine/AssetManager.h"
+#include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineRuntime.h"
+#include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniEngineString.h"
+#include "HoudiniEngineUtils.h"
+#include "HoudiniGeoPartObject.h"
+#include "HoudiniInput.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
+#include "HoudiniLandscapeUtils.h"
+#include "HoudiniMaterialTranslator.h"
+#include "HoudiniPackageParams.h"
+#include "HoudiniRuntimeSettings.h"
+#include "HoudiniEngineTimers.h"
+
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "AssetToolsModule.h"
 #include "Async/ParallelFor.h"
+#include "Editor.h"
+#include "Engine/AssetManager.h"
+#include "Engine/LevelBounds.h"
+#include "FileHelpers.h"
+#include "HAL/IConsoleManager.h"
+#include "LandscapeEdit.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+#include "LandscapeEditLayer.h"
+#endif
+#include "LandscapeInfo.h"
+#include "LandscapeLayerInfoObject.h"
+#include "Misc/Guid.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+
 #if WITH_EDITOR
 	#include "EditorLevelUtils.h"
 #endif
@@ -604,13 +609,18 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		UnrealEditLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, FName(CookedLayerName));
 		if (!UnrealEditLayer)
 			return nullptr;
-		
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		bWasLocked = UnrealEditLayer->EditLayer->IsLocked();
+#else
 		bWasLocked = UnrealEditLayer->bLocked;
-		if (UnrealEditLayer->bLocked)
+#endif
+		if (bWasLocked)
 		{
 			if (Part.bWriteLockedLayers)
 			{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+				OutputLandscape->SetLayerLocked(OutputLandscape->GetLayerIndex(UnrealEditLayer->EditLayer->GetName()), false);
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 				OutputLandscape->SetLayerLocked(OutputLandscape->GetLayerIndex(UnrealEditLayer->Name), false);
 #else
 				UnrealEditLayer->bLocked = false;
@@ -632,7 +642,11 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	}
 	int UnrealEditLayerIndex = INDEX_NONE;
 	if (UnrealEditLayer != nullptr)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		UnrealEditLayerIndex = OutputLandscape->GetLayerIndex(UnrealEditLayer->EditLayer->GetName());
+#else
 		UnrealEditLayerIndex = OutputLandscape->GetLayerIndex(UnrealEditLayer->Name);
+#endif
 
 	// ------------------------------------------------------------------------------------------------------------------
 	// Clear layer
@@ -649,13 +663,18 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		Part.bClearLayer &&
 		!ClearedLayers.Contains(CookedLayerName, Part.TargetLayerName))
 	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		FGuid LayerGUID = UnrealEditLayer->EditLayer->GetGuid();
+#else
+		FGuid LayerGUID = UnrealEditLayer->Guid;
+#endif
 		if (LayerType != TargetLayerType::Paint)
 		{
-			OutputLandscape->ClearLayer(UnrealEditLayer->Guid, nullptr, ELandscapeClearMode::Clear_Heightmap);
+			OutputLandscape->ClearLayer(LayerGUID, nullptr, ELandscapeClearMode::Clear_Heightmap);
 		}
 		else
 		{
-			OutputLandscape->ClearPaintLayer(UnrealEditLayer->Guid, TargetLayerInfo);
+			OutputLandscape->ClearPaintLayer(LayerGUID, TargetLayerInfo);
 		}
 		ClearedLayers.Add(CookedLayerName, Part.TargetLayerName);
 	}
@@ -724,13 +743,17 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	{
 		FGuid LayerGUID;
 		if (OutputLandscape->bCanHaveLayersContent)
+		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+			LayerGUID = UnrealEditLayer->EditLayer->GetGuid();
+#else
 			LayerGUID = UnrealEditLayer->Guid;
+#endif
+		}
 
 		bool bExceededRange = FHoudiniLandscapeUtils::NormalizePaintLayers(HeightFieldData.Values, Part.bNormalizePaintLayers);
-
 		if (bExceededRange)
 			HOUDINI_LOG_WARNING(TEXT("Target layer %s contains values outside the range 0 to 1."), *Part.TargetLayerName);
-
 
 		TArray<uint8> Values;
 		Values.SetNum(HeightFieldData.Values.Num());
@@ -770,19 +793,25 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 
 		TArray<uint16> QuantizedData = FHoudiniLandscapeUtils::ConvertHeightFieldData(OutputLandscape, HeightFieldData.Values);
 
-		FScopedSetLandscapeEditingLayer Scope(OutputLandscape, UnrealEditLayer->Guid, [&] { OutputLandscape->ForceUpdateLayersContent(); });
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		FGuid LayerGUID = UnrealEditLayer->EditLayer->GetGuid();
+#else
+		FGuid LayerGUID = UnrealEditLayer->Guid;
+#endif
+		FScopedSetLandscapeEditingLayer Scope(OutputLandscape, LayerGUID, [&] { OutputLandscape->ForceUpdateLayersContent(); });
 
 		FLandscapeEditDataInterface LandscapeEdit(TargetLandscapeInfo);
 		FHeightmapAccessor<false> HeightMapAccessor(TargetLandscapeInfo);
 		HeightMapAccessor.SetData(
 			Extents.Min.X, Extents.Min.Y, Extents.Max.X, Extents.Max.Y,
 			QuantizedData.GetData());
-
 	}
 
 	if (bWasLocked && UnrealEditLayer)
 	{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		OutputLandscape->SetLayerLocked(OutputLandscape->GetLayerIndex(UnrealEditLayer->EditLayer->GetName()), true);
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		OutputLandscape->SetLayerLocked(OutputLandscape->GetLayerIndex(UnrealEditLayer->Name), true);
 #else
 		UnrealEditLayer->bLocked = true;

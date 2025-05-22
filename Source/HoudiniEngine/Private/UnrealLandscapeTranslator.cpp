@@ -43,6 +43,9 @@
 #include "LandscapeStreamingProxy.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeEdit.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+#include "LandscapeEditLayer.h"
+#endif
 #include "LightMap.h"
 #include "Engine/MapBuildDataRegistry.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
@@ -396,13 +399,20 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 	{
 		HAPI_VolumeInfo LayerVolumeInfo;
 		FHoudiniApi::VolumeInfo_Init(&HeightfieldVolumeInfo);
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5	
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		for (const FLandscapeLayer& Layer : Landscape->GetLayersConst())
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		for (const FLandscapeLayer& Layer : Landscape->GetLayers())
 #else
 		for(FLandscapeLayer& Layer : Landscape->LandscapeLayers)
 #endif
 		{
-			const FString LayerVolumeName = FString::Format(TEXT("landscapelayer_{0}"), {Layer.Name.ToString()});
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+			FString LayerName = Layer.EditLayer->GetName().ToString();
+#else
+			FString LayerName = Layer.Name.ToString();
+#endif
+			const FString LayerVolumeName = FString::Format(TEXT("landscapelayer_{0}"), { LayerName });
 			
 			HAPI_NodeId LandscapeLayerNodeId = -1;
 			
@@ -418,7 +428,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 				), false);
 
 			// Create a volume visualization node
-			const FString VisualizationName = FString::Format(TEXT("visualization_{0}"), {Layer.Name.ToString()});
+			const FString VisualizationName = FString::Format(TEXT("visualization_{0}"), { LayerName });
 			HAPI_NodeId VisualizationNodeId = -1;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
 				FHoudiniEngine::Get().GetSession(),
@@ -453,7 +463,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 				), false);
 
 			// Create a visibility node
-			const FString VisibilityName = FString::Format(TEXT("visibility_{0}"), {Layer.Name.ToString()});
+			const FString VisibilityName = FString::Format(TEXT("visibility_{0}"), {LayerName});
 			HAPI_NodeId VisibilityNodeId = -1;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(
 				FHoudiniEngine::Get().GetSession(),
@@ -477,7 +487,12 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 			// Connect the visibility node to the merge input
 			HOUDINI_CHECK_ERROR_RETURN(MergeInputFn(MergeId, VisibilityNodeId), false);
 
-			FScopedSetLandscapeEditingLayer Scope(Landscape, Layer.Guid ); // Scope landscape access to the current layer
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+			FGuid LayerGuid = Layer.EditLayer->GetGuid();
+#else
+			FGuid LayerGuid = Layer.Guid;
+#endif
+			FScopedSetLandscapeEditingLayer Scope(Landscape, LayerGuid ); // Scope landscape access to the current layer
 
 			//--------------------------------------------------------------------------------------------------
 			// Extracting height data
@@ -2573,12 +2588,18 @@ bool FUnrealLandscapeTranslator::SendAllEditLayerTargetLayersToHoudini(
 		return false;
 
 	ALandscape * Landscape = LandscapeProxy->GetLandscapeActor();
-	for(int EditLayerIndex = 0; EditLayerIndex < Landscape->GetLayerCount(); EditLayerIndex++)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	for(int EditLayerIndex = 0; EditLayerIndex < Landscape->GetLayersConst().Num(); EditLayerIndex++)
+#else
+	for (int EditLayerIndex = 0; EditLayerIndex < Landscape->GetLayerCount(); EditLayerIndex++)
+#endif
 	{
 		int32 NumTargetLayers = LandscapeInfo->Layers.Num();
 		for (int32 TargetLayerIndex = 0; TargetLayerIndex < NumTargetLayers; TargetLayerIndex++)
 		{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+			const FName& EditLayerName = LandscapeProxy->GetLandscapeActor()->GetLayerConst(EditLayerIndex)->EditLayer->GetName();
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 			const FName & EditLayerName = LandscapeProxy->GetLandscapeActor()->GetLayerConst(EditLayerIndex)->Name;
 #else
 			const FName & EditLayerName = LandscapeProxy->GetLandscapeActor()->GetLayer(EditLayerIndex)->Name;

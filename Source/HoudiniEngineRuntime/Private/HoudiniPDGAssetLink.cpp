@@ -1952,22 +1952,38 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 						UPackage* const Package = OutputObject.OutputObject->GetOutermost();
 						if (IsValid(Package))
 						{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+							FMetaData& MetaData = Package->GetMetaData();
+#else
 							UMetaData* const MetaData = Package->GetMetaData();
 							if (IsValid(MetaData))
+#endif
 							{
 								// Check for HAPI_UNREAL_PACKAGE_META_TEMP_GUID in the package metadata to confirm that
 								// this is a temp package, and then ensure that the component GUID in the package metadata
 								// for the object matches the GUID of the owning HAC
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+								if (MetaData.RootMetaDataMap.Contains(HAPI_UNREAL_PACKAGE_META_TEMP_GUID))
+#else
 								if (MetaData->RootMetaDataMap.Contains(HAPI_UNREAL_PACKAGE_META_TEMP_GUID))
+#endif
 								{
 									FString TempGUID;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+									TempGUID = MetaData.RootMetaDataMap.FindChecked(HAPI_UNREAL_PACKAGE_META_TEMP_GUID);
+#else
 									TempGUID = MetaData->RootMetaDataMap.FindChecked(HAPI_UNREAL_PACKAGE_META_TEMP_GUID);
+#endif
 									TempGUID.TrimStartAndEndInline();
 									if (!TempGUID.IsEmpty())
 									{
 										// PackageComponentGuidString will be the empty string if the object does not
 										// have the HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID metadata key in the package
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+										const FString PackageComponentGuidString = MetaData.GetValue(OutputObject.OutputObject, HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID);
+#else
 										const FString PackageComponentGuidString = MetaData->GetValue(OutputObject.OutputObject, HAPI_UNREAL_PACKAGE_META_COMPONENT_GUID);
+#endif
 										if (!PackageComponentGuidString.IsEmpty() && PackageComponentGuidString == ComponentGuidString)
 											OutputObjectsToDelete.Add(OutputObject.OutputObject);
 									}

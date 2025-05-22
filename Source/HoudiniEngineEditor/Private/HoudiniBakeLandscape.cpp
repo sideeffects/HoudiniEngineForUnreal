@@ -110,18 +110,24 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 
 	bool bIsHeightFieldLayer = LayerOutput.TargetLayer == "height";
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	FGuid BakedLayerGuid = BakedLayer->EditLayer->GetGuid();
+#else
+	FGuid BakedLayerGuid = BakedLayer->Guid;
+#endif
+
 	if (OutputLandscape->bHasLayersContent && LayerOutput.bClearLayer && 
 		!ClearedLayers.Contains(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer))
 	{
 		ClearedLayers.Add(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer);
 		if (bIsHeightFieldLayer)
 		{
-			OutputLandscape->ClearLayer(BakedLayer->Guid, nullptr, ELandscapeClearMode::Clear_Heightmap);
+			OutputLandscape->ClearLayer(BakedLayerGuid, nullptr, ELandscapeClearMode::Clear_Heightmap);
 		}
 		else
 		{
 			HOUDINI_CHECK_RETURN(TargetLayerInfo, false);
-			OutputLandscape->ClearPaintLayer(BakedLayer->Guid, TargetLayerInfo);
+			OutputLandscape->ClearPaintLayer(BakedLayerGuid, TargetLayerInfo);
 		}
 
 	}
@@ -134,7 +140,7 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	{
 		HOUDINI_CHECK_RETURN(TargetLayerInfo, false);
 
-		FScopedSetLandscapeEditingLayer Scope(OutputLandscape, BakedLayer->Guid, [&] { OutputLandscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); });
+		FScopedSetLandscapeEditingLayer Scope(OutputLandscape, BakedLayerGuid, [&] { OutputLandscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); });
 
 		TArray<uint8_t> Values = FHoudiniLandscapeUtils::GetLayerData(OutputLandscape, Extents, FName(LayerOutput.CookedEditLayer), FName(LayerOutput.TargetLayer));
 
@@ -167,7 +173,7 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 		HOUDINI_CHECK_RETURN(EditLayer != nullptr, false);
 		TArray<uint16_t> Values = FHoudiniLandscapeUtils::GetHeightData(OutputLandscape, Extents, EditLayer);
 
-		FScopedSetLandscapeEditingLayer Scope(OutputLandscape, BakedLayer->Guid, [&] { OutputLandscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); });
+		FScopedSetLandscapeEditingLayer Scope(OutputLandscape, BakedLayerGuid, [&] { OutputLandscape->RequestLayersContentUpdate(ELandscapeLayerUpdateMode::Update_All); });
 
 		FLandscapeEditDataInterface LandscapeEdit(TargetLandscapeInfo);
 		FHeightmapAccessor<false> HeightmapAccessor(TargetLandscapeInfo);
@@ -628,7 +634,9 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 
 	// If the landscape has a reserved splines layer, then we don't create any named temp/bake layers on the landscape for splines
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	if (OutputLandscape->FindEditLayerOfType(ULandscapeEditLayerSplines::StaticClass()))
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	if (OutputLandscape->FindLayerOfType(ULandscapeEditLayerSplines::StaticClass()))
 #else
 	if (OutputLandscape->GetLandscapeSplinesReservedLayer())
@@ -664,7 +672,11 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 		!ClearedLayers.Contains(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer))
 	{
 		ClearedLayers.Add(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		OutputLandscape->ClearLayer(BakedLayer->EditLayer->GetGuid(), nullptr, ELandscapeClearMode::Clear_Heightmap);
+#else
 		OutputLandscape->ClearLayer(BakedLayer->Guid, nullptr, ELandscapeClearMode::Clear_Heightmap);
+#endif
 	}
 
 	//---------------------------------------------------------------------------------------------------------------------------

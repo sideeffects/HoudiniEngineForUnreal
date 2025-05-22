@@ -6733,9 +6733,13 @@ FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
 	if (!IsValid(Package))
 		return;
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	Package->GetMetaData().SetValue(Object, *Key, *Value);
+#else
 	UMetaData * MetaData = Package->GetMetaData();
 	if (IsValid(MetaData))
 		MetaData->SetValue(Object, *Key, *Value);
+#endif
 }
 
 

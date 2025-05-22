@@ -31,10 +31,11 @@
 #include "HoudiniEngineUtils.h"
 
 #include "EditorStyleSet.h"
-#include "Styling/SlateStyleRegistry.h"
-#include "Styling/SlateTypes.h"
 #include "SlateOptMacros.h"
 #include "Styling/StyleColors.h"
+#include "Styling/SlateStyle.h"
+#include "Styling/SlateStyleRegistry.h"
+#include "Styling/SlateTypes.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -45,6 +46,7 @@
 #define TTF_CORE_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToCoreContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
 #define OTF_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
 #define OTF_CORE_FONT( RelativePath, ... ) FSlateFontInfo( StyleSet->RootToCoreContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
+#define DEFAULT_FONT(...) FCoreStyle::GetDefaultFontStyle(__VA_ARGS__)
 
 TSharedPtr<FSlateStyleSet> FHoudiniEngineStyle::StyleSet = nullptr;
 
@@ -258,7 +260,8 @@ FHoudiniEngineStyle::Initialize()
 	const FTextBlockStyle& NormalText = _GetEditorStyle().GetWidgetStyle<FTextBlockStyle>("NormalText");
 	StyleSet->Set(
 		"HoudiniEngine.ThumbnailText", FTextBlockStyle(NormalText)
-		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 9))
+		//.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 9))
+		.SetFont(DEFAULT_FONT("Regular", 9))
 		.SetColorAndOpacity(FSlateColor::UseForeground())
 		.SetShadowOffset(FVector2D::ZeroVector)
 		.SetShadowColorAndOpacity(FLinearColor::Black)
