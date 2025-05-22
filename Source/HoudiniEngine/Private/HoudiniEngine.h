@@ -166,7 +166,7 @@ public:
 		// Starts the HoudiniEngineManager ticking
 		void StartTicking(bool bShowNotificationsAndMessages);
 		// Stops the HoudiniEngineManager ticking and invalidate the session
-		void StopTicking(bool bShowNotificationsAndMessages);
+		void StopTicking(bool bShowNotificationsAndMessages, bool bStopSession=true);
 
 		bool IsTicking() const;
 

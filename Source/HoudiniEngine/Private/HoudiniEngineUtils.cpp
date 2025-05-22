@@ -8722,6 +8722,15 @@ FHoudiniEngineUtils::TriageHoudiniCookablesForProxyMeshRefinement(
 		if(ProxyMeshPackagesToSave.Num() > 0)
 		{
 			TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+
+			// TODO: Try to prevent potential crash upon multiple successive PIE
+			for (int nIdx = ProxyMeshPackagesToSave.Num() - 1; nIdx >= 0; nIdx--)
+			{
+				UPackage* CurPackage = ProxyMeshPackagesToSave[nIdx];
+				if (!IsValid(CurPackage) || !CurPackage->IsDirty())
+					ProxyMeshPackagesToSave.RemoveAt(nIdx);
+			}
+
 			FEditorFileUtils::PromptForCheckoutAndSave(ProxyMeshPackagesToSave, true, false);
 		}
 	}
@@ -8761,7 +8770,7 @@ FHoudiniEngineUtils::RefineTriagedHoudiniProxyMeshesToStaticMeshes(
 			if(bRefinementDone)
 			{
 				// Don't tick during PIE. We'll resume ticking when PIE is stopped.
-				FHoudiniEngine::Get().StopTicking(true);
+				FHoudiniEngine::Get().StopTicking(true, false);
 			}
 		}
 		};

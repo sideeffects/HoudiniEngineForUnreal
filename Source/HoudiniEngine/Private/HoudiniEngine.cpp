@@ -1376,7 +1376,7 @@ FHoudiniEngine::StartTicking(bool bShowNotificationsAndMessages)
 }
 
 void
-FHoudiniEngine::StopTicking(bool bShowNotificationsAndMessages)
+FHoudiniEngine::StopTicking(bool bShowNotificationsAndMessages, bool bStopSession/*=true*/)
 {
 	if(bShowNotificationsAndMessages)
 	{
@@ -1386,7 +1386,8 @@ FHoudiniEngine::StopTicking(bool bShowNotificationsAndMessages)
 	}
 	HoudiniEngineManager->StopHoudiniTicking();
 
-	StopSessionInternal();	
+	if(bStopSession)
+		StopSessionInternal();
 }
 
 bool FHoudiniEngine::IsTicking() const
