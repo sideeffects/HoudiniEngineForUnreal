@@ -964,20 +964,34 @@ bool FHoudiniEditorTestPCG_PCGSplinesCooked::RunTest(const FString& Parameters)
 
 		{
 			const UPCGSplineData* PCGSplineData = Cast<UPCGSplineData>(PCGDataAsset->Data.TaggedData[0].Data);
-			HOUDINI_TEST_EQUAL_ON_FAIL(PCGSplineData->SplineStruct.SplineCurves.Position.Points.Num(), 4, return true);
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+			HOUDINI_TEST_EQUAL_ON_FAIL(PCGSplineData->SplineStruct.GetNumberOfPoints(), 4, return true);
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[0].OutVal, FVector(-542.820597, 742.795944, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[1].OutVal, FVector(588.031721, 665.821791, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[2].OutVal, FVector(319.931078, -1339.993763, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[3].OutVal, FVector(864.991283, -1053.272057, 0.000000));
+#else
+			HOUDINI_TEST_EQUAL_ON_FAIL(PCGSplineData->SplineStruct.SplineCurves.Position.Points.Num(), 4, return true);			
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[0].OutVal,FVector(-542.820597, 742.795944, 0.000000));
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[1].OutVal, FVector(588.031721, 665.821791, 0.000000));
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[2].OutVal, FVector(319.931078, -1339.993763, 0.000000));
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[3].OutVal, FVector(864.991283, -1053.272057, 0.000000));
+#endif
 		}
 
 		{
 			const UPCGSplineData* PCGSplineData = Cast<UPCGSplineData>(PCGDataAsset->Data.TaggedData[1].Data);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetNumberOfPoints(), 3);
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[0].OutVal, FVector(100.000000, 0.000000, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[1].OutVal, FVector(200.000000, 0.000000, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[2].OutVal, FVector(200.000000, -60.000002, 0.000000));
+#else
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points.Num(), 3);
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[0].OutVal, FVector(100.000000, 0.000000, 0.000000));
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[1].OutVal, FVector(200.000000, 0.000000, 0.000000));
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[2].OutVal, FVector(200.000000, -60.000002, 0.000000));
+#endif
 		}
 
 		return true;
@@ -1029,20 +1043,36 @@ bool FHoudiniEditorTestPCG_PCGSplinesBaked::RunTest(const FString& Parameters)
 
 		{
 			const UPCGSplineData* PCGSplineData = Cast<UPCGSplineData>(PCGDataAsset->Data.TaggedData[0].Data);
-			HOUDINI_TEST_EQUAL_ON_FAIL(PCGSplineData->SplineStruct.SplineCurves.Position.Points.Num(), 4, return true);
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+			HOUDINI_TEST_EQUAL_ON_FAIL(PCGSplineData->SplineStruct.GetNumberOfPoints(), 4, return true);
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[0].OutVal, FVector(-542.820597, 742.795944, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[1].OutVal, FVector(588.031721, 665.821791, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[2].OutVal, FVector(319.931078, -1339.993763, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[3].OutVal, FVector(864.991283, -1053.272057, 0.000000));
+#else
+			HOUDINI_TEST_EQUAL_ON_FAIL(PCGSplineData->SplineStruct.SplineCurves.Position.Points.Num(), 4, return true);
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[0].OutVal, FVector(-542.820597, 742.795944, 0.000000));
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[1].OutVal, FVector(588.031721, 665.821791, 0.000000));
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[2].OutVal, FVector(319.931078, -1339.993763, 0.000000));
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[3].OutVal, FVector(864.991283, -1053.272057, 0.000000));
+#endif
 		}
 
 		{
 			const UPCGSplineData* PCGSplineData = Cast<UPCGSplineData>(PCGDataAsset->Data.TaggedData[1].Data);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetNumberOfPoints(), 3);
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[0].OutVal, FVector(100.000000, 0.000000, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[1].OutVal, FVector(200.000000, 0.000000, 0.000000));
+			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.GetSplinePointsPosition().Points[2].OutVal, FVector(200.000000, -60.000002, 0.000000));
+
+#else
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points.Num(), 3);
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[0].OutVal, FVector(100.000000, 0.000000, 0.000000));
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[1].OutVal, FVector(200.000000, 0.000000, 0.000000));
 			HOUDINI_TEST_EQUAL(PCGSplineData->SplineStruct.SplineCurves.Position.Points[2].OutVal, FVector(200.000000, -60.000002, 0.000000));
+#endif
 		}
 
 		return true;
