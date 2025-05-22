@@ -260,8 +260,11 @@ UHoudiniParameter::InvalidateData()
 void UHoudiniParameter::OnSessionConnected()
 {
 	NodeId = INDEX_NONE;
-	ParmId = INDEX_NONE;
-	ParentParmId = INDEX_NONE;
+
+	// Dont invalidate existing parmId as this will prevent the Parm UI
+	// From properly showing up.
+	//ParmId = INDEX_NONE;
+	//ParentParmId = INDEX_NONE;
 }
 
 

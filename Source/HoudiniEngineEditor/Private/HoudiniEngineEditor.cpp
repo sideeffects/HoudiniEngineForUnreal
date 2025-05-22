@@ -1968,10 +1968,15 @@ FHoudiniEngineEditor::HandleOnBeginPIE()
 			EndPIEEditorDelegateHandle = FEditorDelegates::EndPIE.AddLambda([&, bWasConnected](const bool bEndPIEIsSimulating)
 			{
 				// If the Houdini session was previously connected, we need to reestablish the connection after PIE.
-				// We need to restart the current Houdini Engine Session
+				// We need to restart the current Houdini Engine Session if needed.
 				// This will reuse the previous session if it didnt shutdown, or start a new one if needed.
 				// (HARS shuts down when stopping the session, so we cant just reconnect when not using Session Sync)
-				FHoudiniEngineCommands::RestartSession();
+				if(FHoudiniEngine::Get().GetSessionStatus() != EHoudiniSessionStatus::Connected)
+					FHoudiniEngineCommands::RestartSession();
+
+				// If the session wasn't stopped - we just need to start ticking again
+				if (!FHoudiniEngine::Get().IsTicking())
+					FHoudiniEngine::Get().StartTicking();
 
 				FEditorDelegates::EndPIE.Remove(EndPIEEditorDelegateHandle);
 			});

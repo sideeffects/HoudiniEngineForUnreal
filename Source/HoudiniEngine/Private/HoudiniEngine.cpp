@@ -1353,7 +1353,7 @@ FHoudiniEngine::StartTicking()
 }
 
 void
-FHoudiniEngine::StopTicking()
+FHoudiniEngine::StopTicking(bool bStopSession/*=true*/)
 {
 	// Finish the notification and display the results
 	FString StatusText = TEXT("Failed to start the Houdini Engine session...");
@@ -1361,7 +1361,8 @@ FHoudiniEngine::StopTicking()
 
 	HoudiniEngineManager->StopHoudiniTicking();
 
-	StopSession();	
+	if(bStopSession)
+		StopSession();
 }
 
 bool FHoudiniEngine::IsTicking() const

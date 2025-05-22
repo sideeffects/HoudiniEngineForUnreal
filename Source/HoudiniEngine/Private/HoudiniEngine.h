@@ -151,7 +151,7 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 		// Starts the HoudiniEngineManager ticking
 		void StartTicking();
 		// Stops the HoudiniEngineManager ticking and invalidate the session
-		void StopTicking();
+		void StopTicking(bool bStopSession=true);
 
 		bool IsTicking() const;
 
