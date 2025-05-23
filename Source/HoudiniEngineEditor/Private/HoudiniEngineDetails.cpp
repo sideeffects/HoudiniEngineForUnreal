@@ -250,7 +250,6 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 
 	// Create a vertical Box for storing the UI
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
-	const IDetailsView* DetailsView = HouAssetCategory.GetParentLayout().GetDetailsView();
 
 	// Add the Preset menu
 	TSharedPtr<SImage> Image;

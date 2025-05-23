@@ -52,9 +52,6 @@
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Landscape.h"
 #include "LandscapeEdit.h"
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
-#include "LandscapeEditLayer.h"
-#endif
 #include "LandscapeInfo.h"
 #include "LandscapeProxy.h"
 #include "LandscapeSplineActor.h"
@@ -64,7 +61,6 @@
 #include "UObject/Package.h"
 #include "UObject/MetaData.h"
 #include "WorldPartition/WorldPartition.h"
-
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	#include "LandscapeEditLayer.h"
@@ -206,9 +202,7 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	if (EditLayerIndex != INDEX_NONE) 
 	{
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
-		OutputLandscape->SetLayerVisibility(EditLayerIndex, true);
-		// Suggested by UE - doesnt work?
-		//OutputLandscape->GetEditLayer(EditLayerIndex)->SetVisibility(true);
+		OutputLandscape->GetEditLayer(EditLayerIndex)->SetVisible(true, true);
 #else
 		OutputLandscape->SetLayerVisibility(EditLayerIndex, true);
 #endif
@@ -713,7 +707,13 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 	//---------------------------------------------------------------------------------------------------------------------------
 	int EditLayerIndex = OutputLandscape->GetLayerIndex(BakedEditLayer);
 	if (EditLayerIndex != INDEX_NONE)
+	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		OutputLandscape->GetEditLayer(EditLayerIndex)->SetVisible(true, true);
+#else	
 		OutputLandscape->SetLayerVisibility(EditLayerIndex, true);
+#endif
+	}
 
 	return true;
 }
