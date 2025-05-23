@@ -42,6 +42,9 @@
 #include "HoudiniEngineStyle.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniPackageParams.h"
+#if defined(HOUDINI_USE_PCG)
+	#include "HoudiniPCGCookable.h"
+#endif
 #include "HoudiniSplineComponentVisualizer.h"
 #include "UnrealObjectInputRuntimeUtils.h"
 
@@ -58,7 +61,6 @@
 #include "Engine/Selection.h"
 #include "Engine/SkeletalMesh.h"
 #include "EngineUtils.h"
-#include "HoudiniPCGCookable.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Framework/SlateDelegates.h"
 #include "IDetailCustomization.h"
