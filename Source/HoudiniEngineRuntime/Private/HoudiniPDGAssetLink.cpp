@@ -1883,9 +1883,19 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 						// Make sure foliage our foliage instances have been removed
 						USceneComponent* ParentComponent = nullptr;
 						if (IsValid(OutputActor))
+						{
 							ParentComponent = Cast<USceneComponent>(OutputActor->GetRootComponent());
+						}
 						else
-							ParentComponent = Cast<USceneComponent>(HISMC->GetOuter()); 
+						{
+							ParentComponent = Cast<USceneComponent>(HISMC->GetOuter());
+							if (!ParentComponent)
+							{
+								UHoudiniCookable* OuterCookable = Cast<UHoudiniCookable>(HISMC->GetOuter());
+								ParentComponent = OuterCookable ? OuterCookable->GetComponent() : nullptr;
+							}
+						}
+							
 						if (IsValid(ParentComponent))
 						{
 							UStaticMesh* FoliageSM = HISMC->GetStaticMesh();

@@ -322,6 +322,11 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 	// TODO COOKABLE: Handle the case where the Out is NOT a component
 	// we need to split output asset creation from component creation!
 	USceneComponent* InOuterComponent = Cast<USceneComponent>(InOuter);
+	if (!InOuterComponent)
+	{
+		UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(InOuter);
+		InOuterComponent = OuterHC ? OuterHC->GetComponent() : nullptr;
+	}
 
 	// NOTE: The world can be NULL when, for example, when working with
 	// HoudiniAssetComponents in Blueprints.

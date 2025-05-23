@@ -298,6 +298,9 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	TArray<UHoudiniOutput*> LandscapeOutputs;
 	TArray<UPackage*> CreatedPackages;
 
+	// TODO: COOKABLE:
+	// Make sure Outer is a Component!
+	
 	//bool bCreatedNewMaps = false;
 	UWorld* PersistentWorld = InOuterComponent->GetTypedOuter<UWorld>();
 	check(PersistentWorld);

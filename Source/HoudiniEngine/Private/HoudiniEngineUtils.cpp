@@ -1274,6 +1274,7 @@ FHoudiniEngineUtils::GetOuterSceneComponent(const UObject* Obj)
 	if(!Obj)
 		return nullptr;
 
+	// TODO: ? test cookable?
 	UObject* Outer = Obj->GetOuter();
 	while (Outer)
 	{

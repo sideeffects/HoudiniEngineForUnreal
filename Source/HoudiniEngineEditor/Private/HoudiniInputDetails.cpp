@@ -58,7 +58,7 @@
 #include "Engine/Selection.h"
 #include "Engine/SkeletalMesh.h"
 #include "EngineUtils.h"
-#include "HoudiniCookable.h"
+#include "HoudiniPCGCookable.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Framework/SlateDelegates.h"
 #include "IDetailCustomization.h"
@@ -389,7 +389,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 	{
 		SupportedChoices = FHoudiniEngineEditor::Get().GetBlueprintInputTypeChoiceLabels();
 	}
-	else if (UHoudiniCookable* HC = MainInput->GetTypedOuter<UHoudiniCookable>())
+	else if (UHoudiniPCGCookable* HPCGC = MainInput->GetTypedOuter<UHoudiniPCGCookable>())
 	{
 		SupportedChoices = FHoudiniEngineEditor::Get().GetPCGInputTypeChoiceLabels();
 	}
@@ -3744,7 +3744,7 @@ FHoudiniInputDetails::Helper_CreateCurveWidgetExpanded(
 			})
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 			{
-				return ChangedVisibleCurve(NewState);
+				return ChangedReversedCurve(NewState);
 			})
 		]
 		+ SHorizontalBox::Slot()
@@ -7458,9 +7458,12 @@ FHoudiniInputDetails::Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& C
 		for (auto CurrentInput : InInputs)
 		{
 			CurrentInput->Modify();
+
 			// Get our parent component/actor
-			USceneComponent* ParentComponent = Cast<USceneComponent>(CurrentInput->GetOuter());
-			AActor* ParentActor = ParentComponent ? ParentComponent->GetOwner() : nullptr;
+			UHoudiniCookable* OuterCookable = Cast<UHoudiniCookable>(CurrentInput->GetOuter());
+			USceneComponent* ParentComponent = OuterCookable ? OuterCookable->GetComponent() : Cast<USceneComponent>(CurrentInput->GetOuter());
+			AActor* ParentActor = OuterCookable ? OuterCookable->GetOwner() : nullptr;
+
 			AllActors.Add(ParentActor);
 
 			bool bHasChanged = true;
@@ -7607,7 +7610,8 @@ FHoudiniInputDetails::Helper_CancelWorldSelection(const TArray<TWeakObjectPtr<UH
 	for (auto CurrentInput : InInputs)
 	{
 		// Get our parent component/actor
-		USceneComponent* ParentComponent = Cast<USceneComponent>(CurrentInput->GetOuter());
+		UHoudiniCookable* OuterCookable = Cast<UHoudiniCookable>(CurrentInput->GetOuter());
+		USceneComponent* ParentComponent = OuterCookable ? OuterCookable->GetComponent() : Cast<USceneComponent>(CurrentInput->GetOuter());
 		if (!ParentComponent)
 			continue;
 

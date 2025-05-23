@@ -209,7 +209,8 @@ void UHoudiniInput::PostEditUndo()
 					 if (!IsValid(HoudiniSplineComponent))
 						 continue;
 
-					 USceneComponent* OuterComponent = Cast<USceneComponent>(GetOuter());
+					 UHoudiniCookable* OuterCookable = Cast<UHoudiniCookable>(GetOuter());
+					 USceneComponent* OuterComponent = OuterCookable ? OuterCookable->GetComponent() : Cast<USceneComponent>(GetOuter());
 
 					 // Attach the new Houdini spline component to it's owner
 					 HoudiniSplineComponent->RegisterComponent();
@@ -829,7 +830,8 @@ UHoudiniInput::SetKeepWorldTransform(const bool& bInKeepWorldTransform)
 void 
 UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlueprintStructureModified)
 {
-	USceneComponent* OuterComp = Cast<USceneComponent>(GetOuter());
+	UHoudiniCookable* OuterCookable = Cast<UHoudiniCookable>(GetOuter());
+	USceneComponent* OuterComp = OuterCookable ? OuterCookable->GetComponent() : Cast<USceneComponent>(GetOuter());
 	if (InInputType == Type)
 		return;
 
@@ -919,8 +921,7 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 	{
 		case EHoudiniInputType::World:
 		{
-			UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(GetOuter());
-			if (OuterHC && !InputSettings.bImportAsReference)
+			if (OuterCookable && !InputSettings.bImportAsReference)
 			{
 				for (auto& CurrentInput : *GetHoudiniInputObjectArray(EHoudiniInputType::World))
 				{
@@ -932,7 +933,7 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 					if (!IsValid(CurrentHC))
 						continue;
 
-					CurrentHC->AddDownstreamCookable(OuterHC);
+					CurrentHC->AddDownstreamCookable(OuterCookable);
 				}
 			}
 		}
@@ -981,9 +982,9 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 						// Attach the new Houdini spline component to it's owner
 						AActor* OwningActor = HoudiniSplineComponent->GetOwner();
 						check(OwningActor);
-						USceneComponent* OuterComponent = Cast<USceneComponent>(GetOuter());
+
 						HoudiniSplineComponent->RegisterComponent();
-						HoudiniSplineComponent->AttachToComponent(OuterComponent, FAttachmentTransformRules::KeepRelativeTransform);
+						HoudiniSplineComponent->AttachToComponent(OuterComp, FAttachmentTransformRules::KeepRelativeTransform);
 						HoudiniSplineComponent->SetHoudiniSplineVisible(true);
 						HoudiniSplineComponent->SetHiddenInGame(false, true);
 						HoudiniSplineComponent->SetVisibility(true, true);
@@ -1342,7 +1343,9 @@ UHoudiniInput::CreateHoudiniSplineInput(UHoudiniInputHoudiniSplineComponent * Fr
 	UHoudiniSplineComponent* HoudiniSplineComponent = nullptr;
 
 	UObject* OuterObj = GetOuter();
-	USceneComponent* OuterComp = Cast<USceneComponent>(GetOuter());
+
+	UHoudiniCookable* OuterCookable = Cast<UHoudiniCookable>(GetOuter());
+	USceneComponent* OuterComp = OuterCookable ? OuterCookable->GetComponent() : Cast<USceneComponent>(GetOuter());
 	bool bOuterIsTemplate = (OuterObj && OuterObj->IsTemplate());
 
 	if (!FromHoudiniSplineInputComponent)
@@ -2462,10 +2465,10 @@ UHoudiniInput::UpdateWorldSelectionFromBoundSelectors()
 	//
 
 	// Get our parent component/actor
-	USceneComponent* ParentComponent = Cast<USceneComponent>(GetOuter());
-	AActor* ParentActor = ParentComponent ? ParentComponent->GetOwner() : nullptr;
+	UHoudiniCookable* OuterCookable = Cast<UHoudiniCookable>(GetOuter());
+	USceneComponent* ParentComponent = OuterCookable ? OuterCookable->GetComponent() : Cast<USceneComponent>(GetOuter());
+	AActor* ParentActor = OuterCookable ? OuterCookable->GetOwner() : nullptr;
 
-	//UWorld* editorWorld = GEditor->GetEditorWorldContext().World();
 	UWorld* MyWorld = GetWorld();
 	TArray<AActor*> NewSelectedActors;
 	for (TActorIterator<AActor> ActorItr(MyWorld); ActorItr; ++ActorItr)

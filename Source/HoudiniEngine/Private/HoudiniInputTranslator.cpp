@@ -1197,12 +1197,12 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 	if (false)
 	{
 		FTransform ComponentTransform = FTransform::Identity;
-		USceneComponent* OuterComp = Cast<USceneComponent>(InInput->GetOuter());
+		UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(InInput->GetOuter());
+		USceneComponent* OuterComp = OuterHC ? OuterHC->GetComponent() : Cast<USceneComponent>(InInput->GetOuter());
 		if (IsValid(OuterComp))
 			ComponentTransform = OuterComp->GetComponentTransform();
 
 		FHoudiniEngineUtils::HapiSetAssetTransform(InputNodeId, ComponentTransform);
-		//HapiUpdateInputNodeTransform(InputNodeId, ComponentTransform);
 	}
 
 	// Connect all the input objects to the merge node now
