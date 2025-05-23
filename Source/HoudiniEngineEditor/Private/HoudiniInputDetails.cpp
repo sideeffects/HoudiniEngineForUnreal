@@ -391,10 +391,12 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 	{
 		SupportedChoices = FHoudiniEngineEditor::Get().GetBlueprintInputTypeChoiceLabels();
 	}
+#if defined(HOUDINI_USE_PCG)
 	else if (UHoudiniPCGCookable* HPCGC = MainInput->GetTypedOuter<UHoudiniPCGCookable>())
 	{
 		SupportedChoices = FHoudiniEngineEditor::Get().GetPCGInputTypeChoiceLabels();
 	}
+#endif
 	else
 	{
 		SupportedChoices = FHoudiniEngineEditor::Get().GetInputTypeChoiceLabels();
