@@ -222,7 +222,13 @@ FHoudiniInputDetails::CreateWidget(
 	TSharedRef< SVerticalBox > VerticalBox = SNew(SVerticalBox);
 
 	// ComboBox :  Input Type
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	TSharedPtr<IDetailsView> DetailsViewShared = HouInputCategory.GetParentLayout().GetDetailsViewSharedPtr();
+	const IDetailsView* DetailsView = DetailsViewShared.Get();
+#else
 	const IDetailsView* DetailsView = HouInputCategory.GetParentLayout().GetDetailsView();
+#endif
+
 	AddInputTypeComboBox(HouInputCategory, VerticalBox, InInputs, DetailsView);
 
 	switch (MainInput->GetInputType())

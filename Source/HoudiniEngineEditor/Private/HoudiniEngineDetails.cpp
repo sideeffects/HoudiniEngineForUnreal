@@ -217,15 +217,14 @@ FHoudiniEngineDetails::CreateHoudiniEngineIconWidget(
 
 
 void
-FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(
+	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
 	const TArray<TWeakObjectPtr<UHoudiniAssetComponent>>& InHACs)
 {
 	if (InHACs.Num() <= 0)
 		return;
 
 	const TWeakObjectPtr<UHoudiniAssetComponent>& MainHAC = InHACs[0];
-	IDetailLayoutBuilder* SavedLayoutBuilder = &HoudiniEngineCategoryBuilder.GetParentLayout();
-
 	if (!IsValidWeakPointer(MainHAC))
 		return;
 
@@ -234,7 +233,8 @@ FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(IDetailCategoryBuilder& H
 	if (!HoudiniEngineUIIconBrush.IsValid())
 		return;
 
-	FDetailWidgetRow & Row = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	IDetailLayoutBuilder* SavedLayoutBuilder = &HoudiniEngineCategoryBuilder.GetParentLayout();
+	FDetailWidgetRow& Row = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
 	TSharedRef<SHorizontalBox> Box = SNew(SHorizontalBox);
 	TSharedPtr<SImage> Image;
 

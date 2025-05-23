@@ -145,11 +145,23 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 		{
 			int EditLayerIndex = Result->Landscape->GetLayerIndex(FName(Result->BakedEditLayer));
 			if (EditLayerIndex != INDEX_NONE)
+			{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+				Result->Landscape->GetEditLayer(EditLayerIndex)->SetVisible(false, true);
+#else	
 				Result->Landscape->SetLayerVisibility(EditLayerIndex, false);
+#endif
+			}
 
 			EditLayerIndex = Result->Landscape->GetLayerIndex(FName(Result->CookedEditLayer));
 			if (EditLayerIndex != INDEX_NONE)
+			{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+				Result->Landscape->GetEditLayer(EditLayerIndex)->SetVisible(true, true);
+#else	
 				Result->Landscape->SetLayerVisibility(EditLayerIndex, true);
+#endif
+			}
 		}
 
 		OutputObj.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_OUTLINER_FOLDER, Part.BakeOutlinerFolder);
@@ -619,7 +631,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 			if (Part.bWriteLockedLayers)
 			{
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
-				OutputLandscape->SetLayerLocked(OutputLandscape->GetLayerIndex(UnrealEditLayer->EditLayer->GetName()), false);
+				UnrealEditLayer->EditLayer->SetLocked(false, true);
 #elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 				OutputLandscape->SetLayerLocked(OutputLandscape->GetLayerIndex(UnrealEditLayer->Name), false);
 #else
@@ -698,11 +710,23 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 
 	if (OutputLandscape->bHasLayersContent)
 	{
-		if (Part.bSubtractiveEditLayer != OutputLandscape->IsLayerBlendSubstractive(UnrealEditLayerIndex, TargetLayerInfo))
+		bool bLayerSubractive = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		ULandscapeEditLayerBase* EditLayer = OutputLandscape->GetEditLayer(UnrealEditLayerIndex);
+		if (EditLayer != nullptr)
 		{
-			OutputLandscape->SetLayerSubstractiveBlendStatus(UnrealEditLayerIndex, Part.bSubtractiveEditLayer, TargetLayerInfo);
+			// Great, these are the Epic recommended replacements for Is/SetLayerBlendSubstractive,
+			// But this throws a warning anyway...
+			const bool* AllocationBlend = EditLayer->GetWeightmapLayerAllocationBlend().Find(TargetLayerInfo);
+			if (AllocationBlend != nullptr && (Part.bSubtractiveEditLayer != *AllocationBlend))
+			{
+				EditLayer->AddOrUpdateWeightmapAllocationLayerBlend(TargetLayerInfo, Part.bSubtractiveEditLayer, true);
+			}
 		}
-
+#else
+		if (Part.bSubtractiveEditLayer != OutputLandscape->IsLayerBlendSubstractive(UnrealEditLayerIndex, TargetLayerInfo))
+			OutputLandscape->SetLayerSubstractiveBlendStatus(UnrealEditLayerIndex, Part.bSubtractiveEditLayer, TargetLayerInfo);
+#endif
 		if (TargetLayerInfo)
 			TargetLayerInfo->bNoWeightBlend = !Part.bIsWeightBlended;
 	}
@@ -810,7 +834,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	if (bWasLocked && UnrealEditLayer)
 	{
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
-		OutputLandscape->SetLayerLocked(OutputLandscape->GetLayerIndex(UnrealEditLayer->EditLayer->GetName()), true);
+		UnrealEditLayer->EditLayer->SetLocked(true, true);
 #elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		OutputLandscape->SetLayerLocked(OutputLandscape->GetLayerIndex(UnrealEditLayer->Name), true);
 #else

@@ -185,7 +185,9 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 
 	if (bWasLocked && BakedLayer)
 	{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		BakedLayer->EditLayer->SetLocked(false, true);
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		OutputLandscape->SetLayerLocked(EditLayerIndex, true);
 #else
 		BakedLayer->bLocked = true;
@@ -195,7 +197,11 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	// Make sure baked layer is visible.
 	//---------------------------------------------------------------------------------------------------------------------------
 	if (EditLayerIndex != INDEX_NONE)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		OutputLandscape->GetEditLayer(EditLayerIndex)->SetVisible(true, true);
+#else
 		OutputLandscape->SetLayerVisibility(EditLayerIndex, true);
+#endif
 
 	return true;
 }
@@ -696,7 +702,13 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 	//---------------------------------------------------------------------------------------------------------------------------
 	int EditLayerIndex = OutputLandscape->GetLayerIndex(BakedEditLayer);
 	if (EditLayerIndex != INDEX_NONE)
+	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		OutputLandscape->GetEditLayer(EditLayerIndex)->SetVisible(true, true);
+#else	
 		OutputLandscape->SetLayerVisibility(EditLayerIndex, true);
+#endif
+	}
 
 	return true;
 }

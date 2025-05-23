@@ -340,9 +340,19 @@ FHoudiniSkeletalMeshTranslator::CreateUnrealData(FHoudiniSkeletalMeshBuildSettin
 	//New MeshDescription build process
 	IMeshBuilderModule& MeshBuilderModule = IMeshBuilderModule::GetForRunningPlatform();
 	//We must build the LODModel so we can restore properly the mesh, but we do not have to regenerate LODs
-
 	FSkeletalMeshBuildParameters SkeletalMeshBuildParameters = FSkeletalMeshBuildParameters(BuildSettings.SKMesh, GetTargetPlatformManagerRef().GetRunningTargetPlatform(), ImportLODModelIndex, false);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	FSkeletalMeshRenderData* RenderData = BuildSettings.SKMesh->GetResourceForRendering();
+	if (RenderData == nullptr)
+	{
+		BuildSettings.SKMesh->AllocateResourceForRendering();
+		RenderData = BuildSettings.SKMesh->GetResourceForRendering();
+	}
+
+	bool bBuildSuccess = MeshBuilderModule.BuildSkeletalMesh(*RenderData, SkeletalMeshBuildParameters);
+#else
 	bool bBuildSuccess = MeshBuilderModule.BuildSkeletalMesh(SkeletalMeshBuildParameters);
+#endif
 
 	//We need to have a valid render data to create physic asset
 	BuildSettings.SKMesh->CalculateInvRefMatrices();

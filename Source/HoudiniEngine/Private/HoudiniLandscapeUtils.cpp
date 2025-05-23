@@ -94,65 +94,81 @@ FHoudiniLandscapeUtils::GetCookedLandscapeLayers(UHoudiniAssetComponent& HAC, AL
 void
 FHoudiniLandscapeUtils::SetNonCookedLayersVisibility(UHoudiniAssetComponent& HAC, ALandscape& Landscape, bool bVisible)
 {
+	FString LayerName;
 	TSet<FString> CookedLayers = GetCookedLandscapeLayers(HAC, Landscape);
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayersConst();
+	for (int LayerIndex = 0; LayerIndex < Landscape.GetLayersConst().Num(); LayerIndex++)
+	{
+		LayerName = Layers[LayerIndex].EditLayer->GetName().ToString();
+		if (!CookedLayers.Contains(LayerName))
+		{
+			// Non cooked Layer
+			Layers[LayerIndex].EditLayer->SetVisible(bVisible, true);
+		}
+	}
 #elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayers();
-#endif
-
-	FString LayerName;
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
-	for(int LayerIndex = 0; LayerIndex < Landscape.GetLayersConst().Num(); LayerIndex++)
-#else
 	for (int LayerIndex = 0; LayerIndex < Landscape.GetLayerCount(); LayerIndex++)
-#endif
 	{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
-		LayerName = Layers[LayerIndex].EditLayer->GetName().ToString();
-#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		LayerName = Layers[LayerIndex].Name.ToString();
-#else
-		LayerName = Landscape.LandscapeLayers[LayerIndex].Name.ToString();
-#endif
 		if (!CookedLayers.Contains(LayerName))
 		{
 			// Non cooked Layer
 			Landscape.SetLayerVisibility(LayerIndex, bVisible);
 		}
 	}
+#else
+	for (int LayerIndex = 0; LayerIndex < Landscape.GetLayerCount(); LayerIndex++)
+	{
+		LayerName = Landscape.LandscapeLayers[LayerIndex].Name.ToString();
+		if (!CookedLayers.Contains(LayerName))
+		{
+			// Non cooked Layer
+			Landscape.SetLayerVisibility(LayerIndex, bVisible);
+		}
+	}
+#endif
 }
 
 void
 FHoudiniLandscapeUtils::SetCookedLayersVisibility(UHoudiniAssetComponent& HAC, ALandscape& Landscape, bool bVisible)
 {
+	FString LayerName;
 	TSet<FString> CookedLayers = GetCookedLandscapeLayers(HAC, Landscape);
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayersConst();
+	for (int LayerIndex = 0; LayerIndex < Landscape.GetLayersConst().Num(); LayerIndex++)
+	{
+		LayerName = Layers[LayerIndex].EditLayer->GetName().ToString();
+		if (CookedLayers.Contains(LayerName))
+		{
+			// Cooked Layer
+			Layers[LayerIndex].EditLayer->SetVisible(bVisible, true);
+		}
+	}
 #elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	TArrayView<const FLandscapeLayer> Layers = Landscape.GetLayers();
-#endif
-
-	FString LayerName;
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
-	for (int LayerIndex = 0; LayerIndex < Landscape.GetLayersConst().Num(); LayerIndex++)
-#else
 	for (int LayerIndex = 0; LayerIndex < Landscape.GetLayerCount(); LayerIndex++)
-#endif
 	{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
-		LayerName = Layers[LayerIndex].EditLayer.GetName();
-#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		LayerName = Layers[LayerIndex].Name.ToString();
-#else
-		LayerName = Landscape.LandscapeLayers[LayerIndex].Name.ToString();
-#endif
 		if (CookedLayers.Contains(LayerName))
 		{
 			// Cooked Layer
 			Landscape.SetLayerVisibility(LayerIndex, bVisible);
 		}
 	}
+#else
+	for (int LayerIndex = 0; LayerIndex < Landscape.GetLayerCount(); LayerIndex++)
+	{
+		LayerName = Landscape.LandscapeLayers[LayerIndex].Name.ToString();
+		if (CookedLayers.Contains(LayerName))
+		{
+			// Cooked Layer
+			Landscape.SetLayerVisibility(LayerIndex, bVisible);
+		}
+	}
+#endif
 }
 
 void FHoudiniLandscapeUtils::RealignHeightFieldData(TArray<float>& Data, float ZeroPoint, float Scale)
@@ -655,7 +671,12 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 
 		// Rename the default height layer if needed.
 		const FString DefaultLayerName = TEXT("Layer");
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		if (LandscapeActor->HasLayersContent() && HeightPart->UnrealLayerName != DefaultLayerName)
+		{
+			LandscapeActor->GetEditLayer(0)->SetName(FName(HeightPart->UnrealLayerName), true);
+		}
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 5
 		if (LandscapeActor->HasLayersContent() && HeightPart->UnrealLayerName != DefaultLayerName)
 		{
 			LandscapeActor->SetLayerName(0, FName(HeightPart->UnrealLayerName));
@@ -1549,7 +1570,9 @@ void FHoudiniLandscapeUtils::ApplyLocks(UHoudiniLandscapeTargetLayerOutput* Outp
 	if (EditLayerIndex == INDEX_NONE)
 		return;
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	Output->Landscape->GetEditLayer(EditLayerIndex)->SetLocked(true, true);
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 5
 	Output->Landscape->SetLayerLocked(EditLayerIndex, true);
 #else
 	FLandscapeLayer* UnrealEditLayer = Output->Landscape->GetLayer(EditLayerIndex);
