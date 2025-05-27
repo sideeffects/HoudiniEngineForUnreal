@@ -1671,11 +1671,10 @@ FHoudiniEngineCommands::TriageHoudiniAssetComponentsForProxyMeshRefinement(UHoud
 						if (!IsValid(ProxyObject))
 							continue;
 
+						// Just mark the object as garbage and his package as dirty
+						// Do not save the package automatically - as will cause crashes in PIE
 						ProxyObject->MarkAsGarbage();
 						ProxyObject->MarkPackageDirty();
-						UPackage* const Package = ProxyObject->GetPackage();
-						if (IsValid(Package))
-							ProxyMeshPackagesToSave.Add(Package);
 					}
 				}
 			}
@@ -1707,14 +1706,6 @@ FHoudiniEngineCommands::TriageHoudiniAssetComponentsForProxyMeshRefinement(UHoud
 		if (ProxyMeshPackagesToSave.Num() > 0)
 		{
 			TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
-
-			// TODO: Try to prevent potential crash upon multiple successive PIE
-			for (int nIdx = ProxyMeshPackagesToSave.Num() - 1; nIdx >= 0; nIdx--)
-			{
-				UPackage* CurPackage = ProxyMeshPackagesToSave[nIdx];
-				if (!IsValid(CurPackage) || !CurPackage->IsDirty())
-					ProxyMeshPackagesToSave.RemoveAt(nIdx);
-			}
 
 			FEditorFileUtils::PromptForCheckoutAndSave(ProxyMeshPackagesToSave, true, false);
 		}
