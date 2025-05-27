@@ -27,7 +27,9 @@
 #include "HoudiniPCGDataObject.h"
 
 #include <Data/PCGPointData.h>
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+#include <Data/PCGPointArrayData.h>
+#endif
 #include "UObject/TextProperty.h"
 #include "PCGParamData.h"
 
@@ -44,19 +46,25 @@ bool UHoudiniPCGDataObject::operator!=(const UHoudiniPCGDataObject& Other) const
 	return !(*this == Other);
 }
 
-void UHoudiniPCGDataObject::Initialize(const UPCGData* PCGData, const TSet<FString> & Tags)
+void UHoudiniPCGDataObject::SetFromPCGData(const UPCGData* PCGData, const TSet<FString> & Tags)
 {
 	PCGDataType = PCGData->GetDataType();
 	PCGTags = Tags;
 	if(PCGData->IsA<UPCGParamData>())
-		Initialize(Cast<UPCGParamData>(PCGData));
+		SetFromPCGData(Cast<UPCGParamData>(PCGData));
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	else if(PCGData->IsA<UPCGBasePointData>())
+		SetFromPCGBasePointData(Cast<UPCGBasePointData>(PCGData));
+#else
 	else if(PCGData->IsA<UPCGPointData>())
-		Initialize(Cast<UPCGPointData>(PCGData));
+		SetFromPCGData(Cast<UPCGPointData>(PCGData));
+#endif
 	else if(PCGData->IsA<UPCGSplineData>())
-		Initialize(Cast<UPCGSplineData>(PCGData));
+		SetFromPCGData(Cast<UPCGSplineData>(PCGData));
+
 }
 
-void UHoudiniPCGDataObject::Initialize(const UPCGSplineData* PCGSplineData)
+void UHoudiniPCGDataObject::SetFromPCGData(const UPCGSplineData* PCGSplineData)
 {
 	const UPCGMetadata* Metadata = PCGSplineData->ConstMetadata();
 	this->PCGDataType = PCGSplineData->GetDataType();
@@ -86,12 +94,12 @@ void UHoudiniPCGDataObject::Initialize(const UPCGSplineData* PCGSplineData)
 
 }
 
-void UHoudiniPCGDataObject::Initialize(const UPCGPointData* PCGPointData)
+void UHoudiniPCGDataObject::SetFromPCGData(const UPCGPointData* PCGPointData)
 {
 	const UPCGMetadata* Metadata = PCGPointData->ConstMetadata();
 	this->PCGDataType = PCGPointData->GetDataType();
 
-	const TArray<FPCGPoint> & Points = PCGPointData->GetPoints();
+	const TArray<FPCGPoint>& Points = PCGPointData->GetPoints();
 
 	{
 		auto AttrDest = CreateAttributeVector3d(TEXT("P"));
@@ -203,21 +211,181 @@ void UHoudiniPCGDataObject::Initialize(const UPCGPointData* PCGPointData)
 		Attributes.Emplace(MoveTemp(AttrDest));
 	}
 
-	AddMetaDataAttributes(Metadata, Points.Num());
+
+	TArray<int64> Keys;
+	Keys.SetNum(Points.Num());
+	for(int Index = 0; Index < Keys.Num(); Index++)
+	{
+		Keys[Index] = Points[Index].MetadataEntry;
+	}
+
+	AddMetaDataAttributes(Metadata, Keys);
 }
 
-void UHoudiniPCGDataObject::Initialize(const UPCGParamData* PCGParamData)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+void UHoudiniPCGDataObject::SetFromPCGBasePointData(const UPCGBasePointData* PCGPointData)
+{
+	const UPCGMetadata* Metadata = PCGPointData->ConstMetadata();
+	this->PCGDataType = PCGPointData->GetDataType();
+
+	int NumPoints = PCGPointData->GetNumPoints();
+
+	{
+		auto AttrDest = CreateAttributeVector3d(TEXT("P"));
+		AttrDest->Values.SetNum(NumPoints);
+		auto ValueRange = PCGPointData->GetConstTransformValueRange();
+
+		for(int Index = 0; Index < NumPoints; Index++)
+		{
+			FVector Position = ValueRange[Index].GetLocation();
+			AttrDest->Values[Index][0] = Position.X / 100.0f;
+			AttrDest->Values[Index][1] = Position.Z / 100.0f;
+			AttrDest->Values[Index][2] = Position.Y / 100.0f;
+		}
+		Attributes.Emplace(MoveTemp(AttrDest));
+	}
+
+	{
+		auto AttrDest = CreateAttributeVector3d(TEXT("Scale"));
+		AttrDest->Values.SetNum(NumPoints);
+		auto ValueRange = PCGPointData->GetConstTransformValueRange();
+
+		for(int Index = 0; Index < NumPoints; Index++)
+		{
+			FVector Scale = ValueRange[Index].GetScale3D();
+			AttrDest->Values[Index][0] = Scale.X;
+			AttrDest->Values[Index][1] = Scale.Z;
+			AttrDest->Values[Index][2] = Scale.Y;
+		}
+		Attributes.Emplace(MoveTemp(AttrDest));
+	}
+
+	{
+		auto AttrDest = CreateAttributeVector3d(TEXT("BoundsMin"));
+		AttrDest->Values.SetNum(NumPoints);
+		auto ValueRange = PCGPointData->GetConstBoundsMinValueRange();
+
+		for(int Index = 0; Index < NumPoints; Index++)
+		{
+			FVector Value = ValueRange[Index];
+			AttrDest->Values[Index][0] = Value.X / 100.0;
+			AttrDest->Values[Index][1] = Value.Z / 100.0;
+			AttrDest->Values[Index][2] = Value.Y / 100.0;
+		}
+		Attributes.Emplace(MoveTemp(AttrDest));
+	}
+
+	{
+		auto AttrDest = CreateAttributeVector3d(TEXT("BoundsMax"));
+		AttrDest->Values.SetNum(NumPoints);
+		auto ValueRange = PCGPointData->GetConstBoundsMaxValueRange();
+
+		for(int Index = 0; Index < NumPoints; Index++)
+		{
+			FVector Value = ValueRange[Index];
+			AttrDest->Values[Index][0] = Value.X / 100.0;
+			AttrDest->Values[Index][1] = Value.Z / 100.0;
+			AttrDest->Values[Index][2] = Value.Y / 100.0;
+		}
+		Attributes.Emplace(MoveTemp(AttrDest));
+	}
+
+	{
+		auto AttrDest = CreateAttributeVector4d(TEXT("Cd"));
+		AttrDest->Values.SetNum(NumPoints);
+		auto ValueRange = PCGPointData->GetConstColorValueRange();
+
+		for(int Index = 0; Index < NumPoints; Index++)
+		{
+			FVector4d Value = ValueRange[Index];
+			AttrDest->Values[Index][0] = Value.X;
+			AttrDest->Values[Index][1] = Value.Y;
+			AttrDest->Values[Index][2] = Value.Z;
+			AttrDest->Values[Index][3] = Value.W;
+		}
+		Attributes.Emplace(MoveTemp(AttrDest));
+	}
+
+	{
+		auto AttrDest = CreateAttributeVector4d(TEXT("orient"));
+		AttrDest->Values.SetNum(NumPoints);
+		auto ValueRange = PCGPointData->GetConstTransformValueRange();
+
+		for(int Index = 0; Index < NumPoints; Index++)
+		{
+			FQuat Rotation = ValueRange[Index].GetRotation();
+			AttrDest->Values[Index][0] = Rotation.X;
+			AttrDest->Values[Index][1] = Rotation.Z;
+			AttrDest->Values[Index][2] = Rotation.Y;
+			AttrDest->Values[Index][3] = -Rotation.W;
+		}
+		Attributes.Emplace(MoveTemp(AttrDest));
+	}
+
+	{
+		auto AttrDest = CreateAttributeFloat(TEXT("Density"));
+		AttrDest->Values.SetNum(NumPoints);
+		auto ValueRange = PCGPointData->GetConstDensityValueRange();
+
+		for(int Index = 0; Index < NumPoints; Index++)
+		{
+			AttrDest->Values[Index] = ValueRange[Index];
+		}
+		Attributes.Emplace(MoveTemp(AttrDest));
+	}
+
+	{
+		auto AttrDest = CreateAttributeFloat(TEXT("Steepness"));
+		AttrDest->Values.SetNum(NumPoints);
+		auto ValueRange = PCGPointData->GetConstSteepnessValueRange();
+
+		for(int Index = 0; Index < NumPoints; Index++)
+		{
+			AttrDest->Values[Index] = ValueRange[Index];
+		}
+		Attributes.Emplace(MoveTemp(AttrDest));
+	}
+
+	{
+		auto AttrDest = CreateAttributeInt(TEXT("Seed"));
+		AttrDest->Values.SetNum(NumPoints);
+		auto ValueRange = PCGPointData->GetConstSeedValueRange();
+
+		for(int Index = 0; Index < NumPoints; Index++)
+		{
+			AttrDest->Values[Index] = ValueRange[Index];
+		}
+		Attributes.Emplace(MoveTemp(AttrDest));
+	}
+
+	auto ValueRange = PCGPointData->GetConstMetadataEntryValueRange();
+
+	TArray<int64> Keys;
+	Keys.SetNum(NumPoints);
+	for (int Index = 0; Index < NumPoints; Index++)
+	{
+		Keys[Index] = ValueRange[Index];
+	}
+
+	AddMetaDataAttributes(Metadata, Keys);
+}
+#endif
+
+void UHoudiniPCGDataObject::SetFromPCGData(const UPCGParamData* PCGParamData)
 {
 	const UPCGMetadata* Metadata = PCGParamData->ConstMetadata();
-	AddMetaDataAttributes(Metadata, 0);
+
+	AddMetaDataAttributes(Metadata, {});
 }
 
-void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetadata, int DefaultNumRows)
+void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetadata, const TArray<int64>& Keys)
 {
 	TArray<FName> AttributeNames;
 	TArray<EPCGMetadataTypes> AttributeTypes;
 
 	ParamMetadata->GetAttributes(AttributeNames, AttributeTypes);
+
+	const int64 InvalidIndex = -1;
 
 	
 	for(int AttrIndex = 0; AttrIndex < AttributeTypes.Num(); AttrIndex++)
@@ -228,13 +396,11 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 		const FPCGMetadataAttributeBase* AttrBase = ParamMetadata->GetConstAttribute(AttributeNames[AttrIndex]);
 
 		const UPCGMetadata* Metadata = AttrBase->GetMetadata();
-		int NumRows = Metadata->GetItemCountForChild();
 
-		// Normally Metadata->GetItemCountForChild() will return the number of rows of metadata, however, when reading
-		// points, if the attributes just contain a default value, this will return zero. So this function takes
-		// DefaultNumRows which should equal the number of points for point date.
-		if(NumRows == 0)
-			NumRows = DefaultNumRows;
+		int NumRows = Metadata->GetItemCountForChild();
+		if(!Keys.IsEmpty())
+			NumRows = Keys.Num();
+
 
 		switch(AttrType)
 		{
@@ -246,7 +412,9 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				if (ValueIndex != InvalidIndex)
+					AttrDest->Values[ValueIndex] = Attr->GetValueFromItemKey(Index);
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -260,7 +428,9 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				if(ValueIndex != InvalidIndex)
+					AttrDest->Values[ValueIndex] = Attr->GetValueFromItemKey(Index);
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -274,7 +444,8 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex);
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -288,7 +459,8 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex);
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -302,7 +474,8 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index) ? 1 : 0;
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex);
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -316,7 +489,8 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 2);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex);
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -330,7 +504,8 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 3);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex);
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -344,7 +519,8 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 4);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex);
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -358,7 +534,8 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 4);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				FQuat Quat = Attr->GetValueFromItemKey(Index);
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				FQuat Quat = Attr->GetValueFromItemKey(ValueIndex);
 				AttrDest->Values[Index].X = Quat.X;
 				AttrDest->Values[Index].Y = Quat.Y;
 				AttrDest->Values[Index].Z = Quat.Z;
@@ -376,7 +553,8 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index);
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex);
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -390,7 +568,8 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index).ToString();
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex).ToString();
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -404,7 +583,8 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index).ToString();
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex).ToString();
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -418,7 +598,8 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			AttrDest->Values.SetNum(NumRows * 1);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
-				AttrDest->Values[Index] = Attr->GetValueFromItemKey(Index).ToString();
+				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
+				AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex).ToString();
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));

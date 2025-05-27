@@ -577,3 +577,15 @@ FHoudiniPCGUtils::StartSessionAsync()
 
 	return SessionStatus;
 }
+
+UPCGComponent* FHoudiniPCGUtils::GetSourceComponent(FPCGContext* Context)
+{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+
+	return Cast<UPCGComponent>(Context->ExecutionSource.Get());
+#else
+	return Context->SourceComponent.IsValid() ? Context->SourceComponent.Get() : nullptr;
+#endif
+
+}
+

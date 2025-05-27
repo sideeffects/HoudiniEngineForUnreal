@@ -182,10 +182,16 @@ class HOUDINIENGINERUNTIME_API UHoudiniPCGDataObject : public UObject
 
     GENERATED_BODY()
 public:
-    void Initialize(const UPCGData* PCGParamaData, const TSet<FString> & Tags = {});
-    void Initialize(const UPCGParamData* PCGParamaData);
-    void Initialize(const UPCGPointData* PCGParamaData);
-    void Initialize(const UPCGSplineData* PCGSplineData);
+    void SetFromPCGData(const UPCGData* PCGParamaData, const TSet<FString> & Tags = {});
+    void SetFromPCGData(const UPCGParamData* PCGParamaData);
+    void SetFromPCGData(const UPCGSplineData* PCGSplineData);
+    void SetFromPCGData(const UPCGPointData* PCGPointData);
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+    void SetFromPCGBasePointData(const UPCGBasePointData* PCGParamaData);
+    void SetFromPCGData(const UPCGPointArrayData* PCGParamaData);
+#endif
+
     bool operator==(const UHoudiniPCGDataObject& Other) const;
     bool operator!=(const UHoudiniPCGDataObject& Other) const;
     int GetNumRows() const;
@@ -205,7 +211,7 @@ public:
     bool bIsClosed = false;
 
 private:
-	void AddMetaDataAttributes(const UPCGMetadata* PCGParamaData, int NumRows);
+	void AddMetaDataAttributes(const UPCGMetadata* PCGParamaData, const TArray<int64> & Keys);
 
     UHoudiniPCGDataAttributeString* CreateAttributeString(const FString& AttributeName);
     UHoudiniPCGDataAttributeVector4d* CreateAttributeVector4d(const FString& AttributeName);

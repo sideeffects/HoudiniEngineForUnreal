@@ -306,11 +306,22 @@ FPCGCrc FHoudiniDigitalAssetPCGElement::SetCrc(FPCGContext* Context) const
 	if(!Context->DependenciesCrc.IsValid())
 	{
 		FPCGDataCollection EmptyCollection;
-		GetDependenciesCrc(EmptyCollection, Settings, Context->SourceComponent.Get(), Context->DependenciesCrc);
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		GetDependenciesCrc(FPCGGetDependenciesCrcParams(&EmptyCollection, Settings, Context->ExecutionSource.Get()), Context->DependenciesCrc);
+#else
+		GetDependenciesCrc(EmptyCollection, Settings, FHoudiniPCGUtils::GetSourceComponent(Context), Context->DependenciesCrc);
+#endif
+
 	}
 
 	FPCGCrc ResourceCrc = Context->DependenciesCrc;
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	FPCGCrc StackCRC = Context->GetStack()->GetCrc();
+#else
 	FPCGCrc StackCRC = Context->Stack->GetCrc();
+#endif
 	ResourceCrc.Combine(StackCRC);
 	return ResourceCrc;
 }
@@ -319,7 +330,9 @@ void FHoudiniDigitalAssetPCGElement::AbortInternal(FPCGContext* Context) const
 {
 	FPCGCrc ResourceCrc = SetCrc(Context);
 
-	Context->SourceComponent->ForEachManagedResource([ResourceCrc, &Context](UPCGManagedResource* InResource)
+	UPCGComponent* SourceComponent = FHoudiniPCGUtils::GetSourceComponent(Context);
+
+	SourceComponent->ForEachManagedResource([ResourceCrc, &Context](UPCGManagedResource* InResource)
 		{
 			if(!InResource->GetCrc().IsValid() || InResource->GetCrc() != ResourceCrc && InResource->IsA<UPCGManagedResource>())
 				return;
@@ -388,7 +401,10 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 	//----------------------------------------------------------------------------------------------------------------------------------------
 
 	UHoudiniPCGManagedResource* ManagedResource = nullptr;
-	Context->SourceComponent->ForEachManagedResource([&ManagedResource, ResourceCrc, &Context](UPCGManagedResource* InResource)
+
+	UPCGComponent * PCGComponent = FHoudiniPCGUtils::GetSourceComponent(Context);
+
+	PCGComponent->ForEachManagedResource([&ManagedResource, ResourceCrc, &Context](UPCGManagedResource* InResource)
 		{
 			if(!InResource->GetCrc().IsValid() || InResource->GetCrc() != ResourceCrc && InResource->IsA<UPCGManagedResource>())
 				return;
@@ -430,16 +446,18 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			// NOTE: We instantiate, then once the HDA is ready in Houdini, we set parameters and cooked. This seems to be necessary to avoid
 			// paramters getting overridden on the first cook. Possibly a slight rework of Houdini Engine Manager could fix this.
 
-			ManagedResource = NewObject<UHoudiniPCGManagedResource>(Context->SourceComponent.Get());
-			ManagedResource->PCGComponent = Context->SourceComponent.Get();
+			UPCGComponent* SourceComponent = FHoudiniPCGUtils::GetSourceComponent(Context);
+
+			ManagedResource = NewObject<UHoudiniPCGManagedResource>(SourceComponent);
+			ManagedResource->PCGComponent = SourceComponent;
 			if(ManagedResource->PCGComponent)
 			{
 				ManagedResource->PCGComponent->GetGraph()->OnGraphChangedDelegate.AddUObject(ManagedResource, &UHoudiniPCGManagedResource::OnGraphChanged);
 			}
 			ManagedResource->SetCrc(ResourceCrc);
 			ManagedResource->MarkAsUsed();
-			ManagedResource->HoudiniPCGComponent = UHoudiniPCGComponent::CreatePCGComponent(Context->SourceComponent.Get());
-			Context->SourceComponent->AddToManagedResources(ManagedResource);
+			ManagedResource->HoudiniPCGComponent = UHoudiniPCGComponent::CreatePCGComponent(SourceComponent);
+			SourceComponent->AddToManagedResources(ManagedResource);
 
 			UHoudiniPCGCookable * PCGCookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
 			PCGCookable->CreateHoudiniCookable(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
@@ -471,7 +489,8 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			if(ManagedResource->HoudiniPCGComponent->Cookable->NeedsCook())
 			{
 				// Remove previous baked output before cooking. (Cooked output is already cleaned up).
-				ManagedResource->HoudiniPCGComponent->Cookable->DeleteBakedOutput(Context->SourceComponent->GetWorld());
+				UPCGComponent* SourceComponent = FHoudiniPCGUtils::GetSourceComponent(Context);
+				ManagedResource->HoudiniPCGComponent->Cookable->DeleteBakedOutput(SourceComponent->GetWorld());
 
 				// Something changed, so we must cook.
 				ManagedResource->HoudiniPCGComponent->Cookable->StartCook();

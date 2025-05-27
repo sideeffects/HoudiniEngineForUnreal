@@ -128,6 +128,8 @@ public:
 	static FString GetTypeStringFromObject(UObject* Object);
 	static FString GetTypeStringFromComponent(USceneComponent* Component);
 
+	static UPCGComponent* GetSourceComponent(FPCGContext* Context);
+
 private:
 	// Synchronization primitive. 
 	static FCriticalSection CriticalSection;

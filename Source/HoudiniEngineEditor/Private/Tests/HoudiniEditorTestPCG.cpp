@@ -147,7 +147,7 @@ bool EHoudiniTestPCGContext::Update()
 UObject* FHoudiniEditorTestPCG::GetOutputObject(UHoudiniPCGDataObject* PCGDataObject, const FString & Field, int Index)
 {
 	auto * Attr = Cast<UHoudiniPCGDataAttributeSoftObjectPath>(PCGDataObject->FindAttribute(Field));
-	if(!IsValid(Attr) || Attr->Values.IsEmpty())
+	if(!IsValid(Attr) || !Attr->Values.IsValidIndex(Index))
 		return nullptr;
 
 	const FString & ObjectPath = Attr->Values[Index].ToString();
@@ -205,7 +205,7 @@ bool FHoudiniEditorTestPCG_MeshesCooked::RunTest(const FString& Parameters)
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[0].Data.Get(), return true);
 		// ... which we'll now convert to an PCGDataObject so we can easily ready it...
 		UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-		PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+		PCGDataObject->SetFromPCGData(PCGDataAsset->Data.TaggedData[0].Data.Get());
 
 		// ... check we have a mesh
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object")));
@@ -255,7 +255,7 @@ bool FHoudiniEditorTestPCG_MeshesCooked::RunTest(const FString& Parameters)
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[0].Data.Get(), return true);
 		// ... which we'll now convert to an PCGDataObject so we can easily ready it...
 		UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>(GetTransientPackage());
-		PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+		PCGDataObject->SetFromPCGData(PCGDataAsset->Data.TaggedData[0].Data.Get());
 
 		// ... check we have a mesh
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object")));
@@ -329,7 +329,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_MeshesBaked, "Hou
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[0].Data.Get(), return true);
 		// ... which we'll now convert to an PCGDataObject so we can easily ready it...
 		UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-		PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+		PCGDataObject->SetFromPCGData(PCGDataAsset->Data.TaggedData[0].Data.Get());
 
 		// ... check we have a mesh
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object")));
@@ -404,7 +404,7 @@ bool FHoudiniEditorTestPCG_LandscapesCooked::RunTest(const FString& Parameters)
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(MyObject->Data.TaggedData[0].Data.Get(), return true);
 		// ... which we'll now convert to an PCGDataObject so we can easily ready it...
 		UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-		PCGDataObject->Initialize(MyObject->Data.TaggedData[0].Data.Get());
+		PCGDataObject->SetFromPCGData(MyObject->Data.TaggedData[0].Data.Get());
 
 		// ... check we have a mesh
 		ALandscape* Landscape = Cast<ALandscape>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("actor")));
@@ -509,7 +509,7 @@ bool FHoudiniEditorTestPCG_PCGNativeOutputsCooked::RunTest(const FString& Parame
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-				PCGDataObject->Initialize(PCGParam);
+				PCGDataObject->SetFromPCGData(PCGParam);
 				auto * VertexIds = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("__vertex_id")));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(VertexIds, continue);
 
@@ -525,7 +525,7 @@ bool FHoudiniEditorTestPCG_PCGNativeOutputsCooked::RunTest(const FString& Parame
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-				PCGDataObject->Initialize(PCGParam);
+				PCGDataObject->SetFromPCGData(PCGParam);
 
 				auto* PrimitiveIds = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("__primitive_id")));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(PrimitiveIds, continue);
@@ -542,7 +542,7 @@ bool FHoudiniEditorTestPCG_PCGNativeOutputsCooked::RunTest(const FString& Parame
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-				PCGDataObject->Initialize(PCGParam);
+				PCGDataObject->SetFromPCGData(PCGParam);
 
 				{
 					UHoudiniPCGDataAttributeInt64* Attrs = Cast<UHoudiniPCGDataAttributeInt64>(PCGDataObject->FindAttribute(TEXT("__primitivelist")));
@@ -661,7 +661,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGNativeOutputsB
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-				PCGDataObject->Initialize(PCGParam);
+				PCGDataObject->SetFromPCGData(PCGParam);
 				auto* VertexIds = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("__vertex_id")));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(VertexIds, continue);
 
@@ -677,7 +677,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGNativeOutputsB
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-				PCGDataObject->Initialize(PCGParam);
+				PCGDataObject->SetFromPCGData(PCGParam);
 
 				auto* PrimitiveIds = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("__primitive_id")));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(PrimitiveIds, continue);
@@ -694,7 +694,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGNativeOutputsB
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-				PCGDataObject->Initialize(PCGParam);
+				PCGDataObject->SetFromPCGData(PCGParam);
 
 				{
 					UHoudiniPCGDataAttributeInt64* Attrs = Cast<UHoudiniPCGDataAttributeInt64>(PCGDataObject->FindAttribute(TEXT("__primitivelist")));
@@ -784,7 +784,7 @@ bool FHoudiniEditorTestPCG_PCGNativeInputsCooked::RunTest(const FString& Paramet
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* VerticesObject = NewObject<UHoudiniPCGDataObject>();
-				VerticesObject->Initialize(PCGParam);
+				VerticesObject->SetFromPCGData(PCGParam);
 				HOUDINI_TEST_EQUAL(VerticesObject->Attributes.Num(), 0);
 			}
 
@@ -796,7 +796,7 @@ bool FHoudiniEditorTestPCG_PCGNativeInputsCooked::RunTest(const FString& Paramet
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PrimitivesObject = NewObject<UHoudiniPCGDataObject>();
-				PrimitivesObject->Initialize(PCGParam);
+				PrimitivesObject->SetFromPCGData(PCGParam);
 				HOUDINI_TEST_EQUAL(PrimitivesObject->Attributes.Num(), 0);
 			}
 
@@ -808,7 +808,7 @@ bool FHoudiniEditorTestPCG_PCGNativeInputsCooked::RunTest(const FString& Paramet
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* DetailsObject = NewObject<UHoudiniPCGDataObject>();
-				DetailsObject->Initialize(PCGParam);
+				DetailsObject->SetFromPCGData(PCGParam);
 				// topology, primitive list and unreal_pcg_params
 				HOUDINI_TEST_EQUAL(DetailsObject->Attributes.Num(), 3);
 			}
@@ -884,7 +884,7 @@ bool FHoudiniEditorTestPCG_PCGNativeMultiInputsCooked::RunTest(const FString& Pa
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* VerticesObject = NewObject<UHoudiniPCGDataObject>();
-				VerticesObject->Initialize(PCGParam);
+				VerticesObject->SetFromPCGData(PCGParam);
 				HOUDINI_TEST_EQUAL(VerticesObject->Attributes.Num(), 0);
 			}
 
@@ -896,7 +896,7 @@ bool FHoudiniEditorTestPCG_PCGNativeMultiInputsCooked::RunTest(const FString& Pa
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PrimitivesObject = NewObject<UHoudiniPCGDataObject>();
-				PrimitivesObject->Initialize(PCGParam);
+				PrimitivesObject->SetFromPCGData(PCGParam);
 				HOUDINI_TEST_EQUAL(PrimitivesObject->Attributes.Num(), 0);
 			}
 
@@ -908,7 +908,7 @@ bool FHoudiniEditorTestPCG_PCGNativeMultiInputsCooked::RunTest(const FString& Pa
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* DetailsObject = NewObject<UHoudiniPCGDataObject>();
-				DetailsObject->Initialize(PCGParam);
+				DetailsObject->SetFromPCGData(PCGParam);
 				// topology, primitive list and unreal_pcg_params
 				HOUDINI_TEST_EQUAL(DetailsObject->Attributes.Num(), 3);
 			}
@@ -1131,7 +1131,7 @@ bool FHoudiniEditorTestPCG_PCGParametersDefaultsCooked::RunTest(const FString& P
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-				PCGDataObject->Initialize(PCGParam);
+				PCGDataObject->SetFromPCGData(PCGParam);
 
 				{
 					UHoudiniPCGDataAttributeInt* TestOutput = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("test_output")));
@@ -1196,7 +1196,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGParametersMult
 			for (int Index = 0; Index < 2; Index++)
 			{
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-				PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[Index].Data.Get());
+				PCGDataObject->SetFromPCGData(PCGDataAsset->Data.TaggedData[Index].Data.Get());
 
 				if (!IsValid(ISM))
 					ISM = Cast<UInstancedStaticMeshComponent>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("component")));
@@ -1270,7 +1270,7 @@ bool FHoudiniEditorTestPCG_PCGParametersSetCooked::RunTest(const FString& Parame
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-				PCGDataObject->Initialize(PCGParam);
+				PCGDataObject->SetFromPCGData(PCGParam);
 
 				{
 					UHoudiniPCGDataAttributeInt* TestOutput = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("test_output")));
@@ -1344,7 +1344,7 @@ bool FHoudiniEditorTestPCG_PCGParametersOverrideCooked::RunTest(const FString& P
 			{
 				const UPCGParamData* PCGParam = Cast<UPCGParamData>(TaggedData.Data.Get());
 				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-				PCGDataObject->Initialize(PCGParam);
+				PCGDataObject->SetFromPCGData(PCGParam);
 
 				{
 					UHoudiniPCGDataAttributeInt* TestOutput = Cast<UHoudiniPCGDataAttributeInt>(PCGDataObject->FindAttribute(TEXT("test_output")));
@@ -1406,7 +1406,7 @@ bool FHoudiniEditorTestPCG_InputSetCooked::RunTest(const FString& Parameters)
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[0].Data.Get(), return true);
 		// ... which we'll now convert to an PCGDataObject so we can easily ready it...
 		UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-		PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+		PCGDataObject->SetFromPCGData(PCGDataAsset->Data.TaggedData[0].Data.Get());
 
 		// ... check we have a mesh
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object")));
@@ -1471,7 +1471,7 @@ bool FHoudiniEditorTestPCG_InputOverrideCooked::RunTest(const FString& Parameter
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[0].Data.Get(), return true);
 		// ... which we'll now convert to an PCGDataObject so we can easily ready it...
 		UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-		PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+		PCGDataObject->SetFromPCGData(PCGDataAsset->Data.TaggedData[0].Data.Get());
 
 		// ... check we have a mesh
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object")));
@@ -1539,7 +1539,7 @@ bool FHoudiniEditorTestPCG_ForLoopsCooked::RunTest(const FString& Parameters)
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[0].Data.Get(), return true);
 		// ... which we'll now convert to an PCGDataObject so we can easily ready it...
 		UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-		PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+		PCGDataObject->SetFromPCGData(PCGDataAsset->Data.TaggedData[0].Data.Get());
 
 
 		// ... check we have a mesh for each point
@@ -1616,7 +1616,7 @@ bool FHoudiniEditorTestPCG_PDGCooked::RunTest(const FString& Parameters)
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[Index].Data.Get(), return true);
 			// ... which we'll now convert to an PCGDataObject so we can easily ready it...
 			UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-			PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+			PCGDataObject->SetFromPCGData(PCGDataAsset->Data.TaggedData[0].Data.Get());
 
 			UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object"), 0));
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMesh, return true);
@@ -1676,7 +1676,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PDGBaked, "Houdin
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[Index].Data.Get(), return true);
 			// ... which we'll now convert to an PCGDataObject so we can easily ready it...
 			UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-			PCGDataObject->Initialize(PCGDataAsset->Data.TaggedData[0].Data.Get());
+			PCGDataObject->SetFromPCGData(PCGDataAsset->Data.TaggedData[0].Data.Get());
 
 			UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object"), 0));
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMesh, return true);

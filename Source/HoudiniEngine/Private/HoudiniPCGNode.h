@@ -132,12 +132,15 @@ class FHoudiniDigitalAssetPCGElement : public IPCGElementWithCustomContext<FPCHo
 {
 public:
 	virtual bool IsCacheable(const UPCGSettings* InSettings) const;
-	virtual bool CanExecuteOnlyOnMainThread(FPCGContext* Context) const override { return false; }
+	virtual bool CanExecuteOnlyOnMainThread(FPCGContext* InContext) const override { return true; }
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	virtual bool SupportsBasePointDataInputs(FPCGContext* InContext) const override { return true; }
+#endif
+	FPCGCrc SetCrc(FPCGContext* Context) const;
 
 protected:
 	virtual bool PrepareDataInternal(FPCGContext* InContext) const override;
 	virtual bool ExecuteInternal(FPCGContext* InContext) const override;
 	virtual void AbortInternal(FPCGContext* Context) const;
-	FPCGCrc SetCrc(FPCGContext* Context) const;
 };
 

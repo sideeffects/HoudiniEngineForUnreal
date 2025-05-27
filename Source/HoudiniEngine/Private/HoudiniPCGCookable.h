@@ -97,7 +97,7 @@ public:
 	bool UpdateParametersAndInputs(FPCGContext* Context);
 
 	void StartCook();
-	bool NeedsCook();
+	bool NeedsCook() const;
 
 	void CopyParametersAndInputs(const UHoudiniPCGCookable * Other);
 
@@ -119,7 +119,7 @@ public:
 	TObjectPtr<UHoudiniCookable> Cookable;
 
 	UPROPERTY()
-	UHoudiniPDGBakeOutput* PDGBakedOutput;
+	TObjectPtr<UHoudiniPDGBakeOutput> PDGBakedOutput;
 
 	EPCGCookableState State = EPCGCookableState::None;
 	bool bIsCookingPDG = false;

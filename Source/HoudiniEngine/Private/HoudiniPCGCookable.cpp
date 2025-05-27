@@ -399,7 +399,6 @@ UHoudiniPCGCookable::CopyPCGOutputDataToPinData(FPCGContext* Context, const FNam
 {
 	TArray<FPCGTaggedData>& TaggedDataArray = Context->OutputData.TaggedData;
 
-
 	if(PCGOutputData->PointParams)
 	{
 		FPCGTaggedData& TaggedOutput = TaggedDataArray.Emplace_GetRef();
@@ -547,7 +546,6 @@ UHoudiniPCGCookable::ProcessCookedOutput(FPCGContext* Context)
 				}
 			}
 		}
-
 	}
 	else
 	{
@@ -627,7 +625,7 @@ UHoudiniPCGCookable::UpdateParametersAndInputs(FPCGContext* Context)
 }
 
 bool
-UHoudiniPCGCookable::NeedsCook()
+UHoudiniPCGCookable::NeedsCook() const
 {
 	bool bHasBeenCooked = State == EPCGCookableState::CookingComplete;
 
@@ -866,7 +864,7 @@ UHoudiniPCGDataObject*
 UHoudiniPCGCookable::GetPCGDataObjects(const FPCGTaggedData& TaggedData)
 {
 	UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
-	PCGDataObject->Initialize(TaggedData.Data, TaggedData.Tags);
+	PCGDataObject->SetFromPCGData(TaggedData.Data, TaggedData.Tags);
 	return PCGDataObject;
 }
 
