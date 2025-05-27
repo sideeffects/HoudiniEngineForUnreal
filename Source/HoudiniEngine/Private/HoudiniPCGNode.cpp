@@ -51,10 +51,13 @@ void UHoudiniPCGSettings::PostLoad()
 {
 	Super::PostLoad();
 
-	ParameterCookable->OnPostOutputProcessingDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
-		{
-			OnParameterCookableCooked();
-		});
+	if(IsValid(ParameterCookable))
+	{
+		ParameterCookable->OnPostOutputProcessingDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
+			{
+				OnParameterCookableCooked();
+			});
+	}
 }
 
 void UHoudiniPCGSettings::BeginDestroy()

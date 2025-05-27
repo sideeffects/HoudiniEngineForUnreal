@@ -88,7 +88,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
 	EHoudiniPCGOutputType OutputType = EHoudiniPCGOutputType::Cook;
-	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
+
+	// Don't expose bCreateSceneComponents for now, since its not easily supported for baking.
+	//UPROPERTY(EditAnywhere, Category = HoudiniPCG)
 	bool bCreateSceneComponents = true;
 
 	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
