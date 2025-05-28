@@ -87,7 +87,7 @@ public:
 	int NumInputs = 0;
 
 	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
-	EHoudiniPCGOutputType OutputType = EHoudiniPCGOutputType::Cook;
+	EHoudiniPCGOutputType OutputType = EHoudiniPCGOutputType::Bake;
 	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
 	bool bCreateSceneComponents = true;
 

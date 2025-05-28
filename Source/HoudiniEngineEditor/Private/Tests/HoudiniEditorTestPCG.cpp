@@ -37,6 +37,7 @@
 #include "PCGDataAsset.h"
 #include "Data/PCGPointData.h"
 #include "HoudiniPCGDataObject.h"
+#include "InstancedFoliageActor.h"
 #include "Landscape.h"
 #include "PCGParamData.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -57,7 +58,7 @@ public:
 	void LoadPCGTestMap(const FString& MapName);
 
 	void CleanupAndGenerateAsync();
-
+	void Cleanup();
 	void GenerateAsync();
 
 	bool Update();
@@ -127,6 +128,18 @@ void EHoudiniTestPCGContext::CleanupAndGenerateAsync()
 	}
 }
 
+void EHoudiniTestPCGContext::Cleanup()
+{
+	this->bDoGenerateAfterClean = false;
+
+	if(PCGComponent->bGenerated)
+	{
+		this->State = EHoudiniTestPCGContextState::Cleanup;
+		PCGComponent->Cleanup();
+	}
+}
+
+
 bool EHoudiniTestPCGContext::Update()
 {
 	switch(this->State)
@@ -135,6 +148,10 @@ bool EHoudiniTestPCGContext::Update()
 		if(bDoGenerateAfterClean)
 		{
 			GenerateAsync();
+		}
+		else
+		{
+			this->State = EHoudiniTestPCGContextState::Done;
 		}
 		break;
 	default:
@@ -433,6 +450,75 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_MeshesBakedNoScen
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_FoliageBaked, "Houdini.UnitTests.PCG.Foliage.Baked",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestPCG_FoliageBaked::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGFoliage/PCGTestFoliageMap.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	auto GetFoliageCount = [](UWorld* World)
+		{
+			int32 TotalCount = 0;
+
+			for(TActorIterator<AActor> It(World, AInstancedFoliageActor::StaticClass()); It; ++It)
+			{
+				AInstancedFoliageActor* IFA = Cast<AInstancedFoliageActor>(*It);
+
+				auto InstanceMap = IFA->GetAllInstancesFoliageType();
+				for(auto& InstanceIt : InstanceMap)
+				{
+					FFoliageInfo* FoliageInfo = InstanceIt.Value;
+					TotalCount += FoliageInfo->Instances.Num();
+				}
+			}
+
+			return TotalCount;
+		};
+
+	int BeginCount = GetFoliageCount(Context->PCGComponent->GetWorld());
+	HOUDINI_TEST_EQUAL(BeginCount, 0);
+
+	AddCommand(new FFunctionLatentCommand([Context]
+		{
+			Context->CleanupAndGenerateAsync();
+			return true;
+		}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context, GetFoliageCount]()
+	{
+		if(!Context->Update())
+				return false;
+
+		int FoliageCount = GetFoliageCount(Context->PCGComponent->GetWorld());
+		HOUDINI_TEST_NOT_EQUAL(FoliageCount, 0);
+
+		// Now clean to make sure clean up is performed.
+
+		Context->Cleanup();
+		return true;
+	}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context, GetFoliageCount]()
+		{
+			if(!Context->Update())
+				return false;
+
+			int FoliageCount = GetFoliageCount(Context->PCGComponent->GetWorld());
+			HOUDINI_TEST_EQUAL(FoliageCount, 0);
+
+			return true;
+		}));
+	return true;
+}
 
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesCooked, "Houdini.UnitTests.PCG.Landscapes.Cooked",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
