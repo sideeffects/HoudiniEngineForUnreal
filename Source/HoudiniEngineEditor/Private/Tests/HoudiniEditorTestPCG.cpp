@@ -281,7 +281,7 @@ bool FHoudiniEditorTestPCG_MeshesCooked::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_MeshesBaked, "Houdini.UnitTests.PCG.Meshes.Baked",
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_MeshesBaked, "Houdini.UnitTests.PCG.Meshes.Baked.SceneComponents",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
 
 	bool FHoudiniEditorTestPCG_MeshesBaked::RunTest(const FString& Parameters)
@@ -356,6 +356,83 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_MeshesBaked, "Hou
 
 	return true;
 }
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_MeshesBakedNoSceneComponents, "Houdini.UnitTests.PCG.Meshes.Baked.NoSceneComponents",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestPCG_MeshesBakedNoSceneComponents::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGMesh/PCGMeshLevelBakedNoSceneComponents.umap"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+	FString AssetPath = TEXT("/Game/");
+	FString AssetName = TEXT("PCG_Out");
+	FString PCGAssetFullPath = FString::Printf(TEXT("%s/%s"), *AssetPath, *AssetName);
+
+	UPCGGraphInstance* GraphInstance = Context->PCGComponent->GetGraphInstance();
+	GraphInstance->SetGraphParameter<FSoftObjectPath>(FName("object"), FSoftObjectPath(TEXT("/Game/TestObjects/SM_Cube.SM_Cube")));
+	GraphInstance->SetGraphParameter<FString>(FName("out_path"), AssetPath);
+	GraphInstance->SetGraphParameter<FString>(FName("out_name"), AssetName);
+	GraphInstance->SetGraphParameter<float>(FName("scale_factor"), 1.0f);
+
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Test 1: Load a cube, then use it to generate a new cube.
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	AddCommand(new FFunctionLatentCommand([Context]
+		{
+			Context->CleanupAndGenerateAsync();
+			return true;
+		}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
+		{
+			if(!Context->Update())
+				return false;
+
+			UPCGDataAsset* PCGDataAsset = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset, return true);
+
+			// We should have one output...
+			HOUDINI_TEST_EQUAL_ON_FAIL(PCGDataAsset->Data.TaggedData.Num(), 1, return true);
+			// ... it should have data ...
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(PCGDataAsset->Data.TaggedData[0].Data.Get(), return true);
+			// ... which we'll now convert to an PCGDataObject so we can easily ready it...
+			UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
+			PCGDataObject->SetFromPCGData(PCGDataAsset->Data.TaggedData[0].Data.Get());
+
+			// ... check we have a mesh
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("object")));
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(StaticMesh, return true);
+
+			// ... check the mesh's bounding box.
+			FBox Box = StaticMesh->GetBoundingBox();
+
+			HOUDINI_TEST_EQUAL(Box.Min.X, -50.0);
+			HOUDINI_TEST_EQUAL(Box.Min.Y, -50.0);
+			HOUDINI_TEST_EQUAL(Box.Min.Z, -50.0);
+			HOUDINI_TEST_EQUAL(Box.Max.X, 50.0);
+			HOUDINI_TEST_EQUAL(Box.Max.Y, 50.0);
+			HOUDINI_TEST_EQUAL(Box.Max.Z, 50.0);
+
+			// ... check we have a mesh actor
+			AStaticMeshActor* StaticMeshComponent = Cast<AStaticMeshActor>(FHoudiniEditorTestPCG::GetOutputObject(PCGDataObject, TEXT("actor")));
+			HOUDINI_TEST_NULL_ON_FAIL(StaticMeshComponent, return true);
+
+			// The parent should be an actor.
+
+			return true;
+		}));
+
+	return true;
+}
+
 
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesCooked, "Houdini.UnitTests.PCG.Landscapes.Cooked",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
