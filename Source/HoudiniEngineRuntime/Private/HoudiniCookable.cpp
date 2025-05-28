@@ -2155,13 +2155,13 @@ UHoudiniCookable::GetSplitMeshSupport() const
 }
 
 
-FHoudiniStaticMeshGenerationProperties
+FHoudiniStaticMeshGenerationProperties&
 UHoudiniCookable::GetStaticMeshGenerationProperties() const
 {
 	return OutputData->StaticMeshGenerationProperties;
 }
 
-FMeshBuildSettings
+FMeshBuildSettings&
 UHoudiniCookable::GetStaticMeshBuildSettings() const
 {
 	return OutputData->StaticMeshBuildSettings;
