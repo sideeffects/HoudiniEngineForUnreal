@@ -138,7 +138,6 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 	RecomputeNormalsFlag = HRSRF_OnlyIfMissing;
 	RecomputeTangentsFlag = HRSRF_OnlyIfMissing;
 	bUseMikkTSpace = true;
-	bBuildAdjacencyBuffer = true; // v1 default false
 
 	bComputeWeightedNormals = false;
 	bBuildReversedIndexBuffer = true;

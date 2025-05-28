@@ -444,10 +444,6 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = "StaticMeshBuildSettings", meta = (DisplayName = "Generate Using MikkT Space"))
 		bool bUseMikkTSpace;
 
-		// Required for PNT tessellation but can be slow. Recommend disabling for larger meshes.
-		UPROPERTY(GlobalConfig, EditAnywhere, Category = "StaticMeshBuildSettings")
-		bool bBuildAdjacencyBuffer;
-
 		// If true, we will use the surface area and the corner angle of the triangle as a ratio when computing the normals.
 		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "StaticMeshBuildSettings")
 		uint8 bComputeWeightedNormals : 1;

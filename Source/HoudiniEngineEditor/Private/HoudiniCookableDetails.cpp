@@ -241,6 +241,14 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		{
 			CreateProxyDetails(DetailBuilder, HCs);
 		}
+
+		//
+		// STATIC MESH BUILD SETTINGS
+		//
+		if (MainCookable->IsOutputSupported())
+		{
+			CreateStaticMeshBuildSettingsDetails(DetailBuilder, HCs);
+		}
 	}
 }
 
@@ -629,6 +637,9 @@ FHoudiniCookableDetails::CreateProxyDetails(
 	IDetailLayoutBuilder& DetailBuilder,
 	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
 {
+	if (InCookables.Num() <= 0)
+		return;
+
 	TWeakObjectPtr<UHoudiniCookable> MainCookable = InCookables[0];
 	if (!IsValidWeakPointer(MainCookable))
 		return;
@@ -709,23 +720,24 @@ FHoudiniCookableDetails::CreateProxyDetails(
 					LOCTEXT("HoudiniOverrideProxyChange", "Houdini Input: Override Global Proxy Mesh Settings"),
 					MainCookable->GetOuter());
 
-					for (auto CurCookable : InCookables)
-					{
-						if (!IsValidWeakPointer(CurCookable))
-							continue;
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
 
-						if (CurCookable->IsOverrideGlobalProxyStaticMeshSettings() == bNewState)
-							continue;
+					if (CurCookable->IsOverrideGlobalProxyStaticMeshSettings() == bNewState)
+						continue;
 
-						CurCookable->Modify();
-						CurCookable->SetOverrideGlobalProxyStaticMeshSettings(bNewState);
-						// Reset the timer
-						CurCookable->ClearRefineMeshesTimer();
-						// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
-						CurCookable->SetRefineMeshesTimer();
-						// Refine if needed
-						RefineCookablesIfNeeded();
-					}
+					CurCookable->Modify();
+					CurCookable->SetOverrideGlobalProxyStaticMeshSettings(bNewState);
+					// Reset the timer
+					CurCookable->ClearRefineMeshesTimer();
+					// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+					CurCookable->SetRefineMeshesTimer();
+				}
+
+				// Refine if needed
+				RefineCookablesIfNeeded();
 			})
 		]
 	];
@@ -770,23 +782,24 @@ FHoudiniCookableDetails::CreateProxyDetails(
 					LOCTEXT("HoudiniOverrideProxyEnable", "Houdini: Override Proxy Mesh Enabled"),
 					MainCookable->GetOuter());
 
-					for (auto CurCookable : InCookables)
-					{
-						if (!IsValidWeakPointer(CurCookable))
-							continue;
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
 
-						if (CurCookable->IsProxyStaticMeshEnabled() == bNewState)
-							continue;
+					if (CurCookable->IsProxyStaticMeshEnabled() == bNewState)
+						continue;
 
-						CurCookable->Modify();
-						CurCookable->SetEnableProxyStaticMeshOverride(bNewState);
-						// Reset the timer
-						CurCookable->ClearRefineMeshesTimer();
-						// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
-						CurCookable->SetRefineMeshesTimer();
-						// Refine if needed
-						RefineCookablesIfNeeded();
-					}
+					CurCookable->Modify();
+					CurCookable->SetEnableProxyStaticMeshOverride(bNewState);
+					// Reset the timer
+					CurCookable->ClearRefineMeshesTimer();
+					// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+					CurCookable->SetRefineMeshesTimer();
+				}
+
+				// Refine if needed
+				RefineCookablesIfNeeded();
 			})
 		]
 	];
@@ -830,21 +843,21 @@ FHoudiniCookableDetails::CreateProxyDetails(
 					LOCTEXT("HoudiniOverrideProxyByTimerEnable", "Houdini: Override Proxy Mesh Refine by Timer"),
 					MainCookable->GetOuter());
 
-					for (auto CurCookable : InCookables)
-					{
-						if (!IsValidWeakPointer(CurCookable))
-							continue;
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
 
-						if (CurCookable->GetProxyData()->bEnableProxyStaticMeshRefinementByTimerOverride == bNewState)
-							continue;
+					if (CurCookable->GetProxyData()->bEnableProxyStaticMeshRefinementByTimerOverride == bNewState)
+						continue;
 
-						CurCookable->Modify();
-						CurCookable->SetEnableProxyStaticMeshRefinementByTimerOverride(bNewState);
-						// Reset the timer
-						CurCookable->ClearRefineMeshesTimer();
-						// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
-						CurCookable->SetRefineMeshesTimer();
-					}
+					CurCookable->Modify();
+					CurCookable->SetEnableProxyStaticMeshRefinementByTimerOverride(bNewState);
+					// Reset the timer
+					CurCookable->ClearRefineMeshesTimer();
+					// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+					CurCookable->SetRefineMeshesTimer();
+				}
 			})
 		]
 	];
@@ -1016,21 +1029,21 @@ FHoudiniCookableDetails::CreateProxyDetails(
 					LOCTEXT("HoudiniOverrideProxyRefineOnMapSave", "Houdini: Override Proxy Mesh Refine on Map Save"),
 					MainCookable->GetOuter());
 
-					for (auto CurCookable : InCookables)
-					{
-						if (!IsValidWeakPointer(CurCookable))
-							continue;
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
 
-						if (CurCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride == bNewState)
-							continue;
+					if (CurCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride == bNewState)
+						continue;
 
-						CurCookable->Modify();
-						CurCookable->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bNewState);
-						// Reset the timer
-						CurCookable->ClearRefineMeshesTimer();
-						// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
-						CurCookable->SetRefineMeshesTimer();
-					}
+					CurCookable->Modify();
+					CurCookable->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(bNewState);
+					// Reset the timer
+					CurCookable->ClearRefineMeshesTimer();
+					// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+					CurCookable->SetRefineMeshesTimer();
+				}
 			})
 		]
 	];
@@ -1074,25 +1087,1237 @@ FHoudiniCookableDetails::CreateProxyDetails(
 					LOCTEXT("HoudiniOverrideProxyRefineOnPIE", "Houdini: Override Proxy Mesh Refine on PIE"),
 					MainCookable->GetOuter());
 
-					for (auto CurCookable : InCookables)
-					{
-						if (!IsValidWeakPointer(CurCookable))
-							continue;
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
 
-						if (CurCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride == bNewState)
-							continue;
+					if (CurCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride == bNewState)
+						continue;
 
-						CurCookable->Modify();
-						CurCookable->SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bNewState);
-						// Reset the timer
-						CurCookable->ClearRefineMeshesTimer();
-						// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
-						CurCookable->SetRefineMeshesTimer();
-					}
+					CurCookable->Modify();
+					CurCookable->SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(bNewState);
+					// Reset the timer
+					CurCookable->ClearRefineMeshesTimer();
+					// SetRefineMeshesTimer will check the relevant settings and only set the timer if enabled via settings
+					CurCookable->SetRefineMeshesTimer();
+				}
 			})
 		]
 	];
 }
 
+
+
+void 
+FHoudiniCookableDetails::CreateStaticMeshBuildSettingsDetails(
+	IDetailLayoutBuilder& DetailBuilder,
+	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
+{
+	if (InCookables.Num() <= 0)
+		return;
+
+	TWeakObjectPtr<UHoudiniCookable> MainCookable = InCookables[0];
+	if (!IsValidWeakPointer(MainCookable))
+		return;
+
+	if (!MainCookable->IsOutputSupported())
+		return;
+
+	// Create the SM Build Settings category
+	FString BuildSettingsCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_SM_BUILD_SETTINGS);
+
+	// If we have selected more than one component that have different HDAs, 
+	// we need to create multiple categories one for each different HDA
+	// OutputCatName += MultiSelectionIdentifier;
+	
+	IDetailCategoryBuilder& HouSMBuildSettingsCategory =
+		DetailBuilder.EditCategory(*BuildSettingsCatName, FText::GetEmpty(), ECategoryPriority::Important);
+
+	FString Label = TEXT("Static Mesh Build Settings");
+	IDetailGroup& ProxyGrp = HouSMBuildSettingsCategory.AddGroup(FName(*Label), FText::FromString(Label));
+
+	// Lambda used to trigger a n output update if necessary
+	auto MarkOutputUpdateNeeded = [InCookables]()
+	{
+		for (auto CurCookable : InCookables)
+		{
+			if (!IsValidWeakPointer(CurCookable))
+				continue;
+
+			// TODO
+			//CurCookable->Need
+		}
+	};
+	
+	//
+	// UseFullPrecisionUVs
+	//
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Use Full Precision UVs"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+
+				
+				return MainCookable->GetStaticMeshBuildSettings().bUseFullPrecisionUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const uint8 bNewState = (NewState == ECheckBoxState::Checked) ? 1 : 0;
+				if (MainCookable->GetStaticMeshBuildSettings().bUseFullPrecisionUVs == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniSMBSFullPrecUVs", "Houdini Static Mesh Build Settings: Changed bUseFullPrecisionUVs"),
+					MainCookable->GetOuter());
+
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
+
+					FMeshBuildSettings& SMBS = CurCookable->GetStaticMeshBuildSettings();
+					if (SMBS.bUseFullPrecisionUVs == bNewState)
+						continue;
+
+					CurCookable->Modify();
+					SMBS.bUseFullPrecisionUVs = bNewState;
+				}
+
+				// Mark our outputs as needing an update
+				MarkOutputUpdateNeeded();
+			})
+		]
+	];
+
+	//int32 SrcLightmapIndex;
+	//
+	// SrcLightmapIndex
+	//
+		
+	// Lambdas for slider begin
+	auto SliderBeginSrcLightmapIndex = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeSrcLightmapIndex", "Houdini Static Mesh Build Settings: Changed SrcLightmapIndex"),
+			Cookables[0]->GetOuter());
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+			
+			Cookables[Idx]->GetProxyData()->Modify();
+		}
+	};
+
+	// Lambdas for slider end
+	auto SliderEndSrcLightmapIndex = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		// Mark the value as changed to trigger an update
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			// TODO: Mark changed or equivalent?
+		}
+	};
+
+	// Lambdas for changing the value
+	auto ChangeSrcLightmapIndex = [](const int32& Value, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+		
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeSrcLightmapIndex", "Houdini Static Mesh Build Settings: Changed SrcLightmapIndex"),
+			Cookables[0]->GetOuter() );
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			FMeshBuildSettings& SMBS = Cookables[Idx]->GetStaticMeshBuildSettings();
+			if (SMBS.SrcLightmapIndex == Value)
+				continue;
+
+			Cookables[Idx]->Modify();
+			SMBS.SrcLightmapIndex = Value;
+
+			if (DoChange)
+			{
+				Cookables[Idx]->GetProxyData()->Modify();
+			}
+		}
+	};
+
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Source Lightmap Index"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(SNumericEntryBox<int32>)
+				.AllowSpin(true)
+
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+
+				.MinValue(0)
+				.MaxValue(3600)
+
+				.MinSliderValue(0)
+				.MaxSliderValue(60)
+
+				.Value_Lambda([MainCookable]() { return MainCookable->GetStaticMeshBuildSettings().SrcLightmapIndex; })
+				.OnValueChanged_Lambda([InCookables, ChangeSrcLightmapIndex](int32 Val)
+				{ 
+					ChangeSrcLightmapIndex(Val, false, InCookables);
+				})
+				.OnValueCommitted_Lambda([InCookables, ChangeSrcLightmapIndex](int32 Val, ETextCommit::Type TextCommitType)
+				{	
+					ChangeSrcLightmapIndex(Val, true, InCookables);
+				})
+				.OnBeginSliderMovement_Lambda([InCookables, SliderBeginSrcLightmapIndex]()
+				{
+					SliderBeginSrcLightmapIndex(InCookables);
+				})
+				.OnEndSliderMovement_Lambda([InCookables, SliderEndSrcLightmapIndex](const int32 NewValue)
+				{ 
+					SliderEndSrcLightmapIndex(InCookables);
+				})
+				.SliderExponent(1.0f)
+			]
+		]
+	];
+
+
+
+	//
+	// DstLightmapIndex
+	//
+	
+	// Lambdas for slider begin
+	auto SliderBeginDstLightmapIndex = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeDstLightmapIndex", "Houdini Static Mesh Build Settings: Changed DstLightmapIndex"),
+			Cookables[0]->GetOuter());
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+			
+			Cookables[Idx]->GetProxyData()->Modify();
+		}
+	};
+
+	// Lambdas for slider end
+	auto SliderEndDstLightmapIndex = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		// Mark the value as changed to trigger an update
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			// TODO: Mark changed or equivalent?
+		}
+	};
+
+	// Lambdas for changing the value
+	auto ChangeDstLightmapIndex = [](const int32& Value, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+		
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeDstLightmapIndex", "Houdini Static Mesh Build Settings: Changed DstLightmapIndex"),
+			Cookables[0]->GetOuter() );
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			FMeshBuildSettings& SMBS = Cookables[Idx]->GetStaticMeshBuildSettings();
+			if (SMBS.DstLightmapIndex == Value)
+				continue;
+
+			Cookables[Idx]->Modify();
+			SMBS.DstLightmapIndex = Value;
+
+			if (DoChange)
+			{
+				Cookables[Idx]->GetProxyData()->Modify();
+			}
+		}
+	};
+
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Destination Lightmap Index"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(SNumericEntryBox<int32>)
+				.AllowSpin(true)
+
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+
+				.MinValue(0)
+				.MaxValue(3600)
+
+				.MinSliderValue(0)
+				.MaxSliderValue(60)
+
+				.Value_Lambda([MainCookable]() { return MainCookable->GetStaticMeshBuildSettings().DstLightmapIndex; })
+				.OnValueChanged_Lambda([InCookables, ChangeDstLightmapIndex](int32 Val)
+				{ 
+					ChangeDstLightmapIndex(Val, false, InCookables);
+				})
+				.OnValueCommitted_Lambda([InCookables, ChangeDstLightmapIndex](int32 Val, ETextCommit::Type TextCommitType)
+				{	
+					ChangeDstLightmapIndex(Val, true, InCookables);
+				})
+				.OnBeginSliderMovement_Lambda([InCookables, SliderBeginDstLightmapIndex]()
+				{
+						SliderBeginDstLightmapIndex(InCookables);
+				})
+				.OnEndSliderMovement_Lambda([InCookables, SliderEndDstLightmapIndex](const int32 NewValue)
+				{ 
+					SliderEndDstLightmapIndex(InCookables);
+				})
+				.SliderExponent(1.0f)
+			]
+		]
+	];
+
+
+
+
+	//
+	// MinLightmapResolution
+	//
+
+	// Lambdas for slider begin
+	auto SliderBeginMinLightmapResolution = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeMinLightmapResolution", "Houdini Static Mesh Build Settings: Changed MinLightmapResolution"),
+			Cookables[0]->GetOuter());
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+			
+			Cookables[Idx]->GetProxyData()->Modify();
+		}
+	};
+
+	// Lambdas for slider end
+	auto SliderEndMinLightmapResolution = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		// Mark the value as changed to trigger an update
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			// TODO: Mark changed or equivalent?
+		}
+	};
+
+	// Lambdas for changing the value
+	auto ChangeMinLightmapResolution = [](const int32& Value, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+		
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeMinLightmapResolution", "Houdini Static Mesh Build Settings: Changed MinLightmapResolution"),
+			Cookables[0]->GetOuter() );
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			FMeshBuildSettings& SMBS = Cookables[Idx]->GetStaticMeshBuildSettings();
+			if (SMBS.MinLightmapResolution == Value)
+				continue;
+
+			Cookables[Idx]->Modify();
+			SMBS.MinLightmapResolution = Value;
+
+			if (DoChange)
+			{
+				Cookables[Idx]->GetProxyData()->Modify();
+			}
+		}
+	};
+
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Minimum Lightmap Resolution"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(SNumericEntryBox<int32>)
+				.AllowSpin(true)
+
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+
+				.MinValue(0)
+				.MaxValue(3600)
+
+				.MinSliderValue(0)
+				.MaxSliderValue(60)
+
+				.Value_Lambda([MainCookable]() { return MainCookable->GetStaticMeshBuildSettings().MinLightmapResolution; })
+				.OnValueChanged_Lambda([InCookables, ChangeMinLightmapResolution](int32 Val)
+				{ 
+					ChangeMinLightmapResolution(Val, false, InCookables);
+				})
+				.OnValueCommitted_Lambda([InCookables, ChangeMinLightmapResolution](int32 Val, ETextCommit::Type TextCommitType)
+				{	
+					ChangeMinLightmapResolution(Val, true, InCookables);
+				})
+				.OnBeginSliderMovement_Lambda([InCookables, SliderBeginMinLightmapResolution]()
+				{
+						SliderBeginMinLightmapResolution(InCookables);
+				})
+				.OnEndSliderMovement_Lambda([InCookables, SliderEndMinLightmapResolution](const int32 NewValue)
+				{ 
+						SliderEndMinLightmapResolution(InCookables);
+				})
+				.SliderExponent(1.0f)
+			]
+		]
+	];
+
+
+
+	//
+	// RemoveDegenerates
+	//
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Remove Degenerates"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+				
+				return MainCookable->GetStaticMeshBuildSettings().bRemoveDegenerates ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const uint8 bNewState = (NewState == ECheckBoxState::Checked) ? 1 : 0;
+				if (MainCookable->GetStaticMeshBuildSettings().bRemoveDegenerates == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniChangeSMBSRemoveDegen", "Houdini Static Mesh Build Settings: Changed bRemoveDegenerates"),
+					MainCookable->GetOuter());
+
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
+
+					FMeshBuildSettings& SMBS = CurCookable->GetStaticMeshBuildSettings();
+					if (SMBS.bRemoveDegenerates == bNewState)
+						continue;
+
+					CurCookable->Modify();
+					SMBS.bRemoveDegenerates = bNewState;
+				}
+
+				// Mark our outputs as needing an update
+				MarkOutputUpdateNeeded();
+			})
+		]
+	];
+
+
+	/*
+	//TEnumAsByte<enum EHoudiniRuntimeSettingsRecomputeFlag> GenerateLightmapUVsFlag;
+	//
+	// GenerateLightmapUVsFlag
+	//
+
+	// Lambdas for changing the value
+	auto ChangeGenerateLightmapUVsFlag = [](const float& Value, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+		
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeDistanceFieldResolutionScale", "Houdini Static Mesh Build Settings: Changed DistanceFieldResolutionScale"),
+			Cookables[0]->GetOuter() );
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			FMeshBuildSettings& SMBS = Cookables[Idx]->GetStaticMeshBuildSettings();
+			if (SMBS.DistanceFieldResolutionScale == Value)
+				continue;
+
+			Cookables[Idx]->Modify();
+			SMBS.DistanceFieldResolutionScale = Value;
+
+			if (DoChange)
+			{
+				Cookables[Idx]->GetProxyData()->Modify();
+			}
+		}
+	};
+
+
+	auto OnComboSelectionChangedGenerateLightmapUVsFlag = [](TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (!NewValue.IsValid())
+			return;
+						
+		EHoudiniRuntimeSettingsRecomputeFlag NewValueAsEnum;
+		if (*NewValue.Equals("Always"))
+			NewValueAsEnum = EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always;
+		else if (*NewValue.Equals("Never"))
+			NewValueAsEnum = EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Never;
+		else
+			NewValueAsEnum = EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_OnlyIfMissing;
+
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeDistanceFieldResolutionScale", "Houdini Static Mesh Build Settings: Changed DistanceFieldResolutionScale"),
+			Cookables[0]->GetOuter());
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			UCookableOutputData* OutputData = Cookables[Idx]->GetOutputData();
+			if (!OutputData || OutputData->GenerateLightmapUVsFlag == NewValueAsEnum)
+				continue;
+
+
+	}
+
+
+
+	TArray<TSharedPtr<FString>> ComboItems;
+	//TArray<bool> Restrictions;
+	//TArray<TSharedPtr<SToolTip>> RichToolTips;
+	ComboItems.Add(MakeShared<FString>("Always"));
+	ComboItems.Add(MakeShared<FString>("Only if missing"));
+	ComboItems.Add(MakeShared<FString>("Never"));
+
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Generate Lightmap UVs Flag"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(ComboBox, SPropertyComboBox)
+				.Font(ComboArgs.Font)
+				//.RichToolTipList(RichToolTips)
+				.ComboItemList(ComboItems)
+				//.RestrictedList(Restrictions)
+				.OnSelectionChanged(this, &SPropertyEditorCombo::OnComboSelectionChanged)
+				.OnComboBoxOpening(this, &SPropertyEditorCombo::OnComboOpening)
+				.VisibleText(this, &SPropertyEditorCombo::GetDisplayValueAsString)
+				//.ToolTipText(this, &SPropertyEditorCombo::GetValueToolTip)
+				//.ShowSearchForItemCount(ComboArgs.ShowSearchForItemCount);
+
+
+				/*
+				SNew(SNumericEntryBox<float>)
+				.AllowSpin(true)
+
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+
+				.MinValue(0)
+				.MaxValue(3600)
+
+				.MinSliderValue(0)
+				.MaxSliderValue(60)
+
+				.Value_Lambda([MainCookable]() { return MainCookable->GetStaticMeshBuildSettings().DistanceFieldResolutionScale; })
+				.OnValueChanged_Lambda([InCookables, ChangeDistanceFieldResolutionScale](float Val)
+				{ 
+					ChangeDistanceFieldResolutionScale(Val, false, InCookables);
+				})
+				.OnValueCommitted_Lambda([InCookables, ChangeDistanceFieldResolutionScale](float Val, ETextCommit::Type TextCommitType)
+				{	
+					ChangeDistanceFieldResolutionScale(Val, true, InCookables);
+				})
+				.OnBeginSliderMovement_Lambda([InCookables, SliderBeginDistanceFieldResolutionScale]()
+				{
+					SliderBeginDistanceFieldResolutionScale(InCookables);
+				})
+				.OnEndSliderMovement_Lambda([InCookables, SliderEndDistanceFieldResolutionScale](const float NewValue)
+				{ 
+					SliderEndDistanceFieldResolutionScale(InCookables);
+				})
+				.SliderExponent(1.0f)
+				*//*
+			]
+		]
+	];
+
+
+	//TEnumAsByte<enum EHoudiniRuntimeSettingsRecomputeFlag> RecomputeNormalsFlag;
+	//
+	// RecomputeNormalsFlag
+	//
+	
+
+
+	//TEnumAsByte<enum EHoudiniRuntimeSettingsRecomputeFlag> RecomputeTangentsFlag;
+	//
+	// RecomputeTangentsFlag
+	//
+
+	*/
+
+	//
+	// bUseMikkTSpace
+	//
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Use MikkT Space"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+				
+				return MainCookable->GetStaticMeshBuildSettings().bUseMikkTSpace ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const uint8 bNewState = (NewState == ECheckBoxState::Checked) ? 1 : 0;
+				if (MainCookable->GetStaticMeshBuildSettings().bUseMikkTSpace == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniChangeSMBSbUseMikkTSpace", "Houdini Static Mesh Build Settings: Changed bUseMikkTSpace"),
+					MainCookable->GetOuter());
+
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
+
+					FMeshBuildSettings& SMBS = CurCookable->GetStaticMeshBuildSettings();
+					if (SMBS.bUseMikkTSpace == bNewState)
+						continue;
+
+					CurCookable->Modify();
+					SMBS.bUseMikkTSpace = bNewState;
+				}
+
+				// Mark our outputs as needing an update
+				MarkOutputUpdateNeeded();
+			})
+		]
+	];
+
+	
+
+	//
+	// 	bComputeWeightedNormals;
+	//
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Compute Weighted Normals"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+				
+				return MainCookable->GetStaticMeshBuildSettings().bComputeWeightedNormals ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const uint8 bNewState = (NewState == ECheckBoxState::Checked) ? 1 : 0;
+				if (MainCookable->GetStaticMeshBuildSettings().bComputeWeightedNormals == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniChangeSMBSbComputeWeightedNormals", "Houdini Static Mesh Build Settings: Changed bComputeWeightedNormals"),
+					MainCookable->GetOuter());
+
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
+
+					FMeshBuildSettings& SMBS = CurCookable->GetStaticMeshBuildSettings();
+					if (SMBS.bComputeWeightedNormals == bNewState)
+						continue;
+
+					CurCookable->Modify();
+					SMBS.bComputeWeightedNormals = bNewState;
+				}
+
+				// Mark our outputs as needing an update
+				MarkOutputUpdateNeeded();
+			})
+		]
+	];
+
+
+
+	//
+	// 	bBuildReversedIndexBuffer;
+	//
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Build Reversed Index Buffer"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+				
+				return MainCookable->GetStaticMeshBuildSettings().bBuildReversedIndexBuffer ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const uint8 bNewState = (NewState == ECheckBoxState::Checked) ? 1 : 0;
+				if (MainCookable->GetStaticMeshBuildSettings().bBuildReversedIndexBuffer == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniChangeSMBSbBuildReversedIndexBuffer", "Houdini Static Mesh Build Settings: Changed bBuildReversedIndexBuffer"),
+					MainCookable->GetOuter());
+
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
+
+					FMeshBuildSettings& SMBS = CurCookable->GetStaticMeshBuildSettings();
+					if (SMBS.bBuildReversedIndexBuffer == bNewState)
+						continue;
+
+					CurCookable->Modify();
+					SMBS.bBuildReversedIndexBuffer = bNewState;
+				}
+
+				// Mark our outputs as needing an update
+				MarkOutputUpdateNeeded();
+			})
+		]
+	];
+
+
+
+	//
+	// 	bUseHighPrecisionTangentBasis;
+	//
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Use High Precision Tangent Basis"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+				
+				return MainCookable->GetStaticMeshBuildSettings().bUseHighPrecisionTangentBasis ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const uint8 bNewState = (NewState == ECheckBoxState::Checked) ? 1 : 0;
+				if (MainCookable->GetStaticMeshBuildSettings().bUseHighPrecisionTangentBasis == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniChangeSMBSbUseHighPrecisionTangentBasis", "Houdini Static Mesh Build Settings: Changed bUseHighPrecisionTangentBasis"),
+					MainCookable->GetOuter());
+
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
+
+					FMeshBuildSettings& SMBS = CurCookable->GetStaticMeshBuildSettings();
+					if (SMBS.bUseHighPrecisionTangentBasis == bNewState)
+						continue;
+
+					CurCookable->Modify();
+					SMBS.bUseHighPrecisionTangentBasis = bNewState;
+				}
+
+				// Mark our outputs as needing an update
+				MarkOutputUpdateNeeded();
+			})
+		]
+	];
+
+
+
+
+	//
+	// 	DistanceFieldResolutionScale;
+	//
+
+	// Lambdas for slider begin
+	auto SliderBeginDistanceFieldResolutionScale = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeDistanceFieldResolutionScale", "Houdini Static Mesh Build Settings: Changed DistanceFieldResolutionScale"),
+			Cookables[0]->GetOuter());
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+			
+			Cookables[Idx]->GetProxyData()->Modify();
+		}
+	};
+
+	// Lambdas for slider end
+	auto SliderEndDistanceFieldResolutionScale = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		// Mark the value as changed to trigger an update
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			// TODO: Mark changed or equivalent?
+		}
+	};
+
+	// Lambdas for changing the value
+	auto ChangeDistanceFieldResolutionScale = [](const float& Value, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+		
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeDistanceFieldResolutionScale", "Houdini Static Mesh Build Settings: Changed DistanceFieldResolutionScale"),
+			Cookables[0]->GetOuter() );
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			FMeshBuildSettings& SMBS = Cookables[Idx]->GetStaticMeshBuildSettings();
+			if (SMBS.DistanceFieldResolutionScale == Value)
+				continue;
+
+			Cookables[Idx]->Modify();
+			SMBS.DistanceFieldResolutionScale = Value;
+
+			if (DoChange)
+			{
+				Cookables[Idx]->GetProxyData()->Modify();
+			}
+		}
+	};
+
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Distance Field Resolution Scale"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(SNumericEntryBox<float>)
+				.AllowSpin(true)
+
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+
+				.MinValue(0)
+				.MaxValue(3600)
+
+				.MinSliderValue(0)
+				.MaxSliderValue(60)
+
+				.Value_Lambda([MainCookable]() { return MainCookable->GetStaticMeshBuildSettings().DistanceFieldResolutionScale; })
+				.OnValueChanged_Lambda([InCookables, ChangeDistanceFieldResolutionScale](float Val)
+				{ 
+					ChangeDistanceFieldResolutionScale(Val, false, InCookables);
+				})
+				.OnValueCommitted_Lambda([InCookables, ChangeDistanceFieldResolutionScale](float Val, ETextCommit::Type TextCommitType)
+				{	
+					ChangeDistanceFieldResolutionScale(Val, true, InCookables);
+				})
+				.OnBeginSliderMovement_Lambda([InCookables, SliderBeginDistanceFieldResolutionScale]()
+				{
+					SliderBeginDistanceFieldResolutionScale(InCookables);
+				})
+				.OnEndSliderMovement_Lambda([InCookables, SliderEndDistanceFieldResolutionScale](const float NewValue)
+				{ 
+					SliderEndDistanceFieldResolutionScale(InCookables);
+				})
+				.SliderExponent(1.0f)
+			]
+		]
+	];
+
+
+
+	//
+	// 	bGenerateDistanceFieldAsIfTwoSided;
+	//
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Generate Distance Field As If TwoSided"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+				
+				return MainCookable->GetStaticMeshBuildSettings().bGenerateDistanceFieldAsIfTwoSided ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const uint8 bNewState = (NewState == ECheckBoxState::Checked) ? 1 : 0;
+				if (MainCookable->GetStaticMeshBuildSettings().bGenerateDistanceFieldAsIfTwoSided == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniChangeSMBSbGenerateDistanceFieldAsIfTwoSided", "Houdini Static Mesh Build Settings: Changed bGenerateDistanceFieldAsIfTwoSided"),
+					MainCookable->GetOuter());
+
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
+
+					FMeshBuildSettings& SMBS = CurCookable->GetStaticMeshBuildSettings();
+					if (SMBS.bGenerateDistanceFieldAsIfTwoSided == bNewState)
+						continue;
+
+					CurCookable->Modify();
+					SMBS.bGenerateDistanceFieldAsIfTwoSided = bNewState;
+				}
+
+				// Mark our outputs as needing an update
+				MarkOutputUpdateNeeded();
+			})
+		]
+	];
+
+	//
+	// 	bSupportFaceRemap;
+	//
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Support Face Remap"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+				
+				return MainCookable->GetStaticMeshBuildSettings().bSupportFaceRemap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const uint8 bNewState = (NewState == ECheckBoxState::Checked) ? 1 : 0;
+				if (MainCookable->GetStaticMeshBuildSettings().bSupportFaceRemap == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniChangeSMBSbSupportFaceRemap", "Houdini Static Mesh Build Settings: Changed bSupportFaceRemap"),
+					MainCookable->GetOuter());
+
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
+
+					FMeshBuildSettings& SMBS = CurCookable->GetStaticMeshBuildSettings();
+					if (SMBS.bSupportFaceRemap == bNewState)
+						continue;
+
+					CurCookable->Modify();
+					SMBS.bSupportFaceRemap = bNewState;
+				}
+
+				// Mark our outputs as needing an update
+				MarkOutputUpdateNeeded();
+			})
+		]
+	];
+}
 
 #undef LOCTEXT_NAMESPACE
