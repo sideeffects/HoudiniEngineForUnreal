@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2021> Side Effects Software Inc.
+* Copyright (c) <2025> Side Effects Software Inc.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,16 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "IDetailCustomization.h"
-#include "HoudiniPDGDetails.h"
-#include "HoudiniOutputDetails.h"
-#include "HoudiniParameterDetails.h"
 #include "HoudiniEngineDetails.h"
+#include "HoudiniOutputDetails.h"
+#include "HoudiniPDGDetails.h"
+#include "HoudiniParameterDetails.h"
+#include "HoudiniRuntimeSettings.h"
+
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "IDetailCustomization.h"
+
 
 class UHoudiniCookable;
 class UHoudiniAssetComponent;
@@ -95,6 +99,10 @@ public:
 		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
 
 	void CreateStaticMeshBuildSettingsDetails(
+		IDetailLayoutBuilder& DetailBuilder,
+		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
+
+	void CreateMeshGenerationDetails(
 		IDetailLayoutBuilder& DetailBuilder,
 		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
 

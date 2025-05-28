@@ -1,5 +1,5 @@
 /*
-* Copyright (c) <2021> Side Effects Software Inc.
+* Copyright (c) <2025> Side Effects Software Inc.
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,6 @@
 #include "HoudiniOutput.h"
 #include "HoudiniOutputDetails.h"
 #include "SHoudiniPresets.h"
-
 
 #include "Chaos/AABB.h"
 #include "DetailCategoryBuilder.h"
@@ -248,6 +247,7 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		if (MainCookable->IsOutputSupported())
 		{
 			CreateStaticMeshBuildSettingsDetails(DetailBuilder, HCs);
+			CreateMeshGenerationDetails(DetailBuilder, HCs);
 		}
 	}
 }
@@ -1659,173 +1659,6 @@ FHoudiniCookableDetails::CreateStaticMeshBuildSettingsDetails(
 	];
 
 
-	/*
-	//TEnumAsByte<enum EHoudiniRuntimeSettingsRecomputeFlag> GenerateLightmapUVsFlag;
-	//
-	// GenerateLightmapUVsFlag
-	//
-
-	// Lambdas for changing the value
-	auto ChangeGenerateLightmapUVsFlag = [](const float& Value, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
-	{
-		if (Cookables.Num() == 0)
-			return;
-
-		if (!IsValidWeakPointer(Cookables[0]))
-			return;
-		
-		// Record a transaction for undo/redo
-		FScopedTransaction Transaction(
-			TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniChangeDistanceFieldResolutionScale", "Houdini Static Mesh Build Settings: Changed DistanceFieldResolutionScale"),
-			Cookables[0]->GetOuter() );
-
-		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
-		{
-			if (!IsValidWeakPointer(Cookables[Idx]))
-				continue;
-
-			FMeshBuildSettings& SMBS = Cookables[Idx]->GetStaticMeshBuildSettings();
-			if (SMBS.DistanceFieldResolutionScale == Value)
-				continue;
-
-			Cookables[Idx]->Modify();
-			SMBS.DistanceFieldResolutionScale = Value;
-
-			if (DoChange)
-			{
-				Cookables[Idx]->GetProxyData()->Modify();
-			}
-		}
-	};
-
-
-	auto OnComboSelectionChangedGenerateLightmapUVsFlag = [](TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
-	{
-		if (!NewValue.IsValid())
-			return;
-						
-		EHoudiniRuntimeSettingsRecomputeFlag NewValueAsEnum;
-		if (*NewValue.Equals("Always"))
-			NewValueAsEnum = EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Always;
-		else if (*NewValue.Equals("Never"))
-			NewValueAsEnum = EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_Never;
-		else
-			NewValueAsEnum = EHoudiniRuntimeSettingsRecomputeFlag::HRSRF_OnlyIfMissing;
-
-		if (Cookables.Num() == 0)
-			return;
-
-		if (!IsValidWeakPointer(Cookables[0]))
-			return;
-
-		// Record a transaction for undo/redo
-		FScopedTransaction Transaction(
-			TEXT(HOUDINI_MODULE_RUNTIME),
-			LOCTEXT("HoudiniChangeDistanceFieldResolutionScale", "Houdini Static Mesh Build Settings: Changed DistanceFieldResolutionScale"),
-			Cookables[0]->GetOuter());
-
-		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
-		{
-			if (!IsValidWeakPointer(Cookables[Idx]))
-				continue;
-
-			UCookableOutputData* OutputData = Cookables[Idx]->GetOutputData();
-			if (!OutputData || OutputData->GenerateLightmapUVsFlag == NewValueAsEnum)
-				continue;
-
-
-	}
-
-
-
-	TArray<TSharedPtr<FString>> ComboItems;
-	//TArray<bool> Restrictions;
-	//TArray<TSharedPtr<SToolTip>> RichToolTips;
-	ComboItems.Add(MakeShared<FString>("Always"));
-	ComboItems.Add(MakeShared<FString>("Only if missing"));
-	ComboItems.Add(MakeShared<FString>("Never"));
-
-	ProxyGrp.AddWidgetRow()
-	.NameContent()
-	[
-		SNew(STextBlock)
-		.Text(FText::FromString("Generate Lightmap UVs Flag"))
-		.Font(IDetailLayoutBuilder::GetDetailFont())
-	]
-	.ValueContent()
-	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.Padding(2, 2, 5, 2)
-		.AutoHeight()
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.FillWidth(1.0f)
-			[
-				SNew(ComboBox, SPropertyComboBox)
-				.Font(ComboArgs.Font)
-				//.RichToolTipList(RichToolTips)
-				.ComboItemList(ComboItems)
-				//.RestrictedList(Restrictions)
-				.OnSelectionChanged(this, &SPropertyEditorCombo::OnComboSelectionChanged)
-				.OnComboBoxOpening(this, &SPropertyEditorCombo::OnComboOpening)
-				.VisibleText(this, &SPropertyEditorCombo::GetDisplayValueAsString)
-				//.ToolTipText(this, &SPropertyEditorCombo::GetValueToolTip)
-				//.ShowSearchForItemCount(ComboArgs.ShowSearchForItemCount);
-
-
-				/*
-				SNew(SNumericEntryBox<float>)
-				.AllowSpin(true)
-
-				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-
-				.MinValue(0)
-				.MaxValue(3600)
-
-				.MinSliderValue(0)
-				.MaxSliderValue(60)
-
-				.Value_Lambda([MainCookable]() { return MainCookable->GetStaticMeshBuildSettings().DistanceFieldResolutionScale; })
-				.OnValueChanged_Lambda([InCookables, ChangeDistanceFieldResolutionScale](float Val)
-				{ 
-					ChangeDistanceFieldResolutionScale(Val, false, InCookables);
-				})
-				.OnValueCommitted_Lambda([InCookables, ChangeDistanceFieldResolutionScale](float Val, ETextCommit::Type TextCommitType)
-				{	
-					ChangeDistanceFieldResolutionScale(Val, true, InCookables);
-				})
-				.OnBeginSliderMovement_Lambda([InCookables, SliderBeginDistanceFieldResolutionScale]()
-				{
-					SliderBeginDistanceFieldResolutionScale(InCookables);
-				})
-				.OnEndSliderMovement_Lambda([InCookables, SliderEndDistanceFieldResolutionScale](const float NewValue)
-				{ 
-					SliderEndDistanceFieldResolutionScale(InCookables);
-				})
-				.SliderExponent(1.0f)
-				*//*
-			]
-		]
-	];
-
-
-	//TEnumAsByte<enum EHoudiniRuntimeSettingsRecomputeFlag> RecomputeNormalsFlag;
-	//
-	// RecomputeNormalsFlag
-	//
-	
-
-
-	//TEnumAsByte<enum EHoudiniRuntimeSettingsRecomputeFlag> RecomputeTangentsFlag;
-	//
-	// RecomputeTangentsFlag
-	//
-
-	*/
 
 	//
 	// bUseMikkTSpace
@@ -2224,7 +2057,7 @@ FHoudiniCookableDetails::CreateStaticMeshBuildSettingsDetails(
 			{
 				if (!IsValidWeakPointer(MainCookable))
 					return ECheckBoxState::Unchecked;
-				
+
 				return MainCookable->GetStaticMeshBuildSettings().bGenerateDistanceFieldAsIfTwoSided ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
@@ -2267,14 +2100,14 @@ FHoudiniCookableDetails::CreateStaticMeshBuildSettingsDetails(
 	.NameContent()
 	[
 		SNew(STextBlock)
-		.Text(FText::FromString("Support Face Remap"))
-		.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(FText::FromString("Support Face Remap"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
 	]
 	.ValueContent()
 	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 	[
 		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
+		+ SVerticalBox::Slot()
 		.Padding(2, 2, 5, 2)
 		.AutoHeight()
 		[
@@ -2283,7 +2116,7 @@ FHoudiniCookableDetails::CreateStaticMeshBuildSettingsDetails(
 			{
 				if (!IsValidWeakPointer(MainCookable))
 					return ECheckBoxState::Unchecked;
-				
+
 				return MainCookable->GetStaticMeshBuildSettings().bSupportFaceRemap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
@@ -2318,6 +2151,598 @@ FHoudiniCookableDetails::CreateStaticMeshBuildSettingsDetails(
 			})
 		]
 	];
+}
+
+
+void
+FHoudiniCookableDetails::CreateMeshGenerationDetails(
+	IDetailLayoutBuilder& DetailBuilder,
+	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
+{
+
+		if (InCookables.Num() <= 0)
+		return;
+
+	TWeakObjectPtr<UHoudiniCookable> MainCookable = InCookables[0];
+	if (!IsValidWeakPointer(MainCookable))
+		return;
+
+	if (!MainCookable->IsOutputSupported())
+		return;
+
+	// Create the SM Build Settings category
+	FString BuildSettingsCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_SM_BUILD_SETTINGS);
+
+	// If we have selected more than one component that have different HDAs, 
+	// we need to create multiple categories one for each different HDA
+	// OutputCatName += MultiSelectionIdentifier;
+	
+	IDetailCategoryBuilder& HouSMBuildSettingsCategory =
+		DetailBuilder.EditCategory(*BuildSettingsCatName, FText::GetEmpty(), ECategoryPriority::Important);
+
+	FString Label = TEXT("Static Mesh Build Settings");
+	IDetailGroup& ProxyGrp = HouSMBuildSettingsCategory.AddGroup(FName(*Label), FText::FromString(Label));
+
+	// Lambda used to trigger a n output update if necessary
+	auto MarkOutputUpdateNeeded = [InCookables]()
+	{
+		for (auto CurCookable : InCookables)
+		{
+			if (!IsValidWeakPointer(CurCookable))
+				continue;
+
+			// TODO
+			//CurCookable->Need
+		}
+	};
+
+	//
+	// bDoubleSidedGeometry
+	//
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Double Sided Geometry"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+
+				
+				return MainCookable->GetStaticMeshGenerationProperties().bGeneratedDoubleSidedGeometry ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const uint32 bNewState = (NewState == ECheckBoxState::Checked) ? 1 : 0;
+				if (MainCookable->GetStaticMeshGenerationProperties().bGeneratedDoubleSidedGeometry == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniSMBSFullPrecUVs", "Houdini Static Mesh Build Settings: Changed bUseFullPrecisionUVs"),
+					MainCookable->GetOuter());
+
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
+
+					FHoudiniStaticMeshGenerationProperties& SMGP = CurCookable->GetStaticMeshGenerationProperties();
+					if (SMGP.bGeneratedDoubleSidedGeometry == bNewState)
+						continue;
+
+					CurCookable->Modify();
+					SMGP.bGeneratedDoubleSidedGeometry = bNewState;
+				}
+
+				// Mark our outputs as needing an update
+				MarkOutputUpdateNeeded();
+			})
+		]
+	];
+
+	/// Physical material to use for simple collision of new Houdini Assets. Encodes information about density, friction etc.
+	//UPROPERTY(EditAnywhere, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Simple Collision Physical Material"))
+	//TObjectPtr<UPhysicalMaterial>  PhysMaterial;
+
+	/// Default properties of the body instance
+	//UPROPERTY(GlobalConfig, EditAnywhere, Category = "GeneratedStaticMeshSettings", meta = (FullyExpand = "true"))
+	//struct FBodyInstance DefaultBodyInstance;
+
+	/// Collision Trace behavior - by default, it will keep simple(convex)/complex(per-poly) separate for new Houdini Assets.
+	//UPROPERTY(GlobalConfig, VisibleDefaultsOnly, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Collision Complexity"))
+	//TEnumAsByte<enum ECollisionTraceFlag> CollisionTraceFlag;
+
+		
+	//
+	// LightMapResolution
+	//
+	
+	/// Resolution of lightmap for baked lighting.
+	//UPROPERTY(GlobalConfig, EditAnywhere, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Light Map Resolution", FixedIncrement = "4.0"))
+	//int32 LightMapResolution;
+
+	// Lambdas for slider begin
+	auto SliderBeginLightMapResolution = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeLightMapResolution", "Houdini Static Mesh Generation Properties: Changed Light Map Resolution"),
+			Cookables[0]->GetOuter());
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+			
+			Cookables[Idx]->GetProxyData()->Modify();
+		}
+	};
+
+	// Lambdas for slider end
+	auto SliderEndLightMapResolution = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		// Mark the value as changed to trigger an update
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			// TODO: Mark changed or equivalent?
+		}
+	};
+
+	// Lambdas for changing the value
+	auto ChangeLightMapResolution = [](const int32& Value, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+		
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeLightMapResolution", "Houdini Static Mesh Generation Properties: Changed LightMapResolution"),
+			Cookables[0]->GetOuter() );
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			FHoudiniStaticMeshGenerationProperties& SMGP = Cookables[Idx]->GetStaticMeshGenerationProperties();
+			if (SMGP.GeneratedLightMapResolution == Value)
+				continue;
+
+			Cookables[Idx]->Modify();
+			SMGP.GeneratedLightMapResolution = Value;
+
+			if (DoChange)
+			{
+				Cookables[Idx]->GetProxyData()->Modify();
+			}
+		}
+	};
+
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Light Map Resolution"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(SNumericEntryBox<float>)
+				.AllowSpin(true)
+
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+
+				.MinValue(0)
+				.MaxValue(3600)
+
+				.MinSliderValue(0)
+				.MaxSliderValue(60)
+
+				.Value_Lambda([MainCookable]() { return MainCookable->GetStaticMeshGenerationProperties().GeneratedLightMapResolution; })
+				.OnValueChanged_Lambda([InCookables, ChangeLightMapResolution](int32 Val)
+				{ 
+					ChangeLightMapResolution(Val, false, InCookables);
+				})
+				.OnValueCommitted_Lambda([InCookables, ChangeLightMapResolution](int32 Val, ETextCommit::Type TextCommitType)
+				{	
+					ChangeLightMapResolution(Val, true, InCookables);
+				})
+				.OnBeginSliderMovement_Lambda([InCookables, SliderBeginLightMapResolution]()
+				{
+					SliderBeginLightMapResolution(InCookables);
+				})
+				.OnEndSliderMovement_Lambda([InCookables, SliderEndLightMapResolution](const int32 NewValue)
+				{ 
+					SliderEndLightMapResolution(InCookables);
+				})
+				.SliderExponent(4.0f)
+			]
+		]
+	];
+
+
+	/// Default Mesh distance field resolution, setting it to 0 will prevent the mesh distance field generation while editing the asset
+	//UPROPERTY(GlobalConfig, EditAnywhere, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Distance Field Resolution Scale", UIMin = "0.0", UIMax = "100.0"))
+	//float GeneratedDistanceFieldResolutionScale;
+
+	/// Custom walkable slope setting for bodies of new Houdini Assets.
+	//UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Walkable Slope Override"))
+	//FWalkableSlopeOverride WalkableSlopeOverride;
+
+	//
+	// LightMapCoordinateIndex
+	//
+
+	/// The UV coordinate index of lightmap 
+	//UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Light map coordinate index"))
+	//int32 LightMapCoordinateIndex;
+
+	// Lambdas for slider begin
+	auto SliderBeginLightMapCoordinateIndex = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeLightMapCoordinateIndex", "Houdini Static Mesh Generation Properties: Changed LightMapCoordinateIndex"),
+			Cookables[0]->GetOuter());
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+			
+			Cookables[Idx]->GetProxyData()->Modify();
+		}
+	};
+
+	// Lambdas for slider end
+	auto SliderEndLightMapCoordinateIndex = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		// Mark the value as changed to trigger an update
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			// TODO: Mark changed or equivalent?
+		}
+	};
+
+	// Lambdas for changing the value
+	auto ChangeLightMapCoordinateIndex = [](const int32& Value, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+		
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeLightMapCoordinateIndex", "Houdini Static Mesh Generation Properties: Changed LightMapCoordinateIndex"),
+			Cookables[0]->GetOuter() );
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			FHoudiniStaticMeshGenerationProperties& SMGP = Cookables[Idx]->GetStaticMeshGenerationProperties();
+			if (SMGP.GeneratedLightMapCoordinateIndex == Value)
+				continue;
+
+			Cookables[Idx]->Modify();
+			SMGP.GeneratedLightMapCoordinateIndex = Value;
+
+			if (DoChange)
+			{
+				Cookables[Idx]->GetProxyData()->Modify();
+			}
+		}
+	};
+
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Light map coordinate index"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(SNumericEntryBox<int32>)
+				.AllowSpin(true)
+
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+
+				.MinValue(0)
+				.MaxValue(3600)
+
+				.MinSliderValue(0)
+				.MaxSliderValue(60)
+
+				.Value_Lambda([MainCookable]() { return MainCookable->GetStaticMeshGenerationProperties().GeneratedLightMapCoordinateIndex; })
+				.OnValueChanged_Lambda([InCookables, ChangeLightMapCoordinateIndex](int32 Val)
+				{ 
+					ChangeLightMapCoordinateIndex(Val, false, InCookables);
+				})
+				.OnValueCommitted_Lambda([InCookables, ChangeLightMapCoordinateIndex](int32 Val, ETextCommit::Type TextCommitType)
+				{	
+					ChangeLightMapCoordinateIndex(Val, true, InCookables);
+				})
+				.OnBeginSliderMovement_Lambda([InCookables, SliderBeginLightMapCoordinateIndex]()
+				{
+					SliderBeginLightMapCoordinateIndex(InCookables);
+				})
+				.OnEndSliderMovement_Lambda([InCookables, SliderEndLightMapCoordinateIndex](const int32 NewValue)
+				{ 
+					SliderEndLightMapCoordinateIndex(InCookables);
+				})
+				.SliderExponent(4.0f)
+			]
+		]
+	];
+
+	//
+	// bUseMaximumStreamingTexelRatio
+	//
+
+	/// True if mesh should use a less-conservative method of mip LOD texture factor computation for new Houdini Assets.
+	//UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Use Maximum Streaming Texel Ratio"))
+	//uint32 bUseMaximumStreamingTexelRatio : 1;
+
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Use Maximum Streaming Texel Ratio"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda([MainCookable]()
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+
+				
+				return MainCookable->GetStaticMeshGenerationProperties().bGeneratedUseMaximumStreamingTexelRatio ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([MainCookable, InCookables, MarkOutputUpdateNeeded](ECheckBoxState NewState)
+			{
+				if (!IsValidWeakPointer(MainCookable))
+					return;
+
+				const uint32 bNewState = (NewState == ECheckBoxState::Checked) ? 1 : 0;
+				if (MainCookable->GetStaticMeshGenerationProperties().bGeneratedUseMaximumStreamingTexelRatio == bNewState)
+					return;
+
+				FScopedTransaction Transaction(
+					TEXT(HOUDINI_MODULE_EDITOR),
+					LOCTEXT("HoudiniChangedUseMaximumStreamingTexelRatio", "Houdini Static Mesh Build Settings: Changed bGeneratedUseMaximumStreamingTexelRatio"),
+					MainCookable->GetOuter());
+
+				for (auto CurCookable : InCookables)
+				{
+					if (!IsValidWeakPointer(CurCookable))
+						continue;
+
+					FHoudiniStaticMeshGenerationProperties& SMGP = CurCookable->GetStaticMeshGenerationProperties();
+					if (SMGP.bGeneratedUseMaximumStreamingTexelRatio == bNewState)
+						continue;
+
+					CurCookable->Modify();
+					SMGP.bGeneratedUseMaximumStreamingTexelRatio = bNewState;
+				}
+
+				// Mark our outputs as needing an update
+				MarkOutputUpdateNeeded();
+			})
+		]
+	];
+
+	//
+	// StreamingDistanceMultiplier
+	//
+
+	/// Allows artists to adjust the distance where textures using UV 0 are streamed in/out for new Houdini Assets.
+	//UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Streaming Distance Multiplier"))
+	//float StreamingDistanceMultiplier;
+
+	// Lambdas for slider begin
+	auto SliderBeginStreamingDistanceMultiplier = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeStreamingDistanceMultiplier", "Houdini Static Mesh Generation Properties: Changed StreamingDistanceMultiplier"),
+			Cookables[0]->GetOuter());
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+			
+			Cookables[Idx]->GetProxyData()->Modify();
+		}
+	};
+
+	// Lambdas for slider end
+	auto SliderEndStreamingDistanceMultiplier = [](const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		// Mark the value as changed to trigger an update
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			// TODO: Mark changed or equivalent?
+		}
+	};
+
+	// Lambdas for changing the value
+	auto ChangeStreamingDistanceMultiplier = [](const float& Value, const bool& DoChange, const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
+	{
+		if (Cookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(Cookables[0]))
+			return;
+		
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_RUNTIME),
+			LOCTEXT("HoudiniChangeStreamingDistanceMultiplier", "Houdini Static Mesh Generation Properties: Changed StreamingDistanceMultiplier"),
+			Cookables[0]->GetOuter() );
+
+		for (int Idx = 0; Idx < Cookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(Cookables[Idx]))
+				continue;
+
+			FHoudiniStaticMeshGenerationProperties& SMGP = Cookables[Idx]->GetStaticMeshGenerationProperties();
+			if (SMGP.GeneratedStreamingDistanceMultiplier == Value)
+				continue;
+
+			Cookables[Idx]->Modify();
+			SMGP.GeneratedStreamingDistanceMultiplier = Value;
+
+			if (DoChange)
+			{
+				Cookables[Idx]->GetProxyData()->Modify();
+			}
+		}
+	};
+
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Streaming Distance Multiplier"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(SNumericEntryBox<float>)
+				.AllowSpin(true)
+
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+
+				.MinValue(0)
+				.MaxValue(3600)
+
+				.MinSliderValue(0)
+				.MaxSliderValue(60)
+
+				.Value_Lambda([MainCookable]() { return MainCookable->GetStaticMeshGenerationProperties().GeneratedStreamingDistanceMultiplier; })
+				.OnValueChanged_Lambda([InCookables, ChangeStreamingDistanceMultiplier](int32 Val)
+				{ 
+					ChangeStreamingDistanceMultiplier(Val, false, InCookables);
+				})
+				.OnValueCommitted_Lambda([InCookables, ChangeStreamingDistanceMultiplier](int32 Val, ETextCommit::Type TextCommitType)
+				{	
+					ChangeStreamingDistanceMultiplier(Val, true, InCookables);
+				})
+				.OnBeginSliderMovement_Lambda([InCookables, SliderBeginStreamingDistanceMultiplier]()
+				{
+					SliderBeginStreamingDistanceMultiplier(InCookables);
+				})
+				.OnEndSliderMovement_Lambda([InCookables, SliderEndStreamingDistanceMultiplier](const int32 NewValue)
+				{ 
+					SliderEndStreamingDistanceMultiplier(InCookables);
+				})
+				.SliderExponent(4.0f)
+			]
+		]
+	];
+
+	/// Default settings when using new Houdini Asset mesh for instanced foliage.
+	//UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Foliage Default Settings"))
+	//TObjectPtr<UFoliageType_InstancedStaticMesh>  FoliageDefaultSettings;
+
+	/// Array of user data stored with the new Houdini Asset.
+	//UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = "GeneratedStaticMeshSettings", meta = (DisplayName = "Asset User Data"))
+	//TArray<TObjectPtr<UAssetUserData> > AssetUserData;
 }
 
 #undef LOCTEXT_NAMESPACE
