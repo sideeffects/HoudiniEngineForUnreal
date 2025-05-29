@@ -302,14 +302,16 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 	//bCanDeleteHoudiniNodes = true;
 
 	bHasHoudiniAsset = false;
-	HoudiniAssetData = CreateDefaultSubobject<UCookableHoudiniAssetData>(TEXT("HoudiniAssetData"));
+	HoudiniAssetData = CreateDefaultSubobject<UCookableHoudiniAssetData>(TEXT("HoudiniAssetData")); 
+	//HoudiniAssetData = NewObject<UCookableHoudiniAssetData>(this, TEXT("HoudiniAssetData"), RF_Public);
 
 	bHasInputs = false;
 	InputData = CreateDefaultSubobject<UCookableInputData>(TEXT("InputData"));
 
 	bHasParameters = false;
 	ParameterData = CreateDefaultSubobject<UCookableParameterData>(TEXT("ParameterData"));
-	
+	//ParameterData = NewObject<UCookableParameterData>(this, TEXT("ParameterData"), RF_Public);
+
 	bHasComponent = false;
 	ComponentData = CreateDefaultSubobject<UCookableComponentData>(TEXT("ComponentData"));
 
@@ -2167,6 +2169,17 @@ UHoudiniCookable::GetStaticMeshBuildSettings() const
 	return OutputData->StaticMeshBuildSettings;
 }
 
+FHoudiniStaticMeshGenerationProperties&
+UHoudiniCookable::GetStaticMeshGenerationProperties()
+{
+	return OutputData->StaticMeshGenerationProperties;
+}
+
+FMeshBuildSettings&
+UHoudiniCookable::GetStaticMeshBuildSettings()
+{
+	return OutputData->StaticMeshBuildSettings;
+}
 
 bool
 UHoudiniCookable::CanDeleteHoudiniNodes() const

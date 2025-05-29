@@ -487,6 +487,9 @@ public:
 	FHoudiniStaticMeshGenerationProperties& GetStaticMeshGenerationProperties() const;
 	FMeshBuildSettings& GetStaticMeshBuildSettings() const;
 
+	FHoudiniStaticMeshGenerationProperties& GetStaticMeshGenerationProperties();
+	FMeshBuildSettings& GetStaticMeshBuildSettings();
+
 	// Feature data accessors
 	int32 GetNumInputs() const { return IsInputSupported() ? InputData->Inputs.Num() : 0; };
 	int32 GetNumOutputs() const { return IsOutputSupported() ? OutputData->Outputs.Num() : 0; };
