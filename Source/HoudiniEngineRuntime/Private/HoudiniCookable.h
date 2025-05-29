@@ -484,8 +484,8 @@ public:
 	// Returns the current component transform - identity if not supported
 	FTransform GetComponentTransform() const;
 
-	FHoudiniStaticMeshGenerationProperties& GetStaticMeshGenerationProperties() const;
-	FMeshBuildSettings& GetStaticMeshBuildSettings() const;
+	FHoudiniStaticMeshGenerationProperties GetStaticMeshGenerationProperties() const;
+	FMeshBuildSettings GetStaticMeshBuildSettings() const;
 
 	FHoudiniStaticMeshGenerationProperties& GetStaticMeshGenerationProperties();
 	FMeshBuildSettings& GetStaticMeshBuildSettings();
