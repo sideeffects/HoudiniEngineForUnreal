@@ -98,7 +98,7 @@ public:
 		IDetailLayoutBuilder& DetailBuilder,
 		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
 
-	void CreateStaticMeshBuildSettingsDetails(
+	void CreateMeshBuildSettingsDetails(
 		IDetailLayoutBuilder& DetailBuilder,
 		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
 

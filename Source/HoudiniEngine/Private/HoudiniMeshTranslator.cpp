@@ -3111,6 +3111,17 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			BodySetup = SM->GetBodySetup();
 		}
 
+		// Set the default Static Mesh Generation Properties
+		if (IsValid(BodySetup))
+		{
+			// Set flag whether physics triangle mesh will use double sided faces when doing scene queries.
+			BodySetup->bDoubleSidedGeometry = StaticMeshGenerationProperties.bGeneratedDoubleSidedGeometry;
+			// Assign physical material for simple collision.
+			BodySetup->PhysMaterial = StaticMeshGenerationProperties.GeneratedPhysMaterial;
+			// Body Instance Properties
+			BodySetup->DefaultInstance.CopyBodyInstancePropertiesFrom(&StaticMeshGenerationProperties.DefaultBodyInstance);
+		}
+
 		EHoudiniSplitType SplitType = GetSplitTypeFromSplitName(CurrentObjId.SplitIdentifier);
 
 		// Handle the Static Mesh's colliders

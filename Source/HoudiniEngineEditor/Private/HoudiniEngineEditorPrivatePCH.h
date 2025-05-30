@@ -67,8 +67,8 @@
 #define HOUDINI_ENGINE_EDITOR_CATEGORY_OUTPUTS					"HoudiniOutputs";
 #define HOUDINI_ENGINE_EDITOR_CATEGORY_NODESYNC					"HoudiniNodeSync";
 #define HOUDINI_ENGINE_EDITOR_CATEGORY_HDA						"HoudiniAsset";
-#define HOUDINI_ENGINE_EDITOR_CATEGORY_PROXY					"Houdini Mesh Proxy";
-#define HOUDINI_ENGINE_EDITOR_CATEGORY_SM_BUILD_SETTINGS		"Houdini Mesh Generation";
+//#define HOUDINI_ENGINE_EDITOR_CATEGORY_PROXY				    "HoudiniProxyMeshGeneration";
+#define HOUDINI_ENGINE_EDITOR_CATEGORY_MESHGEN          		"HoudiniMeshGeneration";
 
 //
 // Parameter UI constants

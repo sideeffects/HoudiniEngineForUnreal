@@ -928,15 +928,21 @@ FHoudiniEngineEditor::RegisterSectionMappings()
 	CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_OUTPUTS);
 	Section->AddCategory(*CatName);
 
-	// Categories manually defined in HoudiniAssetComponent.h
-	CatName = TEXT("HoudiniMeshGeneration");
+	// HoudiniNodeSync
+	CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_NODESYNC);
 	Section->AddCategory(*CatName);
 
-	CatName = TEXT("HoudiniProxyMeshGeneration");
+	// HoudiniAsset
+	CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_HDA);
 	Section->AddCategory(*CatName);
 
-	CatName = TEXT("HoudiniAsset");
-	Section->AddCategory(*CatName);	
+	// HoudiniMeshGeneration
+	CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_MESHGEN);
+	Section->AddCategory(*CatName);
+
+	// HoudiniProxyMeshGeneration
+	//CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PROXY);
+	//Section->AddCategory(*CatName);
 }
 
 void 

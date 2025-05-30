@@ -107,6 +107,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniStaticMeshGenerationProperties
 	UPROPERTY(EditAnywhere, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Simple Collision Physical Material"))
 	TObjectPtr<UPhysicalMaterial>  GeneratedPhysMaterial;
 
+	// TODO: DEPRECATE - COULD BE USED!
 	/** Default properties of the body instance, copied into objects on instantiation, was URB_BodyInstance */
 	UPROPERTY(EditAnywhere, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (FullyExpand = "true"))
 	struct FBodyInstance DefaultBodyInstance;
@@ -115,30 +116,37 @@ struct HOUDINIENGINERUNTIME_API FHoudiniStaticMeshGenerationProperties
 	UPROPERTY(EditAnywhere, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Collision Complexity"))
 	TEnumAsByte<enum ECollisionTraceFlag> GeneratedCollisionTraceFlag;
 
+	// TODO: DEPRECATE
 	/** Resolution of lightmap. */
 	UPROPERTY(EditAnywhere, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Light Map Resolution", FixedIncrement = "4.0"))
 	int32 GeneratedLightMapResolution;
 
+	// TODO: DEPRECATE - COULD BE USED
 	/** Custom walkable slope setting for generated mesh's body. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Walkable Slope Override"))
 	FWalkableSlopeOverride GeneratedWalkableSlopeOverride;
 
+	// TODO: DEPRECATE - COULD BE USED - AUTO
 	/** The light map coordinate index. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Light map coordinate index"))
 	int32 GeneratedLightMapCoordinateIndex;
 
+	// TODO: DEPRECATE
 	/** True if mesh should use a less-conservative method of mip LOD texture factor computation. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Use Maximum Streaming Texel Ratio"))
 	uint32 bGeneratedUseMaximumStreamingTexelRatio : 1;
 
+	// TODO: DEPRECATE
 	/** Allows artists to adjust the distance where textures using UV 0 are streamed in/out. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Streaming Distance Multiplier"))
 	float GeneratedStreamingDistanceMultiplier;
 
+	// TODO: DEPRECATE
 	/** Default settings when using this mesh for instanced foliage. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Foliage Default Settings"))
 	TObjectPtr<UFoliageType_InstancedStaticMesh> GeneratedFoliageDefaultSettings = nullptr;
 
+	// TODO: DEPRECATE
 	/** Array of user data stored with the asset. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category = "HoudiniMeshGeneration | StaticMeshGeneration", meta = (DisplayName = "Asset User Data"))
 	TArray<TObjectPtr<UAssetUserData>> GeneratedAssetUserData;
