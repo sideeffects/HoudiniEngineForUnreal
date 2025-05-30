@@ -119,7 +119,8 @@ public class HoudiniEngineEditor : ModuleRules
                 "ToolWidgets",
                 "EditorFramework",
                 "DataLayerEditor",
-                "TraceAnalysis"
+                "TraceAnalysis",
+                "PhysicsCore"
             }
         );
         
