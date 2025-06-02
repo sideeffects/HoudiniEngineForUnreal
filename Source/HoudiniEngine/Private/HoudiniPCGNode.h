@@ -34,7 +34,7 @@ UENUM()
 enum class EHoudiniPCGOutputType : uint8
 {
 	Cook = 1,
-	Bake,
+	CookAndBake,
 };
 
 UCLASS(BlueprintType, ClassGroup = (Procedural))
@@ -87,7 +87,7 @@ public:
 	int NumInputs = 0;
 
 	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
-	EHoudiniPCGOutputType OutputType = EHoudiniPCGOutputType::Bake;
+	EHoudiniPCGOutputType OutputType = EHoudiniPCGOutputType::CookAndBake;
 	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
 	bool bCreateSceneComponents = true;
 
