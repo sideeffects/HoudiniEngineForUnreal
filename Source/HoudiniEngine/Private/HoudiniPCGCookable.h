@@ -168,7 +168,7 @@ private:
 
 	void AddTrackedObjects(const FPCGContext* Context);
 
-	static bool ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const TArray<FString> & InputObjects);
+	static bool ApplyInputAsUnrealObjects(const FPCGContext* Context, UHoudiniInput* HoudiniInput, const TArray<FString> & InputObjects);
 
 	static UHoudiniPCGDataObject* GetPCGDataObjects(const FPCGTaggedData& TaggedData);
 
@@ -180,7 +180,7 @@ private:
 	static void DeleteBakedComponent(const FString& ActorPath);
 	static void DeleteBakedObject(const FString& ObjectPath);
 	static void DeletePackage(UPackage* Package);
-	static void DeleteLandscapeLayer(TMap<FName, FString>& LandscapeLayers);
+	static void DeleteLandscapeLayer(const FString & LandscapePath, TArray<FString>& LandscapeLayers);
 	static void DeleteFoliage(UWorld* World, UFoliageType* FoliageType, const TArray<FVector>& FoliageInstancePositions);
 	void DeleteBakedOutputObject(UWorld* World, FHoudiniBakedOutputObject& BakedOutputObject);
 };

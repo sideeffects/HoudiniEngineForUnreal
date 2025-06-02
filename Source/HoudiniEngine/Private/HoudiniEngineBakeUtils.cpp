@@ -319,7 +319,7 @@ FHoudiniEngineBakeUtils::BakeCookable(
 
 	if (bSuccess && bInRemoveHACOutputOnSuccess)
 	{
-		FHoudiniOutputTranslator::ClearAndRemoveOutputs(InCookableToBake->GetOutputs(), false);
+		FHoudiniOutputTranslator::ClearAndRemoveOutputs(InCookableToBake->GetOutputs(), EHoudiniClearFlags::EHoudiniClear_Actors);
 	}
 	
 	return bSuccess;

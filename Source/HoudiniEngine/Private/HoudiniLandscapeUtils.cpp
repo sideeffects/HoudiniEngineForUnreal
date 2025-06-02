@@ -255,8 +255,10 @@ const FLandscapeLayer*
 #else
 FLandscapeLayer*
 #endif
-FHoudiniLandscapeUtils::GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName)
+FHoudiniLandscapeUtils::GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName, bool* bCreated)
 {
+	if (bCreated)
+		*bCreated = false;
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 	const FLandscapeLayer* UnrealEditLayer = GetEditLayer(Landscape, LayerName);
 #else
@@ -276,8 +278,9 @@ FHoudiniLandscapeUtils::GetOrCreateEditLayer(ALandscape* Landscape, const FName&
 #else
 		UnrealEditLayer = Landscape->GetLayer(EditLayerIndex);
 #endif
+		if (bCreated)
+		*bCreated = true;
 	}
-
 	return UnrealEditLayer;
 }
 
@@ -1556,6 +1559,16 @@ FHoudiniLandscapeUtils::ApplySegmentsToLandscapeEditLayers(
 	}
 
 	return bSuccess;
+}
+
+void FHoudiniLandscapeUtils::DeleteCookedLayer(UHoudiniLandscapeTargetLayerOutput* Layer)
+{
+	int32 EditLayerIndex = Layer->Landscape->GetLayerIndex(FName(Layer->CookedEditLayer));
+	if(EditLayerIndex == INDEX_NONE)
+		return;
+
+	Layer->Landscape->DeleteLayer(EditLayerIndex);
+
 }
 
 void FHoudiniLandscapeUtils::ApplyLocks(UHoudiniLandscapeTargetLayerOutput* Output)

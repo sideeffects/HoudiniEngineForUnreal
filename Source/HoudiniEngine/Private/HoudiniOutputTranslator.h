@@ -28,7 +28,7 @@
 
 #include "HAPI/HAPI_Common.h"
 #include "CoreMinimal.h"
-
+#include "HoudiniEngineRuntime.h"
 
 class UHoudiniOutput;
 class UHoudiniInput;
@@ -103,7 +103,7 @@ public:
 	static void CacheCurveInfo(const HAPI_CurveInfo& InCurveInfo, FHoudiniCurveInfo& OutCurveInfoCache);
 
 	// Helper to clear all outputs
-	static void ClearAndRemoveOutputs(TArray<TObjectPtr<UHoudiniOutput>>& OutputsToClear, bool bDeleteAssets);
+	static void ClearAndRemoveOutputs(TArray<TObjectPtr<UHoudiniOutput>>& OutputsToClear, EHoudiniClearFlags ClearFlags);
 
 	// Helper to clear an individual UHoudiniOutput
 	static void ClearOutput(UHoudiniOutput* Output);

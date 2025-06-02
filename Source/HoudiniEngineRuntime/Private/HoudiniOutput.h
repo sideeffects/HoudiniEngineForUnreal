@@ -50,6 +50,41 @@ class USkeleton;
 class ALandscapeSplineActor;
 struct FHoudiniDataLayer;
 
+enum class EHoudiniClearFlags : uint32
+{
+	EHoudiniClear_Actors = 1 << 1,
+	EHoudiniClear_Assets = 1 << 2,
+	EHoudiniClear_LandscapeLayers = 1 << 3,
+};
+
+// Overloaded operators for setting flags  
+inline EHoudiniClearFlags operator|(EHoudiniClearFlags A, EHoudiniClearFlags B)
+{
+	return static_cast<EHoudiniClearFlags>(static_cast<uint32>(A) | static_cast<uint32>(B));
+}
+
+inline EHoudiniClearFlags& operator|=(EHoudiniClearFlags& A, EHoudiniClearFlags B)
+{
+	A = A | B;
+	return A;
+}
+
+inline EHoudiniClearFlags operator&(EHoudiniClearFlags A, EHoudiniClearFlags B)
+{
+	return static_cast<EHoudiniClearFlags>(static_cast<uint32>(A) & static_cast<uint32>(B));
+}
+
+inline EHoudiniClearFlags& operator&=(EHoudiniClearFlags& A, EHoudiniClearFlags B)
+{
+	A = A & B;
+	return A;
+}
+
+inline EHoudiniClearFlags operator~(EHoudiniClearFlags A)
+{
+	return static_cast<EHoudiniClearFlags>(~static_cast<uint32>(A));
+}
+
 
 UENUM()
 enum class EHoudiniCurveOutputType : uint8
@@ -251,6 +286,10 @@ public:
 
 	UPROPERTY()
 	TArray<FHoudiniGenericAttribute> PropertyAttributes;
+
+	UPROPERTY()
+	bool bLayerWasCreated = false;
+
 
 };
 
@@ -546,6 +585,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		UPROPERTY()
 		TMap<FName, FString> LandscapeLayers;
 
+		// For landscapes this is the layers we created.
+		UPROPERTY()
+		TArray<FString> CreatedLandscapeLayers;
+
 		// Positions of Foliage instances; used for removal on rebake.
 		UPROPERTY()
 		TArray<FVector> FoliageInstancePositions;
@@ -624,7 +667,7 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 
 	public:
 
-		void DestroyCookedData(bool bDeleteAssets);
+		void DestroyCookedData(EHoudiniClearFlags ClearFlags);
 
 		// The main output object
 		UPROPERTY()
@@ -746,7 +789,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniOutput : public UObject
 
 public:
 
-	void DestroyCookedData(bool bDeleteAssets);
+	void DestroyCookedData(EHoudiniClearFlags ClearFlags);
 
 	//------------------------------------------------------------------------------------------------
 	// Accessors

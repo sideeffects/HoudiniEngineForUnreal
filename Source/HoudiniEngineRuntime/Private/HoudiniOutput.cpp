@@ -1272,7 +1272,7 @@ void DestroyComponent(UObject * Component)
 	}
 }
 
-void FHoudiniOutputObject::DestroyCookedData(bool bDeleteAssets)
+void FHoudiniOutputObject::DestroyCookedData(EHoudiniClearFlags ClearFlags)
 {
 	//--------------------------------------------------------------------------------------------------------------------
 	// Destroy all components
@@ -1309,7 +1309,10 @@ void FHoudiniOutputObject::DestroyCookedData(bool bDeleteAssets)
 	//--------------------------------------------------------------------------------------------------------------------
 
 #if WITH_EDITOR
-	if(bDeleteAssets && IsValid(OutputObject))
+
+	bool bClearAssets = (ClearFlags & EHoudiniClearFlags::EHoudiniClear_Assets) == EHoudiniClearFlags::EHoudiniClear_Assets;
+
+	if(bClearAssets && IsValid(OutputObject))
 	{
 		TArray<FString> PackagesDeleted;
 
@@ -1322,9 +1325,9 @@ void FHoudiniOutputObject::DestroyCookedData(bool bDeleteAssets)
 
 		if (bCanDelete)
 		{
-			TArray<UObject*> ObjectsToDelete;
 			if(UPackage* Package = OutputObject->GetPackage())
 			{
+				TArray<UObject*> ObjectsToDelete;
 				ObjectsToDelete.Add(Package);
 				GetObjectsWithOuter(Package, ObjectsToDelete, true);
 
@@ -1349,6 +1352,17 @@ void FHoudiniOutputObject::DestroyCookedData(bool bDeleteAssets)
 			}
 		}
 	}
+
+	bool bClearLandscapeLayers = (ClearFlags & EHoudiniClearFlags::EHoudiniClear_LandscapeLayers) == EHoudiniClearFlags::EHoudiniClear_LandscapeLayers;
+	UHoudiniLandscapeTargetLayerOutput* LayerOutput = Cast<UHoudiniLandscapeTargetLayerOutput>(OutputObject);
+	
+	if (bClearLandscapeLayers && IsValid(LayerOutput))
+	{
+		// For now, only delete layers we created.
+		if (LayerOutput->bLayerWasCreated)
+			FHoudiniLandscapeRuntimeUtils::DeleteEditLayer(LayerOutput->Landscape, FName(LayerOutput->CookedEditLayer));
+	}
+
 #endif
 
 	//--------------------------------------------------------------------------------------------------------------------
@@ -1431,13 +1445,13 @@ void FHoudiniOutputObject::DestroyCookedData(bool bDeleteAssets)
 }
 
 
-void UHoudiniOutput::DestroyCookedData(bool bDeleteAssets)
+void UHoudiniOutput::DestroyCookedData(EHoudiniClearFlags ClearFlags)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UHoudiniOutput::DestroyCookedData);
 	for (auto It : OutputObjects)
 	{
 		FHoudiniOutputObject* FoundOutputObject = &It.Value;
-		FoundOutputObject->DestroyCookedData(bDeleteAssets);
+		FoundOutputObject->DestroyCookedData(ClearFlags);
 	}
 	OutputObjects.Empty();
 }

@@ -91,6 +91,9 @@ FHoudiniLandscapeRuntimeUtils::DeleteLandscapeCookedData(UHoudiniOutput* InOutpu
 void FHoudiniLandscapeRuntimeUtils::DeleteEditLayer(ALandscape* Landscape, const FName& LayerName)
 {
 #if WITH_EDITOR
+	if(!IsValid(Landscape))
+		return;
+
 	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
 	if (EditLayerIndex == INDEX_NONE)
 		return;

@@ -520,10 +520,10 @@ bool FHoudiniEditorTestPCG_FoliageBaked::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesCooked, "Houdini.UnitTests.PCG.Landscapes.Cooked",
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesCookedCreate, "Houdini.UnitTests.PCG.Landscapes.Cooked.Create",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
 
-bool FHoudiniEditorTestPCG_LandscapesCooked::RunTest(const FString& Parameters)
+bool FHoudiniEditorTestPCG_LandscapesCookedCreate::RunTest(const FString& Parameters)
 {
 	/// Make sure we have a Houdini Session before doing anything.
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
@@ -575,6 +575,132 @@ bool FHoudiniEditorTestPCG_LandscapesCooked::RunTest(const FString& Parameters)
 
 		return true;
 	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesCookedModiy, "Houdini.UnitTests.PCG.Landscapes.Cooked.Modify",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestPCG_LandscapesCookedModiy::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGLandscapeMods/PCGTestLandscapeCookedLevel.map"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+
+	ALandscape* Landscape = nullptr;
+	for(TActorIterator<AActor> It(Context->PCGComponent->GetWorld()); It; ++It)
+	{
+		Landscape = Cast<ALandscape>(*It);
+		if(Landscape)
+			break;
+	}
+
+	FName LayerName = TEXT("Noise");
+
+	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
+	HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, INDEX_NONE, true);
+
+	AddCommand(new FFunctionLatentCommand([Context]
+		{
+			Context->CleanupAndGenerateAsync();
+			return true;
+		}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context, Landscape, LayerName]()
+		{
+			if(!Context->Update())
+				return false;
+
+			// Make sure the layer was created.
+			int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), true);
+
+			//	Now start clean.
+			Context->Cleanup();
+
+			return true;
+		}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context, Landscape, LayerName]()
+		{
+			if(!Context->Update())
+				return false;
+
+			// Make sure the layer was removed.
+			int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
+			HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), true);
+
+			return true;
+		}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesBakedModiy, "Houdini.UnitTests.PCG.Landscapes.Baked.Modify",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestPCG_LandscapesBakedModiy::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName(TEXT("/Game/TestHDAs/PCG/PCGLandscapeMods/PCGTestLandscapeLevel.map"));
+	TSharedPtr<EHoudiniTestPCGContext> Context(new EHoudiniTestPCGContext());
+	Context->LoadPCGTestMap(MapName);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Context->PCGComponent, return true);
+
+
+	ALandscape* Landscape = nullptr;
+	for(TActorIterator<AActor> It(Context->PCGComponent->GetWorld()); It; ++It)
+	{
+		Landscape = Cast<ALandscape>(*It);
+		if(Landscape)
+			break;
+	}
+
+	FName LayerName = TEXT("Noise");
+
+	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
+	HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, INDEX_NONE, true);
+
+	AddCommand(new FFunctionLatentCommand([Context]
+		{
+			Context->CleanupAndGenerateAsync();
+			return true;
+		}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context, Landscape, LayerName]()
+		{
+			if(!Context->Update())
+				return false;
+
+			// Make sure the layer was created.
+			int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), true);
+
+			//	Now start clean.
+			Context->Cleanup();
+
+			return true;
+		}));
+
+	AddCommand(new FFunctionLatentCommand([this, Context, Landscape, LayerName]()
+		{
+			if(!Context->Update())
+				return false;
+
+			// Make sure the layer was removed.
+			int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
+			HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), true);
+
+			return true;
+		}));
 
 	return true;
 }

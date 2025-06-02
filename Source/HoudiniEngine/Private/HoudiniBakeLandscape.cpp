@@ -239,14 +239,13 @@ FHoudiniLandscapeBake::BakeLandscape(
 	const EPackageReplaceMode AssetPackageReplaceMode = BakeSettings.bReplaceAssets ?
 		EPackageReplaceMode::ReplaceExistingAssets : EPackageReplaceMode::CreateNewAssets;
 
-	TArray<UHoudiniLandscapeTargetLayerOutput*> LayerOutputs;
+	TArray<UHoudiniLandscapeTargetLayerOutput*> CookedLayersToDelete;
 
 	for (auto& Elem : OutputObjects)
 	{
 		const FHoudiniOutputObjectIdentifier& ObjectIdentifier = Elem.Key;
 		FHoudiniOutputObject& OutputObject = Elem.Value;
 		bool bHasPreviousBakeData = false;
-		FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, ObjectIdentifier, bHasPreviousBakeData);
 
 		// Populate the package params for baking this output object.
 		if (!IsValid(OutputObject.OutputObject))
@@ -280,16 +279,18 @@ FHoudiniLandscapeBake::BakeLandscape(
 			continue;
 		}
 
+		FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, ObjectIdentifier, bHasPreviousBakeData);
+
 		FHoudiniClearedEditLayers & ClearedLayers = ClearedLandscapeLayers.FindOrAdd(LayerOutput->Landscape);
 		FHoudiniLandscapeBake::BakeLandscapeLayer(PackageParams, *LayerOutput, BakeSettings, BakedObjectData, ClearedLayers);
 
-		LayerOutputs.Add(LayerOutput);
+		CookedLayersToDelete.Add(LayerOutput);
 
 		InBakeState.SetNewBakedOutputObject(InOutputIndex, ObjectIdentifier, BakedOutputObject);
 	}
 
 	// Once layers are baked, delete the cooked layers if they existed.
-	for(UHoudiniLandscapeTargetLayerOutput * LayerOutput : LayerOutputs)
+	for(UHoudiniLandscapeTargetLayerOutput * LayerOutput : CookedLayersToDelete)
 	{
 		if (LayerOutput->bCookedLayerRequiresBaking)
 		{
@@ -475,6 +476,14 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 				Results.Add(BakeActor);
 				BakedOutputObject.Landscape = *BakeActor.Actor->GetPathName();	
 				
+			}
+			else
+			{
+				BakedOutputObject.Landscape = LayerOutput->Landscape->GetPathName();
+
+				if(LayerOutput->bLayerWasCreated)
+					BakedOutputObject.CreatedLandscapeLayers.Add(LayerOutput->BakedEditLayer);
+
 			}
 
 			// Set the updated baked output object in the state

@@ -500,6 +500,11 @@ FHoudiniEngine::GetSessionStatusAndColor(
 		OutStatusString = TEXT("Houdini Engine Session FAILED - No License");
 		OutStatusColor = FLinearColor::Red;
 		break;
+	case EHoudiniSessionStatus::Connecting:
+		// Failed to acquire a license
+		OutStatusString = TEXT("Houdini Engine Session CONNECTING");
+		OutStatusColor = FLinearColor::White;
+		break;
 	case EHoudiniSessionStatus::None:
 		// Session type set to None
 		OutStatusString = TEXT("Houdini Engine Session DISABLED");
@@ -563,6 +568,7 @@ FHoudiniEngine::SetSessionStatus(const EHoudiniSessionStatus& InSessionStatus)
 		case EHoudiniSessionStatus::None:
 		case EHoudiniSessionStatus::Invalid:
 		case EHoudiniSessionStatus::Connected:
+		case EHoudiniSessionStatus::Connecting:
 		{
 			SessionStatus = InSessionStatus;
 		}
@@ -1173,6 +1179,7 @@ FHoudiniEngine::RestartSession(bool bShowNotificationsAndMessages)
 	else
 	{
 		// Try to reconnect/start a new session
+		SetSessionStatus(EHoudiniSessionStatus::Connecting);
 		const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
 		if (!StartSessionsInternal(
 			HoudiniRuntimeSettings->bStartAutomaticServer,

@@ -131,7 +131,7 @@ public:
 class FHoudiniDigitalAssetPCGElement : public IPCGElementWithCustomContext<FPCHoudiniDigitalAssetAttributesContext>
 {
 public:
-	virtual bool IsCacheable(const UPCGSettings* InSettings) const;
+	virtual bool IsCacheable(const UPCGSettings* InSettings) const override;
 	virtual bool CanExecuteOnlyOnMainThread(FPCGContext* InContext) const override { return true; }
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 	virtual bool SupportsBasePointDataInputs(FPCGContext* InContext) const override { return true; }

@@ -254,11 +254,11 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
     static const FLandscapeLayer* GetEditLayer(ALandscape* Landscape, const FName& LayerName);
-    static const FLandscapeLayer* GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName);
+    static const FLandscapeLayer* GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName, bool* bCreated=nullptr);
     static const FLandscapeLayer* MoveEditLayerAfter(ALandscape* Landscape, const FName& LayerName, const FName& AfterLayerName);
 #else
     static FLandscapeLayer* GetEditLayer(ALandscape* Landscape, const FName& LayerName);
-    static FLandscapeLayer* GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName);
+    static FLandscapeLayer* GetOrCreateEditLayer(ALandscape* Landscape, const FName& LayerName, bool* bCreated = nullptr);
     static FLandscapeLayer* MoveEditLayerAfter(ALandscape* Landscape, const FName& LayerName, const FName& AfterLayerName);
 #endif
 
@@ -267,7 +267,7 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
     static FHoudiniLayersToUnrealLandscapeMapping ResolveLandscapes(const FString & CookedLandscapePrefix, 
 			const FHoudiniPackageParams& PackageParams, 
 			const FHoudiniLandscapeSettings& LandscapeSettings,
-            TMap<FString,ALandscape*>& LandsscapeMap, 
+            TMap<FString,ALandscape*>& LandscapeMap, 
             TArray<FHoudiniHeightFieldPartData>& Parts, 
             UWorld* World, 
             const TArray<ALandscapeProxy*>& LandscapeInputs);
@@ -340,6 +340,8 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
     static FHoudiniExtents GetLandscapeExtents(ALandscapeProxy * Landscape);
 
     static void ApplyLocks(UHoudiniLandscapeTargetLayerOutput* Output);
+
+    static void DeleteCookedLayer(UHoudiniLandscapeTargetLayerOutput * Layer);
 
     //-------------------
     // Landscape splines

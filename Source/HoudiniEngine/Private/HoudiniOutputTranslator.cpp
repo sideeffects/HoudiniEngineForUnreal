@@ -210,21 +210,21 @@ FHoudiniOutputTranslator::UpdateOutputObjects(
 	// Check if the HDA has been marked as not producing outputs
 	if (bOutputless)
 	{
-		ClearAndRemoveOutputs(Outputs, true);
+		ClearAndRemoveOutputs(Outputs, EHoudiniClearFlags::EHoudiniClear_Assets);
 		return;
 	}
 
 	//
 	// 1. Update the output objects
 	//
-	ClearAndRemoveOutputs(Outputs, false);
+	ClearAndRemoveOutputs(Outputs, EHoudiniClearFlags::EHoudiniClear_Actors);
 
 	TArray<TObjectPtr<UHoudiniOutput>> NewOutputs;
 	if (FHoudiniOutputTranslator::BuildAllOutputs(
 		InNodeId, InOuter, InNodeIdsToCook, InOutputNodeCookCounts,
 		Outputs, NewOutputs, bOutputTemplateGeos, bUseOutputNodes, bEnableCurveEditing, bCreateSceneComponents))
 	{
-		ClearAndRemoveOutputs(Outputs, true);
+		ClearAndRemoveOutputs(Outputs, EHoudiniClearFlags::EHoudiniClear_Assets);
 
 		// Replace with the new parameters
 		Outputs = NewOutputs;
@@ -2630,7 +2630,7 @@ FHoudiniOutputTranslator::CacheCurveInfo(const HAPI_CurveInfo& InCurveInfo, FHou
 
 
 void
-FHoudiniOutputTranslator::ClearAndRemoveOutputs(TArray<TObjectPtr<UHoudiniOutput>>& OutputsToClear, bool bDeleteAssets)
+FHoudiniOutputTranslator::ClearAndRemoveOutputs(TArray<TObjectPtr<UHoudiniOutput>>& OutputsToClear, EHoudiniClearFlags ClearFlags)
 {
 	// DO NOT MANUALLY DESTROY THE OLD/DANGLING OUTPUTS!
 	// This messes up unreal's Garbage collection and would cause crashes on duplication
@@ -2639,7 +2639,7 @@ FHoudiniOutputTranslator::ClearAndRemoveOutputs(TArray<TObjectPtr<UHoudiniOutput
 		if (!OldOutput)
 			continue;
 
-		OldOutput->DestroyCookedData(bDeleteAssets);
+		OldOutput->DestroyCookedData(ClearFlags);
 	}
 
 	// Simply clearing the array is enough

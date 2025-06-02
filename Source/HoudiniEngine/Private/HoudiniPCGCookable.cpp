@@ -48,6 +48,8 @@
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniFoliageTools.h"
 #include "Materials/Material.h"
+#include "HoudiniLandscapeRuntimeUtils.h"
+#include "Landscape.h"
 
 #define LOCTEXT_NAMESPACE "PCGCachedCookable"
 
@@ -156,7 +158,9 @@ UHoudiniPCGCookable::Instantiate()
 void
 UHoudiniPCGCookable::InvalidateCookable()
 {
-	FHoudiniOutputTranslator::ClearAndRemoveOutputs(this->Cookable->GetOutputs(), this->bAutomaticallyDeleteAssets);
+	EHoudiniClearFlags ClearFlags = EHoudiniClearFlags::EHoudiniClear_Assets | EHoudiniClearFlags::EHoudiniClear_LandscapeLayers;
+
+	FHoudiniOutputTranslator::ClearAndRemoveOutputs(this->Cookable->GetOutputs(), ClearFlags);
 
 	if(UHoudiniPDGAssetLink * PDGAssetLink = Cookable->GetPDGAssetLink())
 	{
@@ -251,13 +255,13 @@ UHoudiniPCGCookable::ApplyInputsToCookable(const FPCGContext* Context)
 		case EHoudiniInputType::Geometry:
 			{
 				// Looks like we have Unreal objects, so set those on the current input.
-				bInputsChanged |= ApplyInputAsUnrealObjects(Input, UnrealObjectPaths);
+				bInputsChanged |= ApplyInputAsUnrealObjects(Context, Input, UnrealObjectPaths);
 			}
 			break;
 		case EHoudiniInputType::World:
 			{
 				// Looks like we have Unreal objects, so set those on the current input.
-				bInputsChanged |= ApplyInputAsUnrealObjects(Input, UnrealObjectPaths);
+				bInputsChanged |= ApplyInputAsUnrealObjects(Context, Input, UnrealObjectPaths);
 			}
 			break;
 		default:
@@ -793,7 +797,7 @@ UHoudiniPCGCookable::GetUnrealObjectPaths(const FPCGContext* Context, const UPCG
 
 
 bool
-UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, const TArray<FString>& InputObjects)
+UHoudiniPCGCookable::ApplyInputAsUnrealObjects(const FPCGContext* Context, UHoudiniInput* HoudiniInput, const TArray<FString>& InputObjects)
 {
 	TArray<FString> NewInputPaths = InputObjects;
 	NewInputPaths.Sort();
@@ -816,6 +820,7 @@ UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, cons
 
 	TArray<UObject*> WorldObjects;
 	TArray<UObject*> GeometryObjects;
+	FString InputName = HoudiniInput->GetInputName();
 
 	for(int Index = 0; Index < NewInputPaths.Num(); Index++)
 	{
@@ -836,7 +841,20 @@ UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, cons
 
 		if (GeometryObjects.Num())
 		{
-			HOUDINI_LOG_ERROR(TEXT("Found Geometry objects when setting World Objects. Ignored. Only one type is supported."));
+			FString ErrorString;
+
+			if(WorldObjects.IsEmpty())
+			{
+				ErrorString = FString::Printf(TEXT("Input %s Type is set to World, but only found Geometry object."), *InputName);
+			}
+			else
+			{
+				ErrorString = FString::Printf(TEXT("Input %s Type is set to World, but found Geometry Objects too."), *InputName);
+			}
+
+			if (!ErrorString.IsEmpty())
+				FHoudiniPCGUtils::LogVisualError(Context, ErrorString);
+
 		}
 	}
 	else if(HoudiniInput->GetInputType() == EHoudiniInputType::Geometry)
@@ -847,9 +865,22 @@ UHoudiniPCGCookable::ApplyInputAsUnrealObjects(UHoudiniInput* HoudiniInput, cons
 			HoudiniInput->SetInputObjectAt(EHoudiniInputType::Geometry, Index, GeometryObjects[Index]);
 		}
 
+
 		if(WorldObjects.Num())
 		{
-			HOUDINI_LOG_ERROR(TEXT("Found World objects when setting Geometry Objects. Ignored. Only one type is supported."));
+			FString ErrorString;
+
+			if (GeometryObjects.IsEmpty())
+			{
+				ErrorString = FString::Printf(TEXT("Input %s Type is set to Geometry, but only found World object."), *InputName);
+			}
+			else
+			{
+				ErrorString = FString::Printf(TEXT("Input %s Type is set to Geometry, but found World Objects too."), *InputName);
+			}
+
+			if(!ErrorString.IsEmpty())
+				FHoudiniPCGUtils::LogVisualError(Context, ErrorString);
 		}
 	}
 	else
@@ -958,9 +989,13 @@ UHoudiniPCGCookable::DeleteBakedObject(const FString& ObjectPath)
 }
 
 void
-UHoudiniPCGCookable::DeleteLandscapeLayer(TMap<FName, FString> & LandscapeLayers)
+UHoudiniPCGCookable::DeleteLandscapeLayer(const FString& LandscapePath, TArray<FString> & LandscapeLayers)
 {
-	// TODO? We don't really support landscapes in PCG, but we could?
+	FSoftObjectPath Path(LandscapePath);
+	ALandscape* Landscape = Cast<ALandscape>(Path.ResolveObject());
+
+	for (auto Layer : LandscapeLayers)
+		FHoudiniLandscapeRuntimeUtils::DeleteEditLayer(Landscape, FName(Layer));
 }
 
 void
@@ -990,7 +1025,8 @@ UHoudiniPCGCookable::DeleteBakedOutputObject(UWorld* World, FHoudiniBakedOutputO
 		DeleteBakedActor(ComponentPath);
 	}
 
-	DeleteLandscapeLayer(BakedOutputObject.LandscapeLayers);
+
+	DeleteLandscapeLayer(BakedOutputObject.Landscape, BakedOutputObject.CreatedLandscapeLayers);
 
 	DeleteBakedActor(BakedOutputObject.Actor);
 

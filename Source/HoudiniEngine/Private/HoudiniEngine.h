@@ -58,6 +58,7 @@ enum class EHoudiniSessionStatus : int8
 	Failed,			// Session failed to connect
 	Lost,			// Session Lost (HARS/Houdini Crash?)
 	NoLicense,		// Failed to acquire a license
+	Connecting,		// Connecting to a session
 };
 
 // Not using the IHoudiniEngine interface for now

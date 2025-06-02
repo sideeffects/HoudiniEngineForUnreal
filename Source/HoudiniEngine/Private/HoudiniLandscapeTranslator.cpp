@@ -631,9 +631,11 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	FLandscapeLayer* UnrealEditLayer = nullptr;
 #endif
 	bool bWasLocked = false;
+	bool bLayerWasCreated = false;
+
 	if (OutputLandscape->bCanHaveLayersContent)
 	{
-		UnrealEditLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, FName(CookedLayerName));
+		UnrealEditLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, FName(CookedLayerName), &bLayerWasCreated);
 		if (!UnrealEditLayer)
 			return nullptr;
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
@@ -743,7 +745,6 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 			OutputLandscape->SetLayerSubstractiveBlendStatus(UnrealEditLayerIndex, Part.bSubtractiveEditLayer, TargetLayerInfo);
 #endif
 		
-
 		if (TargetLayerInfo)
 			TargetLayerInfo->bNoWeightBlend = !Part.bIsWeightBlended;
 	}
@@ -880,6 +881,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	Obj->bWriteLockedLayers = Part.bWriteLockedLayers;
 	Obj->bLockLayer = Part.bLockLayer;
 	Obj->PropertyAttributes = Part.PropertyAttributes;
+	Obj->bLayerWasCreated = bLayerWasCreated;
 	return Obj;
 
 
