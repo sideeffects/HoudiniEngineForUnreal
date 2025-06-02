@@ -132,6 +132,9 @@ public:
 
 	void DeleteBakedOutput(UWorld* World);
 
+	void AddCookError(const FString& Error) { Errors.Add(Error); }
+	const TArray<FString>& GetErrors() { return Errors;  }
+
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostOutputProcessingDelegate, UHoudiniPCGCookable*, bool);
 
 	FOnPostOutputProcessingDelegate OnPostOutputProcessingDelegate;
@@ -141,6 +144,7 @@ private:
 	TArray<FSoftObjectPath> TrackedObjects;
 	int CookCount = -1;
 	FDelegateHandle PDGTopNetworkCookedDelegate;
+	TArray<FString> Errors;
 
 	void ProcessCookedOutput(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniOutput* HoudiniOutput);
 

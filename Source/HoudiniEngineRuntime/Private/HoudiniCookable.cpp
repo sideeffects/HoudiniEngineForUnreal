@@ -329,6 +329,7 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 
 	bNeedToUpdateEditorProperties = false;
 	bIsPCG = false;
+	bIsLandscapeModification = true;
 	bDoSlateNotifications = true;
 	bAllowUpdateEditorProperties = true;
 

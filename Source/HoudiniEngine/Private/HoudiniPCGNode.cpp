@@ -465,6 +465,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			UHoudiniPCGCookable * PCGCookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
 			PCGCookable->CreateHoudiniCookable(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
 			PCGCookable->Cookable->SetIsPCG(true);
+			PCGCookable->Cookable->SetLandscapeModificationEnabled(ManagedResource->PCGComponent->bIgnoreLandscapeTracking);
 			PCGCookable->Instantiate();
 			PCGCookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
 			ManagedResource->HoudiniPCGComponent->Cookable = PCGCookable;
@@ -515,11 +516,19 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 		UHoudiniPCGCookable* Cookable = ManagedResource->HoudiniPCGComponent->Cookable.Get();
 		Cookable->Update(HDAContext);
 
-		if (Cookable->State == EPCGCookableState::Initialized)
+		if(Cookable->State == EPCGCookableState::Initialized)
 		{
 			Cookable->Cookable->SetOutputSupported(true);
 			Cookable->CopyParametersAndInputs(Settings->ParameterCookable);
 			Cookable->UpdateParametersAndInputs(Context);
+
+			if(!Cookable->GetErrors().IsEmpty())
+			{
+				HDAContext->ContextState = EHoudiniPCGContextState::Done;
+				FHoudiniPCGUtils::LogVisualError(Context, Cookable->GetErrors());
+				return true;
+			}
+
 			if (Cookable->NeedsCook())
 			{
 				HDAContext->ContextState = EHoudiniPCGContextState::Cooking;
@@ -549,6 +558,13 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 		if (Cookable->State == EPCGCookableState::CookingComplete)
 		{
+			if(!Cookable->GetErrors().IsEmpty())
+			{
+				HDAContext->ContextState = EHoudiniPCGContextState::Done;
+				FHoudiniPCGUtils::LogVisualError(Context, Cookable->GetErrors());
+				return true;
+			}
+
 			if (Settings->OutputType == EHoudiniPCGOutputType::Cook)
 			{
 				Cookable->ProcessCookedOutput(Context);

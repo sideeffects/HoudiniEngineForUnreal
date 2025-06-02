@@ -489,6 +489,13 @@ FHoudiniPCGUtils::LogVisualWarning(const FPCGContext* Context, const FString& Wa
 	PCGE_LOG_C(Warning, GraphAndLog, Context, Text);
 }
 
+void  
+FHoudiniPCGUtils::LogVisualError(const FPCGContext* Context, const TArray<FString>& ErrorMessages)  
+{  
+   FString CombinedErrors = FString::Join(ErrorMessages, TEXT("\n"));  
+   LogVisualError(Context, *CombinedErrors);
+}
+
 void
 FHoudiniPCGUtils::LogVisualError(const FPCGContext* Context,  const FString& ErrorMessage)
 {

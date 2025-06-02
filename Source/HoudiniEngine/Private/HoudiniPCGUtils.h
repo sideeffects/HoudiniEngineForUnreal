@@ -120,6 +120,7 @@ public:
 
 	static void LogVisualWarning(const FPCGContext* Context, const FString& ErrorText);
 	static void LogVisualError(const FPCGContext* Context, const FString & ErrorText);
+	static void LogVisualError(const FPCGContext* Context, const TArray<FString> & Errors);
 
 	static EHoudiniPCGSessionStatus SessionStatus;
 

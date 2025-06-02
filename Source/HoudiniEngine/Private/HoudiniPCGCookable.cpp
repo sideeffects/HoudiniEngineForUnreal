@@ -88,6 +88,9 @@ UHoudiniPCGCookable::OnCookingCompleteInternal(bool bSuccess)
 		HOUDINI_PCG_MESSAGE(TEXT("(%p)       Set to EPCGCookableState::CookingComplete"), this);
 		this->State = EPCGCookableState::CookingComplete;
 
+		if(!bSuccess && !bIsCookingPDG)
+			AddCookError(TEXT("Houdini cook returned errors."));
+
 		if(OnPostOutputProcessingDelegate.IsBound())
 			OnPostOutputProcessingDelegate.Broadcast(this, bSuccess);
 		break;
@@ -644,6 +647,8 @@ UHoudiniPCGCookable::StartCook()
 
 	bInputsChanged = false;
 	bParamsChanged = false;
+
+	Errors.Empty();
 
 	State = EPCGCookableState::Cooking;
 

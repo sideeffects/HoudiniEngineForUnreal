@@ -773,6 +773,9 @@ public:
 	bool GetIsPCG() { return bIsPCG;  }
 	void SetIsPCG(bool bOnfOff) { bIsPCG = bOnfOff;  }
 
+	void SetLandscapeModificationEnabled(bool bOnOff) { bIsLandscapeModification = bOnOff;  }
+	bool IsLandscapeModificationEnabled() { return bIsLandscapeModification;  }
+
 protected:
 	// Do any object - specific cleanup required immediately after loading an object.
 	// This is not called for newly - created objects, and by default will always execute on the game thread.
@@ -883,6 +886,11 @@ protected:
 	// Used to enable certain detail panel widgets.
 	UPROPERTY()
 	bool bIsPCG;
+
+	// Can the cookable modify landscapes? Primarily for PCG.
+	UPROPERTY()
+	bool bIsLandscapeModification;
+
 
 	//
 	// COOKABLE DATA

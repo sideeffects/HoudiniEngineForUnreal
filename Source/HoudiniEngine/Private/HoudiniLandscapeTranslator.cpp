@@ -57,6 +57,7 @@
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 #include "LandscapeEditLayer.h"
 #endif
+#include "HoudiniPCGCookable.h"
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "Misc/Guid.h"
@@ -198,6 +199,8 @@ FHoudiniLandscapeTranslator::ProcessLandscapeOutput(
 
 TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTranslate(UHoudiniOutput* InOutput)
 {
+	UHoudiniCookable* Cookable = Cast<UHoudiniCookable>(InOutput->GetOuter());
+
 	TArray<FHoudiniHeightFieldPartData> Results;
 	const TArray<FHoudiniGeoPartObject>& GeoObjects = InOutput->GetHoudiniGeoPartObjects();
 	for (const FHoudiniGeoPartObject& PartObj : GeoObjects)
@@ -263,6 +266,20 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 		int LandscapeOutputMode = HAPI_UNREAL_LANDSCAPE_OUTPUT_MODE_GENERATE;
 		FHoudiniLandscapeUtils::GetOutputMode(PartObj.GeoId, PartObj.PartId, HAPI_ATTROWNER_INVALID, LandscapeOutputMode);
 		PartData.bCreateNewLandscape = LandscapeOutputMode == HAPI_UNREAL_LANDSCAPE_OUTPUT_MODE_GENERATE;
+
+		if (LandscapeOutputMode != HAPI_UNREAL_LANDSCAPE_OUTPUT_MODE_GENERATE && !Cookable->IsLandscapeModificationEnabled())
+		{
+			HOUDINI_LOG_ERROR(TEXT("Ignoring Landscape Modification"));
+
+			UHoudiniPCGCookable* PCGCookable = Cast<UHoudiniPCGCookable>(Cookable->GetOuter());
+
+			if (PCGCookable)
+			{
+				FString Error = TEXT("'Ignore Landscape Tracking' must be set on the PCG Component to enable HDA landscape modification.");
+				PCGCookable->AddCookError(Error);
+			}
+			return {};
+		}
 
 		//-----------------------------------------------------------------------------------------------------------------------------
 		// Landscape Locking / Unlocking
