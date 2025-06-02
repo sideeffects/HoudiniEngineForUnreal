@@ -123,4 +123,6 @@ private:
 
 	// Structure holding the HoudiniAsset details
 	TSharedPtr<FHoudiniEngineDetails, ESPMode::NotThreadSafe> HoudiniEngineDetails;
+
+	TArray<TSharedPtr<FString>> CollisionTraceFlagsAsString;
 };
