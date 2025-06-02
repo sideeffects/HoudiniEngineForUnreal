@@ -57,7 +57,9 @@
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 #include "LandscapeEditLayer.h"
 #endif
+#if defined(HOUDINI_USE_PCG)
 #include "HoudiniPCGCookable.h"
+#endif
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "Misc/Guid.h"
@@ -270,7 +272,7 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 		if (LandscapeOutputMode != HAPI_UNREAL_LANDSCAPE_OUTPUT_MODE_GENERATE && !Cookable->IsLandscapeModificationEnabled())
 		{
 			HOUDINI_LOG_ERROR(TEXT("Ignoring Landscape Modification"));
-
+#if defined(HOUDINI_USE_PCG)
 			UHoudiniPCGCookable* PCGCookable = Cast<UHoudiniPCGCookable>(Cookable->GetOuter());
 
 			if (PCGCookable)
@@ -278,6 +280,7 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 				FString Error = TEXT("'Ignore Landscape Tracking' must be set on the PCG Component to enable HDA landscape modification.");
 				PCGCookable->AddCookError(Error);
 			}
+#endif
 			return {};
 		}
 
