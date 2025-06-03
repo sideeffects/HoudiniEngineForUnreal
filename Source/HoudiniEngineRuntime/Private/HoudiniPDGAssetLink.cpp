@@ -1943,6 +1943,8 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 				}
 				else
 				{
+// Technically this should be WITH_METADATA but it's 5.6 only..
+#if WITH_EDITORONLY_DATA
 					// ... if not an actor, destroy the object if it is a temp object created by the owning
 					// HoudiniAssetComponent. Don't delete anything if we don't have a valid component GUID.
 					if (IsValid(OutputObject.OutputObject) && !OutputObject.OutputObject->HasAnyFlags(RF_Transient) &&
@@ -1991,6 +1993,7 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 							}
 						}
 					}
+#endif
 					OutputObject.OutputObject = nullptr;
 				}
 			}
