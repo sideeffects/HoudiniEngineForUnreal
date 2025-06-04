@@ -486,7 +486,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FVector2d>*>(AttrBase);
 			auto AttrDest = CreateAttributeVector2d(AttrName);
 
-			AttrDest->Values.SetNum(NumRows * 2);
+			AttrDest->Values.SetNum(NumRows);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
 				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
@@ -501,7 +501,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FVector>*>(AttrBase);
 			auto AttrDest = CreateAttributeVector3d(AttrName);
 
-			AttrDest->Values.SetNum(NumRows * 3);
+			AttrDest->Values.SetNum(NumRows);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
 				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
@@ -516,7 +516,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FVector4d>*>(AttrBase);
 			auto AttrDest = CreateAttributeVector4d(AttrName);
 
-			AttrDest->Values.SetNum(NumRows * 4);
+			AttrDest->Values.SetNum(NumRows);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
 				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
@@ -531,7 +531,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FQuat>*>(AttrBase);
 			auto AttrDest = CreateAttributeVector4d(AttrName);
 
-			AttrDest->Values.SetNum(NumRows * 4);
+			AttrDest->Values.SetNum(NumRows);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
 				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
@@ -550,7 +550,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FString>*>(AttrBase);
 			auto AttrDest = CreateAttributeString(AttrName);
 
-			AttrDest->Values.SetNum(NumRows * 1);
+			AttrDest->Values.SetNum(NumRows);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
 				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
@@ -565,7 +565,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FName>*>(AttrBase);
 			auto AttrDest = CreateAttributeString(AttrName);
 
-			AttrDest->Values.SetNum(NumRows * 1);
+			AttrDest->Values.SetNum(NumRows);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
 				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
@@ -580,7 +580,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FSoftObjectPath>*>(AttrBase);
 			auto AttrDest = CreateAttributeSoftObjectPath(AttrName);
 
-			AttrDest->Values.SetNum(NumRows * 1);
+			AttrDest->Values.SetNum(NumRows);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
 				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
@@ -595,7 +595,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			auto* Attr = static_cast<const FPCGMetadataAttribute<FSoftClassPath>*>(AttrBase);
 			auto AttrDest = CreateAttributeSoftClassPath(AttrName);
 
-			AttrDest->Values.SetNum(NumRows * 1);
+			AttrDest->Values.SetNum(NumRows);
 			for(int Index = 0; Index < NumRows; Index++)
 			{
 				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];

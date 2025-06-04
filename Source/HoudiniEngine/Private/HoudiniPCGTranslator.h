@@ -44,7 +44,7 @@ public:
 	static bool IsPCGOutput(HAPI_NodeId NodeId, HAPI_PartId PartId);
 private:
 	static UPCGParamData * CreatePCGAttributes(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
-	static void CreatePCGAttributes(UPCGMetadata* MetaData, TArray<FString>& Attributes, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+	static void CreatePCGAttributes(UPCGMetadata* MetaData, TArray<FString>& Attributes, const TArray<int64>& EntryKeys, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
 
 	static UPCGPointData* CreatePCGPointData(HAPI_NodeId NodeId, HAPI_PartId PartId);
 

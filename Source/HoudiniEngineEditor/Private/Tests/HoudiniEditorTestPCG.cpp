@@ -788,6 +788,54 @@ bool FHoudiniEditorTestPCG_PCGNativeOutputsCooked::RunTest(const FString& Parame
 					HOUDINI_TEST_EQUAL_ON_FAIL(Point.Steepness, ExpectedPoints[PointIndex].Steepness, continue);
 					HOUDINI_TEST_EQUAL_ON_FAIL(Point.Seed, ExpectedPoints[PointIndex].Seed, continue);
 				}
+
+				UHoudiniPCGDataObject* PCGDataObject = NewObject<UHoudiniPCGDataObject>();
+				PCGDataObject->SetFromPCGData(PCGPointData);
+				auto* BaseAttr = PCGDataObject->FindAttribute(TEXT("TestInt"));
+				auto* AttrInt = Cast< UHoudiniPCGDataAttributeInt>(BaseAttr);
+
+				HOUDINI_TEST_NOT_NULL_ON_FAIL(AttrInt, return true);
+
+				HOUDINI_TEST_EQUAL(AttrInt->GetNumValues(), 8);
+				for(int Index = 0; Index < AttrInt->GetNumValues(); Index++)
+				{
+					HOUDINI_TEST_EQUAL(AttrInt->Values[Index], Index * 10);
+				}
+
+				BaseAttr = PCGDataObject->FindAttribute(TEXT("TestFloat"));
+				auto* AttrFloat = Cast< UHoudiniPCGDataAttributeFloat>(BaseAttr);
+
+				HOUDINI_TEST_NOT_NULL_ON_FAIL(AttrFloat, return true);
+
+				HOUDINI_TEST_EQUAL(AttrFloat->GetNumValues(), 8);
+				for(int Index = 0; Index < AttrFloat->GetNumValues(); Index++)
+				{
+					HOUDINI_TEST_EQUAL(AttrFloat->Values[Index], Index * 10.0f);
+				}
+
+				BaseAttr = PCGDataObject->FindAttribute(TEXT("TestString"));
+				auto* AttrString = Cast< UHoudiniPCGDataAttributeString>(BaseAttr);
+
+				HOUDINI_TEST_NOT_NULL_ON_FAIL(AttrString, return true);
+
+				HOUDINI_TEST_EQUAL(AttrString->GetNumValues(), 8);
+				for(int Index = 0; Index < AttrString->GetNumValues(); Index++)
+				{
+					FString Expected = FString::Printf(TEXT("str-%d"), Index);
+					HOUDINI_TEST_EQUAL(AttrString->Values[Index], Expected);
+				}
+
+				BaseAttr = PCGDataObject->FindAttribute(TEXT("TestVec3"));
+				auto* AttrVec3 = Cast<UHoudiniPCGDataAttributeVector3d>(BaseAttr);
+
+				HOUDINI_TEST_NOT_NULL_ON_FAIL(AttrVec3, return true);
+
+				HOUDINI_TEST_EQUAL(AttrVec3->GetNumValues(), 8);
+				for(int Index = 0; Index < AttrVec3->GetNumValues(); Index++)
+				{
+					FVector3d Expected = FVector3d(Index * 1.0f, Index * 2.0, Index * 3.0);
+					HOUDINI_TEST_EQUAL(AttrVec3->Values[Index], Expected);
+				}
 			}
 
 			///////////////////////////////////////////////////////////////////////////////////////////////////////

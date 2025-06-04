@@ -284,13 +284,23 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 		}
 	}
 
-	PointData->SetPoints(Points);
-
-
 	// Any unprocessed attributes can now be added as meta data.
 
 	UPCGMetadata* MetaData = PointData->MutableMetadata();
-	CreatePCGAttributes(MetaData, MetaAttributes, NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT);
+
+	TArray<int64> EntryKeys;
+	EntryKeys.SetNum(Points.Num());
+
+	for(int Index = 0; Index < EntryKeys.Num(); Index++)
+	{
+		EntryKeys[Index] = MetaData->AddEntry();
+		Points[Index].MetadataEntry = EntryKeys[Index];
+	}
+
+	CreatePCGAttributes(MetaData, MetaAttributes, EntryKeys, NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT);
+
+	PointData->SetPoints(Points);
+
 	return PointData;
 
 }
@@ -301,19 +311,14 @@ UPCGParamData* FHoudiniPCGTranslator::CreatePCGAttributes(HAPI_NodeId NodeId, HA
 
 	UPCGParamData* ParamData = NewObject<UPCGParamData>();
 	UPCGMetadata* MetaData = ParamData->MutableMetadata();
-	CreatePCGAttributes(MetaData, Attributes, NodeId, PartId, Owner);
-	return ParamData;
-}
 
-void FHoudiniPCGTranslator::CreatePCGAttributes(UPCGMetadata* MetaData, TArray<FString> & Attributes, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
-{
+	TArray<int64> EntryKeys;
 
 	HAPI_PartInfo PartInfo;
 	FHoudiniApi::PartInfo_Init(&PartInfo);
 	FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &PartInfo);
 
-	TArray<int64> EntryKeys;
-	switch (Owner)
+	switch(Owner)
 	{
 	case HAPI_ATTROWNER_POINT:
 		EntryKeys.SetNum(PartInfo.pointCount);
@@ -328,11 +333,23 @@ void FHoudiniPCGTranslator::CreatePCGAttributes(UPCGMetadata* MetaData, TArray<F
 		EntryKeys.SetNum(1);
 		break;
 	default:
-		return;
+		break;
 	}
 
-	for (int Index = 0; Index < EntryKeys.Num(); Index++)
+	for(int Index = 0; Index < EntryKeys.Num(); Index++)
 		EntryKeys[Index] = MetaData->AddEntry();
+
+	CreatePCGAttributes(MetaData, Attributes, EntryKeys, NodeId, PartId, Owner);
+	return ParamData;
+}
+
+void FHoudiniPCGTranslator::CreatePCGAttributes(
+	UPCGMetadata* MetaData, TArray<FString> & Attributes, const TArray<int64>& EntryKeys, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
+{
+
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::PartInfo_Init(&PartInfo);
+	FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, &PartInfo);
 
 	for (int AttrIndex = 0; AttrIndex < Attributes.Num(); AttrIndex++)
 	{
@@ -507,7 +524,7 @@ void FHoudiniPCGTranslator::CreatePCGStringAttribute(UPCGMetadata* Metadata, con
 	if(Values.IsEmpty())
 		return;
 
-	Metadata->CreateDoubleAttribute(AttrName, 0, false, false);
+	Metadata->CreateStringAttribute(AttrName, FString(), false, false);
 	FPCGMetadataAttribute<FString>* MetaAttr = Metadata->GetMutableTypedAttribute<FString>(AttrName);
 
 	check(Values.Num() == Metadata->GetItemCountForChild());
