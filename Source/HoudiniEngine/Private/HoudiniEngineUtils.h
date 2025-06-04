@@ -49,8 +49,6 @@ struct FHoudiniPartInfo;
 struct FHoudiniMeshSocket;
 struct FHoudiniGeoPartObject;
 
-struct FRawMesh;
-
 enum class EHoudiniCurveType : int8;
 enum class EHoudiniCurveMethod : int8;
 enum class EHoudiniInstancerType : uint8;
@@ -1075,9 +1073,6 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		/** How many GUID symbols are used for package item name generation. **/
 		static const int32 PackageGUIDItemNameLength;
-
-		/** Helper routine to check invalid lightmap faces. **/
-		static bool ContainsInvalidLightmapFaces(const FRawMesh & RawMesh, int32 LightmapSourceIdx);
 
 		// Helper function for creating a temporary Slate notification.
 		static void CreateSlateNotification(

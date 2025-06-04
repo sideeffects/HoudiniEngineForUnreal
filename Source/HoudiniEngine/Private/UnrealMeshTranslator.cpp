@@ -49,7 +49,6 @@
 #include "MeshUtilities.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "RawMesh.h"
 #include "SkeletalMeshAttributes.h"
 #include "StaticMeshAttributes.h"
 #include "StaticMeshResources.h"
@@ -69,16 +68,6 @@
 #if WITH_EDITOR
 	#include "EditorFramework/AssetImportData.h"
 #endif
-
-static TAutoConsoleVariable<int32> CVarHoudiniEngineStaticMeshExportMethod(
-	TEXT("HoudiniEngine.StaticMeshExportMethod"),
-	1,
-	TEXT("Controls the method used for exporting Static Meshes from Unreal to Houdini.\n")
-	TEXT("0: Raw Mesh (legacy)\n")
-	TEXT("1: Mesh description (default)\n")
-	TEXT("2: Render Mesh / LODResources\n")
-);
-
 
 bool
 FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
@@ -338,16 +327,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 	// Get our parent OBJ NodeID
 	HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(NewNodeId);
 
-
 	// TODO:
 	// Setting for lightmap resolution?	
-	
-	// Select the export method we want to use for Static Meshes:
-	// 	   0 - Raw Mesh - Legacy UE4 method, deprecated
-	// 	   1 - Mesh Description
-	// 	   2 - Render Mesh / LODResources - As issue in UE5
-	uint8 ExportMethod = 1; // Mesh description
-	ExportMethod = (uint8)CVarHoudiniEngineStaticMeshExportMethod.GetValueOnAnyThread();
 
 	// Next Index used to connect nodes to the merge
 	int32 NextMergeIndex = 0;
@@ -474,39 +455,36 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 				CurrentLODNodeId = NewNodeId;
 			}
 
-			// Either export the current LOD Mesh by using RawMEsh or MeshDescription (legacy)
+			// Export the current LOD Mesh by using MeshDescription 
 			FMeshDescription* MeshDesc = nullptr;
 			FMeshDescription SplineMeshDesc;
-			// if (!bExportViaRawMesh)
-			if (ExportMethod == 1)
+
+			// This will either fetch the mesh description that is cached on the SrcModel
+			// or load it from bulk data / DDC once
+			if (!bIsSplineMesh)
 			{
-				// This will either fetch the mesh description that is cached on the SrcModel
-				// or load it from bulk data / DDC once
-				if (!bIsSplineMesh)
+				if (SrcModel.GetCachedMeshDescription() != nullptr)
 				{
-					if (SrcModel.GetCachedMeshDescription() != nullptr)
-					{
-						MeshDesc = SrcModel.GetCachedMeshDescription();
-					}
-					else
-					{
-						const double StartTime = FPlatformTime::Seconds();
-						MeshDesc = StaticMesh->GetMeshDescription(LODIndex);
-						HOUDINI_LOG_MESSAGE(TEXT("StaticMesh->GetMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
-					}
+					MeshDesc = SrcModel.GetCachedMeshDescription();
 				}
 				else
 				{
-					// Deform mesh data according to the Spline Mesh Component's data
-					static constexpr bool bPropagateVertexColours = false;
-					static constexpr bool bApplyComponentTransform = false;
-					FHoudiniMeshUtils::RetrieveMesh(SplineMeshComponent, LODIndex, SplineMeshDesc, bPropagateVertexColours, bApplyComponentTransform);
-					MeshDesc = &SplineMeshDesc;
+					const double StartTime = FPlatformTime::Seconds();
+					MeshDesc = StaticMesh->GetMeshDescription(LODIndex);
+					HOUDINI_LOG_MESSAGE(TEXT("StaticMesh->GetMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
 				}
+			}
+			else
+			{
+				// Deform mesh data according to the Spline Mesh Component's data
+				static constexpr bool bPropagateVertexColours = false;
+				static constexpr bool bApplyComponentTransform = false;
+				FHoudiniMeshUtils::RetrieveMesh(SplineMeshComponent, LODIndex, SplineMeshDesc, bPropagateVertexColours, bApplyComponentTransform);
+				MeshDesc = &SplineMeshDesc;
 			}
 
 			bool bMeshSuccess = false;
-			if (ExportMethod == 1 && MeshDesc && (!bNaniteBuildEnabled || !ShouldUseNaniteFallback))
+			if (!bNaniteBuildEnabled || !ShouldUseNaniteFallback)
 			{
 				// Convert the Mesh using FMeshDescription
 				const double StartTime = FPlatformTime::Seconds();
@@ -520,7 +498,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 					StaticMeshComponent);
 				HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForMeshDescription completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
 			}
-			else if (ExportMethod == 2 || (ExportMethod == 1 && ShouldUseNaniteFallback))
+			else
 			{
 				// Convert the LOD Mesh using FStaticMeshLODResources
 				const double StartTime = FPlatformTime::Seconds();
@@ -534,20 +512,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 					StaticMeshComponent);
 				HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
 			}
-			else
-			{
-				// Convert the LOD Mesh using FRawMesh
-				const double StartTime = FPlatformTime::Seconds();
-				bMeshSuccess = FUnrealMeshTranslator::CreateInputNodeForRawMesh(
-					CurrentLODNodeId,
-					SrcModel,
-					LODIndex,
-					DoExportLODs,
-					bExportMaterialParameters,
-					StaticMesh,
-					StaticMeshComponent);
-				HOUDINI_LOG_MESSAGE(TEXT("FUnrealMeshTranslator::CreateInputNodeForRawMesh completed in %.4f seconds"), FPlatformTime::Seconds() - StartTime);
-			}
+
 
 			if (!bMeshSuccess)
 				continue;
@@ -555,8 +520,7 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			if (UseMergeNode)
 			{
 				// Connect the LOD node to the merge node.
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-					FHoudiniEngine::Get().GetSession(),
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(FHoudiniEngine::Get().GetSession(),
 					NewNodeId, NextMergeIndex, CurrentLODNodeId, 0), false);
 			}
 
@@ -1041,714 +1005,6 @@ FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
 
 	return true;
 }
-
-bool
-FUnrealMeshTranslator::CreateInputNodeForRawMesh(
-	const HAPI_NodeId& NodeId,
-	const FStaticMeshSourceModel& SourceModel,
-	const int32& InLODIndex,
-	const bool& bAddLODGroups,
-	bool bInExportMaterialParametersAsAttributes,
-	UStaticMesh* StaticMesh,
-	UStaticMeshComponent* StaticMeshComponent )
-{
-	// Convert the Mesh using FRawMesh	
-	FRawMesh RawMesh;
-	SourceModel.LoadRawMesh(RawMesh);
-	
-	// Create part.
-	HAPI_PartInfo Part;
-	FHoudiniApi::PartInfo_Init(&Part);
-
-	Part.id = 0;
-	Part.nameSH = 0;
-	Part.attributeCounts[HAPI_ATTROWNER_POINT] = 0;
-	Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 0;
-	Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
-	Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
-	Part.vertexCount = RawMesh.WedgeIndices.Num();
-	Part.faceCount = RawMesh.WedgeIndices.Num() / 3;
-	Part.pointCount = RawMesh.VertexPositions.Num();
-	Part.type = HAPI_PARTTYPE_MESH;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(
-		FHoudiniEngine::Get().GetSession(), NodeId, 0, &Part), false);
-
-	// Create point attribute info.
-	HAPI_AttributeInfo AttributeInfoPoint;
-	FHoudiniApi::AttributeInfo_Init(&AttributeInfoPoint);
-	//FMemory::Memzero< HAPI_AttributeInfo >( AttributeInfoPoint );
-	AttributeInfoPoint.count = RawMesh.VertexPositions.Num();
-	AttributeInfoPoint.tupleSize = 3;
-	AttributeInfoPoint.exists = true;
-	AttributeInfoPoint.owner = HAPI_ATTROWNER_POINT;
-	AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
-	AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-		FHoudiniEngine::Get().GetSession(), NodeId, 0,
-		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
-
-	// Grab the build scale
-	FVector3f BuildScaleVector = (FVector3f)SourceModel.BuildSettings.BuildScale3D;
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// POSITION (P)
-	//--------------------------------------------------------------------------------------------------------------------- 
-	if (RawMesh.VertexPositions.Num() > 3)
-	{
-		TArray<float> StaticMeshVertices;
-		StaticMeshVertices.SetNumZeroed(RawMesh.VertexPositions.Num() * 3);
-		for (int32 VertexIdx = 0; VertexIdx < RawMesh.VertexPositions.Num(); ++VertexIdx)
-		{			
-			// Convert Unreal to Houdini
-			const FVector3f& PositionVector = RawMesh.VertexPositions[VertexIdx];
-			StaticMeshVertices[VertexIdx * 3 + 0] = PositionVector.X / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.X;
-			StaticMeshVertices[VertexIdx * 3 + 1] = PositionVector.Z / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.Z;
-			StaticMeshVertices[VertexIdx * 3 + 2] = PositionVector.Y / HAPI_UNREAL_SCALE_FACTOR_POSITION * BuildScaleVector.Y;
-		}
-
-		FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_POSITION);
-		HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoPoint, StaticMeshVertices), false);
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// UVS (uvX)
-	//--------------------------------------------------------------------------------------------------------------------- 
-	for (int32 MeshTexCoordIdx = 0; MeshTexCoordIdx < MAX_STATIC_TEXCOORDS; MeshTexCoordIdx++)
-	{
-		int32 StaticMeshUVCount = RawMesh.WedgeTexCoords[MeshTexCoordIdx].Num();
-		if (StaticMeshUVCount > 0)
-		{
-			const TArray<FVector2f> & RawMeshUVs = RawMesh.WedgeTexCoords[MeshTexCoordIdx];
-			TArray<FVector3f> StaticMeshUVs;
-			StaticMeshUVs.Reserve(StaticMeshUVCount);
-
-			// Transfer UV data.
-			for (int32 UVIdx = 0; UVIdx < StaticMeshUVCount; UVIdx++)
-				StaticMeshUVs.Emplace(RawMeshUVs[UVIdx].X, 1.0f - RawMeshUVs[UVIdx].Y, 0.f);
-
-			// Convert Unreal to Houdini
-			// We need to re-index UVs for wedges we swapped (due to winding differences).
-			for (int32 WedgeIdx = 0; WedgeIdx + 2 < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
-			{
-				// We do not touch wedge 0 of this triangle, Swap 2 and 3 to reverse the winding order.
-				StaticMeshUVs.SwapMemory(WedgeIdx + 1, WedgeIdx + 2);
-			}
-
-			// Construct the attribute name for this UV index.
-			FString UVAttributeName = HAPI_UNREAL_ATTRIB_UV;
-			if (MeshTexCoordIdx > 0)
-				UVAttributeName += FString::Printf(TEXT("%d"), MeshTexCoordIdx + 1);
-
-			// Create attribute for UVs
-			HAPI_AttributeInfo AttributeInfoVertex;
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
-
-			AttributeInfoVertex.count = StaticMeshUVCount;
-			AttributeInfoVertex.tupleSize = 3;
-			AttributeInfoVertex.exists = true;
-			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId,	0, TCHAR_TO_ANSI(*UVAttributeName), &AttributeInfoVertex), false);
-
-
-			FHoudiniHapiAccessor Accessor(NodeId, 0, TCHAR_TO_ANSI(*UVAttributeName));
-			HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, (const float*)StaticMeshUVs.GetData()), false);
-		}
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// NORMALS (N)
-	//---------------------------------------------------------------------------------------------------------------------
-	if (RawMesh.WedgeTangentZ.Num() > 0)
-	{
-		TArray<FVector3f> ChangedNormals(RawMesh.WedgeTangentZ);
-		
-		// We need to re-index normals for wedges we swapped (due to winding differences).
-		for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
-		{
-			FVector3f TangentZ1 = ChangedNormals[WedgeIdx + 1];
-			FVector3f TangentZ2 = ChangedNormals[WedgeIdx + 2];
-
-			ChangedNormals[WedgeIdx + 1] = TangentZ2;
-			ChangedNormals[WedgeIdx + 2] = TangentZ1;
-		}
-
-		// We also need to swap the vector's Y and Z components
-		for (int32 WedgeIdx = 0; WedgeIdx + 2 < RawMesh.WedgeIndices.Num(); WedgeIdx++)
-			Swap(ChangedNormals[WedgeIdx].Y, ChangedNormals[WedgeIdx].Z);
-
-		// Create attribute for normals.
-		HAPI_AttributeInfo AttributeInfoVertex;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
-
-		AttributeInfoVertex.count = ChangedNormals.Num();
-		AttributeInfoVertex.tupleSize = 3;
-		AttributeInfoVertex.exists = true;
-		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-		AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-		AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId,	0, HAPI_UNREAL_ATTRIB_NORMAL, &AttributeInfoVertex), false);
-
-		FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL);
-		HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, (const float*)ChangedNormals.GetData()), false);
-
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// TANGENT (tangentu)
-	//---------------------------------------------------------------------------------------------------------------------
-	if (RawMesh.WedgeTangentX.Num() > 0)
-	{
-		TArray<FVector3f> ChangedTangentU(RawMesh.WedgeTangentX);
-
-		// We need to re-index tangents for wedges we swapped (due to winding differences).
-		for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
-		{
-			FVector3f TangentU1 = ChangedTangentU[WedgeIdx + 1];
-			FVector3f TangentU2 = ChangedTangentU[WedgeIdx + 2];
-
-			ChangedTangentU[WedgeIdx + 1] = TangentU2;
-			ChangedTangentU[WedgeIdx + 2] = TangentU1;
-		}
-
-		// We also need to swap the vector's Y and Z components
-		for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx++)
-			Swap(ChangedTangentU[WedgeIdx].Y, ChangedTangentU[WedgeIdx].Z);
-
-		// Create attribute for tangentu.
-		HAPI_AttributeInfo AttributeInfoVertex;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
-
-		AttributeInfoVertex.count = ChangedTangentU.Num();
-		AttributeInfoVertex.tupleSize = 3;
-		AttributeInfoVertex.exists = true;
-		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-		AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-		AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId,	0, HAPI_UNREAL_ATTRIB_TANGENTU, &AttributeInfoVertex), false);
-
-		FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU);
-		HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, (const float*)ChangedTangentU.GetData()), false);
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// BINORMAL (tangentv)
-	//---------------------------------------------------------------------------------------------------------------------
-	if (RawMesh.WedgeTangentY.Num() > 0)
-	{
-		TArray<FVector3f> ChangedTangentV(RawMesh.WedgeTangentY);
-		// We need to re-index normals for wedges we swapped (due to winding differences).
-		for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
-		{
-			FVector3f TangentV1 = ChangedTangentV[WedgeIdx + 1];
-			FVector3f TangentV2 = ChangedTangentV[WedgeIdx + 2];
-
-			ChangedTangentV[WedgeIdx + 1] = TangentV2;
-			ChangedTangentV[WedgeIdx + 2] = TangentV1;
-		}
-
-		for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx++)
-			Swap(ChangedTangentV[WedgeIdx].Y, ChangedTangentV[WedgeIdx].Z);
-
-		// Create attribute for normals.
-		HAPI_AttributeInfo AttributeInfoVertex;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
-
-		AttributeInfoVertex.count = ChangedTangentV.Num();
-		AttributeInfoVertex.tupleSize = 3;
-		AttributeInfoVertex.exists = true;
-		AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-		AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-		AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-			FHoudiniEngine::Get().GetSession(), 
-			NodeId,	0, HAPI_UNREAL_ATTRIB_TANGENTV, &AttributeInfoVertex), false);
-
-		FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV);
-		HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, (const float*)ChangedTangentV.GetData()), false);
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// COLORS (Cd)
-	//---------------------------------------------------------------------------------------------------------------------
-	{
-		// If we have instance override vertex colors on the StaticMeshComponent, 
-		// we first need to propagate them to our copy of the RawMesh Vert Colors
-		TArray<FLinearColor> ChangedColors;
-		FStaticMeshRenderData* SMRenderData = StaticMesh->GetRenderData();
-
-		if (StaticMeshComponent &&
-			StaticMeshComponent->LODData.IsValidIndex(InLODIndex) &&
-			StaticMeshComponent->LODData[InLODIndex].OverrideVertexColors &&
-			SMRenderData &&
-			SMRenderData->LODResources.IsValidIndex(InLODIndex))
-		{
-			FStaticMeshComponentLODInfo& ComponentLODInfo = StaticMeshComponent->LODData[InLODIndex];
-			FStaticMeshLODResources& RenderModel = SMRenderData->LODResources[InLODIndex];
-			FColorVertexBuffer& ColorVertexBuffer = *ComponentLODInfo.OverrideVertexColors;
-
-			if (RenderModel.WedgeMap.Num() > 0 && ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
-			{
-				// Use the wedge map if it is available as it is lossless.
-				int32 NumWedges = RawMesh.WedgeIndices.Num();
-				if (RenderModel.WedgeMap.Num() == NumWedges)
-				{
-					int32 NumExistingColors = RawMesh.WedgeColors.Num();
-					if (NumExistingColors < NumWedges)
-					{
-						RawMesh.WedgeColors.AddUninitialized(NumWedges - NumExistingColors);
-					}
-
-					// Replace mesh colors with override colors
-					for (int32 i = 0; i < NumWedges; i++)
-					{
-						FColor WedgeColor = FColor::White;
-						int32 Index = RenderModel.WedgeMap[i];
-						if (Index != INDEX_NONE)
-						{
-							WedgeColor = ColorVertexBuffer.VertexColor(Index);
-						}
-						RawMesh.WedgeColors[i] = WedgeColor;
-					}
-				}
-			}
-		}
-
-		// See if we have colors to upload.
-		if (RawMesh.WedgeColors.Num() > 0)
-		{
-			ChangedColors.SetNumUninitialized(RawMesh.WedgeColors.Num());
-
-			// Convert Unreal to Houdini
-			// We need to re-index colors for wedges we swapped (due to winding differences).
-			for (int32 WedgeIdx = 0; WedgeIdx < RawMesh.WedgeIndices.Num(); WedgeIdx += 3)
-			{
-				ChangedColors[WedgeIdx + 0] = RawMesh.WedgeColors[WedgeIdx + 0].ReinterpretAsLinear();
-				ChangedColors[WedgeIdx + 1] = RawMesh.WedgeColors[WedgeIdx + 2].ReinterpretAsLinear();
-				ChangedColors[WedgeIdx + 2] = RawMesh.WedgeColors[WedgeIdx + 1].ReinterpretAsLinear();
-			}
-		}
-
-		if (ChangedColors.Num() > 0)
-		{
-			// Extract the RGB colors
-			TArray<float> ColorValues;
-			ColorValues.SetNum(ChangedColors.Num() * 3);
-			for (int32 colorIndex = 0; colorIndex < ChangedColors.Num(); colorIndex++)
-			{
-				ColorValues[colorIndex * 3] = ChangedColors[colorIndex].R;
-				ColorValues[colorIndex * 3 + 1] = ChangedColors[colorIndex].G;
-				ColorValues[colorIndex * 3 + 2] = ChangedColors[colorIndex].B;
-			}
-
-			// Create attribute for colors.
-			HAPI_AttributeInfo AttributeInfoVertex;
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
-
-			AttributeInfoVertex.count = ChangedColors.Num();
-			AttributeInfoVertex.tupleSize = 3;
-			AttributeInfoVertex.exists = true;
-			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId,	0, HAPI_UNREAL_ATTRIB_COLOR, &AttributeInfoVertex), false);
-
-			FHoudiniHapiAccessor Accessor;
-			Accessor.Init(NodeId, 0, HAPI_UNREAL_ATTRIB_COLOR);
-			HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, ColorValues), false);
-
-			// Create the attribute for Alpha
-			TArray<float> AlphaValues;
-			AlphaValues.SetNum(ChangedColors.Num());
-			for (int32 alphaIndex = 0; alphaIndex < ChangedColors.Num(); alphaIndex++)
-				AlphaValues[alphaIndex] = ChangedColors[alphaIndex].A;
-
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
-			AttributeInfoVertex.count = AlphaValues.Num();
-			AttributeInfoVertex.tupleSize = 1;
-			AttributeInfoVertex.exists = true;
-			AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
-			AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
-			AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
-
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId,	0, HAPI_UNREAL_ATTRIB_ALPHA, &AttributeInfoVertex), false);
-
-			Accessor.Init(NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA);
-			HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, AlphaValues), false);
-		}
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// INDICES (VertexList)
-	//---------------------------------------------------------------------------------------------------------------------
-	if (RawMesh.WedgeIndices.Num() > 0)
-	{
-		TArray<int32> StaticMeshIndices;
-		StaticMeshIndices.SetNumUninitialized(RawMesh.WedgeIndices.Num());
-
-		// Convert Unreal to Houdini
-		for (int32 IndexIdx = 0; IndexIdx < RawMesh.WedgeIndices.Num(); IndexIdx += 3)
-		{
-			// Swap indices to fix winding order.
-			StaticMeshIndices[IndexIdx + 0] = RawMesh.WedgeIndices[IndexIdx + 0];
-			StaticMeshIndices[IndexIdx + 1] = RawMesh.WedgeIndices[IndexIdx + 2];
-			StaticMeshIndices[IndexIdx + 2] = RawMesh.WedgeIndices[IndexIdx + 1];
-		}
-
-		// We can now set vertex list.
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(
-			StaticMeshIndices, NodeId, 0), false);
-
-		// We need to generate array of face counts.
-		TArray<int32> StaticMeshFaceCounts;
-		StaticMeshFaceCounts.SetNumUninitialized(Part.faceCount);
-		for (int32 n = 0; n < Part.faceCount; n++)
-			StaticMeshFaceCounts[n] = 3;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetFaceCounts(
-			StaticMeshFaceCounts, NodeId, 0), false);
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// FACE MATERIALS
-	//---------------------------------------------------------------------------------------------------------------------
-
-	// Marshall face material indices.
-	// If the static mesh component is valid, and we are not using the ref counted input system, get the materials via
-	// the component to account for overrides. For the ref counted input system the component will override the
-	// materials in its input node.
-	const bool bIsStaticMeshComponentValid = (IsValid(StaticMeshComponent) && StaticMeshComponent->IsValidLowLevel());
-
-	if (RawMesh.FaceMaterialIndices.Num() > 0)
-	{
-		// Create an array of Material Interfaces
-		TArray<UMaterialInterface *> MaterialInterfaces;
-		{
-			// Query the Static mesh's materials
-			for (int32 MatIdx = 0; MatIdx < StaticMesh->GetStaticMaterials().Num(); MatIdx++)
-			{
-				MaterialInterfaces.Add(StaticMesh->GetMaterial(MatIdx));
-			}
-
-			// Try to fix up inconsistencies between the RawMesh / StaticMesh material indexes
-			// by using the meshes sections...
-			// TODO: Fix me properly!
-			// Proper fix would be to export the meshes via the FStaticMeshLODResources obtained
-			// by GetLODForExport(), and then export the mesh by sections.
-			FStaticMeshRenderData* SMRenderData = StaticMesh->GetRenderData();
-			if (SMRenderData && SMRenderData->LODResources.IsValidIndex(InLODIndex))
-			{
-				TMap<int32, UMaterialInterface*> MapOfMaterials;
-				FStaticMeshLODResources& LODResources = SMRenderData->LODResources[InLODIndex];
-				for (int32 SectionIndex = 0; SectionIndex < LODResources.Sections.Num(); SectionIndex++)
-				{
-					// Get the material for each element at the current lod index
-					int32 MaterialIndex = LODResources.Sections[SectionIndex].MaterialIndex;
-					if (!MapOfMaterials.Contains(MaterialIndex))
-					{
-						MapOfMaterials.Add(MaterialIndex, StaticMesh->GetMaterial(MaterialIndex));
-					}
-				}
-
-				if (MapOfMaterials.Num() > 0)
-				{
-					// Sort the output material in the correct order (by material index)
-					MapOfMaterials.KeySort([](int32 A, int32 B) { return A < B; });
-
-					// Set the value in the correct order
-					// Do not reduce the array of materials, this could cause crahses in some weird cases..
-					if (MapOfMaterials.Num() > MaterialInterfaces.Num())
-						MaterialInterfaces.SetNumZeroed(MapOfMaterials.Num());
-
-					int32 MaterialIndex = 0;
-					for (auto Kvp : MapOfMaterials)
-					{
-						MaterialInterfaces[MaterialIndex++] = Kvp.Value;
-					}
-				}
-			}
-		}
-
-		// List of materials, one for each face.
-		FHoudiniEngineIndexedStringMap StaticMeshFaceMaterials;
-
-		//Lists of material parameters
-		TMap<FString, TArray<float>> ScalarMaterialParameters;
-		TMap<FString, TArray<float>> VectorMaterialParameters;
-        TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
-		TMap<FString, TArray<int8>> BoolMaterialParameters;
-
-		bool bAttributeSuccess = false;
-		FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh->GetBodySetup());
-		if (bInExportMaterialParametersAsAttributes)
-		{
-			// Create attributes for the material and all its parameters
-			// Get material attribute data, and all material parameters data
-			FUnrealMeshTranslator::CreateFaceMaterialArray(
-				MaterialInterfaces,
-				RawMesh.FaceMaterialIndices,
-				StaticMeshFaceMaterials,
-				ScalarMaterialParameters, 
-				VectorMaterialParameters,
-				TextureMaterialParameters,
-				BoolMaterialParameters);
-		}
-		else
-		{
-			// Create attributes only for the materials
-			// Only get the material attribute data
-			FUnrealMeshTranslator::CreateFaceMaterialArray(
-				MaterialInterfaces, RawMesh.FaceMaterialIndices, StaticMeshFaceMaterials);
-		}
-
-		// Create all the needed attributes for materials
-		bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
-			NodeId,
-			0,
-			RawMesh.FaceMaterialIndices.Num(),
-			StaticMeshFaceMaterials,
-			ScalarMaterialParameters,
-			VectorMaterialParameters,
-			TextureMaterialParameters,
-			BoolMaterialParameters,
-			PhysicalMaterialPath,
-			StaticMesh->NaniteSettings);
-
-		if (!bAttributeSuccess)
-		{
-			return false;
-		}
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// FACE SMOOTHING MASKS
-	//---------------------------------------------------------------------------------------------------------------------
-	if (RawMesh.FaceSmoothingMasks.Num() > 0)
-	{
-		HAPI_AttributeInfo AttributeInfoSmoothingMasks;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfoSmoothingMasks);
-
-		AttributeInfoSmoothingMasks.count = RawMesh.FaceSmoothingMasks.Num();
-		AttributeInfoSmoothingMasks.tupleSize = 1;
-		AttributeInfoSmoothingMasks.exists = true;
-		AttributeInfoSmoothingMasks.owner = HAPI_ATTROWNER_PRIM;
-		AttributeInfoSmoothingMasks.storage = HAPI_STORAGETYPE_INT;
-		AttributeInfoSmoothingMasks.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-			FHoudiniEngine::Get().GetSession(), 
-			NodeId,	0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK, &AttributeInfoSmoothingMasks), false);
-
-		FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_FACE_SMOOTHING_MASK);
-		HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoSmoothingMasks, (const int32*)RawMesh.FaceSmoothingMasks.GetData()), false);
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// LIGHTMAP RESOLUTION
-	//---------------------------------------------------------------------------------------------------------------------
-
-	{
-		int32 LightMapResolution= StaticMesh->GetLightMapResolution();
-
-		HAPI_AttributeInfo AttributeInfoLightMapResolution;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfoLightMapResolution);
-		AttributeInfoLightMapResolution.count = 1;
-		AttributeInfoLightMapResolution.tupleSize = 1;
-		AttributeInfoLightMapResolution.exists = true;
-		AttributeInfoLightMapResolution.owner = HAPI_ATTROWNER_DETAIL;
-		AttributeInfoLightMapResolution.storage = HAPI_STORAGETYPE_INT;
-		AttributeInfoLightMapResolution.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION, &AttributeInfoLightMapResolution), false);
-
-		FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_LIGHTMAP_RESOLUTION);
-		HOUDINI_CHECK_RETURN(Accessor.SetAttributeUniqueData(AttributeInfoLightMapResolution, LightMapResolution), false);
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// INPUT MESH NAME
-	//---------------------------------------------------------------------------------------------------------------------
-	{
-		// Create primitive attribute with mesh asset path
-		HAPI_AttributeInfo AttributeInfo;
-		FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-		AttributeInfo.count = Part.faceCount;
-		AttributeInfo.tupleSize = 1;
-		AttributeInfo.exists = true;
-		AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
-		AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
-		AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
-
-		HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::AddAttribute(
-			FHoudiniEngine::Get().GetSession(), 
-			NodeId,	0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME, &AttributeInfo), false);
-
-		FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME);
-		HOUDINI_CHECK_RETURN(Accessor.SetAttributeUniqueData(AttributeInfo, StaticMesh->GetPathName()), false);
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// INPUT SOURCE FILE
-	//---------------------------------------------------------------------------------------------------------------------
-	{
-		// Create primitive attribute with mesh asset path
-		FString Filename;		
-		if (UAssetImportData* ImportData = StaticMesh->AssetImportData)
-		{
-			for (const auto& SourceFile : ImportData->SourceData.SourceFiles)
-			{
-				Filename = UAssetImportData::ResolveImportFilename(SourceFile.RelativeFilename, ImportData->GetOutermost());
-				break;
-			}
-		}
-
-		if (!Filename.IsEmpty())
-		{
-			HAPI_AttributeInfo AttributeInfo;
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfo);
-			AttributeInfo.count = Part.faceCount;
-			AttributeInfo.tupleSize = 1;
-			AttributeInfo.exists = true;
-			AttributeInfo.owner = HAPI_ATTROWNER_PRIM;
-			AttributeInfo.storage = HAPI_STORAGETYPE_STRING;
-			AttributeInfo.originalOwner = HAPI_ATTROWNER_INVALID;
-
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId,	0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE, &AttributeInfo), false);
-
-			FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE);
-			HOUDINI_CHECK_RETURN(Accessor.SetAttributeUniqueData(AttributeInfo, Filename), false);
-		}
-	}
-
-	/*
-	// Check if we have vertex attribute data to add
-	if (StaticMeshComponent && StaticMeshComponent->GetOwner())
-	{
-		if (UHoudiniAttributeDataComponent* DataComponent = StaticMeshComponent->GetOwner()->FindComponentByClass<UHoudiniAttributeDataComponent>())
-		{
-			bool bSuccess = DataComponent->Upload(NodeId, StaticMeshComponent);
-			if (!bSuccess)
-			{
-				HOUDINI_LOG_ERROR(TEXT("Upload of attribute data for %s failed"), *StaticMeshComponent->GetOwner()->GetName());
-			}
-		}
-	}
-	*/
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// LOD GROUP AND SCREENSIZE
-	//---------------------------------------------------------------------------------------------------------------------
-	if (bAddLODGroups)
-	{
-		// LOD Group
-		const char * LODGroupStr = "";
-		{
-			FString LODGroup = TEXT("lod") + FString::FromInt(InLODIndex);
-			LODGroupStr = TCHAR_TO_UTF8(*LODGroup);
-		}
-
-		// Add a LOD group
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddGroup(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr), false);
-
-		// Set GroupMembership
-		TArray<int> GroupArray;
-		GroupArray.SetNumUninitialized(Part.faceCount);
-		for (int32 n = 0; n < GroupArray.Num(); n++)
-			GroupArray[n] = 1;
-
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetGroupMembership(
-			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr,
-			GroupArray.GetData(), 0, Part.faceCount), false);
-
-		if (!StaticMesh->bAutoComputeLODScreenSize)
-		{
-			// Add the lodX_screensize attribute
-			FString LODAttributeName =
-				TEXT(HAPI_UNREAL_ATTRIB_LOD_SCREENSIZE_PREFIX) + FString::FromInt(InLODIndex) + TEXT(HAPI_UNREAL_ATTRIB_LOD_SCREENSIZE_POSTFIX);
-
-			// Create lodX_screensize detail attribute info.
-			HAPI_AttributeInfo AttributeInfoLODScreenSize;
-			FHoudiniApi::AttributeInfo_Init(&AttributeInfoLODScreenSize);
-			AttributeInfoLODScreenSize.count = 1;
-			AttributeInfoLODScreenSize.tupleSize = 1;
-			AttributeInfoLODScreenSize.exists = true;
-			AttributeInfoLODScreenSize.owner = HAPI_ATTROWNER_DETAIL;
-			AttributeInfoLODScreenSize.storage = HAPI_STORAGETYPE_FLOAT;
-			AttributeInfoLODScreenSize.originalOwner = HAPI_ATTROWNER_INVALID;
-
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, 0, TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize), false);
-
-			float lodscreensize = SourceModel.ScreenSize.Default;
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
-				FHoudiniEngine::Get().GetSession(), NodeId, 0,
-				TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize,
-				&lodscreensize, 0, 1), false);
-		}
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// COMPONENT AND ACTOR TAGS
-	//---------------------------------------------------------------------------------------------------------------------
-	if (IsValid(StaticMeshComponent))
-	{
-		TArray<FName> AllTags;
-		for (auto& ComponentTag : StaticMeshComponent->ComponentTags)
-			AllTags.AddUnique(ComponentTag);
-
-		AActor* ParentActor = StaticMeshComponent->GetOwner();
-		if (IsValid(ParentActor))
-		{
-			for (auto& ActorTag : ParentActor->Tags)
-				AllTags.AddUnique(ActorTag);
-		}
-
-		// Try to create groups for the tags
-		if (!FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, 0, AllTags))
-			HOUDINI_LOG_WARNING(TEXT("Could not create groups for the Static Mesh Component and Actor tags!"));
-
-		if (IsValid(ParentActor))
-		{
-			// Add the unreal_actor_path attribute
-			FHoudiniEngineUtils::AddActorPathAttribute(NodeId, 0, ParentActor, Part.faceCount);
-
-			// Add the unreal_level_path attribute
-			FHoudiniEngineUtils::AddLevelPathAttribute(NodeId, 0, ParentActor->GetLevel(), Part.faceCount);
-		}
-	}
-
-	// Commit the geo.
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NodeId), false);
-
-	return true;
-}
-
 
 bool
 FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(

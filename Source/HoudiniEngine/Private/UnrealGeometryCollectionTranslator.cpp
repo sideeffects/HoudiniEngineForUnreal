@@ -329,7 +329,6 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 		return false;
 	}
 
-	// See: FUnrealMeshTranslator::CreateInputNodeForRawMesh for reference.
 	for (int32 ObjectIndex = 0; ObjectIndex < GeometryCollection->TransformToGeometryIndex.Num(); ObjectIndex++)
 	{
 		int32& GeometryIndex = TransformToGeometryIndexArray[ObjectIndex];

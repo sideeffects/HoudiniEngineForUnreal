@@ -26,7 +26,6 @@
 
 #pragma once
 
-#include "RawMesh.h"
 #include "GameFramework/Actor.h"
 #include "Editor.h"
 #include "HAPI/HAPI_Common.h"

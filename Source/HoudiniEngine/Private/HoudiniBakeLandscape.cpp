@@ -57,7 +57,6 @@
 #include "LandscapeSplineActor.h"
 #include "LandscapeStreamingProxy.h"
 #include "PackageTools.h"
-#include "RawMesh.h"
 #include "UObject/Package.h"
 #include "UObject/MetaData.h"
 #include "WorldPartition/WorldPartition.h"

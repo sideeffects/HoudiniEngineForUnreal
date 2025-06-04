@@ -46,7 +46,6 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "Engine/StaticMesh.h"
 #include "PackageTools.h"
-#include "RawMesh.h"
 #include "Materials/MaterialInterface.h"
 #include "Materials/Material.h"
 #include "MeshDescription.h"
@@ -2455,7 +2454,7 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 					// Get default Houdini material.
 					UMaterial* MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial(HGPO.bIsTemplated).Get();
 
-					// Reset Rawmesh material face assignments.
+					// Reset material face assignments.
 					for (int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx)
 					{
 						int32 SplitFaceIndex = SplitGroupFaceIndices[FaceIdx];
@@ -6581,7 +6580,7 @@ void FHoudiniMeshTranslator::ProcessMaterials(UStaticMesh* FoundStaticMesh, FHou
 			// Get default Houdini material.
 			UMaterial* MaterialDefault = FHoudiniEngine::Get().GetHoudiniDefaultMaterial(HGPO.bIsTemplated).Get();
 
-			// Reset Rawmesh material face assignments.
+			// Reset material face assignments.
 			for (int32 FaceIdx = 0; FaceIdx < SplitGroupFaceIndices.Num(); ++FaceIdx)
 			{
 				int32 SplitFaceIndex = SplitGroupFaceIndices[FaceIdx];

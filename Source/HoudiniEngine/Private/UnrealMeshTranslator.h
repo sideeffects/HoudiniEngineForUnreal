@@ -112,16 +112,6 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 			UStaticMesh const* StaticMesh,
 			UStaticMeshComponent const* StaticMeshComponent);
 
-		// Convert the Mesh using FRawMesh
-		static bool CreateInputNodeForRawMesh(
-			const HAPI_NodeId& NodeId,
-			const FStaticMeshSourceModel& SourceModel,
-			const int32& LODIndex,
-			const bool&	DoExportLODs,
-			bool bInExportMaterialParametersAsAttributes,
-			UStaticMesh* StaticMesh,
-			UStaticMeshComponent* StaticMeshComponent);
-
 		static bool CreateInputNodeForBox(
 			HAPI_NodeId& OutBoxNodeId,
 			const HAPI_NodeId& InParentNodeID,

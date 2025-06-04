@@ -85,7 +85,6 @@
 #include "Misc/StringFormatArg.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
-#include "RawMesh.h"
 #include "SSCSEditor.h"
 #include "SSubobjectEditor.h"
 #include "UnrealEdGlobals.h"
@@ -6980,35 +6979,6 @@ FHoudiniEngineUtils::AddLandscapeTypeAttribute(
 		return false;
 	}
 	return true;
-}
-
-bool
-FHoudiniEngineUtils::ContainsInvalidLightmapFaces(const FRawMesh & RawMesh, int32 LightmapSourceIdx)
-{
-	const TArray< FVector2f > & LightmapUVs = RawMesh.WedgeTexCoords[LightmapSourceIdx];
-	const TArray< uint32 > & Indices = RawMesh.WedgeIndices;
-
-	if (LightmapUVs.Num() != Indices.Num())
-	{
-		// This is invalid raw mesh; by design we consider that it contains invalid lightmap faces.
-		return true;
-	}
-
-	for (int32 Idx = 0; Idx < Indices.Num(); Idx += 3)
-	{
-		const FVector2f& uv0 = LightmapUVs[Idx + 0];
-		const FVector2f& uv1 = LightmapUVs[Idx + 1];
-		const FVector2f& uv2 = LightmapUVs[Idx + 2];
-
-		if (uv0 == uv1 && uv1 == uv2)
-		{
-			// Detect invalid lightmap face, can stop.
-			return true;
-		}
-	}
-
-	// Otherwise there are no invalid lightmap faces.
-	return false;
 }
 
 void
