@@ -1094,7 +1094,7 @@ SHoudiniNodeSyncPanel::Helper_CreateSelectionWidget()
 		FSceneOutlinerInitializationOptions InitOptions;
 		{
 			InitOptions.Filters->AddFilterPredicate<FActorTreeItem>(FActorTreeItem::FFilterPredicate::CreateLambda(OnShouldFilter));
-			InitOptions.bFocusSearchBoxWhenOpened = true;
+			InitOptions.bFocusSearchBoxWhenOpened = false;
 			InitOptions.bShowCreateNewFolder = false;
 			
 			// Add the gutter so we can change the selection's visibility

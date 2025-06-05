@@ -2471,7 +2471,7 @@ FHoudiniEngineDetails::Helper_CreateHoudiniAssetPicker()
 		FSceneOutlinerInitializationOptions InitOptions;
 		{
 			InitOptions.Filters->AddFilterPredicate<FActorTreeItem>(ActorFilter);
-			InitOptions.bFocusSearchBoxWhenOpened = true;
+			InitOptions.bFocusSearchBoxWhenOpened = false;
 			InitOptions.bShowCreateNewFolder = false;
 
 			// Add the gutter so we can change the selection's visibility
