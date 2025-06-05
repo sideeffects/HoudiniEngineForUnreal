@@ -882,7 +882,7 @@ HAPI_Result FHoudiniHapiAccessor::FetchHapiData(const HAPI_Session* Session, con
 	else if constexpr (std::is_same_v<DataType, FString>)
 	{
 		TArray<HAPI_StringHandle> StringHandles;
-		StringHandles.SetNum(IndexCount);
+		StringHandles.SetNum(IndexCount * TempAttributeInfo.tupleSize);
 
 		Result = FHoudiniApi::GetAttributeStringData(Session, NodeId, PartId, AttributeName, &TempAttributeInfo, StringHandles.GetData(), IndexStart, IndexCount);
 

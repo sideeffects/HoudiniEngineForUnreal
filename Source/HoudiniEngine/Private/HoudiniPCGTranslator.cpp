@@ -397,6 +397,23 @@ void FHoudiniPCGTranslator::CreatePCGAttributes(
 	}
 }
 
+template<typename Type>
+TArray<Type> HoudiniPCGGetSelectedTuple(const TArray<Type> & Values, int TupleIndex, int TupleSize)
+{
+	int ActualCount = Values.Num() / TupleSize;
+	ensure(Values.Num() == (ActualCount * TupleSize));
+
+	TArray<Type> Results;
+	Results.SetNum(ActualCount);
+
+	for (int Index = 0; Index < ActualCount; Index++)
+	{
+		Results[Index] = Values[Index * TupleSize + TupleIndex];
+	}
+	return Results;
+}
+
+
 void FHoudiniPCGTranslator::CreatePCGInt32Attribute(UPCGMetadata* Metadata, const TArray<int64>& EntryKeys, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner, FName AttrName)
 {
 	TArray<int> Values;
@@ -404,6 +421,10 @@ void FHoudiniPCGTranslator::CreatePCGInt32Attribute(UPCGMetadata* Metadata, cons
 	Accessor.GetAttributeData(Owner, Values);
 	if(Values.IsEmpty())
 		return;
+
+	HAPI_AttributeInfo AttributeInfo;
+	Accessor.GetInfo(AttributeInfo, Owner);
+	Values = HoudiniPCGGetSelectedTuple(Values, 0, AttributeInfo.tupleSize);
 
 	Metadata->CreateInteger32Attribute(AttrName, 0, false, false);
 	FPCGMetadataAttribute<int32>* MetaAttr = Metadata->GetMutableTypedAttribute<int32>(AttrName);
@@ -420,6 +441,10 @@ void FHoudiniPCGTranslator::CreatePCGInt64Attribute(UPCGMetadata* Metadata, cons
 	Accessor.GetAttributeData(Owner, Values);
 	if(Values.IsEmpty())
 		return;
+
+	HAPI_AttributeInfo AttributeInfo;
+	Accessor.GetInfo(AttributeInfo, Owner);
+	Values = HoudiniPCGGetSelectedTuple(Values, 0, AttributeInfo.tupleSize);
 
 	Metadata->CreateInteger64Attribute(AttrName, 0, false, false);
 	FPCGMetadataAttribute<int64>* MetaAttr = Metadata->GetMutableTypedAttribute<int64>(AttrName);
@@ -508,6 +533,10 @@ void FHoudiniPCGTranslator::CreatePCGDoubleAttribute(UPCGMetadata* Metadata, con
 	if(Values.IsEmpty())
 		return;
 
+	HAPI_AttributeInfo AttributeInfo;
+	Accessor.GetInfo(AttributeInfo, Owner);
+	Values = HoudiniPCGGetSelectedTuple(Values, 0, AttributeInfo.tupleSize);
+
 	Metadata->CreateDoubleAttribute(AttrName, 0, false, false);
 	FPCGMetadataAttribute<double>* MetaAttr = Metadata->GetMutableTypedAttribute<double>(AttrName);
 
@@ -523,6 +552,10 @@ void FHoudiniPCGTranslator::CreatePCGStringAttribute(UPCGMetadata* Metadata, con
 	Accessor.GetAttributeData(Owner, Values);
 	if(Values.IsEmpty())
 		return;
+
+	HAPI_AttributeInfo AttributeInfo;
+	Accessor.GetInfo(AttributeInfo, Owner);
+	Values = HoudiniPCGGetSelectedTuple(Values, 0, AttributeInfo.tupleSize);
 
 	Metadata->CreateStringAttribute(AttrName, FString(), false, false);
 	FPCGMetadataAttribute<FString>* MetaAttr = Metadata->GetMutableTypedAttribute<FString>(AttrName);
