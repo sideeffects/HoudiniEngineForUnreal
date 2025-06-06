@@ -115,6 +115,7 @@ FUnrealObjectInputHAPINodeId::IsValid() const
 FUnrealObjectInputOptions::FUnrealObjectInputOptions()
 	: bImportAsReference(false)
 	, bImportAsReferenceRotScaleEnabled(false)
+	, bExportMainGeometry(true)
 	, bExportLODs(false)
 	, bExportSockets(false)
 	, bExportColliders(false)
@@ -158,6 +159,7 @@ FUnrealObjectInputOptions::MakeOptionsForLevelInstanceActor(const FHoudiniInputO
 	Options.bImportAsReferenceRotScaleEnabled = Options.bImportAsReference && InInputSettings.bImportAsReferenceRotScaleEnabled;
 	if (!Options.bImportAsReference)
 	{
+		Options.bExportMainGeometry = InInputSettings.bExportMainGeometry;
 		Options.bExportLODs = InInputSettings.bExportLODs;
 		Options.bExportSockets = InInputSettings.bExportSockets;
 		Options.bExportColliders = InInputSettings.bExportColliders;
@@ -255,6 +257,7 @@ FUnrealObjectInputOptions::MakeOptionsForGenericActor(const FHoudiniInputObjectS
 	Options.bImportAsReferenceRotScaleEnabled = Options.bImportAsReference && InInputSettings.bImportAsReferenceRotScaleEnabled;
 	if (!Options.bImportAsReference)
 	{
+		Options.bExportMainGeometry = InInputSettings.bExportMainGeometry;
 		Options.bExportLODs = InInputSettings.bExportLODs;
 		Options.bExportSockets = InInputSettings.bExportSockets;
 		Options.bExportColliders = InInputSettings.bExportColliders;

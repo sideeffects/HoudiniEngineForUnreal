@@ -153,6 +153,9 @@ public:
 	/** Indicates that whether or not to add the rot / scale attributes for reference imports */
 	bool bImportAsReferenceRotScaleEnabled;
 	
+	/** Indicates that the object's main geometry should be sent to Houdini */
+	bool bExportMainGeometry;
+
 	/** Indicates that all LODs in the input should be marshalled to Houdini */
 	bool bExportLODs;
 
