@@ -898,6 +898,7 @@ UHoudiniPublicAPIWorldInput::UHoudiniPublicAPIWorldInput()
 	bKeepWorldTransform = true;
 	bIsWorldInputBoundSelector = false;
 	bWorldInputBoundSelectorAutoUpdate = false;
+	bWorldInputAutoUpdate = true;
 	UnrealSplineResolution = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->MarshallingSplineResolution : 50.0f;
 	bPreferNaniteFallbackMesh = HoudiniRuntimeSettings ? HoudiniRuntimeSettings->bPreferNaniteFallbackMesh : false;
 	bExportLevelInstanceContent = true;
@@ -934,6 +935,7 @@ UHoudiniPublicAPIWorldInput::PopulateFromHoudiniInput(UHoudiniInput const* const
 
 	bIsWorldInputBoundSelector = InInput->IsWorldInputBoundSelector();
 	bWorldInputBoundSelectorAutoUpdate = InInput->GetWorldInputBoundSelectorAutoUpdates();
+	bWorldInputAutoUpdate = InInput->GetWorldInputAutoUpdates();
 	UnrealSplineResolution = InInput->GetUnrealSplineResolution();
 	bExportLevelInstanceContent = InInput->IsExportLevelInstanceContentEnabled();
 	bDirectlyConnectHdas = InInput->GetDirectlyConnectHdas();
@@ -983,6 +985,12 @@ UHoudiniPublicAPIWorldInput::UpdateHoudiniInput(UHoudiniInput* const InInput) co
 	if (InInput->GetWorldInputBoundSelectorAutoUpdates() != bWorldInputBoundSelectorAutoUpdate)
 	{
 		InInput->SetWorldInputBoundSelectorAutoUpdates(bWorldInputBoundSelectorAutoUpdate);
+		bAnyChanges = true;
+	}
+
+	if (InInput->GetWorldInputAutoUpdates() != bWorldInputAutoUpdate)
+	{
+		InInput->SetWorldInputAutoUpdates(bWorldInputAutoUpdate);
 		bAnyChanges = true;
 	}
 

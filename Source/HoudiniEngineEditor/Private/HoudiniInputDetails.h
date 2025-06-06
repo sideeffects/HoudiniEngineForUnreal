@@ -197,15 +197,22 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 
 		static FMenuBuilder Helper_CreateBoundSelectorPickerWidget(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
-		static FReply Helper_OnButtonClickSelectActors(IDetailCategoryBuilder& CategoryBuilder, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName);
+		static FReply Helper_OnButtonClickSelectActors(
+			IDetailCategoryBuilder& CategoryBuilder,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, 
+			const FName& DetailsPanelName);
 
-		static FReply Helper_OnButtonClickUseSelectionAsBoundSelector(IDetailCategoryBuilder& CategoryBuilder, const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName);
+		static FReply Helper_OnButtonClickUseSelectionAsBoundSelector(
+			IDetailCategoryBuilder& CategoryBuilder,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, 
+			const FName& DetailsPanelName);
 
 		static FReply Helper_OnButtonClickSelectActors(
 			IDetailCategoryBuilder& CategoryBuilder,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,
 			const FName& InDetailsPanelName,
-			const bool& bUseWorldInAsWorldSelector);
+			bool bUseWorldInAsWorldSelector,
+			bool bForceUpdate);
 
 		static bool Helper_CancelWorldSelection(
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, const FName& DetailsPanelName);
