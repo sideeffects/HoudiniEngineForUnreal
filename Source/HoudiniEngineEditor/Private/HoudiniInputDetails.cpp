@@ -652,6 +652,15 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
+	// Lambda returning a CheckState from the input's current ExportMainGeoemtry state
+	auto IsCheckedExportMainGeo = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+	{
+		if (!IsValidWeakPointer(InInput))
+			return ECheckBoxState::Unchecked;
+
+		return InInput->GetExportMainGeometry() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
 	// Lambda returning a CheckState from the input's current ExportLODs state
 	auto IsCheckedExportLODs = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
 	{
@@ -701,6 +710,39 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 			return ECheckBoxState::Unchecked;
 
 		return InInput->GetExportMaterialParameters() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	// Lambda for changing ExportMainGeometry state
+	auto CheckStateChangedExportMainGeo = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+	{
+		if (!IsValidWeakPointer(MainInput))
+			return;
+
+		bool bNewState = (NewState == ECheckBoxState::Checked);
+
+		if (MainInput->GetExportMainGeometry() == bNewState)
+			return;
+
+		// Record a transaction for undo/redo
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Export Main Geometry"),
+			MainInput->GetOuter());
+
+		for (auto CurInput : InInputsToUpdate)
+		{
+			if (!IsValidWeakPointer(CurInput))
+				continue;
+
+			if (CurInput->GetExportMainGeometry() == bNewState)
+				continue;
+
+			CurInput->Modify();
+
+			CurInput->SetExportMainGeometry(bNewState);
+			CurInput->MarkChanged(true);
+			CurInput->MarkAllInputObjectsChanged(true);
+		}
 	};
 
 	// Lambda for changing ExportLODs state
@@ -899,85 +941,103 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		}
 	};
 
-	TSharedPtr<SCheckBox> CheckBoxExportLODs;
-	TSharedPtr<SCheckBox> CheckBoxExportSockets;
-	TSharedPtr<SCheckBox> CheckBoxExportColliders;
-	TSharedPtr<SCheckBox> CheckBoxExportMaterialParameters;
-	TSharedPtr<SCheckBox> CheckBoxMergeSplineMeshComponents;
-	TSharedPtr<SCheckBox> CheckBoxPreferNaniteFallback;
+
+
+	TSharedPtr<SCheckBox> CheckBoxExportMainGeo;
 	VerticalBox->AddSlot()
 	.Padding( 2, 2, 5, 2 )
 	.AutoHeight()
 	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.Padding(1.0f)
-		.VAlign(VAlign_Center)
-		.AutoWidth()
+		SAssignNew(CheckBoxExportMainGeo, SCheckBox )
+		.Content()
 		[
-			SAssignNew(CheckBoxExportLODs, SCheckBox )
-			.Content()
-			[
-				SNew( STextBlock )
-				.Text( LOCTEXT( "ExportAllLOD", "Export LODs" ) )
-				.ToolTipText( LOCTEXT( "ExportAllLODCheckboxTip", "If enabled, all LOD Meshes in this static mesh will be sent to Houdini." ) )
-				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-			]
-			.IsChecked_Lambda([=]()
-			{
-				return IsCheckedExportLODs(MainInput);
-			})
-			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-			{
-				return CheckStateChangedExportLODs(InInputs, NewState);
-			})
+			SNew( STextBlock )
+			.Text( LOCTEXT( "ExportMainGeo", "Export Main Geometry" ) )
+			.ToolTipText( LOCTEXT( "ExportMainGeoCheckboxTip", "If enabled, the Main Geometry will be sent to Houdini. Turn this off if you only want to send Collider data, or LOD data to Houdini." ) )
+			.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
 		]
-		+ SHorizontalBox::Slot()
-		.Padding( 1.0f )
-		.VAlign( VAlign_Center )
-		.AutoWidth()
-		[
-			SAssignNew( CheckBoxExportSockets, SCheckBox )
-			.Content()
-			[
-				SNew( STextBlock )
-				.Text( LOCTEXT( "ExportSockets", "Export Sockets" ) )
-				.ToolTipText( LOCTEXT( "ExportSocketsTip", "If enabled, all Mesh Sockets in this static mesh will be sent to Houdini." ) )
-				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-			]
-			.IsChecked_Lambda([=]()
-			{
-				return IsCheckedExportSockets(MainInput);
-			})
-			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-			{
-				return CheckStateChangedExportSockets(InInputs, NewState);
-			})
-		]
-		+ SHorizontalBox::Slot()
-		.Padding( 1.0f )
-		.VAlign( VAlign_Center )
-		.AutoWidth()
-		[
-			SAssignNew( CheckBoxExportColliders, SCheckBox )
-			.Content()
-			[
-				SNew( STextBlock )
-				.Text( LOCTEXT( "ExportColliders", "Export Colliders" ) )
-				.ToolTipText( LOCTEXT( "ExportCollidersTip", "If enabled, collision geometry for this static mesh will be sent to Houdini." ) )
-				.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
-			]
-			.IsChecked_Lambda([=]()
-			{
-				return IsCheckedExportColliders(MainInput);
-			})
-			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-			{
-				return CheckStateChangedExportColliders(InInputs, NewState);
-			})
-		]
+		.IsChecked_Lambda([=]()
+		{
+			return IsCheckedExportMainGeo(MainInput);
+		})
+		.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+		{
+			return CheckStateChangedExportMainGeo(InInputs, NewState);
+		})
 	];
 
+	TSharedPtr<SCheckBox> CheckBoxExportLODs;
+	VerticalBox->AddSlot()
+	.Padding( 2, 2, 5, 2 )
+	.AutoHeight()
+	[
+		SAssignNew(CheckBoxExportLODs, SCheckBox )
+		.Content()
+		[
+			SNew( STextBlock )
+			.Text( LOCTEXT( "ExportAllLOD", "Export LODs" ) )
+			.ToolTipText( LOCTEXT( "ExportAllLODCheckboxTip", "If enabled, all LOD Meshes in this static mesh will be sent to Houdini." ) )
+			.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+		]
+		.IsChecked_Lambda([=]()
+		{
+			return IsCheckedExportLODs(MainInput);
+		})
+		.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+		{
+			return CheckStateChangedExportLODs(InInputs, NewState);
+		})
+	];
+
+	TSharedPtr<SCheckBox> CheckBoxExportSockets;
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SAssignNew( CheckBoxExportSockets, SCheckBox )
+		.Content()
+		[
+			SNew( STextBlock )
+			.Text( LOCTEXT( "ExportSockets", "Export Sockets" ) )
+			.ToolTipText( LOCTEXT( "ExportSocketsTip", "If enabled, all Mesh Sockets in this static mesh will be sent to Houdini." ) )
+			.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+		]
+		.IsChecked_Lambda([=]()
+		{
+			return IsCheckedExportSockets(MainInput);
+		})
+		.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+		{
+			return CheckStateChangedExportSockets(InInputs, NewState);
+		})
+	];
+
+
+	TSharedPtr<SCheckBox> CheckBoxExportColliders;
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SAssignNew( CheckBoxExportColliders, SCheckBox )
+		.Content()
+		[
+			SNew( STextBlock )
+			.Text( LOCTEXT( "ExportColliders", "Export Colliders" ) )
+			.ToolTipText( LOCTEXT( "ExportCollidersTip", "If enabled, collision geometry for this static mesh will be sent to Houdini." ) )
+			.Font(_GetEditorStyle().GetFontStyle( TEXT( "PropertyWindow.NormalFont" ) ) )
+		]
+		.IsChecked_Lambda([=]()
+		{
+			return IsCheckedExportColliders(MainInput);
+		})
+		.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+		{
+			return CheckStateChangedExportColliders(InInputs, NewState);
+		})
+	];
+
+
+	TSharedPtr<SCheckBox> CheckBoxExportMaterialParameters;
 	VerticalBox->AddSlot()
 	.Padding(2, 2, 5, 2)
 	.AutoHeight()
@@ -1007,6 +1067,39 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		]
 	];
 
+
+	TSharedPtr<SCheckBox> CheckBoxPreferNaniteFallback;
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(1.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SAssignNew(CheckBoxPreferNaniteFallback, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("PreferNaniteFallbackMesh", "Prefer Nanite Fallback Mesh"))
+				.ToolTipText(LOCTEXT("PreferNaniteFallbackMeshTip", "If enabled, when a Nanite asset is used as input, Houdini will use the fallback mesh if available."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([=]()
+			{
+				return IsCheckedPreferNanite(MainInput);
+			})
+			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+			{
+				return CheckStateChangedPreferNanite(InInputs, NewState);
+			})
+		]
+	];
+
+
+	TSharedPtr<SCheckBox> CheckBoxMergeSplineMeshComponents;
 	VerticalBox->AddSlot()
 	.Padding(2, 2, 5, 2)
 	.AutoHeight()
@@ -1033,35 +1126,6 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 			{
 				return CheckStateChangedMergeSplineMeshComponents(InInputs, NewState);
-			})
-		]
-	];
-
-	VerticalBox->AddSlot()
-	.Padding(2, 2, 5, 2)
-	.AutoHeight()
-	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.Padding(1.0f)
-		.VAlign(VAlign_Center)
-		.AutoWidth()
-		[
-			SAssignNew(CheckBoxPreferNaniteFallback, SCheckBox)
-			.Content()
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("PreferNaniteFallbackMesh", "Prefer Nanite Fallback Mesh"))
-				.ToolTipText(LOCTEXT("PreferNaniteFallbackMeshTip", "If enabled, when a Nanite asset is used as input, Houdini will use the fallback mesh if available."))
-				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-			]
-			.IsChecked_Lambda([=]()
-			{
-				return IsCheckedPreferNanite(MainInput);
-			})
-			.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
-			{
-				return CheckStateChangedPreferNanite(InInputs, NewState);
 			})
 		]
 	];

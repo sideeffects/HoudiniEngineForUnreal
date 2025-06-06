@@ -83,6 +83,11 @@ public:
 	UPROPERTY()
 	bool bImportAsReferenceMaterialEnabled;
 
+	// Indicates that we want to export the main mesh for a given object
+	// Turning this off will allow to only send colliders for example
+	UPROPERTY()
+	bool bExportMainGeometry;
+
 	// Indicates that all LODs in the input should be marshalled to Houdini
 	UPROPERTY()
 	bool bExportLODs;

@@ -85,7 +85,8 @@ public:
 	// Helper function returning a Houdini curve method from a string
 	static EHoudiniCurveMethod StringToHoudiniCurveMethod(const FString& CurveMethodString);
 	// Helper function returning a Houdini curve breakpoint parameterization from a string
-	static EHoudiniCurveBreakpointParameterization StringToHoudiniCurveBreakpointParameterization(const FString& CurveParameterizationString);
+	static EHoudiniCurveBreakpointParameterization StringToHoudiniCurveBreakpointParameterization(
+		const FString& CurveParameterizationString);
 	
 	// Helper function indicating what classes are supported by an input type
 	static TArray<const UClass*> GetAllowedClasses(const EHoudiniInputType& InInputType);
@@ -98,25 +99,33 @@ public:
 	//------------------------------------------------------------------------------------------------
 
 	// Returns the NodeId of the asset / object merge we are associated with
-	int32 GetAssetNodeId() const { return AssetNodeId; };
+	int32 GetAssetNodeId() const
+		{ return AssetNodeId; };
 	// For objpath parameter, return the associated ParamId, -1 if we're a Geo input
-	int32 GetParameterId() const { return bIsObjectPathParameter ? ParmId : -1; };
+	int32 GetParameterId() const 
+		{ return bIsObjectPathParameter ? ParmId : -1; };
 	// Returns the NodeId of the node plugged into this input
-	int32 GetInputNodeId() const { return InputNodeId; };
+	int32 GetInputNodeId() const 
+		{ return InputNodeId; };
 
 	bool IsAssetInput() const;
 	bool IsLandscapeInput() const;
 
 	// For Geo inputs, returns the InputIndex, -1 if we're an object path parameter
-	int32 GetInputIndex() const { return bIsObjectPathParameter ? -1 : InputIndex; };
+	int32 GetInputIndex() const
+		{ return bIsObjectPathParameter ? -1 : InputIndex; };
 	// Return the array containing all the nodes created for this input's data
-	TArray<int32>& GetCreatedDataNodeIds() { return CreatedDataNodeIds; };
+	TArray<int32>& GetCreatedDataNodeIds()
+		{ return CreatedDataNodeIds; };
 	// Returns the current input type
-	EHoudiniInputType GetInputType() const { return Type; };
+	EHoudiniInputType GetInputType() const
+		{ return Type; };
 	// Returns the previous input type
-	EHoudiniInputType GetPreviousInputType() const { return PreviousType; };
+	EHoudiniInputType GetPreviousInputType() const
+		{ return PreviousType; };
 	// Returns the current input type as a string
-	FString GetInputTypeAsString() const { return InputTypeToString(Type); };
+	FString GetInputTypeAsString() const
+		{ return InputTypeToString(Type); };
 
 	EHoudiniXformType GetDefaultXTransformType();
 	// Returns true when this input's Transform Type is set to NONE,
@@ -131,33 +140,35 @@ public:
 	// Indicates this input's transform need to be uploaded
 	bool IsTransformUploadNeeded();
 	// Indicates if this input type has been changed
-	bool HasInputTypeChanged() const { return PreviousType != EHoudiniInputType::Invalid ? PreviousType != Type : false; }
+	bool HasInputTypeChanged() const 
+		{ return PreviousType != EHoudiniInputType::Invalid ? PreviousType != Type : false; }
 
-	FString GetInputName() const					{ return Name; };
-	FString GetInputLabel() const				{ return Label; };
-	FString GetInputHelp() const					{ return Help; };	
-	bool GetPackBeforeMerge() const				{ return bPackBeforeMerge; };
-	bool GetImportAsReference() const			{ return InputSettings.bImportAsReference; };
+	FString GetInputName() const						{ return Name; };
+	FString GetInputLabel() const						{ return Label; };
+	FString GetInputHelp() const						{ return Help; };	
+	bool GetPackBeforeMerge() const						{ return bPackBeforeMerge; };
+	bool GetImportAsReference() const					{ return InputSettings.bImportAsReference; };
 	bool GetImportAsReferenceRotScaleEnabled() const	{ return InputSettings.bImportAsReferenceRotScaleEnabled; };
 	bool GetImportAsReferenceBboxEnabled() const		{ return InputSettings.bImportAsReferenceBboxEnabled; };
 	bool GetImportAsReferenceMaterialEnabled() const	{ return InputSettings.bImportAsReferenceMaterialEnabled; };
-	bool GetExportLODs() const				{ return InputSettings.bExportLODs; };
-	bool GetExportSockets() const				{ return InputSettings.bExportSockets; };
-	bool GetPreferNaniteFallbackMesh() const		{ return InputSettings.bPreferNaniteFallbackMesh; }
-	bool GetExportColliders() const				{ return InputSettings.bExportColliders; };
-	bool GetExportMaterialParameters() const		{ return InputSettings.bExportMaterialParameters; };
-	bool GetDirectlyConnectHdas() const			{ return bDirectlyConnectHdas; }
-	bool GetExportOptionsMenuExpanded() const		{ return bExportOptionsMenuExpanded; }
-	bool GetGeometryInputsMenuExpanded() const		{ return bGeometryInputsMenuExpanded; }
+	bool GetExportMainGeometry() const					{ return InputSettings.bExportMainGeometry; };
+	bool GetExportLODs() const							{ return InputSettings.bExportLODs; };
+	bool GetExportSockets() const						{ return InputSettings.bExportSockets; };
+	bool GetPreferNaniteFallbackMesh() const			{ return InputSettings.bPreferNaniteFallbackMesh; }
+	bool GetExportColliders() const						{ return InputSettings.bExportColliders; };
+	bool GetExportMaterialParameters() const			{ return InputSettings.bExportMaterialParameters; };
+	bool GetDirectlyConnectHdas() const					{ return bDirectlyConnectHdas; }
+	bool GetExportOptionsMenuExpanded() const			{ return bExportOptionsMenuExpanded; }
+	bool GetGeometryInputsMenuExpanded() const			{ return bGeometryInputsMenuExpanded; }
 	bool GetLandscapeOptionsMenuExpanded() const		{ return bLandscapeOptionsMenuExpanded; }
-	bool GetWorldInputsMenuExpanded() const		{ return bWorldInputsMenuExpanded; }
-	bool GetCurveInputsMenuExpanded() const			{ return bCurveInputsMenuExpanded; }
+	bool GetWorldInputsMenuExpanded() const				{ return bWorldInputsMenuExpanded; }
+	bool GetCurveInputsMenuExpanded() const				{ return bCurveInputsMenuExpanded; }
 	bool GetCurvePointSelectionMenuExpanded() const		{ return bCurvePointSelectionMenuExpanded; }
 	bool GetCurvePointSelectionUseAbsLocation() const	{ return bCurvePointSelectionUseAbsLocation; }
 	bool GetCurvePointSelectionUseAbsRotation() const	{ return bCurvePointSelectionUseAbsRotation; }
-	bool IsObjectPathParameter() const			{ return bIsObjectPathParameter; };
-	float GetUnrealSplineResolution() const			{ return InputSettings.UnrealSplineResolution; };
-	virtual bool GetCookOnCurveChange() const		{ return bCookOnCurveChanged; };
+	bool IsObjectPathParameter() const					{ return bIsObjectPathParameter; };
+	float GetUnrealSplineResolution() const				{ return InputSettings.UnrealSplineResolution; };
+	virtual bool GetCookOnCurveChange() const			{ return bCookOnCurveChanged; };
 		
 	TArray<TObjectPtr<UHoudiniInputObject>>* GetHoudiniInputObjectArray(const EHoudiniInputType& InType);
 	const TArray<TObjectPtr<UHoudiniInputObject>>* GetHoudiniInputObjectArray(const EHoudiniInputType& InType) const;
@@ -271,52 +282,95 @@ public:
 		bHasChanged = bInChanged;
 		SetNeedsToTriggerUpdate(bInChanged);
 	};
-	void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate) { bNeedsToTriggerUpdate = bInTriggersUpdate; };
-	void MarkDataUploadNeeded(const bool& bInDataUploadNeeded) { bDataUploadNeeded = bInDataUploadNeeded; };
+
+	void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate)
+		{ bNeedsToTriggerUpdate = bInTriggersUpdate; };
+	void MarkDataUploadNeeded(const bool& bInDataUploadNeeded) 
+		{ bDataUploadNeeded = bInDataUploadNeeded; };
 	void MarkAllInputObjectsChanged(const bool& bInChanged);
 
 	void SetSOPInput(const int32& InInputIndex);
 	void SetObjectPathParameter(const int32& InParmId);	
 	void SetKeepWorldTransform(const bool& bInKeepWorldTransform);
 
-	void SetName(const FString& InName)								{ Name = InName; };
-	void SetLabel(const FString& InLabel)								{ Label = InLabel; };
-	void SetHelp(const FString& InHelp)								{ Help = InHelp; };
-	void SetAssetNodeId(const int32& InNodeId)							{ AssetNodeId = InNodeId; };
+	void SetName(const FString& InName) 
+		{ Name = InName; };
+	void SetLabel(const FString& InLabel)
+		{ Label = InLabel; };
+	void SetHelp(const FString& InHelp)
+		{ Help = InHelp; };
+	void SetAssetNodeId(const int32& InNodeId)
+		{ AssetNodeId = InNodeId; };
 	void SetInputType(const EHoudiniInputType &InInputType, bool& bOutBlueprintStructureModified);
-	void SetPreviousInputType(const EHoudiniInputType& InType)					{ PreviousType = InType; };
-	void SetPackBeforeMerge(const bool& bInPackBeforeMerge)						{ bPackBeforeMerge = bInPackBeforeMerge; };
-	void SetImportAsReference(const bool& bInImportAsReference)					{ InputSettings.bImportAsReference = bInImportAsReference; };
-	void SetImportAsReferenceRotScaleEnabled(const bool& bInImportAsReferenceRotScaleEnabled)	{ InputSettings.bImportAsReferenceRotScaleEnabled = bInImportAsReferenceRotScaleEnabled; };
-	void SetImportAsReferenceBboxEnabled(const bool& bInImportAsReferenceBboxEnabled)		{ InputSettings.bImportAsReferenceBboxEnabled = bInImportAsReferenceBboxEnabled; };
-	void SetImportAsReferenceMaterialEnabled(const bool& bInImportAsReferenceMaterialEnabled)	{ InputSettings.bImportAsReferenceMaterialEnabled = bInImportAsReferenceMaterialEnabled; };
-	void SetExportLODs(const bool& bInExportLODs)							{ InputSettings.bExportLODs = bInExportLODs; };
-	void SetExportSockets(const bool& bInExportSockets)						{ InputSettings.bExportSockets = bInExportSockets; };
-	void SetPreferNaniteFallbackMesh(const bool& bInPreferNaniteFallbackMesh)			{ InputSettings.bPreferNaniteFallbackMesh = bInPreferNaniteFallbackMesh; };
-	void SetExportColliders(const bool& bInExportColliders)						{ InputSettings.bExportColliders = bInExportColliders; };
-	void SetExportMaterialParameters(const bool& bInExportMaterialParameters)			{ InputSettings.bExportMaterialParameters = bInExportMaterialParameters; };
-	void SetDirectlyConnectHdas(const bool& bInDirectlyConnectHdas)					{ bDirectlyConnectHdas = bInDirectlyConnectHdas; }
-	void SetExportOptionsMenuExpanded(const bool& bInExportOptionsMenuExpanded) { bExportOptionsMenuExpanded = bInExportOptionsMenuExpanded; };
-	void SetGeometryInputsMenuExpanded(const bool& bInGeometryInputsMenuExpanded)		{ bGeometryInputsMenuExpanded = bInGeometryInputsMenuExpanded; }
-	void SetLandscapeOptionsMenuExpanded(const bool& bInLandscapeOptionsMenuExpanded)		{ bLandscapeOptionsMenuExpanded = bInLandscapeOptionsMenuExpanded; }
-	void SetWorldInputsMenuExpanded(const bool& bInWorldInputsMenuExpanded)			{ bWorldInputsMenuExpanded = bInWorldInputsMenuExpanded; }
-	void SetCurveInputsMenuExpanded(const bool& bInCurveInputsMenuExpanded)				{ bCurveInputsMenuExpanded = bInCurveInputsMenuExpanded; }
-	void SetCurvePointSelectionMenuExpanded(const bool& bInCurvePointSelectionMenuExpanded)		{ bCurvePointSelectionMenuExpanded = bInCurvePointSelectionMenuExpanded; }
-	void SetCurvePointSelectionUseAbsLocation(const bool & bInCurvePointSelectionUseAbsLocation)	{ bCurvePointSelectionUseAbsLocation = bInCurvePointSelectionUseAbsLocation;}
-	void SetCurvePointSelectionUseAbsRotation(const bool & bInCurvePointSelectionUseAbsRotation)	{ bCurvePointSelectionUseAbsRotation = bInCurvePointSelectionUseAbsRotation;}
-	void SetInputNodeId(const int32& InCreatedNodeId)						{ InputNodeId = InCreatedNodeId; };
-	void SetUnrealSplineResolution(const float& InResolution)					{ InputSettings.UnrealSplineResolution = InResolution; };
-	void SetExportHeightDataPerEditLayer(bool bOnOff) { InputSettings.bExportHeightDataPerEditLayer = bOnOff; }
-	void SetExportPaintLayerPerEditLayer(bool bOnOff) { InputSettings.bExportPaintLayersPerEditLayer = bOnOff; }
-	void SetExportMergedPaintLayers(bool bOnOff) { InputSettings.bExportMergedPaintLayers = bOnOff; }
-	void SetExportLevelInstanceContent(bool bOnOff) { InputSettings.bExportLevelInstanceContent = bOnOff; }
 
-	virtual void SetCookOnCurveChange(const bool & bInCookOnCurveChanged)				{ bCookOnCurveChanged = bInCookOnCurveChanged; };
+	void SetPreviousInputType(const EHoudiniInputType& InType) 
+		{ PreviousType = InType; };
+	void SetPackBeforeMerge(const bool& bInPackBeforeMerge) 
+		{ bPackBeforeMerge = bInPackBeforeMerge; };
+	void SetImportAsReference(const bool& bInImportAsReference)
+		{ InputSettings.bImportAsReference = bInImportAsReference; };
+	void SetImportAsReferenceRotScaleEnabled(const bool& bInImportAsReferenceRotScaleEnabled)
+		{ InputSettings.bImportAsReferenceRotScaleEnabled = bInImportAsReferenceRotScaleEnabled; };
+	void SetImportAsReferenceBboxEnabled(const bool& bInImportAsReferenceBboxEnabled)
+		{ InputSettings.bImportAsReferenceBboxEnabled = bInImportAsReferenceBboxEnabled; };
+	void SetImportAsReferenceMaterialEnabled(const bool& bInImportAsReferenceMaterialEnabled)
+		{ InputSettings.bImportAsReferenceMaterialEnabled = bInImportAsReferenceMaterialEnabled; };
+	
+	void SetExportMainGeometry(const bool& bInExportMainGeo)
+		{ InputSettings.bExportMainGeometry = bInExportMainGeo; };
+	void SetExportLODs(const bool& bInExportLODs)
+		{ InputSettings.bExportLODs = bInExportLODs; };
+	void SetExportSockets(const bool& bInExportSockets)
+		{ InputSettings.bExportSockets = bInExportSockets; };
+	void SetPreferNaniteFallbackMesh(const bool& bInPreferNaniteFallbackMesh)
+		{ InputSettings.bPreferNaniteFallbackMesh = bInPreferNaniteFallbackMesh; };
+	void SetExportColliders(const bool& bInExportColliders)
+		{ InputSettings.bExportColliders = bInExportColliders; };
+	void SetExportMaterialParameters(const bool& bInExportMaterialParameters)
+		{ InputSettings.bExportMaterialParameters = bInExportMaterialParameters; };
+	void SetDirectlyConnectHdas(const bool& bInDirectlyConnectHdas)
+		{ bDirectlyConnectHdas = bInDirectlyConnectHdas; }
+	void SetExportOptionsMenuExpanded(const bool& bInExportOptionsMenuExpanded)
+		{ bExportOptionsMenuExpanded = bInExportOptionsMenuExpanded; };
+	void SetGeometryInputsMenuExpanded(const bool& bInGeometryInputsMenuExpanded)
+		{ bGeometryInputsMenuExpanded = bInGeometryInputsMenuExpanded; }
+	void SetLandscapeOptionsMenuExpanded(const bool& bInLandscapeOptionsMenuExpanded)
+		{ bLandscapeOptionsMenuExpanded = bInLandscapeOptionsMenuExpanded; }
+	void SetWorldInputsMenuExpanded(const bool& bInWorldInputsMenuExpanded)
+		{ bWorldInputsMenuExpanded = bInWorldInputsMenuExpanded; }
+	void SetCurveInputsMenuExpanded(const bool& bInCurveInputsMenuExpanded) 
+		{ bCurveInputsMenuExpanded = bInCurveInputsMenuExpanded; }
+	void SetCurvePointSelectionMenuExpanded(const bool& bInCurvePointSelectionMenuExpanded)
+		{ bCurvePointSelectionMenuExpanded = bInCurvePointSelectionMenuExpanded; }
+	void SetCurvePointSelectionUseAbsLocation(const bool & bInCurvePointSelectionUseAbsLocation) 
+		{ bCurvePointSelectionUseAbsLocation = bInCurvePointSelectionUseAbsLocation;}
+	void SetCurvePointSelectionUseAbsRotation(const bool & bInCurvePointSelectionUseAbsRotation)
+		{ bCurvePointSelectionUseAbsRotation = bInCurvePointSelectionUseAbsRotation;}
+	void SetInputNodeId(const int32& InCreatedNodeId)
+		{ InputNodeId = InCreatedNodeId; };
+	void SetUnrealSplineResolution(const float& InResolution)
+		{ InputSettings.UnrealSplineResolution = InResolution; };
+	void SetExportHeightDataPerEditLayer(bool bOnOff) 
+		{ InputSettings.bExportHeightDataPerEditLayer = bOnOff; }
+	void SetExportPaintLayerPerEditLayer(bool bOnOff) 
+		{ InputSettings.bExportPaintLayersPerEditLayer = bOnOff; }
+	void SetExportMergedPaintLayers(bool bOnOff) 
+		{ InputSettings.bExportMergedPaintLayers = bOnOff; }
+	void SetExportLevelInstanceContent(bool bOnOff)
+		{ InputSettings.bExportLevelInstanceContent = bOnOff; }
 
-	void ResetDefaultCurveOffset()									{ DefaultCurveOffset = 0.f; }
+	virtual void SetCookOnCurveChange(const bool & bInCookOnCurveChanged) 
+		{ bCookOnCurveChanged = bInCookOnCurveChanged; };
+
+	void ResetDefaultCurveOffset()
+		{ DefaultCurveOffset = 0.f; }
 
 	UHoudiniInputObject* CreateNewCurveInputObject(bool& bBlueprintStructureModified);
-	UHoudiniInputHoudiniSplineComponent* GetOrCreateCurveInputObjectAt(const int32 Index, const bool bCreateIndex, bool& bOutBlueprintStructureModified);
+
+	UHoudiniInputHoudiniSplineComponent* GetOrCreateCurveInputObjectAt(
+		const int32 Index, 
+		const bool bCreateIndex,
+		bool& bOutBlueprintStructureModified);
 
 	void SetGeometryInputObjectsNumber(const int32& NewCount);
 	void SetInputObjectsNumber(const EHoudiniInputType& InType, const int32& InNewCount);
@@ -325,7 +379,10 @@ public:
 	void InsertInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex);
 
 	void DeleteInputObjectAt(const int32& AtIndex, const bool bInRemoveIndexFromArray=true);
-	void DeleteInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex, const bool bInRemoveIndexFromArray=true);
+	void DeleteInputObjectAt(
+		const EHoudiniInputType& InType,
+		const int32& AtIndex, 
+		const bool bInRemoveIndexFromArray=true);
 
 	void DuplicateInputObjectAt(const int32& AtIndex);
 	void DuplicateInputObjectAt(const EHoudiniInputType& InType, const int32& AtIndex);
@@ -335,8 +392,10 @@ public:
 
 	void SetBoundSelectorObjectsNumber(const int32& InNewCount);
 	void SetBoundSelectorObjectAt(const int32& AtIndex, AActor* InActor);
-	void SetWorldInputBoundSelector(const bool& InIsBoundSelector) { bIsWorldInputBoundSelector = InIsBoundSelector; };
-	void SetWorldInputBoundSelectorAutoUpdates(const bool& InAutoUpdate) { bWorldInputBoundSelectorAutoUpdate = InAutoUpdate; };
+	void SetWorldInputBoundSelector(const bool& InIsBoundSelector) 
+		{ bIsWorldInputBoundSelector = InIsBoundSelector; };
+	void SetWorldInputBoundSelectorAutoUpdates(const bool& InAutoUpdate)
+		{ bWorldInputBoundSelectorAutoUpdate = InAutoUpdate; };
 
 	// Updates the world selection using bound selectors
 	// returns false if the selection hasn't changed
@@ -348,7 +407,11 @@ public:
 	void OnTransformUIExpand(const int32& AtIndex);
 
 	// Sets the input's transform offset
-	bool SetTransformOffsetAt(const float& Value, const int32& AtIndex, const int32& PosRotScaleIndex, const int32& XYZIndex);
+	bool SetTransformOffsetAt(
+		const float& Value,
+		const int32& AtIndex,
+		const int32& PosRotScaleIndex,
+		const int32& XYZIndex);
 
 	// Sets the input's transform scale values
 	void SetPositionOffsetX(float InValue, int32 AtIndex);
@@ -368,12 +431,18 @@ public:
 	void SetAddRotAndScaleAttributes(const bool& InValue);
 	void SetUseLegacyInputCurve(const bool& InValue);
 
-	void SetLandscapeAutoSelectComponentEnabled(bool bInEnabled) { InputSettings.bLandscapeAutoSelectComponent = bInEnabled; }
-	void SetLandscapeExportSelectionOnlyEnabled(bool bInEnabled) { InputSettings.bLandscapeExportSelectionOnly = bInEnabled; }
-	void SetLandscapeExportLightingEnabled(bool bInEnabled) { InputSettings.bLandscapeExportLighting = bInEnabled; }
-	void SetLandscapeExportMaterialsEnabled(bool bInEnabled) { InputSettings.bLandscapeExportMaterials = bInEnabled; }
-	void SetLandscapeExportNormalizedUVsEnabled(bool bInEnabled) { InputSettings.bLandscapeExportNormalizedUVs = bInEnabled; }
-	void SetLandscapeExportTileUVsEnabled(bool bInEnabled) { InputSettings.bLandscapeExportTileUVs = bInEnabled; }
+	void SetLandscapeAutoSelectComponentEnabled(bool bInEnabled)
+		{ InputSettings.bLandscapeAutoSelectComponent = bInEnabled; }
+	void SetLandscapeExportSelectionOnlyEnabled(bool bInEnabled) 
+		{ InputSettings.bLandscapeExportSelectionOnly = bInEnabled; }
+	void SetLandscapeExportLightingEnabled(bool bInEnabled)
+		{ InputSettings.bLandscapeExportLighting = bInEnabled; }
+	void SetLandscapeExportMaterialsEnabled(bool bInEnabled)
+		{ InputSettings.bLandscapeExportMaterials = bInEnabled; }
+	void SetLandscapeExportNormalizedUVsEnabled(bool bInEnabled)
+		{ InputSettings.bLandscapeExportNormalizedUVs = bInEnabled; }
+	void SetLandscapeExportTileUVsEnabled(bool bInEnabled)
+		{ InputSettings.bLandscapeExportTileUVs = bInEnabled; }
 
 	// Duplicate this object and copy its state to the resulting object.
 	// This is typically used to transfer state between between template and instance components.
@@ -381,12 +450,16 @@ public:
 	virtual void CopyStateFrom(UHoudiniInput*  InInput, bool bCopyAllProperties, bool bInCanDeleteHoudiniNodes);
 
 	void SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes);
-	bool CanDeleteHoudiniNodes() { return bCanDeleteHoudiniNodes; }
+	bool CanDeleteHoudiniNodes()
+		{ return bCanDeleteHoudiniNodes; }
 
 	virtual void InvalidateData();
 
 protected:
-	void CopyInputs(TArray<TObjectPtr<UHoudiniInputObject>>& ToInputs, TArray<TObjectPtr<UHoudiniInputObject>>& FromInputs, bool bInCanDeleteHoudiniNodes);
+	void CopyInputs(
+		TArray<TObjectPtr<UHoudiniInputObject>>& ToInputs,
+		TArray<TObjectPtr<UHoudiniInputObject>>& FromInputs, 
+		bool bInCanDeleteHoudiniNodes);
 
 public:
 
@@ -408,9 +481,11 @@ public:
 
 	void SetHasLandscapeExportTypeChanged(const bool InChanged);
 
-	EHoudiniLandscapeExportType GetLandscapeExportType() const { return InputSettings.LandscapeExportType; };
+	EHoudiniLandscapeExportType GetLandscapeExportType() const
+		{ return InputSettings.LandscapeExportType; };
 
-	void SetLandscapeExportType(const EHoudiniLandscapeExportType InType) { InputSettings.LandscapeExportType = InType; };
+	void SetLandscapeExportType(const EHoudiniLandscapeExportType InType) 
+		{ InputSettings.LandscapeExportType = InType; };
 
 	virtual void BeginDestroy() override;
 
@@ -426,10 +501,12 @@ public:
 	void MarkInputNodeAsPendingDelete();
 
 	// Return the set of previous InputNodeIds that are pending delete
-	const TSet<int32>& GetInputNodesPendingDelete() const { return InputNodesPendingDelete; }
+	const TSet<int32>& GetInputNodesPendingDelete() const 
+		{ return InputNodesPendingDelete; }
 
 	// Clear the InputNodesPendingDelete set 
-	void ClearInputNodesPendingDelete() { InputNodesPendingDelete.Empty(); }
+	void ClearInputNodesPendingDelete() 
+		{ InputNodesPendingDelete.Empty(); }
 
 #if WITH_EDITORONLY_DATA
 	
