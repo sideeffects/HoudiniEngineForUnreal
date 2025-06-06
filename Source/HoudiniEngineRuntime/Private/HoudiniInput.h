@@ -194,6 +194,7 @@ public:
 
 	bool IsWorldInputBoundSelector() const { return bIsWorldInputBoundSelector; };
 	bool GetWorldInputBoundSelectorAutoUpdates() const { return bWorldInputBoundSelectorAutoUpdate; };
+	bool GetWorldInputAutoUpdates() const { return bWorldInputAutoUpdate; };
 
 	FString GetNodeBaseName() const;
 
@@ -396,6 +397,8 @@ public:
 		{ bIsWorldInputBoundSelector = InIsBoundSelector; };
 	void SetWorldInputBoundSelectorAutoUpdates(const bool& InAutoUpdate)
 		{ bWorldInputBoundSelectorAutoUpdate = InAutoUpdate; };
+	void SetWorldInputAutoUpdates(const bool& InAutoUpdate)
+		{ bWorldInputAutoUpdate = InAutoUpdate; };
 
 	// Updates the world selection using bound selectors
 	// returns false if the selection hasn't changed
@@ -684,6 +687,10 @@ protected:
 	// Indicates that selected actors by the bound selectors should update automatically
 	UPROPERTY()
 	bool bWorldInputBoundSelectorAutoUpdate;
+
+	// Indicates that this world input will update automatically if it detects a change
+	UPROPERTY()
+	bool bWorldInputAutoUpdate;
 
 	// A cache of the selected landscape components so that it is saved across levels
 	UPROPERTY()

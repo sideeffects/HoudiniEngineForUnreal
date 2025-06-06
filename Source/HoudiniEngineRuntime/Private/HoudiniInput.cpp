@@ -97,6 +97,7 @@ UHoudiniInput::UHoudiniInput()
 	, DefaultCurveOffset(0.f)
 	, bIsWorldInputBoundSelector(false)
 	, bWorldInputBoundSelectorAutoUpdate(false)
+	, bWorldInputAutoUpdate(true)
 	, bCanDeleteHoudiniNodes(true)
 {
 	Name = TEXT("");

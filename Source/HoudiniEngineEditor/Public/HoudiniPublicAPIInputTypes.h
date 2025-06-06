@@ -545,6 +545,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
 	bool bWorldInputBoundSelectorAutoUpdate;
 
+	/** Indicates that selected actors by the bound selectors should update automatically */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
+	bool bWorldInputAutoUpdate;
+
 	/** Resolution used when converting unreal splines to houdini curves */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
 	float UnrealSplineResolution;

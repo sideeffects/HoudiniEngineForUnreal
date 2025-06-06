@@ -4919,6 +4919,10 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 	if (WorldType != EHoudiniInputType::World)
 		return false;
 
+	// No need to update world inputs with auto-updates off
+	if (!InInput->GetWorldInputAutoUpdates())
+		return false;
+
 	TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = InInput->GetHoudiniInputObjectArray(WorldType);
 	if (!InputObjectsPtr)
 		return false;

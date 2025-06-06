@@ -412,6 +412,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniInput* A, const 
 
 	Result &= TestExpressionError(A->bIsWorldInputBoundSelector == B->bIsWorldInputBoundSelector, Header, "bIsWorldInputBoundSelector");
 	Result &= TestExpressionError(A->bWorldInputBoundSelectorAutoUpdate == B->bWorldInputBoundSelectorAutoUpdate, Header, "bWorldInputBoundSelectorAutoUpdate");
+	Result &= TestExpressionError(A->bWorldInputAutoUpdate == B->bWorldInputAutoUpdate, Header, "bWorldInputAutoUpdate");
 	Result &= TestExpressionError(FMath::IsNearlyEqual(InputSettingsA.UnrealSplineResolution, InputSettingsB.UnrealSplineResolution, FLOAT_TOLERANCE), Header, "UnrealSplineResolution");
 
 	// Skip LastInsertedInputs
