@@ -701,6 +701,8 @@ UHoudiniPCGDataAttributeSoftClassPath* UHoudiniPCGDataObject::CreateAttributeSof
 
 int UHoudiniPCGDataObject::GetNumRows() const
 {
+	if(Attributes.IsEmpty())
+		return 0;
 	return Attributes[0]->GetNumValues();
 }
 
