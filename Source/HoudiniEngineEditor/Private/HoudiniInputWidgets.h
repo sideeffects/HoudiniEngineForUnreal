@@ -5,6 +5,7 @@
 #include "GameFramework/Actor.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SComboBox.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 
 DECLARE_DELEGATE_TwoParams( FOnLandscapeSelectionChanged, const FString&, AActor* )
 

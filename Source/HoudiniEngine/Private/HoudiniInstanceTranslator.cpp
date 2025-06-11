@@ -3868,7 +3868,7 @@ FHoudiniInstancedOutputPartData::BuildOriginalInstancedTransformsAndObjectArrays
 {
 	{
 		const int32 NumObjects = NumInstancedTransformsPerObject.Num();
-		OriginalInstancedTransforms.SetNumUninitialized(NumObjects);
+		OriginalInstancedTransforms.SetNum(NumObjects);
 		for (int32 n = 0; n < OriginalInstancedTransforms.Num(); n++)
 			OriginalInstancedTransforms[n] = TArray<FTransform>();
 
