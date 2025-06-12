@@ -120,7 +120,9 @@ public class HoudiniEngineEditor : ModuleRules
                 "EditorFramework",
                 "DataLayerEditor",
                 "TraceAnalysis",
-                "PhysicsCore"
+                "PhysicsCore",
+                "KismetWidgets",
+                 "AdvancedPreviewScene"
             }
         );
         
