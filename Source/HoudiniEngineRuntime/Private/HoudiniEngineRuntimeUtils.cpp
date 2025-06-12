@@ -433,7 +433,8 @@ FHoudiniEngineRuntimeUtils::CopyComponentProperties(UActorComponent* SourceCompo
 
 	for (UActorComponent* ModifiedComponentInstance : ComponentInstancesToReregister)
 	{
-		ModifiedComponentInstance->RegisterComponent();
+		if (ModifiedComponentInstance->GetOwner())
+			ModifiedComponentInstance->RegisterComponent();
 	}
 
 	return CopiedPropertyCount;

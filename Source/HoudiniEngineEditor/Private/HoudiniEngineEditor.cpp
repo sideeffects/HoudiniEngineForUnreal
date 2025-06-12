@@ -303,6 +303,10 @@ FHoudiniEngineEditor::RegisterDetails()
 		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniCookableDetails::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
+		TEXT("HoudiniCookable"),
+		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniCookableDetails::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
 		TEXT("HoudiniRuntimeSettings"),
 		FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniRuntimeSettingsDetails::MakeInstance));
 #if defined(HOUDINI_USE_PCG)
@@ -2126,6 +2130,5 @@ TSharedRef<SDockTab> FHoudiniEngineEditor::OnSpawnHoudiniToolsTab(const FSpawnTa
 
 	return SpawnedTab;
 }
-
 
 #undef LOCTEXT_NAMESPACE

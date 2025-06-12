@@ -357,6 +357,8 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 	bAssetOptionMenuExpanded = true;
 	bHelpAndDebugMenuExpanded = true;
 #endif
+
+	AssetEditorId = FName();
 }
 
 UHoudiniCookable::~UHoudiniCookable()
@@ -1153,8 +1155,10 @@ UHoudiniCookable::UpdatePostDuplicate()
 			*/
 			if (ComponentToRemove)
 			{
-				ComponentToRemove->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-				ComponentToRemove->UnregisterComponent();
+				if(ComponentToRemove->GetOwner())
+					ComponentToRemove->UnregisterComponent();
+
+				ComponentToRemove->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);				
 				ComponentToRemove->DestroyComponent();
 			}
 		}

@@ -594,6 +594,7 @@ public:
 	bool IsPlayInEditorRefinementAllowed() const;
 	EHoudiniEngineActorBakeOption GetActorBakeOption() const;
 
+	FName GetAssetEditorId() const { return AssetEditorId; };
 
 	//------------------------------------------------------------------------------------------------
 	// Mutators
@@ -687,6 +688,8 @@ public:
 	void AddDownstreamCookable(UHoudiniCookable* InDownstreamCookable);
 	void RemoveDownstreamCookable(UHoudiniCookable* InDownstreamCookable);
 	void ClearDownstreamCookable();
+
+	void SetAssetEditorId(const FName& InName) { AssetEditorId = InName; };
 
 	//------------------------------------------------------------------------------------------------
 	// Supported Features
@@ -1018,4 +1021,9 @@ public:
 	UPROPERTY()
 	bool bHelpAndDebugMenuExpanded; // NOT COOKABLE?
 #endif
+
+	// Indicates the Id of the AssetEditor viewing this cookable
+	// Can be null/empty if not viewded by an AssetEditor
+	UPROPERTY()
+	FName AssetEditorId;
 };

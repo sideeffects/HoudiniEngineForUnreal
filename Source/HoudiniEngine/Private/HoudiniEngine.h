@@ -294,6 +294,13 @@ public:
 		void StartHAPIPerformanceMonitoring();
 		void StopHAPIPerformanceMonitoring(const FString& TraceDirectory);
 
+
+		FString RegisterNewHoudiniAssetEditor();
+		void UnRegisterHoudiniAssetEditor(const FString& InIdentifier);
+		TArray<FName> GetAllHoudiniAssetEditorIdentifier();
+
+		TArray<int32> HoudiniAssetEditorIdentifiers;
+
 	private:
 
 		// Singleton instance of Houdini Engine.

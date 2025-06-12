@@ -50,6 +50,8 @@ class FAssetTypeActions_HoudiniAsset : public FAssetTypeActions_Base
 		virtual void GetActions(const TArray< UObject * > & InObjects, class FMenuBuilder & MenuBuilder) override;
 
 		virtual bool AssetsActivatedOverride(const TArray<UObject*>& InObjects, EAssetTypeActivationMethod::Type ActivationType) override;
+		
+		virtual void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>()) override;
 
 		TSharedRef<FExtender> AddLevelEditorMenuExtenders(TArray<TWeakObjectPtr<UHoudiniAsset>> InHoudiniAssetPtrs);
 

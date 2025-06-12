@@ -27,6 +27,7 @@
 #include "AssetTypeActions_HoudiniAsset.h"
 
 #include "HoudiniAsset.h"
+#include "HoudiniAssetEditor.h"
 #include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineEditor.h"
@@ -479,6 +480,20 @@ FAssetTypeActions_HoudiniAsset::ExecuteInstantiate(TArray<TWeakObjectPtr<UHoudin
 	}
 }
 
+void 
+FAssetTypeActions_HoudiniAsset::OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor)
+{
+	const EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
+
+	for (auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
+	{
+		if (UHoudiniAsset* HDA = Cast<UHoudiniAsset>(*ObjIt))
+		{
+			TSharedRef<FHoudiniAssetEditor> NewHDAEditor(new FHoudiniAssetEditor());
+			NewHDAEditor->InitHoudiniAssetEditor(Mode, EditWithinLevelEditor, HDA);
+		}
+	}
+}
 
 
 #undef LOCTEXT_NAMESPACE

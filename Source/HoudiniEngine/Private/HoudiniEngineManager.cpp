@@ -357,8 +357,14 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 		if (CurrentCookable->bNeedToUpdateEditorProperties && CurrentCookable->bAllowUpdateEditorProperties)
 		{
 			// Only do an update if the HAC is selected
+			bool bDoUpdateProperties = false;
 			AActor* Owner = CurrentCookable->GetOwner();
-			if (Owner && Owner->IsSelectedInEditor() && CurrentCookable->bAllowUpdateEditorProperties)
+			if (Owner && Owner->IsSelectedInEditor())
+				bDoUpdateProperties = true;
+			else if (!CurrentCookable->AssetEditorId.IsNone())
+				bDoUpdateProperties = true;
+
+			if (bDoUpdateProperties)
 				FHoudiniEngineUtils::UpdateEditorProperties(true);
 
 			CurrentCookable->bNeedToUpdateEditorProperties = false;

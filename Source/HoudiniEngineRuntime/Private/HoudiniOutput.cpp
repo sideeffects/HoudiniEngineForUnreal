@@ -730,8 +730,10 @@ UHoudiniOutput::Clear()
 		    USceneComponent* SceneComp = Cast<USceneComponent>(Component);
 		    if (IsValid(SceneComp))
 		    {
-			    SceneComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-			    SceneComp->UnregisterComponent();
+				if(SceneComp->GetOwner())
+					SceneComp->UnregisterComponent();
+
+			    SceneComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);			    
 			    SceneComp->DestroyComponent();
 		    }
 
@@ -755,8 +757,10 @@ UHoudiniOutput::Clear()
 		USceneComponent* ProxyComp = Cast<USceneComponent>(CurrentOutputObject.Value.ProxyComponent);
 		if (IsValid(ProxyComp))
 		{
+			if (ProxyComp->GetOwner())
+				ProxyComp->UnregisterComponent();
+
 			ProxyComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-			ProxyComp->UnregisterComponent();
 			ProxyComp->DestroyComponent();
 		}
 
@@ -1264,10 +1268,12 @@ void DestroyComponent(UObject * Component)
 	{
 		// Remove from the HoudiniAssetActor
 		if (SceneComponent->GetOwner())
+		{
 			SceneComponent->GetOwner()->RemoveOwnedComponent(SceneComponent);
+			SceneComponent->UnregisterComponent();
+		}
 
 		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-		SceneComponent->UnregisterComponent();
 		SceneComponent->DestroyComponent();
 	}
 }
@@ -1298,8 +1304,10 @@ void FHoudiniOutputObject::DestroyCookedData(EHoudiniClearFlags ClearFlags)
 	for(UObject* Component : ComponentsToDestroy)
 	{
 		USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
-		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-		SceneComponent->UnregisterComponent();
+		if(SceneComponent->GetOwner())
+			SceneComponent->UnregisterComponent();
+
+		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);		
 		SceneComponent->DestroyComponent();
 	}
 

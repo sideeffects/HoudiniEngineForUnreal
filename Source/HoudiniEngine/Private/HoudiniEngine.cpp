@@ -1703,5 +1703,74 @@ FHoudiniEngine::StopHAPIPerformanceMonitoring(const FString& TraceDirectory)
 	}
 }
 
+
+FString
+FHoudiniEngine::RegisterNewHoudiniAssetEditor()
+{
+	FString Identifier = TEXT("HoudiniAssetEditor");
+#if WITH_EDITOR	
+	if (HoudiniAssetEditorIdentifiers.Num() <= 0)
+	{
+		HoudiniAssetEditorIdentifiers.Add(0);
+		return Identifier;
+	}
+
+	// Find the next available index
+	int32 Idx = 0;
+	for (auto CurId : HoudiniAssetEditorIdentifiers)
+	{
+		if (CurId == Idx)
+		{
+			// ID is taken - keep looking
+			Idx++;
+			continue;
+		}
+		else
+		{
+			// We found an available ID - return
+			break;
+		}
+	}
+
+	HoudiniAssetEditorIdentifiers.Add(Idx);
+	if(Idx > 0)
+		Identifier += FString::FromInt(Idx);
+#endif
+	return Identifier;
+}
+
+void
+FHoudiniEngine::UnRegisterHoudiniAssetEditor(const FString& InIdentifier)
+{
+	// Extract the ID from the string
+	FString StringID = InIdentifier.RightChop(18);
+	int32 ID = StringID.IsEmpty() ? 0 : FCString::Atoi(*StringID);
+
+	// Remove the Id from the registered asset editor array
+	for (int32 Idx = HoudiniAssetEditorIdentifiers.Num() - 1; Idx >= 0; Idx--)
+	{
+		if (HoudiniAssetEditorIdentifiers[Idx] != ID)
+			continue;
+
+		HoudiniAssetEditorIdentifiers.RemoveAt(Idx);
+		//break;
+	}
+}
+
+TArray<FName>
+FHoudiniEngine::GetAllHoudiniAssetEditorIdentifier()
+{
+	TArray<FName> IDArray;
+	FString BaseIdentifier = TEXT("HoudiniAssetEditor");
+
+	for (auto CurId : HoudiniAssetEditorIdentifiers)
+	{		
+		FString CurIDAsString = CurId == 0 ? BaseIdentifier : BaseIdentifier + FString::FromInt(CurId);
+		IDArray.Add(FName(*CurIDAsString));
+	}
+
+	return IDArray;
+}
+
 #undef LOCTEXT_NAMESPACE
 

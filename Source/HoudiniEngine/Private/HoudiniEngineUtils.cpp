@@ -3463,11 +3463,27 @@ FHoudiniEngineUtils::UpdateEditorProperties_Internal(const bool bInForceFullUpda
 	// TODO: These shouldn't be hardcoded strings, but when building on Mac, we get linking errors
 	//       when trying to use LevelEditorTabIds::LevelEditorSelectionDetails
 	//
+	/*
 	static const FName DetailsTabIdentifiers[] = {
 		"LevelEditorSelectionDetails",
 		"LevelEditorSelectionDetails2",
 		"LevelEditorSelectionDetails3",
 		"LevelEditorSelectionDetails4" };
+	*/
+
+	TArray<FName> DetailsTabIdentifiers;
+	DetailsTabIdentifiers.SetNum(4);
+	DetailsTabIdentifiers[0] = FName("LevelEditorSelectionDetails");
+	DetailsTabIdentifiers[1] = FName("LevelEditorSelectionDetails2");
+	DetailsTabIdentifiers[2] = FName("LevelEditorSelectionDetails3");
+	DetailsTabIdentifiers[3] = FName("LevelEditorSelectionDetails4");
+
+	// Add the Houdini Asset editor identifiers to the Details tab array
+	{
+		TArray<FName> AssetEditorId = FHoudiniEngine::Get().GetAllHoudiniAssetEditorIdentifier();
+		for (auto CurId : AssetEditorId)
+			DetailsTabIdentifiers.Add(CurId);
+	}
 
 	for (const FName DetailsPanelName : DetailsTabIdentifiers)
 	{

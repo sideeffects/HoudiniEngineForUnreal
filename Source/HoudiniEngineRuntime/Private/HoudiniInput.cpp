@@ -214,7 +214,8 @@ void UHoudiniInput::PostEditUndo()
 					 USceneComponent* OuterComponent = OuterCookable ? OuterCookable->GetComponent() : Cast<USceneComponent>(GetOuter());
 
 					 // Attach the new Houdini spline component to it's owner
-					 HoudiniSplineComponent->RegisterComponent();
+					 if (HoudiniSplineComponent->GetOwner())
+						 HoudiniSplineComponent->RegisterComponent();
 					 HoudiniSplineComponent->AttachToComponent(OuterComponent, FAttachmentTransformRules::KeepRelativeTransform);
 					 HoudiniSplineComponent->SetVisibility(true, true);
 					 HoudiniSplineComponent->SetHoudiniSplineVisible(true);
@@ -275,7 +276,8 @@ void UHoudiniInput::PostEditUndo()
 					 UHoudiniInputHoudiniSplineComponent *ReconstructedHoudiniSplineInput = (UHoudiniInputHoudiniSplineComponent*)ReconstructedInputObject;
 					 (*InputObjectsPtr)[Index] = ReconstructedHoudiniSplineInput;
 
-					 ReconstructedSpline->RegisterComponent();
+					 if (ReconstructedSpline->GetOwner())
+						 ReconstructedSpline->RegisterComponent();
 					 ReconstructedSpline->SetFlags(RF_Transactional);
 
 					 CreateHoudiniSplineInput(ReconstructedHoudiniSplineInput, true, true, bBlueprintStructureChanged);
@@ -981,10 +983,9 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 					else
 					{
 						// Attach the new Houdini spline component to it's owner
-						AActor* OwningActor = HoudiniSplineComponent->GetOwner();
-						check(OwningActor);
+						if (HoudiniSplineComponent->GetOwner())
+							HoudiniSplineComponent->RegisterComponent();
 
-						HoudiniSplineComponent->RegisterComponent();
 						HoudiniSplineComponent->AttachToComponent(OuterComp, FAttachmentTransformRules::KeepRelativeTransform);
 						HoudiniSplineComponent->SetHoudiniSplineVisible(true);
 						HoudiniSplineComponent->SetHiddenInGame(false, true);
@@ -1384,8 +1385,9 @@ UHoudiniInput::CreateHoudiniSplineInput(UHoudiniInputHoudiniSplineComponent * Fr
 		DefaultCurveOffset += 100.f;
 
 		if (!bOuterIsTemplate)
-		{ 
-			HoudiniSplineComponent->RegisterComponent();
+		{
+			if (HoudiniSplineComponent->GetOwner())
+				HoudiniSplineComponent->RegisterComponent();
 
 			// Attach the new Houdini spline component to it's owner.
 			if (bAttachToparent)

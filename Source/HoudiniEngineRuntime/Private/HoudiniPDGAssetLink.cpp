@@ -1939,11 +1939,13 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 					{
 						// Remove from its actor first
 						if (SceneComponent->GetOwner())
+						{
+							SceneComponent->UnregisterComponent();
 							SceneComponent->GetOwner()->RemoveOwnedComponent(SceneComponent);
+						}
 
 						// Detach from its parent component if attached
-						SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-						SceneComponent->UnregisterComponent();
+						SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);						
 						SceneComponent->DestroyComponent();
 
 						bDidDestroyObjects = true;

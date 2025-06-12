@@ -71,7 +71,7 @@
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 
-TSharedRef< IDetailCustomization >
+TSharedRef<IDetailCustomization>
 FHoudiniCookableDetails::MakeInstance()
 {
 	return MakeShareable(new FHoudiniCookableDetails);

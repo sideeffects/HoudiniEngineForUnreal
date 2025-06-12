@@ -5828,7 +5828,8 @@ FHoudiniMeshTranslator::CreateMeshComponent(UObject *InOuterComponent, const TSu
 	// Attach created static mesh component to our Houdini component.
 	MeshComponent->AttachToComponent(OuterSceneComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	MeshComponent->OnComponentCreated();
-	MeshComponent->RegisterComponent();
+	if(MeshComponent->GetOwner())
+		MeshComponent->RegisterComponent();
 
 	return MeshComponent;
 }
