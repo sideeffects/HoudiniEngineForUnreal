@@ -130,6 +130,9 @@ protected:
 	TSharedRef<SDockTab> SpawnViewportTab(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnDetailsTab(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnNodeSyncTab(const FSpawnTabArgs& Args);
+	
+	// The extender to pass to the level editor to extend it's File menu.
+	TSharedPtr<FExtender> MainMenuExtender;
 
 	void CreateModeToolbarWidgets(FToolBarBuilder& ToolbarBuilder);
 

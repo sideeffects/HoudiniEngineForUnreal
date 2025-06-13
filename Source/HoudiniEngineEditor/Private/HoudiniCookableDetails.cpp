@@ -179,7 +179,22 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		//
 		// HOUDINI ENGINE DETAILS
 		//
-		CreateHoudiniEngineDetails(DetailBuilder, HCs, MultiSelectionIdentifier);
+		bool bIsAssetEditor = false;
+		if (!MainCookable->AssetEditorId.IsNone())
+			bIsAssetEditor = true;
+
+		EHoudiniDetailsFlags Flags = EHoudiniDetailsFlags::Defaults;
+		if (bIsAssetEditor)
+		{
+			Flags.bRemoveHDAOutputAfterBake = false;
+			Flags.bAutoBake = false;
+			Flags.bTemporaryCookFolderRow = false;
+			Flags.bCookTriggers = false;
+			Flags.bDoNotGenerateOutputs = false;
+			Flags.bPushTransformToHoudini = false;
+		}
+
+		CreateHoudiniEngineDetails(DetailBuilder, HCs, MultiSelectionIdentifier, Flags);
 
 
 		//
@@ -298,14 +313,14 @@ FHoudiniCookableDetails::CreateHoudiniEngineDetails(
 
 	// Create Generate Category
 	if (DetailsFlags.bGenerateBar)
-		HoudiniEngineDetails->CreateGenerateWidgets(HouEngineCategory, InCookables);
+		HoudiniEngineDetails->CreateGenerateWidgets(HouEngineCategory, InCookables, DetailsFlags);
 
 	// Create Bake Category
 	HoudiniEngineDetails->CreateBakeWidgets(HouEngineCategory, InCookables, DetailsFlags);
 
 	// Create Asset Options Category
 	if (DetailsFlags.bAssetOptions)
-		HoudiniEngineDetails->CreateAssetOptionsWidgets(HouEngineCategory, InCookables);
+		HoudiniEngineDetails->CreateAssetOptionsWidgets(HouEngineCategory, InCookables, DetailsFlags);
 
 	// Create Help and Debug Category
 	HoudiniEngineDetails->CreateHelpAndDebugWidgets(HouEngineCategory, InCookables);

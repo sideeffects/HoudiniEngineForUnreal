@@ -743,13 +743,13 @@ FHoudiniEngineEditor::ExtendMenu()
 		"FileLoadAndSave", 
 		EExtensionHook::After,
 		HEngineCommands,
-		FMenuExtensionDelegate::CreateRaw(this, &FHoudiniEngineEditor::AddHoudiniFileMenuExtension));
+		FMenuExtensionDelegate::CreateStatic(&FHoudiniEngineEditor::AddHoudiniFileMenuExtension));
 		
 	MainMenuExtender->AddMenuBarExtension(
 		"Edit",
 		EExtensionHook::After,
 		HEngineCommands,
-		FMenuBarExtensionDelegate::CreateRaw(this, &FHoudiniEngineEditor::AddHoudiniEditorMenu));
+		FMenuBarExtensionDelegate::CreateStatic(&FHoudiniEngineEditor::AddHoudiniEditorMenu));
 
 	// Add our menu extender
 	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
@@ -776,7 +776,7 @@ FHoudiniEngineEditor::AddHoudiniEditorMenu(FMenuBarBuilder& MenuBarBuilder)
 	MenuBarBuilder.AddPullDownMenu(
 		LOCTEXT("HoudiniLabel", "Houdini Engine"),
 		LOCTEXT("HoudiniMenu_ToolTip", "Open the Houdini Engine menu"),
-		FNewMenuDelegate::CreateRaw(this, &FHoudiniEngineEditor::AddHoudiniMainMenuExtension),
+		FNewMenuDelegate::CreateStatic(&FHoudiniEngineEditor::AddHoudiniMainMenuExtension),
 		"View");
 }
 

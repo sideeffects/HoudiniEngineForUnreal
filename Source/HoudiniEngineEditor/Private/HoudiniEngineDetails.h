@@ -78,6 +78,11 @@ struct EHoudiniDetailsFlags
 	bool bAssetOptions = true;
 	bool bGenerateBar = true;
 	bool bReplacePreviousBake = true;
+	bool bRemoveHDAOutputAfterBake = true;
+	bool bTemporaryCookFolderRow = true;
+	bool bCookTriggers = true;
+	bool bDoNotGenerateOutputs = true;
+	bool bPushTransformToHoudini = true;
 
 	static EHoudiniDetailsFlags Defaults;
 };
@@ -103,7 +108,8 @@ public:
 	// GENERATE
 	static void CreateGenerateWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
+		const EHoudiniDetailsFlags& DetailsFlags);
 
 	// BAKE
 	static void CreateBakeWidgets(
@@ -119,7 +125,8 @@ public:
 	// ASSET OPTIONS
 	static void CreateAssetOptionsWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
+		const EHoudiniDetailsFlags& DetailsFlags);
 
 	// HELP DEBUG
 	static void CreateHelpAndDebugWidgets(

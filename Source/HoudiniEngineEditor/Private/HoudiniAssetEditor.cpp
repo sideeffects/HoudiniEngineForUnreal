@@ -32,6 +32,7 @@
 #include "HoudiniCookableDetails.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineCommands.h"
+#include "HoudiniEngineEditor.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineStyle.h"
 #include "SHoudiniAssetEditorViewport.h"
@@ -449,6 +450,23 @@ FHoudiniAssetEditor::AddReferencedObjects(FReferenceCollector& Collector)
 
 void FHoudiniAssetEditor::ExtendMenu()
 {
+	MainMenuExtender = MakeShareable(new FExtender);
+
+	// Extend File menu, we will add Houdini section.
+	MainMenuExtender->AddMenuExtension(
+		"FileLoadAndSave",
+		EExtensionHook::After,
+		FHoudiniEngineEditor::Get().GetHoudiniEngineCommands(),
+		FMenuExtensionDelegate::CreateStatic(&FHoudiniEngineEditor::AddHoudiniFileMenuExtension));
+
+	MainMenuExtender->AddMenuBarExtension(
+		"Edit",
+		EExtensionHook::After,
+		FHoudiniEngineEditor::Get().GetHoudiniEngineCommands(),
+		FMenuBarExtensionDelegate::CreateStatic(&FHoudiniEngineEditor::AddHoudiniEditorMenu));
+
+	AddMenuExtender(MainMenuExtender);
+	//GetSharedMenuExtensibilityManager()->AddExtender(MainMenuExtender);
 }
 
 void 
