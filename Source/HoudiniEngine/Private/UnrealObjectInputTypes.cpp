@@ -3,8 +3,10 @@
 #include "HoudiniDataLayerUtils.h"
 #include "UnrealObjectInputManager.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEngineAttributes.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniHLODLayerUtils.h"
+#include "StaticMeshResources.h"
 
 #include "GameFramework/Actor.h"
 #include "Components/MeshComponent.h"
@@ -605,6 +607,196 @@ FUnrealObjectInputHLODAttributes::Update(const FUnrealObjectInputHAPINodeId& InN
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(Session, VexNodeId, "class", 0, 1), false);
 
 	FHoudiniHLODLayerUtils::SetVexCode(VexNodeId, Actor);
+
+	return true;
+}
+
+HAPI_NodeId
+FUnrealObjectInputActorProperties::EnsureHAPINodeExists(HAPI_NodeId InParentNetworkNodeId)
+{
+	const FString OpTypeName(TEXT("attribwrangle"));
+	const FString NodeName(TEXT("actor_properties"));
+	return EnsureHAPINodeExistsInternal(InParentNetworkNodeId, OpTypeName, NodeName, HAPINodeIds, 0);
+}
+
+TArray<FHoudiniMeshMaterialInfo> FUnrealObjectInputActorProperties::GetMaterialOverrides(UStaticMeshComponent* MeshComponent)
+{
+	TArray<FHoudiniMeshMaterialInfo> MaterialInfos;
+	MaterialInfos.SetNum(MeshComponent->GetNumMaterials());
+
+	for(int Index = 0; Index < MeshComponent->GetNumMaterials(); Index++)
+	{
+		UMaterialInterface* Material = MeshComponent->OverrideMaterials.IsValidIndex(Index) ? MeshComponent->OverrideMaterials[Index] : nullptr;
+		if(!IsValid(Material))
+			continue;
+
+		TArray<FMaterialParameterInfo> MateriaParamInfos;
+		TArray<FGuid> MaterialParamGuids;
+
+		Material->GetAllScalarParameterInfo(MateriaParamInfos, MaterialParamGuids);
+
+		for(auto& CurScalarParam : MateriaParamInfos)
+		{
+			FHoudiniMaterialParameter<float>& Entry = MaterialInfos[Index].Scalars.Emplace_GetRef();
+			Entry.Name = CurScalarParam.Name.ToString();
+			Material->GetScalarParameterValue(CurScalarParam, Entry.Value);
+		}
+
+		Material->GetAllVectorParameterInfo(MateriaParamInfos, MaterialParamGuids);
+
+		for(auto& CurVectorParam : MateriaParamInfos)
+		{
+			FHoudiniMaterialParameter<FLinearColor>& Entry = MaterialInfos[Index].Vectors.Emplace_GetRef();
+			Entry.Name = CurVectorParam.Name.ToString();
+			Material->GetVectorParameterValue(CurVectorParam, Entry.Value);
+		}
+
+		Material->GetAllTextureParameterInfo(MateriaParamInfos, MaterialParamGuids);
+
+		for(auto& CurTextureParam : MateriaParamInfos)
+		{
+			FHoudiniMaterialParameter<FString>& Entry = MaterialInfos[Index].Textures.Emplace_GetRef();
+			Entry.Name = CurTextureParam.Name.ToString();
+
+			UTexture* Texture = nullptr;
+			Material->GetTextureParameterValue(CurTextureParam, Texture);
+
+			Entry.Value = IsValid(Texture) ? Texture->GetPathName() : TEXT("");
+		}
+
+	}
+
+	return MaterialInfos;
+}
+bool
+FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo)
+{
+	// This modifier uses Vex code to set actor properties. This potentially includes material
+	// parameters which may be set on a per-actor basis.
+
+	// If we don't have a valid mesh component destroy the nodes and return false
+	if(!IsValid(MeshComponent))
+	{
+		DestroyHAPINodes();
+		return false;
+	}
+
+	TArray<FName> Tags = MeshComponent->GetOwner()->Tags;
+	TArray<UActorComponent*> Components;
+
+	// Check that InNodeIdToConnectTo is valid
+	if(!InNodeIdToConnectTo.IsValid())
+		return false;
+
+	HAPI_NodeId HAPINodeIdToConnectTo = InNodeIdToConnectTo.GetHAPINodeId();
+
+	HAPI_NodeId ParentId = FHoudiniEngineUtils::HapiGetParentNodeId(HAPINodeIdToConnectTo);
+
+	// Check if we already have a valid node, if not create it
+	HAPI_NodeId VexNodeId = EnsureHAPINodeExists(ParentId);
+
+	if(VexNodeId < 0)
+		return false;
+
+	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+
+	// Connect our input to InNodeIdToConnectTo's output
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(Session, VexNodeId, 0, HAPINodeIdToConnectTo, 0), false);
+
+	// Set the wrangle's class to prims
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(Session, VexNodeId, "class", 0, 1), false);
+
+	// Build up Vex code for actor tags
+
+	FStringBuilderBase Builder;
+
+	for(auto Tag : Tags)
+	{
+
+		Builder.Appendf(TEXT("setprimgroup(0, \"%s\", @primnum, 1, \"set\");\n"), *Tag.ToString());
+	}
+
+	// Various paths we want to export...
+
+	FString ActorPath = MeshComponent->GetOwner()->GetPathName();
+	Builder.Appendf(TEXT("s@%s=\"%s\";\n"), TEXT(HAPI_UNREAL_ATTRIB_ACTOR_PATH), *ActorPath);
+
+	FString LevelPath = MeshComponent->GetOwner()->GetLevel()->GetPathName();
+	Builder.Appendf(TEXT("s@%s=\"%s\";\n"), TEXT(HAPI_UNREAL_ATTRIB_LEVEL_PATH), *LevelPath);
+
+
+	// Material parameters found on SMCs.
+
+	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(MeshComponent);
+
+	if (SMC && IsValid(SMC->GetStaticMesh()))
+	{
+		// If we have a valid Static Mesh Component, get material overrides.
+
+		TArray<FHoudiniMeshMaterialInfo> MaterialInfos = GetMaterialOverrides(SMC);
+
+		int LODIndex = 0;
+		UStaticMesh* StaticMesh = SMC->GetStaticMesh();
+
+		const FStaticMeshLODResources& LODResource = StaticMesh->GetRenderData()->LODResources[LODIndex];
+		const int32 NumSections = LODResource.Sections.Num();
+
+		auto MakeHoudiniParamName = [&](int Index, const FString& Name)
+			{
+				FString ParamPrefix = MaterialInfos.Num() == 1 ? "" : FString::FromInt(Index) + FString("_");
+				return FString::Printf(TEXT("unreal_material_parameter_%s%s"), *ParamPrefix, *Name);
+
+			};
+
+		for(int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+		{
+			const FStaticMeshSection& Section = LODResource.Sections[SectionIndex];
+
+			FHoudiniMeshMaterialInfo* MaterialInfo = (MaterialInfos.IsValidIndex(Section.MaterialIndex)) ? &MaterialInfos[Section.MaterialIndex] : nullptr;
+			if(!MaterialInfo)
+				continue;
+
+			int FirstTriangle = Section.FirstIndex / 3;
+			int LastTriangle = FirstTriangle + Section.NumTriangles;
+
+			bool bDoSnippet = !MaterialInfo->Scalars.IsEmpty() || !MaterialInfo->Vectors.IsEmpty() || !MaterialInfo->Textures.IsEmpty();
+
+			if(bDoSnippet)
+			{
+				Builder.Append(FString::Printf(TEXT("if (@primnum >= %d && @primnum < %d)\n"), FirstTriangle, LastTriangle));
+				Builder.Append(TEXT("{\n"));
+
+				for(auto Scalar : MaterialInfo->Scalars)
+				{
+					FString AttributeName = MakeHoudiniParamName(Section.MaterialIndex, Scalar.Name);
+					Builder.Append(FString::Printf(TEXT("    f@%s = %.17g;\n"), *AttributeName, Scalar.Value));
+				}
+
+				for(auto Vector : MaterialInfo->Vectors)
+				{
+					FString AttributeName = MakeHoudiniParamName(Section.MaterialIndex, Vector.Name);
+					Builder.Append(FString::Printf(TEXT("    p@%s = { "), *AttributeName));
+					Builder.Append(FString::Printf(TEXT(" %.17g, "), Vector.Value.R));
+					Builder.Append(FString::Printf(TEXT(" %.17g, "), Vector.Value.G));
+					Builder.Append(FString::Printf(TEXT(" %.17g, "), Vector.Value.B));
+					Builder.Append(FString::Printf(TEXT(" %.17g };\n"), Vector.Value.A));
+				}
+
+				for(auto Texture : MaterialInfo->Textures)
+				{
+					FString AttributeName = MakeHoudiniParamName(Section.MaterialIndex, Texture.Name);
+					Builder.Append(FString::Printf(TEXT("    f@%s = %s;\n"), *AttributeName, *Texture.Value));
+				}
+
+				Builder.Append(TEXT("}\n"));
+			}
+		}
+	}
+
+	FString VexCode = Builder.ToString();
+	HAPI_ParmInfo ParmInfo;
+	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(VexNodeId, "snippet", ParmInfo);
+	FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), VexNodeId, TCHAR_TO_UTF8(*VexCode), ParmId, 0);
 
 	return true;
 }

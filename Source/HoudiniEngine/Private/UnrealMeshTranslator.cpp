@@ -58,6 +58,7 @@
 
 #include "HoudiniEngineAttributes.h"
 #include "HoudiniHLODLayerUtils.h"
+#include "HoudiniEngineAttributes.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	#include "Engine/SkinnedAssetCommon.h"
@@ -483,8 +484,18 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 				MeshDesc = &SplineMeshDesc;
 			}
 
+			// Should we use Mesh Description? Depends on Nanite settings, if we have a valid Mesh Description and
+			// if exporting LODs. (Recently discovered that Mesh Description can be null for LODs)
+
+			bool bUseMeshDescription = (!bNaniteBuildEnabled || !ShouldUseNaniteFallback);
+
+			if(DoExportLODs)
+				bUseMeshDescription = false;
+			else if(!MeshDesc)
+				bUseMeshDescription = false;
+
 			bool bMeshSuccess = false;
-			if (!bNaniteBuildEnabled || !ShouldUseNaniteFallback)
+			if (bUseMeshDescription)
 			{
 				// Convert the Mesh using FMeshDescription
 				const double StartTime = FPlatformTime::Seconds();
@@ -1558,7 +1569,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			TMap<FString, TArray<int8>> BoolMaterialParameters;
 
 			bool bAttributeSuccess = false;
-			FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh->GetBodySetup());
+			FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMesh->GetBodySetup());
 			if (bInExportMaterialParametersAsAttributes)
 			{
 				// Create attributes for the material and all its parameters
@@ -1783,32 +1794,6 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 		}
 	}
 
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// COMPONENT AND ACTOR TAGS
-	//---------------------------------------------------------------------------------------------------------------------
-	if (IsValid(StaticMeshComponent))
-	{
-		// Try to create groups for the static mesh component's tags
-		if (StaticMeshComponent->ComponentTags.Num() > 0
-			&& !FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, 0, StaticMeshComponent->ComponentTags))
-			HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's tags!"));
-
-		AActor* ParentActor = StaticMeshComponent->GetOwner();
-		if (IsValid(ParentActor))
-		{
-			// Try to create groups for the parent Actor's tags
-			if (ParentActor->Tags.Num() > 0
-				&& !FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, 0, ParentActor->Tags))
-				HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's parent actor tags!"));
-
-			// Add the unreal_actor_path attribute
-			FHoudiniEngineUtils::AddActorPathAttribute(NodeId, 0, ParentActor, Part.faceCount);
-
-			// Add the unreal_level_path attribute
-			FHoudiniEngineUtils::AddLevelPathAttribute(NodeId, 0, ParentActor->GetLevel(), Part.faceCount);
-		}
-	}
-
 	// Commit the geo.
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiCommitGeo(NodeId), false);
 
@@ -1817,7 +1802,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 
 FString
-FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UMeshComponent const* const MeshComponent, UBodySetup const* const BodySetup)
+FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(UBodySetup const* const BodySetup)
 {
 	if (IsValid(BodySetup) && IsValid(BodySetup->PhysMaterial))
 	{
@@ -1849,11 +1834,11 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	// ----------------------------------------------------------------------------------------------------------------
 	
 	// Get the physical material path
-	FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMeshComponent, StaticMesh->GetBodySetup());
+	FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMesh->GetBodySetup());
 	
 	// Grab the build scale
 	const FStaticMeshSourceModel &SourceModel = InLODIndex > 0 ? StaticMesh->GetSourceModel(InLODIndex) : StaticMesh->GetHiResSourceModel();
-	const FVector3f BuildScaleVector = (FVector3f)SourceModel.BuildSettings.BuildScale3D;
+	const FVector3f BuildScaleVector = static_cast<FVector3f>(SourceModel.BuildSettings.BuildScale3D);
 
 	// Get the mesh attributes
 	FStaticMeshConstAttributes MeshConstAttributes(MeshDescription);
@@ -1922,10 +1907,25 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 	HAPI_PartInfo PartInfo;
 	FHoudiniApi::PartInfo_Init(&PartInfo);
 	if (!CreateAndPopulateMeshPartFromMeshDescription(
-			NodeId, MeshDescription, MeshConstAttributes, InLODIndex, bAddLODGroups, bInExportMaterialParametersAsAttributes,
-			StaticMesh, StaticMeshComponent, Materials, SectionMaterialIndices, BuildScaleVector, PhysicalMaterialPath,
-			bExportVertexColors, StaticMesh->GetLightMapResolution(), LODScreenSize, StaticMesh->NaniteSettings,
-			StaticMesh->GetAssetImportData(), bCommitGeo, PartInfo))
+		NodeId, 
+		MeshDescription, 
+		MeshConstAttributes, 
+		InLODIndex, 
+		bAddLODGroups, 
+		bInExportMaterialParametersAsAttributes,
+		StaticMesh, 
+		StaticMeshComponent, 
+		Materials, 
+		SectionMaterialIndices, 
+		BuildScaleVector, 
+		PhysicalMaterialPath,
+		bExportVertexColors, 
+		StaticMesh->GetLightMapResolution(), 
+		LODScreenSize, 
+		StaticMesh->NaniteSettings,
+		StaticMesh->GetAssetImportData(), 
+		bCommitGeo, 
+		PartInfo))
 	{
 		return false;
 	}
@@ -2874,33 +2874,6 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 				FHoudiniEngine::Get().GetSession(), NodeId, 0,
 				TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize,
 				&LODScreenSizeValue, 0, 1), false);
-		}
-	}
-
-	//--------------------------------------------------------------------------------------------------------------------- 
-	// COMPONENT AND ACTOR TAGS
-	//---------------------------------------------------------------------------------------------------------------------
-	if (IsValid(MeshComponent))
-	{
-		H_SCOPED_FUNCTION_STATIC_LABEL("COMPONENT AND ACTOR TAGS");
-
-		// Try to create groups for the static mesh component's tags
-		if (MeshComponent->ComponentTags.Num() > 0
-			&& !FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, 0, MeshComponent->ComponentTags))
-			HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's tags!"));
-
-		if (IsValid(ParentActor))
-		{
-			// Try to create groups for the parent Actor's tags
-			if (ParentActor->Tags.Num() > 0
-				&& !FHoudiniEngineUtils::CreateGroupsFromTags(NodeId, 0, ParentActor->Tags))
-				HOUDINI_LOG_WARNING(TEXT("Could not create groups from the Static Mesh Component's parent actor tags!"));
-
-			// Add the unreal_actor_path attribute
-			FHoudiniEngineUtils::AddActorPathAttribute(NodeId, 0, ParentActor, Part.faceCount);
-
-			// Add the unreal_level_path attribute
-			FHoudiniEngineUtils::AddLevelPathAttribute(NodeId, 0, ParentActor->GetLevel(), Part.faceCount);
 		}
 	}
 

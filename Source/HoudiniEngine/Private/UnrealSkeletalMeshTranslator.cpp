@@ -1061,8 +1061,7 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromMeshDescription(
 	const FVector3f BuildScaleVector = FVector3f::OneVector;
 
 	// Get the physical material path override if configured
-	const FString PhysicalMaterialPath = FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(
-		SkeletalMeshComponent, SkeletalMesh->GetBodySetup());
+	const FString PhysicalMaterialPath = FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(SkeletalMesh->GetBodySetup());
 
 	// Build an array of MaterialInterfaces for the skeletal mesh's materials
 	const TArray<FSkeletalMaterial> SkeletalMaterials = SkeletalMesh->GetMaterials();
@@ -1095,10 +1094,25 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromMeshDescription(
 	HAPI_PartInfo PartInfo;
 	FHoudiniApi::PartInfo_Init(&PartInfo);
 	if (!FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
-			NewNodeId, MeshDescription, MeshConstAttributes, LODIndex, bAddLODGroup, bInExportMaterialParametersAsAttributes,
-			SkeletalMesh, SkeletalMeshComponent, Materials, SectionMaterialIndices, BuildScaleVector, PhysicalMaterialPath,
-			bExportVertexColors, LightMapResolution, LODScreenSize, NaniteSettings,
-			SkeletalMesh->GetAssetImportData(), bCommitGeo, PartInfo))
+		NewNodeId, 
+		MeshDescription, 
+		MeshConstAttributes, 
+		LODIndex, 
+		bAddLODGroup, 
+		bInExportMaterialParametersAsAttributes,
+		SkeletalMesh, 
+		SkeletalMeshComponent, 
+		Materials, 
+		SectionMaterialIndices, 
+		BuildScaleVector, 
+		PhysicalMaterialPath,
+		bExportVertexColors, 
+		LightMapResolution, 
+		LODScreenSize, 
+		NaniteSettings,
+		SkeletalMesh->GetAssetImportData(), 
+		bCommitGeo, 
+		PartInfo))
 	{
 		return false;
 	}
@@ -1489,8 +1503,7 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 	TMap<FString, TArray<int8>> BoolMaterialParameters;
 
 	bool bAttributeSuccess = false;
-	FString PhysicalMaterialPath = FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(
-		SkeletalMeshComponent, const_cast<USkeletalMesh const*>(SkeletalMesh)->GetBodySetup());
+	FString PhysicalMaterialPath = FUnrealMeshTranslator::GetSimplePhysicalMaterialPath(SkeletalMesh->GetBodySetup());
 	if (bInExportMaterialParametersAsAttributes)
 	{
 		// Create attributes for the material and all its parameters

@@ -40,6 +40,19 @@ class AActor;
 class UMeshComponent;
 class UPrimitiveComponent;
 
+template<typename  Type>
+struct FHoudiniMaterialParameter
+{
+	FString Name;
+	Type Value;
+};
+
+struct FHoudiniMeshMaterialInfo
+{
+	TArray<FHoudiniMaterialParameter<float>> Scalars;
+	TArray<FHoudiniMaterialParameter<FLinearColor>> Vectors;
+	TArray<FHoudiniMaterialParameter<FString>> Textures;
+};
 
 /**
  * A modifier that adds:
@@ -186,4 +199,27 @@ private:
 	HAPI_NodeId EnsureHAPINodeExists(const HAPI_NodeId InParentNetworkNodeId);
 
 	TObjectPtr<AActor> Actor;
+};
+
+
+/** Modifier for actor and components */
+class HOUDINIENGINE_API FUnrealObjectInputActorProperties : public FUnrealObjectInputModifier
+{
+public:
+	FUnrealObjectInputActorProperties(FUnrealObjectInputNode& InOwner, UMeshComponent* InComponent)
+		: FUnrealObjectInputModifier(InOwner), MeshComponent(InComponent) {
+	}
+
+	static EUnrealObjectInputModifierType StaticGetType() { return EUnrealObjectInputModifierType::ActorProperties; }
+	virtual EUnrealObjectInputModifierType GetType() const override { return StaticGetType(); }
+
+	virtual bool Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo) override;
+
+	HAPI_NodeId EnsureHAPINodeExists(HAPI_NodeId InParentNetworkNodeId);
+
+	static TArray<FHoudiniMeshMaterialInfo> GetMaterialOverrides(UStaticMeshComponent* MeshComponent);
+
+private:
+
+	TObjectPtr<UMeshComponent> MeshComponent;
 };

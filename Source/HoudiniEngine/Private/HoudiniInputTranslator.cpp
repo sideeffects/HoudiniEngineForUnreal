@@ -3275,6 +3275,13 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMeshComponent(
 			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputHLODAttributes>(Handle, ModifierChainName, SKC->GetOwner());
 		}
 
+		// Actor and Component tags
+		FUnrealObjectInputModifier* TagsModifier = FUnrealObjectInputUtils::FindFirstModifierOfType(Handle, ModifierChainName, EUnrealObjectInputModifierType::ActorProperties);
+		if(!TagsModifier)
+		{
+			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputActorProperties>(Handle, ModifierChainName, SKC);
+		}
+
 		// Update all modifiers
 		FUnrealObjectInputUtils::UpdateAllModifierChains(InObject->InputNodeHandle);
 	}
@@ -3730,6 +3737,13 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 		if (!HLODModifier)
 		{
 			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputHLODAttributes>(InObject->InputNodeHandle, ModifierChainName, SMC->GetOwner());
+		}
+
+		// Actor properties
+		FUnrealObjectInputModifier* TagsModifier = FUnrealObjectInputUtils::FindFirstModifierOfType(InObject->InputNodeHandle, ModifierChainName, EUnrealObjectInputModifierType::ActorProperties);
+		if(!TagsModifier)
+		{
+			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputActorProperties>(InObject->InputNodeHandle, ModifierChainName, SMC);
 		}
 
 		// Update all modifiers

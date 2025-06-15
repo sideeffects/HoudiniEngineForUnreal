@@ -432,6 +432,13 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputHLODAttributes>(Handle, InstancerChainName, ISMC->GetOwner());
 		}
 
+		// Actor & Component Tags
+		FUnrealObjectInputModifier* TagsModifier = FUnrealObjectInputUtils::FindFirstModifierOfType(Handle, InstancerChainName, EUnrealObjectInputModifierType::ActorProperties);
+		if(!TagsModifier)
+		{
+			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputActorProperties>(Handle, InstancerChainName, ISMC);
+		}
+
 		// Update all modifiers
 		FUnrealObjectInputUtils::UpdateAllModifierChains(Handle);
 

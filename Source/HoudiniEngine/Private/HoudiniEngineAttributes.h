@@ -35,7 +35,7 @@
 class FHoudiniEngineIndexedStringMap;
 struct FHoudiniRawAttributeData;
 
-struct FHoudiniHapiAccessor
+struct HOUDINIENGINE_API FHoudiniHapiAccessor
 {
 	// Public data. Can be set directly or use convenience functions below.
 
@@ -67,17 +67,17 @@ struct FHoudiniHapiAccessor
 	// An optional tuple size can be specified.
 	// Note these templates are explicitly defined in the .cpp file.
 
-	template<typename DataType> bool GetAttributeData(HAPI_AttributeOwner Owner, TArray<DataType>& Results, int IndexStart =0, int IndexCount =-1);
-	template<typename DataType> bool GetAttributeData(HAPI_AttributeOwner Owner, DataType* Results, int IndexStart = 0, int IndexCount = -1);
-	template<typename DataType> bool GetAttributeData(HAPI_AttributeOwner Owner, int MaxTuples, TArray<DataType>& Results, int IndexStart = 0, int IndexCount = -1);
-	template<typename DataType> bool GetAttributeData(HAPI_AttributeOwner Owner, int MaxTuples, DataType* Results, int IndexStart = 0, int IndexCount = -1);
-	template<typename DataType> bool GetAttributeFirstValue(HAPI_AttributeOwner Owner, DataType & Result);
-	template<typename DataType> bool GetAttributeArrayData(HAPI_AttributeOwner Owner, TArray<DataType>& InStringArray, TArray<int>& SizesFixedArray, int IndexStart = 0, int IndexCount = -1);
+	template<typename DataType> HOUDINIENGINE_API bool GetAttributeData(HAPI_AttributeOwner Owner, TArray<DataType>& Results, int IndexStart =0, int IndexCount =-1);
+	template<typename DataType> HOUDINIENGINE_API bool GetAttributeData(HAPI_AttributeOwner Owner, DataType* Results, int IndexStart = 0, int IndexCount = -1);
+	template<typename DataType> HOUDINIENGINE_API bool GetAttributeData(HAPI_AttributeOwner Owner, int MaxTuples, TArray<DataType>& Results, int IndexStart = 0, int IndexCount = -1);
+	template<typename DataType> HOUDINIENGINE_API bool GetAttributeData(HAPI_AttributeOwner Owner, int MaxTuples, DataType* Results, int IndexStart = 0, int IndexCount = -1);
+	template<typename DataType> HOUDINIENGINE_API bool GetAttributeFirstValue(HAPI_AttributeOwner Owner, DataType & Result);
+	template<typename DataType> HOUDINIENGINE_API bool GetAttributeArrayData(HAPI_AttributeOwner Owner, TArray<DataType>& InStringArray, TArray<int>& SizesFixedArray, int IndexStart = 0, int IndexCount = -1);
 
-	template<typename DataType> bool GetAttributeArrayData(const HAPI_AttributeInfo& AttributeInfo, TArray<DataType>& InStringArray, TArray<int>& SizesFixedArray, int IndexStart = 0, int IndexCount = -1);
-	template<typename DataType> bool GetAttributeData(const HAPI_AttributeInfo& AttributeInfo, TArray<DataType>& Results, int IndexStart =0, int IndexCount =-1);
-	template<typename DataType> bool GetAttributeData(const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int IndexStart, int IndexCount);
-	template<typename DataType> bool GetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int IndexStart, int IndexCount) const;
+	template<typename DataType> HOUDINIENGINE_API bool GetAttributeArrayData(const HAPI_AttributeInfo& AttributeInfo, TArray<DataType>& InStringArray, TArray<int>& SizesFixedArray, int IndexStart = 0, int IndexCount = -1);
+	template<typename DataType> HOUDINIENGINE_API bool GetAttributeData(const HAPI_AttributeInfo& AttributeInfo, TArray<DataType>& Results, int IndexStart =0, int IndexCount =-1);
+	template<typename DataType> HOUDINIENGINE_API bool GetAttributeData(const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int IndexStart, int IndexCount);
+	template<typename DataType> HOUDINIENGINE_API bool GetAttributeDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, DataType* Results, int IndexStart, int IndexCount) const;
 
 	bool GetAttributeStrings(HAPI_AttributeOwner Owner, FHoudiniEngineIndexedStringMap& StringMap, int IndexStart = 0, int IndexCount = -1);
 	bool GetAttributeStrings(const HAPI_AttributeInfo& AttributeInfo, FHoudiniEngineIndexedStringMap& StringMap, int IndexStart = 0, int IndexCount = -1);

@@ -192,5 +192,5 @@ struct HOUDINIENGINE_API FUnrealMeshTranslator
 
 		// Gets the simple physical Material path for the mesh component overrides or,
 		// if not set, from the body setup
-		static FString GetSimplePhysicalMaterialPath(UMeshComponent const* MeshComponent, UBodySetup const* BodySetup);
+		static FString GetSimplePhysicalMaterialPath(UBodySetup const* BodySetup);
 };
