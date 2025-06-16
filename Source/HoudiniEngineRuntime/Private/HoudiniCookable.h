@@ -728,7 +728,8 @@ public:
 	virtual void SetProxySupported(bool bSupport) { bHasProxy = bSupport; };
 
 	// Turn On/Off Notifications & Unreal UI
-	void SetSlateNotifications(bool bOnOff) { bDoSlateNotifications = bOnOff;  }
+	void SetDoSlateNotifications(bool bOnOff) { bDoSlateNotifications = bOnOff;  }
+	bool GetDoSlateNotifications() const { return bDoSlateNotifications; }
 	void SetAllowUpdateEditorProperties(bool bOnOff) { bAllowUpdateEditorProperties = bOnOff;  }
 
 	void SetAutoCook(bool bOnOff) { bAutoCook = bOnOff;  }

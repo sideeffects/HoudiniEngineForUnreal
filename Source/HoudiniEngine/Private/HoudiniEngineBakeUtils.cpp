@@ -368,6 +368,7 @@ FHoudiniEngineBakeUtils::BakeCookableToActors(
 	if (GEditor && !InCookable->GetIsPCG() && NewActors.Num() > 0)
 		GEditor->NoteSelectionChange();
 
+	if (InCookable->GetDoSlateNotifications())
 	{
 		const FString FinishedTemplate = TEXT("Baking finished. Created {0} packages. Updated {1} packages.");
 		FString Msg = FString::Format(*FinishedTemplate, { BakedObjectData.BakeStats.NumPackagesCreated, BakedObjectData.BakeStats.NumPackagesUpdated } );
@@ -489,10 +490,14 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 	const FString& InFallbackWorldOutlinerFolder)
 {
 	const int32 NumOutputs = InOutputs.Num();
-	
+
 	const FString MsgTemplate = TEXT("Baking output: {0}/{1}.");
 	FString Msg = FString::Format(*MsgTemplate, { 0, NumOutputs });
-	FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(Msg));
+
+	if(InCookable->GetDoSlateNotifications())
+	{
+		FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(Msg));
+	}
 
 	RemoveBakedLevelInstances(InBakeState.GetOldBakedOutputs(), BakeSettings);
 
@@ -528,8 +533,11 @@ FHoudiniEngineBakeUtils::BakeHoudiniOutputsToActors(
 			continue;
 		}
 
-		Msg = FString::Format(*MsgTemplate, { NumProcessedOutputs + 1, NumOutputs });
-		FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Msg));
+		if(InCookable->GetDoSlateNotifications())
+		{
+			Msg = FString::Format(*MsgTemplate, { NumProcessedOutputs + 1, NumOutputs });
+			FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Msg));
+		}
 
 		const EHoudiniOutputType OutputType = Output->GetType();
 		// Check if we should skip this output type
@@ -4527,6 +4535,7 @@ FHoudiniEngineBakeUtils::BakeBlueprints(UHoudiniCookable* InCookable, const FHou
 		GEditor->SyncBrowserToObjects(Assets);
 	}
 
+	if (InCookable->GetDoSlateNotifications())
 	{
 		const FString FinishedTemplate = TEXT("Baking finished. Created {0} packages. Updated {1} packages.");
 		FString Msg = FString::Format(*FinishedTemplate, { BakedObjectData.BakeStats.NumPackagesCreated, BakedObjectData.BakeStats.NumPackagesUpdated } );
@@ -7640,6 +7649,9 @@ FHoudiniEngineBakeUtils::BakePDGTOPNodeOutputsKeepActors(
 	if (GEditor && OutBakedActors.Num() > 0)
 		GEditor->NoteSelectionChange();
 
+	UHoudiniCookable* Cookable = Cast<UHoudiniCookable>(InPDGAssetLink->GetOuter());
+	bool bDoNotifications = Cookable ? Cookable->GetDoSlateNotifications() : true;
+	if (bDoNotifications)
 	{
 		const FString FinishedTemplate = TEXT("Baking finished. Created {0} packages. Updated {1} packages.");
 		FString Msg = FString::Format(*FinishedTemplate, { BakedObjectData.BakeStats.NumPackagesCreated, BakedObjectData.BakeStats.NumPackagesUpdated } );
@@ -7740,6 +7752,10 @@ bool FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(
 	if (GEditor && BakedActors.Num() > 0)
 		GEditor->NoteSelectionChange();
 
+	UHoudiniCookable* Cookable = Cast<UHoudiniCookable>(InPDGAssetLink->GetOuter());
+	bool bDoNotifications = Cookable ? Cookable->GetDoSlateNotifications() : true;
+
+	if (bDoNotifications)
 	{
 		const FString FinishedTemplate = TEXT("Baking finished. Created {0} packages. Updated {1} packages.");
 		FString Msg = FString::Format(*FinishedTemplate, { BakedObjectData.BakeStats.NumPackagesCreated, BakedObjectData.BakeStats.NumPackagesUpdated });
@@ -8143,7 +8159,12 @@ FHoudiniEngineBakeUtils::BakePDGTOPNodeBlueprints(
 }
 
 bool
-FHoudiniEngineBakeUtils::BakePDGTOPNodeBlueprints(UHoudiniPDGAssetLink* InPDGAssetLink, UTOPNode* InTOPNode, bool bInIsAutoBake, const EPDGBakePackageReplaceModeOption InPDGBakePackageReplaceMode, bool bInRecenterBakedActors)
+FHoudiniEngineBakeUtils::BakePDGTOPNodeBlueprints(
+	UHoudiniPDGAssetLink* InPDGAssetLink, 
+	UTOPNode* InTOPNode, 
+	bool bInIsAutoBake, 
+	const EPDGBakePackageReplaceModeOption InPDGBakePackageReplaceMode, 
+	bool bInRecenterBakedActors)
 {
 	FHoudiniBakedObjectData BakedObjectData;
 	
@@ -8180,6 +8201,10 @@ FHoudiniEngineBakeUtils::BakePDGTOPNodeBlueprints(UHoudiniPDGAssetLink* InPDGAss
 		GEditor->SyncBrowserToObjects(Assets);
 	}
 
+	UHoudiniCookable* Cookable = Cast<UHoudiniCookable>(InPDGAssetLink->GetOuter());
+	bool bDoNotifications = Cookable ? Cookable->GetDoSlateNotifications() : true;
+
+	if (bDoNotifications)
 	{
 		const FString FinishedTemplate = TEXT("Baking finished. Created {0} packages. Updated {1} packages.");
 		FString Msg = FString::Format(*FinishedTemplate, { BakedObjectData.BakeStats.NumPackagesCreated, BakedObjectData.BakeStats.NumPackagesUpdated } );
@@ -8310,6 +8335,10 @@ FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(
 		GEditor->SyncBrowserToObjects(Assets);
 	}
 
+	UHoudiniCookable* Cookable = Cast<UHoudiniCookable>(InPDGAssetLink->GetOuter());
+	bool bDoNotifications = Cookable ? Cookable->GetDoSlateNotifications() : true;
+
+	if (bDoNotifications)
 	{
 		const FString FinishedTemplate = TEXT("Baking finished. Created {0} packages. Updated {1} packages.");
 		FString Msg = FString::Format(*FinishedTemplate, { BakedObjectData.BakeStats.NumPackagesCreated, BakedObjectData.BakeStats.NumPackagesUpdated } );

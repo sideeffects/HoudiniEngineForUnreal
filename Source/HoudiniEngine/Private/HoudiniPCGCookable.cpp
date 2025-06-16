@@ -125,7 +125,7 @@ UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPCGSett
 			this->OnCookingComplete(bSuccess);
 		});
 
-	Cookable->SetSlateNotifications(false);
+	Cookable->SetDoSlateNotifications(false);
 	Cookable->SetAllowUpdateEditorProperties(false);
 	Cookable->SetParameterSupported(true);
 	Cookable->SetInputSupported(true);
