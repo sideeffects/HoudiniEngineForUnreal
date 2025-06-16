@@ -1347,7 +1347,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	    // If not temporary set the ObjectName from its package. (Also use this as a fallback default)
 	    FString ObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(StaticMesh);
 	    UStaticMesh* PreviousStaticMesh = Cast<UStaticMesh>(BakedOutputObject.GetBakedObjectIfValid());
-	    UStaticMesh* BakedStaticMesh = nullptr;
+	    UStaticMesh* MeshForInstancing = nullptr;
 
 	    // Construct PackageParams for the instancer itself. When baking to actor we technically won't create a stand-alone
 	    // disk package for the instancer, but certain attributes (such as level path) use tokens populated from the package params.
@@ -1363,7 +1363,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 	    if (!bIsTemporary)
 	    {
 		    // We can reuse the mesh
-		    BakedStaticMesh = StaticMesh;
+		    MeshForInstancing = StaticMesh;
 	    }
 	    else
 	    {
@@ -1393,11 +1393,11 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		    }
 
 		    // This will bake/duplicate the mesh if temporary, or return the input one if it is not
-		    BakedStaticMesh = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
+		    MeshForInstancing = FHoudiniEngineBakeUtils::DuplicateStaticMeshAndCreatePackageIfNeeded(
 			    StaticMesh, PreviousStaticMesh, MeshPackageParams, InAllOutputs, InBakedActors, InTempCookFolder.Path,
 				BakedObjectData, InOutAlreadyBakedStaticMeshMap, InOutAlreadyBakedMaterialsMap);
 
-			MeshBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
+			MeshBakedOutputObject.BakedObject = FSoftObjectPath(MeshForInstancing).ToString();
 	    	InBakeState.SetNewBakedOutputObject(MeshOutputIndex, MeshIdentifier, MeshBakedOutputObject);
 	    }
 
@@ -1418,9 +1418,6 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 				DuplicatedISMCOverrideMaterials.Add(MaterialInterface, DuplicatedMaterial);
 			}
 		}
-
-	    // Update the baked object
-	    BakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
 
 	    // Instancer name adds the split identifier (INSTANCERNUM_VARIATIONNUM)
 	    FString InstancerName = ObjectName + "_instancer";
@@ -1497,7 +1494,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		    // (via unreal_bake_actor and unreal_split_attr)
 		    // Get the StaticMesh ActorFactory
 		    TSubclassOf<AActor> BakeActorClass = nullptr;
-		    UActorFactory* ActorFactory = GetActorFactory(NAME_None, BakeSettings, BakeActorClass, UActorFactoryStaticMesh::StaticClass(), BakedStaticMesh);
+		    UActorFactory* ActorFactory = GetActorFactory(NAME_None, BakeSettings, BakeActorClass, UActorFactoryStaticMesh::StaticClass(), MeshForInstancing);
 		    if (!ActorFactory)
 			    return false;
 
@@ -1514,7 +1511,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 			    if (!FoundActor)
 			    {
 				    FoundActor = SpawnBakeActor(
-						ActorFactory, BakedStaticMesh, DesiredLevel, BakeSettings,
+						ActorFactory, MeshForInstancing, DesiredLevel, BakeSettings,
 						InstanceTransform, InCookable->GetComponent(), BakeActorClass);
 
 				    if (!IsValid(FoundActor))
@@ -1551,7 +1548,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 				    WorldOutlinerFolderPath,
 				    InOutputIndex,
 				    InOutputObjectIdentifier,
-				    BakedStaticMesh,
+				    MeshForInstancing,
 				    StaticMesh,
 				    SMActor->GetStaticMeshComponent(),
 				    BakeFolderPath,
@@ -1663,7 +1660,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		    BakedOutputObject.BakedComponent = FSoftObjectPath(NewISMC).ToString();
 
 		    NewISMC->RegisterComponent();
-		    NewISMC->SetStaticMesh(BakedStaticMesh);
+		    NewISMC->SetStaticMesh(MeshForInstancing);
 		    FoundActor->AddInstanceComponent(NewISMC);
 
 		    if (DuplicatedISMCOverrideMaterials.Num() > 0)
@@ -1707,7 +1704,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 			    WorldOutlinerFolderPath,
 			    InOutputIndex,
 			    InOutputObjectIdentifier,
-			    BakedStaticMesh,
+			    MeshForInstancing,
 			    StaticMesh,
 			    NewISMC,
 			    BakeFolderPath,
