@@ -83,7 +83,8 @@ public class HoudiniEngineEditor : ModuleRules
                 "FoliageEdit",
                 "Chaos",
                 "GeometryCollectionEngine",
-                "MaterialEditor"
+                "MaterialEditor",
+                "ToolMenus"
             }
         );
 
@@ -122,7 +123,7 @@ public class HoudiniEngineEditor : ModuleRules
                 "TraceAnalysis",
                 "PhysicsCore",
                 "KismetWidgets",
-                 "AdvancedPreviewScene"
+                "AdvancedPreviewScene"
             }
         );
         
