@@ -111,6 +111,11 @@ public:
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
 		const EHoudiniDetailsFlags& DetailsFlags);
 
+	// RESET PARAMETERS - used by PCG, this is like GENERATE, but no Rebuild/Recook buttons.
+	static void CreateResetParametersOnlyWidgets(
+		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+
 	// BAKE
 	static void CreateBakeWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
@@ -226,6 +231,10 @@ private:
 		const bool& bIsBakePath,
 		const TWeakObjectPtr<UHoudiniCookable>& InMainHC,
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+
+
+	static void CreateResetParametersButton(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, TSharedRef<SHorizontalBox> ButtonHorizontalBox);
+
 };
 
 

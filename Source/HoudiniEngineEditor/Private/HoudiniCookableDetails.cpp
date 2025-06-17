@@ -311,9 +311,15 @@ FHoudiniCookableDetails::CreateHoudiniEngineDetails(
 	// Houdini Engine Session Status
 	HoudiniEngineDetails->AddSessionStatusRow(HouEngineCategory);
 
-	// Create Generate Category
-	if (DetailsFlags.bGenerateBar)
+	// Create Generate Category. If not, just so "Reset Parameters" button.
+	if(DetailsFlags.bGenerateBar)
+	{
 		HoudiniEngineDetails->CreateGenerateWidgets(HouEngineCategory, InCookables, DetailsFlags);
+	}
+	else
+	{
+		HoudiniEngineDetails->CreateResetParametersOnlyWidgets(HouEngineCategory, InCookables);
+	}
 
 	// Create Bake Category
 	HoudiniEngineDetails->CreateBakeWidgets(HouEngineCategory, InCookables, DetailsFlags);

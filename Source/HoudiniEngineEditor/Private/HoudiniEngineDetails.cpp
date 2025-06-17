@@ -97,15 +97,15 @@
 #define HOUDINI_ENGINE_UI_SECTION_BAKE													2
 #define HOUDINI_ENGINE_UI_SECTION_ASSET_OPTIONS											3
 #define HOUDINI_ENGINE_UI_SECTION_HELP_AND_DEBUG										4
-
+#define HOUDINI_ENGINE_UI_SECTION_PARAMETER_RESET										5
 
 #define HOUDINI_ENGINE_UI_BUTTON_WIDTH											   150.0f
 
-#define HOUDINI_ENGINE_UI_SECTION_GENERATE_HEADER_TEXT							   "Generate"
-#define HOUDINI_ENGINE_UI_SECTION_BAKE_HEADER_TEXT							       "Bake"
-#define HOUDINI_ENGINE_UI_SECTION_ASSET_OPTIONS_HEADER_TEXT						   "Asset Options"
-#define HOUDINI_ENGINE_UI_SECTION_HELP_AND_DEBUG_HEADER_TEXT					   "Help and Debug"
-
+#define HOUDINI_ENGINE_UI_SECTION_GENERATE_HEADER_TEXT								"Generate"
+#define HOUDINI_ENGINE_UI_SECTION_BAKE_HEADER_TEXT									"Bake"
+#define HOUDINI_ENGINE_UI_SECTION_ASSET_OPTIONS_HEADER_TEXT							"Asset Options"
+#define HOUDINI_ENGINE_UI_SECTION_HELP_AND_DEBUG_HEADER_TEXT						"Help and Debug"
+#define HOUDINI_ENGINE_UI_SECTION_PARAMETER_RESET_TEXT								"Reset Parameters"
 
 EHoudiniDetailsFlags EHoudiniDetailsFlags::Defaults;
 
@@ -375,6 +375,157 @@ FHoudiniEngineDetails::CreateHoudiniEngineActionWidget(
 	Row.WholeRowWidget.Widget = Box;
 }
 
+bool
+ShouldEnableParametersButton(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs)
+{
+	for(auto& NextHC : InHCs)
+	{
+		if(!IsValidWeakPointer(NextHC))
+			continue;
+
+		// Reset parameters to default values?
+		for(int32 n = 0; n < NextHC->GetNumParameters(); ++n)
+		{
+			UHoudiniParameter* NextParm = NextHC->GetParameterAt(n);
+			if(IsValid(NextParm) && !NextParm->IsDefault())
+				return true;
+		}
+	}
+
+	return false;
+}
+
+void ResetParameters(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs)
+{
+	for(auto& NextHC : InHCs)
+	{
+		if(!IsValidWeakPointer(NextHC))
+			continue;
+
+		// Reset parameters to default values?
+		for(int32 n = 0; n < NextHC->GetNumParameters(); ++n)
+		{
+			UHoudiniParameter* NextParm = NextHC->GetParameterAt(n);
+			if(IsValid(NextParm) && !NextParm->IsDefault())
+			{
+				NextParm->RevertToDefault();
+			}
+		}
+	}
+}
+
+void FHoudiniEngineDetails::CreateResetParametersButton(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, TSharedRef<SHorizontalBox> ButtonHorizontalBox)
+{
+	auto ShouldEnableResetParametersButtonLambda = [InHCs]()
+		{
+			return ShouldEnableParametersButton(InHCs);
+		};
+
+	auto OnResetParametersClickedLambda = [InHCs]()
+		{
+			ResetParameters(InHCs);
+			return FReply::Handled();
+		};
+
+	TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIResetParametersIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIResetParametersIconBrush();
+
+	TSharedPtr<SButton> ResetParametersButton;
+	TSharedPtr<SHorizontalBox> ResetParametersButtonHorizontalBox;
+	ButtonHorizontalBox->AddSlot()
+		.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+		//.Padding(2.0f, 0.0f, 0.0f, 2.0f)
+		[
+			SNew(SBox)
+				.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+				[
+					SAssignNew(ResetParametersButton, SButton)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.ToolTipText(LOCTEXT("HoudiniAssetDetailsResetParametersAssetButton", "Reset the selected Houdini Asset's parameters to their default values."))
+						//.Text(FText::FromString("Reset Parameters"))
+						.IsEnabled_Lambda(ShouldEnableResetParametersButtonLambda)
+						.Visibility(EVisibility::Visible)
+						.OnClicked_Lambda(OnResetParametersClickedLambda)
+						.Content()
+						[
+							SNew(SHorizontalBox)
+								+ SHorizontalBox::Slot()
+								.HAlign(HAlign_Center)
+								[
+									SAssignNew(ResetParametersButtonHorizontalBox, SHorizontalBox)
+								]
+						]
+				]
+		];
+
+	if(HoudiniEngineUIResetParametersIconBrush.IsValid())
+	{
+		TSharedPtr<SImage> ResetParametersImage;
+		ResetParametersButtonHorizontalBox->AddSlot()
+			.MaxWidth(16.0f)
+			//.Padding(0.0f, 0.0f, 3.0f, 0.0f)
+			[
+				SNew(SBox)
+					.WidthOverride(16.0f)
+					.HeightOverride(16.0f)
+					[
+						SAssignNew(ResetParametersImage, SImage)
+							//.ColorAndOpacity(FSlateColor::UseForeground())
+					]
+			];
+
+		ResetParametersImage->SetImage(
+			TAttribute<const FSlateBrush*>::Create(
+				TAttribute<const FSlateBrush*>::FGetter::CreateLambda([HoudiniEngineUIResetParametersIconBrush]()
+					{
+						return HoudiniEngineUIResetParametersIconBrush.Get();
+					})
+			)
+		);
+	}
+
+	ResetParametersButtonHorizontalBox->AddSlot()
+		.Padding(5.0, 0.0, 0.0, 0.0)
+		//.FillWidth(4.2f)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+				//.MinDesiredWidth(160.f)
+				.Text(FText::FromString("Reset Parameters"))
+		];
+}
+
+void FHoudiniEngineDetails::CreateResetParametersOnlyWidgets(
+	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+	const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs)
+{
+	if(InHCs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniCookable>& MainHC = InHCs[0];
+	if(!IsValidWeakPointer(MainHC))
+		return;
+
+	FHoudiniEngineDetails::AddHeaderRowForCookable(HoudiniEngineCategoryBuilder, MainHC, HOUDINI_ENGINE_UI_SECTION_PARAMETER_RESET);
+
+	// Button Row (draw only if expanded)
+	if(!MainHC->bGenerateMenuExpanded)
+		return;
+
+	FDetailWidgetRow& ButtonRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
+	TSharedRef<SHorizontalBox> ButtonHorizontalBox = SNew(SHorizontalBox);
+	ButtonRow.WholeRowWidget.Widget = ButtonHorizontalBox;
+	ButtonRow.IsEnabled(true);
+
+	//----------------------------------------------------------------
+	// Reset Parameters button
+	//----------------------------------------------------------------
+
+	CreateResetParametersButton(InHCs, ButtonHorizontalBox);
+}
+
 void
 FHoudiniEngineDetails::CreateGenerateWidgets(
 	IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
@@ -403,54 +554,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 	auto OnRecookClickedLambda = [InHCs]()
 	{
-		for (auto& NextHC : InHCs)
-		{
-			if (!IsValidWeakPointer(NextHC))
-				continue;
-
-			NextHC->MarkAsNeedCook();
-		}
-
-		return FReply::Handled();
-	};
-
-	auto ShouldEnableResetParametersButtonLambda = [InHCs]()
-	{
-		for (auto& NextHC : InHCs)
-		{
-			if (!IsValidWeakPointer(NextHC))
-				continue;
-
-			// Reset parameters to default values?
-			for (int32 n = 0; n < NextHC->GetNumParameters(); ++n)
-			{
-				UHoudiniParameter* NextParm = NextHC->GetParameterAt(n);
-				if (IsValid(NextParm) && !NextParm->IsDefault())
-					return true;
-			}
-		}
-
-		return false;
-	};
-
-	auto OnResetParametersClickedLambda = [InHCs]()
-	{
-		for (auto& NextHC : InHCs)
-		{
-			if (!IsValidWeakPointer(NextHC))
-				continue;
-
-			// Reset parameters to default values?
-			for (int32 n = 0; n < NextHC->GetNumParameters(); ++n)
-			{
-				UHoudiniParameter* NextParm = NextHC->GetParameterAt(n);
-				if (IsValid(NextParm) && !NextParm->IsDefault())
-				{
-					NextParm->RevertToDefault();
-				}
-			}
-		}
-
+		ResetParameters(InHCs);
 		return FReply::Handled();
 	};
 
@@ -490,7 +594,6 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 	TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIRebuildIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIRebuildIconBrush();
 	TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIRecookIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIRecookIconBrush();
-	TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIResetParametersIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIResetParametersIconBrush();
 
 	FDetailWidgetRow& ButtonRow = HoudiniEngineCategoryBuilder.AddCustomRow(FText::GetEmpty());
 	TSharedRef<SHorizontalBox> ButtonHorizontalBox = SNew(SHorizontalBox);
@@ -638,80 +741,13 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 	ButtonRow.WholeRowWidget.Widget = ButtonHorizontalBox;
 	ButtonRow.IsEnabled(true);
 
-
-
 	//----------------------------------------------------------------
 	// Reset Parameters button
 	//----------------------------------------------------------------
 	bool bParameterSupported = MainHC->IsParameterSupported();
 	if (bParameterSupported)
 	{
-		TSharedPtr<SButton> ResetParametersButton;
-		TSharedPtr<SHorizontalBox> ResetParametersButtonHorizontalBox;
-		ButtonHorizontalBox->AddSlot()
-		.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
-		//.Padding(2.0f, 0.0f, 0.0f, 2.0f)
-		[
-			SNew(SBox)
-			.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
-			[
-				SAssignNew(ResetParametersButton, SButton)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				.ToolTipText(LOCTEXT("HoudiniAssetDetailsResetParametersAssetButton", "Reset the selected Houdini Asset's parameters to their default values."))
-				//.Text(FText::FromString("Reset Parameters"))
-				.IsEnabled_Lambda(ShouldEnableResetParametersButtonLambda)
-				.Visibility(EVisibility::Visible)
-				.OnClicked_Lambda(OnResetParametersClickedLambda)
-				.Content()
-				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Center)
-					[
-						SAssignNew(ResetParametersButtonHorizontalBox, SHorizontalBox)
-					]
-				]
-			]
-		];
-
-		if (HoudiniEngineUIResetParametersIconBrush.IsValid())
-		{
-			TSharedPtr<SImage> ResetParametersImage;
-			ResetParametersButtonHorizontalBox->AddSlot()
-			.MaxWidth(16.0f)
-			//.Padding(0.0f, 0.0f, 3.0f, 0.0f)
-			[
-				SNew(SBox)
-				.WidthOverride(16.0f)
-				.HeightOverride(16.0f)
-				[
-					SAssignNew(ResetParametersImage, SImage)
-					//.ColorAndOpacity(FSlateColor::UseForeground())
-				]
-			];
-
-			ResetParametersImage->SetImage(
-				TAttribute<const FSlateBrush*>::Create(
-					TAttribute<const FSlateBrush*>::FGetter::CreateLambda([HoudiniEngineUIResetParametersIconBrush]() 
-					{
-						return HoudiniEngineUIResetParametersIconBrush.Get();
-					})
-				)
-			);
-		}
-
-		ResetParametersButtonHorizontalBox->AddSlot()
-		.Padding(5.0, 0.0, 0.0, 0.0)
-		//.FillWidth(4.2f)
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		.AutoWidth()
-		[
-			SNew(STextBlock)
-			//.MinDesiredWidth(160.f)
-			.Text(FText::FromString("Reset Parameters"))
-		];
+		CreateResetParametersButton(InHCs, ButtonHorizontalBox);
 	}
 
 	if(Flags.bTemporaryCookFolderRow)
@@ -2855,20 +2891,28 @@ FHoudiniEngineDetails::AddHeaderRowForCookable(
 
 		switch (MenuSection)
 		{
-			case HOUDINI_ENGINE_UI_SECTION_GENERATE:
-				HoudiniCookable->bGenerateMenuExpanded = !HoudiniCookable->bGenerateMenuExpanded;
-				break;
+		case HOUDINI_ENGINE_UI_SECTION_GENERATE:
+			HoudiniCookable->bGenerateMenuExpanded = !HoudiniCookable->bGenerateMenuExpanded;
+			break;
 
-			case HOUDINI_ENGINE_UI_SECTION_BAKE:
-				HoudiniCookable->bBakeMenuExpanded = !HoudiniCookable->bBakeMenuExpanded;
-				break;
+		case HOUDINI_ENGINE_UI_SECTION_PARAMETER_RESET:
+			// Note, just use Generate flag, since its a simplified version of Generate.
+			HoudiniCookable->bGenerateMenuExpanded = !HoudiniCookable->bGenerateMenuExpanded;
+			break;
 
-			case HOUDINI_ENGINE_UI_SECTION_ASSET_OPTIONS:
-				HoudiniCookable->bAssetOptionMenuExpanded = !HoudiniCookable->bAssetOptionMenuExpanded;
-				break;
+		case HOUDINI_ENGINE_UI_SECTION_BAKE:
+			HoudiniCookable->bBakeMenuExpanded = !HoudiniCookable->bBakeMenuExpanded;
+			break;
 
-			case HOUDINI_ENGINE_UI_SECTION_HELP_AND_DEBUG:
-				HoudiniCookable->bHelpAndDebugMenuExpanded = !HoudiniCookable->bHelpAndDebugMenuExpanded;
+		case HOUDINI_ENGINE_UI_SECTION_ASSET_OPTIONS:
+			HoudiniCookable->bAssetOptionMenuExpanded = !HoudiniCookable->bAssetOptionMenuExpanded;
+			break;
+
+		case HOUDINI_ENGINE_UI_SECTION_HELP_AND_DEBUG:
+			HoudiniCookable->bHelpAndDebugMenuExpanded = !HoudiniCookable->bHelpAndDebugMenuExpanded;
+			break;
+		default:
+			break;
 		}
 
 		FHoudiniEngineUtils::UpdateEditorProperties(true);
@@ -2901,6 +2945,11 @@ FHoudiniEngineDetails::AddHeaderRowForCookable(
 
 		case HOUDINI_ENGINE_UI_SECTION_HELP_AND_DEBUG:
 			return FText::FromString(HOUDINI_ENGINE_UI_SECTION_HELP_AND_DEBUG_HEADER_TEXT);
+
+		case HOUDINI_ENGINE_UI_SECTION_PARAMETER_RESET:
+			return FText::FromString(HOUDINI_ENGINE_UI_SECTION_PARAMETER_RESET_TEXT);
+
+		default:
 			break;
 		}
 		return FText::FromString("");
