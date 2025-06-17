@@ -29,9 +29,6 @@
 #include "HoudiniAssetEditorViewportClient.h"
 #include "HoudiniAssetEditor.h"
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
-#include "AdvancedPreviewSceneMenus.h"
-#endif
 #include "AssetEditorModeManager.h"
 #include "Components/PostProcessComponent.h"
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewScene.h"
@@ -39,8 +36,14 @@
 #include "Editor/LevelEditor/Private/SLevelViewportToolBar.h"
 #include "PreviewProfileController.h"
 #include "ToolMenus.h"
-#include "ViewportToolbar/UnrealEdViewportToolbar.h"
 #include "Widgets/SViewport.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	#include "ViewportToolbar/UnrealEdViewportToolbar.h"
+#endif
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+	#include "AdvancedPreviewSceneMenus.h"
+#endif
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
