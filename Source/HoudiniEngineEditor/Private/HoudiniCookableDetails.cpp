@@ -426,7 +426,19 @@ FHoudiniCookableDetails::CreateParameterDetails(
 	else if (bIsEduLicense)
 		FHoudiniEngineDetails::AddEducationLicenseRow(HouParameterCategory);
 
-	// Iterate through the component's parameters
+	// Iterate through the component's parameters. JoinedParams is used to build an array of
+	// horizontally joined parameters. For example, with two joined parameters JoinedParams
+	// will look like { { cookable.param1}, { cookable.param2 } } and then call CreateWidget().
+	//
+	// If the parameters are not joined, CreateWidget() will be called twice with two arrays
+	//
+	//		{ { cookable.param1} } and { {cookable.param2 } }
+	//
+	// In addition, each linked parameter will be stored in the inner array. eg.
+	//
+	//		{ { cookable.param1, linked.param1 }, { cookable.param2, linked.param2 } }
+	//
+
 	TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>> JoinedParams;	
 	for (int32 ParamIdx = 0; ParamIdx < MainCookable->GetNumParameters(); ParamIdx++)
 	{
@@ -440,7 +452,9 @@ FHoudiniCookableDetails::CreateParameterDetails(
 		auto& EditedParams = JoinedParams.Last();
 		EditedParams.Add(CurrentParam);
 
-		// Add the corresponding params in the other HAC
+		// Add the corresponding params in the other HAC. Note that the parameters must be in the same
+		// order for this to work.
+
 		for (int LinkedIdx = 1; LinkedIdx < InCookables.Num(); LinkedIdx++)
 		{
 			UHoudiniParameter* LinkedParam = InCookables[LinkedIdx]->GetParameterAt(ParamIdx);
@@ -458,13 +472,14 @@ FHoudiniCookableDetails::CreateParameterDetails(
 			EditedParams.Add(LinkedParam);
 		}
 
-		if (ParameterDetails->ShouldJoinNext(*CurrentParam))
+		if (!ParameterDetails->ShouldJoinNext(*CurrentParam))
 		{
-			continue;
+			// If we are not joining the parameter to the next parameter, create the widget now
+			// using the contents of JointedParams and then reset the array for the next loop.
+			// Note that the last parameter never has the "Joined to Next" flag set.
+			ParameterDetails->CreateWidget(HouParameterCategory, JoinedParams);
+			JoinedParams.Empty();
 		}
-
-		ParameterDetails->CreateWidget(HouParameterCategory, JoinedParams);
-		JoinedParams.Empty();
 	}
 }
 

@@ -156,57 +156,73 @@ class FHoudiniParameterDetails : public TSharedFromThis<FHoudiniParameterDetails
 		void CreateWidgetInt(
 			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		void CreateWidgetFloat(
 			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		void CreateWidgetString(
 			IDetailCategoryBuilder& HouParameterCategory,
 			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		void CreateWidgetColor(
 			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		void CreateWidgetButton(
 			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		void CreateWidgetButtonStrip(
 			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		void CreateWidgetLabel(
 			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		void CreateWidgetToggle(
 			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		void CreateWidgetFile(
 			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		void CreateWidgetChoice(
 			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		void CreateWidgetSeparator(
 			const TSharedRef<SHoudiniLabelledParameter> LabelledParameter,
 			const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
+
 		void CreateWidgetFolderList(
 			IDetailCategoryBuilder& HouParameterCategory,
 			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 			TArray<FDetailWidgetRow*>& OutRows);
+
 		void CreateWidgetFolder(
 			IDetailCategoryBuilder& HouParameterCategory,
 			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 			TArray<FDetailWidgetRow*>& OutRows);
+
 		void CreateWidgetMultiParm(
 			IDetailCategoryBuilder& HouParameterCategory,
 			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 			TArray<FDetailWidgetRow*>& OutRows);
+
 		void CreateWidgetOperatorPath(
 			IDetailCategoryBuilder& HouParameterCategory,
 			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 			TArray<FDetailWidgetRow*>& OutRows);
+
 		void CreateWidgetFloatRamp(
 			IDetailCategoryBuilder& HouParameterCategory,
 			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
 			TArray<FDetailWidgetRow*>& OutRows);
+
 		void CreateWidgetColorRamp(
 			IDetailCategoryBuilder& HouParameterCategory,
 			const TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>>& InJoinedParams,
