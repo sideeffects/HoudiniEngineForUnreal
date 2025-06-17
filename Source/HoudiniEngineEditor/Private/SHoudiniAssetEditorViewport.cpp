@@ -233,7 +233,7 @@ SHoudiniAssetEditorViewport::BuildViewportToolbar()
 	}
 
 	return UToolMenus::Get()->GenerateWidget(ViewportToolbarName, ViewportToolbarContext);
-#else
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 5
 	// Register the viewport toolbar if another viewport hasn't already (it's shared).
 	const FName ViewportToolbarName = "HoudiniAssetEditor.ViewportToolbar";
 
@@ -332,24 +332,12 @@ SHoudiniAssetEditorViewport::BuildViewportToolbar()
 			ViewportToolbarContext.AddObject(ContextObject);
 		}
 	}
-	/*
-	// clang-format off
-	const TSharedRef<SWidget> NewViewportToolbar = SNew(SBox)
-	.Visibility_Lambda(
-		[this]() -> EVisibility
-		{
-			return  UE::UnrealEd::ShowNewViewportToolbars() ? EVisibility::Visible: EVisibility::Collapsed;
-		}
-	)
-	[
-		UToolMenus::Get()->GenerateWidget(ViewportToolbarName, ViewportToolbarContext)
-	];
-	// clang-format on
-
-	return NewViewportToolbar;
-	*/
 
 	return UToolMenus::Get()->GenerateWidget(ViewportToolbarName, ViewportToolbarContext);
+
+#else
+	TSharedRef<SWidget> ViewportToolbar = SNew(SBox);
+	return ViewportToolbar;
 #endif
 }
 
