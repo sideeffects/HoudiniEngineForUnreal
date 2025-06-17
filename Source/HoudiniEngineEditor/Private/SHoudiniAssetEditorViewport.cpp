@@ -152,6 +152,7 @@ SHoudiniAssetEditorViewport::GetTitleText() const
 }
 
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 TSharedPtr<SWidget> 
 SHoudiniAssetEditorViewport::BuildViewportToolbar()
 {
@@ -233,7 +234,7 @@ SHoudiniAssetEditorViewport::BuildViewportToolbar()
 	}
 
 	return UToolMenus::Get()->GenerateWidget(ViewportToolbarName, ViewportToolbarContext);
-#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 5
+#else
 	// Register the viewport toolbar if another viewport hasn't already (it's shared).
 	const FName ViewportToolbarName = "HoudiniAssetEditor.ViewportToolbar";
 
@@ -334,12 +335,9 @@ SHoudiniAssetEditorViewport::BuildViewportToolbar()
 	}
 
 	return UToolMenus::Get()->GenerateWidget(ViewportToolbarName, ViewportToolbarContext);
-
-#else
-	TSharedRef<SWidget> ViewportToolbar = SNew(SBox);
-	return ViewportToolbar;
 #endif
 }
+#endif
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 TSharedPtr<IPreviewProfileController> 
