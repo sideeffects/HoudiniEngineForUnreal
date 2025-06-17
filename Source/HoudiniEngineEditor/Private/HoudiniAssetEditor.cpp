@@ -43,7 +43,6 @@
 #include "Framework/Commands/UICommandList.h"
 #include "PropertyEditorDelegates.h"
 #include "SCommonEditorViewportToolbarBase.h"
-//#include "UObject/Object.h"
 #include "UObject/UObjectGlobals.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -59,11 +58,13 @@ struct FHoudiniAssetEditorTabs
 	static const FName DetailsID;
 	static const FName ViewportID;
 	static const FName NodeSyncID;
+	static const FName PreviewSceneSettingsID;
 };
 
 const FName FHoudiniAssetEditorTabs::DetailsID(TEXT("Details"));
 const FName FHoudiniAssetEditorTabs::ViewportID(TEXT("Viewport"));
 const FName FHoudiniAssetEditorTabs::NodeSyncID(TEXT("NodeSync"));
+const FName FHoudiniAssetEditorTabs::PreviewSceneSettingsID(TEXT("PreviewSceneSettings"));
 
 //-----------------------------------------------------------------------------
 // SHoudiniAssetEditorDetailsPanel
@@ -102,13 +103,16 @@ SHoudiniAssetEditorDetailsPanel::Construct(
 		]
 	];
 
-	// TODO: Offer modes for HDA editor??
-	TAttribute<EHoudiniAssetEditorMode::Type> HoudiniAssetEditorMode = TAttribute<EHoudiniAssetEditorMode::Type>::Create(
-		TAttribute<EHoudiniAssetEditorMode::Type>::FGetter::CreateSP(InHoudiniAssetEditor.ToSharedRef(), &FHoudiniAssetEditor::GetCurrentMode));
-
 	// For Cookable details customization
 	FOnGetDetailCustomizationInstance CustomizeHoudiniAssetForEditor = FOnGetDetailCustomizationInstance::CreateStatic(&FHoudiniCookableDetails::MakeInstance);
 	PropertyView->RegisterInstancedCustomPropertyLayout(UHoudiniAsset::StaticClass(), CustomizeHoudiniAssetForEditor);
+
+	/*
+	// TODO: Offer modes for HDA editor??
+	TAttribute<EHoudiniAssetEditorMode::Type> HoudiniAssetEditorMode = TAttribute<EHoudiniAssetEditorMode::Type>::Create(
+		TAttribute<EHoudiniAssetEditorMode::Type>::FGetter::CreateSP(InHoudiniAssetEditor.ToSharedRef(), &FHoudiniAssetEditor::GetCurrentMode));
+	*/
+
 }
 
 UObject* 
@@ -134,6 +138,13 @@ SHoudiniAssetEditorDetailsPanel::Tick(
 	const double InCurrentTime, 
 	const float InDeltaTime)
 {
+	// In order to be able to specify the identifier for this editor manually,
+	// we had to directly use the  FPropertyEditorModule's create function instead of
+	// using the SSingleObjectDetailsPanel function.
+	// This prevents us from setting bAutoObserveObject on the SSingleObjectDetailsPanel...
+	// ... so reproduce its behavior here...
+	// see SSingleObjectDetailsPanel::Tick()
+
 	UObject* CurrentObject = GetObjectToObserve();
 	if (MyLastObservedObject.Get() != CurrentObject)
 	{
@@ -147,13 +158,6 @@ SHoudiniAssetEditorDetailsPanel::Tick(
 
 		SetPropertyWindowContents(SelectedObjects);
 	}
-	/*
-	if (InCurrentTime > (LastUpdateTime + 2.0))
-	{
-		PropertyView->ForceRefresh();
-		LastUpdateTime = InCurrentTime;
-	}
-	*/		
 }
 
 
@@ -204,7 +208,6 @@ FHoudiniAssetEditor::SpawnDetailsTab(const FSpawnTabArgs& Args)
 	return SNew(SDockTab)
 		.Label(LOCTEXT("DetailsTabTitle", "Details"))
 		[
-			//SNew(SHoudiniAssetEditorTabBody, HoudiniAssetEditorPtr)
 			DetailsTabPtr.ToSharedRef()
 		];
 }
@@ -222,6 +225,28 @@ FHoudiniAssetEditor::SpawnNodeSyncTab(const FSpawnTabArgs& Args)
 	SpawnedTab->SetTabIcon(FHoudiniEngineStyle::Get()->GetBrush("HoudiniEngine.HoudiniEngineLogo"));
 
 	return SpawnedTab;
+}
+
+TSharedRef<SDockTab> 
+FHoudiniAssetEditor::SpawnPreviewSceneSettingsTab(const FSpawnTabArgs& Args)
+{
+	FAdvancedPreviewSceneModule& AdvancedPreviewSceneModule = FModuleManager::LoadModuleChecked<FAdvancedPreviewSceneModule>("AdvancedPreviewScene");
+
+	TArray<FAdvancedPreviewSceneModule::FDetailDelegates> Delegates;
+	Delegates.Add({ OnPreviewSceneChangedDelegate });
+	AdvancedPreviewSettingsWidget = AdvancedPreviewSceneModule.CreateAdvancedPreviewSceneSettingsWidget(
+		ViewportPtr->GetPreviewScene(),
+		nullptr,
+		TArray<FAdvancedPreviewSceneModule::FDetailCustomizationInfo>(),
+		TArray<FAdvancedPreviewSceneModule::FPropertyTypeCustomizationInfo>(),
+		Delegates);
+
+	//check(Args.GetTabId() == PreviewSceneSettingsTabId);
+	return SAssignNew(PreviewSceneDockTab, SDockTab)
+		.Label(LOCTEXT("PReviewSceneSettingsTabTitle", "Preview Scene Settings"))
+		[
+			AdvancedPreviewSettingsWidget.IsValid() ? AdvancedPreviewSettingsWidget.ToSharedRef() : SNullWidget::NullWidget
+		];
 }
 
 void
@@ -246,6 +271,12 @@ FHoudiniAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& In
 		.SetDisplayName(LOCTEXT("NodeSyncTabLabel", "Node Sync"))
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.ContentBrowser"));
+
+	InTabManager->RegisterTabSpawner(FHoudiniAssetEditorTabs::PreviewSceneSettingsID, FOnSpawnTab::CreateSP(this, &FHoudiniAssetEditor::SpawnPreviewSceneSettingsTab))
+		.SetDisplayName(LOCTEXT("PreviewSceneTab", "Preview Scene Settings"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Details"))
+		.SetReadOnlyBehavior(ETabReadOnlyBehavior::Custom);
 }
 
 void 
@@ -256,6 +287,7 @@ FHoudiniAssetEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& 
 	InTabManager->UnregisterTabSpawner(FHoudiniAssetEditorTabs::ViewportID);
 	InTabManager->UnregisterTabSpawner(FHoudiniAssetEditorTabs::DetailsID);
 	InTabManager->UnregisterTabSpawner(FHoudiniAssetEditorTabs::NodeSyncID);
+	InTabManager->UnregisterTabSpawner(FHoudiniAssetEditorTabs::PreviewSceneSettingsID);
 }
 
 void 
@@ -361,7 +393,7 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 
 	// Extend things
 	ExtendMenu();
-	ExtendToolbar();
+	//ExtendToolbar();
 	RegenerateMenusAndToolbars();
 }
 
@@ -373,6 +405,9 @@ FHoudiniAssetEditor::OnClose()
 
 	// Unregister our Details Identifier
 	FHoudiniEngine::Get().UnRegisterHoudiniAssetEditor(HoudiniAssetEditorIdentifier);
+
+	// TODO: 
+	// Check if we need to manually clean up the scene / delete HAA
 }
 
 void 
@@ -412,8 +447,7 @@ FHoudiniAssetEditor::GetWorldCentricTabPrefix() const
 
 FString FHoudiniAssetEditor::GetDocumentationLink() const
 {
-	// TODO
-	return TEXT("HoudiniEngine/Awesome");
+	return TEXT("https://www.sidefx.com/docs/houdini/unreal/");
 }
 
 void 
@@ -466,112 +500,42 @@ void FHoudiniAssetEditor::ExtendMenu()
 		FMenuBarExtensionDelegate::CreateStatic(&FHoudiniEngineEditor::AddHoudiniEditorMenu));
 
 	AddMenuExtender(MainMenuExtender);
-	//GetSharedMenuExtensibilityManager()->AddExtender(MainMenuExtender);
 }
 
-void 
-FHoudiniAssetEditor::ExtendToolbar()
-{
-	struct Local
-	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
-		{
-			const FHoudiniEngineCommands& HoudiniCommands = FHoudiniEngineCommands::Get();
-
-			ToolbarBuilder.BeginSection("Command");
-			{
-				ToolbarBuilder.AddToolBarButton(HoudiniCommands._RestartSession);
-				ToolbarBuilder.AddToolBarButton(HoudiniCommands._StopSession);				
-				ToolbarBuilder.AddToolBarButton(HoudiniCommands._OpenInHoudini);
-			}
-			ToolbarBuilder.EndSection();
-
-			ToolbarBuilder.BeginSection("Tools");
-			{
-				ToolbarBuilder.AddToolBarButton(HoudiniCommands._CookSelected);
-				ToolbarBuilder.AddToolBarButton(HoudiniCommands._RebuildSelected);				
-			}
-			ToolbarBuilder.EndSection();
-		}
-	};
-
-	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
-	/*
-	ToolbarExtender->AddToolBarExtension(
-		"Asset",
-		EExtensionHook::After,
-		ViewportPtr->GetCommandList(),
-		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar)
-	);
-	*/
-		/*
-	ToolbarExtender->AddToolBarExtension(
-		"Asset",
-		EExtensionHook::After,
-		ViewportPtr->GetCommandList(),
-		FToolBarExtensionDelegate::CreateSP(this, &FHoudiniAssetEditor::CreateModeToolbarWidgets));
-		*/
-	AddToolbarExtender(ToolbarExtender);
-
-	//IPaper2DEditorModule* Paper2DEditorModule = &FModuleManager::LoadModuleChecked<IPaper2DEditorModule>("Paper2DEditor");
-	//AddToolbarExtender(Paper2DEditorModule->GetSpriteEditorToolBarExtensibilityManager()->GetAllExtenders());
-}
-
+/*
 void
 FHoudiniAssetEditor::CreateEditorModeManager()
 {
-	/*check(ViewportPtr.IsValid());
+	check(ViewportPtr.IsValid());
 	TSharedPtr<FEditorViewportClient> ViewportClient = ViewportPtr->GetViewportClient();
 	check(ViewportClient.IsValid());
 	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		ViewportClient->TakeOwnershipOfModeManager(EditorModeManager);
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS*/
-}
-
-/*
-void 
-FHoudiniAssetEditor::SetHoudiniAssetBeingEdited(UHoudiniAsset* NewHDA)
-{
-	if ((NewHDA != HoudiniAssetBeingEdited) && (NewHDA != nullptr))
-	{
-		UHoudiniAsset* OldHDA = HoudiniAssetBeingEdited;
-		HoudiniAssetBeingEdited = NewHDA;
-
-		// Let the viewport know that we are editing something different
-		//ViewportPtr->NotifySpriteBeingEditedHasChanged();
-
-		// Let the editor know that are editing something different
-		RemoveEditingObject(OldHDA);
-		AddEditingObject(NewHDA);
-
-		// Update the asset picker to select the new active sprite
-		//SpriteListPtr->SelectAsset(NewHDA);
-
-		InitCookableFromHoudiniAsset();
-	}
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 */
 
+/*
 EHoudiniAssetEditorMode::Type
 FHoudiniAssetEditor::GetCurrentMode() const
 {
-	return EHoudiniAssetEditorMode::ViewMode; //ViewportPtr->GetCurrentMode();
+	return EHoudiniAssetEditorMode::ViewMode;
 }
+*/
 
 void 
 FHoudiniAssetEditor::CreateModeToolbarWidgets(FToolBarBuilder& IgnoredBuilder)
 {
 	FSlimHorizontalToolBarBuilder ToolbarBuilder(ViewportPtr->GetCommandList(), FMultiBoxCustomization::None);
-	/*ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterViewMode);
-	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterSourceRegionEditMode);
-	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterCollisionEditMode);
-	ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().EnterRenderingEditMode);*/
 	AddToolbarWidget(ToolbarBuilder.MakeWidget());
 }
 
 FText 
 FHoudiniAssetEditor::GetViewportCornerText() const
 {
+	return LOCTEXT("HDA_CornerText", "HDA");
+
+	/*
 	switch (GetCurrentMode())
 	{
 	case EHoudiniAssetEditorMode::ViewMode:
@@ -583,6 +547,8 @@ FHoudiniAssetEditor::GetViewportCornerText() const
 	default:
 		return FText::GetEmpty();
 	}
+	*/
 }
+
 
 #undef LOCTEXT_NAMESPACE

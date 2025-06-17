@@ -32,7 +32,6 @@
 #include "SHoudiniAssetEditorViewport.h"
 
 #include "ActorFactories/ActorFactory.h"
-//#include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewScene.h"
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewSceneModule.h"
 #include "Editor/UnrealEd/Public/UnrealWidget.h"
 #include "Runtime/Engine/Classes/Components/PostProcessComponent.h"
@@ -72,25 +71,16 @@ FHoudiniAssetEditorViewportClient::FHoudiniAssetEditorViewportClient(
 	// View Modes in Persp and Ortho
 	SetViewModes(VMI_Lit, VMI_Lit);
 	
-	// Add a HAC
-	//HoudiniAssetComponent = ViewportPtr.Pin()->HoudiniAssetComponent;
-	//HoudiniAssetComponent = nullptr;
-	
-	//Add our own post process on the world
-	//UPostProcessComponent* PostComp = ViewportPtr.Pin()->PostComp;
-
-	//Add components to the scene
-	//PreviewScene->AddComponent(PostComp, FTransform(), false);
+	// Add a PostProcess Component to the scene that will be controlled
+	// by the scene settings
+	PostProcessComponent = NewObject<UPostProcessComponent>();
+	//PostProcessComponent->Settings = Profile.PostProcessingSettings;
+	PostProcessComponent->bUnbound = true;
+	PreviewScene->AddComponent(PostProcessComponent, FTransform(), false);
 
 	//Allow post process materials...
 	EngineShowFlags.SetPostProcessMaterial(true);
 	EngineShowFlags.SetPostProcessing(true);
-
-	//Unbound
-	//PostComp->bUnbound = true;
-
-	//Register components inside the array
-	//ActorComponents.Add(HoudiniAssetComponent);
 }
 
 void 
@@ -109,8 +99,8 @@ FHoudiniAssetEditorViewportClient::Tick(float DeltaSeconds)
 void
 FHoudiniAssetEditorViewportClient::ResetScene()
 {
-	// TODO
-	//PreviewScene = NULL;
+	// TODO ?
+	// Reset scene settings, view transform etc... ?
 }
 
 void
@@ -136,52 +126,4 @@ FHoudiniAssetEditorViewportClient::SetHoudiniAsset(UHoudiniAsset* InAsset)
 	if (!HoudiniAssetActor)
 		return;
 
-	//HoudiniAssetComponent = HoudiniAssetActor->GetHoudiniAssetComponent();
-
-	/*// Set the the Cookable as the HAC's outer
-	if (HoudiniAssetComponent != nullptr)
-	{
-		// remove the previous HAC from the scene
-		PreviewScene->RemoveComponent(HoudiniAssetComponent);
-	}
-
-	// Set the HAC as the Cookable's component
-	if (InHAC)
-	{
-		HoudiniAssetComponent = InHAC;
-		PreviewScene->AddComponent(HoudiniAssetComponent, FTransform(), false);
-	}
-	*/
-	/*
-	//Update static mesh to new one
-	MeshComp->SetStaticMesh(inMesh);
-	MeshComp->SetRenderCustomDepth(true);
-	MeshComp->MarkRenderStateDirty();
-
-	SetComponentVisibility(MeshComp, EScreenshotType::Mesh);
-	*/
 }
-
-
-/*
-void
-FHoudiniAssetEditorViewportClient::SetComponentVisibility(UActorComponent* ComponentToActivate)
-{
-	//go over all components and only show the one we want to activate
-	for (UPrimitiveComponent* Comp : ActorComponents)
-	{
-		Comp->SetVisibility(ComponentToActivate == Comp);
-	}
-}
-*/
-
-/*
-FString 
-FHoudiniAssetEditorViewportClient::GetAssetName()
-{
-	if (!HoudiniAssetComponent)
-		return TEXT("Houdini Asset");
-
-	return HoudiniAssetComponent->GetHoudiniAssetName();
-}
-*/

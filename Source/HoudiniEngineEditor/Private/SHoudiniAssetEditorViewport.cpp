@@ -27,14 +27,20 @@
 #include "SHoudiniAssetEditorViewport.h"
 
 #include "HoudiniAssetEditorViewportClient.h"
+#include "HoudiniAssetEditor.h"
 
+#include "AdvancedPreviewSceneMenus.h"
 #include "AssetEditorModeManager.h"
 #include "Components/PostProcessComponent.h"
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewScene.h"
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewSceneModule.h"
 #include "Editor/LevelEditor/Private/SLevelViewportToolBar.h"
+#include "PreviewProfileController.h"
+#include "ToolMenus.h"
+#include "ViewportToolbar/UnrealEdViewportToolbar.h"
 #include "Widgets/SViewport.h"
 
+#define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
 //-----------------------------------------------------------------------------
 // SHoudiniAssetEditorViewport
@@ -61,15 +67,14 @@ SHoudiniAssetEditorViewport::GetExtenders() const
 void 
 SHoudiniAssetEditorViewport::OnFloatingButtonClicked()
 {
-	// Nothing
+	// Nothing to do
 }
 
 // Create the advanced preview scene and initiate our component?
 SHoudiniAssetEditorViewport::SHoudiniAssetEditorViewport()
 	: PreviewScene(MakeShareable(new FAdvancedPreviewScene(FPreviewScene::ConstructionValues())))
 {
-	// TODO: Nothing!
-	//HoudiniAssetComponent = NewObject<UHoudiniAssetComponent>();
+	// Nothing to do
 }
 
 SHoudiniAssetEditorViewport::~SHoudiniAssetEditorViewport() 
@@ -92,6 +97,8 @@ void
 SHoudiniAssetEditorViewport::Construct(const FArguments& InArgs)
 {
 	SEditorViewport::Construct(SEditorViewport::FArguments());
+
+	UE::AdvancedPreviewScene::BindDefaultOnSettingsChangedHandler(PreviewScene, TypedViewportClient);
 }
 
 
@@ -99,6 +106,9 @@ TSharedRef<FEditorViewportClient>
 SHoudiniAssetEditorViewport::MakeEditorViewportClient()
 {
 	TypedViewportClient = MakeShareable(new FHoudiniAssetEditorViewportClient(SharedThis(this), PreviewScene.ToSharedRef()));
+
+	TypedViewportClient->ToggleOrbitCamera(true);
+
 	return TypedViewportClient.ToSharedRef(); 
 }
 
@@ -127,23 +137,102 @@ SHoudiniAssetEditorViewport::SetHoudiniAsset(UHoudiniAsset* InAsset)
 		return;
 
 	TypedViewportClient->SetHoudiniAsset(InAsset);
-
-	/*
-	HoudiniCookable = InCookable;
-	
-	// Set the the Cookable as the HAC's outer
-	HoudiniAssetComponent = NewObject<UHoudiniAssetComponent>(InCookable);
-
-	// Set the HAC as the Cookable's component
-	InCookable->SetComponentSupported(true);
-	InCookable->SetComponent(HoudiniAssetComponent);
-
-	TypedViewportClient->SetHoudiniAssetComponent(HoudiniAssetComponent);
-	*/
 }
 
 FText 
 SHoudiniAssetEditorViewport::GetTitleText() const
-{	
+{
 	return FText::FromString("Houdini Asset Editor");
 }
+
+
+TSharedPtr<SWidget> 
+SHoudiniAssetEditorViewport::BuildViewportToolbar()
+{
+	// Register the viewport toolbar if another viewport hasn't already (it's shared).
+	const FName ViewportToolbarName = "HoudiniAssetEditor.ViewportToolbar";
+	if (!UToolMenus::Get()->IsMenuRegistered(ViewportToolbarName))
+	{
+		UToolMenu* const ViewportToolbarMenu = UToolMenus::Get()->RegisterMenu(
+			ViewportToolbarName, NAME_None /* parent */, EMultiBoxType::SlimHorizontalToolBar
+		);
+
+		ViewportToolbarMenu->StyleName = "ViewportToolbar";
+
+		
+		// Add the left-aligned part of the viewport toolbar.
+		{
+			FToolMenuSection& LeftSection = ViewportToolbarMenu->AddSection("Left");
+
+			// We don't need transform/snapping settings for now
+			//LeftSection.AddEntry(UE::UnrealEd::CreateTransformsSubmenu());
+			//LeftSection.AddEntry(UE::UnrealEd::CreateSnappingSubmenu());
+		}
+
+		// Add the right-aligned part of the viewport toolbar.
+		{
+			FToolMenuSection& RightSection = ViewportToolbarMenu->AddSection("Right");
+			RightSection.Alignment = EToolMenuSectionAlign::Last;
+
+			// Add the "Camera" submenu.
+			RightSection.AddEntry(UE::UnrealEd::CreateCameraSubmenu(UE::UnrealEd::FViewportCameraMenuOptions().ShowAll()));
+
+			// Add the "View Modes" sub menu.
+			{
+				// Stay backward-compatible with the old viewport toolbar.
+				{
+					const FName ParentSubmenuName = "UnrealEd.ViewportToolbar.View";
+					// Create our parent menu.
+					if (!UToolMenus::Get()->IsMenuRegistered(ParentSubmenuName))
+					{
+						UToolMenus::Get()->RegisterMenu(ParentSubmenuName);
+					}
+
+					// Register our ToolMenu here first, before we create the submenu, so we can set our parent.
+					UToolMenus::Get()->RegisterMenu("HoudiniAssetEditor.ViewportToolbar.ViewModes", ParentSubmenuName);
+				}
+
+				RightSection.AddEntry(UE::UnrealEd::CreateViewModesSubmenu());
+			}
+
+			// Add the performance and scalability settings
+			RightSection.AddEntry(UE::UnrealEd::CreatePerformanceAndScalabilitySubmenu());
+
+			// Add the Preview Scene setting submenu
+			{
+				const FName PreviewSceneMenuName = "HoudiniAssetEditor.ViewportToolbar.AssetViewerProfile";
+				RightSection.AddEntry(UE::UnrealEd::CreateAssetViewerProfileSubmenu());
+				UE::AdvancedPreviewScene::Menus::ExtendAdvancedPreviewSceneSettings(PreviewSceneMenuName);
+				UE::UnrealEd::ExtendPreviewSceneSettingsWithTabEntry(PreviewSceneMenuName);
+			}
+		}
+	}
+
+	FToolMenuContext ViewportToolbarContext;
+	{
+		ViewportToolbarContext.AppendCommandList(PreviewScene->GetCommandList());
+		ViewportToolbarContext.AppendCommandList(GetCommandList());
+
+		// Add the UnrealEd viewport toolbar context.
+		{
+			UUnrealEdViewportToolbarContext* const ContextObject =
+				UE::UnrealEd::CreateViewportToolbarDefaultContext(SharedThis(this));
+
+			ContextObject->bShowCoordinateSystemControls = false;
+
+			ContextObject->AssetEditorToolkit = HoudiniAssetEditorPtr;
+			ContextObject->PreviewSettingsTabId = FName(TEXT("PreviewSceneSettings"));
+			ViewportToolbarContext.AddObject(ContextObject);
+		}
+	}
+
+	return UToolMenus::Get()->GenerateWidget(ViewportToolbarName, ViewportToolbarContext);
+}
+
+TSharedPtr<IPreviewProfileController> 
+SHoudiniAssetEditorViewport::CreatePreviewProfileController()
+{
+	return MakeShared<FPreviewProfileController>();
+}
+
+#undef LOCTEXT_NAMESPACE

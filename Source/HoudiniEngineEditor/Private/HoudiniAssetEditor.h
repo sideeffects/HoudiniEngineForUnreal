@@ -30,6 +30,7 @@
 #include "SEditorViewport.h"
 #include "SSingleObjectDetailsPanel.h"
 #include "Toolkits/AssetEditorToolkit.h"
+#include "AdvancedPreviewSceneModule.h"
 
 class FSpawnTabArgs;
 class FToolBarBuilder;
@@ -40,6 +41,7 @@ class SHoudiniNodeSyncPanel;
 class UHoudiniAsset;
 class UHoudiniCookable;
 
+/*
 namespace EHoudiniAssetEditorMode
 {
 	enum Type
@@ -49,6 +51,7 @@ namespace EHoudiniAssetEditorMode
 		SessionSyncMode
 	};
 }
+*/
 
 //-----------------------------------------------------------------------------
 // SHoudiniAssetEditorDetailsPanel
@@ -70,13 +73,11 @@ public:
 
 private:
 
-	// Pointer back to owning Houdini Asset editor instance (the keeper of state)
+	// Pointer back to our owning Houdini Asset editor instance
 	TWeakPtr<class FHoudiniAssetEditor> HoudiniAssetEditorPtr;
 
 	// Cached object view
 	TWeakObjectPtr<UObject> MyLastObservedObject;
-
-	//double LastUpdateTime = 0.0;
 };
 
 
@@ -108,44 +109,66 @@ public:
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	virtual FString GetReferencerName() const override { return TEXT("FHoudiniAssetEditor"); }
 
+	
+	// Init the editor
+	void InitHoudiniAssetEditor(const EToolkitMode::Type Mode, const TSharedPtr<class IToolkitHost>& InitToolkitHost, class UHoudiniAsset* InitHDA);
+
+	// On Editor Close
 	virtual void OnClose() override;
 
-	void InitHoudiniAssetEditor(const EToolkitMode::Type Mode, const TSharedPtr<class IToolkitHost>& InitToolkitHost, class UHoudiniAsset* InitHDA);
-	
+	// HDA / Cookable accessors
 	UHoudiniAsset* GetHoudiniAssetBeingEdited() const { return HoudiniAssetBeingEdited; }
 	UHoudiniCookable* GetHoudiniCookableBeingEdited() { return HoudiniCookableBeingEdited; }
 
-	EHoudiniAssetEditorMode::Type GetCurrentMode() const;
-
+	// Return the editor's identifer used to update details
 	FString GetHoudiniAssetEditorIdentifier() const { return HoudiniAssetEditorIdentifier; };
+
+	//EHoudiniAssetEditorMode::Type GetCurrentMode() const;
 
 protected:
 
+	// UI extensions
 	void BindCommands();
 	void ExtendMenu();
-	void ExtendToolbar();
-
-	virtual void CreateEditorModeManager() override;
+	//void ExtendToolbar();
+	
+	void CreateModeToolbarWidgets(FToolBarBuilder& ToolbarBuilder);
 
 	TSharedRef<SDockTab> SpawnViewportTab(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnDetailsTab(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnNodeSyncTab(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnPreviewSceneSettingsTab(const FSpawnTabArgs& Args);
 	
-	// The extender to pass to the level editor to extend it's File menu.
-	TSharedPtr<FExtender> MainMenuExtender;
-
-	void CreateModeToolbarWidgets(FToolBarBuilder& ToolbarBuilder);
-
 	FText GetViewportCornerText() const;
+
+	//virtual void CreateEditorModeManager() override;
 
 protected:
 
+	// The current HDA being edited
 	TObjectPtr<UHoudiniAsset> HoudiniAssetBeingEdited;
+
+	// The cookable editing the above HDA
 	TObjectPtr<UHoudiniCookable> HoudiniCookableBeingEdited;
 
-	TSharedPtr<SHoudiniAssetEditorViewport> ViewportPtr;
-	TSharedPtr<SHoudiniAssetEditorDetailsPanel> DetailsTabPtr;
-	TSharedPtr<SHoudiniNodeSyncPanel> NodeSyncPanel;
+	// Main UI elements pointers
 
+	// Viewport
+	TSharedPtr<SHoudiniAssetEditorViewport> ViewportPtr;
+	// Details panel
+	TSharedPtr<SHoudiniAssetEditorDetailsPanel> DetailsTabPtr;
+	// Node Sync panel
+	TSharedPtr<SHoudiniNodeSyncPanel> NodeSyncPanel;
+	// Scene preview settings widget
+	TSharedPtr<SWidget> AdvancedPreviewSettingsWidget;
+	// The tab that the preview scene settings widget goes in
+	TWeakPtr<SDockTab> PreviewSceneDockTab;
+	// The extender to pass to the level editor to extend it's File menu.
+	TSharedPtr<FExtender> MainMenuExtender;
+
+	// The editor's identifer used to update its details panel
+	// This needs to be set on the Cookable, and registered with FHoudiniEngine
 	FString HoudiniAssetEditorIdentifier;
+
+	FAdvancedPreviewSceneModule::FOnPreviewSceneChanged OnPreviewSceneChangedDelegate;
 };

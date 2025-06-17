@@ -33,17 +33,16 @@
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewScene.h"
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewSceneModule.h"
 #include "Editor/UnrealEd/Public/SCommonEditorViewportToolbarBase.h"
+#include "SAssetEditorViewport.h"
 #include "SEditorViewport.h"
 #include "SlateFwd.h"
-#include "SLevelViewport.h"
-#include "Widgets/SViewport.h"
 #include "UObject/GCObject.h"
-
+#include "Widgets/SViewport.h"
 
 class FHoudiniAssetEditor;
 
 class SHoudiniAssetEditorViewport
-	: public SEditorViewport, public FGCObject, public ICommonEditorViewportToolbarInfoProvider
+	: public SAssetEditorViewport, public FGCObject, public ICommonEditorViewportToolbarInfoProvider
 {
 public:
 
@@ -53,7 +52,7 @@ public:
 	SHoudiniAssetEditorViewport();
 	~SHoudiniAssetEditorViewport();
 
-	// Construct this viewport widget
+	// Construct this widget
 	void Construct(const FArguments& InArgs);
 	void Construct(const FArguments& InArgs, TSharedPtr<FHoudiniAssetEditor> InHoudiniAssetEditor);
 
@@ -66,10 +65,10 @@ public:
 	// Get the viewport client
 	TSharedPtr<class FHoudiniAssetEditorViewportClient> GetViewportClient() { return TypedViewportClient; };
 
-	//FGCObject 
+	// FGCObject 
 	void AddReferencedObjects(FReferenceCollector& Collector) override;
 
-	//Toolbar interface	
+	// Toolbar interface	
 	virtual TSharedPtr<FExtender> GetExtenders() const override;
 	virtual void OnFloatingButtonClicked() override;
 	void BindCommands() override;
@@ -84,9 +83,16 @@ public:
 	// Houdini Asset setter
 	void SetHoudiniAsset(UHoudiniAsset* InAsset);
 
+	// Returns the preview scene being rendered in the viewport
+	TSharedRef<FAdvancedPreviewScene> GetPreviewScene() { return PreviewScene.ToSharedRef(); }
+
 protected:
 
 	FText GetTitleText() const;
+
+	virtual TSharedPtr<SWidget> BuildViewportToolbar() override;
+
+	virtual TSharedPtr<IPreviewProfileController> CreatePreviewProfileController() override;
 
 private:
 	
@@ -96,9 +102,6 @@ private:
 	TSharedPtr<FAdvancedPreviewScene> PreviewScene;
 	//Shared ptr to the client
 	TSharedPtr<class FHoudiniAssetEditorViewportClient> TypedViewportClient;
-
 	//All components to use in the client
 	TObjectPtr<UHoudiniCookable> HoudiniCookable;
-	//UHoudiniAssetComponent* HoudiniAssetComponent;
-	TObjectPtr<UPostProcessComponent> PostProcessComponent;
 };

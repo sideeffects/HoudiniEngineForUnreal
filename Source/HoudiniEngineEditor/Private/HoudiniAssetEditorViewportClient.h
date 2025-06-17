@@ -55,7 +55,6 @@ public:
 
 	AHoudiniAssetActor* GetHoudiniAssetActor() { return HoudiniAssetActor; };
 
-
 protected:
 
 	// Pointer back to our Houdini Asset Editor Viewport owner
@@ -68,11 +67,10 @@ protected:
 	UPROPERTY()
 	AHoudiniAssetActor* HoudiniAssetActor;
 
-	//Components in the scene
-	//UPROPERTY()
-	//UHoudiniAssetComponent* HoudiniAssetComponent;
-
 	//All registered actor components
 	UPROPERTY()
 	TArray<UPrimitiveComponent*> ActorComponents;
+
+	UPROPERTY()
+	TObjectPtr<UPostProcessComponent> PostProcessComponent;
 };
