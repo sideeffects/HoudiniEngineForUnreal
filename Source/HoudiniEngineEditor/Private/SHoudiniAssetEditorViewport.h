@@ -91,9 +91,9 @@ protected:
 	FText GetTitleText() const;
 
 	virtual TSharedPtr<SWidget> BuildViewportToolbar() override;
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 	virtual TSharedPtr<IPreviewProfileController> CreatePreviewProfileController() override;
-
+#endif
 private:
 	
 	// Pointer to our Houdini Asset Editor owner

@@ -29,7 +29,9 @@
 #include "HoudiniAssetEditorViewportClient.h"
 #include "HoudiniAssetEditor.h"
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 #include "AdvancedPreviewSceneMenus.h"
+#endif
 #include "AssetEditorModeManager.h"
 #include "Components/PostProcessComponent.h"
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewScene.h"
@@ -97,8 +99,9 @@ void
 SHoudiniAssetEditorViewport::Construct(const FArguments& InArgs)
 {
 	SEditorViewport::Construct(SEditorViewport::FArguments());
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 	UE::AdvancedPreviewScene::BindDefaultOnSettingsChangedHandler(PreviewScene, TypedViewportClient);
+#endif
 }
 
 
@@ -149,6 +152,7 @@ SHoudiniAssetEditorViewport::GetTitleText() const
 TSharedPtr<SWidget> 
 SHoudiniAssetEditorViewport::BuildViewportToolbar()
 {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 	// Register the viewport toolbar if another viewport hasn't already (it's shared).
 	const FName ViewportToolbarName = "HoudiniAssetEditor.ViewportToolbar";
 	if (!UToolMenus::Get()->IsMenuRegistered(ViewportToolbarName))
@@ -191,7 +195,6 @@ SHoudiniAssetEditorViewport::BuildViewportToolbar()
 					// Register our ToolMenu here first, before we create the submenu, so we can set our parent.
 					UToolMenus::Get()->RegisterMenu("HoudiniAssetEditor.ViewportToolbar.ViewModes", ParentSubmenuName);
 				}
-
 				RightSection.AddEntry(UE::UnrealEd::CreateViewModesSubmenu());
 			}
 
@@ -227,12 +230,131 @@ SHoudiniAssetEditorViewport::BuildViewportToolbar()
 	}
 
 	return UToolMenus::Get()->GenerateWidget(ViewportToolbarName, ViewportToolbarContext);
+#else
+	// Register the viewport toolbar if another viewport hasn't already (it's shared).
+	const FName ViewportToolbarName = "HoudiniAssetEditor.ViewportToolbar";
+
+	if (!UToolMenus::Get()->IsMenuRegistered(ViewportToolbarName))
+	{
+		UToolMenu* const ViewportToolbarMenu = UToolMenus::Get()->RegisterMenu(
+			ViewportToolbarName, NAME_None /* parent */, EMultiBoxType::SlimHorizontalToolBar
+		);
+
+		ViewportToolbarMenu->StyleName = "ViewportToolbar";
+
+		// Add the right-aligned part of the viewport toolbar.
+		{
+			// Add the submenus of this section as EToolMenuInsertType::Last to sort them after any
+			// default-positioned submenus external code might add.
+			FToolMenuSection& RightSection = ViewportToolbarMenu->FindOrAddSection("Right");
+			RightSection.Alignment = EToolMenuSectionAlign::Last;
+
+			// Add the "Camera" submenu.
+			{
+				const FName GrandParentSubmenuName = "UnrealEd.ViewportToolbar.Camera";
+				const FName ParentSubmenuName = "HoudiniAssetEditor.ViewportToolbar.Camera";
+				const FName SubmenuName = "HoudiniAssetEditor.ViewportToolbar.CameraOptions";
+
+				// Create our grandparent menu.
+				if (!UToolMenus::Get()->IsMenuRegistered(GrandParentSubmenuName))
+				{
+					UToolMenus::Get()->RegisterMenu(GrandParentSubmenuName);
+				}
+
+				// Create our parent menu.
+				if (!UToolMenus::Get()->IsMenuRegistered(ParentSubmenuName))
+				{
+					UToolMenus::Get()->RegisterMenu(ParentSubmenuName, GrandParentSubmenuName);
+				}
+
+				// Create our menu.
+				UToolMenus::Get()->RegisterMenu(SubmenuName, ParentSubmenuName);
+
+				UE::UnrealEd::ExtendCameraSubmenu(SubmenuName);
+
+				FToolMenuEntry CameraSubmenu = UE::UnrealEd::CreateViewportToolbarCameraSubmenu();
+				CameraSubmenu.InsertPosition.Position = EToolMenuInsertType::First;
+				RightSection.AddEntry(CameraSubmenu);
+			}
+
+			// Add the "View Modes" sub menu.
+			{
+				// Stay backward-compatible with the old viewport toolbar.
+				{
+					const FName ParentSubmenuName = "UnrealEd.ViewportToolbar.View";
+					// Create our parent menu.
+					if (!UToolMenus::Get()->IsMenuRegistered(ParentSubmenuName))
+					{
+						UToolMenus::Get()->RegisterMenu(ParentSubmenuName);
+					}
+
+					// Register our ToolMenu here first, before we create the submenu, so we can set our parent.
+					UToolMenus::Get()->RegisterMenu("HoudiniAssetEditor.ViewportToolbar.ViewModes", ParentSubmenuName);
+				}
+
+				FToolMenuEntry ViewModesSubmenu = UE::UnrealEd::CreateViewportToolbarViewModesSubmenu();
+				ViewModesSubmenu.InsertPosition.Position = EToolMenuInsertType::Last;
+				RightSection.AddEntry(ViewModesSubmenu);
+			}
+
+			// Add the "Performance and Scalability" sub menu.
+			{
+				FToolMenuEntry PerformanceAndScalabilitySubmenu = UE::UnrealEd::CreatePerformanceAndScalabilitySubmenu();
+				PerformanceAndScalabilitySubmenu.InsertPosition.Position = EToolMenuInsertType::Last;
+				RightSection.AddEntry(PerformanceAndScalabilitySubmenu);
+			}
+
+			/*
+			// Add the "Preview Profile" sub menu.
+			{
+				//PreviewProfileController = MakeShared<FPreviewProfileController>();
+				FToolMenuEntry PreviewProfileSubmenu =
+					UE::UnrealEd::CreateViewportToolbarAssetViewerProfileSubmenu(MakeShared<FPreviewProfileController>());
+				PreviewProfileSubmenu.InsertPosition.Position = EToolMenuInsertType::Last;
+				RightSection.AddEntry(PreviewProfileSubmenu);
+			}
+			*/
+		}
+	}
+
+	FToolMenuContext ViewportToolbarContext;
+	{
+		ViewportToolbarContext.AppendCommandList(GetCommandList());
+
+		// Add the UnrealEd viewport toolbar context.
+		{
+			UUnrealEdViewportToolbarContext* const ContextObject =
+				UE::UnrealEd::CreateViewportToolbarDefaultContext(SharedThis(this));
+
+			ViewportToolbarContext.AddObject(ContextObject);
+		}
+	}
+	/*
+	// clang-format off
+	const TSharedRef<SWidget> NewViewportToolbar = SNew(SBox)
+	.Visibility_Lambda(
+		[this]() -> EVisibility
+		{
+			return  UE::UnrealEd::ShowNewViewportToolbars() ? EVisibility::Visible: EVisibility::Collapsed;
+		}
+	)
+	[
+		UToolMenus::Get()->GenerateWidget(ViewportToolbarName, ViewportToolbarContext)
+	];
+	// clang-format on
+
+	return NewViewportToolbar;
+	*/
+
+	return UToolMenus::Get()->GenerateWidget(ViewportToolbarName, ViewportToolbarContext);
+#endif
 }
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 TSharedPtr<IPreviewProfileController> 
 SHoudiniAssetEditorViewport::CreatePreviewProfileController()
 {
 	return MakeShared<FPreviewProfileController>();
 }
-
+#endif
 #undef LOCTEXT_NAMESPACE
