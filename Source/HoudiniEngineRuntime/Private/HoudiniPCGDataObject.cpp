@@ -30,10 +30,20 @@
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 #include <Data/PCGPointArrayData.h>
 #endif
+#include "HoudiniEngineRuntimeUtils.h"
 #include "UObject/TextProperty.h"
 #include "PCGParamData.h"
 
+void UHoudiniPCGDataAttributeBase::SetAttrName(const FString& Name)
+{
+	AttrName = FName(Name);
+}
 
+
+const FName& UHoudiniPCGDataAttributeBase::GetAttrName() const
+{
+	return AttrName;
+}
 
 bool UHoudiniPCGDataObject::operator==(const UHoudiniPCGDataObject& Other) const
 {
@@ -616,7 +626,7 @@ UHoudiniPCGDataAttributeBase* UHoudiniPCGDataObject::FindAttribute(const FString
 {
 	for (auto& Attr : Attributes)
 	{
-		if(Attr->AttrName == AttrName)
+		if(Attr->GetAttrName() == AttrName)
 			return Attr.Get();
 	}
 	return nullptr;
@@ -625,77 +635,77 @@ UHoudiniPCGDataAttributeBase* UHoudiniPCGDataObject::FindAttribute(const FString
 UHoudiniPCGDataAttributeFloat* UHoudiniPCGDataObject::CreateAttributeFloat(const FString& AttributeName)
 {
 	auto* Result = NewObject<UHoudiniPCGDataAttributeFloat>(this, FName(AttributeName));
-	Result->AttrName = FName(AttributeName);
+	Result->SetAttrName(AttributeName);
 	return Result;
 }
 
 UHoudiniPCGDataAttributeDouble * UHoudiniPCGDataObject::CreateAttributeDouble(const FString& AttributeName)
 {
 	auto* Result = NewObject<UHoudiniPCGDataAttributeDouble>(this, FName(AttributeName));
-	Result->AttrName = FName(AttributeName);
+	Result->SetAttrName(AttributeName);
 	return Result;
 }
 
 UHoudiniPCGDataAttributeInt* UHoudiniPCGDataObject::CreateAttributeInt(const FString& AttributeName)
 {
 	auto* Result = NewObject<UHoudiniPCGDataAttributeInt>(this, FName(AttributeName));
-	Result->AttrName = FName(AttributeName);
+	Result->SetAttrName(AttributeName);
 	return Result;
 }
 
 UHoudiniPCGDataAttributeInt64* UHoudiniPCGDataObject::CreateAttributeInt64(const FString& AttributeName)
 {
 	auto* Result = NewObject<UHoudiniPCGDataAttributeInt64>(this, FName(AttributeName));
-	Result->AttrName = FName(AttributeName);
+	Result->SetAttrName(AttributeName);
 	return Result;
 }
 
 UHoudiniPCGDataAttributeString* UHoudiniPCGDataObject::CreateAttributeString(const FString& AttributeName)
 {
 	auto* Result = NewObject<UHoudiniPCGDataAttributeString>(this, FName(AttributeName));
-	Result->AttrName = FName(AttributeName);
+	Result->SetAttrName(AttributeName);
 	return Result;
 }
 
 UHoudiniPCGDataAttributeVector2d * UHoudiniPCGDataObject::CreateAttributeVector2d(const FString& AttributeName)
 {
 	auto* Result = NewObject<UHoudiniPCGDataAttributeVector2d>(this, FName(AttributeName));
-	Result->AttrName = FName(AttributeName);
+	Result->SetAttrName(AttributeName);
 	return Result;
 }
 
 UHoudiniPCGDataAttributeVector3d* UHoudiniPCGDataObject::CreateAttributeVector3d(const FString& AttributeName)
 {
 	auto* Result = NewObject<UHoudiniPCGDataAttributeVector3d>(this, FName(AttributeName));
-	Result->AttrName = FName(AttributeName);
+	Result->SetAttrName(AttributeName);
 	return Result;
 }
 
 UHoudiniPCGDataAttributeVector4d* UHoudiniPCGDataObject::CreateAttributeVector4d(const FString& AttributeName)
 {
 	auto* Result = NewObject<UHoudiniPCGDataAttributeVector4d>(this, FName(AttributeName));
-	Result->AttrName = FName(AttributeName);
+	Result->SetAttrName(AttributeName);
 	return Result;
 }
 
 UHoudiniPCGDataAttributeQuat * UHoudiniPCGDataObject::CreateAttributeQuat(const FString& AttributeName)
 {
 	auto* Result = NewObject<UHoudiniPCGDataAttributeQuat>(this, FName(AttributeName));
-	Result->AttrName = FName(AttributeName);
+	Result->SetAttrName(AttributeName);
 	return Result;
 }
 
 UHoudiniPCGDataAttributeSoftObjectPath * UHoudiniPCGDataObject::CreateAttributeSoftObjectPath(const FString& AttributeName)
 {
 	auto* Result = NewObject<UHoudiniPCGDataAttributeSoftObjectPath>(this, FName(AttributeName));
-	Result->AttrName = FName(AttributeName);
+	Result->SetAttrName(AttributeName);
 	return Result;
 }
 
 UHoudiniPCGDataAttributeSoftClassPath* UHoudiniPCGDataObject::CreateAttributeSoftClassPath(const FString& AttributeName)
 {
 	auto* Result = NewObject<UHoudiniPCGDataAttributeSoftClassPath>(this, FName(AttributeName));
-	Result->AttrName = FName(AttributeName);
+	Result->SetAttrName(AttributeName);
 	return Result;
 }
 

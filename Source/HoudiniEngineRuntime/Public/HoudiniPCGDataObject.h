@@ -39,8 +39,12 @@ class HOUDINIENGINERUNTIME_API UHoudiniPCGDataAttributeBase : public UObject
 {
     GENERATED_BODY()
 public:
-    virtual int GetNumValues() const { return 0; }
 
+    void SetAttrName(const FString& Name);
+    const FName& GetAttrName() const;
+
+    virtual int GetNumValues() const { return 0; }
+private:
     UPROPERTY()
     FName AttrName;
 };

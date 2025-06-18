@@ -157,7 +157,7 @@ FUnrealPCGDataTranslator::SetAttributes(UHoudiniPCGDataObject* PCGDataObject, HA
 	{
 		UHoudiniPCGDataAttributeBase* Attr = It.Get();
 
-		if (Attr->AttrName == TEXT("__vertex_id") && Owner == HAPI_ATTROWNER_VERTEX)
+		if (Attr->GetAttrName() == TEXT("__vertex_id") && Owner == HAPI_ATTROWNER_VERTEX)
 		{
 			auto* AttributeInt = Cast<UHoudiniPCGDataAttributeInt>(Attr);
 			if (!AttributeInt)
@@ -385,24 +385,25 @@ FUnrealPCGDataTranslator::CreateInputNodeForPCGAttrData(const FString& InputNode
 	return Handle;
 }
 
-
-
-void SendToHoudini(UHoudiniPCGDataAttributeFloat* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+FString GetHapiName(FName AttrName)
+{
+	FString HapiName = AttrName.ToString();
+	FHoudiniEngineUtils::SanitizeHAPIVariableName(HapiName);
+	return HapiName;
+}
 
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeFloat * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 1,Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo,Data->Values);
 }
 
-
-
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeDouble * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT64, 1,Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo,Data->Values);
 }
@@ -410,7 +411,7 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeDouble * Da
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeInt * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_INT, 1,Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo,Data->Values);
 }
@@ -418,7 +419,7 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeInt * Data,
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeInt64 * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_INT64, 1,Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo,Data->Values);
 }
@@ -426,7 +427,7 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeInt64 * Dat
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeString* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_STRING, 1, Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo, Data->Values);
 }
@@ -434,7 +435,7 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeString* Dat
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeSoftObjectPath * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_STRING, 1, Data->Values.Num(), &AttrInfo);
 
 	TArray<FString> StringValues;
@@ -448,7 +449,7 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeSoftObjectP
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeSoftClassPath* Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_STRING, 1, Data->Values.Num(), &AttrInfo);
 
 	TArray<FString> StringValues;
@@ -463,7 +464,7 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeSoftClassPa
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector2d * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 2, Data->Values.Num(), &AttrInfo);
 
 	TArray<float> FloatValues;
@@ -480,7 +481,7 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector2d * 
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector3d * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	char* AttrName = TCHAR_TO_UTF8((*Data->AttrName.ToString()));
+	char* AttrName = TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName())));
 	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, AttrName);
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 3, Data->Values.Num(), &AttrInfo);
 
@@ -498,7 +499,7 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector3d * 
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector4d * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 4, Data->Values.Num(), &AttrInfo);
 	TArray<float> FloatValues;
 	FloatValues.SetNum(Data->Values.Num() * 4);
@@ -515,7 +516,7 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector4d * 
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeQuat * Data,HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 4,Data->Values.Num(), &AttrInfo);
 
 	TArray<float> FloatValues;
@@ -535,7 +536,7 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeQuat * Data
 void SendToHoudini(UHoudiniPCGDataAttributeString * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*Data->AttrName.ToString())));
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_STRING, 1,Data->Values.Num(), &AttrInfo);
 	Accessor.SetAttributeData(AttrInfo,Data->Values);
 }
