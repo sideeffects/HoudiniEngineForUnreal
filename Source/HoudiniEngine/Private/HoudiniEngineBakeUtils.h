@@ -280,15 +280,13 @@ public:
 		const UHoudiniCookable* InCookable,
 		const FHoudiniOutputObject& InOutputObject,
 		FHoudiniBakedOutputObject& InBakedOutputObject,
-		// const TArray<FHoudiniBakedOutput>& InAllBakedOutputs,
 		const FHoudiniPackageParams &PackageParams,
 		FHoudiniAttributeResolver& InResolver,
 		const FHoudiniBakeSettings& BakeSettings,
 		const TArray<FHoudiniEngineBakedActor>& InBakedActors,
 		FHoudiniEngineBakedActor& OutBakedActorEntry,
 		FHoudiniBakedObjectData& BakedObjectData,
-		AActor* InFallbackActor=nullptr,
-		const FString& InFallbackWorldOutlinerFolder="");
+		AActor* InFallbackActor=nullptr);
 
 	static AActor* BakeInputHoudiniCurveToActor(
 		const UHoudiniCookable* InCookable,
@@ -312,7 +310,36 @@ public:
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		const FDirectoryPath& InTempCookFolder,
 		TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
-		TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap);
+		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap);
+
+	static bool BakeStaticMeshOutputToAsset(
+		const UHoudiniCookable* InCookable,
+		int32 InOutputIndex,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		const FDirectoryPath& InTempFolder,
+		const FDirectoryPath& InBakeFolder,
+		FHoudiniEngineBakeState& InBakeState,
+		const FHoudiniBakeSettings& BakeSettings,
+		FHoudiniBakedObjectData& BakedObjectData);
+
+	static bool BakeSkeletalMeshOutputToAsset(
+		const UHoudiniCookable* InCookable,
+		int32 InOutputIndex,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		const FDirectoryPath& InTempFolder,
+		const FDirectoryPath& InBakeFolder,
+		FHoudiniEngineBakeState& InBakeState,
+		const FHoudiniBakeSettings& BakeSettings,
+		FHoudiniBakedObjectData& BakedObjectData);
+
+	static bool BakeGeometryCollectionOutputToAsset(
+		const UHoudiniCookable* InCookable,
+		int32 InOutputIndex,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		FHoudiniEngineBakeState& InBakeState,
+		const FDirectoryPath& InBakeFolder,
+		const FHoudiniBakeSettings& BakeSettings,
+		FHoudiniBakedObjectData& BakedObjectData);
 
 	static bool BakeInstancerOutputToActors(
 		const UHoudiniCookable* InCookable,
@@ -511,6 +538,10 @@ public:
 		AActor* InFallbackActor=nullptr,
 		const FString& InFallbackWorldOutlinerFolder="");
 
+	static bool BakeCookableToAssets(
+		UHoudiniCookable* InCookable,
+		const FHoudiniBakeSettings& BakeSettings);
+
 	static bool BakeHoudiniOutputsToActors(
 		UHoudiniCookable* InCookable,
 		const TArray<UHoudiniOutput*>& InOutputs,
@@ -633,15 +664,8 @@ public:
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		FHoudiniEngineBakeState& InBakeState,
 		const FDirectoryPath& InBakeFolder,
-		const FDirectoryPath& InTempCookFolder,
 		const FHoudiniBakeSettings& BakeSettings,
-		const TArray<FHoudiniEngineBakedActor>& InBakedActors,
-		TArray<FHoudiniEngineBakedActor>& OutActors,
-		FHoudiniBakedObjectData& BakedObjectData,
-		TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
-		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
-		AActor* InFallbackActor = nullptr,
-		const FString& InFallbackWorldOutlinerFolder = TEXT(""));
+		FHoudiniBakedObjectData& BakedObjectData);
 
 	static bool BakePCGData(
 		const UHoudiniCookable* InCookable,
@@ -670,22 +694,14 @@ public:
 		const FHoudiniBakeSettings& BakeSettings,
 		FHoudiniBakedObjectData& BakedObjectData);
 
-
 	static bool BakeAnimSequence(
 		const UHoudiniCookable* InCookable,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		FHoudiniEngineBakeState& InBakeState,
 		const FDirectoryPath& InBakeFolder,
-		const FDirectoryPath& InTempCookFolder,
 		const FHoudiniBakeSettings& BakeSettings,
-		const TArray<FHoudiniEngineBakedActor>& InBakedActors,
-		TArray<FHoudiniEngineBakedActor>& OutActors,
-		FHoudiniBakedObjectData& BakedObjectData,
-		TMap<UStaticMesh*, UStaticMesh*>& InOutAlreadyBakedStaticMeshMap,
-		TMap<UMaterialInterface*, UMaterialInterface*>& InOutAlreadyBakedMaterialsMap,
-		AActor* InFallbackActor = nullptr,
-		const FString& InFallbackWorldOutlinerFolder = TEXT(""));
+		FHoudiniBakedObjectData& BakedObjectData);
 
 	static bool BakeHoudiniCurveOutputToActors(
 		const UHoudiniCookable* InCookable,

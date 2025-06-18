@@ -1269,6 +1269,12 @@ FHoudiniEngineDetails::AddBakeControlBar(
 				"Bake this Houdini Asset Actor to a blueprint."));
 		}
 		break;
+		case EHoudiniEngineBakeOption::ToAsset:
+		{
+			BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeToAssetToolTip",
+				"Bake this Houdini Asset to native Unreal assets in the content browser."));
+		}
+		break;
 		}
 	}
 

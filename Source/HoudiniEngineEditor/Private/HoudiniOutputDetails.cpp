@@ -3675,7 +3675,6 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 		FString Msg = FString::Format(*FinishedTemplate, { NewBakeOutput.BakeStats.NumPackagesCreated, NewBakeOutput.BakeStats.NumPackagesUpdated } );
 		FHoudiniEngine::Get().FinishTaskSlateNotification( FText::FromString(Msg) );
 	}
-
 }
 
 FReply

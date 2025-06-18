@@ -383,6 +383,9 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 			HoudiniCookableBeingEdited->SetPDGSupported(false);
 			HoudiniCookableBeingEdited->SetProxySupported(false);
 
+			// Change the default bake type
+			HoudiniCookableBeingEdited->SetHoudiniEngineBakeOption(EHoudiniEngineBakeOption::ToAsset);
+
 			// Let the cookable know its used in an Houdini Asset Editor
 			HoudiniCookableBeingEdited->AssetEditorId = FName(*HoudiniAssetEditorIdentifier);
 			

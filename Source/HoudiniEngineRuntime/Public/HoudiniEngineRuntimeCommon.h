@@ -46,7 +46,8 @@ UENUM()
 enum class EHoudiniEngineBakeOption : uint8
 {
 	ToActor,
-	ToBlueprint
+	ToBlueprint,
+	ToAsset
 };
 
 UENUM()

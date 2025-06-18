@@ -2134,27 +2134,33 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 	{
 		switch (InPDGAssetLink->HoudiniEngineBakeOption)
 		{
-		case EHoudiniEngineBakeOption::ToActor:
-		{
-			// if (InPDGAssetLink->bIsReplace)
-			// 	FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithActors(InPDGAssetLink);
-			// else
-				FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(InPDGAssetLink.Get(), InPDGAssetLink->PDGBakeSelectionOption, InPDGAssetLink->PDGBakePackageReplaceMode, InPDGAssetLink->bRecenterBakedActors);
-		}
-		break;
+			case EHoudiniEngineBakeOption::ToActor:
+			{
+				// if (InPDGAssetLink->bIsReplace)
+				// 	FHoudiniEngineBakeUtils::ReplaceHoudiniActorWithActors(InPDGAssetLink);
+				// else
+					FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(InPDGAssetLink.Get(), InPDGAssetLink->PDGBakeSelectionOption, InPDGAssetLink->PDGBakePackageReplaceMode, InPDGAssetLink->bRecenterBakedActors);
+			}
+			break;
 		
-		case EHoudiniEngineBakeOption::ToBlueprint:
-		{
-			// if (InPDGAssetLink->bIsReplace)
-			// 	FHoudiniEngineBakeUtils::ReplaceWithBlueprint(InPDGAssetLink);
-			// else
-				FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(InPDGAssetLink.Get(), InPDGAssetLink->PDGBakeSelectionOption, InPDGAssetLink->PDGBakePackageReplaceMode, InPDGAssetLink->bRecenterBakedActors);
-		}
-		break;
+			case EHoudiniEngineBakeOption::ToBlueprint:
+			{
+				// if (InPDGAssetLink->bIsReplace)
+				// 	FHoudiniEngineBakeUtils::ReplaceWithBlueprint(InPDGAssetLink);
+				// else
+					FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(InPDGAssetLink.Get(), InPDGAssetLink->PDGBakeSelectionOption, InPDGAssetLink->PDGBakePackageReplaceMode, InPDGAssetLink->bRecenterBakedActors);
+			}
+			break;
 
+			case EHoudiniEngineBakeOption::ToAsset:
+			{
+				// TODO
+				// This should not happen!
+			}
+			break;
 		}
-		
-		return FReply::Handled();	
+
+		return FReply::Handled();
 	};
 
 	auto OnBakeFolderTextCommittedLambda = [InPDGAssetLink](const FText& Val, ETextCommit::Type TextCommitType)
@@ -2212,6 +2218,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 							"Bake this Houdini PDG Asset's output assets and seperate the output actors from the PDG asset link.");
 					}
 					break;
+
 					case EHoudiniEngineBakeOption::ToBlueprint:
 					{
 						return LOCTEXT(
@@ -2220,6 +2227,8 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 							"longer has output components from the PDG asset link.");
 					}
 					break;
+
+					case EHoudiniEngineBakeOption::ToAsset:
 					default:
 					{
 						return FText();

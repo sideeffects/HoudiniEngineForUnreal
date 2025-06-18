@@ -1036,6 +1036,7 @@ FHoudiniEngineEditor::InitializeWidgetResource()
 	HoudiniEngineBakeTypeOptionLabels.Reset();
 	HoudiniEngineBakeTypeOptionLabels.Add(MakeShareable(new FString(FHoudiniEngineEditor::GetStringFromHoudiniEngineBakeOption(EHoudiniEngineBakeOption::ToActor))));
 	HoudiniEngineBakeTypeOptionLabels.Add(MakeShareable(new FString(FHoudiniEngineEditor::GetStringFromHoudiniEngineBakeOption(EHoudiniEngineBakeOption::ToBlueprint))));
+	HoudiniEngineBakeTypeOptionLabels.Add(MakeShareable(new FString(FHoudiniEngineEditor::GetStringFromHoudiniEngineBakeOption(EHoudiniEngineBakeOption::ToAsset))));
 
 	// Option labels for Houdini Engine PDG bake options
 	HoudiniEnginePDGBakeSelectionOptionLabels.Reset();
@@ -1835,6 +1836,10 @@ FHoudiniEngineEditor::GetStringFromHoudiniEngineBakeOption(EHoudiniEngineBakeOpt
 	case EHoudiniEngineBakeOption::ToBlueprint:
 		Str = "Blueprint";
 		break;
+
+	case EHoudiniEngineBakeOption::ToAsset:
+		Str = "Asset";
+		break;
 	}
 
 	return Str;
@@ -1915,6 +1920,9 @@ FHoudiniEngineEditor::StringToHoudiniEngineBakeOption(const FString & InString)
 
 	if (InString == "Blueprint")
 		return EHoudiniEngineBakeOption::ToBlueprint;
+
+	if (InString == "Asset")
+		return EHoudiniEngineBakeOption::ToAsset;
 
 	return EHoudiniEngineBakeOption::ToActor;
 }
