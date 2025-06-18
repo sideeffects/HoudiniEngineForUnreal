@@ -692,7 +692,7 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	int UnrealEditLayerIndex = INDEX_NONE;
 	if (UnrealEditLayer != nullptr)
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
-		UnrealEditLayerIndex = OutputLandscape->GetLayerIndex(UnrealEditLayer->EditLayer->GetAttrName());
+		UnrealEditLayerIndex = OutputLandscape->GetLayerIndex(UnrealEditLayer->EditLayer->GetName());
 #else
 		UnrealEditLayerIndex = OutputLandscape->GetLayerIndex(UnrealEditLayer->Name);
 #endif
