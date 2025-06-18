@@ -116,9 +116,12 @@ FHoudiniAssetEditorViewportClient::SetHoudiniAsset(UHoudiniAsset* InAsset)
 	if (!AssetObj)
 		return;
 	
+	// Set the Actor transform so assets properly face forward in UE
+	FTransform FaceForward = FTransform::Identity;
+	FaceForward.SetRotation(FQuat(FVector(0.0f, 0.0f, 1.0f), -UE_HALF_PI));
 
 	// Create the actor for the HDA
-	AActor* CreatedActor = Factory->CreateActor(AssetObj, GetWorld()->GetCurrentLevel(), FTransform::Identity);
+	AActor* CreatedActor = Factory->CreateActor(AssetObj, GetWorld()->GetCurrentLevel(), FaceForward);
 	if (!CreatedActor)
 		return;
 

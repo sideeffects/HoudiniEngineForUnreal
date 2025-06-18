@@ -146,7 +146,7 @@ if (material_slot < 0 || material_slot >= num_slots)
 s@unreal_material = "[" + itoa(material_slot) + "]" + material_overrides[material_slot];)";
 	VEXpression = FString::Format(*VEXpression, { MaterialPathsString });
 
-	// Set the wrangle's class to primitives
+	// aet the wrangle's class to primitives
 	HOUDINI_CHECK_ERROR_RETURN(
 		FHoudiniApi::SetParmIntValue(Session, MaterialOverridesNodeId, "class", 0, 1), false);
 
@@ -743,9 +743,12 @@ FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& In
 
 		auto MakeHoudiniParamName = [&](int Index, const FString& Name)
 			{
-				FString ParamPrefix = MaterialInfos.Num() == 1 ? "" : FString::FromInt(Index) + FString("_");
-				return FString::Printf(TEXT("unreal_material_parameter_%s%s"), *ParamPrefix, *Name);
+				// Make sure the attribute name will be valid
+				FString SanitizedName = Name;
+				FHoudiniEngineUtils::SanitizeHAPIVariableName(SanitizedName);
 
+				FString ParamPrefix = MaterialInfos.Num() == 1 ? "" : FString::FromInt(Index) + FString("_");
+				return FString::Printf(TEXT("unreal_material_parameter_%s%s"), *ParamPrefix, *SanitizedName);
 			};
 
 		for(int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
