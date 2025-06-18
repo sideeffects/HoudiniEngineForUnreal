@@ -876,7 +876,7 @@ void
 UHoudiniCookable::UpdateDormantStatus()
 {
 #if WITH_EDITOR
-	// This function checks if we should go into or out of doermant status.
+	// This function checks if we should go into or out of dormant status.
 #if (ENGINE_MAJOR_VERSION <= 5 && ENGINE_MINOR_VERSION < 1)
 	return;
 #else

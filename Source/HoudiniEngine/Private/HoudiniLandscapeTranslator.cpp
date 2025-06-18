@@ -753,12 +753,14 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		if (EditLayer != nullptr)
 		{
 			// Great, these are the Epic recommended replacements for Is/SetLayerBlendSubstractive,
-			// But this throws a warning anyway...
+			// But this throws a warning anyway... Disable/Enable internal warnings temporarily
+PRAGMA_DISABLE_INTERNAL_WARNINGS
 			const bool* AllocationBlend = EditLayer->GetWeightmapLayerAllocationBlend().Find(TargetLayerInfo);
 			if (AllocationBlend != nullptr && (Part.bSubtractiveEditLayer != *AllocationBlend))
 			{
 				EditLayer->AddOrUpdateWeightmapAllocationLayerBlend(TargetLayerInfo, Part.bSubtractiveEditLayer, true);
 			}
+PRAGMA_ENABLE_INTERNAL_WARNINGS
 		}
 #else
 		if (Part.bSubtractiveEditLayer != OutputLandscape->IsLayerBlendSubstractive(UnrealEditLayerIndex, TargetLayerInfo))
