@@ -749,6 +749,8 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	{
 		bool bLayerSubractive = false;
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+		PRAGMA_DISABLE_INTERNAL_WARNINGS
+
 		ULandscapeEditLayerBase* EditLayer = OutputLandscape->GetEditLayer(UnrealEditLayerIndex);
 		if (EditLayer != nullptr)
 		{
@@ -762,6 +764,8 @@ PRAGMA_DISABLE_INTERNAL_WARNINGS
 			}
 PRAGMA_ENABLE_INTERNAL_WARNINGS
 		}
+
+		PRAGMA_ENABLE_INTERNAL_WARNINGS
 #else
 		if (Part.bSubtractiveEditLayer != OutputLandscape->IsLayerBlendSubstractive(UnrealEditLayerIndex, TargetLayerInfo))
 			OutputLandscape->SetLayerSubstractiveBlendStatus(UnrealEditLayerIndex, Part.bSubtractiveEditLayer, TargetLayerInfo);
