@@ -424,7 +424,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			{
 				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
 				if (ValueIndex != InvalidIndex)
-					AttrDest->Values[ValueIndex] = Attr->GetValueFromItemKey(Index);
+					AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex);
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
@@ -440,7 +440,7 @@ void UHoudiniPCGDataObject::AddMetaDataAttributes(const UPCGMetadata* ParamMetad
 			{
 				int ValueIndex = Keys.IsEmpty() ? Index : Keys[Index];
 				if(ValueIndex != InvalidIndex)
-					AttrDest->Values[ValueIndex] = Attr->GetValueFromItemKey(Index);
+					AttrDest->Values[Index] = Attr->GetValueFromItemKey(ValueIndex);
 			}
 
 			Attributes.Emplace(MoveTemp(AttrDest));
