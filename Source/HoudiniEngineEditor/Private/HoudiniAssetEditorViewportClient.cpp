@@ -30,13 +30,21 @@
 #include "HoudiniAssetActor.h"
 #include "HoudiniAsset.h"
 #include "SHoudiniAssetEditorViewport.h"
+#include "HoudiniHandleComponent.h"
+#include "HoudiniSplineComponent.h"
 
 #include "ActorFactories/ActorFactory.h"
+#include "ComponentVisualizer.h"
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewSceneModule.h"
 #include "Editor/UnrealEd/Public/UnrealWidget.h"
+#include "Editor/UnrealEdEngine.h"
 #include "Runtime/Engine/Classes/Components/PostProcessComponent.h"
 #include "Runtime/Engine/Classes/Engine/PostProcessVolume.h"
 #include "Runtime/Engine/Public/SceneView.h"
+#include "UnrealEdGlobals.h"
+#include "UObject/UObjectIterator.h"
+
+
 
 FHoudiniAssetEditorViewportClient::FHoudiniAssetEditorViewportClient(
 	const TSharedRef<SHoudiniAssetEditorViewport>& InHoudiniAssetEditorViewport,
@@ -129,4 +137,48 @@ FHoudiniAssetEditorViewportClient::SetHoudiniAsset(UHoudiniAsset* InAsset)
 	if (!HoudiniAssetActor)
 		return;
 
+}
+
+
+void 
+FHoudiniAssetEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
+{
+	FEditorViewportClient::Draw(View, PDI);
+
+	if (GUnrealEd == nullptr)
+		return;
+	
+	// Visualize Houdini splines
+	TSharedPtr<FComponentVisualizer> SplineVisualizer = GUnrealEd->FindComponentVisualizer(UHoudiniSplineComponent::StaticClass());
+	if (SplineVisualizer.IsValid())
+	{
+		for (TObjectIterator<UHoudiniSplineComponent> Itr; Itr; ++Itr)
+		{
+			if (Itr->GetOwner() && Itr->GetOwner() == HoudiniAssetActor)
+			{
+				const UActorComponent* Comp = Cast<UActorComponent>(*Itr);
+				if (Comp != nullptr && Comp->IsRegistered())
+				{
+					SplineVisualizer->DrawVisualization(Comp, View, PDI);
+				}
+			}
+		}
+	}
+
+	// Visualize Houdini Handles
+	TSharedPtr<FComponentVisualizer> HandleVisualizer = GUnrealEd->FindComponentVisualizer(UHoudiniHandleComponent::StaticClass());
+	if (HandleVisualizer.IsValid())
+	{
+		for (TObjectIterator<UHoudiniHandleComponent> Itr; Itr; ++Itr)
+		{
+			if (Itr->GetOwner() && Itr->GetOwner() == HoudiniAssetActor)
+			{
+				const UActorComponent* Comp = Cast<UActorComponent>(*Itr);
+				if (Comp != nullptr && Comp->IsRegistered())
+				{
+					HandleVisualizer->DrawVisualization(Comp, View, PDI);
+				}
+			}
+		}
+	}
 }

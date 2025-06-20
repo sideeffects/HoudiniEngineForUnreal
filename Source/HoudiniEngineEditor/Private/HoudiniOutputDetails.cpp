@@ -1108,9 +1108,8 @@ void FHoudiniOutputDetails::CreateGeometryCollectionOutputWidget(IDetailCategory
 	{
 		FHoudiniOutputObject& CurrentOutputObject = IterObject.Value;
 
-		AGeometryCollectionActor * GeometryCollectionActor = Cast<AGeometryCollectionActor>(IterObject.Value.OutputObject);
-
-		if (!IsValid(GeometryCollectionActor))
+		UGeometryCollection* GeometryCollection = Cast<UGeometryCollection>(IterObject.Value.OutputObject);
+		if (!IsValid(GeometryCollection))
 			continue;
 
 		FHoudiniOutputObjectIdentifier& OutputIdentifier = IterObject.Key;
@@ -1124,7 +1123,7 @@ void FHoudiniOutputDetails::CreateGeometryCollectionOutputWidget(IDetailCategory
 			break;
 		}
 
-		CreateGeometryCollectionWidgets(HouOutputCategory, InOutput, GeometryCollectionActor, CurrentOutputObject, OutputIdentifier, HoudiniGeoPartObject);
+		CreateGeometryCollectionWidgets(HouOutputCategory, InOutput, GeometryCollection, CurrentOutputObject, OutputIdentifier, HoudiniGeoPartObject);
 	}
 }
 
@@ -1746,17 +1745,12 @@ void
 FHoudiniOutputDetails::CreateGeometryCollectionWidgets(
 	IDetailCategoryBuilder& HouOutputCategory,
 	const TWeakObjectPtr<UHoudiniOutput>& InOutput,
-	const TWeakObjectPtr<AGeometryCollectionActor>& GeometryCollectionActor,
+	const TWeakObjectPtr<UGeometryCollection>& GeometryCollection,
 	FHoudiniOutputObject& OutputObject,
 	FHoudiniOutputObjectIdentifier& OutputIdentifier,
 	FHoudiniGeoPartObject& HoudiniGeoPartObject)
 {
-	if (!IsValidWeakPointer(GeometryCollectionActor))
-		return;
-	
-	FGeometryCollectionEdit GeometryCollectionEdit = GeometryCollectionActor->GetGeometryCollectionComponent()->EditRestCollection(GeometryCollection::EEditUpdate::RestPhysicsDynamic);
-	UGeometryCollection* GeometryCollection = GeometryCollectionEdit.GetRestCollection();	
-	if (!IsValid(GeometryCollection))
+	if (!IsValidWeakPointer(GeometryCollection))
 		return;
 
 	FHoudiniOutputObject* FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
@@ -1776,7 +1770,7 @@ FHoudiniOutputDetails::CreateGeometryCollectionWidgets(
 
 	// Create thumbnail for this mesh.
 	TSharedPtr< FAssetThumbnail > StaticMeshThumbnail =
-		MakeShareable(new FAssetThumbnail(GeometryCollection, 64, 64, AssetThumbnailPool));
+		MakeShareable(new FAssetThumbnail(GeometryCollection.Get(), 64, 64, AssetThumbnailPool));
 	TSharedPtr<SBorder> StaticMeshThumbnailBorder;
 
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
@@ -1842,7 +1836,7 @@ FHoudiniOutputDetails::CreateGeometryCollectionWidgets(
 		]
 	];
 
-	OutputObjectThumbnailBorders.Add((UObject*)GeometryCollection, StaticMeshThumbnailBorder);
+	OutputObjectThumbnailBorders.Add((UObject*)GeometryCollection.Get(), StaticMeshThumbnailBorder);
 	
 }
 

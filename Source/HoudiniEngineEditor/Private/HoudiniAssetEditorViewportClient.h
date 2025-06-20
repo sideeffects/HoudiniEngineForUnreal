@@ -55,6 +55,8 @@ public:
 
 	AHoudiniAssetActor* GetHoudiniAssetActor() { return HoudiniAssetActor; };
 
+	virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
+
 protected:
 
 	// Pointer back to our Houdini Asset Editor Viewport owner

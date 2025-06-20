@@ -480,6 +480,13 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 					bOutHasHoudiniStaticMeshOutput = bOutHasHoudiniStaticMeshOutput || CurOutput->HasAnyCurrentProxy();
 				}
 
+				// Make sure to mark the mesh output as a geometry collection mesh if it is one
+				if (FHoudiniGeometryCollectionTranslator::IsGeometryCollectionMesh(CurOutput))
+				{
+					for (auto& Pair : CurOutput->OutputObjects)
+						Pair.Value.bIsGeometryCollectionPiece = true;
+				}
+
 				break;
 			}
 

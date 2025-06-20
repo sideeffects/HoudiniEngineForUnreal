@@ -38,6 +38,7 @@
 #include "SlateFwd.h"
 #include "UObject/GCObject.h"
 #include "Widgets/SViewport.h"
+#include "LevelEditorViewport.h"
 
 class FHoudiniAssetEditor;
 

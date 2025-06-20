@@ -35,21 +35,23 @@
 
 
 struct FHoudiniBakeSettings;
-class IDetailCategoryBuilder;
-class FDetailWidgetRow;
-class UHoudiniOutput;
-class UHoudiniAssetComponent;
-class FAssetThumbnailPool;
-class ALandscapeProxy;
-class USplineComponent;
-class UHoudiniLandscapePtr;
-class UHoudiniLandscapeTargetLayerOutput;
-class UHoudiniStaticMesh;
-class UMaterialInterface;
+
 class AGeometryCollectionActor;
+class ALandscapeProxy;
 class ALandscapeSplineActor;
+class FAssetThumbnailPool;
+class FDetailWidgetRow;
+class IDetailCategoryBuilder;
 class SBorder;
 class SComboButton;
+class UGeometryCollection;
+class UHoudiniLandscapePtr;
+class UHoudiniLandscapeTargetLayerOutput;
+class UHoudiniOutput;
+class UHoudiniAssetComponent;
+class UHoudiniStaticMesh;
+class UMaterialInterface;
+class USplineComponent;
 class USkeletalMesh;
 class USkeleton;
 
@@ -135,7 +137,7 @@ public:
 	void CreateGeometryCollectionWidgets(
 		IDetailCategoryBuilder& HouOutputCategory,
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
-		const TWeakObjectPtr<AGeometryCollectionActor>& GeometryCollectionActor,
+		const TWeakObjectPtr<UGeometryCollection>& GeometryCollection,
 		FHoudiniOutputObject& OutputObject,
 		FHoudiniOutputObjectIdentifier& OutputIdentifier,
 		FHoudiniGeoPartObject& HoudiniGeoPartObject);

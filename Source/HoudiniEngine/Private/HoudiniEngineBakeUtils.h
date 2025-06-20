@@ -336,8 +336,9 @@ public:
 		const UHoudiniCookable* InCookable,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
-		FHoudiniEngineBakeState& InBakeState,
+		const FDirectoryPath& InTempFolder,
 		const FDirectoryPath& InBakeFolder,
+		FHoudiniEngineBakeState& InBakeState,
 		const FHoudiniBakeSettings& BakeSettings,
 		FHoudiniBakedObjectData& BakedObjectData);
 

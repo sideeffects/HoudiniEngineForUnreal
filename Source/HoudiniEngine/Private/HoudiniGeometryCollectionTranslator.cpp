@@ -415,7 +415,10 @@ FHoudiniGeometryCollectionTranslator::CreateNewGeometryActor(
 
 	// copy transform of original static mesh actor to this new actor
 	NewActor->SetActorLabel(InActorName);
-	NewActor->SetActorTransform(InTransform);
+	// Only copy position, or else we might end up with double rotations afterwards
+	// if the parent Actor is rotated as well.
+	NewActor->SetActorLocation(InTransform.GetLocation());
+	//NewActor->SetActorTransform(InTransform);
 	
 	return NewActor;
 }
