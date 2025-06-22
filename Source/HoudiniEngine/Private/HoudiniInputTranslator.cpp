@@ -724,42 +724,43 @@ FHoudiniInputTranslator::SetDefaultInputFromParameterValue(UHoudiniInput* Input,
 		Input->SetInputObjectAt(EHoudiniInputType::Geometry, GeoIdx++, pObject);
 	}
 
-	// See if we can preset world objects as well
-	int32 WorldIdx = 0;
-	int32 LandscapedIdx = 0;
-	int32 HDAIdx = 0;
-	for (TActorIterator<AActor> ActorIt(Input->GetWorld(), AActor::StaticClass(), EActorIteratorFlags::SkipPendingKill); ActorIt; ++ActorIt)
+	if (IsValid(Input->GetWorld()))
 	{
-		AActor* CurActor = *ActorIt;
-		if (!CurActor)
-			continue;
+		// See if we can preset world objects as well
+		int32 WorldIdx = 0;
+		for(TActorIterator<AActor> ActorIt(Input->GetWorld(), AActor::StaticClass(), EActorIteratorFlags::SkipPendingKill); ActorIt; ++ActorIt)
+		{
+			AActor* CurActor = *ActorIt;
+			if(!CurActor)
+				continue;
 
-		AActor* FoundActor = nullptr;
-		int32 FoundIdx = Tokens.Find(CurActor->GetFName().ToString());
-		if (FoundIdx == INDEX_NONE)
-			FoundIdx = Tokens.Find(CurActor->GetActorLabel());
+			AActor* FoundActor = nullptr;
+			int32 FoundIdx = Tokens.Find(CurActor->GetFName().ToString());
+			if(FoundIdx == INDEX_NONE)
+				FoundIdx = Tokens.Find(CurActor->GetActorLabel());
 
-		if(FoundIdx != INDEX_NONE)
-			FoundActor = CurActor;
+			if(FoundIdx != INDEX_NONE)
+				FoundActor = CurActor;
 
-		if (!FoundActor)
-			continue;
+			if(!FoundActor)
+				continue;
 
-		// Select the found actor in the world input
-		Input->SetInputObjectAt(EHoudiniInputType::World, WorldIdx++, FoundActor);
+			// Select the found actor in the world input
+			Input->SetInputObjectAt(EHoudiniInputType::World, WorldIdx++, FoundActor);
 
-		// Remove the Found Token
-		Tokens.RemoveAt(FoundIdx);
+			// Remove the Found Token
+			Tokens.RemoveAt(FoundIdx);
+		}
+
+		// See if we should change the default input type
+		if(Input->GetInputType() == EHoudiniInputType::Geometry && WorldIdx > 0 && GeoIdx == 0)
+		{
+			// Can just set the input type NewWorld Input Type
+			Input->SetInputType(EHoudiniInputType::World, bOutBlueprintStructureModified);
+		}
 	}
 
-	// See if we should change the default input type
-	if (Input->GetInputType() == EHoudiniInputType::Geometry && WorldIdx > 0 && GeoIdx == 0)
-	{	
-		// Can just set the input type NewWorld Input Type
-		Input->SetInputType(EHoudiniInputType::World, bOutBlueprintStructureModified);
-	}
-
-	return true;
+		return true;
 }
 
 bool
