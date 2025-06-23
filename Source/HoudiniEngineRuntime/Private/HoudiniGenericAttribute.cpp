@@ -28,6 +28,7 @@
 
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniCookable.h"
 //#include "HoudiniEngineUtils.h"
 
 #include "AI/Navigation/NavCollisionBase.h"
@@ -841,6 +842,113 @@ FHoudiniGenericAttribute::FindPropertyOnObject(
 			FString DumpBegin = TEXT("------------ ") + SceneComponent->GetClass()->GetName();
 			FString DumpEnd = DumpBegin + TEXT(" END");
 			SearchPropertyOn(SceneComponent, TEXT("SceneComponent"), DumpBegin, DumpEnd);
+			if (OutExactPropertyFound)
+				return true;
+		}
+	}
+
+	// Houdini Asset Component
+	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InObject);
+	if (IsValid(HAC))
+	{
+		// Search the UHoudiniCookable
+		UObject* BakingObj = HAC->GetCookable();
+		FString DumpBegin = TEXT("\n------------ HOUDINI COOKABLE ------------------------------------------------------------------------------------");
+		FString DumpEnd = TEXT("\n------------ HOUDINI COOKABLE END --------------------------------------------------------------------------------");
+		SearchPropertyOn(BakingObj, TEXT("HoudiniCookable"), DumpBegin, DumpEnd);
+		if (OutExactPropertyFound)
+			return true;
+	}
+
+
+	// Houdini Cookable
+	UHoudiniCookable* Cookable = Cast<UHoudiniCookable>(InObject);
+	if (IsValid(Cookable) || (bDumpAttributes && InObject == UHoudiniCookable::StaticClass()))
+	{
+		//if (Cookable->IsBakingSupported())
+		{
+			// Search the UCookableBakingData
+			UObject* BakingObj = Cookable ? Cookable->GetBakingData() : (UObject*)UCookableBakingData::StaticClass();
+			FString DumpBegin = TEXT("\n------------ BAKING DATA ------------------------------------------------------------------------------------");
+			FString DumpEnd = TEXT("\n------------ BAKING DATA END --------------------------------------------------------------------------------");
+			SearchPropertyOn(BakingObj, TEXT("CookableBakingData"), DumpBegin, DumpEnd);
+			if (OutExactPropertyFound)
+				return true;
+		}
+
+		//if (Cookable->IsComponentSupported())
+		{
+			// Search the UCookableComponentData;
+			UObject* ComponentObj = Cookable ? Cookable->GetComponentData() : (UObject*)UCookableComponentData::StaticClass();
+			FString DumpBegin = TEXT("\n------------ COMPONENT DATA ------------------------------------------------------------------------------------");
+			FString DumpEnd = TEXT("\n------------ COMPONENT DATA END --------------------------------------------------------------------------------");
+			SearchPropertyOn(ComponentObj, TEXT("CookableComponentData"), DumpBegin, DumpEnd);
+			if (OutExactPropertyFound)
+				return true;
+		}
+
+		//if (Cookable->IsHoudiniAssetSupported())
+		{
+			// Search the UCookableHoudiniAssetData;
+			UObject* HDAObj = Cookable ? Cookable->GetHoudiniAssetData() : (UObject*)UCookableHoudiniAssetData::StaticClass();
+			FString DumpBegin = TEXT("\n------------ HOUDINI ASSET DATA ------------------------------------------------------------------------------------");
+			FString DumpEnd = TEXT("\n------------ HOUDINI ASSET DATA END --------------------------------------------------------------------------------");
+			SearchPropertyOn(HDAObj, TEXT("CookableHoudiniAssetData"), DumpBegin, DumpEnd);
+			if (OutExactPropertyFound)
+				return true;
+		}
+
+		//if (Cookable->IsInputSupported())
+		{
+			// Search the UCookableInputData;
+			UObject* InputObj = Cookable ? Cookable->GetInputData() : (UObject*)UCookableInputData::StaticClass();
+			FString DumpBegin = TEXT("\n------------ INPUT DATA ------------------------------------------------------------------------------------");
+			FString DumpEnd = TEXT("\n------------ INPUT DATA END --------------------------------------------------------------------------------");
+			SearchPropertyOn(InputObj, TEXT("CookableInputData"), DumpBegin, DumpEnd);
+			if (OutExactPropertyFound)
+				return true;
+		}
+
+		//if (Cookable->IsOutputSupported())
+		{
+			// Search the UCookableOutputData;
+			UObject* OutputObj = Cookable ? Cookable->GetOutputData() : (UObject*)UCookableOutputData::StaticClass();
+			FString DumpBegin = TEXT("\n------------ OUTPUT DATA ------------------------------------------------------------------------------------");
+			FString DumpEnd = TEXT("\n------------ OUTPUT DATA END --------------------------------------------------------------------------------");
+			SearchPropertyOn(OutputObj, TEXT("CookableOutputData"), DumpBegin, DumpEnd);
+			if (OutExactPropertyFound)
+				return true;
+		}
+
+		//if (Cookable->IsParameterSupported())
+		{
+			// Search the UCookableParameterData;
+			UObject* ParamObj = Cookable ? Cookable->GetParameterData() : (UObject*)UCookableParameterData::StaticClass();
+			FString DumpBegin = TEXT("\n------------ PARAMETER DATA ------------------------------------------------------------------------------------");
+			FString DumpEnd = TEXT("\n------------ PARAMETER DATA END --------------------------------------------------------------------------------");
+			SearchPropertyOn(ParamObj, TEXT("CookableParameterData"), DumpBegin, DumpEnd);
+			if (OutExactPropertyFound)
+				return true;
+		}
+
+		//if (Cookable->IsPDGSupported())
+		{
+			// Search the UCookablePDGData;
+			UObject* PDGObj = Cookable ? Cookable->GetPDGData() : (UObject*)UCookablePDGData::StaticClass();
+			FString DumpBegin = TEXT("\n------------ PDG DATA ------------------------------------------------------------------------------------");
+			FString DumpEnd = TEXT("\n------------ PDG DATA END --------------------------------------------------------------------------------");
+			SearchPropertyOn(PDGObj, TEXT("CookablePDGData"), DumpBegin, DumpEnd);
+			if (OutExactPropertyFound)
+				return true;
+		}
+
+		//if (Cookable->IsProxySupported())
+		{
+			// Search the UCookableProxyData;
+			UObject* ProxyObj = Cookable ? Cookable->GetProxyData() : (UObject*)UCookableProxyData::StaticClass();
+			FString DumpBegin = TEXT("\n------------ PROXY DATA ------------------------------------------------------------------------------------");
+			FString DumpEnd = TEXT("\n------------ PROXY DATA END --------------------------------------------------------------------------------");
+			SearchPropertyOn(ProxyObj, TEXT("CookableProxyData"), DumpBegin, DumpEnd);
 			if (OutExactPropertyFound)
 				return true;
 		}

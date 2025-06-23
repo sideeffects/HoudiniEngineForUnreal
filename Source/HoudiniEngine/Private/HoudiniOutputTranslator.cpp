@@ -279,6 +279,9 @@ FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(
 			InComponent->ComponentTags.Empty();
 	}
 
+	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InComponent);
+	UHoudiniCookable* Cookable = HAC ? HAC->GetCookable() : nullptr;
+
 	// Attempt to apply the attributes to the HAC if we have any
 	for (const auto& CurrentPropAttribute : GenericAttributes)
 	{
@@ -287,11 +290,19 @@ FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(
 		if (CurrentPropertyName.IsEmpty())
 			continue;
 
-		if (!FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(InComponent, CurrentPropAttribute))
-			continue;
-
-		// Success!
-		HOUDINI_LOG_MESSAGE(TEXT("Modified UProperty %s on Houdini component named %s"), *CurrentPropertyName, *InComponent->GetName());
+		// Try applying the property on the HAC directly first..
+		bool bSuccess = FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(InComponent, CurrentPropAttribute);
+		if (!bSuccess && Cookable)
+		{
+			// ... then try on the cookable if we failed
+			bSuccess = FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(Cookable, CurrentPropAttribute);
+		}
+		
+		if (bSuccess)
+		{
+			// Success!
+			HOUDINI_LOG_MESSAGE(TEXT("Modified UProperty %s on Houdini component named %s"), *CurrentPropertyName, *InComponent->GetName());
+		}		
 	}
 
 	return true;

@@ -1667,7 +1667,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		    FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 
 	    // By default spawn in the current level unless specified via the unreal_level_path attribute
-	    ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+	    ULevel* DesiredLevel = DesiredWorld ? DesiredWorld->GetCurrentLevel() : GWorld->GetCurrentLevel();
 	    bool bHasLevelPathAttribute = InOutputObject.CachedAttributes.Contains(HAPI_UNREAL_ATTRIB_LEVEL_PATH);
 	    if (bHasLevelPathAttribute)
 	    {
@@ -2223,7 +2223,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 		    FName(InFallbackWorldOutlinerFolder.IsEmpty() ? InstancerPackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
 
 	    // By default spawn in the current level unless specified via the unreal_level_path attribute
-	    ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+	    ULevel* DesiredLevel = DesiredWorld ? DesiredWorld->GetCurrentLevel() : GWorld->GetCurrentLevel();
 	    bool bHasLevelPathAttribute = InOutputObject.CachedAttributes.Contains(HAPI_UNREAL_ATTRIB_LEVEL_PATH);
 	    if (bHasLevelPathAttribute)
 	    {
@@ -2472,7 +2472,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 			DefaultObjectName, PackageParams, Resolver, InBakeFolder.Path, AssetPackageReplaceMode);
 
 		// By default spawn in the current level unless specified via the unreal_level_path attribute
-		ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+		ULevel* DesiredLevel = DesiredWorld ? DesiredWorld->GetCurrentLevel() : GWorld->GetCurrentLevel();
 
 		bool bHasLevelPathAttribute = InOutputObject.CachedAttributes.Contains(HAPI_UNREAL_ATTRIB_LEVEL_PATH);
 		if (bHasLevelPathAttribute)
@@ -2842,12 +2842,10 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	const FString DefaultObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(StaticMesh);
 
 	UWorld* DesiredWorld = InOutput ? InOutput->GetWorld() : GWorld;
-	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+	ULevel* DesiredLevel = DesiredWorld ? DesiredWorld->GetCurrentLevel() : GWorld->GetCurrentLevel();
 
 	FHoudiniPackageParams PackageParams;
-
 	FHoudiniAttributeResolver Resolver;
-
 	if (!ResolvePackageParamsWithResolver(
 		InCookable,
 		InOutput,
@@ -3189,10 +3187,9 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	const FString DefaultObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(SkeletalMesh);
 
 	UWorld* DesiredWorld = InOutput ? InOutput->GetWorld() : GWorld;
-	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+	ULevel* DesiredLevel = DesiredWorld ? DesiredWorld->GetCurrentLevel() : GWorld->GetCurrentLevel();
 
 	// Bake Skeleton
-
 	FHoudiniPackageParams SkeletonPackageParams;
 	FHoudiniOutputObjectIdentifier SkeletonIdentifier = InIdentifier;
 	SkeletonIdentifier.SplitIdentifier = TEXT("skeleton");
@@ -3813,7 +3810,7 @@ bool FHoudiniEngineBakeUtils::ResolvePackageParamsWithResolver(
 	const FString& InHoudiniAssetActorName)
 {
 	UWorld* DesiredWorld = InOutput ? InOutput->GetWorld() : GWorld;
-	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+	ULevel* DesiredLevel = DesiredWorld ? DesiredWorld->GetCurrentLevel() : GWorld->GetCurrentLevel();
 
 	// Set the replace mode based on if we are doing a replacement or incremental asset bake
 	const EPackageReplaceMode AssetPackageReplaceMode = BakeSettings.bReplaceAssets ?
@@ -4449,12 +4446,10 @@ FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 		const FString DefaultObjectName = HoudiniAssetActorName + Identifier.SplitIdentifier;
 
 		UWorld* DesiredWorld = InOutput ? InOutput->GetWorld() : GWorld;
-		ULevel* DesiredLevel = DesiredWorld->GetCurrentLevel();
+		ULevel* DesiredLevel = DesiredWorld ? DesiredWorld->GetCurrentLevel() : GWorld->GetCurrentLevel();
 
 		FHoudiniPackageParams PackageParams;
-
 		FHoudiniAttributeResolver Resolver;
-
 		if (!ResolvePackageParamsWithResolver(
 			InCookable,
 			InOutput,
@@ -6818,12 +6813,12 @@ FHoudiniEngineBakeUtils::BakeCurve(
 		return false;
 
 	// By default spawn in the current level unless specified via the unreal_level_path attribute
-	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+	UWorld* DesiredWorld = SplineComponent ? SplineComponent->GetWorld() : GWorld;
+	ULevel* DesiredLevel = DesiredWorld ? DesiredWorld->GetCurrentLevel() : GWorld->GetCurrentLevel();
+
 	bool bHasLevelPathAttribute = InOutputObject.CachedAttributes.Contains(HAPI_UNREAL_ATTRIB_LEVEL_PATH);
 	if (bHasLevelPathAttribute)
 	{
-		UWorld* DesiredWorld = SplineComponent ? SplineComponent->GetWorld() : GWorld;
-
 		// Get the package path from the unreal_level_apth attribute
 		FString LevelPackagePath = InResolver.ResolveFullLevelPath();
 
@@ -6933,7 +6928,8 @@ FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToActor(
 	if (DisplayPoints.Num() < 2)
 		return nullptr;
 
-	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+	UWorld* DesiredWorld = InHoudiniSplineComponent ? InHoudiniSplineComponent->GetWorld() : GWorld;
+	ULevel* DesiredLevel = DesiredWorld ? DesiredWorld->GetCurrentLevel() : GWorld->GetCurrentLevel();
 
 	TSubclassOf<AActor> BakeActorClass = nullptr;
 	UActorFactory* const Factory = GetActorFactory(
