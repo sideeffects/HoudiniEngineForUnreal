@@ -1997,25 +1997,25 @@ HAPI_C_STRUCT_TYPEDEF(HAPI_CurveInfo)
 // Curve info dealing specifically with input curves
 struct HAPI_API HAPI_InputCurveInfo
 {
-    /// The desired curve type of the curve
+    /// The desired curve type of the curve.
     /// Note that this is NOT necessarily equal to the value in HAPI_CurveInfo
-    /// in the case of curve refinement
+    /// in the case of curve refinement.
     HAPI_CurveType curveType;
 
-    /// The desired order for your input curve
+    /// The desired order for your input curve.
     /// This is your desired order, which may differ from HAPI_CurveInfo
-    /// as it will do range checks and adjust the actual order accordingly
+    /// as it will do range checks and adjust the actual order accordingly.
     int order;
 
-    /// Whether or not the curve is closed
+    /// Whether or not the curve is closed.
     /// May differ from HAPI_CurveInfo::isPeriodic depending on the curveType
-    /// (e.g. A NURBs curve is never technically closed according to HAPI_CurveInfo)
+    /// (e.g. A NURBs curve is never technically closed according to HAPI_CurveInfo).
     HAPI_Bool closed;
 
-    /// Whether or not to reverse the curve input
+    /// Whether or not to reverse the curve input.
     HAPI_Bool reverse;
 
-    // Input method type (CVs or Brekapoints)
+    // Input method type (CVs or Brekapoints).
     HAPI_InputCurveMethod inputMethod;
 
     // Parameterization - Only used when inputMethod is BREAKPOINTS
