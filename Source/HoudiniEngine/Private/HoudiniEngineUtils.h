@@ -55,6 +55,9 @@ enum class EHoudiniInstancerType : uint8;
 
 #define H_DEPRECATED_OLD_ATTRIBUTE_API(Version, Message)  [[deprecated(Message " Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.")]]
 
+
+extern TAutoConsoleVariable<float> CVarHoudiniEngineMeshBuildTimer;
+
 class FHoudiniParameterWidgetMetaData : public ISlateMetaData
 {
 public:
@@ -73,6 +76,25 @@ public:
 
 	const FString UniqueName;
 	const uint32 Index;
+};
+
+struct FHoudiniPerfTimer
+{
+	// Accumulative poerformance timer, can be start and stopped to accumulate time.
+	// Will print out stats if bEnabled is true on destruction. Very light weight
+	// so can be used all the time.
+
+	FHoudiniPerfTimer(const FString & Text, bool bPrintStats);
+	~FHoudiniPerfTimer();
+	void Start();
+	void Stop();
+	double GetTime();
+
+protected:
+	double TotalTime;
+	double CurrentStart;
+	FString Text;
+	bool bPrintStats;
 };
 
 struct HOUDINIENGINE_API FHoudiniEngineUtils

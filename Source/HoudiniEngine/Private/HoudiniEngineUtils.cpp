@@ -106,6 +106,11 @@
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
+TAutoConsoleVariable<float> CVarHoudiniEngineMeshBuildTimer(
+	TEXT("HoudiniEngine.MeshBuildTimer"),
+	0.0,
+	TEXT("When enabled, the plugin will output timings during the Mesh creation.\n")
+);
 
 FHoudiniEngineUtils::FOnHoudiniProxyMeshesRefinedDelegate FHoudiniEngineUtils::OnHoudiniProxyMeshesRefinedDelegate = FHoudiniEngineUtils::FOnHoudiniProxyMeshesRefinedDelegate();
 
@@ -9079,5 +9084,49 @@ FHoudiniEngineUtils::SetAllowPlayInEditorRefinement(
 	}
 #endif
 }
+
+FHoudiniPerfTimer::FHoudiniPerfTimer(const FString & InText, bool bPrint)
+{
+	TotalTime = 0.0;
+	CurrentStart = -1.0;
+	Text = InText;
+	bPrintStats = bPrint;
+}
+
+FHoudiniPerfTimer::~FHoudiniPerfTimer()
+{
+	if (CurrentStart >= 0)
+	{
+		Stop();
+	}
+
+	if(bPrintStats && !Text.IsEmpty())
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("Timer: %-20s %23f secs."), *Text, TotalTime);
+	}
+}
+
+
+double FHoudiniPerfTimer::GetTime()
+{
+	return TotalTime;
+}
+
+void FHoudiniPerfTimer::Start()
+{
+	CurrentStart = FPlatformTime::Seconds();
+
+}
+
+void FHoudiniPerfTimer::Stop()
+{
+	if(CurrentStart >= 0)
+	{
+		TotalTime += FPlatformTime::Seconds() - CurrentStart;
+	}
+	CurrentStart = -1.0;
+
+}
+
 
 #undef LOCTEXT_NAMESPACE

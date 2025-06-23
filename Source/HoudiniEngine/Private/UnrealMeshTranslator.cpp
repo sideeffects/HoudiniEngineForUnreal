@@ -1027,6 +1027,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	UStaticMesh* StaticMesh,
 	UStaticMeshComponent* StaticMeshComponent)
 {
+	bool bDoTiming = CVarHoudiniEngineMeshBuildTimer.GetValueOnAnyThread() != 0.0;
+
 	// Convert the Mesh using FStaticMeshLODResources
 
 	// Check that the mesh is not empty
@@ -1059,6 +1061,11 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	// words, in Houdini terminology, the number of points and vertices are the same. We'll do the same thing that Epic
 	// does in FBX export: we'll run through all vertex instances and use a hash to determine which instances share a 
 	// position, so that we can a smaller number of points than vertices, and vertices share point positions
+
+	bool bDoTimings = CVarHoudiniEngineMeshBuildTimer.GetValueOnAnyThread() != 0.0;
+	FHoudiniPerfTimer PositionsTimer(TEXT("Positions"), bDoTimings);
+	PositionsTimer.Start();
+
 	TArray<int32> UEVertexInstanceIdxToPointIdx;
 	UEVertexInstanceIdxToPointIdx.Reserve(OrigNumVertexInstances);
 
@@ -1129,6 +1136,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	Accessor.Init(NodeId, 0, HAPI_UNREAL_ATTRIB_POSITION);
 	HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoPoint, StaticMeshVertices), false);
 
+	PositionsTimer.Stop();
 
 
 	// Determine which attributes we have
@@ -1157,6 +1165,12 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// MATERIAL INDEX -> MATERIAL INTERFACE
 	//---------------------------------------------------------------------------------------------------------------------
+
+	FHoudiniPerfTimer MaterialTimer(TEXT("Materials"), bDoTimings);
+	MaterialTimer.Start();
+
+	double MaterialsTickTime = FPlatformTime::Seconds();
+
 	TArray<UMaterialInterface*> MaterialInterfaces;
 	TArray<int32> TriangleMaterialIndices;
 
@@ -1199,6 +1213,8 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 		TriangleMaterialIndices.Reserve(NumTriangles);
 	}
 
+	MaterialTimer.Stop();
+
 	// If we haven't created UEDefaultMaterial yet, check that all the sections' MaterialIndex
 	// is valid, if not, create UEDefaultMaterial and add to MaterialInterfaces to get UEDefaultMaterialIndex
 	if (!UEDefaultMaterial || UEDefaultMaterialIndex == INDEX_NONE)
@@ -1223,6 +1239,25 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 	// Determine the final number of materials we have, with default for missing/invalid indices
 	const int32 NumMaterials = MaterialInterfaces.Num();
+
+	if(bDoTiming)
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("CreateInputNodeForStaticMeshLODResources() - materials %f secs"), FPlatformTime::Seconds() - MaterialsTickTime);
+	}
+
+	FHoudiniPerfTimer MakeUVTimer(TEXT("UV Make"), bDoTimings);
+	FHoudiniPerfTimer MakeNormalTimer(TEXT("Normals Make"), bDoTimings);
+	FHoudiniPerfTimer MakeTangentTimer(TEXT("Tangents Make"), bDoTimings);
+	FHoudiniPerfTimer MakeBinormalTimer(TEXT("Binormals Make"), bDoTimings);
+	FHoudiniPerfTimer MakeColorsTimer(TEXT("Colors Make"), bDoTimings);
+	FHoudiniPerfTimer MakeAlphasTimer(TEXT("Alphas Make"), bDoTimings);
+
+	FHoudiniPerfTimer TransferUVTimer(TEXT("UV Transfer"), bDoTimings);
+	FHoudiniPerfTimer TransferNormalTimer(TEXT("Normals Transfer"), bDoTimings);
+	FHoudiniPerfTimer TransferTangentTimer(TEXT("Tangents Transfer"), bDoTimings);
+	FHoudiniPerfTimer TransferBinormalTimer(TEXT("Binormals Transfer"), bDoTimings);
+	FHoudiniPerfTimer TransferColorsTimer(TEXT("Colors Transfer"), bDoTimings);
+	FHoudiniPerfTimer TransferAlphasTimer(TEXT("Alphas Transfer"), bDoTimings);
 
 	// Now we deal with vertex instance attributes. 
 	if (NumTriangles > 0)
@@ -1302,6 +1337,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					//--------------------------------------------------------------------------------------------------------------------- 
 					if (bIsVertexInstanceUVsValid)
 					{
+						MakeUVTimer.Start();
 						for (uint32 UVLayerIndex = 0; UVLayerIndex < NumUVLayers; ++UVLayerIndex)
 						{
 							const FVector2f &UV = LODResources.VertexBuffers.StaticMeshVertexBuffer.GetVertexUV(UEVertexIndex, UVLayerIndex);
@@ -1309,6 +1345,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 							UVs[UVLayerIndex][Float3Index + 1] = 1.0f - UV.Y;
 							UVs[UVLayerIndex][Float3Index + 2] = 0;
 						}
+						MakeUVTimer.Stop();
 					}
 
 					//--------------------------------------------------------------------------------------------------------------------- 
@@ -1316,10 +1353,12 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					//---------------------------------------------------------------------------------------------------------------------
 					if (bIsVertexInstanceNormalsValid)
 					{
+						MakeNormalTimer.Start();
 						const FVector4f &Normal = LODResources.VertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(UEVertexIndex);
 						Normals[Float3Index + 0] = Normal.X;
 						Normals[Float3Index + 1] = Normal.Z;
 						Normals[Float3Index + 2] = Normal.Y;
+						MakeNormalTimer.Stop();
 					}
 
 					//--------------------------------------------------------------------------------------------------------------------- 
@@ -1327,10 +1366,12 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					//---------------------------------------------------------------------------------------------------------------------
 					if (bIsVertexInstanceTangentsValid)
 					{
+						MakeTangentTimer.Start();
 						const FVector4f &Tangent = LODResources.VertexBuffers.StaticMeshVertexBuffer.VertexTangentX(UEVertexIndex);
 						Tangents[Float3Index + 0] = Tangent.X;
 						Tangents[Float3Index + 1] = Tangent.Z;
 						Tangents[Float3Index + 2] = Tangent.Y;
+						MakeTangentTimer.Stop();
 					}
 
 					//--------------------------------------------------------------------------------------------------------------------- 
@@ -1339,10 +1380,12 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					// In order to calculate the binormal we also need the tangent and normal
 					if (bIsVertexInstanceBinormalsValid)
 					{
+						MakeBinormalTimer.Start();
 						FVector3f Binormal = LODResources.VertexBuffers.StaticMeshVertexBuffer.VertexTangentY(UEVertexIndex);
 						Binormals[Float3Index + 0] = Binormal.X;
 						Binormals[Float3Index + 1] = Binormal.Z;
 						Binormals[Float3Index + 2] = Binormal.Y;
+						MakeBinormalTimer.Stop();
 					}
 
 					//--------------------------------------------------------------------------------------------------------------------- 
@@ -1350,6 +1393,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 					//---------------------------------------------------------------------------------------------------------------------
 					if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
 					{
+						MakeColorsTimer.Start();
 						FLinearColor Color = FLinearColor::White;
 						if (bUseComponentOverrideColors)
 						{
@@ -1365,6 +1409,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 						RGBColors[Float3Index + 1] = Color.G;
 						RGBColors[Float3Index + 2] = Color.B;
 						Alphas[HoudiniVertexIdx] = Color.A;
+						MakeColorsTimer.Stop();
 					}
 
 					//--------------------------------------------------------------------------------------------------------------------- 
@@ -1402,6 +1447,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 		//--------------------------------------------------------------------------------------------------------------------- 
 		if (bIsVertexInstanceUVsValid)
 		{
+			TransferUVTimer.Start();
 			for (uint32 UVLayerIndex = 0; UVLayerIndex < NumUVLayers; UVLayerIndex++)
 			{
 				// Construct the attribute name for this UV index.
@@ -1427,6 +1473,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				Accessor.Init(NodeId, 0, TCHAR_TO_ANSI(*UVAttributeName));
 				HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, UVs[UVLayerIndex]), false);
 			}
+			TransferUVTimer.Stop();
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -1434,6 +1481,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 		//---------------------------------------------------------------------------------------------------------------------
 		if (bIsVertexInstanceNormalsValid)
 		{
+			TransferNormalTimer.Start();
 			// Create attribute for normals.
 			HAPI_AttributeInfo AttributeInfoVertex;
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
@@ -1451,6 +1499,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 			Accessor.Init(NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL);
 			HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, Normals), false);
+			TransferNormalTimer.Stop();
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -1458,6 +1507,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 		//---------------------------------------------------------------------------------------------------------------------
 		if (bIsVertexInstanceTangentsValid)
 		{
+			TransferTangentTimer.Start();
 			// Create attribute for tangentu.
 			HAPI_AttributeInfo AttributeInfoVertex;
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
@@ -1475,6 +1525,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 			Accessor.Init(NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU);
 			HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, Tangents), false);
+			TransferTangentTimer.Stop();
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -1482,6 +1533,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 		//---------------------------------------------------------------------------------------------------------------------
 		if (bIsVertexInstanceBinormalsValid)
 		{
+			TransferBinormalTimer.Start();
 			// Create attribute for normals.
 			HAPI_AttributeInfo AttributeInfoVertex;
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
@@ -1499,6 +1551,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 			Accessor.Init(NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV);
 			HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, Binormals), false);
+			TransferBinormalTimer.Stop();
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -1506,6 +1559,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 		//---------------------------------------------------------------------------------------------------------------------
 		if (bUseComponentOverrideColors || bIsVertexInstanceColorsValid)
 		{
+			TransferColorsTimer.Start();
 			// Create attribute for colors.
 			HAPI_AttributeInfo AttributeInfoVertex;
 			FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
@@ -1538,6 +1592,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 			Accessor.Init(NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA);
 			HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, Alphas), false);
+			TransferColorsTimer.Stop();
 		}
 
 		//--------------------------------------------------------------------------------------------------------------------- 
@@ -1570,6 +1625,10 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 			bool bAttributeSuccess = false;
 			FString PhysicalMaterialPath = GetSimplePhysicalMaterialPath(StaticMesh->GetBodySetup());
+
+			FHoudiniPerfTimer MaterialFaceArray(TEXT("MaterialFaceArray"), bDoTimings);
+			MaterialFaceArray.Start();
+
 			if (bInExportMaterialParametersAsAttributes)
 			{
 				// Create attributes for the material and all its parameters
@@ -1590,7 +1649,11 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				FUnrealMeshTranslator::CreateFaceMaterialArray(
 					MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials);
 			}
-						
+			MaterialFaceArray.Stop();
+
+			FHoudiniPerfTimer MeshAttributes(TEXT("Mesh Attributes"), bDoTimings);
+			MeshAttributes.Start();
+
 			// Create all the needed attributes for materials
 			bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 				NodeId,
@@ -1604,10 +1667,13 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				PhysicalMaterialPath,
 				StaticMesh->NaniteSettings);
 
+			MeshAttributes.Stop();
+
 			if (!bAttributeSuccess)
 			{
 				return false;
 			}
+
 		}
 
 		// TODO: The render mesh (LODResources) does not have face smoothing information, and the raw mesh triangle order is
@@ -2141,6 +2207,11 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 	AttributeInfoPoint.storage = HAPI_STORAGETYPE_FLOAT;
 	AttributeInfoPoint.originalOwner = HAPI_ATTROWNER_INVALID;
 
+	bool bDoTimings = CVarHoudiniEngineMeshBuildTimer.GetValueOnAnyThread() != 0.0;
+
+	FHoudiniPerfTimer PositionsTimer(TEXT("Positions"), bDoTimings);
+	PositionsTimer.Start();
+
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 		FHoudiniEngine::Get().GetSession(), NodeId, 0,
 		HAPI_UNREAL_ATTRIB_POSITION, &AttributeInfoPoint), false);
@@ -2179,6 +2250,8 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 		FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_POSITION);
 		HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoPoint, StaticMeshVertices), false);
 	}
+
+	PositionsTimer.Stop();
 
 	//--------------------------------------------------------------------------------------------------------------------- 
 	// MATERIAL SLOT -> MATERIAL INTERFACE
@@ -2295,6 +2368,20 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 	// // and then get and convert all valid and supported vertex instance attributes from UE
 	// TArray<int32> VertexInstanceIDToHIndex;
 
+	FHoudiniPerfTimer MakeUVTimer(TEXT("UV Make"), bDoTimings);
+	FHoudiniPerfTimer MakeNormalTimer(TEXT("Normals Make"), bDoTimings);
+	FHoudiniPerfTimer MakeTangentTimer(TEXT("Tangents Make"), bDoTimings);
+	FHoudiniPerfTimer MakeBinormalTimer(TEXT("Binormals Make"), bDoTimings);
+	FHoudiniPerfTimer MakeColorsTimer(TEXT("Colors Make"), bDoTimings);
+	FHoudiniPerfTimer MakeAlphasTimer(TEXT("Alphas Make"), bDoTimings);
+
+	FHoudiniPerfTimer TransferUVTimer(TEXT("UV Transfer"), bDoTimings);
+	FHoudiniPerfTimer TransferNormalTimer(TEXT("Normals Transfer"), bDoTimings);
+	FHoudiniPerfTimer TransferTangentTimer(TEXT("Tangents Transfer"), bDoTimings);
+	FHoudiniPerfTimer TransferBinormalTimer(TEXT("Binormals Transfer"), bDoTimings);
+	FHoudiniPerfTimer TransferColorsTimer(TEXT("Colors Transfer"), bDoTimings);
+	FHoudiniPerfTimer TransferAlphasTimer(TEXT("Alphas Transfer"), bDoTimings);
+
 	if (NumTriangles > 0)
 	{
 		// UV layer array. Each layer has an array of floats, 3 floats per vertex instance
@@ -2377,6 +2464,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 					    //--------------------------------------------------------------------------------------------------------------------- 
 					    if (bIsVertexInstanceUVsValid)
 					    {
+							MakeUVTimer.Start();
 						    for (int32 UVLayerIndex = 0; UVLayerIndex < NumUVLayers; ++UVLayerIndex)
 						    {
 							    const FVector2f &UV = VertexInstanceUVs.Get(VertexInstanceID, UVLayerIndex);
@@ -2384,6 +2472,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 							    UVs[UVLayerIndex][Float3Index + 1] = 1.0f - UV.Y;
 							    UVs[UVLayerIndex][Float3Index + 2] = 0;
 						    }
+							MakeUVTimer.Stop();
 					    }
 
 					    //--------------------------------------------------------------------------------------------------------------------- 
@@ -2391,10 +2480,12 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 					    //---------------------------------------------------------------------------------------------------------------------
 					    if (bIsVertexInstanceNormalsValid)
 					    {
+							MakeNormalTimer.Start();
 						    const FVector3f &Normal = VertexInstanceNormals.Get(VertexInstanceID);
 						    Normals[Float3Index + 0] = Normal.X;
 						    Normals[Float3Index + 1] = Normal.Z;
 						    Normals[Float3Index + 2] = Normal.Y;
+							MakeNormalTimer.Stop();
 					    }
 
 					    //--------------------------------------------------------------------------------------------------------------------- 
@@ -2402,10 +2493,12 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 					    //---------------------------------------------------------------------------------------------------------------------
 					    if (bIsVertexInstanceTangentsValid)
 					    {
+							MakeTangentTimer.Start();
 						    const FVector3f &Tangent = VertexInstanceTangents.Get(VertexInstanceID);
 						    Tangents[Float3Index + 0] = Tangent.X;
 						    Tangents[Float3Index + 1] = Tangent.Z;
 						    Tangents[Float3Index + 2] = Tangent.Y;
+							MakeTangentTimer.Stop();
 					    }
 
 					    //--------------------------------------------------------------------------------------------------------------------- 
@@ -2414,6 +2507,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 					    // In order to calculate the binormal we also need the tangent and normal
 					    if (bIsVertexInstanceBinormalSignsValid && bIsVertexInstanceTangentsValid && bIsVertexInstanceNormalsValid)
 					    {
+							MakeBinormalTimer.Start();
 						    const float &BinormalSign = VertexInstanceBinormalSigns.Get(VertexInstanceID);
 						    FVector Binormal = FVector::CrossProduct(
 							    FVector(Tangents[Float3Index + 0], Tangents[Float3Index + 1], Tangents[Float3Index + 2]),
@@ -2422,6 +2516,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 						    Binormals[Float3Index + 0] = (float)Binormal.X;
 						    Binormals[Float3Index + 1] = (float)Binormal.Y;
 						    Binormals[Float3Index + 2] = (float)Binormal.Z;
+							MakeBinormalTimer.Stop();
 					    }
 
 					    //--------------------------------------------------------------------------------------------------------------------- 
@@ -2429,6 +2524,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 					    //---------------------------------------------------------------------------------------------------------------------
 					    if (bExportVertexColors && bIsVertexInstanceColorsValid)
 					    {
+							MakeColorsTimer.Start();
 						    FLinearColor Color = FLinearColor::White;
 							// Convert from SRGB to Linear. Unfortunately UE only provides this via the FColor()
 							// structure, so we loose precision as we have to convert to 8-bit and back to 32-bit.
@@ -2438,11 +2534,13 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 						    RGBColors[Float3Index + 1] = Color.G;
 						    RGBColors[Float3Index + 2] = Color.B;
 						    Alphas[VertexInstanceIdx] = Color.A;
+							MakeColorsTimer.Stop();
 					    }
 
 					    //--------------------------------------------------------------------------------------------------------------------- 
 					    // TRIANGLE/FACE VERTEX INDICES
 					    //---------------------------------------------------------------------------------------------------------------------
+
 					    const FVertexID& VertexID = MeshDescription.GetVertexInstanceVertex(VertexInstanceID);
 					    const int32 UEVertexIdx = VertexID.GetValue();
 					    if (VertexIDToHIndex.IsValidIndex(UEVertexIdx))
@@ -2474,6 +2572,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 		    //--------------------------------------------------------------------------------------------------------------------- 
 		    if (bIsVertexInstanceUVsValid)
 		    {
+				TransferUVTimer.Start();
 			    for (int32 UVLayerIndex = 0; UVLayerIndex < NumUVLayers; UVLayerIndex++)
 			    {
 				    // Construct the attribute name for this UV index.
@@ -2499,6 +2598,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 					FHoudiniHapiAccessor Accessor(NodeId, 0, TCHAR_TO_ANSI(*UVAttributeName));
 					HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, UVs[UVLayerIndex]), false);
 			    }
+				TransferUVTimer.Stop();
 		    }
 
 		    //--------------------------------------------------------------------------------------------------------------------- 
@@ -2506,6 +2606,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 		    //---------------------------------------------------------------------------------------------------------------------
 		    if (bIsVertexInstanceNormalsValid)
 		    {
+				TransferNormalTimer.Start();
 			    // Create attribute for normals.
 			    HAPI_AttributeInfo AttributeInfoVertex;
 			    FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
@@ -2523,6 +2624,8 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 
 				FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL);
 				HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, Normals), false);
+
+				TransferNormalTimer.Stop();
 		    }
 
 		    //--------------------------------------------------------------------------------------------------------------------- 
@@ -2530,6 +2633,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 		    //---------------------------------------------------------------------------------------------------------------------
 		    if (bIsVertexInstanceTangentsValid)
 		    {
+				TransferTangentTimer.Start();
 			    // Create attribute for tangentu.
 			    HAPI_AttributeInfo AttributeInfoVertex;
 			    FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
@@ -2547,6 +2651,8 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 
 				FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU);
 				HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, Tangents), false);
+
+				TransferTangentTimer.Stop();
 		    }
 
 		    //--------------------------------------------------------------------------------------------------------------------- 
@@ -2554,6 +2660,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 		    //---------------------------------------------------------------------------------------------------------------------
 		    if (bIsVertexInstanceBinormalSignsValid)
 		    {
+				TransferBinormalTimer.Start();
 			    // Create attribute for normals.
 			    HAPI_AttributeInfo AttributeInfoVertex;
 			    FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
@@ -2571,6 +2678,8 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 
 				FHoudiniHapiAccessor Accessor(NodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV);
 				HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, Binormals), false);
+
+				TransferBinormalTimer.Stop();
 		    }
 
 		    //--------------------------------------------------------------------------------------------------------------------- 
@@ -2578,6 +2687,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 		    //---------------------------------------------------------------------------------------------------------------------
 		    if (bExportVertexColors && bIsVertexInstanceColorsValid)
 		    {
+				TransferColorsTimer.Start();
 			    // Create attribute for colors.
 			    HAPI_AttributeInfo AttributeInfoVertex;
 			    FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
@@ -2610,6 +2720,8 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 
 				Accessor.Init(NodeId, 0, HAPI_UNREAL_ATTRIB_ALPHA);
 				HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoVertex, Alphas), false);
+
+				TransferColorsTimer.Stop();
 		    }
 
 		    //--------------------------------------------------------------------------------------------------------------------- 
@@ -2640,6 +2752,9 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
                 TMap<FString, FHoudiniEngineIndexedStringMap> TextureMaterialParameters;
 				TMap<FString, TArray<int8>>BoolMaterialParameters;
 
+				FHoudiniPerfTimer TransferFaceArray(TEXT("Face Material Array"), bDoTimings);
+				TransferFaceArray.Start();
+
 				bool bAttributeSuccess = false;
 				if (bInExportMaterialParametersAsAttributes)
 				{
@@ -2661,6 +2776,10 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 				    FUnrealMeshTranslator::CreateFaceMaterialArray(
 					    MaterialInterfaces, TriangleMaterialIndices, TriangleMaterials);
 			    }
+				TransferFaceArray.Stop();
+
+				FHoudiniPerfTimer TransferMeshAttributes(TEXT("Mesh Attributes"), bDoTimings);
+				TransferMeshAttributes.Start();
 
 			    // Create all the needed attributes for materials
 			    bAttributeSuccess = FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
@@ -2675,6 +2794,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 				    PhysicalMaterialPath,
 					NaniteSettings);
 
+				TransferMeshAttributes.Stop();
 			    if (!bAttributeSuccess)
 			    {
 					HOUDINI_LOG_ERROR(TEXT("Failed to Create Mesh Attributes."));

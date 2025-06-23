@@ -33,6 +33,12 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniApi.h"
 
+extern TAutoConsoleVariable<float> CVarHoudiniEngineAccessorTimers(
+	TEXT("HoudiniEngine.AccessorStats"),
+	0.0,
+	TEXT("When non-zero, the plugin will output stats about attributes. 1 == on, 2 == more detail.\n")
+);
+
 #define THRIFT_MAX_CHUNKSIZE			10 * 1024 * 1024
 
 struct FHoudiniRawAttributeData
@@ -400,6 +406,11 @@ template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeArrayData(con
 
 template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeData(const HAPI_AttributeInfo& AttributeInfo, TArray<DataType>& Results, int IndexStart, int IndexCount)
 {
+	bool bDoTimings = CVarHoudiniEngineAccessorTimers.GetValueOnAnyThread() != 0.0;
+
+	FHoudiniPerfTimer Timer(TEXT(""), bDoTimings);
+	Timer.Start();
+
 	if (!AttributeInfo.exists)
 		return false;
 
@@ -407,6 +418,7 @@ template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeData(const HA
 		IndexCount = AttributeInfo.count;
 
 	int TotalCount;
+	bool bSuccess = false;
 	if (IsHapiArrayType(AttributeInfo.storage))
 	{
 		if(!bCanBeArray)
@@ -424,7 +436,7 @@ template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeData(const HA
 
 		TArray<int> Sizes;
 		Results.SetNum(AttributeInfo.totalArrayElements);
-		return GetAttributeArrayData(AttributeInfo, Results, Sizes, 0, 1);
+		bSuccess = GetAttributeArrayData(AttributeInfo, Results, Sizes, 0, 1);
 
 	}
 	else
@@ -432,10 +444,20 @@ template<typename DataType> bool FHoudiniHapiAccessor::GetAttributeData(const HA
 		TotalCount = IndexCount * AttributeInfo.tupleSize;
 		Results.SetNum(TotalCount);
 
-		return GetAttributeData(AttributeInfo, Results.GetData(), IndexStart, IndexCount);
+		bSuccess = GetAttributeData(AttributeInfo, Results.GetData(), IndexStart, IndexCount);
 
 	}
 
+	Timer.Stop();
+	if((Timer.GetTime() > 0.0) && bDoTimings)
+	{
+		FString AttrText = this->AttributeName;
+		double SizeInMb = (sizeof(DataType) * AttributeInfo.tupleSize * IndexCount) / 1000000.0;
+		double MbPerSec = SizeInMb / Timer.GetTime();
+		HOUDINI_LOG_MESSAGE(TEXT("Received %s, %.3f MB in %.3f seconds (%.3fMB/s)"), *AttrText, SizeInMb, Timer.GetTime(), MbPerSec);
+	}
+
+	return bSuccess;
 }
 
 template<typename DataType>
@@ -644,6 +666,10 @@ bool FHoudiniHapiAccessor::SetAttributeDataMultiSession(const HAPI_AttributeInfo
 {
 	H_SCOPED_FUNCTION_DYNAMIC_LABEL(FString::Printf(TEXT("FHoudiniAttributeAccessor::SetAttributeDataMultiSession (%s)"), ANSI_TO_TCHAR(AttributeName)));
 
+	bool bDoTiming = CVarHoudiniEngineAccessorTimers.GetValueOnAnyThread() != 0.0;
+	FHoudiniPerfTimer Timer(TEXT(""), bDoTiming);
+	Timer.Start();
+
 	if (IndexCount == -1)
 		IndexCount = AttributeInfo.count;
 
@@ -671,6 +697,16 @@ bool FHoudiniHapiAccessor::SetAttributeDataMultiSession(const HAPI_AttributeInfo
 
 	bool bSuccess = ExecuteTasksWithSessions(Tasks, NumSessions);
 
+	Timer.Stop();
+	if((Timer.GetTime() > 0.0) && bDoTiming)
+	{
+		FString AttrText = this->AttributeName;
+		double SizeInMb = (sizeof(DataType) * AttributeInfo.tupleSize * IndexCount) / 1000000.0;
+		double MbPerSec = SizeInMb / Timer.GetTime();
+		HOUDINI_LOG_MESSAGE(TEXT("Sent %s, %.3f MB in %.3f seconds (%.3fMB/s)"), *AttrText, SizeInMb, Timer.GetTime(), MbPerSec);
+	}
+
+
 	return bSuccess;
 }
 
@@ -684,6 +720,13 @@ HAPI_Result FHoudiniHapiAccessor::SendHapiData(const HAPI_Session* Session, cons
 		RunLengths = FHoudiniEngineUtils::RunLengthEncode(Data, AttributeInfo.tupleSize, IndexCount);
 
 	HAPI_Result Result = HAPI_RESULT_FAILURE;
+
+	bool bDoTimings = CVarHoudiniEngineAccessorTimers.GetValueOnAnyThread() == 2.0;
+
+	FString TimerName = UTF8_TO_TCHAR(this->AttributeName);
+	FHoudiniPerfTimer Timer(FString::Printf(TEXT("Transmission Time %s"), *TimerName), bDoTimings);
+
+	Timer.Start();
 
 	if (RunLengths.Num() > 0)
 	{
@@ -747,7 +790,7 @@ HAPI_Result FHoudiniHapiAccessor::SendHapiData(const HAPI_Session* Session, cons
 			if (Result != HAPI_RESULT_SUCCESS)
 				return Result;
 		}
-		return HAPI_RESULT_SUCCESS;
+		Result = HAPI_RESULT_SUCCESS;
 	}
 	else
 	{
@@ -801,6 +844,9 @@ HAPI_Result FHoudiniHapiAccessor::SendHapiData(const HAPI_Session* Session, cons
 			FHoudiniEngineUtils::FreeRawStringMemory(StringDataArray);
 		}
 	}
+
+	Timer.Stop();
+
 	return Result;
 }
 
