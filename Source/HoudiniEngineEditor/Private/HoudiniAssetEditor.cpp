@@ -215,13 +215,17 @@ FHoudiniAssetEditor::SpawnDetailsTab(const FSpawnTabArgs& Args)
 TSharedRef<SDockTab> 
 FHoudiniAssetEditor::SpawnNodeSyncTab(const FSpawnTabArgs& Args)
 {
+	// Set the Node Sync panel to the AssetEditor mode
+	//NodeSyncPanel->SetIsAssetEditorPanel(true);
+
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
 		.Label(LOCTEXT("NodeSyncTabTitle", "Node Sync"))
 		[
 			SAssignNew(NodeSyncPanel, SHoudiniNodeSyncPanel)
+			.IsAssetEditor(true)
 		];
-
+	
 	SpawnedTab->SetTabIcon(FHoudiniEngineStyle::Get()->GetBrush("HoudiniEngine.HoudiniEngineLogo"));
 
 	return SpawnedTab;

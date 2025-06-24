@@ -75,6 +75,8 @@ SHoudiniNodeSyncPanel::~SHoudiniNodeSyncPanel()
 void
 SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 {
+	bIsAssetEditorPanel = InArgs._IsAssetEditor.Get();
+
 	UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
 	TSharedPtr<SHorizontalBox> HoudiniLogoBox;
 	TSharedPtr<SExpandableArea> ImportOptionsArea;
@@ -170,824 +172,834 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 		"The path of the nodes in Houdini that you want to fetch.\ne.g /obj/MyNetwork/Mynode \nThe paths can easily be obtained by using the browse button and selecting them in the dialog.\
 		\nAlternatively, you can copy/paste a node to this text box to get its path.\nMultiple paths can be separated by using ; delimiters.";
 	
+	TSharedPtr<SVerticalBox> NodeSyncVerticalBox;
 	ChildSlot
 	[
 		SNew(SScrollBox)
 		.Orientation(Orient_Vertical)
 		+ SScrollBox::Slot()
 		[
-			//------------------------------------------------------------------------------------------
-			// Session status
-			//------------------------------------------------------------------------------------------
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.Padding(15.0, 0.0, 0.0, 0.0)
-			.AutoHeight()
-			[
-				SNew(SBox)
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Top)
-				.MinDesiredWidth(500.0)
-				[
-					SAssignNew(HoudiniLogoBox, SHorizontalBox)
-				]
-			]
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(15.0, 0.0, 15.0, 15.0)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.Padding(2.0f, 0.0f)
-				.VAlign(VAlign_Top)
-				[
-					SNew(STextBlock)
-					.Justification(ETextJustify::Left)
-					.Text_Lambda([GetSessionSyncStatusAndColor]()
-					{
-						FString StatusString;
-						FLinearColor StatusColor;
-						GetSessionSyncStatusAndColor(StatusString, StatusColor);
-						return FText::FromString(StatusString);
-					})
-					.ColorAndOpacity_Lambda([GetSessionSyncStatusAndColor]()
+			SAssignNew(NodeSyncVerticalBox, SVerticalBox)
+		]
+	];
+	
+	//------------------------------------------------------------------------------------------
+	// Session status
+	//------------------------------------------------------------------------------------------
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Left)
+	.Padding(15.0, 0.0, 0.0, 0.0)
+	.AutoHeight()
+	[
+		SNew(SBox)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Top)
+		.MinDesiredWidth(500.0)
+		[
+			SAssignNew(HoudiniLogoBox, SHorizontalBox)
+		]
+	];
+	
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Left)
+	.AutoHeight()
+	.Padding(15.0, 0.0, 15.0, 15.0)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Top)
+		[
+			SNew(STextBlock)
+			.Justification(ETextJustify::Left)
+			.Text_Lambda([GetSessionSyncStatusAndColor]()
+			{
+				FString StatusString;
+				FLinearColor StatusColor;
+				GetSessionSyncStatusAndColor(StatusString, StatusColor);
+				return FText::FromString(StatusString);
+				})
+				.ColorAndOpacity_Lambda([GetSessionSyncStatusAndColor]()
 					{
 						FString StatusString;
 						FLinearColor StatusColor;
 						GetSessionSyncStatusAndColor(StatusString, StatusColor);
 						return FSlateColor(StatusColor);
 					})
-				]			
-			]
+		]
+	];
 
-			//------------------------------------------------------------------------------------------
-			// FETCH from Houdini
-			//------------------------------------------------------------------------------------------
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(10.0, 20.0, 0.0, 15.0)
+	//------------------------------------------------------------------------------------------
+	// FETCH from Houdini
+	//------------------------------------------------------------------------------------------
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Left)
+	.AutoHeight()
+	.Padding(10.0, 20.0, 0.0, 15.0)
+	[
+		SNew(SBox)
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Top)
+		[
+			SNew(STextBlock)
+			.Font(BoldFontStyle)
+			.Text(LOCTEXT("FetchLabel", "FETCH from Houdini"))
+		]
+	];
+
+	// HOUDINI NODE PATH
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Left)
+	.AutoHeight()
+	.Padding(10.0, 0.0, 0.0, 5.0)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Left)
+		//.MaxWidth(HAPI_UNREAL_DESIRED_SETTINGS_ROW_FULL_WIDGET_WIDTH)
+		[
+			SNew(SBox)
+			.WidthOverride(335.0f)
+			//.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+			.ToolTipText(FText::FromString(FetchPathTooltipString))
 			[
-				SNew(SBox)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Top)
+				SNew(STextBlock)
+				.Text(LOCTEXT("FetchNodePathLabel", "Houdini Node Paths To Fetch"))
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Left)
+		//.FillWidth(1.0f)
+		[
+			SNew(SEditableTextBox)
+			.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+			.ToolTipText_Lambda([FetchPathTooltipString]()
+			{
+				FString TooltipString = FetchPathTooltipString;
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				if (!HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.FetchNodePath.IsEmpty())
+				{
+					TooltipString += "\n\nCurrent value:\n";
+					TooltipString += HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.FetchNodePath.Replace(TEXT(";"), TEXT("\n"));
+				}
+
+				return FText::FromString(TooltipString);
+			})
+			.HintText(LOCTEXT("NodePathLabel", "Houdini Node Paths To Fetch"))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Text_Lambda([]()
+			{
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.FetchNodePath);
+			})
+			.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
+			{
+				FString NewPathStr = Val.ToString();
+
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.FetchNodePath = NewPathStr;
+			})
+		]
+
+		+ SHorizontalBox::Slot()
+		.Padding(5.0, 0.0, 0.0, 0.0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SButton)
+			//.ContentPadding(FMargin(6.0, 2.0))
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.IsEnabled(true)
+			.Text(LOCTEXT("BrowseButtonText", "..."))
+			.ToolTipText(LOCTEXT("FetchBrowseButtonToolTip", "Browse to select the nodes to fetch..."))
+			.OnClicked_Lambda(OnFetchFolderBrowseButtonClickedLambda)
+		]
+	];
+
+	// USE OUTPUT NODE
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Left)
+	.AutoHeight()
+	.Padding(10.0f, 0.0f, 0.0f, 5.0f)
+	[
+		SNew(SBox)
+		.WidthOverride(160.f)
+		[
+			SAssignNew(CheckBoxUseOutputNodes, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock).Text(LOCTEXT("UseOutputNodes", "Use Output Nodes"))
+				.ToolTipText(LOCTEXT("UseOutputNodesToolTip", "If enabled, output nodes will be prefered over the display flag when fetching a node's data."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([]()
+			{
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				return HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bUseOutputNodes ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
+			{
+				const bool bNewState = (NewState == ECheckBoxState::Checked);
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bUseOutputNodes = bNewState;
+			})
+		]
+	];
+
+	// REPLACE EXISTING
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Left)
+	.AutoHeight()
+	.Padding(10.0f, 0.0f, 0.0f, 5.0f)
+	[
+		SNew(SBox)
+		.WidthOverride(160.f)
+		[
+			SAssignNew(CheckBoxReplaceExisting, SCheckBox)
+			.Content()
+			[
+				SNew(STextBlock).Text(LOCTEXT("ReplaceExisting", "Replace Existing Assets/Actors"))
+				.ToolTipText(LOCTEXT("ReplaceExisitngToolTip", "If enabled, existing Assets or Actors will be overwritten and replaced by the newly fetched data."))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+			.IsChecked_Lambda([]()
+			{
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				return HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bReplaceExisting ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			})
+			.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
+			{
+				const bool bNewState = (NewState == ECheckBoxState::Checked);
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bReplaceExisting = bNewState;
+			})
+		]
+	];
+
+	// UNREAL ASSET NAME
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Left)
+	.AutoHeight()
+	.Padding(10.0, 0.0, 0.0, 5.0)
+	[
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.HAlign(HAlign_Left)
+		[
+			SNew(SBox)
+			.WidthOverride(335.0f)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("UnrealAssetName", "Unreal Asset Name"))
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Right)
+		//.AutoWidth()
+		[
+			SNew(SEditableTextBox)
+			.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH + 45)
+			.ToolTipText(LOCTEXT("UnrealAssetNameTooltip",
+				"Name to be given to the fetched data in Unreal.\nLeaving this field empty will use the node name for the unreal names."))
+			.HintText(LOCTEXT("UnrealAssetNameLabel", "Name the of Asset in Unreal"))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Text_Lambda([]()
+			{
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealAssetName);
+			})
+			.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
+			{
+				FString NewPathStr = Val.ToString();
+
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealAssetName = NewPathStr;
+			})
+		]
+	];
+
+	// UNREAL ASSET FOLDER
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Left)
+	.AutoHeight()
+	.Padding(10.0, 0.0, 0.0, 5.0)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Left)
+		[
+			SNew(SBox)
+			.WidthOverride(335.0f)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("UnrealAssetFolder", "Unreal Asset Import Folder"))
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Right)
+		[
+			SNew(SEditableTextBox)
+			.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+			.ToolTipText(LOCTEXT("UnrealAssetFolderTooltip","Path to the project folder that will contain the generated assets in unreal"))
+			.HintText(LOCTEXT("UnrealAssetFolderLabel", "Unreal Asset Import Folder"))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Text_Lambda([]()
+			{
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealAssetFolder);
+			})
+			.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
+			{
+				FString NewPathStr = Val.ToString();
+
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealAssetFolder = NewPathStr;
+			})
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(5.0, 0.0, 0.0, 0.0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SButton)
+			//.ContentPadding(FMargin(6.0, 2.0))
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.IsEnabled(true)
+			.Text(LOCTEXT("BrowseButtonText", "..."))
+			.ToolTipText(LOCTEXT("ImportFolderBrowseButtonToolTip", "Browse to select the Import Asset folder..."))
+			.OnClicked_Lambda(OnImportFolderBrowseButtonClickedLambda)
+		]
+		/*
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(5.0, 0.0, 0.0, 0.0)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SButton)
+			//.ContentPadding(FMargin(6.0, 2.0))
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.IsEnabled(true)
+			.Text(LOCTEXT("ResetButtonText", "Reset"))
+			.ToolTipText(LOCTEXT("CookFolderResetButtonToolTip", "Reset the cook folder to default setting"))
+			.OnClicked_Lambda(OnImportFolderBrowseButtonClickedLambda)
+		];
+		*/
+	];
+
+	if (!bIsAssetEditorPanel)
+	{
+		// FETCH TO WORLD?
+		NodeSyncVerticalBox->AddSlot()
+		.HAlign(HAlign_Left)
+		.AutoHeight()
+		.Padding(10.0f, 0.0f, 0.0f, 5.0f)
+		[
+			SNew(SBox)
+			.WidthOverride(160.f)
+			//.IsEnabled(false)
+			[
+				SAssignNew(CheckBoxFetchToWorld, SCheckBox)
+				.Content()
 				[
-					SNew(STextBlock)
-					.Font(BoldFontStyle)
-					.Text(LOCTEXT("FetchLabel", "FETCH from Houdini"))
+					SNew(STextBlock).Text(LOCTEXT("FetchToWorld", "Fetch to World Outliner"))
+					.ToolTipText(LOCTEXT("FetchToWorldToolTip", "If enabled, the data fetched from Houdini will be instantiated as an Actor in the current level."))
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
+				.IsChecked_Lambda([]()
+				{
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+					return HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bFetchToWorld ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				})
+				.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
+				{
+					const bool bNewState = (NewState == ECheckBoxState::Checked);
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+					HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bFetchToWorld = bNewState;
+				})
 			]
+		];
 
-			// HOUDINI NODE PATH
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(10.0, 0.0, 0.0, 5.0)
+		// FETCH TO WORLD OPTIONS
+		NodeSyncVerticalBox->AddSlot()
+		.HAlign(HAlign_Left)
+		.AutoHeight()
+		.Padding(10.0, 0.0, 0.0, 5.0)
+		[
+			SAssignNew(FetchToWorldOptionsArea, SExpandableArea)
+			.InitiallyCollapsed(true)
+			.HeaderContent()
 			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
+				SNew(STextBlock)
+				.Text(LOCTEXT("FetchToWorldOptions", "Fetch to World Options"))
+				.Font(FAppStyle::Get().GetFontStyle("DetailsView.CategoryFontStyle"))
+				.ShadowOffset(FVector2D(1.0f, 1.0f))
+			]
+			.BodyContent()
+			[
+				SNew(SVerticalBox)
+				// AutoBake?
+				+ SVerticalBox::Slot()
 				.HAlign(HAlign_Left)
-				//.MaxWidth(HAPI_UNREAL_DESIRED_SETTINGS_ROW_FULL_WIDGET_WIDTH)
+				.AutoHeight()
+				.Padding(10.0f, 0.0f, 0.0f, 5.0f)
 				[
 					SNew(SBox)
-					.WidthOverride(335.0f)
-					//.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-					.ToolTipText(FText::FromString(FetchPathTooltipString))
+					.WidthOverride(160.f)
 					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("FetchNodePathLabel", "Houdini Node Paths To Fetch"))
-					]
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				//.FillWidth(1.0f)
-				[
-					SNew(SEditableTextBox)
-					.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-					.ToolTipText_Lambda([FetchPathTooltipString]()
-					{
-						FString TooltipString = FetchPathTooltipString;
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						if (!HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.FetchNodePath.IsEmpty())
+						SAssignNew(CheckBoxAutoBake, SCheckBox)
+						.Content()
+						[
+							SNew(STextBlock).Text(LOCTEXT("AutoBake", "Auto Bake"))
+							.ToolTipText(LOCTEXT("AutoBakeToolTip", "If enabled, output data fetched to world will automatically be baked. If disabled, they will be created as temporary cooked data, and attached to a Houdini Node Sync Component."))
+							.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						]
+						.IsChecked_Lambda([]()
 						{
-							TooltipString += "\n\nCurrent value:\n";
-							TooltipString += HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.FetchNodePath.Replace(TEXT(";"), TEXT("\n"));
-						}
-
-						return FText::FromString(TooltipString);
-					})
-					.HintText(LOCTEXT("NodePathLabel", "Houdini Node Paths To Fetch"))
-					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					.Text_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.FetchNodePath);
-					})
-					.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
-					{
-						FString NewPathStr = Val.ToString();
-
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.FetchNodePath = NewPathStr;
-					})
-				]
-
-				+ SHorizontalBox::Slot()
-				.Padding(5.0, 0.0, 0.0, 0.0)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SButton)
-					//.ContentPadding(FMargin(6.0, 2.0))
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.IsEnabled(true)
-					.Text(LOCTEXT("BrowseButtonText", "..."))
-					.ToolTipText(LOCTEXT("FetchBrowseButtonToolTip", "Browse to select the nodes to fetch..."))
-					.OnClicked_Lambda(OnFetchFolderBrowseButtonClickedLambda)
-				]
-			]
-
-			// USE OUTPUT NODE
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(10.0f, 0.0f, 0.0f, 5.0f)
-			[
-				SNew(SBox)
-				.WidthOverride(160.f)
-				[
-					SAssignNew(CheckBoxUseOutputNodes, SCheckBox)
-					.Content()
-					[
-						SNew(STextBlock).Text(LOCTEXT("UseOutputNodes", "Use Output Nodes"))
-						.ToolTipText(LOCTEXT("UseOutputNodesToolTip", "If enabled, output nodes will be prefered over the display flag when fetching a node's data."))
-						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+							UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+							return HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bAutoBake ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+						})
+						.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
+						{
+							const bool bNewState = (NewState == ECheckBoxState::Checked);
+							UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+							HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bAutoBake = bNewState;
+						})
 					]
-					.IsChecked_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						return HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bUseOutputNodes ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-					})
-					.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
-					{
-						const bool bNewState = (NewState == ECheckBoxState::Checked);
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bUseOutputNodes = bNewState;
-					})
 				]
-			]
-
-			// REPLACE EXISTING
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(10.0f, 0.0f, 0.0f, 5.0f)
-			[
-				SNew(SBox)
-				.WidthOverride(160.f)
-				[
-					SAssignNew(CheckBoxReplaceExisting, SCheckBox)
-					.Content()
-					[
-						SNew(STextBlock).Text(LOCTEXT("ReplaceExisting", "Replace Existing Assets/Actors"))
-						.ToolTipText(LOCTEXT("ReplaceExisitngToolTip", "If enabled, existing Assets or Actors will be overwritten and replaced by the newly fetched data."))
-						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					]
-					.IsChecked_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						return HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bReplaceExisting ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-					})
-					.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
-					{
-						const bool bNewState = (NewState == ECheckBoxState::Checked);
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bReplaceExisting = bNewState;
-					})
-				]
-			]
-
-			// UNREAL ASSET NAME
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(10.0, 0.0, 0.0, 5.0)
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
+				// UNREAL ACTOR NAME
+				+ SVerticalBox::Slot()
 				.HAlign(HAlign_Left)
+				.AutoHeight()
+				.Padding(10.0, 0.0, 0.0, 5.0)
 				[
-					SNew(SBox)
-					.WidthOverride(335.0f)
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("UnrealAssetName", "Unreal Asset Name"))
-					]
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				//.AutoWidth()
-				[
-					SNew(SEditableTextBox)
-					.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH + 45)
-					.ToolTipText(LOCTEXT("UnrealAssetNameTooltip",
-						"Name to be given to the fetched data in Unreal.\nLeaving this field empty will use the node name for the unreal names."))
-					.HintText(LOCTEXT("UnrealAssetNameLabel", "Name the of Asset in Unreal"))
-					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					.Text_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealAssetName);
-					})
-					.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
-					{
-						FString NewPathStr = Val.ToString();
-
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealAssetName = NewPathStr;
-					})
-				]
-			]
-
-			// UNREAL ASSET FOLDER
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(10.0, 0.0, 0.0, 5.0)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				[
-					SNew(SBox)
-					.WidthOverride(335.0f)
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("UnrealAssetFolder", "Unreal Asset Import Folder"))
-					]
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				[
-					SNew(SEditableTextBox)
-					.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-					.ToolTipText(LOCTEXT("UnrealAssetFolderTooltip","Path to the project folder that will contain the generated assets in unreal"))
-					.HintText(LOCTEXT("UnrealAssetFolderLabel", "Unreal Asset Import Folder"))
-					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					.Text_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealAssetFolder);
-					})
-					.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
-					{
-						FString NewPathStr = Val.ToString();
-
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealAssetFolder = NewPathStr;
-					})
-				]
-				+ SHorizontalBox::Slot()
-				.Padding(5.0, 0.0, 0.0, 0.0)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SButton)
-					//.ContentPadding(FMargin(6.0, 2.0))
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.IsEnabled(true)
-					.Text(LOCTEXT("BrowseButtonText", "..."))
-					.ToolTipText(LOCTEXT("ImportFolderBrowseButtonToolTip", "Browse to select the Import Asset folder..."))
-					.OnClicked_Lambda(OnImportFolderBrowseButtonClickedLambda)
-				]
-				/*
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(5.0, 0.0, 0.0, 0.0)
-				.VAlign(VAlign_Center)
-				[
-					SNew(SButton)
-					//.ContentPadding(FMargin(6.0, 2.0))
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.IsEnabled(true)
-					.Text(LOCTEXT("ResetButtonText", "Reset"))
-					.ToolTipText(LOCTEXT("CookFolderResetButtonToolTip", "Reset the cook folder to default setting"))
-					.OnClicked_Lambda(OnImportFolderBrowseButtonClickedLambda)
-				];
-				*/
-			]
-
-			// FETCH TO WORLD?
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(10.0f, 0.0f, 0.0f, 5.0f)
-			[
-				SNew(SBox)
-				.WidthOverride(160.f)
-				//.IsEnabled(false)
-				[
-					SAssignNew(CheckBoxFetchToWorld, SCheckBox)
-					.Content()
-					[
-						SNew(STextBlock).Text(LOCTEXT("FetchToWorld", "Fetch to World Outliner"))
-						.ToolTipText(LOCTEXT("FetchToWorldToolTip", "If enabled, the data fetched from Houdini will be instantiated as an Actor in the current level."))
-						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					]
-					.IsChecked_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						return HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bFetchToWorld ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-					})
-					.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
-					{
-						const bool bNewState = (NewState == ECheckBoxState::Checked);
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bFetchToWorld = bNewState;
-					})
-				]
-			]
-
-			// FETCH TO WORLD OPTIONS
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(10.0, 0.0, 0.0, 5.0)
-			[
-				SAssignNew(FetchToWorldOptionsArea, SExpandableArea)
-				.InitiallyCollapsed(true)
-				.HeaderContent()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("FetchToWorldOptions", "Fetch to World Options"))
-					.Font(FAppStyle::Get().GetFontStyle("DetailsView.CategoryFontStyle"))
-					.ShadowOffset(FVector2D(1.0f, 1.0f))
-				]
-				.BodyContent()
-				[
-					SNew(SVerticalBox)
-					// AutoBake?
-					+ SVerticalBox::Slot()
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
 					.HAlign(HAlign_Left)
-					.AutoHeight()
-					.Padding(10.0f, 0.0f, 0.0f, 5.0f)
 					[
 						SNew(SBox)
-						.WidthOverride(160.f)
-						[
-							SAssignNew(CheckBoxAutoBake, SCheckBox)
-							.Content()
-							[
-								SNew(STextBlock).Text(LOCTEXT("AutoBake", "Auto Bake"))
-								.ToolTipText(LOCTEXT("AutoBakeToolTip", "If enabled, output data fetched to world will automatically be baked. If disabled, they will be created as temporary cooked data, and attached to a Houdini Node Sync Component."))
-								.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-							]
-							.IsChecked_Lambda([]()
-							{
-								UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-								return HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bAutoBake ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-							})
-							.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
-							{
-								const bool bNewState = (NewState == ECheckBoxState::Checked);
-								UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-								HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bAutoBake = bNewState;
-							})
-						]
-					]
-					// UNREAL ACTOR NAME
-					+ SVerticalBox::Slot()
-					.HAlign(HAlign_Left)
-					.AutoHeight()
-					.Padding(10.0, 0.0, 0.0, 5.0)
-					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.HAlign(HAlign_Left)
-						[
-							SNew(SBox)
-							.WidthOverride(335.0f)
-							//.IsEnabled(false)
-							[
-								SNew(STextBlock)
-								.Text(LOCTEXT("UnrealActorName", "Unreal Actor Name"))
-							]
-						]
-						+ SHorizontalBox::Slot()
-						.HAlign(HAlign_Right)
-						[
-							SNew(SEditableTextBox)
-							//.IsEnabled(false)
-							.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-							.ToolTipText(LOCTEXT("UnrealActorNameTooltip", "Name of the generated Actor in unreal"))
-							.HintText(LOCTEXT("UnrealActorNameLabel", "Unreal Actor Name"))
-							.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-							.Text_Lambda([]()
-							{
-								UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-								return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealActorName);
-							})
-							.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
-							{
-								FString NewPathStr = Val.ToString();
-
-								UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-								HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealActorName = NewPathStr;
-							})
-						]
-					]
-
-					// UNREAL ACTOR FOLDER
-					+ SVerticalBox::Slot()
-					.HAlign(HAlign_Left)
-					.AutoHeight()
-					.Padding(10.0, 0.0, 0.0, 5.0)
-					[
-						SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.HAlign(HAlign_Left)
-						[
-							SNew(SBox)
-							.WidthOverride(335.0f)
-							//.IsEnabled(false)
-							[
-								SNew(STextBlock)
-								.Text(LOCTEXT("UnrealActorFolderLabel", "World Outliner Folder"))
-							]
-						]
-						+ SHorizontalBox::Slot()
-						.HAlign(HAlign_Right)
-						[
-							SNew(SEditableTextBox)
-							//.IsEnabled(false)
-							.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-							.ToolTipText(LOCTEXT("UnrealActorFolderTooltip","Path to a world outliner folder that will contain the created Actor"))
-							.HintText(LOCTEXT("UnrealActorFolderLabel", "Unreal Actor World Outliner Folder"))
-							.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-							.Text_Lambda([]()
-							{
-								UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-								return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealActorFolder);
-							})
-							.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
-							{
-								FString NewPathStr = Val.ToString();
-
-								UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-								HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealActorFolder = NewPathStr;
-							})
-						]
-					]
-				]
-			]
-			/*
-			// Build Settings
-			+SVerticalBox::Slot()
-			.HAlign(HAlign_Center)
-			.AutoHeight()
-			.Padding(5.0, 5.0, 5.0, 5.0)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				[
-					MakeMBSDetailsView()
-				]
-			]
-
-			// MeshGenerationProeprties
-			+SVerticalBox::Slot()
-			.HAlign(HAlign_Center)
-			.AutoHeight()
-			.Padding(5.0, 5.0, 5.0, 5.0)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				[
-					MakeHSMGPDetailsView()
-				]
-			]
-			*/
-
-			// FETCH BUTTON
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Center)
-			.AutoHeight()
-			.Padding(5.0, 5.0, 5.0, 5.0)
-			[
-				SNew(SBox)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Top)
-				[
-					SNew(SBox)
-					.WidthOverride(135.0f)
-					[
-						SAssignNew(FetchButton, SButton)
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						.ToolTipText(LOCTEXT("FetchFromHoudiniLabel", "Fetch Asset From Houdini"))
-						.Visibility(EVisibility::Visible)
-						.OnClicked_Lambda([]()
-						{
-							UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-							HoudiniEditorNodeSyncSubsystem->FetchFromHoudini();
-							return FReply::Handled();
-						})
-						.Content()
+						.WidthOverride(335.0f)
+						//.IsEnabled(false)
 						[
 							SNew(STextBlock)
-							.Text(FText::FromString("Fetch"))
+							.Text(LOCTEXT("UnrealActorName", "Unreal Actor Name"))
 						]
 					]
-				]
-			]
-
-			// Last FETCH status
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Center)
-			.AutoHeight()
-			.Padding(15.0, 0.0, 15.0, 15.0)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.Padding(2.0f, 0.0f)
-				.VAlign(VAlign_Top)
-				[
-					SNew(STextBlock)
-					.Justification(ETextJustify::Left)
-					.Text_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();					
-						return FText::FromString(HoudiniEditorNodeSyncSubsystem->FetchStatusMessage);
-					})
-					.ColorAndOpacity_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();					
-						FLinearColor StatusColor = UHoudiniEditorNodeSyncSubsystem::GetStatusColor(HoudiniEditorNodeSyncSubsystem->LastFetchStatus);					
-						return FSlateColor(StatusColor);
-					})
-					.ToolTipText_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						if(!HoudiniEditorNodeSyncSubsystem->FetchStatusDetails.IsEmpty())
-							return FText::FromString(HoudiniEditorNodeSyncSubsystem->FetchStatusDetails);
-						else
-							return FText::FromString(HoudiniEditorNodeSyncSubsystem->FetchStatusMessage);
-					})
-				]
-			]
-
-
-			//------------------------------------------------------------------------------------------
-			// SEND to Houdini
-			//------------------------------------------------------------------------------------------
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(10.0, 20.0, 0.0, 15.0)
-			[
-				SNew(SBox)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Top)
-				[
-					SNew(STextBlock)
-					.Font(BoldFontStyle)
-					.Text(LOCTEXT("SendLabel", "SEND to Houdini"))
-				]
-			]
-
-			// Houdini Node Path
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(10.0, 0.0, 0.0, 5.0f)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot().HAlign(HAlign_Left)
-				[
-					SNew(SBox)
-					.WidthOverride(335.0f)
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Right)
 					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("SendNodePathLabel", "Houdini Node Path To Send To"))
-					]
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				[
-					SNew(SEditableTextBox)
-					.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
-					.ToolTipText(LOCTEXT("HoudiniNodePathTooltip",
-						"The path of the node in Houdini that will receive the sent data.  e.g /obj/UnrealContent "))
-					.HintText(LOCTEXT("NodePathLabel", "Houdini Node Path To Send To"))
-					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					.Text_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.SendNodePath);
-					})
-					.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
-					{
-						FString NewPathStr = Val.ToString();
-
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.SendNodePath = NewPathStr;
-					})
-				]
-			]
-			
-			// Export Options
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(10.0, 0.0, 0.0, 5.0)
-			[
-				ExportOptionsVBox.ToSharedRef()
-			]
-
-			// Landscape Options
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(10.0, 0.0, 0.0, 5.0)
-			[
-				LandscapeOptionsVBox.ToSharedRef()
-			]
-
-			// Landscape Spline Options
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(10.0, 0.0, 0.0, 5.0)
-			[
-				LandscapeSplineOptionsVBox.ToSharedRef()
-			]
-
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Left)
-			.AutoHeight()
-			.Padding(10.0f, 0.0f, 0.0f, 5.0f)
-			[
-				SNew(SBox)
-				.WidthOverride(160.f)
-				[
-					SAssignNew(CheckBoxSyncWorld, SCheckBox)
-					.Content()
-					[
-						SNew(STextBlock).Text(LOCTEXT("SyncWorld", "Sync World Inputs"))
-						.ToolTipText(LOCTEXT("SyncWorldToolTip", "If enabled, actors sent to Houdini will be automatically updated in Houdini if they are modified in the level."))
+						SNew(SEditableTextBox)
+						//.IsEnabled(false)
+						.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+						.ToolTipText(LOCTEXT("UnrealActorNameTooltip", "Name of the generated Actor in unreal"))
+						.HintText(LOCTEXT("UnrealActorNameLabel", "Unreal Actor Name"))
 						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					]
-					.IsChecked_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						return HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bSyncWorldInput ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-					})
-					.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
-					{
-						const bool bNewState = (NewState == ECheckBoxState::Checked);
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bSyncWorldInput = bNewState;
-						if (bNewState)
-							HoudiniEditorNodeSyncSubsystem->StartTicking();
-						else
-							HoudiniEditorNodeSyncSubsystem->StopTicking();
-					})
-				]
-			]
-
-		
-			// SEND Button
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Center)
-			.AutoHeight()
-			.Padding(5.0, 5.0, 5.0, 5.0)
-			[
-				SNew(SBox)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Top)
-				[
-					SNew(SBox)
-					.WidthOverride(135.0f)
-					[
-						SAssignNew(SendWorldButton, SButton)
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						.ToolTipText(LOCTEXT("SendWorldToHoudiniLabel", "Send World Selection To Houdini"))
-						.Visibility(EVisibility::Visible)
-						.OnClicked_Lambda([]()
+						.Text_Lambda([]()
 						{
 							UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-							HoudiniEditorNodeSyncSubsystem->SendWorldSelection();
-							return FReply::Handled();
+							return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealActorName);
 						})
-						.Content()
+						.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
+						{
+							FString NewPathStr = Val.ToString();
+
+							UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+							HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealActorName = NewPathStr;
+						})
+					]
+				]
+
+				// UNREAL ACTOR FOLDER
+				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Left)
+				.AutoHeight()
+				.Padding(10.0, 0.0, 0.0, 5.0)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Left)
+					[
+						SNew(SBox)
+						.WidthOverride(335.0f)
+						//.IsEnabled(false)
 						[
 							SNew(STextBlock)
-							.Text(FText::FromString("Send"))
+							.Text(LOCTEXT("UnrealActorFolderLabel", "World Outliner Folder"))
 						]
 					]
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Right)
+					[
+						SNew(SEditableTextBox)
+						//.IsEnabled(false)
+						.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+						.ToolTipText(LOCTEXT("UnrealActorFolderTooltip","Path to a world outliner folder that will contain the created Actor"))
+						.HintText(LOCTEXT("UnrealActorFolderLabel", "Unreal Actor World Outliner Folder"))
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.Text_Lambda([]()
+						{
+							UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+							return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealActorFolder);
+						})
+						.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
+						{
+							FString NewPathStr = Val.ToString();
+
+							UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+							HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.UnrealActorFolder = NewPathStr;
+						})
+					]
 				]
 			]
+		];
+	}
 
-			// Last SEND status
-			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Center)
-			.AutoHeight()
-			.Padding(15.0, 0.0, 15.0, 15.0)
+	/*
+	// Build Settings
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Center)
+	.AutoHeight()
+	.Padding(5.0, 5.0, 5.0, 5.0)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		[
+			MakeMBSDetailsView()
+		]
+	];
+
+	// MeshGenerationProeprties
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Center)
+	.AutoHeight()
+	.Padding(5.0, 5.0, 5.0, 5.0)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		[
+			MakeHSMGPDetailsView()
+		]
+	];
+	*/
+
+	// FETCH BUTTON
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Center)
+	.AutoHeight()
+	.Padding(5.0, 5.0, 5.0, 5.0)
+	[
+		SNew(SBox)
+		.HAlign(HAlign_Center)
+		.VAlign(VAlign_Top)
+		[
+			SNew(SBox)
+			.WidthOverride(135.0f)
 			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.Padding(2.0f, 0.0f)
-				.VAlign(VAlign_Top)
+				SAssignNew(FetchButton, SButton)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("FetchFromHoudiniLabel", "Fetch Asset From Houdini"))
+				.Visibility(EVisibility::Visible)
+				.OnClicked_Lambda([]()
+				{
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+					HoudiniEditorNodeSyncSubsystem->FetchFromHoudini();
+					return FReply::Handled();
+				})
+				.Content()
 				[
 					SNew(STextBlock)
-					.Justification(ETextJustify::Left)
-					.Text_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();					
-						return FText::FromString(HoudiniEditorNodeSyncSubsystem->SendStatusMessage);
-					})
-					.ColorAndOpacity_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();					
-						FLinearColor StatusColor = UHoudiniEditorNodeSyncSubsystem::GetStatusColor(HoudiniEditorNodeSyncSubsystem->LastSendStatus);					
-						return FSlateColor(StatusColor);
-					})
-					.ToolTipText_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						if (!HoudiniEditorNodeSyncSubsystem->SendStatusDetails.IsEmpty())
-							return FText::FromString(HoudiniEditorNodeSyncSubsystem->SendStatusDetails);
-						else
-							return FText::FromString(HoudiniEditorNodeSyncSubsystem->SendStatusMessage);
-					})
-				]
-			]
-
-			// World IN UI
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(10.0, 0.0, 0.0, 5.0)
-			[
-				SelectionContainer.ToSharedRef()
-			]
-
-			// World IN UI
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(10.0, 0.0, 0.0, 5.0)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				.Padding(5.0, 5.0, 5.0, 5.0)
-				[
-					SNew(SButton)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.ToolTipText(LOCTEXT("UpdateAll", "Update All Sent Data"))
-					.Visibility(EVisibility::Visible)
-					.OnClicked_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						HoudiniEditorNodeSyncSubsystem->UpdateAllSelection();
-						return FReply::Handled();
-					})
-					.Content()
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString("Update All"))
-					]
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.Padding(5.0, 5.0, 5.0, 5.0)
-				[
-					SNew(SButton)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.ToolTipText(LOCTEXT("DeleteAll", "Delete All Sent Data"))
-					.Visibility(EVisibility::Visible)
-					.OnClicked_Lambda([]()
-					{
-						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
-						HoudiniEditorNodeSyncSubsystem->DeleteAllSelection();
-						return FReply::Handled();
-					})
-					.Content()
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString("Delete All"))
-					]
+					.Text(FText::FromString("Fetch"))
 				]
 			]
 		]
 	];
+
+	// Last FETCH status
+	NodeSyncVerticalBox->AddSlot()
+	.HAlign(HAlign_Center)
+	.AutoHeight()
+	.Padding(15.0, 0.0, 15.0, 15.0)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Top)
+		[
+			SNew(STextBlock)
+			.Justification(ETextJustify::Left)
+			.Text_Lambda([]()
+			{
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();					
+				return FText::FromString(HoudiniEditorNodeSyncSubsystem->FetchStatusMessage);
+			})
+			.ColorAndOpacity_Lambda([]()
+			{
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();					
+				FLinearColor StatusColor = UHoudiniEditorNodeSyncSubsystem::GetStatusColor(HoudiniEditorNodeSyncSubsystem->LastFetchStatus);					
+				return FSlateColor(StatusColor);
+			})
+			.ToolTipText_Lambda([]()
+			{
+				UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+				if(!HoudiniEditorNodeSyncSubsystem->FetchStatusDetails.IsEmpty())
+					return FText::FromString(HoudiniEditorNodeSyncSubsystem->FetchStatusDetails);
+				else
+					return FText::FromString(HoudiniEditorNodeSyncSubsystem->FetchStatusMessage);
+			})
+		]
+	];
+
+
+	//------------------------------------------------------------------------------------------
+	// SEND to Houdini
+	//------------------------------------------------------------------------------------------
+	if(!bIsAssetEditorPanel)
+	{
+		NodeSyncVerticalBox->AddSlot()			
+		.HAlign(HAlign_Left)
+		.AutoHeight()
+		.Padding(10.0, 20.0, 0.0, 15.0)
+		[
+			SNew(SBox)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Top)
+			[
+				SNew(STextBlock)
+				.Font(BoldFontStyle)
+				.Text(LOCTEXT("SendLabel", "SEND to Houdini"))
+			]
+		];
+
+		// Houdini Node Path
+		NodeSyncVerticalBox->AddSlot()
+		.HAlign(HAlign_Left)
+		.AutoHeight()
+		.Padding(10.0, 0.0, 0.0, 5.0f)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().HAlign(HAlign_Left)
+			[
+				SNew(SBox)
+				.WidthOverride(335.0f)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("SendNodePathLabel", "Houdini Node Path To Send To"))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Right)
+			[
+				SNew(SEditableTextBox)
+				.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+				.ToolTipText(LOCTEXT("HoudiniNodePathTooltip",
+					"The path of the node in Houdini that will receive the sent data.  e.g /obj/UnrealContent "))
+				.HintText(LOCTEXT("NodePathLabel", "Houdini Node Path To Send To"))
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Text_Lambda([]()
+				{
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+					return FText::FromString(HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.SendNodePath);
+				})
+				.OnTextCommitted_Lambda([](const FText& Val, ETextCommit::Type TextCommitType)
+				{
+					FString NewPathStr = Val.ToString();
+
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+					HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.SendNodePath = NewPathStr;
+				})
+			]
+		];
+			
+		// Export Options
+		NodeSyncVerticalBox->AddSlot()
+		.AutoHeight()
+		.Padding(10.0, 0.0, 0.0, 5.0)
+		[
+			ExportOptionsVBox.ToSharedRef()
+		];
+
+		// Landscape Options
+		NodeSyncVerticalBox->AddSlot()
+		.AutoHeight()
+		.Padding(10.0, 0.0, 0.0, 5.0)
+		[
+			LandscapeOptionsVBox.ToSharedRef()
+		];
+
+		// Landscape Spline Options
+		NodeSyncVerticalBox->AddSlot()
+		.AutoHeight()
+		.Padding(10.0, 0.0, 0.0, 5.0)
+		[
+			LandscapeSplineOptionsVBox.ToSharedRef()
+		];
+
+		NodeSyncVerticalBox->AddSlot()
+		.HAlign(HAlign_Left)
+		.AutoHeight()
+		.Padding(10.0f, 0.0f, 0.0f, 5.0f)
+		[
+			SNew(SBox)
+			.WidthOverride(160.f)
+			[
+				SAssignNew(CheckBoxSyncWorld, SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock).Text(LOCTEXT("SyncWorld", "Sync World Inputs"))
+					.ToolTipText(LOCTEXT("SyncWorldToolTip", "If enabled, actors sent to Houdini will be automatically updated in Houdini if they are modified in the level."))
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+				.IsChecked_Lambda([]()
+				{
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+					return HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bSyncWorldInput ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				})
+				.OnCheckStateChanged_Lambda([](ECheckBoxState NewState)
+				{
+					const bool bNewState = (NewState == ECheckBoxState::Checked);
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+					HoudiniEditorNodeSyncSubsystem->NodeSyncOptions.bSyncWorldInput = bNewState;
+					if (bNewState)
+						HoudiniEditorNodeSyncSubsystem->StartTicking();
+					else
+						HoudiniEditorNodeSyncSubsystem->StopTicking();
+				})
+			]
+		];
+
+		
+		// SEND Button
+		NodeSyncVerticalBox->AddSlot()
+		.HAlign(HAlign_Center)
+		.AutoHeight()
+		.Padding(5.0, 5.0, 5.0, 5.0)
+		[
+			SNew(SBox)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Top)
+			[
+				SNew(SBox)
+				.WidthOverride(135.0f)
+				[
+					SAssignNew(SendWorldButton, SButton)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					.ToolTipText(LOCTEXT("SendWorldToHoudiniLabel", "Send World Selection To Houdini"))
+					.Visibility(EVisibility::Visible)
+					.OnClicked_Lambda([]()
+					{
+						UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+						HoudiniEditorNodeSyncSubsystem->SendWorldSelection();
+						return FReply::Handled();
+					})
+					.Content()
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString("Send"))
+					]
+				]
+			]
+		];
+
+		// Last SEND status
+		NodeSyncVerticalBox->AddSlot()
+		.HAlign(HAlign_Center)
+		.AutoHeight()
+		.Padding(15.0, 0.0, 15.0, 15.0)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.Padding(2.0f, 0.0f)
+			.VAlign(VAlign_Top)
+			[
+				SNew(STextBlock)
+				.Justification(ETextJustify::Left)
+				.Text_Lambda([]()
+				{
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();					
+					return FText::FromString(HoudiniEditorNodeSyncSubsystem->SendStatusMessage);
+				})
+				.ColorAndOpacity_Lambda([]()
+				{
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();					
+					FLinearColor StatusColor = UHoudiniEditorNodeSyncSubsystem::GetStatusColor(HoudiniEditorNodeSyncSubsystem->LastSendStatus);					
+					return FSlateColor(StatusColor);
+				})
+				.ToolTipText_Lambda([]()
+				{
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+					if (!HoudiniEditorNodeSyncSubsystem->SendStatusDetails.IsEmpty())
+						return FText::FromString(HoudiniEditorNodeSyncSubsystem->SendStatusDetails);
+					else
+						return FText::FromString(HoudiniEditorNodeSyncSubsystem->SendStatusMessage);
+				})
+			]
+		];
+
+		// World IN UI
+		NodeSyncVerticalBox->AddSlot()
+		.AutoHeight()
+		.Padding(10.0, 0.0, 0.0, 5.0)
+		[
+			SelectionContainer.ToSharedRef()
+		];
+
+		// World IN UI
+		NodeSyncVerticalBox->AddSlot()
+		.AutoHeight()
+		.Padding(10.0, 0.0, 0.0, 5.0)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Right)
+			.Padding(5.0, 5.0, 5.0, 5.0)
+			[
+				SNew(SButton)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("UpdateAll", "Update All Sent Data"))
+				.Visibility(EVisibility::Visible)
+				.OnClicked_Lambda([]()
+				{
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+					HoudiniEditorNodeSyncSubsystem->UpdateAllSelection();
+					return FReply::Handled();
+				})
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Update All"))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.HAlign(HAlign_Left)
+			.Padding(5.0, 5.0, 5.0, 5.0)
+			[
+				SNew(SButton)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.ToolTipText(LOCTEXT("DeleteAll", "Delete All Sent Data"))
+				.Visibility(EVisibility::Visible)
+				.OnClicked_Lambda([]()
+				{
+					UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
+					HoudiniEditorNodeSyncSubsystem->DeleteAllSelection();
+					return FReply::Handled();
+				})
+				.Content()
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Delete All"))
+				]
+			]
+		];
+	}
 	
 	// Get the NodeSync inputs from the editor subsystem
 	UHoudiniInput* NodeSyncWorldInput = nullptr;

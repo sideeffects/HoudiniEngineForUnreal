@@ -40,7 +40,11 @@
 class SHoudiniNodeSyncPanel : public SCompoundWidget
 {
 public:
-    SLATE_BEGIN_ARGS(SHoudiniNodeSyncPanel) {}
+    SLATE_BEGIN_ARGS(SHoudiniNodeSyncPanel)
+        : _IsAssetEditor(false)
+        {
+        }
+        SLATE_ATTRIBUTE(bool, IsAssetEditor)
     SLATE_END_ARGS();
 
     SHoudiniNodeSyncPanel();
@@ -56,6 +60,8 @@ public:
 
     //TSharedRef<SWidget> MakeHSMGPDetailsView();
 
+    //void SetIsAssetEditorPanel(const bool& IsAssetEditor) { bIsAssetEditorPanel = IsAssetEditor; };
+    
 private:
 
     TSharedPtr<SVerticalBox> ExportOptionsVBox;
@@ -74,4 +80,6 @@ private:
     //TSharedPtr<IStructureDetailsView> MBS_DetailsView;
     // Details view for HoudiniStaticMeshGenerationProperties
     //TSharedPtr<IStructureDetailsView> HSMGP_DetailsView;
+
+    bool bIsAssetEditorPanel = false;
 };

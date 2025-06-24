@@ -60,8 +60,8 @@ public:
 		: _LogText(TEXT(""))
 	{}
 
-	SLATE_ARGUMENT(FString, LogText)
-		SLATE_END_ARGS()
+		SLATE_ARGUMENT(FString, LogText)
+	SLATE_END_ARGS()
 
 		/** Widget construct. **/
 		void Construct(const FArguments & InArgs);

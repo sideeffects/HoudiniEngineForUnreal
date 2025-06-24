@@ -1166,29 +1166,29 @@ FHoudiniEngineDetails::AddBakeControlBar(
 	TSharedRef<SHorizontalBox> ButtonRowHorizontalBox = SNew(SHorizontalBox);
 
 	auto OnBakeButtonClickedLambda = [InHCs, MainHC]()
+	{
+		FHoudiniBakeSettings BakeSettings;
+		EHoudiniEngineBakeOption BakeOption;
+		bool bRemoveOutputAfterBake;
+
+		BakeSettings.SetFromCookable(MainHC.Get());
+		BakeOption = MainHC->GetBakingData()->HoudiniEngineBakeOption;
+		bRemoveOutputAfterBake = MainHC->GetBakingData()->bRemoveOutputAfterBake;
+
+		for(auto& CurrentHC : InHCs)
 		{
-			FHoudiniBakeSettings BakeSettings;
-			EHoudiniEngineBakeOption BakeOption;
-			bool bRemoveOutputAfterBake;
+			if(!IsValidWeakPointer(CurrentHC))
+				continue;
 
-			BakeSettings.SetFromCookable(MainHC.Get());
-			BakeOption = MainHC->GetBakingData()->HoudiniEngineBakeOption;
-			bRemoveOutputAfterBake = MainHC->GetBakingData()->bRemoveOutputAfterBake;
+			FHoudiniEngineBakeUtils::BakeCookable(
+				CurrentHC.Get(),
+				BakeSettings,
+				BakeOption,
+				bRemoveOutputAfterBake);
+		}
 
-			for(auto& CurrentHC : InHCs)
-			{
-				if(!IsValidWeakPointer(CurrentHC))
-					continue;
-
-				FHoudiniEngineBakeUtils::BakeCookable(
-					CurrentHC.Get(),
-					BakeSettings,
-					BakeOption,
-					bRemoveOutputAfterBake);
-			}
-
-			return FReply::Handled();
-		};
+		return FReply::Handled();
+	};
 
 	// Bake Button
 	if (DetailsFlags.bBakeButton)
@@ -1197,38 +1197,38 @@ FHoudiniEngineDetails::AddBakeControlBar(
 		TSharedPtr<SHorizontalBox> BakeButtonHorizontalBox;
 
 		ButtonRowHorizontalBox->AddSlot()
-			.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
-			[
-				SNew(SBox)
-					.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
-					[
-						SAssignNew(BakeButton, SButton)
-							.VAlign(VAlign_Center)
-							.HAlign(HAlign_Center)
-							.ToolTipText(LOCTEXT("HoudiniAssetDetailsBakeButton", "Bake the Houdini Asset Component(s)."))
-							.Visibility(EVisibility::Visible)
-							.OnClicked_Lambda(OnBakeButtonClickedLambda)
-							.Content()
-							[
-								SAssignNew(BakeButtonHorizontalBox, SHorizontalBox)
-							]
-					]
-			];
+		.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+		[
+			SNew(SBox)
+				.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+				[
+					SAssignNew(BakeButton, SButton)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.ToolTipText(LOCTEXT("HoudiniAssetDetailsBakeButton", "Bake the Houdini Asset Component(s)."))
+						.Visibility(EVisibility::Visible)
+						.OnClicked_Lambda(OnBakeButtonClickedLambda)
+						.Content()
+						[
+							SAssignNew(BakeButtonHorizontalBox, SHorizontalBox)
+						]
+				]
+		];
 
 		TSharedPtr<FSlateDynamicImageBrush> BakeIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIBakeIconBrush();
 		if(BakeIconBrush.IsValid())
 		{
 			TSharedPtr<SImage> BakeImage;
 			BakeButtonHorizontalBox->AddSlot()
-				.MaxWidth(16.0f)
-				[
-					SNew(SBox)
-						.WidthOverride(16.0f)
-						.HeightOverride(16.0f)
-						[
-							SAssignNew(BakeImage, SImage)
-						]
-				];
+			.MaxWidth(16.0f)
+			[
+				SNew(SBox)
+					.WidthOverride(16.0f)
+					.HeightOverride(16.0f)
+					[
+						SAssignNew(BakeImage, SImage)
+					]
+			];
 
 			BakeImage->SetImage(
 				TAttribute<const FSlateBrush*>::Create(
@@ -1238,170 +1238,173 @@ FHoudiniEngineDetails::AddBakeControlBar(
 		}
 
 		BakeButtonHorizontalBox->AddSlot()
-			.Padding(5.0, 0.0, 0.0, 0.0)
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			[
-				SNew(STextBlock)
-					.Text(FText::FromString("Bake"))
-			];
+		.Padding(5.0, 0.0, 0.0, 0.0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString("Bake"))
+		];
 
 		switch(MainHC->GetHoudiniEngineBakeOption())
 		{
-		case EHoudiniEngineBakeOption::ToActor:
-		{
-			if(MainHC->GetReplacePreviousBake())
+			case EHoudiniEngineBakeOption::ToActor:
 			{
-				BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeWithReplaceToActorToolTip",
-					"Bake this Houdini Asset Actor and its components to native unreal actors and components, replacing the previous baked result."));
+				if(MainHC->GetReplacePreviousBake())
+				{
+					BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeWithReplaceToActorToolTip",
+						"Bake this Houdini Asset Actor and its components to native unreal actors and components, replacing the previous baked result."));
+				}
+				else
+				{
+					BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeToActorToolTip",
+						"Bake this Houdini Asset Actor and its components to native unreal actors and components."));
+				}
 			}
-			else
-			{
-				BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeToActorToolTip",
-					"Bake this Houdini Asset Actor and its components to native unreal actors and components."));
-			}
-		}
-		break;
+			break;
 
-		case EHoudiniEngineBakeOption::ToBlueprint:
-		{
-			BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeToBlueprintToolTip",
-				"Bake this Houdini Asset Actor to a blueprint."));
-		}
-		break;
-		case EHoudiniEngineBakeOption::ToAsset:
-		{
-			BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeToAssetToolTip",
-				"Bake this Houdini Asset to native Unreal assets in the content browser."));
-		}
-		break;
+			case EHoudiniEngineBakeOption::ToBlueprint:
+			{
+				BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeToBlueprintToolTip",
+					"Bake this Houdini Asset Actor to a blueprint."));
+			}
+			break;
+
+			case EHoudiniEngineBakeOption::ToAsset:
+			{
+				BakeButton->SetToolTipText(LOCTEXT("HoudiniEngineBakeButtonBakeToAssetToolTip",
+					"Bake this Houdini Asset to native Unreal assets in the content browser."));
+			}
+			break;
 		}
 	}
 
 	// Bake Type ComboBox
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> TypeComboBox;
-
 	TArray<TSharedPtr<FString>>* BakeOptionSources = FHoudiniEngineEditor::Get().GetHoudiniEngineBakeTypeOptionsLabels();
 	TSharedPtr<FString> IntialSelec = MakeShareable(new FString(FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(MainHC->GetHoudiniEngineBakeOption())));
-
 	ButtonRowHorizontalBox->AddSlot()
-		/*.AutoWidth()*/
-		.Padding(3.0, 0.0, 4.0f, 0.0f)
-		.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+	/*.AutoWidth()*/
+	.Padding(3.0, 0.0, 4.0f, 0.0f)
+	.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+	[
+		SNew(SBox)
+		.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
 		[
-			SNew(SBox)
-				.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
-				[
-					SAssignNew(TypeComboBox, SComboBox<TSharedPtr<FString>>)
-						.OptionsSource(BakeOptionSources)
-						.InitiallySelectedItem(IntialSelec)
-						.OnGenerateWidget_Lambda(
-							[](TSharedPtr< FString > InItem)
-							{
-								FText ChoiceEntryText = FText::FromString(*InItem);
-								return SNew(STextBlock)
-									.Text(ChoiceEntryText)
-									.ToolTipText(ChoiceEntryText)
-									.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
-							})
-						.OnSelectionChanged_Lambda(
-							[MainHC, InHCs](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
-							{
-								if(!NewChoice.IsValid())
-									return;
+			SAssignNew(TypeComboBox, SComboBox<TSharedPtr<FString>>)
+			.OptionsSource(BakeOptionSources)
+			.InitiallySelectedItem(IntialSelec)
+			.OnGenerateWidget_Lambda(
+				[](TSharedPtr< FString > InItem)
+				{
+					FText ChoiceEntryText = FText::FromString(*InItem);
+					return SNew(STextBlock)
+						.Text(ChoiceEntryText)
+						.ToolTipText(ChoiceEntryText)
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+				})
+			.OnSelectionChanged_Lambda(
+				[MainHC, InHCs](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+				{
+					if(!NewChoice.IsValid())
+						return;
 
-								const EHoudiniEngineBakeOption NewOption =
-									FHoudiniEngineEditor::Get().StringToHoudiniEngineBakeOption(*NewChoice.Get());
+					const EHoudiniEngineBakeOption NewOption =
+						FHoudiniEngineEditor::Get().StringToHoudiniEngineBakeOption(*NewChoice.Get());
 
-								for(auto& NextHC : InHCs)
-								{
-									if(!IsValidWeakPointer(NextHC))
-										continue;
+					for(auto& NextHC : InHCs)
+					{
+						if(!IsValidWeakPointer(NextHC))
+							continue;
 
-									NextHC->SetHoudiniEngineBakeOption(NewOption);
-									NextHC->MarkPackageDirty();
-								}
+						NextHC->SetHoudiniEngineBakeOption(NewOption);
+						NextHC->MarkPackageDirty();
+					}
 
-								if(MainHC.IsValid())
-									FHoudiniEngineUtils::UpdateEditorProperties(true);
-							})
-						[
-							SNew(STextBlock)
-								.Text_Lambda([MainHC]()
-									{
-										if(!IsValidWeakPointer(MainHC))
-											return FText();
+					if(MainHC.IsValid())
+						FHoudiniEngineUtils::UpdateEditorProperties(true);
+				})
+			[
+				SNew(STextBlock)
+				.Text_Lambda([MainHC]()
+				{
+					if(!IsValidWeakPointer(MainHC))
+						return FText();
 
-										return FText::FromString(
-											FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(MainHC->GetHoudiniEngineBakeOption()));
-									})
-								.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-						]
-				]
-		];
+					return FText::FromString(
+						FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(MainHC->GetHoudiniEngineBakeOption()));
+				})
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		]
+	];
 
 	TArray<TSharedPtr<FString>>* ActorBakeOptionSources = FHoudiniEngineEditor::Get().GetHoudiniEngineBakeActorOptionsLabels();
-
 	ButtonRowHorizontalBox->AddSlot()
-		/*.AutoWidth()*/
-		.Padding(3.0, 0.0, 4.0f, 0.0f)
-		//.MaxWidth(103.f)
-		.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH * 1.5f)
+	/*.AutoWidth()*/
+	.Padding(3.0, 0.0, 4.0f, 0.0f)
+	//.MaxWidth(103.f)
+	.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH * 1.5f)
+	[
+		SNew(SBox)
+		//.WidthOverride(103.f)
+		.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
 		[
-			SNew(SBox)
-				//.WidthOverride(103.f)
-				.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
-				[
-					SAssignNew(TypeComboBox, SComboBox<TSharedPtr<FString>>)
-						.OptionsSource(ActorBakeOptionSources)
-						.InitiallySelectedItem(IntialSelec)
-						.OnGenerateWidget_Lambda(
-							[](TSharedPtr< FString > InItem)
-							{
-								FText ChoiceEntryText = FText::FromString(*InItem);
-								return SNew(STextBlock)
-									.Text(ChoiceEntryText)
-									.ToolTipText(ChoiceEntryText)
-									.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
-							})
-						.OnSelectionChanged_Lambda(
-							[MainHC, InHCs](TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType)
-							{
-								if(!NewChoice.IsValid())
-									return;
+			SAssignNew(TypeComboBox, SComboBox<TSharedPtr<FString>>)
+			.OptionsSource(ActorBakeOptionSources)
+			.InitiallySelectedItem(IntialSelec)
+			.IsEnabled_Lambda([MainHC]()
+				{
+					// Only enabled when in "Bake To Actor" mode
+					return (MainHC->GetHoudiniEngineBakeOption() == EHoudiniEngineBakeOption::ToActor);
+				})
+			.OnGenerateWidget_Lambda(
+				[](TSharedPtr< FString > InItem)
+				{
+					FText ChoiceEntryText = FText::FromString(*InItem);
+					return SNew(STextBlock)
+						.Text(ChoiceEntryText)
+						.ToolTipText(ChoiceEntryText)
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+				})
+			.OnSelectionChanged_Lambda(
+				[MainHC, InHCs](TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType)
+				{
+					if(!NewChoice.IsValid())
+						return;
 
-								const EHoudiniEngineActorBakeOption NewOption =
-									FHoudiniEngineEditor::Get().StringToHoudiniEngineActorBakeOption(*NewChoice.Get());
+					const EHoudiniEngineActorBakeOption NewOption =
+						FHoudiniEngineEditor::Get().StringToHoudiniEngineActorBakeOption(*NewChoice.Get());
 
-								for(auto& NextHC : InHCs)
-								{
-									if(!IsValidWeakPointer(NextHC))
-										continue;
+					for(auto& NextHC : InHCs)
+					{
+						if(!IsValidWeakPointer(NextHC))
+							continue;
 
-									if(NextHC->GetActorBakeOption() == NewOption)
-										continue;
+						if(NextHC->GetActorBakeOption() == NewOption)
+							continue;
 
-									NextHC->SetActorBakeOption(NewOption);
-									NextHC->MarkPackageDirty();
-								}
+						NextHC->SetActorBakeOption(NewOption);
+						NextHC->MarkPackageDirty();
+					}
 
-								if(MainHC.IsValid())
-									FHoudiniEngineUtils::UpdateEditorProperties(true);
-							})
-						[
-							SNew(STextBlock)
-								.Text_Lambda([MainHC]()
-									{
-										if(!IsValidWeakPointer(MainHC))
-											return FText();
+					if(MainHC.IsValid())
+						FHoudiniEngineUtils::UpdateEditorProperties(true);
+				})
+			[
+				SNew(STextBlock)
+				.Text_Lambda([MainHC]()
+				{
+					if(!IsValidWeakPointer(MainHC))
+						return FText();
 
-										return FText::FromString(
-											FHoudiniEngineEditor::GetStringfromActorBakeOption(MainHC->GetActorBakeOption()));
-									})
-								.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-						]
-				]
-		];
+					return FText::FromString(
+						FHoudiniEngineEditor::GetStringfromActorBakeOption(MainHC->GetActorBakeOption()));
+				})
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		]
+	];
 
 	ButtonRow.WholeRowWidget.Widget = ButtonRowHorizontalBox;
 

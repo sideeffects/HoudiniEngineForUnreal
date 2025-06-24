@@ -2118,6 +2118,7 @@ FHoudiniEngineEditor::OnSpawnNodeSyncTab(const FSpawnTabArgs& SpawnTabArgs)
 	//.Icon(FHoudiniEngineStyle::Get()->GetBrush("HoudiniEngine.HoudiniEngineLogo"))
 	[
 		SAssignNew(NodeSyncPanel, SHoudiniNodeSyncPanel)
+		.IsAssetEditor(false)
 	];
 
 	SpawnedTab->SetTabIcon(FHoudiniEngineStyle::Get()->GetBrush("HoudiniEngine.HoudiniEngineLogo"));
