@@ -33,7 +33,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniApi.h"
 
-extern TAutoConsoleVariable<float> CVarHoudiniEngineAccessorTimers(
+static TAutoConsoleVariable<float> CVarHoudiniEngineAccessorTimers(
 	TEXT("HoudiniEngine.AccessorStats"),
 	0.0,
 	TEXT("When non-zero, the plugin will output stats about attributes. 1 == on, 2 == more detail.\n")
