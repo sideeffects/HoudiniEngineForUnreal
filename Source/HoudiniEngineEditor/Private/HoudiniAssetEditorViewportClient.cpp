@@ -34,6 +34,7 @@
 #include "HoudiniSplineComponent.h"
 
 #include "ActorFactories/ActorFactory.h"
+#include "Editor/ActorPositioning.h"
 #include "ComponentVisualizer.h"
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewSceneModule.h"
 #include "Editor/UnrealEd/Public/UnrealWidget.h"
@@ -41,6 +42,7 @@
 #include "Runtime/Engine/Classes/Components/PostProcessComponent.h"
 #include "Runtime/Engine/Classes/Engine/PostProcessVolume.h"
 #include "Runtime/Engine/Public/SceneView.h"
+#include "SnappingUtils.h"
 #include "UnrealEdGlobals.h"
 #include "UObject/UObjectIterator.h"
 
@@ -144,9 +146,14 @@ void
 FHoudiniAssetEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 	FEditorViewportClient::Draw(View, PDI);
-
 	if (GUnrealEd == nullptr)
 		return;
+	/*
+	if (GUnrealEd != NULL && !IsInGameView())
+	{
+		GUnrealEd->DrawComponentVisualizers(View, PDI);
+	}
+	*/
 	
 	// Visualize Houdini splines
 	TSharedPtr<FComponentVisualizer> SplineVisualizer = GUnrealEd->FindComponentVisualizer(UHoudiniSplineComponent::StaticClass());
@@ -181,4 +188,131 @@ FHoudiniAssetEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawIn
 			}
 		}
 	}
+}
+
+
+void 
+FHoudiniAssetEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
+{
+	bool bHandled = false;
+
+	const FViewportClick Click(&View, this, Key, Event, HitX, HitY);
+	bHandled = GUnrealEd->ComponentVisManager.HandleClick(this, HitProxy, Click);
+
+	/*
+	HComponentVisProxy* ComponentVisProxy = HitProxyCast<HComponentVisProxy>(HitProxy);
+
+	TSharedPtr<FComponentVisualizer> SplineVisualizer = GUnrealEd->FindComponentVisualizer(UHoudiniSplineComponent::StaticClass());
+	TSharedPtr<FComponentVisualizer> HandleVisualizer = GUnrealEd->FindComponentVisualizer(UHoudiniHandleComponent::StaticClass());	
+	if (HitProxy == nullptr)
+	{
+		// If our HitProxy is null - make sure we end editing of current splines/handles
+		SplineVisualizer->EndEditing();
+		HandleVisualizer->EndEditing();
+	}
+	else
+	{
+		
+		
+		// Forward to our visualizers
+		bHandled = SplineVisualizer->VisProxyHandleClick(this, ComponentVisProxy, Click);
+
+		if(!bHandled)
+			bHandled = SplineVisualizer->VisProxyHandleClick(this, ComponentVisProxy, Click);
+	}
+	*/
+
+	if (!bHandled)
+	{
+		FEditorViewportClient::ProcessClick(View, HitProxy, Key, Event, HitX, HitY);
+	}
+}
+
+bool 
+FHoudiniAssetEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale)
+{
+	bool bHandled = false;
+	if (GUnrealEd->ComponentVisManager.HandleInputDelta(this, InViewport, Drag, Rot, Scale))
+	{
+		return true;
+	}
+
+	// Give the current editor mode a chance to use the input first.  If it does, don't apply it to anything else.
+	if (FEditorViewportClient::InputWidgetDelta(InViewport, CurrentAxis, Drag, Rot, Scale))
+	{
+		bHandled = true;
+	}
+
+	/*
+	// Forward to our visualizers
+	TSharedPtr<FComponentVisualizer> SplineVisualizer = GUnrealEd->FindComponentVisualizer(UHoudiniSplineComponent::StaticClass());
+	bHandled = SplineVisualizer->HandleInputDelta(this, Viewport, Drag, Rot, Scale);
+
+	TSharedPtr<FComponentVisualizer> HandleVisualizer = GUnrealEd->FindComponentVisualizer(UHoudiniHandleComponent::StaticClass());
+	if (!bHandled)
+		bHandled = HandleVisualizer->HandleInputDelta(this, Viewport, Drag, Rot, Scale);
+
+	if (!bHandled)
+	{
+		return FEditorViewportClient::InputWidgetDelta(InViewport, CurrentAxis, Drag, Rot, Scale);
+	}
+	*/
+	return bHandled;
+}
+
+
+bool
+FHoudiniAssetEditorViewportClient::InputKey(const FInputKeyEventArgs& InEventArgs)
+{
+	if (bDisableInput)
+		return true;
+
+	const int32	HitX = InEventArgs.Viewport->GetMouseX();
+	const int32	HitY = InEventArgs.Viewport->GetMouseY();
+
+	FInputEventState InputState(InEventArgs.Viewport, InEventArgs.Key, InEventArgs.Event);
+
+	// Compute a view.
+	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+		InEventArgs.Viewport,
+		GetScene(),
+		EngineShowFlags)
+		.SetRealtimeUpdate(IsRealtime()));
+
+	FSceneView* View = CalcSceneView(&ViewFamily);
+	// Compute the click location.
+	if (InputState.IsMouseButtonEvent() && InputState.IsAnyMouseButtonDown())
+	{
+		const FViewportCursorLocation Cursor(View, this, HitX, HitY);
+		const FActorPositionTraceResult TraceResult = FActorPositioning::TraceWorldForPositionWithDefault(Cursor, *View);
+		GEditor->UnsnappedClickLocation = TraceResult.Location;
+		GEditor->ClickLocation = TraceResult.Location;
+		GEditor->ClickPlane = FPlane(TraceResult.Location, TraceResult.SurfaceNormal);
+
+		// Snap the new location if snapping is enabled
+		FSnappingUtils::SnapPointToGrid(GEditor->ClickLocation, FVector::ZeroVector);
+	}
+
+	if (GUnrealEd->ComponentVisManager.HandleInputKey(this, InEventArgs.Viewport, InEventArgs.Key, InEventArgs.Event))
+	{
+		return true;
+	}
+	/*
+	bool bHandled = false;
+	const FKey& Key = InEventArgs.Key;
+	const EInputEvent& Event = InEventArgs.Event;
+	const FViewport* InViewport = InEventArgs.Viewport;
+
+	// Forward to our visualizers
+	TSharedPtr<FComponentVisualizer> SplineVisualizer = GUnrealEd->FindComponentVisualizer(UHoudiniSplineComponent::StaticClass());
+	bHandled = SplineVisualizer->HandleInputKey(this, Viewport, Key, Event);
+
+	TSharedPtr<FComponentVisualizer> HandleVisualizer = GUnrealEd->FindComponentVisualizer(UHoudiniHandleComponent::StaticClass());
+	if (!bHandled)
+		bHandled = HandleVisualizer->HandleInputKey(this, Viewport, Key, Event);
+	*/
+	//if (!bHandled)
+		return FEditorViewportClient::InputKey(InEventArgs);
+
+	//return bHandled;
 }

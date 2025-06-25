@@ -57,6 +57,11 @@ public:
 
 	virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
 
+	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
+	
+	virtual bool InputWidgetDelta(FViewport * InViewport, EAxisList::Type CurrentAxis, FVector & Drag, FRotator & Rot, FVector & Scale) override;
+
+	virtual bool InputKey(const FInputKeyEventArgs& EventArgs) override;
 protected:
 
 	// Pointer back to our Houdini Asset Editor Viewport owner
