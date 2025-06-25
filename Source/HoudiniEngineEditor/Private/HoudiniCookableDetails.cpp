@@ -256,6 +256,14 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		}
 
 		//
+		// MESH CONVERSION OPTIONS
+		//
+		if(MainCookable->IsOutputSupported())
+		{
+			CreateMeshConversonSettings(DetailBuilder, HCs);
+		}
+
+		//
 		// PROXY SETTINGS
 		//
 		if (MainCookable->IsProxySupported())
@@ -1153,6 +1161,82 @@ FHoudiniCookableDetails::CreateProxyDetails(
 }
 
 
+void
+FHoudiniCookableDetails::CreateMeshConversonSettings(
+	IDetailLayoutBuilder& DetailBuilder,
+	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
+{
+	if(InCookables.Num() <= 0)
+		return;
+
+	TWeakObjectPtr<UHoudiniCookable> MainCookable = InCookables[0];
+	if(!IsValidWeakPointer(MainCookable))
+		return;
+
+	if(!MainCookable->IsOutputSupported())
+		return;
+
+	// Create the SM Build Settings category
+	FString BuildSettingsCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_MESHGEN);
+
+	// If we have selected more than one component that have different HDAs, 
+	// we need to create multiple categories one for each different HDA
+	// OutputCatName += MultiSelectionIdentifier;
+
+	IDetailCategoryBuilder& Category =
+		DetailBuilder.EditCategory(*BuildSettingsCatName, FText::GetEmpty(), ECategoryPriority::Important);
+
+	FString Label = TEXT("Mesh Conversion Options");
+//	IDetailGroup& ProxyGrp = Category.AddGroup(FName(*Label), FText::FromString(Label));
+
+	// Lambda to mark the cookable as changed	
+	auto MarkCookableOutputsNeedUpdate = [](TWeakObjectPtr<UHoudiniCookable>& InCookable)
+		{
+			if(!IsValidWeakPointer(InCookable))
+				return;
+
+			// TODO: actually trigger an output update
+			// Mark all outputs as changed?
+			//InCookable->NeedUpdateOutputs();
+		};
+
+	
+	Category.AddCustomRow(FText::FromString("SplitMeshRow"))
+		.RowTag("SplitMeshSupport")
+		.NameContent()
+		[
+			SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("SplitMeshSupport", "Split Mesh Support"))
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+				.IsChecked_Lambda([MainCookable]()
+					{
+						return MainCookable->GetOutputData()->bSplitMeshSupport ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+					})
+				.OnCheckStateChanged_Lambda([InCookables, MarkCookableOutputsNeedUpdate](ECheckBoxState NewState)
+					{
+						bool bNewState = (NewState == ECheckBoxState::Checked) ? true : false;
+						for(auto CurCookable : InCookables)
+						{
+							if(!IsValidWeakPointer(CurCookable) && IsValid(CurCookable->GetOutputData()))
+								continue;
+
+							bool bIsSet = CurCookable->GetSplitMeshSupport();
+							if(bIsSet == bNewState)
+								continue;
+
+							CurCookable->Modify();
+							CurCookable->GetOutputData()->bSplitMeshSupport = bNewState;
+
+							// Mark our outputs as needing an update
+							MarkCookableOutputsNeedUpdate(CurCookable);
+						}
+					})
+		];
+}
 
 void 
 FHoudiniCookableDetails::CreateMeshBuildSettingsDetails(
@@ -1204,6 +1288,8 @@ FHoudiniCookableDetails::CreateMeshBuildSettingsDetails(
 	]
 	.ValueContent()
 	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
+
+
 
 	{
 		ProxyGrp.AddWidgetRow()

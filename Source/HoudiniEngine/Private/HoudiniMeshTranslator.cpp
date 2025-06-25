@@ -1896,6 +1896,11 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		}
 	}
 
+	if (NumberOfLODs > MAX_STATIC_MESH_LODS)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Maximum number of LODs is %d, found %d "), MAX_STATIC_MESH_LODS, NumberOfLODs);
+		NumberOfLODs = MAX_STATIC_MESH_LODS;
+	}
 	// Update the part's material's IDS and info now
 	CreateNeededMaterials();
 

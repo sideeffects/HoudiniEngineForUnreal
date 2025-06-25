@@ -106,6 +106,10 @@ public:
 		IDetailLayoutBuilder& DetailBuilder,
 		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
 
+	void CreateMeshConversonSettings(
+		IDetailLayoutBuilder& DetailBuilder,
+		TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
+
 private:
 
 	// Handler for double clicking the static mesh thumbnail, opens the editor.
