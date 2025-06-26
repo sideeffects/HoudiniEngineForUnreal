@@ -44,13 +44,60 @@ public:
 	static bool IsPCGOutput(HAPI_NodeId NodeId, HAPI_PartId PartId);
 private:
 	static UPCGParamData * CreatePCGAttributes(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
-	static void CreatePCGAttributes(UPCGMetadata* MetaData, TArray<FString>& Attributes, const TArray<int64>& EntryKeys, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
+	static void CreatePCGMetaAttributes(UPCGMetadata* MetaData, 
+		TArray<FString>& Attributes, 
+		const TArray<int64>& EntryKeys, 
+		HAPI_NodeId NodeId, 
+		HAPI_PartId PartId, 
+		HAPI_AttributeOwner Owner,
+		int StartIndex = 0,
+		int IndexCount = -1);
 
 	static UPCGPointData* CreatePCGPointData(HAPI_NodeId NodeId, HAPI_PartId PartId);
 
-	static void CreatePCGInt32Attribute(UPCGMetadata* Metadata, const TArray<int64>& EntryKeys, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner, FName AttrName);
-	static void CreatePCGInt64Attribute(UPCGMetadata* Metadata, const TArray<int64>& EntryKeys, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner, FName AttrName);
-	static void CreatePCGFloatAttribute(UPCGMetadata* Metadata, const TArray<int64>& EntryKeys, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner, FName AttrName);
-	static void CreatePCGDoubleAttribute(UPCGMetadata* Metadata, const TArray<int64>& EntryKeys, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner, FName AttrName);
-	static void CreatePCGStringAttribute(UPCGMetadata* Metadata, const TArray<int64>& EntryKeys, HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner, FName AttrName);
+	static void CreatePCGInt32Attribute(UPCGMetadata* Metadata, 
+		const TArray<int64>& EntryKeys, 
+		HAPI_NodeId NodeId, 
+		HAPI_PartId PartId, 
+		HAPI_AttributeOwner Owner, 
+		FName AttrName,
+		int StartIndex,
+		int IndexCount);
+
+	static void CreatePCGInt64Attribute(UPCGMetadata* Metadata, 
+		const TArray<int64>& EntryKeys, 
+		HAPI_NodeId NodeId, 
+		HAPI_PartId PartId, 
+		HAPI_AttributeOwner Owner, 
+		FName AttrName,
+		int StartIndex,
+		int IndexCount);
+
+	static void CreatePCGFloatAttribute(UPCGMetadata* Metadata, 
+		const TArray<int64>& EntryKeys, 
+		HAPI_NodeId NodeId, 
+		HAPI_PartId PartId, 
+		HAPI_AttributeOwner Owner, 
+		FName AttrName,
+		int StartIndex,
+		int IndexCount);
+
+	static void CreatePCGDoubleAttribute(UPCGMetadata* Metadata, 
+		const TArray<int64>& EntryKeys, 
+		HAPI_NodeId NodeId, 
+		HAPI_PartId PartId, 
+		HAPI_AttributeOwner Owner, 
+		FName AttrName,
+		int StartIndex,
+		int IndexCount);
+
+	static void CreatePCGStringAttribute(
+		UPCGMetadata* Metadata, 
+		const TArray<int64>& EntryKeys, 
+		HAPI_NodeId NodeId, 
+		HAPI_PartId PartId, 
+		HAPI_AttributeOwner Owner, 
+		FName AttrName,
+		int StartIndex,
+		int IndexCount);
 };
