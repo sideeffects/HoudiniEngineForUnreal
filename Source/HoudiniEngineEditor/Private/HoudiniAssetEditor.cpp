@@ -261,21 +261,27 @@ FHoudiniAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& In
 
 	FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
 
+	// VIEWPORT
 	InTabManager->RegisterTabSpawner(FHoudiniAssetEditorTabs::ViewportID, FOnSpawnTab::CreateSP(this, &FHoudiniAssetEditor::SpawnViewportTab))
 		.SetDisplayName(LOCTEXT("ViewportTab", "Viewport"))
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Viewports"));
 
+	// DETAILS
 	InTabManager->RegisterTabSpawner(FHoudiniAssetEditorTabs::DetailsID, FOnSpawnTab::CreateSP(this, &FHoudiniAssetEditor::SpawnDetailsTab))
 		.SetDisplayName(LOCTEXT("DetailsTabLabel", "Details"))
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Details"));
 
+	/*
+	// NODE SYNC
 	InTabManager->RegisterTabSpawner(FHoudiniAssetEditorTabs::NodeSyncID, FOnSpawnTab::CreateSP(this, &FHoudiniAssetEditor::SpawnNodeSyncTab))
 		.SetDisplayName(LOCTEXT("NodeSyncTabLabel", "Node Sync"))
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.ContentBrowser"));
+	*/
 
+	// PREVIEW SCENE SETTINGS
 	InTabManager->RegisterTabSpawner(FHoudiniAssetEditorTabs::PreviewSceneSettingsID, FOnSpawnTab::CreateSP(this, &FHoudiniAssetEditor::SpawnPreviewSceneSettingsTab))
 		.SetDisplayName(LOCTEXT("PreviewSceneTab", "Preview Scene Settings"))
 		.SetGroup(WorkspaceMenuCategoryRef)
@@ -290,7 +296,7 @@ FHoudiniAssetEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& 
 
 	InTabManager->UnregisterTabSpawner(FHoudiniAssetEditorTabs::ViewportID);
 	InTabManager->UnregisterTabSpawner(FHoudiniAssetEditorTabs::DetailsID);
-	InTabManager->UnregisterTabSpawner(FHoudiniAssetEditorTabs::NodeSyncID);
+	//InTabManager->UnregisterTabSpawner(FHoudiniAssetEditorTabs::NodeSyncID);
 	InTabManager->UnregisterTabSpawner(FHoudiniAssetEditorTabs::PreviewSceneSettingsID);
 }
 
