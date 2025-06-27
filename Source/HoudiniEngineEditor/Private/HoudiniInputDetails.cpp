@@ -398,6 +398,13 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 		SupportedChoices = FHoudiniEngineEditor::Get().GetPCGInputTypeChoiceLabels();
 	}
 #endif
+	else if (UHoudiniCookable* Cookable = MainInput->GetTypedOuter<UHoudiniCookable>())
+	{
+		if(!Cookable->AssetEditorId.IsNone())
+			SupportedChoices = FHoudiniEngineEditor::Get().GetAssetEditorInputTypeChoiceLabels();
+		else
+			SupportedChoices = FHoudiniEngineEditor::Get().GetPCGInputTypeChoiceLabels();
+	}
 	else
 	{
 		SupportedChoices = FHoudiniEngineEditor::Get().GetInputTypeChoiceLabels();

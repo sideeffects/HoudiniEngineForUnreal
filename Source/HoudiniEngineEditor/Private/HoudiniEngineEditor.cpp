@@ -981,6 +981,10 @@ FHoudiniEngineEditor::InitializeWidgetResource()
 	BlueprintInputTypeChoiceLabels.Add(MakeShareable(new FString(UHoudiniInput::InputTypeToString(EHoudiniInputType::Geometry))));
 	BlueprintInputTypeChoiceLabels.Add(MakeShareable(new FString(UHoudiniInput::InputTypeToString(EHoudiniInputType::Curve))));
 
+	AssetEditorInputTypeChoiceLabels.Reset();
+	AssetEditorInputTypeChoiceLabels.Add(MakeShareable(new FString(UHoudiniInput::InputTypeToString(EHoudiniInputType::Geometry))));
+	AssetEditorInputTypeChoiceLabels.Add(MakeShareable(new FString(UHoudiniInput::InputTypeToString(EHoudiniInputType::World))));
+
 	// Choice labels for all Houdini curve types
 	HoudiniCurveTypeChoiceLabels.Reset();
 	HoudiniCurveTypeChoiceLabels.Add(MakeShareable(new FString(FHoudiniEngineEditorUtils::HoudiniCurveTypeToString(EHoudiniCurveType::Polygon))));

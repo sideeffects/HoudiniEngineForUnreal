@@ -116,6 +116,7 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		TArray<TSharedPtr<FString>>* GetInputTypeChoiceLabels() { return &InputTypeChoiceLabels; };
 		TArray<TSharedPtr<FString>>* GetPCGInputTypeChoiceLabels() { return &PCGInputTypeChoiceLabels; }
 		TArray<TSharedPtr<FString>>* GetBlueprintInputTypeChoiceLabels() { return &BlueprintInputTypeChoiceLabels; };
+		TArray<TSharedPtr<FString>>* GetAssetEditorInputTypeChoiceLabels() { return &AssetEditorInputTypeChoiceLabels; }
 
 		// Returns a pointer to the Houdini curve types
 		TArray<TSharedPtr<FString>>* GetHoudiniCurveTypeChoiceLabels() { return &HoudiniCurveTypeChoiceLabels; };
@@ -312,6 +313,7 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		TArray<TSharedPtr<FString>> InputTypeChoiceLabels;
 		TArray<TSharedPtr<FString>> BlueprintInputTypeChoiceLabels;
 		TArray<TSharedPtr<FString>> PCGInputTypeChoiceLabels;
+		TArray<TSharedPtr<FString>> AssetEditorInputTypeChoiceLabels;
 
 		// Widget resources: Houdini Curve Type combo box labels
 		TArray<TSharedPtr<FString>> HoudiniCurveTypeChoiceLabels;
