@@ -213,6 +213,11 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 		SNew(STextBlock)
 		.Text(LOCTEXT("HoudiniAssetName", "Houdini Asset"))
 		.Font(IDetailLayoutBuilder::GetDetailFont())
+		.ToolTipText_Lambda([MainCookable]()
+		{
+			// Display the full name of the node for tooltip
+			return FText::FromString(MainCookable->GetHoudiniAssetData()->HapiAssetName);
+		})
 	];
 
 	// Lambda for updating the Houdini asset
@@ -290,6 +295,11 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 			.DisplayThumbnail(true)
 			.ThumbnailPool(AssetThumbnailPool/*UThumbnailManager::Get().GetSharedThumbnailPool()*/)
 			.NewAssetFactories(TArray<UFactory*>())
+			.ToolTipText_Lambda([MainCookable]()
+			{
+				// Display the full name of the node for tooltip
+				return FText::FromString(MainCookable->GetHoudiniAssetData()->HapiAssetName);
+			})
 		]
 		+ SHorizontalBox::Slot()
 		.FillWidth(0.1f)
@@ -317,11 +327,13 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 			]
 			+ SVerticalBox::Slot()
 			.FillHeight(0.5f)
-		]
+		]	
 	];
 
+	
 	// Set the widget in the row we created
 	Row->ValueWidget.Widget = VerticalBox;
+
 	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
 }
 
