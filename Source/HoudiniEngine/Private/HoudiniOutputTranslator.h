@@ -126,10 +126,7 @@ protected:
 		bool bCreateComponents);
 
 	// 2. Update tags and generic attributes on HAC
-	static bool UpdateOutputAttributesAndTags(
-		TArray<TObjectPtr<UHoudiniOutput>>& Outputs,
-		AActor* InActorOwner,
-		UActorComponent* InComponent);
+	static bool UpdateOutputAttributesAndTags(UHoudiniCookable* InHC);
 
 	// 3. Create the actual outputs assets/components
 	static bool CreateAllOutputs(
