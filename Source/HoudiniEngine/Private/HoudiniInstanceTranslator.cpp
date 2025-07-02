@@ -374,7 +374,23 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 		// Preload objects so we can benefit from async compilation as much as possible
 		for (int32 InstanceObjectIdx = 0; InstanceObjectIdx < VariationInstancedObjects.Num(); InstanceObjectIdx++)
 		{
-			VariationInstancedObjects[InstanceObjectIdx].LoadSynchronous();
+			UObject* InstancedObject = VariationInstancedObjects[InstanceObjectIdx].LoadSynchronous();
+			if (IsValid(InstancedObject) && InstancedObject->IsA<UBlueprintGeneratedClass>())
+			{
+				// Crash fix from VA
+				// UE5.5 seems to no longer be able to load/instantiate BPGenerated Classes in the Editor.
+				// Instead, we should use its source BP instead. Warn the user and replace the class to instantiate.
+				HOUDINI_LOG_WARNING(TEXT("Loading a BlueprintGeneratedClass is no longer supported. Loading its BlueprintClass instead - %s"), InstancedObject->GetPathName());
+
+				UBlueprintGeneratedClass * BPGenClass = Cast<UBlueprintGeneratedClass>(InstancedObject);
+				UObject* SourceBPClass = nullptr;
+				if (IsValid(BPGenClass) && IsValid(BPGenClass->ClassGeneratedBy))
+				{
+					UObject* SourceBPClass = BPGenClass->ClassGeneratedBy;					
+				}
+
+				VariationInstancedObjects[InstanceObjectIdx] = SourceBPClass;
+			}
 		}
 
 		// Create the instancer components now
