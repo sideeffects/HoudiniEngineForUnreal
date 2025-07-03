@@ -530,7 +530,7 @@ public:
 	virtual bool ShouldTryToStartFirstSession() const;
 
 	// Needed for BP support
-	bool IsFullyLoaded() const { return bFullyLoaded; };	
+	bool IsFullyLoaded() const { return bFullyLoaded; };
 	// Whether this component is currently open in a Blueprint editor. This
 	// method is overridden by HoudiniAssetBlueprintComponent.
 	virtual bool HasOpenEditor() const { return false; };
@@ -1011,16 +1011,16 @@ protected:
 public:
 
 	UPROPERTY()
-	bool bGenerateMenuExpanded; // NOT COOKABLE? move to details?
+	bool bGenerateMenuExpanded;
 
 	UPROPERTY()
-	bool bBakeMenuExpanded; // NOT COOKABLE?
+	bool bBakeMenuExpanded;
 
 	UPROPERTY()
-	bool bAssetOptionMenuExpanded; // NOT COOKABLE?
+	bool bAssetOptionMenuExpanded;
 
 	UPROPERTY()
-	bool bHelpAndDebugMenuExpanded; // NOT COOKABLE?
+	bool bHelpAndDebugMenuExpanded;
 #endif
 
 	// Indicates the Id of the AssetEditor viewing this cookable
