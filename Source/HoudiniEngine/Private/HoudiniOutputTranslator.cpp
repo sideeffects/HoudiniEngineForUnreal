@@ -99,7 +99,6 @@ FHoudiniOutputTranslator::UpdateOutputs(
 	if (!HC->IsOutputSupported() || !HC->OutputData)
 		return false;
 
-
 	UObject* Outer = Cast<UObject>(HC);
 
 	// 1. Update the output objects
@@ -115,12 +114,8 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		HC->OutputData->bEnableCurveEditing,
 		HC->OutputData->bCreateSceneComponents);
 
-	// 2. Update tags and generic attributes on the Cookable's component (if any)
-	if (HC->IsComponentSupported() && HC->ComponentData)
-	{
-		UpdateOutputAttributesAndTags(HC->OutputData->Outputs, HC->GetOwner(), HC->GetComponent());
-	}
-	
+	// 2. Update tags and generic attributes on the Cookable and its component (if any)
+	UpdateOutputAttributesAndTags(HC);
 
 	return true;
 }
@@ -140,7 +135,7 @@ FHoudiniOutputTranslator::ProcessOutputs(
 	if (!HC->IsOutputSupported() || !HC->OutputData)
 		return false;
 
-	// 3. Create the outputs and components
+	// 1. Create all the outputs and their components
 	FHoudiniPackageParams PackageParams;
 	PackageParams.PackageMode = FHoudiniPackageParams::GetDefaultStaticMeshesCookMode();
 	PackageParams.ReplaceMode = FHoudiniPackageParams::GetDefaultReplaceMode();
@@ -174,13 +169,13 @@ FHoudiniOutputTranslator::ProcessOutputs(
 		CreatedPackages))
 		return false;
 
-	// 4. Output cleanup
+	// 2. Output cleanup
 	CleanOutputsPostCreate(HC->OutputData->Outputs, HC->GetWorld(), HC->HasBeenLoaded());
 
-	// 5. 
+	// 3. 
 	UpdateDataLayersAndLevelInstanceOnOutput(HC->OutputData->Outputs);
 
-	// 6. Save all created packages	
+	// 4. Save all created packages	
 	if (CreatedPackages.Num() > 0)
 	{
 		// Save created packages. For example, we don't want landscape layers deleted 
@@ -232,31 +227,31 @@ FHoudiniOutputTranslator::UpdateOutputObjects(
 }
 
 bool
-FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(
-	TArray<TObjectPtr<UHoudiniOutput>>& Outputs,
-	AActor* InActorOwner,
-	UActorComponent* InComponent)
+FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(UHoudiniCookable* InHC)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateOutputAttributesAndTags);
 
 	//
-	// 2. Update tags and generic attributes on HAC
+	// Update tags and generic attributes on HAC
 	//
-
-	if (!InActorOwner || !InComponent)
+	if (!InHC)
 		return false;
 
 	// At the moment we don't support controlling KeepTags separately for components and actors, so if we find any
 	// HGPOs with KeepTags set to true, we'll keep the tags on both actors and components. In the future we may
 	// want to control these separately.
 	bool bKeepTags = false;
-
-	// Look for details generic property attributes on the outputs,
-	// and try to apply them to the HAC.
-	// This can be used to preset some of the HDA's uproperty via attribute
+	
+	// Look for detail generic propety attributes on the outputs
+	// and see if any of them apply to the Cookable or its component/HAC
+	int32 NumOutputs = InHC->GetNumOutputs();
 	TArray<FHoudiniGenericAttribute> GenericAttributes;
-	for (auto& CurrentOutput : Outputs)
+	for (int32 OutputIdx = 0; OutputIdx < NumOutputs; OutputIdx++)
 	{
+		UHoudiniOutput* CurrentOutput = InHC->GetOutputAt(OutputIdx);
+		if (!IsValid(CurrentOutput))
+			continue;
+
 		const TArray<FHoudiniGeoPartObject>& CurrentOutputHGPO = CurrentOutput->GetHoudiniGeoPartObjects();
 		for (auto& CurrentHGPO : CurrentOutputHGPO)
 		{
@@ -266,23 +261,26 @@ FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(
 				HAPI_UNREAL_ATTRIB_GENERIC_UPROP_PREFIX,
 				GenericAttributes,
 				HAPI_ATTROWNER_DETAIL);
+
 			bKeepTags = bKeepTags || CurrentHGPO.bKeepTags;
 		}
 	}
 
+	AActor* ActorOwner = InHC->GetOwner();
+	USceneComponent* CookableComponent = InHC->GetComponent();
 	if (bKeepTags == false)
 	{
-		if (InActorOwner)
-			InActorOwner->Tags.Empty();
+		if (ActorOwner)
+			ActorOwner->Tags.Empty();
 
-		if(InComponent)
-			InComponent->ComponentTags.Empty();
+		if(CookableComponent)
+			CookableComponent->ComponentTags.Empty();
 	}
 
-	UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InComponent);
-	UHoudiniCookable* Cookable = HAC ? HAC->GetCookable() : nullptr;
+	// Use the actor name for the log messages if possible
+	FString DisplayName = ActorOwner ? ActorOwner->GetActorLabel() : InHC->GetName();
 
-	// Attempt to apply the attributes to the HAC if we have any
+	// Attempt to apply the generic attributes to the Cookable or its component
 	for (const auto& CurrentPropAttribute : GenericAttributes)
 	{
 		// Get the current Property Attribute
@@ -290,19 +288,22 @@ FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(
 		if (CurrentPropertyName.IsEmpty())
 			continue;
 
-		// Try applying the property on the HAC directly first..
-		bool bSuccess = FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(InComponent, CurrentPropAttribute);
-		if (!bSuccess && Cookable)
-		{
-			// ... then try on the cookable if we failed
-			bSuccess = FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(Cookable, CurrentPropAttribute);
-		}
-		
-		if (bSuccess)
+		// Try applying the property on the cookable first..
+		if (FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(InHC, CurrentPropAttribute))
 		{
 			// Success!
-			HOUDINI_LOG_MESSAGE(TEXT("Modified UProperty %s on Houdini component named %s"), *CurrentPropertyName, *InComponent->GetName());
-		}		
+			HOUDINI_LOG_MESSAGE(TEXT("Modified UProperty %s on Houdini Cookable named %s"), *CurrentPropertyName, *DisplayName);
+		}
+
+		// .. then on its component if we have one
+		if (CookableComponent)
+		{
+			if (FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(CookableComponent, CurrentPropAttribute))
+			{
+				// Success!
+				HOUDINI_LOG_MESSAGE(TEXT("Modified UProperty %s on Houdini Component named %s"), *CurrentPropertyName, *DisplayName);
+			}
+		}
 	}
 
 	return true;

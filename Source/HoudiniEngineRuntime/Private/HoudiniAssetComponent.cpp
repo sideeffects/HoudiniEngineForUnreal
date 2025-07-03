@@ -1748,6 +1748,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 
 		BoxBounds += CurHandleComp->GetBounds();
 	}
+
 	/*
 	// Commented out: Creates incorrect focus bounds..
 	// Also scan all our decendants for SMC bounds not just top-level children
@@ -1773,10 +1774,12 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 	}
 	*/
 
+	/*
+	// Commented out: This also created incorrect focus bounds..
 	// If nothing was found, init with the asset's location
 	if (BoxBounds.GetVolume() == 0.0f)
 		BoxBounds += GetComponentLocation();
-
+	*/
 	return BoxBounds;
 }
 

@@ -27,6 +27,7 @@
 #include "HoudiniMeshTranslator.h"
 
 #include "HoudiniApi.h"
+#include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
 #include "HoudiniOutput.h"
 #include "HoudiniGenericAttribute.h"
@@ -133,6 +134,14 @@ FHoudiniMeshTranslator::CreateAllMeshesAndComponentsFromHoudiniOutput(
 		{
 			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
 				InOuterComponent, PropertyAttributes);
+
+			UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(InOuterComponent);
+			if (HAC)
+			{
+				// Also try on the HAC's cookable
+				FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
+					HAC->GetCookable(), PropertyAttributes);
+			}
 		}
 
 		CreateStaticMeshFromHoudiniGeoPartObject(
