@@ -278,15 +278,14 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 
 UHoudiniAssetComponent::~UHoudiniAssetComponent()
 {
-	// Unregister ourself so our houdini node can be delete.
-
+	// BeginDestroy has already unregistered ourself - no need to do it again here
+	
 	// This gets called in UnRegisterHoudiniComponent, with appropriate checks. Don't call it here.
 	//FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(AssetId, true);
-
-	FHoudiniEngineRuntime::Get().UnRegisterHoudiniComponent(this);
 }
 
-void UHoudiniAssetComponent::PostInitProperties()
+void 
+UHoudiniAssetComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 
