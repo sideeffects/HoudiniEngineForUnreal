@@ -141,7 +141,6 @@ FHoudiniSplineComponentVisualizer::DrawVisualization(
 
 	if (!IsValid(HoudiniSplineComponent)
 		|| !PDI
-		|| !HoudiniSplineComponent->IsVisible()
 		|| !HoudiniSplineComponent->IsHoudiniSplineVisible())
 		return;
 
