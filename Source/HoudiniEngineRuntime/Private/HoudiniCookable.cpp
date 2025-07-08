@@ -363,11 +363,13 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 
 UHoudiniCookable::~UHoudiniCookable()
 {
+	// Handled by GC
 	// Unregister ourself so our houdini nodes can be deleted.
-//	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
+	// FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(this);
 }
 
-template <typename Type> bool HoudiniCheckAndSetValue(Type & Dest, Type & Src)
+template <typename Type> bool
+HoudiniCheckAndSetValue(Type & Dest, Type & Src)
 {
 	if(Dest == Src)
 		return false;
@@ -375,7 +377,8 @@ template <typename Type> bool HoudiniCheckAndSetValue(Type & Dest, Type & Src)
 	return true;
 }
 
-bool HoudiniAreObjectsEqual(const UObject* A, const UObject*B)
+bool
+HoudiniAreObjectsEqual(const UObject* A, const UObject*B)
 {
 	if(!IsValid(A) && !IsValid(B))
 		return true;
@@ -402,7 +405,8 @@ bool HoudiniAreObjectsEqual(const UObject* A, const UObject*B)
 }
 
 
-bool UHoudiniCookable::SetParameterData(UCookableParameterData* InParameterData)
+bool 
+UHoudiniCookable::SetParameterData(UCookableParameterData* InParameterData)
 {
 	bool bChanged = false;
 	bChanged |= HoudiniCheckAndSetValue(ParameterData->bCookOnParameterChange, InParameterData->bCookOnParameterChange);
@@ -440,7 +444,8 @@ bool UHoudiniCookable::SetParameterData(UCookableParameterData* InParameterData)
 	return bChanged;
 }
 
-bool UHoudiniCookable::SetInputData(UCookableInputData* InInputData)
+bool
+UHoudiniCookable::SetInputData(UCookableInputData* InInputData)
 {
 	bool bChanged = false;
 	bChanged |= HoudiniCheckAndSetValue(InputData->bCookOnInputChange, InInputData->bCookOnInputChange);
@@ -471,8 +476,6 @@ bool UHoudiniCookable::SetInputData(UCookableInputData* InInputData)
 
 	return bChanged;
 }
-
-
 
 UHoudiniAsset*
 UHoudiniCookable::GetHoudiniAsset()
