@@ -290,7 +290,7 @@ UHoudiniAssetComponent::~UHoudiniAssetComponent()
 	// This gets called in UnRegisterHoudiniComponent, with appropriate checks. Don't call it here.
 	//FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(AssetId, true);
 
-	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(GetCookable());
+	//FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(GetCookable());
 }
 
 void UHoudiniAssetComponent::PostInitProperties()
@@ -791,15 +791,6 @@ bool UHoudiniAssetComponent::NeedBlueprintUpdate() const
 void
 UHoudiniAssetComponent::BeginDestroy()
 {
-	if (GetCookable())
-	{
-		// TODO: Cookable - Might not be needed?
-		GetCookable()->OnDestroy(true);
-	}
-
-	// Gets called through UnRegisterHoudiniComponent().
-	//FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(AssetId, true);
-
 	// Unregister ourself so our houdini node can be deleted
 	FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(GetCookable());
 

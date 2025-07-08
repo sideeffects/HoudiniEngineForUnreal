@@ -576,10 +576,10 @@ FHoudiniInstanceTranslator::GetAttributeInstancerPartData(
 	return true;
 }
 
-UObject * FHoudiniInstanceTranslator::LoadInstancedObject(const FString & ObjectPath)
+UObject*
+FHoudiniInstanceTranslator::LoadInstancedObject(const FString & ObjectPath)
 {
-	// Load the object using its path. Resolve redirectors if necessay.
-
+	// Load the object using its path. Resolve redirectors if necessary.
 	UObject * InstanceObject = StaticLoadObject(UObject::StaticClass(), nullptr, *ObjectPath, nullptr, LOAD_None, nullptr);
 
 	while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(InstanceObject))
@@ -589,14 +589,13 @@ UObject * FHoudiniInstanceTranslator::LoadInstancedObject(const FString & Object
 		return InstanceObject;
 
 	// If could not load the actor, try to load it as a class.
-
 	UClass* FoundClass = FHoudiniEngineRuntimeUtils::GetClassByName(ObjectPath);
-
 	if (FoundClass != nullptr)
 	{
 		// TODO: ensure we'll be able to create an actor from this class! 
 		InstanceObject = FoundClass;
 	}
+
 	if (IsValid(InstanceObject))
 		return InstanceObject;
 
