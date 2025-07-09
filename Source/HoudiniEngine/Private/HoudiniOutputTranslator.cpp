@@ -1601,14 +1601,14 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 				HAPI_PartInfo* CurrentHapiPartInfo = &HapiPartInfos[0];
 
 				// Check to for motion clip topology frame
-				if ((CurrentHapiPartInfo->type == HAPI_PARTTYPE_INSTANCER))
+				if (CurrentHapiPartInfo->type == HAPI_PARTTYPE_INSTANCER)
 				{
 					bHasMotionClipTopologyFrame = FHoudiniAnimationTranslator::IsMotionClipFrame(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo->id, false);
 				}
 
 				// Check for the first motion clip anim frame
 				CurrentHapiPartInfo = &HapiPartInfos[2];
-				if ((CurrentHapiPartInfo->type == HAPI_PARTTYPE_INSTANCER))
+				if (CurrentHapiPartInfo->type == HAPI_PARTTYPE_INSTANCER)
 				{
 					bHasMotionClipAnimFrame = FHoudiniAnimationTranslator::IsMotionClipFrame(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo->id, false);
 				}
