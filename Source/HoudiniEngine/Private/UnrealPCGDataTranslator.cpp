@@ -481,8 +481,7 @@ void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector2d * 
 void FUnrealPCGDataTranslator::SendToHoudini(UHoudiniPCGDataAttributeVector3d * Data, HAPI_NodeId InputNodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner)
 {
 	HAPI_AttributeInfo AttrInfo;
-	char* AttrName = TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName())));
-	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, AttrName);
+	FHoudiniHapiAccessor Accessor(InputNodeId, PartId, TCHAR_TO_UTF8((*GetHapiName(Data->GetAttrName()))));
 	Accessor.AddAttribute(Owner, HAPI_StorageType::HAPI_STORAGETYPE_FLOAT, 3, Data->Values.Num(), &AttrInfo);
 
 	TArray<float> FloatValues;
