@@ -209,9 +209,24 @@ FHoudiniEngineRuntime::UnRegisterHoudiniComponent(UHoudiniAssetComponent* HAC)
 
 	FScopeLock ScopeLock(&CriticalSection);
 
-	int32 FoundIdx = RegisteredHoudiniComponents.Find(HAC);
+	int32 FoundIdx = -1;
+	for (int nIdx = 0; nIdx < RegisteredHoudiniComponents.Num(); nIdx++)
+	{
+		TWeakObjectPtr<UHoudiniAssetComponent> Ptr = RegisteredHoudiniComponents[nIdx];
+		if (!Ptr.IsValid(true, true))
+			continue;
+
+		UHoudiniAssetComponent* CurrentHAC = Ptr.GetEvenIfUnreachable();
+		if (CurrentHAC && CurrentHAC == HAC)
+		{
+			FoundIdx = nIdx;
+			break;
+		}
+	}
+
 	if (!RegisteredHoudiniComponents.IsValidIndex(FoundIdx))
 		return;
+
 	HAC->NotifyHoudiniPreUnregister();
 	UnRegisterHoudiniComponent(FoundIdx);
 	HAC->NotifyHoudiniPostUnregister();
@@ -225,14 +240,15 @@ FHoudiniEngineRuntime::UnRegisterHoudiniComponent(const int32& ValidIndex)
 		return;
 
 	FScopeLock ScopeLock(&CriticalSection);
-
 	TWeakObjectPtr<UHoudiniAssetComponent> Ptr = RegisteredHoudiniComponents[ValidIndex];
-	if (Ptr.IsValid(true, false))
+
+	if (Ptr.IsValid(true, true))
 	{
-		UHoudiniAssetComponent* HAC = Ptr.Get();
-		if (HAC && HAC->CanDeleteHoudiniNodes())
+		UHoudiniAssetComponent* HAC = Ptr.GetEvenIfUnreachable();
+		if (HAC && HAC->CanDeleteHoudiniNodes() && HAC->GetAssetId() >= 0)
 		{
 			MarkNodeIdAsPendingDelete(HAC->GetAssetId(), true);
+			//HAC->AssetId = INDEX_NONE;
 		}
 	}
 	
