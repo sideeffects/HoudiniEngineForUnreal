@@ -2781,10 +2781,12 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			bool bHasRGBA = bHasRGB && AttribInfoColors.tupleSize == 4;
 			bool bHasAlpha = SplitAlphas.Num() > 0;
 
+			// Bug #147854
+			// Use SplitUVs here - as that where we'll read UVs from
 			TArray<bool> HasUVSets;
-			HasUVSets.SetNumZeroed(PartUVSets.Num());
-			for (int32 Idx = 0; Idx < PartUVSets.Num(); Idx++)
-				HasUVSets[Idx] = PartUVSets[Idx].Num() > 0;
+			HasUVSets.SetNumZeroed(SplitUVSets.Num());
+			for (int32 Idx = 0; Idx < SplitUVSets.Num(); Idx++)
+				HasUVSets[Idx] = SplitUVSets[Idx].Num() > 0;
 
 			uint32 FaceCount = SplitIndices.Num() / 3;
 			for (uint32 FaceIndex = 0; FaceIndex < FaceCount; FaceIndex++)
@@ -6245,7 +6247,8 @@ FHoudiniMeshTranslator::UpdateMeshBuildSettings(
 }
 
 
-void FHoudiniMeshTranslator::BuildMeshDescription(FMeshDescription* MeshDescription, FHoudiniGroupedMeshPrimitives& SplitMeshData)
+void 
+FHoudiniMeshTranslator::BuildMeshDescription(FMeshDescription* MeshDescription, FHoudiniGroupedMeshPrimitives& SplitMeshData)
 {
 	bool bHasNormal = SplitMeshData.Normals.Num() > 0;
 	bool bHasTangents = SplitMeshData.TangentU.Num() > 0 && SplitMeshData.TangentV.Num() > 0;
@@ -6329,10 +6332,12 @@ void FHoudiniMeshTranslator::BuildMeshDescription(FMeshDescription* MeshDescript
 	TVertexInstanceAttributesRef<FVector2f> VertexInstanceUVs = MeshDescription->VertexInstanceAttributes().GetAttributesRef<FVector2f>(MeshAttribute::VertexInstance::TextureCoordinate);
 	VertexInstanceUVs.SetNumChannels(UVSetCount);
 
+	// Bug #147854
+	// Use SplitUVs here - as that where we'll read UVs from
 	TArray<bool> HasUVSets;
-	HasUVSets.SetNumZeroed(PartUVSets.Num());
-	for (int32 Idx = 0; Idx < PartUVSets.Num(); Idx++)
-		HasUVSets[Idx] = PartUVSets[Idx].Num() > 0;
+	HasUVSets.SetNumZeroed(SplitMeshData.UVSets.Num());
+	for (int32 Idx = 0; Idx < SplitMeshData.UVSets.Num(); Idx++)
+		HasUVSets[Idx] = SplitMeshData.UVSets[Idx].Num() > 0;
 
 	for (uint32 FaceIndex = 0; FaceIndex < FaceCount; FaceIndex++)
 	{
