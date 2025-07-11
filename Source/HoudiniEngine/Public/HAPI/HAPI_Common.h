@@ -1448,7 +1448,7 @@ struct HAPI_API HAPI_ParmInfo
     /// the Browse Mode parameter property.
     HAPI_Permissions permissions;
 
-    /// Number of tags on this paramter.
+    /// Number of tags on this parameter.
     int tagCount;
 
     /// Tuple size. For scalar parameters this value is 1, but for vector

@@ -2551,10 +2551,10 @@ HAPI_DECL HAPI_CreateInputNode( const HAPI_Session * session,
                                 HAPI_NodeId * node_id,
                                 const char * name );
 
-/// @brief  Helper for creating specifically creating a curve input geometry SOP.
+/// @brief  Helper for specifically creating a curve input geometry SOP.
 ///         Inside the specified parent node, this will create a Null SOP that
-///         contains the the HAPI_ATTRIB_INPUT_CURVE_COORDS attribute.
-///         It will setup the node as a curve part with no points.
+///         contains the HAPI_ATTRIB_INPUT_CURVE_COORDS attribute.
+///         It will set up the node as a curve part with no points.
 ///         In addition to creating the input node, it will also commit and cook
 ///         the geometry.
 ///
