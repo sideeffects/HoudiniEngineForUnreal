@@ -110,7 +110,7 @@ void EHoudiniTestPCGContext::OnGraphGenerated(UPCGComponent* PCGComponent_)
 void EHoudiniTestPCGContext::GenerateAsync()
 {
 	this->State = EHoudiniTestPCGContextState::Generate;
-	PCGComponent->Generate();
+	PCGComponent->GenerateLocal(true);
 }
 
 void EHoudiniTestPCGContext::CleanupAndGenerateAsync()
@@ -293,7 +293,6 @@ bool FHoudiniEditorTestPCG_MeshesCooked::RunTest(const FString& Parameters)
 
 		return true;
 	}));
-
 
 	return true;
 }

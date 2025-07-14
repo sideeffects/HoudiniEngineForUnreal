@@ -95,11 +95,11 @@ public:
 	bool bAutomaticallyDeleteTempAssets = true;
 
 	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
-	bool bUsePCGCache = false;
+	bool bUsePCGCache = true;
 
 	FName GetOutputPinName() const;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Instanced)
 	TObjectPtr<UHoudiniPCGCookable> ParameterCookable;
 
 protected:
@@ -112,6 +112,7 @@ protected:
 	void InstantiateParameterCookable();
 	void OnParameterCookableCooked();
 
+	void PostEditImport() override;
 };
 
 enum class EHoudiniPCGContextState

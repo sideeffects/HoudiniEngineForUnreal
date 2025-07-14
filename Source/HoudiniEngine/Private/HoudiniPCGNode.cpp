@@ -60,6 +60,17 @@ void UHoudiniPCGSettings::PostLoad()
 	}
 }
 
+void UHoudiniPCGSettings::PostEditImport()
+{
+	if(IsValid(ParameterCookable))
+	{
+		ParameterCookable->OnPostOutputProcessingDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
+			{
+				OnParameterCookableCooked();
+			});
+	}
+}
+
 void UHoudiniPCGSettings::BeginDestroy()
 {
 	Super::BeginDestroy();
@@ -103,12 +114,10 @@ FString UHoudiniPCGSettings::GetAdditionalTitleInformation() const
 	case EPCGCookableState::Cooking:
 		return TEXT("Initializing... please wait...");
 
+	case EPCGCookableState::None:
 	case EPCGCookableState::CookingComplete:
 	case EPCGCookableState::Loaded:
 		return FString::Printf(TEXT("%s"), HoudiniAsset ? *HoudiniAsset.GetFName().ToString() : TEXT("None"));
-
-	case EPCGCookableState::None:
-		return TEXT("None");
 
 	default:
 		return TEXT("* Error initializing *");
