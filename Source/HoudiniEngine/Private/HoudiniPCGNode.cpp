@@ -21,6 +21,7 @@
 *
 */
 
+#include "PropertyPathHelpers.h"
 #include "Async/Async.h"
 #if defined(HOUDINI_USE_PCG)
 
@@ -43,6 +44,10 @@
 #include "HoudiniInput.h"
 #include "HoudiniPCGCookable.h"
 #include "HoudiniPCGManagedResource.h"
+#include "Editor.h"
+#include "IDetailsView.h"
+#include "PropertyEditorModule.h"
+#include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "UHoudiniPCGSettings"
 
@@ -68,6 +73,8 @@ void UHoudiniPCGSettings::PostEditImport()
 			{
 				OnParameterCookableCooked();
 			});
+
+		InstantiateParameterCookable();
 	}
 }
 
@@ -179,16 +186,11 @@ void UHoudiniPCGSettings::PostEditChangeProperty(FPropertyChangedEvent& Property
 			}
 		}
 
-		InstantiateParameterCookable();
+		InstantiateNewParameterCookable();
 
 		FHoudiniEngineRuntimeUtils::ForceDetailsPanelToUpdate();
 	}
 }
-
-#include "Editor.h"
-#include "IDetailsView.h"
-#include "PropertyEditorModule.h"
-#include "Modules/ModuleManager.h"
 
 void RefreshDetailsForObject(UObject* TargetObject)
 {
@@ -199,12 +201,65 @@ void RefreshDetailsForObject(UObject* TargetObject)
 
 void UHoudiniPCGSettings::OnParameterCookableCooked()
 {
-	this->Modify(); // Optional: for Undo support
+	this->Modify();
+	this->MarkPackageDirty();
+	this->IterationCount++;
+
+	FProperty* Property = FindFProperty<FProperty>(this->GetClass(), GET_MEMBER_NAME_CHECKED(UHoudiniPCGSettings, IterationCount));
+	if(Property)
+	{
+		FPropertyChangedEvent PropertyChangedEvent(Property, EPropertyChangeType::ValueSet);
+		this->PostEditChangeProperty(PropertyChangedEvent);
+	}
+
 	FHoudiniEngineRuntimeUtils::ForceDetailsPanelToUpdate();
 
 }
 
 void UHoudiniPCGSettings::InstantiateParameterCookable()
+{
+	Async(EAsyncExecution::ThreadPool, [this]()
+		{
+			ParameterCookable->Instantiate();
+
+			do
+			{
+				// Cook has been cancelled
+				if(ParameterCookable == nullptr)
+					break;
+
+				if(ParameterCookable->State == EPCGCookableState::Initialized)
+					break;
+
+				auto PrevState = ParameterCookable->State;
+
+				ParameterCookable->Update(nullptr);
+
+				if(ParameterCookable->State != PrevState)
+				{
+					// For UI update.
+					this->Modify();
+				}
+				FPlatformProcess::Sleep(0.1f);
+
+			} while(true);
+
+			if(ParameterCookable)
+			{
+				// The parameter cookable will not be recooked once its initialized, so set to CookingComplete.
+				ParameterCookable->State = EPCGCookableState::CookingComplete;
+				AsyncTask(ENamedThreads::GameThread, [this]()
+					{
+						// Populating must be done on game thread.
+						this->PopulateInputsAndOutputs();
+					});
+			}
+
+		});
+
+}
+
+void UHoudiniPCGSettings::InstantiateNewParameterCookable()
 {
 	if(HoudiniAsset == nullptr)
 	{
@@ -222,57 +277,19 @@ void UHoudiniPCGSettings::InstantiateParameterCookable()
 
 	ParameterCookable = nullptr;
 
-	Async(EAsyncExecution::ThreadPool, [this]()
+	ParameterCookable = NewObject<UHoudiniPCGCookable>(this);
+
+	ParameterCookable->CreateHoudiniCookable(HoudiniAsset, nullptr, nullptr);
+	ParameterCookable->Cookable->SetOutputSupported(false);
+	ParameterCookable->Cookable->SetPDGSupported(true);
+	ParameterCookable->Cookable->SetIsPCG(true);
+	ParameterCookable->Cookable->GetParameterData()->bCookOnParameterChange = true;
+	ParameterCookable->OnPostOutputProcessingDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
 	{
-		ParameterCookable = NewObject<UHoudiniPCGCookable>(this);
-
-		ParameterCookable->CreateHoudiniCookable(HoudiniAsset, nullptr, nullptr);
-		ParameterCookable->Cookable->SetOutputSupported(false);
-		ParameterCookable->Cookable->SetPDGSupported(true);
-		ParameterCookable->Cookable->SetIsPCG(true);
-		ParameterCookable->Cookable->GetParameterData()->bCookOnParameterChange = true;
-		ParameterCookable->OnPostOutputProcessingDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
-			{
-				OnParameterCookableCooked();
-			});
-
-		ParameterCookable->Instantiate();
-
-		do
-		{
-			// Cook has been cancelled
-			if(ParameterCookable == nullptr)
-				break;
-
-			if(ParameterCookable->State == EPCGCookableState::Initialized)
-				break;
-
-			auto PrevState = ParameterCookable->State;
-
-			ParameterCookable->Update(nullptr);
-
-			if (ParameterCookable->State != PrevState)
-			{
-				// For UI update.
-				this->Modify();
-			}
-			FPlatformProcess::Sleep(0.1f);
-
-		} while(true);
-
-		if (ParameterCookable)
-		{
-			// The paramter cookable will not be recooked once its initialized, so set to CookingComplete.
-			ParameterCookable->State = EPCGCookableState::CookingComplete;
-			AsyncTask(ENamedThreads::GameThread, [this]()
-				{
-					// Populating must be done on game thread.
-					this->PopulateInputsAndOutputs();
-
-				});
-		}
-
+			OnParameterCookableCooked();
 	});
+
+	InstantiateParameterCookable();
 
 }
 
@@ -283,8 +300,6 @@ void UHoudiniPCGSettings::ResetFromHDA()
 		FindFProperty<FProperty>(UHoudiniPCGSettings::StaticClass(), GET_MEMBER_NAME_CHECKED(UHoudiniPCGSettings, HoudiniAsset)));
 
 	PostEditChangeProperty(PropertyChangedEvent);
-	
-
 }
 
 void UHoudiniPCGSettings::PopulateInputsAndOutputs()

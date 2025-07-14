@@ -111,6 +111,7 @@ public:
 	void Bake();
 
 	void PostLoad();
+	void PostEditImport();
 
 	UPROPERTY(EditAnywhere, Category = Settings)
 	bool bAutomaticallyDeleteAssets = true;

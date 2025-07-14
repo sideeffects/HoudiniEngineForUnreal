@@ -97,6 +97,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
 	bool bUsePCGCache = true;
 
+	UPROPERTY()
+	int64 IterationCount = 0; // dummy value to keep track of changes.
+
 	FName GetOutputPinName() const;
 
 	UPROPERTY(EditAnywhere, Instanced)
@@ -110,6 +113,7 @@ protected:
 	// ~End UPCGSettings interface
 
 	void InstantiateParameterCookable();
+	void InstantiateNewParameterCookable();
 	void OnParameterCookableCooked();
 
 	void PostEditImport() override;
