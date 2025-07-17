@@ -102,7 +102,7 @@ public:
 
 	FName GetOutputPinName() const;
 
-	UPROPERTY(EditAnywhere, Instanced)
+	UPROPERTY(Instanced)
 	TObjectPtr<UHoudiniPCGCookable> ParameterCookable;
 
 protected:
