@@ -105,12 +105,32 @@ UHoudiniPCGCookable::PostLoad()
 
 	State = EPCGCookableState::Loaded;
 
-	auto OutputDelegateHandle = Cookable->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
-		{
-			this->OnCookingComplete(bSuccess);
-		});
-
+	if (this->Cookable)
+	{
+		auto OutputDelegateHandle = Cookable->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
+			{
+				this->OnCookingComplete(bSuccess);
+			});
+	}
 }
+
+void
+UHoudiniPCGCookable::PostEditImport()
+{
+	Super::PostEditImport();
+
+	State = EPCGCookableState::Loaded;
+
+	if(this->Cookable)
+	{
+		auto OutputDelegateHandle = Cookable->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
+			{
+				this->OnCookingComplete(bSuccess);
+			});
+	}
+}
+
+
 void
 UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPCGSettings* Owner, UHoudiniPCGComponent* Component)
 {

@@ -251,11 +251,11 @@ protected:
 	int32 NodeId;
 
 	// Id of this parameter.
-	UPROPERTY(DuplicateTransient)
+	UPROPERTY()
 	int32 ParmId;
 
 	// Id of parent parameter, -1 if root is parent.
-	UPROPERTY(DuplicateTransient)
+	UPROPERTY()
 	int32 ParentParmId;
 
 	// Child index within its parent parameter.
