@@ -666,7 +666,7 @@ FHoudiniEngine::StartSessionInternal(
 		HAPI_SessionInfo SessionInfo;
 		FHoudiniApi::SessionInfo_Init(&SessionInfo);
 		SessionResult = FHoudiniApi::CreateThriftSocketSession(
-			&Sessions[Index], TCHAR_TO_UTF8(*ServerHost), ServerPort, &SessionInfo);
+			&Sessions[Index], H_TCHAR_TO_UTF8(*ServerHost), ServerPort, &SessionInfo);
 
 		// Start a session and try to connect to it if we failed
 		if (bStartAutomaticServer && SessionResult != HAPI_RESULT_SUCCESS)
@@ -679,7 +679,7 @@ FHoudiniEngine::StartSessionInternal(
 			bEnableSessionSync = false;
 
 			SessionResult = FHoudiniApi::CreateThriftSocketSession(
-				&Sessions[Index], TCHAR_TO_UTF8(*ServerHost), ServerPort, &SessionInfo);
+				&Sessions[Index], H_TCHAR_TO_UTF8(*ServerHost), ServerPort, &SessionInfo);
 		}
 	}
 	break;
@@ -690,20 +690,20 @@ FHoudiniEngine::StartSessionInternal(
 		HAPI_SessionInfo SessionInfo;
 		FHoudiniApi::SessionInfo_Init(&SessionInfo);
 		SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
-			&Sessions[Index], TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
+			&Sessions[Index], H_TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
 
 		// Start a session and try to connect to it if we failed
 		if (bStartAutomaticServer && SessionResult != HAPI_RESULT_SUCCESS)
 		{
 			UpdatePathForServer();
 			FHoudiniApi::StartThriftNamedPipeServer(
-				&ServerOptions, TCHAR_TO_UTF8(*ServerPipeName), nullptr, nullptr);
+				&ServerOptions, H_TCHAR_TO_UTF8(*ServerPipeName), nullptr, nullptr);
 
 			// We've started the server manually, disable session sync
 			bEnableSessionSync = false;
 
 			SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
-				&Sessions[Index], TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
+				&Sessions[Index], H_TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
 		}
 	}
 	break;
@@ -725,7 +725,7 @@ FHoudiniEngine::StartSessionInternal(
 		}
 		
 		SessionResult = FHoudiniApi::CreateThriftSharedMemorySession(
-			&Sessions[Index], TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
+			&Sessions[Index], H_TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
 
 		// Start a session and try to connect to it if we failed
 		if (bStartAutomaticServer && SessionResult != HAPI_RESULT_SUCCESS)
@@ -733,14 +733,14 @@ FHoudiniEngine::StartSessionInternal(
 			UpdatePathForServer();
 			HAPI_ProcessId ServerProcID = -1;
 			HAPI_Result ServerResult = FHoudiniApi::StartThriftSharedMemoryServer(
-				&ServerOptions, TCHAR_TO_UTF8(*ServerPipeName), &ServerProcID, nullptr);
+				&ServerOptions, H_TCHAR_TO_UTF8(*ServerPipeName), &ServerProcID, nullptr);
 			if (ServerResult == HAPI_RESULT_SUCCESS)
 			{
 				// We've started the server manually, disable session sync
 				bEnableSessionSync = false;
 
 				SessionResult = FHoudiniApi::CreateThriftSharedMemorySession(
-					&Sessions[Index], TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
+					&Sessions[Index], H_TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
 			}
 		}
 	}
@@ -916,7 +916,7 @@ FHoudiniEngine::SessionSyncConnect(
 		{
 			Sessions.Emplace();
 			SessionResult = FHoudiniApi::CreateThriftSocketSession(
-				&Sessions[i], TCHAR_TO_UTF8(*ServerHost), ServerPort, &SessionInfo);
+				&Sessions[i], H_TCHAR_TO_UTF8(*ServerHost), ServerPort, &SessionInfo);
 			if (SessionResult != HAPI_RESULT_SUCCESS)
 				break;
 
@@ -936,7 +936,7 @@ FHoudiniEngine::SessionSyncConnect(
 		{
 			Sessions.Emplace();
 			SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
-				&Sessions[i], TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
+				&Sessions[i], H_TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
 			if (SessionResult != HAPI_RESULT_SUCCESS)
 				break;
 		}
@@ -956,7 +956,7 @@ FHoudiniEngine::SessionSyncConnect(
 		{
 			Sessions.Emplace();
 			SessionResult = FHoudiniApi::CreateThriftSharedMemorySession(
-				&Sessions[i], TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
+				&Sessions[i], H_TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
 			if (SessionResult != HAPI_RESULT_SUCCESS)
 				break;
 		}
@@ -1065,11 +1065,11 @@ FHoudiniEngine::InitializeHAPISession()
 		&CookOptions,
 		bUseCookingThread,
 		HoudiniRuntimeSettings->CookingThreadStackSize,
-		TCHAR_TO_UTF8(*HoudiniRuntimeSettings->HoudiniEnvironmentFiles),
-		TCHAR_TO_UTF8(*HoudiniRuntimeSettings->OtlSearchPath),
-		TCHAR_TO_UTF8(*HoudiniRuntimeSettings->DsoSearchPath),
-		TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ImageDsoSearchPath),
-		TCHAR_TO_UTF8(*HoudiniRuntimeSettings->AudioDsoSearchPath));
+		H_TCHAR_TO_UTF8(*HoudiniRuntimeSettings->HoudiniEnvironmentFiles),
+		H_TCHAR_TO_UTF8(*HoudiniRuntimeSettings->OtlSearchPath),
+		H_TCHAR_TO_UTF8(*HoudiniRuntimeSettings->DsoSearchPath),
+		H_TCHAR_TO_UTF8(*HoudiniRuntimeSettings->ImageDsoSearchPath),
+		H_TCHAR_TO_UTF8(*HoudiniRuntimeSettings->AudioDsoSearchPath));
 	
 	if (Result == HAPI_RESULT_SUCCESS)
 	{
@@ -1692,7 +1692,7 @@ FHoudiniEngine::StopHAPIPerformanceMonitoring(const FString& TraceDirectory)
 	FileName += TEXT("HAPI_UE_") + FString::Printf(TEXT("%d%02d%02d_%02d%02d%02d"), Year, Month, Day, Hour, Min, Sec) + TEXT(".hperf");
 
 	if (HAPI_RESULT_SUCCESS != FHoudiniApi::StopPerformanceMonitorProfile(
-		GetSession(), HAPIPerfomanceProfileID, TCHAR_TO_UTF8(*FileName)))
+		GetSession(), HAPIPerfomanceProfileID, H_TCHAR_TO_UTF8(*FileName)))
 	{
 		HAPIPerfomanceProfileID = -1;
 		HOUDINI_LOG_ERROR(TEXT("Failed to Stop HAPI Performance Monitoring."));

@@ -212,8 +212,8 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 		FString& Attribute = Attributes[AttrIndex];
 		HAPI_AttributeInfo AttrInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttrInfo);
-		FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, TCHAR_TO_UTF8(*Attribute), HAPI_ATTROWNER_POINT, &AttrInfo);
-		FHoudiniHapiAccessor Accessor(NodeId, PartId, TCHAR_TO_UTF8(*Attribute));
+		FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, H_TCHAR_TO_UTF8(*Attribute), HAPI_ATTROWNER_POINT, &AttrInfo);
+		FHoudiniHapiAccessor Accessor(NodeId, PartId, H_TCHAR_TO_UTF8(*Attribute));
 
 		if (Attribute.Equals(TEXT("P"), ESearchCase::Type::IgnoreCase))
 		{
@@ -396,7 +396,7 @@ void FHoudiniPCGTranslator::CreatePCGMetaAttributes(
 	{
 		HAPI_AttributeInfo AttrInfo;
 		FHoudiniApi::AttributeInfo_Init(&AttrInfo);
-		FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, TCHAR_TO_UTF8(*Attributes[AttrIndex]), Owner, &AttrInfo);
+		FHoudiniApi::GetAttributeInfo(FHoudiniEngine::Get().GetSession(), NodeId, PartId, H_TCHAR_TO_UTF8(*Attributes[AttrIndex]), Owner, &AttrInfo);
 
 		if (Attributes[AttrIndex] == TEXT("__vertex_id") && PartInfo.vertexCount > 0)
 		{
@@ -465,7 +465,7 @@ FHoudiniPCGTranslator::CreatePCGInt32Attribute(UPCGMetadata* Metadata,
 	int Count)
 {
 	TArray<int> Values;
-	FHoudiniHapiAccessor Accessor(NodeId, PartId, TCHAR_TO_UTF8(*AttrName.ToString()));
+	FHoudiniHapiAccessor Accessor(NodeId, PartId, H_TCHAR_TO_UTF8(*AttrName.ToString()));
 	Accessor.GetAttributeData(Owner, Values, StartIndex, Count);
 	if(Values.IsEmpty())
 		return;
@@ -490,7 +490,7 @@ void FHoudiniPCGTranslator::CreatePCGInt64Attribute(UPCGMetadata* Metadata,
 	int IndexCount)
 {
 	TArray<int64> Values;
-	FHoudiniHapiAccessor Accessor(NodeId, PartId, TCHAR_TO_UTF8(*AttrName.ToString()));
+	FHoudiniHapiAccessor Accessor(NodeId, PartId, H_TCHAR_TO_UTF8(*AttrName.ToString()));
 	Accessor.GetAttributeData(Owner, Values, StartIndex, IndexCount);
 	if(Values.IsEmpty())
 		return;
@@ -515,7 +515,7 @@ void FHoudiniPCGTranslator::CreatePCGFloatAttribute(UPCGMetadata* Metadata,
 	int IndexCount)
 {
 	TArray<float> Values;
-	FHoudiniHapiAccessor Accessor(NodeId, PartId, TCHAR_TO_UTF8(*AttrName.ToString()));
+	FHoudiniHapiAccessor Accessor(NodeId, PartId, H_TCHAR_TO_UTF8(*AttrName.ToString()));
 	Accessor.GetAttributeData(Owner, Values, StartIndex, IndexCount);
 	if(Values.IsEmpty())
 		return;
@@ -593,7 +593,7 @@ void FHoudiniPCGTranslator::CreatePCGDoubleAttribute(UPCGMetadata* Metadata,
 	int IndexCount)
 {
 	TArray<double> Values;
-	FHoudiniHapiAccessor Accessor(NodeId, PartId, TCHAR_TO_UTF8(*AttrName.ToString()));
+	FHoudiniHapiAccessor Accessor(NodeId, PartId, H_TCHAR_TO_UTF8(*AttrName.ToString()));
 	Accessor.GetAttributeData(Owner, Values, StartIndex, IndexCount);
 	if(Values.IsEmpty())
 		return;
@@ -619,7 +619,7 @@ void FHoudiniPCGTranslator::CreatePCGStringAttribute(
 	int IndexCount)
 {
 	TArray<FString> Values;
-	FHoudiniHapiAccessor Accessor(NodeId, PartId, TCHAR_TO_UTF8(*AttrName.ToString()));
+	FHoudiniHapiAccessor Accessor(NodeId, PartId, H_TCHAR_TO_UTF8(*AttrName.ToString()));
 	Accessor.GetAttributeData(Owner, Values, StartIndex, IndexCount);
 	if(Values.IsEmpty())
 		return;
