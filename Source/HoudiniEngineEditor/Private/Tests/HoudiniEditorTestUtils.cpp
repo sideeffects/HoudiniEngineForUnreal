@@ -1190,7 +1190,10 @@ void FHoudiniEditorTestUtils::LoadMap(FHoudiniAutomationTest* Test, const FStrin
 	{
 		*HasLoadedMap = true;
 	});
-	
+
+	// Introduce an artifical delay in attempt to work around UE5.6 garbage collection issues.
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
+
 	Test->AddCommand(new FFunctionLatentCommand([=]()
 	{
 		const double CurrentTime = FPlatformTime::Seconds();
