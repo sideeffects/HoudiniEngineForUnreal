@@ -38,6 +38,7 @@
 #include "HoudiniPackageParams.h"
 #include "Containers/UnrealString.h"
 #include "HoudiniEngineString.h"
+#include "HAL/Platform.h"
 
 class FString;
 class UStaticMesh;
@@ -55,6 +56,9 @@ enum class EHoudiniInstancerType : uint8;
 
 #define H_DEPRECATED_OLD_ATTRIBUTE_API(Version, Message)  [[deprecated(Message " Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.")]]
 
+#if PLATFORM_MAC
+#pragma clang diagnostic ignored "-Wdangling-assignment"
+#endif
 
 #define H_TCHAR_TO_UTF8(_H_UNREAL_STRING) (const char*)(StringCast<UTF8CHAR>(_H_UNREAL_STRING).Get())
 
