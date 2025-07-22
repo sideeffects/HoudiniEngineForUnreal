@@ -870,7 +870,7 @@ public:
 	FDirectoryPath BakeFolder;
 
 	UPROPERTY()
-	UWorld* OutputWorld = nullptr;
+	TObjectPtr<UWorld> OutputWorld = nullptr;
 	//
 	// Notifications
 	//
