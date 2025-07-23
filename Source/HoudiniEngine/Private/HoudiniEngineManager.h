@@ -102,6 +102,7 @@ protected:
 	bool StartTaskAssetInstantiation(
 		UHoudiniAsset* HoudiniAsset,
 		const FString& DisplayName,
+		const FString& NodeLabelPrefix,
 		FGuid& OutTaskGUID,
 		FString& OutHAPIAssetName);
 

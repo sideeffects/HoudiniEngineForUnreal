@@ -62,6 +62,8 @@ void UHoudiniPCGSettings::PostLoad()
 			{
 				OnParameterCookableCooked();
 			});
+
+		SetNodeLabelPrefix();
 	}
 }
 
@@ -74,6 +76,7 @@ void UHoudiniPCGSettings::PostEditImport()
 				OnParameterCookableCooked();
 			});
 
+		SetNodeLabelPrefix();
 		InstantiateParameterCookable();
 	}
 }
@@ -285,12 +288,38 @@ void UHoudiniPCGSettings::InstantiateNewParameterCookable()
 	ParameterCookable->Cookable->SetIsPCG(true);
 	ParameterCookable->Cookable->GetParameterData()->bCookOnParameterChange = true;
 	ParameterCookable->OnPostOutputProcessingDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
-	{
+		{
 			OnParameterCookableCooked();
-	});
+		});
+
+	SetNodeLabelPrefix();
 
 	InstantiateParameterCookable();
 
+}
+
+void UHoudiniPCGSettings::SetNodeLabelPrefix()
+{
+	if(!IsValid(ParameterCookable))
+		return;
+
+	FString NodeLabel;
+
+	// Use Graph name if available (should be!)
+	if(this->GetOuter()->GetOuter())
+	{
+		NodeLabel += this->GetOuter()->GetOuter()->GetName();
+		NodeLabel += TEXT("_");
+	}
+
+	// Use node name if available (should be!)
+	if(this->GetOuter())
+	{
+		NodeLabel += this->GetOuter()->GetName();
+		NodeLabel += TEXT("_");
+	}
+
+	ParameterCookable->Cookable->SetNodeLabelPrefix(NodeLabel);
 }
 
 void UHoudiniPCGSettings::ResetFromHDA()
@@ -490,6 +519,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			PCGCookable->CreateHoudiniCookable(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
 			PCGCookable->Cookable->SetIsPCG(true);
 			PCGCookable->Cookable->SetLandscapeModificationEnabled(ManagedResource->PCGComponent->bIgnoreLandscapeTracking);
+			PCGCookable->Cookable->SetNodeLabelPrefix(TEXT("PCG_Instance_"));
 			PCGCookable->Instantiate();
 			PCGCookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
 			ManagedResource->HoudiniPCGComponent->Cookable = PCGCookable;

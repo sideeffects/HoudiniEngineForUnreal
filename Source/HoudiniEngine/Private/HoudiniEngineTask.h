@@ -100,6 +100,8 @@ struct HOUDINIENGINE_API FHoudiniEngineTask
 	bool bUseOutputNodes;
 	bool bOutputTemplateGeos;
 
+	FString NodeLabelPrefix;
+
 	// Library Id.
 	HAPI_AssetLibraryId AssetLibraryId;
 

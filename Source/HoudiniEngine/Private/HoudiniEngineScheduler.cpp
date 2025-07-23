@@ -170,8 +170,23 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask & Task)
 	LastUpdateTime = FPlatformTime::Seconds();
 
 	// We instantiate without cooking.
-	Result = FHoudiniApi::CreateNode(
-		FHoudiniEngine::Get().GetSession(), -1, &AssetNameString[0], nullptr, false, &AssetId);
+
+	std::string StdString;
+	const char* NativeNodeLabel = nullptr;
+
+	if (!Task.NodeLabelPrefix.IsEmpty())
+	{
+		FString NodeLabel = Task.NodeLabelPrefix;
+		NodeLabel += FString(AssetNameString.c_str());
+		FHoudiniEngineUtils::SanitizeHAPIVariableName(NodeLabel);
+		StdString = TCHAR_TO_UTF8(*NodeLabel);
+	}
+
+	if(!StdString.empty())
+		NativeNodeLabel = StdString.c_str();
+
+	Result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), -1, &AssetNameString[0], NativeNodeLabel, false, &AssetId);
+
 	if (Result != HAPI_RESULT_SUCCESS)
 	{
 		AddResponseMessageTaskInfo(

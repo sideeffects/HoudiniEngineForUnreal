@@ -117,6 +117,8 @@ protected:
 	void OnParameterCookableCooked();
 
 	void PostEditImport() override;
+
+	void SetNodeLabelPrefix();
 };
 
 enum class EHoudiniPCGContextState
