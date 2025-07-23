@@ -195,7 +195,7 @@ struct FTestMesh
 };
 
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMiscMeshes_MaterialProperties, "_Houdini.UnitTests.Mesh.MaterialProperties",
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMiscMeshes_MaterialProperties, "Houdini.UnitTests.Mesh.MaterialProperties",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestMiscMeshes_MaterialProperties::RunTest(const FString& Parameters)
