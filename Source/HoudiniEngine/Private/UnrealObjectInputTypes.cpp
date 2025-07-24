@@ -156,7 +156,7 @@ s@unreal_material = "[" + itoa(material_slot) + "]" + material_overrides[materia
 	if (ParmId != -1)
 	{
 		FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId,
-			TCHAR_TO_UTF8(*VEXpression), ParmId, 0);
+			H_TCHAR_TO_UTF8(*VEXpression), ParmId, 0);
 	}
 	else
 	{
@@ -491,7 +491,7 @@ s@{2} = "{3}";)";
 	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MaterialOverridesNodeId, "snippet", ParmInfo);
 	if (ParmId != -1)
 	{
-		FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId, TCHAR_TO_UTF8(*VEXpression), ParmId, 0);
+		FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId, H_TCHAR_TO_UTF8(*VEXpression), ParmId, 0);
 	}
 	else
 	{
@@ -799,7 +799,7 @@ FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& In
 	FString VexCode = Builder.ToString();
 	HAPI_ParmInfo ParmInfo;
 	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(VexNodeId, "snippet", ParmInfo);
-	FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), VexNodeId, TCHAR_TO_UTF8(*VexCode), ParmId, 0);
+	FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), VexNodeId, H_TCHAR_TO_UTF8(*VexCode), ParmId, 0);
 
 	return true;
 }

@@ -498,7 +498,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 				const char* LODName = "";
 				{
 					FString LOD = TEXT("lod") + FString::FromInt(LODIndex);
-					LODName = TCHAR_TO_UTF8(*LOD);
+					LODName = H_TCHAR_TO_UTF8(*LOD);
 				}
 
 				// Create the node in this input object's OBJ node
@@ -726,7 +726,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 				const FString FormatString = TEXT("s@{0} = '{1}';");
 				FString PathName = PhysicalMaterial->GetPathName();
 				FString AttrName = TEXT(HAPI_UNREAL_ATTRIB_SIMPLE_PHYSICAL_MATERIAL);
-				std::string VEXpression = TCHAR_TO_UTF8(*FString::Format(*FormatString,
+				std::string VEXpression = H_TCHAR_TO_UTF8(*FString::Format(*FormatString,
 					{ AttrName, PathName }));
 
 				// Set the snippet parameter to the VEXpression.
@@ -1555,7 +1555,7 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 		const char* LODGroupStr = "";
 		{
 			FString LODGroup = TEXT("lod") + FString::FromInt(LODIndex);
-			LODGroupStr = TCHAR_TO_UTF8(*LODGroup);
+			LODGroupStr = H_TCHAR_TO_UTF8(*LODGroup);
 		}
 
 		// Add a LOD group
@@ -1593,12 +1593,12 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(),
-				NewNodeId, 0, TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize), false);
+				NewNodeId, 0, H_TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize), false);
 
 			float lodscreensize = LODInfo->ScreenSize.Default;
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatData(
 				FHoudiniEngine::Get().GetSession(), NewNodeId, 0,
-				TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize,
+				H_TCHAR_TO_UTF8(*LODAttributeName), &AttributeInfoLODScreenSize,
 				&lodscreensize, 0, 1), false);
 		}
 	}
@@ -2039,7 +2039,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodeForCapturePose(
 			if (ParmId != -1)
 			{
 				FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId,
-					TCHAR_TO_UTF8(*FormatString), ParmId, 0);
+					H_TCHAR_TO_UTF8(*FormatString), ParmId, 0);
 			}
 			else
 			{

@@ -32,6 +32,8 @@
 
 #include <vector>
 
+#include "HoudiniEngineUtils.h"
+
 FCriticalSection FHoudiniEngineString::GetStringCriticalSection;
 
 FHoudiniEngineString::FHoudiniEngineString()
@@ -381,7 +383,7 @@ void FHoudiniEngineRawStrings::CreateRawStrings(const TArrayView<const FString> 
 	for (int Id = 0; Id < Strings.Num(); Id++)
 	{
 		const FString& Str = Strings[Id];
-		std::string ConvertedString = TCHAR_TO_UTF8(*Str);
+		std::string ConvertedString = H_TCHAR_TO_UTF8(*Str);
 		const char* TempString = ConvertedString.c_str();
 
 		int TempStringLen = strlen(TempString);
@@ -393,7 +395,7 @@ void FHoudiniEngineRawStrings::CreateRawStrings(const TArrayView<const FString> 
 	for (int Id = 0; Id < Strings.Num(); Id++)
 	{
 		const FString& Str = Strings[Id];
-		std::string ConvertedString = TCHAR_TO_UTF8(*Str);
+		std::string ConvertedString = H_TCHAR_TO_UTF8(*Str);
 		const char* TempString = ConvertedString.c_str();
 
 		RawStrings[Id] = &Buffer[StringStart];

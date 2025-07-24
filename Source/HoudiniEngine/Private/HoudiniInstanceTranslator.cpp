@@ -395,7 +395,7 @@ TTuple<FString, FHoudiniEngineIndexedStringMap> FHoudiniInstanceTranslator::GetS
 	FHoudiniEngineIndexedStringMap SplitAttributes;
 	if (!SplitAttrName.IsEmpty())
 	{
-		Accessor.Init(HGPO.GeoId, HGPO.PartId, TCHAR_TO_UTF8(*SplitAttrName));
+		Accessor.Init(HGPO.GeoId, HGPO.PartId, H_TCHAR_TO_UTF8(*SplitAttrName));
 		Accessor.GetAttributeStrings(Owner, SplitAttributes);
 	}
 

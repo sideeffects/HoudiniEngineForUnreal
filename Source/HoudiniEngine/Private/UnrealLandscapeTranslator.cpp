@@ -422,7 +422,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 				FHoudiniEngine::Get().GetSession(),
 				HeightFieldId,
 				&LandscapeLayerNodeId,
-				TCHAR_TO_UTF8(*LayerVolumeName),
+				H_TCHAR_TO_UTF8(*LayerVolumeName),
 				XSize, YSize,
 				1.f
 				), false);
@@ -434,7 +434,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 				FHoudiniEngine::Get().GetSession(),
 				HeightFieldId,
 				"volumevisualization",
-				TCHAR_TO_UTF8(*VisualizationName),
+				H_TCHAR_TO_UTF8(*VisualizationName),
 				false,
 				&VisualizationNodeId
 				), false);
@@ -469,7 +469,7 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscape(
 				FHoudiniEngine::Get().GetSession(),
 				HeightFieldId,
 				"visibility",
-				TCHAR_TO_UTF8(*VisibilityName),
+				H_TCHAR_TO_UTF8(*VisibilityName),
 				false,
 				&VisibilityNodeId
 				), false);
