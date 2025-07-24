@@ -115,9 +115,11 @@ protected:
 	void InstantiateParameterCookable();
 	void InstantiateNewParameterCookable();
 	void OnParameterCookableCooked();
+	void OnParameterCookableInitialized();
 
 	void PostEditImport() override;
-
+	void SetupCookable();
+	void ForceRefreshUI();
 	void SetNodeLabelPrefix();
 };
 

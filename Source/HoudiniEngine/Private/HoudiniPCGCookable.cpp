@@ -75,6 +75,16 @@ UHoudiniPCGCookable::OnCookingComplete(bool bSuccess)
 }
 
 void
+UHoudiniPCGCookable::Rebuild()
+{
+	if(!IsValid(this->Cookable))
+		return;
+
+	this->State = EPCGCookableState::Initializing;
+	this->Cookable->MarkAsNeedRebuild();
+}
+
+void
 UHoudiniPCGCookable::OnCookingCompleteInternal(bool bSuccess)
 {
 	switch (this->State)
@@ -82,6 +92,9 @@ UHoudiniPCGCookable::OnCookingCompleteInternal(bool bSuccess)
 	case EPCGCookableState::Initializing:
 		HOUDINI_PCG_MESSAGE(TEXT("(%p)       Set to EPCGCookableState::Initialized"), this);
 		this->State = EPCGCookableState::Initialized;
+		if(OnInitializedDelegate.IsBound())
+			OnInitializedDelegate.Broadcast(this, bSuccess);
+
 		break;
 
 	default:
@@ -1001,6 +1014,9 @@ void
 UHoudiniPCGCookable::DeleteBakedObject(const FString& ObjectPath)
 {
 #if WITH_EDITOR
+	if(ObjectPath.IsEmpty())
+		return;
+
 	UObject* Object = StaticLoadObject(UObject::StaticClass(), nullptr, *ObjectPath);
 	if(!IsValid(Object))
 		return;

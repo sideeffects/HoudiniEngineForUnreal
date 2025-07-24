@@ -259,7 +259,8 @@ UHoudiniParameter::InvalidateData()
 
 }
 
-void UHoudiniParameter::OnSessionConnected()
+void
+UHoudiniParameter::OnSessionConnected()
 {
 	NodeId = INDEX_NONE;
 
