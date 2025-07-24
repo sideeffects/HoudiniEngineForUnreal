@@ -1180,10 +1180,10 @@ HAPI_C_STRUCT_TYPEDEF( HAPI_ThriftServerOptions )
 /// Data for global timeline, used with ::HAPI_SetTimelineOptions()
 struct HAPI_API HAPI_TimelineOptions
 {
-    float fps;
+    double fps;
 
-    float startTime;
-    float endTime;
+    double startTime;
+    double endTime;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_TimelineOptions )
 

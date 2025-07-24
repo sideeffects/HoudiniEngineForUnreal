@@ -1397,7 +1397,7 @@ HAPI_DECL HAPI_GetStringBatch( const HAPI_Session * session,
 /// @param[out]     time
 ///                 Time as a float in seconds.
 ///
-HAPI_DECL HAPI_GetTime( const HAPI_Session * session, float * time );
+HAPI_DECL HAPI_GetTime( const HAPI_Session * session, double * time );
 
 /// @brief  Sets the global time of the scene. All API calls will deal
 ///         with this time to cook.
@@ -1413,7 +1413,7 @@ HAPI_DECL HAPI_GetTime( const HAPI_Session * session, float * time );
 /// @param[in]      time
 ///                 Time as a float in seconds.
 ///
-HAPI_DECL HAPI_SetTime( const HAPI_Session * session, float time );
+HAPI_DECL HAPI_SetTime( const HAPI_Session * session, double time );
 
 /// @brief  Returns whether the Houdini session will use the current time in
 ///         Houdini when cooking and retrieving data. By default this is
