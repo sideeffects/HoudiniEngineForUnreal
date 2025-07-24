@@ -634,7 +634,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 					FGuid TaskGuid;
 					FString HapiAssetName;
 					UHoudiniAsset* HoudiniAsset = HC->HoudiniAssetData->HoudiniAsset;
-					if (StartTaskAssetInstantiation(HoudiniAsset, HC->GetDisplayName(), TaskGuid, HapiAssetName))
+					if (StartTaskAssetInstantiation(HoudiniAsset, HC->GetDisplayName(), HC->GetNodeLabelPrefix(), TaskGuid, HapiAssetName))
 					{
 						// The cookable is now instantiating
 						NextState = EHoudiniAssetState::Instantiating;
@@ -970,7 +970,12 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 
 
 bool 
-FHoudiniEngineManager::StartTaskAssetInstantiation(UHoudiniAsset* HoudiniAsset, const FString& DisplayName, FGuid& OutTaskGUID, FString& OutHAPIAssetName)
+FHoudiniEngineManager::StartTaskAssetInstantiation(
+	UHoudiniAsset* HoudiniAsset, 
+	const FString& DisplayName,
+	const FString& NodeLabelPrefix,
+	FGuid& OutTaskGUID, 
+	FString& OutHAPIAssetName)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::StartTaskAssetInstantiation);
 
@@ -1033,6 +1038,7 @@ FHoudiniEngineManager::StartTaskAssetInstantiation(UHoudiniAsset* HoudiniAsset, 
 	//Task.bLoadedComponent = bLocalLoadedComponent;
 	Task.AssetLibraryId = AssetLibraryId;
 	Task.AssetHapiName = PickedAssetName;
+	Task.NodeLabelPrefix = NodeLabelPrefix;
 
 	FHoudiniEngineString(PickedAssetName).ToFString(OutHAPIAssetName);
 

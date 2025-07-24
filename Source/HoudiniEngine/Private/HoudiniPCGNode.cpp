@@ -52,30 +52,38 @@
 #define LOCTEXT_NAMESPACE "UHoudiniPCGSettings"
 
 
-void UHoudiniPCGSettings::PostLoad()
+void UHoudiniPCGSettings::SetupCookable()
 {
-	Super::PostLoad();
-
 	if(IsValid(ParameterCookable))
 	{
 		ParameterCookable->OnPostOutputProcessingDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
 			{
 				OnParameterCookableCooked();
 			});
+		ParameterCookable->OnInitializedDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
+			{
+				OnParameterCookableInitialized();
+			});
+
+		SetNodeLabelPrefix();
 	}
+}
+
+void UHoudiniPCGSettings::OnParameterCookableInitialized()
+{
+	ForceRefreshUI();
+}
+
+
+void UHoudiniPCGSettings::PostLoad()
+{
+	Super::PostLoad();
+	SetupCookable();
 }
 
 void UHoudiniPCGSettings::PostEditImport()
 {
-	if(IsValid(ParameterCookable))
-	{
-		ParameterCookable->OnPostOutputProcessingDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
-			{
-				OnParameterCookableCooked();
-			});
-
-		InstantiateParameterCookable();
-	}
+	SetupCookable();
 }
 
 void UHoudiniPCGSettings::BeginDestroy()
@@ -201,6 +209,13 @@ void RefreshDetailsForObject(UObject* TargetObject)
 
 void UHoudiniPCGSettings::OnParameterCookableCooked()
 {
+	ForceRefreshUI();
+}
+
+void UHoudiniPCGSettings::ForceRefreshUI()
+{
+	// Very brute force way to refresh the details panel.
+
 	this->Modify();
 	this->MarkPackageDirty();
 	this->IterationCount++;
@@ -254,9 +269,7 @@ void UHoudiniPCGSettings::InstantiateParameterCookable()
 						this->PopulateInputsAndOutputs();
 					});
 			}
-
 		});
-
 }
 
 void UHoudiniPCGSettings::InstantiateNewParameterCookable()
@@ -284,31 +297,55 @@ void UHoudiniPCGSettings::InstantiateNewParameterCookable()
 	ParameterCookable->Cookable->SetPDGSupported(true);
 	ParameterCookable->Cookable->SetIsPCG(true);
 	ParameterCookable->Cookable->GetParameterData()->bCookOnParameterChange = true;
-	ParameterCookable->OnPostOutputProcessingDelegate.AddLambda([this](UHoudiniPCGCookable* Cookable, bool  bSuccess)
-	{
-			OnParameterCookableCooked();
-	});
+
+	SetupCookable();
 
 	InstantiateParameterCookable();
 
 }
 
+void UHoudiniPCGSettings::SetNodeLabelPrefix()
+{
+	if(!IsValid(ParameterCookable))
+		return;
+
+	FString NodeLabel;
+
+	// Use Graph name if available (should be!)
+	if(this->GetOuter()->GetOuter())
+	{
+		NodeLabel += this->GetOuter()->GetOuter()->GetName();
+		NodeLabel += TEXT("_");
+	}
+
+	// Use node name if available (should be!)
+	if(this->GetOuter())
+	{
+		NodeLabel += this->GetOuter()->GetName();
+		NodeLabel += TEXT("_");
+	}
+
+	ParameterCookable->Cookable->SetNodeLabelPrefix(NodeLabel);
+}
+
 void UHoudiniPCGSettings::ResetFromHDA()
 {
 	this->Modify();
-	FPropertyChangedEvent PropertyChangedEvent(
-		FindFProperty<FProperty>(UHoudiniPCGSettings::StaticClass(), GET_MEMBER_NAME_CHECKED(UHoudiniPCGSettings, HoudiniAsset)));
 
-	PostEditChangeProperty(PropertyChangedEvent);
+	if(ParameterCookable)
+		ParameterCookable->Rebuild();
+
+	this->MarkPackageDirty();
 }
+
+
+
 
 void UHoudiniPCGSettings::PopulateInputsAndOutputs()
 {
 	this->Modify();
 
-	UCookableInputData* InputData = ParameterCookable->Cookable->GetInputData();
-	NumInputs = InputData ? ParameterCookable->Cookable->GetInputData()->Inputs.Num() : 0;
-	FProperty* Prop = FindFProperty<FProperty>(GetClass(), GET_MEMBER_NAME_CHECKED(UHoudiniPCGSettings, NumInputs));
+	FProperty* Prop = FindFProperty<FProperty>(GetClass(), GET_MEMBER_NAME_CHECKED(UHoudiniPCGSettings, IterationCount));
 	if(Prop)
 	{
 		FPropertyChangedEvent PropertyChangedEvent(Prop);
@@ -316,10 +353,8 @@ void UHoudiniPCGSettings::PopulateInputsAndOutputs()
 	}
 
 	this->MarkPackageDirty();
-
-	FHoudiniEngineRuntimeUtils::ForceDetailsPanelToUpdate();
-
 }
+
 
 FPCGCrc FHoudiniDigitalAssetPCGElement::SetCrc(FPCGContext* Context) const
 {
@@ -445,6 +480,10 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 	{
 		HOUDINI_PCG_MESSAGE(TEXT("First time called with context %p"), HDAContext);
 
+		// For now, we must always force the Cookable to be created since the user may have edited the Parameter Cookable
+		// without saving the HDA, meaning the HDAs in session sync get out of sync.
+		ManagedResource = nullptr;
+
 		// If the Managed Resource is invalid, don't use it.
 
 		if(ManagedResource)
@@ -490,6 +529,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			PCGCookable->CreateHoudiniCookable(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
 			PCGCookable->Cookable->SetIsPCG(true);
 			PCGCookable->Cookable->SetLandscapeModificationEnabled(ManagedResource->PCGComponent->bIgnoreLandscapeTracking);
+			PCGCookable->Cookable->SetNodeLabelPrefix(TEXT("PCG_Instance_"));
 			PCGCookable->Instantiate();
 			PCGCookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
 			ManagedResource->HoudiniPCGComponent->Cookable = PCGCookable;

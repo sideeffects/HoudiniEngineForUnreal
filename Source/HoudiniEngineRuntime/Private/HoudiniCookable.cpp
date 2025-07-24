@@ -2668,3 +2668,14 @@ UHoudiniCookable::BeginDestroy()
 
 	Super::BeginDestroy();
 }
+
+void UHoudiniCookable::SetNodeLabelPrefix(const FString& Prefix)
+{
+	NodeLabelPrefix = Prefix;
+}
+
+const FString& UHoudiniCookable::GetNodeLabelPrefix() const
+{
+	return NodeLabelPrefix;
+}
+

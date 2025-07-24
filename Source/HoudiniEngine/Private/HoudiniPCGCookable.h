@@ -110,6 +110,8 @@ public:
 	// Bake the Cookable
 	void Bake();
 
+	void Rebuild();
+
 	void PostLoad();
 	void PostEditImport();
 
@@ -138,6 +140,7 @@ public:
 
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPostOutputProcessingDelegate, UHoudiniPCGCookable*, bool);
 
+	FOnPostOutputProcessingDelegate OnInitializedDelegate;
 	FOnPostOutputProcessingDelegate OnPostOutputProcessingDelegate;
 
 private:

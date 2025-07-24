@@ -691,6 +691,10 @@ public:
 
 	void SetAssetEditorId(const FName& InName) { AssetEditorId = InName; };
 
+	void SetNodeLabelPrefix(const FString& Prefix);
+
+	const FString & GetNodeLabelPrefix() const;
+
 	//------------------------------------------------------------------------------------------------
 	// Supported Features
 	//------------------------------------------------------------------------------------------------
@@ -794,6 +798,8 @@ protected:
 	// Id of the corresponding Houdini node.
 	UPROPERTY(DuplicateTransient,Transient)
 	int32 NodeId;	// AssetId
+
+	FString NodeLabelPrefix;
 
 	// NEW: The name of the node we're creating/fetching
 	// This is NOT an ASSET name - Assets are handled via ASSET DATA
