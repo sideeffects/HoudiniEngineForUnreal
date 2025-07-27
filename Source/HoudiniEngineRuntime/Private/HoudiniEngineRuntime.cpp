@@ -356,5 +356,17 @@ FHoudiniEngineRuntime::UnRegisterHoudiniCookable(const int32& ValidIndex)
 	RegisteredHoudiniCookables.RemoveAt(ValidIndex);
 }
 
+static TAutoConsoleVariable<int32> CVarHoudiniPCGLogging(
+	TEXT("Houdini.PCGLogging"),
+	0, // default value
+	TEXT("Enable (1) or disable (0) PCG Logging."),
+	ECVF_Default
+);
+
+bool IsHoudiniPCGLoggingEnabled()
+{
+	bool Enabled = CVarHoudiniPCGLogging.GetValueOnAnyThread() != 0;
+	return Enabled;
+}
 #undef LOCTEXT_NAMESPACE
 
