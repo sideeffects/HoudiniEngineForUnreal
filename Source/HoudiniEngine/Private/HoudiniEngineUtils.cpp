@@ -9128,11 +9128,11 @@ void FHoudiniPerfTimer::Stop()
 
 }
 
-std::string HoudiniTCHARToUTF(const TCHAR* Text)
+TArray<char> HoudiniTCHARToUTF(const TCHAR* Text)
 {
 	int32 Length = FCString::Strlen(Text);
-	std::string Result;
-	Result.resize(Length, ' ');
+	TArray<char> Result;
+	Result.SetNumZeroed(Length + 1);
 
 	FTCHARToUTF8_Convert::Convert(&Result[0], Length, Text, Length);
 

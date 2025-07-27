@@ -60,9 +60,9 @@ enum class EHoudiniInstancerType : uint8;
 #pragma clang diagnostic ignored "-Wdangling-assignment"
 #endif
 
-std::string HOUDINIENGINE_API HoudiniTCHARToUTF(const TCHAR * Text);
+TArray<char> HOUDINIENGINE_API HoudiniTCHARToUTF(const TCHAR * Text);
 
-#define H_TCHAR_TO_UTF8(_H_UNREAL_STRING) HoudiniTCHARToUTF(_H_UNREAL_STRING).c_str()
+#define H_TCHAR_TO_UTF8(_H_UNREAL_STRING) HoudiniTCHARToUTF(_H_UNREAL_STRING).GetData()
 
 extern TAutoConsoleVariable<float> CVarHoudiniEngineMeshBuildTimer;
 
