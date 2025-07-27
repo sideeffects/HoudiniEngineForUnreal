@@ -1810,16 +1810,13 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	if (bAddLODGroups)
 	{
 		// LOD Group
-		const char * LODGroupStr = "";
-		{
-			FString LODGroup = TEXT("lod") + FString::FromInt(InLODIndex);
-			LODGroupStr = H_TCHAR_TO_UTF8(*LODGroup);
-		}
+
+		FString LODGroup = TEXT("lod") + FString::FromInt(InLODIndex);
 
 		// Add a LOD group
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddGroup(
 			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr), false);
+			NodeId, 0, HAPI_GROUPTYPE_PRIM, H_TCHAR_TO_UTF8(*LODGroup)), false);
 
 		// Set GroupMembership
 		TArray<int> GroupArray;
@@ -1829,7 +1826,7 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetGroupMembership(
 			FHoudiniEngine::Get().GetSession(),
-			NodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr,
+			NodeId, 0, HAPI_GROUPTYPE_PRIM, H_TCHAR_TO_UTF8(*LODGroup),
 			GroupArray.GetData(), 0, Part.faceCount), false);
 
 		if (!StaticMesh->bAutoComputeLODScreenSize)
