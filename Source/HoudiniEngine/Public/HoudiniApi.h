@@ -253,7 +253,7 @@ public:
 	typedef HAPI_Result (*GetStringBufLengthFuncPtr)(const HAPI_Session * session, HAPI_StringHandle string_handle, int * buffer_length);
 	typedef HAPI_Result (*GetSupportedImageFileFormatCountFuncPtr)(const HAPI_Session * session, int * file_format_count);
 	typedef HAPI_Result (*GetSupportedImageFileFormatsFuncPtr)(const HAPI_Session * session, HAPI_ImageFileFormat * formats_array, int file_format_count);
-	typedef HAPI_Result (*GetTimeFuncPtr)(const HAPI_Session * session, float * time);
+	typedef HAPI_Result (*GetTimeFuncPtr)(const HAPI_Session * session, double * time);
 	typedef HAPI_Result (*GetTimelineOptionsFuncPtr)(const HAPI_Session * session, HAPI_TimelineOptions * timeline_options);
 	typedef HAPI_Result (*GetTotalCookCountFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeTypeBits node_type_filter, HAPI_NodeFlagsBits node_flags_filter, HAPI_Bool recursive, int * count);
 	typedef HAPI_Result (*GetUseHoudiniTimeFuncPtr)(const HAPI_Session * session, HAPI_Bool * enabled);
@@ -438,7 +438,7 @@ public:
 	typedef HAPI_Result (*SetServerEnvStringFuncPtr)(const HAPI_Session * session, const char * variable_name, const char * value);
 	typedef HAPI_Result (*SetSessionSyncFuncPtr)(const HAPI_Session * session, HAPI_Bool enable);
 	typedef HAPI_Result (*SetSessionSyncInfoFuncPtr)(const HAPI_Session * session, const HAPI_SessionSyncInfo * session_sync_info);
-	typedef HAPI_Result (*SetTimeFuncPtr)(const HAPI_Session * session, float time);
+	typedef HAPI_Result (*SetTimeFuncPtr)(const HAPI_Session * session, double time);
 	typedef HAPI_Result (*SetTimelineOptionsFuncPtr)(const HAPI_Session * session, const HAPI_TimelineOptions * timeline_options);
 	typedef HAPI_Result (*SetTransformAnimCurveFuncPtr)(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
 	typedef HAPI_Result (*SetUseHoudiniTimeFuncPtr)(const HAPI_Session * session, HAPI_Bool enabled);
@@ -1131,7 +1131,7 @@ public:
 	static HAPI_Result GetStringBufLengthEmptyStub(const HAPI_Session * session, HAPI_StringHandle string_handle, int * buffer_length);
 	static HAPI_Result GetSupportedImageFileFormatCountEmptyStub(const HAPI_Session * session, int * file_format_count);
 	static HAPI_Result GetSupportedImageFileFormatsEmptyStub(const HAPI_Session * session, HAPI_ImageFileFormat * formats_array, int file_format_count);
-	static HAPI_Result GetTimeEmptyStub(const HAPI_Session * session, float * time);
+	static HAPI_Result GetTimeEmptyStub(const HAPI_Session * session, double * time);
 	static HAPI_Result GetTimelineOptionsEmptyStub(const HAPI_Session * session, HAPI_TimelineOptions * timeline_options);
 	static HAPI_Result GetTotalCookCountEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_NodeTypeBits node_type_filter, HAPI_NodeFlagsBits node_flags_filter, HAPI_Bool recursive, int * count);
 	static HAPI_Result GetUseHoudiniTimeEmptyStub(const HAPI_Session * session, HAPI_Bool * enabled);
@@ -1316,7 +1316,7 @@ public:
 	static HAPI_Result SetServerEnvStringEmptyStub(const HAPI_Session * session, const char * variable_name, const char * value);
 	static HAPI_Result SetSessionSyncEmptyStub(const HAPI_Session * session, HAPI_Bool enable);
 	static HAPI_Result SetSessionSyncInfoEmptyStub(const HAPI_Session * session, const HAPI_SessionSyncInfo * session_sync_info);
-	static HAPI_Result SetTimeEmptyStub(const HAPI_Session * session, float time);
+	static HAPI_Result SetTimeEmptyStub(const HAPI_Session * session, double time);
 	static HAPI_Result SetTimelineOptionsEmptyStub(const HAPI_Session * session, const HAPI_TimelineOptions * timeline_options);
 	static HAPI_Result SetTransformAnimCurveEmptyStub(const HAPI_Session * session, HAPI_NodeId node_id, HAPI_TransformComponent trans_comp, const HAPI_Keyframe * curve_keyframes_array, int keyframe_count);
 	static HAPI_Result SetUseHoudiniTimeEmptyStub(const HAPI_Session * session, HAPI_Bool enabled);

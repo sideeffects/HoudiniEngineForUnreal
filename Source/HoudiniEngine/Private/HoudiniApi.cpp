@@ -3735,7 +3735,7 @@ FHoudiniApi::GetSupportedImageFileFormatsEmptyStub(const HAPI_Session * session,
 
 
 HAPI_Result
-FHoudiniApi::GetTimeEmptyStub(const HAPI_Session * session, float * time)
+FHoudiniApi::GetTimeEmptyStub(const HAPI_Session * session, double * time)
 {
 	return HAPI_RESULT_FAILURE;
 }
@@ -5030,7 +5030,7 @@ FHoudiniApi::SetSessionSyncInfoEmptyStub(const HAPI_Session * session, const HAP
 
 
 HAPI_Result
-FHoudiniApi::SetTimeEmptyStub(const HAPI_Session * session, float time)
+FHoudiniApi::SetTimeEmptyStub(const HAPI_Session * session, double time)
 {
 	return HAPI_RESULT_FAILURE;
 }
