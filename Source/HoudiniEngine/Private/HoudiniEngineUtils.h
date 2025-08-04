@@ -56,10 +56,6 @@ enum class EHoudiniInstancerType : uint8;
 
 #define H_DEPRECATED_OLD_ATTRIBUTE_API(Version, Message)  [[deprecated(Message " Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.")]]
 
-#if PLATFORM_MAC
-#pragma clang diagnostic ignored "-Wdangling-assignment"
-#endif
-
 TArray<char> HOUDINIENGINE_API HoudiniTCHARToUTF(const TCHAR * Text);
 
 #define H_TCHAR_TO_UTF8(_H_UNREAL_STRING) HoudiniTCHARToUTF(_H_UNREAL_STRING).GetData()
