@@ -2106,19 +2106,23 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 	if (!IsValid(this->GetHACWorld()))
 		return BoxBounds;
 
-	/*
+	
 	// Commented out: Creates incorrect focus bounds..
 	// Query the bounds for all output objects
-	for (auto & CurOutput : Outputs) 
+
+
+	for (auto & CurOutput : this->Outputs) 
 	{
 		if (!IsValid(CurOutput))
 			continue;
 
 		BoxBounds += CurOutput->GetBounds();
 	}
-	*/
+	
 
+	/*
 	// Query the bounds for all our inputs
+	// Update! Bug: 148321. This casues other issues too. Just don't.
 	// Bug: 134158: For some reason using inputs in this manner during cooking will crash the cooker
 	// when using World Partition. So ignore inputs during cooking.
 	if (!IsRunningCookCommandlet())
@@ -2131,6 +2135,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 		BoxBounds += CurInput->GetBounds(this->GetHACWorld());
 		}
 	} 
+	*/
 
 	// Query the bounds for all input parameters
 	for (auto & CurParam : Parameters) 
