@@ -1688,9 +1688,6 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 	// Commented out: Creates incorrect focus bounds..
 	// Query the bounds for all output objects
 
-
-	this->GetCookable()->GetOutputData()->Outputs;
-
 	if (GetCookable() && GetCookable()->GetOutputData())
 	for (auto & CurOutput : GetCookable()->GetOutputData()->Outputs) 
 	{
