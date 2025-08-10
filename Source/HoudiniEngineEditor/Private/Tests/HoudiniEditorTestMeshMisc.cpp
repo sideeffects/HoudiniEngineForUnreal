@@ -453,10 +453,10 @@ bool FHoudiniEditorTestMiscMeshes_SplineMeshInput::RunTest(const FString& Parame
 
 			// We have exported the cube as two spline meshes, they should be different sizes.
 
-			HOUDINI_TEST_EQUAL(Bounds[0].Origin, FVector3d(250.0, 100, 50));
-			HOUDINI_TEST_EQUAL(Bounds[0].BoxExtent, FVector3d(250.0, 50, 50));
-			HOUDINI_TEST_EQUAL(Bounds[1].Origin, FVector3d(500.0, -100, 50));
-			HOUDINI_TEST_EQUAL(Bounds[1].BoxExtent, FVector3d(500.0, 50, 50));
+			HOUDINI_TEST_EQUAL(Bounds[0].Origin, FVector3d(250.0, 100.0, 0.0));
+			HOUDINI_TEST_EQUAL(Bounds[0].BoxExtent, FVector3d(250.0, 50.0, 50.0));
+			HOUDINI_TEST_EQUAL(Bounds[1].Origin, FVector3d(500.0, -100.0, 0.0));
+			HOUDINI_TEST_EQUAL(Bounds[1].BoxExtent, FVector3d(500.0, 50.0, 50.0));
 
 			return true;
 		}));
