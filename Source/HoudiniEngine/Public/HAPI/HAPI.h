@@ -1415,6 +1415,38 @@ HAPI_DECL HAPI_GetTime( const HAPI_Session * session, float * time );
 ///
 HAPI_DECL HAPI_SetTime( const HAPI_Session * session, float time );
 
+/// @brief  Gets the global time of the scene. All API calls deal with
+///         this time to cook.
+///
+/// @ingroup Time
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[out]     time
+///                 Time as a double in seconds.
+///
+HAPI_DECL HAPI_GetTime64( const HAPI_Session * session, double * time );
+
+/// @brief  Sets the global time of the scene. All API calls will deal
+///         with this time to cook.
+///
+/// @ingroup Time
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      time
+///                 Time as a double in seconds.
+///
+HAPI_DECL HAPI_SetTime64( const HAPI_Session * session, double time );
+
 /// @brief  Returns whether the Houdini session will use the current time in
 ///         Houdini when cooking and retrieving data. By default this is
 ///         disabled and the Houdini session uses time 0 (i.e. frame 1).
@@ -1489,6 +1521,39 @@ HAPI_DECL HAPI_GetTimelineOptions( const HAPI_Session * session,
 HAPI_DECL HAPI_SetTimelineOptions(
                             const HAPI_Session * session,
                             const HAPI_TimelineOptions * timeline_options );
+
+/// @brief  Gets the current global timeline options.
+///
+/// @ingroup Time
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[out]     timeline_options
+///                 The global timeline options struct.
+///
+HAPI_DECL HAPI_GetTimelineOptions64( const HAPI_Session * session,
+                                   HAPI_TimelineOptions64 * timeline_options );
+
+/// @brief  Sets the global timeline options.
+///
+/// @ingroup Time
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      timeline_options
+///                 The global timeline options struct.
+///
+HAPI_DECL HAPI_SetTimelineOptions64(
+                            const HAPI_Session * session,
+                            const HAPI_TimelineOptions64 * timeline_options );
 
 /// @brief  Gets the global compositor options.
 ///

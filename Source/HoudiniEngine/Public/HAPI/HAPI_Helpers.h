@@ -40,6 +40,11 @@ HAPI_DECL_RETURN( void )
 HAPI_DECL_RETURN( HAPI_TimelineOptions )
     HAPI_TimelineOptions_Create();
 
+HAPI_DECL_RETURN( void )
+    HAPI_TimelineOptions64_Init( HAPI_TimelineOptions64 * in );
+HAPI_DECL_RETURN( HAPI_TimelineOptions64 )
+    HAPI_TimelineOptions64_Create();
+
 // COMPOSITOR SETTINGS ------------------------------------------------------
 
 HAPI_DECL_RETURN( void)

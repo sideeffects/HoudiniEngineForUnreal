@@ -1181,6 +1181,16 @@ struct HAPI_API HAPI_TimelineOptions
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_TimelineOptions )
 
+/// Data for global timeline, used with ::HAPI_SetTimelineOptions64()
+struct HAPI_API HAPI_TimelineOptions64
+{
+    double fps;
+
+    double startTime;
+    double endTime;
+};
+HAPI_C_STRUCT_TYPEDEF( HAPI_TimelineOptions64 )
+
 // ASSETS -------------------------------------------------------------------
 
 /// Meta-data about an HDA, returned by ::HAPI_GetAssetInfo()
