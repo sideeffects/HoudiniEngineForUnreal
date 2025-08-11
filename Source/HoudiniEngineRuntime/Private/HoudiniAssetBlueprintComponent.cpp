@@ -36,8 +36,12 @@
 #include "UObject/Object.h"
 #include "Logging/LogMacros.h"
 
+#include "HoudiniParameterInt.h"
 #include "HoudiniParameterFloat.h"
+#include "HoudiniParameterString.h"
+#include "HoudiniParameterColor.h"
 #include "HoudiniParameterToggle.h"
+#include "HoudiniParameterFile.h"
 #include "HoudiniInput.h"
 
 #if WITH_EDITOR
@@ -1940,10 +1944,109 @@ UHoudiniAssetBlueprintComponent::HasParameter(FString Name)
 	return FindParameterByName(Name) != nullptr;
 }
 
+int 
+UHoudiniAssetBlueprintComponent::GetIntParameter(FString Name, int Index)
+{
+	UHoudiniParameterInt* Parameter = Cast<UHoudiniParameterInt>(FindParameterByName(Name));
+	if (!Parameter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Int parameter %s doesn't exist at index %s"), *Name, *FString::FromInt(Index));
+		return 0;
+	}
+
+	int Value;
+	Parameter->GetValueAt(Index, Value);
+	
+	return Value;
+}
+
+void 
+UHoudiniAssetBlueprintComponent::SetIntParameter(FString Name, int Value, int Index)
+{
+	SetTypedValueAt<UHoudiniParameterInt>(Name, Value, Index);
+}
+
+float 
+UHoudiniAssetBlueprintComponent::GetFloatParameter(FString Name, int Index)
+{
+	UHoudiniParameterFloat* Parameter = Cast<UHoudiniParameterFloat>(FindParameterByName(Name));
+	if (!Parameter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Float parameter %s doesn't exist at index %s"), *Name, *FString::FromInt(Index));
+		return 0.f;
+	}
+
+	float Value;
+	Parameter->GetValueAt(Index, Value);
+	
+	return Value;
+}
+
 void 
 UHoudiniAssetBlueprintComponent::SetFloatParameter(FString Name, float Value, int Index)
 {
 	SetTypedValueAt<UHoudiniParameterFloat>(Name, Value, Index);
+}
+
+FString 
+UHoudiniAssetBlueprintComponent::GetStringParameter(FString Name, int Index)
+{
+	UHoudiniParameterString* Parameter = Cast<UHoudiniParameterString>(FindParameterByName(Name));
+	if (!Parameter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("String parameter %s doesn't exist at index %s"), *Name, *FString::FromInt(Index));
+		return TEXT("");
+	}
+
+	FString Value = Parameter->GetValueAt(Index);
+	
+	return Value;
+}
+
+void 
+UHoudiniAssetBlueprintComponent::SetStringParameter(FString Name, FString Value, int Index)
+{
+	SetTypedValueAt<UHoudiniParameterString>(Name, Value, Index);
+}
+//
+FLinearColor 
+UHoudiniAssetBlueprintComponent::GetColorParameter(FString Name)
+{
+	UHoudiniParameterColor* Parameter = Cast<UHoudiniParameterColor>(FindParameterByName(Name));
+	if (!Parameter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Color parameter %s doesn't exist."), *Name);
+		return FLinearColor::Black;
+	}
+
+	FLinearColor Value = Parameter->GetColorValue();
+	
+	return Value;
+}
+
+void 
+UHoudiniAssetBlueprintComponent::SetColorParameter(FString Name, FLinearColor Value)
+{
+	UHoudiniParameterColor* Parameter = Cast<UHoudiniParameterColor>(FindParameterByName(Name));
+	if (!Parameter)
+		return;
+
+	Parameter->SetColorValue(Value);
+}
+
+bool 
+UHoudiniAssetBlueprintComponent::GetToggleParameter(FString Name, int Index)
+{
+	UHoudiniParameterToggle* Parameter = Cast<UHoudiniParameterToggle>(FindParameterByName(Name));
+	if (!Parameter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Toggle parameter %s doesn't exist at index %s"), *Name, *FString::FromInt(Index));
+		return false;
+	}
+
+	bool Value = Parameter->GetValueAt(Index);
+	
+	return Value;
 }
 
 void 
@@ -1954,6 +2057,27 @@ UHoudiniAssetBlueprintComponent::SetToggleValueAt(FString Name, bool Value, int 
 		return;
 
 	Parameter->SetValueAt(Value, Index);
+}
+
+FString 
+UHoudiniAssetBlueprintComponent::GetFileParameter(FString Name, int Index)
+{
+	UHoudiniParameterFile* Parameter = Cast<UHoudiniParameterFile>(FindParameterByName(Name));
+	if (!Parameter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("File parameter %s doesn't exist at index %s"), *Name, *FString::FromInt(Index));
+		return "";
+	}
+
+	FString Value = Parameter->GetValueAt(Index);
+	
+	return Value;
+}
+
+void 
+UHoudiniAssetBlueprintComponent::SetFileParameter(FString Name, FString Value, int Index)
+{
+	SetTypedValueAt<UHoudiniParameterFile>(Name, Value, Index);
 }
 
 //void UHoudiniAssetBlueprintComponent::OnPostCookHandler(UHoudiniAssetComponent* InComponent)

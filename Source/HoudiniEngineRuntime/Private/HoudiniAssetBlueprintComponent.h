@@ -161,10 +161,40 @@ public:
 	bool HasParameter(FString Name);
 
 	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
+	int GetIntParameter(FString Name, int Index=0);
+	
+	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
+	void SetIntParameter(FString Name, int Value, int Index=0);
+
+	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
+	float GetFloatParameter(FString Name, int Index=0);
+
+	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
 	void SetFloatParameter(FString Name, float Value, int Index=0);
+
+	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
+	FString GetStringParameter(FString Name, int Index=0);
+
+	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
+	void SetStringParameter(FString Name, FString Value, int Index=0);
+
+	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
+	FLinearColor GetColorParameter(FString Name);
+
+	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
+	void SetColorParameter(FString Name, FLinearColor Value);
+
+	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
+	bool GetToggleParameter(FString Name, int Index=0);
 	
 	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
 	void SetToggleValueAt(FString Name, bool Value, int Index=0);
+
+	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
+	FString GetFileParameter(FString Name, int Index=0);
+
+	UFUNCTION(BlueprintCallable, Category="Houdini Asset Component")
+	void SetFileParameter(FString Name, FString Value, int Index=0);
 
 	void AddInputObjectMapping(const FGuid& InputGuid, const FGuid& SCSVariableGuid) { CachedInputNodes.Add(InputGuid, SCSVariableGuid); }
 	bool GetInputObjectSCSVariableGuid(const FGuid& InputGuid, FGuid& OutSCSGuid);
