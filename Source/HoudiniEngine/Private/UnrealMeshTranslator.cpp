@@ -440,11 +440,8 @@ FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
 			if (UseMergeNode)
 			{
 				// Create a new input node for the current LOD
-				const char * LODName = "";
-				{
-					FString LOD = TEXT("lod") + FString::FromInt(LODIndex);
-					LODName = H_TCHAR_TO_UTF8(*LOD);
-				}
+
+				FString LODName = TEXT("lod") + FString::FromInt(LODIndex);
 
 				// Create the node in this input object's OBJ node
 				HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
@@ -3400,13 +3397,11 @@ FUnrealMeshTranslator::CreateInputNodeForBox(
 	// Set its group name param to collision_geo_simple_box
 	HAPI_ParmInfo ParmInfo;
 	HAPI_ParmId parmId = FHoudiniEngineUtils::HapiFindParameterByName(GroupNodeId, "groupname", ParmInfo);
-	const char * GroupNameStr = "";
-	{
-		FString LODGroup = TEXT("collision_geo_simple_box") + FString::FromInt(ColliderIndex);
-		GroupNameStr = H_TCHAR_TO_UTF8(*LODGroup);
-	}
+
+	FString LODGroup = TEXT("collision_geo_simple_box") + FString::FromInt(ColliderIndex);
+
 	FHoudiniApi::SetParmStringValue(
-		FHoudiniEngine::Get().GetSession(), GroupNodeId, GroupNameStr, parmId, 0);
+		FHoudiniEngine::Get().GetSession(), GroupNodeId, H_TCHAR_TO_UTF8(*LODGroup), parmId, 0);
 
 	// Connect the box to the group
 	FHoudiniApi::ConnectNodeInput(
@@ -3426,11 +3421,7 @@ FUnrealMeshTranslator::CreateInputNodeForSphere(
 	const float& SphereRadius)
 {
 	// Create a new input node for the sphere collider
-	const char * SphereName = "";
-	{
-		FString SPH = TEXT("Sphere") + FString::FromInt(ColliderIndex);
-		SphereName = H_TCHAR_TO_UTF8(*SPH);
-	}
+	FString SphereName = TEXT("Sphere") + FString::FromInt(ColliderIndex);
 
 	// Create the node in this input object's OBJ node
 	HAPI_NodeId SphereNodeId = -1;
@@ -3471,13 +3462,11 @@ FUnrealMeshTranslator::CreateInputNodeForSphere(
 	// Set its group name param to collision_geo_simple_box
 	HAPI_ParmInfo ParmInfo;
 	HAPI_ParmId parmId = FHoudiniEngineUtils::HapiFindParameterByName(GroupNodeId, "groupname", ParmInfo);
-	const char * GroupNameStr = "";
-	{
-		FString LODGroup = TEXT("collision_geo_simple_sphere") + FString::FromInt(ColliderIndex);
-		GroupNameStr = H_TCHAR_TO_UTF8(*LODGroup);
-	}
+
+	FString LODGroup = TEXT("collision_geo_simple_sphere") + FString::FromInt(ColliderIndex);
+	
 	FHoudiniApi::SetParmStringValue(
-		FHoudiniEngine::Get().GetSession(), GroupNodeId, GroupNameStr, parmId, 0);
+		FHoudiniEngine::Get().GetSession(), GroupNodeId, H_TCHAR_TO_UTF8(*LODGroup), parmId, 0);
 
 	// Connect the box to the group
 	FHoudiniApi::ConnectNodeInput(
@@ -3607,13 +3596,11 @@ FUnrealMeshTranslator::CreateInputNodeForSphyl(
 	// Set its group name param to collision_geo_simple_box
 	HAPI_ParmInfo ParmInfo;
 	HAPI_ParmId parmId = FHoudiniEngineUtils::HapiFindParameterByName(GroupNodeId, "groupname", ParmInfo);
-	const char * GroupNameStr = "";
-	{
-		FString LODGroup = TEXT("collision_geo_simple_capsule") + FString::FromInt(ColliderIndex);
-		GroupNameStr = H_TCHAR_TO_UTF8(*LODGroup);
-	}
+
+	FString LODGroup = TEXT("collision_geo_simple_capsule") + FString::FromInt(ColliderIndex);
+
 	FHoudiniApi::SetParmStringValue(
-		FHoudiniEngine::Get().GetSession(), GroupNodeId, GroupNameStr, parmId, 0);
+		FHoudiniEngine::Get().GetSession(), GroupNodeId, H_TCHAR_TO_UTF8(*LODGroup), parmId, 0);
 
 	// Connect the box to the group
 	FHoudiniApi::ConnectNodeInput(
@@ -3752,13 +3739,11 @@ FUnrealMeshTranslator::CreateInputNodeForConvex(
 	// Set its group name param to collision_geo_simple_ucx
 	HAPI_ParmInfo ParmInfo;
 	HAPI_ParmId parmId = FHoudiniEngineUtils::HapiFindParameterByName(GroupNodeId, "groupname", ParmInfo);
-	const char * GroupNameStr = "";
-	{
-		FString LODGroup = TEXT("collision_geo_simple_ucx") + FString::FromInt(ColliderIndex);
-		GroupNameStr = H_TCHAR_TO_UTF8(*LODGroup);
-	}
+
+	FString LODGroup = TEXT("collision_geo_simple_ucx") + FString::FromInt(ColliderIndex);
+
 	FHoudiniApi::SetParmStringValue(
-		FHoudiniEngine::Get().GetSession(), GroupNodeId, GroupNameStr, parmId, 0);
+		FHoudiniEngine::Get().GetSession(), GroupNodeId, H_TCHAR_TO_UTF8(*LODGroup), parmId, 0);
 
 	// Create a convex hull (shrinkwrap::2.0) node to fix the lack of proper indices
 	HAPI_NodeId ConvexHullNodeId = -1;	

@@ -495,15 +495,11 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 			if (UseMergeNode)
 			{
 				// Create a new input node for the current LOD
-				const char* LODName = "";
-				{
-					FString LOD = TEXT("lod") + FString::FromInt(LODIndex);
-					LODName = H_TCHAR_TO_UTF8(*LOD);
-				}
+				FString LODName = TEXT("lod") + FString::FromInt(LODIndex);
 
 				// Create the node in this input object's OBJ node
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
-					InputObjectNodeId, TEXT("null"), LODName, false, &CurrentLODNodeId), false);
+					InputObjectNodeId, TEXT("null"), H_TCHAR_TO_UTF8(*LODName), false, &CurrentLODNodeId), false);
 			}
 			else
 			{
