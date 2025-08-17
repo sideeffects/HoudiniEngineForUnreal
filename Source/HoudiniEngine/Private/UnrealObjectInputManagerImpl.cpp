@@ -60,7 +60,7 @@ FUnrealObjectInputManagerImpl::FindNode(
 	if (!Node)
 		return false; 
 
-	OutHandle = std::move(FUnrealObjectInputHandle(InIdentifier));
+	OutHandle = FUnrealObjectInputHandle(InIdentifier);
 	return true;
 }
 
@@ -111,7 +111,7 @@ FUnrealObjectInputManagerImpl::AddContainer(const FUnrealObjectInputIdentifier& 
 	FUnrealObjectInputContainerNode* const Node = new FUnrealObjectInputContainerNode(InIdentifier, ParentHandle, InNodeId);
 	InputNodes.Add(InIdentifier, Node);
 
-	OutHandle = std::move(FUnrealObjectInputHandle(InIdentifier));
+	OutHandle = FUnrealObjectInputHandle(InIdentifier);
 
 	if (OnNodeAddedDelegate.IsBound())
 		OnNodeAddedDelegate.Broadcast(InIdentifier);
@@ -146,7 +146,7 @@ FUnrealObjectInputManagerImpl::AddReferenceNode(
 		: new FUnrealObjectInputReferenceNode(InIdentifier, ParentHandle, InObjectNodeId, InNodeId, InReferencesConnectToNodeId);
 	InputNodes.Add(InIdentifier, Node);
 
-	OutHandle = std::move(FUnrealObjectInputHandle(InIdentifier));;
+	OutHandle = FUnrealObjectInputHandle(InIdentifier);
 
 	if (OnNodeAddedDelegate.IsBound())
 		OnNodeAddedDelegate.Broadcast(InIdentifier);
@@ -177,7 +177,7 @@ FUnrealObjectInputManagerImpl::AddLeaf(
 	FUnrealObjectInputLeafNode* Node = new FUnrealObjectInputLeafNode(InIdentifier, ParentHandle, InObjectNodeId, InNodeId);
 	InputNodes.Add(InIdentifier, Node);
 
-	OutHandle = std::move(FUnrealObjectInputHandle(InIdentifier));;
+	OutHandle = FUnrealObjectInputHandle(InIdentifier);
 
 	if (OnNodeAddedDelegate.IsBound())
 		OnNodeAddedDelegate.Broadcast(InIdentifier);
