@@ -55,8 +55,8 @@ public:
 
 	virtual bool FindNode(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle) const override;
 
-	virtual bool Contains(const FUnrealObjectInputHandle& InHandle) const override { return InputNodes.Contains(InHandle.GetIdentifier()); }
-	virtual bool Contains(const FUnrealObjectInputIdentifier& InIdentifier) const override { return InputNodes.Contains(InIdentifier); }
+	virtual bool Contains(const FUnrealObjectInputHandle& InHandle) const override;
+	virtual bool Contains(const FUnrealObjectInputIdentifier& InIdentifier) const override;
 	
 	virtual bool GetNode(const FUnrealObjectInputHandle& InHandle, const FUnrealObjectInputNode*& OutNode) const override { return GetNodeByIdentifier(InHandle.GetIdentifier(), OutNode); } 
 	virtual bool GetNode(const FUnrealObjectInputHandle& InHandle, FUnrealObjectInputNode*& OutNode) const override { return GetNodeByIdentifier(InHandle.GetIdentifier(), OutNode); } 
@@ -101,7 +101,6 @@ public:
 
 	virtual bool GetUniqueHoudiniNodeId(const int32 InHAPINodeId, int32& OutUniqueHoudiniNodeId) const override;
 	
-	virtual bool AreHAPINodesValid(const FUnrealObjectInputHandle& InHandle) const override;
 	virtual bool AreHAPINodesValid(const FUnrealObjectInputIdentifier& InIdentifier) const override;
 	virtual bool IsHAPINodeValid(const FUnrealObjectInputHAPINodeId& InNodeId) const override;
 
@@ -149,6 +148,11 @@ protected:
 
 private:
 	/** The input node entries by identifier. */
+
+	FUnrealObjectInputNode* const * FindNode(const FUnrealObjectInputIdentifier& Identifier) const;
+	void AddNode(const FUnrealObjectInputIdentifier& Identifier, FUnrealObjectInputNode* Node);
+	void RemoveNode(const FUnrealObjectInputIdentifier& Identifier);
+
 	TMap<FUnrealObjectInputIdentifier, FUnrealObjectInputNode*> InputNodes;
 
 	/** The HAPI Node id of the world origin null, use for transforms when object merging. */

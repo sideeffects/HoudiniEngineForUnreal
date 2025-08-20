@@ -52,7 +52,7 @@ FUnrealObjectInputManagerImpl::FindNode(
 	if (!InIdentifier.IsValid())
 		return false;
 
-	FUnrealObjectInputNode* const* const NodeEntry = InputNodes.Find(InIdentifier);
+	FUnrealObjectInputNode* const* const NodeEntry = FindNode(InIdentifier);
 	if (!NodeEntry)
 		return false;
 
@@ -70,7 +70,7 @@ FUnrealObjectInputManagerImpl::GetNodeByIdentifier(const FUnrealObjectInputIdent
 	if (!InputIdentifier.IsValid())
 		return false;
 	
-	FUnrealObjectInputNode* const* NodeEntry = InputNodes.Find(InputIdentifier);
+	FUnrealObjectInputNode* const* NodeEntry = FindNode(InputIdentifier);
 	if (!NodeEntry)
 		return false;
 
@@ -84,7 +84,7 @@ FUnrealObjectInputManagerImpl::GetNodeByIdentifier(const FUnrealObjectInputIdent
 	if (!InputIdentifier.IsValid())
 		return false;
 	
-	FUnrealObjectInputNode* const* NodeEntry = InputNodes.Find(InputIdentifier);
+	FUnrealObjectInputNode* const* NodeEntry = FindNode(InputIdentifier);
 	if (!NodeEntry)
 		return false;
 
@@ -109,7 +109,7 @@ FUnrealObjectInputManagerImpl::AddContainer(const FUnrealObjectInputIdentifier& 
 		return false;
 	
 	FUnrealObjectInputContainerNode* const Node = new FUnrealObjectInputContainerNode(InIdentifier, ParentHandle, InNodeId);
-	InputNodes.Add(InIdentifier, Node);
+	AddNode(InIdentifier, Node);
 
 	OutHandle = FUnrealObjectInputHandle(InIdentifier);
 
@@ -144,7 +144,8 @@ FUnrealObjectInputManagerImpl::AddReferenceNode(
 	FUnrealObjectInputReferenceNode* Node = InReferencedNodes
 		? new FUnrealObjectInputReferenceNode(InIdentifier, ParentHandle, InObjectNodeId, InNodeId, *InReferencedNodes, InReferencesConnectToNodeId)
 		: new FUnrealObjectInputReferenceNode(InIdentifier, ParentHandle, InObjectNodeId, InNodeId, InReferencesConnectToNodeId);
-	InputNodes.Add(InIdentifier, Node);
+
+	AddNode(InIdentifier, Node);
 
 	OutHandle = FUnrealObjectInputHandle(InIdentifier);
 
@@ -175,7 +176,7 @@ FUnrealObjectInputManagerImpl::AddLeaf(
 		return false;
 	
 	FUnrealObjectInputLeafNode* Node = new FUnrealObjectInputLeafNode(InIdentifier, ParentHandle, InObjectNodeId, InNodeId);
-	InputNodes.Add(InIdentifier, Node);
+	AddNode(InIdentifier, Node);
 
 	OutHandle = FUnrealObjectInputHandle(InIdentifier);
 
@@ -607,7 +608,7 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 	if (IsValid(Actor))
 		ObjectName = Actor->GetActorNameOrLabel();
 	else
-		ObjectName = FPaths::GetBaseFilename(InIdentifier.GetNormalizedObjectPath().ToString());
+		ObjectName = FPaths::GetBaseFilename(InIdentifier.GetNormalizedObjectPath());
 
 	FHoudiniEngineUtils::SanitizeHAPIVariableName(ObjectName);
 	return ObjectName;
@@ -629,14 +630,6 @@ FUnrealObjectInputManagerImpl::GetUniqueHoudiniNodeId(const int32 InHAPINodeId, 
 
 	OutUniqueHoudiniNodeId = NodeInfo.uniqueHoudiniNodeId;
 	return true;
-}
-
-bool
-FUnrealObjectInputManagerImpl::AreHAPINodesValid(const FUnrealObjectInputHandle& InHandle) const
-{
-	if (!InHandle.IsValid())
-		return false;
-	return AreHAPINodesValid(InHandle.GetIdentifier());
 }
 
 bool
@@ -760,7 +753,7 @@ FUnrealObjectInputManagerImpl::RemoveRef(const FUnrealObjectInputIdentifier& InI
 			}
 		}
 
-		InputNodes.Remove(InIdentifier);
+		RemoveNode(InIdentifier);
 		delete Node;
 		Node = nullptr;
 
@@ -860,10 +853,31 @@ void FUnrealObjectInputManagerImpl::Dump()
 			Str = FString::Printf(TEXT("%s ref"), *IdentifierString);
 			HOUDINI_LOG_MESSAGE(TEXT("%s"), *Str);
 		}
-
-
-
-
-
 	}
 }
+
+
+FUnrealObjectInputNode* const * FUnrealObjectInputManagerImpl::FindNode(const FUnrealObjectInputIdentifier& Identifier) const
+{
+	return InputNodes.Find(Identifier);
+}
+
+void FUnrealObjectInputManagerImpl::AddNode(const FUnrealObjectInputIdentifier& Identifier, FUnrealObjectInputNode* Node)
+{
+	InputNodes.Add(Identifier, Node);
+}
+void FUnrealObjectInputManagerImpl::RemoveNode(const FUnrealObjectInputIdentifier& Identifier)
+{
+	InputNodes.Remove(Identifier);
+}
+
+bool FUnrealObjectInputManagerImpl::Contains(const FUnrealObjectInputHandle& InHandle) const 
+{
+	return InputNodes.Contains(InHandle.GetIdentifier());
+}
+
+bool FUnrealObjectInputManagerImpl::Contains(const FUnrealObjectInputIdentifier& InIdentifier) const
+{
+	return InputNodes.Contains(InIdentifier);
+}
+

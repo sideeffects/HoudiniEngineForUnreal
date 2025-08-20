@@ -101,7 +101,7 @@ FUnrealObjectInputUtils::AreHAPINodesValid(const FUnrealObjectInputHandle& InHan
 	if (!Manager)
 		return false;
 
-	return Manager->AreHAPINodesValid(InHandle);
+	return Manager->AreHAPINodesValid(InHandle.GetIdentifier());
 }
 
 bool
