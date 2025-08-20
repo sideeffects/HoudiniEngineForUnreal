@@ -99,6 +99,7 @@ public:
 
 	virtual bool GetUniqueHoudiniNodeId(const int32 InHAPINodeId, int32& OutUniqueHoudiniNodeId) const ;
 
+	virtual bool AreHAPINodesValid(const FUnrealObjectInputHandle& InHandle) const ;
 	virtual bool AreHAPINodesValid(const FUnrealObjectInputIdentifier& InIdentifier) const ;
     virtual bool IsHAPINodeValid(const FUnrealObjectInputHAPINodeId& InNodeId) const ;
     virtual bool DeleteHAPINode(FUnrealObjectInputHAPINodeId& InNodeId) const ;

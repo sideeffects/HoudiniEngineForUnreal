@@ -482,7 +482,7 @@ FUnrealObjectInputOptions::operator==(const FUnrealObjectInputOptions& InOther) 
 
 FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier()
 	: Object(nullptr)
-	, Path()
+	, Path(NAME_None)
 	, Options()
 	, NodeType(EUnrealObjectInputNodeType::Invalid)
 {
@@ -490,7 +490,7 @@ FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier()
 
 FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(UObject const* const InObject, const FUnrealObjectInputOptions& InOptions, const bool bIsLeaf)
 	: Object(InObject)
-	, Path()
+	, Path(NAME_None)
 	, Options(InOptions)
 	, NodeType(bIsLeaf ? EUnrealObjectInputNodeType::Leaf : EUnrealObjectInputNodeType::Reference)
 {
@@ -498,7 +498,7 @@ FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(UObject const* const 
 
 FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(UObject const* const InObject)
 	: Object(InObject)
-	, Path()
+	, Path(NAME_None)
 	, Options()
 	, NodeType(EUnrealObjectInputNodeType::Container)
 {
@@ -506,13 +506,13 @@ FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(UObject const* const 
 
 FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(UPackage const* const InPackage)
 	: Object(nullptr)
-	, Path(::IsValid(InPackage) ? InPackage->GetPathName() : FString())
+	, Path(::IsValid(InPackage) ? FName(InPackage->GetPathName()) : NAME_None)
 	, Options()
 	, NodeType(EUnrealObjectInputNodeType::Container)
 {
 }
 
-FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const FString& InPath)
+FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const FName& InPath)
 	: Object(nullptr)
 	, Path(InPath)
 	, Options()
@@ -529,7 +529,7 @@ bool FUnrealObjectInputIdentifier::IsValid() const
 			return false;
 
 		case EUnrealObjectInputNodeType::Container:
-			return Object.IsValid() || !Path.IsEmpty();
+			return Object.IsValid() || Path != NAME_None;
 
 		case EUnrealObjectInputNodeType::Reference:
 		case EUnrealObjectInputNodeType::Leaf:
@@ -543,7 +543,7 @@ void
 FUnrealObjectInputIdentifier::Reset()
 {
 	Object.Reset();
-	Path = FString();
+	Path = NAME_None;
 	Options = FUnrealObjectInputOptions();
 	NodeType = EUnrealObjectInputNodeType::Invalid;
 }
@@ -551,7 +551,7 @@ FUnrealObjectInputIdentifier::Reset()
 uint32
 FUnrealObjectInputIdentifier::GetTypeHash() const
 {
-	FString ObjectPath = Object.IsValid() ? Object->GetPathName() : Path;
+	FName ObjectPath = Object.IsValid() ? FName(Object->GetPathName()) : Path;
 
 	switch(NodeType)
 	{
@@ -638,7 +638,7 @@ FUnrealObjectInputIdentifier::ToString() const
 	else
 	{
 		Builder.Append(TEXT(" path: "));
-		Builder.Append(this->Path);
+		Builder.Append(this->Path.ToString());
 	}
 
 	return Builder.ToString();
@@ -669,7 +669,7 @@ FUnrealObjectInputIdentifier::MakeParentIdentifier(FUnrealObjectInputIdentifier&
 		}
 		else
 		{
-			const FString ParentPath(FPaths::GetPath(Object->GetPathName()));
+			const FName ParentPath(FPaths::GetPath(Object->GetPathName()));
 			ParentIdentifier = FUnrealObjectInputIdentifier(ParentPath);
 		}
 
@@ -682,7 +682,8 @@ FUnrealObjectInputIdentifier::MakeParentIdentifier(FUnrealObjectInputIdentifier&
 		return false;
 	}
 
-	const FUnrealObjectInputIdentifier ParentIdentifier = FUnrealObjectInputIdentifier(FPaths::GetPath(Path));
+	const FUnrealObjectInputIdentifier ParentIdentifier = FUnrealObjectInputIdentifier(
+		FName(FPaths::GetPath(Path.ToString())));
 	if (ParentIdentifier.IsValid())
 	{
 		OutParentIdentifier = ParentIdentifier;
@@ -1482,7 +1483,7 @@ bool FUnrealObjectInputReferenceNode::AreReferencedHAPINodesValid() const
 
 	for (const FUnrealObjectInputHandle& Handle : ReferencedNodes)
 	{
-		if (!Manager->AreHAPINodesValid(Handle.GetIdentifier()))
+		if (!Manager->AreHAPINodesValid(Handle))
 			return false;
 	}
 

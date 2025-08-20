@@ -284,7 +284,7 @@ public:
 	FUnrealObjectInputIdentifier(UPackage const* const InPackage);
 	
 	/** Construct an identifier for a container associated with a path. Analogous to directories. */
-	FUnrealObjectInputIdentifier(const FString& InPath);
+	FUnrealObjectInputIdentifier(const FName& InPath);
 
 	/**
 	 * Returns true if the identifier is valid.
@@ -314,19 +314,19 @@ public:
 	const UObject* GetObject() const { return Object.Get(); }
 
 	/** Returns the Path this identifier is associated with, if Path was set during construction. */
-	FString GetPath() const { return Path; }
+	FName GetPath() const { return Path; }
 
 	/** Helper to return object paths with . and : replaced by / */
 	static FString NormalizeObjectPath(const FString& InObjectPath) { return InObjectPath.Replace(TEXT("."), TEXT("/")).Replace(TEXT(":"), TEXT("/")); }
 
 	/** Helper to return object paths with . and : replaced by / */
-	static FString NormalizeObjectPath(const FName& InObjectPath) { return NormalizeObjectPath(InObjectPath.ToString()); }
+	static FName NormalizeObjectPath(const FName& InObjectPath) { return FName(NormalizeObjectPath(InObjectPath.ToString())); }
 
 	/** Get the object path. This is the full path of Object if it's valid, otherwise this returns Path. */
-	FString GetObjectPath() const { return Object.IsValid() ? Object->GetPathName() : Path; }
+	FName GetObjectPath() const { return Object.IsValid() ? FName(Object->GetPathName()) : Path; }
 
 	/** Get the normalized object path. See NormalizeObjectPath() */
-	FString GetNormalizedObjectPath() const { return NormalizeObjectPath(GetObjectPath()); }
+	FName GetNormalizedObjectPath() const { return NormalizeObjectPath(GetObjectPath()); }
 
 	/** Gets the node type this identifier represents. See EUnrealObjectInputNodeType. */ 
 	EUnrealObjectInputNodeType GetNodeType() const { return NodeType; }
@@ -341,7 +341,7 @@ private:
 	TWeakObjectPtr<const UObject> Object;
 
 	/** The path this identifier is associated, for cases where it does not reference an object. */
-	FString Path;
+	FName Path;
 
 	/** The import options associated with the Object of this identifier. */
 	FUnrealObjectInputOptions Options;
