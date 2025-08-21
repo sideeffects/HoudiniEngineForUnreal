@@ -2540,8 +2540,10 @@ HAPI_DECL HAPI_GetComposedChildNodeList( const HAPI_Session * session,
 /// @param[in]      operator_name
 ///                 The name of the node operator type.
 ///
-///                 If you passed parent_node_id == -1, then the operator_name
-///                 has to include the table name (ie. Object/ or Sop/).
+///                 If you are creating an Object or SOP node, you can pass
+///                 parent_node_id == -1 as long as you include the table name
+///                 (ie. Object/ or Sop/) as a prefix to the operator_name.
+///                 This covenience is only available for Object or SOP nodes.
 ///                 This is the common case for when creating asset nodes
 ///                 from a loaded asset library. In that case, just pass
 ///                 whatever ::HAPI_GetAvailableAssets() returns.

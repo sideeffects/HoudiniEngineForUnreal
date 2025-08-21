@@ -510,7 +510,8 @@ enum HAPI_NodeType
     HAPI_NODETYPE_COP       = 1 << 5,
     HAPI_NODETYPE_VOP       = 1 << 6,
     HAPI_NODETYPE_DOP       = 1 << 7,
-    HAPI_NODETYPE_TOP       = 1 << 8
+    HAPI_NODETYPE_TOP       = 1 << 8,
+    HAPI_NODETYPE_LOP       = 1 << 9
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_NodeType )
 typedef int HAPI_NodeTypeBits;
