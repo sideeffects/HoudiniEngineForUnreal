@@ -1145,10 +1145,8 @@ FHoudiniLandscapeSplineTranslator::GetSplineDataFromAttributes(
 	if (SplineData.SegmentEditLayersClear.IsEmpty())
 	{
 		TArray<int> EditLayersClear;
-		HAPI_AttributeInfo PrimEditLayerClearAttrInfo;
-
 		Accessor.Init(InNodeId,InPartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_CLEAR);
-		bSuccess = Accessor.GetAttributeData(PrimEditLayerClearAttrInfo, EditLayersClear, InPrimIndex, 1);
+		bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, EditLayersClear, InPrimIndex, 1);
 
 		if (bSuccess && EditLayersClear.Num() > 0)
 		{
