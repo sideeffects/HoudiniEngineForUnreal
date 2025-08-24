@@ -495,15 +495,11 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 			if (UseMergeNode)
 			{
 				// Create a new input node for the current LOD
-				const char* LODName = "";
-				{
-					FString LOD = TEXT("lod") + FString::FromInt(LODIndex);
-					LODName = H_TCHAR_TO_UTF8(*LOD);
-				}
+				FString LODName = TEXT("lod") + FString::FromInt(LODIndex);
 
 				// Create the node in this input object's OBJ node
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
-					InputObjectNodeId, TEXT("null"), LODName, false, &CurrentLODNodeId), false);
+					InputObjectNodeId, TEXT("null"), H_TCHAR_TO_UTF8(*LODName), false, &CurrentLODNodeId), false);
 			}
 			else
 			{
@@ -1539,16 +1535,12 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 	if (bAddLODGroups)
 	{
 		// LOD Group
-		const char* LODGroupStr = "";
-		{
-			FString LODGroup = TEXT("lod") + FString::FromInt(LODIndex);
-			LODGroupStr = H_TCHAR_TO_UTF8(*LODGroup);
-		}
+		FString LODGroup = TEXT("lod") + FString::FromInt(LODIndex);
 
 		// Add a LOD group
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddGroup(
 			FHoudiniEngine::Get().GetSession(),
-			NewNodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr), false);
+			NewNodeId, 0, HAPI_GROUPTYPE_PRIM, H_TCHAR_TO_UTF8(*LODGroup)), false);
 
 		// Set GroupMembership
 		TArray<int> GroupArray;
@@ -1558,7 +1550,7 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetGroupMembership(
 			FHoudiniEngine::Get().GetSession(),
-			NewNodeId, 0, HAPI_GROUPTYPE_PRIM, LODGroupStr,
+			NewNodeId, 0, HAPI_GROUPTYPE_PRIM, H_TCHAR_TO_UTF8(*LODGroup),
 			GroupArray.GetData(), 0, Part.faceCount), false);
 
 		FSkeletalMeshLODInfo* LODInfo = SkeletalMesh->GetLODInfo(LODIndex);
