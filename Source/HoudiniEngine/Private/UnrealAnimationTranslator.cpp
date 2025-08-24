@@ -215,7 +215,7 @@ FUnrealAnimationTranslator::HapiCreateInputNodeForAnimation(
 			if (ParmId != -1)
 			{
 				FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId,
-					TCHAR_TO_UTF8(*FormatString), ParmId, 0);
+					H_TCHAR_TO_UTF8(*FormatString), ParmId, 0);
 			}
 			else
 			{
@@ -296,7 +296,7 @@ FUnrealAnimationTranslator::HapiCreateInputNodeForAnimation(
 			if (SnippetParmId != -1)
 			{
 				FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), DetailWrangleNodeId,
-					TCHAR_TO_UTF8(*FormatString), SnippetParmId, 0);
+					H_TCHAR_TO_UTF8(*FormatString), SnippetParmId, 0);
 			}
 			else
 			{

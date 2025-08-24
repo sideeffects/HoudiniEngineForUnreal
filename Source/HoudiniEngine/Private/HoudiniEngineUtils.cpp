@@ -513,7 +513,7 @@ FHoudiniEngineUtils::GetAssetHelpURL(UHoudiniAssetComponent* HoudiniAssetCompone
 void
 FHoudiniEngineUtils::ConvertUnrealString(const FString & UnrealString, std::string & String)
 {
-	String = TCHAR_TO_UTF8(*UnrealString);
+	String = H_TCHAR_TO_UTF8(*UnrealString);
 }
 
 UWorld*
@@ -4546,7 +4546,7 @@ FHoudiniEngineUtils::ExtractRawString(const FString& InString)
 	// Return an empty string instead of returning null to avoid potential crashes
 	std::string ConvertedString("");
 	if (!InString.IsEmpty())
-		ConvertedString = TCHAR_TO_UTF8(*InString);
+		ConvertedString = H_TCHAR_TO_UTF8(*InString);
 
 	// Allocate space for unique string.
 	int32 UniqueStringBytes = ConvertedString.size() + 1;
@@ -4834,7 +4834,7 @@ bool FHoudiniEngineUtils::HapiGetGroupMembership(
 {
 	OutGroupMembership = 0;
 
-	std::string ConvertedGroupName = TCHAR_TO_UTF8(*GroupName);
+	std::string ConvertedGroupName = H_TCHAR_TO_UTF8(*GroupName);
 
 	bool AllEqual;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupMembership(
@@ -4857,7 +4857,7 @@ FHoudiniEngineUtils::HapiGetGroupMembership(
 	OutGroupMembership.SetNum(ElementCount);
 
 	OutAllEquals = false;
-	std::string ConvertedGroupName = TCHAR_TO_UTF8(*GroupName);
+	std::string ConvertedGroupName = H_TCHAR_TO_UTF8(*GroupName);
 	if (!PartInfo.isInstanced)
 	{
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGroupMembership(
@@ -5224,7 +5224,7 @@ FHoudiniEngineUtils::HapiGetAttributeOfType(
 
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInfo(
 			FHoudiniEngine::Get().GetSession(),
-			GeoId, PartId, TCHAR_TO_UTF8(*HapiString),
+			GeoId, PartId, H_TCHAR_TO_UTF8(*HapiString),
 			AttributeOwner, &AttrInfo))
 			continue;
 
@@ -6014,7 +6014,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInfo(
 			FHoudiniEngine::Get().GetSession(),
 			InGeoNodeId, InPartId,
-			TCHAR_TO_UTF8(*AttribName), AttributeOwner, &AttribInfo))
+			H_TCHAR_TO_UTF8(*AttribName), AttributeOwner, &AttribInfo))
 		{
 			// failed to get that attribute's info
 			continue;
@@ -6054,7 +6054,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeFloat64Data(
 				FHoudiniEngine::Get().GetSession(),
 				InGeoNodeId, InPartId,
-				TCHAR_TO_UTF8(*AttribName), &AttribInfo, 0,
+				H_TCHAR_TO_UTF8(*AttribName), &AttribInfo, 0,
 				CurrentGenericAttribute.DoubleValues.GetData(),
 				AttribStart, AttribCount))
 			{
@@ -6072,7 +6072,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeFloatData(
 				FHoudiniEngine::Get().GetSession(),
 				InGeoNodeId, InPartId,
-				TCHAR_TO_UTF8(*AttribName), &AttribInfo,
+				H_TCHAR_TO_UTF8(*AttribName), &AttribInfo,
 				0, FloatValues.GetData(),
 				AttribStart, AttribCount))
 			{
@@ -6102,7 +6102,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 				if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInt64Data(
 					FHoudiniEngine::Get().GetSession(),
 					InGeoNodeId, InPartId,
-					TCHAR_TO_UTF8(*AttribName), &AttribInfo,
+					H_TCHAR_TO_UTF8(*AttribName), &AttribInfo,
 					0, HAPIIntValues.GetData(),
 					AttribStart, AttribCount))
 				{
@@ -6124,7 +6124,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 				if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInt64Data(
 					FHoudiniEngine::Get().GetSession(),
 					InGeoNodeId, InPartId,
-					TCHAR_TO_UTF8(*AttribName), &AttribInfo,
+					H_TCHAR_TO_UTF8(*AttribName), &AttribInfo,
 					0, reinterpret_cast<HAPI_Int64*>(CurrentGenericAttribute.IntValues.GetData()),
 					AttribStart, AttribCount))
 				{
@@ -6140,7 +6140,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeInt64Data(
 				FHoudiniEngine::Get().GetSession(),
 				InGeoNodeId, InPartId,
-				TCHAR_TO_UTF8(*AttribName), &AttribInfo,
+				H_TCHAR_TO_UTF8(*AttribName), &AttribInfo,
 				0, CurrentGenericAttribute.IntValues.GetData(),
 				AttribStart, AttribCount))
 			{
@@ -6159,7 +6159,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeIntData(
 				FHoudiniEngine::Get().GetSession(),
 				InGeoNodeId, InPartId,
-				TCHAR_TO_UTF8(*AttribName), &AttribInfo,
+				H_TCHAR_TO_UTF8(*AttribName), &AttribInfo,
 				0, IntValues.GetData(),
 				AttribStart, AttribCount))
 			{
@@ -6183,7 +6183,7 @@ FHoudiniEngineUtils::GetGenericAttributeList(
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeStringData(
 				FHoudiniEngine::Get().GetSession(),
 				InGeoNodeId, InPartId,
-				TCHAR_TO_UTF8(*AttribName), &AttribInfo,
+				H_TCHAR_TO_UTF8(*AttribName), &AttribInfo,
 				HapiSHArray.GetData(),
 				AttribStart, AttribCount))
 			{
@@ -6999,7 +6999,7 @@ FHoudiniEngineUtils::CreateNode(
 	// Call HAPI::CreateNode
 	HAPI_Result Result = FHoudiniApi::CreateNode(
 		FHoudiniEngine::Get().GetSession(),
-		InParentNodeId, TCHAR_TO_UTF8(*InOperatorName), TCHAR_TO_UTF8(*InNodeLabel), bInCookOnCreation, OutNewNodeId);
+		InParentNodeId, H_TCHAR_TO_UTF8(*InOperatorName), H_TCHAR_TO_UTF8(*InNodeLabel), bInCookOnCreation, OutNewNodeId);
 
 	// Return now if CreateNode failed
 	if (Result != HAPI_RESULT_SUCCESS)
@@ -7860,7 +7860,7 @@ FHoudiniEngineUtils::CreateInputNode(const FString& InNodeLabel, HAPI_NodeId& Ou
 
 	if (InParentNodeId < 0)
 	{
-		const HAPI_Result Result = FHoudiniApi::CreateInputNode(Session, -1, &NodeId, TCHAR_TO_UTF8(*InNodeLabel));
+		const HAPI_Result Result = FHoudiniApi::CreateInputNode(Session, -1, &NodeId, H_TCHAR_TO_UTF8(*InNodeLabel));
 		if (Result != HAPI_RESULT_SUCCESS)
 		{
 			HOUDINI_LOG_WARNING(TEXT("[FHoudiniEngineUtils::CreateInputNode]: CreateInputNode failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());
@@ -7915,7 +7915,7 @@ FHoudiniEngineUtils::HapiConnectNodeInput(const int32& InNodeId, const int32& In
 
 		// Set the transform value to "None"
 		HOUDINI_CHECK_ERROR_RETURN(
-			FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), ObjMergeNodeId, TCHAR_TO_UTF8(TEXT("xformtype")), 0, InXFormType), false);
+			FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), ObjMergeNodeId, H_TCHAR_TO_UTF8(TEXT("xformtype")), 0, InXFormType), false);
 	}
 
 	return true;
@@ -8042,7 +8042,7 @@ FHoudiniEngineUtils::UpdateMeshPartUVSets(
 		// Get the texture coordinates
 		if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAttributeFloatData(
 			FHoudiniEngine::Get().GetSession(),
-			GeoId, PartId, TCHAR_TO_UTF8(*(FoundAttributeNames[attrIdx])),
+			GeoId, PartId, H_TCHAR_TO_UTF8(*(FoundAttributeNames[attrIdx])),
 			&OutAttribInfoUVSets[AvailableIdx], -1,
 			&OutPartUVSets[AvailableIdx][0], 0, CurrentAttrInfo.count))
 		{

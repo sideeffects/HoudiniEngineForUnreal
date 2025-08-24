@@ -529,10 +529,10 @@ FUnrealObjectInputUtils::SetObjectMergeXFormTypeToWorldOrigin(const HAPI_NodeId&
 
 	// Set the transform value to "Into Specified Object"
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmIntValue(Session, InObjMergeNodeId, TCHAR_TO_UTF8(TEXT("xformtype")), 0, 2), false);
+		FHoudiniApi::SetParmIntValue(Session, InObjMergeNodeId, H_TCHAR_TO_UTF8(TEXT("xformtype")), 0, 2), false);
 	// Set the transform object to the world origin null from the manager
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmNodeValue(Session, InObjMergeNodeId, TCHAR_TO_UTF8(TEXT("xformpath")), WorldOriginNodeId), false);
+		FHoudiniApi::SetParmNodeValue(Session, InObjMergeNodeId, H_TCHAR_TO_UTF8(TEXT("xformpath")), WorldOriginNodeId), false);
 
 	return true;
 }

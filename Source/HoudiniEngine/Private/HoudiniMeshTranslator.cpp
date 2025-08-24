@@ -81,7 +81,7 @@
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
-static TAutoConsoleVariable<float> CVarHoudiniEngineMeshBuildTimer(
+TAutoConsoleVariable<float> CVarHoudiniEngineMeshBuildTimer(
 	TEXT("HoudiniEngine.MeshBuildTimer"),
 	0.0,
 	TEXT("When enabled, the plugin will output timings during the Mesh creation.\n")

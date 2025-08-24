@@ -976,13 +976,13 @@ UHoudiniGeoImporter::OpenBGEOFile(const FString& InBGEOFile, HAPI_NodeId& OutNod
 		FHoudiniEngine::Get().GetSession(),
 		OutNodeId, "file", &ParmId), false);
 
-	const std::string ConvertedString = TCHAR_TO_UTF8(*AbsoluteFilePath);
+	const std::string ConvertedString = H_TCHAR_TO_UTF8(*AbsoluteFilePath);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
 		FHoudiniEngine::Get().GetSession(), OutNodeId, ConvertedString.c_str(), ParmId, 0), false);
 	*/
 
 	// Simply use LoadGeoFrom file
-	std::string ConvertedString = TCHAR_TO_UTF8(*AbsoluteFilePath);
+	std::string ConvertedString = H_TCHAR_TO_UTF8(*AbsoluteFilePath);
 	FHoudiniApi::LoadGeoFromFile(FHoudiniEngine::Get().GetSession(), OutNodeId, ConvertedString.c_str());
 
 	return true;
@@ -1023,7 +1023,7 @@ UHoudiniGeoImporter::MergeGeoFromNode(const FString& InNodePath, HAPI_NodeId& Ou
 		FHoudiniEngine::Get().GetSession(),
 		OutNodeId, "objpath1", &ParmId), false);
 
-	const std::string ConvertedString = TCHAR_TO_UTF8(*InNodePath);
+	const std::string ConvertedString = H_TCHAR_TO_UTF8(*InNodePath);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
 		FHoudiniEngine::Get().GetSession(), OutNodeId, ConvertedString.c_str(), ParmId, 0), false);
 
@@ -1079,13 +1079,13 @@ UHoudiniGeoImporter::LoadBGEOFileInHAPI(HAPI_NodeId& NodeId)
 		FHoudiniEngine::Get().GetSession(),
 		NodeId, "file", &ParmId), false);
 
-	std::string ConvertedString = TCHAR_TO_UTF8(*AbsoluteFilePath);
+	std::string ConvertedString = H_TCHAR_TO_UTF8(*AbsoluteFilePath);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
 		FHoudiniEngine::Get().GetSession(), NodeId, ConvertedString.c_str(), ParmId, 0), false);
 	*/
 
 	// Simply use LoadGeoFrom file
-	std::string ConvertedString = TCHAR_TO_UTF8(*AbsoluteFilePath);
+	std::string ConvertedString = H_TCHAR_TO_UTF8(*AbsoluteFilePath);
 	FHoudiniApi::LoadGeoFromFile(FHoudiniEngine::Get().GetSession(), NodeId, ConvertedString.c_str());
 
 	return CookFileNode(NodeId);

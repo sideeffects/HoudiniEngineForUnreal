@@ -127,7 +127,7 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 						if (CurrentNodeId >= 0)
 						{
 							// Get the objpath1 node parm from the object_merge
-							if (FHoudiniApi::GetParmNodeValue(Session, CurrentNodeId, TCHAR_TO_UTF8(TEXT("objpath1")), &CurrentNodeId) != HAPI_RESULT_SUCCESS)
+							if (FHoudiniApi::GetParmNodeValue(Session, CurrentNodeId, H_TCHAR_TO_UTF8(TEXT("objpath1")), &CurrentNodeId) != HAPI_RESULT_SUCCESS)
 								CurrentNodeId = -1;
 						}
 

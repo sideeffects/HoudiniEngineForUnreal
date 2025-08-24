@@ -154,7 +154,7 @@ s@unreal_material = "[" + itoa(material_slot) + "]" + material_overrides[materia
 	if (ParmId != -1)
 	{
 		FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId,
-			TCHAR_TO_UTF8(*VEXpression), ParmId, 0);
+			H_TCHAR_TO_UTF8(*VEXpression), ParmId, 0);
 	}
 	else
 	{
@@ -489,7 +489,7 @@ s@{2} = "{3}";)";
 	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MaterialOverridesNodeId, "snippet", ParmInfo);
 	if (ParmId != -1)
 	{
-		FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId, TCHAR_TO_UTF8(*VEXpression), ParmId, 0);
+		FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId, H_TCHAR_TO_UTF8(*VEXpression), ParmId, 0);
 	}
 	else
 	{

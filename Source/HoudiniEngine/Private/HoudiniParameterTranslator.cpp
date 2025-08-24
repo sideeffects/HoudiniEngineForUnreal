@@ -347,7 +347,7 @@ FHoudiniParameterTranslator::BuildAllParameters(
 		}
 
 		HAPI_Result Result = FHoudiniApi::GetAssetDefinitionParmCounts(
-			FHoudiniEngine::Get().GetSession(), AssetLibraryId, TCHAR_TO_UTF8(*HoudiniAssetName), &ParmCount,
+			FHoudiniEngine::Get().GetSession(), AssetLibraryId, H_TCHAR_TO_UTF8(*HoudiniAssetName), &ParmCount,
 			&DefaultIntValueCount, &DefaultFloatValueCount, &DefaultStringValueCount, &DefaultChoiceValueCount);
 		
 		if (Result != HAPI_RESULT_SUCCESS)
@@ -366,7 +366,7 @@ FHoudiniParameterTranslator::BuildAllParameters(
 			DefaultChoiceValues.SetNumZeroed(DefaultChoiceValueCount);
 			
 			Result = FHoudiniApi::GetAssetDefinitionParmValues(
-				FHoudiniEngine::Get().GetSession(), AssetLibraryId, TCHAR_TO_UTF8(*HoudiniAssetName),
+				FHoudiniEngine::Get().GetSession(), AssetLibraryId, H_TCHAR_TO_UTF8(*HoudiniAssetName),
 				DefaultIntValues.GetData(), 0, DefaultIntValueCount,
 				DefaultFloatValues.GetData(), 0, DefaultFloatValueCount,
 				false, DefaultStringValues.GetData(), 0, DefaultStringValueCount,
@@ -404,7 +404,7 @@ FHoudiniParameterTranslator::BuildAllParameters(
 	else
 	{
 		HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetDefinitionParmInfos(
-				FHoudiniEngine::Get().GetSession(), AssetLibraryId, TCHAR_TO_UTF8(*HoudiniAssetName), &ParmInfos[0], 0, ParmCount), false);
+				FHoudiniEngine::Get().GetSession(), AssetLibraryId, H_TCHAR_TO_UTF8(*HoudiniAssetName), &ParmInfos[0], 0, ParmCount), false);
 	}
 
 	// Create a name lookup cache for the current parameters
@@ -1405,7 +1405,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 			bool bHasExpression = false;
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::ParmHasExpression(
 				FHoudiniEngine::Get().GetSession(), InNodeId,
-				TCHAR_TO_UTF8(*Name), TupleIdx, &bHasExpression))
+				H_TCHAR_TO_UTF8(*Name), TupleIdx, &bHasExpression))
 			{
 				// ?
 			}
@@ -1417,7 +1417,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				HAPI_StringHandle StringHandle;
 				if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmExpression(
 					FHoudiniEngine::Get().GetSession(), InNodeId,
-					TCHAR_TO_UTF8(*Name), TupleIdx, &StringHandle))
+					H_TCHAR_TO_UTF8(*Name), TupleIdx, &StringHandle))
 				{
 					FHoudiniEngineString HoudiniEngineString(StringHandle);
 					HoudiniEngineString.ToFString(ParmExprString);
@@ -2767,7 +2767,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 			for (int32 Idx = 0; Idx < NumValues; Idx++)
 			{
-				std::string ConvertedString = TCHAR_TO_UTF8(*(StringParam->GetValueAt(Idx)));
+				std::string ConvertedString = H_TCHAR_TO_UTF8(*(StringParam->GetValueAt(Idx)));
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
 					FHoudiniEngine::Get().GetSession(),
 					StringParam->GetNodeId(), ConvertedString.c_str(), StringParam->GetParmId(), Idx), false);
@@ -2805,7 +2805,7 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - StringChoice);
 
 				// Set the parameter's string value.
-				std::string ConvertedString = TCHAR_TO_UTF8(*(ChoiceParam->GetStringValue()));
+				std::string ConvertedString = H_TCHAR_TO_UTF8(*(ChoiceParam->GetStringValue()));
 				HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmStringValue(
 					FHoudiniEngine::Get().GetSession(),
 					ChoiceParam->GetNodeId(), ConvertedString.c_str(), ChoiceParam->GetParmId(), 0), false);
@@ -2973,7 +2973,7 @@ FHoudiniParameterTranslator::RevertParameterToDefault(UHoudiniParameter* InParam
 			// revert the whole parameter to its default value
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::RevertParmToDefaults(
 				FHoudiniEngine::Get().GetSession(),
-				InParam->GetNodeId(), TCHAR_TO_UTF8(*ParameterName)))
+				InParam->GetNodeId(), H_TCHAR_TO_UTF8(*ParameterName)))
 			{
 				HOUDINI_LOG_WARNING(TEXT("Failed to revert parameter %s to its default value."), *ParameterName);
 				bReverted = false;
@@ -2984,7 +2984,7 @@ FHoudiniParameterTranslator::RevertParameterToDefault(UHoudiniParameter* InParam
 			// revert a tuple to its default value
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::RevertParmToDefault(
 				FHoudiniEngine::Get().GetSession(),
-				InParam->GetNodeId(), TCHAR_TO_UTF8(*ParameterName), CurrentIdx))
+				InParam->GetNodeId(), H_TCHAR_TO_UTF8(*ParameterName), CurrentIdx))
 			{
 				HOUDINI_LOG_WARNING(TEXT("Failed to revert parameter %s - %d to its default value."), *ParameterName, CurrentIdx);
 				bReverted = false;
@@ -3412,7 +3412,7 @@ FHoudiniParameterTranslator::UploadDirectoryPath(UHoudiniParameterFile* InParam)
 
 	for (int32 Index = 0; Index < InParam->GetNumValues(); ++Index)
 	{
-		std::string ConvertedString = TCHAR_TO_UTF8(*(InParam->GetValueAt(Index)));
+		std::string ConvertedString = H_TCHAR_TO_UTF8(*(InParam->GetValueAt(Index)));
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(),
 			InParam->GetNodeId(), ConvertedString.c_str(), InParam->GetParmId(), Index), false);
 	}
@@ -3437,7 +3437,7 @@ FHoudiniParameterTranslator::GetMultiParmInstanceStartIdx(const HAPI_AssetInfo& 
 
 	// Try to find the parameter by its name
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmIdFromName(
-		FHoudiniEngine::Get().GetSession(), InAssetInfo.nodeId, TCHAR_TO_UTF8(*InParmName), &OutParmId), false);
+		FHoudiniEngine::Get().GetSession(), InAssetInfo.nodeId, H_TCHAR_TO_UTF8(*InParmName), &OutParmId), false);
 
 	if (OutParmId < 0)
 		return false;

@@ -152,7 +152,7 @@ void FHoudiniHLODLayerUtils::SetVexCode(HAPI_NodeId VexNodeId, AActor * Actor)
 	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(VexNodeId, "snippet", ParmInfo);
 	if (ParmId != -1)
 	{
-		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), VexNodeId, TCHAR_TO_UTF8(*VexCode), ParmId, 0);
+		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), VexNodeId, H_TCHAR_TO_UTF8(*VexCode), ParmId, 0);
 	}
 	else
 	{

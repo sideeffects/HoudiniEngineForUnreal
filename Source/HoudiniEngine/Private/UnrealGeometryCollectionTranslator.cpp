@@ -1169,11 +1169,11 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
 				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
 		}
 	
@@ -1217,11 +1217,11 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
 				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
 		}
 	
@@ -1253,11 +1253,11 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
 				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
 		}
 
@@ -1289,11 +1289,11 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
 				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
 		}
 		
@@ -1325,11 +1325,11 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
 				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
 		}
 		
@@ -1361,11 +1361,11 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
 				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
 		}
 	
@@ -1396,11 +1396,11 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_OBJECT_REDUCTION_PERCENTAGE), GCSizeSpecIdx);
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
 					FHoudiniEngine::Get().GetSession(),
-					GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
+					GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
 					(const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
 		}
 
@@ -1431,11 +1431,11 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_MARGIN_FRACTION), GCSizeSpecIdx);	
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
 				(const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
 		}
 		
@@ -1465,11 +1465,11 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 			const FString AttributeName = FString::Printf(TEXT("%s_%d"), TEXT(HAPI_UNREAL_ATTRIB_GC_COLLISIONS_COLLISION_PARTICLES_FRACTION), GCSizeSpecIdx);
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeFloatArrayData(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
 				(const float *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
 		}
 	
@@ -1500,11 +1500,11 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo), false);
 			
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetAttributeIntArrayData(
 				FHoudiniEngine::Get().GetSession(),
-				GeoId, PartId, TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
+				GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName), &AttributeInfo,
 				(const int32 *)AttributeData.GetData(), AttributeInfo.totalArrayElements, (const int *)AttributeDataSizes.GetData(), 0, AttributeInfo.count), false);
 		}
 	}

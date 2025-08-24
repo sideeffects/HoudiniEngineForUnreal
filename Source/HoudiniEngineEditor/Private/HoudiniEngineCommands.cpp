@@ -182,7 +182,7 @@ FHoudiniEngineCommands::SaveHIPFile()
 		HOUDINI_LOG_MESSAGE(TEXT("Saved Houdini scene to %s"), *SaveFilenames[0]);
 
 		// Get first path.
-		std::string HIPPathConverted(TCHAR_TO_UTF8(*SaveFilenames[0]));
+		std::string HIPPathConverted(H_TCHAR_TO_UTF8(*SaveFilenames[0]));
 
 		// Save HIP file through Engine.
 		FHoudiniApi::SaveHIPFile(FHoudiniEngine::Get().GetSession(), HIPPathConverted.c_str(), false);
@@ -211,7 +211,7 @@ FHoudiniEngineCommands::OpenInHoudini()
 		TEXT("HoudiniEngine"), *FileExtension);
 
 	// Save HIP file through Engine.
-	std::string TempPathConverted(TCHAR_TO_UTF8(*UserTempPath));
+	std::string TempPathConverted(H_TCHAR_TO_UTF8(*UserTempPath));
 	FHoudiniApi::SaveHIPFile(
 		FHoudiniEngine::Get().GetSession(),
 		TempPathConverted.c_str(), false);

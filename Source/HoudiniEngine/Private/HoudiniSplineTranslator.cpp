@@ -851,7 +851,7 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNodeForDataLegacy(
 		return false;
 	}
 
-	std::string ConvertedString = TCHAR_TO_UTF8(*PositionString);
+	std::string ConvertedString = H_TCHAR_TO_UTF8(*PositionString);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(
 		FHoudiniEngine::Get().GetSession(), CurveNodeId,
 		ConvertedString.c_str(), ParmId, 0), false);
@@ -1501,7 +1501,7 @@ FHoudiniSplineTranslator::HapiCreateCurveInputNode(
 	else
 	{
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputCurveNode(
-			FHoudiniEngine::Get().GetSession(), -1, &NewNodeId, TCHAR_TO_UTF8(*InputNodeName)), false);
+			FHoudiniEngine::Get().GetSession(), -1, &NewNodeId, H_TCHAR_TO_UTF8(*InputNodeName)), false);
 
 		OutCurveNodeId = NewNodeId;
 

@@ -885,7 +885,7 @@ FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
 			if (!bUseDefaultName) 
 				AttributeName = AttributeNameWithPostfix;
 
-			FHoudiniHapiAccessor Accessor(GeoId, PartId, TCHAR_TO_UTF8(*AttributeName));
+			FHoudiniHapiAccessor Accessor(GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName));
 			Accessor.bCanBeArray = true;
 
 			if (AttributeNames.Contains(AttributeName) && Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data))
@@ -916,7 +916,7 @@ FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
 			if (!bUseDefaultName)
 				AttributeName = AttributeNameWithPostfix;
 
-			FHoudiniHapiAccessor Accessor(GeoId, PartId, TCHAR_TO_UTF8(*AttributeName));
+			FHoudiniHapiAccessor Accessor(GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName));
 			Accessor.bCanBeArray = true;
 
 			if (AttributeNames.Contains(AttributeName) && Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data))
@@ -949,7 +949,7 @@ FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
 			if (!bUseDefaultName)
 				AttributeName = AttributeNameWithPostfix;
 
-			FHoudiniHapiAccessor Accessor(GeoId, PartId, TCHAR_TO_UTF8(*AttributeName));
+			FHoudiniHapiAccessor Accessor(GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName));
 			Accessor.bCanBeArray = true;
 
 			if (AttributeNames.Contains(AttributeName) && Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data))
@@ -974,7 +974,7 @@ FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
 			if (!bUseDefaultName)
 				AttributeName = AttributeNameWithPostfix;
 
-			FHoudiniHapiAccessor Accessor(GeoId, PartId, TCHAR_TO_UTF8(*AttributeName));
+			FHoudiniHapiAccessor Accessor(GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName));
 			Accessor.bCanBeArray = true;
 
 			if (AttributeNames.Contains(AttributeName) && Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data))
@@ -999,7 +999,7 @@ FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
 			if (!bUseDefaultName)
 				AttributeName = AttributeNameWithPostfix;
 
-			FHoudiniHapiAccessor Accessor(GeoId, PartId, TCHAR_TO_UTF8(*AttributeName));
+			FHoudiniHapiAccessor Accessor(GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName));
 			Accessor.bCanBeArray = true;
 			
 			if (AttributeNames.Contains(AttributeName) && Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data))
@@ -1024,7 +1024,7 @@ FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
 			if (!bUseDefaultName)
 				AttributeName = AttributeNameWithPostfix;
 
-			FHoudiniHapiAccessor Accessor(GeoId, PartId, TCHAR_TO_UTF8(*AttributeName));
+			FHoudiniHapiAccessor Accessor(GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName));
 			Accessor.bCanBeArray = true;
 
 			if (AttributeNames.Contains(AttributeName) && Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data))
@@ -1049,7 +1049,7 @@ FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
 			if (!bUseDefaultName)
 				AttributeName = AttributeNameWithPostfix;
 
-			FHoudiniHapiAccessor Accessor(GeoId, PartId, TCHAR_TO_UTF8(*AttributeName));
+			FHoudiniHapiAccessor Accessor(GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName));
 			Accessor.bCanBeArray = true;
 
 			if (AttributeNames.Contains(AttributeName) && Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data))
@@ -1074,7 +1074,7 @@ FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
 			if (!bUseDefaultName)
 				AttributeName = AttributeNameWithPostfix;
 
-			FHoudiniHapiAccessor Accessor(GeoId, PartId, TCHAR_TO_UTF8(*AttributeName));
+			FHoudiniHapiAccessor Accessor(GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName));
 			Accessor.bCanBeArray = true;
 
 			if (AttributeNames.Contains(AttributeName) && Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data))
@@ -1099,7 +1099,7 @@ FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
 			if (!bUseDefaultName)
 				AttributeName = AttributeNameWithPostfix;
 
-			FHoudiniHapiAccessor Accessor(GeoId, PartId, TCHAR_TO_UTF8(*AttributeName));
+			FHoudiniHapiAccessor Accessor(GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName));
 			Accessor.bCanBeArray = true;
 
 			if (AttributeNames.Contains(AttributeName) && Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data))
@@ -1124,7 +1124,7 @@ FHoudiniGeometryCollectionTranslator::ApplyGeometryCollectionAttributes(
 			if (!bUseDefaultName)
 				AttributeName = AttributeNameWithPostfix;
 
-			FHoudiniHapiAccessor Accessor(GeoId, PartId, TCHAR_TO_UTF8(*AttributeName));
+			FHoudiniHapiAccessor Accessor(GeoId, PartId, H_TCHAR_TO_UTF8(*AttributeName));
 			Accessor.bCanBeArray = true;
 
 			if (AttributeNames.Contains(AttributeName) && Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data))

@@ -1337,7 +1337,7 @@ FHoudiniInputTranslator::ConnectInputNode(UHoudiniInput* InInput)
 	if (InInput->IsObjectPathParameter())
 	{
 		// Now we can assign the input node path to the parameter
-		std::string ParamNameString = TCHAR_TO_UTF8(*(InInput->GetInputName()));
+		std::string ParamNameString = H_TCHAR_TO_UTF8(*(InInput->GetInputName()));
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmNodeValue(
 			FHoudiniEngine::Get().GetSession(), AssetNodeId,
@@ -2016,7 +2016,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForObject(const FString& InObjNodeNa
 	// with a single point, with an attribute pointing to the input object's path
 	HAPI_NodeId InputNodeId = -1;
 	HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::CreateInputNode(
-		FHoudiniEngine::Get().GetSession(), -1, &InputNodeId, TCHAR_TO_UTF8(*NodeName)), false);
+		FHoudiniEngine::Get().GetSession(), -1, &InputNodeId, H_TCHAR_TO_UTF8(*NodeName)), false);
 
 	// Update this input object's NodeId and ObjectNodeId
 	InObject->SetInputNodeId((int32)InputNodeId);
@@ -2167,7 +2167,7 @@ FHoudiniInputTranslator::HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
 	// Set the objpath1 on the object merge
 	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
 	HOUDINI_CHECK_ERROR_RETURN(
-		FHoudiniApi::SetParmNodeValue(Session, InOutObjectMergeNodeId, TCHAR_TO_UTF8(TEXT("objpath1")), InNodeToObjectMerge), false);
+		FHoudiniApi::SetParmNodeValue(Session, InOutObjectMergeNodeId, H_TCHAR_TO_UTF8(TEXT("objpath1")), InNodeToObjectMerge), false);
 
 	// Set Transform type if needed
 	if (InTransformType >= 0 && InTransformType <= 2)
@@ -2176,7 +2176,7 @@ FHoudiniInputTranslator::HapiCreateOrUpdateGeoObjectMergeAndSetTransform(
 		// 1 Into this object
 		// 2 Into Specified
 		HOUDINI_CHECK_ERROR_RETURN(
-			FHoudiniApi::SetParmIntValue(Session, InOutObjectMergeNodeId, TCHAR_TO_UTF8(TEXT("xformtype")), 0, InTransformType), false);
+			FHoudiniApi::SetParmIntValue(Session, InOutObjectMergeNodeId, H_TCHAR_TO_UTF8(TEXT("xformtype")), 0, InTransformType), false);
 	}
 	
 	if (!InTransform.Equals(FTransform::Identity) || !bCreatedGeoObject)
@@ -2626,7 +2626,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActorReference(
 	else
 	{
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
-			FHoudiniEngine::Get().GetSession(), -1, &NewNodeId, TCHAR_TO_UTF8(*InputNodeName)), false);
+			FHoudiniEngine::Get().GetSession(), -1, &NewNodeId, H_TCHAR_TO_UTF8(*InputNodeName)), false);
 	}
 
 	// Check if we have a valid id for this new input asset.
@@ -5090,7 +5090,7 @@ FHoudiniInputTranslator::CreateInputNodeForReference(
 	else
 	{
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateInputNode(
-			FHoudiniEngine::Get().GetSession(), -1, &NewNodeId, TCHAR_TO_UTF8(*InputNodeName)), false);
+			FHoudiniEngine::Get().GetSession(), -1, &NewNodeId, H_TCHAR_TO_UTF8(*InputNodeName)), false);
 	}
 
 	/*
