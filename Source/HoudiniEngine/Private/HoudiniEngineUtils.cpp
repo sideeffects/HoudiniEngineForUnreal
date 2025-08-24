@@ -8456,4 +8456,16 @@ void FHoudiniEngineUtils::DumpPart(HAPI_NodeId NodeId, HAPI_PartId PartId, FStri
 }
 
 
+TArray<char> HoudiniTCHARToUTF(const TCHAR* Text)
+{
+	int32 Length = FCString::Strlen(Text);
+	TArray<char> Result;
+	Result.SetNumZeroed(Length + 1);
+
+	FTCHARToUTF8_Convert::Convert(&Result[0], Length, Text, Length);
+
+	return Result;
+
+}
+
 #undef LOCTEXT_NAMESPACE

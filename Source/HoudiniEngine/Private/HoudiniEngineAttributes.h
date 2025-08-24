@@ -41,7 +41,7 @@ struct FHoudiniHapiAccessor
 
 	HAPI_NodeId NodeId = -1;
 	HAPI_PartId PartId = -1;
-	const char* AttributeName = nullptr;
+	TArray<char> AttributeName;// avoid std::string
 	bool bAllowTypeConversion = true;
 	bool bAllowMultiThreading = true;
 	bool bCanBeArray = false;
