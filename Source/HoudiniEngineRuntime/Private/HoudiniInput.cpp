@@ -170,7 +170,7 @@ void UHoudiniInput::PostEditUndo()
 		 		// If the ref counted input system is being used, we must not delete nodes managed by the system
 				TSet<int32> ManagedNodeIds;
 				{
-					IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+					const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 					if (Manager)
 					{
 						TArray<int32> ManagedNodeIdArray;
@@ -1216,7 +1216,7 @@ void UHoudiniInput::InvalidateData()
 
 	TSet<int32> ManagedNodeIds;
 	{
-		IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+		const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 		if(Manager)
 		{
 			TArray<int32> ManagedNodeIdArray;

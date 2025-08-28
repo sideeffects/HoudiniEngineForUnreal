@@ -1501,7 +1501,7 @@ FHoudiniEngineCommands::SetPDGCommandletEnabled(bool InEnabled)
 void
 FHoudiniEngineCommands::ClearInputManager()
 {
-	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 	{
 		HOUDINI_LOG_WARNING(TEXT("[ClearInputManager]: Manager is null!"));

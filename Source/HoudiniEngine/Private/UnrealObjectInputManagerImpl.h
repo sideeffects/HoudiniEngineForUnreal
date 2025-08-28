@@ -41,11 +41,11 @@ struct FUnrealObjectInputBackLinkReferences
 
 
 /**
- * Implementation of IUnrealObjectInputManager.
+ * Implementation of FUnrealObjectInputManager.
  *
  * Input node entries are stored in the InputNodes TMap by FUnrealObjectInputIdentifier.
  */
-class HOUDINIENGINE_API FUnrealObjectInputManagerImpl : public IUnrealObjectInputManager 
+class HOUDINIENGINE_API FUnrealObjectInputManagerImpl : public FUnrealObjectInputManager 
 {
 public:
 
@@ -63,12 +63,6 @@ public:
 
 	virtual bool AddContainer(
 		const FUnrealObjectInputIdentifier& InIdentifier, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
-	virtual bool AddContainer(
-		UObject const* const InObject, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
-	virtual bool AddContainer(
-		UPackage const* const InPackage, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
-	virtual bool AddContainer(
-		const FName& InPath, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle) override;
 
 	virtual bool AddReferenceNode(
 		const FUnrealObjectInputIdentifier& InIdentifier,
@@ -77,23 +71,9 @@ public:
 		FUnrealObjectInputHandle& OutHandle,
 		TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr,
 		const int32 InReferencesConnectToNodeId=INDEX_NONE) override;
-	virtual bool AddReferenceNode(
-		UObject const* const InObject,
-		const FUnrealObjectInputOptions& InOptions,
-		const int32 InObjectNodeId,
-		const int32 InNodeId,
-		FUnrealObjectInputHandle& OutHandle,
-		TSet<FUnrealObjectInputHandle> const* const InReferencedNodes=nullptr,
-		const int32 InReferencesConnectToNodeId=INDEX_NONE) override;
 
 	virtual bool AddLeaf(
 		const FUnrealObjectInputIdentifier& InIdentifier,
-		const int32 InObjectNodeId,
-		const int32 InNodeId,
-		FUnrealObjectInputHandle& OutHandle) override;
-	virtual bool AddLeaf(
-		UObject const* const InObject,
-		const FUnrealObjectInputOptions& InOptions,
 		const int32 InObjectNodeId,
 		const int32 InNodeId,
 		FUnrealObjectInputHandle& OutHandle) override;
@@ -157,6 +137,8 @@ public:
 	virtual FOnNodeAddUpdateDelete& GetOnNodeAddedDelegate() override { return OnNodeAddedDelegate; }
 	virtual FOnNodeAddUpdateDelete& GetOnNodeUpdatedDelegate() override { return OnNodeUpdatedDelegate; }
 	virtual FOnNodeAddUpdateDelete& GetOnNodeDeletedDelegate() override { return OnNodeDeletedDelegate; }
+
+	virtual void Dump() override;
 
 protected:
 	/** Helper function to get FUnrealObjectInputNode entries by identifier (FUnrealObjectInputIdentifier). */
