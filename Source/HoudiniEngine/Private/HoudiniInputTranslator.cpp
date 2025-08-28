@@ -459,7 +459,7 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 
 	// When using the new input system, get all HAPI NodeIds managed by the system as a set. Do not delete any nodes
 	// here if their ids are in the set. The manager will handle deletion of those nodes when needed.
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 	TSet<int32> ManagedNodeIdSet;
 	if (Manager)
 	{
@@ -1120,7 +1120,7 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 	// When using the ref counted input system, update objmerge paths in reference nodes that are potentially out of
 	// date after the update above 
 	{
-		IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+		const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 		if (Manager)
 		{
 			// Get nodes that were created / update from the UpdateScope

@@ -28,30 +28,12 @@
 
 FUnrealObjectInputManager* FUnrealObjectInputManager::Singleton = nullptr;
 
-
-IUnrealObjectInputManager::~IUnrealObjectInputManager()
-{
-}
-
-
-
-FUnrealObjectInputManager::FUnrealObjectInputManager(IUnrealObjectInputManager* InImplementation)
-	: Implementation(InImplementation)
-{
-}
-
-FUnrealObjectInputManager::~FUnrealObjectInputManager()
-{
-}
+FUnrealObjectInputManager::~FUnrealObjectInputManager() {}
 
 bool
-FUnrealObjectInputManager::CreateSingleton(IUnrealObjectInputManager* InImplementation)
+FUnrealObjectInputManager::SetSingleton(FUnrealObjectInputManager* InImplementation)
 {
-	if (Singleton)
-		return false;
-
-	Singleton = new FUnrealObjectInputManager(InImplementation);
-
+	Singleton = InImplementation;
 	return Singleton != nullptr;
 }
 
@@ -65,4 +47,276 @@ FUnrealObjectInputManager::DestroySingleton()
 	Singleton = nullptr;
 
 	return true;
+}
+
+FUnrealObjectInputManager* FUnrealObjectInputManager::Get()
+{
+	if (Singleton == nullptr)
+	{
+		// This should not happen!
+		HOUDINI_LOG_ERROR(TEXT("FUnrealObjectInputManager not initialized correctly!!!!!!!!!!!!!!!!!!!!"));
+		HOUDINI_LOG_ERROR(TEXT("Plugin will not function correctly !!!!!!!!!!!!!!!!!!!!"));
+		SetSingleton(new FUnrealObjectInputManager());
+	}
+	return Singleton;
+}
+
+
+bool
+FUnrealObjectInputManager::FindNode(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::Contains(const FUnrealObjectInputHandle& InHandle) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::Contains(const FUnrealObjectInputIdentifier& InIdentifier) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::GetNode(const FUnrealObjectInputHandle& InHandle, const FUnrealObjectInputNode*& OutNode) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::GetNode(const FUnrealObjectInputHandle& InHandle, FUnrealObjectInputNode*& OutNode) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::AddContainer(const FUnrealObjectInputIdentifier& InIdentifier, const int32 InNodeId, FUnrealObjectInputHandle& OutHandle)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::AddReferenceNode(
+	const FUnrealObjectInputIdentifier& InIdentifier,
+	const int32 InObjectNodeId,
+	const int32 InNodeId,
+	FUnrealObjectInputHandle& OutHandle,
+	TSet<FUnrealObjectInputHandle> const* const InReferencedNodes,
+	const int32 InReferencesConnectToNodeId)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::AddLeaf(
+	const FUnrealObjectInputIdentifier& InIdentifier,
+	const int32 InObjectNodeId,
+	const int32 InNodeId,
+	FUnrealObjectInputHandle& OutHandle)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::UpdateContainer(
+	const FUnrealObjectInputIdentifier& InIdentifier,
+	const int32 InNodeId,
+	const bool bInClearDirtyFlag)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::UpdateReferenceNode(
+	const FUnrealObjectInputIdentifier& InIdentifier,
+	const TOptional<int32> InObjectNodeId,
+	const TOptional<int32> InNodeId,
+	TSet<FUnrealObjectInputHandle> const* const InReferencedNodes,
+	const TOptional<int32> InReferencesConnectToNodeId,
+	const bool bInClearDirtyFlag)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::UpdateLeaf(
+	const FUnrealObjectInputIdentifier& InIdentifier,
+	const int32 InObjectNodeId,
+	const int32 InNodeId,
+	const bool bInClearDirtyFlag)
+{
+	return false;
+}
+
+FString
+FUnrealObjectInputManager::GetDefaultNodeName(const FUnrealObjectInputIdentifier& InIdentifier) const
+{
+	return FString();
+}
+
+bool
+FUnrealObjectInputManager::GetUniqueHoudiniNodeId(const int32 InHAPINodeId, int32& OutUniqueHoudiniNodeId) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::AreHAPINodesValid(const FUnrealObjectInputHandle& InHandle) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::AreHAPINodesValid(const FUnrealObjectInputIdentifier& InIdentifier) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::IsHAPINodeValid(const FUnrealObjectInputHAPINodeId& InNodeId) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::DeleteHAPINode(FUnrealObjectInputHAPINodeId& InNodeId) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::SetHAPINodeDisplay(const FUnrealObjectInputHAPINodeId& InNodeId, const bool bInOnOff) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::SetHAPINodeDisplay(const int32 InNodeId, const bool bInOnOff) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<FUnrealObjectInputHAPINodeId>& OutNodeIds) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<int32>& OutNodeIds) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::GetAllHAPINodeIds(TArray<FUnrealObjectInputHAPINodeId>& OutNodeIds) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::GetAllHAPINodeIds(TArray<int32>& OutNodeIds) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle, const bool& bInputNodesCanBeDeleted)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::IsDirty(const FUnrealObjectInputIdentifier& InIdentifier) const
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, const bool bInAlsoDirtyReferencedNodes)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::ClearDirtyFlag(const FUnrealObjectInputIdentifier& InIdentifier)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::Clear()
+{
+	return false;
+}
+
+FUnrealObjectInputHAPINodeId
+FUnrealObjectInputManager::GetWorldOriginNodeId(const bool bInCreateIfMissingOrInvalid)
+{
+	return FUnrealObjectInputHAPINodeId();
+}
+
+int32
+FUnrealObjectInputManager::GetWorldOriginHAPINodeId(const bool bInCreateIfMissingOrInvalid)
+{
+	return -1;
+}
+
+bool
+FUnrealObjectInputManager::AddRef(const FUnrealObjectInputIdentifier& InIdentifier)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::RemoveRef(const FUnrealObjectInputIdentifier& InIdentifier)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::AddBackLink(const FUnrealObjectInputIdentifier& InReferencedIdentifier, const FUnrealObjectInputIdentifier& InReferencedBy)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::RemoveBackLink(const FUnrealObjectInputIdentifier& InReferencedIdentifier, const FUnrealObjectInputIdentifier& InReferencedBy)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::GetReferencedBy(const FUnrealObjectInputIdentifier& InReferencedIdentifier, TSet<FUnrealObjectInputIdentifier>& OutReferencedBy) const
+{
+	return false;
+}
+
+FUnrealObjectInputManager::FOnNodeAddUpdateDelete&
+FUnrealObjectInputManager::GetOnNodeAddedDelegate()
+{
+	static FOnNodeAddUpdateDelete Dummy;
+	return Dummy;
+}
+
+FUnrealObjectInputManager::FOnNodeAddUpdateDelete&
+FUnrealObjectInputManager::GetOnNodeUpdatedDelegate()
+{
+	static FOnNodeAddUpdateDelete Dummy;
+	return Dummy;
+}
+
+FUnrealObjectInputManager::FOnNodeAddUpdateDelete&
+FUnrealObjectInputManager::GetOnNodeDeletedDelegate()
+{
+	static FOnNodeAddUpdateDelete Dummy;
+	return Dummy;
+}
+
+void FUnrealObjectInputManager::Dump()
+{
+	
 }

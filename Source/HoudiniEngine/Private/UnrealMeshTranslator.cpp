@@ -59,6 +59,7 @@
 
 #include "HoudiniEngineAttributes.h"
 #include "HoudiniHLODLayerUtils.h"
+#include "UnrealObjectInputManager.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
 	#include "Engine/SkinnedAssetCommon.h"

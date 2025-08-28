@@ -505,7 +505,7 @@ UHoudiniInputObject::GetInputNodeId() const
 	if (!InputNodeHandle.IsValid())
 		return -1;
 
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return -1;
 
@@ -543,7 +543,7 @@ UHoudiniInputObject::GetInputObjectNodeId() const
 	if (NodeType != EUnrealObjectInputNodeType::Leaf && NodeType != EUnrealObjectInputNodeType::Reference)
 		return -1;
 
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return -1;
 
@@ -1402,7 +1402,7 @@ UHoudiniInputObject::InvalidateData()
 	// nodes associated with the handle matches InputNodeId / InputObjectNodeId
 	if (InputNodeHandle.IsValid())
 	{
-		IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+		const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 		if (Manager)
 		{
 			TArray<int32> ManagedNodeIds;
@@ -2421,7 +2421,7 @@ UHoudiniInputActor::InvalidateSplinesMeshData()
 		// nodes associated with the handle matches SplinesMeshNodeId / SplinesMeshObjectNodeId
 		if (SplinesMeshInputNodeHandle.IsValid())
 		{
-			IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+			const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 			if (Manager)
 			{
 				TArray<int32> ManagedNodeIds;

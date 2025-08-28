@@ -27,7 +27,7 @@ FUnrealObjectInputUtils::FindNodeViaManager(
 	if (!Manager->FindNode(InIdentifier, Handle))
 		return false;
 
-	OutHandle = Handle;
+	OutHandle = std::move(Handle);
 	return true;
 }
 
@@ -66,7 +66,7 @@ FUnrealObjectInputUtils::GetNodeViaManager(const FUnrealObjectInputIdentifier& I
 	if (!Manager->GetNode(Handle, Node))
 		return nullptr;
 
-	OutHandle = Handle;
+	OutHandle = std::move(Handle);
 	return Node;
 }
 
@@ -204,7 +204,7 @@ FUnrealObjectInputUtils::AddNodeOrUpdateNode(
 		FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
 	}
 
-	OutHandle = Handle;
+	OutHandle = std::move(Handle);
 	return bSuccess;
 }
 
@@ -530,7 +530,7 @@ FUnrealObjectInputUtils::SetObjectMergeXFormTypeToWorldOrigin(const HAPI_NodeId&
 {
 	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
 	
-	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return false;
 		
@@ -560,7 +560,7 @@ FUnrealObjectInputUtils::SetReferencesNodeConnectToNodeId(const FUnrealObjectInp
 	if (!Identifier.IsValid() || Identifier.GetNodeType() != EUnrealObjectInputNodeType::Reference)
 		return false;
 
-	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return false;
 
@@ -587,7 +587,7 @@ FUnrealObjectInputUtils::ConnectReferencedNodesToMerge(const FUnrealObjectInputI
 	if (!AreHAPINodesValid(InRefNodeIdentifier))
 		return false;
 	
-	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return false;
 
@@ -747,7 +747,7 @@ FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(
 
 		FUnrealObjectInputRuntimeUtils::ClearInputNodeDirtyFlag(InIdentifier);
 		
-		OutHandle = Handle;
+		OutHandle = std::move(Handle);
 		return true;
 	}
 
@@ -760,7 +760,7 @@ FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(
 
 	FUnrealObjectInputRuntimeUtils::ClearInputNodeDirtyFlag(InIdentifier);
 
-	OutHandle = Handle;
+	OutHandle = std::move(Handle);
 	return true;
 }
 

@@ -82,7 +82,7 @@ FUnrealObjectInputHAPINodeId::Set(const int32 InHAPINodeId)
 	if (InHAPINodeId < 0)
 		return false;
 
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return false;
 
@@ -105,7 +105,7 @@ FUnrealObjectInputHAPINodeId::IsSet() const
 bool
 FUnrealObjectInputHAPINodeId::IsValid() const
 {
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return false;
 
@@ -607,6 +607,43 @@ FUnrealObjectInputIdentifier::operator==(const FUnrealObjectInputIdentifier& InO
 	return false;
 }
 
+
+FString
+FUnrealObjectInputIdentifier::ToString() const
+{
+	FStringBuilderBase Builder;
+
+	Builder.Append(TEXT("type: "));
+	switch(this->GetNodeType())
+	{
+	case EUnrealObjectInputNodeType::Container:
+		Builder.Append(TEXT("container"));
+		break;
+	case EUnrealObjectInputNodeType::Leaf:
+		Builder.Append(TEXT("leaf"));
+		break;
+	case EUnrealObjectInputNodeType::Reference:
+		Builder.Append(TEXT("reference"));
+		break;
+	default:
+		Builder.Append(TEXT("unknown"));
+		break;
+	}
+
+	if (this->Object.IsValid())
+	{
+		Builder.Append(TEXT(" object: "));
+		Builder.Append(this->Object->GetPathName());
+	}
+	else
+	{
+		Builder.Append(TEXT(" path: "));
+		Builder.Append(this->Path.ToString());
+	}
+
+	return Builder.ToString();
+}
+
 bool
 FUnrealObjectInputIdentifier::MakeParentIdentifier(FUnrealObjectInputIdentifier& OutParentIdentifier) const
 {
@@ -668,6 +705,25 @@ FUnrealObjectInputHandle::FUnrealObjectInputHandle(const FUnrealObjectInputIdent
 	, Identifier()
 {
 	Initialize(InIdentifier);
+}
+
+FUnrealObjectInputHandle::FUnrealObjectInputHandle(FUnrealObjectInputHandle&& InHandle)
+{
+	bIsInitialized = InHandle.bIsInitialized;
+	Identifier = InHandle.Identifier;
+
+	InHandle.bIsInitialized = false;
+	InHandle.Identifier = FUnrealObjectInputIdentifier();
+}
+
+FUnrealObjectInputHandle& FUnrealObjectInputHandle::operator=(FUnrealObjectInputHandle&& InOther)
+{
+	bIsInitialized = InOther.bIsInitialized;
+	Identifier = InOther.Identifier;
+
+	InOther.bIsInitialized = false;
+	InOther.Identifier = FUnrealObjectInputIdentifier();
+	return *this;
 }
 
 FUnrealObjectInputHandle::FUnrealObjectInputHandle(const FUnrealObjectInputHandle& InHandle)
@@ -941,7 +997,7 @@ bool FUnrealObjectInputNode::DeleteHAPINodes()
 	if (!NodeId.IsValid())
 		return false;
 
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return false;
 
@@ -1228,7 +1284,7 @@ FUnrealObjectInputNode::UpdateModifiers(const FName InChainName)
 		const FUnrealObjectInputHAPINodeId OutputNodeId = GetOutputNodeIdOfModifierChain(OutputChainName);
 		if (OutputNodeId.IsValid())
 		{
-			IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+			const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 			if (Manager)
 				Manager->SetHAPINodeDisplay(OutputNodeId, true);
 		}
@@ -1336,7 +1392,7 @@ bool FUnrealObjectInputLeafNode::DeleteHAPINodes()
 	if (!ObjectNodeId.IsValid())
 		return false;
 
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return false;
 
@@ -1417,7 +1473,7 @@ bool FUnrealObjectInputReferenceNode::AreReferencedHAPINodesValid() const
 	if (ReferencedNodes.IsEmpty())
 		return true;
 
-	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return false;
 
@@ -1439,7 +1495,7 @@ void FUnrealObjectInputReferenceNode::MarkAsDirty(const bool bInAlsoDirtyReferen
 	if (!bInAlsoDirtyReferencedNodes || ReferencedNodes.IsEmpty())
 		return;
 
-	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return;
 
@@ -1469,7 +1525,7 @@ FUnrealObjectInputReferenceNode::SetReferencesConnectToNodeId(const int32 InRefe
 bool
 FUnrealObjectInputModifier::DestroyHAPINodes()
 {
-	IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return false;
 
@@ -1489,7 +1545,7 @@ FUnrealObjectInputModifier::DestroyHAPINodes()
 
 FUnrealObjectInputUpdateScope::FUnrealObjectInputUpdateScope()
 {
-	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
 	if (Manager)
 	{
 		OnCreatedHandle = Manager->GetOnNodeAddedDelegate().AddRaw(this, &FUnrealObjectInputUpdateScope::OnNodeCreatedOrUpdated);
@@ -1500,7 +1556,7 @@ FUnrealObjectInputUpdateScope::FUnrealObjectInputUpdateScope()
 
 FUnrealObjectInputUpdateScope::~FUnrealObjectInputUpdateScope()
 {
-	IUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
+	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
 	if (Manager)
 	{
 		if (OnDestroyedHandle.IsValid())
