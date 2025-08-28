@@ -10,7 +10,7 @@ FUnrealObjectInputRuntimeUtils::IsInputNodeDirty(const FUnrealObjectInputIdentif
 	if (!InIdentifier.IsValid())
 		return false;
 
-	FUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
 	if (!Manager)
 		return false;
 

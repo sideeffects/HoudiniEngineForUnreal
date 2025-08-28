@@ -79,8 +79,12 @@ struct HOUDINIENGINE_API FUnrealObjectInputUtils
 			const bool& bInputNodesCanBeDeleted,
 			const TOptional<int32> InReferencesConnectToNodeId=TOptional<int32>());
 
-		// Helper to get the HAPI NodeId associated with InHandle.
+		// Helper to get the HAPI NodeId associated with InHandle. Recommend using the 2nd overload below, as its easier to use.
 		static bool GetHAPINodeId(const FUnrealObjectInputHandle& InHandle, int32& OutNodeId);
+
+		static HAPI_NodeId GetHAPINodeId(const FUnrealObjectInputHandle& Handle);
+
+		static FUnrealObjectInputHandle GetHandle(const FUnrealObjectInputIdentifier &Identifier);
 
 		// Helper to set the CanBeDeleted property on the input object associated with InHandle
 		static bool UpdateInputNodeCanBeDeleted(const FUnrealObjectInputHandle& InHandle, const bool& bCanBeDeleted);
@@ -128,7 +132,7 @@ struct HOUDINIENGINE_API FUnrealObjectInputUtils
 		static bool SetObjectMergeXFormTypeToWorldOrigin(const HAPI_NodeId& InObjMergeNodeId);
 
 		// Helper to set the node that references connect to (such as a Merge SOP) for a reference node in the input system	
-		static bool SetReferencesNodeConnectToNodeId(const FUnrealObjectInputIdentifier& InRefNodeIdentifier, HAPI_NodeId InNodeId);
+		static bool SetReferencesNodeConnectToNodeId(const FUnrealObjectInputHandle& InHandle, HAPI_NodeId InNodeId);
 
 		// Helper to connect a reference node's referenced nodes to its merge SOP
 		static bool ConnectReferencedNodesToMerge(const FUnrealObjectInputIdentifier& InRefNodeIdentifier);
@@ -138,53 +142,52 @@ struct HOUDINIENGINE_API FUnrealObjectInputUtils
 			const FUnrealObjectInputIdentifier& InIdentifier,
 			const TSet<FUnrealObjectInputHandle>& InReferencedNodes,
 			FUnrealObjectInputHandle& OutHandle,
-			const bool bInConnectReferencedNode,
-			const bool& bInputNodesCanBeDeleted);
+			bool bInConnectReferencedNode,
+			bool bInputNodesCanBeDeleted);
 
 		// Add a named modifier chain to the input node. Returns false if the chain was not added (if it existed already, for example)
-		static bool AddModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName, int32 InNodeIdToConnectTo);
+		static bool AddModifierChain(const FUnrealObjectInputHandle& InHandle, FName InChainName, int32 InNodeIdToConnectTo);
 
 		// Set the node that the first node of the chain connects to.
-		static bool SetModifierChainNodeToConnectTo(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName, int32 InNodeToConnectTo);
+		static bool SetModifierChainNodeToConnectTo(const FUnrealObjectInputHandle& InHandle, FName InChainName, int32 InNodeToConnectTo);
 
 		// Returns true if the named modifier chain exists on the node.
-		static bool DoesModifierChainExist(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+		static bool DoesModifierChainExist(const FUnrealObjectInputHandle& InHandle, FName InChainName);
 
 		// Returns the input node id of the named modifier chain on the node. Returns < 0 if the chain does not exist.
-		static HAPI_NodeId GetInputNodeOfModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+		static HAPI_NodeId GetInputNodeOfModifierChain(const FUnrealObjectInputHandle& InHandle, FName InChainName);
 
 		// Returns the output node id of the named modifier chain on the node. Returns < 0 if the chain does not exist.
-		static HAPI_NodeId GetOutputNodeOfModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+		static HAPI_NodeId GetOutputNodeOfModifierChain(const FUnrealObjectInputHandle& InHandle, FName InChainName);
 
 		// Removed the named modifier chain. Returns true if the chain existed and was removed.
-		static bool RemoveModifierChain(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+		static bool RemoveModifierChain(const FUnrealObjectInputHandle& InHandle, FName InChainName);
 
 		// Destroy the given modifier in the named chain. This deletes the modifier, so InModifierToDestroy will be invalid after a successful call to this function.
-		static bool DestroyModifier(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName, FUnrealObjectInputModifier* InModifierToDestroy);
+		static bool DestroyModifier(const FUnrealObjectInputHandle& InHandle, FName InChainName, FUnrealObjectInputModifier* InModifierToDestroy);
 
 		// Find and return the first modifier of class T on the node identified by InIdentifier. Returns null if it has
 		// no such modifier.
-		static FUnrealObjectInputModifier* FindFirstModifierOfType(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName, EUnrealObjectInputModifierType InModifierType);
+		static FUnrealObjectInputModifier* FindFirstModifierOfType(const FUnrealObjectInputHandle& InHandle, FName InChainName, EUnrealObjectInputModifierType InModifierType);
 
 		// Add a modifier of class T to the node identified by InIdentifier if it does not already have a modifier
 		// of that class. Return the newly created and added (or existing) modifier.
 		template<class T, class... Args>
-		static T* CreateAndAddModifier(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName, Args... ConstructorArguments);
+		static T* CreateAndAddModifier(const FUnrealObjectInputHandle& InHandle, FName InChainName, Args... ConstructorArguments);
 
 		// Call FUnrealInputObjectModifier::Update() on all modifiers in the chain.
-		static bool UpdateModifiers(const FUnrealObjectInputIdentifier& InIdentifier, FName InChainName);
+		static bool UpdateModifiers(const FUnrealObjectInputHandle& InHandle, FName InChainName);
 
 		// Call FUnrealInputObjectModifier::Update() on all modifiers on the node identified by InIdentifier.
-		static bool UpdateAllModifierChains(const FUnrealObjectInputIdentifier& InIdentifier);
+		static bool UpdateAllModifierChains(const FUnrealObjectInputHandle& InHandle);
 };
 
 
 template<class T, class... Args>
-T* FUnrealObjectInputUtils::CreateAndAddModifier(const FUnrealObjectInputIdentifier& InIdentifier, const FName InChainName, Args... ConstructorArguments)
+T* FUnrealObjectInputUtils::CreateAndAddModifier(const FUnrealObjectInputHandle& InHandle, const FName InChainName, Args... ConstructorArguments)
 {
-	FUnrealObjectInputHandle Handle;
-	FUnrealObjectInputNode* const Node = GetNodeViaManager(InIdentifier, Handle);
-	if (!Node || !Handle.IsValid())
+	FUnrealObjectInputNode* Node = GetNodeViaManager(InHandle);
+	if (!Node || !InHandle.IsValid())
 		return nullptr;
 
 	return Node->CreateAndAddModifier<T>(InChainName, ConstructorArguments...);
