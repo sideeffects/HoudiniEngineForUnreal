@@ -155,6 +155,7 @@
 
 // Attributes used for data exchange between UE4 and Houdini
 #define HAPI_UNREAL_ATTRIB_MATERIAL							"unreal_material"
+#define HAPI_UNREAL_ATTRIB_MATERIAL_SLOT					"unreal_material_slot"
 #define HAPI_UNREAL_ATTRIB_MATERIAL_FALLBACK				"unreal_face_material"
 #define HAPI_UNREAL_ATTRIB_MATERIAL_INSTANCE				"unreal_material_instance"
 #define HAPI_UNREAL_ATTRIB_MATERIAL_HOLE					"unreal_material_hole"

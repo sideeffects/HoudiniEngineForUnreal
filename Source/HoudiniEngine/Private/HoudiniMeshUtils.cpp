@@ -136,9 +136,9 @@ bool FHoudiniMeshUtils::MergeMeshes(
 
 bool
 FHoudiniMeshUtils::RetrieveMesh(
-	const UStaticMeshComponent* InStaticMeshComponent,
-	int32 InLODIndex,
 	FMeshDescription& OutMeshDescription,
+	const UStaticMeshComponent* InStaticMeshComponent,
+	const int32 InLODIndex,
 	bool bInPropagateVertexColours,
 	bool bInApplyComponentTransform)
 {

@@ -512,11 +512,11 @@ FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(UPackage const* const
 {
 }
 
-FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const FString& InPath)
+FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const FString& InPath, EUnrealObjectInputNodeType Type)
 	: Object(nullptr)
 	, Path(InPath)
 	, Options()
-	, NodeType(EUnrealObjectInputNodeType::Container)
+	, NodeType(Type)
 {
 }
 
@@ -533,7 +533,7 @@ bool FUnrealObjectInputIdentifier::IsValid() const
 
 		case EUnrealObjectInputNodeType::Reference:
 		case EUnrealObjectInputNodeType::Leaf:
-			return Object.IsValid();
+			return Object.IsValid() || !Path.IsEmpty();
 	}
 
 	return false;
@@ -595,14 +595,19 @@ FUnrealObjectInputIdentifier::operator==(const FUnrealObjectInputIdentifier& InO
 	if (NodeType == EUnrealObjectInputNodeType::Invalid)
 		return true;
 
-	if (NodeType == EUnrealObjectInputNodeType::Leaf || NodeType == EUnrealObjectInputNodeType::Reference)
-		return Object == InOther.Object && Options == InOther.Options;
+	bool bOptionsEqual = Object == InOther.Object && Options == InOther.Options;
+	bool bPathsEqual = Path == InOther.Path;
+	if (NodeType == EUnrealObjectInputNodeType::Leaf)
+		return bOptionsEqual && bPathsEqual;
+
+	if(NodeType == EUnrealObjectInputNodeType::Reference)
+		return bOptionsEqual && bPathsEqual;
 
 	if (Object.IsValid() && InOther.Object.IsValid())
 		return Object == InOther.Object;
 
-	if (Object.Get() == nullptr && InOther.Object.Get() == nullptr)
-		return Path == InOther.Path;
+	if(Object.Get() == nullptr && InOther.Object.Get() == nullptr)
+		return bPathsEqual;
 
 	return false;
 }

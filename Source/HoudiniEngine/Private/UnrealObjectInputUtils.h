@@ -37,6 +37,7 @@
 #include "UnrealObjectInputRuntimeTypes.h"
 
 
+struct FUnrealMeshExportOptions;
 // UE forward declarations
 class UObject;
 class ULandscapeSplinesComponent;
@@ -104,15 +105,12 @@ struct HOUDINIENGINE_API FUnrealObjectInputUtils
 		// Helper to build identifiers for static/skeletal mesh inputs based on options (such as LODs, Colliders, Sockets)
 		static bool BuildMeshInputObjectIdentifiers(
 			UObject const* const InInputObject,
-			const bool bInExportMainMesh,
-			const bool bInExportLODs,
-			const bool bInExportSockets,
-			const bool bInExportColliders,
+			const FUnrealMeshExportOptions ExportOptions,
 			const bool bInMainMeshIsNaniteFallbackMesh,
 			const bool bExportMaterialParameters,
 			const bool bForceCreateReferenceNode,
 			bool &bOutSingleLeafNodeOnly,
-			FUnrealObjectInputIdentifier& OutReferenceNode,
+			FUnrealObjectInputIdentifier& OutInputIdentifier,
 			TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers);
 
 		// Helper to build identifiers for landscape spline inputs based on options (such as send control points)

@@ -37,9 +37,6 @@ class UStaticMesh;
 class UStaticMeshComponent;
 
 
-/**
- * 
- */
 class HOUDINIENGINE_API FHoudiniMeshUtils
 {
 public:
@@ -62,10 +59,10 @@ public:
 		TArray<UObject*>* OutAssets=nullptr);
 
 	static bool RetrieveMesh(
-		const UStaticMeshComponent* InStaticMeshComponent,
-		int32 InLODIndex,
 		FMeshDescription& OutMeshDescription,
-		bool bInPropagateVertexColours=false,
-		bool bInApplyComponentTransform=true);
+		const UStaticMeshComponent* InStaticMeshComponent,
+		const int32 InLODIndex,
+		bool bInPropagateVertexColours,
+		bool bInApplyComponentTransform);
 
 };

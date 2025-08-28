@@ -1611,7 +1611,7 @@ FHoudiniEngineUtils::IsHoudiniNodeValid(HAPI_NodeId NodeId)
 
 	HAPI_NodeInfo NodeInfo;
 	FHoudiniApi::NodeInfo_Init(&NodeInfo);
-	bool ValidationAnswer = 0;
+	bool ValidationAnswer = true;
 
 	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetNodeInfo(
 		FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo))

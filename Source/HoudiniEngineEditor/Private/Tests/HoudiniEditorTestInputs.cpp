@@ -36,10 +36,10 @@
 #include "HoudiniEngineUtils.h"
 #include "Misc/DefaultValueHelper.h"
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMiscMeshes_SplineMeshInput, "Houdini.UnitTests.Inputs.SplineMesh",
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_SplineMeshes, "Houdini.UnitTests.Inputs.SplineMesh",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
 
-bool FHoudiniEditorTestMiscMeshes_SplineMeshInput::RunTest(const FString& Parameters)
+bool FHoudiniEditorTestInput_SplineMeshes::RunTest(const FString& Parameters)
 {
 	// Test we can input spline meshes correctly to Houdini From Unreal. We input two mesh components which share the same input
 	// UStaticMesh to make sure the ref input system creates two different copies of the mesh.
@@ -132,3 +132,503 @@ bool FHoudiniEditorTestMiscMeshes_SplineMeshInput::RunTest(const FString& Parame
 
 	return true;
 }
+
+
+TArray<int> GetPrimitiveLOD(HAPI_NodeId NodeId)
+{
+	// Returns an array, one per primitive, that indicated LOD Index. 0 if not set.
+
+	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::GetPartInfo(Session, NodeId, 0, &PartInfo);
+
+	int NumPrims = PartInfo.faceCount;
+
+	TArray<int> Results;
+	Results.SetNum(NumPrims);
+	for(int Index = 0; Index < NumPrims; Index++)
+	{
+		Results[Index] = -1;
+	}
+
+	TArray<int> Membership;
+	Membership.SetNum(NumPrims);
+
+	for (int LODIndex = 0; LODIndex < 2; LODIndex++)
+	{
+		FString LODName = FString::Printf(TEXT("lod%d"), LODIndex);
+
+		HAPI_Bool AllEqual;
+
+		HAPI_Result Result = FHoudiniApi::GetGroupMembership(Session, 
+			NodeId, 0,
+			HAPI_GROUPTYPE_PRIM, 
+			H_TCHAR_TO_UTF8(*LODName),
+			&AllEqual,
+			Membership.GetData(), 
+			0, NumPrims);
+
+		if (Result != HAPI_RESULT_SUCCESS)
+			continue;
+
+		for(int Index = 0; Index < NumPrims; Index++)
+		{
+			if (Membership[Index] != 0)
+				Results[Index] = LODIndex;
+		}
+	}
+	return Results;
+}
+
+TArray<int> CountLODPrimitives(TArray<int> LODs)
+{
+	TArray<int> Results;
+
+	for (int Index = 0; Index < LODs.Num(); Index++)
+	{
+		if (LODs[Index] == -1)
+			continue;
+
+		if (!Results.IsValidIndex(LODs[Index]))
+		{
+			Results.SetNum(LODs[Index] + 1);
+		}
+		Results[LODs[Index]]++;
+	}
+	return Results;
+}
+
+TArray<FString> GetCollisionGroups(HAPI_NodeId NodeId)
+{
+	TArray<FString> GroupNames;
+	FHoudiniEngineUtils::HapiGetGroupNames(NodeId, 0, HAPI_GROUPTYPE_PRIM, false, GroupNames);
+
+	TArray<FString> CollisionGroupNames;
+
+	for (const FString GroupName : GroupNames)
+	{
+		if (GroupName.StartsWith(TEXT("collision")))
+		{
+			CollisionGroupNames.Add(GroupName);
+		}
+	}
+
+	CollisionGroupNames.Sort();
+	return CollisionGroupNames;
+}
+
+
+FString GetMaterialForLOD(HAPI_NodeId NodeId, int LODIndex, const TArray<int>&  PrimitiveLODs)
+{
+	for (int PrimIndex = 0; PrimIndex < PrimitiveLODs.Num(); PrimIndex++)
+	{
+		if(LODIndex != PrimitiveLODs[PrimIndex])
+			continue;
+
+		TArray<FString> Data;
+		FHoudiniHapiAccessor Accessor(NodeId, 0, "unreal_material");
+		Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, Data, PrimIndex, 1);
+
+		FString MaterialName = Data[0];
+		int TrimCharacter = 0;
+		if(MaterialName.FindChar(']', TrimCharacter))
+		{
+			MaterialName = MaterialName.Mid(TrimCharacter + 1).TrimStart();
+		}
+
+		return MaterialName;
+	}
+
+	return TEXT("");
+}
+
+static float InvalidParam = std::numeric_limits<float>::quiet_NaN();
+
+float GetScalarParameterForLOD(HAPI_NodeId NodeId, const char* Name, int LODIndex, const TArray<int>& PrimitiveLODs)
+{
+	for(int PrimIndex = 0; PrimIndex < PrimitiveLODs.Num(); PrimIndex++)
+	{
+		if(LODIndex != PrimitiveLODs[PrimIndex])
+			continue;
+
+		TArray<float> Data;
+		Data.SetNum(1);
+
+		FHoudiniHapiAccessor Accessor(NodeId, 0, Name);
+		Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, Data, PrimIndex, 1);
+
+		return Data[0];
+	}
+
+	return InvalidParam;
+}
+
+TArray<FString> GetMeshSockets(HAPI_NodeId NodeId)
+{
+	TArray<FString> Data;
+	FHoudiniHapiAccessor Accessor(NodeId, 0, "mesh_socket_name");
+
+	Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Data);
+
+	TSet<FString> Sockets;
+	for (FString Attr : Data)
+	{
+		if(!Attr.IsEmpty() && !Sockets.Contains(Attr))
+			Sockets.Add(Attr);
+	}
+	return Sockets.Array();
+
+}
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_Meshes, "Houdini.UnitTests.Inputs.Meshes",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_Meshes::RunTest(const FString& Parameters)
+{
+	// This test cooks the same HDA with different export options to verify the ability to export meshes
+	// with different options, eg. lods, material parameters, collisions, sockets.
+
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+
+	TSharedPtr<FHoudiniMultiTestContext> Context(new FHoudiniMultiTestContext());
+
+	TSharedPtr<FHoudiniTestContext> MeshMainContext(new FHoudiniTestContext(this, FString(TEXT("/Game/TestHDAs/Inputs/Meshes/TestInputMesh.umap")), TEXT("Mesh_Main")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(MeshMainContext->IsValid(), true, return false);
+	MeshMainContext->SetProxyMeshEnabled(false);
+	Context->Contexts.Add(MeshMainContext);
+
+	TSharedPtr<FHoudiniTestContext> MainMeshLODs(new FHoudiniTestContext(this, MeshMainContext->GetWorld(), TEXT("Mesh_LODs")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(MainMeshLODs->IsValid(), true, return false);
+	MainMeshLODs->SetProxyMeshEnabled(false);
+	Context->Contexts.Add(MainMeshLODs);
+
+	TSharedPtr<FHoudiniTestContext> MeshLODsCollidersSockets(new FHoudiniTestContext(this, MeshMainContext->GetWorld(), TEXT("Mesh_LODsCollidersSockets")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(MeshLODsCollidersSockets->IsValid(), true, return false);
+	MeshLODsCollidersSockets->SetProxyMeshEnabled(false);
+	Context->Contexts.Add(MeshLODsCollidersSockets);
+
+
+	TSharedPtr<FHoudiniTestContext> MeshLODsMaterialParams(new FHoudiniTestContext(this, MeshMainContext->GetWorld(), TEXT("Mesh_LODsMaterialParams")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(MeshLODsMaterialParams->IsValid(), true, return false);
+	MeshLODsMaterialParams->SetProxyMeshEnabled(false);
+	Context->Contexts.Add(MeshLODsMaterialParams);
+
+	AddCommand(new FHoudiniLatentTestCommand(MeshMainContext, [this, MeshMainContext ]()
+		{
+			MeshMainContext->StartCookingHDA();
+			return true;
+		}));
+	
+
+	AddCommand(new FHoudiniLatentTestCommand(MainMeshLODs, [this, MainMeshLODs]()
+		{
+			MainMeshLODs->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(MeshLODsCollidersSockets, [this, MeshLODsCollidersSockets]()
+		{
+			MeshLODsCollidersSockets->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(MeshLODsMaterialParams, [this, MeshLODsMaterialParams]()
+		{
+			MeshLODsMaterialParams->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, MeshMainContext, MainMeshLODs, MeshLODsCollidersSockets, MeshLODsMaterialParams]()
+		{
+			const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+
+			FString CubeMaterialName = TEXT("/Game/TestHDAs/Inputs/Meshes/CubeMaterial.CubeMaterial");
+			FString SphereMaterialName = TEXT("/Game/TestHDAs/Inputs/Meshes/SphereMaterial.SphereMaterial");
+
+			{
+				HAPI_NodeId NodeId = MeshMainContext->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+
+				// We should have 1 LOD, 528 prims
+				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+
+				// Check MaterialName
+				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+
+				// We should have no material parameters
+				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+				// No Collisions
+				TArray<FString> Collisions = GetCollisionGroups(NodeId);
+				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+				// No Sockets
+				TArray<FString> Sockets = GetMeshSockets(NodeId);
+				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+			}
+
+			{
+				HAPI_NodeId NodeId = MainMeshLODs->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+
+				// We should have 2 LODs, 528 prims in the first one, 12 in the second one.
+				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+				// Check MaterialNames
+				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+				FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+				// We should have no material parameters
+				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+				// We should have no material parameters
+				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+				// No Collisions
+				TArray<FString> Collisions = GetCollisionGroups(NodeId);
+				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+				// No Sockets
+				TArray<FString> Sockets = GetMeshSockets(NodeId);
+				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+			}
+
+			{
+				HAPI_NodeId NodeId = MeshLODsCollidersSockets->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+
+				// We should have 2 LODs, 528 prims in the first one, 12 in the second one.
+				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+				// Check MaterialNames
+				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+				FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+				// We should have no material parameters
+				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+				// Collisions
+				TArray<FString> Collisions = GetCollisionGroups(NodeId);
+				HOUDINI_TEST_EQUAL(Collisions.Num(), 2);
+
+				// 2 Sockets
+				TArray<FString> Sockets = GetMeshSockets(NodeId);
+				HOUDINI_TEST_EQUAL(Sockets.Num(), 2);
+			}
+
+			{
+				HAPI_NodeId NodeId = MeshLODsMaterialParams->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+
+				// We should have 2 LODs, 528 prims in the first one, 12 in the second one.
+				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+				// Check MaterialNames
+				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+				FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+				// We should have material parameters
+				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam0, 0.5f);
+				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam1, 1.0f);
+
+				// No Collisions
+				TArray<FString> Collisions = GetCollisionGroups(NodeId);
+				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+				// No Sockets
+				TArray<FString> Sockets = GetMeshSockets(NodeId);
+				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+			}
+
+			return true;
+		}));
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_NaniteMeshes, "Houdini.UnitTests.Inputs.NaniteMeshes",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestInput_NaniteMeshes::RunTest(const FString& Parameters)
+{
+	// This test cooks the same HDA with different export options to verify the ability to export meshes
+	// with different options, eg. lods, material parameters, collisions, sockets.
+
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+
+	TSharedPtr<FHoudiniMultiTestContext> Context(new FHoudiniMultiTestContext());
+
+	TSharedPtr<FHoudiniTestContext> NaniteMesh(new FHoudiniTestContext(this, FString(TEXT("/Game/TestHDAs/Inputs/Meshes/TestInputNaniteMesh.umap")), TEXT("Nanite")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(NaniteMesh->IsValid(), true, return false);
+	NaniteMesh->SetProxyMeshEnabled(false);
+	Context->Contexts.Add(NaniteMesh);
+
+	TSharedPtr<FHoudiniTestContext> NaniteMesh_Fallback(new FHoudiniTestContext(this, NaniteMesh->GetWorld(), TEXT("Nanite_Fallback")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(NaniteMesh_Fallback->IsValid(), true, return false);
+	NaniteMesh_Fallback->SetProxyMeshEnabled(false);
+	Context->Contexts.Add(NaniteMesh_Fallback);
+
+	TSharedPtr<FHoudiniTestContext> NaniteMesh_MaterialParams(new FHoudiniTestContext(this, NaniteMesh->GetWorld(), TEXT("Nanite_MaterialParams")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(NaniteMesh_MaterialParams->IsValid(), true, return false);
+	NaniteMesh_MaterialParams->SetProxyMeshEnabled(false);
+	Context->Contexts.Add(NaniteMesh_MaterialParams);
+
+	AddCommand(new FHoudiniLatentTestCommand(NaniteMesh, [this, NaniteMesh]()
+		{
+			NaniteMesh->StartCookingHDA();
+			return true;
+		}));
+
+
+	AddCommand(new FHoudiniLatentTestCommand(NaniteMesh_Fallback, [this, NaniteMesh_Fallback]()
+		{
+			NaniteMesh_Fallback->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(NaniteMesh_MaterialParams, [this, NaniteMesh_MaterialParams]()
+		{
+			NaniteMesh_MaterialParams->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, NaniteMesh, NaniteMesh_Fallback, NaniteMesh_MaterialParams]()
+		{
+			const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+
+			FString CubeMaterialName = TEXT("/Game/TestHDAs/Inputs/Meshes/CubeMaterial.CubeMaterial");
+			FString SphereMaterialName = TEXT("/Game/TestHDAs/Inputs/Meshes/SphereMaterial.SphereMaterial");
+
+			{
+				HAPI_NodeId NodeId = NaniteMesh->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+
+				// We should have 1 LOD, 755677 prims
+				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 755677);
+
+				// Check MaterialName
+				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+
+				// We should have no material parameters
+				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+
+				// No Collisions
+				TArray<FString> Collisions = GetCollisionGroups(NodeId);
+				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+				// No Sockets
+				TArray<FString> Sockets = GetMeshSockets(NodeId);
+				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+			}
+
+			{
+				HAPI_NodeId NodeId = NaniteMesh_Fallback->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+
+				// We should have 1 LOD, 4727 prims
+				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 4727);
+
+				// Check MaterialName
+				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+
+				// We should have no material parameters
+				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+
+				// No Collisions
+				TArray<FString> Collisions = GetCollisionGroups(NodeId);
+				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+				// No Sockets
+				TArray<FString> Sockets = GetMeshSockets(NodeId);
+				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+			}
+
+			{
+				HAPI_NodeId NodeId = NaniteMesh_MaterialParams->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+
+				// We should have 1 LOD, 755677 prims
+				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 755677);
+
+				// Check MaterialName
+				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+
+				// We should have no material parameters
+				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam0, 0.5f);
+
+				// No Collisions
+				TArray<FString> Collisions = GetCollisionGroups(NodeId);
+				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+				// No Sockets
+				TArray<FString> Sockets = GetMeshSockets(NodeId);
+				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+			}
+
+			return true;
+		}));
+
+	return true;
+}
+
+

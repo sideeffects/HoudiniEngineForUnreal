@@ -759,6 +759,7 @@ FUnrealGeometryCollectionTranslator::UploadGeometryCollection(
 				0,
 				TriangleMaterials.GetIds().Num(),
 				TriangleMaterials,
+				TriangleMaterialIndices,
 				ScalarMaterialParameters,
 				VectorMaterialParameters,
 				TextureMaterialParameters,

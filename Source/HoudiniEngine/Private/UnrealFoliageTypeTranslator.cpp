@@ -57,19 +57,23 @@ FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticM
 
 	UStaticMeshComponent* const StaticMeshComponent = nullptr;
 	FUnrealObjectInputHandle InputNodeHandle;
-	bool bSuccess = HapiCreateInputNodeForStaticMesh(
-		InputSM,
+
+	FUnrealMeshExportOptions ExportOptions;
+	ExportOptions.bLODs = ExportAllLODs;
+	ExportOptions.bSockets = ExportSockets;
+	ExportOptions.bColliders = ExportColliders;
+	ExportOptions.bMainMesh = true;
+	ExportOptions.bMaterialParameters = ExportMaterialParameters;
+	ExportOptions.bPreferNaniteFallbackMesh = false;
+
+	bool bSuccess = CreateInputNodeForStaticMesh(
 		InputObjectNodeId,
-		InputNodeName,
 		InputNodeHandle,
+		InputSM,
 		StaticMeshComponent,
-		ExportAllLODs,
-		ExportSockets,
-		ExportColliders,
+		InputNodeName,
+		ExportOptions,
 		true,
-		true,
-		false,
-		ExportMaterialParameters,
 		false);
 
 	if (bSuccess)

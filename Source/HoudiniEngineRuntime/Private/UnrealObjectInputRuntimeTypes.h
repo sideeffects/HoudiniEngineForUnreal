@@ -284,7 +284,7 @@ public:
 	FUnrealObjectInputIdentifier(UPackage const* const InPackage);
 	
 	/** Construct an identifier for a container associated with a path. Analogous to directories. */
-	FUnrealObjectInputIdentifier(const FString& InPath);
+	FUnrealObjectInputIdentifier(const FString& InPath, EUnrealObjectInputNodeType Type = EUnrealObjectInputNodeType::Container);
 
 	/**
 	 * Returns true if the identifier is valid.
