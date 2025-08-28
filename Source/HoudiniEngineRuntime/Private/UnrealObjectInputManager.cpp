@@ -164,12 +164,6 @@ FUnrealObjectInputManager::GetUniqueHoudiniNodeId(const int32 InHAPINodeId, int3
 }
 
 bool
-FUnrealObjectInputManager::AreHAPINodesValid(const FUnrealObjectInputHandle& InHandle) const
-{
-	return false;
-}
-
-bool
 FUnrealObjectInputManager::AreHAPINodesValid(const FUnrealObjectInputIdentifier& InIdentifier) const
 {
 	return false;
