@@ -574,11 +574,15 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_NaniteMeshes, "
 
 				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
 
-				// We should have 1 LOD, 4727 prims
+				// We should have 1 LOD, different number of prims depending on Unreal version.
 				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
 				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
 				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
 				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 4727);
+#else
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 5182);
+#endif
 
 				// Check MaterialName
 				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
