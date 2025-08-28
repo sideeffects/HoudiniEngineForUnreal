@@ -50,6 +50,7 @@ struct HOUDINIENGINE_API FHoudiniHapiAccessor
 
 	// Initialization functions. use these functions to initialize the accessor.
 	FHoudiniHapiAccessor(HAPI_NodeId NodeId, HAPI_NodeId PartId, const char* Name);
+	FHoudiniHapiAccessor(HAPI_NodeId NodeId, HAPI_NodeId PartId, const TCHAR* Name);
 	FHoudiniHapiAccessor() {}
 	void Init(HAPI_NodeId InNodeId, HAPI_NodeId InPartId, const char * InName);
 

@@ -349,14 +349,17 @@ bool FHoudiniEditorTestMiscMeshes_MaterialProperties::RunTest(const FString& Par
 			}
 
 				{
+					HOUDINI_TEST_NOT_EQUAL_ON_FAIL(Mesh.Materials[0].VectorParameters.IsEmpty(), true, return true);
 					auto It = Mesh.Materials[0].VectorParameters.CreateConstIterator();
 					HOUDINI_TEST_EQUAL(It->Value, FVector4d(0.0f, 0.0f, 1.0, 0.0));
 				}
 				{
+					HOUDINI_TEST_NOT_EQUAL_ON_FAIL(Mesh.Materials[1].VectorParameters.IsEmpty(), true, return true);
 					auto It = Mesh.Materials[1].VectorParameters.CreateConstIterator();
 					HOUDINI_TEST_EQUAL(It->Value, FVector4d(1.0f, 0.0f, 0.0, 0.0));
 				}
 				{
+					HOUDINI_TEST_NOT_EQUAL_ON_FAIL(Mesh.Materials[2].VectorParameters.IsEmpty(), true, return true);
 					auto It = Mesh.Materials[2].VectorParameters.CreateConstIterator();
 					HOUDINI_TEST_EQUAL(It->Value, FVector4d(0.5f, 0.0f, 0.0, 0.0));
 				}

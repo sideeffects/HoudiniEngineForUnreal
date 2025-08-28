@@ -64,6 +64,11 @@ FHoudiniHapiAccessor::FHoudiniHapiAccessor(HAPI_NodeId NodeId, HAPI_NodeId PartI
 	Init(NodeId, PartId, Name);
 }
 
+FHoudiniHapiAccessor::FHoudiniHapiAccessor(HAPI_NodeId NodeId, HAPI_NodeId PartId, const TCHAR* Name)
+{
+	Init(NodeId, PartId, H_TCHAR_TO_UTF8(Name));
+}
+
 void FHoudiniHapiAccessor::Init(HAPI_NodeId InNodeId, HAPI_NodeId InPartId, const char* InName)
 {
 	NodeId = InNodeId;

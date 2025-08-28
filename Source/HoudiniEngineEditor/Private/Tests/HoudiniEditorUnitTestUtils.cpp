@@ -89,20 +89,48 @@ FHoudiniEditorUnitTestUtils::GetActorWithName(UWorld* World, FString& Name)
 }
 
 
-bool 
+bool
 FHoudiniLatentTestCommand::Update()
 {
+	if(SingleContext.IsValid())
+	{
+		bool bDone = CheckForCookingComplete(SingleContext.Get());
+		if(!bDone)
+		{
+			return false;
+		}
+	}
+	else if (MultiContext.IsValid())
+	{
+		for (auto Context : MultiContext->Contexts)
+		{
+			bool bDone = CheckForCookingComplete(Context.Get());
+			if(!bDone)
+			{
+				return false;
+			}
+		}
+	}
+
+	bool bDone = FFunctionLatentCommand::Update();
+	return bDone;
+
+}
+
+bool
+FHoudiniLatentTestCommand::CheckForCookingComplete(FHoudiniTestContext* Context)
+{
 	double DeltaTime = FPlatformTime::Seconds() - Context->TimeStarted;
-	if (DeltaTime > Context->MaxTime)
+	if(DeltaTime > Context->MaxTime)
 	{
 		Context->Test->AddError(FString::Printf(TEXT("***************** Test timed out After %.2f seconds*************"), DeltaTime));
 		return true;
 	}
 
 	int CurrentFrame = GFrameCounter;
-	if (Context->WaitTickFrame)
+	if(Context->WaitTickFrame)
 	{
-		if (CurrentFrame < Context->WaitTickFrame)
+		if(CurrentFrame < Context->WaitTickFrame)
 		{
 			return false;
 		}
@@ -110,42 +138,19 @@ FHoudiniLatentTestCommand::Update()
 		{
 			Context->WaitTickFrame = 0;
 		}
-
 	}
 
-	if (Context->bCookInProgress && 
-		(IsValid(Context->GetHAC()) || IsValid(Context->GetCookable())))
+	if(Context->CookingState == EHoudiniContextState::Cooking)
 	{
-		if (Context->bPostOutputDelegateCalled)
-		{
-			HOUDINI_LOG_MESSAGE(TEXT("Cook Finished after %.2f seconds"), DeltaTime);
-			Context->bCookInProgress = false;
-			Context->bPostOutputDelegateCalled = false;
-		}
-		else
-		{
-			return false;
-		}
+		return false;
 	}
-
-	if (Context->bPDGCookInProgress)
+	
+	if(Context->PDGState == EHoudiniContextState::Cooking)
 	{
-		// bPDGPostCookDelegateCalled is set in a callback, so do the checking now. If set, continue,
-		// else wait for it be set.
-		if (Context->bPDGPostCookDelegateCalled)
-		{
-			HOUDINI_LOG_MESSAGE(TEXT("PDG Cook Finished after %.2f seconds"), DeltaTime);
-			Context->bPDGCookInProgress = false;
-			Context->bPDGPostCookDelegateCalled = false;
-		}
-		else
-		{
-			return false;
-		}
+		return false;
 	}
 
-	bool bDone = FFunctionLatentCommand::Update();
-	return bDone;
+	return true;
 }
 
 void 
@@ -156,8 +161,7 @@ FHoudiniTestContext::StartCookingHDA()
 	else
 		HAC->MarkAsNeedCook();
 
-	bCookInProgress = true;
-	bPostOutputDelegateCalled = false;
+	CookingState = EHoudiniContextState::Cooking;
 }
 
 void 
@@ -173,17 +177,16 @@ FHoudiniTestContext::StartCookingSelectedTOPNetwork()
 	UHoudiniPDGAssetLink * AssetLink = HC ? HC->GetPDGAssetLink() : HAC->GetPDGAssetLink();
 	UTOPNetwork* TopNetwork = AssetLink->GetSelectedTOPNetwork();
 
-	this->bPDGPostCookDelegateCalled = false;
 
 	TopNetwork->GetOnPostCookDelegate().AddLambda([this](UTOPNetwork* Link, bool bSuccess)
 	{
-		this->bPDGPostCookDelegateCalled = true;
+		this->PDGState = EHoudiniContextState::Complete;
 		return;
 	});
 
 	FHoudiniPDGManager::CookOutput(TopNetwork);
 
-	bPDGCookInProgress = true;
+	this->PDGState = EHoudiniContextState::Cooking;
 }
 
 TArray<FHoudiniEngineBakedActor> 
@@ -265,22 +268,31 @@ FHoudiniEditorUnitTestUtils::GetTypedParameter(UHoudiniCookable* HC, UClass* Cla
 	return Parameter;
 }
 
-FHoudiniTestContext::FHoudiniTestContext(
-	FAutomationTestBase* CurrentTest,
-	const FString& MapName)
+FHoudiniTestContext::FHoudiniTestContext(FAutomationTestBase* CurrentTest, UWorld* InWorld, const FString& ActorLabel)
 {
-	World = UEditorLoadingAndSavingUtils::NewMapFromTemplate(MapName, false);
-	this->bCookInProgress = true;
-	this->bPostOutputDelegateCalled = true;
+	World = InWorld;
 	Test = CurrentTest;
 	TimeStarted = FPlatformTime::Seconds();
 
+	FindHACInWorld(ActorLabel);
+}
+
+void
+FHoudiniTestContext::FindHACInWorld(const FString& ActorLabel)
+{
 	// Find Houdini Asset Actor and then component.
 	UHoudiniAssetComponent* FoundHAC = nullptr;
 	for(TActorIterator<AActor> ActorItr(World, AHoudiniAssetActor::StaticClass()); ActorItr; ++ActorItr)
 	{
 		AActor* FoundActor = *ActorItr;
-		if(FoundActor)
+		if(!FoundActor)
+			continue;
+
+		bool bNameMatches = true;
+		if(!ActorLabel.IsEmpty())
+			bNameMatches = ActorLabel == FoundActor->GetActorLabel();
+
+		if (bNameMatches)
 		{
 			FoundHAC = FoundActor->FindComponentByClass<UHoudiniAssetComponent>();
 			break;
@@ -298,11 +310,21 @@ FHoudiniTestContext::FHoudiniTestContext(
 
 FHoudiniTestContext::FHoudiniTestContext(
 	FAutomationTestBase* CurrentTest,
+	const FString& MapName,
+	const FString& ActorLabel)
+{
+	World = UEditorLoadingAndSavingUtils::NewMapFromTemplate(MapName, false);
+	Test = CurrentTest;
+	TimeStarted = FPlatformTime::Seconds();
+
+	FindHACInWorld(ActorLabel);
+}
+
+FHoudiniTestContext::FHoudiniTestContext(
+	FAutomationTestBase* CurrentTest,
 	bool bOpenWorld)
 {
 	World = FHoudiniEditorUnitTestUtils::CreateEmptyMap(bOpenWorld);
-	this->bCookInProgress = true;
-	this->bPostOutputDelegateCalled = true;
 	Test = CurrentTest;
 	TimeStarted = FPlatformTime::Seconds();
 }
@@ -328,9 +350,6 @@ FHoudiniTestContext::FHoudiniTestContext(
 
 	World = HAC->GetHACWorld();
 
-	this->bCookInProgress = true;
-	this->bPostOutputDelegateCalled = true;
-
 	// Set time last so we don't include instantiation time.
 	TimeStarted = FPlatformTime::Seconds();
 }
@@ -344,7 +363,7 @@ FHoudiniTestContext::SetHAC(UHoudiniAssetComponent* HACToUse)
 	HAC = HACToUse;
 	OutputDelegateHandle = HAC->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniAssetComponent* _HAC, bool  bSuccess)
 	{
-		this->bPostOutputDelegateCalled = true;
+			this->CookingState = EHoudiniContextState::Complete;
 	});
 }
 
@@ -357,7 +376,7 @@ FHoudiniTestContext::SetCookable(UHoudiniCookable* HCToUse)
 
 	OutputDelegateHandle = HC->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
 	{
-			this->bPostOutputDelegateCalled = true;
+		this->CookingState = EHoudiniContextState::Complete;
 	});
 }
 
