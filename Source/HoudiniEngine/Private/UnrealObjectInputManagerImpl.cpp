@@ -731,12 +731,15 @@ FUnrealObjectInputManagerImpl::IsHAPINodeValid(const FUnrealObjectInputHAPINodeI
 }
 
 bool
-FUnrealObjectInputManagerImpl::DeleteHAPINode(const FUnrealObjectInputHAPINodeId& InNodeId) const
+FUnrealObjectInputManagerImpl::DeleteHAPINode(
+	FUnrealObjectInputHAPINodeId& InNodeId) const
 {
 	if (!InNodeId.IsValid())
 		return false;
 
-	return FHoudiniEngineUtils::DeleteHoudiniNode(InNodeId.GetHAPINodeId());
+	bool bResult = FHoudiniEngineUtils::DeleteHoudiniNode(InNodeId.GetHAPINodeId());
+	InNodeId.Set(INDEX_NONE, INDEX_NONE);
+	return bResult;
 }
 
 bool

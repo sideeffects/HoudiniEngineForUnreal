@@ -260,7 +260,7 @@ public:
 	/** Helper function that returns true if the HAPI node with id InNodeId exists and is valid. */
     virtual bool IsHAPINodeValid(const FUnrealObjectInputHAPINodeId& InNodeId) const = 0;
 	/** Helper function that deletes the given HAPI node. Returns true if the HAPI node was successfully deleted. */
-    virtual bool DeleteHAPINode(const FUnrealObjectInputHAPINodeId& InNodeId) const = 0;
+    virtual bool DeleteHAPINode(FUnrealObjectInputHAPINodeId& InNodeId) const = 0;
 	/** Helper function that sets the display flag on given HAPI node. */
     virtual bool SetHAPINodeDisplay(const FUnrealObjectInputHAPINodeId& InNodeId, const bool bInOnOff) const = 0;
 	/** Helper function that sets the display flag on given HAPI node. */
@@ -473,7 +473,7 @@ public:
 	virtual inline bool AreHAPINodesValid(const FUnrealObjectInputHandle& InHandle) const override;
 	virtual inline bool AreHAPINodesValid(const FUnrealObjectInputIdentifier& InIdentifier) const override;
     virtual inline bool IsHAPINodeValid(const FUnrealObjectInputHAPINodeId& InNodeId) const override;
-    virtual inline bool DeleteHAPINode(const FUnrealObjectInputHAPINodeId& InNodeId) const override;
+    virtual inline bool DeleteHAPINode(FUnrealObjectInputHAPINodeId& InNodeId) const override;
     virtual inline bool SetHAPINodeDisplay(const FUnrealObjectInputHAPINodeId& InNodeId, const bool bInOnOff) const override;
     virtual inline bool SetHAPINodeDisplay(const int32 InNodeId, const bool bInOnOff) const override;
 	virtual inline bool GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<FUnrealObjectInputHAPINodeId>& OutNodeIds) const override;
@@ -731,7 +731,7 @@ FUnrealObjectInputManager::IsHAPINodeValid(const FUnrealObjectInputHAPINodeId& I
 }
 
 bool
-FUnrealObjectInputManager::DeleteHAPINode(const FUnrealObjectInputHAPINodeId& InNodeId) const
+FUnrealObjectInputManager::DeleteHAPINode(FUnrealObjectInputHAPINodeId& InNodeId) const
 {
 	if (IUnrealObjectInputManager const* const Impl = GetImplementation())
 		return Impl->DeleteHAPINode(InNodeId);

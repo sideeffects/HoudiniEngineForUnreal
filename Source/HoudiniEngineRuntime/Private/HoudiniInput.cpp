@@ -1179,6 +1179,21 @@ void UHoudiniInput::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes)
 
 void UHoudiniInput::InvalidateData()
 {
+	// If the ref counted input system is being used, we must not delete nodes managed by the system.
+  // Do this before invalidating data so the list is accurate so we don't delete nodes twice.
+  // (InvalidateData() may remove nodes that are managed).
+
+	TSet<int32> ManagedNodeIds;
+	{
+		IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
+		if(Manager)
+		{
+			TArray<int32> ManagedNodeIdArray;
+			if(Manager->GetAllHAPINodeIds(ManagedNodeIdArray))
+				ManagedNodeIds.Append(ManagedNodeIdArray);
+		}
+	}
+
 	for(UHoudiniInputObject* InputObject : GeometryInputObjects)
 	{
 		if (!InputObject)
@@ -1213,17 +1228,7 @@ void UHoudiniInput::InvalidateData()
 
 	if (bCanDeleteHoudiniNodes && !CreatedDataNodeIds.IsEmpty())
 	{
-		// If the ref counted input system is being used, we must not delete nodes managed by the system
-		TSet<int32> ManagedNodeIds;
-		{
-			IUnrealObjectInputManager const* const Manager = FUnrealObjectInputManager::Get();
-			if (Manager)
-			{
-				TArray<int32> ManagedNodeIdArray;
-				if (Manager->GetAllHAPINodeIds(ManagedNodeIdArray))
-					ManagedNodeIds.Append(ManagedNodeIdArray);
-			}
-		}
+
 		
 		auto& HoudiniEngineRuntime = FHoudiniEngineRuntime::Get();
 		for (int32 NodeId : CreatedDataNodeIds)
