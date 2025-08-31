@@ -1158,6 +1158,8 @@ FHoudiniEngine::PrintHoudiniCrashLog()
 	FString LatestPath;
 	FDateTime LatestTime = FDateTime::MinValue();
 
+	FTimespan FileAge;
+
 	for(const FString& Path : CrashLogs)
 	{
 		const FFileStatData Stat = IFileManager::Get().GetStatData(*Path);
@@ -1172,6 +1174,7 @@ FHoudiniEngine::PrintHoudiniCrashLog()
 		{
 			LatestTime = ModUtc;
 			LatestPath = Path;
+			FileAge = Age;
 		}
 	}
 
@@ -1182,10 +1185,14 @@ FHoudiniEngine::PrintHoudiniCrashLog()
 	if(!FFileHelper::LoadFileToString(Content, *LatestPath))
 		return;
 
-	UE_LOG(LogTemp, Display, TEXT("=== Found a Houdini Crash Log (Latest <%dh) ==="), MaxAgeInHours);
-	UE_LOG(LogTemp, Display, TEXT("File: %s"), *LatestPath);
-	UE_LOG(LogTemp, Display, TEXT("Modified (UTC): %s"), *LatestTime.ToString(TEXT("%Y-%m-%d %H:%M:%S")));
-	UE_LOG(LogTemp, Display, TEXT("=======================================\n%s"), *Content);
+	const TCHAR* FormatString = TEXT("%Y-%m-%d %H:%M:%S");
+
+	HOUDINI_LOG_ERROR(TEXT("=== Found a Houdini Crash Log (Latest <%dh) ==="), MaxAgeInHours);
+	HOUDINI_LOG_ERROR(TEXT("File: %s"), *LatestPath);
+	HOUDINI_LOG_ERROR(TEXT("Time Now (UTC): %s"), *NowUtc.ToString(FormatString));
+	HOUDINI_LOG_ERROR(TEXT("Modified (UTC): %s"), *LatestTime.ToString(FormatString));
+	HOUDINI_LOG_ERROR(TEXT("File age: %s"), *FileAge.ToString());
+	HOUDINI_LOG_ERROR(TEXT("=======================================\n%s"), *Content);
 }
 
 bool
