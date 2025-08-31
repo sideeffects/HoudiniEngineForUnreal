@@ -55,6 +55,7 @@
 #include "Async/Async.h"
 #include "Logging/LogMacros.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Misc/FileHelper.h"
 
 #if WITH_EDITOR
 	#include "Widgets/Notifications/SNotificationList.h"
@@ -1122,6 +1123,69 @@ FHoudiniEngine::OnSessionLost()
 	FHoudiniEngineUtils::CreateSlateNotification(Notification, 2.0, 4.0);
 
 	HOUDINI_LOG_ERROR(TEXT("Houdini Engine Session lost! This could be caused by a crash in HARS."));
+
+	PrintHoudiniCrashLog();
+}
+
+void
+FHoudiniEngine::PrintHoudiniCrashLog()
+{
+	// Attempts to find the latest Houdini Crash log and output it to the console.
+	// Ignores logs older than MaxAgeInHours old.
+
+	// Try TEMP, then TMP as a fallback. If neither, do nothing.
+	FString TempDir = FPlatformMisc::GetEnvironmentVariable(TEXT("TEMP"));
+	if(TempDir.IsEmpty())
+		TempDir = FPlatformMisc::GetEnvironmentVariable(TEXT("TMP"));
+
+	if(TempDir.IsEmpty())
+		return;
+
+
+	// %TEMP%\houdini_temp
+	const FString HoudiniTempDir = FPaths::Combine(TempDir, TEXT("houdini_temp"));
+	if(!IFileManager::Get().DirectoryExists(*HoudiniTempDir))
+		return;
+
+	// Find crash logs
+	TArray<FString> CrashLogs;
+	IFileManager::Get().FindFilesRecursive(CrashLogs, *HoudiniTempDir, TEXT("crash*log.txt"), true, false);
+
+	const int MaxAgeInHours = 1;
+	const FDateTime NowUtc = FDateTime::UtcNow();
+	const FTimespan MaxAge = FTimespan::FromHours(MaxAgeInHours);
+
+	FString LatestPath;
+	FDateTime LatestTime = FDateTime::MinValue();
+
+	for(const FString& Path : CrashLogs)
+	{
+		const FFileStatData Stat = IFileManager::Get().GetStatData(*Path);
+		if(!Stat.bIsValid)
+		{
+			continue;
+		}
+
+		const FDateTime ModUtc = Stat.ModificationTime; 
+		const FTimespan Age = NowUtc - ModUtc;
+		if(Age <= MaxAge && ModUtc > LatestTime)
+		{
+			LatestTime = ModUtc;
+			LatestPath = Path;
+		}
+	}
+
+	if(LatestPath.IsEmpty())
+		return;
+
+	FString Content;
+	if(!FFileHelper::LoadFileToString(Content, *LatestPath))
+		return;
+
+	UE_LOG(LogTemp, Display, TEXT("=== Found a Houdini Crash Log (Latest <%dh) ==="), MaxAgeInHours);
+	UE_LOG(LogTemp, Display, TEXT("File: %s"), *LatestPath);
+	UE_LOG(LogTemp, Display, TEXT("Modified (UTC): %s"), *LatestTime.ToString(TEXT("%Y-%m-%d %H:%M:%S")));
+	UE_LOG(LogTemp, Display, TEXT("=======================================\n%s"), *Content);
 }
 
 bool
