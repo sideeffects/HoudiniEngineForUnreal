@@ -1346,36 +1346,6 @@ FTransform FHoudiniLandscapeUtils::GetLandscapeActorTransformFromTileTransform(c
 	return Result;
 }
 
-ULandscapeLayerInfoObject*
-FHoudiniLandscapeUtils::GetLandscapeLayerInfoForLayer(const FHoudiniGeoPartObject& Part, const FName& InLayerName)
-{
-	// See if we have assigned a landscape layer info object to this layer via attribute
-	TArray<FString> AttributeValues;
-	FHoudiniHapiAccessor Accessor(Part.GeoId, Part.PartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_LAYER_INFO);
-	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, 1, AttributeValues);
-
-	if (!bSuccess)
-		return nullptr;
-
-	if (AttributeValues.Num() > 0)
-	{
-		ULandscapeLayerInfoObject* FoundLayerInfo = LoadObject<ULandscapeLayerInfoObject>(nullptr, *AttributeValues[0], nullptr, LOAD_NoWarn, nullptr);
-		if (!IsValid(FoundLayerInfo))
-			return nullptr;
-
-		// The layer info's name must match this layer's name or Unreal will not like this!
-		if (!FoundLayerInfo->LayerName.IsEqual(InLayerName))
-		{
-			FString NameStr = InLayerName.ToString();
-			HOUDINI_LOG_WARNING(TEXT("Failed to use the assigned layer info object for %s by the unreal_landscape_layer_info attribute as the found layer info object's layer name does not match."), *NameStr);
-		}
-
-		return FoundLayerInfo;
-	}
-
-	return nullptr;
-}
-
 bool FHoudiniLandscapeUtils::GetOutputMode(int GeoId, int PartId, HAPI_AttributeOwner Owner, int& LandscapeOutputMode)
 {
 	FHoudiniHapiAccessor Accessor;
