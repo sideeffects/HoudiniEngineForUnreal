@@ -177,6 +177,8 @@ public:
 		// Indicate to the plugin that the session is now invalid (HAPI has likely crashed...)
 		void OnSessionLost();
 
+		static void PrintHoudiniCrashLog();
+
 		bool CreateTaskSlateNotification(
 			const FText& InText,
 			const bool& bForceNow = false,
