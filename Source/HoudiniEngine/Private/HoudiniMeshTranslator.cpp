@@ -78,6 +78,7 @@
 	#include "LevelEditorViewport.h"
 	#include "FileHelpers.h"
 #endif
+#include <HoudiniHLODLayerUtils.h>
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -2151,6 +2152,9 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			}
 			FoundStaticMesh->SetLightMapResolution(LODGroup.GetDefaultLightMapResolution());
 		}
+
+		FoundOutputObject->DataLayers = FHoudiniDataLayerUtils::GetDataLayers(OutputObjectIdentifier.GeoId, OutputObjectIdentifier.PartId);
+		FoundOutputObject->HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(OutputObjectIdentifier.GeoId, OutputObjectIdentifier.PartId);
 
 		// By default, always work on the first source model, unless we're a LOD
 		int32 SrcModelIndex = 0;

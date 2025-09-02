@@ -519,18 +519,6 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	}
 	*/
 
-	for (auto& CurrentOutput : InOutputs)
-	{
-		for (auto& It : CurrentOutput->OutputObjects)
-		{
-			FHoudiniOutputObjectIdentifier& Id = It.Key;
-			FHoudiniOutputObject& Obj = It.Value;
-
-			Obj.DataLayers = FHoudiniDataLayerUtils::GetDataLayers(Id.GeoId, Id.PartId);
-			Obj.HLODLayers = FHoudiniHLODLayerUtils::GetHLODLayers(Id.GeoId, Id.PartId);
-		}
-	}
-
 	if (CreatedPackages.Num() > 0)
 	{
 		// Save created packages. For example, we don't want landscape layers deleted 
