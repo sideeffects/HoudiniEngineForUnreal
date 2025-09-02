@@ -403,7 +403,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 		if(!Cookable->AssetEditorId.IsNone())
 			SupportedChoices = FHoudiniEngineEditor::Get().GetAssetEditorInputTypeChoiceLabels();
 		else
-			SupportedChoices = FHoudiniEngineEditor::Get().GetPCGInputTypeChoiceLabels();
+			SupportedChoices = FHoudiniEngineEditor::Get().GetInputTypeChoiceLabels();
 	}
 	else
 	{
