@@ -2317,7 +2317,7 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 			.OnSelectionChanged_Lambda(
 				[InPDGAssetLink](TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType)
 			{
-				if (IsValidWeakPointer(InPDGAssetLink))
+				if (!IsValidWeakPointer(InPDGAssetLink))
 					return;
 					
 				if (!NewChoice.IsValid() || SelectType == ESelectInfo::Type::Direct)
