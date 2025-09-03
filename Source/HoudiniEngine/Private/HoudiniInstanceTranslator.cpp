@@ -1372,24 +1372,32 @@ FHoudiniInstanceTranslator::HapiGetInstanceTransforms(
 	for (int32 Idx = 0; Idx < InstanceTransforms.Num(); Idx++)
 		FHoudiniApi::Transform_Init(&(InstanceTransforms[Idx]));
 
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetInstanceTransformsOnPart(
-		FHoudiniEngine::Get().GetSession(),
-		InHGPO.GeoId, InHGPO.PartId, HAPI_SRT,
-		&InstanceTransforms[0], 0, PointCount))
-	{
-		InstanceTransforms.SetNum(0);
+	auto Result =  FHoudiniApi::GetInstanceTransformsOnPart(FHoudiniEngine::Get().GetSession(),
+		InHGPO.GeoId, InHGPO.PartId, HAPI_SRT, &InstanceTransforms[0], 0, PointCount);
 
-		// TODO: Warning? error?
+	if(Result == HAPI_RESULT_SUCCESS)
+	{
+		// Convert the transform to Unreal's coordinate system
+		OutInstancerUnrealTransforms.SetNumZeroed(InstanceTransforms.Num());
+		for(int32 InstanceIdx = 0; InstanceIdx < InstanceTransforms.Num(); InstanceIdx++)
+		{
+			const auto& InstanceTransform = InstanceTransforms[InstanceIdx];
+			FHoudiniEngineUtils::TranslateHapiTransform(InstanceTransform, OutInstancerUnrealTransforms[InstanceIdx]);
+		}
+	}
+	else
+	{
+		HOUDINI_LOG_ERROR(TEXT("Failed to fetch instance transforms."));
+		OutInstancerUnrealTransforms.SetNum(InstanceTransforms.Num());
+		for(int32 InstanceIdx = 0; InstanceIdx < InstanceTransforms.Num(); InstanceIdx++)
+		{
+			OutInstancerUnrealTransforms[InstanceIdx] = FTransform::Identity;
+		}
+
 		return false;
 	}
 
-	// Convert the transform to Unreal's coordinate system
-	OutInstancerUnrealTransforms.SetNumZeroed(InstanceTransforms.Num());
-	for (int32 InstanceIdx = 0; InstanceIdx < InstanceTransforms.Num(); InstanceIdx++)
-	{
-		const auto& InstanceTransform = InstanceTransforms[InstanceIdx];
-		FHoudiniEngineUtils::TranslateHapiTransform(InstanceTransform, OutInstancerUnrealTransforms[InstanceIdx]);
-	}
+
 
 	return true;
 }
