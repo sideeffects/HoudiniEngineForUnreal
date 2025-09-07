@@ -566,7 +566,13 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 
 	auto OnRecookClickedLambda = [InHCs]()
 	{
-		ResetParameters(InHCs);
+		for(auto& NextHC : InHCs)
+		{
+			if(!IsValidWeakPointer(NextHC))
+				continue;
+
+			NextHC->MarkAsNeedCook();
+		}
 		return FReply::Handled();
 	};
 
