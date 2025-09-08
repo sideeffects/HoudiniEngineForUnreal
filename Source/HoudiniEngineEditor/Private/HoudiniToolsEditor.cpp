@@ -2937,6 +2937,18 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 		HC->SetLandscapeUseTempLayers(Preset->bLandscapeUseTempLayers);
 	}
 
+	// Set Temporary Cook folder
+	if(Preset->bApplyTemporaryCookFolder)
+	{
+		HC->SetTemporaryCookFolderPath(Preset->TemporaryCookFolder);
+	}
+
+	// Set Bake folder
+	if(Preset->bApplyBakeFolder)
+	{
+		HC->SetBakeFolderPath(Preset->BakeFolder);
+	}
+
 	// When recooking/rebuilding the HDA, force a full update of all params
 	const bool bForceFullUpdate = HC->HasRebuildBeenRequested() || HC->HasRecookBeenRequested() || HC->IsParameterDefinitionUpdateNeeded();
 	const bool bCacheRampParms = !HC->HasBeenLoaded() && !HC->HasBeenDuplicated();
