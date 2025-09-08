@@ -28,6 +28,7 @@
 
 #include "HoudiniCookable.h"
 #include "HoudiniParameterInt.h"
+#include "HoudiniParameterString.h"
 #include "HoudiniParameterToggle.h"
 
 #include "Chaos/HeightField.h"
@@ -329,6 +330,77 @@ bool FHoudiniEditorTestBakingGroupedToBlueprint::RunTest(const FString& Paramete
 	return true;
 }
 
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestBakingBPs, "Houdini.UnitTests.Baking.BakingBPs",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool
+FHoudiniEditorTestBakingBPs::RunTest(const FString& Parameters)
+{
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Test baking multiple components to a single actor
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestBaking::BakingHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			SET_HDA_PARAMETER(Context, UHoudiniParameterToggle, "meshes", false, 0);
+			SET_HDA_PARAMETER(Context, UHoudiniParameterToggle, "instance_meshes", false, 0);
+			SET_HDA_PARAMETER(Context, UHoudiniParameterToggle, "instance_actors", false, 0);
+			SET_HDA_PARAMETER(Context, UHoudiniParameterToggle, "geometry_collections", false, 0);
+			SET_HDA_PARAMETER(Context, UHoudiniParameterToggle, "object", true, 0);
+			SET_HDA_PARAMETER(Context, UHoudiniParameterString, "object_path", TEXT("/Script/Engine.Blueprint'/Game/TestObjects/BP_Cube.BP_Cube'"), 0);
+
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			TArray<UHoudiniOutput*> Outputs;
+			Context->GetOutputs(Outputs);
+			HOUDINI_TEST_EQUAL(Outputs.Num(), 1);
+			return true;
+		}));
+
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			FHoudiniBakeSettings BakeSettings;
+			BakeSettings.ActorBakeOption = EHoudiniEngineActorBakeOption::OneActorPerComponent;
+
+			Context->Bake(BakeSettings);
+
+			TArray<FHoudiniBakedOutput>& BakedOutputs = Context->GetBakedOutputs();
+			// There should be two outputs as we have two meshes.
+			HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
+
+			// Gather outputs
+
+			TArray<AActor*> Actors = FHoudiniEditorUnitTestUtils::GetOutputInstancedActors(BakedOutputs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(Actors.Num(), 1, return true);
+
+			HOUDINI_TEST_NOT_NULL(Actors[0]);
+
+			USceneComponent* Root = Actors[0]->GetRootComponent();
+			HOUDINI_TEST_NOT_NULL(Root);
+
+			HOUDINI_TEST_NULL(Actors[0]->GetAttachParentActor());
+
+
+			HOUDINI_TEST_EQUAL(Actors[0]->Tags.Num(), 1);
+
+			return true;
+		}));
+
+	return true;
+}
 
 
 #endif
