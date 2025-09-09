@@ -2932,6 +2932,18 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniAssetComponent(
 
 	FHoudiniParameterTranslator::UpdateParameters(HAC);
 
+	// Set Temporary Cook folder
+	if(Preset->bApplyTemporaryCookFolder)
+	{
+		HAC->TemporaryCookFolder.Path = Preset->TemporaryCookFolder;
+	}
+
+	// Set Bake folder
+	if(Preset->bApplyBakeFolder)
+	{
+		HAC->BakeFolder.Path = Preset->BakeFolder;
+	}
+
 	// Iterate over all the parameters and settings in the preset and apply it to the Houdini Asset Component.
 
 	// Apply all Multiparam parameters. Since multiparms may contain multiparms we need to perform a loop
