@@ -144,7 +144,8 @@ private:
 			const FString& ServerHost,
 			const int32 Index,
 			const int64 SharedMemoryBufferSize,
-			const bool bSharedMemoryCyclicBuffer);
+			const bool bSharedMemoryCyclicBuffer,
+			const bool bEnableSharedMemoryDataTransfer);
 
 		// Creates a new sessions. This function must be called inside a critical section, hence the "internal" name; the public
 		// functions ensure this lock is in effect.
@@ -158,7 +159,8 @@ private:
 			const int32 ServerPort,
 			const FString& ServerHost,
 			const int64 SharedMemoryBufferSize,
-			const bool bSharedMemoryCyclicBuffer);
+			const bool bSharedMemoryCyclicBuffer,
+			const bool bEnableSharedMemoryDataTransfer);
 
 public:
 		// Notifies active objects that a new session has been connected to. Called when sessions are None or Connected.

@@ -627,7 +627,8 @@ FHoudiniEngine::StartSessionInternal(
 	const FString& ServerHost,
 	const int32 Index,
 	const int64 SharedMemoryBufferSize,
-	const bool bSharedMemoryCyclicBuffer)
+	const bool bSharedMemoryCyclicBuffer,
+	const bool bEnableSharedMemoryDataTransfer)
 {
 	auto UpdatePathForServer = [&]
 	{
@@ -657,15 +658,16 @@ FHoudiniEngine::StartSessionInternal(
 	ServerOptions.sharedMemoryBufferSize = SharedMemoryBufferSize;
 	ServerOptions.sharedMemoryBufferType = bSharedMemoryCyclicBuffer ? HAPI_THRIFT_SHARED_MEMORY_RING_BUFFER : HAPI_THRIFT_SHARED_MEMORY_FIXED_LENGTH_BUFFER;		
 
-	HAPI_Result SessionResult = HAPI_RESULT_FAILURE;
+	HAPI_SessionInfo SessionInfo;
+	FHoudiniApi::SessionInfo_Init(&SessionInfo);
+	SessionInfo.enableSharedMemoryDataTransfer = bEnableSharedMemoryDataTransfer;
 
+	HAPI_Result SessionResult = HAPI_RESULT_FAILURE;
 	switch (SessionType)
 	{
 	case EHoudiniRuntimeSettingsSessionType::HRSST_Socket:
 	{
 		// Try to connect to an existing socket session first
-		HAPI_SessionInfo SessionInfo;
-		FHoudiniApi::SessionInfo_Init(&SessionInfo);
 		SessionResult = FHoudiniApi::CreateThriftSocketSession(
 			&Sessions[Index], H_TCHAR_TO_UTF8(*ServerHost), ServerPort, &SessionInfo);
 
@@ -688,8 +690,6 @@ FHoudiniEngine::StartSessionInternal(
 	case EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe:
 	{
 		// Try to connect to an existing pipe session first
-		HAPI_SessionInfo SessionInfo;
-		FHoudiniApi::SessionInfo_Init(&SessionInfo);
 		SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
 			&Sessions[Index], H_TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
 
@@ -712,8 +712,6 @@ FHoudiniEngine::StartSessionInternal(
 	case EHoudiniRuntimeSettingsSessionType::HRSST_MemoryBuffer:
 	{
 		// Try to connect to an existing pipe session first
-		HAPI_SessionInfo SessionInfo;
-		FHoudiniApi::SessionInfo_Init(&SessionInfo);
 		SessionInfo.sharedMemoryBufferSize = ServerOptions.sharedMemoryBufferSize;
 		SessionInfo.sharedMemoryBufferType = ServerOptions.sharedMemoryBufferType;
 
@@ -758,8 +756,6 @@ FHoudiniEngine::StartSessionInternal(
 	case EHoudiniRuntimeSettingsSessionType::HRSST_InProcess:
 	{
 		// As of Unreal 4.19, InProcess sessions are not supported anymore
-		HAPI_SessionInfo SessionInfo;
-		FHoudiniApi::SessionInfo_Init(&SessionInfo);
 		SessionResult = FHoudiniApi::CreateInProcessSession(&Sessions[Index], &SessionInfo);
 		// Disable session sync
 		bEnableSessionSync = false;
@@ -810,7 +806,8 @@ FHoudiniEngine::StartSessionsInternal(
 	const int32 ServerPort,
 	const FString& ServerHost,
 	const int64 SharedMemoryBufferSize,
-	const bool bSharedMemoryCyclicBuffer)
+	const bool bSharedMemoryCyclicBuffer,
+	const bool bEnableSharedMemoryDataTransfer)
 {
 	// HAPI needs to be initialized
 	if (!FHoudiniApi::IsHAPIInitialized())
@@ -860,7 +857,8 @@ FHoudiniEngine::StartSessionsInternal(
 			ServerHost,
 			i,
 			SharedMemoryBufferSize,
-			bSharedMemoryCyclicBuffer);
+			bSharedMemoryCyclicBuffer,
+			bEnableSharedMemoryDataTransfer);
 
 		if (!bSuccess)
 		{
@@ -1262,7 +1260,8 @@ FHoudiniEngine::RestartSession(bool bShowNotificationsAndMessages)
 			HoudiniRuntimeSettings->ServerPort,
 			HoudiniRuntimeSettings->ServerHost,
 			HoudiniRuntimeSettings->SharedMemoryBufferSize,
-			HoudiniRuntimeSettings->bSharedMemoryBufferCyclic))
+			HoudiniRuntimeSettings->bSharedMemoryBufferCyclic,
+			HoudiniRuntimeSettings->bEnableSharedMemoryDataTransfer))
 		{
 			HOUDINI_LOG_ERROR(TEXT("Failed to restart the Houdini Engine session - Failed to start the new Session"));
 			SetSessionStatus(EHoudiniSessionStatus::Failed);
@@ -1342,7 +1341,8 @@ FHoudiniEngine::CreateSession(const EHoudiniRuntimeSettingsSessionType& SessionT
 		HoudiniRuntimeSettings->ServerPort,
 		HoudiniRuntimeSettings->ServerHost,
 		HoudiniRuntimeSettings->SharedMemoryBufferSize,
-		HoudiniRuntimeSettings->bSharedMemoryBufferCyclic))
+		HoudiniRuntimeSettings->bSharedMemoryBufferCyclic,
+		HoudiniRuntimeSettings->bEnableSharedMemoryDataTransfer))
 	{
 		HOUDINI_LOG_ERROR(TEXT("Failed to start the Houdini Engine Session"));
 		SetSessionStatus(EHoudiniSessionStatus::Failed);
@@ -1402,7 +1402,8 @@ FHoudiniEngine::ConnectSession(bool bShowNotificationsAndMessages)
 		HoudiniRuntimeSettings->ServerPort,
 		HoudiniRuntimeSettings->ServerHost,
 		HoudiniRuntimeSettings->SharedMemoryBufferSize,
-		HoudiniRuntimeSettings->bSharedMemoryBufferCyclic))
+		HoudiniRuntimeSettings->bSharedMemoryBufferCyclic,
+		HoudiniRuntimeSettings->bEnableSharedMemoryDataTransfer))
 	{
 		if(bShowNotificationsAndMessages)
 			HOUDINI_LOG_ERROR(TEXT("Failed to connect to the Houdini Engine Session"));

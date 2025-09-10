@@ -216,6 +216,13 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		bool bSharedMemoryBufferCyclic;
 
+		// Indicates if shared memory data transport should be used in the current session.
+		// Shared memory data transfer will make data transfer between Unreal and Houdini a lot faster, especially for large amount of data.
+		// This can be used with any type of sessions as long as the Houdini Engine session is running on the same machine as the plugin (default: disabled)
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
+		bool bEnableSharedMemoryDataTransfer;
+
+
 		// Automatically try to start a HARS process matching the current session settings when restarting the session (default: enabled)
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		bool bStartAutomaticServer;

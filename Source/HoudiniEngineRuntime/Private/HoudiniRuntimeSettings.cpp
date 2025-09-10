@@ -67,6 +67,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 
 	SharedMemoryBufferSize = 500;
 	bSharedMemoryBufferCyclic = true;
+	bEnableSharedMemoryDataTransfer = false;
 
 	bSyncWithHoudiniCook = true;
 	bCookUsingHoudiniTime = true;

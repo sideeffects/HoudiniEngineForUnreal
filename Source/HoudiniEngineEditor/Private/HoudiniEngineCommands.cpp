@@ -1031,6 +1031,7 @@ FHoudiniEngineCommands::OpenSessionSync(bool bWaitForCompletion)
 	int32 ServerPort = HoudiniRuntimeSettings->ServerPort;
 	int64 BufferSize = HoudiniRuntimeSettings->SharedMemoryBufferSize;
 	bool BufferCyclic = HoudiniRuntimeSettings->bSharedMemoryBufferCyclic;
+	bool SharedMemDataTransfer = HoudiniRuntimeSettings->bEnableSharedMemoryDataTransfer;
 
 	FString SessionSyncArgs = TEXT("-hess=");
 	if (SessionType == EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe)
