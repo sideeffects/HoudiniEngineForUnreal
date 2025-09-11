@@ -53,6 +53,7 @@
 #include "PackageTools.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Editor.h"
+#include "HoudiniEngineBakeUtils.h"
 
 #include "ImageUtils.h"  // Included for FCreateTexture2DParameters
 #include "Materials/MaterialInterface.h"
@@ -331,7 +332,11 @@ UHoudiniGeoImporter::CreateStaticMeshes(
 			if (!IsValid(CurObj))
 				continue;
 
-			OutputObjects.Add(CurObj);
+			bool bIsTemp = FHoudiniEngineBakeUtils::IsObjectTemporary(CurObj);
+			if (bIsTemp)
+			{
+				OutputObjects.Add(CurObj);
+			}
 		}
 
 		// Also assign to the output objects map as we may need the meshes to create instancers later

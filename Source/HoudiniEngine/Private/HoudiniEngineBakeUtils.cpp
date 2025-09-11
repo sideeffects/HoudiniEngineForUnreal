@@ -7548,7 +7548,7 @@ FHoudiniEngineBakeUtils::IsObjectTemporary(
 		return false;
 
 	// Check the object's meta-data first
-	if (IsObjectTemporary(InObject, InOutputType, InComponentGuid))
+	if (IsObjectTemporary(InObject, InComponentGuid))
 		return true;
 
 	// Previous IsObjectTemporary tests 
@@ -7573,7 +7573,6 @@ FHoudiniEngineBakeUtils::IsObjectTemporary(
 bool
 FHoudiniEngineBakeUtils::IsObjectTemporary(
 	UObject* InObject,
-	const EHoudiniOutputType& InOutputType,
 	const FGuid& InComponentGuid)
 {
 	if (!IsValid(InObject))
