@@ -31,7 +31,7 @@ using System.IO;
 
 public class HoudiniEngineRuntime : ModuleRules
 {
-	private int HOUDINI_USE_PCG  = 0;
+	private int HOUDINI_USE_PCG  = 1;
 			
 			
     public HoudiniEngineRuntime( ReadOnlyTargetRules Target ) : base( Target )

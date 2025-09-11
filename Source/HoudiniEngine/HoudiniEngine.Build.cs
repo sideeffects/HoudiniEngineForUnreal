@@ -32,7 +32,7 @@
 
 /*
 
-    Houdini Version: 21.5.76
+    Houdini Version: 21.5.77
     Houdini Engine Version: 9.0.0
     Unreal Version: 5.0.0
 
@@ -49,7 +49,7 @@ using Microsoft.Extensions.Logging;
 public class HoudiniEngine : ModuleRules
 {
 
-	private int HOUDINI_USE_PCG  = 0;
+	private int HOUDINI_USE_PCG  = 1;
 
     private void LogError(string err)
     {
@@ -80,7 +80,7 @@ public class HoudiniEngine : ModuleRules
 
     private string GetHFSPath()
     {
-        string HoudiniVersion = "21.5.76";
+        string HoudiniVersion = "21.5.77";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Side Effects Software";

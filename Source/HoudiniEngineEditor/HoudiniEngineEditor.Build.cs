@@ -30,7 +30,7 @@ using System.IO;
 
 public class HoudiniEngineEditor : ModuleRules
 {
-	private int HOUDINI_USE_PCG  = 0;
+	private int HOUDINI_USE_PCG  = 1;
 		
     public HoudiniEngineEditor( ReadOnlyTargetRules Target ) : base( Target )
     {
