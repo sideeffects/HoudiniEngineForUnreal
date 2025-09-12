@@ -49,7 +49,7 @@ using Microsoft.Extensions.Logging;
 public class HoudiniEngine : ModuleRules
 {
 
-	private int HOUDINI_USE_PCG  = 0;
+	private int HOUDINI_USE_PCG  = 1;
 
     private void LogError(string err)
     {
