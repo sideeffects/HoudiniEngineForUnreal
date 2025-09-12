@@ -1,6 +1,6 @@
-# Houdini Engine for Unreal - Version 2
+# Houdini Engine for Unreal - Version 3
 
-> The source code in this branch is intended to be used with Unreal Engine 5.4 and 5.3, but should also be compatible with previous versions of UE5.
+> The source code in this branch is intended to be used with Unreal Engine 5.6 and 5.5, but should also be compatible with previous versions of UE5.
 
 Welcome to the repository for the Houdini Engine For Unreal Plugin.
 
@@ -16,13 +16,15 @@ Please send bug reports, feature requests and questions to [Side FX's support](h
 
 # Compatibility
 
-Currently, the plugins has [binaries](https://github.com/sideeffects/HoudiniEngineForUnreal/releases) that have been built for UE5.4, UE5.3, and is linked with the latest production build of Houdini.
+Currently, the plugins has [binaries](https://github.com/sideeffects/HoudiniEngineForUnreal/releases) that have been built for UE5.6, UE5.5, and is linked with the latest production build of Houdini.
 
 Source code for the plugin is available on this repository for UE5.
 
-> Please note that all UE5.X versions of the plugin use the same source files/branches, the sources in the 5.0 branch are also intended to be used with more recent versions of the plugin (ie 5.4 , 5.3 etc.)
+> Please note that all UE5.X versions of the plugin use the same source files/branches, the sources in the 5.0 branch are also intended to be used with more recent versions of the plugin (ie 5.6 , 5.5 etc.)
 
 In general, we support the latest two releases of UE5.X, but will try to make the source code compatible with previous versions of Unreal.
+
+> For Houdini 21.0 - there is now two versions of the plugins: one with PCG support and one without PCG. Supporting PCG means that the Houdini Engine plugin now needs to depend on the PCG plugin, which is still considered experimental by Epic. We provide both versions of the plugin with your Houdini install and on this repo's release page, but the source code available here is with PCG support enabled. If you want to use the source code available here but would like to disable the PCG dependancy, instructions are provided at the bottom of this page.
 
 # Installing the plugin
 01. In this GitHub repository, click **Releases** on the right side. 
@@ -57,4 +59,15 @@ You can learn how to export an Houdini Digital Assets (HDA), import it into Unre
 01. You should now be able to import Houdini Digital Assets (HDA) `.otl` or `.hda` files or drag and drop them into the `Content Browser`.
 01. Once you have an HDA in the `Content Browser` you should be able to drag it into the Editor viewport. This will spawn a new Houdini Asset Actor. Geometry cooking will be done in a separate thread and geometry will be displayed once the cooking is complete. At this point you will be able to see asset parameters in the `Details` pane. Modifying any of the parameters will force the asset to recook and possibly update its geometry.
 
+# Disabling PCG support when building from source
+
+> This guide is only for users who download the source code directly from the git repo, and want to disable PCG support. If you're getting the plugin source code from your Houdini install or the release page, we already provide versions of the source code with/without PCG support.
+
+01. In the plugin's source folder, open the HoudiniEngine module's build.cs file: `Source/HoudiniEngine/HoudiniEngine.Build.cs`
+01. Change `private int HOUDINI_USE_PCG  = 1;` to `private int HOUDINI_USE_PCG  = 0;`
+01. Repeat the same change for the HoudiniEngineEditor and the HoudiniEngineRuntime modules'build.cs file. They're located respectively in `Source/HoudiniEngineEditor/HoudiniEngineEditor.Build.cs` and `Source/HoudiniEngineRuntime/HoudiniEngineRuntime.Build.cs`
+01. Delete all the *HoudiniPCGXXX.h/cpp* files in the plugin's files.
+01. Delete all the `Intermediate` and `Binaries` folder in the HoudiniEngine's plugin directory (if they exist).
+01. Regenerate your project's file. On windows, this can be done by right-clicking on the uproject file, and selecting `Generate Viual Studio Project Files`
+01. Build your project / the plugin.
 
