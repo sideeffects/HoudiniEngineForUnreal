@@ -207,6 +207,12 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session, meta = (DisplayName = "Server Name"))
 		FString ServerPipeName;
 
+		// Indicates if shared memory data transfer should be used in the current session.
+		// Shared memory data transfer will make data transfer between Unreal and Houdini a lot faster, especially for large amount of data.
+		// This can be used with any type of sessions as long as the Houdini Engine session is running on the same machine as the plugin (default: disabled)
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
+		bool bEnableSharedMemoryDataTransfer;
+
 		// The size (in MB) of the Memory buffer used for shared memory buffer sessions (default: 500)
 		// Value are clamped between 1MB - 128GB and UI between 1MB and 16GB
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session, meta = (ClampMin = "1", ClampMax = "131072", UIMin = "1", UIMax = "16384"))
@@ -215,7 +221,6 @@ protected:
 		// Indicates if the shared memory buffer session use a cyclic (ring) buffer. If disabled, the buffer will be of fixed size. (default: enabled)
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		bool bSharedMemoryBufferCyclic;
-
 		// Automatically try to start a HARS process matching the current session settings when restarting the session (default: enabled)
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		bool bStartAutomaticServer;
