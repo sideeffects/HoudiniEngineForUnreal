@@ -55,7 +55,7 @@ bool FHoudiniEditorTestPDGCommandletMesh::RunTest(const FString& Parameters)
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
 	// Now create the test context.
-	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPCG::TestHDA, FTransform::Identity, false));
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPDG::TestHDA, FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
 	Context->SetProxyMeshEnabled(false);
@@ -170,7 +170,7 @@ bool FHoudiniEditorTestPDGCommandletMeshInternalMaterials::RunTest(const FString
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
 	// Now create the test context.
-	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPCG::TestHDA, FTransform::Identity, false));
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPDG::TestHDA, FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
 	Context->SetProxyMeshEnabled(false);

@@ -29,7 +29,7 @@
 
 #include "CoreMinimal.h"
 
-class FHoudiniEditorTestPCG
+class FHoudiniEditorTestPDG
 {
 public:
 	const static inline FString TestHDA = TEXT("/Game/TestHDAs/PDG/PDGTestMesh");
