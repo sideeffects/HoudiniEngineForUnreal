@@ -656,11 +656,12 @@ FHoudiniEngine::StartSessionInternal(
 	ServerOptions.autoClose = true;
 	ServerOptions.timeoutMs = AutomaticServerTimeout;
 	ServerOptions.sharedMemoryBufferSize = SharedMemoryBufferSize;
-	ServerOptions.sharedMemoryBufferType = bSharedMemoryCyclicBuffer ? HAPI_THRIFT_SHARED_MEMORY_RING_BUFFER : HAPI_THRIFT_SHARED_MEMORY_FIXED_LENGTH_BUFFER;		
+	ServerOptions.sharedMemoryBufferType = bSharedMemoryCyclicBuffer ? HAPI_THRIFT_SHARED_MEMORY_RING_BUFFER : HAPI_THRIFT_SHARED_MEMORY_FIXED_LENGTH_BUFFER;	
 
 	HAPI_SessionInfo SessionInfo;
 	FHoudiniApi::SessionInfo_Init(&SessionInfo);
 	SessionInfo.enableSharedMemoryDataTransfer = bEnableSharedMemoryDataTransfer;
+	SessionInfo.sharedMemoryBufferSize = ServerOptions.sharedMemoryBufferSize;
 
 	HAPI_Result SessionResult = HAPI_RESULT_FAILURE;
 	switch (SessionType)

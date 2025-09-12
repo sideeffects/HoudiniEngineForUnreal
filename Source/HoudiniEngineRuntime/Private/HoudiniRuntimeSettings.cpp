@@ -360,6 +360,7 @@ UHoudiniRuntimeSettings::UpdateSessionUI()
 	SetPropertyReadOnly(TEXT("AutomaticServerTimeout"), true);
 	SetPropertyReadOnly(TEXT("SharedMemoryBufferSize"), true);
 	SetPropertyReadOnly(TEXT("bSharedMemoryBufferCyclic"), true);
+	SetPropertyReadOnly(TEXT("bEnableSharedMemoryDataTransfer"), true);
 
 	bool bServerType = false;
 
@@ -369,6 +370,7 @@ UHoudiniRuntimeSettings::UpdateSessionUI()
 	{
 		SetPropertyReadOnly(TEXT("ServerHost"), false);
 		SetPropertyReadOnly(TEXT("ServerPort"), false);
+		SetPropertyReadOnly(TEXT("bEnableSharedMemoryDataTransfer"), false);
 		bServerType = true;
 		break;
 	}
@@ -376,6 +378,7 @@ UHoudiniRuntimeSettings::UpdateSessionUI()
 	case HRSST_NamedPipe:
 	{
 		SetPropertyReadOnly(TEXT("ServerPipeName"), false);
+		SetPropertyReadOnly(TEXT("bEnableSharedMemoryDataTransfer"), false);
 		bServerType = true;
 		break;
 	}
@@ -385,6 +388,8 @@ UHoudiniRuntimeSettings::UpdateSessionUI()
 		SetPropertyReadOnly(TEXT("ServerPipeName"), false);
 		SetPropertyReadOnly(TEXT("SharedMemoryBufferSize"), false);
 		SetPropertyReadOnly(TEXT("bSharedMemoryBufferCyclic"), false);
+		//SetPropertyReadOnly(TEXT("bEnableSharedMemoryDataTransfer"), true);
+
 		bServerType = true;
 		break;
 	}
@@ -397,6 +402,11 @@ UHoudiniRuntimeSettings::UpdateSessionUI()
 	{
 		SetPropertyReadOnly(TEXT("bStartAutomaticServer"), false);
 		SetPropertyReadOnly(TEXT("AutomaticServerTimeout"), false);
+	}
+
+	if (bEnableSharedMemoryDataTransfer)
+	{
+		SetPropertyReadOnly(TEXT("SharedMemoryBufferSize"), false);
 	}
 }
 
