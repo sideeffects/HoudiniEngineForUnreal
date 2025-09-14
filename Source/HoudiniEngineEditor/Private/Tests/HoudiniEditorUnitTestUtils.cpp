@@ -512,4 +512,25 @@ FHoudiniEditorUnitTestUtils::GetOutputActors(TArray<FHoudiniBakedOutput>& BakedO
 	return Results;
 }
 
+TArray<AActor*>
+FHoudiniEditorUnitTestUtils::GetOutputInstancedActors(TArray<FHoudiniBakedOutput>& BakedOutputs)
+{
+	TArray<AActor*> Results;
+	for(auto& BakeOutput : BakedOutputs)
+	{
+		for(auto& OutputObject : BakeOutput.BakedOutputObjects)
+		{
+			if(!OutputObject.Value.InstancedActors.IsEmpty())
+			{
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Value.InstancedActors[0]));
+				if(IsValid(Actor))
+				{
+					Results.Add(Actor);
+				}
+			}
+		}
+	}
+	return Results;
+}
+
 #endif

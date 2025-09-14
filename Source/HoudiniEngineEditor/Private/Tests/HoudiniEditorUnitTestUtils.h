@@ -240,6 +240,9 @@ struct FHoudiniEditorUnitTestUtils
 	// Returns all the output actors in all the outputs.
 	static TArray<AActor*> GetOutputActors(TArray<FHoudiniBakedOutput>& BakedOutputs);
 
+	// Returns all the output instacnce actors in all the outputs.
+	static TArray<AActor*> GetOutputInstancedActors(TArray<FHoudiniBakedOutput>& BakedOutputs);
+
 	// Returns only the actors that are based off a given type.
 	template<typename ACTORCLASS>
 	static TArray<ACTORCLASS*> FilterActors(const TArray<AActor*> & Actors)

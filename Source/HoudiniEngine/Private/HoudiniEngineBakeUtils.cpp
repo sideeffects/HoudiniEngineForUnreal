@@ -2639,6 +2639,10 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 				continue;
 			}
 
+			// The instance may be attached to the parent, so detach it.
+			if (IsValid(NewActor->GetRootComponent()))
+				NewActor->GetRootComponent()->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+
 			// Explicitly set the actor label as there appears to be a bug in AActor::GetActorLabel() which sets the first
 			// duplicate actor name to "name-1" (minus one) instead of leaving off the 0.
 			NewActor->SetActorLabel(NewNameStr);
