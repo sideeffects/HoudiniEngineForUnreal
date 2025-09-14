@@ -110,6 +110,9 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 		// Connect to an existing HE session
 		bool ConnectSession(bool bShowNotificationsAndMessages);
 
+		// Open Session Sync
+		bool OpenSessionSync(bool bWaitForCompletion);
+
 		// Stops the current session
 		bool StopSession();
 
@@ -136,6 +139,7 @@ private:
 		// functions ensure this lock is in effect.
 		bool StartSessionInternal(
 			const bool bStartAutomaticServer,
+			const bool bUseSessionSyncForAutomaticServer,
 			const float AutomaticServerTimeout,
 			const bool bShowNotificationsAndMessages,
 			const EHoudiniRuntimeSettingsSessionType SessionType,
@@ -151,6 +155,7 @@ private:
 		// functions ensure this lock is in effect.
 		bool StartSessionsInternal(
 			const bool bStartAutomaticServer,
+			const bool bUseSessionSyncForAutomaticServer,
 			const float AutomaticServerTimeout,
 			const bool bShowNotificationsAndMessages,
 			const EHoudiniRuntimeSettingsSessionType SessionType,
@@ -304,6 +309,14 @@ public:
 		TArray<FName> GetAllHoudiniAssetEditorIdentifier();
 
 		TArray<int32> HoudiniAssetEditorIdentifiers;
+
+		// Start and connect to Session Sync
+		static bool StartAndConnectToSessionSync(
+			const EHoudiniRuntimeSettingsSessionType SessionType,
+			const FString& ServerPipeName,
+			const int32 ServerPort,
+			const int64 BufferSize,
+			const bool BufferCyclic);
 
 	private:
 

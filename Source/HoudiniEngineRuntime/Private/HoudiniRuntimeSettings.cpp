@@ -64,6 +64,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 	ServerPipeName = HAPI_UNREAL_SESSION_SERVER_PIPENAME;
 	bStartAutomaticServer = HAPI_UNREAL_SESSION_SERVER_AUTOSTART;
 	AutomaticServerTimeout = HAPI_UNREAL_SESSION_SERVER_TIMEOUT;
+	bUseSessionSyncForAutomaticServer = false;
 
 	SharedMemoryBufferSize = 500;
 	bSharedMemoryBufferCyclic = true;
