@@ -3550,6 +3550,10 @@ UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniCookableStateChange(UHoudiniCookab
 	if (!IsValid(InHC))
 		return;
 
+	// PDG link setup / bindings. Check if its bound, if not do it now,
+	if (!bAssetLinkSetupAttemptComplete)
+		BindToPDGAssetLink();
+
 	if (InHC != GetHoudiniCookable())
 	{
 		SetErrorMessage(FString::Printf(
@@ -3566,14 +3570,6 @@ UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniCookableStateChange(UHoudiniCookab
 
 	if (InFromState == EHoudiniAssetState::Instantiating && InToState == EHoudiniAssetState::PreCook)
 	{
-		// PDG link setup / bindings: we have to wait until post instantiation to check if we have an asset link and
-		// configure bindings
-		if (!bAssetLinkSetupAttemptComplete)
-		{
-			BindToPDGAssetLink();
-			bAssetLinkSetupAttemptComplete = true;
-		}
-
 		if (OnPostInstantiationDelegate.IsBound())
 			OnPostInstantiationDelegate.Broadcast(this);
 	}
