@@ -564,7 +564,14 @@ struct FHoudiniHeightFieldGetTask : public  FHoudiniAttributeTask
 bool FHoudiniHapiAccessor::GetHeightFieldDataViaSession(const HAPI_Session* Session, const HAPI_AttributeInfo& AttributeInfo, float* Results, int IndexStart, int IndexCount) const
 {
 	HAPI_Result Result = FHoudiniApi::GetHeightFieldData(Session, NodeId, PartId, Results, IndexStart, IndexCount);
-	return Result == HAPI_Result::HAPI_RESULT_SUCCESS;
+
+	if(Result == HAPI_Result::HAPI_RESULT_SUCCESS)
+		return true;
+
+	// HAPI returned an error, handle it gracefully.
+	HOUDINI_LOG_ERROR(TEXT("FHoudiniApi::GetHeightFieldData Failed: %s"), *FHoudiniEngineUtils::GetErrorDescription(Result));
+
+	return false;
 }
 
 bool FHoudiniHapiAccessor::GetHeightFieldData(TArray<float>& Results, int IndexCount)
