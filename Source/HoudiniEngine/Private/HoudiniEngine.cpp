@@ -880,12 +880,14 @@ FHoudiniEngine::StartSessionsInternal(
 	}
 	Sessions.Empty(NumSessions);
 
+	bool bSuccess = false;
+
 	// Create the sessions...
 	for (int32 i = 0; i < NumSessions; ++i)
 	{
 		Sessions.Emplace();
 
-		const bool bSuccess = StartSessionInternal(
+		bSuccess = StartSessionInternal(
 			bStartAutomaticServer,
 			bUseSessionSyncForAutomaticServer,
 			AutomaticServerTimeout,
@@ -906,11 +908,11 @@ FHoudiniEngine::StartSessionsInternal(
 		}
 	}
 
-	if (bStartAutomaticServer && bUseSessionSyncForAutomaticServer)
+	if (bStartAutomaticServer && bUseSessionSyncForAutomaticServer && !bSuccess)
 	{
 		// We hit this if we failed to connect to an existing server and we've enabled automatic
 		// SessionSync.
-		bool bSuccess = OpenSessionSync(true);
+		bSuccess = OpenSessionSync(true);
 		if(!bSuccess)
 			return false;
 	}
