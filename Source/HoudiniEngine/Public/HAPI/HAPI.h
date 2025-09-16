@@ -1395,7 +1395,7 @@ HAPI_DECL HAPI_GetStringBatch( const HAPI_Session * session,
 ///                 <!-- default NULL -->
 ///
 /// @param[out]     time
-///                 Time as a float in seconds.
+///                 Time as a double in seconds.
 ///
 HAPI_DECL HAPI_GetTime( const HAPI_Session * session, double * time );
 
@@ -1411,7 +1411,7 @@ HAPI_DECL HAPI_GetTime( const HAPI_Session * session, double * time );
 ///                 <!-- default NULL -->
 ///
 /// @param[in]      time
-///                 Time as a float in seconds.
+///                 Time as a double in seconds.
 ///
 HAPI_DECL HAPI_SetTime( const HAPI_Session * session, double time );
 
