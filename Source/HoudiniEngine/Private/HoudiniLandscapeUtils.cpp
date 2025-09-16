@@ -624,7 +624,7 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 			// Adjust the transform of the Landscape actor we are creating if this is a single tile.
 			LocalHeightFieldTransform = GetLandscapeActorTransformFromTileTransform(LocalHeightFieldTransform, HeightPart->TileInfo.GetValue());
 		}
-		FTransform LandscapeTransform = LocalHeightFieldTransform * LandscapeSettings.LocalToWorldTransform;
+		FTransform LandscapeTransform = LocalHeightFieldTransform * HeightPart->Transform * LandscapeSettings.LocalToWorldTransform;
 		LandscapeActor->SetActorTransform(LandscapeTransform);
 
 		//---------------------------------------------------------------------------------------------------------------------------------

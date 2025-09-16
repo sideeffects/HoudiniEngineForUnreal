@@ -224,9 +224,37 @@ TArray<FHoudiniHeightFieldPartData> FHoudiniLandscapeTranslator::GetPartsToTrans
 			PartData.UnrealLayerName = TEXT("Layer");
 		}
 
-		//
+		//-----------------------------------------------------------------------------------------------------------------------------
+		// Transform
+		//-----------------------------------------------------------------------------------------------------------------------------
+
+		PartData.Transform = FTransform::Identity;
+
+		HAPI_NodeInfo NodeInfo;
+		FHoudiniApi::NodeInfo_Init(&NodeInfo);
+		if (FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), PartObj.GeoId, &NodeInfo) == HAPI_RESULT_SUCCESS)
+		{
+			HAPI_Transform HapiTransform;
+			FHoudiniApi::Transform_Init(&HapiTransform);
+
+			HAPI_Result Result = HAPI_RESULT_FAILURE;
+
+			if(NodeInfo.type == HAPI_NODETYPE_SOP)
+			{
+				Result = FHoudiniApi::GetObjectTransform(FHoudiniEngine::Get().GetSession(), NodeInfo.parentId, -1, HAPI_SRT, &HapiTransform);
+			}
+			else if(NodeInfo.type == HAPI_NODETYPE_OBJ)
+			{
+				Result = FHoudiniApi::GetObjectTransform(FHoudiniEngine::Get().GetSession(), PartObj.GeoId, -1, HAPI_SRT, &HapiTransform);
+			}
+
+			if (Result == HAPI_RESULT_SUCCESS)
+				FHoudiniEngineUtils::TranslateHapiTransform(HapiTransform, PartData.Transform);
+		}
+
+		//-----------------------------------------------------------------------------------------------------------------------------
 		// Read attributes.
-		//
+		//-----------------------------------------------------------------------------------------------------------------------------
 
 		// Get Edit layer type.
 		PartData.EditLayerType = HAPI_UNREAL_LANDSCAPE_EDITLAYER_TYPE_BASE;
