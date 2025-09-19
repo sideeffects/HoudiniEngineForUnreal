@@ -345,6 +345,9 @@ void UHoudiniPCGSettings::PopulateInputsAndOutputs()
 {
 	this->Modify();
 
+	UCookableInputData* InputData = ParameterCookable->Cookable->GetInputData();
+	NumInputs = InputData ? ParameterCookable->Cookable->GetInputData()->Inputs.Num() : 0;
+
 	FProperty* Prop = FindFProperty<FProperty>(GetClass(), GET_MEMBER_NAME_CHECKED(UHoudiniPCGSettings, IterationCount));
 	if(Prop)
 	{
