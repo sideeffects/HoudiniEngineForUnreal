@@ -656,7 +656,9 @@ FUnrealObjectInputManagerImpl::IsHAPINodeValid(const FUnrealObjectInputHAPINodeI
 
 	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
 
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(Session, NodeId, &NodeInfo), false);
+	auto Success = FHoudiniApi::GetNodeInfo(Session, NodeId, &NodeInfo);
+	if(Success != HAPI_RESULT_SUCCESS)
+		return false;
 
 	if (InNodeId.GetUniqueHoudiniNodeId() != NodeInfo.uniqueHoudiniNodeId)
 		return false;
