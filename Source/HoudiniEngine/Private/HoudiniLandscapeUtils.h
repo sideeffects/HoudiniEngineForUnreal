@@ -325,8 +325,6 @@ struct HOUDINIENGINE_API FHoudiniLandscapeUtils
 
     static FTransform GetLandscapeActorTransformFromTileTransform(const FTransform& Transform, const FHoudiniTileInfo& TileInfo);
 
-    static ULandscapeLayerInfoObject* GetLandscapeLayerInfoForLayer(const FHoudiniGeoPartObject& Part, const FName& InLayerName);
-
     static bool GetOutputMode(int GeoId, int PartId, HAPI_AttributeOwner Owner, int& LandscapeOutputMode);
 
     static UMaterialInterface* CreateMaterialInstance(const FString & Prefix, UMaterialInterface * Material, const FHoudiniPackageParams & Params, TArray<UPackage*>& CreatedPackages);
