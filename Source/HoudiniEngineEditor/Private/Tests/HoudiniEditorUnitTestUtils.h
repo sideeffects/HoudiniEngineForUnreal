@@ -33,6 +33,7 @@
 #include "HoudiniOutput.h"
 #include "HoudiniStaticMesh.h"
 #include "HoudiniStaticMeshComponent.h"
+#include "CoreMinimal.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 #include "GeometryCollection/GeometryCollectionActor.h"
 #include "GeometryCollection/GeometryCollectionComponent.h"
@@ -56,16 +57,64 @@ class UHoudiniAssetComponent;
 //  The tests that end with "ON_FAIL" can be used to specify a statement to be executed on failure,
 //  for example a continue, break or return statement.
 
-#define HOUDINI_TEST_EQUAL(A,...)	TestEqual(#A, A, __VA_ARGS__)
-#define HOUDINI_TEST_EQUAL_ON_FAIL(A,B,_FAIL)	if (!TestEqual(#A, A, B)) _FAIL;
-#define HOUDINI_TEST_EQUALISH(A,B,C)	TestEqual(#A, A, B, C);
-#define HOUDINI_TEST_EQUALISH_ON_FAIL(A,B, C, _FAIL)	if (!TestEqual(#A, A, B, C)) _FAIL;
-#define HOUDINI_TEST_NOT_EQUAL(A,B)	TestNotEqual(#A, A, B)
-#define HOUDINI_TEST_NOT_EQUAL_ON_FAIL(A,B,_FAIL)	if (!TestNotEqual(#A, A, B)) _FAIL;
-#define HOUDINI_TEST_NULL(A)	TestNull(#A, A)
-#define HOUDINI_TEST_NULL_ON_FAIL(A,_FAIL)	if (!TestNull(#A, A)) _FAIL;
-#define HOUDINI_TEST_NOT_NULL(A)	TestNotNull(#A, A)
-#define HOUDINI_TEST_NOT_NULL_ON_FAIL(A, _FAIL)	if (!TestNotNull(#A, A) ) _FAIL;
+#define REPORT_ERROR(_X) if (!(_X)) AddError(FString::Printf(TEXT("%s:%d"), TEXT(__FILE__), __LINE__))
+
+#define HOUDINI_TEST_EQUAL(A,...)		REPORT_ERROR(TestEqual(#A, A, __VA_ARGS__))
+
+#define HOUDINI_TEST_EQUALISH(A,B,C)	REPORT_ERROR(TestEqual(#A, A, B, C));
+#define HOUDINI_TEST_NOT_EQUAL(A,B)		REPORT_ERROR(TestNotEqual(#A, A, B))
+#define HOUDINI_TEST_NULL(A)			REPORT_ERROR(TestNull(#A, A))
+#define HOUDINI_TEST_NOT_NULL(A)		REPORT_ERROR(TestNotNull(#A, A))
+
+#define HOUDINI_TEST_EQUAL_ON_FAIL(A,B,_FAIL)\
+	{\
+		bool ____bSuccess = TestEqual(#A, A, B);\
+		if (!____bSuccess)\
+		{\
+			REPORT_ERROR(true);\
+			_FAIL;\
+		}\
+	}
+
+#define HOUDINI_TEST_EQUALISH_ON_FAIL(A,B, C, _FAIL)\
+	{\
+			bool ____bSuccess = TestEqual(#A, A, B, C);\
+			if(!____bSuccess)\
+			{\
+				REPORT_ERROR(true);\
+				_FAIL;\
+			}\
+	}
+
+#define HOUDINI_TEST_NOT_EQUAL_ON_FAIL(A,B,_FAIL)\
+	{\
+			bool ____bSuccess = TestNotEqual(#A, A, B);\
+			if(!____bSuccess)\
+			{\
+				REPORT_ERROR(true);\
+				_FAIL;\
+			}\
+	}
+
+#define HOUDINI_TEST_NULL_ON_FAIL(A,_FAIL)\
+	{\
+			bool ____bSuccess = TestNull(#A, A);\
+			if(!____bSuccess)\
+			{\
+				REPORT_ERROR(true);\
+				_FAIL;\
+			}\
+	}
+
+#define HOUDINI_TEST_NOT_NULL_ON_FAIL(A, _FAIL)\
+	{\
+			bool ____bSuccess = TestNotNull(#A, A);\
+			if(!____bSuccess)\
+			{\
+				REPORT_ERROR(true);\
+				_FAIL;\
+			}\
+	}
 
 // Utils functions
 
@@ -310,6 +359,13 @@ struct FHoudiniEditorUnitTestUtils
 		__Parameter->SetNumElements(_PARAMETER_VALUE);\
 	}
 
+enum class EHoudiniContextState : uint8
+{
+	Idle,
+	Cooking,
+	Complete
+};
+
 struct FHoudiniTestContext
 {
 	// Create and pass one of these structures between different latent parts of a test  (ie. those added
@@ -323,11 +379,15 @@ struct FHoudiniTestContext
 		const FTransform& Transform,
 		bool bOpenWorld);
 
-	FHoudiniTestContext(FAutomationTestBase* CurrentTest, const FString& MapName);
+	FHoudiniTestContext(FAutomationTestBase* CurrentTest, const FString& MapName, const FString& ActorLabel = TEXT(""));
 
-	FHoudiniTestContext(FAutomationTestBase* CurrentTest,	bool bOpenWorld);
+	FHoudiniTestContext(FAutomationTestBase* CurrentTest, bool bOpenWorld);
+
+	FHoudiniTestContext(FAutomationTestBase* CurrentTest, UWorld* World, const FString& ActorLabel);
 
 	~FHoudiniTestContext();
+
+	void FindHACInWorld(const FString& ActorLabel = TEXT(""));
 
 	// Starts cooking the HDA asynchrously.
 	void StartCookingHDA();
@@ -369,10 +429,10 @@ struct FHoudiniTestContext
 	UHoudiniCookable* HC = nullptr;				// Cookable being tested
 
 	TMap<FString, FString> Data;				// Use this to pass data between different tests.
-	bool bCookInProgress = false;
-	bool bPostOutputDelegateCalled = false;
-	bool bPDGCookInProgress = false;
-	bool bPDGPostCookDelegateCalled = false;
+
+	EHoudiniContextState CookingState = EHoudiniContextState::Idle;
+	EHoudiniContextState PDGState = EHoudiniContextState::Idle;
+
 	int WaitTickFrame = 0;
 	UWorld * World = nullptr;
 
@@ -381,19 +441,35 @@ private:
 
 };
 
+class FHoudiniMultiTestContext
+{
+public:
+	// Use this context if you have multuiple contexts, for example 2 HACs in one map.
+	TArray<TSharedPtr<FHoudiniTestContext>> Contexts;
+};
+
+
 class FHoudiniLatentTestCommand : public FFunctionLatentCommand
 {
 public:
 	// Each part of an HDA that requires a Cook should be its own FFunctionLatentCommand. Before the Update()
 	// function is called this class ensures the previous cook completed.
 
+	// Use this constructor if you have one HDA.
 	FHoudiniLatentTestCommand(TSharedPtr<FHoudiniTestContext> InContext, TFunction<bool()> InLatentPredicate)
-		: FFunctionLatentCommand(InLatentPredicate), Context(InContext) {}
+		: FFunctionLatentCommand(InLatentPredicate), SingleContext(InContext) {}
 
-	TSharedPtr<FHoudiniTestContext> Context;
+	FHoudiniLatentTestCommand(TSharedPtr<FHoudiniMultiTestContext> InContext, TFunction<bool()> InLatentPredicate)
+		: FFunctionLatentCommand(InLatentPredicate), MultiContext(InContext) {
+	}
+
+	TSharedPtr<FHoudiniTestContext> SingleContext;
+	TSharedPtr<FHoudiniMultiTestContext> MultiContext;
 
 	// Like its base class, return true when the command is complete, false when it should be called again.
 	virtual bool Update() override;
+
+	bool CheckForCookingComplete(FHoudiniTestContext* Context);
 };
 
 
