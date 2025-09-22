@@ -31,6 +31,7 @@
 #include "CoreMinimal.h"
 #include "Engine/SkeletalMesh.h"
 
+struct FUnrealMeshExportOptions;
 class USkeletalMesh;
 class USkeletalMeshComponent;
 class USkeletalMeshSocket;
@@ -47,10 +48,7 @@ struct HOUDINIENGINE_API FUnrealSkeletalMeshTranslator
 			const FString& InputNodeName,
 			FUnrealObjectInputHandle& OutHandle,
 			class USkeletalMeshComponent* SkeletalMeshComponent,
-			const bool& ExportAllLODs,
-			const bool& ExportSockets,
-			const bool& ExportColliders,
-			const bool& ExportMainMesh,
+			const FUnrealMeshExportOptions& FUnrealMeshExportOptions,
 			const bool& bInputNodesCanBeDeleted,
 			const bool& bExportMaterialParameters);
 
@@ -61,10 +59,7 @@ struct HOUDINIENGINE_API FUnrealSkeletalMeshTranslator
 			const FString& InputNodeName,
 			FUnrealObjectInputHandle& OutHandle,
 			class USkeletalMeshComponent* SkeletalMeshComponent,
-			const bool& ExportAllLODs,
-			const bool& ExportSockets,
-			const bool& ExportColliders,
-			const bool& ExportMainMesh,
+			const FUnrealMeshExportOptions& FUnrealMeshExportOptions,
 			const bool& bInputNodesCanBeDeleted,
 			const bool& bExportMaterialParameters);
 

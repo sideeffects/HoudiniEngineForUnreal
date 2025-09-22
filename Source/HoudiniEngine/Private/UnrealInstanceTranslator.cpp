@@ -68,20 +68,23 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	FString ISMCName = InNodeName + TEXT("_") + ISMC->GetName();
 	FHoudiniEngineUtils::SanitizeHAPIVariableName(ISMCName);
 
+	FUnrealMeshExportOptions ExportOptions;
+	ExportOptions.bLODs = bExportLODs;
+	ExportOptions.bSockets = bExportSockets;
+	ExportOptions.bColliders = bExportColliders;
+	ExportOptions.bMainMesh = true;
+	ExportOptions.bMaterialParameters = bExportMaterialParameters;
+	ExportOptions.bPreferNaniteFallbackMesh = bPreferNaniteFallbackMesh;
+
 	FUnrealObjectInputHandle SMNodeHandle;
-	bool bSuccess = FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh(
-		SM,
+	bool bSuccess = FUnrealMeshTranslator::CreateInputNodeForStaticMesh(
 		SMNodeId,
-		InNodeName,
 		SMNodeHandle,
+		SM,
 		ISMC,
-		bExportLODs,
-		bExportSockets,
-		bExportColliders,
+		InNodeName,
+		ExportOptions,
 		true,
-		true,
-		bPreferNaniteFallbackMesh,
-		bExportMaterialParameters,
 		false);
 
 	if (!bSuccess)

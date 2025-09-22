@@ -436,6 +436,7 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			0,
 			NumNodes,
 			OutMaterials,
+			MaterialIndices,
 			ScalarMaterialParameters,
 			VectorMaterialParameters,
 			TextureMaterialParameters,

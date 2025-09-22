@@ -94,10 +94,7 @@ FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
 	USkeletalMeshComponent* SkeletalMeshComponent /*=nullptr*/,
-	const bool& ExportAllLODs /*=false*/,
-	const bool& ExportSockets /*=false*/,
-	const bool& ExportColliders /*=false*/,
-	const bool& ExportMainMesh /* = true */,
+	const FUnrealMeshExportOptions& ExportOptions,
 	const bool& bInputNodesCanBeDeleted /*=true*/,
 	const bool& bExportMaterialParameters /*= false*/)
 {
@@ -109,10 +106,7 @@ FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			InputNodeName,
 			SKMeshHandle,
 			SkeletalMeshComponent /*=nullptr*/,
-			ExportAllLODs /*=false*/,
-			ExportSockets /*=false*/,
-			ExportColliders /*=false*/,
-			ExportMainMesh /* = true */,
+			ExportOptions,
 			bInputNodesCanBeDeleted /*=true*/,
 			bExportMaterialParameters /*= false*/))
 	{
@@ -221,10 +215,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
 	USkeletalMeshComponent* SkeletalMeshComponent /*=nullptr*/,
-	const bool& ExportAllLODs /*=false*/,
-	const bool& ExportSockets /*=false*/,
-	const bool& ExportColliders /*=false*/,
-	const bool& ExportMainMesh /* = true */,
+	const FUnrealMeshExportOptions& ExportOptions,
 	const bool& bInputNodesCanBeDeleted /*=true*/,
 	const bool& bExportMaterialParameters /*= false*/)
 {
@@ -249,12 +240,11 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 		FUnrealObjectInputIdentifier IdentReferenceNode;
 		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
 		static constexpr bool bMainMeshIsNaniteFallbackMesh = false;
+
+
 		if (!FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
 			SkeletalMesh,
-			ExportMainMesh,
-			ExportAllLODs,
-			ExportSockets,
-			ExportColliders,
+			ExportOptions,
 			bMainMeshIsNaniteFallbackMesh,
 			bExportMaterialParameters,
 			bForceCreateInputRefNode,
@@ -322,6 +312,11 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 					FUnrealObjectInputUtils::GetHAPINodeId(OptionHandle, NewNodeId);
 				}
 
+				FUnrealMeshExportOptions ExportInputOptions;
+				ExportInputOptions.bLODs = Options.bExportLODs;
+				ExportInputOptions.bSockets = Options.bExportSockets;
+				ExportInputOptions.bColliders = Options.bExportColliders;
+				ExportInputOptions.bMainMesh = !Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders;
 				// Recursive call
 				if (!FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 					SkeletalMesh,
@@ -329,10 +324,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 					NodeLabel,
 					OptionHandle,
 					SkeletalMeshComponent,
-					Options.bExportLODs,
-					Options.bExportSockets,
-					Options.bExportColliders,
-					!Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders,
+					ExportInputOptions,
 					bInputNodesCanBeDeleted,
 					Options.bExportMaterialParameters))
 				{
@@ -369,14 +361,14 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 	// Node ID for the newly created node
 	HAPI_NodeId NewNodeId = -1;
 
-	bool DoExportSockets = ExportSockets && (SkeletalMesh->NumSockets() > 0);
-	bool DoExportLODs = ExportAllLODs && (SkeletalMesh->GetLODNum() > 1);
+	bool DoExportSockets = ExportOptions.bSockets && (SkeletalMesh->NumSockets() > 0);
+	bool DoExportLODs = ExportOptions.bLODs && (SkeletalMesh->GetLODNum() > 1);
 
 	// Export colliders if there are some
 	// For Skeletal mesh, we need to look at all the SKBodySetups
 	bool DoExportColliders = false;
 	TArray<TObjectPtr<USkeletalBodySetup>> BodySetups;
-	if (ExportColliders && SkeletalMesh->GetPhysicsAsset())
+	if (ExportOptions.bColliders && SkeletalMesh->GetPhysicsAsset())
 	{
 		BodySetups = SkeletalMesh->GetPhysicsAsset()->SkeletalBodySetups;
 		for (auto& CurBS : BodySetups)
@@ -459,7 +451,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 	// Next Index used to connect nodes to the merge
 	int32 NextMergeIndex = 0;
 
-	// Determine which LODs to export based on the ExportLODs/ExportMainMesh, high res mesh availability and whether
+	// Determine which LODs to export based on the ExportLODs/bMainMesh, high res mesh availability and whether
 	// the new input system is being used.
 	const int32 NumLODs = SkeletalMesh->GetLODNum();
 	int32 FirstLODIndex = 0;
@@ -473,7 +465,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 		// Don't export LOD0 with the LODs  since we have a separate "main mesh" input
 		FirstLODIndex = 1;
 	}
-	else if (ExportMainMesh)
+	else if (ExportOptions.bMainMesh)
 	{
 		// Just export the main mesh (LOD0)
 		LastLODIndex = 0;
@@ -1527,6 +1519,7 @@ FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
 		0,
 		TriangleMaterialIndices.Num(),
 		StaticMeshFaceMaterials,
+		TriangleMaterialIndices,
 		ScalarMaterialParameters,
 		VectorMaterialParameters,
 		TextureMaterialParameters,
