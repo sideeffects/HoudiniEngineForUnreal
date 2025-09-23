@@ -274,6 +274,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			UObject* InstancedObject;
 
 			bool bSuccess = CreateInstancer(
+				InstancedOutputIdentifier,
 				OutputObject,
 				InstancedObject,
 				Instancer,
@@ -618,6 +619,7 @@ FHoudiniInstanceTranslator::LoadInstancedObject(const FString & ObjectPath)
 
 bool 
 FHoudiniInstanceTranslator::CreateInstancer(
+	const FHoudiniOutputObjectIdentifier& Id,
 	FHoudiniOutputObject & Output,
 	UObject* & InstanceObject,
 	const FHoudiniInstancer& Instancers,
@@ -750,6 +752,7 @@ FHoudiniInstanceTranslator::CreateInstancer(
 		case Foliage:
 		{
 			bSuccess = CreateFoliageInstancer(
+				Id,
 				Output,
 				Instancers,
 				InstanceObject,
@@ -1190,6 +1193,7 @@ FHoudiniInstanceTranslator::CreateHoudiniStaticMeshInstancer(
 
 bool
 FHoudiniInstanceTranslator::CreateFoliageInstancer(
+	const FHoudiniOutputObjectIdentifier& Id,
 	FHoudiniOutputObject& Output,
 	const FHoudiniInstancer& Instancers,
 	UObject* InstanceObject,
@@ -1223,12 +1227,12 @@ FHoudiniInstanceTranslator::CreateFoliageInstancer(
 
 	if (FoliageType)
 	{
-		Output.FoliageType = FHoudiniFoliageTools::DuplicateFoliageType(FoliageTypePackageParams, FoliageType);
+		Output.FoliageType = FHoudiniFoliageTools::DuplicateFoliageType(FoliageTypePackageParams, Id, FoliageType);
 		Output.UserFoliageType = FoliageType;
 	}
 	else
 	{
-		Output.FoliageType = FHoudiniFoliageTools::CreateFoliageType(FoliageTypePackageParams, StaticMesh);
+		Output.FoliageType = FHoudiniFoliageTools::CreateFoliageType(FoliageTypePackageParams, Id, StaticMesh);
 		Output.UserFoliageType = nullptr;
 	}
 

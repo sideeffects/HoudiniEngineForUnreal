@@ -212,6 +212,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 
 	// Creates a new component or updates the previous one if possible
 	static bool CreateInstancer(
+		const FHoudiniOutputObjectIdentifier& Id,
 		FHoudiniOutputObject & Output,
 		UObject*& InstanceObject,
 		const FHoudiniInstancer& Instancer,
@@ -257,6 +258,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 
 	// Create or update a Foliage instances
 	static bool CreateFoliageInstancer(
+		const FHoudiniOutputObjectIdentifier& Id,
 		FHoudiniOutputObject& Output,
 		const FHoudiniInstancer& Instancer,
 		UObject* InstanceObject,
