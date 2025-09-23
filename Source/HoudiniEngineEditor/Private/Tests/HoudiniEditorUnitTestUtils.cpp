@@ -171,12 +171,16 @@ FHoudiniTestContext::WaitForTicks(int Count)
 }
 
 
-void 
+bool 
 FHoudiniTestContext::StartCookingSelectedTOPNetwork()
 {
 	UHoudiniPDGAssetLink * AssetLink = HC ? HC->GetPDGAssetLink() : HAC->GetPDGAssetLink();
-	UTOPNetwork* TopNetwork = AssetLink->GetSelectedTOPNetwork();
+	if(!AssetLink)
+		return false;
 
+	UTOPNetwork* TopNetwork = AssetLink->GetSelectedTOPNetwork();
+	if(!TopNetwork)
+		return false;
 
 	TopNetwork->GetOnPostCookDelegate().AddLambda([this](UTOPNetwork* Link, bool bSuccess)
 	{
@@ -187,6 +191,8 @@ FHoudiniTestContext::StartCookingSelectedTOPNetwork()
 	FHoudiniPDGManager::CookOutput(TopNetwork);
 
 	this->PDGState = EHoudiniContextState::Cooking;
+
+	return true;
 }
 
 TArray<FHoudiniEngineBakedActor> 

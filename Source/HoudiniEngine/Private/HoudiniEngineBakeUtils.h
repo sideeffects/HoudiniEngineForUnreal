@@ -769,7 +769,6 @@ public:
 	// Returns true if the object is a temporary, houdini-generated object
 	static bool IsObjectTemporary(
 		UObject* InObject,
-		const EHoudiniOutputType& InOutputType,
 		const FGuid& InComponentGuid=FGuid());
 
 	// Returns true if the object is a temporary, houdini-generated object

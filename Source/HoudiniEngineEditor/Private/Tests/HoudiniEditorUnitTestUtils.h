@@ -393,7 +393,7 @@ struct FHoudiniTestContext
 	void StartCookingHDA();
 
 	// Starts cooking the Selected top network in the HDA asynchronously.
-	void StartCookingSelectedTOPNetwork();
+	bool StartCookingSelectedTOPNetwork();
 
 	void WaitForTicks(int Count);
 
