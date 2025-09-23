@@ -123,6 +123,10 @@ FString UHoudiniPCGSettings::GetAdditionalTitleInformation() const
 	case EPCGCookableState::WaitingForSession:
 		return TEXT("Establishing Houdini Session...");
 
+
+	case EPCGCookableState::Initialized:
+		return TEXT("Ready.");
+
 	case EPCGCookableState::Initializing:
 		return TEXT("Initializing...");
 
