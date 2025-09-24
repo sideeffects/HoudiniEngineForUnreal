@@ -55,10 +55,10 @@ class HOUDINIENGINE_API FHoudiniFoliageTools
 {
 public:
 	// Create a new Foliage type using the InstancedStaticMesh as an Asset.
-	static UFoliageType* CreateFoliageType(const FHoudiniPackageParams& Params, UStaticMesh* InstancedStaticMesh);
+	static UFoliageType* CreateFoliageType(const FHoudiniPackageParams& Params, const FHoudiniOutputObjectIdentifier& Id,  UStaticMesh* InstancedStaticMesh);
 
 	// Duplicate foliage asset.
-	static UFoliageType* DuplicateFoliageType(const FHoudiniPackageParams& Params, UFoliageType* FoliageType);
+	static UFoliageType* DuplicateFoliageType(const FHoudiniPackageParams& Params, const FHoudiniOutputObjectIdentifier& Id, UFoliageType* FoliageType);
 
 	// Get the Foliage Type which uses the Instanced Static Mesh. If more than one is found, a warning is printed.
 	static UFoliageType* GetFoliageType(const ULevel* DesiredLevel, const UStaticMesh* InstancedStaticMesh);
@@ -77,7 +77,6 @@ public:
 
 	// Return all FFoliageInfo which reference the FoliageType in the given world.
 	static TArray<FFoliageInfo*> GetAllFoliageInfo(UWorld * World, UFoliageType * FoliageType);
-
 
 	// Remove all instances using this Foliage Type from the world
 	static void RemoveInstancesFromWorld(UWorld* World, UFoliageType* FoliageType);
@@ -98,7 +97,10 @@ public:
 	static bool IsIntervalEqual(const TInterval<ElementType>& InLhs, const TInterval<ElementType>& InRhs); 
 
 	template<typename ElementType>
-	static bool IsIntervalNearlyEqual(const TInterval<ElementType>& InLhs, const TInterval<ElementType>& InRhs); 
+	static bool IsIntervalNearlyEqual(const TInterval<ElementType>& InLhs, const TInterval<ElementType>& InRhs);
+
+	static FString MakeObjectName(const FString& HDAName, const FHoudiniOutputObjectIdentifier& Id);
+
 };
 
 template<typename ElementType>
