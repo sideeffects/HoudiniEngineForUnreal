@@ -169,6 +169,9 @@ struct FHoudiniHeightFieldPartData
     // Whether or not to normalize paint layers that fall outside of the range 0 to 1.
     bool bNormalizePaintLayers = false;
 
+    // Transform, obtained from node.
+    FTransform Transform;
+
 };
 
 struct FHoudiniUnrealLandscapeTarget
