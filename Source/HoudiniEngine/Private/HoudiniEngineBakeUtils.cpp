@@ -9557,10 +9557,6 @@ FHoudiniEngineBakeUtils::CenterActorToBoundingBoxCenter(AActor* InActor)
 	if (!IsValid(RootComponent))
 		return;
 
-	// If the root component does not have any child components, then there is nothing to recenter
-	if (RootComponent->GetNumChildrenComponents() <= 0)
-		return;
-
 	const bool bOnlyCollidingComponents = false;
 	const bool bIncludeFromChildActors = true;
 
