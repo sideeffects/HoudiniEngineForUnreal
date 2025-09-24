@@ -225,6 +225,10 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		bool bStartAutomaticServer;
 
+		// Automatically created servers create a Session Sync session. (default: disabled)
+		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
+		bool bUseSessionSyncForAutomaticServer;
+
 		// The timeout (in ms) to be used when attempting to create a Houdini Engine Session (default: 3000)
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Session)
 		float AutomaticServerTimeout;

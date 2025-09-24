@@ -619,6 +619,7 @@ FHoudiniEngine::GetDefaultCookOptions()
 bool
 FHoudiniEngine::StartSessionInternal(
 	const bool bStartAutomaticServer,
+	const bool bUseSessionSyncForAutomaticServer,
 	const float AutomaticServerTimeout,
 	const bool bShowNotificationsAndMessages,
 	const EHoudiniRuntimeSettingsSessionType SessionType,
@@ -682,18 +683,24 @@ FHoudiniEngine::StartSessionInternal(
 		// Start a session and try to connect to it if we failed
 		if (bStartAutomaticServer && SessionResult != HAPI_RESULT_SUCCESS)
 		{
-			// TODO: remove me when the race condition in H is fixed.
-			DisablePerfMon();
+			if(!bUseSessionSyncForAutomaticServer)
+			{
+				// TODO: remove me when the race condition in H is fixed.
+				DisablePerfMon();
 
-			UpdatePathForServer();
-			FHoudiniApi::StartThriftSocketServer(
-				&ServerOptions, ServerPort, nullptr, nullptr);
+				UpdatePathForServer();
+				FHoudiniApi::StartThriftSocketServer(&ServerOptions, ServerPort, nullptr, nullptr);
 
-			// We've started the server manually, disable session sync
-			bEnableSessionSync = false;
+				// We've started the server manually, disable session sync
+				bEnableSessionSync = false;
 
-			SessionResult = FHoudiniApi::CreateThriftSocketSession(
-				&Sessions[Index], H_TCHAR_TO_UTF8(*ServerHost), ServerPort, &SessionInfo);
+				SessionResult = FHoudiniApi::CreateThriftSocketSession(
+					&Sessions[Index], H_TCHAR_TO_UTF8(*ServerHost), ServerPort, &SessionInfo);
+			}
+			else
+			{
+				return false;
+			}
 		}
 	}
 	break;
@@ -707,18 +714,24 @@ FHoudiniEngine::StartSessionInternal(
 		// Start a session and try to connect to it if we failed
 		if (bStartAutomaticServer && SessionResult != HAPI_RESULT_SUCCESS)
 		{
-			// TODO: remove me when the race condition in H is fixed.
-			DisablePerfMon();
+			if(!bUseSessionSyncForAutomaticServer)
+			{
+				// TODO: remove me when the race condition in H is fixed.
+				DisablePerfMon();
 
-			UpdatePathForServer();
-			FHoudiniApi::StartThriftNamedPipeServer(
-				&ServerOptions, H_TCHAR_TO_UTF8(*ServerPipeName), nullptr, nullptr);
+				UpdatePathForServer();
+				FHoudiniApi::StartThriftNamedPipeServer(
+					&ServerOptions, H_TCHAR_TO_UTF8(*ServerPipeName), nullptr, nullptr);
 
-			// We've started the server manually, disable session sync
-			bEnableSessionSync = false;
+				// We've started the server manually, disable session sync
+				bEnableSessionSync = false;
 
-			SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(
-				&Sessions[Index], H_TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
+				SessionResult = FHoudiniApi::CreateThriftNamedPipeSession(&Sessions[Index], H_TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
+			}
+			else
+			{
+				return false;
+			}
 		}
 	}
 	break;
@@ -743,20 +756,27 @@ FHoudiniEngine::StartSessionInternal(
 		// Start a session and try to connect to it if we failed
 		if (bStartAutomaticServer && SessionResult != HAPI_RESULT_SUCCESS)
 		{
-			// TODO: remove me when the race condition in H is fixed.
-			DisablePerfMon();
-
-			UpdatePathForServer();
-			HAPI_ProcessId ServerProcID = -1;
-			HAPI_Result ServerResult = FHoudiniApi::StartThriftSharedMemoryServer(
-				&ServerOptions, H_TCHAR_TO_UTF8(*ServerPipeName), &ServerProcID, nullptr);
-			if (ServerResult == HAPI_RESULT_SUCCESS)
+			if(!bUseSessionSyncForAutomaticServer)
 			{
-				// We've started the server manually, disable session sync
-				bEnableSessionSync = false;
+				// TODO: remove me when the race condition in H is fixed.
+				DisablePerfMon();
 
-				SessionResult = FHoudiniApi::CreateThriftSharedMemorySession(
-					&Sessions[Index], H_TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
+				UpdatePathForServer();
+				HAPI_ProcessId ServerProcID = -1;
+				HAPI_Result ServerResult = FHoudiniApi::StartThriftSharedMemoryServer(
+					&ServerOptions, H_TCHAR_TO_UTF8(*ServerPipeName), &ServerProcID, nullptr);
+				if(ServerResult == HAPI_RESULT_SUCCESS)
+				{
+					// We've started the server manually, disable session sync
+					bEnableSessionSync = false;
+
+					SessionResult = FHoudiniApi::CreateThriftSharedMemorySession(
+						&Sessions[Index], H_TCHAR_TO_UTF8(*ServerPipeName), &SessionInfo);
+				}
+			}
+			else
+			{
+				return false;
 			}
 		}
 	}
@@ -799,7 +819,7 @@ FHoudiniEngine::StartSessionInternal(
 		// Disable session sync as well?
 		bEnableSessionSync = false;
 
-		if (SessionType != EHoudiniRuntimeSettingsSessionType::HRSST_InProcess)
+		if (SessionType != EHoudiniRuntimeSettingsSessionType::HRSST_InProcess && !bUseSessionSyncForAutomaticServer)
 		{
 			FString ConnectionError = FHoudiniEngineUtils::GetConnectionError();
 			if (!ConnectionError.IsEmpty() && bShowNotificationsAndMessages)
@@ -815,6 +835,7 @@ FHoudiniEngine::StartSessionInternal(
 bool
 FHoudiniEngine::StartSessionsInternal(
 	const bool bStartAutomaticServer,
+	const bool bUseSessionSyncForAutomaticServer,
 	const float AutomaticServerTimeout,
 	const bool bShowNotificationsAndMessages,
 	const EHoudiniRuntimeSettingsSessionType SessionType,
@@ -859,13 +880,16 @@ FHoudiniEngine::StartSessionsInternal(
 	}
 	Sessions.Empty(NumSessions);
 
+	bool bSuccess = false;
+
 	// Create the sessions...
 	for (int32 i = 0; i < NumSessions; ++i)
 	{
 		Sessions.Emplace();
 
-		const bool bSuccess = StartSessionInternal(
+		bSuccess = StartSessionInternal(
 			bStartAutomaticServer,
+			bUseSessionSyncForAutomaticServer,
 			AutomaticServerTimeout,
 			bShowNotificationsAndMessages,
 			SessionType,
@@ -880,13 +904,21 @@ FHoudiniEngine::StartSessionsInternal(
 		if (!bSuccess)
 		{
 			Sessions.Empty();
-			return false;
+			break;
 		}
 	}
 
+	if (bStartAutomaticServer && bUseSessionSyncForAutomaticServer && !bSuccess)
+	{
+		// We hit this if we failed to connect to an existing server and we've enabled automatic
+		// SessionSync.
+		bSuccess = OpenSessionSync(true);
+		if(!bSuccess)
+			return false;
+	}
+
 	// Update this session's license type
-	HOUDINI_CHECK_ERROR(FHoudiniApi::GetSessionEnvInt(
-		GetSession(), HAPI_SESSIONENVINT_LICENSE, (int32*)&LicenseType));
+	HOUDINI_CHECK_ERROR(FHoudiniApi::GetSessionEnvInt(GetSession(), HAPI_SESSIONENVINT_LICENSE, (int32*)&LicenseType));
 
 	return true;
 }
@@ -1269,6 +1301,7 @@ FHoudiniEngine::RestartSession(bool bShowNotificationsAndMessages)
 		const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
 		if (!StartSessionsInternal(
 			HoudiniRuntimeSettings->bStartAutomaticServer,
+			HoudiniRuntimeSettings->bUseSessionSyncForAutomaticServer,
 			HoudiniRuntimeSettings->AutomaticServerTimeout,
 			bShowNotificationsAndMessages,
 			HoudiniRuntimeSettings->SessionType,
@@ -1350,6 +1383,7 @@ FHoudiniEngine::CreateSession(const EHoudiniRuntimeSettingsSessionType& SessionT
 	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault< UHoudiniRuntimeSettings >();
 	if (!StartSessionsInternal(
 		bStartAutomaticServer,
+		false, // bUseSessionSyncForAutomaticServer
 		HoudiniRuntimeSettings->AutomaticServerTimeout,
 		true, // bShowNotificationsAndMessages
 		SessionType,
@@ -1410,6 +1444,7 @@ FHoudiniEngine::ConnectSession(bool bShowNotificationsAndMessages)
 	// Try to reconnect/start new sessions
 	const UHoudiniRuntimeSettings * HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 	if (!StartSessionsInternal(
+		false,
 		false,
 		HoudiniRuntimeSettings->AutomaticServerTimeout,
 		bShowNotificationsAndMessages,
@@ -1859,6 +1894,214 @@ FHoudiniEngine::GetAllHoudiniAssetEditorIdentifier()
 	}
 
 	return IDArray;
+}
+
+bool
+FHoudiniEngine::OpenSessionSync(bool bWaitForCompletion)
+{
+	//if (!FHoudiniEngine::IsInitialized())
+	//	return;
+
+	if(!FHoudiniEngine::Get().StopSession())
+	{
+		// StopSession returns false only if Houdini is not initialized
+		HOUDINI_LOG_ERROR(TEXT("Failed to start Session Sync - HAPI Not initialized"));
+		return false;
+	}
+
+	// Get the runtime settings to get the session/type and settings
+	const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+
+	EHoudiniRuntimeSettingsSessionType SessionType = HoudiniRuntimeSettings->SessionType;
+	FString ServerPipeName = HoudiniRuntimeSettings->ServerPipeName;
+	int32 ServerPort = HoudiniRuntimeSettings->ServerPort;
+	int64 BufferSize = HoudiniRuntimeSettings->SharedMemoryBufferSize;
+	bool BufferCyclic = HoudiniRuntimeSettings->bSharedMemoryBufferCyclic;
+	bool SharedMemDataTransfer = HoudiniRuntimeSettings->bEnableSharedMemoryDataTransfer;
+
+	FString SessionSyncArgs = TEXT("-hess=");
+	if(SessionType == EHoudiniRuntimeSettingsSessionType::HRSST_NamedPipe)
+	{
+		// Add the -hess=pipe:hapi argument
+		SessionSyncArgs += TEXT("pipe:") + ServerPipeName;
+	}
+	else if(SessionType == EHoudiniRuntimeSettingsSessionType::HRSST_Socket)
+	{
+		// Add the -hess=port:9090 argument
+		SessionSyncArgs += TEXT("port:") + FString::FromInt(ServerPort);
+	}
+	else if(SessionType == EHoudiniRuntimeSettingsSessionType::HRSST_MemoryBuffer)
+	{
+		// -hess=shared:TYPE:SIZE:NAME
+		// TYPE specifies the shared memory buffer type. (ring, fixed).
+		// SIZE specifies the size of the shared memory buffer in megabytes (MB).
+		// NAME specifies the name of the shared memory. Different sessions must have a unique name.
+		FString BufferType = BufferCyclic ? TEXT("ring") : TEXT("fixed");
+		SessionSyncArgs += TEXT("shared:") + BufferType + TEXT(":") + FString::FromInt(BufferSize) + TEXT(":") + ServerPipeName;
+	}
+	else
+	{
+		// Invalid session type
+		HOUDINI_LOG_ERROR(TEXT("Failed to start Session Sync - Invalid session type"));
+		return false;
+	}
+
+#if PLATFORM_MAC || PLATFORM_LINUX
+	// Houdini forks into the background by default on macOS and Linux
+// so we need to explicitly tell it to not fork.
+	SessionSyncArgs += TEXT(" -foreground");
+#endif
+
+	// Add a slate notification
+	FString Notification = TEXT("Opening Houdini Session Sync...");
+	FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+	// ... and a log message
+	HOUDINI_LOG_MESSAGE(TEXT("Opening Houdini Session Sync."));
+
+	// Only launch Houdini in Session sync if we havent started it already!
+	FProcHandle PreviousHESS = FHoudiniEngine::Get().GetHESSProcHandle();
+	if(!FPlatformProcess::IsProcRunning(PreviousHESS))
+	{
+		// Start houdini with the -hess commandline args
+		const FString ThisLibHAPILocation = FHoudiniEngine::Get().GetLibHAPILocation();
+#if PLATFORM_MAC
+		const FString HoudiniExeLocationRelativeToLibHAPI = TEXT("/../Resources/bin");
+#elif PLATFORM_LINUX
+		const FString HoudiniExeLocationRelativeToLibHAPI = TEXT("/../bin");
+#elif PLATFORM_WINDOWS
+		const FString HoudiniExeLocationRelativeToLibHAPI;
+#else
+		// Treat an unknown platform the same as Windows for now
+		const FString HoudiniExeLocationRelativeToLibHAPI;
+#endif
+
+		// Set custom $HOME env var if it's been specified
+		FHoudiniEngineRuntimeUtils::SetHoudiniHomeEnvironmentVariable();
+
+		FString HoudiniExecutable = FHoudiniEngine::Get().GetHoudiniExecutable();
+		FString HoudiniLocation = ThisLibHAPILocation + HoudiniExeLocationRelativeToLibHAPI + TEXT("/") + HoudiniExecutable;
+		HOUDINI_LOG_MESSAGE(TEXT("Path to houdini executable: %s"), *HoudiniLocation);
+		FProcHandle HESSHandle = FPlatformProcess::CreateProc(
+			*HoudiniLocation,
+			*SessionSyncArgs,
+			true, false, false,
+			nullptr, 0,
+			*FPlatformProcess::GetCurrentWorkingDirectory(),
+			nullptr, nullptr);
+
+		if(!HESSHandle.IsValid())
+		{
+			// Try with the steam version executable instead
+			HoudiniLocation = ThisLibHAPILocation + HoudiniExeLocationRelativeToLibHAPI + TEXT("/hindie.steam");
+			HOUDINI_LOG_MESSAGE(TEXT("Path to hindie.steam executable: %s"), *HoudiniLocation);
+
+			HESSHandle = FPlatformProcess::CreateProc(
+				*HoudiniLocation,
+				*SessionSyncArgs,
+				true, false, false,
+				nullptr, 0,
+				*FPlatformProcess::GetCurrentWorkingDirectory(),
+				nullptr, nullptr);
+
+			if(!HESSHandle.IsValid())
+			{
+				HOUDINI_LOG_ERROR(TEXT("Failed to launch Houdini in Session Sync mode."));
+				return false;
+			}
+		}
+
+		// Keep track of the SessionSync ProcHandle
+		FHoudiniEngine::Get().SetHESSProcHandle(HESSHandle);
+	}
+
+	if(!bWaitForCompletion)
+	{
+		Async(EAsyncExecution::TaskGraphMainThread, [SessionType, ServerPipeName, ServerPort, BufferSize, BufferCyclic]()
+			{
+				StartAndConnectToSessionSync(SessionType, ServerPipeName, ServerPort, BufferSize, BufferCyclic);
+			});
+	}
+	else
+	{
+		StartAndConnectToSessionSync(SessionType, ServerPipeName, ServerPort, BufferSize, BufferCyclic);
+	}
+	return true;
+}
+
+bool
+FHoudiniEngine::StartAndConnectToSessionSync(
+	const EHoudiniRuntimeSettingsSessionType SessionType,
+	const FString& ServerPipeName,
+	const int32 ServerPort,
+	const int64 BufferSize,
+	const bool BufferCyclic)
+{
+	// Use a timeout to avoid waiting indefinitely for H to start in session sync mode
+	const double Timeout = 180.0; // 3min
+	const double StartTimestamp = FPlatformTime::Seconds();
+
+	const FString ServerHost = TEXT("localhost");
+	constexpr int32 NumSessions = 1;
+	while(!FHoudiniEngine::Get().SessionSyncConnect(
+		SessionType, NumSessions, ServerPipeName, ServerHost, ServerPort, BufferSize, BufferCyclic))
+	{
+		// Houdini might not be done loading, sleep for one second 
+		FPlatformProcess::Sleep(.5f);
+
+		// Check for license error
+		int32 HESSReturnCode;
+		FProcHandle HESSHandle = FHoudiniEngine::Get().GetHESSProcHandle();
+		if(FPlatformProcess::GetProcReturnCode(HESSHandle, &HESSReturnCode))
+		{
+			FString Notification = TEXT("Failed to start SessionSync...");
+			FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+			switch(HESSReturnCode)
+			{
+			case 3:
+				HOUDINI_LOG_ERROR(TEXT("Failed to start SessionSync - No licenses were available"));
+				FHoudiniEngine::Get().SetSessionStatus(EHoudiniSessionStatus::NoLicense);
+				return false;
+				break;
+			default:
+				HOUDINI_LOG_ERROR(TEXT("Failed to start SessionSync - Unknown error"));
+				FHoudiniEngine::Get().SetSessionStatus(EHoudiniSessionStatus::Failed);
+				return false;
+				break;
+			}
+		}
+
+		// Check for the timeout
+		if(FPlatformTime::Seconds() - StartTimestamp > Timeout)
+		{
+			// ... and a log message
+			HOUDINI_LOG_ERROR(TEXT("Failed to start SessionSync - Timeout..."));
+			return false;
+		}
+	}
+
+	// Initialize HAPI with this session
+	if(!FHoudiniEngine::Get().InitializeHAPISession())
+	{
+		FHoudiniEngine::Get().StopTicking(true);
+		return false;
+	}
+
+	// Notify all cookables that they need to instantiate in the new session
+	FHoudiniEngineUtils::MarkAllCookablesAsNeedInstantiation();
+
+	// Start ticking
+	FHoudiniEngine::Get().StartTicking(true);
+
+	// Add a slate notification
+	FString Notification = TEXT("Successfully connected to Session Sync...");
+	FHoudiniEngineUtils::CreateSlateNotification(Notification);
+
+	// ... and a log message
+	HOUDINI_LOG_MESSAGE(TEXT("Successfully connected to Session Sync..."));
+
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

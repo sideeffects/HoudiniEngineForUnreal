@@ -319,14 +319,5 @@ protected:
 	static void SetAllowPlayInEditorRefinement(
 		const TArray<UHoudiniCookable*>& InCookables, bool bEnabled);
 
-	// Start and connect to Session Sync
-	static bool StartAndConnectToSessionSync(
-		const EHoudiniRuntimeSettingsSessionType SessionType,
-		const FString& ServerPipeName,
-		const int32 ServerPort,
-		const int64 BufferSize,
-		const bool BufferCyclic);
-
-
 };
 
