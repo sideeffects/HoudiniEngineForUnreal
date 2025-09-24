@@ -23,6 +23,7 @@
 #include "HoudiniEngineAttributes.h"
 #include "Animation/AnimRootMotionProvider.h"
 #include "Materials/Material.h"
+#include "UObject/UObjectIterator.h"
 
 void
 FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(
@@ -251,18 +252,27 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 			GeometryCollection->CreateSimulationData();
 		}
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
-		// Rebuild render data on the GeometryCollection itself otherwise the asset won't update in UE5.3
-		GeometryCollection->RebuildRenderData();
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
+		// TODO: Improve me!
+		// Somehow, in 5.4 - the Component doesnt seem to update properly if we set the GC too early
+		// (which is what we used to do) - 	resetting the whole GC as temporary fix
+		// New: In addition to the above the Thumbnail generator creates its own components and if we
+		// don't update them - crash! So just go thru every component that uses this Geometry Collection
+
+		for(TObjectIterator<UGeometryCollectionComponent> It(RF_ClassDefaultObject, false, EInternalObjectFlags::Garbage); It; ++It)
+		{
+			if(It->RestCollection == GeometryCollection)
+			{
+				It->SetRestCollection(GeometryCollection);
+			}
+		}
 #endif
-		
+
 		if (IsValid(GeometryCollectionComponent))
 		{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
-			// TODO: Improve me!
-			// Somehow, in 5.4 - the Component doesnt seem to update properly if we set the GC too early
-			// (which is what we used to do) - 	resetting the whole GC as temporary fix
-			GeometryCollectionComponent->SetRestCollection(GeometryCollection);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+		//	Rebuild render data on the GeometryCollection itself otherwise the asset won't update in UE5.3
+			GeometryCollection->RebuildRenderData();
 #endif
 
 			// Mark the render state dirty otherwise it won't appear until you move it
