@@ -292,11 +292,16 @@ FLandscapeLayer*
 #endif
 FHoudiniLandscapeUtils::GetEditLayer(ALandscape* Landscape, const FName& LayerName)
 {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	// Landscape layers are mandatory since 5.7
+	// Nothing to do
+#else
 	if (!Landscape->bCanHaveLayersContent)
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		return Landscape->GetLayerConst(0);
 #else
 		return Landscape->GetLayer(0);
+#endif
 #endif
 
 	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
@@ -317,11 +322,16 @@ FLandscapeLayer*
 #endif
 FHoudiniLandscapeUtils::MoveEditLayerAfter(ALandscape* Landscape, const FName& LayerName, const FName& AfterLayerName)
 {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	// Landscape layers are mandatory since 5.7
+	// Nothing to do
+#else
 	if (!Landscape->bCanHaveLayersContent)
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		return Landscape->GetLayerConst(0);
 #else
 		return Landscape->GetLayer(0);
+#endif
 #endif
 
 	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
@@ -634,7 +644,11 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		LandscapeActor->PreEditChange(nullptr);
 		LandscapeActor->SetLandscapeGuid(FGuid::NewGuid());
 		LandscapeActor->bCastStaticShadow = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		// Landscape layers are mandatory since 5.7 - Nothing to do
+#else
 		LandscapeActor->bCanHaveLayersContent = true;
+#endif
 
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// Order is important: Assign materials, create landscape info, Create TargetLayerInfo assets.
@@ -672,7 +686,13 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 
 		// Rename the default height layer if needed.
 		const FString DefaultLayerName = TEXT("Layer");
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		// Landscape layers are mandatory since 5.7
+		if (HeightPart->UnrealLayerName != DefaultLayerName)
+		{
+			LandscapeActor->GetEditLayer(0)->SetName(FName(HeightPart->UnrealLayerName), true);
+		}
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 		if (LandscapeActor->HasLayersContent() && HeightPart->UnrealLayerName != DefaultLayerName)
 		{
 			LandscapeActor->GetEditLayer(0)->SetName(FName(HeightPart->UnrealLayerName), true);
@@ -1119,10 +1139,13 @@ FHoudiniLandscapeUtils::GetExtents(
 	FVector LandscapeScale = TargetLandscapeTransform.GetScale3D();
 	const FVector RelativeTileCoordinate = RelativeTileTransform.GetLocation() / LandscapeScale;
 
+#if ENGINE_MAJOR_VERSION  >= 5 && ENGINE_MINOR_VERSION  >= 7
+	const FIntPoint LandscapeBaseLoc = TargetLandscape->GetSectionBase();
+#else
 	const FIntPoint LandscapeBaseLoc = TargetLandscape->GetSectionBaseOffset();
+#endif
 
 	// Calculate the final draw coordinates
-
 	FIntPoint TargetTileLoc;
 	TargetTileLoc.X = LandscapeBaseLoc.X + FMath::RoundToInt(RelativeTileCoordinate.X);
 	TargetTileLoc.Y = LandscapeBaseLoc.Y + FMath::RoundToInt(RelativeTileCoordinate.Y);
@@ -1514,13 +1537,15 @@ FHoudiniLandscapeUtils::ApplySegmentsToLandscapeEditLayers(
 		}
 
 		// Apply splines to layer
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		Landscape->UpdateLandscapeSplines(Layer->EditLayer->GetGuid(), false);
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 		static constexpr bool bUpdateOnlySelected = true;
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 		Landscape->UpdateLandscapeSplines(Layer->EditLayer->GetGuid(), bUpdateOnlySelected);
 #else
+		static constexpr bool bUpdateOnlySelected = true;
 		Landscape->UpdateLandscapeSplines(Layer->Guid, bUpdateOnlySelected);
 #endif
-
 		// Unselect the segments and their control points
 		for (ULandscapeSplineSegment* const Segment : LayerData.SegmentsToApply)
 		{

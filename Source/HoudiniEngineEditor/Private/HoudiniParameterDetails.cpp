@@ -2415,7 +2415,11 @@ FHoudiniParameterDetails::CreateWidgetString(
 			// Create a thumbnail for the selected object / class
 			UObject* EditObject = nullptr;
 			const FString AssetPath = MainParam->GetValueAt(Idx);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			EditObject = StaticFindObject(nullptr, nullptr, *AssetPath, EFindObjectFlags::ExactClass);
+#else
 			EditObject = StaticFindObject(nullptr, nullptr, *AssetPath, true);
+#endif
 			
 			FAssetData AssetData;
 			if (IsValid(EditObject))

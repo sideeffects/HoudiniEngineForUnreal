@@ -289,7 +289,11 @@ FHoudiniSkeletalMeshTranslator::CreateUnrealData(FHoudiniSkeletalMeshBuildSettin
 	// process bone influences from import data
 	SkeletalMeshImportUtils::ProcessImportMeshInfluences(ImportData, BuildSettings.SKMesh->GetPathName());
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	BuildSettings.SKMesh->SetNumSourceModels(0);
+#else
 	BuildSettings.SKMesh->ResetLODInfo();
+#endif
 	FSkeletalMeshLODInfo& NewLODInfo = BuildSettings.SKMesh->AddLODInfo();
 	NewLODInfo.ReductionSettings.NumOfTrianglesPercentage = 1.0f;
 	NewLODInfo.ReductionSettings.NumOfVertPercentage = 1.0f;

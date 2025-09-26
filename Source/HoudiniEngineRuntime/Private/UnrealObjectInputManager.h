@@ -115,7 +115,7 @@ public:
 	virtual bool MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, bool bInAlsoDirtyReferencedNodes) ;
 	virtual bool ClearDirtyFlag(const FUnrealObjectInputIdentifier& InIdentifier) ;
 
-	virtual bool Clear() ;
+	virtual bool Clear();
 
 	virtual FUnrealObjectInputHAPINodeId GetWorldOriginNodeId(const bool bInCreateIfMissingOrInvalid=true) ;
 	virtual int32 GetWorldOriginHAPINodeId(const bool bInCreateIfMissingOrInvalid=true) ;

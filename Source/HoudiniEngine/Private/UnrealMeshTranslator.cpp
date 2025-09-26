@@ -108,7 +108,11 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMesh(
 
 	// Only set bMainMeshIsNaniteFallback to true if this is a Nanite mesh and we are sending the fallback
 	// For non-Nanite meshes bMainMeshIsNaniteFallback should always be false
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	const bool bNaniteBuildEnabled = StaticMesh->IsNaniteEnabled();
+#else
 	const bool bNaniteBuildEnabled = StaticMesh->NaniteSettings.bEnabled;
+#endif
 	const bool ShouldUseNaniteFallback = ExportOptions.bPreferNaniteFallbackMesh && StaticMesh->GetRenderData()->LODResources.Num();
 	const bool bMainMeshIsNaniteFallback = bNaniteBuildEnabled && ShouldUseNaniteFallback && !bIsSplineMesh && (ExportOptions.bMainMesh || ExportOptions.bLODs);
 
@@ -1511,7 +1515,11 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 				TextureMaterialParameters,
 				BoolMaterialParameters,
 				PhysicalMaterialPath,
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+				StaticMesh->GetNaniteSettings());
+#else
 				StaticMesh->NaniteSettings);
+#endif
 
 			MeshAttributes.Stop();
 
@@ -1605,7 +1613,11 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 	{
 		// Create primitive attribute with mesh asset path
 		FString Filename;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		if (UAssetImportData* ImportData = StaticMesh->GetAssetImportData())
+#else
 		if (UAssetImportData* ImportData = StaticMesh->AssetImportData)
+#endif
 		{
 			for (const auto& SourceFile : ImportData->SourceData.SourceFiles)
 			{
@@ -1660,7 +1672,11 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 			NodeId, 0, HAPI_GROUPTYPE_PRIM, H_TCHAR_TO_UTF8(*LODGroup),
 			GroupArray.GetData(), 0, Part.faceCount), false);
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		if (!StaticMesh->GetAutoComputeLODScreenSize())
+#else
 		if (!StaticMesh->bAutoComputeLODScreenSize)
+#endif
 		{
 			// Add the lodX_screensize attribute
 			FString LODAttributeName =
@@ -1815,8 +1831,12 @@ FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 		PhysicalMaterialPath,
 		bExportVertexColors, 
 		StaticMesh->GetLightMapResolution(), 
-		LODScreenSize, 
+		LODScreenSize,
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		StaticMesh->GetNaniteSettings(),
+#else
 		StaticMesh->NaniteSettings,
+#endif
 		StaticMesh->GetAssetImportData(), 
 		bCommitGeo, 
 		PartInfo))
@@ -5429,8 +5449,11 @@ EHoudiniMeshSource FUnrealMeshTranslator::DetermineMeshSource(const FUnrealMeshE
 
 	if(!bAllMeshDescriptionValid)
 		return EHoudiniMeshSource::LODResource;
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	if (StaticMesh->IsNaniteEnabled())
+#else
 	if (StaticMesh->NaniteSettings.bEnabled)
+#endif
 	{
 		if (ExportOptions.bPreferNaniteFallbackMesh)
 		{

@@ -586,12 +586,20 @@ int32 UHoudiniGeoImportCommandlet::ImportBGEO(
 		if (Object->IsA<UStaticMesh>())
 		{
 			UStaticMesh* SM = Cast<UStaticMesh>(Object);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			AssetImportData = SM->GetAssetImportData();
+#else
 			AssetImportData = SM->AssetImportData;
+#endif
 			// Create reimport information.
 			if (!AssetImportData)
 			{
 				AssetImportData = NewObject< UAssetImportData >(SM, UAssetImportData::StaticClass());
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+				SM->SetAssetImportData(AssetImportData);
+#else
 				SM->AssetImportData = AssetImportData;
+#endif
 			}
 		}
 		

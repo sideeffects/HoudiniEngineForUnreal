@@ -36,8 +36,11 @@
 #include "HoudiniPackageParams.h"
 #include "HoudiniMeshTranslator.h"
 #include "HoudiniTextureTranslator.h"
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+#include "Materials/MaterialParameters.h"
+#else
 #include "MaterialTypes.h"
+#endif
 #include "Materials/Material.h"
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceConstant.h"

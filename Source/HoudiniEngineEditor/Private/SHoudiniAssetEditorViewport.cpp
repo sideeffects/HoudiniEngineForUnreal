@@ -33,7 +33,6 @@
 #include "Components/PostProcessComponent.h"
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewScene.h"
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewSceneModule.h"
-#include "Editor/LevelEditor/Private/SLevelViewportToolBar.h"
 #include "PreviewProfileController.h"
 #include "ToolMenus.h"
 #include "Widgets/SViewport.h"

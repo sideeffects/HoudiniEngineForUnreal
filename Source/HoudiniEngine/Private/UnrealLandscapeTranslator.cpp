@@ -566,7 +566,11 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponentArray(
 	//--------------------------------------------------------------------------------------------------
 	//FTransform LandscapeTransform = FTransform::Identity; // The offset will be done in the component side
 	const FTransform LandscapeTM = LandscapeProxy->LandscapeActorToWorld();
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	const FTransform ProxyRelativeTM(FVector(LandscapeProxy->GetSectionBase()));
+#else
 	const FTransform ProxyRelativeTM(FVector(LandscapeProxy->LandscapeSectionOffset));
+#endif
 	FTransform LandscapeTransform = ProxyRelativeTM * LandscapeTM;
 	
 	HAPI_NodeId HeightfieldNodeId = -1;
@@ -679,7 +683,12 @@ FUnrealLandscapeTranslator::CreateHeightfieldFromLandscapeComponent(
 	if (Proxy)
 	{
 		FTransform LandscapeTM = Proxy->LandscapeActorToWorld();
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		FTransform ProxyRelativeTM(FVector(Proxy->GetSectionBase()));
+#else
 		FTransform ProxyRelativeTM(FVector(Proxy->LandscapeSectionOffset));
+#endif
 
 		// For landscapes that live in streaming proxies, need to account for both the parent transform and
 		// the current transform.

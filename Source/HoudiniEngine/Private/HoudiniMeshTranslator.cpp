@@ -1569,10 +1569,17 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 		bEnableNanite = (IntData[0] != 0);
 	}
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	FMeshNaniteSettings NaniteSettings = StaticMesh->GetNaniteSettings();
+#endif
+
 	// Then look for the position precision attribute, auto by default (MIN_int32)
 	IntData.Empty();
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	NaniteSettings.PositionPrecision = MIN_int32;
+#else
 	StaticMesh->NaniteSettings.PositionPrecision = MIN_int32;
-
+#endif
 	// Look for a specific prim attribute first
 	Accessor.Init(GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_POSITION_PRECISION);
 	if (!Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, IntData, PrimIndex, 1))
@@ -1582,14 +1589,22 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 
 	if (IntData.Num() > 0)
 	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		NaniteSettings.PositionPrecision = IntData[0];
+#else
 		StaticMesh->NaniteSettings.PositionPrecision = IntData[0];
+#endif
 	}
 
 	// Look for the percent triangle attribute, one by default (all triangles)
 	// as this mesh is also used in the physics engine as the complex collision version
 
 	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		NaniteSettings.FallbackPercentTriangles = 1.0f;
+#else
 		StaticMesh->NaniteSettings.FallbackPercentTriangles = 1.0f;
+#endif
 		TArray<float> FloatData;
 		Accessor.Init(GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_PERCENT_TRIANGLES);
 
@@ -1602,17 +1617,30 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 
 		if (FloatData.Num() > 0)
 		{
-	#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 			// If a nanite percent triangles attribute was found, we likely also want to set the fallback target to PercentTriangles
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			NaniteSettings.FallbackTarget = ENaniteFallbackTarget::PercentTriangles;
+#else
 			StaticMesh->NaniteSettings.FallbackTarget = ENaniteFallbackTarget::PercentTriangles;
-	#endif
+#endif
+#endif
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			NaniteSettings.FallbackPercentTriangles = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
+#else
 			StaticMesh->NaniteSettings.FallbackPercentTriangles = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
+#endif
 		}
 	}
 
 	{
 		// Also look for an attribute setting the relative error (default to 1)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		NaniteSettings.FallbackRelativeError = 1.0f;
+#else
 		StaticMesh->NaniteSettings.FallbackRelativeError = 1.0f;
+#endif
 
 		TArray<float> FloatData;
 		Accessor.Init(GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_FB_RELATIVE_ERROR);
@@ -1624,17 +1652,30 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 
 		if (FloatData.Num() > 0)
 		{
-	#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 			// If a nanite relative error attribute was found, we likely also want to set the fallback target to RelativeError
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			NaniteSettings.FallbackTarget = ENaniteFallbackTarget::RelativeError;
+#else
 			StaticMesh->NaniteSettings.FallbackTarget = ENaniteFallbackTarget::RelativeError;
-	#endif
+#endif
+#endif
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			NaniteSettings.FallbackRelativeError = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
+#else
 			StaticMesh->NaniteSettings.FallbackRelativeError = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
+#endif
 		}
 	}
 
 	{
 		// And do the same for the trim relative error (default to 0)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		NaniteSettings.TrimRelativeError = 0.0f;
+#else
 		StaticMesh->NaniteSettings.TrimRelativeError = 0.0f;
+#endif
 		TArray<float> FloatData;
 		Accessor.Init(GeoId, PartId, HAPI_UNREAL_ATTRIB_NANITE_TRIM_RELATIVE_ERROR);
 		if (!Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, FloatData, PrimIndex, 1))
@@ -1645,11 +1686,19 @@ FHoudiniMeshTranslator::UpdateStaticMeshNaniteSettings(const int32& GeoId, const
 
 		if (FloatData.Num() > 0)
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			NaniteSettings.TrimRelativeError = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
+#else
 			StaticMesh->NaniteSettings.TrimRelativeError = FMath::Clamp<float>(FloatData[0], 0.0f, 1.0f);
+#endif
 		}
 	}
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	NaniteSettings.bEnabled = bEnableNanite;
+	StaticMesh->SetNaniteSettings(NaniteSettings);
+#else
 	StaticMesh->NaniteSettings.bEnabled = bEnableNanite;
+#endif
 }
 
 void FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(
@@ -2116,14 +2165,22 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		else
 		{
 			// Try to reuse the existing SM's LOD group instead of the default one
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup(FoundStaticMesh->GetLODGroup());
+#else
 			LODGroup = CurrentPlatform->GetStaticMeshLODSettings().GetLODGroup(FoundStaticMesh->LODGroup);
+#endif
 		}
 
 		if (SplitType == EHoudiniSplitType::Normal)
 		{
 			MainStaticMesh = FoundStaticMesh;
 			MainStaticMesh->ComplexCollisionMesh = nullptr;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			MainStaticMesh->SetCustomizedCollision(false);
+#else
 			MainStaticMesh->bCustomizedCollision = false;
+#endif
 		}
 
 		if (!FoundOutputObject)
@@ -3017,7 +3074,11 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 		// Store the new MeshDescription
 		FoundStaticMesh->CommitMeshDescription(LODIndex);
 		//Set the Imported version before calling the build
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		FoundStaticMesh->SetImportVersion(EImportStaticMeshVersion::LastVersion);
+#else
 		FoundStaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
+#endif
 		
 		// LOD Screensize
 		// default values has already been set, see if we have any attribute override for this
@@ -3027,7 +3088,12 @@ FHoudiniMeshTranslator::CreateStaticMesh_MeshDescription()
 			// Only apply the LOD screensize if it's valid
 			SrcModel->ScreenSize = screensize;
 			//FoundStaticMesh->GetSourceModel(LodIndex).ScreenSize = screensize;
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			FoundStaticMesh->SetAutoComputeLODScreenSize(false);
+#else
 			FoundStaticMesh->bAutoComputeLODScreenSize = false;
+#endif
 		}
 
 		UpdateStaticMeshNaniteSettings(HGPO.GeoId, HGPO.PartId, OutputObjectIdentifier.PrimitiveIndex, FoundStaticMesh);
@@ -4295,7 +4361,11 @@ FHoudiniMeshTranslator::ApplyComplexColliderHelper(
 		{
 			bAssignedCustomCollisionMesh = true;
 			TargetStaticMesh->ComplexCollisionMesh = ComplexStaticMesh;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			TargetStaticMesh->SetCustomizedCollision(true);
+#else
 			TargetStaticMesh->bCustomizedCollision = true;
+#endif
 			bAssignedCustomCollisionMesh = true;
 			// We don't want an actor/component for this object in the scene, so flag it as an implicit output.
 			if (OutputObject)
@@ -7407,7 +7477,11 @@ FHoudiniMeshTranslator::CreateStaticMeshesFromSplitGroups()
 			if (Owner && Owner->UnrealStaticMesh)
 			{
 				Owner->UnrealStaticMesh->ComplexCollisionMesh = Mesh.UnrealStaticMesh;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+				Owner->UnrealStaticMesh->SetCustomizedCollision(true);
+#else
 				Owner->UnrealStaticMesh->bCustomizedCollision = true;
+#endif
 			}
 		}
 	}
@@ -7500,7 +7574,11 @@ FHoudiniMeshTranslator::CreateStaticMeshFromSplitGroups(const FString& MeshName,
 		if (ScreenSize >= 0.0f)
 		{
 			SrcModel->ScreenSize = ScreenSize;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			SplitMeshData.UnrealStaticMesh->SetAutoComputeLODScreenSize(false);
+#else
 			SplitMeshData.UnrealStaticMesh->bAutoComputeLODScreenSize = false;
+#endif
 		}
 
 		CopyAttributesFromHGPOForSplit(RenderGroup.SplitGroupName, OutputObject->CachedAttributes, OutputObject->CachedTokens);
@@ -7605,7 +7683,11 @@ FHoudiniMeshTranslator::CreateStaticMeshFromSplitGroups(const FString& MeshName,
 	double BuildTimeStart = FPlatformTime::Seconds();
 
 	TArray<FText> SMBuildErrors;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	SplitMeshData.UnrealStaticMesh->SetImportVersion(EImportStaticMeshVersion::LastVersion);
+#else
 	SplitMeshData.UnrealStaticMesh->ImportVersion = EImportStaticMeshVersion::LastVersion;
+#endif
 	SplitMeshData.UnrealStaticMesh->Build(true, &SMBuildErrors);
 
 	for (FThreadSafeObjectIterator Iter(UStaticMeshComponent::StaticClass()); Iter; ++Iter)
@@ -7739,8 +7821,13 @@ FHoudiniMeshTranslator::CreateHoudiniStaticMeshesFromSplitGroups()
 			auto* Owner = MeshesToBuild.Meshes.Find(Mesh.CustomCollisionOwner);
 			if (Owner && Owner->UnrealStaticMesh)
 			{
+
 				Owner->UnrealStaticMesh->ComplexCollisionMesh = Mesh.UnrealStaticMesh;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+				Owner->UnrealStaticMesh->SetCustomizedCollision(true);
+#else
 				Owner->UnrealStaticMesh->bCustomizedCollision = true;
+#endif
 			}
 		}
 	}

@@ -656,8 +656,11 @@ FHoudiniInstanceTranslator::CreateInstancer(
 		// trigger an async mesh wait until it has been computed.
 
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(InstanceObject);
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		if (!StaticMesh->IsNaniteEnabled() && (Instancers.Settings.bForceHISM || (bMustUseInstancerComponent && StaticMesh->GetNumLODs() > 1)))
+#else
 		if (!StaticMesh->NaniteSettings.bEnabled && (Instancers.Settings.bForceHISM || (bMustUseInstancerComponent && StaticMesh->GetNumLODs() > 1)))
+#endif
 			InstancerType = HierarchicalInstancedStaticMeshComponent;
 		else if (bMustUseInstancerComponent)
 			InstancerType = InstancedStaticMeshComponent;
@@ -927,7 +930,11 @@ FHoudiniInstanceTranslator::CreateInstancedStaticMeshInstancer(
 	// It is recommended to avoid putting Nanite mesh in HISM since they have their own LOD mecanism.
 	// Will also improve performance by avoiding access to the render data to fetch the LOD count which could
 	// trigger an async mesh wait until it has been computed.
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	if (!InstancedStaticMesh->IsNaniteEnabled() && (InstancedStaticMesh->GetNumLODs() > 1 || Instancer.Settings.bForceHISM))
+#else
 	if (!InstancedStaticMesh->NaniteSettings.bEnabled && (InstancedStaticMesh->GetNumLODs() > 1 || Instancer.Settings.bForceHISM))
+#endif
 	{
 		// If the mesh has LODs, use Hierarchical ISMC
 		InstancedStaticMeshComponent = NewObject<UHierarchicalInstancedStaticMeshComponent>(

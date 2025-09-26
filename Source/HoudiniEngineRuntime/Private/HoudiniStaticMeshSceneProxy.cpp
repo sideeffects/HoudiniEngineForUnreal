@@ -157,7 +157,11 @@ FHoudiniStaticMeshSceneProxy::FHoudiniStaticMeshSceneProxy(UHoudiniStaticMeshCom
 	, DefaultVertexColor(255, 255, 255)
 	, FeatureLevel(InFeatureLevel)
 	, Component(InComponent)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	, MaterialRelevance(InComponent ? InComponent->GetMaterialRelevance(GetFeatureLevelShaderPlatform_Checked(InFeatureLevel)) : FMaterialRelevance())
+#else
 	, MaterialRelevance(InComponent ? InComponent->GetMaterialRelevance(InFeatureLevel) : FMaterialRelevance())
+#endif
 #if STATICMESH_ENABLE_DEBUG_RENDERING
 	, Owner(InComponent ? InComponent->GetOwner() : nullptr)
 #endif

@@ -131,7 +131,11 @@ UHoudiniGeoFactory::CanReimport(UObject * Obj, TArray<FString>& OutFilenames)
 	if (Obj->GetClass() == UStaticMesh::StaticClass())
 	{
 		UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		ImportData = Mesh->GetAssetImportData();
+#else
 		ImportData = Mesh->AssetImportData;
+#endif
 	}
 	/*
 	else if (Obj->GetClass() == USkeletalMesh::StaticClass())
@@ -158,11 +162,17 @@ void
 UHoudiniGeoFactory::SetReimportPaths(UObject * Obj, const TArray<FString>& NewReimportPaths)
 {
 	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	if (Mesh && Mesh->GetAssetImportData() && ensure(NewReimportPaths.Num() == 1))
+	{
+		Mesh->GetAssetImportData()->UpdateFilenameOnly(NewReimportPaths[0]);
+	}
+#else
 	if (Mesh && Mesh->AssetImportData && ensure(NewReimportPaths.Num() == 1))
 	{
 		Mesh->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
 	}
-	
+#endif
 	/*
 	USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Obj);
 	if (SkeletalMesh && SkeletalMesh->AssetImportData && ensure(NewReimportPaths.Num() == 1))
@@ -266,12 +276,20 @@ UHoudiniGeoFactory::Import(UClass* InClass, UPackage* InParent, const FString & 
 		if (Object->IsA<UStaticMesh>())
 		{
 			UStaticMesh* SM = Cast<UStaticMesh>(Object);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			AssetImportData = SM->GetAssetImportData();
+#else
 			AssetImportData = SM->AssetImportData;
+#endif
 			// Create reimport information.
 			if (!AssetImportData)
 			{
-				AssetImportData = NewObject< UAssetImportData >(SM, UAssetImportData::StaticClass());
+				AssetImportData = NewObject<UAssetImportData>(SM, UAssetImportData::StaticClass());
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+				SM->SetAssetImportData(AssetImportData);
+#else
 				SM->AssetImportData = AssetImportData;
+#endif
 			}
 		}
 		/*
@@ -326,8 +344,11 @@ UHoudiniGeoFactory::Reimport(UObject * Obj)
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(Obj);
 		if (!IsValid(StaticMesh))
 			return FailReimport();
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		ImportData = StaticMesh->GetAssetImportData();
+#else
 		ImportData = StaticMesh->AssetImportData;
+#endif
 	}
 	/*
 	else if(Obj->GetClass() == USkeletalMesh::StaticClass())

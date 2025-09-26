@@ -604,9 +604,9 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 			return true;
 		}
 	}
-
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION < 7
 #if WITH_EDITOR
-	// Handle landscape edit layers toggling
+	// Handle landscape edit layers toggling - no longer available in 5.7
 	if (PropertyName.Equals("EnableEditLayers", ESearchCase::IgnoreCase) 
 		|| PropertyName.Equals("bCanHaveLayersContent", ESearchCase::IgnoreCase))
 	{
@@ -621,6 +621,7 @@ FHoudiniGenericAttribute::UpdatePropertyAttributeOnObject(
 
 		return false;
 	}
+#endif
 #endif
 
 	// Try to find the corresponding UProperty

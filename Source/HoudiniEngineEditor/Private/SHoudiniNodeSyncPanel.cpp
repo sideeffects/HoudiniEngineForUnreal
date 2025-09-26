@@ -104,7 +104,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 	{
 		UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
 		if (!HoudiniEditorNodeSyncSubsystem)
-			FReply::Handled();
+			return FReply::Handled();
 
 		HoudiniEditorNodeSyncSubsystem->CreateSessionIfNeeded();
 
@@ -125,7 +125,7 @@ SHoudiniNodeSyncPanel::Construct( const FArguments& InArgs )
 	{
 		UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
 		if (!HoudiniEditorNodeSyncSubsystem)
-			FReply::Handled();
+			return FReply::Handled();
 
 		TSharedRef<SSelectHoudiniPathDialog> Dialog =
 			SNew(SSelectHoudiniPathDialog)
