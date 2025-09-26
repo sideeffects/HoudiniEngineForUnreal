@@ -676,8 +676,12 @@ void FHoudiniOutputDetails::CreateLandscapeEditLayerOutputWidget_Helper(
 	ALandscape* Landscape = LandscapeEditLayer->Landscape;
 
 	const FString Label = Landscape->GetName();
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	const FString EditLayerName = LandscapeEditLayer->BakedEditLayer;
+#else
 	const FString EditLayerName = Landscape->bHasLayersContent ? LandscapeEditLayer->BakedEditLayer :
 		"Target landscape does not support edit layers.";
+#endif
 
 	const FString TargetLayerName = LandscapeEditLayer->TargetLayer;
 

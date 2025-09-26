@@ -111,7 +111,12 @@ FHoudiniLandscapeRuntimeUtils::DestroyLandscape(ALandscape* Landscape)
 	ULandscapeInfo* Info = Landscape->GetLandscapeInfo();
 	if (!IsValid(Info))
 		return;
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Info->GetSortedStreamingProxies();
+	for (auto ProxyPtr : Proxies)
+	{
+		ALandscapeStreamingProxy* Proxy = ProxyPtr.Get();
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Info->StreamingProxies;
 	for (auto ProxyPtr : Proxies)
 	{
@@ -136,7 +141,9 @@ FHoudiniLandscapeRuntimeUtils::DestroyLandscapeProxy(ALandscapeProxy* Proxy)
 	// UE5 does not automatically delete streaming proxies, so clean them up before detroying the parent actor.
 	// Note the Proxies array must be copied, not referenced, as it is modified when each Proxy is destroyed.
 
-#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 1
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 7
+	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Proxy->GetLandscapeInfo()->GetSortedStreamingProxies();
+#elif ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 1
 	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Proxy->GetLandscapeInfo()->StreamingProxies;
 #else
 	TArray<TObjectPtr<ALandscapeStreamingProxy>> Proxies = Proxy->GetLandscapeInfo()->Proxies;

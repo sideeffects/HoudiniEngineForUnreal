@@ -30,6 +30,7 @@
 #include "Helpers/PCGDynamicTrackingHelpers.h"
 #include "UObject/FastReferenceCollector.h"
 #include "HoudiniEngineRuntime.h"
+#include "PCGComponent.h"
 
 #include "HoudiniPCGCookable.h"
 #include "HoudiniParameter.h"

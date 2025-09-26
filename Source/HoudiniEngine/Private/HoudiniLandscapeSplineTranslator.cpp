@@ -169,8 +169,10 @@ FHoudiniLandscapeSplineTranslator::UpdateNonReservedEditLayers(
 	if (!IsValid(InSplineInfo.Landscape))
 		return;
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7
 	if (!InSplineInfo.Landscape->CanHaveLayersContent())
 		return;
+#endif
 
 	TSet<FName>& ClearedLayersForLandscape = InClearedLayers.FindOrAdd(InSplineInfo.Landscape);
 
@@ -231,7 +233,9 @@ FHoudiniLandscapeSplineTranslator::UpdateNonReservedEditLayers(
 		// Clear layer if requested and not yet cleared
 		if (LayerOutput->bClearLayer && !ClearedLayersForLandscape.Contains(CookedEditLayer))
 		{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			InSplineInfo.Landscape->ClearEditLayer(UnrealEditLayer->EditLayer->GetGuid(), nullptr, ELandscapeToolTargetTypeFlags::Heightmap);
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 			InSplineInfo.Landscape->ClearLayer(UnrealEditLayer->EditLayer->GetGuid(), nullptr, ELandscapeClearMode::Clear_Heightmap);
 #else
 			InSplineInfo.Landscape->ClearLayer(UnrealEditLayer->Guid, nullptr, ELandscapeClearMode::Clear_Heightmap);

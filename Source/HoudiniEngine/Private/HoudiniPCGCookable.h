@@ -27,7 +27,7 @@
 #include "HoudiniCookable.h"
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniPCGDataObject.h"
-#include "PCGComponent.h"
+
 #include "HoudiniPDGAssetLink.h"
 #include "HoudiniPCGCookable.generated.h"
 
@@ -40,6 +40,7 @@ struct FPCGContext;
 class UHoudiniPCGSettings;
 class UHoudiniPCGComponent;
 class UHoudiniPCGManagedResource;
+class UPCGGraphInterface;
 
 enum class EPCGCookableState
 {
