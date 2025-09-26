@@ -1538,7 +1538,7 @@ FHoudiniLandscapeUtils::ApplySegmentsToLandscapeEditLayers(
 
 		// Apply splines to layer
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		Landscape->UpdateLandscapeSplines(Layer->EditLayer->GetGuid());
+		Landscape->UpdateLandscapeSplines(Layer->EditLayer->GetGuid(), false);
 #elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 		static constexpr bool bUpdateOnlySelected = true;
 		Landscape->UpdateLandscapeSplines(Layer->EditLayer->GetGuid(), bUpdateOnlySelected);
