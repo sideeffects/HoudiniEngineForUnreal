@@ -28,6 +28,7 @@
 void
 FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(
 	TArray<TObjectPtr<UHoudiniOutput>>& InAllOutputs,
+	UObject* InOutputParent, // Probably a cookable, but not for GeoImporter.
 	UObject* InOuterComponent,
 	const FHoudiniPackageParams& InPackageParams, 
 	UWorld * InWorld)
@@ -72,7 +73,7 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 		{
 			// Create the actual HoudiniOutput.
 			HoudiniOutput = NewObject<UHoudiniOutput>(
-			InOuterComponent,
+			InOutputParent,
 			UHoudiniOutput::StaticClass(),
 			FName(*GCName), // Used for baking identification
 			RF_NoFlags);
@@ -128,10 +129,9 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 
 			GeometryCollectionActor->GetGeometryCollectionComponent()->SetRestCollection(GeometryCollection);
 
-			UHoudiniCookable* HC = FHoudiniEngineUtils::GetOuterHoudiniCookable(HoudiniOutput);
-			if (IsValid(HC) && HC->GetComponent())
+			if (IsValid(ParentComponent))
 			{
-				GeometryCollectionActor->AttachToComponent(HC->GetComponent(), FAttachmentTransformRules::KeepWorldTransform);
+				GeometryCollectionActor->AttachToComponent(ParentComponent, FAttachmentTransformRules::KeepWorldTransform);
 			}
 
 			ActorTransform = ParentComponent->GetOwner()->GetTransform();

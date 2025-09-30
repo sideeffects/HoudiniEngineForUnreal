@@ -491,8 +491,11 @@ UHoudiniGeoImporter::CreateInstancers(
 
 	if (bHasGeometryCollection)
 	{
+		// TODO: We need to know who to parent new outputs too. This should be a Cookable, but we don't have one...
+		UObject* OutputOwner = OuterComponent;
+
 		FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(
-			InAllOutputs, OuterComponent, PackageParams, World);
+			InAllOutputs, OutputOwner, OuterComponent, PackageParams, World);
 
 		if (InAllOutputs.Last()->GetType() != EHoudiniOutputType::GeometryCollection)
 		{
