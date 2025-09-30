@@ -359,6 +359,7 @@ public:
 	static bool GetOrCreateExportStaticMeshLOD(
 		FUnrealMeshExportData& ExportData,
 		const int LODIndex,
+		const bool bAddLODGroups,
 		const UStaticMesh* Mesh,
 		const EHoudiniMeshSource MeshSource);
 

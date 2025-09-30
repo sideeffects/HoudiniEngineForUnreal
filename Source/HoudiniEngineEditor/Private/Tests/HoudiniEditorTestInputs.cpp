@@ -181,6 +181,20 @@ TArray<int> GetPrimitiveLOD(HAPI_NodeId NodeId)
 	return Results;
 }
 
+
+int GetPrimitiveCount(HAPI_NodeId NodeId)
+{
+	// Returns an array, one per primitive, that indicated LOD Index. 0 if not set.
+
+	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::GetPartInfo(Session, NodeId, 0, &PartInfo);
+
+	int NumPrims = PartInfo.faceCount;
+	return NumPrims;
+}
+
 TArray<int> CountLODPrimitives(TArray<int> LODs)
 {
 	TArray<int> Results;
@@ -218,6 +232,22 @@ TArray<FString> GetCollisionGroups(HAPI_NodeId NodeId)
 	return CollisionGroupNames;
 }
 
+FString GetMaterial(HAPI_NodeId NodeId)
+{
+
+	TArray<FString> Data;
+	FHoudiniHapiAccessor Accessor(NodeId, 0, "unreal_material");
+	Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, Data, 0, 1);
+
+	FString MaterialName = Data[0];
+	int TrimCharacter = 0;
+	if(MaterialName.FindChar(']', TrimCharacter))
+	{
+		MaterialName = MaterialName.Mid(TrimCharacter + 1).TrimStart();
+	}
+	return MaterialName;
+
+}
 
 FString GetMaterialForLOD(HAPI_NodeId NodeId, int LODIndex, const TArray<int>&  PrimitiveLODs)
 {
@@ -262,6 +292,21 @@ float GetScalarParameterForLOD(HAPI_NodeId NodeId, const char* Name, int LODInde
 	}
 
 	return InvalidParam;
+}
+
+
+float GetScalarParameter(HAPI_NodeId NodeId, const char* Name)
+{
+	TArray<float> Data;
+	Data.SetNum(1);
+
+	FHoudiniHapiAccessor Accessor(NodeId, 0, Name);
+	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, Data, 0, 1);
+
+	if (bSuccess)
+		return Data[0];
+	else
+		return InvalidParam;
 }
 
 TArray<FString> GetMeshSockets(HAPI_NodeId NodeId)
@@ -547,17 +592,15 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_NaniteMeshes, "
 				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
 
 				// We should have 1 LOD, 755677 prims
-				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
-				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
-				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
-				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 755677);
+				int NumPrimitives = GetPrimitiveCount(NodeId);
+				HOUDINI_TEST_EQUAL(NumPrimitives, 755677);
 
 				// Check MaterialName
-				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				FString Material0 = GetMaterial(NodeId);
 				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
 
 				// We should have no material parameters
-				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				float ScalarParam0 = GetScalarParameter(NodeId, "unreal_material_parameter_0_SphereScalarParam");
 				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
 
 				// No Collisions
@@ -575,21 +618,19 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_NaniteMeshes, "
 				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
 
 				// We should have 1 LOD, different number of prims depending on Unreal version.
-				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
-				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
-				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
+				int PrimitiveCount = GetPrimitiveCount(NodeId);
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
-				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 4727);
+				HOUDINI_TEST_EQUAL(PrimitiveCount, 4727);
 #else
-				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 5182);
+				HOUDINI_TEST_EQUAL(PrimitiveCount, 5182);
 #endif
 
 				// Check MaterialName
-				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				FString Material0 = GetMaterial(NodeId);
 				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
 
 				// We should have no material parameters
-				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				float ScalarParam0 = GetScalarParameter(NodeId, "unreal_material_parameter_0_SphereScalarParam");
 				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
 
 				// No Collisions
@@ -607,17 +648,15 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_NaniteMeshes, "
 				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
 
 				// We should have 1 LOD, 755677 prims
-				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
-				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
-				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
-				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 755677);
+				int LODPrimitiveCount = GetPrimitiveCount(NodeId);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount, 755677);
 
 				// Check MaterialName
-				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				FString Material0 = GetMaterial(NodeId);
 				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
 
 				// We should have no material parameters
-				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				float ScalarParam0 = GetScalarParameter(NodeId, "unreal_material_parameter_0_SphereScalarParam");
 				HOUDINI_TEST_EQUAL(ScalarParam0, 0.5f);
 
 				// No Collisions
