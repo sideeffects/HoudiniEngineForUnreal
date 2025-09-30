@@ -950,7 +950,11 @@ FHoudiniEngineUtils::SafeRenameActor(AActor* InActor, const FString& InName, boo
 	check(InActor);
 
 	UObject* PrevObj = nullptr;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	UObject* ExistingObject = StaticFindObject(/*Class=*/ NULL, InActor->GetOuter(), *InName, EFindObjectFlags::ExactClass);
+#else
 	UObject* ExistingObject = StaticFindObject(/*Class=*/ NULL, InActor->GetOuter(), *InName, true);
+#endif
 	if (ExistingObject && ExistingObject != InActor)
 	{
 		// Rename the existing object
@@ -5084,7 +5088,8 @@ FHoudiniEngineUtils::IsAttributeInstancer(HAPI_NodeId GeoId, HAPI_PartId PartId,
 	return false;
 }
 
-bool FHoudiniEngineUtils::IsValidDataTable(HAPI_NodeId GeoId, HAPI_PartId PartId)
+bool 
+FHoudiniEngineUtils::IsValidDataTable(HAPI_NodeId GeoId, HAPI_PartId PartId)
 {
 	HAPI_PartInfo PartInfo;
 	HAPI_Result Error = FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(),
@@ -5133,6 +5138,15 @@ FHoudiniEngineUtils::IsLandscapeSpline(HAPI_NodeId GeoId, HAPI_PartId PartId)
 	}
 
 	return OutData.Num() > 0 && static_cast<bool>(OutData[0]);
+}
+
+bool 
+FHoudiniEngineUtils::IsValidHeightfield(HAPI_NodeId GeoId, HAPI_PartId PartId)
+{
+	// Make sure the volume is a heightfield by ensuring we have 
+	// the "volvis" detail attribute
+	return FHoudiniEngineUtils::HapiCheckAttributeExists(
+		GeoId, PartId, "volvis", HAPI_ATTROWNER_DETAIL);
 }
 
 bool
@@ -9137,7 +9151,6 @@ TArray<char> HoudiniTCHARToUTF(const TCHAR* Text)
 	FTCHARToUTF8_Convert::Convert(&Result[0], Length, Text, Length);
 
 	return Result;
-
 }
 
 #undef LOCTEXT_NAMESPACE
