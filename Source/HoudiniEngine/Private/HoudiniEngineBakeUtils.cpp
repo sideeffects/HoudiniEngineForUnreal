@@ -4470,6 +4470,12 @@ FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 			continue;
 		}
 
+		FString* Attribute = Pair.Value.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_BAKE_FOLDER);
+		if(Attribute != nullptr)
+		{
+			PackageParams.BakeFolder = *Attribute;
+		}
+
 		FName WorldOutlinerFolderPath = GetOutlinerFolderPath(
 			Resolver,
 			FName(InFallbackWorldOutlinerFolder.IsEmpty() ? PackageParams.HoudiniAssetActorName : InFallbackWorldOutlinerFolder));
@@ -6372,7 +6378,7 @@ UPhysicsAsset* FHoudiniEngineBakeUtils::DuplicatePhysicsAssetAndCreatePackageIfN
 UGeometryCollection* FHoudiniEngineBakeUtils::DuplicateGeometryCollectionAndCreatePackageIfNeeded(
 	UGeometryCollection* InGeometryCollection, 
 	UGeometryCollection* InPreviousBakeGeometryCollection,
-	const FHoudiniPackageParams& PackageParams, 
+	const FHoudiniPackageParams& InPackageParams, 
 	const TArray<UHoudiniOutput*>& InParentOutputs,
 	const TArray<FHoudiniEngineBakedActor>& InCurrentBakedActors, 
 	const FString& InTemporaryCookFolder,
@@ -6382,6 +6388,9 @@ UGeometryCollection* FHoudiniEngineBakeUtils::DuplicateGeometryCollectionAndCrea
 {
 	if (!IsValid(InGeometryCollection))
 		return nullptr;
+
+	FHoudiniPackageParams PackageParams = InPackageParams;
+	PackageParams.ObjectName = InGeometryCollection->GetName();
 
 	const bool bIsTemporaryStaticMesh = IsObjectTemporary(InGeometryCollection, EHoudiniOutputType::GeometryCollection, InParentOutputs, InTemporaryCookFolder, PackageParams.ComponentGUID);
 	if (!bIsTemporaryStaticMesh)

@@ -243,6 +243,9 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 			OutputObject.OutputActors.Add(GeometryCollectionComponent->GetOwner());
 		}
 
+		FString BakeFolder;
+		if (FHoudiniEngineUtils::GetBakeFolderAttribute(GCData.Identifier.GeoId, GCData.Identifier.PartId, BakeFolder))
+			OutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, BakeFolder);
 
 		// See if we need to force the generation of convex hull data for the GC
 		if (GeometryCollection::SizeSpecific::UsesImplicitCollisionType(GeometryCollection->SizeSpecificData, EImplicitTypeEnum::Chaos_Implicit_Convex)
@@ -391,12 +394,24 @@ FHoudiniGeometryCollectionTranslator::GetGeometryCollectionData(
 
 		// Add _GM suffix to the split str, to distinguish GeometryCollections from StaticMeshes
 		// Additionally add the name to distinguish it from other GC outputs
-		FString SplitStrName = TEXT("");
-		if (!NewPiece.GeometryCollectionName.IsEmpty())
+
+		TArray<FString> OutputNames;
+		if (!HoudiniOutput->GetHoudiniGeoPartObjects().IsEmpty())
 		{
-			SplitStrName += "_" + NewPiece.GeometryCollectionName;
+			auto& HGPO = HoudiniOutput->GetHoudiniGeoPartObjects()[0];
+			FHoudiniEngineUtils::GetOutputNameAttribute(HGPO.GeoId, HGPO.PartId, OutputNames, 0, 1);
 		}
-		GeometryCollectionData->PackParams.SplitStr = SplitStrName + "_GC";
+
+		if (!OutputNames.IsEmpty() && !OutputNames[0].IsEmpty())
+		{
+			GeometryCollectionData->PackParams.ObjectName = OutputNames[0];
+			GeometryCollectionData->PackParams.SplitStr.Empty();
+		}
+		else
+		{
+			GeometryCollectionData->PackParams.ObjectName.Empty();
+			GeometryCollectionData->PackParams.SplitStr = NewPiece.GeometryCollectionName + "_GC";
+		}
 
 		GeometryCollectionData->Identifier.SplitIdentifier = GeometryCollectionData->PackParams.SplitStr;
 		
