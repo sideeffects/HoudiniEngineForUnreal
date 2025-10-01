@@ -1356,7 +1356,7 @@ UHoudiniInput::CreateHoudiniSplineInput(UHoudiniInputHoudiniSplineComponent * Fr
 		check(OuterObj)
 		
 		// Create a default Houdini spline input if a null pointer is passed in.
-		FName HoudiniSplineName = MakeUniqueObjectName(OuterComp, UHoudiniSplineComponent::StaticClass(), TEXT("Houdini Spline"));
+		FName HoudiniSplineName = MakeUniqueObjectName(OuterComp, UHoudiniSplineComponent::StaticClass(), TEXT("HoudiniSpline"));
 
 		// Create a Houdini Input Object.
 		UHoudiniInputObject * NewInputObject = UHoudiniInputHoudiniSplineComponent::Create(
@@ -2100,6 +2100,7 @@ UHoudiniInput::GetAllowedClasses(const EHoudiniInputType& InInputType)
 			AllowedClasses.Add(UBlueprint::StaticClass());
 			AllowedClasses.Add(UDataTable::StaticClass());
 			AllowedClasses.Add(UFoliageType_InstancedStaticMesh::StaticClass());
+			AllowedClasses.Add(UTexture2D::StaticClass());
 			break;
 
 		case EHoudiniInputType::Curve:

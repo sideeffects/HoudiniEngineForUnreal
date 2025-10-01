@@ -25,13 +25,14 @@
 */ 
 
 #include "UnrealTextureTranslator.h"
-
 #include "HoudiniEngineUtils.h"
-
 #include "TextureResource.h"
 
+
 bool
-FUnrealTextureTranslator::HapiCreateCOPTexture(UTexture2D* Texture, const HAPI_NodeId ParentNode)
+FUnrealTextureTranslator::HapiCreateCOPTexture(
+	UTexture2D* Texture,
+	const HAPI_NodeId ParentNode)
 {
 	// The texture needs certain settings, otherwise RawData->Lock() will fail.
 	// So we save the old settings so we can restore them later.
@@ -93,7 +94,16 @@ FUnrealTextureTranslator::HapiCreateCOPTexture(UTexture2D* Texture, const HAPI_N
 
 	// Create the COP in Houdini.
 	bool bSuccess = HAPI_RESULT_SUCCESS == FHoudiniApi::CreateCOPImage(
-		FHoudiniEngine::Get().GetSession(), ParentNode, MipMap->SizeX, MipMap->SizeY, HAPI_IMAGE_PACKING_RGBA, false, true, ImageData, 0, MipMap->SizeX*MipMap->SizeY*4);
+		FHoudiniEngine::Get().GetSession(),
+		ParentNode, 
+		MipMap->SizeX, 
+		MipMap->SizeY,
+		HAPI_IMAGE_PACKING_RGBA,
+		false,
+		true, 
+		ImageData,
+		0, 
+		MipMap->SizeX*MipMap->SizeY*4);
 
 	// Clean up.
 	RawData->Unlock();
@@ -101,4 +111,60 @@ FUnrealTextureTranslator::HapiCreateCOPTexture(UTexture2D* Texture, const HAPI_N
 	delete[] ImageData;
 
 	return bSuccess;
+}
+
+bool
+FUnrealTextureTranslator::CreateGeometryForTexture(
+	HAPI_NodeId ParentNodeId,
+	HAPI_NodeId& CreatedOutNodeId)
+{
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+
+	// Check ParentNodeId is a Geo ?
+	CreatedOutNodeId = -1;
+
+	// Output Node
+	HAPI_NodeId OutNodeId = -1;
+	HAPI_Result Result = FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("output"), TEXT("OUT"), true, &OutNodeId);
+	if (Result != HAPI_RESULT_SUCCESS)
+	{
+		HOUDINI_LOG_WARNING(TEXT("[FHoudiniEngineUtils::CreateInputNode]: CreateNode failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());
+		return false;
+	}
+
+	// Grid Node
+	HAPI_NodeId GridNodeId = -1;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("grid"), TEXT("Grid"), true, &GridNodeId), false);
+	// Size 1 1 - sizex sizey
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmFloatValue(Session, GridNodeId, "size", 0, 1.0), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmFloatValue(Session, GridNodeId, "size", 1, 1.0), false);
+	// XY Plane - orient 0
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(Session, GridNodeId, "orient", 0, 0), false);
+	// rows 2 cols 2
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(Session, GridNodeId, "rows", 0, 2), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(Session, GridNodeId, "cols", 0, 2), false);
+
+	// uv project Node
+	HAPI_NodeId UVNodeId = -1;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("uvproject"), TEXT("UV"), true, &UVNodeId), false);
+
+	// cop preview mat Node	
+	HAPI_NodeId MatNodeId = -1;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("coppreviewmaterial"), TEXT("COP Preview Material"), true, &MatNodeId), false);
+	// basecolorsource 1 (COP)
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(Session, MatNodeId, "basecolorsource", 0, 1), false);
+	// basecolorpath ../copmemoryimport1
+	HAPI_ParmId ParmId = -1;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmIdFromName(Session, MatNodeId, "basecolorpath", &ParmId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmStringValue(Session, MatNodeId, "../copmemoryimport1/texture1", ParmId, 0), false);
+
+	// Connect the nodes together
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(Session, OutNodeId, 0, MatNodeId, 0), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(Session, MatNodeId, 0, UVNodeId, 0), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(Session, UVNodeId, 0, GridNodeId, 0), false);
+
+	// Return the output node as the created node ID
+	CreatedOutNodeId = OutNodeId;
+
+	return true;
 }

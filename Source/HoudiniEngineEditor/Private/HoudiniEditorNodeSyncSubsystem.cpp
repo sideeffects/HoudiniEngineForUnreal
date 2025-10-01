@@ -418,6 +418,12 @@ UHoudiniEditorNodeSyncSubsystem::SendToHoudini(const TArray<UObject*>& SelectedA
 		// TODO: Transform for actors?
 		FTransform CurrentActorTransform = FTransform::Identity;
 
+		// For Textures. no need to create extra geometry like HDA inputs
+		if (CurrentObject->IsA<UTexture2D>())
+			NodeSyncInput->SetExportMainGeometry(false);
+		else
+			NodeSyncInput->SetExportMainGeometry(true);
+
 		// Send the HoudiniInputObject to H
 		if (!FHoudiniInputTranslator::UploadHoudiniInputObject(
 			NodeSyncInput, CurrentInputObject, CurrentActorTransform, CreatedNodeIds, Handles, false))

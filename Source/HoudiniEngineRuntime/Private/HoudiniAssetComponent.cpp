@@ -1654,7 +1654,7 @@ UHoudiniAssetComponent::CalcBounds(const FTransform & LocalToWorld) const
 	// fix for offset bounds - maintain local bounds origin
 	LocalBounds = LocalBounds.TransformBy(LocalToWorld);
 
-	const auto & LocalAttachedChildren = GetAttachChildren();
+	const auto& LocalAttachedChildren = GetAttachChildren();
 	for (int32 Idx = 0; Idx < LocalAttachedChildren.Num(); ++Idx)
 	{
 		if (!LocalAttachedChildren[Idx])
@@ -1687,16 +1687,16 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 	
 	// Commented out: Creates incorrect focus bounds..
 	// Query the bounds for all output objects
-
 	if (GetCookable() && GetCookable()->GetOutputData())
-	for (auto & CurOutput : GetCookable()->GetOutputData()->Outputs) 
 	{
-		if (!IsValid(CurOutput))
-			continue;
+		for (auto& CurOutput : GetCookable()->GetOutputData()->Outputs)
+		{
+			if (!IsValid(CurOutput))
+				continue;
 
-		BoxBounds += CurOutput->GetBounds();
+			BoxBounds += CurOutput->GetBounds();
+		}
 	}
-	
 
 	/*
 	// Query the bounds for all our inputs
@@ -1713,7 +1713,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 
 			BoxBounds += CurInput->GetBounds(this->GetHACWorld());
 		}
-	} 
+	}	
 	*/
 
 	// Query the bounds for all input parameters
@@ -2189,7 +2189,11 @@ UHoudiniAssetComponent::SetStaticMeshGenerationProperties(UStaticMesh* InStaticM
 
 	// Make sure static mesh has a new lighting guid.
 	InStaticMesh->SetLightingGuid(FGuid::NewGuid());
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	InStaticMesh->SetLODGroup(NAME_None);
+#else
 	InStaticMesh->LODGroup = NAME_None;
+#endif
 
 	// Set resolution of lightmap.
 	InStaticMesh->SetLightMapResolution(StaticMeshGenerationProperties_DEPRECATED.GeneratedLightMapResolution);

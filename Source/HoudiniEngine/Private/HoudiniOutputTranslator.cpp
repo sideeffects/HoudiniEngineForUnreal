@@ -1192,7 +1192,6 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	// If the node is a COP node, add a Cop HoudiniOutput which only stores the node id; no geo info
 	if (AssetNodeInfo.type == HAPI_NODETYPE_COP || AssetNodeInfo.type == HAPI_NODETYPE_COP2)
 	{
-
 		FHoudiniGeoPartObject currentHGPO;
 		currentHGPO.GeoId = AssetId;
 		currentHGPO.Type = EHoudiniPartType::Cop;
@@ -1655,7 +1654,6 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 
 				if (CurrentHapiPartInfo.type == HAPI_PARTTYPE_INSTANCER)
 				{
-
 					// Check for skeletal mesh Rest Geometry (Shape, in Houdini terms))
 					FString BaseName;
 
@@ -1908,9 +1906,18 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					break;
 
 					case HAPI_PARTTYPE_VOLUME:
-						// Volume data, likely a Heightfield height / mask	
-						CurrentPartType = EHoudiniPartType::Volume;
-						break;
+					{
+						if (FHoudiniEngineUtils::IsValidHeightfield(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+						{
+							// Volume data, likely a Heightfield height / mask
+							CurrentPartType = EHoudiniPartType::Volume;
+						}
+						else
+						{
+							CurrentPartType = EHoudiniPartType::Invalid;
+						}
+					}
+					break;
 
 					default:
 						// Unsupported Part Type

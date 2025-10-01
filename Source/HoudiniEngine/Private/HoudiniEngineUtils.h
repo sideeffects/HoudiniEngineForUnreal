@@ -125,13 +125,18 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Cook the specified node id
 		// if the cook options are null, the defualt one will be used
 		// if bWaitForCompletion is true, this call will be blocking until the cook is finished
-		static bool HapiCookNode(HAPI_NodeId InNodeId, HAPI_CookOptions* InCookOptions = nullptr, bool bWaitForCompletion = false);
+		static bool HapiCookNode(
+			HAPI_NodeId InNodeId, 
+			HAPI_CookOptions* InCookOptions = nullptr,
+			bool bWaitForCompletion = false);
 
 		// Wrapper for CommitGeo - adds a profiler scope wrapper
 		static HAPI_Result HapiCommitGeo(HAPI_NodeId InNodeId);
 
 		// Return a specified HAPI status string.
-		static const FString GetStatusString(HAPI_StatusType status_type, HAPI_StatusVerbosity verbosity);
+		static const FString GetStatusString(
+			HAPI_StatusType status_type, 
+			HAPI_StatusVerbosity verbosity);
 
 		// HAPI : Return the string that corresponds to the given string handle.
 		static FString HapiGetString(int32 StringHandle);
@@ -168,7 +173,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static bool UploadCookableTransform(UHoudiniCookable* HC);
 
 		// Convert FString to std::string
-		static void ConvertUnrealString(const FString& UnrealString, std::string& String);
+		static void ConvertUnrealString(
+			const FString& UnrealString,
+			std::string& String);
 
 		// Wrapper for the CreateNode function
 		// As HAPI_CreateNode is an async call, this function actually waits for the node creation to be done before returning
@@ -182,47 +189,74 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		static int32 HapiGetCookCount(HAPI_NodeId InNodeId);
 
 		// HAPI : Retrieve the asset node's object transform. **/
-		static bool HapiGetAssetTransform(HAPI_NodeId InNodeId, FTransform& OutTransform);
+		static bool HapiGetAssetTransform(
+			HAPI_NodeId InNodeId,
+			FTransform& OutTransform);
 
 		// HAPI : Translate HAPI transform to Unreal one.
-		static void TranslateHapiTransform(const HAPI_Transform& HapiTransform, FTransform& UnrealTransform);
+		static void TranslateHapiTransform(
+			const HAPI_Transform& HapiTransform,
+			FTransform& UnrealTransform);
 
 		// HAPI : Translate HAPI Euler transform to Unreal one.
-		static void TranslateHapiTransform(const HAPI_TransformEuler& HapiTransformEuler, FTransform& UnrealTransform);
+		static void TranslateHapiTransform(
+			const HAPI_TransformEuler& HapiTransformEuler,
+			FTransform& UnrealTransform);
 
 		// HAPI : Translate Unreal transform to HAPI one.
-		static void TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_Transform& HapiTransform);
+		static void TranslateUnrealTransform(
+			const FTransform& UnrealTransform,
+			HAPI_Transform& HapiTransform);
 
 		// HAPI : Translate Unreal transform to HAPI Euler one.
-		static void TranslateUnrealTransform(const FTransform& UnrealTransform, HAPI_TransformEuler& HapiTransformEuler);
-		
+		static void TranslateUnrealTransform(
+			const FTransform& UnrealTransform,
+			HAPI_TransformEuler& HapiTransformEuler);
+
 		// Translate an array of float position values from Houdini to Unreal
-		static void ConvertHoudiniPositionToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData);
-		static FVector3f ConvertHoudiniPositionToUnrealVector3f(const FVector3f& InVector);
+		static void ConvertHoudiniPositionToUnrealVector(
+			const TArray<float>& InRawData,
+			TArray<FVector>& OutVectorData);
+		static FVector3f ConvertHoudiniPositionToUnrealVector3f(
+			const FVector3f& InVector);
 
 		// Translate an array of float scale values from Houdini to Unreal
-		static void ConvertHoudiniScaleToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData);
+		static void ConvertHoudiniScaleToUnrealVector(
+			const TArray<float>& InRawData,
+			TArray<FVector>& OutVectorData);
 
 		// Translate an array of float quaternion rotation values from Houdini to Unreal
-		static void ConvertHoudiniRotQuatToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData);
+		static void ConvertHoudiniRotQuatToUnrealVector(
+			const TArray<float>& InRawData,
+			TArray<FVector>& OutVectorData);
 
 		// Translate an array of float euler rotation values from Houdini to Unreal
-		static void ConvertHoudiniRotEulerToUnrealVector(const TArray<float>& InRawData, TArray<FVector>& OutVectorData);
+		static void ConvertHoudiniRotEulerToUnrealVector(
+			const TArray<float>& InRawData,
+			TArray<FVector>& OutVectorData);
 
 		// Return true if asset is valid.
 		static bool IsHoudiniNodeValid(HAPI_NodeId AssetId);
 
 		// HAPI : Retrieve HAPI_ObjectInfo's from given asset node id.
-		static bool HapiGetObjectInfos(HAPI_NodeId InNodeId, TArray<HAPI_ObjectInfo>& OutObjectInfos, TArray<HAPI_Transform>& OutObjectTransforms);
+		static bool HapiGetObjectInfos(
+			HAPI_NodeId InNodeId,
+			TArray<HAPI_ObjectInfo>& OutObjectInfos,
+			TArray<HAPI_Transform>& OutObjectTransforms);
 
 		// Traverse from the Child up to the Root node to determine whether the ChildNode is fully visible
 		// inside the RootNode.
 		// - The Obj node itself is visible
 		// - All parent nodes are visible
 		// - Only has Object subnet parents (if we find a parent with non-Object nodetype then it's not visible).
-		static bool IsObjNodeFullyVisible(const TSet<HAPI_NodeId>& AllObjectIds, HAPI_NodeId RootNodeId, HAPI_NodeId ChildNodeId);
+		static bool IsObjNodeFullyVisible(
+			const TSet<HAPI_NodeId>& AllObjectIds, 
+			HAPI_NodeId RootNodeId,
+			HAPI_NodeId ChildNodeId);
 
-		static bool HapiGetNodeType(HAPI_NodeId InNodeId, HAPI_NodeType& OutNodeType);
+		static bool HapiGetNodeType(
+			HAPI_NodeId InNodeId, 
+			HAPI_NodeType& OutNodeType);
 
 		static bool IsSopNode(HAPI_NodeId NodeId);
 		static bool ContainsSopNodes(HAPI_NodeId NodeId);
@@ -232,7 +266,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// InNodeId.
 		// Returns false if outputidx could not be found/read. Sets OutOutputIndex to the
 		// value of the outputidx parameter.
-		static bool GetOutputIndex(HAPI_NodeId InNodeId, int32& OutOutputIndex);
+		static bool GetOutputIndex(
+			HAPI_NodeId InNodeId, 
+			int32& OutOutputIndex);
 
 		static bool GatherAllAssetOutputs(
 			HAPI_NodeId InAssetId,
@@ -253,13 +289,20 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			TSet<HAPI_NodeId>& OutForceNodesCook);
 
 		// HAPI: Retrieve absolute path to the given Node
-		static bool HapiGetAbsNodePath(HAPI_NodeId InNodeId, FString& OutPath);
+		static bool HapiGetAbsNodePath(
+			HAPI_NodeId InNodeId,
+			FString& OutPath);
 
 		// HAPI: Retrieve Path to the given Node, relative to the given Node
-		static bool HapiGetNodePath(HAPI_NodeId InNodeId, HAPI_NodeId InRelativeToNodeId, FString& OutPath);
+		static bool HapiGetNodePath(
+			HAPI_NodeId InNodeId,
+			HAPI_NodeId InRelativeToNodeId,
+			FString& OutPath);
 
 		// HAPI: Retrieve the relative for the given HGPO Node
-		static bool HapiGetNodePath(const FHoudiniGeoPartObject& InHGPO, FString& OutPath);
+		static bool HapiGetNodePath(
+			const FHoudiniGeoPartObject& InHGPO,
+			FString& OutPath);
 
 		// HAPI : Return all group names for a given Geo. 
 		static bool HapiGetGroupNames(
@@ -267,7 +310,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const HAPI_PartId PartId,
 			const HAPI_GroupType GroupType, 
 			bool isPackedPrim,
-			TArray<FString>& OutGroupNames );
+			TArray<FString>& OutGroupNames);
 
 		// HAPI : Retrieve group membership.
 		static bool HapiGetGroupMembership(
@@ -418,27 +461,43 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// HAPI : Look for a parameter by name and returns its index. Returns -1 if not found.
 		static HAPI_ParmId HapiFindParameterByName(
-			HAPI_NodeId InNodeId, const std::string& InParmName, HAPI_ParmInfo& OutFoundParmInfo);
+			HAPI_NodeId InNodeId,
+			const std::string& InParmName,
+			HAPI_ParmInfo& OutFoundParmInfo);
 
 		// HAPI : Look for a parameter by tag and returns its index. Returns -1 if not found.
 		static HAPI_ParmId HapiFindParameterByTag(
-			HAPI_NodeId InNodeId, const std::string& InParmTag, HAPI_ParmInfo& OutFoundParmInfo);
+			HAPI_NodeId InNodeId,
+			const std::string& InParmTag,
+			HAPI_ParmInfo& OutFoundParmInfo);
 
 		// Returns true is the given Geo-Part is an attribute instancer
 		static bool IsAttributeInstancer(
-			HAPI_NodeId GeoId, HAPI_PartId PartId, EHoudiniInstancerType& OutInstancerType);
+			HAPI_NodeId GeoId,
+			HAPI_PartId PartId, 
+			EHoudiniInstancerType& OutInstancerType);
 
 		static bool IsValidDataTable(
-			HAPI_NodeId GeoId, HAPI_PartId PartId);
+			HAPI_NodeId GeoId,
+			HAPI_PartId PartId);
 
 		// Returns true if the given Geo-Part is a landscape spline
-		static bool IsLandscapeSpline(HAPI_NodeId GeoId, HAPI_PartId PartId);
+		static bool IsLandscapeSpline(
+			HAPI_NodeId GeoId,
+			HAPI_PartId PartId);
+
+		// Returns true if the given Geo - Part is a landscape spline
+		static bool IsValidHeightfield(
+			HAPI_NodeId GeoId,
+			HAPI_PartId PartId);
 
 		// HAPI : Return a give node's parent ID, -1 if none
 		static HAPI_NodeId HapiGetParentNodeId(HAPI_NodeId NodeId);
 
 		// HAPI : Marshaling, disconnect input asset from a given slot.
-		static bool HapiDisconnectAsset(HAPI_NodeId HostAssetId, int32 InputIndex);
+		static bool HapiDisconnectAsset(
+			HAPI_NodeId HostAssetId,
+			int32 InputIndex);
 
 		// Destroy asset, returns the status.
 		static bool DestroyHoudiniAsset(HAPI_NodeId AssetId);
@@ -457,22 +516,33 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			TArray< HAPI_StringHandle > & OutAssetNames);
 
 		static bool OpenSubassetSelectionWindow(
-			TArray<HAPI_StringHandle>& AssetNames, HAPI_StringHandle& OutPickedAssetName );
+			TArray<HAPI_StringHandle>& AssetNames,
+			HAPI_StringHandle& OutPickedAssetName );
 
 		// Returns the name of a Houdini asset.
-		static bool GetHoudiniAssetName(HAPI_NodeId AssetNodeId, FString & NameString);
+		static bool GetHoudiniAssetName(
+			HAPI_NodeId AssetNodeId,
+			FString & NameString);
 
 		// Gets preset data for a given node.
-		static bool GetAssetPreset(HAPI_NodeId InNodeId, TArray<int8>& PresetBuffer);
+		static bool GetAssetPreset(
+			HAPI_NodeId InNodeId,
+			TArray<int8>& PresetBuffer);
 
 		// Sets preset data for a given node.
-		static bool SetAssetPreset(HAPI_NodeId InNodeId, const TArray<int8>& PresetBuffer);
+		static bool SetAssetPreset(
+			HAPI_NodeId InNodeId,
+			const TArray<int8>& PresetBuffer);
 
 		// HAPI : Set asset transform.
-		static bool HapiSetAssetTransform(HAPI_NodeId AssetNodeId, const FTransform & Transform);
+		static bool HapiSetAssetTransform(
+			HAPI_NodeId AssetNodeId,
+			const FTransform & Transform);
 
 		// TODO: Move me somewhere else
-		static void AssignUniqueActorLabelIfNeeded(HAPI_NodeId InNodeId, AActor* InActorOwner);
+		static void AssignUniqueActorLabelIfNeeded(
+			HAPI_NodeId InNodeId,
+			AActor* InActorOwner);
 
 		// Triggers an update the details panel
 		// Will use an AsyncTask if we're not in the game thread
@@ -806,20 +876,34 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Helper to add actor tags from the generic attributes and to the OutActorTags array.
 		// The ApplyTags* helpers are typically used during Bake phases to reapply tags since the structure
 		// of outputs typically change.
-		static void ApplyTagsToActorOnly(const TArray<FHoudiniGenericAttribute>& GenericPropertyAttributes, TArray<FName>& OutActorTags);
-		static void ApplyTagsToActorAndComponents(AActor* InActor, bool bKeepActorTags, const TArray<FHoudiniGenericAttribute>& GenericPropertyAttributes);
+		static void ApplyTagsToActorOnly(
+			const TArray<FHoudiniGenericAttribute>& GenericPropertyAttributes, TArray<FName>& OutActorTags);
+		static void ApplyTagsToActorAndComponents(
+			AActor* InActor,
+			bool bKeepActorTags,
+			const TArray<FHoudiniGenericAttribute>& GenericPropertyAttributes);
 
 		// Helpers to check whether KeepTags is enabled in any of the HGPOs
 		static bool IsKeepTagsEnabled(const TArray<FHoudiniGeoPartObject>& InHGPOs);
 		static bool IsKeepTagsEnabled(const FHoudiniGeoPartObject* InHGPO);
 	
 		// Helper to clear a component's tags based on the KeepTags settings in a set of HGPOs
-		static void KeepOrClearComponentTags(UActorComponent* ActorComponent, const TArray<FHoudiniGeoPartObject>& InHGPOs);
-		static void KeepOrClearComponentTags(UActorComponent* ActorComponent, const FHoudiniGeoPartObject* InHGPO);
-		static void KeepOrClearComponentTags(UActorComponent* ActorComponent, bool bKeepTags);
+		static void KeepOrClearComponentTags(
+			UActorComponent* ActorComponent,
+			const TArray<FHoudiniGeoPartObject>& InHGPOs);
+		static void KeepOrClearComponentTags(
+			UActorComponent* ActorComponent,
+			const FHoudiniGeoPartObject* InHGPO);
+		static void KeepOrClearComponentTags(
+			UActorComponent* ActorComponent,
+			bool bKeepTags);
 	
 		// Helper to reset all the actor component's tags based on the KeepTags settings in a set of HGPOs
-		static void KeepOrClearActorTags(AActor* Actor, bool bApplyToActor, bool bApplyToComponents, const FHoudiniGeoPartObject* InHGPO);
+		static void KeepOrClearActorTags(
+			AActor* Actor, 
+			bool bApplyToActor, 
+			bool bApplyToComponents, 
+			const FHoudiniGeoPartObject* InHGPO);
 
 		/*
 		// Tries to update values for all the UProperty attributes to apply on the object.
@@ -836,7 +920,10 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		*/
 
 		static void AddHoudiniMetaInformationToPackage(
-			UPackage* Package, UObject* Object, const FString& Key, const FString& Value);
+			UPackage* Package, 
+			UObject* Object,
+			const FString& Key, 
+			const FString& Value);
 
 		// Adds the HoudiniLogo mesh to a Houdini Asset Component
 		static bool AddHoudiniLogoToComponent(USceneComponent* InComponent);
@@ -871,11 +958,15 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 
 		// 
 		static bool CreateGroupsFromTags(
-			HAPI_NodeId NodeId, HAPI_PartId PartId, const TArray<FName>& Tags);
+			HAPI_NodeId NodeId, 
+			HAPI_PartId PartId,
+			const TArray<FName>& Tags);
 
 		//
 		static bool CreateAttributesFromTags(
-			HAPI_NodeId NodeId, HAPI_PartId PartId, const TArray<FName>& Tags);
+			HAPI_NodeId NodeId, 
+			HAPI_PartId PartId, 
+			const TArray<FName>& Tags);
 
 		// Helper function to access the "unreal_level_path" attribute
 		static bool GetLevelPathAttribute(
