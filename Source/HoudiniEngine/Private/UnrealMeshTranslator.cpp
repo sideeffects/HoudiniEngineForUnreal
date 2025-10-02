@@ -4571,7 +4571,8 @@ bool FUnrealMeshTranslator::GetOrCreateStaticMeshLODGeometries(
 
 		if(!ExportData.Contains(Label))
 		{
-			GetOrCreateExportStaticMeshLOD(ExportData, 0, StaticMesh, MeshSource);
+			const bool bAddLODGroups = ExportOptions.bLODs;
+			GetOrCreateExportStaticMeshLOD(ExportData, 0, bAddLODGroups, StaticMesh, MeshSource);
 		}
 	}
 
@@ -4584,7 +4585,8 @@ bool FUnrealMeshTranslator::GetOrCreateStaticMeshLODGeometries(
 			FString NodeLabel = MakeLODName(LODIndex, MeshSource);
 			if(!ExportData.Contains(NodeLabel))
 			{
-				GetOrCreateExportStaticMeshLOD(ExportData, LODIndex, StaticMesh, MeshSource);
+				const bool bAddLODGroups = true;
+				GetOrCreateExportStaticMeshLOD(ExportData, LODIndex, bAddLODGroups, StaticMesh, MeshSource);
 			}
 		}
 	}
@@ -4709,7 +4711,8 @@ void FUnrealMeshExportData::EnsureConstructionSubnetExists()
 
 bool FUnrealMeshTranslator::GetOrCreateExportStaticMeshLOD(
 	FUnrealMeshExportData& ExportData,
-	const int LODIndex, 
+	const int LODIndex,
+	const bool bAddLODGroups,
 	const UStaticMesh* StaticMesh,
 	const EHoudiniMeshSource RequestedMeshSource)
 
@@ -4761,7 +4764,7 @@ bool FUnrealMeshTranslator::GetOrCreateExportStaticMeshLOD(
 			NodeId,
 			StaticMesh->GetLODForExport(LODIndex),
 			LODIndex,
-			true,
+			bAddLODGroups,
 			false,
 			StaticMesh,
 			nullptr);
@@ -4771,7 +4774,7 @@ bool FUnrealMeshTranslator::GetOrCreateExportStaticMeshLOD(
 			NodeId,
 			*StaticMesh->GetMeshDescription(LODIndex),
 			LODIndex,
-			true,
+			bAddLODGroups,
 			false,
 			StaticMesh,
 			nullptr);
@@ -4782,7 +4785,7 @@ bool FUnrealMeshTranslator::GetOrCreateExportStaticMeshLOD(
 			NodeId,
 			*StaticMesh->GetHiResMeshDescription(),
 			LODIndex,
-			true,
+			bAddLODGroups,
 			false,
 			StaticMesh,
 			nullptr);
