@@ -333,10 +333,10 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 
 	// TODO COOKABLE: Handle the case where the Out is NOT a component
 	// we need to split output asset creation from component creation!
+	UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(InOuter);
 	USceneComponent* InOuterComponent = Cast<USceneComponent>(InOuter);
 	if (!InOuterComponent)
 	{
-		UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(InOuter);
 		InOuterComponent = OuterHC ? OuterHC->GetComponent() : nullptr;
 	}
 
@@ -668,7 +668,9 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 
 	if (HasGeometryCollection)
 	{
-		FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(Outputs, InOuterComponent, PackageParams, InWorld);
+		UObject* OutputOwner = OuterHC ? Cast<UObject>(OuterHC) : Cast<UObject>(InOuterComponent);
+
+		FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutputs(Outputs, OutputOwner, InOuterComponent, PackageParams, InWorld);
 	}
 
 	if (NumVisibleOutputs > 0)

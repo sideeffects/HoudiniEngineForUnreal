@@ -72,8 +72,12 @@ struct HOUDINIENGINE_API FHoudiniGeometryCollectionTranslator
 	};
 	
 	public:
-		static void SetupGeometryCollectionComponentFromOutputs(TArray<TObjectPtr<UHoudiniOutput>>& InAllOutputs,
-			UObject* InOuterComponent, const FHoudiniPackageParams& InPackageParams, UWorld * InWorld);
+		static void SetupGeometryCollectionComponentFromOutputs(
+			TArray<TObjectPtr<UHoudiniOutput>>& InAllOutputs,
+			UObject* InOutputParent,
+			UObject* InOuterComponent, 
+			const FHoudiniPackageParams& InPackageParams, 
+			UWorld * InWorld);
 
 		static bool GetFracturePieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, int& OutInt);
 		static bool GetClusterPieceAttribute(const HAPI_NodeId& GeoId, const HAPI_NodeId& PartId, int& OutInt);
