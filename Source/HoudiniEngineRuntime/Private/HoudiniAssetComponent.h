@@ -325,7 +325,7 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
 	virtual void OnUpdateTransform(EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 
-	FBox GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreGeneratedLandscape) const;
+	FBox GetAssetBoundsForLandscapeSelection(UHoudiniInput* IgnoreInput, bool bIgnoreGeneratedLandscape) const;
 
 	// return the cached component template, if available.
 	virtual UHoudiniAssetComponent* GetCachedTemplate() const { return nullptr; }

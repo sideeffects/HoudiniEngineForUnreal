@@ -663,6 +663,8 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesBakedMo
 			break;
 	}
 
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(Landscape, return true);
+
 	FName LayerName = TEXT("Noise");
 
 	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);

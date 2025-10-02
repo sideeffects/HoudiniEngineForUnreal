@@ -106,7 +106,7 @@ FBoxSphereBounds UHoudiniStaticMeshComponent::CalcBounds(const FTransform& InLoc
 	}
 	else
 	{
-		return FBoxSphereBounds(InLocalToWorld.GetLocation(), FVector::ZeroVector, 0.f);
+		return FBoxSphereBounds(InLocalToWorld.GetLocation(), FVector(0.5, 0.5, 0.5), 1.0);
 	}
 }
 

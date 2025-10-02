@@ -133,7 +133,8 @@ UHoudiniInput::BeginDestroy()
 }
 
 #if WITH_EDITOR
-void UHoudiniInput::PostEditUndo() 
+void
+UHoudiniInput::PostEditUndo() 
 {
 	 Super::PostEditUndo();
 	 TArray<TObjectPtr<UHoudiniInputObject>>* InputObjectsPtr = GetHoudiniInputObjectArray(Type);
@@ -459,7 +460,7 @@ UHoudiniInput::GetBounds(UWorld * World)
 
 				UHoudiniAssetComponent* CookableComp = Cast<UHoudiniAssetComponent>(CurInHC->GetComponent());
 				if(IsValid(CookableComp))
-					BoxBounds += CookableComp->GetAssetBounds(nullptr, false);
+					BoxBounds += CookableComp->GetAssetBoundsForLandscapeSelection(nullptr, false);
 			}
 			else if (IsValid(CurInLandscape = Cast<UHoudiniInputLandscape>(WorldInputObjects[Idx])))
 			{
@@ -486,6 +487,7 @@ UHoudiniInput::GetBounds(UWorld * World)
 
 	return BoxBounds;
 }
+
 
 bool
 UHoudiniInput::IsAssetInput() const
@@ -520,7 +522,8 @@ UHoudiniInput::IsLandscapeInput() const
 	return false;
 }
 
-void UHoudiniInput::UpdateLandscapeInputSelection()
+void 
+UHoudiniInput::UpdateLandscapeInputSelection()
 {
 	LandscapeSelectedComponents.Reset();
 	if (!InputSettings.bLandscapeExportSelectionOnly) return;
@@ -549,7 +552,7 @@ void UHoudiniInput::UpdateLandscapeInputSelection()
 			{
 				UHoudiniAssetComponent* OuterHAC = Cast<UHoudiniAssetComponent>(OuterCookable->GetComponent());
 				if(IsValid(OuterHAC))
-					Bounds = OuterHAC->GetAssetBounds(this, true);
+					Bounds = OuterHAC->GetAssetBoundsForLandscapeSelection(this, true);
 			}
 		}
 	
@@ -1392,6 +1395,15 @@ UHoudiniInput::CreateHoudiniSplineInput(UHoudiniInputHoudiniSplineComponent * Fr
 			// Attach the new Houdini spline component to it's owner.
 			if (bAttachToparent)
 				HoudiniSplineComponent->AttachToComponent(OuterComp, FAttachmentTransformRules::KeepRelativeTransform);
+
+			// TODO: Check needed?
+			// Add to the OwnerActor's instance comp - will  display the comp in the list
+			if (OuterComp)
+			{
+				AActor* Owner = OuterComp->GetOwner();
+				if (Owner)
+					Owner->AddInstanceComponent(HoudiniSplineComponent);
+			}
 		}
 
 		//push the new input object to the array for new type.
