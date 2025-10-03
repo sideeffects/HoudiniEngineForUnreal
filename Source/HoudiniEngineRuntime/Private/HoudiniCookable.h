@@ -335,7 +335,7 @@ public:
 
 	UCookableComponentData();
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category = "Houdini Cookable")
 	TWeakObjectPtr<USceneComponent> Component; 
 	
 	// Used to compare transform changes and whether we need to
@@ -912,7 +912,7 @@ protected:
 	bool bHasHoudiniAsset;
 
 	// Structure containing the HDA data
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
 	TObjectPtr<UCookableHoudiniAssetData> HoudiniAssetData;
 
 	// PARAMETERS
@@ -921,7 +921,7 @@ protected:
 	bool bHasParameters;
 
 	// Structure containing the parameter data
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
 	TObjectPtr<UCookableParameterData> ParameterData;
 
 	// INPUTS
@@ -930,7 +930,7 @@ protected:
 	bool bHasInputs;
 
 	// Structure containing the input data
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
 	TObjectPtr<UCookableInputData> InputData;
 
 	// OUTPUTS
@@ -939,7 +939,7 @@ protected:
 	bool bHasOutputs;
 
 	// Structure containing the output data
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
 	TObjectPtr<UCookableOutputData> OutputData;
 
 	// COMPONENTS / TRANSFORM
@@ -948,7 +948,7 @@ protected:
 	bool bHasComponent; // bIsInWorld?
 
 	// Structure containing the component's data
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
 	TObjectPtr<UCookableComponentData> ComponentData;
 
 	// PDG
@@ -957,7 +957,7 @@ protected:
 	bool bHasPDG;
 
 	// Structure containing the PDG data
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
 	TObjectPtr<UCookablePDGData> PDGData;
 
 	// Baking
@@ -965,7 +965,7 @@ protected:
 	UPROPERTY()
 	bool bHasBaking;
 	// Structure containing the Baking data
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
 	TObjectPtr<UCookableBakingData> BakingData;
 
 	// Proxy
@@ -973,7 +973,7 @@ protected:
 	UPROPERTY()
 	bool bHasProxy;
 	// Structure containing the Proxy data
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
 	TObjectPtr<UCookableProxyData> ProxyData;
 
 	//

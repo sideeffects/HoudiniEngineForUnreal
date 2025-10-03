@@ -373,6 +373,8 @@ FUnrealObjectInputOptions::GenerateNodeNameSuffix() const
 		NameParts.Add(TEXT("landscape_edit_layers"));
 	if (!bExportLevelInstanceContent)
 		NameParts.Add(TEXT("level_instance_ref"));
+	if(!bExportMainGeometry)
+		NameParts.Add(TEXT("no_main_geo"));
 	if (BoolOptions.Num() > 0)
 	{
 		for (const auto& BoolOption : BoolOptions)

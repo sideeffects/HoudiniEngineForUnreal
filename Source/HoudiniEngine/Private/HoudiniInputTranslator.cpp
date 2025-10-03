@@ -4902,22 +4902,26 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 	FString TextureName = InObjNodeName + TEXT("_") + InputTexture->GetName();
 	FHoudiniEngineUtils::SanitizeHAPIVariableName(TextureName);
 
+	// Only the ExportMainGeo and ImportAsRef options matter for Textures
+	FUnrealObjectInputOptions Options;
+	Options.bExportMainGeometry = InInputSettings.bExportMainGeometry;
+	Options.bImportAsReference = InInputSettings.bImportAsReference;
+	
 	FUnrealObjectInputIdentifier Identifier;
+	Identifier = FUnrealObjectInputIdentifier(InputTexture, Options, true);
+	
+	FUnrealObjectInputHandle InputNodeHandle;
 	FUnrealObjectInputHandle ParentHandle;
-	{
-		const FUnrealObjectInputOptions Options;
-		Identifier = FUnrealObjectInputIdentifier(InputTexture, Options, true);
-
-		FUnrealObjectInputHandle Handle;
-		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
+	{		
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, InputNodeHandle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
+			if (FUnrealObjectInputUtils::GetHAPINodeId(InputNodeHandle, NodeId))
 			{
 				if (!bInputNodesCanBeDeleted)
-					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
+					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(InputNodeHandle, bInputNodesCanBeDeleted);
 
-				InObject->InputNodeHandle = Handle;
+				InObject->InputNodeHandle = InputNodeHandle;
 				CreatedNodeId = NodeId;
 				return true;
 			}
@@ -4930,9 +4934,9 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 		// Set InputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
 		// (Option changes could mean that InputNodeId is associated with a completely different entry, albeit for
 		// the same asset, in the manager)
-		if (Handle.IsValid())
+		if (InputNodeHandle.IsValid())
 		{
-			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedNodeId))
+			if (!FUnrealObjectInputUtils::GetHAPINodeId(InputNodeHandle, CreatedNodeId))
 				CreatedNodeId = -1;
 		}
 		else
@@ -4942,7 +4946,6 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 	}
 
 	HAPI_NodeId GeoOutId = -1;
-	FUnrealObjectInputHandle InputNodeHandle;
 	bool bSuccess = true;
 	if (InInputSettings.bImportAsReference)
 	{
@@ -4966,36 +4969,51 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 		ParentNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);
 	}
 	else
-	{		
-		if (CreatedNodeId < 0)
+	{	
+		// Clean previously created nodes if needed
+		HAPI_NodeId PreviousInputNodeId = CreatedNodeId;
+		if (PreviousInputNodeId >= 0)
 		{
-			HAPI_Result Result = FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("geo"), TextureName, true, &CreatedNodeId);
-			if (Result != HAPI_RESULT_SUCCESS)
-			{
-				HOUDINI_LOG_WARNING(TEXT("[FHoudiniEngineUtils::CreateInputNode]: CreateNode failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());
-				return false;
-			}
+			HAPI_NodeId PreviousInputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
+			if (FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputNodeId) != HAPI_RESULT_SUCCESS)
+				HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *TextureName);
 
-			if (InInputSettings.bExportMainGeometry)
-			{
-				if (FUnrealTextureTranslator::CreateGeometryForTexture(CreatedNodeId, GeoOutId))
-				{
-					ParentNodeId = CreatedNodeId;
-				}
-			}
-			else
+			if (FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputObjectNodeId) != HAPI_RESULT_SUCCESS)
+				HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input object node for %s."), *TextureName);
+
+			// We've deleted the parent - make sure it exists and updates its ID
+			if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+				FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		}
+
+
+		// Create the geo node that will hold the COPnet and the quad geometry (if needed)
+		HAPI_Result Result = FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("geo"), TextureName, true, &CreatedNodeId);
+		if (Result != HAPI_RESULT_SUCCESS)
+		{
+			HOUDINI_LOG_WARNING(TEXT("[FHoudiniEngineUtils::CreateInputNode]: CreateNode failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());
+			return false;
+		}
+
+		if (InInputSettings.bExportMainGeometry)
+		{
+			// Create a quad with uvs and a coppreview material to "hold" the texture
+			if (FUnrealTextureTranslator::CreateGeometryForTexture(CreatedNodeId, GeoOutId))
 			{
 				ParentNodeId = CreatedNodeId;
 			}
 		}
 		else
 		{
-			ParentNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);
+			ParentNodeId = CreatedNodeId;
 		}
-
+	}
+		// Send the texture to COPs
 		bSuccess = FUnrealTextureTranslator::HapiCreateCOPTexture(
 			InputTexture, CreatedNodeId);
 
+		// Now that the textures has been created, cook the grid
+		// (this helps with visual issues when using session sync)
 		if (GeoOutId >= 0)
 		{
 			FHoudiniEngineUtils::HapiCookNode(GeoOutId);

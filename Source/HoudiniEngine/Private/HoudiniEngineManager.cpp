@@ -119,7 +119,7 @@ FHoudiniEngineManager::StopHoudiniTicking()
 	{
 		if (IsInGameThread())
 		{
-			FTSTicker::GetCoreTicker().RemoveTicker(TickerHandle);			
+			FTSTicker::GetCoreTicker().RemoveTicker(TickerHandle);
 			TickerHandle.Reset();
 
 			// Reset time for delayed notification.
@@ -628,7 +628,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 			}
 			else
 			{
-				// TODO COOKABLE: UPDATE ME! this only suppoRts Cookable with assets...
+				// TODO COOKABLE: UPDATE ME! this only supports Cookable with assets...
 				if (HC->IsHoudiniAssetSupported())
 				{
 					FGuid TaskGuid;
