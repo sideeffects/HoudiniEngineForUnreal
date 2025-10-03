@@ -119,7 +119,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = Settings)
 	bool bAutomaticallyDeleteAssets = true;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Houdini Cookable")
 	TObjectPtr<UHoudiniCookable> Cookable;
 
 	UPROPERTY()
