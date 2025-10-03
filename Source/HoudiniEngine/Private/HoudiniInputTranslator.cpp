@@ -5007,7 +5007,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 		{
 			ParentNodeId = CreatedNodeId;
 		}
-	}
+
 		// Send the texture to COPs
 		bSuccess = FUnrealTextureTranslator::HapiCreateCOPTexture(
 			InputTexture, CreatedNodeId);
