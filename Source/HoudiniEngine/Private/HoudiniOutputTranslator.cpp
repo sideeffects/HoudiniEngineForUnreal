@@ -786,7 +786,9 @@ FHoudiniOutputTranslator::UpdateDataLayersAndLevelInstanceOnOutput(
 
 
 bool
-FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniCookable* HC, bool bInDestroyProxies)
+FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(
+	UHoudiniCookable* HC,
+	bool bInDestroyProxies)
 {
 	if (!IsValid(HC))
 		return false;
@@ -834,14 +836,24 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniCoo
 					HC->GetStaticMeshBuildSettings(),
 					AllOutputMaterials,
 					OuterComponent,
-					true,  // bInTreatExistingMaterialsAsUpToDate
+					true, // bInTreatExistingMaterialsAsUpToDate
 					bInDestroyProxies
 				);  
 			}
 		}
 		else if (OutputType == EHoudiniOutputType::Instancer)
 		{
-			InstancerOutputs.Add(CurOutput);
+			for (auto& CurOutputObject : CurOutput->OutputObjects)
+			{
+				if (CurOutputObject.Value.ProxyComponent != nullptr
+					|| CurOutputObject.Value.ProxyObject != nullptr)
+				{
+					// This is a single instance instancer (a mesh) 
+					// that will need to be rebuilt
+					InstancerOutputs.Add(CurOutput);
+					bFoundProxies = true;
+				}
+			}
 		}
 
 		for (auto& CurMat : CurOutput->AssignmentMaterialsById)
@@ -852,30 +864,32 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(UHoudiniCoo
 		}
 	}
 
-	// Rebuild instancers if we built any static meshes from proxies
-	if (bFoundProxies)
-	{
-		if (bInDestroyProxies)
-		{
-			// We need to destroy the proxies for the instancer outputs before rebuilding the instancer
-			for (auto& CurOutput : InstancerOutputs)
-			{
-				for (auto& CurOutputObject : CurOutput->OutputObjects)
-				{
-					if (CurOutputObject.Value.ProxyComponent)
-						FHoudiniMeshTranslator::RemoveAndDestroyComponent(CurOutputObject.Value.ProxyComponent);
+	// No proxies were found
+	// TODO: Dont return if we found instancers???
+	if (!bFoundProxies || InstancerOutputs.Num() <= 0)
+		return true;
 
-					if (IsValid(CurOutputObject.Value.ProxyObject))
-					{
-						CurOutputObject.Value.ProxyObject->MarkAsGarbage();
-					}
+	// We might need to also rebuild some instancer outputs (single instance instancer)
+	// And we might need to destroy the proxies for the instancer outputs before rebuilding the instancer
+	if (bInDestroyProxies)
+	{
+		for (auto& CurOutput : InstancerOutputs)
+		{
+			for (auto& CurOutputObject : CurOutput->OutputObjects)
+			{
+				if (CurOutputObject.Value.ProxyComponent)
+					FHoudiniMeshTranslator::RemoveAndDestroyComponent(CurOutputObject.Value.ProxyComponent);
+
+				if (IsValid(CurOutputObject.Value.ProxyObject))
+				{
+					CurOutputObject.Value.ProxyObject->MarkAsGarbage();
 				}
 			}
 		}
-
-		// Rebuild the instancers
-		FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(InstancerOutputs, HC->GetOutputs(), OuterComponent, PackageParams);
 	}
+
+	// Rebuild the instancers
+	FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(InstancerOutputs, HC->GetOutputs(), OuterComponent, PackageParams);
 
 	return true;
 }
