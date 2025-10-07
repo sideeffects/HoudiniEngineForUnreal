@@ -34,7 +34,9 @@
 #include "HoudiniSplineComponent.h"
 
 #include "ActorFactories/ActorFactory.h"
-#include "Editor/ActorPositioning.h"
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 3)
+	#include "Editor/ActorPositioning.h"
+#endif
 #include "ComponentVisualizer.h"
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewSceneModule.h"
 #include "Editor/UnrealEd/Public/UnrealWidget.h"
@@ -280,6 +282,8 @@ FHoudiniAssetEditorViewportClient::InputKey(const FInputKeyEventArgs& InEventArg
 		.SetRealtimeUpdate(IsRealtime()));
 
 	FSceneView* View = CalcSceneView(&ViewFamily);
+
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 3)
 	// Compute the click location.
 	if (InputState.IsMouseButtonEvent() && InputState.IsAnyMouseButtonDown())
 	{
@@ -292,6 +296,7 @@ FHoudiniAssetEditorViewportClient::InputKey(const FInputKeyEventArgs& InEventArg
 		// Snap the new location if snapping is enabled
 		FSnappingUtils::SnapPointToGrid(GEditor->ClickLocation, FVector::ZeroVector);
 	}
+#endif
 
 	if (GUnrealEd->ComponentVisManager.HandleInputKey(this, InEventArgs.Viewport, InEventArgs.Key, InEventArgs.Event))
 	{
