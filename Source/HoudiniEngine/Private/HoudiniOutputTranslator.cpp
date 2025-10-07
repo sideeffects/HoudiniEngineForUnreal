@@ -812,9 +812,6 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(
 
 	// Keep track of all generated houdini materials to avoid recreating them over and over
 	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> AllOutputMaterials;
-
-	bool bFoundProxies = false;
-	TArray<UHoudiniOutput*> InstancerOutputs;
 	for(int Idx = 0; Idx < HC->GetNumOutputs(); Idx++)
 	{
 		UHoudiniOutput* CurOutput = HC->GetOutputAt(Idx);
@@ -826,7 +823,6 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(
 		{
 			if (CurOutput->HasAnyCurrentProxy())
 			{
-				bFoundProxies = true;
 				FHoudiniMeshTranslator::CreateAllMeshesAndComponentsFromHoudiniOutput(
 					CurOutput,
 					PackageParams,
@@ -841,20 +837,6 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(
 				);  
 			}
 		}
-		else if (OutputType == EHoudiniOutputType::Instancer)
-		{
-			for (auto& CurOutputObject : CurOutput->OutputObjects)
-			{
-				if (CurOutputObject.Value.ProxyComponent != nullptr
-					|| CurOutputObject.Value.ProxyObject != nullptr)
-				{
-					// This is a single instance instancer (a mesh) 
-					// that will need to be rebuilt
-					InstancerOutputs.Add(CurOutput);
-					bFoundProxies = true;
-				}
-			}
-		}
 
 		for (auto& CurMat : CurOutput->AssignmentMaterialsById)
 		{
@@ -864,32 +846,8 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(
 		}
 	}
 
-	// No proxies were found
-	// TODO: Dont return if we found instancers???
-	if (!bFoundProxies || InstancerOutputs.Num() <= 0)
-		return true;
-
-	// We might need to also rebuild some instancer outputs (single instance instancer)
-	// And we might need to destroy the proxies for the instancer outputs before rebuilding the instancer
-	if (bInDestroyProxies)
-	{
-		for (auto& CurOutput : InstancerOutputs)
-		{
-			for (auto& CurOutputObject : CurOutput->OutputObjects)
-			{
-				if (CurOutputObject.Value.ProxyComponent)
-					FHoudiniMeshTranslator::RemoveAndDestroyComponent(CurOutputObject.Value.ProxyComponent);
-
-				if (IsValid(CurOutputObject.Value.ProxyObject))
-				{
-					CurOutputObject.Value.ProxyObject->MarkAsGarbage();
-				}
-			}
-		}
-	}
-
-	// Rebuild the instancers
-	FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(InstancerOutputs, HC->GetOutputs(), OuterComponent, PackageParams);
+	// Bug: 150419
+	// No need to recreate instancers when refining proxy meshes.
 
 	return true;
 }
