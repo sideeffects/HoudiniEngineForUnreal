@@ -286,7 +286,11 @@ FHoudiniAssetEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& In
 		.SetDisplayName(LOCTEXT("PreviewSceneTab", "Preview Scene Settings"))
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Details"))
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 3)
 		.SetReadOnlyBehavior(ETabReadOnlyBehavior::Custom);
+#else
+		;
+#endif
 }
 
 void 
