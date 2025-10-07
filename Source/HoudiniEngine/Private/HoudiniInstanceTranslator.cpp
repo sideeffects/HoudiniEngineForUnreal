@@ -150,6 +150,7 @@ FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutputs(
 	{
 		if (Output->GetType() != EHoudiniOutputType::Instancer)
 			continue;
+
 		bool bSuccess = FHoudiniInstanceTranslator::CreateAllInstancersFromHoudiniOutput(
 			Output,
 			InAllOutputs,
