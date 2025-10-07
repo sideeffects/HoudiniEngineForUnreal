@@ -448,7 +448,7 @@ public:
 	TArray<TSharedPtr<FHoudiniTestContext>> Contexts;
 };
 
-
+#if WITH_DEV_AUTOMATION_TESTS
 class FHoudiniLatentTestCommand : public FFunctionLatentCommand
 {
 public:
@@ -471,8 +471,4 @@ public:
 
 	bool CheckForCookingComplete(FHoudiniTestContext* Context);
 };
-
-
-#if WITH_DEV_AUTOMATION_TESTS
-
 #endif
