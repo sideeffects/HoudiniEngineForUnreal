@@ -28,6 +28,7 @@
 #include "HoudiniEngine.h"
 #include "HoudiniPDGAssetLink.h"
 #include "Misc/OutputDeviceRedirector.h"
+#include "HoudiniCookable.h"
 
 void FHoudiniEngineStatusManager::OnSessionLost()
 {
