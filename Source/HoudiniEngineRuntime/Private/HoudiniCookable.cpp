@@ -53,6 +53,7 @@
 #include "InstancedFoliageActor.h"
 #include "LevelInstance/LevelInstanceSubsystem.h"
 #include "TimerManager.h"
+#include "HoudiniStatusManager.h"
 
 UHoudiniParameter*
 UCookableParameterData::FindMatchingParameter(UHoudiniParameter* InOtherParam)
@@ -764,6 +765,11 @@ UHoudiniCookable::SetCurrentState(EHoudiniAssetState InNewState)
 {
 	const EHoudiniAssetState OldState = CurrentState;
 	CurrentState = InNewState;
+
+	if(InNewState == EHoudiniAssetState::PreCook || InNewState == EHoudiniAssetState::PreInstantiation)
+	{
+		FHoudiniStatusManager::Get()->StartCooking(this);
+	}
 
 #if WITH_EDITOR
 	IHoudiniEditorAssetStateSubsystemInterface* const EditorSubsystem = IHoudiniEditorAssetStateSubsystemInterface::Get();

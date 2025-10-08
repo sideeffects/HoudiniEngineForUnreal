@@ -188,7 +188,7 @@ FHoudiniTestContext::StartCookingSelectedTOPNetwork()
 		return;
 	});
 
-	FHoudiniPDGManager::CookOutput(TopNetwork);
+	FHoudiniPDGManager::CookOutput(HC, TopNetwork);
 
 	this->PDGState = EHoudiniContextState::Cooking;
 

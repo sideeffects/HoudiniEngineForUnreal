@@ -172,7 +172,7 @@ public:
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, 
 		EHoudiniDetailsFlags DetailsFlags);
 
-	static FReply ShowCookLog(const TArray<HAPI_NodeId>& InNodeIds);
+	static FReply ShowCookLog(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
 
 	static FReply ShowAssetHelp(HAPI_NodeId InNodeId);
 
@@ -204,7 +204,7 @@ public:
 		TFunction<const FSlateBrush*(SButton* InExpanderArrow)>& InGetExpanderBrush);
 
 	// Adds a text row that indicate the status of the Houdini Session
-	static void AddSessionStatusRow(IDetailCategoryBuilder& InCategory);
+	static void AddSessionStatusRow(IDetailCategoryBuilder& InCategory, const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables);
 
 	static bool GetSessionStatusAndColor(FString& OutStatusString, FLinearColor& OutStatusColor);
 
