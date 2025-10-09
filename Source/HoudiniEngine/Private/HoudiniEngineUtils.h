@@ -163,7 +163,7 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Return the errors, warning and messages on a specified node
 		static const FString GetNodeErrorsWarningsAndMessages(HAPI_NodeId InNodeId);
 
-		static const FString GetCookLog(const TArray<HAPI_NodeId>& InNodeIds);
+		static const FString GetCookLog(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
 
 		static const FString GetAssetHelp(HAPI_NodeId InNodeId);
 

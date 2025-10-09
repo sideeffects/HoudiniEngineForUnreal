@@ -562,9 +562,11 @@ FHoudiniPDGManager::DirtyAll(UTOPNetwork* InTOPNet)
 
 
 bool
-FHoudiniPDGManager::CookOutput(UTOPNetwork* InTOPNet)
+FHoudiniPDGManager::CookOutput(UHoudiniCookable* InHC,  UTOPNetwork* InTOPNet)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniPDGManager::CookOutput);
+
+	FHoudiniStatusManager::Get()->StartPDG(InHC);
 
 	// Cook the output TOP node of the currently selected TOP network.
 	//WorkItemTally.ZeroAll();
@@ -832,7 +834,6 @@ FHoudiniPDGManager::ReinitializePDGContext()
 void
 FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, HAPI_PDG_EventInfo& EventInfo)
 {
-	UHoudiniPDGAssetLink* PDGAssetLink = nullptr;
 	UTOPNetwork* TOPNetwork = nullptr;
 	UTOPNode* TOPNode = nullptr;
 
@@ -845,8 +846,10 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 	const FString CurrentWorkItemStateName = FHoudiniEngineUtils::HapiGetWorkItemStateAsString(CurrentWorkItemState);
 	const FString LastWorkItemStateName = FHoudiniEngineUtils::HapiGetWorkItemStateAsString(LastWorkItemState);
 
-	if(!GetTOPAssetLinkNetworkAndNode(EventInfo.nodeId, PDGAssetLink, TOPNetwork, TOPNode)
-		|| !IsValid(PDGAssetLink) || !IsValid(TOPNetwork) || !IsValid(TOPNode))
+	UHoudiniCookable* Cookable = nullptr;
+
+	if(!GetTOPAssetLinkNetworkAndNode(EventInfo.nodeId, Cookable, TOPNetwork, TOPNode)
+		|| !IsValid(Cookable) || !IsValid(TOPNetwork) || !IsValid(TOPNode))
 	{
 		// Prevent PDG warning spam
 		if ((EventInfo.workItemId != -1) && (EventInfo.nodeId != -1))
@@ -854,6 +857,8 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 
 		return;
 	}
+
+	UHoudiniPDGAssetLink* PDGAssetLink = Cookable->GetPDGAssetLink();
 
 	HOUDINI_PDG_MESSAGE(
 		TEXT("[ProcessPDGEvent]: TOPNode: %s, WorkItem ID: %d, Event Type: %s, Current State: %s, Last State %s"),
@@ -894,6 +899,7 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 
 		case HAPI_PDG_EVENT_COOK_COMPLETE:
 			SetTOPNodePDGState(PDGAssetLink, TOPNode, EPDGNodeState::Cook_Complete);
+			FHoudiniStatusManager::Get()->EndPDG(Cookable, true);
 			TOPNode->HandleOnPDGEventCookComplete();
 			TOPNetwork->HandleOnPDGEventCookCompleteReceivedByChildNode(PDGAssetLink, TOPNode);
 			break;
@@ -1087,32 +1093,33 @@ FHoudiniPDGManager::ResetPDGEventInfo(HAPI_PDG_EventInfo& InEventInfo)
 
 bool
 FHoudiniPDGManager::GetTOPAssetLinkNetworkAndNode(
-	const HAPI_NodeId& InNodeID, UHoudiniPDGAssetLink*& OutAssetLink, UTOPNetwork*& OutTOPNetwork, UTOPNode*& OutTOPNode)
+	const HAPI_NodeId& InNodeID, UHoudiniCookable*& OutCookable, UTOPNetwork*& OutTOPNetwork, UTOPNode*& OutTOPNode)
 {	
 	// Returns the PDGAssetLink and FTOPNode data associated with this TOP node ID
-	OutAssetLink = nullptr;
+	OutCookable = nullptr;
 	OutTOPNetwork = nullptr;
 	OutTOPNode = nullptr;
-	for (TWeakObjectPtr<UHoudiniPDGAssetLink>& CurAssetLinkPtr : PDGAssetLinks)
+
+	int CookableCount = FHoudiniEngineRuntime::Get().GetRegisteredHoudiniCookableCount();
+	for(int nIdx = 0; nIdx < CookableCount; nIdx++)
 	{
-		if (!CurAssetLinkPtr.IsValid() || CurAssetLinkPtr.IsStale())
+		UHoudiniCookable* CurrentCookable = FHoudiniEngineRuntime::Get().GetRegisteredHoudiniCookableAt(nIdx);
+		UHoudiniPDGAssetLink* AssetLink = CurrentCookable->GetPDGAssetLink();
+		if(!AssetLink)
 			continue;
 
-		UHoudiniPDGAssetLink* CurAssetLink = CurAssetLinkPtr.Get();
-		if (!IsValid(CurAssetLink))
-			continue;
-
-		if (CurAssetLink->GetTOPNodeAndNetworkByNodeId((int32)InNodeID, OutTOPNetwork, OutTOPNode))
+		if(AssetLink->GetTOPNodeAndNetworkByNodeId((int32)InNodeID, OutTOPNetwork, OutTOPNode))
 		{
-			if (OutTOPNetwork != nullptr && OutTOPNode != nullptr)
+			if(OutTOPNetwork != nullptr && OutTOPNode != nullptr)
 			{
-				OutAssetLink = CurAssetLink;
+				OutCookable = CurrentCookable;
 				return true;
 			}
 		}
+
 	}
 
-	OutAssetLink = nullptr;
+	OutCookable = nullptr;
 	OutTOPNetwork = nullptr;
 	OutTOPNode = nullptr;
 
@@ -1307,28 +1314,33 @@ FHoudiniPDGManager::RefreshPDGAssetLinkUI(UHoudiniPDGAssetLink* InAssetLink)
 }
 
 void
-FHoudiniPDGManager::NotifyAssetCooked(UHoudiniPDGAssetLink* InAssetLink, const bool& bSuccess)
+FHoudiniPDGManager::NotifyAssetCooked(UHoudiniCookable* InHC, const bool& bSuccess)
 {
-	if (!IsValid(InAssetLink))
+
+	if (!IsValid(InHC))
+		return;
+
+	UHoudiniPDGAssetLink* AssetLink = InHC->GetPDGAssetLink();
+	if(!IsValid(AssetLink))
 		return;
 
 	if (bSuccess)
 	{
-		if (InAssetLink->LinkState == EPDGLinkState::Linked)
+		if (AssetLink->LinkState == EPDGLinkState::Linked)
 		{
-			if (InAssetLink->bAutoCook)
+			if (AssetLink->bAutoCook)
 			{
-				FHoudiniPDGManager::CookOutput(InAssetLink->GetSelectedTOPNetwork());
+				FHoudiniPDGManager::CookOutput(InHC, AssetLink->GetSelectedTOPNetwork());
 			}
 		}
 		else
 		{
-			UpdatePDGAssetLink(InAssetLink);
+			UpdatePDGAssetLink(AssetLink);
 		}
 	}
 	else
 	{
-		InAssetLink->LinkState = EPDGLinkState::Error_Not_Linked;
+		AssetLink->LinkState = EPDGLinkState::Error_Not_Linked;
 	}
 }
 
@@ -1828,15 +1840,17 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 		InMessage.PopulatePackageParams(PackageParams);
 
 		// Find asset link and work result object
-		UHoudiniPDGAssetLink *AssetLink = nullptr;
+		UHoudiniCookable* Cookable = nullptr;
 		UTOPNetwork *TOPNetwork = nullptr;
 		UTOPNode *TOPNode = nullptr;
-		if (!GetTOPAssetLinkNetworkAndNode(InMessage.TOPNodeId, AssetLink, TOPNetwork, TOPNode) ||
-			!IsValid(AssetLink) || !IsValid(TOPNode))
+		if (!GetTOPAssetLinkNetworkAndNode(InMessage.TOPNodeId, Cookable, TOPNetwork, TOPNode) ||
+			!IsValid(Cookable) || !IsValid(TOPNode))
 		{
 			HOUDINI_LOG_WARNING(TEXT("Failed to find TOP node with id %d, aborting output object creation."), InMessage.TOPNodeId);
 			return;
 		}
+
+		UHoudiniPDGAssetLink* AssetLink = Cookable->GetPDGAssetLink();
 
 		FTOPWorkResult* WorkResult = nullptr;
 		const int32 WorkResultArrayIndex = TOPNode->ArrayIndexOfWorkResultByID(InMessage.WorkItemId);

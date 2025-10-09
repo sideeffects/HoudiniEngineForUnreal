@@ -292,6 +292,8 @@ FHoudiniEngineUtils::GetStatusString(HAPI_StatusType status_type, HAPI_StatusVer
 		// Let FHoudiniEngine know that the sesion is now invalid to "Stop" the invalid session
 		// and clean things up
 		FHoudiniEngine::Get().OnSessionLost();
+		if (FHoudiniStatusManager::Get())
+			FHoudiniStatusManager::Get()->OnSessionLost();
 	}
 
 	if (StatusBufferLength > 0)
@@ -406,27 +408,43 @@ FHoudiniEngineUtils::GetNodeErrorsWarningsAndMessages(HAPI_NodeId InNodeId)
 }
 
 const FString
-FHoudiniEngineUtils::GetCookLog(const TArray<HAPI_NodeId>& InNodeIds)
+FHoudiniEngineUtils::GetCookLog(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs)
 {
+	TArray<HAPI_NodeId> NodeIds;
+	NodeIds.SetNum(InHCs.Num());
+	for(int32 Idx = 0; Idx < InHCs.Num(); Idx++)
+		NodeIds[Idx] = InHCs[Idx].Get() ? InHCs[Idx].Get()->GetNodeId() : -1;
+
 	FString CookLog;
 
 	// Get fetch cook status.
 	FString CookResult = FHoudiniEngineUtils::GetCookResult();
 	if (!CookResult.IsEmpty())
-		CookLog += TEXT("Cook Results:\n") + CookResult + TEXT("\n\n");
+		CookLog += TEXT("Houdini Cook Results:\n") + CookResult + TEXT("\n\n");
 
 	// Add the cook state
 	FString CookState = FHoudiniEngineUtils::GetCookState();
 	if (!CookState.IsEmpty())
-		CookLog += TEXT("Cook State:\n") + CookState + TEXT("\n\n");
+		CookLog += TEXT("Houdini Cook State:\n") + CookState + TEXT("\n\n");
 
 	// Error Description
 	FString Error = FHoudiniEngineUtils::GetErrorDescription();
 	if (!Error.IsEmpty())
-		CookLog += TEXT("Error Description:\n") + Error + TEXT("\n\n");
+		CookLog += TEXT("Houdini Error Description:\n") + Error + TEXT("\n\n");
+
+	CookLog += TEXT("Plugin Errors:\n");
+	FString Errors = FHoudiniStatusManager::Get()->GetLogs(InHCs);
+	if(!Errors.IsEmpty())
+	{
+		CookLog += Errors;
+	}
+	else
+	{
+		CookLog += TEXT("None.");
+	}
 
 	// Iterates on all the selected HAC and get their node errors
-	for (auto& NodeId : InNodeIds)
+	for (auto& NodeId : NodeIds)
 	{
 		if (NodeId < 0)
 			continue;

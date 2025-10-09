@@ -90,6 +90,7 @@
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/SRichTextBlock.h"
+#include "HoudiniEngineStatusManager.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -2119,9 +2120,9 @@ FHoudiniEngineDetails::CreateHelpAndDebugWidgets(
 	for (int32 Idx = 0; Idx < InHCs.Num(); Idx++)
 		InNodeIds[Idx] = InHCs[Idx].Get() ? InHCs[Idx].Get()->GetNodeId() : -1;
 
-	auto OnFetchCookLogButtonClickedLambda = [InNodeIds]()
+	auto OnFetchCookLogButtonClickedLambda = [InHCs]()
 	{
-		return ShowCookLog(InNodeIds);
+		return ShowCookLog(InHCs);
 	};
 
 	auto OnHelpButtonClickedLambda = [MainNodeId]()
@@ -2817,10 +2818,10 @@ FHoudiniEngineDetails::OnGetHoudiniAssetMenuContent(TArray<UHoudiniAssetComponen
 */
 
 FReply
-FHoudiniEngineDetails::ShowCookLog(const TArray<HAPI_NodeId>& InNodeIds)
+FHoudiniEngineDetails::ShowCookLog(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs)
 {
 	TSharedPtr< SWindow > ParentWindow;
-	const FString CookLog = FHoudiniEngineUtils::GetCookLog(InNodeIds);
+	const FString CookLog = FHoudiniEngineUtils::GetCookLog(InHCs);
 
 	// Check if the main frame is loaded. When using the old main frame it may not be.
 	if (FModuleManager::Get().IsModuleLoaded("MainFrame"))
@@ -3207,8 +3208,39 @@ FHoudiniEngineDetails::AddEducationLicenseRow(IDetailCategoryBuilder& InCategory
 
 
 void
-FHoudiniEngineDetails::AddSessionStatusRow(IDetailCategoryBuilder& InCategory)
+FHoudiniEngineDetails::AddSessionStatusRow(IDetailCategoryBuilder& InCategory, const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
 {
+	auto OnClickedStatus = [InCookables]()
+		{
+			const FModifierKeysState ModifierKeys = FSlateApplication::Get().GetModifierKeys();
+			const bool bIsControlDown = ModifierKeys.IsControlDown();
+
+			if(!bIsControlDown)
+			{
+				UHoudiniCookable* Cookable = nullptr;
+				if(!InCookables.IsEmpty() && InCookables[0].IsValid())
+				{
+					Cookable = InCookables[0].Get();
+				}
+
+				return ShowCookLog(InCookables);
+
+			}
+			else
+			{
+				FName OutputLogTabName = FName("OutputLog");
+
+				TSharedPtr<FTabManager> TabManager = FGlobalTabmanager::Get();
+				if(TabManager.IsValid())
+				{
+					// Try to invoke (open if closed, focus if open)
+					TabManager->TryInvokeTab(OutputLogTabName);
+				}
+			}
+
+			return FReply::Handled();
+		};
+
 	FDetailWidgetRow& SessionStatusRow = InCategory.AddCustomRow(FText::FromString("Session Status"))
 		.WholeRowContent()
 		[
@@ -3219,21 +3251,38 @@ FHoudiniEngineDetails::AddSessionStatusRow(IDetailCategoryBuilder& InCategory)
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				[
-					SNew(STextBlock)
-						.Text_Lambda([]()
-							{
-								FString StatusString;
-								FLinearColor StatusColor;
-								GetSessionStatusAndColor(StatusString, StatusColor);
-								return FText::FromString(StatusString);
-							})
-						.ColorAndOpacity_Lambda([]()
-							{
-								FString StatusString;
-								FLinearColor StatusColor;
-								GetSessionStatusAndColor(StatusString, StatusColor);
-								return FSlateColor(StatusColor);
-							})
+					SNew(SButton)
+					.ButtonStyle(FAppStyle::Get(), "NoBorder")
+					.OnClicked_Lambda(OnClickedStatus)
+						[
+							SNew(STextBlock)
+								.Text_Lambda([InCookables]()
+									{
+										UHoudiniCookable* Cookable = nullptr;
+										if(!InCookables.IsEmpty() && InCookables[0].IsValid())
+										{
+											Cookable = InCookables[0].Get();
+										}
+
+										FString StatusString;
+										FLinearColor StatusColor;
+										FHoudiniEngineStatusManager::Get()->GetSessionStatusAndColor(Cookable, StatusString, StatusColor);
+										return FText::FromString(StatusString);
+									})
+								.ColorAndOpacity_Lambda([InCookables]()
+									{
+										UHoudiniCookable* Cookable = nullptr;
+										if(!InCookables.IsEmpty() && InCookables[0].IsValid())
+										{
+											Cookable = InCookables[0].Get();
+										}
+
+										FString StatusString;
+										FLinearColor StatusColor;
+										FHoudiniEngineStatusManager::Get()->GetSessionStatusAndColor(Cookable, StatusString, StatusColor);
+										return FSlateColor(StatusColor);
+									})
+						]
 				]
 		];
 }

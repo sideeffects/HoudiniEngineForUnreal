@@ -61,30 +61,22 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 	public:
 
 		void CreateWidget(
-			IDetailCategoryBuilder & HouPDGCategory,
-			const TWeakObjectPtr<UHoudiniPDGAssetLink>&& InPDGAssetLink,
-			bool bIsPDG);
-			//UHoudiniAssetComponent* InHAC);
+			IDetailCategoryBuilder & HouPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
-		void AddPDGAssetWidget(
-			IDetailCategoryBuilder& InPDGCategory, 
-			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink,
-			bool bIsPDG);
+		void AddPDGAssetWidget(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
 		void AddWorkItemStatusWidget(
 			FDetailWidgetRow& InRow, const FString& TitleString, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InAssetLink, bool bInForSelectedNode);
 
-		void AddPDGAssetStatus(
-			IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
+		void AddPDGAssetStatus(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
 		void AddPDGCommandletStatus(
 			IDetailCategoryBuilder& InPDGCategory, const EHoudiniBGEOCommandletStatus& InCommandletStatus);
 
 		void AddTOPNetworkWidget(
-			IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, bool bISPCG);
+			IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
-		void AddTOPNodeWidget(
-			IDetailGroup& InGroup, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, bool bIsPCG);
+		void AddTOPNodeWidget(IDetailGroup& InGroup, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
 		static void RefreshPDGAssetLink(
 			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
@@ -92,8 +84,7 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 		static void RefreshUI(
 			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, const bool& InFullUpdate = true);
 
-		static void 
-			CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, bool bIsPCG);
+		static void CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 	protected:
 		// Helper function for getting the work item tally and color
 		static bool GetWorkItemTallyValueAndColor(

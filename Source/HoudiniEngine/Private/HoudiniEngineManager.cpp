@@ -41,6 +41,7 @@
 #include "HoudiniOutputTranslator.h"
 #include "HoudiniHandleTranslator.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
+#include "HoudiniEngineStatusManager.h"
 
 #include "Misc/MessageDialog.h"
 #include "Misc/ScopedSlowTask.h"
@@ -466,6 +467,8 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessCookable);
 
+	FHoudiniStatusManagerHandle Resource(HC);
+
 	if (!IsValid(HC))
 		return;
 
@@ -783,11 +786,13 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 			{
 				// Cook was successful, process the results
 				NewState = EHoudiniAssetState::PreProcess;
+				FHoudiniEngineStatusManager::Get()->EndCooking(HC, true);
 			}
 			else
 			{
 				// Cook failed, skip output processing
 				NewState = EHoudiniAssetState::None;
+				FHoudiniEngineStatusManager::Get()->EndCooking(HC, false);
 			}
 			HC->SetCurrentState(NewState);
 			break;
@@ -842,8 +847,10 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 
 				// Update the HAC's state
 				// Cook for valid nodes - instantiate for invalid nodes
-				if (FHoudiniEngineUtils::IsHoudiniNodeValid(HC->GetNodeId()))
+				if(FHoudiniEngineUtils::IsHoudiniNodeValid(HC->GetNodeId()))
+				{
 					HC->SetCurrentState(EHoudiniAssetState::PreCook);
+				}
 				else
 				{
 					// Mark as "NeedCook" first to make sure we preserve/upload all params/inputs
@@ -887,7 +894,6 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 							{
 								// The cook count has changed on the Houdini side,
 								// this indicates that the user has changed something in Houdini so we need to trigger an update
-								HC->SetCurrentState(EHoudiniAssetState::PreCook);
 								// Make sure to update the cookcount to prevent loop cooking
 								HC->CookCount = CookCount;
 							}
@@ -901,6 +907,9 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 		case EHoudiniAssetState::NeedRebuild:
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessCookable - NeedRebuild);
+
+			FHoudiniEngineStatusManager::Get()->StartCooking(HC);
+
 			if(HC->IsParameterSupported() && HC->GetNodeId() >= 0)
 			{
 				// Make sure no parameters are changed before getting the preset
@@ -1296,7 +1305,7 @@ FHoudiniEngineManager::UpdateCooking(
 		case EHoudiniEngineTaskState::FinishedWithError:
 		{
 			// We finished with cook error, will still try to process the results
-			HOUDINI_LOG_MESSAGE(TEXT("   %s FinishedCooking with errors - will try to process the available results."), *DisplayName);
+			HOUDINI_LOG_WARNING(TEXT("   %s FinishedCooking with errors - will try to process the available results."), *DisplayName);
 			OutSuccess = true;
 			bUpdateState = true;
 		}
@@ -1581,7 +1590,7 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		}
 
 		// Notify the PDG manager that the HDA is done cooking
-		FHoudiniPDGManager::NotifyAssetCooked(HC->PDGData->PDGAssetLink, HC->bLastCookSuccess);
+		FHoudiniPDGManager::NotifyAssetCooked(HC, HC->bLastCookSuccess);
 	}
 
 
