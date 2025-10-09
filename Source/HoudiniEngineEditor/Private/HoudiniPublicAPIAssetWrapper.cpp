@@ -3292,7 +3292,7 @@ UHoudiniPublicAPIAssetWrapper::PDGCookOutputsForNetwork_Implementation(const FSt
 	if (!GetValidTOPNetworkByPathWithError(InNetworkRelativePath, NetworkIndex, TOPNet))
 		return false;
 
-	return FHoudiniPDGManager::CookOutput(GetHoudiniCookable(), TOPNet);
+	return FHoudiniPDGManager::CookOutput(TOPNet);
 }
 
 bool

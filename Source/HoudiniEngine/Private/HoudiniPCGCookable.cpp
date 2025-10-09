@@ -50,7 +50,6 @@
 #include "HoudiniFoliageTools.h"
 #include "Materials/Material.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
-#include "HoudiniEngineStatusManager.h"
 #include "Landscape.h"
 
 #define LOCTEXT_NAMESPACE "PCGCachedCookable"
@@ -715,7 +714,7 @@ UHoudiniPCGCookable::StartCook()
 		if(IsValid(TOPNetwork))
 		{
 			FHoudiniPDGManager::DirtyAll(TOPNetwork);
-			FHoudiniPDGManager::CookOutput(Cookable, TOPNetwork);
+			FHoudiniPDGManager::CookOutput(TOPNetwork);
 		}
 	}
 	else

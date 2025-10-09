@@ -29,8 +29,6 @@
 #include "CoreMinimal.h"
 #include "Logging/LogMacros.h"
 #include "Runtime/Launch/Resources/Version.h"
-#include "HoudiniEngineRuntimePrivatePCH.h"
-#include "HoudiniStatusManager.h"
 
 // Define module names.
 #define HOUDINI_MODULE "HoudiniEngine"
@@ -112,10 +110,10 @@ HOUDINIENGINEEDITOR_API DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineEditor, Log,
 			HOUDINI_LOG_HELPER( Fatal, HOUDINI_LOG_TEXT, ##__VA_ARGS__ )
 
 	#define HOUDINI_LOG_ERROR( HOUDINI_LOG_TEXT, ... ) \
-			{ FHoudiniStatusManager::ErrorLog(HOUDINI_LOG_TEXT, ##__VA_ARGS__); HOUDINI_LOG_HELPER( Error, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ); }
+			HOUDINI_LOG_HELPER( Error, HOUDINI_LOG_TEXT, ##__VA_ARGS__ )
 
 	#define HOUDINI_LOG_WARNING( HOUDINI_LOG_TEXT, ... ) \
-			{ FHoudiniStatusManager::WarningLog(HOUDINI_LOG_TEXT, ##__VA_ARGS__); HOUDINI_LOG_HELPER( Warning, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ); }
+			HOUDINI_LOG_HELPER( Warning, HOUDINI_LOG_TEXT, ##__VA_ARGS__ )
 
 	#define HOUDINI_LOG_DISPLAY( HOUDINI_LOG_TEXT, ... ) \
 			HOUDINI_LOG_HELPER( Display, HOUDINI_LOG_TEXT, ##__VA_ARGS__ )

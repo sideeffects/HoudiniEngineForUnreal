@@ -80,8 +80,8 @@ bool FHoudiniEditorTestsProxyMeshVertices::RunTest(const FString& Parameters)
 		auto Errors = FHoudiniEditorUnitTestMeshUtils::CheckMesh(ExpectedMeshData , ActualData);
 
 		HOUDINI_TEST_EQUAL(Errors.Num(), 0);
-		for(FString Msg : Errors)
-			HOUDINI_LOG_ERROR(TEXT("Mesh Error: %s"), *Msg);
+		for(auto & Error : Errors)
+			HOUDINI_LOG_ERROR(TEXT("Mesh Error: %s"), *Error);
 
 		return true;
 	}));

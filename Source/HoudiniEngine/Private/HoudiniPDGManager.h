@@ -105,7 +105,7 @@ public:
 	static void DirtyAll(UTOPNetwork* InTOPNet);
 
 	// Cook the output TOP node of the currently selected TOP network.
-	static bool CookOutput(UHoudiniCookable* HC, UTOPNetwork* InTOPNet);
+	static bool CookOutput(UTOPNetwork* InTOPNet);
 
 	// Pause the PDG cook of the currently selected TOP network
 	static void PauseCook(UTOPNetwork* InTOPNet);
@@ -113,7 +113,7 @@ public:
 	// Cancel the PDG cook of the currently selected TOP network
 	static void CancelCook(UTOPNetwork* InTOPNet);
 
-	static void NotifyAssetCooked(UHoudiniCookable* InHC, const bool& bSuccess);
+	static void NotifyAssetCooked(UHoudiniPDGAssetLink* InAssetLink, const bool& bSuccess);
 
 	// Update all registered PDG Asset links
 	void Update();
@@ -176,7 +176,7 @@ private:
 	static void ResetPDGEventInfo(HAPI_PDG_EventInfo& InEventInfo);
 
 	// Returns the PDGAssetLink and FTOPNode associated with this TOP node ID
-	bool GetTOPAssetLinkNetworkAndNode(const HAPI_NodeId& InNodeID, UHoudiniCookable*& OutCookable, UTOPNetwork*& OutTOPNetwork, UTOPNode*& OutTOPNode);
+	bool GetTOPAssetLinkNetworkAndNode(const HAPI_NodeId& InNodeID, UHoudiniPDGAssetLink*& OutAssetLink, UTOPNetwork*& OutTOPNetwork, UTOPNode*& OutTOPNode);
 
 	void SetTOPNodePDGState(UHoudiniPDGAssetLink* InPDGAssetLink, UTOPNode* InTOPNode, const EPDGNodeState& InPDGState);
 

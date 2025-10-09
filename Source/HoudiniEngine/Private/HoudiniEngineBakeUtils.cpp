@@ -292,9 +292,6 @@ FHoudiniEngineBakeUtils::BakeCookable(
 	if (!IsValid(InCookableToBake))
 		return false;
 
-	FHoudiniStatusManager::Get()->SetActiveCookable(InCookableToBake);
-	FHoudiniStatusManager::Get()->StartBaking(InCookableToBake);
-
 	// Handle proxies: if the output has any current proxies, first refine them
 	bool bNeedsToReCook;
 	if (!CheckForAndRefineHoudiniProxyMesh(InCookableToBake, BakeSettings.bReplaceActors, InBakeOption, bInRemoveHACOutputOnSuccess, BakeSettings.bRecenterBakedActors, bNeedsToReCook))
@@ -329,9 +326,7 @@ FHoudiniEngineBakeUtils::BakeCookable(
 	{
 		FHoudiniOutputTranslator::ClearAndRemoveOutputs(InCookableToBake->GetOutputs(), EHoudiniClearFlags::EHoudiniClear_Actors);
 	}
-
-	FHoudiniStatusManager::Get()->EndBaking(InCookableToBake, bSuccess);
-
+	
 	return bSuccess;
 }
 

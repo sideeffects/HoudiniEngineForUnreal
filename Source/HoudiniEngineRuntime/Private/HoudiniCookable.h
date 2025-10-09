@@ -439,7 +439,7 @@ public:
 	UCookableInputData* GetInputData() { return IsInputSupported() ? InputData : nullptr; };
 	UCookableOutputData* GetOutputData() { return IsOutputSupported() ? OutputData : nullptr;};
 	UCookableComponentData* GetComponentData() { return IsComponentSupported() ? ComponentData : nullptr; };
-	UCookablePDGData* GetPDGData() const { return IsPDGSupported() ? PDGData : nullptr; };
+	UCookablePDGData* GetPDGData() { return IsPDGSupported() ? PDGData : nullptr; };
 	UCookableBakingData* GetBakingData() { return IsBakingSupported() ? BakingData : nullptr; };
 	UCookableProxyData* GetProxyData() { return IsProxySupported() ? ProxyData : nullptr; };
 

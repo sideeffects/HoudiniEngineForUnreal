@@ -67,7 +67,6 @@
 #include "UObject/ObjectMacros.h"
 
 #include "HoudiniEngineEditorPrivatePCH.h"
-#include "HoudiniEngineStatusManager.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -318,7 +317,7 @@ FHoudiniCookableDetails::CreateHoudiniEngineDetails(
 	//HoudiniEngineDetails->CreateHoudiniEngineActionWidget(HouEngineCategory, InCookables);
 
 	// Houdini Engine Session Status
-	HoudiniEngineDetails->AddSessionStatusRow(HouEngineCategory, InCookables);
+	HoudiniEngineDetails->AddSessionStatusRow(HouEngineCategory);
 
 	// Create Generate Category. If not, just so "Reset Parameters" button.
 	if(DetailsFlags.bGenerateBar)
@@ -405,7 +404,7 @@ FHoudiniCookableDetails::CreatePDGDetails(
 		FHoudiniEngineDetails::AddEducationLicenseRow(HouPDGCategory);
 
 	// TODO: Handle multi selection ?
-	PDGDetails->CreateWidget(HouPDGCategory, MainCookable);
+	PDGDetails->CreateWidget(HouPDGCategory, HPDGAL, MainCookable->GetIsPCG());
 }
 
 void

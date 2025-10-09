@@ -56,7 +56,6 @@
 #include "Logging/LogMacros.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Misc/FileHelper.h"
-#include "HoudiniEngineStatusManager.h"
 
 #if WITH_EDITOR
 	#include "Widgets/Notifications/SNotificationList.h"
@@ -146,8 +145,6 @@ FHoudiniEngine::StartupModule()
 			HOUDINI_LOG_MESSAGE(TEXT("Failed locating or loading %s"), *LibHAPIName);
 		}
 	}
-
-	FHoudiniEngineStatusManager::Initialize();
 
 	// Create static mesh Houdini logo.
 	HoudiniLogoStaticMesh = LoadObject<UStaticMesh>(
