@@ -363,7 +363,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 		FText Tooltip = FText::FromString(TEXT("When enabled, the Work Item Output Files created for the TOP Nodes found in the current network that start with the filter prefix will be automatically loaded int the world after being cooked."));
 		auto ChangeTOPOutputFilter = [InPDGAssetLink](const FString& NewValue)
 		{
-			if (IsValidWeakPointer(InPDGAssetLink))
+			if (!IsValidWeakPointer(InPDGAssetLink))
 				return;
 			
 			if (InPDGAssetLink->TOPOutputFilter.Equals(NewValue))

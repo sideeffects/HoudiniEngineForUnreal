@@ -2146,7 +2146,12 @@ FOutputActorOwner::CreateOutputActor(UWorld* InWorld, UHoudiniPDGAssetLink* InAs
 	}
 	
 	RootComponent->SetVisibility(true);
-	RootComponent->SetMobility(EComponentMobility::Static);
+
+	// If we have a parent actor, set mobility to Movable (or it won't work!)
+	if (InParentActor)
+		RootComponent->SetMobility(EComponentMobility::Movable);
+	else
+		RootComponent->SetMobility(EComponentMobility::Static);
 
 	const FVector ActorSpawnLocation = InParentActor ? InParentActor->GetActorLocation() : FVector::ZeroVector;
 	const FRotator ActorSpawnRotator = InParentActor ? InParentActor->GetActorRotation() : FRotator::ZeroRotator;
