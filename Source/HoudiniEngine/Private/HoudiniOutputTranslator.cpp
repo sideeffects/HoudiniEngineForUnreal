@@ -638,6 +638,12 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 				break;
 			}
 
+			case EHoudiniOutputType::Cop:
+			{
+				FHoudiniTextureTranslator::ProcessCopOutput(CurOutput, PackageParams);
+				break;
+			}
+
 			default:
 				// Do Nothing for now
 				break;
@@ -1168,6 +1174,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	{
 		FHoudiniGeoPartObject currentHGPO;
 		currentHGPO.GeoId = AssetId;
+		currentHGPO.PartId = 0;
 		currentHGPO.Type = EHoudiniPartType::Cop;
 
 		TObjectPtr<UHoudiniOutput> Output =

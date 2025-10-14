@@ -510,6 +510,11 @@ public:
 		const FHoudiniPackageParams& PackageParams,
 		FHoudiniBakedObjectData& BakedObjectData);
 	
+	static UTexture2D* BakeTextureToPackage(
+		UTexture2D* InOriginalTexture,
+		const FHoudiniPackageParams& InPackageParams,
+		TMap<UTexture2D*, UTexture2D*>& InOutAlreadyBakedTexturesMap);
+
 	static UTexture2D * DuplicateTextureAndCreatePackage(
 		UTexture2D * Texture,
 		UTexture2D* PreviousBakeTexture,

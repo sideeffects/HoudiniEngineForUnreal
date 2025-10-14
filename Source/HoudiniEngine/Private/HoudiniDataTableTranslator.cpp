@@ -652,7 +652,6 @@ FHoudiniDataTableTranslator::BuildDataTable(
 	if (!BakeFolder.IsEmpty())
 		FoundOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_BAKE_FOLDER, BakeFolder);
 
-
 	if (!OutputName.IsEmpty())
 		FoundOutputObject.CachedAttributes.Add(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2, OutputName);
 

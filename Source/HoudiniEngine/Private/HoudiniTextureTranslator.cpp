@@ -29,6 +29,8 @@
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniOutput.h"
+
 #include "ImageUtils.h"  // FCreateTexture2DParameters
 #include "AssetRegistry/AssetRegistryModule.h"  // FAssetRegistryModule
 
@@ -473,4 +475,66 @@ FHoudiniTextureTranslator::CreateUnrealTexture(
 	Texture->PostEditChange();
 
 	return Texture;
+}
+
+bool
+FHoudiniTextureTranslator::ProcessCopOutput(
+	UHoudiniOutput* InOutput,
+	const FHoudiniPackageParams& InPackageParams)
+{
+	if (!InOutput)
+		return false;
+
+	if(InOutput->GetType() != EHoudiniOutputType::Cop)
+		return false;
+
+	// TODO: Delete previous output?
+	TArray<UPackage*> DummyPackages;
+
+	FString Notification = TEXT("BGEO Importer: Creating Cop Textures...");
+	FHoudiniEngine::Get().UpdateTaskSlateNotification(FText::FromString(Notification));
+
+	const TArray<FHoudiniGeoPartObject>& GeoPartObjects = InOutput->GetHoudiniGeoPartObjects();
+	if (GeoPartObjects.Num() <= 0)
+		return false;
+
+	// TODO: Handle multiple geo/parts here?
+	for (auto& HGPO : GeoPartObjects)
+	{
+		HAPI_NodeId CopNodeId = HGPO.GeoId;
+
+		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderCOPTexture(CopNodeId);
+		if (!bRenderSuccessful)
+			continue;
+
+		FCreateTexture2DParameters CreateTexture2DParameters;
+		CreateTexture2DParameters.SourceGuidHash = FGuid();
+		CreateTexture2DParameters.bUseAlpha = true;
+		CreateTexture2DParameters.CompressionSettings = TC_Default;
+		CreateTexture2DParameters.bDeferCompression = true;
+		CreateTexture2DParameters.bSRGB = true;
+
+		UTexture2D* Texture = nullptr;
+		FHoudiniTextureTranslator::CreateTexture(
+			CopNodeId,
+			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA,
+			HAPI_IMAGE_DATA_INT8,
+			HAPI_IMAGE_PACKING_RGBA,
+			Texture,
+			"",
+			"",
+			InPackageParams,
+			CreateTexture2DParameters,
+			TEXTUREGROUP_World,
+			DummyPackages);
+
+		FHoudiniOutputObjectIdentifier OutputID(HGPO.ObjectId, CopNodeId, HGPO.PartId, HGPO.PartName);
+		FHoudiniOutputObject& FoundOutputObject = InOutput->GetOutputObjects().FindOrAdd(OutputID);
+		FoundOutputObject.OutputComponents.Empty();
+		FoundOutputObject.OutputObject = Texture;
+
+		//OutputObjects.Add(Texture);
+	}
+
+	return true;
 }

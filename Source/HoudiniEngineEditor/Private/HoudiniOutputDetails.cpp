@@ -164,10 +164,22 @@ FHoudiniOutputDetails::CreateWidget(
 			FHoudiniOutputDetails::CreateAnimSequenceOutputWidget(HouOutputCategory, MainOutput);
 			break;
 		}
+
 		case EHoudiniOutputType::Skeletal:
-		default: 
 		{
 			FHoudiniOutputDetails::CreateSkeletalOutputWidget(HouOutputCategory, MainOutput);
+			break;
+		}
+
+		case EHoudiniOutputType::Cop:
+		{
+			FHoudiniOutputDetails::CreateTextureOutputWidget(HouOutputCategory, MainOutput);
+			break;
+		}
+
+		default:
+		{
+			FHoudiniOutputDetails::CreateDefaultOutputWidget(HouOutputCategory, MainOutput);
 			break;
 		}
 	}
@@ -1882,7 +1894,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	IDetailGroup& StaticMeshGrp = HouOutputCategory.AddGroup(FName(*Label), FText::FromString(Label));
 	StaticMeshGrp.AddWidgetRow()
 	.NameContent()
-[
+	[
 		SNew(STextBlock)
 		.Text(LOCTEXT("BakeBaseName", "Bake Name"))
 		.Font(IDetailLayoutBuilder::GetDetailFont())
@@ -3629,6 +3641,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 			}
 		}
 		break;
+
 		case EHoudiniOutputType::Curve:
 		{
 			USplineComponent* SplineComponent = Cast<USplineComponent>(BakedOutputObject);
@@ -3645,6 +3658,7 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 			}
 		}
 		break;
+
 		case EHoudiniOutputType::Landscape:
 		{
 			ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(BakedOutputObject);
@@ -3654,6 +3668,17 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 				BakedObjectEntry.Actor.Empty();
 				BakedObjectEntry.BakedComponent.Empty();
 				BakedObjectEntry.BakedObject.Empty();
+			}
+		}
+		break;
+
+		case EHoudiniOutputType::Cop:
+		{
+			UTexture2D* Texture = Cast<UTexture2D>(BakedOutputObject);
+			if (Texture)
+			{
+				TMap<UTexture2D*, UTexture2D*> AlreadyBakedTextures;
+				FHoudiniEngineBakeUtils::BakeTextureToPackage(Texture, PackageParams, AlreadyBakedTextures);
 			}
 		}
 		break;
@@ -4161,23 +4186,203 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 			.Padding(5.0f)
 			.BorderImage(
 				this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, (const TWeakObjectPtr<UObject>&)SkelMesh, MaterialIdx)
-			.OnMouseDoubleClick(
-				this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&)MaterialInterface)
-			[
-				SNew(SBox)
-				.WidthOverride(64)
-				.HeightOverride(64)
-				.ToolTipText(FText::FromString(MaterialPathName))
+				.OnMouseDoubleClick(
+					this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&)MaterialInterface)
 				[
-					MaterialInterfaceThumbnail->MakeThumbnailWidget()
+					SNew(SBox)
+						.WidthOverride(64)
+						.HeightOverride(64)
+						.ToolTipText(FText::FromString(MaterialPathName))
+						[
+							MaterialInterfaceThumbnail->MakeThumbnailWidget()
+						]
 				]
-			]
 		];
 
 		// Store thumbnail for this mesh and material index.
 		{
 			TPairInitializer<const TWeakObjectPtr<USkeletalMesh>&, int32> Pair(SkelMesh, MaterialIdx);
 			MaterialInterfaceThumbnailBorders.Add(Pair, MaterialThumbnailBorder);
+		}
+
+		// ComboBox and buttons
+		TSharedPtr<SVerticalBox> ComboAndButtonBox;
+		HorizontalBox->AddSlot()
+			.FillWidth(1.0f)
+			.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+			[
+				SAssignNew(ComboAndButtonBox, SVerticalBox)
+			];
+
+		// Add Combo box
+		TSharedPtr<SComboButton> AssetComboButton;
+		ComboAndButtonBox->AddSlot()
+			.VAlign(VAlign_Center)
+			.FillHeight(1.0f)
+			[
+				SNew(SVerticalBox) + SVerticalBox::Slot().VAlign(VAlign_Center).FillHeight(1.0f)
+					[
+						SAssignNew(AssetComboButton, SComboButton)
+							.ButtonStyle(_GetEditorStyle(), "PropertyEditor.AssetComboStyle")
+							.ForegroundColor(_GetEditorStyle().GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+							.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent,
+								TWeakObjectPtr<UMaterialInterface>(MaterialInterface), (const TWeakObjectPtr<UObject>&)SkelMesh, InOutput, MaterialIdx)
+							.ContentPadding(2.0f)
+							.ButtonContent()
+							[
+								SNew(STextBlock)
+									.TextStyle(_GetEditorStyle(), "PropertyEditor.AssetClass")
+									.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+									.Text(FText::FromString(MaterialName))
+							]
+					]
+			];
+
+		// Create tooltip.
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Asset"), FText::FromString(MaterialName));
+		FText MaterialTooltip = FText::Format(
+			LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
+
+		// Add buttons
+		TSharedPtr<SHorizontalBox> ButtonBox;
+		ComboAndButtonBox->AddSlot()
+			.FillHeight(1.0f)
+			[
+				SAssignNew(ButtonBox, SHorizontalBox)
+			];
+
+		// Use CB selection arrow button
+		ButtonBox->AddSlot()
+			.AutoWidth()
+			.Padding(2.0f, 0.0f)
+			.VAlign(VAlign_Center)
+			[
+				PropertyCustomizationHelpers::MakeUseSelectedButton(
+					FSimpleDelegate::CreateSP(
+						this, &FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface,
+						(const TWeakObjectPtr<UObject>&)SkelMesh, InOutput, MaterialIdx),
+					TAttribute< FText >(LOCTEXT("UseSelectedAssetFromContentBrowser", "Use Selected Asset from Content Browser")))
+			];
+
+		// Browse CB button
+		ButtonBox->AddSlot()
+			.AutoWidth()
+			.Padding(2.0f, 0.0f)
+			.VAlign(VAlign_Center)
+			[
+				PropertyCustomizationHelpers::MakeBrowseButton(
+					FSimpleDelegate::CreateSP(
+						this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)MaterialInterface), TAttribute< FText >(MaterialTooltip))
+			];
+
+		// Store combo button for this mesh and index.
+		{
+			TPairInitializer<const TWeakObjectPtr<USkeletalMesh>&, int32> Pair(SkelMesh, MaterialIdx);
+			MaterialInterfaceComboButtons.Add(Pair, AssetComboButton);
+		}
+	}
+}
+
+void
+FHoudiniOutputDetails::CreateTextureOutputWidget(
+	IDetailCategoryBuilder& HouOutputCategory,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput)
+{
+	if (!IsValidWeakPointer(InOutput))
+		return;
+
+	const TWeakObjectPtr<UHoudiniCookable>& HC = Cast<UHoudiniCookable>(InOutput->GetOuter());
+	if (!IsValidWeakPointer(HC))
+		return;
+
+	// Go through this output's object
+	int32 OutputObjIdx = 0;
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
+	for (auto& IterObject : OutputObjects)
+	{
+		UTexture2D* CurrentTexture = Cast<UTexture2D>(IterObject.Value.OutputObject);
+		if (!IsValid(CurrentTexture))
+			continue;
+
+		FHoudiniOutputObjectIdentifier& OutputIdentifier = IterObject.Key;
+		
+		// Find the corresponding HGPO in the output
+		FHoudiniGeoPartObject HoudiniGeoPartObject;
+		for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
+		{
+			if (!OutputIdentifier.Matches(curHGPO))
+				continue;
+
+			HoudiniGeoPartObject = curHGPO;
+			break;
+		}
+
+		FString TextureName = CurrentTexture->GetName();
+		FString TexturePathName = CurrentTexture->GetPathName();
+		if (!IsValid(CurrentTexture))
+		{
+			CurrentTexture = nullptr;
+			TextureName = TEXT("Texture (invalid)") + FString::FromInt(OutputObjIdx);
+			TexturePathName = TEXT("Texture (invalid)") + FString::FromInt(OutputObjIdx);
+		}
+
+		TSharedPtr<SBorder> ThumbnailBorder;
+		TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
+		// Get thumbnail pool for this builder.
+		IDetailLayoutBuilder& DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
+		TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+		// Create thumbnail for this texture.
+		TSharedPtr<FAssetThumbnail> TextureThumbnail =
+				MakeShareable(new FAssetThumbnail(CurrentTexture, 64, 64, AssetThumbnailPool));
+
+		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+		FString TextureLabel = TEXT("Texture");
+		IDetailGroup& TextureGrp = HouOutputCategory.AddGroup(FName(*TextureName), FText::FromString(TextureName));
+		TextureGrp.AddWidgetRow()
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString(TextureLabel))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		[
+			VerticalBox
+		];
+
+		VerticalBox->AddSlot()
+		.Padding(0, 2)
+		[
+			SAssignNew(HorizontalBox, SHorizontalBox)
+		];
+
+		HorizontalBox->AddSlot()
+		.Padding(0.0f, 0.0f, 2.0f, 0.0f)
+		.AutoWidth()
+		[
+			SAssignNew(ThumbnailBorder, SBorder)
+			.Padding(5.0f)
+			.BorderImage(
+				this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, (const TWeakObjectPtr<UObject>&)CurrentTexture, OutputObjIdx)
+			.OnMouseDoubleClick(
+				this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&)CurrentTexture)
+			[
+				SNew(SBox)
+				.WidthOverride(64)
+				.HeightOverride(64)
+				.ToolTipText(FText::FromString(TexturePathName))
+				[
+					TextureThumbnail->MakeThumbnailWidget()
+				]
+			]
+		];
+
+		// Store thumbnail for this texture and  index.
+		{
+			TPairInitializer<const TWeakObjectPtr<UTexture2D>&, int32> Pair(CurrentTexture, OutputObjIdx);
+			MaterialInterfaceThumbnailBorders.Add(Pair, ThumbnailBorder);
 		}
 
 		// ComboBox and buttons
@@ -4190,34 +4395,40 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 		];
 
 		// Add Combo box
-		TSharedPtr<SComboButton> AssetComboButton;
+		TSharedPtr< SComboButton > AssetComboButton;
 		ComboAndButtonBox->AddSlot()
 		.VAlign(VAlign_Center)
 		.FillHeight(1.0f)
 		[
-			SNew(SVerticalBox) + SVerticalBox::Slot().VAlign(VAlign_Center).FillHeight(1.0f)
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.VAlign(VAlign_Center)
+			.FillHeight(1.0f)
 			[
 				SAssignNew(AssetComboButton, SComboButton)
 				.ButtonStyle(_GetEditorStyle(), "PropertyEditor.AssetComboStyle")
 				.ForegroundColor(_GetEditorStyle().GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+				/*
 				.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent,
-					TWeakObjectPtr<UMaterialInterface>(MaterialInterface), (const TWeakObjectPtr<UObject>&)SkelMesh, InOutput, MaterialIdx)
+					TWeakObjectPtr<UMaterialInterface>(CurrentTexture), (const TWeakObjectPtr<UObject>&)CurrentTexture, InOutput, OutputObjIdx)
+				*/
 				.ContentPadding(2.0f)
 				.ButtonContent()
 				[
 					SNew(STextBlock)
 					.TextStyle(_GetEditorStyle(), "PropertyEditor.AssetClass")
 					.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
-					.Text(FText::FromString(MaterialName))
+					.Text(FText::FromString(TextureName))
 				]
 			]
 		];
 
 		// Create tooltip.
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("Asset"), FText::FromString(MaterialName));
-		FText MaterialTooltip = FText::Format(
+		Args.Add(TEXT("Asset"), FText::FromString(TextureName));
+		FText Tooltip = FText::Format(
 			LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
+
 
 		// Add buttons
 		TSharedPtr<SHorizontalBox> ButtonBox;
@@ -4227,17 +4438,65 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 			SAssignNew(ButtonBox, SHorizontalBox)
 		];
 
-		// Use CB selection arrow button
+
+		// Bake button
+		FString BakeName = IterObject.Value.BakeName;
 		ButtonBox->AddSlot()
 		.AutoWidth()
 		.Padding(2.0f, 0.0f)
 		.VAlign(VAlign_Center)
 		[
-			PropertyCustomizationHelpers::MakeUseSelectedButton(
-				FSimpleDelegate::CreateSP(
-					this, &FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface,
-					(const TWeakObjectPtr<UObject>&)SkelMesh, InOutput, MaterialIdx),
-					TAttribute< FText >(LOCTEXT("UseSelectedAssetFromContentBrowser", "Use Selected Asset from Content Browser")))
+			SNew(SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Text(LOCTEXT("BakeTexture", "Bake Texture"))
+			.IsEnabled(true)
+			.OnClicked_Lambda([BakeName, CurrentTexture, OutputIdentifier, InOutput, HC]()
+			{
+					if (!CurrentTexture || !InOutput.IsValid() || !HC.IsValid())
+						return FReply::Handled();
+
+					FHoudiniOutputObject* const FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+					if (!FoundOutputObject)
+						return FReply::Handled();
+
+					TArray<UHoudiniOutput*> AllOutputs;
+					FString TempCookFolder;
+					FString BakeFolder;
+					FHoudiniBakeSettings BakeSettings;
+					AllOutputs.Reserve(HC->GetNumOutputs());
+					HC->GetOutputs(AllOutputs);
+					TempCookFolder = HC->GetTemporaryCookFolderOrDefault();
+					BakeFolder = HC->GetBakeFolderOrDefault();
+					BakeSettings.SetFromCookable(HC.Get());
+
+					FHoudiniGeoPartObject HoudiniGeoPartObject;
+					for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
+					{
+						if (!OutputIdentifier.Matches(curHGPO))
+							continue;
+
+						HoudiniGeoPartObject = curHGPO;
+						break;
+					}
+
+					FHoudiniOutputDetails::OnBakeOutputObject(
+						BakeName,
+						CurrentTexture,
+						OutputIdentifier,
+						*FoundOutputObject,
+						HoudiniGeoPartObject,
+						(UObject*)HC.Get(),
+						InOutput.Get(),
+						BakeFolder,
+						BakeSettings,
+						TempCookFolder,
+						EHoudiniLandscapeOutputBakeType::InValid,
+						AllOutputs);
+
+					return FReply::Handled();
+			})
+			.ToolTipText(LOCTEXT("HoudiniTextureBakeButton", "Bake this Texture to the Bake folder."))
 		];
 
 		// Browse CB button
@@ -4248,16 +4507,9 @@ FHoudiniOutputDetails::CreateSkeletalMeshAndMaterialWidgets(
 		[
 			PropertyCustomizationHelpers::MakeBrowseButton(
 				FSimpleDelegate::CreateSP(
-					this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)MaterialInterface), TAttribute< FText >(MaterialTooltip))
+					this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)CurrentTexture), TAttribute<FText>(Tooltip))
 		];
-
-		// Store combo button for this mesh and index.
-		{
-			TPairInitializer<const TWeakObjectPtr<USkeletalMesh>&, int32> Pair(SkelMesh, MaterialIdx);
-			MaterialInterfaceComboButtons.Add(Pair, AssetComboButton);
-		}
 	}
 }
-
 
 #undef LOCTEXT_NAMESPACE
