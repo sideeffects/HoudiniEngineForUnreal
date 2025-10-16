@@ -47,6 +47,7 @@
 class ULevel;
 
 class UHoudiniAsset;
+class UHoudiniPreset;
 class UHoudiniPublicAPIAssetWrapper;
 class UHoudiniPublicAPIInput;
 
@@ -168,6 +169,84 @@ public:
 	bool InstantiateAssetWithExistingWrapper(
 		UHoudiniPublicAPIAssetWrapper* InWrapper,
 		UHoudiniAsset* InHoudiniAsset,
+		const FTransform& InInstantiateAt,
+		UObject* InWorldContextObject=nullptr,
+		ULevel* InSpawnInLevelOverride=nullptr,
+		const bool bInEnableAutoCook=true,
+		const bool bInEnableAutoBake=false,
+		const FString& InBakeDirectoryPath="",
+		const EHoudiniEngineBakeOption InBakeMethod=EHoudiniEngineBakeOption::ToActor,
+		const bool bInRemoveOutputAfterBake=false,
+		const bool bInRecenterBakedActors=false,
+		const bool bInReplacePreviousBake=false);
+
+	// Presets
+
+	/**
+	 * Instantiates an HDA Preset in the specified world/level. Returns a wrapper for instantiated asset.
+	 *
+	 * Note: the lifecycle / ownership of the UHoudiniPublicAPIAssetWrapper* that is created and returned is not managed
+	 * by the public API after creation, the caller must, for example, use a UProperty to prevent garbage collection of
+	 * the wrapper if desired.
+	 * 
+	 * @param InHoudiniAssetPreset The HDA Preset to instantiate.
+	 * @param InInstantiateAt The Transform to instantiate the HDA with.
+	 * @param InWorldContextObject A world context object for identifying the world to spawn in, if
+	 * @InSpawnInLevelOverride is null.
+	 * @param InSpawnInLevelOverride If not nullptr, then the AHoudiniAssetActor is spawned in that level. If both
+	 * InSpawnInLevelOverride and InWorldContextObject are null, then the actor is spawned in the current editor
+	 * context world's current level.
+	 * @param bInEnableAutoCook If true (the default) the HDA will cook automatically after instantiation and after
+	 * parameter, transform and input changes.
+	 * @param bInEnableAutoBake If true, the HDA output is automatically baked after a cook. Defaults to false.
+	 * @param InBakeDirectoryPath The directory to bake to if the bake path is not set via attributes on the HDA output.
+	 * @param InBakeMethod The bake target (to actor vs blueprint). @see EHoudiniEngineBakeOption.
+	 * @param bInRemoveOutputAfterBake If true, HDA temporary outputs are removed after a bake. Defaults to false.
+	 * @param bInRecenterBakedActors Recenter the baked actors to their bounding box center. Defaults to false.
+	 * @param bInReplacePreviousBake If true, on every bake replace the previous bake's output (assets + actors) with
+	 * the new bake's output. Defaults to false.
+	 * @return A wrapper for the instantiated asset, or nullptr if InHoudiniAsset or InInstantiateAt is invalid, or
+	 * the AHoudiniAssetActor could not be spawned. See UHoudiniPublicAPIAssetWrapper.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API", Meta=(AutoCreateRefTerm="InInstantiateAt"))
+	UHoudiniPublicAPIAssetWrapper* InstantiatePreset(
+		UHoudiniPreset* InHoudiniPreset,
+		const FTransform& InInstantiateAt,
+		UObject* InWorldContextObject=nullptr,
+		ULevel* InSpawnInLevelOverride=nullptr,
+		const bool bInEnableAutoCook=true,
+		const bool bInEnableAutoBake=false,
+		const FString& InBakeDirectoryPath="",
+		const EHoudiniEngineBakeOption InBakeMethod=EHoudiniEngineBakeOption::ToActor,
+		const bool bInRemoveOutputAfterBake=false,
+		const bool bInRecenterBakedActors=false,
+		const bool bInReplacePreviousBake=false);
+
+	/**
+	 * Instantiates an HDA Preset in the specified world/level using an existing wrapper.
+	 * @param InWrapper The wrapper to instantiate the HDA with.
+	 * @param InHoudiniPreset The HDA preset to instantiate.
+	 * @param InInstantiateAt The Transform to instantiate the HDA with.
+	 * @param InWorldContextObject A world context object for identifying the world to spawn in, if
+	 * InSpawnInLevelOverride is null.
+	 * @param InSpawnInLevelOverride If not nullptr, then the AHoudiniAssetActor is spawned in that level. If both
+	 * InSpawnInLevelOverride and InWorldContextObject are null, then the actor is spawned in the current editor
+	 * context world's current level.
+	 * @param bInEnableAutoCook If true (the default) the HDA will cook automatically after instantiation and after
+	 * parameter, transform and input changes.
+	 * @param bInEnableAutoBake If true, the HDA output is automatically baked after a cook. Defaults to false.
+	 * @param InBakeDirectoryPath The directory to bake to if the bake path is not set via attributes on the HDA output.
+	 * @param InBakeMethod The bake target (to actor vs blueprint). @see EHoudiniEngineBakeOption.
+	 * @param bInRemoveOutputAfterBake If true, HDA temporary outputs are removed after a bake. Defaults to false.
+	 * @param bInRecenterBakedActors Recenter the baked actors to their bounding box center. Defaults to false.
+	 * @param bInReplacePreviousBake If true, on every bake replace the previous bake's output (assets + actors) with
+	 * the new bake's output. Defaults to false.
+	 * @return true if InWrapper and InHoudiniAsset is valid and the AHoudiniAssetActor was spawned.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API", Meta=(AutoCreateRefTerm="InInstantiateAt"))
+	bool InstantiatePresetWithExistingWrapper(
+		UHoudiniPublicAPIAssetWrapper* InWrapper,
+		UHoudiniPreset* InHoudiniPreset,
 		const FTransform& InInstantiateAt,
 		UObject* InWorldContextObject=nullptr,
 		ULevel* InSpawnInLevelOverride=nullptr,
