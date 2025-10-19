@@ -92,6 +92,7 @@ FTOPWorkResultObject::FTOPWorkResultObject()
 	State = EPDGWorkResultState::None;
 	WorkItemResultInfoIndex = INDEX_NONE;
 	bAutoBakedSinceLastLoad = false;
+	WorkItemId = INDEX_NONE;
 }
 
 FTOPWorkResultObject::~FTOPWorkResultObject()
@@ -218,6 +219,7 @@ FWorkItemTally::FWorkItemTally()
 	CookedWorkItems.Empty();
 	ErroredWorkItems.Empty();
 	CookCancelledWorkItems.Empty();
+	LoadedWorkItems.Empty();
 }
 
 void
@@ -230,6 +232,7 @@ FWorkItemTally::ZeroAll()
 	CookedWorkItems.Empty();
 	ErroredWorkItems.Empty();
 	CookCancelledWorkItems.Empty();
+	LoadedWorkItems.Empty();
 }
 
 void 
@@ -271,6 +274,14 @@ FWorkItemTally::RecordWorkItemAsCooked(int32 InWorkItemID)
 	AllWorkItems.Add(InWorkItemID);
 }
 
+void
+FWorkItemTally::RecordWorkItemAsLoaded(int32 InWorkItemID)
+{
+	RemoveWorkItemFromAllStateSets(InWorkItemID);
+	LoadedWorkItems.Add(InWorkItemID);
+	AllWorkItems.Add(InWorkItemID);
+}
+
 void 
 FWorkItemTally::RecordWorkItemAsErrored(int32 InWorkItemID)
 {
@@ -296,6 +307,7 @@ FWorkItemTally::RemoveWorkItemFromAllStateSets(int32 InWorkItemID)
 	CookedWorkItems.Remove(InWorkItemID);
 	ErroredWorkItems.Remove(InWorkItemID);
 	CookCancelledWorkItems.Remove(InWorkItemID);
+	LoadedWorkItems.Remove(InWorkItemID);
 }
 
 
@@ -308,6 +320,7 @@ FAggregatedWorkItemTally::FAggregatedWorkItemTally()
 	CookedWorkItems = 0;
 	ErroredWorkItems = 0;
 	CookCancelledWorkItems = 0;
+	LoadedWorkItems = 0;
 }
 
 void
@@ -320,6 +333,7 @@ FAggregatedWorkItemTally::ZeroAll()
 	CookedWorkItems = 0;
 	ErroredWorkItems = 0;
 	CookCancelledWorkItems = 0;
+	LoadedWorkItems = 0;
 }
 
 void 
@@ -332,6 +346,7 @@ FAggregatedWorkItemTally::Add(const FWorkItemTallyBase& InWorkItemTally)
 	CookedWorkItems += InWorkItemTally.NumCookedWorkItems();
 	ErroredWorkItems += InWorkItemTally.NumErroredWorkItems();
 	CookCancelledWorkItems += InWorkItemTally.NumCookCancelledWorkItems();
+	LoadedWorkItems += InWorkItemTally.NumLoadedWorkItems();
 }
 
 void 
@@ -344,6 +359,7 @@ FAggregatedWorkItemTally::Subtract(const FWorkItemTallyBase& InWorkItemTally)
 	CookedWorkItems -= InWorkItemTally.NumCookedWorkItems();
 	ErroredWorkItems -= InWorkItemTally.NumErroredWorkItems();
 	CookCancelledWorkItems -= InWorkItemTally.NumCookCancelledWorkItems();
+	LoadedWorkItems -= InWorkItemTally.NumLoadedWorkItems();
 }
 
 
@@ -425,6 +441,12 @@ UTOPNode::OnWorkItemCooked(int32 InWorkItemID)
 		InvalidateLandscapeCache();
 	}
 	WorkItemTally.RecordWorkItemAsCooked(InWorkItemID);
+}
+
+void
+UTOPNode::OnWorkItemLoaded(int32 InWorkItemID)
+{
+	WorkItemTally.RecordWorkItemAsLoaded(InWorkItemID);
 }
 
 void
@@ -799,7 +821,9 @@ UTOPNetwork::UTOPNetwork()
 	ParentName = FString();
 
 	bShowResults = false;
-	bAutoLoadResults = false;
+	bAutoLoadResults = true;
+
+	NetworkState = EPDGNodeState::None;
 }
 
 bool
@@ -810,9 +834,6 @@ UTOPNetwork::operator==(const UTOPNetwork& Other) const
 
 	if (!ParentName.Equals(Other.ParentName))
 		return false;
-
-	//if (NodeId != Other.NodeId)
-	//	return false;
 
 	return true;
 }
@@ -887,6 +908,89 @@ UTOPNetwork::CanStillBeAutoBaked(const bool bInAutoBakeWithFailedWorkItems) cons
 	return false;
 }
 
+int UTOPNetwork::GetTotalOutputWorkItems()
+{
+	int Total = 0;
+	for(UTOPNode* CurrentTOPNode : this->AllTOPNodes)
+	{
+		if(!IsValid(CurrentTOPNode))
+			continue;
+
+		if(CurrentTOPNode->bAutoLoad)
+			Total++;
+
+	}
+	return Total;
+}
+
+int UTOPNetwork::GetCompletedOutputWorkItems()
+{
+	int Total = 0;
+	for(UTOPNode* CurrentTOPNode : this->AllTOPNodes)
+	{
+		if(!IsValid(CurrentTOPNode))
+			continue;
+
+		if(!CurrentTOPNode->bAutoLoad)
+			continue;
+
+		const int32 NumWorkResults = CurrentTOPNode->WorkResult.Num();
+		for(int32 WorkResultIndex = 0; WorkResultIndex < NumWorkResults; ++WorkResultIndex)
+		{
+			FTOPWorkResult& CurrentWorkResult = CurrentTOPNode->WorkResult[WorkResultIndex];
+			int32 NumResultObjects = CurrentWorkResult.ResultObjects.Num();
+
+			for(int32 ResultIndex = 0; ResultIndex < NumResultObjects; ++ResultIndex)
+			{
+				if(CurrentWorkResult.ResultObjects[ResultIndex].State == EPDGWorkResultState::Loaded)
+				{
+					Total++;
+				}
+
+			}
+		}
+	}
+	return Total;
+}
+
+bool
+UTOPNetwork::CheckIfFullyLoaded()
+{
+	for (auto Node : AllTOPNodes)
+	{
+		for(auto WorkResult : Node->WorkResult)
+		{
+			for (auto WorkItem : WorkResult.ResultObjects)
+			{
+				if(WorkItem.State != EPDGWorkResultState::Loaded && WorkItem.State != EPDGWorkResultState::NotLoaded)
+					return false;
+			}
+		}
+	}
+
+	this->NetworkState = EPDGNodeState::Loading_Complete;
+
+	return true;
+}
+
+void
+UTOPNetwork::SetNotLoadedWorkResultsToLoad(bool bInAlsoSetDeletedToLoad, const FString &InFilter)
+{
+	for (auto TopNode : AllTOPNodes)
+	{
+		if (IsValid(TopNode) && TopNode->NodeName.StartsWith(InFilter))
+			TopNode->SetNotLoadedWorkResultsToLoad(bInAlsoSetDeletedToLoad);
+	}
+
+	this->NetworkState = EPDGNodeState::Loading;
+}
+
+bool
+UTOPNetwork::IsPaused()
+{
+	return NetworkState == EPDGNodeState::Paused || NetworkState == EPDGNodeState::Loading_Paused;
+}
+
 void
 UTOPNetwork::HandleOnPDGEventCookCompleteReceivedByChildNode(UHoudiniPDGAssetLink* const InAssetLink, UTOPNode* const InTOPNode)
 {
@@ -913,10 +1017,22 @@ UTOPNetwork::HandleOnPDGEventCookCompleteReceivedByChildNode(UHoudiniPDGAssetLin
 			return;
 	}
 
-	if (OnPostCookDelegate.IsBound())
-		OnPostCookDelegate.Broadcast(this, AnyWorkItemsFailed());
+	if (this->bAutoLoadResults)
+		this->NetworkState = EPDGNodeState::Loading;
+	else
+		this->NetworkState = EPDGNodeState::Cook_Complete;
 
-	InAssetLink->HandleOnTOPNetworkCookComplete(this);
+}
+
+void
+UHoudiniPDGAssetLink::NotifyLoadingComplete(UTOPNetwork* TOPNetwork )
+{
+	TOPNetwork->NetworkState = EPDGNodeState::Loading_Complete;
+
+	if(TOPNetwork->GetOnPostCookDelegate().IsBound())
+		TOPNetwork->GetOnPostCookDelegate().Broadcast(TOPNetwork, TOPNetwork->AnyWorkItemsFailed());
+
+	HandleOnTOPNetworkCookComplete(TOPNetwork);
 }
 
 void
@@ -1463,67 +1579,89 @@ UHoudiniPDGAssetLink::GetAssetLinkStatus(const EPDGLinkState& InLinkState)
 
 	return Status;
 }
+FString UHoudiniPDGAssetLink::GetTOPNodeStatus(EPDGNodeState NodeState)
+{
+	switch(NodeState)
+	{
+	case EPDGNodeState::None:
+		return TEXT("Ready");
+	case EPDGNodeState::Cook_Failed:
+		return TEXT("Cook Failed");
+	case EPDGNodeState::Cook_Complete:
+		return TEXT("PDG Cook Complete");
+	case EPDGNodeState::Cooking:
+		return TEXT("Cook In Progress");
+	case EPDGNodeState::Dirtied:
+		return TEXT("Dirtied");
+	case EPDGNodeState::Dirtying:
+		return TEXT("Dirtying");
+	case EPDGNodeState::Paused:
+	case EPDGNodeState::Loading_Paused:
+		return TEXT("Paused");
+	case EPDGNodeState::Cancelled:
+		return TEXT("Cancelled");
+	case EPDGNodeState::Loading:
+		return TEXT("Loading Remaining Work Items");
+	case EPDGNodeState::Loading_Complete:
+		return TEXT("PDG Cook Complete");
+	default:
+		break;
+	}
+	return TEXT("");
+}
+
+FLinearColor UHoudiniPDGAssetLink::GetTOPNodeStatusColor(EPDGNodeState NodeState)
+{
+	switch(NodeState)
+	{
+	case EPDGNodeState::None:
+		return FLinearColor::Green;
+	case EPDGNodeState::Cook_Failed:
+		return FLinearColor::Red;
+	case EPDGNodeState::Cook_Complete:
+	case EPDGNodeState::Loading_Complete:
+		return FLinearColor::Green;
+	case EPDGNodeState::Cooking:
+	case EPDGNodeState::Loading:
+		return FLinearColor(0.0, 1.0f, 1.0f);
+	case EPDGNodeState::Dirtied:
+		return FLinearColor(1.0f, 0.5f, 0.0f);
+	case EPDGNodeState::Dirtying:
+		return FLinearColor(0.5f, 0.5f, 0.5f);
+	case EPDGNodeState::Paused:
+	case EPDGNodeState::Loading_Paused:
+		return FLinearColor(1.0f, 0.0f, 1.0f);
+	case EPDGNodeState::Cancelled:
+		return FLinearColor(1.0f, 0.0f, 0.0f);
+
+	default:
+		break;
+	}
+	return FLinearColor::White;
+}
 
 FString
 UHoudiniPDGAssetLink::GetTOPNodeStatus(const UTOPNode* InTOPNode)
 {
 	static const FString InvalidOrUnknownStatus = TEXT("");
-	
-	if (!IsValid(InTOPNode))
-		return InvalidOrUnknownStatus;
-	
-	if (InTOPNode->NodeState == EPDGNodeState::Cook_Failed || InTOPNode->AnyWorkItemsFailed())
-	{
-		return TEXT("Cook Failed");
-	}
-	else if (InTOPNode->NodeState == EPDGNodeState::Cook_Complete)
-	{
-		return TEXT("Cook Completed");
-	}
-	else if (InTOPNode->NodeState == EPDGNodeState::Cooking)
-	{
-		return TEXT("Cook In Progress");
-	}
-	else if (InTOPNode->NodeState == EPDGNodeState::Dirtied)
-	{
-		return TEXT("Dirtied");
-	}
-	else if (InTOPNode->NodeState == EPDGNodeState::Dirtying)
-	{
-		return TEXT("Dirtying");
-	}
 
-	return InvalidOrUnknownStatus;
+	if(InTOPNode->AnyWorkItemsFailed())
+		return GetTOPNodeStatus(EPDGNodeState::Cook_Failed);
+	else
+		return GetTOPNodeStatus(InTOPNode->NodeState);
 }
+
 
 FLinearColor
 UHoudiniPDGAssetLink::GetTOPNodeStatusColor(const UTOPNode* InTOPNode)
 {
 	if (!IsValid(InTOPNode))
 		return FLinearColor::White;
-	
-	if (InTOPNode->NodeState == EPDGNodeState::Cook_Failed || InTOPNode->AnyWorkItemsFailed())
-	{
-		return FLinearColor::Red;
-	}
-	else if (InTOPNode->NodeState == EPDGNodeState::Cook_Complete)
-	{
-		return FLinearColor::Green;
-	}
-	else if (InTOPNode->NodeState == EPDGNodeState::Cooking)
-	{
-		return FLinearColor(0.0, 1.0f, 1.0f);
-	}
-	else if (InTOPNode->NodeState == EPDGNodeState::Dirtied)
-	{
-		return FLinearColor(1.0f, 0.5f, 0.0f);
-	}
-	else if (InTOPNode->NodeState == EPDGNodeState::Dirtying)
-	{
-		return FLinearColor::Yellow;
-	}
 
-	return FLinearColor::White;
+	if(InTOPNode->AnyWorkItemsFailed())
+		return GetTOPNodeStatusColor(EPDGNodeState::Cook_Failed);
+	else
+		return GetTOPNodeStatusColor(InTOPNode->NodeState);
 }
 
 AActor*

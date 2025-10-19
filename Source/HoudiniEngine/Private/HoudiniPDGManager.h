@@ -97,10 +97,6 @@ public:
 	// Dirty the specified TOP node and clear its work item results.
 	static void DirtyTOPNode(UTOPNode* InTOPNode);
 
-	// // Dirty all the tasks/work items of the specified TOP node. Does not
-	// // clear its work item results.
-	// static void DirtyAllTasksOfTOPNode(FTOPNode& InTOPNode);
-
 	// Dirty the TOP network and clear all work item results.
 	static void DirtyAll(UTOPNetwork* InTOPNet);
 
@@ -109,6 +105,10 @@ public:
 
 	// Pause the PDG cook of the currently selected TOP network
 	static void PauseCook(UTOPNetwork* InTOPNet);
+
+
+	// Rsume the PDG cook of the currently selected TOP network
+	static void ResumeCook(UTOPNetwork* InTOPNet);
 
 	// Cancel the PDG cook of the currently selected TOP network
 	static void CancelCook(UTOPNetwork* InTOPNet);
@@ -188,6 +188,8 @@ private:
 
 	void NotifyTOPNodeCookedWorkItem(UHoudiniPDGAssetLink* InPDGAssetLink, UTOPNode* InTOPNode, const int32& InWorkItemID);
 
+	void NotifyTOPNodeLoadedWorkItem(UHoudiniPDGAssetLink* InPDGAssetLink, UTOPNode* InTOPNode, const int32& InWorkItemID);
+
 	void NotifyTOPNodeErrorWorkItem(UHoudiniPDGAssetLink* InPDGAssetLink, UTOPNode* InTOPNode, const int32& InWorkItemID);
 
 	void NotifyTOPNodeWaitingWorkItem(UHoudiniPDGAssetLink* InPDGAssetLink, UTOPNode* InTOPNode, const int32& InWorkItemID);
@@ -202,11 +204,8 @@ private:
 
 	TArray<HAPI_StringHandle> PDGContextNames;
 	TArray<HAPI_PDG_GraphContextId> PDGContextIDs;
-	TArray<HAPI_PDG_EventInfo> PDGEventInfos;
 
 	TArray<TWeakObjectPtr<UHoudiniPDGAssetLink>> PDGAssetLinks;
-
-	int32 MaxNumberOfPDGEvents = 20;
 
 	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> BGEOCommandletEndpoint;
 	FMessageAddress BGEOCommandletAddress;

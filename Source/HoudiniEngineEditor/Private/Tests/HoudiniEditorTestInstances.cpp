@@ -47,6 +47,7 @@
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 #include "LevelInstance/LevelInstanceComponent.h"
 #endif
+#include "HoudiniEngine.h"
 
 
 FVector FHoudiniInstanceAutomationTest::GetHDAInstancePosition(int Index)
@@ -1394,6 +1395,12 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
 	Context->SetProxyMeshEnabled(true);
+
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			return FHoudiniEngine::Get().IsPDGCommandletConnected();
+		}));
 
 	// HDA Path and kick Cook.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()

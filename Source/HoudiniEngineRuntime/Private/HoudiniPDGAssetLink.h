@@ -53,9 +53,14 @@ enum class EPDGNodeState : uint8
 	None,
 	Dirtied,
 	Dirtying,
-	Cooking,
+	Cooking,			// Cooking == PDG Cooking, inside Houdini
 	Cook_Complete,
-	Cook_Failed
+	Cook_Failed,
+	Paused,
+	Cancelled,
+	Loading,			// Loading == Loading Work Items into Unreal
+	Loading_Complete,
+	Loading_Paused,
 };
 
 UENUM()
@@ -150,6 +155,8 @@ public:
 	// The index in the WorkItemResultInfo array of this item as it was received from HAPI.
 	UPROPERTY(NonTransactional)
 	int32					WorkItemResultInfoIndex;
+	UPROPERTY(NonTransactional)
+	int					WorkItemId;
 
 protected:
 	// UPROPERTY()
@@ -241,6 +248,7 @@ public:
 	virtual int32 NumScheduledWorkItems() const { return 0; };
 	virtual int32 NumCookingWorkItems() const { return 0; };
 	virtual int32 NumCookedWorkItems() const { return 0; };
+	virtual int32 NumLoadedWorkItems() const { return 0; };
 	virtual int32 NumErroredWorkItems() const { return 0; };
 	virtual int32 NumCookCancelledWorkItems() const { return 0; };
 
@@ -271,6 +279,7 @@ public:
 	void RecordWorkItemAsScheduled(int32 InWorkItemID);
 	void RecordWorkItemAsCooking(int32 InWorkItemID);
 	void RecordWorkItemAsCooked(int32 InWorkItemID);
+	void RecordWorkItemAsLoaded(int32 InWorkItemID);
 	void RecordWorkItemAsErrored(int32 InWorkItemID);
 	void RecordWorkItemAsCookCancelled(int32 InWorkItemID);
 
@@ -283,6 +292,7 @@ public:
 	virtual int32 NumScheduledWorkItems() const override { return ScheduledWorkItems.Num(); }
 	virtual int32 NumCookingWorkItems() const override { return CookingWorkItems.Num(); }
 	virtual int32 NumCookedWorkItems() const override { return CookedWorkItems.Num(); }
+	virtual int32 NumLoadedWorkItems() const { return LoadedWorkItems.Num(); };
 	virtual int32 NumErroredWorkItems() const override { return ErroredWorkItems.Num(); }
 	virtual int32 NumCookCancelledWorkItems() const override { return CookCancelledWorkItems.Num(); }
 	
@@ -303,6 +313,8 @@ protected:
 	TSet<int32> CookingWorkItems;
 	UPROPERTY()
 	TSet<int32> CookedWorkItems;
+	UPROPERTY()
+	TSet<int32> LoadedWorkItems;
 	UPROPERTY()
 	TSet<int32> ErroredWorkItems;
 	UPROPERTY()
@@ -330,6 +342,7 @@ public:
 	virtual int32 NumScheduledWorkItems() const override { return ScheduledWorkItems; }
 	virtual int32 NumCookingWorkItems() const override { return CookingWorkItems; }
 	virtual int32 NumCookedWorkItems() const override { return CookedWorkItems; }
+	virtual int32 NumLoadedWorkItems() const { return LoadedWorkItems; };
 	virtual int32 NumErroredWorkItems() const override { return ErroredWorkItems; }
 
 protected:
@@ -343,6 +356,9 @@ protected:
 	int32 CookingWorkItems;
 	UPROPERTY()
 	int32 CookedWorkItems;
+	UPROPERTY()
+	int32 LoadedWorkItems;
+
 	UPROPERTY()
 	int32 ErroredWorkItems;
 	UPROPERTY()
@@ -427,7 +443,10 @@ public:
 
 	// Notification that a work item has been cooked.
 	void OnWorkItemCooked(int32 InWorkItemID);
-	
+
+	// Notification that a work item has been processed.
+	void OnWorkItemLoaded(int32 InWorkItemID);
+
 	// Notification that a work item has errored.
 	void OnWorkItemErrored(int32 InWorkItemID) { WorkItemTally.RecordWorkItemAsErrored(InWorkItemID); };
 
@@ -622,8 +641,19 @@ public:
 	void HandleOnPDGEventCookCompleteReceivedByChildNode(UHoudiniPDGAssetLink* const InAssetLink, UTOPNode* const InTOPNode);
 
 	FOnPostCookDelegate& GetOnPostCookDelegate() { return OnPostCookDelegate; }
-	
+
+	int GetTotalOutputWorkItems();
+	int GetCompletedOutputWorkItems();
+
+	void SetNotLoadedWorkResultsToLoad(bool bInAlsoSetDeletedToLoad, const FString& InFilter);
+
+	bool IsPaused();
+
+	bool CheckIfFullyLoaded();
+
 public:
+	UPROPERTY(Transient, NonTransactional)
+	EPDGNodeState NetworkState;
 
 	UPROPERTY(Transient, NonTransactional)
 	int32				NodeId;
@@ -674,6 +704,8 @@ public:
 	static FString GetAssetLinkStatus(const EPDGLinkState& InLinkState);
 	static FString GetTOPNodeStatus(const UTOPNode* InTOPNode);
 	static FLinearColor GetTOPNodeStatusColor(const UTOPNode* InTOPNode);
+	static FString GetTOPNodeStatus(EPDGNodeState NodeState);
+	static FLinearColor GetTOPNodeStatusColor(EPDGNodeState NodeState);
 
 	void UpdateTOPNodeWithChildrenWorkItemTallyAndState(UTOPNode* InNode, UTOPNetwork* InNetwork);
 	void UpdateWorkItemTally();
@@ -758,6 +790,7 @@ public:
 #if WITH_EDITORONLY_DATA
 	// Returns true if there are any nodes left that can/must still be auto-baked.
 	bool AnyRemainingAutoBakeNodes() const;
+
 #endif
 
 	// Used to notify the asset link that InTOPNode was auto-baked. This increments the attempts and success counters.
@@ -811,6 +844,8 @@ public:
 
 	void SetOutputWorld(UWorld * InWorld);
 	UWorld* GetOutputWorld();
+
+	void NotifyLoadingComplete(UTOPNetwork* TopNetwork);
 
 private:
 

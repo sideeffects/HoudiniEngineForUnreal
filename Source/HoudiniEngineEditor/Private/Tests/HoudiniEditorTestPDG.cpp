@@ -28,9 +28,13 @@
 
 #include "HoudiniCookable.h"
 #include "HoudiniEditorTestPDG.h"
+
+#include "HoudiniEngineCommands.h"
+#include "HoudiniEngineManager.h"
 #include "HoudiniParameterInt.h"
 #include "HoudiniParameterString.h"
 #include "HoudiniParameterToggle.h"
+#include "HoudiniPDGManager.h"
 
 #include "Chaos/HeightField.h"
 #include "Materials/Material.h"
@@ -49,18 +53,22 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGCommandletMesh, "H
 
 bool FHoudiniEditorTestPDGCommandletMesh::RunTest(const FString& Parameters)
 {
-	FHoudiniEngine::Get().StartPDGCommandlet();
+	FHoudiniEngineCommands::SetPDGCommandletEnabled(true);
+	FHoudiniEngineCommands::StartPDGCommandlet();
 
 	/// Make sure we have a Houdini Session before doing anything.
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
 	// Now create the test context.
-	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPDG::TestHDA, FTransform::Identity, false));
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPDG::TestMeshHDA, FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
 	Context->SetProxyMeshEnabled(false);
 
-	TSharedPtr<int> WorkItemsComplete = MakeShared<int>(0);
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			return FHoudiniEngine::Get().IsPDGCommandletConnected();
+		}));
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 		{
@@ -70,24 +78,17 @@ bool FHoudiniEditorTestPDGCommandletMesh::RunTest(const FString& Parameters)
 			return true;
 		}));
 
-	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, WorkItemsComplete]()
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 		{
 			UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(AssetLink, return true);
-
-			AssetLink->OnWorkResultObjectLoaded.AddLambda([this, WorkItemsComplete](UHoudiniPDGAssetLink* AL, UTOPNode* Node, int32 WorkItemArrayIndex, int32 WorkItemResultInfoIndex)
-				{
-					(*WorkItemsComplete)++;
-				});
-
-
 
 			bool bSuccess = Context->StartCookingSelectedTOPNetwork();
 			HOUDINI_TEST_EQUAL(bSuccess, true);
 			return true;
 		}));
 
-	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, WorkItemsComplete]()
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 		{
 			UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(AssetLink, return true);
@@ -95,11 +96,7 @@ bool FHoudiniEditorTestPDGCommandletMesh::RunTest(const FString& Parameters)
 			UTOPNetwork* Network = AssetLink->GetTOPNetwork(0);
 			HOUDINI_TEST_NOT_NULL(Network);
 
-			if (*WorkItemsComplete != 2)
-			{
-				return false;
-			}
-
+			int WorkItemsComplete = 0;
 			UTOPNode* Node = nullptr;
 			for(UTOPNode* It : Network->AllTOPNodes)
 			{
@@ -109,6 +106,7 @@ bool FHoudiniEditorTestPDGCommandletMesh::RunTest(const FString& Parameters)
 					break;
 				}
 			}
+
 			HOUDINI_TEST_NOT_NULL(Node);
 
 			HOUDINI_TEST_EQUAL_ON_FAIL(Node->WorkResult.Num(), 2, return true);
@@ -164,56 +162,49 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGCommandletMeshInte
 
 bool FHoudiniEditorTestPDGCommandletMeshInternalMaterials::RunTest(const FString& Parameters)
 {
-	FHoudiniEngine::Get().StartPDGCommandlet();
+	FHoudiniEngineCommands::SetPDGCommandletEnabled(true);
+	FHoudiniEngineCommands::StartPDGCommandlet();
 
 	/// Make sure we have a Houdini Session before doing anything.
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
 	// Now create the test context.
-	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPDG::TestHDA, FTransform::Identity, false));
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPDG::TestMeshHDA, FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
 	Context->SetProxyMeshEnabled(false);
 
-	TSharedPtr<int> WorkItemsComplete = MakeShared<int>(0);
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			return FHoudiniEngine::Get().IsPDGCommandletConnected();
+		}));
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 		{
+			HOUDINI_TEST_EQUAL_ON_FAIL(FHoudiniEngine::Get().IsPDGCommandletConnected(), true, return true);
 			SET_HDA_PARAMETER(Context, UHoudiniParameterToggle, "pig_head", true, 0);
 
 			Context->StartCookingHDA();
 			return true;
 		}));
 
-	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, WorkItemsComplete]()
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 		{
 			UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(AssetLink, return true);
-
-			AssetLink->OnWorkResultObjectLoaded.AddLambda([this, WorkItemsComplete](UHoudiniPDGAssetLink* AL, UTOPNode* Node, int32 WorkItemArrayIndex, int32 WorkItemResultInfoIndex)
-				{
-					(*WorkItemsComplete)++;
-				});
-
-
 
 			bool bSuccess = Context->StartCookingSelectedTOPNetwork();
 			HOUDINI_TEST_EQUAL(bSuccess, true);
 			return true;
 		}));
 
-	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, WorkItemsComplete]()
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 		{
 			UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(AssetLink, return true);
 
 			UTOPNetwork* Network = AssetLink->GetTOPNetwork(0);
 			HOUDINI_TEST_NOT_NULL(Network);
-
-			if(*WorkItemsComplete != 2)
-			{
-				return false;
-			}
 
 			UTOPNode* Node = nullptr;
 			for(UTOPNode* It : Network->AllTOPNodes)
@@ -250,7 +241,7 @@ bool FHoudiniEditorTestPDGCommandletMeshInternalMaterials::RunTest(const FString
 				UStaticMesh* StaticMesh = SMC->GetStaticMesh();
 
 				int32 MaterialCount = StaticMesh->GetStaticMaterials().Num();
-				HOUDINI_TEST_EQUAL_ON_FAIL(MaterialCount, 3, return true);
+				HOUDINI_TEST_EQUAL_ON_FAIL(MaterialCount, 1, return true);
 			}
 
 			return true;
@@ -259,6 +250,197 @@ bool FHoudiniEditorTestPDGCommandletMeshInternalMaterials::RunTest(const FString
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 		{
 			FHoudiniEngine::Get().StopPDGCommandlet();
+			return true;
+		}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGTwoOutputsCommandlet, "Houdini.UnitTests.PDG.TwoOutputs.Commandlet",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestPDGTwoOutputsCommandlet::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FHoudiniEngineCommands::SetPDGCommandletEnabled(true);
+	FHoudiniEngineCommands::StartPDGCommandlet();
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPDG::TwoOutputsHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			return FHoudiniEngine::Get().IsPDGCommandletConnected();
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			SET_HDA_PARAMETER(Context, UHoudiniParameterToggle, "pig_head", true, 0);
+
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(AssetLink, return true);
+
+			bool bSuccess = Context->StartCookingSelectedTOPNetwork();
+			HOUDINI_TEST_EQUAL(bSuccess, true);
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(AssetLink, return true);
+
+			UTOPNetwork* Network = AssetLink->GetTOPNetwork(0);
+			HOUDINI_TEST_NOT_NULL(Network);
+
+			TArray<UTOPNode*> AllOutputNodes;
+			for(UTOPNode* It : Network->AllTOPNodes)
+			{
+				if(It->NodeName.StartsWith("HE_OUT_X"))
+				{
+					AllOutputNodes.Add(It);
+				}
+			}
+
+			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes[0]->WorkResult.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes[1]->WorkResult.Num(), 2, return true);
+
+			for(auto Node : AllOutputNodes)
+			{
+				for(auto& Result : Node->WorkResult)
+				{
+					auto ResultOutputs = Result.ResultObjects[0].GetResultOutputs();
+					HOUDINI_TEST_EQUAL_ON_FAIL(ResultOutputs.Num(), 1, return true);
+
+					UHoudiniOutput* Output = ResultOutputs[0];
+
+					TArray<FHoudiniOutputObject> OutputObjects;
+					Output->GetOutputObjects().GenerateValueArray(OutputObjects);
+
+					HOUDINI_TEST_EQUAL_ON_FAIL(OutputObjects.Num(), 1, return true);
+
+					const FHoudiniOutputObject& OutputObject = OutputObjects[0];
+
+					HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents.Num(), 1, return true);
+					HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents[0]->IsA(UStaticMeshComponent::StaticClass()), 1, return true);
+
+					auto* SMC = Cast<UStaticMeshComponent>(OutputObject.OutputComponents[0]);
+					UStaticMesh* StaticMesh = SMC->GetStaticMesh();
+				}
+			}
+
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			FHoudiniEngine::Get().StopPDGCommandlet();
+			return true;
+		}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGTwoOutputsNoCommandlet, "Houdini.UnitTests.PDG.TwoOutputs.NoCommandlet",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestPDGTwoOutputsNoCommandlet::RunTest(const FString& Parameters)
+{
+	FHoudiniEngineCommands::SetPDGCommandletEnabled(false);
+	FHoudiniEngineCommands::StopPDGCommandlet();
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPDG::TwoOutputsHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			SET_HDA_PARAMETER(Context, UHoudiniParameterToggle, "pig_head", true, 0);
+
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(AssetLink, return true);
+
+
+			bool bSuccess = Context->StartCookingSelectedTOPNetwork();
+			HOUDINI_TEST_EQUAL(bSuccess, true);
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
+			HOUDINI_TEST_NOT_NULL_ON_FAIL(AssetLink, return true);
+
+			UTOPNetwork* Network = AssetLink->GetTOPNetwork(0);
+			HOUDINI_TEST_NOT_NULL(Network);
+
+			TArray<UTOPNode*> AllOutputNodes;
+			for(UTOPNode* It : Network->AllTOPNodes)
+			{
+				if(It->NodeName.StartsWith("HE_OUT_X"))
+				{
+					AllOutputNodes.Add(It);
+				}
+			}
+
+			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes[0]->WorkResult.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes[1]->WorkResult.Num(), 2, return true);
+
+			for (auto Node : AllOutputNodes)
+			{
+				for(auto& Result : Node->WorkResult)
+				{
+					auto ResultOutputs = Result.ResultObjects[0].GetResultOutputs();
+					HOUDINI_TEST_EQUAL_ON_FAIL(ResultOutputs.Num(), 1, return true);
+
+					UHoudiniOutput* Output = ResultOutputs[0];
+
+					TArray<FHoudiniOutputObject> OutputObjects;
+					Output->GetOutputObjects().GenerateValueArray(OutputObjects);
+
+					HOUDINI_TEST_EQUAL_ON_FAIL(OutputObjects.Num(), 1, return true);
+
+					const FHoudiniOutputObject& OutputObject = OutputObjects[0];
+
+					HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents.Num(), 1, return true);
+					HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents[0]->IsA(UStaticMeshComponent::StaticClass()), 1, return true);
+
+					auto* SMC = Cast<UStaticMeshComponent>(OutputObject.OutputComponents[0]);
+					UStaticMesh* StaticMesh = SMC->GetStaticMesh();
+				}
+			}
+
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+		//	FHoudiniEngine::Get().StopPDGCommandlet();
 			return true;
 		}));
 

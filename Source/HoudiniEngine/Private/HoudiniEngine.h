@@ -292,6 +292,8 @@ public:
 
 		bool IsPDGCommandletRunningOrConnected();
 
+		bool IsPDGCommandletConnected();
+
 		EHoudiniBGEOCommandletStatus GetPDGCommandletStatus();
 
 		FHoudiniEngineManager* GetHoudiniEngineManager() { return HoudiniEngineManager; }

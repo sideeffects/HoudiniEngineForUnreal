@@ -40,6 +40,15 @@ struct FWorkItemTally;
 enum class EPDGLinkState : uint8;
 enum class EHoudiniBGEOCommandletStatus : uint8;
 
+enum class EWorkItemTallyType : uint8
+{
+	Waiting,
+	Cooking,
+	Cooked,
+	Loaded,
+	Failed
+};
+
 // Convenience struct to hold a label and tooltip for widgets.
 struct FTextAndTooltip
 {
@@ -65,18 +74,13 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 
 		void AddPDGAssetWidget(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
-		void AddWorkItemStatusWidget(
-			FDetailWidgetRow& InRow, const FString& TitleString, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InAssetLink, bool bInForSelectedNode);
+		void AddWorkItemStatusWidget(FDetailWidgetRow& InRow, const FString& InTitleString, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InAssetLink, bool bInForSelectedNode);
 
 		void AddPDGAssetStatus(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
-		void AddPDGCommandletStatus(
-			IDetailCategoryBuilder& InPDGCategory, const EHoudiniBGEOCommandletStatus& InCommandletStatus);
+		void AddPDGCommandletStatus(IDetailCategoryBuilder& InPDGCategory, const EHoudiniBGEOCommandletStatus& InCommandletStatus);
 
-		void AddTOPNetworkWidget(
-			IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
-
-		void AddTOPNodeWidget(IDetailGroup& InGroup, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		void AddTOPNetworkWidget(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
 		static void RefreshPDGAssetLink(
 			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
@@ -86,19 +90,42 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 
 		static void CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 	protected:
+
+		void AddTOPNodeWidget(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		void AddTOPNetworkSelectWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		void AddTOPNetworkPauseOrCancelWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		void AddTOPNetworkDirtyAllAndCookOutputWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		void AddTOPNetworkUnloadWorkItemsObjectsWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		TSharedPtr<SBox> AddTOPNetworkPauseWidgets(TSharedRef<SHorizontalBox>& PauseHBox, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+
+		void AddTOPOutputFilter(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		void AddTOPNodeFilter(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		void AddTOPNodeState(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		void AddTOPNetworkState(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		void AddAssetOptions(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+
+		static void AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGroup, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		static void AddBakeFolderWidgets(IDetailGroup& InBakeGroup, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		static void AddBakeReplaceModeWidgets(IDetailGroup& InBakeGroup, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		static void AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+
 		// Helper function for getting the work item tally and color
 		static bool GetWorkItemTallyValueAndColor(
-			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InAssetLink, bool bInForSelectedNode, const FString& InTallyItemString,
+			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InAssetLink, 
+			bool bInForSelectedNode, 
+			EWorkItemTallyType InType,
 			int32& OutValue, FLinearColor& OutColor);
 
 		// Helper to get the status text for the selected TOP node, and the color with which to display it on the UI.
 		// Returns false if the InPDGAssetLink is invalid, or there is no selected TOP node.
-		static bool GetSelectedTOPNodeStatusAndColor(
-			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutTOPNodeStatus, FLinearColor &OutTOPNodeStatusColor);
+		static bool GetSelectedTOPNodeStatusAndColor(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutTOPNodeStatus, FLinearColor &OutTOPNodeStatusColor);
+
+		// Helper to get the status text for the selected TOP netowrk, and the color with which to display it on the UI.
+		// Returns false if the InPDGAssetLink is invalid, or there is no selected TOP node.
+		static bool GetSelectedTOPNetworkStatusAndColor(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutTOPNodeStatus, FLinearColor& OutTOPNodeStatusColor);
 
 		// Helper to get asset link status and status color for UI
-		static bool GetPDGStatusAndColor(
-			const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutPDGStatusString, FLinearColor& OutPDGStatusColor);
+		static bool GetPDGStatusAndColor(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutPDGStatusString, FLinearColor& OutPDGStatusColor);
 
 		// Helper for getting the commandlet status text and color for the UI
 		static void GetPDGCommandletStatus(FString& OutStatusString, FLinearColor& OutStatusColor);
@@ -125,7 +152,10 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 		{
 			BindDisableIfPDGNotLinked(InRow.IsEnabledAttr, InPDGAssetLink);
 		}
-	
+
+		static bool IsSelectedNetworkCookingOrLoading(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
+
+		static bool IsSelectedNodeCooking(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
 	private:
 
 		TArray<TSharedPtr<FTextAndTooltip>> TOPNetworksPtr;

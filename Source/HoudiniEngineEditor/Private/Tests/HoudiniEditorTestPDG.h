@@ -32,7 +32,8 @@
 class FHoudiniEditorTestPDG
 {
 public:
-	const static inline FString TestHDA = TEXT("/Game/TestHDAs/PDG/PDGTestMesh");
+	const static inline FString TestMeshHDA = TEXT("/Game/TestHDAs/PDG/PDGTestMesh");
+	const static inline FString TwoOutputsHDA = TEXT("/Game/TestHDAs/PDG/PDGTestTwoOutputs");
 };
 #endif
 
