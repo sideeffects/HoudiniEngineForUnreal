@@ -3186,6 +3186,15 @@ UHoudiniPublicAPIAssetWrapper::HasPDGAssetLink_Implementation() const
 	return IsValid(GetHoudiniPDGAssetLink());
 }
 
+EPDGLinkState
+UHoudiniPublicAPIAssetWrapper::GetPDGAssetLinkState_Implementation() const
+{
+	if(!IsValid(GetHoudiniPDGAssetLink()))
+		return EPDGLinkState::Inactive;
+	else
+		return GetHoudiniPDGAssetLink()->LinkState;
+}
+
 bool
 UHoudiniPublicAPIAssetWrapper::GetPDGTOPNetworkPaths_Implementation(TArray<FString>& OutTOPNetworkPaths) const
 {
@@ -3217,6 +3226,26 @@ UHoudiniPublicAPIAssetWrapper::GetPDGTOPNodePaths_Implementation(const FString& 
 	{
 		OutTOPNodePaths.Add(TOPNode->NodePath);
 	}
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::GetPDGWorkItemStatus_Implementation(FHoudiniPublicAPIPDGStatus& OutStatus) const
+{
+	OutStatus = {};
+
+	UHoudiniPDGAssetLink* AssetLink =  GetHoudiniPDGAssetLink();
+	if(!IsValid(AssetLink))
+		return false;
+
+	auto & WorkTally = AssetLink->WorkItemTally;
+
+	OutStatus.NumCookedWorkItems = WorkTally.NumCookedWorkItems();
+	OutStatus.NumCookingWorkItems = WorkTally.NumCookingWorkItems();
+	OutStatus.NumFailedWorkItems = WorkTally.NumErroredWorkItems();
+	OutStatus.NumImportedWorkItems = WorkTally.NumLoadedWorkItems();
+	OutStatus.NumWaitingWorkItems = WorkTally.NumWaitingWorkItems();
 
 	return true;
 }

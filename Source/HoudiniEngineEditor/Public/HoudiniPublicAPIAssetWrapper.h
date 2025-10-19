@@ -212,6 +212,31 @@ public:
 	TArray<FHoudiniPublicAPIColorRampPoint> ColorRampPoints;
 };
 
+
+/**
+ * A struct for Houdini PDG Status
+ */
+
+USTRUCT(BlueprintType, Category = "Houdini Engine | Public API")
+struct HOUDINIENGINEEDITOR_API FHoudiniPublicAPIPDGStatus 
+{
+	GENERATED_BODY();
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Houdini Engine | Public API")
+	int NumWaitingWorkItems = 0;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Houdini Engine | Public API")
+	int NumCookingWorkItems = 0;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Houdini Engine | Public API")
+	int NumCookedWorkItems = 0;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Houdini Engine | Public API")
+	int NumImportedWorkItems = 0;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Houdini Engine | Public API")
+	int NumFailedWorkItems = 0;
+};
+
 /**
  * A wrapper for spawned/instantiating HDAs.
  *
@@ -1159,6 +1184,21 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
 	bool HasPDGAssetLink() const;
+
+	/**
+	* Returns the current PDG Link Asset Link status. May be one of Inactive, Linking, Linked or Error_Not_Linked.
+	* @return the current Asset Link Status.
+	*/
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Houdini|Public API")
+	EPDGLinkState GetPDGAssetLinkState() const;
+
+		/**
+	* Gets status of the current PDG work items.
+	* @param OutStatus work item tatus information.
+	* @return false if the asset/wrapper is invalid, or does not contain any TOP networks.
+	*/
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Houdini|Public API")
+	bool GetPDGWorkItemStatus(FHoudiniPublicAPIPDGStatus& OutStatus) const;
 
 	/**
 	 * Gets the paths (relative to the instantiated asset) of all TOP networks in the HDA.
