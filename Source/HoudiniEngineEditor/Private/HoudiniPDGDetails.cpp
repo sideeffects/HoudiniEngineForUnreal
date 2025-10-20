@@ -275,7 +275,7 @@ void FHoudiniPDGDetails::AddAssetOptions(IDetailCategoryBuilder& InPDGCategory, 
 		FText Tooltip = FText::FromString(TEXT("When enabled, the selected TOP Network's output will automatically cook after succesfully cooking the PDG Asset Link HDA."));
 		FDetailWidgetRow& PDGAutocookRow = TOPNodesGrp.AddWidgetRow();
 		// Disable if PDG is not linked
-		DisableIfPDGNotLinked(PDGAutocookRow, PDGAssetLink);
+		BindEnablePDGWiddgetsTest(PDGAutocookRow, InHC);
 		PDGAutocookRow.NameWidget.Widget =
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -331,7 +331,7 @@ void FHoudiniPDGDetails::AddAssetOptions(IDetailCategoryBuilder& InPDGCategory, 
 
 		FDetailWidgetRow& PDGParentActorRow = TOPNodesGrp.AddWidgetRow();
 		// Disable if PDG is not linked
-		DisableIfPDGNotLinked(PDGParentActorRow, PDGAssetLink);
+		BindEnablePDGWiddgetsTest(PDGParentActorRow, InHC);
 		PDGParentActorRow.NameWidget.Widget =
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -408,7 +408,7 @@ void FHoudiniPDGDetails::AddAssetOptions(IDetailCategoryBuilder& InPDGCategory, 
 				return FText::FromString(TEXT("When enabled, Output files produced by the node or network will automatically be loaded when cooked."));
 			};
 		FDetailWidgetRow& PDGNodeAutoLoadRow = TOPNodesGrp.AddWidgetRow();
-		DisableIfPDGNotLinked(PDGNodeAutoLoadRow, PDGAssetLink);
+		BindEnablePDGWiddgetsTest(PDGNodeAutoLoadRow, InHC);
 		PDGNodeAutoLoadRow.IsEnabledAttr.Bind(TAttribute<bool>::FGetter::CreateLambda([PDGAssetLink]()
 			{
 				if(!IsPDGLinked(PDGAssetLink))
@@ -595,7 +595,7 @@ void FHoudiniPDGDetails::AddTOPNodeFilter(IDetailGroup& TOPNetWorkGrp, const TWe
 		};
 
 	FDetailWidgetRow& PDGFilterEnabledRow = TOPNetWorkGrp.AddWidgetRow();
-	DisableIfPDGNotLinked(PDGFilterEnabledRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(PDGFilterEnabledRow, InHC);
 
 	PDGFilterEnabledRow.NameWidget.Widget =
 		SNew(SHorizontalBox)
@@ -644,7 +644,7 @@ void FHoudiniPDGDetails::AddTOPNodeFilter(IDetailGroup& TOPNetWorkGrp, const TWe
 		];
 
 	FDetailWidgetRow& PDGFilterRow = TOPNetWorkGrp.AddWidgetRow();
-	DisableIfPDGNotLinked(PDGFilterRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(PDGFilterRow, InHC);
 
 	PDGFilterRow.NameWidget.Widget =
 		SNew(SHorizontalBox)
@@ -746,7 +746,7 @@ void FHoudiniPDGDetails::AddTOPOutputFilter(IDetailGroup& TOPNetWorkGrp, const T
 
 
 	FDetailWidgetRow& PDGOutputFilterEnablecRow = TOPNetWorkGrp.AddWidgetRow();
-	DisableIfPDGNotLinked(PDGOutputFilterEnablecRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(PDGOutputFilterEnablecRow, InHC);
 
 	PDGOutputFilterEnablecRow.NameWidget.Widget =
 		SNew(SHorizontalBox)
@@ -796,7 +796,7 @@ void FHoudiniPDGDetails::AddTOPOutputFilter(IDetailGroup& TOPNetWorkGrp, const T
 
 
 	FDetailWidgetRow& PDGOutputFilterRow = TOPNetWorkGrp.AddWidgetRow();
-	DisableIfPDGNotLinked(PDGOutputFilterRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(PDGOutputFilterRow, InHC);
 
 	PDGOutputFilterRow.NameWidget.Widget =
 		SNew(SHorizontalBox)
@@ -1309,7 +1309,7 @@ FHoudiniPDGDetails::AddTOPNetworkWidget(
 	{
 		FDetailWidgetRow& PDGStatusRow = TOPNetWorkGrp.AddWidgetRow();
 		// Disable if PDG is not linked
-		DisableIfPDGNotLinked(PDGStatusRow, PDGAssetLink);
+		BindEnablePDGWiddgetsTest(PDGStatusRow, InHC);
 		FHoudiniPDGDetails::AddWorkItemStatusWidget(PDGStatusRow, TEXT("TOP Network Work Item Status"), PDGAssetLink, false);
 	}
 }
@@ -1322,7 +1322,7 @@ void FHoudiniPDGDetails::AddTOPNetworkSelectWidgets(IDetailGroup& TOPNetWorkGrp,
 	TWeakObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink = InHC->GetPDGAssetLink();
 
 	FDetailWidgetRow& PDGTOPNetRow = TOPNetWorkGrp.AddWidgetRow();
-	DisableIfPDGNotLinked(PDGTOPNetRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(PDGTOPNetRow, InHC);
 	PDGTOPNetRow.NameWidget.Widget =
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -1464,7 +1464,7 @@ bool FHoudiniPDGDetails::IsSelectedNetworkCookingOrLoading(const TWeakObjectPtr<
 	return (State == EPDGNodeState::Cooking || State == EPDGNodeState::Loading);
 }
 
-bool FHoudiniPDGDetails::IsSelectedNodeCooking(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
+bool FHoudiniPDGDetails::IsTOPCooking(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
 {
 	if(!IsValidWeakPointer(InPDGAssetLink))
 		return false;
@@ -1477,6 +1477,39 @@ bool FHoudiniPDGDetails::IsSelectedNodeCooking(const TWeakObjectPtr<UHoudiniPDGA
 		return false;
 
 	return !SelectedNode->bHidden && SelectedNode->NodeState != EPDGNodeState::Cooking && !SelectedNode->AnyWorkItemsPending();
+}
+
+bool FHoudiniPDGDetails::IsSOPCooking(const TWeakObjectPtr<UHoudiniCookable>& InCookable)
+{
+	if(!InCookable.IsValid())
+		return false;
+
+	EHoudiniAssetState State = InCookable.Get()->GetCurrentState();
+
+	switch (State)
+	{
+	case EHoudiniAssetState::PreCook:
+	case EHoudiniAssetState::Cooking:
+	case EHoudiniAssetState::PostCook:
+	case EHoudiniAssetState::PreProcess:
+	case EHoudiniAssetState::Processing:
+		return true;
+
+	case EHoudiniAssetState::None:
+	case EHoudiniAssetState::NeedInstantiation:
+	case EHoudiniAssetState::NewHDA:
+	case EHoudiniAssetState::PreInstantiation:
+	case EHoudiniAssetState::Instantiating:
+	case EHoudiniAssetState::NeedDelete:
+	case EHoudiniAssetState::Deleting:
+
+	case EHoudiniAssetState::ProcessTemplate:
+	case EHoudiniAssetState::Dormant:
+	default:
+		return false;
+
+	}
+
 }
 
 void FHoudiniPDGDetails::AddTOPNetworkDirtyAllAndCookOutputWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)
@@ -1633,7 +1666,7 @@ void FHoudiniPDGDetails::AddTOPNetworkDirtyAllAndCookOutputWidgets(IDetailGroup&
 				.Text_Lambda([PDGAssetLink]() { return PDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded ? LOCTEXT("CookOutAndBake", "Cook Output & Bake") : LOCTEXT("CookOut", "Cook Output"); })
 		];
 
-	DisableIfPDGNotLinked(PDGDirtyCookRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(PDGDirtyCookRow, InHC);
 }
 
 TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNetworkPauseWidgets(TSharedRef<SHorizontalBox>& PauseHBox, const TWeakObjectPtr<UHoudiniCookable>& InHC)
@@ -1822,7 +1855,7 @@ void FHoudiniPDGDetails::AddTOPNetworkPauseOrCancelWidgets(IDetailGroup& TOPNetW
 				.Text(LOCTEXT("Cancel", "Cancel Cook"))
 		];
 
-	DisableIfPDGNotLinked(PDGPauseOrCancelWidgets, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(PDGPauseOrCancelWidgets, InHC);
 }
 
 void FHoudiniPDGDetails::AddTOPNetworkUnloadWorkItemsObjectsWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)
@@ -1922,24 +1955,36 @@ void FHoudiniPDGDetails::AddTOPNetworkUnloadWorkItemsObjectsWidgets(IDetailGroup
 				]
 		];
 
-	DisableIfPDGNotLinked(PDGUnloadLoadWorkItemsRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(PDGUnloadLoadWorkItemsRow, InHC);
 }
 
 bool
-FHoudiniPDGDetails::GetSelectedTOPNetworkStatusAndColor(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutTOPNodeStatus, FLinearColor& OutTOPNodeStatusColor)
+FHoudiniPDGDetails::GetSelectedTOPNetworkStatusAndColor(const TWeakObjectPtr<UHoudiniCookable>& InHC, FString& OutTOPNodeStatus, FLinearColor& OutTOPNodeStatusColor)
 {
 	OutTOPNodeStatus = FString();
 	OutTOPNodeStatusColor = FLinearColor::White;
-	if(IsValidWeakPointer(InPDGAssetLink))
-	{
-		UTOPNetwork* TopNetwork = InPDGAssetLink->GetSelectedTOPNetwork();
-		if(IsValid(TopNetwork))
-		{
-			OutTOPNodeStatus = UHoudiniPDGAssetLink::GetTOPNodeStatus(TopNetwork->NetworkState);
-			OutTOPNodeStatusColor = UHoudiniPDGAssetLink::GetTOPNodeStatusColor(TopNetwork->NetworkState);
 
-			return true;
-		}
+	if(!IsValidWeakPointer(InHC))
+		return false;
+
+
+	UHoudiniPDGAssetLink* AssetLink = InHC->GetPDGAssetLink();
+	if(!AssetLink)
+		return false;
+
+	if (IsSOPCooking(InHC))
+	{
+		OutTOPNodeStatus = TEXT("SOP Nodes Are Cooking");
+		OutTOPNodeStatusColor = FLinearColor::White;
+		return true;
+	}
+
+	UTOPNetwork* TopNetwork = AssetLink->GetSelectedTOPNetwork();
+	if(IsValid(TopNetwork))
+	{
+		OutTOPNodeStatus = UHoudiniPDGAssetLink::GetTOPNodeStatus(TopNetwork->NetworkState);
+		OutTOPNodeStatusColor = UHoudiniPDGAssetLink::GetTOPNodeStatusColor(TopNetwork->NetworkState);
+		return true;
 	}
 
 	return false;
@@ -1988,7 +2033,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 	// Combobox: TOP Node
 	{
 		FDetailWidgetRow& PDGTOPNodeRow = TOPNodesGrp.AddWidgetRow();
-		DisableIfPDGNotLinked(PDGTOPNodeRow, PDGAssetLink);
+		BindEnablePDGWiddgetsTest(PDGTOPNodeRow, InHC);
 		PDGTOPNodeRow.NameWidget.Widget =
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -2232,7 +2277,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 					})
 					.IsEnabled_Lambda([PDGAssetLink]()
 					{
-						return IsSelectedNodeCooking(PDGAssetLink);
+						return IsTOPCooking(PDGAssetLink);
 					})
 					.Content()
 					[
@@ -2254,7 +2299,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 					.HAlign(HAlign_Center)
 					.IsEnabled_Lambda([PDGAssetLink]()
 					{
-						return IsSelectedNodeCooking(PDGAssetLink);
+						return IsTOPCooking(PDGAssetLink);
 					})
 					.OnClicked_Lambda([PDGAssetLink]()
 					{
@@ -2332,7 +2377,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 				.Text(LOCTEXT("CookNode", "Cook Node"))
 			];
 
-		DisableIfPDGNotLinked(PDGDirtyCookRow, PDGAssetLink);
+		BindEnablePDGWiddgetsTest(PDGDirtyCookRow, InHC);
 	}
 
 	// Buttons: Load Work Item Objects / Unload Work Item Objects
@@ -2446,7 +2491,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 		if (PDGAssetLink->GetSelectedTOPNode())
 		{
 			FDetailWidgetRow& PDGNodeWorkItemStatsRow = TOPNodesGrp.AddWidgetRow();
-			DisableIfPDGNotLinked(PDGNodeWorkItemStatsRow, PDGAssetLink);
+			BindEnablePDGWiddgetsTest(PDGNodeWorkItemStatsRow, InHC);
 			FHoudiniPDGDetails::AddWorkItemStatusWidget(
 				PDGNodeWorkItemStatsRow, TEXT("TOP Node Work Item Status"), PDGAssetLink, true);
 		}
@@ -2464,7 +2509,7 @@ void FHoudiniPDGDetails::AddTOPNetworkState(IDetailGroup& TOPNetWorkGrp, const T
 		return;
 
 	FDetailWidgetRow& PDGNodeStateResultRow = TOPNetWorkGrp.AddWidgetRow();
-	DisableIfPDGNotLinked(PDGNodeStateResultRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(PDGNodeStateResultRow, InHC);
 	PDGNodeStateResultRow.NameWidget.Widget =
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -2483,18 +2528,18 @@ void FHoudiniPDGDetails::AddTOPNetworkState(IDetailGroup& TOPNetWorkGrp, const T
 		.Padding(2.0f, 0.0f)
 		[
 			SNew(STextBlock)
-				.Text_Lambda([PDGAssetLink]()
+				.Text_Lambda([InHC]()
 					{
 						FString TOPNodeStatus = FString();
 						FLinearColor TOPNodeStatusColor = FLinearColor::White;
-						GetSelectedTOPNetworkStatusAndColor(PDGAssetLink, TOPNodeStatus, TOPNodeStatusColor);
+						GetSelectedTOPNetworkStatusAndColor(InHC, TOPNodeStatus, TOPNodeStatusColor);
 						return FText::FromString(TOPNodeStatus);
 					})
-				.ColorAndOpacity_Lambda([PDGAssetLink]()
+				.ColorAndOpacity_Lambda([InHC]()
 					{
 						FString TOPNodeStatus = FString();
 						FLinearColor TOPNodeStatusColor = FLinearColor::White;
-						GetSelectedTOPNetworkStatusAndColor(PDGAssetLink, TOPNodeStatus, TOPNodeStatusColor);
+						GetSelectedTOPNetworkStatusAndColor(InHC, TOPNodeStatus, TOPNodeStatusColor);
 						return FSlateColor(TOPNodeStatusColor);
 					})
 		];
@@ -2511,7 +2556,7 @@ void FHoudiniPDGDetails::AddTOPNodeState(IDetailGroup& TOPNetWorkGrp, const TWea
 		return;
 
 	FDetailWidgetRow& PDGNodeStateResultRow = TOPNetWorkGrp.AddWidgetRow();
-	DisableIfPDGNotLinked(PDGNodeStateResultRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(PDGNodeStateResultRow, InHC);
 	PDGNodeStateResultRow.NameWidget.Widget =
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -2638,7 +2683,7 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 
 	// Button Row
 	FDetailWidgetRow& ButtonRow = InBakeGroup.AddWidgetRow();
-	DisableIfPDGNotLinked(ButtonRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(ButtonRow, InHC);
 
 	TSharedRef<SHorizontalBox> ButtonRowHorizontalBox = SNew(SHorizontalBox);
 
@@ -2881,7 +2926,7 @@ void FHoudiniPDGDetails::AddBakeReplaceModeWidgets(IDetailGroup& InBakeGroup, co
 
 	// Bake package replacement mode row
 	FDetailWidgetRow& BakePackageReplaceRow = InBakeGroup.AddWidgetRow();
-	DisableIfPDGNotLinked(BakePackageReplaceRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(BakePackageReplaceRow, InHC);
 
 	BakePackageReplaceRow.NameWidget.Widget =
 		SNew(SHorizontalBox)
@@ -2997,7 +3042,7 @@ void FHoudiniPDGDetails::AddBakeFolderWidgets(IDetailGroup& InBakeGroup, const T
 
 	// Bake Folder Row
 	FDetailWidgetRow& BakeFolderRow = InBakeGroup.AddWidgetRow();
-	DisableIfPDGNotLinked(BakeFolderRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(BakeFolderRow, InHC);
 
 	BakeFolderRow.NameWidget.Widget =
 		SNew(SHorizontalBox)
@@ -3034,6 +3079,25 @@ void FHoudiniPDGDetails::AddBakeFolderWidgets(IDetailGroup& InBakeGroup, const T
 						.OnTextCommitted_Lambda(OnBakeFolderTextCommittedLambda)
 				]
 		];
+}
+
+void FHoudiniPDGDetails::BindEnablePDGWiddgetsTest(FDetailWidgetRow& InRow, const TWeakObjectPtr<UHoudiniCookable>& InCookable)
+{
+	InRow.IsEnabledAttr.Bind(
+		TAttribute<bool>::FGetter::CreateLambda([InCookable]()
+			{
+				if(!IsValid(InCookable->GetPDGAssetLink()))
+					return false;
+
+				if(!IsPDGLinked(InCookable->GetPDGAssetLink()))
+					return false;
+
+				if(IsSOPCooking(InCookable))
+					return false;
+
+				return true;
+			})
+	);
 }
 
 void FHoudiniPDGDetails::AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGroup, const TWeakObjectPtr<UHoudiniCookable>& InHC)
@@ -3087,7 +3151,7 @@ void FHoudiniPDGDetails::AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGr
 					})
 		];
 
-	DisableIfPDGNotLinked(RenderCenterBakedActorsRow, PDGAssetLink);
+	BindEnablePDGWiddgetsTest(RenderCenterBakedActorsRow, InHC);
 
 	if(!InHC->GetIsPCG())
 	{
@@ -3135,7 +3199,7 @@ void FHoudiniPDGDetails::AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGr
 			];
 
 
-		DisableIfPDGNotLinked(AutoBakeRow, PDGAssetLink);
+		BindEnablePDGWiddgetsTest(AutoBakeRow, InHC);
 
 		FDetailWidgetRow& AutoBakeIfFailedRow = InBakeGroup.AddWidgetRow();
 
@@ -3185,7 +3249,7 @@ void FHoudiniPDGDetails::AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGr
 						})
 			];
 
-		DisableIfPDGNotLinked(AutoBakeIfFailedRow, PDGAssetLink);
+		BindEnablePDGWiddgetsTest(AutoBakeIfFailedRow, InHC);
 	}
 
 #if 0

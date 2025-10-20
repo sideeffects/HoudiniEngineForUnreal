@@ -93,7 +93,9 @@ public:
 
 	// Automatically try to start the First HE session if needed
 	void AutoStartFirstSessionIfNeeded();
-	
+
+	void UploadedParametersAndInputs(UHoudiniCookable* InHC);
+
 protected:
 
 	// Updates a given task's status

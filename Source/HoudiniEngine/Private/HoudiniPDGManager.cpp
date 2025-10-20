@@ -37,6 +37,7 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniAssetComponent.h"
+#include "HoudiniEngineManager.h"
 #include "HoudiniPDGAssetLink.h"
 #include "HoudiniPackageParams.h"
 
@@ -571,6 +572,8 @@ FHoudiniPDGManager::CookOutput(UHoudiniCookable* InHC,  UTOPNetwork* InTOPNet)
 
 	if (!IsValid(InTOPNet) || !FHoudiniEngine::Get().GetSession() || InTOPNet->NetworkState == EPDGNodeState::Cooking)
 		return false;
+
+	FHoudiniEngine::Get().GetHoudiniEngineManager()->UploadedParametersAndInputs(InHC);
 
 
 	HAPI_PDG_GraphContextId GraphContextId = -1;

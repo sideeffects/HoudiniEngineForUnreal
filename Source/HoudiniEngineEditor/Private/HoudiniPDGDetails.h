@@ -122,7 +122,7 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 
 		// Helper to get the status text for the selected TOP netowrk, and the color with which to display it on the UI.
 		// Returns false if the InPDGAssetLink is invalid, or there is no selected TOP node.
-		static bool GetSelectedTOPNetworkStatusAndColor(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutTOPNodeStatus, FLinearColor& OutTOPNodeStatusColor);
+		static bool GetSelectedTOPNetworkStatusAndColor(const TWeakObjectPtr<UHoudiniCookable>& InHC, FString& OutTOPNodeStatus, FLinearColor& OutTOPNodeStatusColor);
 
 		// Helper to get asset link status and status color for UI
 		static bool GetPDGStatusAndColor(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutPDGStatusString, FLinearColor& OutPDGStatusColor);
@@ -136,26 +136,15 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 			return IsValidWeakPointer(InPDGAssetLink) && InPDGAssetLink->LinkState == EPDGLinkState::Linked;
 		}
 
-		// Helper for binding IsPDGLinked to a TAttribute<bool>
-		static FORCEINLINE void BindDisableIfPDGNotLinked(TAttribute<bool> &InAttrToBind, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
-		{
-			InAttrToBind.Bind(
-				TAttribute<bool>::FGetter::CreateLambda([InPDGAssetLink]()
-				{
-					return IsPDGLinked(InPDGAssetLink);
-				})
-			);
-		}
-
 		// Helper to disable a UI row if InPDGAssetLink is not linked
-		static FORCEINLINE void DisableIfPDGNotLinked(FDetailWidgetRow& InRow, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
-		{
-			BindDisableIfPDGNotLinked(InRow.IsEnabledAttr, InPDGAssetLink);
-		}
+		static void BindEnablePDGWiddgetsTest(FDetailWidgetRow& InRow, const TWeakObjectPtr<UHoudiniCookable>& InCookable);
 
 		static bool IsSelectedNetworkCookingOrLoading(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
 
-		static bool IsSelectedNodeCooking(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
+		static bool IsTOPCooking(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
+
+		static bool IsSOPCooking(const TWeakObjectPtr<UHoudiniCookable>& InCookable);
+
 	private:
 
 		TArray<TSharedPtr<FTextAndTooltip>> TOPNetworksPtr;

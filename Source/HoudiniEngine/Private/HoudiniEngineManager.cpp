@@ -2151,4 +2151,8 @@ FHoudiniEngineManager::EnableEditorAutoSave(const UObject* InObject = nullptr)
 #endif
 }
 
+void FHoudiniEngineManager::UploadedParametersAndInputs(UHoudiniCookable* InHC)
+{
+	PreCook(InHC);
+}
 
