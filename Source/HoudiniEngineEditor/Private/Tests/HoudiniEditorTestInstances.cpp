@@ -1302,6 +1302,9 @@ bool FHoudiniEditorTestPDGInstances::RunTest(const FString& Parameters)
 	/// Test PDG.
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	// Make sure commandlet is stopped.
+	FHoudiniEngine::Get().StopPDGCommandlet();
+
 	/// Make sure we have a Houdini Session before doing anything.
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
