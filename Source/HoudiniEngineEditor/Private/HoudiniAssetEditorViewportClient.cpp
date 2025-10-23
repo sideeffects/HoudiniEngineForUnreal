@@ -93,6 +93,10 @@ FHoudiniAssetEditorViewportClient::FHoudiniAssetEditorViewportClient(
 	//Allow post process materials...
 	EngineShowFlags.SetPostProcessMaterial(true);
 	EngineShowFlags.SetPostProcessing(true);
+
+	ToggleOrbitCamera(true);
+
+	bIs2DViewport = false;
 }
 
 void 
@@ -317,7 +321,57 @@ FHoudiniAssetEditorViewportClient::InputKey(const FInputKeyEventArgs& InEventArg
 		bHandled = HandleVisualizer->HandleInputKey(this, Viewport, Key, Event);
 	*/
 	//if (!bHandled)
-		return FEditorViewportClient::InputKey(InEventArgs);
+	return FEditorViewportClient::InputKey(InEventArgs);
+}
 
-	//return bHandled;
+
+void
+FHoudiniAssetEditorViewportClient::SetViewportTo2D()
+{
+	// Switch viewport to texture
+	EngineShowFlags.SetScreenPercentage(false);	
+
+	// Ortho view has issues for now - use an aligned perspective viewport
+	// (textures are blurred when using ortho for unknown reasons ... ? )
+	SetViewportType(LVT_Perspective);
+	//SetViewportType(LVT_OrthoFront);
+
+	SetViewModes(VMI_Unlit, VMI_Unlit);
+	
+	ViewTransformOrthographic.SetOrthoZoom(2200.0f);
+
+	ViewTransformPerspective.SetLocation(FVector(120.0, 0.0, 0.0));
+	ViewTransformPerspective.SetRotation(FRotator(0.0, 180.0, 0.0));
+	ViewTransformPerspective.SetLookAt(FVector(0.0, 0.0, 0.0));
+	
+	/*
+	DefaultOrbitLocation = FVector(120.0, 0.0, 0.0);
+	DefaultOrbitRotation = FRotator(0.0, 180.0, 0.0);
+	DefaultOrbitZoom = FVector(0.0, 0.0, 0.0);
+	DefaultOrbitLookAt = FVector(0.0, 0.0, 0.0);
+	EnableCameraLock(true);
+	*/
+
+	bIs2DViewport = true;
+}
+
+void
+FHoudiniAssetEditorViewportClient::SetViewportTo3D()
+{
+	// Switch viewport to 3D
+	SetViewportType(LVT_Perspective);
+	SetViewModes(VMI_Lit, VMI_Lit);
+
+	// Return to default transform
+	SetViewLocation(FVector(400, 400, 400));
+	SetViewRotation(FVector(-75, -75, -75).Rotation());
+	ViewTransformPerspective.SetLookAt(FVector(0, 0, 0));
+	
+	ViewTransformOrthographic.SetOrthoZoom(2000.0f);
+	EngineShowFlags.SetScreenPercentage(true);
+
+	EnableCameraLock(false);
+
+	bIs2DViewport = false;
+
 }

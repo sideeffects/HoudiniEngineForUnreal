@@ -1304,6 +1304,9 @@ void FHoudiniOutputObject::DestroyCookedData(EHoudiniClearFlags ClearFlags)
 	for(UObject* Component : ComponentsToDestroy)
 	{
 		USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
+		if (!SceneComponent)
+			continue;
+
 		if(SceneComponent->GetOwner())
 			SceneComponent->UnregisterComponent();
 

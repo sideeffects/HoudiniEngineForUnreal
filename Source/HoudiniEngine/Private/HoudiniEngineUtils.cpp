@@ -4803,6 +4803,118 @@ FHoudiniEngineUtils::HasHoudiniLogo(USceneComponent* InComponent)
 	return false;
 }
 
+
+bool
+FHoudiniEngineUtils::AddTextureMeshToComponent(
+	USceneComponent* InComponent, 
+	UTexture2D* InTexture,
+	UMaterialInterface* InMaterial)
+{
+	if (!IsValid(InComponent))
+		return false;
+
+	// Remove the Houdini logo if it was there before
+	if (FHoudiniEngineUtils::HasHoudiniLogo(InComponent))
+		FHoudiniEngineUtils::RemoveHoudiniLogoFromComponent(InComponent);
+
+	// No need to do anything if we already show the default mesh
+	if (FHoudiniEngineUtils::HasTextureMesh(InComponent))
+		return true;
+
+	// Get the COP SM
+	UStaticMesh* HoudiniCOPMesh = FHoudiniEngine::Get().GetHoudiniCOPStaticMesh().Get();
+	if (!HoudiniCOPMesh)
+		return false;
+
+	UStaticMeshComponent* HoudiniCOPSMC = NewObject<UStaticMeshComponent>(
+		InComponent, UStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
+
+	if (!HoudiniCOPSMC)
+		return false;
+
+	HoudiniCOPSMC->SetStaticMesh(HoudiniCOPMesh);
+	HoudiniCOPSMC->SetVisibility(true);
+	HoudiniCOPSMC->SetHiddenInGame(true);
+
+	// Attach created static mesh component to our Houdini component.
+	HoudiniCOPSMC->AttachToComponent(InComponent, FAttachmentTransformRules::KeepRelativeTransform);
+	HoudiniCOPSMC->RegisterComponent();
+
+	// We need to update the mesh's material,
+	// to the one that was created with the texture
+	HoudiniCOPSMC->SetMaterial(0, InMaterial);
+
+	return true;
+}
+
+bool
+FHoudiniEngineUtils::RemoveTextureMeshFromComponent(USceneComponent* InComponent)
+{
+	if (!IsValid(InComponent))
+		return false;
+
+	// Get the COP SM
+	UStaticMesh* HoudiniCOPMesh = FHoudiniEngine::Get().GetHoudiniCOPStaticMesh().Get();
+	if (!HoudiniCOPMesh)
+		return false;
+
+	// Iterate on the HAC's component
+	for (USceneComponent* CurrentSceneComp : InComponent->GetAttachChildren())
+	{
+		if (!IsValid(CurrentSceneComp) || !CurrentSceneComp->IsA<UStaticMeshComponent>())
+			continue;
+
+		// Get the static mesh component
+		UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(CurrentSceneComp);
+		if (!IsValid(SMC))
+			continue;
+
+		// Check if the SMC is the defauilt COP mesh
+		if (SMC->GetStaticMesh() != HoudiniCOPMesh)
+			continue;
+
+		SMC->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+		SMC->UnregisterComponent();
+		SMC->DestroyComponent();
+
+		return true;
+	}
+
+	return false;
+}
+
+bool
+FHoudiniEngineUtils::HasTextureMesh(USceneComponent* InComponent)
+{
+	if (!IsValid(InComponent))
+		return false;
+
+	// Get the COP SM
+	UStaticMesh* HoudiniCOPMesh = FHoudiniEngine::Get().GetHoudiniCOPStaticMesh().Get();
+	if (!HoudiniCOPMesh)
+		return false;
+
+	// Iterate on the HAC's component
+	for (USceneComponent* CurrentSceneComp : InComponent->GetAttachChildren())
+	{
+		if (!IsValid(CurrentSceneComp) || !CurrentSceneComp->IsA<UStaticMeshComponent>())
+			continue;
+
+		// Get the static mesh component
+		UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(CurrentSceneComp);
+		if (!IsValid(SMC))
+			continue;
+
+		// Check if the SMC is the Houdini Logo
+		if (SMC->GetStaticMesh() == HoudiniCOPMesh)
+			return true;
+	}
+
+	return false;
+}
+
+
+
 int32
 FHoudiniEngineUtils::HapiGetVertexListForGroup(
 	HAPI_NodeId GeoId,

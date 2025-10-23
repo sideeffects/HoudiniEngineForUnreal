@@ -572,6 +572,19 @@ FHoudiniEngineBakeUtils::BakeCookableToAssets(
 		}
 		break;
 
+		case EHoudiniOutputType::Cop:
+		{
+			FHoudiniEngineBakeUtils::BakeTexture(
+				InCookable,
+				OutputIdx,
+				Outputs,
+				BakeState,
+				InCookable->GetBakeFolder(),
+				BakeSettings,
+				BakedObjectData);
+		}
+		break;
+
 		case EHoudiniOutputType::Landscape:
 		case EHoudiniOutputType::LandscapeSpline:
 		case EHoudiniOutputType::PCG:
@@ -9821,11 +9834,156 @@ FHoudiniEngineBakeUtils::BakeSingleMaterialToPackage(
 	return DuplicatedMaterial;
 }
 
+bool
+FHoudiniEngineBakeUtils::BakeTexture(
+	UHoudiniCookable* InCookable,
+	int32 InOutputIndex,
+	const TArray<UHoudiniOutput*>& InAllOutputs,
+	FHoudiniEngineBakeState& InBakeState,
+	const FDirectoryPath& InBakeFolder,
+	const FHoudiniBakeSettings& BakeSettings,
+	FHoudiniBakedObjectData& BakedObjectData)
+{
+	if ((InOutputIndex < 0) || !InAllOutputs.IsValidIndex(InOutputIndex))
+		return false;
+
+	// Get previously cooked output.
+	UHoudiniOutput* CookedOutput = InAllOutputs[InOutputIndex];
+	if (!IsValid(CookedOutput))
+		return false;
+
+
+	// Determine the relevant WorldContext based on the output owner
+	UWorld* WorldContext = InCookable ? InCookable->GetWorld() : GWorld;
+
+	TArray<FHoudiniBakedOutput>& AllBakedOutputs = InCookable->GetBakedOutputs();
+	
+	/* 
+	// Check if we have previously baked this object on this Cookable
+	FHoudiniBakedOutputObject BakedObjectEntry;
+	if (InOutputIndex >= 0 && AllBakedOutputs.IsValidIndex(InOutputIndex))
+	{
+		FHoudiniBakedOutputObject const* const PrevBakedOutputObject = AllBakedOutputs[InOutputIndex].BakedOutputObjects.Find(CookedOutput->GetIdentifier());
+		if (PrevBakedOutputObject)
+		{
+			bHasPreviousBakeData = true;
+			BakedObjectEntry = *PrevBakedOutputObject;
+		}
+	}
+	*/
+
+	const FString HoudiniAssetName = InCookable->GetHoudiniAssetName();
+	const FString HoudiniAssetActorName = IsValid(InCookable->GetOwner()) ? InCookable->GetOwner()->GetActorNameOrLabel() : TEXT("");
+	const bool bAutomaticallySetAttemptToLoadMissingPackages = true;
+	const bool bSkipBakeFolderResolutionAndUseDefault = false;
+
+	/*
+	// First get names from previous bake entry
+	if (bHasPreviousBakeData)
+	{
+		UObject const* const PrevObject = BakedObjectEntry.GetBakedObjectIfValid();
+		if (PrevObject)
+		{
+			DefaultObjectName = PrevObject->GetName();
+		}
+		else
+		{
+			AActor const* const PrevActor = BakedObjectEntry.GetActorIfValid();
+			if (PrevActor)
+				DefaultObjectName = PrevActor->GetName();
+		}
+	}
+	
+	// fallback to name from BakedOutputObject
+	if (DefaultObjectName.IsEmpty())
+		DefaultObjectName = BakedOutputObject->GetName();
+	*/
+
+
+	FHoudiniBakedObjectData NewBakeOutput;
+	bool bReturn = false;
+	//const FString DefaultObjectName = TEXT("Default");
+	for (auto& It : CookedOutput->GetOutputObjects())
+	{
+		if (!IsValid(It.Value.OutputObject))
+			continue;
+
+		FHoudiniOutputObject& OutputObject = It.Value;
+		if (!OutputObject.OutputObject->IsA<UTexture2D>())
+			continue;
+
+		UTexture2D* Texture = Cast<UTexture2D>(OutputObject.OutputObject);
+		if (!Texture)
+			continue;
+
+		FDirectoryPath BakeFolder = InBakeFolder;
+		FString* Attribute = OutputObject.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_BAKE_FOLDER);
+		if (Attribute != nullptr)
+		{
+			BakeFolder.Path = *Attribute;
+		}
+
+		FString ObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(Texture);
+		if (FString* Value = OutputObject.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2))
+		{
+			ObjectName = *Value;
+		}
+
+		FHoudiniOutputObjectIdentifier OutputObjectId = It.Key;
+
+		// Initialize the baked output object entry (use the previous bake's data, if available).
+		bool bHasPreviousBakeData = false;
+		FHoudiniBakedOutputObject BakedOutputObject = InBakeState.MakeNewBakedOutputObject(InOutputIndex, OutputObjectId, bHasPreviousBakeData);
+
+		const EPackageReplaceMode AssetPackageReplaceMode = BakeSettings.bReplaceAssets ?
+			EPackageReplaceMode::ReplaceExistingAssets : EPackageReplaceMode::CreateNewAssets;
+
+		// Configure FHoudiniAttributeResolver and fill the package params with resolved object name and bake folder.
+		// The resolver is then also configured with the package params for subsequent resolving (level_path etc)
+		FHoudiniAttributeResolver Resolver;
+		FHoudiniPackageParams PackageParams;
+		FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
+			WorldContext,
+			InCookable,
+			OutputObjectId,
+			OutputObject,
+			bHasPreviousBakeData,
+			ObjectName,
+			PackageParams,
+			Resolver,
+			BakeFolder.Path,
+			AssetPackageReplaceMode,
+			HoudiniAssetName,
+			HoudiniAssetActorName,
+			bAutomaticallySetAttemptToLoadMissingPackages,
+			false,
+			bSkipBakeFolderResolutionAndUseDefault);
+
+		UTexture2D* PreviousTexture = Cast<UTexture2D>(BakedOutputObject.GetBakedObjectIfValid());
+		UTexture2D* BakedTexture = FHoudiniEngineBakeUtils::BakeTextureToPackage(Texture, PackageParams, PreviousTexture);
+		if (!BakedTexture)
+			continue;
+
+		// Record the baked object
+		BakedOutputObject.BakedObject = FSoftObjectPath(BakedTexture).ToString();
+		// No component and no actor
+		BakedOutputObject.BakedComponent = nullptr;
+		BakedOutputObject.Actor = nullptr;
+
+		// Record bake data
+		InBakeState.SetNewBakedOutputObject(InOutputIndex, OutputObjectId, BakedOutputObject);
+
+		bReturn = true;
+	}
+
+	return bReturn;
+}
+
 UTexture2D*
 FHoudiniEngineBakeUtils::BakeTextureToPackage(
 	UTexture2D* InOriginalTexture,
 	const FHoudiniPackageParams& InPackageParams,
-	TMap<UTexture2D*, UTexture2D*>& InOutAlreadyBakedTexturesMap)
+	UTexture2D* InPreviousBakeTexture)
 {
 	if (!IsValid(InOriginalTexture))
 	{
@@ -9843,7 +10001,7 @@ FHoudiniEngineBakeUtils::BakeTextureToPackage(
 	// Duplicate the texture
 	FHoudiniBakedObjectData BakedObjectData;
 	UTexture2D* DuplicatedTexture = FHoudiniEngineBakeUtils::DuplicateTextureAndCreatePackage(
-		InOriginalTexture, nullptr, TextureName, InPackageParams, BakedObjectData);
+		InOriginalTexture, InPreviousBakeTexture, TextureName, InPackageParams, BakedObjectData);
 
 	if (!IsValid(DuplicatedTexture))
 		return nullptr;

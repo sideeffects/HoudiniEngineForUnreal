@@ -62,6 +62,11 @@ public:
 	virtual bool InputWidgetDelta(FViewport * InViewport, EAxisList::Type CurrentAxis, FVector & Drag, FRotator & Rot, FVector & Scale) override;
 
 	virtual bool InputKey(const FInputKeyEventArgs& EventArgs) override;
+
+	void SetViewportTo2D();
+
+	void SetViewportTo3D();
+
 protected:
 
 	// Pointer back to our Houdini Asset Editor Viewport owner
@@ -80,4 +85,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UPostProcessComponent> PostProcessComponent;
+
+	bool bIs2DViewport;
 };

@@ -107,4 +107,8 @@ public:
 	static bool ProcessCopOutput(
 		UHoudiniOutput* InOutput,
 		const FHoudiniPackageParams& InPackageParams);
+
+	static UMaterialInterface* CreateDefaultCopMaterialForTexture(
+		UTexture2D* InTexture,
+		const FHoudiniPackageParams& InPackageParams);
 };

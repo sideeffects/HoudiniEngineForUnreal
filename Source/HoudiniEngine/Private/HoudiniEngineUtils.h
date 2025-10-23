@@ -934,6 +934,18 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Indicates if a HAC has the Houdini logo mesh
 		static bool HasHoudiniLogo(USceneComponent* InComponent);
 
+		// Adds a default quad mesh for texture output
+		static bool AddTextureMeshToComponent(
+			USceneComponent* InComponent, 
+			UTexture2D* InTexture,
+			UMaterialInterface* InMaterial);
+
+		// Removes the default quad mesh for texture output
+		static bool RemoveTextureMeshFromComponent(USceneComponent* InComponent);
+
+		// Indicates if a HAC has the default texture mesh
+		static bool HasTextureMesh(USceneComponent* InComponent);
+
 		// 
 		static HAPI_PartInfo ToHAPIPartInfo(const FHoudiniPartInfo& InHPartInfo);
 

@@ -312,6 +312,8 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 {
 	HoudiniAssetBeingEdited = InitHDA;
 
+	bIsViewingCopHDA = false;
+
 	// Get the next available Identifier for our details
 	if(HoudiniAssetEditorIdentifier.IsEmpty())
 		HoudiniAssetEditorIdentifier = 	FHoudiniEngine::Get().RegisterNewHoudiniAssetEditor();
@@ -402,6 +404,41 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 
 			// Let the cookable know its used in an Houdini Asset Editor
 			HoudiniCookableBeingEdited->AssetEditorId = FName(*HoudiniAssetEditorIdentifier);
+
+			HoudiniCookableBeingEdited->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
+			{
+				// See if this Cookable is texture only
+				bool bTextureOnly = true;
+				for (int32 OutputIdx = 0; OutputIdx < _HC->GetNumOutputs(); OutputIdx++)
+				{
+					UHoudiniOutput* CurOutput = _HC->GetOutputAt(OutputIdx);
+					if (!IsValid(CurOutput))
+						continue;
+
+					if (CurOutput->GetType() != EHoudiniOutputType::Cop)
+						bTextureOnly = false;
+				}
+
+				if (bTextureOnly)
+				{
+					if (!bIsViewingCopHDA)
+					{
+						// Switch viewport to texture						
+						ViewportPtr->GetViewportClient()->SetViewportTo2D();
+						bIsViewingCopHDA = true;
+					}
+				}
+				else
+				{
+					if (bIsViewingCopHDA)
+					{
+						// Switch viewport to 3D
+						ViewportPtr->GetViewportClient()->SetViewportTo3D();
+						bIsViewingCopHDA = false;
+					}
+				}
+
+			});
 			
 			// Register the Cookable with the Manager
 			FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(HoudiniCookableBeingEdited);		

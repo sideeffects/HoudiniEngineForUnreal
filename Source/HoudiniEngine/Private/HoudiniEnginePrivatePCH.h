@@ -49,6 +49,8 @@
 #define HAPI_UNREAL_RESOURCE_HOUDINI_MATERIAL			TEXT( "/HoudiniEngine/houdini_default_material.houdini_default_material" )
 #define HAPI_UNREAL_RESOURCE_HOUDINI_TEMPLATE_MATERIAL	TEXT( "/HoudiniEngine/houdini_templated_material.houdini_templated_material")
 #define HAPI_UNREAL_RESOURCE_BGEO_IMPORT				TEXT( "/HoudiniEngine/houdini_bgeo_import.houdini_bgeo_import" )
+#define HAPI_UNREAL_RESOURCE_HOUDINI_COP_MESH			TEXT( "/HoudiniEngine/houdini_default_cop_mesh" )
+#define HAPI_UNREAL_RESOURCE_HOUDINI_COP_MATERIAL		TEXT( "/HoudiniEngine/houdini_default_cop_material" )
 
 #define HAPI_UNREAL_RESOURCE_HOUDINI_DEFAULT_REFERENCE_MESH             TEXT("/HoudiniEngine/default_reference_static_mesh.default_reference_static_mesh")
 #define HAPI_UNREAL_RESOURCE_HOUDINI_DEFAULT_REFERENCE_MESH_MATERIAL    TEXT("/HoudiniEngine/default_reference_static_mesh_material.default_reference_static_mesh_material")

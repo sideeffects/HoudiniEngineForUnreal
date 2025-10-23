@@ -923,8 +923,10 @@ FHoudiniMaterialTranslator::CreatePackageForMaterial(
 	const FHoudiniPackageParams& InPackageParams,
 	FString& OutMaterialName)
 {
-	FString MaterialDescriptor = TEXT("_material_") + FString::FromInt(InMaterialNodeId) + TEXT("_") + InMaterialName;
-	//FString MaterialDescriptor = TEXT("_material_") + FString::FromInt(InMaterialNodeId) + TEXT("_") + FString::FromInt(InPackageParams.PartId) + InPackageParams.SplitStr +  TEXT("_") + InMaterialName;
+	FString MaterialDescriptor = TEXT("_material_");
+	if (InMaterialNodeId >= 0)
+		MaterialDescriptor += FString::FromInt(InMaterialNodeId) + TEXT("_");
+	MaterialDescriptor += InMaterialName;
 
 	FHoudiniPackageParams MyPackageParams = InPackageParams;
 	if (!MyPackageParams.ObjectName.IsEmpty())
