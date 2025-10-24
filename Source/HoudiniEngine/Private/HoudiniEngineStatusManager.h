@@ -25,6 +25,7 @@
 */
 
 #pragma once
+#include "HoudiniStatusManager.h"
 
 class UHoudiniCookable;
 

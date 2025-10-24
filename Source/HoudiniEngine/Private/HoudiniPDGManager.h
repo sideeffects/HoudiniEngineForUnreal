@@ -33,6 +33,7 @@
 #include "MessageEndpoint.h"
 
 class UHoudiniAssetComponent;
+class UHoudiniCookable;
 class UHoudiniPDGAssetLink;
 class UTOPNetwork;
 class UTOPNode;

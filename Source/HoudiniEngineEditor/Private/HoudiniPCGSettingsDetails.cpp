@@ -30,6 +30,8 @@
 #if defined(HOUDINI_USE_PCG)
 
 #include "HoudiniPCGComponent.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
+
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
 #include "DetailLayoutBuilder.h"
@@ -44,6 +46,8 @@
 
 // Debugging (for on-screen messages)
 #include "Engine/Engine.h"
+
+#include "Internationalization/Internationalization.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
