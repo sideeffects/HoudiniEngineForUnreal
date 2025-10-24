@@ -47,6 +47,8 @@ class UHoudiniPDGAssetLink;
 class FMenuBuilder;
 class SBorder;
 class SButton;
+class SHorizontalBox;
+class SVerticalBox;
 
 #define IsValidWeakPointer(InWeakObjectPointer) \
 	FHoudiniEngineDetails::IsValidWeakObjectPointer(InWeakObjectPointer, true, TEXT(__FILE__), __LINE__)

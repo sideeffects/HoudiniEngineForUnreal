@@ -26,6 +26,8 @@
 
 #include "HoudiniEditorHeightfieldTests.h"
 
+#include "Runtime/Launch/Resources/Version.h"
+
 #if WITH_DEV_AUTOMATION_TESTS
 #include "HoudiniEditorTestUtils.h"
 

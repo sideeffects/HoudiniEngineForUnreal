@@ -5714,10 +5714,10 @@ FHoudiniInputDetails::Helper_CreateWorldActorPickerWidget(const TArray<TWeakObje
 			AActor* CurActor = Cast<AActor>(CurInputObject->GetObject());
 			if (!IsValid(CurActor))
 			{
-				// See if the input object is a HAC, if it is, get its parent actor
-				UHoudiniAssetComponent* CurHAC = Cast<UHoudiniAssetComponent>(CurInputObject->GetObject());
-				if (IsValid(CurHAC))
-					CurActor = CurHAC->GetOwner();
+				// See if the input object is a Cookable, if it is, get its parent actor
+				UHoudiniCookable* CurHC = Cast<UHoudiniCookable>(CurInputObject->GetObject());
+				if (IsValid(CurHC))
+					CurActor = CurHC->GetOwner();
 			}
 
 			if (!IsValid(CurActor))

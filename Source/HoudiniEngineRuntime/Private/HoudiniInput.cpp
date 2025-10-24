@@ -2539,6 +2539,14 @@ UHoudiniInput::UpdateWorldSelection(const TArray<AActor*>& InNewSelection)
 		UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>((*InputObjects)[Idx]);
 		AActor* CurActor = InputActor ? InputActor->GetActor() : nullptr;
 
+		if (!InputActor)
+		{
+			// Try HoudiniAsset inputs
+			UHoudiniInputHoudiniAsset* HDAInput = Cast<UHoudiniInputHoudiniAsset>((*InputObjects)[Idx]);
+			if(HDAInput && HDAInput->GetHoudiniCookable())
+				CurActor = HDAInput->GetHoudiniCookable()->GetOwner();
+		}
+
 		if (CurActor && NewSelectedActors.Contains(CurActor))
 		{
 			// The actor is still selected, remove it from the new selection
@@ -2546,7 +2554,7 @@ UHoudiniInput::UpdateWorldSelection(const TArray<AActor*>& InNewSelection)
 		}
 		else
 		{
-			// That actor is no longer selected, remove itr from our current selection
+			// That actor is no longer selected, remove it from our current selection
 			DeleteInputObjectAt(EHoudiniInputType::World, Idx);
 			bHasSelectionChanged = true;
 		}

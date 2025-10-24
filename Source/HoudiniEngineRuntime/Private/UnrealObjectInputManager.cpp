@@ -25,6 +25,7 @@
 */
 
 #include "UnrealObjectInputManager.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 
 FUnrealObjectInputManager* FUnrealObjectInputManager::Singleton = nullptr;
 

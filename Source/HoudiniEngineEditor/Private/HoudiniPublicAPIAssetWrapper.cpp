@@ -767,13 +767,38 @@ UHoudiniPublicAPIAssetWrapper::SetAutoCookingEnabled_Implementation(const bool b
 	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	if (HC->IsCookingEnabled() == bInSetEnabled)
-		return false;
+	bool bModified = false;
 
-	HC->SetCookingEnabled(bInSetEnabled);
-	HC->Modify();
+	// Enable cooking...
+	if (HC->IsCookingEnabled() != bInSetEnabled)
+	{
+		HC->SetCookingEnabled(bInSetEnabled);
+		bModified = true;
+	}
 
-	return true;
+	// ... and the cook triggers
+	if (HC->GetCookOnTransformChange() != bInSetEnabled)
+	{
+		HC->SetCookOnTransformChange(bInSetEnabled);
+		bModified = true;
+	}
+
+	if (HC->GetCookOnInputChange() != bInSetEnabled)
+	{
+		HC->SetCookOnInputChange(bInSetEnabled);
+		bModified = true;
+	}
+
+	if (HC->GetCookOnParameterChange() != bInSetEnabled)
+	{
+		HC->SetCookOnParameterChange(bInSetEnabled);
+		bModified = true;
+	}
+
+	if(bModified)
+		HC->Modify();
+
+	return bModified;
 }
 
 bool

@@ -29,6 +29,8 @@
 #include <PCGData.h>
 #include "UObject/NameTypes.h"
 #include <Data/PCGSplineData.h>
+#include "Runtime/Launch/Resources/Version.h"
+
 #include "HoudiniPCGDataObject.generated.h"
 
 class UPCGPointData;
