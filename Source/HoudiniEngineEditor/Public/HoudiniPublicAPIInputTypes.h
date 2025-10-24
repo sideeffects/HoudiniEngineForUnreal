@@ -205,6 +205,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
 	bool bPackBeforeMerge;
 
+	/** Indicates that the main mesh/geo should be marshalled to Houdini */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
+	bool bExportMainGeometry;
+
 	/** Indicates that all LODs in the input should be marshalled to Houdini */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Houdini Engine | Public API | Inputs")
 	bool bExportLODs;

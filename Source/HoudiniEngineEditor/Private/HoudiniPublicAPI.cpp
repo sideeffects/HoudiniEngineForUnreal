@@ -28,6 +28,7 @@
 #include "HoudiniPublicAPI.h"
 
 #include "HoudiniAsset.h"
+#include "HoudiniPreset.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniPublicAPIAssetWrapper.h"
 #include "HoudiniPublicAPIInputTypes.h"
@@ -181,6 +182,136 @@ UHoudiniPublicAPI::InstantiateAssetWithExistingWrapper_Implementation(
 	
 	return true;
 }
+
+UHoudiniPublicAPIAssetWrapper*
+UHoudiniPublicAPI::InstantiatePreset_Implementation(
+	UHoudiniPreset* InHoudiniPreset,
+	const FTransform& InInstantiateAt,
+	UObject* InWorldContextObject,
+	ULevel* InSpawnInLevelOverride,
+	const bool bInEnableAutoCook,
+	const bool bInEnableAutoBake,
+	const FString& InBakeDirectoryPath,
+	const EHoudiniEngineBakeOption InBakeMethod,
+	const bool bInRemoveOutputAfterBake,
+	const bool bInRecenterBakedActors,
+	const bool bInReplacePreviousBake)
+{
+	if (!IsValid(InHoudiniPreset))
+	{
+		SetErrorMessage(TEXT("InHoudiniPreset is invalid."));
+		return nullptr;
+	}
+
+	// Get the preset's HDA
+	UHoudiniAsset* SourceHDA = InHoudiniPreset->SourceHoudiniAsset;
+	if (!IsValid(SourceHDA) || !(SourceHDA->AssetImportData))
+	{
+		SetErrorMessage(TEXT("The preset's Houdini Asset is invalid or does not have AssetImportData."));
+		return nullptr;
+	}
+
+	// Create wrapper for asset instance
+	UHoudiniPublicAPIAssetWrapper* Wrapper = UHoudiniPublicAPIAssetWrapper::CreateEmptyWrapper(this);
+
+	if (Wrapper)
+	{
+		// Enable/disable error logging based on the API setting
+		Wrapper->SetLoggingErrorsEnabled(IsLoggingErrors());
+
+		if (!InstantiatePresetWithExistingWrapper(
+			Wrapper,
+			InHoudiniPreset,
+			InInstantiateAt,
+			InWorldContextObject,
+			InSpawnInLevelOverride,
+			bInEnableAutoCook,
+			bInEnableAutoBake,
+			InBakeDirectoryPath,
+			InBakeMethod,
+			bInRemoveOutputAfterBake,
+			bInRecenterBakedActors,
+			bInReplacePreviousBake))
+		{
+			// failed to instantiate preset, return null
+			return nullptr;
+		}
+	}
+
+	return Wrapper;
+}
+
+bool
+UHoudiniPublicAPI::InstantiatePresetWithExistingWrapper_Implementation(
+	UHoudiniPublicAPIAssetWrapper* InWrapper,
+	UHoudiniPreset* InHoudiniPreset,
+	const FTransform& InInstantiateAt,
+	UObject* InWorldContextObject,
+	ULevel* InSpawnInLevelOverride,
+	const bool bInEnableAutoCook,
+	const bool bInEnableAutoBake,
+	const FString& InBakeDirectoryPath,
+	const EHoudiniEngineBakeOption InBakeMethod,
+	const bool bInRemoveOutputAfterBake,
+	const bool bInRecenterBakedActors,
+	const bool bInReplacePreviousBake)
+{
+	if (!IsValid(InWrapper))
+	{
+		SetErrorMessage(TEXT("InWrapper is not valid."));
+		return false;
+	}
+
+	if (!IsValid(InHoudiniPreset))
+	{
+		SetErrorMessage(TEXT("InHoudiniPreset is invalid."));
+		return false;
+	}
+
+	// Get the preset's HDA
+	UHoudiniAsset* SourceHDA = InHoudiniPreset->SourceHoudiniAsset;
+	if (!IsValid(SourceHDA) || !(SourceHDA->AssetImportData))
+	{
+		SetErrorMessage(TEXT("The preset's Houdini Asset is invalid or does not have AssetImportData."));
+		return false;
+	}
+
+	UWorld* OverrideWorldToSpawnIn = IsValid(InWorldContextObject) ? InWorldContextObject->GetWorld() : nullptr;
+	AActor* HoudiniAssetActor = FHoudiniEngineEditorUtils::InstantiateHoudiniAssetAt(SourceHDA, InInstantiateAt, OverrideWorldToSpawnIn, InSpawnInLevelOverride, InHoudiniPreset);
+	if (!IsValid(HoudiniAssetActor))
+	{
+		// Determine the path of what would have been the owning level/world of the actor for error logging purposes
+		const FString LevelPath = IsValid(InSpawnInLevelOverride) ? InSpawnInLevelOverride->GetPathName() : FString();
+		const FString WorldPath = IsValid(OverrideWorldToSpawnIn) ? OverrideWorldToSpawnIn->GetPathName() : FString();
+		const FString OwnerPath = LevelPath.IsEmpty() ? WorldPath : LevelPath;
+		SetErrorMessage(FString::Printf(TEXT("Failed to spawn a AHoudiniAssetActor in %s."), *OwnerPath));
+		return false;
+	}
+
+	// Wrap the instantiated asset
+	if (!InWrapper->WrapHoudiniAssetObject(HoudiniAssetActor))
+	{
+		FString WrapperError;
+		InWrapper->GetLastErrorMessage(WrapperError);
+		SetErrorMessage(FString::Printf(
+			TEXT("Failed to wrap '%s': %s."), *(HoudiniAssetActor->GetActorNameOrLabel()), *WrapperError));
+		return false;
+	}
+
+	InWrapper->SetAutoCookingEnabled(bInEnableAutoCook);
+
+	FDirectoryPath BakeDirectoryPath;
+	BakeDirectoryPath.Path = InBakeDirectoryPath;
+	InWrapper->SetBakeFolder(BakeDirectoryPath);
+	InWrapper->SetBakeMethod(InBakeMethod);
+	InWrapper->SetRemoveOutputAfterBake(bInRemoveOutputAfterBake);
+	InWrapper->SetRecenterBakedActors(bInRecenterBakedActors);
+	InWrapper->SetReplacePreviousBake(bInReplacePreviousBake);
+	InWrapper->SetAutoBakeEnabled(bInEnableAutoBake);
+
+	return true;
+}
+
 
 bool
 UHoudiniPublicAPI::IsAssetCookingPaused_Implementation() const 

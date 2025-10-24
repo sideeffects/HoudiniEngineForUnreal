@@ -295,6 +295,7 @@ UHoudiniPublicAPIGeoInput::UHoudiniPublicAPIGeoInput()
 
 	bKeepWorldTransform = false;
 	bPackBeforeMerge = false;
+	bExportMainGeometry = true;
 	bExportLODs = false;
 	bExportSockets = false;
 	bExportColliders = false;
@@ -333,6 +334,7 @@ UHoudiniPublicAPIGeoInput::PopulateFromHoudiniInput(UHoudiniInput const* const I
 		return false;
 
 	bPackBeforeMerge = InInput->GetPackBeforeMerge();
+	bExportMainGeometry = InInput->GetExportMainGeometry();
 	bExportLODs = InInput->GetExportLODs();
 	bExportSockets = InInput->GetExportSockets();
 	bExportColliders = InInput->GetExportColliders();
@@ -350,6 +352,11 @@ UHoudiniPublicAPIGeoInput::UpdateHoudiniInput(UHoudiniInput* const InInput) cons
 	if (InInput->GetPackBeforeMerge() != bPackBeforeMerge)
 	{
 		InInput->SetPackBeforeMerge(bPackBeforeMerge);
+		bAnyChanges = true;
+	}
+	if (InInput->GetExportMainGeometry() != bExportMainGeometry)
+	{
+		InInput->SetExportMainGeometry(bExportMainGeometry);
 		bAnyChanges = true;
 	}
 	if (InInput->GetExportLODs() != bExportLODs)
