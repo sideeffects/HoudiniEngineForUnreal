@@ -2241,6 +2241,15 @@ UHoudiniCookable::SetCookOnTransformChange(bool bEnable)
 }
 
 void
+UHoudiniCookable::SetCookOnInputChange(bool bEnable)
+{
+	if (!IsInputSupported())
+		return;
+
+	InputData->bCookOnInputChange = bEnable;
+}
+
+void
 UHoudiniCookable::SetCookOnCookableInputCook(bool bEnable)
 {
 	if (!IsInputSupported())

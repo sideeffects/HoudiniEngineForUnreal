@@ -662,6 +662,7 @@ public:
 
 	void SetCookOnParameterChange(bool bEnable);
 	void SetCookOnTransformChange(bool bEnable);
+	void SetCookOnInputChange(bool bEnable);
 	void SetCookOnCookableInputCook(bool bEnable);
 	void SetOutputless(bool bEnable);
 	void SetUseOutputNodes(bool bEnable);

@@ -1541,6 +1541,30 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		}
 	};
 
+	auto IsCheckedInputChangedLambda = [MainHC]()
+	{
+		if (!IsValidWeakPointer(MainHC))
+			return ECheckBoxState::Unchecked;
+
+		return MainHC->GetCookOnInputChange() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	};
+
+	auto OnCheckStateInputChangedLambda = [InHCs](ECheckBoxState NewState)
+	{
+		bool bChecked = (NewState == ECheckBoxState::Checked);
+		for (auto& NextHC : InHCs)
+		{
+			if (!IsValidWeakPointer(NextHC))
+				continue;
+
+			if (NextHC->GetCookOnInputChange() == bChecked)
+				continue;
+
+			NextHC->SetCookOnInputChange(bChecked);
+			NextHC->MarkPackageDirty();
+		}
+	};
+
 	auto IsCheckedTransformChangeLambda = [MainHC]()
 	{
 		if (!IsValidWeakPointer(MainHC))
@@ -1825,8 +1849,9 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 
 		if (MainHC->IsParameterSupported())
 		{
-			// Parameter change check box
-			TooltipText = LOCTEXT("HoudiniEngineParameterChangeTooltip", "If enabled, modifying a parameter or input on this Houdini Asset will automatically trigger a cook of the HDA in Houdini.");
+			// Cook on Parameter change check box
+			TooltipText = LOCTEXT("HoudiniEngineParameterChangeTooltip", 
+				"If enabled, modifying a parameter on this Houdini Asset will automatically trigger a cook of the HDA in Houdini.");
 			FirstLeftColumnVerticalBox->AddSlot()
 			.AutoHeight()
 			[
@@ -1836,7 +1861,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 				[
 					SNew(STextBlock)
 					.MinDesiredWidth(160.f)
-					.Text(LOCTEXT("HoudiniEngineParameterChangeCheckBoxLabel", "On Parameter/Input Change"))
+					.Text(LOCTEXT("HoudiniEngineParameterChangeCheckBoxLabel", "On Parameter Change"))
 					.ToolTipText(TooltipText)
 				]
 				+ SHorizontalBox::Slot()
@@ -1844,6 +1869,33 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 					SNew(SCheckBox)
 					.OnCheckStateChanged_Lambda(OnCheckStateParameterChangedLambda)
 					.IsChecked_Lambda(IsCheckedParameterChangedLambda)
+					.ToolTipText(TooltipText)
+				]
+			];
+		}
+
+		if (MainHC->IsInputSupported())
+		{
+			// Cook on Input change check box
+			TooltipText = LOCTEXT("HoudiniEngineInputChangeTooltip",
+				"If enabled, any change on an input of this Houdini Asset will automatically trigger a cook of the HDA in Houdini.");
+			FirstLeftColumnVerticalBox->AddSlot()
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(4.0f)
+				[
+					SNew(STextBlock)
+					.MinDesiredWidth(160.f)
+					.Text(LOCTEXT("HoudiniEngineInputChangeCheckBoxLabel", "On Input Change"))
+					.ToolTipText(TooltipText)
+				]
+				+ SHorizontalBox::Slot()
+				[
+					SNew(SCheckBox)
+					.OnCheckStateChanged_Lambda(OnCheckStateInputChangedLambda)
+					.IsChecked_Lambda(IsCheckedInputChangedLambda)
 					.ToolTipText(TooltipText)
 				]
 			];
@@ -1878,7 +1930,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 		if (MainHC->IsInputSupported())
 		{
 			// Triggers Downstream cook checkbox
-			TooltipText = LOCTEXT("HoudiniEngineAssetInputCookTooltip", "When enabled, this asset will automatically re-cook after one its asset input has finished cooking.");
+			TooltipText = LOCTEXT("HoudiniEngineAssetInputCookTooltip", "When enabled, this asset will automatically re-cook after one its Houdini asset input has finished cooking.");
 			FirstLeftColumnVerticalBox->AddSlot()
 			.AutoHeight()
 			[
@@ -1888,7 +1940,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 				[
 					SNew(STextBlock)
 					.MinDesiredWidth(160.f)
-					.Text(LOCTEXT("HoudiniEngineAssetInputCheckBoxLabel", "On Asset Input Cook"))
+					.Text(LOCTEXT("HoudiniEngineAssetInputCheckBoxLabel", "On HDA Input Cook"))
 					.ToolTipText(TooltipText)
 				]
 				+ SHorizontalBox::Slot()
