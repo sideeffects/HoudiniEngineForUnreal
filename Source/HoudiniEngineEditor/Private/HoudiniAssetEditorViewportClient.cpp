@@ -71,7 +71,7 @@ FHoudiniAssetEditorViewportClient::FHoudiniAssetEditorViewportClient(
 	DrawHelper.PivotSize = 5;
 
 	//Initiate view
-	SetViewLocation(FVector(75, 75, 75));
+	SetViewLocation(FVector(400, 400, 400));
 	SetViewRotation(FVector(-75, -75, -75).Rotation());
 
 	EngineShowFlags.SetScreenPercentage(true);

@@ -168,6 +168,10 @@ public:
 		IDetailCategoryBuilder& HouOutputCategory,
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 
+	void CreateTextureOutputWidget(
+		IDetailCategoryBuilder& HouOutputCategory,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
+
 	static FText GetOutputTooltip(const TWeakObjectPtr<UHoudiniOutput>& MainOutput);
 	static FText GetOutputDebugName(const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 	static FText GetOutputDebugDescription(const TWeakObjectPtr<UHoudiniOutput>& InOutput);

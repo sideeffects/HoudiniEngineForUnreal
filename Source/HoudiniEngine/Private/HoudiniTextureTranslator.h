@@ -33,6 +33,7 @@
 
 class UPackage;
 class UTexture2D;
+class UHoudiniOutput;
 
 struct FHoudiniPackageParams;
 struct FCreateTexture2DParameters;
@@ -102,4 +103,8 @@ public:
 		const TextureGroup LODGroup, 
 		const FString& TextureType,
 		const FString& NodePath);
+
+	static bool ProcessCopOutput(
+		UHoudiniOutput* InOutput,
+		const FHoudiniPackageParams& InPackageParams);
 };

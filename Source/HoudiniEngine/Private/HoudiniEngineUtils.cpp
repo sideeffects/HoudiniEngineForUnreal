@@ -4879,8 +4879,16 @@ FHoudiniEngineUtils::HapiGetGroupNames(
 		// Get group count on the geo
 		HAPI_GeoInfo GeoInfo;
 		FHoudiniApi::GeoInfo_Init(&GeoInfo);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetGeoInfo(
-			FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo), false);
+
+		HAPI_Result Result = FHoudiniApi::GetGeoInfo(
+			FHoudiniEngine::Get().GetSession(), GeoId, &GeoInfo);
+
+		// We may get invalid argument here with COP assets,
+		// this is fine, so don't spam an error in that case.
+		if (HAPI_RESULT_INVALID_ARGUMENT == Result)
+			return true;
+		else
+			HOUDINI_CHECK_ERROR_RETURN(Result, false);
 
 		if (GroupType == HAPI_GROUPTYPE_POINT)
 			GroupCount = GeoInfo.pointGroupCount;

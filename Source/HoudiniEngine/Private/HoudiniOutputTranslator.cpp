@@ -255,6 +255,10 @@ FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(UHoudiniCookable* InHC)
 		const TArray<FHoudiniGeoPartObject>& CurrentOutputHGPO = CurrentOutput->GetHoudiniGeoPartObjects();
 		for (auto& CurrentHGPO : CurrentOutputHGPO)
 		{
+			// We can't get generic attributes on cops - as they dont have geos
+			if (CurrentHGPO.Type == EHoudiniPartType::Cop)
+				continue;
+
 			FHoudiniEngineUtils::GetGenericAttributeList(
 				CurrentHGPO.GeoId,
 				CurrentHGPO.PartId,
@@ -635,6 +639,12 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 					CurOutput, PackageParams, AllOutputMaterials, InOuterComponent);
 
 				NumVisibleOutputs++;
+				break;
+			}
+
+			case EHoudiniOutputType::Cop:
+			{
+				FHoudiniTextureTranslator::ProcessCopOutput(CurOutput, PackageParams);
 				break;
 			}
 
@@ -1168,6 +1178,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	{
 		FHoudiniGeoPartObject currentHGPO;
 		currentHGPO.GeoId = AssetId;
+		currentHGPO.PartId = 0;
 		currentHGPO.Type = EHoudiniPartType::Cop;
 
 		TObjectPtr<UHoudiniOutput> Output =

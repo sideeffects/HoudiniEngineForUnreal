@@ -9812,8 +9812,47 @@ FHoudiniEngineBakeUtils::BakeSingleMaterialToPackage(
 
 	if (!IsValid(DuplicatedMaterial))
 		return nullptr;
-	
+
 	return DuplicatedMaterial;
+}
+
+UTexture2D*
+FHoudiniEngineBakeUtils::BakeTextureToPackage(
+	UTexture2D* InOriginalTexture,
+	const FHoudiniPackageParams& InPackageParams,
+	TMap<UTexture2D*, UTexture2D*>& InOutAlreadyBakedTexturesMap)
+{
+	if (!IsValid(InOriginalTexture))
+	{
+		return nullptr;
+	}
+
+	// We only deal with textures.
+	if (!InOriginalTexture->IsA(UTexture2D::StaticClass()))
+	{
+		return nullptr;
+	}
+
+	FString TextureName = InOriginalTexture->GetName();
+
+	// Duplicate the texture
+	FHoudiniBakedObjectData BakedObjectData;
+	UTexture2D* DuplicatedTexture = FHoudiniEngineBakeUtils::DuplicateTextureAndCreatePackage(
+		InOriginalTexture, nullptr, TextureName, InPackageParams, BakedObjectData);
+
+	if (!IsValid(DuplicatedTexture))
+		return nullptr;
+
+	FHoudiniEngineBakeUtils::SaveBakedPackages(BakedObjectData.PackagesToSave);
+	// Sync the CB to the baked objects
+	if (GEditor)
+	{
+		TArray<UObject*> Objects;
+		Objects.Add(DuplicatedTexture);
+		GEditor->SyncBrowserToObjects(Objects);
+	}
+
+	return DuplicatedTexture;
 }
 
 UClass*

@@ -208,6 +208,10 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask & Task)
 	TaskDescription(TaskInfo, Task.ActorName, TEXT("Started Instantiation"));
 	FHoudiniEngine::Get().AddTaskInfo(Task.HapiGUID, TaskInfo);
 
+	bool bTryCOPNet = false;
+	if (AssetName.Contains(TEXT("::Cop/")))
+		bTryCOPNet = true;
+
 	// We need to spin until instantiation is finished.
 	while (true)
 	{
@@ -232,6 +236,82 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask & Task)
 			FString CookResultString = FHoudiniEngineUtils::GetCookResult();
 			int32 CookResult = static_cast<int32>(HAPI_RESULT_SUCCESS);
 			FHoudiniApi::GetStatus(FHoudiniEngine::Get().GetSession(), HAPI_STATUS_COOK_RESULT, &CookResult);
+
+			// If the asset is a cop node, we need to create obj/geo/cop subnet
+			// in order to be able to instantiate it properly
+			if (Status == HAPI_STATE_READY_WITH_FATAL_ERRORS 
+				&& CookResult == HAPI_RESULT_INVALID_ARGUMENT
+				&& bTryCOPNet)
+			{
+				// Only try once
+				bTryCOPNet = false;
+
+				// Extract the operator name, as we've just created the appropriate subnets
+				FString opName = AssetName;
+				int32 opNameStart = AssetName.Find("/");
+				if (opNameStart > 0)
+				{
+					opName = AssetName.RightChop(opNameStart + 1);
+					AssetNameString = TCHAR_TO_UTF8(*opName);
+				}
+				
+				// Create an OBJ node
+				HAPI_NodeId UnrealContentNodeId = -1;
+				Result = FHoudiniEngineUtils::CreateNode(
+					-1, "Object/subnet", opName, true, &UnrealContentNodeId);
+
+				// Create a geo "grandparent" node 
+				HAPI_NodeId GrandParentGEOId = -1;
+				if (Result == HAPI_RESULT_SUCCESS)
+				{
+					Result = FHoudiniEngineUtils::CreateNode(
+						UnrealContentNodeId, TEXT("geo"), opName, true, &GrandParentGEOId);
+				}
+
+				// And a parent COP net
+				HAPI_NodeId ParentCOPId = -1;
+				if (Result == HAPI_RESULT_SUCCESS)
+				{
+					// Create the node and wait for the ready status
+					Result = FHoudiniEngineUtils::CreateNode(
+						GrandParentGEOId, TEXT("copnet"), opName, true, &ParentCOPId);
+				}
+
+				if (Result == HAPI_RESULT_SUCCESS && ParentCOPId >= 0)
+				{
+					// Attempt to create the HDA in the copnet we just created
+					Result = FHoudiniApi::CreateNode(
+						FHoudiniEngine::Get().GetSession(),
+						ParentCOPId,
+						&AssetNameString[0], 
+						NativeNodeLabel,
+						false,
+						&AssetId);
+
+					if (HAPI_RESULT_SUCCESS != Result)
+					{
+						// Failed - clean up any parent node we might have created
+						if(ParentCOPId >= 0)
+							FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(),	ParentCOPId);
+
+						if (GrandParentGEOId >= 0)
+							FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), GrandParentGEOId);
+
+						if (UnrealContentNodeId >= 0)
+							FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), UnrealContentNodeId);
+					}
+					else
+					{
+						// Retry with the cop node in the subnets
+						continue;
+					}
+				}
+				else
+				{
+					Status = HAPI_STATE_READY_WITH_FATAL_ERRORS;
+					CookResult = HAPI_RESULT_INVALID_ARGUMENT;
+				}
+			}
 
 			EHoudiniEngineTaskState TaskStateResult = EHoudiniEngineTaskState::FinishedWithFatalError;
 			if (Status == HAPI_STATE_READY_WITH_COOK_ERRORS)
