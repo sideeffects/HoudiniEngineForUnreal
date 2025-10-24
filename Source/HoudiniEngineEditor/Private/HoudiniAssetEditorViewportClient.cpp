@@ -353,6 +353,8 @@ FHoudiniAssetEditorViewportClient::SetViewportTo2D()
 	*/
 
 	bIs2DViewport = true;
+
+	AdvancedPreviewScene->SetFloorVisibility(false, true);
 }
 
 void
