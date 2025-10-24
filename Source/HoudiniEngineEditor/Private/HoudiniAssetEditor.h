@@ -171,4 +171,6 @@ protected:
 	FString HoudiniAssetEditorIdentifier;
 
 	FAdvancedPreviewSceneModule::FOnPreviewSceneChanged OnPreviewSceneChangedDelegate;
+
+	bool bIsViewingCopHDA;
 };

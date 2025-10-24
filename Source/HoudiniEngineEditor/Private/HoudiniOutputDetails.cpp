@@ -3583,7 +3583,8 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 	const bool bAutomaticallySetAttemptToLoadMissingPackages = true;
 	const bool bSkipObjectNameResolutionAndUseDefault = !InBakeName.IsEmpty();  // If InBakeName is set use it as is for the object name
 	const bool bSkipBakeFolderResolutionAndUseDefault = false;
-
+	
+	/*
 	FString DefaultObjectName;
 	if (InBakeName.IsEmpty())
 	{
@@ -3611,9 +3612,10 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 	{
 		DefaultObjectName = InBakeName;
 	}
+	*/
 	
 	FHoudiniEngineUtils::FillInPackageParamsForBakingOutputWithResolver(
-		WorldContext, HC, OutputIdentifier, InOutputObject, bHasPreviousBakeData, BakedOutputObject->GetName(),
+		WorldContext, HC, OutputIdentifier, InOutputObject, bHasPreviousBakeData, BakedOutputObject->GetName(), //DefaultObjectName,
 		PackageParams, Resolver, BakeFolder, EPackageReplaceMode::ReplaceExistingAssets,
 		HoudiniAssetName, HoudiniAssetActorName,
 		bAutomaticallySetAttemptToLoadMissingPackages, bSkipObjectNameResolutionAndUseDefault,
@@ -3677,8 +3679,11 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 			UTexture2D* Texture = Cast<UTexture2D>(BakedOutputObject);
 			if (Texture)
 			{
-				TMap<UTexture2D*, UTexture2D*> AlreadyBakedTextures;
-				FHoudiniEngineBakeUtils::BakeTextureToPackage(Texture, PackageParams, AlreadyBakedTextures);
+				UTexture2D* BakedTexture = FHoudiniEngineBakeUtils::BakeTextureToPackage(Texture, PackageParams, nullptr);
+
+				BakedObjectEntry.Actor.Empty();
+				BakedObjectEntry.BakedComponent.Empty();
+				BakedObjectEntry.BakedObject = FSoftObjectPath(BakedTexture).ToString();
 			}
 		}
 		break;

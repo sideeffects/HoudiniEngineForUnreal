@@ -263,6 +263,12 @@ public:
 		// Returns either the default Houdini material or the default template material
 		virtual TWeakObjectPtr<UMaterial> GetHoudiniDefaultMaterial(const bool& bIsTemplate) const { return bIsTemplate ? HoudiniTemplateMaterial : HoudiniDefaultMaterial; };
 
+		// Returns the default Houdini Logo Static Mesh
+		virtual TWeakObjectPtr<UStaticMesh> GetHoudiniCOPStaticMesh() const { return HoudiniCOPStaticMesh; };
+
+		// Returns the default material for COPs
+		virtual TWeakObjectPtr<UMaterial> GetHoudiniDefaultCOPMaterial() const { return HoudiniDefaultCOPMaterial; };
+
 		// Returns the default Houdini material
 		virtual TWeakObjectPtr<UMaterial> GetHoudiniDefaultMaterial() const { return HoudiniDefaultMaterial; };
 		// Returns the default template Houdini material
@@ -390,6 +396,12 @@ public:
 
 		// Material used as default template material.
 		TWeakObjectPtr<UMaterial> HoudiniTemplateMaterial;
+
+		// Static mesh used for texture/COPs rendering.
+		TWeakObjectPtr<UStaticMesh> HoudiniCOPStaticMesh;
+
+		// Material used as default COP material.
+		TWeakObjectPtr<UMaterial> HoudiniDefaultCOPMaterial;
 
 		// Houdini logo brush.
 		TSharedPtr<FSlateDynamicImageBrush> HoudiniLogoBrush;

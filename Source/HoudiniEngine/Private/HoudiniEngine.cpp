@@ -88,6 +88,8 @@ FHoudiniEngine::FHoudiniEngine()
 	, HoudiniLogoStaticMesh(nullptr)
 	, HoudiniDefaultMaterial(nullptr)
 	, HoudiniTemplateMaterial(nullptr)
+	, HoudiniCOPStaticMesh(nullptr)
+	, HoudiniDefaultCOPMaterial(nullptr)
 	, HoudiniLogoBrush(nullptr)
 	, HoudiniDefaultReferenceMesh(nullptr)
 	, HoudiniDefaultReferenceMeshMaterial(nullptr)
@@ -162,6 +164,18 @@ FHoudiniEngine::StartupModule()
 		nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_TEMPLATE_MATERIAL, nullptr, LOAD_None, nullptr);
 	if (HoudiniTemplateMaterial.IsValid())
 		HoudiniTemplateMaterial->AddToRoot();
+
+	// Create default COP mesh
+	HoudiniCOPStaticMesh = LoadObject<UStaticMesh>(
+		nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_COP_MESH, nullptr, LOAD_None, nullptr);
+	if (HoudiniCOPStaticMesh.IsValid())
+		HoudiniCOPStaticMesh->AddToRoot();
+
+	// Create default COP material.
+	HoudiniDefaultCOPMaterial = LoadObject<UMaterial>(
+		nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_COP_MATERIAL, nullptr, LOAD_None, nullptr);
+	if (HoudiniDefaultCOPMaterial.IsValid())
+		HoudiniDefaultCOPMaterial->AddToRoot();
 
 	// Houdini Logo Brush
 	FString Icon128FilePath = FHoudiniEngineUtils::GetHoudiniEnginePluginDir() / TEXT("Resources/Icon128.png");
@@ -274,6 +288,20 @@ FHoudiniEngine::ShutdownModule()
 	{
 		HoudiniTemplateMaterial->RemoveFromRoot();
 		HoudiniTemplateMaterial = nullptr;
+	}
+
+	// We no longer need the Houdini COP static mesh.
+	if (HoudiniCOPStaticMesh.IsValid())
+	{
+		HoudiniCOPStaticMesh->RemoveFromRoot();
+		HoudiniCOPStaticMesh = nullptr;
+	}
+
+	// We no longer need the COP default material
+	if (HoudiniDefaultCOPMaterial.IsValid())
+	{
+		HoudiniDefaultCOPMaterial->RemoveFromRoot();
+		HoudiniDefaultCOPMaterial = nullptr;
 	}
 
 	// We no longer need the Houdini default reference mesh
