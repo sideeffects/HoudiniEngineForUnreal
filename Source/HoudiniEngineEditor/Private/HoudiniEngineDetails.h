@@ -47,7 +47,7 @@ class UHoudiniPDGAssetLink;
 class FMenuBuilder;
 class SBorder;
 class SButton;
-class SHorizontalBox
+class SHorizontalBox;
 class SVerticalBox;
 
 #define IsValidWeakPointer(InWeakObjectPointer) \
