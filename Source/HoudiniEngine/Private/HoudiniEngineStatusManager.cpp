@@ -133,16 +133,16 @@ void FHoudiniEngineStatusManager::AddLog(const TCHAR* V, ELogVerbosity::Type Ver
 {
 	FScopeLock Lock(&Mutex);
 
-	FHoudiniCookableStatus* CookableStatus = CurrentStatuses.Find(ActiveCookable);
+	FHoudiniCookableStatus* CookableStatus = CurrentStatuses.Find(GetActiveCookable());
 	if (!CookableStatus)
 	{
-		CookableStatus = &CurrentStatuses.Add(ActiveCookable, {});
+		CookableStatus = &CurrentStatuses.Add(GetActiveCookable(), {});
 
 	}
 	FHoudiniLogRecord& Record = CookableStatus->Logs.Emplace_GetRef();
 	Record.Verbosity = Verbosity;
 	Record.LogMessage = V;
-	Record.Cookable = ActiveCookable;
+	Record.Cookable = GetActiveCookable();
 
 	switch (Verbosity)
 	{

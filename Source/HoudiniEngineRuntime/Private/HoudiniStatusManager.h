@@ -86,14 +86,14 @@ public:
 	virtual FString GetLogs(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs) { return FString(); };
 
 	void SetActiveCookable(UHoudiniCookable* Cookable) ;
-	UHoudiniCookable* GetActiveCookable() const { return ActiveCookable; }
+	UHoudiniCookable* GetActiveCookable() const;
 	void ClearActiveCookable();
 
 	// BEWARE! DO Not change the name of these functions, I tried "LogError" and got all kind of weird macro expansion bugs.
 	static void ErrorLog(const TCHAR* Format, ...);
 	static void WarningLog(const TCHAR* Format, ...);
 
-	UHoudiniCookable* ActiveCookable;
+	TWeakObjectPtr<UHoudiniCookable> ActiveCookable;
 
 protected:
 	static FHoudiniStatusManager* Instance;

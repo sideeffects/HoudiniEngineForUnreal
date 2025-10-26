@@ -77,5 +77,10 @@ void FHoudiniStatusManager::ClearActiveCookable()
 	SetActiveCookable(nullptr);
 }
 
+UHoudiniCookable* 
+FHoudiniStatusManager::GetActiveCookable() const
+{
+	return ActiveCookable.IsValid() ? ActiveCookable.Get() : nullptr;
+}
 
 

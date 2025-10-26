@@ -76,10 +76,10 @@ public:
 		auto Instance = FHoudiniEngineStatusManager::Get();
 		if(Instance != nullptr)
 		{
-			Instance->SetActiveCookable(Prev);
+			Instance->SetActiveCookable(Prev.IsValid() ? Prev.Get() : nullptr);
 		}
 	}
-	UHoudiniCookable* Prev;
+	TWeakObjectPtr<UHoudiniCookable> Prev;
 
 };
 
