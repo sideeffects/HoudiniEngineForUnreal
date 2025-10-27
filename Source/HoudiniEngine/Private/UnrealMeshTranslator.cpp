@@ -3981,7 +3981,7 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 		AttributeInfoNanite.count = Count;
 		AttributeInfoNanite.exists = true;
 		AttributeInfoNanite.owner = HAPI_ATTROWNER_PRIM;
-		AttributeInfoNanite.storage = HAPI_STORAGETYPE_INT;
+		AttributeInfoNanite.storage = HAPI_STORAGETYPE_FLOAT;
 		AttributeInfoNanite.originalOwner = HAPI_ATTROWNER_INVALID;
 
 		// Create the new attribute

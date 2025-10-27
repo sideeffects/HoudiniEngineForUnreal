@@ -8360,9 +8360,9 @@ void FHoudiniMeshTranslator::BuildHoudiniMesh(const FString& SplitGroupName, UHo
 							TangentU.Y = SplitTangentU[TriVertIdx0 * 3 + 3 * ElementIdx + 2];
 							TangentU.Z = SplitTangentU[TriVertIdx0 * 3 + 3 * ElementIdx + 1];
 
-							TangentU.X = SplitTangentV[TriVertIdx0 * 3 + 3 * ElementIdx + 0];
-							TangentU.Y = SplitTangentV[TriVertIdx0 * 3 + 3 * ElementIdx + 2];
-							TangentU.Z = SplitTangentV[TriVertIdx0 * 3 + 3 * ElementIdx + 1];
+							TangentV.X = SplitTangentV[TriVertIdx0 * 3 + 3 * ElementIdx + 0];
+							TangentV.Y = SplitTangentV[TriVertIdx0 * 3 + 3 * ElementIdx + 2];
+							TangentV.Z = SplitTangentV[TriVertIdx0 * 3 + 3 * ElementIdx + 1];
 
 							FoundStaticMesh->SetTriangleVertexUTangent(TriangleIdx, TriWindingIndex[ElementIdx], TangentU);
 							FoundStaticMesh->SetTriangleVertexVTangent(TriangleIdx, TriWindingIndex[ElementIdx], TangentV);

@@ -2788,6 +2788,9 @@ UHoudiniAssetComponent::TransferDataToCookable(UHoudiniCookable* HC)
 	// 
 	for (auto& CurHAC : DownstreamHoudiniAssets)
 	{
+		if (!IsValid(CurHAC))
+			continue;
+
 		UHoudiniCookable* CurHC = CurHAC->GetCookable();
 		if (!IsValid(CurHC))
 			continue;
