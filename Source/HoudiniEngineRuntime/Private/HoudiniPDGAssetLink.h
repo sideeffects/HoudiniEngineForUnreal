@@ -58,22 +58,32 @@ enum class EPDGNodeState : uint8
 	Cook_Failed,
 	Paused,
 	Cancelled,
-	Loading,			// Loading == Loading Work Items into Unreal
+};
+
+UENUM()
+enum class EPDGLoadState : uint8
+{
+	None,
+	Loading,			
 	Loading_Complete,
 	Loading_Paused,
+	Unloaded,
+	IgnoredForLoad,
+	LoadDisabled
 };
+
 
 UENUM()
 enum class EPDGWorkResultState : uint8
 {
 	None,
-	ToLoad,
-	Loading,
-	Loaded,
-	ToDelete,
-	Deleting,
-	Deleted,
-	NotLoaded
+	ToLoad,			// PDG has cooked, and we are ready to load
+	Loading,		// PDG has cooked, and we are loading into Unreal
+	Loaded,			// PDG has cooked, and it is loaded into Unreal
+	ToDelete,		// loaded into Unreal, and we're ready to delete to it
+	Deleting,		// loaded into Unreal, and being deleted.
+	Deleted,		// PDG cooked it, it was loaded, now its deleted.
+	NotLoaded		// Not loaded - either deleted or not auto-loaded.
 };
 
 
@@ -144,14 +154,18 @@ public:
 	// Setter for bAutoBakedSinceLastLoad
 	void SetAutoBakedSinceLastLoad(bool bInAutoBakedSinceLastLoad) { bAutoBakedSinceLastLoad = bInAutoBakedSinceLastLoad; }
 
+	EPDGWorkResultState GetState() const;
+	void SetState(EPDGWorkResultState State);
+
 public:
+
+	UPROPERTY(NonTransactional)
+	UTOPNode* TOPNode;
 
 	UPROPERTY(NonTransactional)
 	FString					Name;
 	UPROPERTY(NonTransactional)
 	FString					FilePath;
-	UPROPERTY(NonTransactional)
-	EPDGWorkResultState		State;
 	// The index in the WorkItemResultInfo array of this item as it was received from HAPI.
 	UPROPERTY(NonTransactional)
 	int32					WorkItemResultInfoIndex;
@@ -159,8 +173,8 @@ public:
 	int					WorkItemId;
 
 protected:
-	// UPROPERTY()
-	// TArray<UObject*>		ResultObjects;
+	UPROPERTY(NonTransactional)
+	EPDGWorkResultState		State;
 
 	UPROPERTY(NonTransactional)
 	TArray<TObjectPtr<UHoudiniOutput>> ResultOutputs;
@@ -251,6 +265,8 @@ public:
 	virtual int32 NumLoadedWorkItems() const { return 0; };
 	virtual int32 NumErroredWorkItems() const { return 0; };
 	virtual int32 NumCookCancelledWorkItems() const { return 0; };
+	virtual int32 NumEmptyWorkItems() const { return 0;  }
+	virtual int32 NumIgnoredWorkItems() const { return 0; }
 
 	FString ProgressRatio() const;
 };
@@ -282,6 +298,8 @@ public:
 	void RecordWorkItemAsLoaded(int32 InWorkItemID);
 	void RecordWorkItemAsErrored(int32 InWorkItemID);
 	void RecordWorkItemAsCookCancelled(int32 InWorkItemID);
+	void RecordWorkItemAsEmpty(int32 InWorkItemID);
+	void RecordWorkItemAsIgnored(int32 InWorkItemID);
 
 	//
 	// Accessors
@@ -292,10 +310,12 @@ public:
 	virtual int32 NumScheduledWorkItems() const override { return ScheduledWorkItems.Num(); }
 	virtual int32 NumCookingWorkItems() const override { return CookingWorkItems.Num(); }
 	virtual int32 NumCookedWorkItems() const override { return CookedWorkItems.Num(); }
-	virtual int32 NumLoadedWorkItems() const { return LoadedWorkItems.Num(); };
+	virtual int32 NumLoadedWorkItems() const override { return LoadedWorkItems.Num(); };
 	virtual int32 NumErroredWorkItems() const override { return ErroredWorkItems.Num(); }
 	virtual int32 NumCookCancelledWorkItems() const override { return CookCancelledWorkItems.Num(); }
-	
+	virtual int32 NumEmptyWorkItems() const override { return EmptyWorkItems.Num(); }
+	virtual int32 NumIgnoredWorkItems() const override { return IgnoredWorkItems.Num(); }
+
 protected:
 
 	// Removes the work item id from all state sets (but not from AllWorkItems -- use RemoveWorkItem for that).
@@ -319,6 +339,10 @@ protected:
 	TSet<int32> ErroredWorkItems;
 	UPROPERTY()
 	TSet<int32> CookCancelledWorkItems;
+	UPROPERTY()
+	TSet<int32> EmptyWorkItems;
+	UPROPERTY()
+	TSet<int32> IgnoredWorkItems;
 };
 
 USTRUCT()
@@ -344,6 +368,8 @@ public:
 	virtual int32 NumCookedWorkItems() const override { return CookedWorkItems; }
 	virtual int32 NumLoadedWorkItems() const { return LoadedWorkItems; };
 	virtual int32 NumErroredWorkItems() const override { return ErroredWorkItems; }
+	virtual int32 NumEmptyWorkItems() const { return EmptyWorkItems; }
+	virtual int32 NumIgnoredWorkItems() const { return IgnoredWorkItems; }
 
 protected:
 	UPROPERTY()
@@ -358,12 +384,15 @@ protected:
 	int32 CookedWorkItems;
 	UPROPERTY()
 	int32 LoadedWorkItems;
-
 	UPROPERTY()
 	int32 ErroredWorkItems;
 	UPROPERTY()
 	int32 CookCancelledWorkItems;
-	
+
+	UPROPERTY()
+	int32 EmptyWorkItems;
+	UPROPERTY()
+	int32 IgnoredWorkItems;
 };
 
 // Container for baked outputs of a PDG work result object. 
@@ -426,31 +455,16 @@ public:
 
 	// Called by PDG manager when work item events are received
 	
-	// Notification that a work item has been created
 	void OnWorkItemCreated(int32 InWorkItemID) { };
-
-	// Notification that a work item has been removed.
 	void OnWorkItemRemoved(int32 InWorkItemID) { WorkItemTally.RemoveWorkItem(InWorkItemID); };
-
-	// Notification that a work item has moved to the waiting state.
 	void OnWorkItemWaiting(int32 InWorkItemID);
-
-	// Notification that a work item has been scheduled.
 	void OnWorkItemScheduled(int32 InWorkItemID) { WorkItemTally.RecordWorkItemAsScheduled(InWorkItemID); };
-
-	// Notification that a work item has started cooking.
 	void OnWorkItemCooking(int32 InWorkItemID) { WorkItemTally.RecordWorkItemAsCooking(InWorkItemID); };
-
-	// Notification that a work item has been cooked.
 	void OnWorkItemCooked(int32 InWorkItemID);
-
-	// Notification that a work item has been processed.
 	void OnWorkItemLoaded(int32 InWorkItemID);
-
-	// Notification that a work item has errored.
+	void OnWorkItemIgnored(int32 InWorkItemID);
+	void OnWorkItemEmpty(int32 InWorkItemID);
 	void OnWorkItemErrored(int32 InWorkItemID) { WorkItemTally.RecordWorkItemAsErrored(InWorkItemID); };
-
-	// Notification that a work item cook has been cancelled.
 	void OnWorkItemCookCancelled(int32 InWorkItemID) { WorkItemTally.RecordWorkItemAsCookCancelled(InWorkItemID); };
 
 	bool IsVisibleInLevel() const { return bShow; }
@@ -459,6 +473,8 @@ public:
 
 	// Sets all WorkResultObjects that are in the NotLoaded state to ToLoad.
 	void SetNotLoadedWorkResultsToLoad(bool bInAlsoSetDeletedToLoad=false);
+
+	void SetNotLoadedWorkResultsToIgnore();
 
 	// Sets all WorkResultObjects that are in the Loaded state to ToDelete (will delete output objects and output
 	// actors).
@@ -520,6 +536,10 @@ public:
 	void PostTransacted(const FTransactionObjectEvent& TransactionEvent) override;
 #endif
 
+	void SetWorkItemsDirty();
+
+	void EvaluateWorkItems();
+
 public:
 
 	UPROPERTY(Transient, NonTransactional)
@@ -544,6 +564,9 @@ public:
 
 	UPROPERTY(Transient, NonTransactional)
 	EPDGNodeState 			NodeState;
+
+	UPROPERTY(Transient, NonTransactional)
+	EPDGLoadState LoadState;
 
 	// This is set when the TOP node's work items are processed by
 	// FHoudiniPDGManager based on if any NotLoaded work result objects are found
@@ -578,6 +601,9 @@ public:
 
 protected:
 	void InvalidateLandscapeCache();
+
+	UPROPERTY()
+	bool bWorkItemsDirty;
 
 	// Visible in the level
 	UPROPERTY()
@@ -649,9 +675,13 @@ public:
 
 	bool IsPaused();
 
-	bool CheckIfFullyLoaded();
+	bool EvaluateWorkItems();
 
 public:
+
+	UPROPERTY(Transient, NonTransactional)
+	EPDGLoadState LoadState;
+
 	UPROPERTY(Transient, NonTransactional)
 	EPDGNodeState NetworkState;
 
@@ -704,8 +734,12 @@ public:
 	static FString GetAssetLinkStatus(const EPDGLinkState& InLinkState);
 	static FString GetTOPNodeStatus(const UTOPNode* InTOPNode);
 	static FLinearColor GetTOPNodeStatusColor(const UTOPNode* InTOPNode);
+
 	static FString GetTOPNodeStatus(EPDGNodeState NodeState);
 	static FLinearColor GetTOPNodeStatusColor(EPDGNodeState NodeState);
+
+	static FString GetLoadStatus(EPDGLoadState NodeState);
+	static FLinearColor GetLoadStatusColor(EPDGLoadState NodeState);
 
 	void UpdateTOPNodeWithChildrenWorkItemTallyAndState(UTOPNode* InNode, UTOPNetwork* InNetwork);
 	void UpdateWorkItemTally();

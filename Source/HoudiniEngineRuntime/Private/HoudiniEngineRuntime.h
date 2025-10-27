@@ -28,7 +28,6 @@
 
 #include "HoudiniAssetComponent.h"
 #include "HoudiniCookable.h"
-#include "HoudiniPDGAssetLink.h"
 
 #include "Modules/ModuleInterface.h"
 #include "Misc/ScopeLock.h"

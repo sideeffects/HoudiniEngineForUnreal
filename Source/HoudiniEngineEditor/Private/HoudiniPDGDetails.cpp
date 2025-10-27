@@ -108,6 +108,10 @@ FHoudiniPDGDetails::CreateWidget(
 	{
 		FHoudiniPDGDetails::AddTOPNodeWidget(HouPDGCategory, InHC);
 	}
+
+	// Add bake widgets for PDG output
+	CreatePDGBakeWidgets(HouPDGCategory, InHC);
+
 	FHoudiniPDGDetails::AddAssetOptions(HouPDGCategory, InHC);
 }
 
@@ -245,9 +249,6 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 				.Text(LOCTEXT("Reset", "Reset"))
 			];
 	}
-
-	// Add bake widgets for PDG output
-	CreatePDGBakeWidgets(InPDGCategory, InHC);
 
 	// TODO: move this to a better place: the baking code is in HoudiniEngineEditor, the PDG manager (that knows about
 	// when work object results are loaded is in HoudiniEngine and the PDGAssetLink is in HoudiniEngineRuntime). So
@@ -467,6 +468,7 @@ void FHoudiniPDGDetails::AddAssetOptions(IDetailCategoryBuilder& InPDGCategory, 
 
 							for (UTOPNetwork* TOPNetwork : PDGAssetLink->AllTOPNetworks)
 							{
+								TOPNetwork->bAutoLoadResults = bNewState;
 								for(auto CurrentTOPNode : TOPNetwork->AllTOPNodes)
 								{
 									if(IsValid(CurrentTOPNode) && CurrentTOPNode->bAutoLoad != bNewState)
@@ -1053,7 +1055,6 @@ FHoudiniPDGDetails::GetWorkItemTallyValueAndColor(
 			case EPDGNodeState::Cook_Failed:
 				return FLinearColor::Red;
 			case EPDGNodeState::Cooking:
-			case EPDGNodeState::Loading:
 				return Cyan;
 			default:
 				return Color;
@@ -1079,7 +1080,7 @@ FHoudiniPDGDetails::GetWorkItemTallyValueAndColor(
 		bFound = true;
 		break;
 	case EWorkItemTallyType::Loaded:
-		OutValue = TallyPtr->NumLoadedWorkItems();
+		OutValue = TallyPtr->NumLoadedWorkItems() + TallyPtr->NumEmptyWorkItems() + TallyPtr->NumIgnoredWorkItems();
 		OutColor = OutValue > 0 ? FLinearColor::Green : FLinearColor::White;
 		bFound = true;
 		break;
@@ -1141,25 +1142,11 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 										break;
 									case EWorkItemTallyType::Cooked:
 										{
-											bool bUseCooked = true;
-											if (IsValidWeakPointer(InAssetLink))
-											{
-												if(bInForSelectedNode)
-												{
-													if(InAssetLink->GetSelectedTOPNode() && InAssetLink->GetSelectedTOPNode()->NodeState == EPDGNodeState::Loading_Complete)
-														bUseCooked = false;
-												}
-												else
-												{
-													if(InAssetLink->GetSelectedTOPNetwork() && InAssetLink->GetSelectedTOPNetwork()->NetworkState == EPDGNodeState::Loading_Complete)
-														bUseCooked = false;
-												}
-											}
 											Title = TEXT("COOKED");
 										}
 										break;
 									case EWorkItemTallyType::Loaded:
-										Title = TEXT("IMPORTED");
+										Title = TEXT("PROCESSED");
 										break;
 									case EWorkItemTallyType::Failed:
 										Title = TEXT("FAILED");
@@ -1461,7 +1448,9 @@ bool FHoudiniPDGDetails::IsSelectedNetworkCookingOrLoading(const TWeakObjectPtr<
 		return false;
 
 	EPDGNodeState State = InPDGAssetLink->GetSelectedTOPNetwork()->NetworkState;
-	return (State == EPDGNodeState::Cooking || State == EPDGNodeState::Loading);
+	EPDGLoadState LoadState = InPDGAssetLink->GetSelectedTOPNetwork()->LoadState;
+
+	return (State == EPDGNodeState::Cooking || LoadState == EPDGLoadState::Loading);
 }
 
 bool FHoudiniPDGDetails::IsTOPCooking(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
@@ -1532,7 +1521,6 @@ void FHoudiniPDGDetails::AddTOPNetworkDirtyAllAndCookOutputWidgets(IDetailGroup&
 					if(IsPDGLinked(InPDGAssetLink))
 					{
 						FHoudiniPDGManager::DirtyAll(TOPNetwork);
-						// FHoudiniPDGDetails::RefreshUI(InPDGAssetLink);
 					}
 					else
 					{
@@ -1695,7 +1683,7 @@ TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNetworkPauseWidgets(TSharedRef<SHoriz
 							return false;
 
 						if (TopNetwork->NetworkState == EPDGNodeState::Cooking || 
-							TopNetwork->NetworkState == EPDGNodeState::Loading || 
+							TopNetwork->LoadState == EPDGLoadState::Loading || 
 							TopNetwork->IsPaused())
 							return true;
 
@@ -1808,7 +1796,9 @@ void FHoudiniPDGDetails::AddTOPNetworkPauseOrCancelWidgets(IDetailGroup& TOPNetW
 											return false;
 
 										EPDGNodeState State = TopNetwork->NetworkState;
-										bool bEnabled = State == EPDGNodeState::Cooking || State == EPDGNodeState::Loading || State == EPDGNodeState::Paused || State == EPDGNodeState::Loading_Paused;
+										bool bEnabled = TopNetwork->NetworkState == EPDGNodeState::Cooking || TopNetwork->NetworkState == EPDGNodeState::Paused ||
+											TopNetwork->LoadState == EPDGLoadState::Loading;
+
 										return bEnabled;
 									})
 								.OnReleased_Lambda([PDGAssetLink]()
@@ -1877,7 +1867,7 @@ void FHoudiniPDGDetails::AddTOPNetworkUnloadWorkItemsObjectsWidgets(IDetailGroup
 						.WidthOverride(200.0f)
 						[
 							SNew(SButton)
-								.Text(LOCTEXT("UnloadWorkItemsForNetwork", "Unload Work Item Objects"))
+								.Text(LOCTEXT("UnloadOutputFilesForNetwork", "Unload Output Files"))
 								.ToolTipText(LOCTEXT("UnloadWorkItemsForNetworkTooltip", "Unloads / removes loaded work item results from level for all nodes in this network. Not undoable: use the \"Load Work Item Objects\" button on the individual TOP nodes to reload work item results."))
 								.ContentPadding(FMargin(5.0f, 2.0f))
 								.VAlign(VAlign_Center)
@@ -1888,6 +1878,13 @@ void FHoudiniPDGDetails::AddTOPNetworkUnloadWorkItemsObjectsWidgets(IDetailGroup
 											return false;
 
 										UTOPNetwork* const SelectedNet = PDGAssetLink->GetSelectedTOPNetwork();
+
+										if(!IsValid(SelectedNet))
+											return false;
+
+										if(SelectedNet->LoadState != EPDGLoadState::Loading_Complete)
+											return false;
+
 										if(!IsValid(SelectedNet) ||
 											INDEX_NONE == SelectedNet->AllTOPNodes.IndexOfByPredicate([](const UTOPNode* InNode) { return IsValid(InNode) && InNode->bCachedHaveLoadedWorkResults; }))
 											return false;
@@ -1924,7 +1921,7 @@ void FHoudiniPDGDetails::AddTOPNetworkUnloadWorkItemsObjectsWidgets(IDetailGroup
 						.WidthOverride(200.0f)
 						[
 							SNew(SButton)
-								.Text(LOCTEXT("LoadWorkItems", "Load Work Item Objects"))
+								.Text(LOCTEXT("LoadOutputFiles", "Load Output Files"))
 								.ToolTipText(LOCTEXT("LoadWorkItemsForNodeTooltip", "Loads any available but not loaded work items objects (this could include items from a previous cook). Creates output actors. Not undoable: use the \"Unload Work Item Objects\" button to unload/remove loaded work item results."))
 								.ContentPadding(FMargin(5.0f, 2.0f))
 								.VAlign(VAlign_Center)
@@ -1938,7 +1935,10 @@ void FHoudiniPDGDetails::AddTOPNetworkUnloadWorkItemsObjectsWidgets(IDetailGroup
 										if(!IsValid(Network))
 											return false;
 
-										return true;
+										if(Network->LoadState == EPDGLoadState::LoadDisabled || Network->LoadState == EPDGLoadState::Unloaded)
+											return true;
+										else
+											return false;
 									})
 								.OnReleased_Lambda([PDGAssetLink]()
 									{
@@ -2401,7 +2401,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 				.WidthOverride(200.0f)
 				[
 					SAssignNew(UnloadWorkItemsButton, SButton)
-					.Text(LOCTEXT("UnloadWorkItemsForNode", "Unload Work Item Objects"))
+					.Text(LOCTEXT("UnloadOutputFilesForNode", "Unload Output Files"))
 					.ToolTipText(LOCTEXT("UnloadWorkItemsForNodeTooltip", "Unloads / removes loaded work item results from level. Not undoable: use the \"Load Work Item Objects\" button to reload the results."))
 					.ContentPadding(FMargin(5.0f, 2.0f))
 					.VAlign(VAlign_Center)
@@ -2452,7 +2452,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 				.WidthOverride(200.0f)
 				[
 					SAssignNew(LoadWorkItemsButton, SButton)
-					.Text(LOCTEXT("LoadWorkItems", "Load Work Item Objects"))
+					.Text(LOCTEXT("LoadOutputFiles", "Load Output Files"))
 					.ToolTipText(LOCTEXT("LoadWorkItemsForNodeTooltip", "Loads any available but not loaded work items objects (this could include items from a previous cook). Creates output actors. Not undoable: use the \"Unload Work Item Objects\" button to unload/remove loaded work item results."))
 					.ContentPadding(FMargin(5.0f, 2.0f))
 					.VAlign(VAlign_Center)
@@ -2543,6 +2543,45 @@ void FHoudiniPDGDetails::AddTOPNetworkState(IDetailGroup& TOPNetWorkGrp, const T
 						return FSlateColor(TOPNodeStatusColor);
 					})
 		];
+
+	FDetailWidgetRow& PDGNodeStateResultRow2 = TOPNetWorkGrp.AddWidgetRow();
+	BindEnablePDGWiddgetsTest(PDGNodeStateResultRow2, InHC);
+	PDGNodeStateResultRow2.NameWidget.Widget =
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString(TEXT("Loading State")))
+				.Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT))
+		];
+
+	PDGNodeStateResultRow2.ValueWidget.Widget =
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		[
+			SNew(STextBlock)
+				.Text_Lambda([InHC]()
+					{
+						FString TOPNodeStatus = FString();
+						FLinearColor TOPNodeStatusColor = FLinearColor::White;
+
+						TOPNodeStatus = UHoudiniPDGAssetLink::GetLoadStatus(InHC->GetPDGAssetLink()->GetSelectedTOPNetwork()->LoadState);
+
+					return FText::FromString(TOPNodeStatus);
+					})
+				.ColorAndOpacity_Lambda([InHC]()
+					{
+						FString TOPNodeStatus = FString();
+						FLinearColor TOPNodeStatusColor = FLinearColor::White;
+						GetSelectedTOPNetworkStatusAndColor(InHC, TOPNodeStatus, TOPNodeStatusColor);
+						return FSlateColor(TOPNodeStatusColor);
+					})
+		];
+
 }
 
 void FHoudiniPDGDetails::AddTOPNodeState(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)

@@ -172,6 +172,8 @@ private:
 
 	void ProcessWorkItemResults();
 
+	void FixupTOPNodes();
+
 	void ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, HAPI_PDG_EventInfo& EventInfo);
 
 	static void ResetPDGEventInfo(HAPI_PDG_EventInfo& InEventInfo);

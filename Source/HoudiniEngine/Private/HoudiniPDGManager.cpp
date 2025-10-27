@@ -560,6 +560,7 @@ FHoudiniPDGManager::DirtyAll(UTOPNetwork* InTOPNet)
 	UHoudiniPDGAssetLink::ClearTOPNetworkWorkItemResults(InTOPNet);
 
 	InTOPNet->NetworkState = EPDGNodeState::Dirtied;
+	InTOPNet->LoadState = EPDGLoadState::None;
 }
 
 
@@ -606,6 +607,16 @@ FHoudiniPDGManager::CookOutput(UHoudiniCookable* InHC,  UTOPNetwork* InTOPNet)
 	}
 
 	InTOPNet->NetworkState = EPDGNodeState::Cooking;
+
+	EPDGLoadState NewLoadState = InTOPNet->bAutoLoadResults ? EPDGLoadState::Loading : EPDGLoadState::LoadDisabled;
+
+	InTOPNet->LoadState = NewLoadState;
+	for(UTOPNode* TOPNode : InTOPNet->AllTOPNodes)
+	{
+		TOPNode->LoadState = NewLoadState;
+		TOPNode->SetWorkItemsDirty();
+	}
+
 	return true;
 }
 
@@ -632,9 +643,9 @@ FHoudiniPDGManager::PauseCook(UTOPNetwork* InTOPNet)
 		}
 		InTOPNet->NetworkState = EPDGNodeState::Paused;
 	}
-	else if(InTOPNet->NetworkState == EPDGNodeState::Loading)
+	else if(InTOPNet->LoadState == EPDGLoadState::Loading)
 	{
-		InTOPNet->NetworkState = EPDGNodeState::Loading_Paused;
+		InTOPNet->LoadState = EPDGLoadState::Loading_Paused;
 	}
 }
 
@@ -660,9 +671,10 @@ FHoudiniPDGManager::ResumeCook(UTOPNetwork* InTOPNet)
 		}
 		InTOPNet->NetworkState = EPDGNodeState::Paused;
 	}
-	else if(InTOPNet->NetworkState == EPDGNodeState::Loading_Paused)
+
+	if(InTOPNet->LoadState == EPDGLoadState::Loading_Paused)
 	{
-		InTOPNet->NetworkState = EPDGNodeState::Loading;
+		InTOPNet->LoadState = EPDGLoadState::Loading;
 	}
 }
 
@@ -692,6 +704,7 @@ FHoudiniPDGManager::CancelCook(UTOPNetwork* InTOPNet)
 
 
 	InTOPNet->NetworkState = EPDGNodeState::Cancelled;
+	InTOPNet->LoadState = EPDGLoadState::None;
 }
 
 void
@@ -1531,9 +1544,9 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 				ExistingResultObject.FilePath = CurrentPath;
 				ExistingResultObject.SetAutoBakedSinceLastLoad(false);
 				ExistingResultObject.WorkItemId = InWorkItemID;
-				if (ExistingResultObject.State == EPDGWorkResultState::Loaded && !bInLoadResultObjects)
+				if (ExistingResultObject.GetState() == EPDGWorkResultState::Loaded && !bInLoadResultObjects)
 				{
-					ExistingResultObject.State = EPDGWorkResultState::ToDelete;
+					ExistingResultObject.SetState(EPDGWorkResultState::ToDelete);
 				}
 				else
 				{
@@ -1547,16 +1560,16 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 						InTOPNode->DeleteWorkResultObjectOutputs(WorkResultArrayIndex, ExistingObjectIndex, bDeleteOutputActors);
 					}
 					
-					if ((ExistingResultObject.State == EPDGWorkResultState::Loaded ||
-						 ExistingResultObject.State ==  EPDGWorkResultState::ToDelete ||
-						 ExistingResultObject.State == EPDGWorkResultState::Deleting) && bInLoadResultObjects)
+					if ((ExistingResultObject.GetState() == EPDGWorkResultState::Loaded ||
+						 ExistingResultObject.GetState() ==  EPDGWorkResultState::ToDelete ||
+						 ExistingResultObject.GetState() == EPDGWorkResultState::Deleting) && bInLoadResultObjects)
 					{
-						ExistingResultObject.State = EPDGWorkResultState::ToLoad;
+						ExistingResultObject.SetState(EPDGWorkResultState::ToLoad);
 						InTOPNode->OnWorkItemCooked(InWorkItemID);
 					}
 					else
 					{
-						ExistingResultObject.State = bInLoadResultObjects ? EPDGWorkResultState::ToLoad : EPDGWorkResultState::NotLoaded;
+						ExistingResultObject.SetState(bInLoadResultObjects ? EPDGWorkResultState::ToLoad : EPDGWorkResultState::NotLoaded);
 					}
 				}
 
@@ -1568,7 +1581,7 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 				FTOPWorkResultObject ResultObj;
 				ResultObj.Name = WorkResultName;
 				ResultObj.FilePath = CurrentPath;
-				ResultObj.State = bInLoadResultObjects ? EPDGWorkResultState::ToLoad : EPDGWorkResultState::NotLoaded;
+				ResultObj.SetState(bInLoadResultObjects ? EPDGWorkResultState::ToLoad : EPDGWorkResultState::NotLoaded);
 				ResultObj.WorkItemResultInfoIndex = Idx;
 				ResultObj.WorkItemId = InWorkItemID;
 				ResultObj.SetAutoBakedSinceLastLoad(false);
@@ -1670,15 +1683,52 @@ FHoudiniPDGManager::SyncAndPruneWorkItems(UTOPNode* InTOPNode)
 }
 
 void
+FHoudiniPDGManager::FixupTOPNodes()
+{
+	// We need to make sure every Work Item has a TOP Node pointer... this could be improved if we can set the TOP Node when loaded/created.
+	for(auto& CurrentPDGAssetLink : PDGAssetLinks)
+	{
+		UHoudiniPDGAssetLink* AssetLink = CurrentPDGAssetLink.Get();
+		if(!AssetLink)
+			continue;
+
+		for(UTOPNetwork* CurrentTOPNet : AssetLink->AllTOPNetworks)
+		{
+			for(UTOPNode* CurrentTOPNode : CurrentTOPNet->AllTOPNodes)
+			{
+				const int32 NumWorkResults = CurrentTOPNode->WorkResult.Num();
+				for(int32 WorkResultArrayIndex = 0; WorkResultArrayIndex < NumWorkResults; ++WorkResultArrayIndex)
+				{
+					FTOPWorkResult& CurrentWorkResult = CurrentTOPNode->WorkResult[WorkResultArrayIndex];
+					const int32 NumWorkResultObjects = CurrentWorkResult.ResultObjects.Num();
+
+					for(int32 WorkResultObjectArrayIndex = 0; WorkResultObjectArrayIndex < NumWorkResultObjects; ++WorkResultObjectArrayIndex)
+					{
+						CurrentWorkResult.ResultObjects[WorkResultObjectArrayIndex].TOPNode = CurrentTOPNode;
+					}
+				}
+			}
+		}
+	}
+}
+
+void
 FHoudiniPDGManager::ProcessWorkItemResults()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniPDGManager::ProcessWorkItemResults);
 
+	FixupTOPNodes();
+
 	double StartTime = FPlatformTime::Seconds();
+
+	bool bKeepProcessing = true;
 
 	const EHoudiniBGEOCommandletStatus CommandletStatus = UpdateAndGetBGEOCommandletStatus();
 	for (auto& CurrentPDGAssetLink : PDGAssetLinks)
 	{
+		if(!bKeepProcessing)
+			break;
+
 		// Iterate through all PDG Asset Link
 		UHoudiniPDGAssetLink* AssetLink = CurrentPDGAssetLink.Get();
 		if (!AssetLink)
@@ -1732,10 +1782,13 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 		// All TOP Nets
 		for (UTOPNetwork* CurrentTOPNet : AssetLink->AllTOPNetworks)
 		{
+			if(!bKeepProcessing)
+				break;
+
 			if (!IsValid(CurrentTOPNet))
 				continue;
 				
-			if (CurrentTOPNet->NetworkState == EPDGNodeState::Loading_Paused || 
+			if (CurrentTOPNet->LoadState == EPDGLoadState::Loading_Paused || 
 				CurrentTOPNet->NetworkState == EPDGNodeState::Paused || 
 				CurrentTOPNet->NetworkState == EPDGNodeState::Cancelled)
 				continue;
@@ -1743,6 +1796,9 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 			// All TOP Nodes
 			for (UTOPNode* CurrentTOPNode : CurrentTOPNet->AllTOPNodes)
 			{
+				if(!bKeepProcessing)
+					break;
+
 				if (!IsValid(CurrentTOPNode))
 					continue;
 				
@@ -1753,17 +1809,8 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 				const int32 NumWorkResults = CurrentTOPNode->WorkResult.Num();
 				for (int32 WorkResultArrayIndex = 0; WorkResultArrayIndex < NumWorkResults; ++WorkResultArrayIndex)
 				{
-					// See how long processing is taking, pick it up next free if needed.
-					double EndTime = FPlatformTime::Seconds();
-					double DeltaTime = EndTime - StartTime;
-
-					const double MaxFrameTime = 0.05;
-
-					if (DeltaTime > MaxFrameTime)
-					{
-						// Remaining work items will be picked up next frame. This allows UE to be more responsive.
-						return;
-					}
+					if(!bKeepProcessing)
+						break;
 
 					// All WorkResultObjects
 
@@ -1772,10 +1819,13 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 
 					for (int32 WorkResultObjectArrayIndex = 0; WorkResultObjectArrayIndex < NumWorkResultObjects; ++WorkResultObjectArrayIndex)
 					{
+						if(!bKeepProcessing)
+							break;
+
 						FTOPWorkResultObject& CurrentWorkResultObj = CurrentWorkResult.ResultObjects[WorkResultObjectArrayIndex];
-						if (CurrentWorkResultObj.State == EPDGWorkResultState::ToLoad)
+						if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::ToLoad)
 						{
-							CurrentWorkResultObj.State = EPDGWorkResultState::Loading;
+							CurrentWorkResultObj.SetState(EPDGWorkResultState::Loading);
 
 							// Load this WRObj
 							PackageParams.PDGTOPNetworkName = CurrentTOPNet->NodeName;
@@ -1805,7 +1855,7 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 									CurrentWorkResultObj,
 									PackageParams))
 								{
-									CurrentWorkResultObj.State = EPDGWorkResultState::Loaded;
+									CurrentWorkResultObj.SetState(EPDGWorkResultState::Loaded);
 									CurrentWorkResultObj.SetAutoBakedSinceLastLoad(false);
 									CurrentTOPNode->bCachedHaveLoadedWorkResults = true;
 
@@ -1818,11 +1868,23 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 								}
 								else
 								{
-									CurrentWorkResultObj.State = EPDGWorkResultState::None;
+									CurrentWorkResultObj.SetState(EPDGWorkResultState::None);
 								}
 							}
+
+							// See how long processing is taking, pick it up next free if needed.
+							double EndTime = FPlatformTime::Seconds();
+							double DeltaTime = EndTime - StartTime;
+
+							const double MaxFrameTime = 0.05;
+
+							if(DeltaTime > MaxFrameTime)
+							{
+								// Remaining work items will be picked up next frame. This allows UE to be more responsive.
+								bKeepProcessing = false;
+							}
 						}
-						else if (CurrentWorkResultObj.State == EPDGWorkResultState::Loaded)
+						else if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::Loaded)
 						{
 							// If the work item result obj is in the "Loaded" state, confirm that the output actor
 							// is still valid (the user could have manually deleted the output
@@ -1830,42 +1892,34 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 							{
 								// If the output actor is invalid, set the state to ToDelete to complete the
 								// unload/deletion process
-								CurrentWorkResultObj.State = EPDGWorkResultState::ToDelete;
+								CurrentWorkResultObj.SetState(EPDGWorkResultState::ToDelete);
 							}
 							else
 							{
 								CurrentTOPNode->bCachedHaveLoadedWorkResults = true;
 							}
 						}
-						else if (CurrentWorkResultObj.State == EPDGWorkResultState::ToDelete)
+						else if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::ToDelete)
 						{
-							CurrentWorkResultObj.State = EPDGWorkResultState::Deleting;
+							CurrentWorkResultObj.SetState(EPDGWorkResultState::Deleting);
 
 							// Delete and clean up that WRObj
 							CurrentTOPNode->DeleteWorkResultObjectOutputs(WorkResultArrayIndex, WorkResultObjectArrayIndex);
 							CurrentTOPNode->bCachedHaveNotLoadedWorkResults = true;
 							CurrentTOPNode->OnWorkItemCooked(CurrentWorkResultObj.WorkItemId);
 						}
-						else if (CurrentWorkResultObj.State == EPDGWorkResultState::Deleted)
+						else if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::Deleted)
 						{
 							CurrentTOPNode->bCachedHaveNotLoadedWorkResults = true;
 						}
-						else if (CurrentWorkResultObj.State == EPDGWorkResultState::NotLoaded)
+						else if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::NotLoaded)
 						{
 							CurrentTOPNode->bCachedHaveNotLoadedWorkResults = true;
 						}
 					}
 				}
 			}
-
-			auto Status = FHoudiniEngine::Get().GetPDGCommandletStatus();
-
-			bool bIsAsyncImporter = (Status == EHoudiniBGEOCommandletStatus::Running || Status == EHoudiniBGEOCommandletStatus::Connected);
-
-			if (CurrentTOPNet->NetworkState == EPDGNodeState::Loading && !bIsAsyncImporter)
-			{
-				AssetLink->NotifyLoadingComplete(CurrentTOPNet);
-			}
+			CurrentTOPNet->EvaluateWorkItems();
 		}
 	}
 }
@@ -1931,7 +1985,7 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 			return;
 		}
 
-		if (WorkResultObject->State != EPDGWorkResultState::Loading)
+		if (WorkResultObject->GetState() != EPDGWorkResultState::Loading)
 		{
 			HOUDINI_LOG_WARNING(TEXT("TOP work result object (%s) not in Loading state, aborting output object creation."), *InMessage.Name);
 			return;
@@ -2119,30 +2173,7 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 		{
 			bSuccess = false;
 		}
-		
-		if (bSuccess)
-		{
-			WorkResultObject->State = EPDGWorkResultState::Loaded;
-			TOPNode->NodeState = EPDGNodeState::Loading_Complete;
-			TOPNode->OnWorkItemLoaded(WorkResultObject->WorkItemId);
-
-			if (TOPNetwork && TOPNetwork->CheckIfFullyLoaded())
-			{
-				AssetLink->NotifyLoadingComplete(TOPNetwork);
-			}
-
-
-			WorkResultObject->SetAutoBakedSinceLastLoad(false);
-			HOUDINI_LOG_MESSAGE(TEXT("Loaded geo for %s"), *InMessage.Name);
-			// Broadcast that we have loaded the work result object to those interested
-			AssetLink->OnWorkResultObjectLoaded.Broadcast(
-				AssetLink, TOPNode, WorkResultArrayIndex, WorkResultObject->WorkItemResultInfoIndex);
-		}
-		else
-		{
-			WorkResultObject->State = EPDGWorkResultState::None;
-			HOUDINI_LOG_WARNING(TEXT("Failed to process loaded assets for %s"), *InMessage.Name);
-		}
+	
 	}
 	else
 	{
