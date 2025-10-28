@@ -706,7 +706,14 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 	{
 		// Create a temporary material to display the texture
 		if (VisibleTexture)
+		{
+			// Fully stream in the texture before drawing it.
+			// Not doing this would cause the texture to appeat blurry in the ortho viewport
+			VisibleTexture->SetForceMipLevelsToBeResident(30.0f);
+			VisibleTexture->WaitForStreaming();
+
 			VisibleMat = FHoudiniTextureTranslator::CreateDefaultCopMaterialForTexture(VisibleTexture, PackageParams);
+		}
 
 		// ... if we only have texture outputs, use a texture quad
 		FHoudiniEngineUtils::AddTextureMeshToComponent(InOuterComponent, VisibleTexture, VisibleMat);
