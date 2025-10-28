@@ -330,50 +330,46 @@ FHoudiniAssetEditorViewportClient::SetViewportTo2D()
 {
 	// Switch viewport to texture
 	EngineShowFlags.SetScreenPercentage(false);	
+	EngineShowFlags.DisableAdvancedFeatures();
 
-	// Ortho view has issues for now - use an aligned perspective viewport
-	// (textures are blurred when using ortho for unknown reasons ... ? )
-	SetViewportType(LVT_Perspective);
-	//SetViewportType(LVT_OrthoFront);
-
+	// Front view - unlit
+	SetViewportType(LVT_OrthoFront);
 	SetViewModes(VMI_Unlit, VMI_Unlit);
 	
-	ViewTransformOrthographic.SetOrthoZoom(2200.0f);
+	ViewTransformOrthographic.SetOrthoZoom(850.0f);
 
+	// Set the perspective view to a "front" one, this ensures the
+	// image will be properly visible if the user switches the view
+	// from front to perspective.
 	ViewTransformPerspective.SetLocation(FVector(120.0, 0.0, 0.0));
 	ViewTransformPerspective.SetRotation(FRotator(0.0, 180.0, 0.0));
 	ViewTransformPerspective.SetLookAt(FVector(0.0, 0.0, 0.0));
 	
-	/*
-	DefaultOrbitLocation = FVector(120.0, 0.0, 0.0);
-	DefaultOrbitRotation = FRotator(0.0, 180.0, 0.0);
-	DefaultOrbitZoom = FVector(0.0, 0.0, 0.0);
-	DefaultOrbitLookAt = FVector(0.0, 0.0, 0.0);
-	EnableCameraLock(true);
-	*/
-
 	bIs2DViewport = true;
 
-	AdvancedPreviewScene->SetFloorVisibility(false, true);
+	// Lower the floor to avoid intersection with the image in 3d view
+	AdvancedPreviewScene->SetFloorOffset(100.0f);
 }
 
 void
 FHoudiniAssetEditorViewportClient::SetViewportTo3D()
 {
-	// Switch viewport to 3D
+	// Re enable engine showflags
+	EngineShowFlags.SetScreenPercentage(true);
+	EngineShowFlags.EnableAdvancedFeatures();
+
+	// Switch viewport to 3D - lit
 	SetViewportType(LVT_Perspective);
 	SetViewModes(VMI_Lit, VMI_Lit);
 
 	// Return to default transform
 	SetViewLocation(FVector(400, 400, 400));
 	SetViewRotation(FVector(-75, -75, -75).Rotation());
-	ViewTransformPerspective.SetLookAt(FVector(0, 0, 0));
-	
+	ViewTransformPerspective.SetLookAt(FVector(0, 0, 0));	
 	ViewTransformOrthographic.SetOrthoZoom(2000.0f);
-	EngineShowFlags.SetScreenPercentage(true);
-
-	EnableCameraLock(false);
 
 	bIs2DViewport = false;
 
+	// reset the floor offset
+	AdvancedPreviewScene->SetFloorOffset(0.0f);
 }
