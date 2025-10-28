@@ -190,6 +190,12 @@ void FHoudiniEditorTestUtils::InstantiateAsset(
 
 	const FTransform Location = FTransform::Identity;
 	UHoudiniPublicAPIAssetWrapper* Wrapper = HoudiniAPI->InstantiateAsset(HoudiniAsset, Location);
+
+	// Make sure the default cook options are set as expected
+	// As changing the default behaviour of InstantiateAsset() will cause test failures
+	Wrapper->SetCookOnParameterOrInputChanges(true);
+	Wrapper->SetCookOnTransformChange(false);
+
 	TestObject->InAssetWrappers.Add(Wrapper); // Need to assign it to TestObject otherwise it will be garbage collected!!!
 
 	// Set properties based off test settings.
