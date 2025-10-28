@@ -845,13 +845,23 @@ UHoudiniPublicAPIAssetWrapper::SetCookOnParameterOrInputChanges_Implementation(c
 	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	if (HC->GetCookOnParameterChange() == bInSetEnabled)
-		return false;
+	bool bModified = false;
+	if (HC->GetCookOnParameterChange() != bInSetEnabled)
+	{
+		HC->SetCookOnParameterChange(bInSetEnabled);
+		bModified = true;
+	}
 
-	HC->SetCookOnParameterChange(bInSetEnabled);
-	HC->Modify();
+	if (HC->GetCookOnInputChange() != bInSetEnabled)
+	{
+		HC->SetCookOnInputChange(bInSetEnabled);
+		bModified = true;
+	}
 
-	return true;
+	if(bModified)
+		HC->Modify();
+
+	return bModified;
 }
 
 bool
