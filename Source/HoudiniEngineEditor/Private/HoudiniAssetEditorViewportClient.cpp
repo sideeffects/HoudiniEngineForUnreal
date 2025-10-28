@@ -336,7 +336,7 @@ FHoudiniAssetEditorViewportClient::SetViewportTo2D()
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 	SetViewportType(LVT_OrthoFront);
 #else
-	SetViewportType(LVT_OrthoXZ);
+	SetViewportType(LVT_OrthoNegativeYZ);
 #endif
 	SetViewModes(VMI_Unlit, VMI_Unlit);
 	
