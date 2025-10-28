@@ -333,7 +333,11 @@ FHoudiniAssetEditorViewportClient::SetViewportTo2D()
 	EngineShowFlags.DisableAdvancedFeatures();
 
 	// Front view - unlit
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 	SetViewportType(LVT_OrthoFront);
+#else
+	SetViewportType(LVT_OrthoXZ);
+#endif
 	SetViewModes(VMI_Unlit, VMI_Unlit);
 	
 	ViewTransformOrthographic.SetOrthoZoom(850.0f);
