@@ -788,7 +788,7 @@ FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& In
 				for(auto Texture : MaterialInfo->Textures)
 				{
 					FString AttributeName = MakeHoudiniParamName(Section.MaterialIndex, Texture.Name);
-					Builder.Append(FString::Printf(TEXT("    f@%s = %s;\n"), *AttributeName, *Texture.Value));
+					Builder.Append(FString::Printf(TEXT("    s@%s = \"%s\";\n"), *AttributeName, *Texture.Value));
 				}
 
 				Builder.Append(TEXT("}\n"));
