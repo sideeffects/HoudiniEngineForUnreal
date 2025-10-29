@@ -471,6 +471,8 @@ public:
 	void SetVisibleInLevel(bool bInVisible);
 	void UpdateOutputVisibilityInLevel();
 
+	bool IsPaused() const;
+
 	// Sets all WorkResultObjects that are in the NotLoaded state to ToLoad.
 	void SetNotLoadedWorkResultsToLoad(bool bInAlsoSetDeletedToLoad=false);
 

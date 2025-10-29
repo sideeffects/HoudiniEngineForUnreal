@@ -107,12 +107,20 @@ public:
 	// Pause the PDG cook of the currently selected TOP network
 	static void PauseCook(UTOPNetwork* InTOPNet);
 
-
 	// Rsume the PDG cook of the currently selected TOP network
 	static void ResumeCook(UTOPNetwork* InTOPNet);
 
 	// Cancel the PDG cook of the currently selected TOP network
 	static void CancelCook(UTOPNetwork* InTOPNet);
+
+	// Pause the PDG cook of the TOP Node
+	static void PauseCook(UTOPNode* InTOPNet);
+
+	// Rsume the PDG cook of the TOP Node
+	static void ResumeCook(UTOPNode* InTOPNet);
+
+	// Cancel the PDG cook of the currently selected TOP network
+	static void CancelCook(UTOPNode* InTOPNet);
 
 	static void NotifyAssetCooked(UHoudiniCookable* InHC, const bool& bSuccess);
 

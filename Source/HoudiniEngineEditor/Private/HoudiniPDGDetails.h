@@ -74,7 +74,7 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 
 		void AddPDGAssetWidget(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
-		void AddWorkItemStatusWidget(FDetailWidgetRow& InRow, const FString& InTitleString, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InAssetLink, bool bInForSelectedNode);
+		void AddWorkItemStatusWidget(FDetailWidgetRow& InRow, const FString& InTitleString, const TWeakObjectPtr<UHoudiniCookable>& InHC, bool bInForSelectedNode);
 
 		void AddPDGAssetStatus(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
@@ -96,13 +96,18 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 		void AddTOPNetworkPauseOrCancelWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 		void AddTOPNetworkDirtyAllAndCookOutputWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 		void AddTOPNetworkUnloadWorkItemsObjectsWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
-		TSharedPtr<SBox> AddTOPNetworkPauseWidgets(TSharedRef<SHorizontalBox>& PauseHBox, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		TSharedPtr<SBox> AddTOPNetworkPauseWidgets(const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		TSharedPtr<SBox> AddTOPNetworkCancelWidgets(const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
+		void AddTOPNodePauseOrCancelWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 		void AddTOPOutputFilter(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 		void AddTOPNodeFilter(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 		void AddTOPNodeState(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
-		void AddTOPNetworkState(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		void AddTOPNetworkStates(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		void AddTOPNetworkCombinedState(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 		void AddAssetOptions(IDetailCategoryBuilder& InPDGCategory, const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		TSharedPtr<SBox> AddTOPNodePauseWidgets(const TWeakObjectPtr<UHoudiniCookable>& InHC);
+		TSharedPtr<SBox> AddTOPNodeCancelWidgets(const TWeakObjectPtr<UHoudiniCookable>& InHC);
 
 		static void AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGroup, const TWeakObjectPtr<UHoudiniCookable>& InHC);
 		static void AddBakeFolderWidgets(IDetailGroup& InBakeGroup, const TWeakObjectPtr<UHoudiniCookable>& InHC);
@@ -120,9 +125,15 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 		// Returns false if the InPDGAssetLink is invalid, or there is no selected TOP node.
 		static bool GetSelectedTOPNodeStatusAndColor(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutTOPNodeStatus, FLinearColor &OutTOPNodeStatusColor);
 
+		static bool GetSelectedTOPNodeCombinedStatusAndColor(const TWeakObjectPtr<UHoudiniCookable>& InHC, FString& OutTOPNodeStatus, FLinearColor& OutTOPNodeStatusColor);
+
 		// Helper to get the status text for the selected TOP netowrk, and the color with which to display it on the UI.
 		// Returns false if the InPDGAssetLink is invalid, or there is no selected TOP node.
 		static bool GetSelectedTOPNetworkStatusAndColor(const TWeakObjectPtr<UHoudiniCookable>& InHC, FString& OutTOPNodeStatus, FLinearColor& OutTOPNodeStatusColor);
+
+		// Helper to get the combined status text for the selected TOP netowrk, and the color with which to display it on the UI.
+		// Returns false if the InPDGAssetLink is invalid, or there is no selected TOP node.
+		static bool GetSelectedTOPNetworkCombinedStatusAndColor(const TWeakObjectPtr<UHoudiniCookable>& InHC, FString& OutTOPNodeStatus, FLinearColor& OutTOPNodeStatusColor);
 
 		// Helper to get asset link status and status color for UI
 		static bool GetPDGStatusAndColor(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutPDGStatusString, FLinearColor& OutPDGStatusColor);

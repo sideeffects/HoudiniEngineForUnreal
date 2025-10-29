@@ -553,6 +553,12 @@ UTOPNode::SetVisibleInLevel(bool bInVisible)
 	UpdateOutputVisibilityInLevel();
 }
 
+
+bool UTOPNode::IsPaused() const
+{
+	return NodeState == EPDGNodeState::Paused || LoadState == EPDGLoadState::Loading_Paused;
+}
+
 void
 UTOPNode::UpdateOutputVisibilityInLevel()
 {
@@ -622,6 +628,8 @@ UTOPNode::SetNotLoadedWorkResultsToLoad(bool bInAlsoSetDeletedToLoad)
 			}
 		}
 	}
+
+	this->LoadState = EPDGLoadState::Loading;
 }
 
 

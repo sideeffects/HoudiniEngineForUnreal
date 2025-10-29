@@ -103,7 +103,9 @@ FHoudiniPDGDetails::CreateWidget(
 		return;
 
 	FHoudiniPDGDetails::AddPDGAssetWidget(HouPDGCategory, InHC);
+
 	FHoudiniPDGDetails::AddTOPNetworkWidget(HouPDGCategory, InHC);
+
 	if(!InHC->GetIsPCG())
 	{
 		FHoudiniPDGDetails::AddTOPNodeWidget(HouPDGCategory, InHC);
@@ -154,9 +156,23 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 					.ContentPadding(FMargin(5.0f, 5.0f))
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
+					.IsEnabled_Lambda([InHC]()
+					{
+							if(!InHC.IsValid())
+								return false;
+
+							if(!IsValid(InHC->GetPDGAssetLink()))
+								return false;
+
+							if(InHC->GetPDGAssetLink()->LinkState == EPDGLinkState::Linking)
+								return false;
+							else
+								return true;
+					})
 					.OnClicked_Lambda([InHC]()
 					{
-						FHoudiniPDGDetails::RefreshPDGAssetLink(InHC->GetPDGAssetLink());
+						if (InHC.IsValid())
+							FHoudiniPDGDetails::RefreshPDGAssetLink(InHC->GetPDGAssetLink());
 						return FReply::Handled();
 					})
 					.Content()
@@ -177,6 +193,19 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 					.ContentPadding(FMargin(5.0f, 5.0f))
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
+					.IsEnabled_Lambda([InHC]()
+						{
+							if(!InHC.IsValid())
+								return false;
+
+							if(!IsValid(InHC->GetPDGAssetLink()))
+								return false;
+
+							if(InHC->GetPDGAssetLink()->LinkState == EPDGLinkState::Linking)
+								return false;
+							else
+								return true;
+						})
 					.OnClicked_Lambda([PDGAssetLink]()
 					{
 						// TODO: RESET USELESS? this is just a UI refresh - change name ?
@@ -381,24 +410,6 @@ void FHoudiniPDGDetails::AddAssetOptions(IDetailCategoryBuilder& InPDGCategory, 
 						})
 					.ToolTipText(Tooltip)
 			];
-
-#if 0
-		IDetailPropertyRow* PDGOutputParentActorRow = InPDGCategory.AddExternalObjectProperty({ PDGAssetLink.Get() }, "OutputParentActor");
-
-		if(PDGOutputParentActorRow)
-		{
-			TAttribute<bool> PDGOutputParentActorRowEnabled;
-			BindDisableIfPDGNotLinked(PDGOutputParentActorRowEnabled, PDGAssetLink);
-			PDGOutputParentActorRow->IsEnabled(PDGOutputParentActorRowEnabled);
-			TSharedPtr<SWidget> NameWidget;
-			TSharedPtr<SWidget> ValueWidget;
-			PDGOutputParentActorRow->GetDefaultWidgets(NameWidget, ValueWidget);
-			PDGOutputParentActorRow->DisplayName(FText::FromString(TEXT("Output Parent Actor")));
-			PDGOutputParentActorRow->ToolTip(FText::FromString(
-				TEXT("The PDG Output Actors will be created under this parent actor. If not set, then the PDG Output Actors will be created under a new folder.")));
-		}
-#endif
-
 	}
 
 	// Checkbox: Load Work Item Output Files
@@ -596,24 +607,14 @@ void FHoudiniPDGDetails::AddTOPNodeFilter(IDetailGroup& TOPNetWorkGrp, const TWe
 				GET_MEMBER_NAME_STRING_CHECKED(UHoudiniPDGAssetLink, TOPNodeFilter), PDGAssetLink.Get());
 		};
 
-	FDetailWidgetRow& PDGFilterEnabledRow = TOPNetWorkGrp.AddWidgetRow();
-	BindEnablePDGWiddgetsTest(PDGFilterEnabledRow, InHC);
+	FDetailWidgetRow& PDGFilterRow = TOPNetWorkGrp.AddWidgetRow();
+	BindEnablePDGWiddgetsTest(PDGFilterRow, InHC);
 
-	PDGFilterEnabledRow.NameWidget.Widget =
+	PDGFilterRow.NameWidget.Widget =
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.Padding(2.0f, 0.0f)
-		[
-			SNew(STextBlock)
-				.Text(FText::FromString(TEXT("Enable TOP Node Filter")))
-				.Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT))
-				.ToolTipText(Tooltip)
-		];
-	
-	PDGFilterEnabledRow.ValueWidget.Widget =
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot().FillWidth(1.0f)
 		[
 			// Checkbox enable filter
 			SNew(SCheckBox)
@@ -643,28 +644,22 @@ void FHoudiniPDGDetails::AddTOPNodeFilter(IDetailGroup& TOPNetWorkGrp, const TWe
 							GET_MEMBER_NAME_STRING_CHECKED(UHoudiniPDGAssetLink, bUseTOPNodeFilter), PDGAssetLink.Get());
 					})
 				.ToolTipText(Tooltip)
-		];
-
-	FDetailWidgetRow& PDGFilterRow = TOPNetWorkGrp.AddWidgetRow();
-	BindEnablePDGWiddgetsTest(PDGFilterRow, InHC);
-
-	PDGFilterRow.NameWidget.Widget =
-		SNew(SHorizontalBox)
-		.IsEnabled_Lambda([PDGAssetLink]()
-			{
-				if(IsValidWeakPointer(PDGAssetLink))
-					return PDGAssetLink->bUseTOPNodeFilter;
-				else
-					return false;
-			})
+		]
 		+ SHorizontalBox::Slot()
+		.Padding(0.0f, 3.0f)
 		.AutoWidth()
-		.Padding(2.0f, 0.0f)
 		[
 			SNew(STextBlock)
 				.Text(FText::FromString(TEXT("TOP Node Filter")))
 				.Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT))
 				.ToolTipText(Tooltip)
+				.IsEnabled_Lambda([PDGAssetLink]()
+					{
+						if(IsValidWeakPointer(PDGAssetLink))
+							return PDGAssetLink->bUseTOPNodeFilter;
+						else
+							return false;
+					})
 		];
 
 	PDGFilterRow.ValueWidget.Widget =
@@ -694,7 +689,6 @@ void FHoudiniPDGDetails::AddTOPNodeFilter(IDetailGroup& TOPNetWorkGrp, const TWe
 		]
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
-		.Padding(2.0f, 0.0f)
 		.VAlign(VAlign_Center)
 		[
 			SNew(SButton)
@@ -756,16 +750,6 @@ void FHoudiniPDGDetails::AddTOPOutputFilter(IDetailGroup& TOPNetWorkGrp, const T
 		.AutoWidth()
 		.Padding(2.0f, 0.0f)
 		[
-			SNew(STextBlock)
-				.Text(FText::FromString(TEXT("Enable TOP Output Filter")))
-				.Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT))
-				.ToolTipText(Tooltip)
-		];
-
-	PDGOutputFilterEnablecRow.ValueWidget.Widget =
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot().FillWidth(1.0f)
-		[
 			// Checkbox enable filter
 			SNew(SCheckBox)
 				.IsChecked_Lambda([PDGAssetLink]()
@@ -794,17 +778,10 @@ void FHoudiniPDGDetails::AddTOPOutputFilter(IDetailGroup& TOPNetWorkGrp, const T
 							GET_MEMBER_NAME_STRING_CHECKED(UHoudiniPDGAssetLink, bUseTOPOutputFilter), PDGAssetLink.Get());
 					})
 				.ToolTipText(Tooltip)
-		];
-
-
-	FDetailWidgetRow& PDGOutputFilterRow = TOPNetWorkGrp.AddWidgetRow();
-	BindEnablePDGWiddgetsTest(PDGOutputFilterRow, InHC);
-
-	PDGOutputFilterRow.NameWidget.Widget =
-		SNew(SHorizontalBox)
+		]
 		+ SHorizontalBox::Slot()
+		.Padding(0.0f, 3.0f)
 		.AutoWidth()
-		.Padding(2.0f, 0.0f)
 		[
 			SNew(STextBlock)
 				.Text(FText::FromString(TEXT("TOP Output Filter")))
@@ -819,7 +796,7 @@ void FHoudiniPDGDetails::AddTOPOutputFilter(IDetailGroup& TOPNetWorkGrp, const T
 				.ToolTipText(Tooltip)
 		];
 
-	PDGOutputFilterRow.ValueWidget.Widget =
+	PDGOutputFilterEnablecRow.ValueWidget.Widget =
 		SNew(SHorizontalBox)
 			.IsEnabled_Lambda([PDGAssetLink]()
 				{
@@ -940,6 +917,14 @@ FHoudiniPDGDetails::GetPDGCommandletStatus(FString& OutStatusString, FLinearColo
 {
 	OutStatusString = FString();
 	OutStatusColor = FLinearColor::White;
+
+	if (!FHoudiniEngineCommands::IsPDGCommandletEnabled())
+	{
+		OutStatusString = TEXT("Async importer Disabled");
+		OutStatusColor = FLinearColor(0.5, 0.5, 0.5f, 1.0f);
+		return;
+
+	}
 	switch (FHoudiniEngine::Get().GetPDGCommandletStatus())
 	{
 	case EHoudiniBGEOCommandletStatus::Connected:
@@ -981,7 +966,7 @@ FHoudiniPDGDetails::AddPDGCommandletStatus(
             	const UHoudiniRuntimeSettings* Settings = GetDefault<UHoudiniRuntimeSettings>();
             	if (IsValid(Settings))
             	{
-            		return FHoudiniEngineCommands::IsPDGCommandletEnabled() ? EVisibility::Visible : EVisibility::Collapsed;
+            	//	return FHoudiniEngineCommands::IsPDGCommandletEnabled() ? EVisibility::Visible : EVisibility::Collapsed;
             	}
             	
 	            return EVisibility::Visible;
@@ -1021,6 +1006,8 @@ FHoudiniPDGDetails::GetWorkItemTallyValueAndColor(
 	bool bFound = false;
 	EPDGNodeState State = EPDGNodeState::None;
 
+	UTOPNetwork* TOPNetwork = InAssetLink->GetSelectedTOPNetwork();
+
 	const FWorkItemTallyBase* TallyPtr = nullptr;
 	if (bInForSelectedNode)
 	{
@@ -1035,7 +1022,6 @@ FHoudiniPDGDetails::GetWorkItemTallyValueAndColor(
 	{
 		TallyPtr = &(InAssetLink->WorkItemTally);
 
-		UTOPNetwork* TOPNetwork = InAssetLink->GetSelectedTOPNetwork();
 		if (TOPNetwork)
 		{
 			State = TOPNetwork->NetworkState;
@@ -1064,23 +1050,79 @@ FHoudiniPDGDetails::GetWorkItemTallyValueAndColor(
 	switch (InTallyType)
 	{
 	case EWorkItemTallyType::Waiting:
-		// For now we add waiting and scheduled together, since there is no separate column for scheduled on the UI
-		OutValue = TallyPtr->NumWaitingWorkItems() + TallyPtr->NumScheduledWorkItems();
+		if(bInForSelectedNode)
+		{
+			OutValue = TallyPtr->NumWaitingWorkItems() + TallyPtr->NumScheduledWorkItems();
+		}
+		else
+		{
+			OutValue = 0;
+			OutValue = 0;
+			for(UTOPNode* Node : TOPNetwork->AllTOPNodes)
+			{
+				if(Node->bAutoLoad)
+				{
+					OutValue += Node->GetWorkItemTally().NumWaitingWorkItems() + Node->GetWorkItemTally().NumScheduledWorkItems();
+				}
+			}
+		}
 		OutColor = OutValue > 0 ? FLinearColor(0.0f, 1.0f, 1.0f) : FLinearColor::White;
 		bFound = true;
 		break;
 	case EWorkItemTallyType::Cooking:
-		OutValue = TallyPtr->NumCookingWorkItems();
+		if(bInForSelectedNode)
+		{
+			OutValue = TallyPtr->NumCookingWorkItems();
+		}
+		else
+		{
+			OutValue = 0;
+			for(UTOPNode* Node : TOPNetwork->AllTOPNodes)
+			{
+				if(Node->bAutoLoad && Node->NodeState == EPDGNodeState::Cooking)
+				{
+					OutValue += Node->GetWorkItemTally().NumCookingWorkItems();
+				}
+			}
+		}
 		OutColor = OutValue > 0 ? FLinearColor::Yellow : FLinearColor::White;
 		bFound = true;
 		break;
 	case EWorkItemTallyType::Cooked:
-		OutValue = TallyPtr->NumCookedWorkItems();
+		if(bInForSelectedNode)
+		{
+			OutValue = TallyPtr->NumCookedWorkItems();
+		}
+		else
+		{
+			OutValue = 0;
+			for(UTOPNode* Node : TOPNetwork->AllTOPNodes)
+			{
+				if(Node->bAutoLoad && Node->NodeState == EPDGNodeState::Cook_Complete)
+				{
+					OutValue += Node->GetWorkItemTally().NumCookedWorkItems();
+				}
+			}
+		}
 		OutColor = OutValue > 0 ? FLinearColor::Green : FLinearColor::White;
 		bFound = true;
 		break;
 	case EWorkItemTallyType::Loaded:
-		OutValue = TallyPtr->NumLoadedWorkItems() + TallyPtr->NumEmptyWorkItems() + TallyPtr->NumIgnoredWorkItems();
+		if(bInForSelectedNode)
+		{
+			OutValue = TallyPtr->NumLoadedWorkItems() + TallyPtr->NumEmptyWorkItems() + TallyPtr->NumIgnoredWorkItems();
+		}
+		else
+		{
+			OutValue = 0;
+			for(UTOPNode* Node : TOPNetwork->AllTOPNodes)
+			{
+				if(Node->bAutoLoad)
+				{
+					OutValue += Node->GetWorkItemTally().NumLoadedWorkItems();
+				}
+			}
+		}
 		OutColor = OutValue > 0 ? FLinearColor::Green : FLinearColor::White;
 		bFound = true;
 		break;
@@ -1098,9 +1140,11 @@ FHoudiniPDGDetails::GetWorkItemTallyValueAndColor(
 
 void
 FHoudiniPDGDetails::AddWorkItemStatusWidget(
-	FDetailWidgetRow& InRow, const FString& InTitleString, const TWeakObjectPtr<UHoudiniPDGAssetLink>& InAssetLink, bool bInForSelectedNode)
+	FDetailWidgetRow& InRow, const FString& InTitleString, const TWeakObjectPtr<UHoudiniCookable>& InHC, bool bInForSelectedNode)
 {
-	auto AddGridBox = [InAssetLink, bInForSelectedNode](EWorkItemTallyType TallyType) -> SHorizontalBox::FSlot::FSlotArguments
+	TWeakObjectPtr<UHoudiniPDGAssetLink> AssetLink = InHC->GetPDGAssetLink();
+
+	auto AddGridBox = [AssetLink, bInForSelectedNode](EWorkItemTallyType TallyType) -> SHorizontalBox::FSlot::FSlotArguments
 	{
 		SHorizontalBox::FSlot::FSlotArguments Slot = SHorizontalBox::Slot();
 		
@@ -1118,7 +1162,7 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 			.Padding(FMargin(1.0f, 2.0f))
 			[
 				SNew(SBorder)
-				.IsEnabled_Lambda([InAssetLink]() { return IsPDGLinked(InAssetLink); })
+				.IsEnabled_Lambda([AssetLink]() { return IsPDGLinked(AssetLink); })
 				.BorderImage(_GetEditorStyle().GetBrush("ToolPanel.GroupBorder"))
 				.BorderBackgroundColor(FSlateColor(FLinearColor(0.6, 0.6, 0.6)))
 				.Padding(FMargin(1.0f, 5.0f))
@@ -1129,7 +1173,7 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 					.HAlign(HAlign_Center)
 					[
 						SNew(STextBlock)
-							.Text_Lambda([TallyType, InAssetLink, bInForSelectedNode]()
+							.Text_Lambda([TallyType, AssetLink, bInForSelectedNode]()
 								{
 									FString Title;
 									switch(TallyType)
@@ -1146,7 +1190,7 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 										}
 										break;
 									case EWorkItemTallyType::Loaded:
-										Title = TEXT("PROCESSED");
+										Title = TEXT("LOADED");
 										break;
 									case EWorkItemTallyType::Failed:
 										Title = TEXT("FAILED");
@@ -1154,11 +1198,11 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 									}
 									return FText::FromString(Title);
 								})
-						.ColorAndOpacity_Lambda([InAssetLink, bInForSelectedNode, TallyType]()
+						.ColorAndOpacity_Lambda([AssetLink, bInForSelectedNode, TallyType]()
 						{
 							int32 Value;
 							FLinearColor Color;
-							GetWorkItemTallyValueAndColor(InAssetLink, bInForSelectedNode, TallyType, Value, Color);
+							GetWorkItemTallyValueAndColor(AssetLink, bInForSelectedNode, TallyType, Value, Color);
 							return FSlateColor(Color);
 						})
 					]
@@ -1171,7 +1215,7 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 			.Padding(FMargin(1.0f, 2.0f))
 			[
 				SNew(SBorder)
-				.IsEnabled_Lambda([InAssetLink]() { return IsPDGLinked(InAssetLink); })
+				.IsEnabled_Lambda([AssetLink]() { return IsPDGLinked(AssetLink); })
 				.BorderImage(_GetEditorStyle().GetBrush("ToolPanel.GroupBorder"))
 				.BorderBackgroundColor(FSlateColor(FLinearColor(0.8, 0.8, 0.8)))
 				.Padding(FMargin(1.0f, 5.0f))
@@ -1182,18 +1226,18 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 					.HAlign(HAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text_Lambda([InAssetLink, bInForSelectedNode, TallyType]()
+						.Text_Lambda([AssetLink, bInForSelectedNode, TallyType]()
 						{
 							int32 Value;
 							FLinearColor Color;
-							GetWorkItemTallyValueAndColor(InAssetLink, bInForSelectedNode, TallyType, Value, Color);
+							GetWorkItemTallyValueAndColor(AssetLink, bInForSelectedNode, TallyType, Value, Color);
 							return FText::AsNumber(Value);
 						})
-						.ColorAndOpacity_Lambda([InAssetLink, bInForSelectedNode, TallyType]()
+						.ColorAndOpacity_Lambda([AssetLink, bInForSelectedNode, TallyType]()
 						{
 							int32 Value;
 							FLinearColor Color;
-							GetWorkItemTallyValueAndColor(InAssetLink, bInForSelectedNode, TallyType, Value, Color);
+							GetWorkItemTallyValueAndColor(AssetLink, bInForSelectedNode, TallyType, Value, Color);
 							return FSlateColor(Color);
 						})
 					]
@@ -1223,8 +1267,55 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 			.Padding(FMargin(0.0f, 2.0f))
 			[
 				SNew(STextBlock)
-				.IsEnabled_Lambda([InAssetLink]() { return IsPDGLinked(InAssetLink); })
+				.IsEnabled_Lambda([AssetLink]() { return IsPDGLinked(AssetLink); })
 				.Text(FText::FromString(InTitleString))
+				.ToolTipText_Lambda([AssetLink, bInForSelectedNode]()
+				{
+					if(!AssetLink.IsValid())
+						return FText::FromString(FString("Asset Link not active."));
+
+					if (bInForSelectedNode)
+					{
+						if (!AssetLink->GetSelectedTOPNode())
+							return FText::FromString(FString("No active TOP Node."));
+						
+						FString String = FString::Printf(TEXT("Output Node: %s"), *AssetLink->GetSelectedTOPNode()->NodeName);
+						return FText::FromString(String);
+					}
+					else
+					{
+						UTOPNetwork* Network = AssetLink->GetSelectedTOPNetwork();
+
+						if(!AssetLink->GetSelectedTOPNetwork())
+							return FText::FromString(FString("No active TOP Network."));
+
+						FStringBuilderBase Builder;
+
+						Builder.Append(TEXT("Output Nodes: "));
+						int OutputCount = 0;
+						int CookedCount = 0;
+						for(UTOPNode* Node : Network->AllTOPNodes)
+						{
+							if(Node->bAutoLoad)
+							{
+								++OutputCount;
+								if(OutputCount > 1)
+									Builder.Append(", ");
+								Builder.Append(Node->NodeName);
+							}
+
+							if(Node->NodeState == EPDGNodeState::Cook_Complete)
+								++CookedCount;
+						}
+						if(OutputCount == 0)
+							Builder.Append(TEXT("<none>"));
+						Builder.Append(TEXT("\n"));
+
+						Builder.Append(FString::Printf(TEXT("Cooked %d of %d Total TOP Nodes"), CookedCount, Network->AllTOPNodes.Num()));
+						return  FText::FromString(Builder.ToString());
+					}
+
+				})
 				
 			]
 			+ SVerticalBox::Slot()
@@ -1268,15 +1359,11 @@ FHoudiniPDGDetails::AddTOPNetworkWidget(
 
 	FString GroupLabel = TEXT("TOP Networks");
 	IDetailGroup& TOPNetWorkGrp = InPDGCategory.AddGroup(FName(*GroupLabel), FText::FromString(GroupLabel), false, false);
-	
-	AddTOPNetworkSelectWidgets(TOPNetWorkGrp, InHC);
 
 	AddTOPOutputFilter(TOPNetWorkGrp, InHC);
 
-	if(!InHC->GetIsPCG())
-	{
-		AddTOPNetworkState(TOPNetWorkGrp, InHC);
-	}
+	AddTOPNetworkSelectWidgets(TOPNetWorkGrp, InHC);
+
 	if (!InHC->GetIsPCG())
 	{
 		AddTOPNetworkDirtyAllAndCookOutputWidgets(TOPNetWorkGrp, InHC);
@@ -1294,10 +1381,18 @@ FHoudiniPDGDetails::AddTOPNetworkWidget(
 
 	if(!InHC->GetIsPCG())
 	{
+		AddTOPNetworkCombinedState(TOPNetWorkGrp, InHC);
+
+		// Enable this if you want to see un-combined PDG and loading state, useful for debugging.
+		//AddTOPNetworkStates(TOPNetWorkGrp, InHC);
+	}
+
+	if(!InHC->GetIsPCG())
+	{
 		FDetailWidgetRow& PDGStatusRow = TOPNetWorkGrp.AddWidgetRow();
 		// Disable if PDG is not linked
 		BindEnablePDGWiddgetsTest(PDGStatusRow, InHC);
-		FHoudiniPDGDetails::AddWorkItemStatusWidget(PDGStatusRow, TEXT("TOP Network Work Item Status"), PDGAssetLink, false);
+		FHoudiniPDGDetails::AddWorkItemStatusWidget(PDGStatusRow, TEXT("TOP Network Output Work Item Status"), InHC, false);
 	}
 }
 
@@ -1388,7 +1483,6 @@ void FHoudiniPDGDetails::AddTOPNetworkSelectWidgets(IDetailGroup& TOPNetWorkGrp,
 	PDGTOPNetRow.ValueWidget.Widget =
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
-		.Padding(2, 2, 5, 2)
 		.FillWidth(300.f)
 		.MaxWidth(300.f)
 		[
@@ -1657,13 +1751,94 @@ void FHoudiniPDGDetails::AddTOPNetworkDirtyAllAndCookOutputWidgets(IDetailGroup&
 	BindEnablePDGWiddgetsTest(PDGDirtyCookRow, InHC);
 }
 
-TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNetworkPauseWidgets(TSharedRef<SHorizontalBox>& PauseHBox, const TWeakObjectPtr<UHoudiniCookable>& InHC)
+TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNetworkCancelWidgets(const TWeakObjectPtr<UHoudiniCookable>& InHC)
+{
+	TSharedPtr<SHorizontalBox> CancelHBox = SNew(SHorizontalBox);
+
+	TSharedPtr<SBox> CancelBox;
+	if(!IsValidWeakPointer(InHC))
+		return CancelBox;
+
+	TWeakObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink = InHC->GetPDGAssetLink();
+
+	CancelBox = SNew(SBox)
+		.WidthOverride(200.0f)
+		[
+			SNew(SButton)
+				.ToolTipText(LOCTEXT("CancelTooltip", "Cancels cooking the selected TOP network"))
+				.ContentPadding(FMargin(5.0f, 2.0f))
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.IsEnabled_Lambda([PDGAssetLink]()
+					{
+						if(!IsValidWeakPointer(PDGAssetLink) || !IsPDGLinked(PDGAssetLink))
+							return false;
+
+						UTOPNetwork* TopNetwork = PDGAssetLink->GetSelectedTOPNetwork();
+						if(!TopNetwork)
+							return false;
+
+						EPDGNodeState State = TopNetwork->NetworkState;
+						bool bEnabled = TopNetwork->NetworkState == EPDGNodeState::Cooking || TopNetwork->NetworkState == EPDGNodeState::Paused ||
+							TopNetwork->LoadState == EPDGLoadState::Loading;
+
+						return bEnabled;
+					})
+				.OnReleased_Lambda([PDGAssetLink]()
+					{
+						if(IsValid(PDGAssetLink->GetSelectedTOPNetwork()))
+						{
+							FHoudiniPDGManager::CancelCook(PDGAssetLink->GetSelectedTOPNetwork());
+						}
+					})
+				.Content()
+				[
+					SAssignNew(CancelHBox, SHorizontalBox)
+				]
+		];
+
+	TSharedPtr<FSlateDynamicImageBrush> CancelIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIPDGCancelIconBrush();
+	if(CancelIconBrush.IsValid())
+	{
+		TSharedPtr<SImage> CancelImage;
+		CancelHBox->AddSlot()
+			.MaxWidth(16.0f)
+			[
+				SNew(SBox)
+					.WidthOverride(16.0f)
+					.HeightOverride(16.0f)
+					[
+						SAssignNew(CancelImage, SImage)
+					]
+			];
+
+		CancelImage->SetImage(
+			TAttribute<const FSlateBrush*>::Create(
+				TAttribute<const FSlateBrush*>::FGetter::CreateLambda([CancelIconBrush]() { return CancelIconBrush.Get(); })));
+	}
+
+	CancelHBox->AddSlot()
+		.Padding(5.0, 0.0, 0.0, 0.0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+				.Text(LOCTEXT("Cancel", "Cancel Cook"))
+		];
+
+	return CancelBox;
+}
+
+TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNetworkPauseWidgets(const TWeakObjectPtr<UHoudiniCookable>& InHC)
 {
 	TSharedPtr<SBox> PauseBox;
 	if(!IsValidWeakPointer(InHC))
 		return PauseBox;
 
 	TWeakObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink = InHC->GetPDGAssetLink();
+
+
+	TSharedRef<SHorizontalBox> PauseHBox = SNew(SHorizontalBox);
 
 	PauseBox = SNew(SBox)
 		.WidthOverride(200.0f)
@@ -1754,65 +1929,51 @@ TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNetworkPauseWidgets(TSharedRef<SHoriz
 	return PauseBox;
 }
 
-void FHoudiniPDGDetails::AddTOPNetworkPauseOrCancelWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)
+TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNodeCancelWidgets(const TWeakObjectPtr<UHoudiniCookable>& InHC)
 {
+	TSharedPtr<SHorizontalBox> CancelHBox = SNew(SHorizontalBox);
+
+	TSharedPtr<SBox> CancelBox;
 	if(!IsValidWeakPointer(InHC))
-		return;
+		return CancelBox;
 
 	TWeakObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink = InHC->GetPDGAssetLink();
 
-	TSharedRef<SHorizontalBox> PauseHBox = SNew(SHorizontalBox);
-	TSharedPtr<SHorizontalBox> CancelHBox = SNew(SHorizontalBox);
-
-	TSharedPtr<SBox> PauseBox = AddTOPNetworkPauseWidgets(PauseHBox, InHC);
-
-	FDetailWidgetRow& PDGPauseOrCancelWidgets = TOPNetWorkGrp.AddWidgetRow()
-		.WholeRowContent()
+	CancelBox = SNew(SBox)
+		.WidthOverride(200.0f)
 		[
-			SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
+			SNew(SButton)
+				.ToolTipText(LOCTEXT("CancelTooltip", "Cancels cooking the selected TOP network"))
+				.ContentPadding(FMargin(5.0f, 2.0f))
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.IsEnabled_Lambda([PDGAssetLink]()
+					{
+						if(!IsValidWeakPointer(PDGAssetLink) || !IsPDGLinked(PDGAssetLink))
+							return false;
+
+						UTOPNode * TOPNode = PDGAssetLink->GetSelectedTOPNode();
+						if(!TOPNode)
+							return false;
+
+						if(TOPNode->NodeState == EPDGNodeState::Cooking ||
+							TOPNode->NodeState == EPDGNodeState::Paused ||
+							TOPNode->LoadState == EPDGLoadState::Loading_Paused ||
+							TOPNode->LoadState == EPDGLoadState::Loading)
+							return true;
+
+						return false;
+					})
+				.OnReleased_Lambda([PDGAssetLink]()
+					{
+						if(IsValid(PDGAssetLink->GetSelectedTOPNode()))
+						{
+							FHoudiniPDGManager::CancelCook(PDGAssetLink->GetSelectedTOPNode());
+						}
+					})
+				.Content()
 				[
-					PauseBox.ToSharedRef()
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SBox)
-						.WidthOverride(200.0f)
-						[
-							SNew(SButton)
-								.ToolTipText(LOCTEXT("CancelTooltip", "Cancels cooking the selected TOP network"))
-								.ContentPadding(FMargin(5.0f, 2.0f))
-								.VAlign(VAlign_Center)
-								.HAlign(HAlign_Center)
-								.IsEnabled_Lambda([PDGAssetLink]()
-									{
-										if(!IsValidWeakPointer(PDGAssetLink) || !IsPDGLinked(PDGAssetLink))
-											return false;
-
-										UTOPNetwork* TopNetwork = PDGAssetLink->GetSelectedTOPNetwork();
-										if(!TopNetwork)
-											return false;
-
-										EPDGNodeState State = TopNetwork->NetworkState;
-										bool bEnabled = TopNetwork->NetworkState == EPDGNodeState::Cooking || TopNetwork->NetworkState == EPDGNodeState::Paused ||
-											TopNetwork->LoadState == EPDGLoadState::Loading;
-
-										return bEnabled;
-									})
-								.OnReleased_Lambda([PDGAssetLink]()
-									{
-										if(IsValid(PDGAssetLink->GetSelectedTOPNetwork()))
-										{
-											FHoudiniPDGManager::CancelCook(PDGAssetLink->GetSelectedTOPNetwork());
-										}
-									})
-								.Content()
-								[
-									SAssignNew(CancelHBox, SHorizontalBox)
-								]
-						]
+					SAssignNew(CancelHBox, SHorizontalBox)
 				]
 		];
 
@@ -1845,8 +2006,166 @@ void FHoudiniPDGDetails::AddTOPNetworkPauseOrCancelWidgets(IDetailGroup& TOPNetW
 				.Text(LOCTEXT("Cancel", "Cancel Cook"))
 		];
 
+	return CancelBox;
+}
+
+
+TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNodePauseWidgets(const TWeakObjectPtr<UHoudiniCookable>& InHC)
+{
+	TSharedPtr<SBox> PauseBox;
+	if(!IsValidWeakPointer(InHC))
+		return PauseBox;
+
+	TWeakObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink = InHC->GetPDGAssetLink();
+
+
+	TSharedRef<SHorizontalBox> PauseHBox = SNew(SHorizontalBox);
+
+	PauseBox = SNew(SBox)
+		.WidthOverride(200.0f)
+		[
+			SNew(SButton)
+				.ToolTipText(LOCTEXT("PauseTooltip", "Pauses cooking for the selected TOP Network"))
+				.ContentPadding(FMargin(5.0f, 2.0f))
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.IsEnabled_Lambda([PDGAssetLink]()
+					{
+						if(!IsValidWeakPointer(PDGAssetLink) || !IsPDGLinked(PDGAssetLink))
+							return false;
+
+						UTOPNode* TOPNode = PDGAssetLink->GetSelectedTOPNode();
+						if(!TOPNode)
+							return false;
+
+
+						if(TOPNode->NodeState == EPDGNodeState::Cooking || 
+							TOPNode->NodeState == EPDGNodeState::Paused ||
+							TOPNode->LoadState == EPDGLoadState::Loading_Paused ||
+							TOPNode->LoadState == EPDGLoadState::Loading)
+							return true;
+
+						return false;
+					})
+				.OnReleased_Lambda([PDGAssetLink, PauseHBox]()
+					{
+						if(IsValid(PDGAssetLink->GetSelectedTOPNetwork()))
+						{
+							if(PDGAssetLink->GetSelectedTOPNode()->IsPaused())
+							{
+								FHoudiniPDGManager::ResumeCook(PDGAssetLink->GetSelectedTOPNode());
+							}
+							else
+							{
+								FHoudiniPDGManager::PauseCook(PDGAssetLink->GetSelectedTOPNode());
+							}
+						}
+						//	return FReply::Handled();
+					})
+				.Content()
+				[
+					SAssignNew(PauseHBox, SHorizontalBox)
+				]
+		];
+
+	TSharedPtr<FSlateDynamicImageBrush> PauseIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIPDGPauseIconBrush();
+	if(PauseIconBrush.IsValid())
+	{
+		TSharedPtr<SImage> PauseImage;
+		PauseHBox->AddSlot()
+			.MaxWidth(16.0f)
+			[
+				SNew(SBox)
+					.WidthOverride(16.0f)
+					.HeightOverride(16.0f)
+					[
+						SAssignNew(PauseImage, SImage)
+					]
+			];
+
+		PauseImage->SetImage(
+			TAttribute<const FSlateBrush*>::Create(
+				TAttribute<const FSlateBrush*>::FGetter::CreateLambda([PauseIconBrush]() { return PauseIconBrush.Get(); })));
+	}
+
+
+	PauseHBox->AddSlot()
+		.Padding(5.0, 0.0, 0.0, 0.0)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+				.Text_Lambda([PDGAssetLink]()
+					{
+						auto PauseText = LOCTEXT("Pause", "Pause Cook");
+						auto ResumeText = LOCTEXT("Resume", "Resume Cook");
+
+						if(!IsValidWeakPointer(PDGAssetLink) || !PDGAssetLink->GetSelectedTOPNetwork())
+							return PauseText;
+
+						if(PDGAssetLink->GetSelectedTOPNode()->IsPaused())
+							return ResumeText;
+						else
+							return PauseText;
+					})
+		];
+	return PauseBox;
+}
+
+void FHoudiniPDGDetails::AddTOPNetworkPauseOrCancelWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)
+{
+	if(!IsValidWeakPointer(InHC))
+		return;
+
+	TSharedPtr<SBox> PauseBox = AddTOPNetworkPauseWidgets(InHC);
+	TSharedPtr<SBox> CancelBox = AddTOPNetworkCancelWidgets(InHC);
+
+	FDetailWidgetRow& PDGPauseOrCancelWidgets = TOPNetWorkGrp.AddWidgetRow()
+		.WholeRowContent()
+		[
+			SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					PauseBox.ToSharedRef()
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					CancelBox.ToSharedRef()
+				]
+		];
+
 	BindEnablePDGWiddgetsTest(PDGPauseOrCancelWidgets, InHC);
 }
+
+void FHoudiniPDGDetails::AddTOPNodePauseOrCancelWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)
+{
+	if(!IsValidWeakPointer(InHC))
+		return;
+
+	TSharedPtr<SBox> PauseBox = AddTOPNodePauseWidgets(InHC);
+	TSharedPtr<SBox> CancelBox = AddTOPNodeCancelWidgets(InHC);
+
+	FDetailWidgetRow& PDGPauseOrCancelWidgets = TOPNetWorkGrp.AddWidgetRow()
+		.WholeRowContent()
+		[
+			SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					PauseBox.ToSharedRef()
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					CancelBox.ToSharedRef()
+				]
+		];
+
+	BindEnablePDGWiddgetsTest(PDGPauseOrCancelWidgets, InHC);
+}
+
 
 void FHoudiniPDGDetails::AddTOPNetworkUnloadWorkItemsObjectsWidgets(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)
 {
@@ -1990,6 +2309,109 @@ FHoudiniPDGDetails::GetSelectedTOPNetworkStatusAndColor(const TWeakObjectPtr<UHo
 	return false;
 }
 
+bool
+FHoudiniPDGDetails::GetSelectedTOPNetworkCombinedStatusAndColor(const TWeakObjectPtr<UHoudiniCookable>& InHC, FString& OutTOPNodeStatus, FLinearColor& OutTOPNodeStatusColor)
+{
+	OutTOPNodeStatus = FString();
+	OutTOPNodeStatusColor = FLinearColor::White;
+
+	if(!IsValidWeakPointer(InHC))
+		return false;
+
+	UHoudiniPDGAssetLink* AssetLink = InHC->GetPDGAssetLink();
+	if(!AssetLink)
+		return false;
+
+	if(IsSOPCooking(InHC))
+	{
+		OutTOPNodeStatus = TEXT("SOP Nodes Are Cooking");
+		OutTOPNodeStatusColor = FLinearColor::White;
+		return true;
+	}
+
+	UTOPNetwork* TopNetwork = AssetLink->GetSelectedTOPNetwork();
+
+	if(!IsValid(TopNetwork))
+		return false;
+
+	OutTOPNodeStatus = UHoudiniPDGAssetLink::GetTOPNodeStatus(TopNetwork->NetworkState);
+	OutTOPNodeStatusColor = UHoudiniPDGAssetLink::GetTOPNodeStatusColor(TopNetwork->NetworkState);
+
+	if (TopNetwork->NetworkState == EPDGNodeState::Cook_Complete)
+	{
+		switch(TopNetwork->LoadState)
+		{
+		case EPDGLoadState::Loading:
+			OutTOPNodeStatus = TEXT("PDG Cooked, Loading Work Items");
+			OutTOPNodeStatusColor = FLinearColor(0.0, 1.0f, 1.0f);
+			break;
+		case EPDGLoadState::Loading_Complete:
+			OutTOPNodeStatus = TEXT("PDG Cooked, Work Items Loaded");
+			OutTOPNodeStatusColor = FLinearColor::Green;
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (TopNetwork->LoadState == EPDGLoadState::Unloaded)
+	{
+		OutTOPNodeStatus = TEXT("Work Items Unloaded");
+	}
+	return false;
+}
+
+bool
+FHoudiniPDGDetails::GetSelectedTOPNodeCombinedStatusAndColor(const TWeakObjectPtr<UHoudiniCookable>& InHC, FString& OutTOPNodeStatus, FLinearColor& OutTOPNodeStatusColor)
+{
+	OutTOPNodeStatus = FString();
+	OutTOPNodeStatusColor = FLinearColor::White;
+
+	if(!IsValidWeakPointer(InHC))
+		return false;
+
+	UHoudiniPDGAssetLink* AssetLink = InHC->GetPDGAssetLink();
+	if(!AssetLink)
+		return false;
+
+	if(IsSOPCooking(InHC))
+	{
+		OutTOPNodeStatus = TEXT("SOP Nodes Are Cooking");
+		OutTOPNodeStatusColor = FLinearColor::White;
+		return true;
+	}
+
+	UTOPNode * TOPNode = AssetLink->GetSelectedTOPNode();
+
+	if(!IsValid(TOPNode))
+		return false;
+
+	OutTOPNodeStatus = UHoudiniPDGAssetLink::GetTOPNodeStatus(TOPNode->NodeState);
+	OutTOPNodeStatusColor = UHoudiniPDGAssetLink::GetTOPNodeStatusColor(TOPNode->NodeState);
+
+	if(TOPNode->NodeState == EPDGNodeState::Cook_Complete)
+	{
+		switch(TOPNode->LoadState)
+		{
+		case EPDGLoadState::Loading:
+			OutTOPNodeStatus = TEXT("PDG Cooked, Loading Work Items");
+			OutTOPNodeStatusColor = FLinearColor(0.0, 1.0f, 1.0f);
+			break;
+		case EPDGLoadState::Loading_Complete:
+			OutTOPNodeStatus = TEXT("PDG Cooked, Work Items Loaded");
+			OutTOPNodeStatusColor = FLinearColor::Green;
+			break;
+		default:
+			break;
+		}
+	}
+
+	if(TOPNode->LoadState == EPDGLoadState::Unloaded)
+	{
+		OutTOPNodeStatus = TEXT("Work Items Unloaded");
+	}
+	return false;
+}
 
 bool
 FHoudiniPDGDetails::GetSelectedTOPNodeStatusAndColor(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink, FString& OutTOPNodeStatus, FLinearColor &OutTOPNodeStatusColor)
@@ -2145,7 +2567,6 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 		PDGTOPNodeRow.ValueWidget.Widget = 
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
-			.Padding(2, 2, 5, 2)
 			.FillWidth(300.f)
 			.MaxWidth(300.f)
 			[
@@ -2215,12 +2636,7 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 		ComboBoxTOPNode->SetVisibility(NodeErrorText.IsEmpty() ? EVisibility::Visible : EVisibility::Hidden);
 	}
 
-	// TOP Node State
-	if(!InHC->GetIsPCG())
-	{
-		AddTOPNodeState(TOPNodesGrp, InHC);
-	}
-	
+
 	// Buttons: DIRTY NODE / COOK NODE
 	if (!InHC->GetIsPCG())
 	{
@@ -2380,6 +2796,8 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 		BindEnablePDGWiddgetsTest(PDGDirtyCookRow, InHC);
 	}
 
+	AddTOPNodePauseOrCancelWidgets(TOPNodesGrp, InHC);
+
 	// Buttons: Load Work Item Objects / Unload Work Item Objects
 	if (!InHC->GetIsPCG())
 	{
@@ -2485,6 +2903,12 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 		];
 	}
 
+	// TOP Node State
+	if(!InHC->GetIsPCG())
+	{
+		AddTOPNodeState(TOPNodesGrp, InHC);
+	}
+
 	// TOP Node WorkItem Status
 	if(!InHC->GetIsPCG())
 	{
@@ -2493,12 +2917,12 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 			FDetailWidgetRow& PDGNodeWorkItemStatsRow = TOPNodesGrp.AddWidgetRow();
 			BindEnablePDGWiddgetsTest(PDGNodeWorkItemStatsRow, InHC);
 			FHoudiniPDGDetails::AddWorkItemStatusWidget(
-				PDGNodeWorkItemStatsRow, TEXT("TOP Node Work Item Status"), PDGAssetLink, true);
+				PDGNodeWorkItemStatsRow, TEXT("TOP Node Work Item Status"), InHC, true);
 		}
 	}
 }
 
-void FHoudiniPDGDetails::AddTOPNetworkState(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)
+void FHoudiniPDGDetails::AddTOPNetworkStates(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)
 {
 	if(!IsValidWeakPointer(InHC))
 		return;
@@ -2584,7 +3008,7 @@ void FHoudiniPDGDetails::AddTOPNetworkState(IDetailGroup& TOPNetWorkGrp, const T
 
 }
 
-void FHoudiniPDGDetails::AddTOPNodeState(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)
+void FHoudiniPDGDetails::AddTOPNetworkCombinedState(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)
 {
 	if(!IsValidWeakPointer(InHC))
 		return;
@@ -2603,7 +3027,7 @@ void FHoudiniPDGDetails::AddTOPNodeState(IDetailGroup& TOPNetWorkGrp, const TWea
 		.Padding(2.0f, 0.0f)
 		[
 			SNew(STextBlock)
-				.Text(FText::FromString(TEXT("TOP Node State")))
+				.Text(FText::FromString(TEXT("State")))
 				.Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT))
 		];
 
@@ -2614,18 +3038,63 @@ void FHoudiniPDGDetails::AddTOPNodeState(IDetailGroup& TOPNetWorkGrp, const TWea
 		.Padding(2.0f, 0.0f)
 		[
 			SNew(STextBlock)
-				.Text_Lambda([PDGAssetLink]()
+				.Text_Lambda([InHC]()
 					{
 						FString TOPNodeStatus = FString();
 						FLinearColor TOPNodeStatusColor = FLinearColor::White;
-						GetSelectedTOPNodeStatusAndColor(PDGAssetLink, TOPNodeStatus, TOPNodeStatusColor);
+						GetSelectedTOPNetworkCombinedStatusAndColor(InHC, TOPNodeStatus, TOPNodeStatusColor);
 						return FText::FromString(TOPNodeStatus);
 					})
-				.ColorAndOpacity_Lambda([PDGAssetLink]()
+				.ColorAndOpacity_Lambda([InHC]()
 					{
 						FString TOPNodeStatus = FString();
 						FLinearColor TOPNodeStatusColor = FLinearColor::White;
-						GetSelectedTOPNodeStatusAndColor(PDGAssetLink, TOPNodeStatus, TOPNodeStatusColor);
+						GetSelectedTOPNetworkCombinedStatusAndColor(InHC, TOPNodeStatus, TOPNodeStatusColor);
+						return FSlateColor(TOPNodeStatusColor);
+					})
+		];
+}
+
+void FHoudiniPDGDetails::AddTOPNodeState(IDetailGroup& TOPNetWorkGrp, const TWeakObjectPtr<UHoudiniCookable>& InHC)
+{
+	if(!IsValidWeakPointer(InHC))
+		return;
+
+	TWeakObjectPtr<UHoudiniPDGAssetLink> PDGAssetLink = InHC->GetPDGAssetLink();
+
+	if(!IsValidWeakPointer(PDGAssetLink))
+		return;
+
+	FDetailWidgetRow& PDGNodeStateResultRow = TOPNetWorkGrp.AddWidgetRow();
+	BindEnablePDGWiddgetsTest(PDGNodeStateResultRow, InHC);
+	PDGNodeStateResultRow.NameWidget.Widget =
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString(TEXT("State")))
+				.Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT))
+		];
+
+	PDGNodeStateResultRow.ValueWidget.Widget =
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+				.Text_Lambda([PDGAssetLink, InHC]()
+					{
+						FString TOPNodeStatus = FString();
+						FLinearColor TOPNodeStatusColor = FLinearColor::White;
+						GetSelectedTOPNodeCombinedStatusAndColor(InHC, TOPNodeStatus, TOPNodeStatusColor);
+						return FText::FromString(TOPNodeStatus);
+					})
+				.ColorAndOpacity_Lambda([PDGAssetLink, InHC]()
+					{
+						FString TOPNodeStatus = FString();
+						FLinearColor TOPNodeStatusColor = FLinearColor::White;
+						GetSelectedTOPNodeCombinedStatusAndColor(InHC, TOPNodeStatus, TOPNodeStatusColor);
 						return FSlateColor(TOPNodeStatusColor);
 					})
 		];
