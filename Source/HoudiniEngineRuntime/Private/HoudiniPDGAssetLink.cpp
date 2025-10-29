@@ -1158,6 +1158,11 @@ UTOPNetwork::HandleOnPDGEventCookCompleteReceivedByChildNode(UHoudiniPDGAssetLin
 			return;
 	}
 
+	if(OnPostCookDelegate.IsBound())
+		OnPostCookDelegate.Broadcast(this, AnyWorkItemsFailed());
+
+	InAssetLink->HandleOnTOPNetworkCookComplete(this);
+
 	this->NetworkState = EPDGNodeState::Cook_Complete;
 
 }
