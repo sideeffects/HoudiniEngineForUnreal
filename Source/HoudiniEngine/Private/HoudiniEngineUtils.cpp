@@ -3562,7 +3562,6 @@ FHoudiniEngineUtils::GetFocusedParameterWidgetMetaData(TSharedPtr<IDetailsView> 
 	}
 
 	TSharedPtr<SWidget> FocusedWidget = FSlateApplication::Get().GetKeyboardFocusedWidget();
-
 	if (FocusedWidget.IsValid())
 	{
 		// Before we grab the meta data of the focused widget, we want to make sure that it is
@@ -3586,6 +3585,11 @@ FHoudiniEngineUtils::FocusUsingParameterWidgetMetaData(
 	TSharedRef<SWidget> AncestorWidget, 
 	const FHoudiniParameterWidgetMetaData& ParameterWidgetMetaData)
 {
+	// No need to keyboard select / focus spinboxes 
+	// As this will instead select the TextEdit...
+	if (ParameterWidgetMetaData.UniqueName.Contains("SSpinBox"))
+		return true;
+
 #if WITH_EDITOR
 	//
 	// HACK: Manually tick the widget before accessing its children. We need to do this because
@@ -3632,10 +3636,14 @@ FHoudiniEngineUtils::FocusUsingParameterWidgetMetaData(
 			//
 			while (WidgetToSelect.IsValid())
 			{
-				if (FSlateApplication::Get().SetKeyboardFocus(WidgetToSelect))
-				{
+				/*
+				// No need to keyboard select spinboxes
+				if (WidgetToSelect->GetTypeAsString().StartsWith("SSpinBox"))
 					return true;
-				}
+				*/
+
+				if (FSlateApplication::Get().SetKeyboardFocus(WidgetToSelect))
+					return true;
 
 				WidgetToSelect = Child->GetParentWidget();
 			}
