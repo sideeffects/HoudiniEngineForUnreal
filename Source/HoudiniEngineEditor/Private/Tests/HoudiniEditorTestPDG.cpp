@@ -53,8 +53,6 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGCommandletMesh, "H
 
 bool FHoudiniEditorTestPDGCommandletMesh::RunTest(const FString& Parameters)
 {
-	return true;
-
 	FHoudiniEngineCommands::SetPDGCommandletEnabled(true);
 	FHoudiniEngineCommands::StartPDGCommandlet();
 
@@ -164,8 +162,6 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGCommandletMeshInte
 
 bool FHoudiniEditorTestPDGCommandletMeshInternalMaterials::RunTest(const FString& Parameters)
 {
-	return true;
-
 	FHoudiniEngineCommands::SetPDGCommandletEnabled(true);
 	FHoudiniEngineCommands::StartPDGCommandlet();
 
@@ -265,8 +261,6 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGTwoOutputsCommandl
 
 	bool FHoudiniEditorTestPDGTwoOutputsCommandlet::RunTest(const FString& Parameters)
 {
-	return true;
-
 	/// Make sure we have a Houdini Session before doing anything.
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
@@ -364,8 +358,6 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGTwoOutputsNoComman
 
 	bool FHoudiniEditorTestPDGTwoOutputsNoCommandlet::RunTest(const FString& Parameters)
 {
-	return true;
-
 	FHoudiniEngineCommands::SetPDGCommandletEnabled(false);
 	FHoudiniEngineCommands::StopPDGCommandlet();
 
@@ -377,6 +369,11 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGTwoOutputsNoComman
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
 	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			return !FHoudiniEngine::Get().IsPDGCommandletConnected();
+		}));
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 		{

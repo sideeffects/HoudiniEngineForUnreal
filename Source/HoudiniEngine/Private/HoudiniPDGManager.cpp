@@ -2075,6 +2075,7 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 			HOUDINI_LOG_WARNING(TEXT("TOP work result object (%s) not in Loading state, aborting output object creation."), *InMessage.Name);
 			return;
 		}
+		WorkResultObject->SetState(EPDGWorkResultState::Loaded);
 
 		// Set package params outer
 		UObject* AssetLinkParent = AssetLink->GetOuter();

@@ -1103,8 +1103,13 @@ UTOPNetwork::EvaluateWorkItems()
 
 	}
 
-	if (this->LoadState == EPDGLoadState::Loading && bAllLoaded)
+	if(this->LoadState == EPDGLoadState::Loading && bAllLoaded)
+	{
 		this->LoadState = EPDGLoadState::Loading_Complete;
+
+		if(OnPostCookDelegate.IsBound())
+			OnPostCookDelegate.Broadcast(this, AnyWorkItemsFailed());
+	}
 
 	return true;
 }
@@ -1157,9 +1162,6 @@ UTOPNetwork::HandleOnPDGEventCookCompleteReceivedByChildNode(UHoudiniPDGAssetLin
 		if (!TOPNode->HasReceivedCookCompleteEvent() && TOPNode->WorkResult.Num() > 0)
 			return;
 	}
-
-	if(OnPostCookDelegate.IsBound())
-		OnPostCookDelegate.Broadcast(this, AnyWorkItemsFailed());
 
 	InAssetLink->HandleOnTOPNetworkCookComplete(this);
 
