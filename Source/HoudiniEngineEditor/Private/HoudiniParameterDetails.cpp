@@ -4764,7 +4764,13 @@ FHoudiniParameterDetails::AddMetaDataToAllDescendants(
 	{
 		const TSharedRef<SWidget> Child = Children->GetChildAt(i);
 		AddMetaDataToAllDescendants(Child, UniqueName, Index);
-		Child->AddMetadata(MakeShared<FHoudiniParameterWidgetMetaData>(UniqueName, Index++));
+
+		// Append the type of widget to the unique name,
+		// this will be helpful in identifying sub-widgets for compound widget when reselecting.. 
+		// example: SNumericEntryBox are a composed SSpinBox and sEditText
+		// We don't want to be selecting the text if we were using the slider...
+		FString Name = UniqueName + TEXT("_") + Child->GetTypeAsString();
+		Child->AddMetadata(MakeShared<FHoudiniParameterWidgetMetaData>(Name, Index++));
 	}
 }
 

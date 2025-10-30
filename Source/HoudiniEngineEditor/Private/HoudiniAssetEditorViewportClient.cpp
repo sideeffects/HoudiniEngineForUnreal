@@ -340,7 +340,7 @@ FHoudiniAssetEditorViewportClient::SetViewportTo2D()
 #endif
 	SetViewModes(VMI_Unlit, VMI_Unlit);
 	
-	ViewTransformOrthographic.SetOrthoZoom(850.0f);
+	ViewTransformOrthographic.SetOrthoZoom(1000.0f);
 
 	// Set the perspective view to a "front" one, this ensures the
 	// image will be properly visible if the user switches the view
