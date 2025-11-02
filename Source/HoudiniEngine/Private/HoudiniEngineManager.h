@@ -83,6 +83,12 @@ public:
 		return Status == EHoudiniBGEOCommandletStatus::Running || Status == EHoudiniBGEOCommandletStatus::Connected;
 	}
 
+	bool IsPDGCommandletConnected()
+	{
+		const EHoudiniBGEOCommandletStatus Status = PDGManager.UpdateAndGetBGEOCommandletStatus();
+		return Status == EHoudiniBGEOCommandletStatus::Connected;
+	}
+
 	EHoudiniBGEOCommandletStatus GetPDGCommandletStatus() { return PDGManager.UpdateAndGetBGEOCommandletStatus(); }
 
 	// Automatically try to start the First HE session if needed

@@ -1760,6 +1760,14 @@ FHoudiniEngine::IsPDGCommandletRunningOrConnected()
 	return false;
 }
 
+bool
+FHoudiniEngine::IsPDGCommandletConnected()
+{
+	if(HoudiniEngineManager)
+		return HoudiniEngineManager->IsPDGCommandletConnected();
+	return false;
+}
+
 EHoudiniBGEOCommandletStatus
 FHoudiniEngine::GetPDGCommandletStatus()
 {
