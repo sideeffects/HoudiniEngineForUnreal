@@ -98,6 +98,8 @@ bool FHoudiniEditorTestsPDGDataLayers::RunTest(const FString& Parameters)
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 	{
 		UHoudiniPDGAssetLink * AssetLink = Context->GetPDGAssetLink();
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(AssetLink, return false);
+
 		UTOPNetwork * Network = AssetLink->GetTOPNetwork(0);
 		HOUDINI_TEST_NOT_NULL(Network);
 

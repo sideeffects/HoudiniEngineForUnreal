@@ -275,7 +275,7 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 		{
 			if(CookableStatus->NumErrors > 0)
 			{
-				OutStatusColor = FLinearColor::Red;
+				OutStatusColor = FLinearColor(1.0f, 0.5f, 0.5f);
 				OutStatusString = FString::Printf(TEXT("Cook Unsuccessful. %s and %s"), *GetErrors(CookableStatus->NumErrors), *GetWarnings(CookableStatus->NumWarnings));
 			}
 			else if(CookableStatus->NumWarnings > 0)
