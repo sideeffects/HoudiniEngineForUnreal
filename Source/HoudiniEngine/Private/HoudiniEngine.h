@@ -269,6 +269,8 @@ class HOUDINIENGINE_API FHoudiniEngine : public IModuleInterface
 
 		bool IsPDGCommandletRunningOrConnected();
 
+		bool IsPDGCommandletConnected();
+
 		EHoudiniBGEOCommandletStatus GetPDGCommandletStatus();
 
 		FHoudiniEngineManager* GetHoudiniEngineManager() { return HoudiniEngineManager; }

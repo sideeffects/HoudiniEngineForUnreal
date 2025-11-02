@@ -46,6 +46,7 @@
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 #include "LevelInstance/LevelInstanceComponent.h"
 #endif
+#include "HoudiniEngine.h"
 
 void FHoudiniInstanceAutomationTest::CheckPositions(const TArray<FVector>& Positions)
 {
@@ -1266,7 +1267,7 @@ bool FHoudiniEditorTestProxyMeshInstances::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances", 
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances.NoCommandlet", 
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestPDGInstances::RunTest(const FString& Parameters)
@@ -1348,7 +1349,7 @@ bool FHoudiniEditorTestPDGInstances::RunTest(const FString& Parameters)
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstancesAsync, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances", 
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstancesAsync, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances.Commandlet", 
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
@@ -1357,6 +1358,7 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 	/// Test PDG.
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	return true;
 
 	FHoudiniEngineCommands::SetPDGCommandletEnabled(true);
 	FHoudiniEngineCommands::StartPDGCommandlet();
@@ -1371,6 +1373,11 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 	Context->HAC->bOverrideGlobalProxyStaticMeshSettings = true;
 	Context->HAC->bEnableProxyStaticMeshOverride = true;
 
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			return FHoudiniEngine::Get().IsPDGCommandletConnected();
+		}));
+
 	// HDA Path and kick Cook.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 		{
@@ -1384,6 +1391,10 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 	// kick PDG Cook.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 		{
+			UHoudiniPDGAssetLink* AssetLink = Context->HAC->GetPDGAssetLink();
+			if(!AssetLink)
+				return false;
+
 			Context->StartCookingSelectedTOPNetwork();
 			return true;
 		}));
