@@ -578,16 +578,19 @@ FHoudiniPDGManager::CookOutput(UHoudiniCookable* InHC,  UTOPNetwork* InTOPNet)
 
 	FHoudiniEngine::Get().GetHoudiniEngineManager()->UploadedParametersAndInputs(InHC);
 
-
 	HAPI_PDG_GraphContextId GraphContextId = -1;
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetPDGGraphContextId(FHoudiniEngine::Get().GetSession(), InTOPNet->NodeId, &GraphContextId))
+	HAPI_Result Result = FHoudiniApi::GetPDGGraphContextId(FHoudiniEngine::Get().GetSession(), InTOPNet->NodeId, &GraphContextId);
+
+	if (Result != HAPI_RESULT_SUCCESS)
 	{
 		HOUDINI_LOG_ERROR(TEXT("PDG Cook Output - Failed to get %s's graph context ID!"), *(InTOPNet->NodeName));
 		return false;
 	}
 
 	int32 PDGState = -1;
-	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetPDGState(FHoudiniEngine::Get().GetSession(), GraphContextId, &PDGState))
+	Result = FHoudiniApi::GetPDGState(FHoudiniEngine::Get().GetSession(), GraphContextId, &PDGState);
+
+	if (Result != HAPI_RESULT_SUCCESS)
 	{
 		HOUDINI_LOG_ERROR(TEXT("PDG Cook Output - Failed to get %s's PDG state."), *(InTOPNet->NodeName));
 		return false;
@@ -600,7 +603,8 @@ FHoudiniPDGManager::CookOutput(UHoudiniCookable* InHC,  UTOPNetwork* InTOPNet)
 		return false;
 	}
 
-	if(HAPI_RESULT_SUCCESS != FHoudiniApi::CookPDGAllOutputs(FHoudiniEngine::Get().GetSession(), InTOPNet->NodeId, 0, 0))
+	Result = FHoudiniApi::CookPDGAllOutputs(FHoudiniEngine::Get().GetSession(), InTOPNet->NodeId, 0, 0);
+	if(Result != HAPI_RESULT_SUCCESS)
 	{
 		HOUDINI_LOG_ERROR(TEXT("PDG Cook Output - Failed to cook %s's output!"), *(InTOPNet->NodeName));
 		InTOPNet->NetworkState = EPDGNodeState::Cook_Failed;

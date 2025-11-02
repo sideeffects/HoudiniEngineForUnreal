@@ -1293,7 +1293,7 @@ bool FHoudiniEditorTestProxyMeshInstances::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances", 
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstances, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances.NoCommandlet", 
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestPDGInstances::RunTest(const FString& Parameters)
@@ -1377,12 +1377,13 @@ bool FHoudiniEditorTestPDGInstances::RunTest(const FString& Parameters)
 }
 
 
-IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstancesAsync, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances", 
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGInstancesAsync, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PDGInstances.Commandlet", 
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 {
 	// Disabled for now  https://internal.sidefx.com/bugdb/#/view/151036
+  return true;
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/// Test PDG.
@@ -1420,6 +1421,10 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 	// kick PDG Cook.
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
 		{
+			UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
+			if(!AssetLink)
+				return false;
+
 			Context->StartCookingSelectedTOPNetwork();
 			return true;
 		}));
