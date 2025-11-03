@@ -103,13 +103,29 @@ FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 
 	if (bResult)
 	{
+		bool bCreateActorForOutput = false;
+
+		for(UHoudiniOutput* CurOutput : NewTOPOutputs)
+		{
+			const EHoudiniOutputType OutputType = CurOutput->GetType();
+			switch(OutputType)
+			{
+			case EHoudiniOutputType::Landscape:
+				// if we have a Landscape, we don't need an actor.
+				break;
+			default:
+				bCreateActorForOutput = true;
+				break;
+			}
+		}
+
 		FHoudiniEngine::Get().UpdateTaskSlateNotification(
             LOCTEXT("TranslatePDGBGEOOutputs", "Translating PDG/BGEO Outputs..."));
 
 		// If we successfully received outputs from the BGEO file, process the outputs
 		FOutputActorOwner& WROOutputActorOwner = InWorkResultObject.GetOutputActorOwner();
 		AActor* WorkItemOutputActor = WROOutputActorOwner.GetOutputActor();
-		if (!IsValid(WorkItemOutputActor))
+		if (!IsValid(WorkItemOutputActor) && bCreateActorForOutput)
 		{
 			UWorld* World = InAssetLink->GetOutputWorld();
 			if (!IsValid(World))
@@ -154,7 +170,8 @@ FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 		bResult = CreateAllResultObjectsFromPDGOutputs(
 			NewTOPOutputs,
 			InPackageParams,
-			WorkItemOutputActor->GetRootComponent(),
+			IsValid(WorkItemOutputActor) ? WorkItemOutputActor->GetRootComponent() :  nullptr,
+			InAssetLink->GetOutputWorld(),
 			InTOPNode->ClearedLayers,
 			AllInputLandscapes,
 			InAssetLink,
@@ -256,6 +273,7 @@ FHoudiniPDGTranslator::LoadExistingAssetsAsResultObjectsForPDGWorkItem(
 		InOutputs,
 		InPackageParams,
 		WorkItemOutputActor->GetRootComponent(),
+		InAssetLink->GetOutputWorld(),
 		InTOPNode->ClearedLayers,
 		AllInputLandscapes,
 		InAssetLink,
@@ -281,6 +299,7 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
 	const FHoudiniPackageParams& InPackageParams,
 	UObject* InOuterComponent,
+	UWorld* PersistentWorld,
 	FHoudiniClearedEditLayers& ClearedLayers,
 	TArray<ALandscapeProxy*> AllInputLandscapes,
 	UHoudiniPDGAssetLink* const InAssetLink,
@@ -301,10 +320,6 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 	// TODO: COOKABLE:
 	// Make sure Outer is a Component!
 	
-	//bool bCreatedNewMaps = false;
-	UWorld* PersistentWorld = InOuterComponent->GetTypedOuter<UWorld>();
-	check(PersistentWorld);
-
 	// Fetch the HAC if the asset link is associated with one
 	UHoudiniCookable* HC = IsValid(InAssetLink) ? InAssetLink->GetOuterHoudiniCookable() : nullptr;
 	const bool bIsHACValid = IsValid(HC);
@@ -374,18 +389,6 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 
 			case EHoudiniOutputType::Landscape:
 			{
-				// Retrieve the topnet parent to which Sharedlandscapes will be attached.
-				AActor* WorkItemActor = InOuterComponent->GetTypedOuter<AActor>();
-				USceneComponent* TopnetParent = nullptr;
-				if (WorkItemActor)
-				{
-					AActor* TopnetParentActor = WorkItemActor->GetAttachParentActor();
-					if (TopnetParentActor)
-					{
-						TopnetParent = TopnetParentActor->GetRootComponent();
-					}
-				}
-
 				FString CookedPrefix = FHoudiniEngineUtils::GetOuterHoudiniCookable(CurOutput)->GetOwner()->GetActorLabel() + "_"
 					 + InPackageParams.PDGTOPNodeName;
 

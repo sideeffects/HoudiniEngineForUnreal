@@ -74,6 +74,7 @@ struct HOUDINIENGINE_API FHoudiniPDGTranslator
 			TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
 			const FHoudiniPackageParams& InPackageParams,
 			UObject* InOuterComponent,
+			UWorld* PersistentWorld,
 			FHoudiniClearedEditLayers& ClearedLayers,
 			TArray<ALandscapeProxy*> AllInputLandscapes,
 			UHoudiniPDGAssetLink* const InAssetLink,

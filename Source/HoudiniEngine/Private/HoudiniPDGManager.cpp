@@ -1975,18 +1975,7 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 						}
 						else if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::Loaded)
 						{
-							// If the work item result obj is in the "Loaded" state, confirm that the output actor
-							// is still valid (the user could have manually deleted the output
-							if (!IsValid(CurrentWorkResultObj.GetOutputActorOwner().GetOutputActor()))
-							{
-								// If the output actor is invalid, set the state to ToDelete to complete the
-								// unload/deletion process
-								CurrentWorkResultObj.SetState(EPDGWorkResultState::ToDelete);
-							}
-							else
-							{
-								CurrentTOPNode->bCachedHaveLoadedWorkResults = true;
-							}
+							CurrentTOPNode->bCachedHaveLoadedWorkResults = true;
 						}
 						else if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::ToDelete)
 						{
