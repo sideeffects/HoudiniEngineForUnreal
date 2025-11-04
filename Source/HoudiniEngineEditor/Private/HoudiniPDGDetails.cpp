@@ -181,43 +181,6 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 					]
 				]
 			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SBox)
-				.WidthOverride(200.0f)
-				[
-					SNew(SButton)
-					//.Text(LOCTEXT("Reset", "Reset"))
-					.ToolTipText(LOCTEXT("ResetTooltip", "Resets the PDG Asset Link"))
-					.ContentPadding(FMargin(5.0f, 5.0f))
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.IsEnabled_Lambda([InHC]()
-						{
-							if(!InHC.IsValid())
-								return false;
-
-							if(!IsValid(InHC->GetPDGAssetLink()))
-								return false;
-
-							if(InHC->GetPDGAssetLink()->LinkState == EPDGLinkState::Linking)
-								return false;
-							else
-								return true;
-						})
-					.OnClicked_Lambda([PDGAssetLink]()
-					{
-						// TODO: RESET USELESS? this is just a UI refresh - change name ?
-						FHoudiniPDGDetails::RefreshUI(PDGAssetLink);
-						return FReply::Handled();
-					})
-					.Content()
-					[
-						SAssignNew(ResetHBox, SHorizontalBox)
-					]
-				]
-			]
 		];
 
 		TSharedPtr<FSlateDynamicImageBrush> RefreshIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIPDGRefreshIconBrush();
@@ -920,7 +883,7 @@ FHoudiniPDGDetails::GetPDGCommandletStatus(FString& OutStatusString, FLinearColo
 
 	if (!FHoudiniEngineCommands::IsPDGCommandletEnabled())
 	{
-		OutStatusString = TEXT("Async importer Disabled");
+		OutStatusString = TEXT("Async Importer Disabled");
 		OutStatusColor = FLinearColor(0.5, 0.5, 0.5f, 1.0f);
 		return;
 
