@@ -41,12 +41,17 @@
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
 #include "Framework/Commands/UICommandList.h"
+#include "Materials/MaterialInstanceConstant.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
+#include "MaterialShared.h"
+#endif
 #include "PropertyEditorDelegates.h"
 #include "SCommonEditorViewportToolbarBase.h"
 #include "UObject/UObjectGlobals.h"
-#include "Widgets/Text/STextBlock.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Text/STextBlock.h"
 
 #define LOCTEXT_NAMESPACE "HoudiniAssetEditor"
 
@@ -314,6 +319,11 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 
 	bIsViewingCopHDA = false;
 
+	bShowRedChannel = true;
+	bShowGreenChannel = true;
+	bShowBlueChannel = true;
+	bShowAlphaChannel = true;
+
 	// Get the next available Identifier for our details
 	if(HoudiniAssetEditorIdentifier.IsEmpty())
 		HoudiniAssetEditorIdentifier = 	FHoudiniEngine::Get().RegisterNewHoudiniAssetEditor();
@@ -387,7 +397,7 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 				
 		if (HoudiniCookableBeingEdited)
 		{
-			// Set supproted features in the asset editor
+			// Set supported features in the asset editor
 			HoudiniCookableBeingEdited->SetHoudiniAssetSupported(true);
 			HoudiniCookableBeingEdited->SetParameterSupported(true);
 			HoudiniCookableBeingEdited->SetInputSupported(true);
@@ -447,7 +457,7 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 
 	// Extend things
 	ExtendMenu();
-	//ExtendToolbar();
+	ExtendToolbar();
 	RegenerateMenusAndToolbars();
 }
 
@@ -536,7 +546,8 @@ FHoudiniAssetEditor::AddReferencedObjects(FReferenceCollector& Collector)
 	Collector.AddReferencedObject(HoudiniCookableBeingEdited);
 }
 
-void FHoudiniAssetEditor::ExtendMenu()
+void 
+FHoudiniAssetEditor::ExtendMenu()
 {
 	MainMenuExtender = MakeShareable(new FExtender);
 
@@ -556,6 +567,261 @@ void FHoudiniAssetEditor::ExtendMenu()
 	AddMenuExtender(MainMenuExtender);
 }
 
+
+void
+FHoudiniAssetEditor::ExtendToolbar()
+{
+	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
+
+	ToolbarExtender->AddToolBarExtension(
+		"Asset",
+		EExtensionHook::After,
+		ViewportPtr->GetCommandList(),
+		FToolBarExtensionDelegate::CreateSP(this, &FHoudiniAssetEditor::FillToolbar)
+	);
+
+	AddToolbarExtender(ToolbarExtender);
+}
+
+void
+FHoudiniAssetEditor::FillToolbar(FToolBarBuilder& ToolbarBuilder)
+{
+	TSharedRef<SWidget> ChannelControl = MakeChannelControlWidget();
+	ToolbarBuilder.BeginSection("Channels");
+	{
+		ToolbarBuilder.AddWidget(ChannelControl);
+	}
+	ToolbarBuilder.EndSection();
+}
+
+
+FSlateColor
+FHoudiniAssetEditor::GetChannelButtonBackgroundColor(ETextureChannelButton Button) const
+{
+	FSlateColor Dropdown = FAppStyle::Get().GetSlateColor("Colors.Dropdown");
+
+	switch (Button)
+	{
+	case ETextureChannelButton::Red:
+		return bShowRedChannel ? FLinearColor::Red : FLinearColor::White;
+	case ETextureChannelButton::Green:
+		return bShowGreenChannel ? FLinearColor::Green : FLinearColor::White;
+	case ETextureChannelButton::Blue:
+		return bShowBlueChannel ? FLinearColor::Blue : FLinearColor::White;
+	case ETextureChannelButton::Alpha:
+		return FLinearColor::White;
+	default:
+		check(false);
+		return FSlateColor();
+	}
+}
+
+FSlateColor
+FHoudiniAssetEditor::GetChannelButtonForegroundColor(ETextureChannelButton Button) const
+{
+	FSlateColor DefaultForeground = FAppStyle::Get().GetSlateColor("Colors.Foreground");
+
+	switch (Button)
+	{
+	case ETextureChannelButton::Red:
+		return bShowRedChannel ? FLinearColor::Black : DefaultForeground;
+	case ETextureChannelButton::Green:
+		return bShowGreenChannel ? FLinearColor::Black : DefaultForeground;
+	case ETextureChannelButton::Blue:
+		return bShowBlueChannel ? FLinearColor::Black : DefaultForeground;
+	case ETextureChannelButton::Alpha:
+		return bShowAlphaChannel ? FLinearColor::Black : DefaultForeground;
+	default:
+		check(false);
+		return FSlateColor::UseForeground();
+	}
+}
+
+ECheckBoxState
+FHoudiniAssetEditor::OnGetChannelButtonCheckState(ETextureChannelButton Button) const
+{
+	switch (Button)
+	{
+	case ETextureChannelButton::Red:
+		return bShowRedChannel ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	case ETextureChannelButton::Green:
+		return bShowGreenChannel ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	case ETextureChannelButton::Blue:
+		return bShowBlueChannel ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	case ETextureChannelButton::Alpha:
+		return bShowAlphaChannel ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	default:
+		check(false);
+		return ECheckBoxState::Unchecked;
+	}
+}
+
+TSharedRef<SWidget> 
+FHoudiniAssetEditor::MakeChannelControlWidget()
+{
+	auto OnChannelCheckStateChanged = [this](ECheckBoxState NewState, ETextureChannelButton Button)
+	{
+		switch (Button)
+		{
+			case ETextureChannelButton::Red:
+				bShowRedChannel = !bShowRedChannel;
+				break;
+			case ETextureChannelButton::Green:
+				bShowGreenChannel = !bShowGreenChannel;
+				break;
+			case ETextureChannelButton::Blue:
+				bShowBlueChannel = !bShowBlueChannel;
+				break;
+			case ETextureChannelButton::Alpha:
+				bShowAlphaChannel = !bShowAlphaChannel;
+				break;
+			default:
+				check(false);
+				break;
+		}
+
+		UpdateColorChannelsOnPreviewMesh();
+	};
+
+	auto GetChannelVisibilty = [this]()
+	{
+		return bIsViewingCopHDA ? EVisibility::Visible : EVisibility::Hidden;
+	};
+
+	TSharedRef<SWidget> ChannelControl = 
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.Padding(2.0f)
+		.AutoWidth()
+		[
+			SNew(SCheckBox)
+			.Style(FAppStyle::Get(), "TextureEditor.ChannelButtonStyle")
+			.BorderBackgroundColor(this, &FHoudiniAssetEditor::GetChannelButtonBackgroundColor, ETextureChannelButton::Red)
+			.ForegroundColor(this, &FHoudiniAssetEditor::GetChannelButtonForegroundColor, ETextureChannelButton::Red)
+			.OnCheckStateChanged_Lambda(OnChannelCheckStateChanged, ETextureChannelButton::Red)
+			.IsChecked(this, &FHoudiniAssetEditor::OnGetChannelButtonCheckState, ETextureChannelButton::Red)
+			//.IsEnabled(this, &FTextureEditorToolkit::IsChannelButtonEnabled, ETextureChannelButton::Red)
+			.Visibility_Lambda(GetChannelVisibilty)
+			[
+				SNew(STextBlock)
+				.Font(FAppStyle::Get().GetFontStyle("TextureEditor.ChannelButtonFont"))
+				.Text(FText::FromString("R"))
+			]
+		]
+		+SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.Padding(2.0f)
+		.AutoWidth()
+		[
+			SNew(SCheckBox)
+			.Style(FAppStyle::Get(), "TextureEditor.ChannelButtonStyle")
+			.BorderBackgroundColor(this, &FHoudiniAssetEditor::GetChannelButtonBackgroundColor, ETextureChannelButton::Green)
+			.ForegroundColor(this, &FHoudiniAssetEditor::GetChannelButtonForegroundColor, ETextureChannelButton::Green)
+			.OnCheckStateChanged_Lambda(OnChannelCheckStateChanged, ETextureChannelButton::Green)
+			.IsChecked(this, &FHoudiniAssetEditor::OnGetChannelButtonCheckState, ETextureChannelButton::Green)
+			//.IsEnabled(this, &FTextureEditorToolkit::IsChannelButtonEnabled, ETextureChannelButton::Green)
+			.Visibility_Lambda(GetChannelVisibilty)
+			[
+				SNew(STextBlock)
+				.Font(FAppStyle::Get().GetFontStyle("TextureEditor.ChannelButtonFont"))
+				.Text(FText::FromString("G"))
+			]
+		]
+
+		+SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.Padding(2.0f)
+		.AutoWidth()
+		[
+			SNew(SCheckBox)
+			.Style(FAppStyle::Get(), "TextureEditor.ChannelButtonStyle")
+			.BorderBackgroundColor(this, &FHoudiniAssetEditor::GetChannelButtonBackgroundColor, ETextureChannelButton::Blue)
+			.ForegroundColor(this, &FHoudiniAssetEditor::GetChannelButtonForegroundColor, ETextureChannelButton::Blue)
+			.OnCheckStateChanged_Lambda(OnChannelCheckStateChanged, ETextureChannelButton::Blue)
+			.IsChecked(this, &FHoudiniAssetEditor::OnGetChannelButtonCheckState, ETextureChannelButton::Blue)
+			//.IsEnabled(this, &FTextureEditorToolkit::IsChannelButtonEnabled, ETextureChannelButton::Blue)
+			.Visibility_Lambda(GetChannelVisibilty)
+			[
+				SNew(STextBlock)
+				.Font(FAppStyle::Get().GetFontStyle("TextureEditor.ChannelButtonFont"))
+				.Text(FText::FromString("B"))
+			]
+		]
+		+SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.Padding(2.0f)
+		.AutoWidth()
+		[
+			SNew(SCheckBox)
+			.Style(FAppStyle::Get(), "TextureEditor.ChannelButtonStyle")
+			.BorderBackgroundColor(this, &FHoudiniAssetEditor::GetChannelButtonBackgroundColor, ETextureChannelButton::Alpha)
+			.ForegroundColor(this, &FHoudiniAssetEditor::GetChannelButtonForegroundColor, ETextureChannelButton::Alpha)
+			.OnCheckStateChanged_Lambda(OnChannelCheckStateChanged, ETextureChannelButton::Alpha)
+			.IsChecked(this, &FHoudiniAssetEditor::OnGetChannelButtonCheckState, ETextureChannelButton::Alpha)
+			//.IsEnabled(this, &FTextureEditorToolkit::IsChannelButtonEnabled, ETextureChannelButton::Alpha)
+			.Visibility_Lambda(GetChannelVisibilty)
+			[
+				SNew(STextBlock)
+				.Font(FAppStyle::Get().GetFontStyle("TextureEditor.ChannelButtonFont"))
+				.Text(FText::FromString("A"))
+			]
+		];
+
+	return ChannelControl;
+}
+
+
+void
+FHoudiniAssetEditor::UpdateColorChannelsOnPreviewMesh()
+{
+	// No need to do anything if we aren't viewing a COP
+	if (!bIsViewingCopHDA)
+		return;
+
+	// Get our cookable's scene component
+	USceneComponent* CookableComponent = 
+		HoudiniCookableBeingEdited ? HoudiniCookableBeingEdited->GetComponent() : nullptr;
+	if (!CookableComponent)
+		return;
+
+	// Get the COP SM
+	UStaticMesh* HoudiniCOPMesh = FHoudiniEngine::Get().GetHoudiniCOPStaticMesh().Get();
+	if (!HoudiniCOPMesh)
+		return;
+
+	// Update context for generated materials (will trigger when the object goes out of scope).
+	FMaterialUpdateContext MaterialUpdateContext;
+
+	// Iterate on the HAC's component
+	for (USceneComponent* CurrentSceneComp : CookableComponent->GetAttachChildren())
+	{
+		if (!IsValid(CurrentSceneComp) || !CurrentSceneComp->IsA<UStaticMeshComponent>())
+			continue;
+
+		// Get the static mesh component
+		UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(CurrentSceneComp);
+		if (!IsValid(SMC))
+			continue;
+
+		// Check if the SMC is the Houdini Logo
+		if (SMC->GetStaticMesh() != HoudiniCOPMesh)
+			continue;
+
+		UMaterialInstanceConstant* MaterialInstance = 
+			Cast<UMaterialInstanceConstant>(SMC->GetMaterial(0));
+		if (!MaterialInstance)
+			continue;
+
+		// Apply material instance parameters
+		MaterialInstance->SetStaticSwitchParameterValueEditorOnly(FName("R"), bShowRedChannel);
+		MaterialInstance->SetStaticSwitchParameterValueEditorOnly(FName("G"), bShowGreenChannel);
+		MaterialInstance->SetStaticSwitchParameterValueEditorOnly(FName("B"), bShowBlueChannel);
+		MaterialInstance->SetStaticSwitchParameterValueEditorOnly(FName("A"), bShowAlphaChannel);
+
+		MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
+	}
+}
 /*
 void
 FHoudiniAssetEditor::CreateEditorModeManager()

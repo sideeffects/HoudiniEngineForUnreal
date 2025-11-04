@@ -50,6 +50,7 @@
 #define HAPI_UNREAL_RESOURCE_HOUDINI_TEMPLATE_MATERIAL	TEXT( "/HoudiniEngine/houdini_templated_material.houdini_templated_material")
 #define HAPI_UNREAL_RESOURCE_BGEO_IMPORT				TEXT( "/HoudiniEngine/houdini_bgeo_import.houdini_bgeo_import" )
 #define HAPI_UNREAL_RESOURCE_HOUDINI_COP_MESH			TEXT( "/HoudiniEngine/houdini_default_cop_mesh" )
+#define HAPI_UNREAL_RESOURCE_EDITOR_PLANE				TEXT( "/Engine/EditorMeshes/EditorPlane" )
 #define HAPI_UNREAL_RESOURCE_HOUDINI_COP_MATERIAL		TEXT( "/HoudiniEngine/houdini_default_cop_material" )
 
 #define HAPI_UNREAL_RESOURCE_HOUDINI_DEFAULT_REFERENCE_MESH             TEXT("/HoudiniEngine/default_reference_static_mesh.default_reference_static_mesh")

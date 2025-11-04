@@ -53,6 +53,14 @@ namespace EHoudiniAssetEditorMode
 }
 */
 
+enum class ETextureChannelButton : uint8
+{
+	Red,
+	Green,
+	Blue,
+	Alpha
+};
+
 //-----------------------------------------------------------------------------
 // SHoudiniAssetEditorDetailsPanel
 //-----------------------------------------------------------------------------
@@ -130,8 +138,10 @@ protected:
 	// UI extensions
 	void BindCommands();
 	void ExtendMenu();
-	//void ExtendToolbar();
+	void ExtendToolbar();
 	
+	void FillToolbar(FToolBarBuilder& ToolbarBuilder);
+
 	void CreateModeToolbarWidgets(FToolBarBuilder& ToolbarBuilder);
 
 	TSharedRef<SDockTab> SpawnViewportTab(const FSpawnTabArgs& Args);
@@ -140,6 +150,14 @@ protected:
 	TSharedRef<SDockTab> SpawnPreviewSceneSettingsTab(const FSpawnTabArgs& Args);
 	
 	FText GetViewportCornerText() const;
+
+	// 2D viewport RGBA channel control
+	TSharedRef<SWidget> MakeChannelControlWidget();
+	FSlateColor GetChannelButtonBackgroundColor(ETextureChannelButton Button) const;
+	FSlateColor GetChannelButtonForegroundColor(ETextureChannelButton Button) const;
+	ECheckBoxState OnGetChannelButtonCheckState(ETextureChannelButton Button) const;
+
+	void UpdateColorChannelsOnPreviewMesh();
 
 	//virtual void CreateEditorModeManager() override;
 
@@ -172,5 +190,12 @@ protected:
 
 	FAdvancedPreviewSceneModule::FOnPreviewSceneChanged OnPreviewSceneChangedDelegate;
 
+	// Are we editing a COP HDA (texture outputs only?)
 	bool bIsViewingCopHDA;
+
+	// Channel filters for textures
+	bool bShowRedChannel;
+	bool bShowGreenChannel;
+	bool bShowBlueChannel;
+	bool bShowAlphaChannel;
 };

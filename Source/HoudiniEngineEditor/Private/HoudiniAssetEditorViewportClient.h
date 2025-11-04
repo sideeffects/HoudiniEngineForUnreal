@@ -34,6 +34,7 @@
 #include "Editor/AdvancedPreviewScene/Public/AdvancedPreviewScene.h"
 #include "Editor/UnrealEd/Public/EditorViewportClient.h"
 
+
 class FHoudiniAssetEditorViewportClient : public FEditorViewportClient
 {
 public:

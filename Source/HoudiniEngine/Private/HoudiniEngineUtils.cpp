@@ -4852,6 +4852,9 @@ FHoudiniEngineUtils::AddTextureMeshToComponent(
 	// to the one that was created with the texture
 	HoudiniCOPSMC->SetMaterial(0, InMaterial);
 
+	// That EditorPlane isn't properly oriented
+	HoudiniCOPSMC->SetRelativeRotation(FRotator(0.0, -90.0, 0.0));
+
 	return true;
 }
 
