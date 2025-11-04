@@ -166,8 +166,15 @@ FHoudiniEngine::StartupModule()
 		HoudiniTemplateMaterial->AddToRoot();
 
 	// Create default COP mesh
+	// Try the editor plane first
 	HoudiniCOPStaticMesh = LoadObject<UStaticMesh>(
-		nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_COP_MESH, nullptr, LOAD_None, nullptr);
+		nullptr, HAPI_UNREAL_RESOURCE_EDITOR_PLANE, nullptr, LOAD_None, nullptr);
+	
+	// .. use ours as backup? (TODO: remove me!)
+	if (!HoudiniCOPStaticMesh.IsValid())
+		HoudiniCOPStaticMesh = LoadObject<UStaticMesh>(
+			nullptr, HAPI_UNREAL_RESOURCE_HOUDINI_COP_MESH, nullptr, LOAD_None, nullptr);
+
 	if (HoudiniCOPStaticMesh.IsValid())
 		HoudiniCOPStaticMesh->AddToRoot();
 
