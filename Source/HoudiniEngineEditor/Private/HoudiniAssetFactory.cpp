@@ -147,12 +147,9 @@ UHoudiniAssetFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 	FName NewIname = FName(*NewFileNameNoHDA);
 	FString NewFileExtension = FPaths::GetExtension(NewFilename);
 
-	// Load the sectionslist as the hdalibrary file is empty
-	FString SectionsListFile = PathToFile + TEXT("/Sections.list");
-
 	// load as binary
 	TArray<uint8> Data;
-	if (!FFileHelper::LoadFileToArray(Data, *SectionsListFile))
+	if (!FFileHelper::LoadFileToArray(Data, *Filename))
 	{
 		HOUDINI_LOG_ERROR(TEXT("Failed to load file '%s' to array"), *Filename);
 		return nullptr;
