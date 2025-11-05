@@ -538,7 +538,7 @@ TTuple<bool, FString> UHoudiniGeoImportCommandlet::ImportBGEO(
 		InMeshBuildSettings ? *InMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 	
 	HOUDINI_LOG_DISPLAY(TEXT("Creating Objects from Outputs"));
-	auto Result = GeoImporter->CreateObjectsFromOutputs(OutOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings, OutInstancedOutputPartData);
+	TTuple<bool, FString> Result = GeoImporter->CreateObjectsFromOutputs(OutOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings, OutInstancedOutputPartData);
 	if(!Result.Key)
 		return Result;
 

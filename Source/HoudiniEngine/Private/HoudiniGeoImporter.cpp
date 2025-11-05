@@ -235,18 +235,27 @@ TTuple<bool, FString> UHoudiniGeoImporter::CreateObjectsFromOutputs(
 	if (!Result.Key)
 		return Result;
 
-	if (OutInstancedOutputPartData)
+	if (!InstancerOutputs.IsEmpty())
 	{
-		Result = CreateInstancerOutputPartData(InstancerOutputs, *OutInstancedOutputPartData);
-		if (!Result.Key)
-			return Result;
+#if 1
+		// Disabled Commandlet import for now  https://internal.sidefx.com/bugdb/#/view/151036
+		return TTuple<bool, FString>(false, TEXT(""));
+#else
+		if(OutInstancedOutputPartData)
+		{
+			Result = CreateInstancerOutputPartData(InstancerOutputs, *OutInstancedOutputPartData);
+			if(!Result.Key)
+				return Result;
+		}
+		else
+		{
+			Result = CreateInstancers(InOutputs, InstancerOutputs, InPackageParams);
+			if(!Result.Key)
+				return Result;
+		}
+#endif
 	}
-	else
-	{
-		Result = CreateInstancers(InOutputs, InstancerOutputs, InPackageParams);
-		if (!Result.Key)
-			return Result;
-	}
+
 
 	Result = CreateDataTables(DataTableOutputs, InPackageParams);
 	if (!Result.Key)
@@ -914,7 +923,7 @@ UHoudiniGeoImporter::ImportBGEOFile(
 	const FMeshBuildSettings& MeshBuildSettings =
 		InMeshBuildSettings ? *InMeshBuildSettings : FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 
-	auto Result = CreateObjectsFromOutputs(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings);
+	TTuple<bool, FString> Result = CreateObjectsFromOutputs(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings);
 	if (!Result.Key)
 		return CleanUpAndReturn(TTuple<bool, FString>(false, TEXT("Failed to create objects from outputs.")));
 
