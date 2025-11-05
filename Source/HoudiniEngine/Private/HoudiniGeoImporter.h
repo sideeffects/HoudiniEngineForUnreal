@@ -77,7 +77,7 @@ public:
 	// END: Static API
 
 	// Import the BGEO file
-	bool ImportBGEOFile(
+	TTuple<bool,FString> ImportBGEOFile(
 		const FString& InBGEOFile, 
 		UObject* InParent, 
 		const FHoudiniPackageParams* InPackageParams=nullptr,
@@ -104,7 +104,7 @@ public:
 		bool bInUseOutputNodes = true);
 
 	// 5. Create objects using outputs
-	bool CreateObjectsFromOutputs(
+	TTuple<bool, FString> CreateObjectsFromOutputs(
 		TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
 		FHoudiniPackageParams InPackageParams,
 		const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
@@ -127,43 +127,43 @@ private:
 		FHoudiniPackageParams InPackageParams);
 
 	/** @param InOutputs Must all have type EHoudiniOutput::Mesh. */
-	bool CreateStaticMeshes(
+	TTuple<bool,FString> CreateStaticMeshes(
 		const TArray<UHoudiniOutput*>& InOutputs,
 		FHoudiniPackageParams InPackageParams,
 		const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 		const FMeshBuildSettings& InMeshBuildSettings);
 
 	/** @param InOutputs Must all have type EHoudiniOutput::Curve. */
-	bool CreateCurves(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
+	TTuple<bool, FString> CreateCurves(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 
 	/** @param InOutputs Must all have type EHoudiniOutput::Landscape. */
-	bool CreateLandscapes(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
+	TTuple<bool, FString> CreateLandscapes(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 
 	/** @param InOutputs Must all have type EHoudiniOutput::LandscapeSpline. */
-	bool CreateLandscapeSplines(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
+	TTuple<bool, FString> CreateLandscapeSplines(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 
 	/** @param InInstancerOutputs Must all have type EHoudiniOutput::Instancer. */
-	bool CreateInstancers(
+	TTuple<bool, FString> CreateInstancers(
 		TArray<TObjectPtr<UHoudiniOutput>>& InAllOutputs,
 		const TArray<UHoudiniOutput*>& InInstancerOutputs, 
 		FHoudiniPackageParams InPackageParams);
 
 	/** @param InOutputs Must all have type EHoudiniOutput::Instancer. */
-	static bool CreateInstancerOutputPartData(
+	static TTuple<bool, FString> CreateInstancerOutputPartData(
 		const TArray<UHoudiniOutput*>& InOutputs,
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData>& OutInstancedOutputPartData);
 
 	/** @param InOutputs Must all have type EHoudiniOutput::DataTable. */
-	bool CreateDataTables(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
+	TTuple<bool, FString> CreateDataTables(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 
 	/** @param InOutputs Must all have type EHoudiniOutput::Skeletal. */
-	bool CreateSkeletalMeshes(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
+	TTuple<bool, FString> CreateSkeletalMeshes(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 
 	/** @param InOutputs Must all have type EHoudiniOutput::AnimSequence. */
-	bool CreateAnimSequences(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
+	TTuple<bool, FString> CreateAnimSequences(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 
 	/** @param InOutputs Must all have type EHoudiniOutput::Cop. */
-	bool CreateCopTextures(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
+	TTuple<bool, FString> CreateCopTextures(const TArray<UHoudiniOutput*>& InOutputs, FHoudiniPackageParams InPackageParams);
 
 	// Path to the file we're currently loading
 	FString SourceFilePath;

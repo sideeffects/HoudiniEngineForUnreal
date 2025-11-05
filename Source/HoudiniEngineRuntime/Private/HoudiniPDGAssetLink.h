@@ -69,7 +69,8 @@ enum class EPDGLoadState : uint8
 	Loading_Paused,
 	Unloaded,
 	IgnoredForLoad,
-	LoadDisabled
+	LoadDisabled,
+	Loading_Failed
 };
 
 
@@ -77,13 +78,15 @@ UENUM()
 enum class EPDGWorkResultState : uint8
 {
 	None,
-	ToLoad,			// PDG has cooked, and we are ready to load
-	Loading,		// PDG has cooked, and we are loading into Unreal
-	Loaded,			// PDG has cooked, and it is loaded into Unreal
-	ToDelete,		// loaded into Unreal, and we're ready to delete to it
-	Deleting,		// loaded into Unreal, and being deleted.
-	Deleted,		// PDG cooked it, it was loaded, now its deleted.
-	NotLoaded		// Not loaded - either deleted or not auto-loaded.
+	ToLoad,					// PDG has cooked, and we are ready to load
+	Loading,				// PDG has cooked, and we are loading into Unreal
+	Loaded,					// PDG has cooked, and it is loaded into Unreal
+	ToDelete,				// loaded into Unreal, and we're ready to delete to it
+	Deleting,				// loaded into Unreal, and being deleted.
+	Deleted,				// PDG cooked it, it was loaded, now its deleted.
+	NotLoaded,				// Not loaded - either deleted or not auto-loaded.
+	LoadingNonCommandlet,	// Load without using Commandlet.
+	Error
 };
 
 

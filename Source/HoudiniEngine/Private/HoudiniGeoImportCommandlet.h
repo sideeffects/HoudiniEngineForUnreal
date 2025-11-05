@@ -113,7 +113,8 @@ protected:
 
 	int32 MainLoop();
 
-	int32 ImportBGEO(
+	// Imports the BGEO, returning success/fail and optional error message.
+	TTuple<bool,FString> ImportBGEO(
 		const FString& InFilename, 
 		const FHoudiniPackageParams& InPackageParams, 
 		TArray<TObjectPtr<UHoudiniOutput>>& OutOutputs,

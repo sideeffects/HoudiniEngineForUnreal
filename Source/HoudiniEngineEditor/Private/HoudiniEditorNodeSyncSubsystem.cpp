@@ -713,7 +713,9 @@ UHoudiniEditorNodeSyncSubsystem::FetchFromHoudini()
 			// 5. Create all the objects using the outputs
 			const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
 			const FMeshBuildSettings& MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
-			if (!HoudiniGeoImporter->CreateObjectsFromOutputs(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
+
+			TTuple<bool, FString> Result = HoudiniGeoImporter->CreateObjectsFromOutputs(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings);
+			if (!Result.Key)
 				return FailImportAndReturn();
 
 			// Get our result object and "finalize" them

@@ -1912,10 +1912,9 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 							break;
 
 						FTOPWorkResultObject& CurrentWorkResultObj = CurrentWorkResult.ResultObjects[WorkResultObjectArrayIndex];
-						if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::ToLoad)
+						if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::ToLoad || 
+							CurrentWorkResultObj.GetState() == EPDGWorkResultState::LoadingNonCommandlet )
 						{
-							CurrentWorkResultObj.SetState(EPDGWorkResultState::Loading);
-
 							// Load this WRObj
 							PackageParams.PDGTOPNetworkName = CurrentTOPNet->NodeName;
 							PackageParams.PDGTOPNodeName = CurrentTOPNode->NodeName;
@@ -1924,8 +1923,10 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 							// CurrentWorkResult.WorkItemIndex is not necessarily unique)
 							PackageParams.PDGWorkResultArrayIndex = WorkResultArrayIndex;
 
-							if (CommandletStatus == EHoudiniBGEOCommandletStatus::Connected)
+							if (CommandletStatus == EHoudiniBGEOCommandletStatus::Connected && CurrentWorkResultObj.GetState() != EPDGWorkResultState::LoadingNonCommandlet)
 							{
+								CurrentWorkResultObj.SetState(EPDGWorkResultState::Loading);
+
 								BGEOCommandletEndpoint->Send(new FHoudiniPDGImportBGEOMessage(
 									CurrentWorkResultObj.FilePath,
 									CurrentWorkResultObj.Name,
@@ -1938,6 +1939,8 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 							}
 							else
 							{
+								CurrentWorkResultObj.SetState(EPDGWorkResultState::Loading);
+
 								if (FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 									AssetLink,
 									CurrentTOPNode,
@@ -1957,7 +1960,8 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 								}
 								else
 								{
-									CurrentWorkResultObj.SetState(EPDGWorkResultState::None);
+									CurrentWorkResultObj.SetState(EPDGWorkResultState::Error);
+									CurrentTOPNode->OnWorkItemErrored(CurrentWorkResult.WorkItemID);
 								}
 							}
 
@@ -2022,55 +2026,57 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 	const FHoudiniPDGImportBGEOResultMessage& InMessage, 
 	const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& InContext)
 {
+	// Find asset link and work result object
+	UHoudiniCookable* Cookable = nullptr;
+	UTOPNetwork* TOPNetwork = nullptr;
+	UTOPNode* TOPNode = nullptr;
+	if(!GetTOPAssetLinkNetworkAndNode(InMessage.TOPNodeId, Cookable, TOPNetwork, TOPNode) ||
+		!IsValid(Cookable) || !IsValid(TOPNode))
+	{
+		HOUDINI_LOG_WARNING(TEXT("Failed to find TOP node with id %d, aborting output object creation."), InMessage.TOPNodeId);
+		return;
+	}
+
+	UHoudiniPDGAssetLink* AssetLink = Cookable->GetPDGAssetLink();
+
+	FTOPWorkResult* WorkResult = nullptr;
+	const int32 WorkResultArrayIndex = TOPNode->ArrayIndexOfWorkResultByID(InMessage.WorkItemId);
+	if(WorkResultArrayIndex != INDEX_NONE)
+	WorkResult = TOPNode->GetWorkResultByArrayIndex(WorkResultArrayIndex);
+	if(WorkResult == nullptr)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Failed to find TOP work result with id %d, aborting output object creation."), InMessage.WorkItemId);
+		return;
+	}
+	const FString& WorkResultObjectName = InMessage.Name;
+	FTOPWorkResultObject* WorkResultObject = WorkResult->ResultObjects.FindByPredicate(
+		[&WorkResultObjectName](const FTOPWorkResultObject& WorkResultObject)
+		{
+			return WorkResultObject.Name == WorkResultObjectName;
+		}
+	);
+	if(WorkResultObject == nullptr)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Failed to find TOP work result object with name %s, aborting output object creation."), *InMessage.Name);
+		return;
+	}
+
+	if(WorkResultObject->GetState() != EPDGWorkResultState::Loading)
+	{
+		HOUDINI_LOG_WARNING(TEXT("TOP work result object (%s) not in Loading state, aborting output object creation."), *InMessage.Name);
+		return;
+	}
 	HOUDINI_LOG_MESSAGE(TEXT("Received BGEO import result message"));
 	if (InMessage.ImportResult == EHoudiniPDGImportBGEOResult::HPIBR_Success || InMessage.ImportResult == EHoudiniPDGImportBGEOResult::HPIBR_PartialSuccess)
 	{
+		WorkResultObject->SetState(EPDGWorkResultState::Loaded);
+
+		TOPNode->OnWorkItemLoaded(WorkResult->WorkItemID);
+
+		// Set package params outer
 		FHoudiniPackageParams PackageParams;
 		InMessage.PopulatePackageParams(PackageParams);
 
-		// Find asset link and work result object
-		UHoudiniCookable* Cookable = nullptr;
-		UTOPNetwork *TOPNetwork = nullptr;
-		UTOPNode *TOPNode = nullptr;
-		if (!GetTOPAssetLinkNetworkAndNode(InMessage.TOPNodeId, Cookable, TOPNetwork, TOPNode) ||
-			!IsValid(Cookable) || !IsValid(TOPNode))
-		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to find TOP node with id %d, aborting output object creation."), InMessage.TOPNodeId);
-			return;
-		}
-
-		UHoudiniPDGAssetLink* AssetLink = Cookable->GetPDGAssetLink();
-
-		FTOPWorkResult* WorkResult = nullptr;
-		const int32 WorkResultArrayIndex = TOPNode->ArrayIndexOfWorkResultByID(InMessage.WorkItemId);
-		if (WorkResultArrayIndex != INDEX_NONE)
-			WorkResult = TOPNode->GetWorkResultByArrayIndex(WorkResultArrayIndex);
-		if (WorkResult == nullptr)
-		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to find TOP work result with id %d, aborting output object creation."), InMessage.WorkItemId);
-			return;
-		}
-		const FString& WorkResultObjectName = InMessage.Name;
-		FTOPWorkResultObject* WorkResultObject = WorkResult->ResultObjects.FindByPredicate(
-			[&WorkResultObjectName](const FTOPWorkResultObject& WorkResultObject) 
-			{ 
-				return WorkResultObject.Name == WorkResultObjectName; 
-			}
-		);
-		if (WorkResultObject == nullptr)
-		{
-			HOUDINI_LOG_WARNING(TEXT("Failed to find TOP work result object with name %s, aborting output object creation."), *InMessage.Name);
-			return;
-		}
-
-		if (WorkResultObject->GetState() != EPDGWorkResultState::Loading)
-		{
-			HOUDINI_LOG_WARNING(TEXT("TOP work result object (%s) not in Loading state, aborting output object creation."), *InMessage.Name);
-			return;
-		}
-		WorkResultObject->SetState(EPDGWorkResultState::Loaded);
-
-		// Set package params outer
 		UObject* AssetLinkParent = AssetLink->GetOuter();
 		UHoudiniAssetComponent* HAC = AssetLinkParent != nullptr ? Cast<UHoudiniAssetComponent>(AssetLinkParent) : nullptr;
 		UHoudiniCookable* HC = AssetLinkParent != nullptr ? Cast<UHoudiniCookable>(AssetLinkParent) : nullptr;
@@ -2256,7 +2262,17 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 	}
 	else
 	{
-		HOUDINI_LOG_WARNING(TEXT("Commandlet failed to import bgeo for %s"), *InMessage.Name);
+		HOUDINI_LOG_WARNING(TEXT("Commandlet failed to import bgeo for %s. Errors:"), *InMessage.Name);
+		for (const FString& Error : InMessage.Errors)
+		{
+			HOUDINI_LOG_WARNING(TEXT("Error Received from Commandlet: %s"), *Error);
+		}
+
+		// Try to load it outside the async importer.
+		WorkResultObject->SetState(EPDGWorkResultState::LoadingNonCommandlet);
+
+		HOUDINI_LOG_WARNING(TEXT("Work Item will now be loaded outside of the Commandlet."));
+
 	}
 }
 

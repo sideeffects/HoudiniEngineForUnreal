@@ -891,19 +891,19 @@ FHoudiniPDGDetails::GetPDGCommandletStatus(FString& OutStatusString, FLinearColo
 	switch (FHoudiniEngine::Get().GetPDGCommandletStatus())
 	{
 	case EHoudiniBGEOCommandletStatus::Connected:
-		OutStatusString = TEXT("Async importer is CONNECTED");
+		OutStatusString = TEXT("Async Importer is CONNECTED");
 		OutStatusColor = FLinearColor::Green;
 		break;
 	case EHoudiniBGEOCommandletStatus::Running:
-		OutStatusString = TEXT("Async importer is Running");
+		OutStatusString = TEXT("Async Importer is Running");
 		OutStatusColor = FLinearColor::Yellow;
 		break;
 	case EHoudiniBGEOCommandletStatus::Crashed:
-		OutStatusString = TEXT("Async importer has CRASHED");
+		OutStatusString = TEXT("Async Importer has CRASHED");
 		OutStatusColor = FLinearColor::Red;
 		break;
 	case EHoudiniBGEOCommandletStatus::NotStarted:
-		OutStatusString = TEXT("Async importer is NOT STARTED");
+		OutStatusString = TEXT("Async Importer is NOT STARTED");
 		OutStatusColor = FLinearColor::White;
 		break;
 	}
@@ -2312,6 +2312,10 @@ FHoudiniPDGDetails::GetSelectedTOPNetworkCombinedStatusAndColor(const TWeakObjec
 			OutTOPNodeStatus = TEXT("PDG Cooked, Work Items Loaded");
 			OutTOPNodeStatusColor = FLinearColor::Green;
 			break;
+		case EPDGLoadState::Loading_Failed:
+			OutTOPNodeStatus = TEXT("PDG Cooked, Work Items Failed To Load");
+			OutTOPNodeStatusColor = FLinearColor::Red;
+			break;
 		default:
 			break;
 		}
@@ -2364,6 +2368,9 @@ FHoudiniPDGDetails::GetSelectedTOPNodeCombinedStatusAndColor(const TWeakObjectPt
 			OutTOPNodeStatus = TEXT("PDG Cooked, Work Items Loaded");
 			OutTOPNodeStatusColor = FLinearColor::Green;
 			break;
+		case EPDGLoadState::Loading_Failed:
+			OutTOPNodeStatus = TEXT("PDG Cooked, Work Items Failed To Load");
+			OutTOPNodeStatusColor = FLinearColor::Red;
 		default:
 			break;
 		}

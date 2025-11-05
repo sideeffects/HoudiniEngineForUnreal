@@ -253,7 +253,9 @@ UHoudiniGeoFactory::Import(UClass* InClass, UPackage* InParent, const FString & 
 	// 5. Create all the objects using the outputs
 	const FHoudiniStaticMeshGenerationProperties& StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
 	const FMeshBuildSettings& MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
-	if (!BGEOImporter->CreateObjectsFromOutputs(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings))
+
+	auto Result = BGEOImporter->CreateObjectsFromOutputs(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings);
+	if (!Result.Key)
 		return FailImportAndReturnNull();
 
 	// 6. Delete the created node in Houdini

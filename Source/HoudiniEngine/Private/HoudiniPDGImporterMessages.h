@@ -195,7 +195,7 @@ public:
 
 	FHoudiniPDGImportBGEOResultMessage(const FString& InFilePath, const FString& InName, const FHoudiniPackageParams& InPackageParams, const EHoudiniPDGImportBGEOResult& InImportResult);
 
-	void operator=(const FHoudiniPDGImportBGEOMessage& InRHS) { (*static_cast<FHoudiniPDGImportBGEOMessage*>(this)) = InRHS; }
+	void SetMessage(const FHoudiniPDGImportBGEOMessage& InRHS) { (*static_cast<FHoudiniPDGImportBGEOMessage*>(this)) = InRHS; }
 
 	// Result of the bgeo import -> uassets
 	UPROPERTY()
@@ -203,6 +203,9 @@ public:
 
 	UPROPERTY()
 	TArray<FHoudiniPDGImportNodeOutput> Outputs;
+
+	UPROPERTY()
+	TArray<FString> Errors;
 
 };
 

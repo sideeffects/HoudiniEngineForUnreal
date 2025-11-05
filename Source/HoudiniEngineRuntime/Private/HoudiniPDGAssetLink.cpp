@@ -444,7 +444,7 @@ void UTOPNode::SetWorkItemsDirty()
 
 void UTOPNode::EvaluateWorkItems()
 {
-#if 1
+#if 0
 	if(!this->bWorkItemsDirty)
 		return;
 #endif
@@ -1095,15 +1095,27 @@ bool
 UTOPNetwork::EvaluateWorkItems()
 {
 	bool bAllLoaded = true;
+	bool bFailed = false;
 	for (auto Node : AllTOPNodes)
 	{
 		Node->EvaluateWorkItems();
 		if(Node->LoadState != EPDGLoadState::Loading_Complete && Node->LoadState != EPDGLoadState::IgnoredForLoad)
 			bAllLoaded = false;
 
+		if(Node->LoadState == EPDGLoadState::Loading_Failed)
+			bFailed = true;
+
+
 	}
 
-	if(this->LoadState == EPDGLoadState::Loading && bAllLoaded)
+	if(bFailed)
+	{
+		this->LoadState = EPDGLoadState::Loading_Failed;
+
+		if(OnPostCookDelegate.IsBound())
+			OnPostCookDelegate.Broadcast(this, AnyWorkItemsFailed());
+	}
+	else if(this->LoadState == EPDGLoadState::Loading && bAllLoaded)
 	{
 		this->LoadState = EPDGLoadState::Loading_Complete;
 
