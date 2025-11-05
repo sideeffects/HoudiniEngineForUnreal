@@ -894,6 +894,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 							{
 								// The cook count has changed on the Houdini side,
 								// this indicates that the user has changed something in Houdini so we need to trigger an update
+								HC->SetCurrentState(EHoudiniAssetState::PreCook);
 								// Make sure to update the cookcount to prevent loop cooking
 								HC->CookCount = CookCount;
 							}
