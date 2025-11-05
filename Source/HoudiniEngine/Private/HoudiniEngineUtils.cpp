@@ -4725,6 +4725,10 @@ FHoudiniEngineUtils::AddHoudiniLogoToComponent(USceneComponent* InComponent)
 	if (FHoudiniEngineUtils::HasHoudiniLogo(InComponent))
 		return true;
 
+	// Remove the texture preview mesh if we have it somehow
+	if (FHoudiniEngineUtils::HasTextureMesh(InComponent))
+		FHoudiniEngineUtils::RemoveTextureMeshFromComponent(InComponent);
+
 	UStaticMesh* HoudiniLogoSM = FHoudiniEngine::Get().GetHoudiniLogoStaticMesh().Get();
 	if (!HoudiniLogoSM)
 		return false;
@@ -6027,7 +6031,8 @@ FHoudiniEngineUtils::AddMeshSocketsToStaticMesh(
 			Tag = AllSockets[nSocket].Tag;
 
 		// The actor will be stored temporarily in the socket's Tag as we need a StaticMeshComponent to add an actor to the socket
-		Tag += TEXT("|") + AllSockets[nSocket].Actor;
+		if(!AllSockets[nSocket].Actor.IsEmpty())
+			Tag += TEXT("|") + AllSockets[nSocket].Actor;
 
 		Socket->Tag = Tag;
 		Socket->bSocketCreatedAtImport = true;
