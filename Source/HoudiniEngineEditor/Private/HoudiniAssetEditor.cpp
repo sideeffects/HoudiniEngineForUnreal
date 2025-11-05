@@ -448,6 +448,8 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 					}
 				}
 
+				ViewportPtr->Invalidate();
+
 			});
 			
 			// Register the Cookable with the Manager

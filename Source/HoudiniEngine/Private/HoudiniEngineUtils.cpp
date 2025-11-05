@@ -7266,7 +7266,7 @@ FHoudiniEngineUtils::HapiGetCookCount(HAPI_NodeId InNodeId)
 	int32 CookCount = -1;
 	if (HAPI_RESULT_FAILURE == FHoudiniApi::GetTotalCookCount(
 		FHoudiniEngine::Get().GetSession(),
-		InNodeId, HAPI_NODETYPE_OBJ | HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_NON_BYPASS, true, &CookCount))
+		InNodeId, HAPI_NODETYPE_OBJ | HAPI_NODETYPE_SOP | HAPI_NODETYPE_COP, HAPI_NODEFLAGS_NON_BYPASS, true, &CookCount))
 	{
 		return -1;
 	}
