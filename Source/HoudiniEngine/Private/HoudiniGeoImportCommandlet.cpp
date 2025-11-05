@@ -173,7 +173,7 @@ void UHoudiniGeoImportCommandlet::TickDiscoveredFiles()
 			else
 			{
 				FileData.bImported = false;
-				HOUDINI_LOG_DISPLAY(TEXT("Importing %s... Failed (%d)"), *FileData.FileName, *Result.Value);
+				HOUDINI_LOG_DISPLAY(TEXT("Importing %s... Failed (%s)"), *FileData.FileName, *Result.Value);
 			}
 		}
 	}
