@@ -277,8 +277,9 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooking)
 		bool bPauseCookingOnStart;
 
-		// Whether to display instantiation and cooking Slate notifications.
-		UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooking)
+		// Whether to display instantiation and cooking Slate notifications. This is disabled in H21.5 and code will
+		// be deleted at a later date.
+		//UPROPERTY(GlobalConfig, EditAnywhere, Category = Cooking)
 		bool bDisplaySlateCookingNotifications;
 
 		// Default content folder storing all the temporary cook data (Static meshes, materials, textures, landscape layer infos...)

@@ -82,7 +82,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 
 	// Cooking options.
 	bPauseCookingOnStart = false;
-	bDisplaySlateCookingNotifications = true;
+	bDisplaySlateCookingNotifications = false;
 	DefaultTemporaryCookFolder = HAPI_UNREAL_DEFAULT_TEMP_COOK_FOLDER;
 	DefaultBakeFolder = HAPI_UNREAL_DEFAULT_BAKE_FOLDER;
 	bUsePresetsForParameters = true;
