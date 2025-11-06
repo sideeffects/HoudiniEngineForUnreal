@@ -51,7 +51,7 @@
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "HAL/FileManager.h"
 #include "Materials/Material.h"
-#if defined(HOUIDNI_USE_PCG)
+#if defined(HOUDINI_USE_PCG)
 #include "HoudiniPCGDataObject.h"
 #endif
 
