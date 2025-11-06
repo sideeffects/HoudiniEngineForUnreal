@@ -145,7 +145,7 @@ public:
 
 	// Ensure that FTOPWorkResult exists, and create its FTOPWorkResultObjects for a given TOP node and work item id,
 	// and optionally (via bInLoadResultObjects) create its FTOPWorkResultObjects.
-	// Geometry is not directly loaded by this function, the FTOPWorkResultObjects' states will be set to ToLoad and
+	// Geometry is not directly loaded by this function, the FTOPWorkResultObjects' states will be set to ToImport and
 	// the ProcessWorkItemResults function will take care of loading the geo.
 	// Results must be tagged with 'file', and must have a file path, otherwise will not included.
 	bool CreateOrRelinkWorkItemResult(UTOPNode* InTOPNode, const HAPI_PDG_GraphContextId& InContextID, HAPI_PDG_WorkItemId InWorkItemID, bool bInLoadResultObjects=false);

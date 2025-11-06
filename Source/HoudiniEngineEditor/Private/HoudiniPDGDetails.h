@@ -45,7 +45,7 @@ enum class EWorkItemTallyType : uint8
 	Waiting,
 	Cooking,
 	Cooked,
-	Loaded,
+	Imported,
 	Failed
 };
 
@@ -142,10 +142,7 @@ class FHoudiniPDGDetails : public TSharedFromThis<FHoudiniPDGDetails, ESPMode::N
 		static void GetPDGCommandletStatus(FString& OutStatusString, FLinearColor& OutStatusColor);
 
 		// Helper to check if the asset link state is Linked
-		static FORCEINLINE bool IsPDGLinked(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
-		{
-			return IsValidWeakPointer(InPDGAssetLink) && InPDGAssetLink->LinkState == EPDGLinkState::Linked;
-		}
+		static bool IsPDGLinked(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink);
 
 		// Helper to disable a UI row if InPDGAssetLink is not linked
 		static void BindEnablePDGWiddgetsTest(FDetailWidgetRow& InRow, const TWeakObjectPtr<UHoudiniCookable>& InCookable);

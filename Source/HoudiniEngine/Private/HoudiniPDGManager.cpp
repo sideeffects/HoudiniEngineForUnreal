@@ -1627,7 +1627,7 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 				ExistingResultObject.FilePath = CurrentPath;
 				ExistingResultObject.SetAutoBakedSinceLastLoad(false);
 				ExistingResultObject.WorkItemId = InWorkItemID;
-				if (ExistingResultObject.GetState() == EPDGWorkResultState::Loaded && !bInLoadResultObjects)
+				if (ExistingResultObject.GetState() == EPDGWorkResultState::Imported && !bInLoadResultObjects)
 				{
 					ExistingResultObject.SetState(EPDGWorkResultState::ToDelete);
 				}
@@ -1643,16 +1643,16 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 						InTOPNode->DeleteWorkResultObjectOutputs(WorkResultArrayIndex, ExistingObjectIndex, bDeleteOutputActors);
 					}
 					
-					if ((ExistingResultObject.GetState() == EPDGWorkResultState::Loaded ||
+					if ((ExistingResultObject.GetState() == EPDGWorkResultState::Imported ||
 						 ExistingResultObject.GetState() ==  EPDGWorkResultState::ToDelete ||
 						 ExistingResultObject.GetState() == EPDGWorkResultState::Deleting) && bInLoadResultObjects)
 					{
-						ExistingResultObject.SetState(EPDGWorkResultState::ToLoad);
+						ExistingResultObject.SetState(EPDGWorkResultState::ToImport);
 						InTOPNode->OnWorkItemCooked(InWorkItemID);
 					}
 					else
 					{
-						ExistingResultObject.SetState(bInLoadResultObjects ? EPDGWorkResultState::ToLoad : EPDGWorkResultState::NotLoaded);
+						ExistingResultObject.SetState(bInLoadResultObjects ? EPDGWorkResultState::ToImport : EPDGWorkResultState::NotImported);
 					}
 				}
 
@@ -1664,7 +1664,7 @@ FHoudiniPDGManager::CreateOrRelinkWorkItemResult(
 				FTOPWorkResultObject ResultObj;
 				ResultObj.Name = WorkResultName;
 				ResultObj.FilePath = CurrentPath;
-				ResultObj.SetState(bInLoadResultObjects ? EPDGWorkResultState::ToLoad : EPDGWorkResultState::NotLoaded);
+				ResultObj.SetState(bInLoadResultObjects ? EPDGWorkResultState::ToImport : EPDGWorkResultState::NotImported);
 				ResultObj.WorkItemResultInfoIndex = Idx;
 				ResultObj.WorkItemId = InWorkItemID;
 				ResultObj.SetAutoBakedSinceLastLoad(false);
@@ -1912,8 +1912,8 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 							break;
 
 						FTOPWorkResultObject& CurrentWorkResultObj = CurrentWorkResult.ResultObjects[WorkResultObjectArrayIndex];
-						if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::ToLoad || 
-							CurrentWorkResultObj.GetState() == EPDGWorkResultState::LoadingNonCommandlet )
+						if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::ToImport || 
+							CurrentWorkResultObj.GetState() == EPDGWorkResultState::ToImportNonCommandlet )
 						{
 							// Load this WRObj
 							PackageParams.PDGTOPNetworkName = CurrentTOPNet->NodeName;
@@ -1923,9 +1923,9 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 							// CurrentWorkResult.WorkItemIndex is not necessarily unique)
 							PackageParams.PDGWorkResultArrayIndex = WorkResultArrayIndex;
 
-							if (CommandletStatus == EHoudiniBGEOCommandletStatus::Connected && CurrentWorkResultObj.GetState() != EPDGWorkResultState::LoadingNonCommandlet)
+							if (CommandletStatus == EHoudiniBGEOCommandletStatus::Connected && CurrentWorkResultObj.GetState() != EPDGWorkResultState::ToImportNonCommandlet)
 							{
-								CurrentWorkResultObj.SetState(EPDGWorkResultState::Loading);
+								CurrentWorkResultObj.SetState(EPDGWorkResultState::Importing);
 
 								BGEOCommandletEndpoint->Send(new FHoudiniPDGImportBGEOMessage(
 									CurrentWorkResultObj.FilePath,
@@ -1939,7 +1939,7 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 							}
 							else
 							{
-								CurrentWorkResultObj.SetState(EPDGWorkResultState::Loading);
+								CurrentWorkResultObj.SetState(EPDGWorkResultState::Importing);
 
 								if (FHoudiniPDGTranslator::CreateAllResultObjectsForPDGWorkItem(
 									AssetLink,
@@ -1947,7 +1947,7 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 									CurrentWorkResultObj,
 									PackageParams))
 								{
-									CurrentWorkResultObj.SetState(EPDGWorkResultState::Loaded);
+									CurrentWorkResultObj.SetState(EPDGWorkResultState::Imported);
 									CurrentWorkResultObj.SetAutoBakedSinceLastLoad(false);
 									CurrentTOPNode->bCachedHaveLoadedWorkResults = true;
 
@@ -1977,7 +1977,7 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 								bKeepProcessing = false;
 							}
 						}
-						else if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::Loaded)
+						else if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::Imported)
 						{
 							CurrentTOPNode->bCachedHaveLoadedWorkResults = true;
 						}
@@ -1994,7 +1994,7 @@ FHoudiniPDGManager::ProcessWorkItemResults()
 						{
 							CurrentTOPNode->bCachedHaveNotLoadedWorkResults = true;
 						}
-						else if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::NotLoaded)
+						else if (CurrentWorkResultObj.GetState() == EPDGWorkResultState::NotImported)
 						{
 							CurrentTOPNode->bCachedHaveNotLoadedWorkResults = true;
 						}
@@ -2061,15 +2061,15 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 		return;
 	}
 
-	if(WorkResultObject->GetState() != EPDGWorkResultState::Loading)
+	if(WorkResultObject->GetState() != EPDGWorkResultState::Importing)
 	{
-		HOUDINI_LOG_WARNING(TEXT("TOP work result object (%s) not in Loading state, aborting output object creation."), *InMessage.Name);
+		HOUDINI_LOG_WARNING(TEXT("TOP work result object (%s) not in Importing state, aborting output object creation."), *InMessage.Name);
 		return;
 	}
 	HOUDINI_LOG_MESSAGE(TEXT("Received BGEO import result message"));
 	if (InMessage.ImportResult == EHoudiniPDGImportBGEOResult::HPIBR_Success || InMessage.ImportResult == EHoudiniPDGImportBGEOResult::HPIBR_PartialSuccess)
 	{
-		WorkResultObject->SetState(EPDGWorkResultState::Loaded);
+		WorkResultObject->SetState(EPDGWorkResultState::Imported);
 
 		TOPNode->OnWorkItemLoaded(WorkResult->WorkItemID);
 
@@ -2269,7 +2269,7 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 		}
 
 		// Try to load it outside the async importer.
-		WorkResultObject->SetState(EPDGWorkResultState::LoadingNonCommandlet);
+		WorkResultObject->SetState(EPDGWorkResultState::ToImportNonCommandlet);
 
 		HOUDINI_LOG_WARNING(TEXT("Work Item will now be loaded outside of the Commandlet."));
 

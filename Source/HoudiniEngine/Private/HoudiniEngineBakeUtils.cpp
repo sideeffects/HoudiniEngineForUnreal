@@ -8209,7 +8209,7 @@ FHoudiniEngineBakeUtils::BakePDGWorkResultObject(
 	if (Outputs.Num() == 0)
 		return true;
 
-	if (WorkResultObject.GetState() != EPDGWorkResultState::Loaded)
+	if (WorkResultObject.GetState() != EPDGWorkResultState::Imported)
 	{
 		if (bInIsAutoBake && WorkResultObject.AutoBakedSinceLastLoad())
 		{
@@ -8363,7 +8363,7 @@ FHoudiniEngineBakeUtils::PDGAutoBakeAfterResultObjectLoaded(
 		{
 			for (const FTOPWorkResultObject& WRO : WorkResult.ResultObjects)
 			{
-				if (WRO.GetState() != EPDGWorkResultState::Loaded && !WRO.AutoBakedSinceLastLoad())
+				if (WRO.GetState() != EPDGWorkResultState::Imported && !WRO.AutoBakedSinceLastLoad())
 				{
 					bDoNotBake = true;
 					break;

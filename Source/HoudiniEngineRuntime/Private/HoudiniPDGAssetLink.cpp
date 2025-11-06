@@ -479,7 +479,7 @@ void UTOPNode::EvaluateWorkItems()
 				{
 					for(FTOPWorkResultObject WRO : Result.ResultObjects)
 					{
-						if(WRO.GetState() != EPDGWorkResultState::Loaded)
+						if(WRO.GetState() != EPDGWorkResultState::Imported)
 							bAllLoaded = false;
 					}
 				}
@@ -623,7 +623,7 @@ UTOPNode::SetNotLoadedWorkResultsToLoad(bool bInAlsoSetDeletedToLoad)
 		{
 			for(FTOPWorkResultObject& WRO : WorkItem.ResultObjects)
 			{
-				WRO.SetState(EPDGWorkResultState::ToLoad);
+				WRO.SetState(EPDGWorkResultState::ToImport);
 				WRO.SetAutoBakedSinceLastLoad(false);
 			}
 		}
@@ -640,7 +640,7 @@ UTOPNode::SetNotLoadedWorkResultsToIgnore()
 	{
 		for(FTOPWorkResultObject& WRO : WorkItem.ResultObjects)
 		{
-			WRO.SetState(EPDGWorkResultState::NotLoaded);
+			WRO.SetState(EPDGWorkResultState::NotImported);
 			this->OnWorkItemIgnored(WorkItem.WorkItemID);
 		}
 	}
@@ -666,7 +666,7 @@ UTOPNode::SetLoadedWorkResultsToDelete()
 		{
 			for(FTOPWorkResultObject& WRO : WorkItem.ResultObjects)
 			{
-				if(WRO.GetState() == EPDGWorkResultState::Loaded)
+				if(WRO.GetState() == EPDGWorkResultState::Imported)
 				{
 					WRO.SetState(EPDGWorkResultState::ToDelete);
 				}
@@ -876,11 +876,11 @@ UTOPNode::CanStillBeAutoBaked(const bool bInAutoBakeWithFailedWorkItems) const
 		{
 			switch (WRO.GetState())
 			{
-				case EPDGWorkResultState::NotLoaded:
-				case EPDGWorkResultState::ToLoad:
-				case EPDGWorkResultState::Loading:
+				case EPDGWorkResultState::NotImported:
+				case EPDGWorkResultState::ToImport:
+				case EPDGWorkResultState::Importing:
 					return true;
-				case EPDGWorkResultState::Loaded:
+				case EPDGWorkResultState::Imported:
 					if (!WRO.AutoBakedSinceLastLoad())
 						return true;
 					break;
@@ -1080,7 +1080,7 @@ int UTOPNetwork::GetCompletedOutputWorkItems()
 
 			for(int32 ResultIndex = 0; ResultIndex < NumResultObjects; ++ResultIndex)
 			{
-				if(CurrentWorkResult.ResultObjects[ResultIndex].GetState() == EPDGWorkResultState::Loaded)
+				if(CurrentWorkResult.ResultObjects[ResultIndex].GetState() == EPDGWorkResultState::Imported)
 				{
 					Total++;
 				}
@@ -1738,11 +1738,11 @@ FString UHoudiniPDGAssetLink::GetLoadStatus(EPDGLoadState LoadState)
 	case EPDGLoadState::Loading_Paused:
 		return TEXT("Paused");
 	case EPDGLoadState::Loading:
-		return TEXT("Loading Remaining Work Items");
+		return TEXT("Importing Remaining Work Items");
 	case EPDGLoadState::LoadDisabled:
-		return TEXT("Loading Disabled");
+		return TEXT("Importing Disabled");
 	case EPDGLoadState::Loading_Complete:
-		return TEXT("Loading Complete");
+		return TEXT("Importing Complete");
 	case EPDGLoadState::Unloaded:
 		return TEXT("Unloaded");
 	default:
@@ -1944,7 +1944,7 @@ UHoudiniPDGAssetLink::UpdateTOPNodeAutoloadAndVisibility()
 			
 			if (TOPNode->bAutoLoad)
 			{
-				// // Set work results that are cooked but in NotLoaded state to ToLoad
+				// // Set work results that are cooked but in NotImported state to ToImport
 				// TOPNode.SetNotLoadedWorkResultsToLoad();
 			}
 			
@@ -1984,7 +1984,7 @@ UHoudiniPDGAssetLink::FilterTOPNodesAndOutputs()
 				{
 					if (bNewAutoLoad)
 					{
-						// Set work results that are cooked but in NotLoaded state to ToLoad
+						// Set work results that are cooked but in NotImported state to ToImport
 						TOPNode->bAutoLoad = true;
 						// TOPNode->SetNotLoadedWorkResultsToLoad();
 						TOPNode->SetVisibleInLevel(true);

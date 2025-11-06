@@ -78,14 +78,14 @@ UENUM()
 enum class EPDGWorkResultState : uint8
 {
 	None,
-	ToLoad,					// PDG has cooked, and we are ready to load
-	Loading,				// PDG has cooked, and we are loading into Unreal
-	Loaded,					// PDG has cooked, and it is loaded into Unreal
-	ToDelete,				// loaded into Unreal, and we're ready to delete to it
-	Deleting,				// loaded into Unreal, and being deleted.
-	Deleted,				// PDG cooked it, it was loaded, now its deleted.
-	NotLoaded,				// Not loaded - either deleted or not auto-loaded.
-	LoadingNonCommandlet,	// Load without using Commandlet.
+	ToImport,					// PDG has cooked, and we are ready to load
+	Importing,					// PDG has cooked, and we are imported into Unreal
+	Imported,					// PDG has cooked, and it is imported into Unreal
+	ToDelete,					// loaded into Unreal, and we're ready to delete to it
+	Deleting,					// loaded into Unreal, and being deleted.
+	Deleted,					// PDG cooked it, it was loaded, now its deleted.
+	NotImported,				// Not loaded - either deleted or not auto-loaded.
+	ToImportNonCommandlet,	// Load without using Commandlet.
 	Error
 };
 
@@ -476,24 +476,24 @@ public:
 
 	bool IsPaused() const;
 
-	// Sets all WorkResultObjects that are in the NotLoaded state to ToLoad.
+	// Sets all WorkResultObjects that are in the NotImported state to ToImport.
 	void SetNotLoadedWorkResultsToLoad(bool bInAlsoSetDeletedToLoad=false);
 
 	void SetNotLoadedWorkResultsToIgnore();
 
-	// Sets all WorkResultObjects that are in the Loaded state to ToDelete (will delete output objects and output
+	// Sets all WorkResultObjects that are in the Imported state to ToDelete (will delete output objects and output
 	// actors).
 	void SetLoadedWorkResultsToDelete();
 
-	// Immediately delete the Loaded work result output object (keeps the work item and result structs in the arrays but
+	// Immediately delete the Imported work result output object (keeps the work item and result structs in the arrays but
 	// deletes the output object and the actor and sets the state to Deleted.
 	void DeleteWorkResultObjectOutputs(const int32 InWorkResultArrayIndex, const int32 InWorkResultObjectArrayIndex, const bool bInDeleteOutputActors=true);
 
-	// Immediately delete Loaded work result output objects for the specified work item (keeps the work item and result
+	// Immediately delete Imported work result output objects for the specified work item (keeps the work item and result
 	// arrays but deletes the output objects and actors and sets the state to Deleted.
 	void DeleteWorkItemOutputs(const int32 InWorkResultArrayIndex, const bool bInDeleteOutputActors=true);
 
-	// Immediately delete Loaded work result output objects (keeps the work items and result arrays but deletes the output
+	// Immediately delete Imported work result output objects (keeps the work items and result arrays but deletes the output
 	// objects and actors and sets the state to Deleted.
 	void DeleteAllWorkResultObjectOutputs(const bool bInDeleteOutputActors=true);
 
@@ -574,12 +574,12 @@ public:
 	EPDGLoadState LoadState;
 
 	// This is set when the TOP node's work items are processed by
-	// FHoudiniPDGManager based on if any NotLoaded work result objects are found
+	// FHoudiniPDGManager based on if any NotImported work result objects are found
 	UPROPERTY(NonTransactional)
 	bool bCachedHaveNotLoadedWorkResults;
 
 	// This is set when the TOP node's work items are processed by
-	// FHoudiniPDGManager based on if any Loaded work result objects are found
+	// FHoudiniPDGManager based on if any Imported work result objects are found
 	UPROPERTY(NonTransactional)
 	bool bCachedHaveLoadedWorkResults;
 
@@ -651,11 +651,11 @@ public:
 	// Comparison operator, used by hashing containers and arrays.
 	bool operator==(const UTOPNetwork& Other) const;
 
-	// Sets all WorkResultObjects that are in the Loaded state to ToDelete (will delete output objects and output
+	// Sets all WorkResultObjects that are in the Imported state to ToDelete (will delete output objects and output
 	// actors).
 	void SetLoadedWorkResultsToDelete();
 
-	// Immediately delete Loaded work result output objects (keeps the work items and result arrays but deletes the output
+	// Immediately delete Imported work result output objects (keeps the work items and result arrays but deletes the output
 	// objects and actors and sets the state to Deleted.
 	void DeleteAllWorkResultObjectOutputs();
 

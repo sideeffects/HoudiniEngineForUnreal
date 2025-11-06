@@ -35,7 +35,7 @@
 UENUM()
 enum class EHoudiniAssetState : uint8
 {
-	// Loaded / Duplicated HDA,
+	// Imported / Duplicated HDA,
 	// Will need to be instantiated upon change/update
 	NeedInstantiation,
 

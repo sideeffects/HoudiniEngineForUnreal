@@ -45,7 +45,7 @@ class UPCGGraphInterface;
 enum class EPCGCookableState
 {
 	None,				// Create, but nothing happening.
-	Loaded,				// Loaded, but not loaded into Houdini.
+	Loaded,				// Imported, but not loaded into Houdini.
 	WaitingForSession,	// Waiting for Houdini Session to be created.
 	Initializing,		// Cookable is being loaded into Houdini for the first time.
 	Initialized,		// Cookable has been loaded into Houdini. Parameters/Inputs can be accessed.

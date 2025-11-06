@@ -401,7 +401,7 @@ void FHoudiniPDGDetails::AddAssetOptions(IDetailCategoryBuilder& InPDGCategory, 
 			.Padding(2.0f, 0.0f)
 			[
 				SNew(STextBlock)
-					.Text(FText::FromString(TEXT("Auto-Load Work Item Output Files")))
+					.Text(FText::FromString(TEXT("Auto-Import Work Item Output Files")))
 					.Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT))
 					.ToolTipText_Lambda(ToolTipLambda)
 			];
@@ -895,7 +895,7 @@ FHoudiniPDGDetails::GetPDGCommandletStatus(FString& OutStatusString, FLinearColo
 		OutStatusColor = FLinearColor::Green;
 		break;
 	case EHoudiniBGEOCommandletStatus::Running:
-		OutStatusString = TEXT("Async Importer is Running");
+		OutStatusString = TEXT("Async Importer is Running, Connecting...");
 		OutStatusColor = FLinearColor::Yellow;
 		break;
 	case EHoudiniBGEOCommandletStatus::Crashed:
@@ -1070,7 +1070,7 @@ FHoudiniPDGDetails::GetWorkItemTallyValueAndColor(
 		OutColor = OutValue > 0 ? FLinearColor::Green : FLinearColor::White;
 		bFound = true;
 		break;
-	case EWorkItemTallyType::Loaded:
+	case EWorkItemTallyType::Imported:
 		if(bInForSelectedNode)
 		{
 			OutValue = TallyPtr->NumLoadedWorkItems() + TallyPtr->NumEmptyWorkItems() + TallyPtr->NumIgnoredWorkItems();
@@ -1152,8 +1152,8 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 											Title = TEXT("COOKED");
 										}
 										break;
-									case EWorkItemTallyType::Loaded:
-										Title = TEXT("LOADED");
+									case EWorkItemTallyType::Imported:
+										Title = TEXT("IMPORTED");
 										break;
 									case EWorkItemTallyType::Failed:
 										Title = TEXT("FAILED");
@@ -1291,7 +1291,7 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 				+ AddGridBox(EWorkItemTallyType::Waiting) 
 				+ AddGridBox(EWorkItemTallyType::Cooking) 
 				+ AddGridBox(EWorkItemTallyType::Cooked)
-				+ AddGridBox(EWorkItemTallyType::Loaded)
+				+ AddGridBox(EWorkItemTallyType::Imported)
 				+ AddGridBox(EWorkItemTallyType::Failed) 
 			]
 			+ SVerticalBox::Slot()
@@ -2149,8 +2149,8 @@ void FHoudiniPDGDetails::AddTOPNetworkUnloadWorkItemsObjectsWidgets(IDetailGroup
 						.WidthOverride(200.0f)
 						[
 							SNew(SButton)
-								.Text(LOCTEXT("UnloadOutputFilesForNetwork", "Unload Output Files"))
-								.ToolTipText(LOCTEXT("UnloadWorkItemsForNetworkTooltip", "Unloads / removes loaded work item results from level for all nodes in this network. Not undoable: use the \"Load Work Item Objects\" button on the individual TOP nodes to reload work item results."))
+								.Text(LOCTEXT("RemoveImportedOutputsForNetwork", "Remove Imported Outputs"))
+								.ToolTipText(LOCTEXT("UnloadWorkItemsForNetworkTooltip", "Removes imported actors created from this TOP Netowork's output files."))
 								.ContentPadding(FMargin(5.0f, 2.0f))
 								.VAlign(VAlign_Center)
 								.HAlign(HAlign_Center)
@@ -2203,8 +2203,8 @@ void FHoudiniPDGDetails::AddTOPNetworkUnloadWorkItemsObjectsWidgets(IDetailGroup
 						.WidthOverride(200.0f)
 						[
 							SNew(SButton)
-								.Text(LOCTEXT("LoadOutputFiles", "Load Output Files"))
-								.ToolTipText(LOCTEXT("LoadWorkItemsForNodeTooltip", "Loads any available but not loaded work items objects (this could include items from a previous cook). Creates output actors. Not undoable: use the \"Unload Work Item Objects\" button to unload/remove loaded work item results."))
+								.Text(LOCTEXT("ImportOutputFiles", "Import Output Files"))
+								.ToolTipText(LOCTEXT("ImportOutputFilesTooltip", "Loads any unimported work items files and created Unreal assets & actors."))
 								.ContentPadding(FMargin(5.0f, 2.0f))
 								.VAlign(VAlign_Center)
 								.HAlign(HAlign_Center)
@@ -2305,11 +2305,11 @@ FHoudiniPDGDetails::GetSelectedTOPNetworkCombinedStatusAndColor(const TWeakObjec
 		switch(TopNetwork->LoadState)
 		{
 		case EPDGLoadState::Loading:
-			OutTOPNodeStatus = TEXT("PDG Cooked, Loading Work Items");
+			OutTOPNodeStatus = TEXT("PDG Cooked, Importing Work Items");
 			OutTOPNodeStatusColor = FLinearColor(0.0, 1.0f, 1.0f);
 			break;
 		case EPDGLoadState::Loading_Complete:
-			OutTOPNodeStatus = TEXT("PDG Cooked, Work Items Loaded");
+			OutTOPNodeStatus = TEXT("PDG Cooked, Work Items Imported");
 			OutTOPNodeStatusColor = FLinearColor::Green;
 			break;
 		case EPDGLoadState::Loading_Failed:
@@ -2361,11 +2361,11 @@ FHoudiniPDGDetails::GetSelectedTOPNodeCombinedStatusAndColor(const TWeakObjectPt
 		switch(TOPNode->LoadState)
 		{
 		case EPDGLoadState::Loading:
-			OutTOPNodeStatus = TEXT("PDG Cooked, Loading Work Items");
+			OutTOPNodeStatus = TEXT("PDG Cooked, Importing Work Items");
 			OutTOPNodeStatusColor = FLinearColor(0.0, 1.0f, 1.0f);
 			break;
 		case EPDGLoadState::Loading_Complete:
-			OutTOPNodeStatus = TEXT("PDG Cooked, Work Items Loaded");
+			OutTOPNodeStatus = TEXT("PDG Cooked, Work Items Imported");
 			OutTOPNodeStatusColor = FLinearColor::Green;
 			break;
 		case EPDGLoadState::Loading_Failed:
@@ -2789,8 +2789,8 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 				.WidthOverride(200.0f)
 				[
 					SAssignNew(UnloadWorkItemsButton, SButton)
-					.Text(LOCTEXT("UnloadOutputFilesForNode", "Unload Output Files"))
-					.ToolTipText(LOCTEXT("UnloadWorkItemsForNodeTooltip", "Unloads / removes loaded work item results from level. Not undoable: use the \"Load Work Item Objects\" button to reload the results."))
+					.Text(LOCTEXT("RemoveImportedOutputsForNode", "Remove Imported Outputs"))
+					.ToolTipText(LOCTEXT("RemoveImportedOutputsForNodeTooltip", "Removes imported actors created from this TOP Node's output files."))
 					.ContentPadding(FMargin(5.0f, 2.0f))
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
@@ -2840,8 +2840,8 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 				.WidthOverride(200.0f)
 				[
 					SAssignNew(LoadWorkItemsButton, SButton)
-					.Text(LOCTEXT("LoadOutputFiles", "Load Output Files"))
-					.ToolTipText(LOCTEXT("LoadWorkItemsForNodeTooltip", "Loads any available but not loaded work items objects (this could include items from a previous cook). Creates output actors. Not undoable: use the \"Unload Work Item Objects\" button to unload/remove loaded work item results."))
+					.Text(LOCTEXT("ImportOutputFiles", "Import Output Files"))
+					.ToolTipText(LOCTEXT("ImportOutputFilesTooltip", "Loads any unimported work items files and created Unreal assets & actors."))
 					.ContentPadding(FMargin(5.0f, 2.0f))
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
@@ -2947,7 +2947,7 @@ void FHoudiniPDGDetails::AddTOPNetworkStates(IDetailGroup& TOPNetWorkGrp, const 
 		.Padding(2.0f, 0.0f)
 		[
 			SNew(STextBlock)
-				.Text(FText::FromString(TEXT("Loading State")))
+				.Text(FText::FromString(TEXT("Importing State")))
 				.Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT))
 		];
 
@@ -3557,6 +3557,24 @@ void FHoudiniPDGDetails::AddBakeFolderWidgets(IDetailGroup& InBakeGroup, const T
 						.OnTextCommitted_Lambda(OnBakeFolderTextCommittedLambda)
 				]
 		];
+}
+
+// Helper to check if the asset link state is Linked
+bool FHoudiniPDGDetails::IsPDGLinked(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
+{
+	if(!IsValidWeakPointer(InPDGAssetLink))
+		return false;
+
+	if (FHoudiniEngineCommands::IsPDGCommandletEnabled())
+	{
+		if(FHoudiniEngine::Get().GetPDGCommandletStatus() == EHoudiniBGEOCommandletStatus::Running)
+			return false;
+	}
+
+	if(InPDGAssetLink->LinkState == EPDGLinkState::Linked)
+		return true;
+
+	return false;
 }
 
 void FHoudiniPDGDetails::BindEnablePDGWiddgetsTest(FDetailWidgetRow& InRow, const TWeakObjectPtr<UHoudiniCookable>& InCookable)
