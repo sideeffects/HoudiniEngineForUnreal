@@ -98,7 +98,7 @@
 #include "UnrealEdGlobals.h"
 #include "Toolkits/AssetEditorModeUILayer.h"
 #include "Widgets/Docking/SDockTab.h"
-#if defined(HOUIDNI_USE_PCG)
+#if defined(HOUDINI_USE_PCG)
 #include "HoudiniPCGComponent.h"
 #endif
 #if WITH_EDITOR
