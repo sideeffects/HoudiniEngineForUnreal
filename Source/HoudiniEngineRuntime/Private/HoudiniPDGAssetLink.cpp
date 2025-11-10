@@ -479,7 +479,7 @@ void UTOPNode::EvaluateWorkItems()
 				{
 					for(FTOPWorkResultObject WRO : Result.ResultObjects)
 					{
-						if(WRO.GetState() != EPDGWorkResultState::Imported)
+						if(WRO.GetState() != EPDGWorkResultState::Loaded)
 							bAllLoaded = false;
 					}
 				}
@@ -623,7 +623,7 @@ UTOPNode::SetNotLoadedWorkResultsToLoad(bool bInAlsoSetDeletedToLoad)
 		{
 			for(FTOPWorkResultObject& WRO : WorkItem.ResultObjects)
 			{
-				WRO.SetState(EPDGWorkResultState::ToImport);
+				WRO.SetState(EPDGWorkResultState::ToLoad);
 				WRO.SetAutoBakedSinceLastLoad(false);
 			}
 		}
@@ -640,7 +640,7 @@ UTOPNode::SetNotLoadedWorkResultsToIgnore()
 	{
 		for(FTOPWorkResultObject& WRO : WorkItem.ResultObjects)
 		{
-			WRO.SetState(EPDGWorkResultState::NotImported);
+			WRO.SetState(EPDGWorkResultState::NotLoaded);
 			this->OnWorkItemIgnored(WorkItem.WorkItemID);
 		}
 	}
@@ -666,7 +666,7 @@ UTOPNode::SetLoadedWorkResultsToDelete()
 		{
 			for(FTOPWorkResultObject& WRO : WorkItem.ResultObjects)
 			{
-				if(WRO.GetState() == EPDGWorkResultState::Imported)
+				if(WRO.GetState() == EPDGWorkResultState::Loaded)
 				{
 					WRO.SetState(EPDGWorkResultState::ToDelete);
 				}
@@ -876,11 +876,11 @@ UTOPNode::CanStillBeAutoBaked(const bool bInAutoBakeWithFailedWorkItems) const
 		{
 			switch (WRO.GetState())
 			{
-				case EPDGWorkResultState::NotImported:
-				case EPDGWorkResultState::ToImport:
-				case EPDGWorkResultState::Importing:
+				case EPDGWorkResultState::NotLoaded:
+				case EPDGWorkResultState::ToLoad:
+				case EPDGWorkResultState::Loading:
 					return true;
-				case EPDGWorkResultState::Imported:
+				case EPDGWorkResultState::Loaded:
 					if (!WRO.AutoBakedSinceLastLoad())
 						return true;
 					break;
@@ -1080,7 +1080,7 @@ int UTOPNetwork::GetCompletedOutputWorkItems()
 
 			for(int32 ResultIndex = 0; ResultIndex < NumResultObjects; ++ResultIndex)
 			{
-				if(CurrentWorkResult.ResultObjects[ResultIndex].GetState() == EPDGWorkResultState::Imported)
+				if(CurrentWorkResult.ResultObjects[ResultIndex].GetState() == EPDGWorkResultState::Loaded)
 				{
 					Total++;
 				}

@@ -78,14 +78,14 @@ UENUM()
 enum class EPDGWorkResultState : uint8
 {
 	None,
-	ToImport,					// PDG has cooked, and we are ready to load
-	Importing,					// PDG has cooked, and we are imported into Unreal
-	Imported,					// PDG has cooked, and it is imported into Unreal
+	ToLoad,					// PDG has cooked, and we are ready to load
+	Loading,					// PDG has cooked, and we are imported into Unreal
+	Loaded,					// PDG has cooked, and it is imported into Unreal
 	ToDelete,					// loaded into Unreal, and we're ready to delete to it
 	Deleting,					// loaded into Unreal, and being deleted.
 	Deleted,					// PDG cooked it, it was loaded, now its deleted.
-	NotImported,				// Not loaded - either deleted or not auto-loaded.
-	ToImportNonCommandlet,	// Load without using Commandlet.
+	NotLoaded,				// Not loaded - either deleted or not auto-loaded.
+	ToLoadNonCommandlet,	// Load without using Commandlet.
 	Error
 };
 
