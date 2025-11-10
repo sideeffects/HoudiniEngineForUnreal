@@ -25,7 +25,7 @@
 #include "FileHelpers.h"
 #include "GenericPlatform/GenericPlatformProcess.h"
 #include "Misc/AutomationTest.h"
-
+#include "HoudiniEngine.h"
 
 UWorld* 
 FHoudiniEditorUnitTestUtils::CreateEmptyMap(bool bOpenWorld)
@@ -92,6 +92,9 @@ FHoudiniEditorUnitTestUtils::GetActorWithName(UWorld* World, FString& Name)
 bool
 FHoudiniLatentTestCommand::Update()
 {
+	if(SingleContext.IsValid() && IsTimedOut(SingleContext.Get()))
+		return true;
+
 	if(SingleContext.IsValid())
 	{
 		bool bDone = CheckForCookingComplete(SingleContext.Get());
@@ -114,19 +117,50 @@ FHoudiniLatentTestCommand::Update()
 
 	bool bDone = FFunctionLatentCommand::Update();
 	return bDone;
-
 }
 
 bool
-FHoudiniLatentTestCommand::CheckForCookingComplete(FHoudiniTestContext* Context)
+FHoudiniLatentTestCommand::IsTimedOut(FHoudiniTestContext* Context)
 {
 	double DeltaTime = FPlatformTime::Seconds() - Context->TimeStarted;
 	if(DeltaTime > Context->MaxTime)
 	{
 		Context->Test->AddError(FString::Printf(TEXT("***************** Test timed out After %.2f seconds*************"), DeltaTime));
+
+		const EHoudiniBGEOCommandletStatus Status = FHoudiniEngine::Get().GetPDGCommandletStatus();
+
+		FString CommandletStatus;
+		switch (Status)
+		{
+		case EHoudiniBGEOCommandletStatus::NotStarted:
+			CommandletStatus = TEXT("Not Started");
+			break;
+		case EHoudiniBGEOCommandletStatus::Running:
+			CommandletStatus = TEXT("Running");
+			break;
+		case EHoudiniBGEOCommandletStatus::Connected:
+			CommandletStatus = TEXT("Connected");
+			break;
+
+		case EHoudiniBGEOCommandletStatus::Crashed:
+			CommandletStatus = TEXT("Crashed");
+			break;
+		default:
+			CommandletStatus = TEXT("Unknown");
+			break;
+		}
+
+		Context->Test->AddError(FString::Printf(TEXT("**** Commandlet Status: %s"), *CommandletStatus));
+
 		return true;
 	}
 
+	return false;
+}
+
+bool
+FHoudiniLatentTestCommand::CheckForCookingComplete(FHoudiniTestContext* Context)
+{
 	int CurrentFrame = GFrameCounter;
 	if(Context->WaitTickFrame)
 	{

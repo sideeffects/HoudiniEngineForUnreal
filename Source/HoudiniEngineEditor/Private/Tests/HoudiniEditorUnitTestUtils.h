@@ -470,5 +470,7 @@ public:
 	virtual bool Update() override;
 
 	bool CheckForCookingComplete(FHoudiniTestContext* Context);
+
+	bool IsTimedOut(FHoudiniTestContext* Context);
 };
 #endif
