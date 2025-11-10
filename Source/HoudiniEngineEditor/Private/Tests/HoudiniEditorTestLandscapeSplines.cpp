@@ -41,6 +41,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "HoudiniEditorUnitTestUtils.h"
 #include "LandscapeEdit.h"
+#include "HoudiniEditorTests.h"
 
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapeSplines_Simple, "Houdini.UnitTests.LandscapeSplines.Simple", 
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext  | EAutomationTestFlags::ProductFilter)

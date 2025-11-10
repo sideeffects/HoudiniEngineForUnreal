@@ -35,6 +35,7 @@
 #include "HoudiniEngineAttributes.h"
 #include "HoudiniEngineUtils.h"
 #include "Misc/DefaultValueHelper.h"
+#include "HoudiniEditorTests.h"
 
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_SplineMeshes, "Houdini.UnitTests.Inputs.SplineMesh",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
