@@ -2371,6 +2371,8 @@ void FHoudiniPDGManager::StopBGEOCommandletAndEndpoint()
 			FPlatformProcess::CloseProc(BGEOCommandletProcHandle);
 		}
 	}
+
+	BGEOCommandletStatus = EHoudiniBGEOCommandletStatus::NotStarted;
 }
 
 EHoudiniBGEOCommandletStatus FHoudiniPDGManager::UpdateAndGetBGEOCommandletStatus()
