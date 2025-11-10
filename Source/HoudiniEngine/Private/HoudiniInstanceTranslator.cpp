@@ -67,6 +67,7 @@
 	//#include "ScopedTransaction.h"
 	#include "LevelEditorViewport.h"
 	#include "MeshPaintHelpers.h"
+	#include "AssetRegistry/AssetRegistryModule.h"
 #endif
 #include "HoudiniEngineAttributes.h"
 #include "HoudiniFoliageUtils.h"
