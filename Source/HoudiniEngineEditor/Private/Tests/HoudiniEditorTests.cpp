@@ -115,7 +115,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorEvergreenEquivalenceTest, 
 
 bool HoudiniEditorEvergreenEquivalenceTest::RunTest(const FString & Parameters)
 {
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+#if !DISABLE_LANDSCAPE_RELATED_TEST
 	// Really force editor size
 	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
@@ -137,7 +137,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorRandomEquivalenceTest, "Ho
 
 bool HoudiniEditorRandomEquivalenceTest::RunTest(const FString & Parameters)
 {
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+#if !DISABLE_LANDSCAPE_RELATED_TEST
 	// Really force editor size
 	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{

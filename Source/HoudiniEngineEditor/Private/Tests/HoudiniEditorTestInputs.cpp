@@ -619,7 +619,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_NaniteMeshes, "
 
 				// We should have 1 LOD, different number of prims depending on Unreal version.
 				int PrimitiveCount = GetPrimitiveCount(NodeId);
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+#if !DISABLE_LANDSCAPE_RELATED_TEST
 				HOUDINI_TEST_EQUAL(PrimitiveCount, 4727);
 #else
 				HOUDINI_TEST_EQUAL(PrimitiveCount, 5182);

@@ -47,7 +47,7 @@
 #include "LandscapeEditLayer.h"
 #endif
 #include "Misc/AutomationTest.h"
-
+#include "HoudiniEditorTests.h"
 
 TArray<FString> FHoudiniEditorTestLandscapes::CheckLandscapeValues(
 	TArray<float> & Results, 
@@ -303,7 +303,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_Simple, "H
 
 bool FHoudiniEditorTestLandscapes_Simple::RunTest(const FString & Parameters)
 {
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+#if !DISABLE_LANDSCAPE_RELATED_TEST
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/// This test various aspects of Landscapes.
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -394,7 +394,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_GridSize, 
 
 bool FHoudiniEditorTestLandscapes_GridSize::RunTest(const FString& Parameters)
 {
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+#if !DISABLE_LANDSCAPE_RELATED_TEST
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/// This test resizing of landscapes when the original Houdini height field does not fit in an Unreal landscape.
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -488,7 +488,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_TargetLaye
 
 bool FHoudiniEditorTestLandscapes_TargetLayers::RunTest(const FString& Parameters)
 {
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+#if !DISABLE_LANDSCAPE_RELATED_TEST
 	/// Make sure we have a Houdini Session before doing anything.
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
@@ -585,7 +585,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_EditLayers
 
 bool FHoudiniEditorTestLandscapes_EditLayers::RunTest(const FString& Parameters)
 {
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+#if !DISABLE_LANDSCAPE_RELATED_TEST
 	/// Make sure we have a Houdini Session before doing anything.
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
@@ -694,7 +694,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_ModifyExis
 
 bool FHoudiniEditorTestLandscapes_ModifyExisting::RunTest(const FString& Parameters)
 {
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+#if !DISABLE_LANDSCAPE_RELATED_TEST
 	/// Make sure we have a Houdini Session before doing anything.
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(
 		this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});

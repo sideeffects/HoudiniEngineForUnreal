@@ -30,4 +30,12 @@
 
 #include "CoreMinimal.h"
 
+// Disable landscape tests due to Unreal 5.6 - potentially fixed on 5.7?
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 6
+#define DISABLE_LANDSCAPE_RELATED_TEST (1)
+#else
+#define DISABLE_LANDSCAPE_RELATED_TEST (0)
+#endif
+
 #endif

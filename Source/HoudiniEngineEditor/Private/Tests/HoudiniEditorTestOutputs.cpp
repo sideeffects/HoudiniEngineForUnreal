@@ -53,7 +53,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestOutput, "Houdini.Unit
 
 bool FHoudiniEditorTestOutput::RunTest(const FString & Parameters)
 {
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+#if !DISABLE_LANDSCAPE_RELATED_TEST
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/// This test ensures that we can cook an HDA multiple times and the outputs are removed on each recook. The test HDA

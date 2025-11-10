@@ -30,8 +30,8 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 #include "HoudiniEditorTestUtils.h"
-
 #include "Misc/AutomationTest.h"
+#include "HoudiniEditorTests.h"
 
 FString FHoudiniEditorHeightfieldTests::EquivalenceTestMapName = TEXT("Heightfields");
 FString FHoudiniEditorHeightfieldTests::TestHDAPath = TEXT("/Game/TestHDAs/Heightfields/");
@@ -40,7 +40,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorHeightfieldTest_Heightfiel
 
 bool HoudiniEditorHeightfieldTest_Heightfields_Common::RunTest(const FString & Parameters)
 {
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+#if !DISABLE_LANDSCAPE_RELATED_TEST
 	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
 		const FString MapName = FHoudiniEditorHeightfieldTests::EquivalenceTestMapName;
@@ -58,7 +58,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorHeightfieldTest_hf_tile_sc
 
 bool HoudiniEditorHeightfieldTest_hf_tile_scatter_instance::RunTest(const FString & Parameters)
 {
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
+#if !DISABLE_LANDSCAPE_RELATED_TEST
 	FHoudiniEditorTestUtils::InitializeTests(this, [this]
         {
                 const FString MapName = FHoudiniEditorHeightfieldTests::EquivalenceTestMapName;
