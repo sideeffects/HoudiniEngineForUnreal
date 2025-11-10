@@ -582,13 +582,21 @@ UObject*
 FHoudiniInstanceTranslator::LoadInstancedObject(const FString & ObjectPath)
 {
 	// Load the object using its path. Resolve redirectors if necessary.
-	UObject * InstanceObject = StaticLoadObject(UObject::StaticClass(), nullptr, *ObjectPath, nullptr, LOAD_None, nullptr);
 
-	while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(InstanceObject))
-		InstanceObject = Redirector->DestinationObject;
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(ObjectPath);
 
-	if (IsValid(InstanceObject))
-		return InstanceObject;
+	UObject* InstanceObject = nullptr;
+	if (AssetData.IsValid())
+	{
+		InstanceObject = StaticLoadObject(UObject::StaticClass(), nullptr, *ObjectPath, nullptr, LOAD_None, nullptr);
+
+		while(UObjectRedirector* Redirector = Cast<UObjectRedirector>(InstanceObject))
+			InstanceObject = Redirector->DestinationObject;
+
+		if(IsValid(InstanceObject))
+			return InstanceObject;
+	}
 
 	// If could not load the actor, try to load it as a class.
 	UClass* FoundClass = FHoudiniEngineRuntimeUtils::GetClassByName(ObjectPath);
