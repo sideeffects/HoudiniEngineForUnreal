@@ -582,12 +582,16 @@ UObject*
 FHoudiniInstanceTranslator::LoadInstancedObject(const FString & ObjectPath)
 {
 	// Load the object using its path. Resolve redirectors if necessary.
-
+#if WITH_EDITOR
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 	FAssetData AssetData = AssetRegistryModule.Get().GetAssetByObjectPath(ObjectPath);
+	bool AssetDataValid = AssetData.IsValid();
+#else
+	bool AssetDataValid = true;
+#endif
 
 	UObject* InstanceObject = nullptr;
-	if (AssetData.IsValid())
+	if (AssetDataValid)
 	{
 		InstanceObject = StaticLoadObject(UObject::StaticClass(), nullptr, *ObjectPath, nullptr, LOAD_None, nullptr);
 
