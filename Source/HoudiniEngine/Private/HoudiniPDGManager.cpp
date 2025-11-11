@@ -50,6 +50,7 @@
 #include "HAPI/HAPI_Common.h"
 
 HOUDINI_PDG_DEFINE_LOG_CATEGORY();
+HOUDINI_COMMANDLET_DEFINE_LOG_CATEGORY();
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
@@ -802,6 +803,23 @@ FHoudiniPDGManager::CancelCook(UTOPNode* InTOPNet)
 void
 FHoudiniPDGManager::Update()
 {
+	// Process Commandlet output.
+
+	if(FPlatformProcess::IsProcRunning(BGEOCommandletProcHandle) && BGEOReadPipe)
+	{
+		FString NewOutput = FPlatformProcess::ReadPipe(BGEOReadPipe);
+
+		TArray<FString> Lines;
+		NewOutput.ParseIntoArrayLines(Lines);
+
+		for(const FString& Line : Lines)
+		{
+			if (!Line.IsEmpty())
+			HOUDINI_COMMANDLET_MESSAGE(TEXT("%s"), *Line);
+		}
+	}
+
+
 	// Clean up registered PDG Asset Links
 	for(int32 Idx = PDGAssetLinks.Num() - 1; Idx >= 0; Idx--)
 	{
@@ -2337,6 +2355,18 @@ bool FHoudiniPDGManager::CreateBGEOCommandletAndEndpoint()
 			*BGEOCommandletEndpoint->GetAddress().ToString(),
 			FPlatformProcess::GetCurrentProcessId());
 
+		// Create a pipe for output capture
+		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
+		if (HoudiniRuntimeSettings->bSendCommandletOutputToConsole)
+		{
+			FPlatformProcess::CreatePipe(BGEOReadPipe, BGEOWritePipe);
+		}
+		else
+		{
+			BGEOReadPipe = nullptr;
+			BGEOWritePipe = nullptr;
+		}
+
 		BGEOCommandletProcHandle = FPlatformProcess::CreateProc(
 			*ExePath,
 			*CommandLineParameters,
@@ -2345,10 +2375,18 @@ bool FHoudiniPDGManager::CreateBGEOCommandletAndEndpoint()
 			false,
 			&BGEOCommandletProcessId,
 			0,
-			NULL,
-			NULL);
+			nullptr,
+			BGEOWritePipe,
+			BGEOReadPipe);
+
+		FPlatformProcess::ClosePipe(BGEOWritePipe, nullptr);
+		BGEOWritePipe = nullptr;
+
 		if (!BGEOCommandletProcHandle.IsValid())
 		{
+
+			FPlatformProcess::ClosePipe(BGEOReadPipe, nullptr);
+			BGEOReadPipe = nullptr;
 			return false;
 		}
 	}
@@ -2358,6 +2396,18 @@ bool FHoudiniPDGManager::CreateBGEOCommandletAndEndpoint()
 
 void FHoudiniPDGManager::StopBGEOCommandletAndEndpoint()
 {
+	if(BGEOReadPipe)
+	{
+		FPlatformProcess::ClosePipe(BGEOReadPipe, nullptr);
+		BGEOReadPipe = nullptr;
+	}
+
+	if(BGEOWritePipe)
+	{
+		FPlatformProcess::ClosePipe(BGEOWritePipe, nullptr);
+		BGEOWritePipe = nullptr;
+	}
+
 	BGEOCommandletEndpoint.Reset();
 	BGEOCommandletAddress.Invalidate();
 	BGEOCommandletGuid.Invalidate();

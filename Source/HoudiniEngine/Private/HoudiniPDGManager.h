@@ -56,6 +56,19 @@ enum class HOUDINIENGINE_API EHoudiniBGEOCommandletStatus : uint8
 	Crashed
 };
 
+// ---------------------------------------------------------
+// Commandlet Logging
+// ---------------------------------------------------------
+
+#if defined(HOUDINI_ENGINE_LOGGING) 
+DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineCommandlet, Log, All);
+#define HOUDINI_COMMANDLET_DEFINE_LOG_CATEGORY() 			DEFINE_LOG_CATEGORY(LogHoudiniEngineCommandlet);
+#define HOUDINI_COMMANDLET_MESSAGE( HOUDINI_LOG_TEXT, ... )		HOUDINI_DEBUG_EXPAND_UE_LOG( Commandlet, Log, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ) 
+#else 
+#define HOUDINI_COMMANDLET_DEFINE_LOG_CATEGORY() 
+#define HOUDINI_COMMANDLET_MESSAGE( HOUDINI_LOG_TEXT, ... ) 
+#endif
+
 struct HOUDINIENGINE_API FHoudiniPDGManager
 {
 
@@ -225,4 +238,7 @@ private:
 	uint32 BGEOCommandletProcessId;
 	// Keep track of the BGEO commandlet status
 	EHoudiniBGEOCommandletStatus BGEOCommandletStatus;
+	void* BGEOReadPipe = nullptr;
+	void* BGEOWritePipe = nullptr;
+
 };

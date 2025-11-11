@@ -248,7 +248,11 @@ protected:
 		// If enabled, Houdini's viewport will be synchronized to Unreal's when using Session Sync.
 		UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category = Session, meta = (DisplayName = "Sync the Houdini Viewport to Unreal's viewport.", EditCondition = "bSyncViewport"))
 		bool bSyncHoudiniViewport;
-		
+
+		// Enable when wanting to sync the Houdini and Unreal viewport when using Session Sync.
+		UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category = Session)
+		bool bSendCommandletOutputToConsole;
+
 		// If enabled, Unreal's viewport will be synchronized to Houdini's when using Session Sync.
 		UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category = Session, meta = (DisplayName = "Sync the Unreal Viewport to Houdini's viewport", EditCondition = "bSyncViewport"))
 		bool bSyncUnrealViewport;

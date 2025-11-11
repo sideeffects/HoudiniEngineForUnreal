@@ -73,6 +73,7 @@ UHoudiniRuntimeSettings::UHoudiniRuntimeSettings( const FObjectInitializer & Obj
 	bSyncWithHoudiniCook = true;
 	bCookUsingHoudiniTime = true;
 	bSyncViewport = false;
+	bSendCommandletOutputToConsole = true;
 	bSyncHoudiniViewport = false;
 	bSyncUnrealViewport = false;
 
