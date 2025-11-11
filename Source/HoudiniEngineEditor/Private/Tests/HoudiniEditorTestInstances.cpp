@@ -1386,15 +1386,16 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 	/// Test PDG.
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
 	FHoudiniEngineCommands::SetPDGCommandletEnabled(true);
 	FHoudiniEngineCommands::StartPDGCommandlet();
 
-	/// Make sure we have a Houdini Session before doing anything.
-	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
-
 	// Now create the test context.
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, PDGHDA, FTransform::Identity, false));
+	Context->MaxTime = 240.0;
+
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 
 	Context->SetProxyMeshEnabled(true);
