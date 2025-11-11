@@ -151,13 +151,15 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 				.WidthOverride(200.0f)
 				[
 					SNew(SButton)
-					//.Text(LOCTEXT("Refresh", "Refresh"))
-					.ToolTipText(LOCTEXT("RefreshTooltip", "Refreshes infos displayed by the the PDG Asset Link"))
+					.ToolTipText(LOCTEXT("LinkTooltip", "Links the PDG Asset."))
 					.ContentPadding(FMargin(5.0f, 5.0f))
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
 					.IsEnabled_Lambda([InHC]()
 					{
+							if(!FHoudiniEngine::Get().GetSession())
+								return false;
+
 							if(!InHC.IsValid())
 								return false;
 
@@ -209,7 +211,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 			.AutoWidth()
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("Refresh", "Refresh"))
+				.Text(LOCTEXT("Relink", "Relink"))
 			];
 
 		TSharedPtr<FSlateDynamicImageBrush> ResetIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIPDGResetIconBrush();
@@ -238,7 +240,7 @@ FHoudiniPDGDetails::AddPDGAssetWidget(
 			.AutoWidth()
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("Reset", "Reset"))
+				.Text(LOCTEXT("LinkToPDG", "Link to PDG"))
 			];
 	}
 
@@ -813,7 +815,13 @@ FHoudiniPDGDetails::GetPDGStatusAndColor(
 {
 	OutPDGStatusString = FString();
 	OutPDGStatusColor = FLinearColor::White;
-	
+
+	if (FHoudiniEngine::Get().GetSession() == nullptr)
+	{
+		OutPDGStatusString = TEXT("Start a Houdini Session before linking PDG");
+		OutPDGStatusColor = FLinearColor::White;
+		return true;
+	}
 	if (!IsValidWeakPointer(InPDGAssetLink))
 		return false;
 	
@@ -3562,6 +3570,9 @@ void FHoudiniPDGDetails::AddBakeFolderWidgets(IDetailGroup& InBakeGroup, const T
 // Helper to check if the asset link state is Linked
 bool FHoudiniPDGDetails::IsPDGLinked(const TWeakObjectPtr<UHoudiniPDGAssetLink>& InPDGAssetLink)
 {
+	if(FHoudiniEngine::Get().GetSession() == nullptr)
+		return false;
+
 	if(!IsValidWeakPointer(InPDGAssetLink))
 		return false;
 
