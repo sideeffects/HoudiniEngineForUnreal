@@ -882,7 +882,12 @@ PRAGMA_ENABLE_INTERNAL_WARNINGS
 
 		if (LayerType == TargetLayerType::Visibility)
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			TAlphamapAccessor<false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), ALandscapeProxy::VisibilityLayer);
+#else
 			FAlphamapAccessor<false, false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), ALandscapeProxy::VisibilityLayer);
+#endif
+
 			AlphaAccessor.SetData(
 				Extents.Min.X, Extents.Min.Y, Extents.Max.X, Extents.Max.Y,
 				Values.GetData(),
@@ -890,7 +895,12 @@ PRAGMA_ENABLE_INTERNAL_WARNINGS
 		}
 		else
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			TAlphamapAccessor<false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), TargetLayerInfo);
+#else
 			FAlphamapAccessor<false, false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), TargetLayerInfo);
+#endif
+
 			AlphaAccessor.SetData(
 				Extents.Min.X, Extents.Min.Y, Extents.Max.X, Extents.Max.Y,
 				Values.GetData(),
