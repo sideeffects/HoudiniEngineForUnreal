@@ -1671,11 +1671,6 @@ HAPI_DECL HAPI_GetAvailableAssetCount( const HAPI_Session * session,
 ///         "foo", the asset name returned here will be:
 ///         hapi::Object/foo::2.0
 ///
-///         However, you should not need to worry about this detail. Just
-///         pass this string directly to ::HAPI_CreateNode() to
-///         create the node. You can then get the pretty name
-///         using ::HAPI_GetAssetInfo().
-///
 ///         You should call ::HAPI_LoadAssetLibraryFromFile() prior to
 ///         get a library_id. Then, you should call
 ///         ::HAPI_GetAvailableAssetCount() to get the number of assets to
