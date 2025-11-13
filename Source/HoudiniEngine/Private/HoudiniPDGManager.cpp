@@ -2359,7 +2359,9 @@ bool FHoudiniPDGManager::CreateBGEOCommandletAndEndpoint()
 		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 		if (HoudiniRuntimeSettings->bSendCommandletOutputToConsole)
 		{
-			FPlatformProcess::CreatePipe(BGEOReadPipe, BGEOWritePipe);
+			FPlatformProcess::CreatePipe(BGEOReadPipe, BGEOWritePipe, true);
+			FPlatformProcess::ClosePipe(BGEOWritePipe, nullptr);
+			BGEOWritePipe = nullptr;
 		}
 		else
 		{
@@ -2379,8 +2381,7 @@ bool FHoudiniPDGManager::CreateBGEOCommandletAndEndpoint()
 			BGEOWritePipe,
 			BGEOReadPipe);
 
-		FPlatformProcess::ClosePipe(BGEOWritePipe, nullptr);
-		BGEOWritePipe = nullptr;
+
 
 		if (!BGEOCommandletProcHandle.IsValid())
 		{
