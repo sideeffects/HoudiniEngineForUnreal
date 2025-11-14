@@ -261,7 +261,11 @@ FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesSegment(
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7
 	ULandscapeSplinesComponent* const SplinesComponent = InSegment->GetOuterULandscapeSplinesComponent();
 #else
-	ULandscapeSplinesComponent* const SplinesComponent = InSegment->GetOuterSafe();
+	#if WITH_EDITOR
+		ULandscapeSplinesComponent* const SplinesComponent = InSegment->GetOuterSafe();
+	#else
+		ULandscapeSplinesComponent* const SplinesComponent = nullptr;
+	#endif
 #endif
 
 
