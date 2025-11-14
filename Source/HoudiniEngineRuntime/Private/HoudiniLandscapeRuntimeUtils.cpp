@@ -209,7 +209,11 @@ FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesControlPoint(
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7
 		ULandscapeSplinesComponent* const SplinesComponent = InControlPoint->GetOuterULandscapeSplinesComponent();
 #else
+#if WITH_EDITOR
 		ULandscapeSplinesComponent* const SplinesComponent = InControlPoint->GetOuterSafe();
+#else
+		ULandscapeSplinesComponent* const SplinesComponent = nullptr;
+#endif
 #endif
 		if (IsValid(SplinesComponent))
 			SplinesComponent->GetControlPoints().Remove(InControlPoint);
