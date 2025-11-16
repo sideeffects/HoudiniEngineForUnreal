@@ -442,7 +442,11 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 					FLandscapeInfoLayerSettings& LayerSettings = LandscapeInfo->Layers[Index];
 					LayerSettings.LayerInfoObj = BakedLayerInfo;
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+					BakedOutputObject.LandscapeLayers.Emplace(BakedLayerInfo->GetLayerName(), FSoftObjectPath(BakedLayerInfo).ToString());
+#else
 					BakedOutputObject.LandscapeLayers.Emplace(BakedLayerInfo->LayerName, FSoftObjectPath(BakedLayerInfo).ToString());
+#endif
 				}
 			}
 

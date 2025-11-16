@@ -916,7 +916,11 @@ void FHoudiniLandscapeUtils::AssignPhysicsMaterialsToLandscape(ALandscapeProxy* 
 		return;
 	}
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	TargetLayerInfo->SetPhysicalMaterial(Material, true);
+#else
 	TargetLayerInfo->PhysMaterial = Material;
+#endif
 
 
 }
@@ -1054,7 +1058,11 @@ FHoudiniLandscapeUtils::FindOrCreateLandscapeLayerInfoObject(const FString & InL
 
 	if (IsValid(LayerInfo))
 	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		LayerInfo->SetLayerName(FName(*InLayerName), true);
+#else
 		LayerInfo->LayerName = FName(*InLayerName);
+#endif
 
 		// Trigger update of the Layer Info
 		LayerInfo->PreEditChange(nullptr);
@@ -1538,7 +1546,7 @@ FHoudiniLandscapeUtils::ApplySegmentsToLandscapeEditLayers(
 
 		// Apply splines to layer
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		Landscape->UpdateLandscapeSplines(Layer->EditLayer->GetGuid(), false);
+		Landscape->UpdateAllLandscapeSplines(Layer->EditLayer->GetGuid());
 #elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 		static constexpr bool bUpdateOnlySelected = true;
 		Landscape->UpdateLandscapeSplines(Layer->EditLayer->GetGuid(), bUpdateOnlySelected);
