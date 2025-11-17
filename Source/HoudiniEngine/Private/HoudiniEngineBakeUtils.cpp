@@ -6620,7 +6620,11 @@ FHoudiniEngineBakeUtils::BakeHeightfield(
 				CurrentLayerInfo.LayerInfo = InLandscapeInfo->Layers[n].LayerInfoObj;
 				CurrentLayerInfo.LayerData = CurrentLayerIntData;
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+				CurrentLayerInfo.LayerInfo->SetLayerUsageDebugColor(LayerUsageDebugColor, true, EPropertyChangeType::ValueSet);
+#else
 				CurrentLayerInfo.LayerInfo->LayerUsageDebugColor = LayerUsageDebugColor;
+#endif
 
 				InLandscapeImportLayerInfos.Add(CurrentLayerInfo);
 			}

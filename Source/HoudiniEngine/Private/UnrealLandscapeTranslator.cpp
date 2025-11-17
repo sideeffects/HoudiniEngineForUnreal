@@ -1595,7 +1595,13 @@ FUnrealLandscapeTranslator::GetLandscapeTargetLayerData(
 		TargetLayerData, TargetLayerDebugColor, TargetLayerName))
 		return false;
 
-	if (FName(TargetLayerName).Compare(ALandscape::VisibilityLayer->LayerName) ==0)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	const FName& VisLayerName = ALandscape::VisibilityLayer->GetLayerName();
+#else
+	const FName& VisLayerName = ALandscape::VisibilityLayer->LayerName;
+#endif
+
+	if (FName(TargetLayerName).Compare(VisLayerName) ==0)
 	{
 		// If we encounter the visibility layer, make sure we name
 		// it according to the plugin's expectations instead of using the internal `DataLayer__` name.
@@ -1640,7 +1646,11 @@ FUnrealLandscapeTranslator::GetLandscapeTargetLayerData(
 	TargetLayerData.AddZeroed(XSize * YSize);
 	LandscapeEdit.GetWeightDataFast(LayerInfo, MinX, MinY, MaxX, MaxY, TargetLayerData.GetData(), 0);
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	TargetLayerUsageDebugColor = LayerInfo->GetLayerUsageDebugColor();
+#else
 	TargetLayerUsageDebugColor = LayerInfo->LayerUsageDebugColor;
+#endif
 
 	TargetLayerName = LayersSetting.GetLayerName().ToString();
 
@@ -2620,7 +2630,12 @@ bool FUnrealLandscapeTranslator::SendAllEditLayerTargetLayersToHoudini(
 
 			ULandscapeLayerInfoObject * LayerInfoObject = Landscape->GetLandscapeInfo()->GetLayerInfoByName(TargetLayerName);
 
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			FLinearColor Color = LayerInfoObject ? LayerInfoObject->GetLayerUsageDebugColor() : FLinearColor::White;
+#else
 			FLinearColor Color = LayerInfoObject ? LayerInfoObject->LayerUsageDebugColor : FLinearColor::White;
+#endif
 
 			TArray<float> CurrentLayerFloatData;
 			if (!ConvertLandscapeLayerDataToHeightfieldData(LayerData, XSize, YSize, Color, CurrentLayerFloatData))
