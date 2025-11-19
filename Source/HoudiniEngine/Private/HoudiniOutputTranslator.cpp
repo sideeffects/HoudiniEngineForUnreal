@@ -652,7 +652,11 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 				NumTextureOutputs += CurOutput->GetOutputObjects().Num();
 				for (auto& It : CurOutput->GetOutputObjects())
 				{
-					// Get the first valid texture for display purpose
+					// If we haven;t already selected a texture to display..
+					if (IsValid(VisibleTexture))
+						break;
+
+					// ... Get the first valid texture for display purpose
 					VisibleTexture = Cast<UTexture2D>(It.Value.OutputObject);
 					if (IsValid(VisibleTexture))
 						break;
@@ -708,7 +712,7 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 		if (VisibleTexture)
 		{
 			// Fully stream in the texture before drawing it.
-			// Not doing this would cause the texture to appeat blurry in the ortho viewport
+			// Not doing this would cause the texture to appear blurry in the ortho viewport
 			VisibleTexture->SetForceMipLevelsToBeResident(30.0f);
 			VisibleTexture->WaitForStreaming();
 
@@ -1247,21 +1251,44 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	// If the node is a COP node, add a Cop HoudiniOutput which only stores the node id; no geo info
 	if (AssetNodeInfo.type == HAPI_NODETYPE_COP || AssetNodeInfo.type == HAPI_NODETYPE_COP2)
 	{
-		FHoudiniGeoPartObject currentHGPO;
-		currentHGPO.GeoId = AssetId;
-		currentHGPO.PartId = 0;
-		currentHGPO.Type = EHoudiniPartType::Cop;
+		// Add multiple COP outputs if needed
+		for (int32 OutputIdx = 0; OutputIdx < AssetNodeInfo.outputCount; OutputIdx++)
+		{
+			FHoudiniGeoPartObject currentHGPO;
+			currentHGPO.GeoId = AssetNodeInfo.id;
+			currentHGPO.PartId = OutputIdx;// 0;
+			currentHGPO.Type = EHoudiniPartType::Cop;
 
-		TObjectPtr<UHoudiniOutput> Output =
-			NewObject<UHoudiniOutput>(
-				InOuterObject,
-				UHoudiniOutput::StaticClass(),
-				NAME_None,
-				RF_NoFlags);
-		Output->AddNewHGPO(currentHGPO);
-		Output->UpdateOutputType();
-		Output->bCreateSceneComponents = bCreateSceneComponents;
-		OutNewOutputs.Add(Output);
+			HAPI_StringHandle NameSH;
+			FHoudiniApi::GetNodeOutputName(
+				FHoudiniEngine::Get().GetSession(),
+				AssetNodeInfo.id,
+				OutputIdx,
+				&NameSH);
+
+			FString OutputName;
+			FHoudiniEngineString::ToFString(NameSH, OutputName);
+
+			// For now, use the default name "outputX" to extract the image if we have multiple outputs
+			if (AssetNodeInfo.outputCount > 1)
+				OutputName = TEXT("output") + FString::FromInt(OutputIdx + 1);
+
+			// Store the output name in the HGPO
+			currentHGPO.PartName = OutputName;
+
+			TObjectPtr<UHoudiniOutput> Output =
+				NewObject<UHoudiniOutput>(
+					InOuterObject,
+					UHoudiniOutput::StaticClass(),
+					FName(OutputName),//NAME_None,
+					RF_NoFlags);
+			Output->AddNewHGPO(currentHGPO);
+			Output->UpdateOutputType();
+			Output->bCreateSceneComponents = bCreateSceneComponents;
+			OutNewOutputs.Add(Output);
+		}
+
+
 
 		return true;
 	}

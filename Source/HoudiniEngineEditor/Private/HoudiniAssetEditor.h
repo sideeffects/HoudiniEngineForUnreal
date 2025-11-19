@@ -159,6 +159,14 @@ protected:
 
 	void UpdateColorChannelsOnPreviewMesh();
 
+	// 2D Viewport output selector
+	TSharedRef<SWidget> MakeTextureOutputWidget();
+
+	void UpdateOutputList();
+	void UpdateTextureOutputOnPreviewMesh();
+
+	void OnPostOutputProcess(UHoudiniCookable* _HC, bool  bSuccess);
+
 	//virtual void CreateEditorModeManager() override;
 
 protected:
@@ -198,4 +206,8 @@ protected:
 	bool bShowGreenChannel;
 	bool bShowBlueChannel;
 	bool bShowAlphaChannel;
+
+	int32 SelectedTextureOutput;
+	int32 NumTextureOutputs;
+	TArray<TSharedPtr<FString>> OutputList;
 };
