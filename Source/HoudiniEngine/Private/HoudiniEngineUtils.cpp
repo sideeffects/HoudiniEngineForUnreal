@@ -2233,6 +2233,32 @@ FHoudiniEngineUtils::HapiGetNodePath(const FHoudiniGeoPartObject& InHGPO, FStrin
 
 
 bool
+FHoudiniEngineUtils::HapiGetNodeFromPath(
+	const FString& InPath,
+	const HAPI_NodeId InPathRelativeToId,
+	HAPI_NodeId& OutNodeId)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiGetNodePath);
+
+	if (InPath.IsEmpty())
+		return false;
+
+	// Invalid relative node id (-1 is fine as it means the path is absolute)
+	if (InPathRelativeToId >= 0 && !FHoudiniEngineUtils::IsHoudiniNodeValid(InPathRelativeToId))
+		return false;
+
+	// Fetch the actual texture node ID from the path
+	if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeFromPath(
+		FHoudiniEngine::Get().GetSession(), InPathRelativeToId, TCHAR_TO_ANSI(*InPath), &OutNodeId))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+
+bool
 FHoudiniEngineUtils::HapiGetObjectInfos(
 	HAPI_NodeId InNodeId,
 	TArray<HAPI_ObjectInfo>& OutObjectInfos,

@@ -304,6 +304,12 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			const FHoudiniGeoPartObject& InHGPO,
 			FString& OutPath);
 
+		// HAPI: Retrieve a NodeId from a path
+		static bool HapiGetNodeFromPath(
+			const FString& InPath,
+			const HAPI_NodeId InPathRelativeToId,
+			HAPI_NodeId& OutNodeId);
+
 		// HAPI : Return all group names for a given Geo. 
 		static bool HapiGetGroupNames(
 			const HAPI_NodeId GeoId, 

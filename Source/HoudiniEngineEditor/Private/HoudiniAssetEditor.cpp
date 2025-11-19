@@ -33,10 +33,12 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineCommands.h"
 #include "HoudiniEngineEditor.h"
+#include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineStyle.h"
 #include "SHoudiniAssetEditorViewport.h"
 #include "SHoudiniNodeSyncPanel.h"
+
 
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
@@ -50,6 +52,7 @@
 #include "UObject/UObjectGlobals.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Text/STextBlock.h"
 
@@ -324,6 +327,9 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 	bShowBlueChannel = true;
 	bShowAlphaChannel = true;
 
+	SelectedTextureOutput = 0;
+	NumTextureOutputs = 0;
+
 	// Get the next available Identifier for our details
 	if(HoudiniAssetEditorIdentifier.IsEmpty())
 		HoudiniAssetEditorIdentifier = 	FHoudiniEngine::Get().RegisterNewHoudiniAssetEditor();
@@ -415,45 +421,11 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 			// Let the cookable know its used in an Houdini Asset Editor
 			HoudiniCookableBeingEdited->AssetEditorId = FName(*HoudiniAssetEditorIdentifier);
 
-			HoudiniCookableBeingEdited->GetOnPostOutputProcessingDelegate().AddLambda([this](UHoudiniCookable* _HC, bool  bSuccess)
-			{
-				// See if this Cookable is texture only
-				bool bTextureOnly = true;
-				for (int32 OutputIdx = 0; OutputIdx < _HC->GetNumOutputs(); OutputIdx++)
-				{
-					UHoudiniOutput* CurOutput = _HC->GetOutputAt(OutputIdx);
-					if (!IsValid(CurOutput))
-						continue;
 
-					if (CurOutput->GetType() != EHoudiniOutputType::Cop)
-						bTextureOnly = false;
-				}
+			HoudiniCookableBeingEdited->GetOnPostOutputProcessingDelegate().AddRaw(this, &FHoudiniAssetEditor::OnPostOutputProcess);
 
-				if (bTextureOnly)
-				{
-					if (!bIsViewingCopHDA)
-					{
-						// Switch viewport to texture						
-						ViewportPtr->GetViewportClient()->SetViewportTo2D();
-						bIsViewingCopHDA = true;
-					}
-				}
-				else
-				{
-					if (bIsViewingCopHDA)
-					{
-						// Switch viewport to 3D
-						ViewportPtr->GetViewportClient()->SetViewportTo3D();
-						bIsViewingCopHDA = false;
-					}
-				}
-
-				ViewportPtr->Invalidate();
-
-			});
-			
 			// Register the Cookable with the Manager
-			FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(HoudiniCookableBeingEdited);		
+			FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(HoudiniCookableBeingEdited);
 		}
 	}
 
@@ -461,6 +433,52 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 	ExtendMenu();
 	ExtendToolbar();
 	RegenerateMenusAndToolbars();
+}
+
+void
+FHoudiniAssetEditor::OnPostOutputProcess(UHoudiniCookable* _HC, bool  bSuccess)
+{
+	// See if this Cookable is texture only
+	bool bTextureOnly = true;
+	NumTextureOutputs = 0;
+	for (int32 OutputIdx = 0; OutputIdx < _HC->GetNumOutputs(); OutputIdx++)
+	{
+		UHoudiniOutput* CurOutput = _HC->GetOutputAt(OutputIdx);
+		if (!IsValid(CurOutput))
+			continue;
+
+		if (CurOutput->GetType() != EHoudiniOutputType::Cop)
+			bTextureOnly = false;
+
+		NumTextureOutputs++;
+	}
+
+	if (bTextureOnly)
+	{
+		if (!bIsViewingCopHDA)
+		{
+			// Switch viewport to texture
+			ViewportPtr->GetViewportClient()->SetViewportTo2D();
+			bIsViewingCopHDA = true;
+		}
+	}
+	else
+	{
+		if (bIsViewingCopHDA)
+		{
+			// Switch viewport to 3D
+			ViewportPtr->GetViewportClient()->SetViewportTo3D();
+			bIsViewingCopHDA = false;
+		}
+	}
+
+	// Update available 2d outputs
+	UpdateOutputList();
+
+	UpdateTextureOutputOnPreviewMesh();
+
+	ViewportPtr->Invalidate();
+
 }
 
 void
@@ -589,9 +607,12 @@ void
 FHoudiniAssetEditor::FillToolbar(FToolBarBuilder& ToolbarBuilder)
 {
 	TSharedRef<SWidget> ChannelControl = MakeChannelControlWidget();
+	TSharedRef<SWidget> TextureOutput = MakeTextureOutputWidget();
+
 	ToolbarBuilder.BeginSection("Channels");
 	{
 		ToolbarBuilder.AddWidget(ChannelControl);
+		ToolbarBuilder.AddWidget(TextureOutput);
 	}
 	ToolbarBuilder.EndSection();
 }
@@ -822,6 +843,180 @@ FHoudiniAssetEditor::UpdateColorChannelsOnPreviewMesh()
 		MaterialInstance->SetStaticSwitchParameterValueEditorOnly(FName("A"), bShowAlphaChannel);
 
 		MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
+	}
+}
+
+void
+FHoudiniAssetEditor::UpdateTextureOutputOnPreviewMesh()
+{
+	// No need to do anything if we aren't viewing a COP
+	if (!bIsViewingCopHDA)
+		return;
+
+	// Get our cookable's scene component
+	USceneComponent* CookableComponent =
+		HoudiniCookableBeingEdited ? HoudiniCookableBeingEdited->GetComponent() : nullptr;
+	if (!CookableComponent)
+		return;
+
+	// Get the COP SM
+	UStaticMesh* HoudiniCOPMesh = FHoudiniEngine::Get().GetHoudiniCOPStaticMesh().Get();
+	if (!HoudiniCOPMesh)
+		return;
+
+	// Update context for generated materials (will trigger when the object goes out of scope).
+	FMaterialUpdateContext MaterialUpdateContext;
+
+	// Get the texture for the selected output
+	UTexture2D* SelectedTexture = nullptr;
+	UHoudiniOutput* CurOutput = HoudiniCookableBeingEdited->GetOutputAt(SelectedTextureOutput);
+	if (IsValid(CurOutput) && CurOutput->GetType() == EHoudiniOutputType::Cop)
+	{
+		for (auto& It : CurOutput->GetOutputObjects())
+		{
+			// ... Get the first valid texture for display purpose
+			SelectedTexture = Cast<UTexture2D>(It.Value.OutputObject);
+			if (IsValid(CurOutput))
+				break;
+		}
+	}
+
+	// Fully stream in the texture before drawing it.
+	// Not doing this would cause the texture to appear blurry in the ortho viewport
+	if (SelectedTexture)
+	{
+		SelectedTexture->SetForceMipLevelsToBeResident(30.0f);
+		SelectedTexture->WaitForStreaming();
+	}
+
+	// Iterate on the HAC's component	
+	for (USceneComponent* CurrentSceneComp : CookableComponent->GetAttachChildren())
+	{
+		if (!IsValid(CurrentSceneComp) || !CurrentSceneComp->IsA<UStaticMeshComponent>())
+			continue;
+
+		// Get the static mesh component
+		UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(CurrentSceneComp);
+		if (!IsValid(SMC))
+			continue;
+
+		// Check if the SMC is the Houdini Logo
+		if (SMC->GetStaticMesh() != HoudiniCOPMesh)
+			continue;
+
+		UMaterialInstanceConstant* MaterialInstance =
+			Cast<UMaterialInstanceConstant>(SMC->GetMaterial(0));
+		if (!MaterialInstance)
+			continue;
+
+		// Apply material instance parameters
+		FName MatParamName = FName("cop");
+		MaterialInstance->SetTextureParameterValueEditorOnly(MatParamName, SelectedTexture);
+
+		MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
+	}
+}
+
+TSharedRef<SWidget> 
+FHoudiniAssetEditor::MakeTextureOutputWidget()
+{
+	auto GetOutputVisibility = [this]()
+	{
+		if(!bIsViewingCopHDA)
+			return EVisibility::Hidden;
+
+		// Only show output selector if we have more than one texture output
+		if(NumTextureOutputs <= 1)
+			return EVisibility::Hidden;
+
+		return EVisibility::Visible;
+	};
+
+	// Lambda for changing output
+	auto OnSelChanged = [this](TSharedPtr<FString> InNewChoice)
+	{
+		if (!InNewChoice.IsValid())
+			return;
+		
+		FString NewChoiceStr = *InNewChoice.Get();
+		for (int32 OutputIdx = 0; OutputIdx < HoudiniCookableBeingEdited->GetNumOutputs(); OutputIdx++)
+		{
+			UHoudiniOutput* CurOutput = HoudiniCookableBeingEdited->GetOutputAt(OutputIdx);
+			if (!IsValid(CurOutput))
+				continue;
+
+			if (CurOutput->GetType() != EHoudiniOutputType::Cop)
+				continue;
+
+			for (auto& HGPO : CurOutput->GetHoudiniGeoPartObjects())
+			{
+				if (HGPO.PartName != NewChoiceStr)
+					continue;
+
+				SelectedTextureOutput = OutputIdx;
+			}
+
+			// Update the selected texture output
+			UpdateTextureOutputOnPreviewMesh();
+		}
+	};
+
+	TSharedPtr<FString> InitiallySelectedOutput = OutputList.Num() > 0 ? OutputList[0] : nullptr;
+	TSharedRef<SWidget> OutputControl = 
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.Padding(2.0f)
+		.AutoWidth()
+		[
+			SNew(SComboBox<TSharedPtr<FString>>)
+			.OptionsSource(&OutputList)
+			.InitiallySelectedItem(InitiallySelectedOutput)
+			.Visibility_Lambda(GetOutputVisibility)
+			.OnGenerateWidget_Lambda([](TSharedPtr<FString> ChoiceEntry)
+			{
+				FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+				return SNew(STextBlock)
+					.Text(ChoiceEntryText)
+					.ToolTipText(ChoiceEntryText)
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+			})
+			.OnSelectionChanged_Lambda([=](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+			{
+				return OnSelChanged(NewChoice);
+			})
+			[
+				SNew(STextBlock)
+				.Text_Lambda([this]()
+				{
+					if (OutputList.IsValidIndex(SelectedTextureOutput))
+						return FText::FromString(*OutputList[SelectedTextureOutput].Get());
+					else
+						return FText::FromString(FString::FromInt(SelectedTextureOutput));
+				})
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			]
+		];
+		
+
+	return OutputControl;
+}
+
+void
+FHoudiniAssetEditor::UpdateOutputList()
+{
+	OutputList.Reset();
+	for (int32 OutputIdx = 0; OutputIdx < HoudiniCookableBeingEdited->GetNumOutputs(); OutputIdx++)
+	{
+		UHoudiniOutput* CurOutput = HoudiniCookableBeingEdited->GetOutputAt(OutputIdx);
+		if (!IsValid(CurOutput))
+			continue;
+
+		if (CurOutput->GetType() != EHoudiniOutputType::Cop)
+			continue;
+
+		for (auto& HGPO : CurOutput->GetHoudiniGeoPartObjects())
+			OutputList.Add(MakeShareable(new FString(HGPO.PartName)));
 	}
 }
 /*

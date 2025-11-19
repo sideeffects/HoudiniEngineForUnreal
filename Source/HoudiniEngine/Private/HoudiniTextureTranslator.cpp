@@ -236,6 +236,10 @@ FHoudiniTextureTranslator::CreatePackageForTexture(
 		MyPackageParams.ObjectName = TextureInfoDescriptor;
 	}
 
+	// If we have a part name (output name) be sure to it
+	if(!InPackageParams.SplitStr.IsEmpty())
+		MyPackageParams.ObjectName += InPackageParams.SplitStr;
+
 	return MyPackageParams.CreatePackageForObject(OutTextureName);
 }
 
@@ -514,7 +518,17 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 	{
 		HAPI_NodeId CopNodeId = HGPO.GeoId;
 
-		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderCOPTexture(CopNodeId);
+		//bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderCOPTexture(CopNodeId);
+
+		// TEST
+		bool bRenderSuccessful = false;
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RenderCOPOutputToImage(
+			FHoudiniEngine::Get().GetSession(),
+			CopNodeId,
+			TCHAR_TO_ANSI(*HGPO.PartName)), false);
+
+		bRenderSuccessful = true;
+
 		if (!bRenderSuccessful)
 			continue;
 
@@ -525,6 +539,13 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 		CreateTexture2DParameters.bDeferCompression = true;
 		CreateTexture2DParameters.bSRGB = true;
 
+		// Create custom package param for this output
+		FHoudiniPackageParams MyPackageParams = InPackageParams;
+		MyPackageParams.ObjectId = HGPO.ObjectId;
+		MyPackageParams.GeoId = HGPO.GeoId;
+		MyPackageParams.PartId = HGPO.PartId;
+		MyPackageParams.SplitStr = HGPO.PartName;
+
 		UTexture2D* Texture = nullptr;
 		FHoudiniTextureTranslator::CreateTexture(
 			CopNodeId,
@@ -534,7 +555,7 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 			Texture,
 			"",
 			"",
-			InPackageParams,
+			MyPackageParams,
 			CreateTexture2DParameters,
 			TEXTUREGROUP_World,
 			DummyPackages);
