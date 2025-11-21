@@ -32,7 +32,8 @@
 bool
 FUnrealTextureTranslator::HapiCreateCOPTexture(
 	UTexture2D* Texture,
-	const HAPI_NodeId ParentNode)
+	const HAPI_NodeId ParentNode,
+	HAPI_NodeId& OutCreatedNodeId)
 {
 	// The texture needs certain settings, otherwise RawData->Lock() will fail.
 	// So we save the old settings so we can restore them later.
@@ -93,6 +94,7 @@ FUnrealTextureTranslator::HapiCreateCOPTexture(
 	}
 
 	// Create the COP in Houdini.
+	HAPI_NodeId CreatedNodeId = -1;
 	bool bSuccess = HAPI_RESULT_SUCCESS == FHoudiniApi::CreateCOPImage(
 		FHoudiniEngine::Get().GetSession(),
 		ParentNode, 
@@ -103,12 +105,15 @@ FUnrealTextureTranslator::HapiCreateCOPTexture(
 		true, 
 		ImageData,
 		0, 
-		MipMap->SizeX*MipMap->SizeY*4);
+		MipMap->SizeX*MipMap->SizeY*4,
+		&CreatedNodeId);
 
 	// Clean up.
 	RawData->Unlock();
 	RestoreTexture();
 	delete[] ImageData;
+
+	OutCreatedNodeId = CreatedNodeId;
 
 	return bSuccess;
 }
