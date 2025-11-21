@@ -11832,6 +11832,10 @@ HAPI_DECL HAPI_GetSupportedImageFileFormats(
 ///                 and at most (size of @p data_array - start).
 ///                 <!-- min 0 -->
 ///
+/// @param[out]     new_node_id
+///                 Newly created node's id. Use ::HAPI_GetNodeInfo()
+///                 to get more information about the node.
+///
 HAPI_DECL HAPI_CreateCOPImage( const HAPI_Session * session,
                                HAPI_NodeId parent_node_id,
                                const int width,
@@ -11840,7 +11844,8 @@ HAPI_DECL HAPI_CreateCOPImage( const HAPI_Session * session,
                                HAPI_Bool flip_x,
                                HAPI_Bool flip_y,
                                const float * data_array,
-                               int start, int length );
+                               int start, int length,
+                               HAPI_NodeId * new_node_id);
 
 /// @defgroup Animation
 /// Functions for working with animation.
