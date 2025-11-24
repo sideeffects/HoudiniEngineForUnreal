@@ -661,9 +661,9 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 			HeightPart->Materials, 
 			PackageParams, 
 			CreatedPackages);
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7
 		LandscapeActor->CreateLandscapeInfo();
-
+#endif
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// Fetch the data for the height field and use to create the landscape.
 		//---------------------------------------------------------------------------------------------------------------------------------
