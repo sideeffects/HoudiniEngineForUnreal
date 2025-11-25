@@ -461,6 +461,10 @@ FHoudiniAssetEditor::OnPostOutputProcess(UHoudiniCookable* _HC, bool  bSuccess)
 		NumTextureOutputs++;
 	}
 
+	// Don't switch to a 2D Viewport if we dont output anything!
+	if (NumTextureOutputs <= 0)
+		bTextureOnly = false;
+
 	if (bTextureOnly)
 	{
 		if (!bIsViewingCopHDA)
