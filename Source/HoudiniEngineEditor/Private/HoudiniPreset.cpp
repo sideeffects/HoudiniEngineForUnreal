@@ -772,7 +772,7 @@ FHoudiniPresetHelpers::ApplyPresetCurveInput(const FHoudiniPresetInputValue& Pre
 			InputObj = Input->GetOrCreateCurveInputObjectAt(i ,true, bBlueprintStructModified);
 		}
 
-		if (!IsValid(InputObj))
+		if (!InputObj || !IsValid(InputObj))
 		{
 			continue;
 		}

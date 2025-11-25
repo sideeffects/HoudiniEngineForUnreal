@@ -604,7 +604,7 @@ FHoudiniMeshTranslator::UpdateMeshComponent(
 	if (IsValid(StaticMeshComponent))
 		StaticMesh = StaticMeshComponent->GetStaticMesh();
 
-	if (IsValid(StaticMesh)) 
+	if (StaticMesh && IsValid(StaticMesh)) 
 	{
 		int32 NumberOfSockets = StaticMesh == nullptr ? 0 : StaticMesh->Sockets.Num();
 		for (int32 nSocket = 0; nSocket < NumberOfSockets; nSocket++)
@@ -5416,8 +5416,8 @@ FHoudiniMeshTranslator::CalcBoundingSphere(const TArray<FVector>& PositionArray,
 		return;
 
 	FBox Box;
-	FVector MinIx[3];
-	FVector MaxIx[3];
+	FVector MinIx[3] = {};
+	FVector MaxIx[3] = {};
 
 	bool bFirstVertex = true;
 	for (const FVector& CurPosition : PositionArray)
@@ -6006,7 +6006,7 @@ FHoudiniMeshTranslator::CreateOrUpdateMeshComponent(
 
 	// If there is an existing component, but it is pending kill, then it was likely
 	// deleted by some other process, such as by the user in the editor, so don't use it
-	if (!IsValid(MeshComponent) || !MeshComponent->IsA(InComponentType))
+	if ((!MeshComponent || !IsValid(MeshComponent)) || !MeshComponent->IsA(InComponentType))
 	{
 		// If the component is not of type InComponentType, or the found component is pending kill, destroy 
 		// the existing component (a new one is then created below)
@@ -6241,6 +6241,12 @@ FHoudiniMeshTranslator::AddActorsToMeshSocket(UStaticMeshSocket * Socket, UStati
 	{
 		UObject * Obj = StaticLoadObject(UObject::StaticClass(), nullptr, *ActorStringArray[Idx]);
 		if (!IsValid(Obj)) 
+		{
+			bSuccess = false;
+			continue;
+		}
+
+		if (!EditorWorld)
 		{
 			bSuccess = false;
 			continue;

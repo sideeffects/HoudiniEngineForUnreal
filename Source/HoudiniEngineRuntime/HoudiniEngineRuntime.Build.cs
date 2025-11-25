@@ -83,8 +83,10 @@ public class HoudiniEngineRuntime : ModuleRules
 			{
 				"Landscape",
 				"PhysicsCore",
-				"DeveloperSettings"
-            }
+				"DeveloperSettings",
+				"Slate",
+				"SlateCore"
+			}
 		);
 
 		if (HOUDINI_USE_PCG == 1)

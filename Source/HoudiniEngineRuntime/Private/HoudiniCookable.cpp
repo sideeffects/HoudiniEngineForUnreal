@@ -1119,7 +1119,7 @@ UHoudiniCookable::UpdatePostDuplicate()
 
 		for (auto& NextChild : Children)
 		{
-			if (!IsValid(NextChild))
+			if (!NextChild || !IsValid(NextChild))
 				continue;
 
 			// We don't want to remove components that were added in a Blueprint Template

@@ -1694,6 +1694,11 @@ UHoudiniPublicAPIAssetWrapper::SetRampParameterNumPoints_Implementation(FName In
 		return false;
 	}
 
+	if (!FloatRampParam && !ColorRampParam)
+	{
+		return false;
+	}
+
 	if (bUseCachedPoints)
 	{
 		// When using the cached points we only have to resize the array
@@ -1725,6 +1730,7 @@ UHoudiniPublicAPIAssetWrapper::SetRampParameterNumPoints_Implementation(FName In
 		int32 NumPendingInsertOperations = 0;
 		int32 NumPendingDeleteOperations = 0;
 		TSet<int32> InstanceIndexesPendingDelete;
+
 		TArray<TObjectPtr<UHoudiniParameterRampModificationEvent>>& ModificationEvents = FloatRampParam ? FloatRampParam->ModificationEvents : ColorRampParam->ModificationEvents;
 		for (UHoudiniParameterRampModificationEvent const* const Event : ModificationEvents)
 		{
@@ -1919,7 +1925,7 @@ UHoudiniPublicAPIAssetWrapper::GetRampParameterNumPoints_Implementation(FName In
 		{
 			OutNumPoints = FloatRampParam->CachedPoints.Num();
 		}
-		else
+		else if (ColorRampParam)
 		{
 			OutNumPoints = ColorRampParam->CachedPoints.Num();
 		}
@@ -1928,6 +1934,10 @@ UHoudiniPublicAPIAssetWrapper::GetRampParameterNumPoints_Implementation(FName In
 	{
 		int32 NumPendingInsertOperations = 0;
 		int32 NumPendingDeleteOperations = 0;
+
+		if (!FloatRampParam && !ColorRampParam)
+			return false;
+
 		TArray<TObjectPtr<UHoudiniParameterRampModificationEvent>>& ModificationEvents = FloatRampParam ? FloatRampParam->ModificationEvents : ColorRampParam->ModificationEvents;
 		for (UHoudiniParameterRampModificationEvent const* const Event : ModificationEvents)
 		{
@@ -4118,7 +4128,7 @@ bool UHoudiniPublicAPIAssetWrapper::SetRampParameterPointValue(
 					FloatRampParam->bCaching = true;
 				}
 			}
-			else if (ColorPointData)
+			else if (ColorPointData && ColorRampParam)
 			{
 				if (ColorPointData->Position != InPosition)
 				{

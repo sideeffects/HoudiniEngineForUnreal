@@ -2367,7 +2367,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 			FHoudiniEngineUtils::ApplyTagsToActorOnly(FoundHGPO->GenericPropertyAttributes, FoundActor->Tags);
 		}
 
-	    if (DuplicatedSMCOverrideMaterials.Num() > 0)
+	    if (StaticMeshComponent && IsValid(StaticMeshComponent) && DuplicatedSMCOverrideMaterials.Num() > 0)
 	    {
 			// If we have baked some temporary materials, make sure to update them on the new component
 			for (int32 Idx = 0; Idx < StaticMeshComponent->OverrideMaterials.Num(); Idx++)
@@ -2946,6 +2946,9 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 		if (!FoundActor)
 		{
 			// Spawn the new actor
+			if (!InSMC || !IsValid(InSMC))
+				return false;
+
 			FoundActor = SpawnBakeActor(
 				Factory, BakedSM, DesiredLevel, BakeSettings, InSMC->GetComponentTransform(), 
 				InCookable->GetComponent(), BakeActorClass);
@@ -3370,10 +3373,14 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 		if (!FoundActor)
 		{
 			// Spawn the new actor
-			FoundActor = SpawnBakeActor(
-				Factory, BakedSK, DesiredLevel, BakeSettings, 
-				InSKC->GetComponentTransform(), InCookable->GetComponent(), BakeActorClass);
-			if (!IsValid(FoundActor))
+			if (InSKC)
+			{
+				FoundActor = SpawnBakeActor(
+					Factory, BakedSK, DesiredLevel, BakeSettings,
+					InSKC->GetComponentTransform(), InCookable->GetComponent(), BakeActorClass);
+			}
+
+			if (!FoundActor || !IsValid(FoundActor))
 				return false;
 
 			bCreatedNewActor = true;
@@ -6988,6 +6995,11 @@ FHoudiniEngineBakeUtils::BakeInputHoudiniCurveToActor(
 		}
 	}
 
+	if (!InHoudiniSplineComponent || !InCookable)
+	{
+		return nullptr;
+	}
+
 	AActor* NewActor = SpawnBakeActor(
 		Factory, nullptr, DesiredLevel, BakeSettings,
 		InHoudiniSplineComponent->GetComponentTransform(), InCookable->GetComponent(), BakeActorClass);
@@ -8964,6 +8976,7 @@ FHoudiniEngineBakeUtils::BakeBlueprintsFromBakedActors(
 		BakedActorMap[Actor] = Blueprint;
 
 		// Clear old Blueprint Node tree
+		if (Blueprint)
 		{
 			USimpleConstructionScript* SCS = Blueprint->SimpleConstructionScript;
 

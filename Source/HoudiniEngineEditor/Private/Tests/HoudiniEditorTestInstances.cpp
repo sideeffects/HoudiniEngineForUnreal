@@ -372,7 +372,10 @@ bool FHoudiniEditorTestBakingInstanceActors::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(ActorNames.Num(), 1, return true);
 
 		TArray<AActor*> ChildActors;
-		ParentActor->GetAttachedActors(ChildActors);
+		if (ParentActor)
+		{
+			ParentActor->GetAttachedActors(ChildActors);
+		}
 		HOUDINI_TEST_EQUAL_ON_FAIL(ChildActors.Num(), 100, return true);
 
 		return true;
@@ -1348,6 +1351,9 @@ bool FHoudiniEditorTestPDGInstances::RunTest(const FString& Parameters)
 		}
 		HOUDINI_TEST_NOT_NULL(Node);
 
+		if (!Node)
+			return false;
+
 		HOUDINI_TEST_EQUAL_ON_FAIL(Node->WorkResult.Num(), 10, return true);
 
 
@@ -1440,6 +1446,8 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 				}
 			}
 			HOUDINI_TEST_NOT_NULL(Node);
+			if (!Node)
+				return false;
 
 			HOUDINI_TEST_EQUAL_ON_FAIL(Node->WorkResult.Num(), 10, return true);
 

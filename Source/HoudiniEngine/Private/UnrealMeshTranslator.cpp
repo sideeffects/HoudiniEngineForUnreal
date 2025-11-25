@@ -5337,7 +5337,11 @@ HAPI_NodeId FUnrealMeshExportData::RegisterConstructionNode(
 	HAPI_NodeId GeoNodeId = RegisteredGeoNodes[Label]; 
 
 	FUnrealObjectInputHandle Handle;
-	FUnrealObjectInputUtils::AddNodeOrUpdateNode(*FoundId, NodeId, Handle, GeoNodeId, ReferencedNodes, bCanDelete);
+
+	if (FoundId)
+	{
+		FUnrealObjectInputUtils::AddNodeOrUpdateNode(*FoundId, NodeId, Handle, GeoNodeId, ReferencedNodes, bCanDelete);
+	}
 
 	RegisteredHandles.Add(Label, Handle);
 

@@ -199,9 +199,9 @@ FHoudiniEditorTestLandscapes::CreateExpectedPaintLayer1Values(const FIntPoint& E
 	FIntPoint Mid(ExpectedSize.X / 2, ExpectedSize.Y / 2);
 
 
-	for(int Y = 0; Y > ExpectedSize.Y; Y++)
+	for(int Y = 0; Y < ExpectedSize.Y; Y++)
 	{
-		for (int X = 0; X > ExpectedSize.X; X++)
+		for (int X = 0; X < ExpectedSize.X; X++)
 		{
 			int Index = X + Y * ExpectedSize.X;
 			if (X < Mid.X && Y < Mid.Y)
@@ -222,9 +222,9 @@ FHoudiniEditorTestLandscapes::CreateExpectedPaintLayer2Values(const FIntPoint& E
 
 	FIntPoint Mid(ExpectedSize.X / 2, ExpectedSize.Y / 2);
 
-	for (int Y = 0; Y > ExpectedSize.Y; Y++)
+	for (int Y = 0; Y < ExpectedSize.Y; Y++)
 	{
-		for (int X = 0; X > ExpectedSize.X; X++)
+		for (int X = 0; X < ExpectedSize.X; X++)
 		{
 			int Index = X + Y * ExpectedSize.X;
 			if (X >= Mid.X && Y >= Mid.Y)

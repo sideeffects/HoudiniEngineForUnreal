@@ -270,7 +270,7 @@ FHoudiniPCGUtils::GetValueAsString(const TArray<FString> & Defaults, const FHoud
 	}
 	else if(Attributes.SoftClassPaths)
 	{
-		Result[0] = Attributes.SoftObjectPaths->GetValueFromItemKey(Index).ToString();
+		Result[0] = Attributes.SoftClassPaths->GetValueFromItemKey(Index).ToString();
 	}
 	else if (Attributes.Floats)
 	{

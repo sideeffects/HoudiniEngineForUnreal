@@ -403,7 +403,8 @@ void FHoudiniDigitalAssetPCGElement::AbortInternal(FPCGContext* Context) const
 
 	SourceComponent->ForEachManagedResource([ResourceCrc, &Context](UPCGManagedResource* InResource)
 		{
-			if(!InResource->GetCrc().IsValid() || InResource->GetCrc() != ResourceCrc && InResource->IsA<UPCGManagedResource>())
+			if(!InResource->GetCrc().IsValid() 
+				|| (InResource->GetCrc() != ResourceCrc && InResource->IsA<UPCGManagedResource>()))
 				return;
 
 			UHoudiniPCGManagedResource* ManagedResource = Cast<UHoudiniPCGManagedResource>(InResource);
@@ -475,7 +476,8 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 	PCGComponent->ForEachManagedResource([&ManagedResource, ResourceCrc, &Context](UPCGManagedResource* InResource)
 		{
-			if(!InResource->GetCrc().IsValid() || InResource->GetCrc() != ResourceCrc && InResource->IsA<UPCGManagedResource>())
+			if(!InResource->GetCrc().IsValid() 
+				|| (InResource->GetCrc() != ResourceCrc && InResource->IsA<UPCGManagedResource>()))
 				return;
 
 			ManagedResource = Cast<UHoudiniPCGManagedResource>(InResource);

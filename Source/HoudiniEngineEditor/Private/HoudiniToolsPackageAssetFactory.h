@@ -34,6 +34,7 @@
 #include "UObject/Object.h"
 #include "HoudiniToolsEditor.h"
 #include "HoudiniToolsRuntimeUtils.h"
+#include "HoudiniEngineRuntimePrivatePCH.h"
 
 #include "HoudiniToolsPackageAssetFactory.generated.h"
 

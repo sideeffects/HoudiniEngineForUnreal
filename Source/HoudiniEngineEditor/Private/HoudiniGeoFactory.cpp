@@ -360,7 +360,7 @@ UHoudiniGeoFactory::Reimport(UObject * Obj)
 		ImportData = SkeletalMesh->AssetImportData;
 	}
 	*/
-	if (!IsValid(ImportData))
+	if (!ImportData || !IsValid(ImportData))
 		return FailReimport();
 
 	if (ImportData->GetSourceFileCount() <= 0)
