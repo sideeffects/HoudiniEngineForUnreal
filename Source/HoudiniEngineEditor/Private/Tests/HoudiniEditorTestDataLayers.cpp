@@ -114,6 +114,9 @@ bool FHoudiniEditorTestsPDGDataLayers::RunTest(const FString& Parameters)
 		}
 		HOUDINI_TEST_NOT_NULL(Node);
 
+		if (!Node)
+			return false;
+
 		auto & Results = Node->WorkResult;
 
 

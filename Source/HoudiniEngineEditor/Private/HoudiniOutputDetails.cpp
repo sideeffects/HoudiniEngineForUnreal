@@ -1737,19 +1737,22 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 			FHoudiniBakeSettings BakeSettings;
 			BakeSettings.SetFromCookable(HC.Get());
 
-			FHoudiniOutputDetails::OnBakeOutputObject(
-				OutputCurveName,
-				SplineComponent.Get(),
-				OutputIdentifier,
-				*OutputObject,
-				HoudiniGeoPartObject,
-				(UObject*)HC.Get(),
-				InOutput.Get(),
-				HC->GetBakeFolderOrDefault(),
-				BakeSettings,
-				HC->GetTemporaryCookFolderOrDefault(),
-				EHoudiniLandscapeOutputBakeType::InValid,
-				AllOutputs);
+			if (OutputObject)
+			{
+				FHoudiniOutputDetails::OnBakeOutputObject(
+					OutputCurveName,
+					SplineComponent.Get(),
+					OutputIdentifier,
+					*OutputObject,
+					HoudiniGeoPartObject,
+					(UObject*)HC.Get(),
+					InOutput.Get(),
+					HC->GetBakeFolderOrDefault(),
+					BakeSettings,
+					HC->GetTemporaryCookFolderOrDefault(),
+					EHoudiniLandscapeOutputBakeType::InValid,
+					AllOutputs);
+			}
 
 			return FReply::Handled();
 		})

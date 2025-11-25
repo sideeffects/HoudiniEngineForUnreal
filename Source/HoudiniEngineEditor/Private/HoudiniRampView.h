@@ -34,6 +34,11 @@
 #include "HoudiniEngineRuntimeCommon.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniAlgorithm.h"
+#include "HoudiniParameterDetails.h"
+#include "HoudiniParameterFloat.h"
+#include "HoudiniParameterColor.h"
+#include "HoudiniParameterChoice.h"
+
 
 #include "HoudiniParameterRamp.h"
 

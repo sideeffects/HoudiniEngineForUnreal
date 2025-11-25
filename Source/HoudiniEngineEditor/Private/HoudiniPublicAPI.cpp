@@ -153,7 +153,7 @@ UHoudiniPublicAPI::InstantiateAssetWithExistingWrapper_Implementation(
 	{
 		// Determine the path of what would have been the owning level/world of the actor for error logging purposes
 		const FString LevelPath = IsValid(InSpawnInLevelOverride) ? InSpawnInLevelOverride->GetPathName() : FString();
-		const FString WorldPath = IsValid(OverrideWorldToSpawnIn) ? OverrideWorldToSpawnIn->GetPathName() : FString();
+		const FString WorldPath = (OverrideWorldToSpawnIn && IsValid(OverrideWorldToSpawnIn)) ? OverrideWorldToSpawnIn->GetPathName() : FString();
 		const FString OwnerPath = LevelPath.IsEmpty() ? WorldPath : LevelPath;
 		SetErrorMessage(FString::Printf(TEXT("Failed to spawn a AHoudiniAssetActor in %s."), *OwnerPath));
 		return false;

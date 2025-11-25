@@ -216,6 +216,8 @@ bool FHoudiniEditorTestPDGCommandletMeshInternalMaterials::RunTest(const FString
 				}
 			}
 			HOUDINI_TEST_NOT_NULL(Node);
+			if (!Node)
+				return true;
 
 			HOUDINI_TEST_EQUAL_ON_FAIL(Node->WorkResult.Num(), 2, return true);
 

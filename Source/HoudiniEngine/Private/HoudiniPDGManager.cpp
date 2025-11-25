@@ -2109,7 +2109,10 @@ void FHoudiniPDGManager::HandleImportBGEOResultMessage(
 		}
 		else
 		{
-			PackageParams.OuterPackage = AssetLinkParent->GetPackage();
+			if (AssetLinkParent)
+			{
+				PackageParams.OuterPackage = AssetLinkParent->GetPackage();
+			}
 		}
 
 		// Construct UHoudiniOutputs

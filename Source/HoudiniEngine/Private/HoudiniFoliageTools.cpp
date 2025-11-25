@@ -512,6 +512,9 @@ bool FHoudiniFoliageTools::AreFoliageTypesEqual(UFoliageType const* InLhs, UFoli
 	if ((LhsScaleCurve == nullptr && RhsScaleCurve != nullptr) || (LhsScaleCurve != nullptr && RhsScaleCurve == nullptr))
 		return false;
 
+	if (!LhsScaleCurve || !RhsScaleCurve)
+		return true;
+
 	if (!(*LhsScaleCurve == *RhsScaleCurve))
 		return false;
 
@@ -524,6 +527,9 @@ bool FHoudiniFoliageTools::AreFoliageTypesEqual(UFoliageType const* InLhs, UFoli
 		if ((LhsFalloffCurve == nullptr && RhsFalloffCurve != nullptr) || (LhsFalloffCurve != nullptr && RhsFalloffCurve == nullptr))
 			return false;
 		
+		if (!LhsFalloffCurve || !RhsFalloffCurve)
+			return true;
+
 		if (!(*LhsFalloffCurve == *RhsFalloffCurve))
 			return false;
 	}

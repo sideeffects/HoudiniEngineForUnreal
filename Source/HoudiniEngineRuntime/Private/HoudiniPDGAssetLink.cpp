@@ -2417,7 +2417,7 @@ FOutputActorOwner::CreateOutputActor(UWorld* InWorld, UHoudiniPDGAssetLink* InAs
 
 	// Fallback to InWorld's current level
 	UWorld* WorldToSpawnIn = nullptr;
-	if (!IsValid(LevelToSpawnIn))
+	if (!LevelToSpawnIn || !IsValid(LevelToSpawnIn))
 	{
 		LevelToSpawnIn = InWorld->GetCurrentLevel();
 		WorldToSpawnIn = InWorld;
@@ -2479,7 +2479,7 @@ FOutputActorOwner::CreateOutputActor(UWorld* InWorld, UHoudiniPDGAssetLink* InAs
 	Actor->SetActorRotation(ActorSpawnRotator);
 
 #if WITH_EDITOR
-	if (IsValid(InParentActor) && InParentActor->GetLevel() == LevelToSpawnIn)
+	if ((InParentActor && IsValid(InParentActor)) && InParentActor->GetLevel() == LevelToSpawnIn)
 	{
 		Actor->SetFolderPath(InParentActor->GetFolderPath());
 		Actor->AttachToActor(InParentActor, FAttachmentTransformRules::KeepWorldTransform);

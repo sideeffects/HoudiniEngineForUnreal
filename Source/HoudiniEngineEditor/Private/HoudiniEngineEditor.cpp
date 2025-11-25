@@ -109,8 +109,13 @@
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
 IMPLEMENT_MODULE(FHoudiniEngineEditor, HoudiniEngineEditor);
-DEFINE_LOG_CATEGORY(LogHoudiniEngineEditor);
 
+// This is never declared on Horde for some reason. Compiled locally, it is declared in HoudiniEnginePrivateRuntimePCH.h
+#ifndef HOUDINI_ENGINE_EDITOR_LOG_CATEGORY_DECLARED
+	HOUDINIENGINEEDITOR_API DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEngineEditor, Log, All);
+#endif
+
+DEFINE_LOG_CATEGORY(LogHoudiniEngineEditor);
 
 FHoudiniEngineEditor *
 FHoudiniEngineEditor::HoudiniEngineEditorInstance = nullptr;

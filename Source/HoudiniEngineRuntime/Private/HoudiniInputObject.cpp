@@ -1540,6 +1540,9 @@ UHoudiniInputObject::UpdateMaterialReferences()
 			const UStaticMesh* SM = Cast<UStaticMesh>(InObject);
 			ensure(SM);
 
+			if (!SM || !IsValid(SM))
+				return;
+
 			const TArray<FStaticMaterial> Materials = SM->GetStaticMaterials();
 			for (const FStaticMaterial& Material : Materials)
 			{
@@ -1553,6 +1556,9 @@ UHoudiniInputObject::UpdateMaterialReferences()
 		{
 			const USkeletalMesh* SK = Cast<USkeletalMesh>(InObject);
 			ensure(SK);
+
+			if (!SK || !IsValid(SK))
+				return;
 
 			const TArray<FSkeletalMaterial> Materials = SK->GetMaterials();
 			for (const FSkeletalMaterial& Material : Materials)
@@ -1570,6 +1576,9 @@ UHoudiniInputObject::UpdateMaterialReferences()
 			const UMeshComponent* MC = Cast<UMeshComponent>(InObject);
 			ensure(MC);
 
+			if (!MC || !IsValid(MC))
+				return;
+
 			const TArray<UMaterialInterface*> Materials = MC->GetMaterials();
 			for (const UObject* Material : Materials)
 			{
@@ -1584,6 +1593,9 @@ UHoudiniInputObject::UpdateMaterialReferences()
 		{
 			const UFoliageType_InstancedStaticMesh* FT = Cast<UFoliageType_InstancedStaticMesh>(InObject);
 			ensure(FT);
+			if (!FT || !IsValid(FT))
+				return;
+
 			const UStaticMesh* SM = FT->GetStaticMesh();
 
 			// Use the override materials from the Instancer if available, otherwise use the original materials from the instanced Static Mesh
@@ -1611,6 +1623,8 @@ UHoudiniInputObject::UpdateMaterialReferences()
 		{
 			UGeometryCollection* const GC = Cast<UGeometryCollection>(InObject);
 			ensure(GC);
+			if (!GC || !IsValid(GC))
+				return;
 
 			const TArray<UMaterialInterface*> Materials = GC->Materials;
 
@@ -1818,7 +1832,7 @@ UHoudiniInputSceneComponent::UpdateTransform()
 {
 	USceneComponent* const USC = GetSceneComponent();
 	ensure(USC);
-	if (IsValid(USC))
+	if (USC && IsValid(USC))
 	{
 		// For components in Blueprints we have to ensure that the ComponentToWorld is calculated
 		USC->ConditionalUpdateComponentToWorld();
@@ -1928,8 +1942,8 @@ UHoudiniInputCameraComponent::Update(UObject * InObject, const FHoudiniInputObje
 
 	ensure(Camera);
 	
-	if (IsValid(Camera))
-	{	
+	if (Camera && IsValid(Camera))
+	{
 		bIsOrthographic = Camera->ProjectionMode == ECameraProjectionMode::Type::Orthographic;
 		FOV = Camera->FieldOfView;
 		AspectRatio = Camera->AspectRatio;
@@ -1948,7 +1962,7 @@ UHoudiniInputMeshComponent::Update(UObject * InObject, const FHoudiniInputObject
 
 	ensure(SMC);
 
-	if (IsValid(SMC))
+	if (SMC && IsValid(SMC))
 	{
 		StaticMesh = TSoftObjectPtr<UStaticMesh>(SMC->GetStaticMesh());
 	}
@@ -2128,7 +2142,8 @@ UHoudiniInputHoudiniAsset::Update(UObject * InObject, const FHoudiniInputObjectS
 
 	// TODO: Allow selection of the asset output
 	OutputIndex = 0;
-	NodeId = HC->GetNodeId();
+	if (HC)
+		NodeId = HC->GetNodeId();
 }
 
 
@@ -2706,7 +2721,8 @@ void UHoudiniInputPackedLevelActor::Update(UObject* InObject, const FHoudiniInpu
 
 	if (!IsValid(BlueprintInputObject) || BPObject != BlueprintInputObject->GetBlueprint())
 	{
-		BlueprintInputObject = Cast<UHoudiniInputBlueprint>(CreateTypedInputObject(BPObject, this, BPObject->GetName(), InSettings));
+		if (BPObject)
+			BlueprintInputObject = Cast<UHoudiniInputBlueprint>(CreateTypedInputObject(BPObject, this, BPObject->GetName(), InSettings));
 		return;
 	}
 
@@ -3703,7 +3719,10 @@ UHoudiniInputFoliageType_InstancedStaticMesh::Update(UObject * InObject, const F
 	UHoudiniInputObject::Update(InObject, InSettings);
 	UFoliageType_InstancedStaticMesh* const FoliageType = Cast<UFoliageType_InstancedStaticMesh>(InObject);
 	ensure(FoliageType);
-	ensure(FoliageType->GetStaticMesh());
+	if (FoliageType)
+	{
+		ensure(FoliageType->GetStaticMesh());
+	}
 }
 
 UStaticMesh*
@@ -3757,6 +3776,9 @@ UHoudiniInputSplineMeshComponent::Update(UObject* InObject, const FHoudiniInputO
 
 	USplineMeshComponent const* const SplineMeshComponent = Cast<USplineMeshComponent>(InObject);
 	ensure(SplineMeshComponent);
+
+	if (!SplineMeshComponent)
+		return;
 
 	CachedForwardAxis = SplineMeshComponent->ForwardAxis;
 	CachedSplineParams = SplineMeshComponent->SplineParams;

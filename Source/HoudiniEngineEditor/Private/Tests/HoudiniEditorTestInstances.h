@@ -28,6 +28,9 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "CoreMinimal.h"
+#include "FoliageType.h"
+#include "HoudiniEditorTestUtils.h"
+#include "InstancedFoliage.h"
 
 struct FHoudiniInstanceAutomationTest : public FHoudiniAutomationTest
 {

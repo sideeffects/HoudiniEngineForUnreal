@@ -600,10 +600,13 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesCookedM
 			break;
 	}
 
+	if (!Landscape)
+		return false;
+
 	FName LayerName = TEXT("Noise");
 
 	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
-	HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, INDEX_NONE, true);
+	HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, INDEX_NONE, return true);
 
 	AddCommand(new FFunctionLatentCommand([Context]
 		{
@@ -618,7 +621,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesCookedM
 
 			// Make sure the layer was created.
 			int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
-			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), true);
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), return true);
 
 			//	Now start clean.
 			Context->Cleanup();
@@ -633,7 +636,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesCookedM
 
 			// Make sure the layer was removed.
 			int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
-			HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), return true);
 
 			return true;
 		}));
@@ -667,8 +670,11 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesBakedMo
 
 	FName LayerName = TEXT("Noise");
 
+	if (!Landscape)
+		return false;
+
 	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
-	HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, INDEX_NONE, true);
+	HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, INDEX_NONE, return true);
 
 	AddCommand(new FFunctionLatentCommand([Context]
 		{
@@ -683,7 +689,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesBakedMo
 
 			// Make sure the layer was created.
 			int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
-			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), true);
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), return true);
 
 			//	Now start clean.
 			Context->Cleanup();
@@ -698,7 +704,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_LandscapesBakedMo
 
 			// Make sure the layer was removed.
 			int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
-			HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(EditLayerIndex, int32(INDEX_NONE), return true);
 
 			return true;
 		}));
@@ -1544,6 +1550,9 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGParametersMult
 			// The HDA creates 5 instances, jamming a 100.0 * instance number in the transform
 
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(ISM, return true);
+			if (!ISM)
+				return true;
+
 			HOUDINI_TEST_EQUAL(ISM->GetNumInstances(), 5);
 			for (int Index = 0; Index < 5; Index++)
 			{

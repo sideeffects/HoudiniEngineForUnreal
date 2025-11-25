@@ -31,6 +31,7 @@
 #include "PCGComponent.h"
 #include "UObject/ObjectMacros.h"
 #include "IDetailCustomization.h"
+#include "HoudiniEngine.h"
 #include "HoudiniPCGComponent.generated.h"
 
 

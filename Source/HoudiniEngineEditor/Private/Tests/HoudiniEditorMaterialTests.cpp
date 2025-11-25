@@ -156,10 +156,13 @@ bool HoudiniEditorMaterialTest_Material_Textures::RunTest(const FString& Paramet
 			for (auto& PixelTestCase : PixelTestCases)
 			{
 				int32 Index = PixelTestCase.y * MipMap->SizeX + PixelTestCase.x;
-				HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].R, PixelTestCase.r, AllCorrect = false);
-				HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].G, PixelTestCase.g, AllCorrect = false);
-				HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].B, PixelTestCase.b, AllCorrect = false);
-				HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].A, PixelTestCase.a, AllCorrect = false);
+				if (FormattedImageData)
+				{
+					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].R, PixelTestCase.r, AllCorrect = false);
+					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].G, PixelTestCase.g, AllCorrect = false);
+					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].B, PixelTestCase.b, AllCorrect = false);
+					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].A, PixelTestCase.a, AllCorrect = false);
+				}
 			}
 
 			RawData->Unlock();

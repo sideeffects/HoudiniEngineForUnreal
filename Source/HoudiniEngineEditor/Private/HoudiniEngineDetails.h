@@ -28,17 +28,23 @@
 
 #include "CoreMinimal.h"
 
+
 #include "HAPI/HAPI_Common.h"
 #include "HoudiniEngineDetails.h"
+#include "HoudiniEngineEditor.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 
 #include "Framework/SlateDelegates.h"
 #include "Framework/SlateDelegates.h"
 #include "Styling/SlateBrush.h"
+#include "Templates/SharedPointer.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h" 
+#include "Widgets/SBoxPanel.h"
 #include "Widgets/SCompoundWidget.h"
+#include "Widgets/SWidget.h"
 
 class IDetailCategoryBuilder;
 class UHoudiniAssetComponent;
