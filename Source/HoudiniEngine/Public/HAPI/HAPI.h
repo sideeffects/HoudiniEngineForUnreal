@@ -3033,6 +3033,8 @@ HAPI_DECL HAPI_QueryNodeOutputConnectedNodes( const HAPI_Session * session,
 /// @brief  Get the name of an node's output. This function will return
 ///         a string handle for the name which will be valid (persist)
 ///         until the next call to this function.
+///         Only COPs and VOPs can have output names - other node types
+///         will return their node label when this is called
 ///
 /// @ingroup Nodes
 ///
