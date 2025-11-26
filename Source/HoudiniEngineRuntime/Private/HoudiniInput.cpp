@@ -80,6 +80,7 @@ UHoudiniInput::UHoudiniInput()
 	, InputIndex(0)
 	, ParmId(-1)
 	, bIsObjectPathParameter(false)
+	, bIsCOPInput(false)
 	, bHasChanged(false)
 	, bPackBeforeMerge(false)
 	, bDirectlyConnectHdas(true)
@@ -750,17 +751,32 @@ UHoudiniInput::SetSOPInput(const int32& InInputIndex)
 	// Invalidate objpath parameter
 	ParmId = -1;
 	bIsObjectPathParameter = false;
+	bIsCOPInput = false;
 }
 
 void
-UHoudiniInput::SetObjectPathParameter(const int32& InParmId)
+UHoudiniInput::SetObjectPathParameter(const int32& InParmId, const bool& bIsCOP)
 {
 	// Set as objpath parameter
 	ParmId = InParmId;
 	bIsObjectPathParameter = true;
+	bIsCOPInput = bIsCOP;
 
 	// Invalidate the geo input
 	InputIndex = -1;
+}
+
+// 
+void
+UHoudiniInput::SetCOPInput(const int32& InInputIndex)
+{
+	// Set the input index
+	InputIndex = InInputIndex;
+
+	// Invalidate objpath parameter
+	ParmId = -1;
+	bIsObjectPathParameter = false;
+	bIsCOPInput = true;
 }
 
 EHoudiniXformType 

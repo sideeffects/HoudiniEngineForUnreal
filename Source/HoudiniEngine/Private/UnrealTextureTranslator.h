@@ -37,8 +37,12 @@ struct HOUDINIENGINE_API FUnrealTextureTranslator
 
 		// HAPI : Marshal texture into a Houdini COP node.
 		// If ParentNode is -1, the texture will be created in a copnet in /img.
-		static bool HapiCreateCOPTexture(UTexture2D* Texture, const HAPI_NodeId ParentNode);
+		static bool HapiCreateCOPTexture(
+			UTexture2D* Texture,
+			const HAPI_NodeId ParentNode);
 
 		// Creates a Grid node with uvs and material to old the COP texture
-		static bool CreateGeometryForTexture(HAPI_NodeId ParentNodeId, HAPI_NodeId& CreatedOutNodeId);
+		static bool CreateGeometryForTexture(
+			HAPI_NodeId ParentNodeId,
+			HAPI_NodeId& CreatedOutNodeId);
 };

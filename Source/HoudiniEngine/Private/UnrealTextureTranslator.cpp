@@ -57,6 +57,20 @@ FUnrealTextureTranslator::HapiCreateCOPTexture(
 		RestoreTexture();
 		return false;
 	}
+
+	FTexturePlatformData* PlatformData = Texture->GetPlatformData();
+	if(!PlatformData)
+	{
+		RestoreTexture();
+		return false;
+	}
+	
+	if(PlatformData->Mips.Num() <= 0)
+	{
+		RestoreTexture();
+		return false;
+	}
+
 	FTexture2DMipMap* MipMap = &Texture->GetPlatformData()->Mips[0];
 	if (!MipMap)
 	{

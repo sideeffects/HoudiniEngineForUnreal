@@ -162,6 +162,23 @@ FHoudiniInputTranslator::BuildAllInputs(
 	// as it can cause loaded geo inputs to disappear upon loading the level
 	int32 InputCount = bAssetInfoSuccess ? AssetInfo.geoInputCount : 0;
 
+	// Get the Asset NodeInfo
+	HAPI_NodeInfo AssetNodeInfo;
+	FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+		FHoudiniEngine::Get().GetSession(), NodeId, &AssetNodeInfo), false);
+
+	// If the node is a COP node, look for the node info's input count
+	bool bIsCOPInput = false;
+	if (AssetNodeInfo.type == HAPI_NODETYPE_COP || AssetNodeInfo.type == HAPI_NODETYPE_COP2)
+	{
+		InputCount += AssetNodeInfo.inputCount;
+		bIsCOPInput = true;
+	}
+
+	// Keep track of the number of node inputs (not counting params)
+	int32 NodeInputCount = InputCount;
+
 	// Also look for object path parameters inputs
 	// Helper map to get the parameter index, given the parameter name
 	TMap<FString, int32> ParameterNameToIndexMap;
@@ -251,7 +268,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 	for (int32 InputIdx = 0; InputIdx < Inputs.Num(); InputIdx++)
 	{
 		// SOP input -> Parameter map doesn't make sense - ignore this
-		if (InputIdx < AssetInfo.geoInputCount)
+		if (InputIdx < NodeInputCount)
 		{
 			// Ignore completely
 			InputIdxToInputParamIndex[InputIdx] = -1;
@@ -296,7 +313,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 	}
 
 	// Now, check the inputs in the array match the geo inputs
-	//for (int32 GeoInIdx = 0; GeoInIdx < AssetInfo.geoInputCount; GeoInIdx++)
+	//for (int32 GeoInIdx = 0; GeoInIdx < NodeInputCount; GeoInIdx++)
 	bool bBlueprintStructureChanged = false;
 	for (int32 InputIdx = 0; InputIdx < Inputs.Num(); InputIdx++)
 	{
@@ -313,13 +330,21 @@ FHoudiniInputTranslator::BuildAllInputs(
 		CurrentInput->SetAssetNodeId(NodeId);
 
 		// Is this an object path parameter input?
-		bool bIsObjectPath = InputIdx >= AssetInfo.geoInputCount;
+		bool bIsObjectPath = InputIdx >= NodeInputCount;
 		if (!bIsObjectPath)
 		{
-			// Mark this input as a SOP input
-			CurrentInput->SetSOPInput(InputIdx);
+			if (!bIsCOPInput)
+			{
+				// Mark this input as a SOP input
+				CurrentInput->SetSOPInput(InputIdx);
+			}
+			else
+			{
+				// Mark this input as a COP input
+				CurrentInput->SetCOPInput(InputIdx);
+			}
 
-			// Get and set the name		
+			// Get and set the name
 			HAPI_StringHandle InputStringHandle;
 			if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeInputName(
 				FHoudiniEngine::Get().GetSession(),
@@ -357,7 +382,7 @@ FHoudiniInputTranslator::BuildAllInputs(
 			}
 
 			// Mark this input as an object path parameter input
-			CurrentInput->SetObjectPathParameter(ParmId);
+			CurrentInput->SetObjectPathParameter(ParmId, bIsCOPInput);
 		}
 
 		CurrentInput->SetName(CurrentInputName);
@@ -1184,11 +1209,25 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 	// Check that the current input's node ID is still valid
 	if (InputNodeId < 0 || !FHoudiniEngineUtils::IsHoudiniNodeValid(InputNodeId))
 	{
-		// This input doesn't have a valid NodeId yet,
-		// we need to create this input's merge node and update this input's node ID
-		FString MergeName = InInput->GetNodeBaseName() + TEXT("_Merge");
-		HOUDINI_CHECK_ERROR_RETURN( FHoudiniEngineUtils::CreateNode(
-			-1,	TEXT("SOP/merge"), MergeName, true, &InputNodeId), false);
+		if (!InInput->IsCOPInput())
+		{
+			// This input doesn't have a valid NodeId yet,
+			// we need to create this input's merge node and update this input's node ID
+			FString MergeName = InInput->GetNodeBaseName() + TEXT("_Merge");
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+				-1, TEXT("SOP/merge"), MergeName, true, &InputNodeId), false);
+		}
+		else
+		{
+			// This input doesn't have a valid NodeId yet,
+			// we need to create this input's merge node and update this input's node ID
+			// We use a cable pack node for COPs
+			
+			// Create the node and wait for the ready status
+			FString MergeName = InInput->GetNodeBaseName() + TEXT("_Merge");
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
+				-1, TEXT("COP/cablepack"), MergeName, true, &InputNodeId), false);
+		}
 
 		InInput->SetInputNodeId(InputNodeId);
 	}
@@ -1771,11 +1810,12 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				ObjBaseName,
 				InputTexture,
 				InputSettings,
-				bInputNodesCanBeDeleted);
+				bInputNodesCanBeDeleted,
+				InInput->IsCOPInput());
 
 			if (bSuccess)
 			{
-				OutCreatedNodeIds.Add(InInputObject->GetInputObjectNodeId());
+				OutCreatedNodeIds.Add(InInputObject->GetInputNodeId());
 				OutHandles.Add(InInputObject->InputNodeHandle);
 			}
 			break;
@@ -4883,7 +4923,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 	const FString& InObjNodeName,
 	UHoudiniInputTexture* InObject,
 	const FHoudiniInputObjectSettings& InInputSettings,
-	bool bInputNodesCanBeDeleted)
+	bool bInputNodesCanBeDeleted,
+	bool bIsCOPInput)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FUnrealTextureTranslator::HapiCreateInputNodeForTexture2D);
 
@@ -4906,10 +4947,14 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 	FUnrealObjectInputOptions Options;
 	Options.bExportMainGeometry = InInputSettings.bExportMainGeometry;
 	Options.bImportAsReference = InInputSettings.bImportAsReference;
-	
+
+	//  .. if we are a COP input - no need to add extra geometry - ignore bExportMainGeometry
+	if(bIsCOPInput)
+		Options.bExportMainGeometry = false;
+
 	FUnrealObjectInputIdentifier Identifier;
 	Identifier = FUnrealObjectInputIdentifier(InputTexture, Options, true);
-	
+
 	FUnrealObjectInputHandle InputNodeHandle;
 	FUnrealObjectInputHandle ParentHandle;
 	{		
@@ -4947,7 +4992,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 
 	HAPI_NodeId GeoOutId = -1;
 	bool bSuccess = true;
-	if (InInputSettings.bImportAsReference)
+	if (Options.bImportAsReference)
 	{
 		FTransform ImportAsReferenceTransform = FTransform::Identity;
 		FBox InBbox = FBox(EForceInit::ForceInit);
@@ -4958,7 +5003,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 			InputTexture,
 			TextureName,
 			ImportAsReferenceTransform,
-			InInputSettings.bImportAsReferenceRotScaleEnabled,
+			Options.bImportAsReferenceRotScaleEnabled,
 			InputNodeHandle,
 			true,
 			InInputSettings.bImportAsReferenceBboxEnabled,
@@ -4995,7 +5040,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 			return false;
 		}
 
-		if (InInputSettings.bExportMainGeometry)
+		if (Options.bExportMainGeometry)
 		{
 			// Create a quad with uvs and a coppreview material to "hold" the texture
 			if (FUnrealTextureTranslator::CreateGeometryForTexture(CreatedNodeId, GeoOutId))
@@ -5010,7 +5055,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 
 		// Send the texture to COPs
 		bSuccess = FUnrealTextureTranslator::HapiCreateCOPTexture(
-			InputTexture, CreatedNodeId);
+			InputTexture, ParentNodeId);
 
 		// Now that the textures has been created, cook the grid
 		// (this helps with visual issues when using session sync)
@@ -5018,6 +5063,29 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 		{
 			FHoudiniEngineUtils::HapiCookNode(GeoOutId);
 			CreatedNodeId = GeoOutId;
+		}
+
+		// This will no longer be necessary after the update to HAPI_CreateCOPImage
+		// as the created node id will be returned by HAPI
+		// If we're a COP Input - we need to get the COP output node ID - not the geo container
+		if (bIsCOPInput && CreatedNodeId < 0)
+		{
+			// Get the absolute node path to our COP's geo container
+			FString NodePath;
+			FHoudiniEngineUtils::HapiGetAbsNodePath(ParentNodeId, NodePath);
+
+			// Append the path to the COP node itself
+			NodePath += TEXT("/copmemoryimport1/texture1");
+
+			// Fetch the actual texture node ID from the updated path
+			HAPI_NodeId TextureNodeId = -1;
+			if (FHoudiniEngineUtils::HapiGetNodeFromPath(NodePath, -1, TextureNodeId))
+				CreatedNodeId = TextureNodeId;
+
+			HAPI_NodeInfo COPNodeInfo;
+			FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), CreatedNodeId, &COPNodeInfo);
+			if (COPNodeInfo.type != HAPI_NODETYPE_COP)
+				HOUDINI_LOG_WARNING(TEXT("Not a COP!"));
 		}
 	}
 

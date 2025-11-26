@@ -447,11 +447,23 @@ FHoudiniAssetEditor::OnPostOutputProcess(UHoudiniCookable* _HC, bool  bSuccess)
 		if (!IsValid(CurOutput))
 			continue;
 
+		// Make sure we have a COP output ...
 		if (CurOutput->GetType() != EHoudiniOutputType::Cop)
+		{
 			bTextureOnly = false;
+			continue;
+		}
+
+		// ... that is valid
+		if (CurOutput->GetOutputObjects().Num() <= 0)
+			continue;
 
 		NumTextureOutputs++;
 	}
+
+	// Don't switch to a 2D Viewport if we dont output anything!
+	if (NumTextureOutputs <= 0)
+		bTextureOnly = false;
 
 	if (bTextureOnly)
 	{
@@ -1012,12 +1024,21 @@ FHoudiniAssetEditor::UpdateOutputList()
 		if (!IsValid(CurOutput))
 			continue;
 
+		// ensure the output is a texture
 		if (CurOutput->GetType() != EHoudiniOutputType::Cop)
+			continue;
+
+		// make sure that cop output is valid
+		if (CurOutput->GetOutputObjects().Num() <= 0)
 			continue;
 
 		for (auto& HGPO : CurOutput->GetHoudiniGeoPartObjects())
 			OutputList.Add(MakeShareable(new FString(HGPO.PartName)));
 	}
+
+	// Prevent selecting an output that is no longer valid
+	if (SelectedTextureOutput >= OutputList.Num())
+		SelectedTextureOutput = 0;
 }
 /*
 void

@@ -167,6 +167,7 @@ public:
 	bool GetCurvePointSelectionUseAbsLocation() const	{ return bCurvePointSelectionUseAbsLocation; }
 	bool GetCurvePointSelectionUseAbsRotation() const	{ return bCurvePointSelectionUseAbsRotation; }
 	bool IsObjectPathParameter() const					{ return bIsObjectPathParameter; };
+	bool IsCOPInput() const								{ return bIsCOPInput; };
 	float GetUnrealSplineResolution() const				{ return InputSettings.UnrealSplineResolution; };
 	virtual bool GetCookOnCurveChange() const			{ return bCookOnCurveChanged; };
 		
@@ -291,7 +292,8 @@ public:
 	void MarkAllInputObjectsChanged(const bool& bInChanged);
 
 	void SetSOPInput(const int32& InInputIndex);
-	void SetObjectPathParameter(const int32& InParmId);	
+	void SetCOPInput(const int32& InInputIndex);
+	void SetObjectPathParameter(const int32& InParmId, const bool& bIsCOP);
 	void SetKeepWorldTransform(const bool& bInKeepWorldTransform);
 
 	void SetName(const FString& InName) 
@@ -556,6 +558,9 @@ protected:
 	// Indicates if we're an object path parameter input
 	UPROPERTY()
 	bool bIsObjectPathParameter;
+
+	// Indicates if we're a COP input
+	bool bIsCOPInput;
 
 	// Array containing all the node Ids created by this input
 	UPROPERTY(Transient, DuplicateTransient, NonTransactional)

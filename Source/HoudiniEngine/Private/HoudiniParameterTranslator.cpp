@@ -844,7 +844,8 @@ FHoudiniParameterTranslator::GetParmTypeFromParmInfo(
 		{
 			if (ParmInfo.inputNodeType == HAPI_NODETYPE_ANY ||
 				ParmInfo.inputNodeType == HAPI_NODETYPE_SOP ||
-				ParmInfo.inputNodeType == HAPI_NODETYPE_OBJ)
+				ParmInfo.inputNodeType == HAPI_NODETYPE_OBJ ||
+				ParmInfo.inputNodeType == HAPI_NODETYPE_COP)
 			{
 				// Get the parm name to avoid considering the default object path parameters as inputs
 				FString ParmName = FHoudiniEngineUtils::HapiGetString(ParmInfo.nameSH);

@@ -345,7 +345,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FString& InObjNodeName,
 		UHoudiniInputTexture* InObject,
 		const FHoudiniInputObjectSettings& InInputSettings,
-		bool bInputNodesCanBeDeleted);
+		bool bInputNodesCanBeDeleted,
+		bool bIsCOPInput);
 
 	// Import as reference, wrapper function
 	static bool HapiCreateInputNodeForReference(

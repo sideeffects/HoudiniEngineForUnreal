@@ -1269,8 +1269,9 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 			FString OutputName;
 			FHoudiniEngineString::ToFString(NameSH, OutputName);
 
-			// For now, use the default name "outputX" to extract the image if we have multiple outputs
-			if (AssetNodeInfo.outputCount > 1)
+			// Use the default name "outputX" to extract the image if we have multiple outputs
+			// and were unable to get the output name
+			if (AssetNodeInfo.outputCount > 1 && OutputName.IsEmpty())
 				OutputName = TEXT("output") + FString::FromInt(OutputIdx + 1);
 
 			// Store the output name in the HGPO
@@ -1282,13 +1283,12 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 					UHoudiniOutput::StaticClass(),
 					FName(OutputName),//NAME_None,
 					RF_NoFlags);
+
 			Output->AddNewHGPO(currentHGPO);
 			Output->UpdateOutputType();
 			Output->bCreateSceneComponents = bCreateSceneComponents;
 			OutNewOutputs.Add(Output);
 		}
-
-
 
 		return true;
 	}
