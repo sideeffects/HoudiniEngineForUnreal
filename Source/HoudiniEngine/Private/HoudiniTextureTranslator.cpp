@@ -518,18 +518,13 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 	{
 		HAPI_NodeId CopNodeId = HGPO.GeoId;
 
-		//bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderCOPTexture(CopNodeId);
-
-		// TEST
-		bool bRenderSuccessful = false;
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RenderCOPOutputToImage(
+		HAPI_Result Result;
+		HOUDINI_CHECK_ERROR_GET(&Result, FHoudiniApi::RenderCOPOutputToImage(
 			FHoudiniEngine::Get().GetSession(),
 			CopNodeId,
-			TCHAR_TO_ANSI(*HGPO.PartName)), false);
+			TCHAR_TO_ANSI(*HGPO.PartName)));
 
-		bRenderSuccessful = true;
-
-		if (!bRenderSuccessful)
+		if (HAPI_RESULT_SUCCESS != Result)
 			continue;
 
 		FCreateTexture2DParameters CreateTexture2DParameters;
@@ -564,12 +559,6 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 		FHoudiniOutputObject& FoundOutputObject = InOutput->GetOutputObjects().FindOrAdd(OutputID);
 		FoundOutputObject.OutputComponents.Empty();
 		FoundOutputObject.OutputObject = Texture;
-
-		/*if (Texture)
-		{
-			UMaterialInterface* NewMatInterface = CreateDefaultCopMaterialForTexture(Texture, InPackageParams);
-			FoundOutputObject.OutputComponents.Add(NewMatInterface);
-		}*/
 	}
 
 	return true;

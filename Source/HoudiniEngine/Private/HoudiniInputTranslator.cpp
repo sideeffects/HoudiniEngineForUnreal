@@ -5064,36 +5064,11 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 			FHoudiniEngineUtils::HapiCookNode(GeoOutId);
 			CreatedNodeId = GeoOutId;
 		}
-
-/*
-		// No longer necessary with update to HAPI_CreateCOPImage
-		// If we're a COP Input - we need to get the COP output node ID - not the geo container
-		if (bIsCOPInput && CreatedNodeId < 0)
-		{
-			// Get the absolute node path to our COP's geo container
-			FString NodePath;
-			FHoudiniEngineUtils::HapiGetAbsNodePath(ParentNodeId, NodePath);
-
-			// Append the need path to the COP itself
-			NodePath += TEXT("/copmemoryimport1/texture1");
-
-			// Fetch the actual texture node ID from the path
-			HAPI_NodeId TextureNodeId = -1;
-			if (FHoudiniEngineUtils::HapiGetNodeFromPath(NodePath, -1, TextureNodeId))
-				CreatedNodeId = TextureNodeId;
-
-			HAPI_NodeInfo COPNodeInfo;
-			FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), CreatedNodeId, &COPNodeInfo);
-			if (COPNodeInfo.type != HAPI_NODETYPE_COP)
-				HOUDINI_LOG_WARNING(TEXT("Not a COP!"));
-		}
-*/
 	}
 
 	if(bSuccess)
 	{
 		// Record the node in the manager
-		//const HAPI_NodeId ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CreatedNodeId);
 		FUnrealObjectInputHandle Handle;
 		if (FUnrealObjectInputUtils::AddNodeOrUpdateNode(
 			Identifier,
