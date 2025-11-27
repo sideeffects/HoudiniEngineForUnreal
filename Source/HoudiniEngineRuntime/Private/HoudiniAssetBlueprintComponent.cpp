@@ -1101,11 +1101,12 @@ UHoudiniAssetBlueprintComponent::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes
 {
 	bCanDeleteHoudiniNodes = bInCanDeleteNodes;
 	
+#if WITH_EDITORONLY_DATA
 	for (UHoudiniInput* Input : Inputs_DEPRECATED)
 	{
 		Input->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
 	}
-
+#endif
 	for (UHoudiniOutput* Output : Outputs_DEPRECATED)
 	{
 		Output->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
@@ -1327,6 +1328,7 @@ void UHoudiniAssetBlueprintComponent::OnPrePreInstantiation()
 	// We need to flag our inputs and parameters appropriately in order to preserve their values.
 
 	// We need to mark all our parameters as changed/not triggering update
+#if WITH_EDITORONLY_DATA
 	for (auto CurrentParam : Parameters_DEPRECATED)
 	{
 		if (CurrentParam)
@@ -1335,7 +1337,9 @@ void UHoudiniAssetBlueprintComponent::OnPrePreInstantiation()
 			CurrentParam->SetNeedsToTriggerUpdate(false);
 		}
 	}
+#endif
 
+#if WITH_EDITORONLY_DATA
 	// We need to mark all our inputs as changed/not triggering update
 	for (auto CurrentInput : Inputs_DEPRECATED)
 	{
@@ -1346,6 +1350,7 @@ void UHoudiniAssetBlueprintComponent::OnPrePreInstantiation()
 			CurrentInput->MarkDataUploadNeeded(true);
 		}
 	}
+#endif
 }
 
 void 
@@ -1514,6 +1519,7 @@ UHoudiniAssetBlueprintComponent::GetComponentInstanceData() const
 
 	InstanceData->Inputs.Empty();
 
+#if WITH_EDITORONLY_DATA
 	for (UHoudiniInput* Input : Inputs_DEPRECATED)
 	{
 		if (!Input)
@@ -1521,6 +1527,7 @@ UHoudiniAssetBlueprintComponent::GetComponentInstanceData() const
 		UHoudiniInput* TransientInput = Input->DuplicateAndCopyState(GetTransientPackage(), false);
 		InstanceData->Inputs.Add(TransientInput);
 	}
+#endif
 
 	// Cache the current outputs
 	InstanceData->Outputs.Empty();
@@ -1558,6 +1565,7 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 		USimpleConstructionScript* SCS = GetSCS();
 		check(SCS);
 
+#if WITH_EDITORONLY_DATA
 		TArray<UHoudiniInput*> StaleInputs(Inputs_DEPRECATED);
 
 		// We need to update references contain in inputs / outputs to point to new reconstructed components.
@@ -1602,7 +1610,7 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 
 			Inputs_DEPRECATED[i] = ToInput;
 		}
-
+#endif
 		// We need to update FHoudiniOutputObject SceneComponent references to
 		// the newly created components. Since we cached a map of Output Object IDs to
 		// SCSNodes (during CopyStateToTemplateComponent), we can the SCSNode that corresponds to this output objects and find
@@ -1860,8 +1868,10 @@ UHoudiniAssetBlueprintComponent::OnHoudiniAssetChanged()
 		SetCanDeleteHoudiniNodes(true);
 		InvalidateData();
 		SetCanDeleteHoudiniNodes(false);
+#if WITH_EDITORONLY_DATA
 		Parameters_DEPRECATED.Empty();
 		Inputs_DEPRECATED.Empty();
+#endif
 	}
 
 	Super::OnHoudiniAssetChanged();
@@ -2038,15 +2048,19 @@ UHoudiniAssetBlueprintComponent::InvalidateData()
 		// Ensure transient properties are invalidated/released for parameters, inputs and outputs as if the
 		// the object was undergoing destruction since the template component will likely be reregistered
 		// without being destroyed.
+#if WITH_EDITORONLY_DATA
 		for(UHoudiniParameter* Param : Parameters_DEPRECATED)
 		{
 			Param->InvalidateData();
 		}
+#endif
 		
+#if WITH_EDITORONLY_DATA
 		for(UHoudiniInput* Input : Inputs_DEPRECATED)
 		{
 			Input->InvalidateData();
 		}
+#endif
 
 		FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(AssetId_DEPRECATED, true);
 		AssetId_DEPRECATED = -1;

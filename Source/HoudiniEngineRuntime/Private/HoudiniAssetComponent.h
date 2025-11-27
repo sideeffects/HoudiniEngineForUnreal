@@ -146,10 +146,16 @@ public:
 	TArray<FHoudiniBakedOutput>& GetBakedOutputs();
 	const TArray<FHoudiniBakedOutput>& GetBakedOutputs() const;
 		
+#if WITH_EDITORONLY_DATA
 	TArray<TObjectPtr<UHoudiniParameter>>& GetParameters();
 	const TArray<TObjectPtr<UHoudiniParameter>>& GetParameters() const;
+#endif
+
+#if WITH_EDITORONLY_DATA
 	TArray<TObjectPtr<UHoudiniInput>>& GetInputs();
 	const TArray<TObjectPtr<UHoudiniInput>>& GetInputs() const;
+#endif
+
 	TArray<TObjectPtr<UHoudiniOutput>>& GetOutputs();
 	TArray<TObjectPtr<UHoudiniHandleComponent>>& GetHandleComponents();
 
@@ -768,16 +774,20 @@ protected:
 	UPROPERTY(DuplicateTransient)
 	bool bBlueprintModified; // NOT COOKABLE
 	
+#if WITH_EDITORONLY_DATA
 	// DEPRECATED: get from CookableInstead: 
 	// GetCookable()->GetParameterData()->Parameters
 	UPROPERTY(Instanced)
 	TArray<TObjectPtr<UHoudiniParameter>> Parameters_DEPRECATED;
+#endif
 
+#if WITH_EDITORONLY_DATA
 	// DEPRECATED: get from CookableInstead:
 	// GetCookable()->GetInputData()->Inputs
 	UPROPERTY(Instanced)
 	TArray<TObjectPtr<UHoudiniInput>> Inputs_DEPRECATED;
-	
+#endif
+
 	// DEPRECATED: get from CookableInstead:
 	// GetCookable()->GetOutputData()->Outputs
 	UPROPERTY(Instanced)

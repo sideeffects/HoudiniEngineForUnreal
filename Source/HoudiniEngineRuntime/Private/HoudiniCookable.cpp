@@ -60,7 +60,7 @@ UCookableParameterData::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 {
 	if (!IsValid(InOtherParam))
 		return nullptr;
-
+#if WITH_EDITORONLY_DATA
 	for (auto CurrentParam : Parameters)
 	{
 		if (!IsValid(CurrentParam))
@@ -69,6 +69,7 @@ UCookableParameterData::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 		if (CurrentParam->Matches(*InOtherParam))
 			return CurrentParam;
 	}
+#endif
 
 	return nullptr;
 }
@@ -115,6 +116,7 @@ UCookableInputData::UCookableInputData(const FObjectInitializer& ObjectInitializ
 bool
 UCookableInputData::NeedsToWaitForInputHoudiniAssets()
 {
+#if WITH_EDITORONLY_DATA
 	for (auto& CurrentInput : Inputs)
 	{
 		if (!IsValid(CurrentInput))
@@ -156,6 +158,7 @@ UCookableInputData::NeedsToWaitForInputHoudiniAssets()
 			}
 		}
 	}
+#endif
 
 	return false;
 }
@@ -410,6 +413,7 @@ bool
 UHoudiniCookable::SetParameterData(UCookableParameterData* InParameterData)
 {
 	bool bChanged = false;
+#if WITH_EDITORONLY_DATA
 	bChanged |= HoudiniCheckAndSetValue(ParameterData->bCookOnParameterChange, InParameterData->bCookOnParameterChange);
 	bChanged |= HoudiniCheckAndSetValue(ParameterData->ParameterPresetBuffer, InParameterData->ParameterPresetBuffer);
 	bChanged |= HoudiniCheckAndSetValue(ParameterData->bParameterDefinitionUpdateNeeded, InParameterData->bParameterDefinitionUpdateNeeded);
@@ -441,14 +445,16 @@ UHoudiniCookable::SetParameterData(UCookableParameterData* InParameterData)
 			}
 		}
 	}
-
+#endif
 	return bChanged;
+
 }
 
 bool
 UHoudiniCookable::SetInputData(UCookableInputData* InInputData)
 {
 	bool bChanged = false;
+#if WITH_EDITORONLY_DATA
 	bChanged |= HoudiniCheckAndSetValue(InputData->bCookOnInputChange, InInputData->bCookOnInputChange);
 	bChanged |= HoudiniCheckAndSetValue(InputData->bCookOnCookableInputCook, InInputData->bCookOnCookableInputCook);
 
@@ -474,7 +480,7 @@ UHoudiniCookable::SetInputData(UCookableInputData* InInputData)
 			}
 		}
 	}
-
+#endif
 	return bChanged;
 }
 
@@ -726,12 +732,16 @@ UHoudiniCookable::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 void
 UHoudiniCookable::OnHoudiniAssetChanged()
 {
+#if WITH_EDITORONLY_DATA
 	// TODO: clear input/params/outputs?
 	if(IsParameterSupported())
 		ParameterData->Parameters.Empty();
+#endif
 
+#if WITH_EDITORONLY_DATA
 	if (IsInputSupported())
 		InputData->Inputs.Empty();
+#endif
 
 	if (IsOutputSupported())
 		OutputData->Outputs.Empty();
@@ -917,6 +927,7 @@ UHoudiniCookable::UpdateDormantStatus()
 bool
 UHoudiniCookable::NeedUpdateParameters() const
 {
+#if WITH_EDITORONLY_DATA
 	if (!IsParameterSupported())
 		return false;
 
@@ -940,7 +951,7 @@ UHoudiniCookable::NeedUpdateParameters() const
 
 		return true;
 	}
-
+#endif
 	return false;
 }
 
@@ -983,6 +994,7 @@ UHoudiniCookable::IsOutputTypeSupported(EHoudiniOutputType InType)
 bool
 UHoudiniCookable::NeedUpdateInputs() const
 {
+#if WITH_EDITORONLY_DATA
 	if (!IsInputSupported())
 		return false;
 
@@ -1006,6 +1018,7 @@ UHoudiniCookable::NeedUpdateInputs() const
 
 		return true;
 	}
+#endif
 
 	return false;
 }
@@ -1262,6 +1275,7 @@ UHoudiniCookable::MarkAsNeedRecookOrRebuild(bool bDoRebuild)
 	if (bDoRebuild)
 		bFullyLoaded = false;
 
+#if WITH_EDITORONLY_DATA
 	// TODO COOKABLE: This was somehow only for recook ?
 	if (IsParameterSupported() && !bDoRebuild)
 	{
@@ -1280,6 +1294,7 @@ UHoudiniCookable::MarkAsNeedRecookOrRebuild(bool bDoRebuild)
 			CurrentParam->SetNeedsToTriggerUpdate(true);
 		}
 	}
+#endif
 
 	if (IsOutputSupported())
 	{
@@ -1308,6 +1323,7 @@ UHoudiniCookable::MarkAsNeedRecookOrRebuild(bool bDoRebuild)
 		}
 	}
 
+#if WITH_EDITORONLY_DATA
 	if (IsInputSupported())
 	{
 		// We need to mark all our inputs as changed/trigger update
@@ -1350,6 +1366,7 @@ UHoudiniCookable::MarkAsNeedRecookOrRebuild(bool bDoRebuild)
 			}
 		}
 	}
+#endif
 
 	// Clear the static mesh bake timer
 	if(IsOutputSupported())
@@ -1364,6 +1381,7 @@ UHoudiniCookable::MarkAsNeedInstantiation()
 	// Invalidate the asset ID
 	NodeId = -1;
 
+#if WITH_EDITORONLY_DATA
 	if((IsParameterSupported() && ParameterData->Parameters.Num() <= 0)
 		&& (IsInputSupported() && InputData->Inputs.Num() <= 0)
 		&& (IsOutputSupported() && OutputData->Outputs.Num() <= 0))
@@ -1381,7 +1399,7 @@ UHoudiniCookable::MarkAsNeedInstantiation()
 		// after being modified
 		SetCurrentState(EHoudiniAssetState::NeedInstantiation);
 	}
-
+#endif
 	CurrentStateResult = EHoudiniAssetStateResult::None;
 
 	// Reset some of the asset's flag
@@ -1394,6 +1412,7 @@ UHoudiniCookable::MarkAsNeedInstantiation()
 
 	//bEditorPropertiesNeedFullUpdate = true;
 
+#if WITH_EDITORONLY_DATA
 	if (IsParameterSupported())
 	{
 		// We need to mark all our parameters as changed/not triggering update
@@ -1406,7 +1425,9 @@ UHoudiniCookable::MarkAsNeedInstantiation()
 			}
 		}
 	}
-	
+#endif
+
+#if WITH_EDITORONLY_DATA
 	if (IsInputSupported())
 	{
 		// We need to mark all our inputs as changed/not triggering update
@@ -1420,6 +1441,7 @@ UHoudiniCookable::MarkAsNeedInstantiation()
 			}
 		}
 	}
+#endif
 
 	// Clear the static mesh bake timer
 	ClearRefineMeshesTimer();
@@ -1442,6 +1464,7 @@ UHoudiniCookable::PreventAutoUpdates()
 	if(IsComponentSupported())
 		ComponentData->bHasComponentTransformChanged = false;
 
+#if WITH_EDITORONLY_DATA
 	if (IsParameterSupported())
 	{
 		// Go through all our parameters, prevent them from triggering updates
@@ -1454,7 +1477,9 @@ UHoudiniCookable::PreventAutoUpdates()
 			CurrentParm->SetNeedsToTriggerUpdate(false);
 		}
 	}	
+#endif
 
+#if WITH_EDITORONLY_DATA
 	// Same with inputs
 	if (IsInputSupported())
 	{
@@ -1467,6 +1492,7 @@ UHoudiniCookable::PreventAutoUpdates()
 			CurrentInput->SetNeedsToTriggerUpdate(false);
 		}
 	}
+#endif
 
 	if (IsOutputSupported())
 	{
@@ -1504,12 +1530,15 @@ UHoudiniCookable::PreventAutoUpdates()
 void
 UHoudiniCookable::OnSessionConnected()
 {
+#if WITH_EDITORONLY_DATA
 	if (IsParameterSupported())
 	{
 		for (auto& Param : ParameterData->Parameters)
 			Param->OnSessionConnected();
 	}
+#endif
 	
+#if WITH_EDITORONLY_DATA
 	if (IsInputSupported())
 	{
 		for (auto& Input : InputData->Inputs)
@@ -1517,6 +1546,7 @@ UHoudiniCookable::OnSessionConnected()
 			Input->OnSessionConnected();
 		}
 	}
+#endif
 
 	NodeId = INDEX_NONE;
 }
@@ -1525,6 +1555,7 @@ UHoudiniCookable::OnSessionConnected()
 UHoudiniParameter*
 UHoudiniCookable::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 {
+#if WITH_EDITORONLY_DATA
 	if (!IsValid(InOtherParam))
 		return nullptr;
 
@@ -1539,13 +1570,14 @@ UHoudiniCookable::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 		if (CurrentParam->Matches(*InOtherParam))
 			return CurrentParam;
 	}
-
+#endif
 	return nullptr;
 }
 
 UHoudiniInput*
 UHoudiniCookable::FindMatchingInput(UHoudiniInput* InOtherInput)
 {
+#if WITH_EDITORONLY_DATA
 	if (!IsValid(InOtherInput))
 		return nullptr;
 
@@ -1560,6 +1592,7 @@ UHoudiniCookable::FindMatchingInput(UHoudiniInput* InOtherInput)
 		if (CurrentInput->Matches(*InOtherInput))
 			return CurrentInput;
 	}
+#endif
 
 	return nullptr;
 }
@@ -1588,6 +1621,7 @@ UHoudiniCookable::FindMatchingHandle(UHoudiniHandleComponent* InOtherHandle)
 UHoudiniParameter*
 UHoudiniCookable::FindParameterByName(const FString& InParamName)
 {
+#if WITH_EDITORONLY_DATA
 	if (!IsParameterSupported())
 		return nullptr;
 
@@ -1599,34 +1633,43 @@ UHoudiniCookable::FindParameterByName(const FString& InParamName)
 		if (CurrentParam->GetParameterName().Equals(InParamName))
 			return CurrentParam;
 	}
+#endif
 
 	return nullptr;
 }
 
 
+#if WITH_EDITORONLY_DATA
 TArray<TObjectPtr<UHoudiniParameter>>&
 UHoudiniCookable::GetParameters()
 {
 	return ParameterData->Parameters;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 const TArray<TObjectPtr<UHoudiniParameter>>&
 UHoudiniCookable::GetParameters() const
 {
 	return ParameterData->Parameters;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 TArray<TObjectPtr<UHoudiniInput>>&
 UHoudiniCookable::GetInputs()
 {
 	return InputData->Inputs;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 const TArray<TObjectPtr<UHoudiniInput>>&
 UHoudiniCookable::GetInputs() const
 {
 	return InputData->Inputs;
 }
+#endif
 
 TArray<TObjectPtr<UHoudiniOutput>>&
 UHoudiniCookable::GetOutputs()
@@ -2360,6 +2403,7 @@ UHoudiniCookable::OnDestroy(bool bDestroyingHierarchy)
 	if(IsHoudiniAssetSupported())
 		HoudiniAssetData->HoudiniAsset = nullptr;
 
+#if WITH_EDITORONLY_DATA
 	if (IsParameterSupported())
 	{
 		// Clear Parameters
@@ -2380,7 +2424,9 @@ UHoudiniCookable::OnDestroy(bool bDestroyingHierarchy)
 
 		ParameterData->Parameters.Empty();
 	}
+#endif
 
+#if WITH_EDITORONLY_DATA
 	if (IsInputSupported())
 	{
 		// Clear Inputs
@@ -2399,6 +2445,7 @@ UHoudiniCookable::OnDestroy(bool bDestroyingHierarchy)
 
 		InputData->Inputs.Empty();
 	}
+#endif
 
 	if (IsOutputSupported())
 	{
@@ -2530,6 +2577,7 @@ UHoudiniCookable::OnDestroy(bool bDestroyingHierarchy)
 bool
 UHoudiniCookable::NotifyCookedToDownstreamCookables()
 {
+#if WITH_EDITORONLY_DATA
 	// Before notifying, clean up our downstream cookables
 	// - check that they are still valid
 	// - check that we are still connected to one of its inputs
@@ -2598,6 +2646,7 @@ UHoudiniCookable::NotifyCookedToDownstreamCookables()
 	{
 		InputData->DownstreamCookables.Remove(ToDelete);
 	}
+#endif
 
 	return true;
 }
@@ -2605,6 +2654,7 @@ UHoudiniCookable::NotifyCookedToDownstreamCookables()
 void
 UHoudiniCookable::AddDownstreamCookable(UHoudiniCookable* InDownstreamCookable)
 {
+#if WITH_EDITORONLY_DATA
 	if (!IsValid(InDownstreamCookable))
 		return;
 
@@ -2612,21 +2662,28 @@ UHoudiniCookable::AddDownstreamCookable(UHoudiniCookable* InDownstreamCookable)
 		return;
 		
 	InputData->DownstreamCookables.Add(InDownstreamCookable);
+#else
+	return;
+#endif
 }
 
 void
 UHoudiniCookable::RemoveDownstreamCookable(UHoudiniCookable* InDownstreamCookable)
 {
+#if WITH_EDITORONLY_DATA
 	if (!IsInputSupported())
 		return;
 
 	InputData->DownstreamCookables.Remove(InDownstreamCookable);
+#endif
 }
 
 void
 UHoudiniCookable::ClearDownstreamCookable()
 {
+#if WITH_EDITORONLY_DATA
 	InputData->DownstreamCookables.Empty();
+#endif
 }
 
 void
