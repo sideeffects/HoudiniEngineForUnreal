@@ -350,6 +350,7 @@ UHoudiniAssetComponent::GetDisplayName() const
 	return GetOwner() ? GetOwner()->GetActorNameOrLabel() : GetName();
 }
 
+#if WITH_EDITORONLY_DATA
 TArray<TObjectPtr<UHoudiniParameter>>&
 UHoudiniAssetComponent::GetParameters()
 { 
@@ -358,7 +359,9 @@ UHoudiniAssetComponent::GetParameters()
 
 	return Parameters_DEPRECATED; 
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 const TArray<TObjectPtr<UHoudiniParameter>>&
 UHoudiniAssetComponent::GetParameters() const
 {
@@ -367,7 +370,9 @@ UHoudiniAssetComponent::GetParameters() const
 
 	return Parameters_DEPRECATED;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 TArray<TObjectPtr<UHoudiniInput>>&
 UHoudiniAssetComponent::GetInputs()
 { 
@@ -376,7 +381,9 @@ UHoudiniAssetComponent::GetInputs()
 
 	return Inputs_DEPRECATED;
 }
+#endif
 
+#if WITH_EDITORONLY_DATA
 const TArray<TObjectPtr<UHoudiniInput>>&
 UHoudiniAssetComponent::GetInputs() const
 {
@@ -385,6 +392,7 @@ UHoudiniAssetComponent::GetInputs() const
 
 	return Inputs_DEPRECATED;
 }
+#endif
 
 TArray<TObjectPtr<UHoudiniOutput>>& 
 UHoudiniAssetComponent::GetOutputs()
@@ -665,8 +673,10 @@ UHoudiniAssetComponent::OnHoudiniAssetChanged()
 	if (GetCookable())
 		return GetCookable()->OnHoudiniAssetChanged();
 
+#if WITH_EDITORONLY_DATA
 	// TODO: clear input/params/outputs?
 	Parameters_DEPRECATED.Empty();
+#endif
 
 	// The asset has been changed, mark us as needing to be reinstantiated
 	MarkAsNeedInstantiation();
@@ -973,6 +983,7 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 
 	HoudiniAsset_DEPRECATED = nullptr;
 
+#if WITH_EDITORONLY_DATA
 	// Clear Parameters
 	for (TObjectPtr<UHoudiniParameter>& CurrentParm : Parameters_DEPRECATED)
 	{
@@ -991,7 +1002,9 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	}
 
 	Parameters_DEPRECATED.Empty();
+#endif
 
+#if WITH_EDITORONLY_DATA
 	// Clear Inputs
 	for (TObjectPtr<UHoudiniInput>&  CurrentInput : Inputs_DEPRECATED)
 	{
@@ -1007,6 +1020,7 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	}
 
 	Inputs_DEPRECATED.Empty();
+#endif
 
 	// Clear Output
 	for (TObjectPtr<UHoudiniOutput>& CurrentOutput : Outputs_DEPRECATED)
@@ -1160,6 +1174,7 @@ UHoudiniAssetComponent::FindParameterByName(const FString& InParamName)
 	if (GetCookable())
 		return GetCookable()->FindParameterByName(InParamName);
 
+#if WITH_EDITORONLY_DATA
 	for (auto CurrentParam : Parameters_DEPRECATED)
 	{
 		if (!IsValid(CurrentParam))
@@ -1168,6 +1183,7 @@ UHoudiniAssetComponent::FindParameterByName(const FString& InParamName)
 		if (CurrentParam->GetParameterName().Equals(InParamName))
 			return CurrentParam;
 	}
+#endif
 
 	return nullptr;
 }
@@ -1718,6 +1734,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 
 	// Query the bounds for all input parameters
 	//TArray<TObjectPtr<UHoudiniParameter>>& MyParams = GetParameters();
+#if WITH_EDITORONLY_DATA
 	for (auto& CurParam : GetParameters()) 
 	{
 		if (!IsValid(CurParam))
@@ -1735,6 +1752,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 
 		BoxBounds += InputParam->HoudiniInput.Get()->GetBounds(this->GetHACWorld());
 	}
+#endif
 
 	// Query the bounds for all our Houdini handles
 	for (auto & CurHandleComp : HandleComponents_DEPRECATED)
@@ -2462,13 +2480,13 @@ void UHoudiniAssetComponent::OnSessionConnected()
 	if (GetCookable())
 		GetCookable()->OnSessionConnected();
 
+#if WITH_EDITORONLY_DATA
 	for(auto& Param : Parameters_DEPRECATED)
 		Param->OnSessionConnected();
 
 	for (auto & Input : Inputs_DEPRECATED)
-	{
 		Input->OnSessionConnected();
-	}
+#endif
 
 	AssetId_DEPRECATED = INDEX_NONE;
 }
@@ -2585,8 +2603,11 @@ UHoudiniAssetComponent::GetNumInputs() const
 {
 	if (GetCookable())
 		return GetCookable()->GetNumInputs();
-
+#if WITH_EDITORONLY_DATA
 	return Inputs_DEPRECATED.Num();
+#else
+	return 0;
+#endif
 }
 
 int32
@@ -2604,7 +2625,11 @@ UHoudiniAssetComponent::GetNumParameters() const
 	if (GetCookable())
 		return GetCookable()->GetNumParameters();
 
+#if WITH_EDITORONLY_DATA
 	return Parameters_DEPRECATED.Num();
+#else
+	return 0;
+#endif
 }
 
 int32
@@ -2621,8 +2646,11 @@ UHoudiniAssetComponent::GetInputAt(const int32& Idx)
 { 
 	if (GetCookable())
 		return GetCookable()->GetInputAt(Idx);
-
+#if WITH_EDITORONLY_DATA
 	return Inputs_DEPRECATED.IsValidIndex(Idx) ? Inputs_DEPRECATED[Idx] : nullptr;
+#else
+	return nullptr;
+#endif
 }
 
 UHoudiniOutput*
@@ -2640,7 +2668,11 @@ UHoudiniAssetComponent::GetParameterAt(const int32& Idx)
 	if (GetCookable())
 		return GetCookable()->GetParameterAt(Idx);
 
+#if WITH_EDITORONLY_DATA
 	return Parameters_DEPRECATED.IsValidIndex(Idx) ? Parameters_DEPRECATED[Idx] : nullptr;
+#else
+	return nullptr;
+#endif
 }
 
 UHoudiniHandleComponent*
@@ -2795,7 +2827,9 @@ UHoudiniAssetComponent::TransferDataToCookable(UHoudiniCookable* HC)
 		if (!IsValid(CurHC))
 			continue;
 
+#if WITH_EDITORONLY_DATA
 		HC->InputData->DownstreamCookables.Add(CurHC);
+#endif
 	}
 	//DownstreamHoudiniAssets_DEPRECATED.Empty();
 	
@@ -2823,11 +2857,15 @@ UHoudiniAssetComponent::TransferDataToCookable(UHoudiniCookable* HC)
 	// bBlueprintStructureModified; // NOT COOKABLE
 	// bBlueprintModified; // NOT COOKABLE
 	
+#if WITH_EDITORONLY_DATA
 	HC->ParameterData->Parameters = Parameters_DEPRECATED; // COOKABLE - PARAMETERS
 	Parameters_DEPRECATED.Empty();
+#endif
 
+#if WITH_EDITORONLY_DATA
 	HC->InputData->Inputs = Inputs_DEPRECATED; // COOKABLE - INPUTS
 	Inputs_DEPRECATED.Empty();
+#endif
 
 	HC->OutputData->Outputs = Outputs_DEPRECATED; // COOKABLE - OUTPUTS
 	Outputs_DEPRECATED.Empty();
@@ -2853,8 +2891,10 @@ UHoudiniAssetComponent::TransferDataToCookable(UHoudiniCookable* HC)
 	// HC->SetNoProxyMeshNextCookRequested(bNoProxyMeshNextCookRequested);
 	// HC->SetBakeAfterNextCook(BakeAfterNextCook); // COOKABLE - OUTPUTS
 
+#if WITH_EDITORONLY_DATA
 	HC->ParameterData->ParameterPresetBuffer = ParameterPresetBuffer_DEPRECATED;
 	ParameterPresetBuffer_DEPRECATED.Empty();
+#endif
 
 	return true;
 }

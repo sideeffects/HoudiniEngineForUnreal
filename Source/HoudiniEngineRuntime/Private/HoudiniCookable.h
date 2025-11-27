@@ -63,10 +63,11 @@ public:
 
 	UCookableHoudiniAssetData();
 
-	// Houdini Asset associated with this component.			
+#if WITH_EDITORONLY_DATA
+	// Houdini Asset associated with this component.
 	UPROPERTY(Category = HoudiniAsset, EditAnywhere)// BlueprintSetter = SetHoudiniAsset, BlueprintReadWrite, )
 	TObjectPtr<UHoudiniAsset> HoudiniAsset;
-
+#endif
 	// Subasset index
 	UPROPERTY()
 	uint32 SubAssetIndex;
@@ -88,13 +89,17 @@ public:
 
 	UCookableParameterData();
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY(Instanced)
 	TArray<TObjectPtr<UHoudiniParameter>> Parameters;
+#endif
 
+#if WITH_EDITORONLY_DATA
 	// Used to store the current state of parameters 
 	// This allows fast - batch setting of parameters (upon rebuild/load)
 	UPROPERTY()
 	TArray<int8> ParameterPresetBuffer;
+#endif
 
 	// Automatically cook when a parameter is changed
 	UPROPERTY()
@@ -122,10 +127,11 @@ public:
 
 	UCookableInputData();
 
+#if WITH_EDITORONLY_DATA
 	// Store data for a cookable's inputs
 	UPROPERTY(Instanced)
 	TArray<TObjectPtr<UHoudiniInput>> Inputs;
-
+#endif
 	// Automatically cook when an input is changed
 	UPROPERTY()
 	bool bCookOnInputChange; // bCookOnParameterChange
@@ -133,14 +139,30 @@ public:
 	UPROPERTY()
 	bool bCookOnCookableInputCook;
 
+#if WITH_EDITORONLY_DATA
 	// TODO: Cookable Move to output data?
 	// List of dependent downstream Cookables that have us as an asset input
 	UPROPERTY(DuplicateTransient)
 	TSet<TObjectPtr<UHoudiniCookable>> DownstreamCookables;
+#endif
 
 	// Accessors
-	int32 GetNumInputs() const { return Inputs.Num(); };
-	UHoudiniInput* GetInputAt(const int32& Idx) { return Inputs.IsValidIndex(Idx) ? Inputs[Idx] : nullptr; };
+	int32 GetNumInputs() const
+	{
+#if WITH_EDITORONLY_DATA
+		return Inputs.Num(); 
+#else
+		return 0;
+#endif
+	};
+	UHoudiniInput* GetInputAt(const int32& Idx)
+	{
+#if WITH_EDITORONLY_DATA
+		return Inputs.IsValidIndex(Idx) ? Inputs[Idx] : nullptr; 
+#else
+		return nullptr;
+#endif
+	};
 
 	//
 	//bool NeedUpdateInputs() const;
@@ -491,14 +513,48 @@ public:
 	FMeshBuildSettings& GetStaticMeshBuildSettings();
 
 	// Feature data accessors
-	int32 GetNumInputs() const { return IsInputSupported() ? InputData->Inputs.Num() : 0; };
+	int32 GetNumInputs() const
+	{ 
+#if WITH_EDITORONLY_DATA
+		return IsInputSupported() ? InputData->GetNumInputs() : 0; 
+#else
+		return 0;
+#endif
+	};
+	
 	int32 GetNumOutputs() const { return IsOutputSupported() ? OutputData->Outputs.Num() : 0; };
-	int32 GetNumParameters() const { return IsParameterSupported() ? ParameterData->Parameters.Num() : 0; };
+
+	int32 GetNumParameters() const 
+	{
+#if WITH_EDITORONLY_DATA
+		return IsParameterSupported() ? ParameterData->Parameters.Num() : 0; 
+#else
+		return 0;
+#endif
+	};
+
 	int32 GetNumHandles() const { return IsComponentSupported() ? ComponentData->HandleComponents.Num() : 0; };
 
-	UHoudiniInput* GetInputAt(const int32& Idx) { return IsInputSupported() ? (InputData->Inputs.IsValidIndex(Idx) ? InputData->Inputs[Idx] : nullptr) : nullptr; };
+	UHoudiniInput* GetInputAt(const int32& Idx)
+	{
+#if WITH_EDITORONLY_DATA
+		return IsInputSupported() ? (InputData->Inputs.IsValidIndex(Idx) ? InputData->Inputs[Idx] : nullptr) : nullptr; 
+#else
+		return nullptr;
+#endif
+	};
+
 	UHoudiniOutput* GetOutputAt(const int32& Idx) { return IsOutputSupported() ? (OutputData->Outputs.IsValidIndex(Idx) ? OutputData->Outputs[Idx] : nullptr) : nullptr;};
-	UHoudiniParameter* GetParameterAt(const int32& Idx) { return IsParameterSupported() ? (ParameterData->Parameters.IsValidIndex(Idx) ? ParameterData->Parameters[Idx] : nullptr) : nullptr;};
+	
+	UHoudiniParameter* GetParameterAt(const int32& Idx)
+	{
+#if WITH_EDITORONLY_DATA
+		return IsParameterSupported() ? (ParameterData->Parameters.IsValidIndex(Idx) ? ParameterData->Parameters[Idx] : nullptr) : nullptr;
+#else
+		return nullptr;
+#endif
+	};
+	
 	UHoudiniHandleComponent* GetHandleComponentAt(const int32& Idx) { return IsComponentSupported() ? (ComponentData->HandleComponents.IsValidIndex(Idx) ? ComponentData->HandleComponents[Idx] : nullptr) : nullptr; };
 
 	// Try to find one of our parameter that matches another (name, type, size and enabled)
@@ -558,10 +614,14 @@ public:
 	// Indicates if any of cookable's outputs need an update
 	bool NeedUpdateOutputs() const;
 
+#if WITH_EDITORONLY_DATA
 	TArray<TObjectPtr<UHoudiniParameter>>& GetParameters();
 	const TArray<TObjectPtr<UHoudiniParameter>>& GetParameters() const;
+#endif
+#if WITH_EDITORONLY_DATA
 	TArray<TObjectPtr<UHoudiniInput>>& GetInputs();
 	const TArray<TObjectPtr<UHoudiniInput>>& GetInputs() const;
+#endif
 	TArray<TObjectPtr<UHoudiniOutput>>& GetOutputs();
 	TArray<TObjectPtr<UHoudiniHandleComponent>>& GetHandleComponents();
 
