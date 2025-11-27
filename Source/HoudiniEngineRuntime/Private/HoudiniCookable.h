@@ -63,10 +63,11 @@ public:
 
 	UCookableHoudiniAssetData();
 
+#if WITH_EDITORONLY_DATA
 	// Houdini Asset associated with this component.			
 	UPROPERTY(Category = HoudiniAsset, EditAnywhere)// BlueprintSetter = SetHoudiniAsset, BlueprintReadWrite, )
 	TObjectPtr<UHoudiniAsset> HoudiniAsset;
-
+#endif
 	// Subasset index
 	UPROPERTY()
 	uint32 SubAssetIndex;

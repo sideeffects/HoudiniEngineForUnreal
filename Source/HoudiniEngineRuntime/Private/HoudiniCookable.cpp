@@ -79,11 +79,12 @@ UCookableParameterData::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 //
 UCookableHoudiniAssetData::UCookableHoudiniAssetData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, HoudiniAsset(nullptr)
 	, SubAssetIndex(-1)
 	, HapiAssetName(TEXT(""))
 {
-
+#if WITH_EDITORONLY_DATA
+	HoudiniAsset = nullptr;
+#endif
 }
 
 
@@ -487,7 +488,11 @@ UHoudiniCookable::SetInputData(UCookableInputData* InInputData)
 UHoudiniAsset*
 UHoudiniCookable::GetHoudiniAsset()
 {
+#if WITH_EDITORONLY_DATA
 	return IsHoudiniAssetSupported() ? HoudiniAssetData->HoudiniAsset : nullptr;
+#else
+	return nullptr;
+#endif
 }
 
 UHoudiniPDGAssetLink*
@@ -502,7 +507,11 @@ UHoudiniCookable::GetHoudiniAssetName() const
 	if (!IsHoudiniAssetSupported())
 		return FString();
 
+#if WITH_EDITORONLY_DATA
 	return IsValid(HoudiniAssetData->HoudiniAsset) ? HoudiniAssetData->HoudiniAsset->GetName() : TEXT("");
+#else
+	return TEXT("");
+#endif
 }
 
 USceneComponent*
@@ -653,8 +662,10 @@ UHoudiniCookable::IsOwnerSelected() const
 bool
 UHoudiniCookable::ShouldTryToStartFirstSession() const
 {
+#if WITH_EDITORONLY_DATA
 	if(IsHoudiniAssetSupported() && !HoudiniAssetData->HoudiniAsset)
 		return false;
+#endif
 
 	if (GetComponent())
 	{
@@ -715,6 +726,7 @@ UHoudiniCookable::GetLevelInstance() const
 void
 UHoudiniCookable::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 {
+#if WITH_EDITORONLY_DATA
 	// Check the asset validity
 	if (!IsValid(InHoudiniAsset))
 		return;
@@ -727,6 +739,7 @@ UHoudiniCookable::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		return;
 
 	HoudiniAssetData->HoudiniAsset = InHoudiniAsset;
+#endif
 }
 
 void
@@ -1074,9 +1087,11 @@ UHoudiniCookable::NeedUpdate() const
 	if (!IsFullyLoaded())
 		return false;
 
+#if WITH_EDITORONLY_DATA
 	// If we support HDAs - we should have one assigned.
 	if (IsHoudiniAssetSupported() && !HoudiniAssetData->HoudiniAsset)
 		return false;
+#endif
 
 	if (bForceNeedUpdate || bRecookRequested) // || bRebuildRequested ??
 		return true;
@@ -2400,8 +2415,10 @@ UHoudiniCookable::SetEnableCurveEditing(bool bEnable)
 void
 UHoudiniCookable::OnDestroy(bool bDestroyingHierarchy)
 {
+#if WITH_EDITORONLY_DATA
 	if(IsHoudiniAssetSupported())
 		HoudiniAssetData->HoudiniAsset = nullptr;
+#endif
 
 #if WITH_EDITORONLY_DATA
 	if (IsParameterSupported())
