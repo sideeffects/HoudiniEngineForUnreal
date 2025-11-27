@@ -5036,22 +5036,19 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 		HAPI_Result Result = FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("geo"), TextureName, true, &CreatedNodeId);
 		if (Result != HAPI_RESULT_SUCCESS)
 		{
-			HOUDINI_LOG_WARNING(TEXT("[FHoudiniEngineUtils::CreateInputNode]: CreateNode failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());
+			HOUDINI_LOG_WARNING(TEXT("[FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D]: CreateNode failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());
 			return false;
 		}
 
 		if (Options.bExportMainGeometry)
 		{
 			// Create a quad with uvs and a coppreview material to "hold" the texture
-			if (FUnrealTextureTranslator::CreateGeometryForTexture(CreatedNodeId, GeoOutId))
-			{
-				ParentNodeId = CreatedNodeId;
-			}
+			if (!FUnrealTextureTranslator::CreateGeometryForTexture(CreatedNodeId, GeoOutId))
+				HOUDINI_LOG_WARNING(TEXT("[FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D]: Unable to create geometry for a texture input"));
 		}
-		else
-		{
-			ParentNodeId = CreatedNodeId;
-		}
+
+		ParentNodeId = CreatedNodeId;
+		CreatedNodeId = -1;
 
 		// Send the texture to COPs
 		bSuccess = FUnrealTextureTranslator::HapiCreateCOPTexture(
