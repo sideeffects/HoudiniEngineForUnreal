@@ -7423,26 +7423,32 @@ bool MinimumAreaBox2<InputType, ComputeType>::ComputeAngles(
 {
     int const numVertices = static_cast<int>(vertices.size());
     numA = 0;
-    for (int k0 = 3, k1 = 0; k1 < 4; k0 = k1++)
+    for (int k1 = 0; k1 < 4; k1++)
     {
-        if (box.index[k0] != box.index[k1])
-        {
-            // The box edges are ordered in k1 as U[0], U[1], -U[0], -U[1].
-            Vector2<ComputeType> D =
-                ((k0 & 2) ? -box.U[k0 & 1] : box.U[k0 & 1]);
-            int j0 = box.index[k0], j1 = j0 + 1;
-            if (j1 == numVertices)
-            {
-                j1 = 0;
-            }
-            Vector2<ComputeType> E = vertices[j1] - vertices[j0];
-            ComputeType dp = DotPerp(D, E);
-            ComputeType esqrlen = Dot(E, E);
-            ComputeType sinThetaSqr = (dp * dp) / esqrlen;
-            A[numA++] = std::make_pair(sinThetaSqr, k0);
-        }
-    }
-    return numA > 0;
+		int k0 = (k1 == 0) ? 3 : (k1 - 1);
+
+		if (box.index[k0] != box.index[k1])
+		{
+			if (numA < 4) // Ensure index is within array bounds [0, 3]
+			{
+				// The box edges are ordered in k1 as U[0], U[1], -U[0], -U[1].
+				Vector2<ComputeType> D =
+					((k0 & 2) ? -box.U[k0 & 1] : box.U[k0 & 1]);
+				int j0 = box.index[k0], j1 = j0 + 1;
+				if (j1 == numVertices)
+				{
+					j1 = 0;
+				}
+				Vector2<ComputeType> E = vertices[j1] - vertices[j0];
+				ComputeType dp = DotPerp(D, E);
+				ComputeType esqrlen = Dot(E, E);
+				ComputeType sinThetaSqr = (dp * dp) / esqrlen;
+				A[numA++] = std::make_pair(sinThetaSqr, k0);
+
+			}
+		}
+	}
+	return numA > 0;
 }
 
 template <typename InputType, typename ComputeType>
@@ -8702,8 +8708,10 @@ bool MinimumVolumeBox3<InputType, ComputeType>::ComputeAngles(
 {
     int const numPolyline = static_cast<int>(polyline.size());
     numA = 0;
-    for (int k0 = 3, k1 = 0; k1 < 4; k0 = k1++)
+    for (int k1 = 0; k1 < 4; k1++)
     {
+		int k0 = (k1 == 0) ? 3 : (k1 - 1);
+
         if (rct.index[k0] != rct.index[k1])
         {
             // The rct edges are ordered in k1 as U[0], U[1], -U[0], -U[1].
@@ -8724,7 +8732,8 @@ bool MinimumVolumeBox3<InputType, ComputeType>::ComputeAngles(
             ComputeType dsqrlen = rct.sqrLenU[lookup];
             ComputeType esqrlen = Dot(E, E);
             ComputeType sinThetaSqr = csqrlen / (dsqrlen * esqrlen);
-            A[numA++] = std::make_pair(sinThetaSqr, k0);
+			if (numA<4)
+	            A[numA++] = std::make_pair(sinThetaSqr, k0);
         }
     }
     return numA > 0;
