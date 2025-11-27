@@ -154,7 +154,9 @@ UHoudiniAssetComponent::Serialize(FArchive& Ar)
 UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+#if WITH_EDITORONLY_DATA
 	HoudiniAsset = nullptr;	
+#endif
 	bCookOnParameterChange = true;
 	bUploadTransformsToHoudiniEngine = true;
 	bCookOnTransformChange = false;
@@ -324,13 +326,21 @@ UHoudiniAssetComponent::GetHACWorld() const
 UHoudiniAsset *
 UHoudiniAssetComponent::GetHoudiniAsset() const
 {
+#if WITH_EDITORONLY_DATA
 	return HoudiniAsset;
+#else
+	return nullptr;
+#endif
 }
 
 FString
 UHoudiniAssetComponent::GetHoudiniAssetName() const
 {
+#if WITH_EDITORONLY_DATA
 	return IsValid(HoudiniAsset) ? HoudiniAsset->GetName() : TEXT("");
+#else
+	return TEXT("");
+#endif
 }
 
 FString
@@ -457,6 +467,7 @@ UHoudiniAssetComponent::IsProxyStaticMeshRefinementOnPreBeginPIEEnabled() const
 void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset * InHoudiniAsset)
 {
+#if WITH_EDITORONLY_DATA
 	// Check the asset validity
 	if (!IsValid(InHoudiniAsset))
 		return;
@@ -466,14 +477,17 @@ UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset * InHoudiniAsset)
 		return;
 
 	HoudiniAsset = InHoudiniAsset;
+#endif
 }
 
 
 void 
 UHoudiniAssetComponent::OnHoudiniAssetChanged()
 {
+#if WITH_EDITORONLY_DATA
 	// TODO: clear input/params/outputs?
 	Parameters.Empty();
+#endif
 
 	// The asset has been changed, mark us as needing to be reinstantiated
 	MarkAsNeedInstantiation();
@@ -490,6 +504,7 @@ void UHoudiniAssetComponent::QueuePreCookCallback(const TFunction<void(UHoudiniA
 bool
 UHoudiniAssetComponent::NeedUpdateParameters() const
 {
+#if WITH_EDITORONLY_DATA
 	// This is being split into a separate function to that it can
 	// be called separately for component templates.
 	if (!bCookOnParameterChange)
@@ -511,6 +526,7 @@ UHoudiniAssetComponent::NeedUpdateParameters() const
 		
 		return true;
 	}
+#endif
 
 	return false;
 }
@@ -518,6 +534,7 @@ UHoudiniAssetComponent::NeedUpdateParameters() const
 bool 
 UHoudiniAssetComponent::NeedUpdateInputs() const
 {
+#if WITH_EDITORONLY_DATA
 	// Go through all our inputs, return true if they have been updated
 	for (auto CurrentInput : Inputs)
 	{
@@ -535,6 +552,7 @@ UHoudiniAssetComponent::NeedUpdateInputs() const
 		HOUDINI_LOG_DISPLAY(TEXT("[UHoudiniAssetBlueprintComponent::NeedUpdateInputs()] Inputs need update for component: %s"), *(GetPathName()));
 		return true;
 	}
+#endif
 
 	return false;
 }
@@ -589,9 +607,11 @@ UHoudiniAssetComponent::NeedUpdate() const
 	if (!IsFullyLoaded())
 		return false;
 
+#if WITH_EDITORONLY_DATA
 	// We must have a valid asset, unless we're a NodeSync component
 	if (!IsValid(HoudiniAsset) && !IsA<UHoudiniNodeSyncComponent>())
 		return false;
+#endif
 
 	if (bForceNeedUpdate || bRecookRequested)
 		return true;
@@ -658,6 +678,7 @@ UHoudiniAssetComponent::PreventAutoUpdates()
 	bRebuildRequested = false;
 	bHasComponentTransformChanged = false;
 
+#if WITH_EDITORONLY_DATA
 	// Go through all our parameters, prevent them from triggering updates
 	for (auto CurrentParm : Parameters)
 	{
@@ -667,7 +688,9 @@ UHoudiniAssetComponent::PreventAutoUpdates()
 		// Prevent the parm from triggering an update
 		CurrentParm->SetNeedsToTriggerUpdate(false);
 	}
+#endif
 
+#if WITH_EDITORONLY_DATA
 	// Same with inputs
 	for (auto CurrentInput : Inputs)
 	{
@@ -677,6 +700,7 @@ UHoudiniAssetComponent::PreventAutoUpdates()
 		// Prevent the input from triggering an update
 		CurrentInput->SetNeedsToTriggerUpdate(false);
 	}
+#endif
 
 	// Go through all outputs, filter the editable nodes.
 	for (auto CurrentOutput : Outputs)
@@ -744,6 +768,7 @@ bool UHoudiniAssetComponent::NeedBlueprintUpdate() const
 bool 
 UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
 {
+#if WITH_EDITORONLY_DATA
 	// Before notifying, clean up our downstream assets
 	// - check that they are still valid
 	// - check that we are still connected to one of its asset input
@@ -812,6 +837,7 @@ UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
 	{
 		DownstreamHoudiniAssets.Remove(ToDelete);
 	}
+#endif
 
 	return true;
 }
@@ -819,6 +845,7 @@ UHoudiniAssetComponent::NotifyCookedToDownstreamAssets()
 bool
 UHoudiniAssetComponent::NeedsToWaitForInputHoudiniAssets()
 {
+#if WITH_EDITORONLY_DATA
 	for (auto& CurrentInput : Inputs)
 	{
 		if (!IsValid(CurrentInput))
@@ -860,7 +887,7 @@ UHoudiniAssetComponent::NeedsToWaitForInputHoudiniAssets()
 			}
 		}
 	}
-
+#endif
 	return false;
 }
 
@@ -892,6 +919,7 @@ UHoudiniAssetComponent::MarkAsNeedCook()
 
 	//bEditorPropertiesNeedFullUpdate = true;
 
+#if WITH_EDITORONLY_DATA
 	// We need to mark all our parameters as changed/trigger update
 	for (auto CurrentParam : Parameters)
 	{
@@ -906,6 +934,7 @@ UHoudiniAssetComponent::MarkAsNeedCook()
 		CurrentParam->MarkChanged(true);
 		CurrentParam->SetNeedsToTriggerUpdate(true);
 	}
+#endif
 
 	// We need to mark all of our editable curves as changed
 	for (auto Output : Outputs)
@@ -931,6 +960,8 @@ UHoudiniAssetComponent::MarkAsNeedCook()
 		}
 	}
 
+
+#if WITH_EDITORONLY_DATA
 	// We need to mark all our inputs as changed/trigger update
 	for (auto CurrentInput : Inputs)
 	{
@@ -965,6 +996,7 @@ UHoudiniAssetComponent::MarkAsNeedCook()
 			}
 		}
 	}
+#endif
 
 	// Clear the static mesh bake timer
 	ClearRefineMeshesTimer();
@@ -1033,6 +1065,7 @@ UHoudiniAssetComponent::MarkAsNeedRebuild()
 	// Uncomment this for building regression tests that need a clean output.
 	//Outputs.Empty();
 
+#if WITH_EDITORONLY_DATA
 	// We need to mark all our inputs as changed/trigger update
 	for (auto CurrentInput : Inputs)
 	{
@@ -1042,6 +1075,7 @@ UHoudiniAssetComponent::MarkAsNeedRebuild()
 		CurrentInput->SetNeedsToTriggerUpdate(true);
 		CurrentInput->MarkDataUploadNeeded(true);
 	}
+#endif
 
 	// Clear the static mesh bake timer
 	ClearRefineMeshesTimer();
@@ -1054,6 +1088,7 @@ UHoudiniAssetComponent::MarkAsNeedInstantiation()
 	// Invalidate the asset ID
 	AssetId = -1;
 
+#if WITH_EDITORONLY_DATA
 	if (Parameters.Num() <= 0 && Inputs.Num() <= 0 && Outputs.Num() <= 0)
 	{
 		// The asset has no parameters or inputs.
@@ -1069,6 +1104,7 @@ UHoudiniAssetComponent::MarkAsNeedInstantiation()
 		// after being modified
 		SetAssetState(EHoudiniAssetState::NeedInstantiation);
 	}
+#endif
 
 	AssetStateResult = EHoudiniAssetStateResult::None;
 
@@ -1083,6 +1119,7 @@ UHoudiniAssetComponent::MarkAsNeedInstantiation()
 	//bEditorPropertiesNeedFullUpdate = true;
 
 	// We need to mark all our parameters as changed/not triggering update
+#if WITH_EDITORONLY_DATA
 	for (auto CurrentParam : Parameters)
 	{
 		if (CurrentParam)
@@ -1091,7 +1128,9 @@ UHoudiniAssetComponent::MarkAsNeedInstantiation()
 			CurrentParam->SetNeedsToTriggerUpdate(false);
 		}
 	}
+#endif
 
+#if WITH_EDITORONLY_DATA
 	// We need to mark all our inputs as changed/not triggering update
 	for (auto CurrentInput : Inputs)
 	{
@@ -1102,6 +1141,7 @@ UHoudiniAssetComponent::MarkAsNeedInstantiation()
 			CurrentInput->MarkDataUploadNeeded(true);
 		}
 	}
+#endif
 
 	/*if (!CanInstantiateAsset())
 	{
@@ -1308,16 +1348,14 @@ UHoudiniAssetComponent::OnComponentCreated()
 void
 UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-
-	if (CanDeleteHoudiniNodes())
-	{
-	}
-
 	// Unregister ourself so our houdini node can be deleted
 	FHoudiniEngineRuntime::Get().UnRegisterHoudiniComponent(this);
 
+#if WITH_EDITORONLY_DATA
 	HoudiniAsset = nullptr;
+#endif
 
+#if WITH_EDITORONLY_DATA
 	// Clear Parameters
 	for (TObjectPtr<UHoudiniParameter>& CurrentParm : Parameters)
 	{
@@ -1336,7 +1374,10 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	}
 
 	Parameters.Empty();
+#endif
 
+
+#if WITH_EDITORONLY_DATA
 	// Clear Inputs
 	for (TObjectPtr<UHoudiniInput>&  CurrentInput : Inputs)
 	{
@@ -1352,6 +1393,7 @@ UHoudiniAssetComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	}
 
 	Inputs.Empty();
+#endif
 
 	// Clear Output
 	for (TObjectPtr<UHoudiniOutput>& CurrentOutput : Outputs)
@@ -1501,6 +1543,7 @@ UHoudiniAssetComponent::OnRegister()
 UHoudiniParameter*
 UHoudiniAssetComponent::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 {
+#if WITH_EDITORONLY_DATA
 	if (!IsValid(InOtherParam))
 		return nullptr;
 
@@ -1512,6 +1555,7 @@ UHoudiniAssetComponent::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 		if (CurrentParam->Matches(*InOtherParam))
 			return CurrentParam;
 	}
+#endif
 
 	return nullptr;
 }
@@ -1519,6 +1563,7 @@ UHoudiniAssetComponent::FindMatchingParameter(UHoudiniParameter* InOtherParam)
 UHoudiniInput*
 UHoudiniAssetComponent::FindMatchingInput(UHoudiniInput* InOtherInput)
 {
+#if WITH_EDITORONLY_DATA
 	if (!IsValid(InOtherInput))
 		return nullptr;
 
@@ -1530,6 +1575,7 @@ UHoudiniAssetComponent::FindMatchingInput(UHoudiniInput* InOtherInput)
 		if (CurrentInput->Matches(*InOtherInput))
 			return CurrentInput;
 	}
+#endif
 
 	return nullptr;
 }
@@ -1555,6 +1601,7 @@ UHoudiniAssetComponent::FindMatchingHandle(UHoudiniHandleComponent* InOtherHandl
 UHoudiniParameter*
 UHoudiniAssetComponent::FindParameterByName(const FString& InParamName)
 {
+#if WITH_EDITORONLY_DATA
 	for (auto CurrentParam : Parameters)
 	{
 		if (!IsValid(CurrentParam))
@@ -1563,7 +1610,7 @@ UHoudiniAssetComponent::FindParameterByName(const FString& InParamName)
 		if (CurrentParam->GetParameterName().Equals(InParamName))
 			return CurrentParam;
 	}
-
+#endif
 	return nullptr;
 }
 
@@ -1957,6 +2004,7 @@ UHoudiniAssetComponent::PostEditUndo()
 bool
 UHoudiniAssetComponent::ShouldTryToStartFirstSession() const
 {
+#if WITH_EDITORONLY_DATA
 	if (!HoudiniAsset)
 		return false;
 
@@ -1982,6 +2030,7 @@ UHoudiniAssetComponent::ShouldTryToStartFirstSession() const
 		case EHoudiniAssetState::Dormant:
 			return false;
 	};
+#endif
 
 	return false;
 }
@@ -2137,6 +2186,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 	} 
 	*/
 
+#if WITH_EDITORONLY_DATA
 	// Query the bounds for all input parameters
 	for (auto & CurParam : Parameters) 
 	{
@@ -2155,6 +2205,7 @@ UHoudiniAssetComponent::GetAssetBounds(UHoudiniInput* IgnoreInput, bool bIgnoreG
 
 		BoxBounds += InputParam->HoudiniInput.Get()->GetBounds(this->GetHACWorld());
 	}
+#endif
 
 	// Query the bounds for all our Houdini handles
 	for (auto & CurHandleComp : HandleComponents)
@@ -2621,13 +2672,17 @@ UHoudiniAssetComponent::GetLevelInstance() const
 
 void UHoudiniAssetComponent::OnSessionConnected()
 {
+#if WITH_EDITORONLY_DATA
 	for(auto& Param : Parameters)
 		Param->OnSessionConnected();
+#endif
 
+#if WITH_EDITORONLY_DATA
 	for (auto & Input : Inputs)
 	{
 		Input->OnSessionConnected();
 	}
+#endif
 
 	AssetId = INDEX_NONE;
 }

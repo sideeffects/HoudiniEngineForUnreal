@@ -182,14 +182,45 @@ public:
 	FString GetHapiAssetName() const { return HapiAssetName; };
 	FGuid GetComponentGUID() const { return ComponentGUID; };
 
-	int32 GetNumInputs() const { return Inputs.Num(); };
+	int32 GetNumInputs() const
+	{ 
+#if WITH_EDITORONLY_DATA
+		return Inputs.Num(); 
+#else
+		return 0;
+#endif
+	};
 	int32 GetNumOutputs() const { return Outputs.Num(); };
-	int32 GetNumParameters() const { return Parameters.Num(); };
+	int32 GetNumParameters() const 
+	{
+#if WITH_EDITORONLY_DATA
+		return Parameters.Num(); 
+#else
+		return 0;
+#endif
+	};
 	int32 GetNumHandles() const { return HandleComponents.Num(); };
 
-	UHoudiniInput* GetInputAt(const int32& Idx) { return Inputs.IsValidIndex(Idx) ? Inputs[Idx] : nullptr; };
+	UHoudiniInput* GetInputAt(const int32& Idx) 
+	{
+#if WITH_EDITORONLY_DATA
+		return Inputs.IsValidIndex(Idx) ? Inputs[Idx] : nullptr; 
+#else
+		return nullptr;
+#endif
+	};
+
 	UHoudiniOutput* GetOutputAt(const int32& Idx) { return Outputs.IsValidIndex(Idx) ? Outputs[Idx] : nullptr;};
-	UHoudiniParameter* GetParameterAt(const int32& Idx) { return Parameters.IsValidIndex(Idx) ? Parameters[Idx] : nullptr;};
+
+	UHoudiniParameter* GetParameterAt(const int32& Idx)
+	{
+#if WITH_EDITORONLY_DATA
+		return Parameters.IsValidIndex(Idx) ? Parameters[Idx] : nullptr;
+#else
+		return nullptr;
+#endif
+	};
+
 	UHoudiniHandleComponent* GetHandleComponentAt(const int32& Idx) { return HandleComponents.IsValidIndex(Idx) ? HandleComponents[Idx] : nullptr; };
 
 	void GetOutputs(TArray<UHoudiniOutput*>& OutOutputs) const;
@@ -342,11 +373,26 @@ public:
 	virtual void OnHoudiniAssetChanged();
 
 	//
-	void AddDownstreamHoudiniAsset(UHoudiniAssetComponent* InDownstreamAsset) { DownstreamHoudiniAssets.Add(InDownstreamAsset); };
+	void AddDownstreamHoudiniAsset(UHoudiniAssetComponent* InDownstreamAsset)
+	{ 
+#if WITH_EDITORONLY_DATA
+		DownstreamHoudiniAssets.Add(InDownstreamAsset);
+#endif
+	};
 	//
-	void RemoveDownstreamHoudiniAsset(UHoudiniAssetComponent* InRemoveDownstreamAsset) { DownstreamHoudiniAssets.Remove(InRemoveDownstreamAsset); };
+	void RemoveDownstreamHoudiniAsset(UHoudiniAssetComponent* InRemoveDownstreamAsset) 
+	{
+#if WITH_EDITORONLY_DATA
+		DownstreamHoudiniAssets.Remove(InRemoveDownstreamAsset); 
+#endif
+	};
 	//
-	void ClearDownstreamHoudiniAsset() { DownstreamHoudiniAssets.Empty(); };
+	void ClearDownstreamHoudiniAsset() 
+	{
+#if WITH_EDITORONLY_DATA
+		DownstreamHoudiniAssets.Empty(); 
+#endif
+	};
 	//
 	bool NotifyCookedToDownstreamAssets();
 	//
@@ -531,10 +577,12 @@ public:
 
 	void OnSessionConnected();
 
+#if WITH_EDITORONLY_DATA
 	// Houdini Asset associated with this component.
 	/*Category = HoudiniAsset, EditAnywhere, meta = (DisplayPriority=0)*/
 	UPROPERTY(Category = HoudiniAsset, EditAnywhere)// BlueprintSetter = SetHoudiniAsset, BlueprintReadWrite, )
 	TObjectPtr<UHoudiniAsset> HoudiniAsset;
+#endif
 
 	// Automatically cook when a parameter or input is changed
 	UPROPERTY()
@@ -672,9 +720,11 @@ protected:
 	UPROPERTY(Transient, DuplicateTransient)
 	TMap<int32, int32> OutputNodeCookCounts;
 
+#if WITH_EDITORONLY_DATA
 	// List of dependent downstream HACs that have us as an asset input
 	UPROPERTY(DuplicateTransient)
 	TSet<TObjectPtr<UHoudiniAssetComponent>> DownstreamHoudiniAssets;
+#endif
 
 	// Unique GUID created by component.
 	UPROPERTY(DuplicateTransient)
@@ -761,12 +811,15 @@ protected:
 	//UPROPERTY(DuplicateTransient)
 	//bool bEditorPropertiesNeedFullUpdate;
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY(Instanced)
 	TArray<TObjectPtr<UHoudiniParameter>> Parameters;
+#endif
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY(Instanced)
 	TArray<TObjectPtr<UHoudiniInput>> Inputs;
-	
+#endif
 	UPROPERTY(Instanced)
 	TArray<TObjectPtr<UHoudiniOutput>> Outputs;
 

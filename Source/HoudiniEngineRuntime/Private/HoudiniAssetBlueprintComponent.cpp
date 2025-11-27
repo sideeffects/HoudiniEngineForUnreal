@@ -1101,10 +1101,12 @@ UHoudiniAssetBlueprintComponent::SetCanDeleteHoudiniNodes(bool bInCanDeleteNodes
 {
 	bCanDeleteHoudiniNodes = bInCanDeleteNodes;
 	
+#if WITH_EDITORONLY_DATA
 	for (UHoudiniInput* Input : Inputs)
 	{
 		Input->SetCanDeleteHoudiniNodes(bInCanDeleteNodes);
 	}
+#endif
 
 	for (UHoudiniOutput* Output : Outputs)
 	{
@@ -1326,6 +1328,7 @@ void UHoudiniAssetBlueprintComponent::OnPrePreInstantiation()
 	// This HDA is about to be cooked but not through template parameter changes. It is likely that an input changed directly in the preview world.
 	// We need to flag our inputs and parameters appropriately in order to preserve their values.
 
+#if WITH_EDITORONLY_DATA
 	// We need to mark all our parameters as changed/not triggering update
 	for (auto CurrentParam : Parameters)
 	{
@@ -1335,7 +1338,9 @@ void UHoudiniAssetBlueprintComponent::OnPrePreInstantiation()
 			CurrentParam->SetNeedsToTriggerUpdate(false);
 		}
 	}
+#endif
 
+#if WITH_EDITORONLY_DATA
 	// We need to mark all our inputs as changed/not triggering update
 	for (auto CurrentInput : Inputs)
 	{
@@ -1346,6 +1351,7 @@ void UHoudiniAssetBlueprintComponent::OnPrePreInstantiation()
 			CurrentInput->MarkDataUploadNeeded(true);
 		}
 	}
+#endif
 }
 
 void 
@@ -1497,7 +1503,9 @@ UHoudiniAssetBlueprintComponent::GetComponentInstanceData() const
 	InstanceData->SubAssetIndex = SubAssetIndex;
 	InstanceData->ComponentGUID = ComponentGUID;
 	InstanceData->HapiGUID = HapiGUID;
+#if WITH_EDITORONLY_DATA
 	InstanceData->HoudiniAsset = HoudiniAsset;
+#endif
 	InstanceData->SourceName = GetPathName();
 	InstanceData->AssetCookCount = AssetCookCount;
 	InstanceData->bHasBeenLoaded = bHasBeenLoaded;
@@ -1511,6 +1519,7 @@ UHoudiniAssetBlueprintComponent::GetComponentInstanceData() const
 
 	InstanceData->Inputs.Empty();
 
+#if WITH_EDITORONLY_DATA
 	for (UHoudiniInput* Input : Inputs)
 	{
 		if (!Input)
@@ -1518,6 +1527,7 @@ UHoudiniAssetBlueprintComponent::GetComponentInstanceData() const
 		UHoudiniInput* TransientInput = Input->DuplicateAndCopyState(GetTransientPackage(), false);
 		InstanceData->Inputs.Add(TransientInput);
 	}
+#endif
 
 	// Cache the current outputs
 	InstanceData->Outputs.Empty();
@@ -1555,6 +1565,7 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 		USimpleConstructionScript* SCS = GetSCS();
 		check(SCS);
 
+#if WITH_EDITORONLY_DATA
 		TArray<UHoudiniInput*> StaleInputs(Inputs);
 
 		// We need to update references contain in inputs / outputs to point to new reconstructed components.
@@ -1599,6 +1610,8 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 
 			Inputs[i] = ToInput;
 		}
+
+#endif
 
 		// We need to update FHoudiniOutputObject SceneComponent references to
 		// the newly created components. Since we cached a map of Output Object IDs to
@@ -1656,10 +1669,11 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 		ComponentGUID = InstanceData->ComponentGUID;
 		HapiGUID = InstanceData->HapiGUID;
 	
+#if WITH_EDITORONLY_DATA
 		// Apply the previous HoudiniAsset to the component
 		// so that we can compare it against the template during CopyStateFromTemplate() calls to see whether it changed.
 		HoudiniAsset = InstanceData->HoudiniAsset;
-
+#endif
 		AssetCookCount = InstanceData->AssetCookCount;
 		bHasBeenLoaded = InstanceData->bHasBeenLoaded;
 		bHasBeenDuplicated = InstanceData->bHasBeenDuplicated;
@@ -1857,8 +1871,10 @@ UHoudiniAssetBlueprintComponent::OnHoudiniAssetChanged()
 		SetCanDeleteHoudiniNodes(true);
 		InvalidateData();
 		SetCanDeleteHoudiniNodes(false);
+#if WITH_EDITORONLY_DATA
 		Parameters.Empty();
 		Inputs.Empty();
+#endif
 	}
 
 	Super::OnHoudiniAssetChanged();
@@ -2035,16 +2051,19 @@ UHoudiniAssetBlueprintComponent::InvalidateData()
 		// Ensure transient properties are invalidated/released for parameters, inputs and outputs as if the
 		// the object was undergoing destruction since the template component will likely be reregistered
 		// without being destroyed.
+#if WITH_EDITORONLY_DATA
 		for(UHoudiniParameter* Param : Parameters)
 		{
 			Param->InvalidateData();
 		}
+#endif
 		
+#if WITH_EDITORONLY_DATA
 		for(UHoudiniInput* Input : Inputs)
 		{
 			Input->InvalidateData();
 		}
-
+#endif
 		FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(AssetId, true);
 		AssetId = -1;
 	}
