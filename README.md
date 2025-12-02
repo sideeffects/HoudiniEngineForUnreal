@@ -1,6 +1,6 @@
 # Houdini Engine for Unreal - Version 3
 
-> The source code in this branch is intended to be used with Unreal Engine 5.6 and 5.5, but should also be compatible with previous versions of UE5.
+> The source code in this branch is intended to be used with Unreal Engine 5.7, 5.6 and 5.5, but should also be compatible with earlier versions of UE5.
 
 Welcome to the repository for the Houdini Engine For Unreal Plugin.
 
@@ -27,13 +27,21 @@ In general, we support the latest two releases of UE5.X, but will try to make th
 > For Houdini 21.0 - there is now two versions of the plugins: one with PCG support and one without PCG. Supporting PCG means that the Houdini Engine plugin now needs to depend on the PCG plugin, which is still considered experimental by Epic. We provide both versions of the plugin with your Houdini install and on this repo's release page, but the source code available here is with PCG support enabled. If you want to use the source code available here but would like to disable the PCG dependancy, instructions are provided at the bottom of this page.
 
 # Installing the plugin
+
+Windows/Mac OS:
+
 01. In this GitHub repository, click **Releases** on the right side. 
 02. Download the Houdini Engine version zip file that matches your Houdini version.  
 03. Extract the **HoudiniEngine** folder to the **Plugins\Runtime** of your Unreal Directory. You can either copy it to Unreal's engine version directory or your Unreal project directory.
 
-    In this example, Unreal's directory location is `C:\Program Files\Epic Games\UE_5.4\Engine\Plugins\Runtime\HoudiniEngine` and the project directory is `C:\Unreal Projects\MyGameProject\Plugins\HoudiniEngine`
+    When installing the plugin to the engine, you want the final path to be: `PATH\TO\UE_5.X\Engine\Plugins\Runtime\HoudiniEngine` and when installing to an unral project `PATH\TO\PROJECT\Plugins\HoudiniEngine`
 
-    **Note: For Unreal Engine 5, you must use Unreal's project directory.** 
+    **Note: For Unreal Engine 5, if you're using the Epic Games Launcher version of Unreal and are not building from source, we recommend you use Unreal's project directory.** 
+	
+Linux:
+
+Houdini Engine is not officially supported on Linux. However, you can follow the `Building from source` instructions and use the source code on this repository to build the plugin.
+You can find the unreal plugin source in your Houdini install's `engine\unreal` subdirectory.
 
 ## Verify the Plug-in works
 Once you install the Houdini Engine plug-in, you can verify it's loaded properly. 
