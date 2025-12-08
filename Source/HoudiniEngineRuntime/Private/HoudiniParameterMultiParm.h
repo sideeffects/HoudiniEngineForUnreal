@@ -34,10 +34,20 @@ UENUM()
 enum class EHoudiniMultiParmModificationType : uint8
 {
 	None,
-
-	Inserted,
+	Insert,
 	Removed,
-	Modified
+	Resize
+};
+
+struct FHoudiniMultiParmModification
+{
+	// Information to make the multiparm. Value's meaning depends on type:
+	// Insert -> Value == Index to insert before
+	// Remove -> Value == Index to remove
+	// Resize -> Value == Count of new size
+
+	EHoudiniMultiParmModificationType Type = EHoudiniMultiParmModificationType::None;
+	int Value = 0;
 };
 
 UCLASS()
@@ -55,48 +65,21 @@ public:
 		UObject* Outer,
 		const FString& ParamName);
 
-	// Accessors
-	FORCEINLINE
-	int32 GetValue() const { return Value; };
-	FORCEINLINE
-	int32 GetInstanceCount() const { return MultiParmInstanceCount; };
+	int GetValue() const { return Value; };
 
-	// Mutators
-	bool SetValue(const int32& InValue);
-	FORCEINLINE
-	void SetInstanceCount(const int32 InCount) { MultiParmInstanceCount = InCount; };
+	int GetInstanceLength() const { return MultiParmInstanceLength;  }
+	int GetInstanceCount() const { return MultiParmInstanceCount; };
+	int GetInstanceStartOffset() const { return InstanceStartOffset; }
 
-	FORCEINLINE
-	void SetIsShown(const bool InIsShown) { bIsShown = InIsShown; };
+	bool SetValue(int InValue);
+	void SetIsShown(bool InIsShown) { bIsShown = InIsShown; };
 
-	FORCEINLINE
 	bool IsShown() const { return bIsShown; };
 
 
-	/** Increment value, used by Slate. **/
-	void InsertElement();
-
-	void InsertElementAt(int32 Index);
-
-	/** Decrement value, used by Slate. **/
-	void RemoveElement(int32 Index);
-
-	/** Empty the values, used by Slate. **/
-	void EmptyElements();
-
-	/**
-	 * Returns the number of multiparm instances there'll be after the next upload to HAPI, after
-	 * the current state of MultiParmInstanceLastModifyArray is applied.
-	 */
-	int32 GetNextInstanceCount() const;
-
-	/**
-	 * Helper function to modify MultiParmInstanceLastModifyArray with inserts/removes (at the end) as necessary so
-	 * that the multi parm instance count will be equal to InInstanceCount after the next upload to HAPI.
-	 * @param InInstanceCount The number of instances the multiparm should have.
-	 * @returns True if any changes were made to MultiParmInstanceLastModifyArray. 
-	 */
-	bool SetNumElements(const int32 InInstanceCount);
+	void InsertElement(int Index);
+	void RemoveElement(int Index);
+	bool SetNumElements(int NewSize);
 
 	UPROPERTY()
 	bool bIsShown;
@@ -113,10 +96,8 @@ public:
 	UPROPERTY()
 	int32 MultiparmValue;
 
-	//
-	UPROPERTY()
-	uint32 MultiParmInstanceNum;
 
+private:
 	//
 	UPROPERTY()
 	uint32 MultiParmInstanceLength;
@@ -127,10 +108,8 @@ public:
 
 	UPROPERTY()
 	uint32 InstanceStartOffset;
+public:
 
-	// This array records the last modified instance of the multiparm
-	UPROPERTY()
-	TArray<EHoudiniMultiParmModificationType> MultiParmInstanceLastModifyArray;
 
 	UPROPERTY()
 	int32 DefaultInstanceCount;
@@ -141,7 +120,11 @@ public:
 
 	void MarkDefault(const bool& bInDefault) override;
 
-private:
+public:
 	void InitializeModifyArray();
+
+	FHoudiniMultiParmModification Modification;
+
+	friend struct FHoudiniParameterTranslator;
 
 };

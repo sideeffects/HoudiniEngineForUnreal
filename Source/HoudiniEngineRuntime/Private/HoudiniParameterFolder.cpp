@@ -30,6 +30,7 @@ UHoudiniParameterFolder::UHoudiniParameterFolder(const FObjectInitializer & Obje
 	: Super(ObjectInitializer)
 	,bExpanded(true)
 	,bChosen(false)
+	,bIsContentShown(true)
 {
 	ParmType = EHoudiniParameterType::Folder;
 }

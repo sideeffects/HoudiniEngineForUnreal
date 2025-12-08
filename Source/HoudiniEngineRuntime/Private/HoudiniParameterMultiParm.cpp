@@ -54,169 +54,52 @@ UHoudiniParameterMultiParm::Create(
 }
 
 bool
-UHoudiniParameterMultiParm::SetValue(const int32& InValue)
+UHoudiniParameterMultiParm::SetValue(const int32 InValue)
 {
 	if (InValue == Value)
 		return false;
 	
 	Value = InValue;
 
+	this->MarkChanged(true);
 	return true;
 }
 
 void
-UHoudiniParameterMultiParm::InsertElement()
+UHoudiniParameterMultiParm::InsertElement(int32 Index) 
 {
-	if (MultiParmInstanceCount > 0 && MultiParmInstanceLastModifyArray.Num() == 0)
-		InitializeModifyArray();
-
-	MultiParmInstanceLastModifyArray.Add(EHoudiniMultiParmModificationType::Inserted);
+	this->Modification.Type = EHoudiniMultiParmModificationType::Insert;
+	this->Modification.Value = Index;
+	this->MarkChanged(true);
 }
 
-void
-UHoudiniParameterMultiParm::InsertElementAt(int32 Index) 
-{
-	if (MultiParmInstanceCount > 0 && MultiParmInstanceLastModifyArray.Num() == 0)
-		InitializeModifyArray();
-
-	if (Index >= MultiParmInstanceLastModifyArray.Num())
-		MultiParmInstanceLastModifyArray.Add(EHoudiniMultiParmModificationType::Inserted);
-	else
-		MultiParmInstanceLastModifyArray.Insert(EHoudiniMultiParmModificationType::Inserted, Index);
-}
-
-/** Decrement value, used by Slate. **/
 void 
 UHoudiniParameterMultiParm::RemoveElement(int32 Index) 
 {
-	if (MultiParmInstanceCount > 0 && MultiParmInstanceLastModifyArray.Num() == 0)
-		InitializeModifyArray();
+	if(Index < 0)
+		return;
 
-	// Remove the last element
-	if (Index == -1) 
-	{
-		Index = MultiParmInstanceLastModifyArray.Num() - 1;
-		while (MultiParmInstanceLastModifyArray.IsValidIndex(Index) && MultiParmInstanceLastModifyArray[Index] == EHoudiniMultiParmModificationType::Removed)
-			Index -= 1;
-	}
-
-	if (MultiParmInstanceLastModifyArray.IsValidIndex(Index)) 
-	{
-		// If the removed is a to be inserted instance, simply remove it.
-		if (MultiParmInstanceLastModifyArray[Index] == EHoudiniMultiParmModificationType::Inserted)
-			MultiParmInstanceLastModifyArray.RemoveAt(Index);
-		// Otherwise mark it as to be removed.
-		else
-			MultiParmInstanceLastModifyArray[Index] = EHoudiniMultiParmModificationType::Removed;
-	}
+	this->Modification.Type = EHoudiniMultiParmModificationType::Removed;
+	this->Modification.Value = Index;
+	this->MarkChanged(true);
 }
 
-void 
-UHoudiniParameterMultiParm::EmptyElements() 
+bool 
+UHoudiniParameterMultiParm::SetNumElements(int Count) 
 {
-	if (MultiParmInstanceCount > 0 && MultiParmInstanceLastModifyArray.Num() == 0)
-		InitializeModifyArray();
+	if(this->GetInstanceCount() == Count)
+		return false;
 
-	for (int32 Index = MultiParmInstanceLastModifyArray.Num() - 1; Index >= 0; --Index)
-	{
-		// If the removed is a to be inserted instance, simply remove it.
-		// Interation starts from the tail, so that the indices won't be changed by element removal.
-		if (MultiParmInstanceLastModifyArray[Index] == EHoudiniMultiParmModificationType::Inserted)
-			MultiParmInstanceLastModifyArray.RemoveAt(Index);
-		else // Otherwise mark it as to be removed.
-			MultiParmInstanceLastModifyArray[Index] = EHoudiniMultiParmModificationType::Removed;
-	}
-}
+	this->Modification.Type = EHoudiniMultiParmModificationType::Resize;
+	this->Modification.Value = Count;
+	this->MarkChanged(true);
 
-int32
-UHoudiniParameterMultiParm::GetNextInstanceCount() const
-{
-	if (MultiParmInstanceCount > 0 && MultiParmInstanceLastModifyArray.Num() == 0)
-	{
-		return MultiParmInstanceCount;
-	}
-	
-	int32 CurrentInstanceCount = 0;
-	// First determine how many instances the multi parm would have based on the current values in
-	// MultiParmInstanceLastModifyArray
-	for (const EHoudiniMultiParmModificationType& ModificationType : MultiParmInstanceLastModifyArray)
-	{
-		switch (ModificationType)
-		{
-		case EHoudiniMultiParmModificationType::Inserted:
-		case EHoudiniMultiParmModificationType::Modified:
-		case EHoudiniMultiParmModificationType::None:
-			CurrentInstanceCount++;
-			break;
-		case EHoudiniMultiParmModificationType::Removed:
-			// Removed indices don't add to CurrentInstanceCount 
-			break;
-		}
-	}
-
-	return CurrentInstanceCount;
-}
-
-bool
-UHoudiniParameterMultiParm::SetNumElements(const int32 InInstanceCount)
-{
-	if (MultiParmInstanceCount > 0 && MultiParmInstanceLastModifyArray.Num() == 0)
-		InitializeModifyArray();
-
-	// // Log the MultiParmInstanceLastModifyArray before the modification
-	// HOUDINI_LOG_WARNING(TEXT("MultiParmInstanceLastModifyArray (before): "));
-	// for (const EHoudiniMultiParmModificationType Modification : MultiParmInstanceLastModifyArray)
-	// {
-	// 	HOUDINI_LOG_WARNING(TEXT("\t%s"), *UEnum::GetValueAsString(Modification));
-	// }
-
-	const int32 TargetInstanceCount = InInstanceCount >= 0 ? InInstanceCount : 0;
-	const int32 CurrentInstanceCount = GetNextInstanceCount();
-	bool bModified = false;
-	if (CurrentInstanceCount > TargetInstanceCount)
-	{
-		// Remove entries from the end of the array
-		for (int32 Count = CurrentInstanceCount; Count > TargetInstanceCount; --Count)
-		{
-			RemoveElement(-1);
-		}
-
-		bModified = true;
-	}
-	else if (CurrentInstanceCount < TargetInstanceCount)
-	{
-		// Insert new instances at the end
-		for (int32 Count = CurrentInstanceCount; Count < TargetInstanceCount; ++Count)
-		{
-			InsertElement();
-		}
-
-		bModified = true;
-	}
-
-	// // Log the MultiParmInstanceLastModifyArray after the modification
-	// HOUDINI_LOG_WARNING(TEXT("MultiParmInstanceLastModifyArray (after): "));
-	// for (const EHoudiniMultiParmModificationType Modification : MultiParmInstanceLastModifyArray)
-	// {
-	// 	HOUDINI_LOG_WARNING(TEXT("\t%s"), *UEnum::GetValueAsString(Modification));
-	// }
-	
-	return bModified;
-}
-
-void
-UHoudiniParameterMultiParm::InitializeModifyArray() 
-{
-	for (uint32 Index = 0; Index < MultiParmInstanceCount; ++Index) 
-	{
-		MultiParmInstanceLastModifyArray.Add(EHoudiniMultiParmModificationType::None);
-	}
+	return true;
 }
 
 bool 
 UHoudiniParameterMultiParm::IsDefault() const 
 {
-	//UE_LOG(LogTemp, Warning, TEXT("%d, %d"), MultiParmInstanceNum, MultiParmInstanceCount);
 	return DefaultInstanceCount == MultiParmInstanceCount;
 }
 
@@ -232,6 +115,5 @@ UHoudiniParameterMultiParm::SetDefaultInstanceCount(int32 InCount)
 void UHoudiniParameterMultiParm::MarkDefault(const bool& bInDefault)
 {
 	Super::MarkDefault(bInDefault);
-	if (bInDefault)
-		MultiParmInstanceLastModifyArray.Empty();
+	Modification = FHoudiniMultiParmModification();
 }

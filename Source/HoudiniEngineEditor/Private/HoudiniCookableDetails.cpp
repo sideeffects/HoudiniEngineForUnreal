@@ -436,66 +436,13 @@ FHoudiniCookableDetails::CreateParameterDetails(
 	// If we are running Houdini Engine Indie license, we need to display a special label.
 	bool bIsIndieLicense = FHoudiniEngine::Get().IsLicenseIndie();
 	bool bIsEduLicense = FHoudiniEngine::Get().IsLicenseEducation();
-	if (bIsIndieLicense)
+	if(bIsIndieLicense)
 		FHoudiniEngineDetails::AddIndieLicenseRow(HouParameterCategory);
-	else if (bIsEduLicense)
+	else if(bIsEduLicense)
 		FHoudiniEngineDetails::AddEducationLicenseRow(HouParameterCategory);
 
-	// Iterate through the component's parameters. JoinedParams is used to build an array of
-	// horizontally joined parameters. For example, with two joined parameters JoinedParams
-	// will look like { { cookable.param1}, { cookable.param2 } } and then call CreateWidget().
-	//
-	// If the parameters are not joined, CreateWidget() will be called twice with two arrays
-	//
-	//		{ { cookable.param1} } and { {cookable.param2 } }
-	//
-	// In addition, each linked parameter will be stored in the inner array. eg.
-	//
-	//		{ { cookable.param1, linked.param1 }, { cookable.param2, linked.param2 } }
-	//
+	ParameterDetails->CreateDetails(HouParameterCategory, DetailBuilder, InCookables);
 
-	TArray<TArray<TWeakObjectPtr<UHoudiniParameter>>> JoinedParams;	
-	for (int32 ParamIdx = 0; ParamIdx < MainCookable->GetNumParameters(); ParamIdx++)
-	{
-		// We only want to create root parameters here, they will recursively create child parameters.
-		UHoudiniParameter* CurrentParam = MainCookable->GetParameterAt(ParamIdx);
-		if (!IsValid(CurrentParam))
-			continue;
-
-		// Build an array of edited parameter for multi edit
-		JoinedParams.Emplace();
-		auto& EditedParams = JoinedParams.Last();
-		EditedParams.Add(CurrentParam);
-
-		// Add the corresponding params in the other HAC. Note that the parameters must be in the same
-		// order for this to work.
-
-		for (int LinkedIdx = 1; LinkedIdx < InCookables.Num(); LinkedIdx++)
-		{
-			UHoudiniParameter* LinkedParam = InCookables[LinkedIdx]->GetParameterAt(ParamIdx);
-			if (!IsValid(LinkedParam))
-				continue;
-
-			// Linked params should match the main param! If not try to find one that matches
-			if (!LinkedParam->Matches(*CurrentParam))
-			{
-				LinkedParam = MainCookable->FindMatchingParameter(CurrentParam);
-				if (!IsValid(LinkedParam) || LinkedParam->IsChildParameter())
-					continue;
-			}
-
-			EditedParams.Add(LinkedParam);
-		}
-
-		if (!ParameterDetails->ShouldJoinNext(*CurrentParam))
-		{
-			// If we are not joining the parameter to the next parameter, create the widget now
-			// using the contents of JointedParams and then reset the array for the next loop.
-			// Note that the last parameter never has the "Joined to Next" flag set.
-			ParameterDetails->CreateWidget(HouParameterCategory, JoinedParams);
-			JoinedParams.Empty();
-		}
-	}
 }
 
 void

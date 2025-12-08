@@ -224,6 +224,24 @@ FHoudiniInputDetails::CreateWidget(
 		CreateNameWidget(MainInput, *Row, true, InInputs.Num());
 
 	// Create a vertical Box for storing the UI
+	TSharedRef<SWidget> VerticalBox = CreateInputValueWidget(HouInputCategory, InInputs);
+	Row->ValueWidget.Widget = VerticalBox;
+	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
+
+}
+
+TSharedRef<SWidget> FHoudiniInputDetails::CreateInputValueWidget(
+	IDetailCategoryBuilder& HouInputCategory, 
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	TSharedPtr< FAssetThumbnailPool > AssetThumbnailPool = HouInputCategory.GetParentLayout().GetThumbnailPool();
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+
+	if (!MainInput.IsValid())
+		return SNullWidget::NullWidget;
+
+	// Create a vertical Box for storing the UI
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 
 	// ComboBox :  Input Type
@@ -236,33 +254,22 @@ FHoudiniInputDetails::CreateWidget(
 
 	AddInputTypeComboBox(HouInputCategory, VerticalBox, InInputs, DetailsView);
 
-	switch (MainInput->GetInputType())
+	switch(MainInput->GetInputType())
 	{
-		case EHoudiniInputType::Geometry:
-		{
-			AddGeometryInputUI(HouInputCategory, VerticalBox, InInputs, AssetThumbnailPool);
-		}
+	case EHoudiniInputType::Geometry:
+		AddGeometryInputUI(HouInputCategory, VerticalBox, InInputs, AssetThumbnailPool);
 		break;
 
-		case EHoudiniInputType::Curve:
-		{
-			AddCurveInputUI(HouInputCategory, VerticalBox, InInputs, AssetThumbnailPool);
-		}
+	case EHoudiniInputType::Curve:
+		AddCurveInputUI(HouInputCategory, VerticalBox, InInputs, AssetThumbnailPool);
 		break;
 
-		case EHoudiniInputType::World:
-		{
-			AddWorldInputUI(HouInputCategory, VerticalBox, InInputs, DetailsView);
-		}
+	case EHoudiniInputType::World:
+		AddWorldInputUI(HouInputCategory, VerticalBox, InInputs, DetailsView);
 		break;
 	}
 
-
-	Row->ValueWidget.Widget = VerticalBox;
-
-	Row->ValueWidget.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH);
-	//Row.ValueWidget.Widget->SetEnabled(!MainParam->IsDisabled());
-
+	return VerticalBox;
 }
 
 void

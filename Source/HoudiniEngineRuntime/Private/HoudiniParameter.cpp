@@ -46,6 +46,7 @@ UHoudiniParameter::UHoudiniParameter(const FObjectInitializer & ObjectInitialize
 	, bIsLabelVisible(true)
 	, bIsChildOfMultiParm(false)
 	, bIsDirectChildOfMultiParm(false)
+	, MultiParmInstanceNum(INDEX_NONE)
 	, bPendingRevertToDefault(false)
 	, TagCount(0)
 	, ValueIndex(-1)

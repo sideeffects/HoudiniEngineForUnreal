@@ -165,10 +165,10 @@ public:
 
 	virtual void SetIsChildOfMultiParm(const bool& IsChildOfMultiParam) { bIsChildOfMultiParm = IsChildOfMultiParam; };
 	virtual bool GetIsChildOfMultiParm() const { return bIsChildOfMultiParm; };
-
 	virtual void SetIsDirectChildOfMultiParm(const bool& IsDirectChildOfMultiParam) { bIsDirectChildOfMultiParm = IsDirectChildOfMultiParam; };
 	virtual bool IsDirectChildOfMultiParm() const { return bIsDirectChildOfMultiParm; };
-
+	virtual void SetMultiParmInstanceNumber(int Num) { MultiParmInstanceNum = Num; };
+	virtual int GetMultiParmInstanceNumber() const { return MultiParmInstanceNum; };
 	virtual void SetVisible(const bool& InIsVisible) { bIsVisible = InIsVisible; };
 	virtual void SetVisibleParent(const bool& InIsVisible) { bIsParentFolderVisible = InIsVisible; };
 	virtual void SetDisabled(const bool& InIsDisabled) { bIsDisabled = InIsDisabled; };
@@ -304,6 +304,9 @@ protected:
 
 	UPROPERTY()
 	bool bIsDirectChildOfMultiParm;
+
+	UPROPERTY()
+	uint32 MultiParmInstanceNum;
 
 	// Indicates a parameter value needs to be reverted to its default
 	UPROPERTY(DuplicateTransient)

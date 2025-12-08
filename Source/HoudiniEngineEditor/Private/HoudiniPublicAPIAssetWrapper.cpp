@@ -1256,7 +1256,7 @@ UHoudiniPublicAPIAssetWrapper::GetIntParameterValue_Implementation(FName InParam
 			return false;
 		}
 
-		OutValue = MultiParam->GetNextInstanceCount();
+		OutValue = MultiParam->GetInstanceCount();
 		return true;
 	}
 	else if (ParamType == EHoudiniParameterType::Toggle)

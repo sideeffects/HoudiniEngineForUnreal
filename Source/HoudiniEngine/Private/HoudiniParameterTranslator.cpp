@@ -1332,7 +1332,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 	HoudiniParameter->SetSpare(ParmInfo.spare);
 	HoudiniParameter->SetJoinNext(ParmInfo.joinNext);
 	HoudiniParameter->SetLabelVisible(!ParmInfo.labelNone);
-
+	HoudiniParameter->SetMultiParmInstanceNumber(ParmInfo.instanceNum);
 	HoudiniParameter->SetTagCount(ParmInfo.tagCount);
 	HoudiniParameter->SetIsChildOfMultiParm(ParmInfo.isChildOfMultiParm);
 
@@ -1605,7 +1605,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 			UHoudiniParameterRampColor* HoudiniParameterRampColor = Cast<UHoudiniParameterRampColor>(HoudiniParameter);
 			if (IsValid(HoudiniParameterRampColor))
 			{
-				HoudiniParameterRampColor->SetInstanceCount(ParmInfo.instanceCount);
+				HoudiniParameterRampColor->MultiParmInstanceCount = ParmInfo.instanceCount;
 				HoudiniParameterRampColor->MultiParmInstanceLength = ParmInfo.instanceLength;
 			}
 		}
@@ -1616,7 +1616,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 			UHoudiniParameterRampFloat* HoudiniParameterRampFloat = Cast<UHoudiniParameterRampFloat>(HoudiniParameter);
 			if (IsValid(HoudiniParameterRampFloat))
 			{
-				HoudiniParameterRampFloat->SetInstanceCount(ParmInfo.instanceCount);
+				HoudiniParameterRampFloat->MultiParmInstanceCount = ParmInfo.instanceCount;
 				HoudiniParameterRampFloat->MultiParmInstanceLength = ParmInfo.instanceLength;
 			}	
 		}
@@ -3345,54 +3345,65 @@ bool FHoudiniParameterTranslator::UploadMultiParmValues(UHoudiniParameter* InPar
 	if (!MultiParam)
 		return false;
 
-	TArray<EHoudiniMultiParmModificationType> &LastModificationArray = MultiParam->MultiParmInstanceLastModifyArray;
+	int ParamIndex = MultiParam->Modification.Value;
+	auto Type = MultiParam->Modification.Type;
 
-	int32 Size = MultiParam->MultiParmInstanceLastModifyArray.Num();
+	MultiParam->Modification.Type = EHoudiniMultiParmModificationType::None;
+	MultiParam->Modification.Value = 0;
 
-	for (int32 Index = 0; Index < Size; ++Index)
+	switch (Type)
 	{
-		if (LastModificationArray[Index] == EHoudiniMultiParmModificationType::Inserted)
+	case EHoudiniMultiParmModificationType::None:
+		break;
+	case EHoudiniMultiParmModificationType::Insert:
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::InsertMultiparmInstance(
+			FHoudiniEngine::Get().GetSession(),
+			MultiParam->GetNodeId(),
+			MultiParam->GetParmId(),
+			ParamIndex),
+			false);
+		break;
+	case EHoudiniMultiParmModificationType::Removed:
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
+			FHoudiniEngine::Get().GetSession(),
+			MultiParam->GetNodeId(),
+			MultiParam->GetParmId(),
+			ParamIndex),
+			false);
+		break;
+	case EHoudiniMultiParmModificationType::Resize:
+	{
+		int NewCount = ParamIndex;
+		int OldCount = MultiParam->GetInstanceCount();
+		if (NewCount > OldCount)
 		{
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::InsertMultiparmInstance(
-					FHoudiniEngine::Get().GetSession(), 
+			for (int Index = OldCount; Index < NewCount; Index++)
+			{
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::InsertMultiparmInstance(
+					FHoudiniEngine::Get().GetSession(),
 					MultiParam->GetNodeId(),
-					MultiParam->GetParmId(), 
+					MultiParam->GetParmId(),
 					Index + MultiParam->InstanceStartOffset),
 					false);
-			
-		}
-	}
-
-	for (int32 Index = Size - 1; Index >= 0; --Index)
-	{
-		if (LastModificationArray[Index] == EHoudiniMultiParmModificationType::Removed)
+			}
+		} 
+		else
 		{
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
-					FHoudiniEngine::Get().GetSession(), 
+			for(int Index = OldCount - 1; Index >= NewCount; Index--)
+			{
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
+					FHoudiniEngine::Get().GetSession(),
 					MultiParam->GetNodeId(),
-					MultiParam->GetParmId(), 
+					MultiParam->GetParmId(),
 					Index + MultiParam->InstanceStartOffset),
 					false);
+			}
 		}
 	}
-
-	// Remove all removal events.
-	for (int32 Index = Size - 1; Index >= 0; --Index) 
-	{
-		if (LastModificationArray[Index] == EHoudiniMultiParmModificationType::Removed)
-			LastModificationArray.RemoveAt(Index);
+		break;
+	default:
+		break;
 	}
-	
-	// The last modification array is resized.
-	Size = LastModificationArray.Num();
-
-	// Reset the last modification array
-	for (int32 Itr =Size - 1; Itr >= 0; --Itr)
-	{
-		LastModificationArray[Itr] = EHoudiniMultiParmModificationType::None;
-	}
-
-	MultiParam->MultiParmInstanceCount = Size;
 
 	return true;
 }

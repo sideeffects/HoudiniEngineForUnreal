@@ -1606,7 +1606,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFloat* 
 
 bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFolder* A, const UHoudiniParameterFolder* B)
 {
-	const FString Header = "UHoudiniParameterColor";
+	const FString Header = "UHoudiniParameterFolder";
 
 	bool Result = true;
 	
@@ -1640,7 +1640,6 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFolderL
 	}
 
 	Result &= TestExpressionError(A->bIsTabMenu == B->bIsTabMenu, Header, "bIsTabMenu");
-	Result &= TestExpressionError(A->bIsTabsShown == B->bIsTabsShown, Header, "bIsTabsShown");
 
 	return Result;
 }
@@ -1721,15 +1720,9 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterMultiPa
 	Result &= TestExpressionError(A->Value == B->Value, Header, "Value");
 	Result &= TestExpressionError(A->TemplateName.Equals(B->TemplateName), Header, "TemplateName");
 	Result &= TestExpressionError(A->MultiparmValue == B->MultiparmValue, Header, "MultiparmValue");
-	Result &= TestExpressionError(A->MultiParmInstanceNum == B->MultiParmInstanceNum, Header, "MultiParmInstanceNum");
 	Result &= TestExpressionError(A->MultiParmInstanceLength == B->MultiParmInstanceLength, Header, "MultiParmInstanceLength");
 	Result &= TestExpressionError(A->MultiParmInstanceCount == B->MultiParmInstanceCount, Header, "MultiParmInstanceCount");
 	Result &= TestExpressionError(A->InstanceStartOffset == B->InstanceStartOffset, Header, "InstanceStartOffset");
-	Result &= TestExpressionError(A->MultiParmInstanceLastModifyArray.Num() == B->MultiParmInstanceLastModifyArray.Num(), Header, "MultiParmInstanceLastModifyArray.Num");
-	for (int i = 0; i < FMath::Min(A->MultiParmInstanceLastModifyArray.Num(), B->MultiParmInstanceLastModifyArray.Num()); i++)
-	{
-		Result &= TestExpressionError(A->MultiParmInstanceLastModifyArray[i] == B->MultiParmInstanceLastModifyArray[i], Header, "MultiParmInstanceLastModifyArray");
-	}
 	Result &= TestExpressionError(A->DefaultInstanceCount == B->DefaultInstanceCount, Header, "DefaultInstanceCount");
 
 	return Result;

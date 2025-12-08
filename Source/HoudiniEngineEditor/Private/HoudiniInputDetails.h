@@ -49,6 +49,11 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 			IDetailCategoryBuilder& HouInputCategoryBuilder,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, FDetailWidgetRow* InputRow = nullptr);
 
+
+		static TSharedRef<SWidget> CreateInputValueWidget(
+			IDetailCategoryBuilder& HouInputCategory,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
+
 		static void CreateNameWidget(
 			const TWeakObjectPtr<UHoudiniInput>& InParam,
 			FDetailWidgetRow & Row,
