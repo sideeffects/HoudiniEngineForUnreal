@@ -1477,9 +1477,13 @@ FHoudiniParameterView::CreateWidgetMultiParm(
 	TSharedPtr<SNumericEntryBox<int32>> NumericEntryBox;
 
 	HorizontalBox->AddSlot().Padding(2, 2, 5, 2)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		.MinWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_MIN_WIDTH)
 		.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 		.FillWidth(1.0f)
+#else
+		.AutoWidth()
+#endif
 		[
 			SAssignNew(NumericEntryBox, SNumericEntryBox< int32 >)
 				.MinDesiredValueWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_MIN_WIDTH)
@@ -1810,7 +1814,13 @@ FHoudiniParameterView::CreateWidgetInt(
 	TSharedRef<SHorizontalBox> Widget =
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		.MinWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_MIN_WIDTH)
+		.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		.FillWidth(1.0f)
+#else
+		.AutoWidth()
+#endif
 		.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 		.FillWidth(1.0f)
 		.Padding(0.0f, 0.0f)
@@ -2183,7 +2193,13 @@ FHoudiniParameterView::CreateWidgetFloat(
 				[
 					SNew(SHorizontalBox)
 						+ SHorizontalBox::Slot()
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 						.MinWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_MIN_WIDTH)
+						.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+						.FillWidth(1.0f)
+#else
+						.AutoWidth()
+#endif
 						.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 						.FillWidth(1.0f)
 						[
@@ -2240,7 +2256,13 @@ FHoudiniParameterView::CreateWidgetFloat(
 	TSharedRef<SHorizontalBox> Widget =
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		.MinWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_MIN_WIDTH)
+		.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		.FillWidth(1.0f)
+#else
+		.AutoWidth()
+#endif
 		.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 		.FillWidth(1.0f)
 		.Padding(0.0f, 0.0f)
@@ -3049,7 +3071,13 @@ FHoudiniParameterView::CreateWidgetString(
 
 			TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 				.MinWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_MIN_WIDTH)
+				.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+				.FillWidth(1.0f)
+#else
+				.AutoWidth()
+#endif
 				.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 				.FillWidth(1.0f)
 				[
