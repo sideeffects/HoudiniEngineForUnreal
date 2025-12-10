@@ -71,6 +71,7 @@ void UHoudiniPCGSettings::SetupCookable()
 
 void UHoudiniPCGSettings::OnParameterCookableInitialized()
 {
+	PopulateInputsAndOutputs();
 	ForceRefreshUI();
 }
 
@@ -213,6 +214,7 @@ void RefreshDetailsForObject(UObject* TargetObject)
 
 void UHoudiniPCGSettings::OnParameterCookableCooked()
 {
+	PopulateInputsAndOutputs();
 	ForceRefreshUI();
 }
 
