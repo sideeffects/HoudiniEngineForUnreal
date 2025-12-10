@@ -31,7 +31,18 @@
 #include "HoudiniOutputDetails.h"
 #include "IDetailCustomization.h"
 #include "Async/PCGAsyncLoadingContext.h"
+
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshadow"
+#endif
+
 #include "PCGContext.h"
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 #include "PCGGraph.h"
 
 class UHoudiniPCGSettingsCustomization : public IDetailCustomization

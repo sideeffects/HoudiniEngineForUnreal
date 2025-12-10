@@ -31,7 +31,18 @@
 #include "HoudiniEditorUnitTestUtils.h"
 #include "HoudiniParameterFloat.h"
 #include <FileHelpers.h>
+
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshadow"
+#endif
+
 #include "PCGComponent.h"
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 #include "PCGVolume.h"
 #include "PCGGraph.h"
 #include "PCGDataAsset.h"
