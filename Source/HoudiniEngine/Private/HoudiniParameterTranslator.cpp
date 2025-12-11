@@ -2961,7 +2961,7 @@ FHoudiniParameterTranslator::RevertParameterToDefault(UHoudiniParameter* InParam
 	bool bReverted = true;
 	for (auto CurrentIdx : TupleToRevert )
 	{
-		if (!TupleToRevert.IsValidIndex(CurrentIdx))
+		if (CurrentIdx == -1)
 		{
 			// revert the whole parameter to its default value
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::RevertParmToDefaults(
