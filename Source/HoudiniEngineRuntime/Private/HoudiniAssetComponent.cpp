@@ -293,7 +293,8 @@ UHoudiniAssetComponent::~UHoudiniAssetComponent()
 	//FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(GetCookable());
 }
 
-void UHoudiniAssetComponent::PostInitProperties()
+void 
+UHoudiniAssetComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 
@@ -314,8 +315,9 @@ void UHoudiniAssetComponent::PostInitProperties()
 		StaticMeshGenerationProperties_DEPRECATED.GeneratedAssetUserData = HoudiniRuntimeSettings->AssetUserData;
 	}
 
-	// Register ourself to the HER singleton
-	FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(GetCookable());
+	// Register our cookable to the HER singleton
+	// Calling this instead of RegisterHoudiniCookable allow BP integration to override this...
+	RegisterHoudiniComponent(this);
 }
 
 UWorld* 
@@ -658,10 +660,6 @@ UHoudiniAssetComponent::SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(
 void
 UHoudiniAssetComponent::SetHoudiniAsset(UHoudiniAsset * InHoudiniAsset)
 {
-	// Check the asset validity
-	if (!IsValid(InHoudiniAsset))
-		return;
-
 	if (GetCookable())
 		GetCookable()->SetHoudiniAsset(InHoudiniAsset);
 }
@@ -1241,12 +1239,15 @@ UHoudiniAssetComponent::PostEditChangeProperty(FPropertyChangedEvent & PropertyC
 
 	// TODO: COOKABLE - Still working?
 
+	// TODO: COOKABLE - fix proxy settings!!!!
+
 	// Changing the Houdini Asset?
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(UHoudiniAssetComponent, HoudiniAsset_DEPRECATED))
-	{
-		OnHoudiniAssetChanged();
-	}
-	else if (PropertyName == GetRelativeLocationPropertyName()
+	//if (PropertyName == GET_MEMBER_NAME_CHECKED(UCookableHoudiniAssetData, HoudiniAsset))
+	//{
+	//	OnHoudiniAssetChanged();
+	//}
+	//else
+	if (PropertyName == GetRelativeLocationPropertyName()
 			|| PropertyName == GetRelativeRotationPropertyName()
 			|| PropertyName == GetRelativeScale3DPropertyName())
 	{

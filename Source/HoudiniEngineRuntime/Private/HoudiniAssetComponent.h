@@ -115,7 +115,7 @@ public:
 	//------------------------------------------------------------------------------------------------
 	// Accessors
 	//------------------------------------------------------------------------------------------------
-	UHoudiniCookable* GetCookable() const;
+	virtual UHoudiniCookable* GetCookable() const;
 
 	UHoudiniAsset* GetHoudiniAsset() const;
 	int32 GetAssetId() const;

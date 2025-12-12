@@ -427,6 +427,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniCookable : public UObject, public IHoudin
 	//friend struct FHoudiniPDGManager;
 	friend struct FHoudiniHandleTranslator;
 	friend class UHoudiniAssetComponent;
+	friend class UHoudiniAssetBlueprintComponent;
 
 	// Delegate for when EHoudiniAssetState changes from InFromState to InToState on a HoudiniCookable (InHC)
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCookableStateChangeDelegate, UHoudiniCookable*, const EHoudiniAssetState, const EHoudiniAssetState);
@@ -478,8 +479,12 @@ public:
 	FString GetHoudiniAssetName() const;
 
 	FGuid& GetHapiGUID();
+	void SetHapiGUID(const FGuid& InGUID) { HapiGUID = InGUID; }
+
 	FString GetHapiAssetName() const;
+
 	FGuid GetCookableGUID() const;
+	void SetCookableGUID(const FGuid& InGUID) { CookableGUID = InGUID; };
 
 	bool IsCookingEnabled() const { return bEnableCooking; };
 	bool HasBeenLoaded() const { return bHasBeenLoaded; };
@@ -591,8 +596,10 @@ public:
 	// method is overridden by HoudiniAssetBlueprintComponent.
 	virtual bool HasOpenEditor() const { return false; };
 
+	bool IsPendingDelete() const { return bPendingDelete; };
 	int32 GetCookCount() const { return CookCount; };
 
+	void SetLastCookSuccessful(bool bInSuccess) { bLastCookSuccess = bInSuccess; };
 	bool WasLastCookSuccessful() const;
 
 	// TODO COOKABLE: Move to component?
@@ -778,9 +785,9 @@ public:
 	virtual bool IsProxySupported() const { return IsOutputSupported() && bHasProxy && ProxyData; };
 
 	// Needed for BP support
-	virtual void NotifyHoudiniRegisterCompleted() {};
-	virtual void NotifyHoudiniPreUnregister() {};
-	virtual void NotifyHoudiniPostUnregister() {};
+	virtual void NotifyHoudiniRegisterCompleted();
+	virtual void NotifyHoudiniPreUnregister();
+	virtual void NotifyHoudiniPostUnregister();
 
 	// Feature mutators
 	virtual void SetHoudiniAssetSupported(bool bSupport) { bHasHoudiniAsset = bSupport; };

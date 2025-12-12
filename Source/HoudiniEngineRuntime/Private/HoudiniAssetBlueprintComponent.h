@@ -39,6 +39,7 @@
 #include "HoudiniAssetBlueprintComponent.generated.h"
 
 class USCS_Node;
+class UHoudiniCookable;
 
 UCLASS(NotBlueprintType, Experimental, meta=(BlueprintSpawnableComponent, DisplayName="Houdini Asset"))
 class HOUDINIENGINERUNTIME_API UHoudiniAssetBlueprintComponent : public UHoudiniAssetComponent
@@ -124,6 +125,10 @@ public:
 	//------------------------------------------------------------------------------------------------
 #if WITH_EDITOR
 	virtual void OnComponentCreated() override;
+
+	// This alternate version of PostEditChange is called when properties inside structs are modified.  The property that was actually modified
+	// is located at the tail of the list.  The head of the list of the FStructProperty member variable that contains the property that was modified.
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 	virtual void OnRegister() override;
@@ -152,7 +157,7 @@ public:
 	virtual void OnBlueprintStructureModified() override;
 	virtual void OnBlueprintModified() override;
 	
-
+	UHoudiniCookable* GetCookable() const override;
 	//------------------------------------------------------------------------------------------------
 	// Blueprint functions
 	//------------------------------------------------------------------------------------------------
@@ -192,6 +197,10 @@ protected:
 	void CacheBlueprintData();
 
 	USimpleConstructionScript* GetSCS() const;
+
+	// Do any object - specific cleanup required immediately after loading an object.
+	// This is not called for newly - created objects, and by default will always execute on the game thread.
+	virtual void PostLoad() override;
 
 	//// The output translation has finished.
 	//void OnOutputProcessingCompletedHandler(UHoudiniAssetComponent * InComponent);
@@ -237,6 +246,9 @@ protected:
 	// input objects.
 	UPROPERTY()
 	TMap<FGuid, FGuid> CachedInputNodes;
+
+	UPROPERTY()
+	UHoudiniCookable* HoudiniCookable;
 };
 
 

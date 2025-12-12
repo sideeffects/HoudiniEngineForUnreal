@@ -222,11 +222,8 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 	];
 
 	// Lambda for updating the Houdini asset
-	auto UpdateHoudiniAsset = [MainHDA](const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables, UObject* InObject)
+	auto UpdateHoudiniAsset = [MainCookable](const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables, UObject* InObject)
 	{
-		if (!IsValid(MainHDA))
-			return;
-
 		if (!InObject->IsA<UHoudiniAsset>())
 			return;
 
@@ -238,7 +235,7 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
 			LOCTEXT("HoudiniAssetChange", "Houdini Engine: Changed the Houdini Asset."),
-			MainHDA->GetOuter());
+			MainCookable->GetOuter());
 
 		for (auto CurCookable : InCookables)
 		{

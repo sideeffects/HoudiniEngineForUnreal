@@ -3243,7 +3243,7 @@ FHoudiniEngineUtils::UploadCookableTransform(UHoudiniCookable* HC)
 	if (!HC->ComponentData->bUploadTransformsToHoudiniEngine)
 		return false;
 
-	if (!IsValid(HC->ComponentData->Component.Get()))
+	if (!IsValid(HC->GetComponent()))
 		return false;
 
 	// Indicates the Cookable has been fully loaded
@@ -3252,7 +3252,7 @@ FHoudiniEngineUtils::UploadCookableTransform(UHoudiniCookable* HC)
 
 	if (HC->CookCount > 0 && HC->GetNodeId() >= 0)
 	{
-		if (!FHoudiniEngineUtils::HapiSetAssetTransform(HC->GetNodeId(), HC->ComponentData->Component->GetComponentTransform()))
+		if (!FHoudiniEngineUtils::HapiSetAssetTransform(HC->GetNodeId(), HC->GetComponent()->GetComponentTransform()))
 			return false;
 	}
 

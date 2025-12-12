@@ -343,8 +343,6 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 		if (!IsValidWeakPointer(MainInput))
 			return;
 
-		UHoudiniAssetBlueprintComponent* HAB = MainInput->GetTypedOuter<UHoudiniAssetBlueprintComponent>();
-
 		// Record a transaction for undo/redo
 		FScopedTransaction Transaction(
 			TEXT(HOUDINI_MODULE_EDITOR),
@@ -352,7 +350,6 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 			MainInput->GetOuter());
 
 		bool bBlueprintStructureModified = false;
-
 		for (auto CurInput : InInputsToUpdate)
 		{
 			if (!IsValidWeakPointer(CurInput))
@@ -384,6 +381,7 @@ FHoudiniInputDetails::AddInputTypeComboBox(IDetailCategoryBuilder& CategoryBuild
 
 		}
 
+		UHoudiniAssetBlueprintComponent* HAB = MainInput->GetTypedOuter<UHoudiniAssetBlueprintComponent>();
 		if (HAB)
 		{
 			if (bBlueprintStructureModified)

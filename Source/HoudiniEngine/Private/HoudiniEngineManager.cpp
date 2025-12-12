@@ -202,38 +202,21 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 				}
 			}
 
-			// TODO COOKABLE ??
 			if (!CurrentCookable->bFullyLoaded)
 			{
-				/*
 				// TODO COOKABLE: BP Support
 				// Let the component figure out whether it's fully loaded or not.
-				CurrentCookable->HoudiniEngineTick();
-				if (!CurrentCookable->IsFullyLoaded())
-					continue; // We need to wait some more.
-				*/
+				UHoudiniAssetComponent* MyHAC = CurrentCookable->IsComponentSupported() ? Cast<UHoudiniAssetComponent>(CurrentCookable->GetComponent()) : nullptr;
+				if (MyHAC)
+				{
+					MyHAC->HoudiniEngineTick();
+					if (!CurrentCookable->IsFullyLoaded())
+						continue; // We need to wait some more.
+				}
 
 				// For non BP case - just set fully loaded
 				CurrentCookable->bFullyLoaded = true;
 			}
-
-			/*
-			* // TODO COOKABLE: BP Support
-			if (!CurrentCookable->IsFullyLoaded())
-			{
-				// Let the component figure out whether it's fully loaded or not.
-				CurrentCookable->HoudiniEngineTick();
-				if (!CurrentCookable->IsFullyLoaded())
-					continue; // We need to wait some more.
-			}
-
-			if (!CurrentComponent->IsValidComponent())
-			{
-				// This component is no longer valid. Prevent it from being processed, and remove it.
-				FHoudiniEngineRuntime::Get().UnRegisterHoudiniComponent(CurrentComponent);
-				continue;
-			}
-			*/
 
 			AActor* Owner = CurrentCookable->GetOwner();
 			if (Owner && Owner->IsSelectedInEditor())
@@ -294,8 +277,44 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 		// We don't want to the template component processing to trigger session creation
 		if (CurrentCookable->GetCurrentState() == EHoudiniAssetState::ProcessTemplate)
 		{
-			// TODO COOKABLE: PROCESSBP TEMPLATE
-			continue;
+			UHoudiniAssetComponent* MyHAC = CurrentCookable->IsComponentSupported() ? Cast<UHoudiniAssetComponent>(CurrentCookable->GetComponent()) : nullptr;
+			if (MyHAC)
+			{
+				if (MyHAC->IsTemplate() && !MyHAC->HasOpenEditor())
+				{
+					// This component template no longer has an open editor and can be deregistered.
+					// TODO: Replace this polling mechanism with an "On Asset Closed" event if we
+					// can find one that actually works.
+					FHoudiniEngineRuntime::Get().UnRegisterHoudiniCookable(CurrentCookable);
+					continue;
+				}
+
+				if (MyHAC->NeedBlueprintStructureUpdate())
+				{
+					MyHAC->OnBlueprintStructureModified();
+				}
+
+				if (MyHAC->NeedBlueprintUpdate())
+				{
+					MyHAC->OnBlueprintModified();
+				}
+
+				if (FHoudiniEngine::Get().IsCookingEnabled())
+				{
+					// Only process component template parameter updates when cooking is enabled.
+					if (MyHAC->NeedUpdateParameters() || MyHAC->NeedUpdateInputs())
+					{
+						MyHAC->OnTemplateParametersChanged();
+					}
+				}
+				/*
+				if (CurrentCookable->NeedOutputUpdate())
+				{
+					// TODO: Transfer template output changes over to the preview instance.
+				}
+				*/
+				continue;
+			}
 		}
 
 		// Process the cookable
@@ -360,7 +379,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 			// Only do an update if the HAC is selected
 			bool bDoUpdateProperties = false;
 			AActor* Owner = CurrentCookable->GetOwner();
-			if (Owner && Owner->IsSelectedInEditor())
+			if (Owner && Owner->IsSelected())//IsSelectedInEditor())
 				bDoUpdateProperties = true;
 			else if (!CurrentCookable->AssetEditorId.IsNone())
 				bDoUpdateProperties = true;
@@ -476,9 +495,9 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 	if (HC->IsHoudiniAssetSupported() && !HC->HoudiniAssetData->HoudiniAsset)
 		return;
 
-	UHoudiniAssetComponent* MyHAC = HC->IsComponentSupported() ? Cast<UHoudiniAssetComponent>(HC->ComponentData->Component) : nullptr;
-	UHoudiniNodeSyncComponent* MyHNSC = HC->IsComponentSupported() ? Cast<UHoudiniNodeSyncComponent>(HC->ComponentData->Component) : nullptr;
-	UHoudiniAssetBlueprintComponent* MyHABC = HC->IsComponentSupported() ? Cast<UHoudiniAssetBlueprintComponent>(HC->ComponentData->Component) : nullptr;
+	UHoudiniAssetComponent* MyHAC = HC->IsComponentSupported() ? Cast<UHoudiniAssetComponent>(HC->GetComponent()) : nullptr;
+	UHoudiniNodeSyncComponent* MyHNSC = HC->IsComponentSupported() ? Cast<UHoudiniNodeSyncComponent>(HC->GetComponent()) : nullptr;
+	UHoudiniAssetBlueprintComponent* MyHABC = HC->IsComponentSupported() ? Cast<UHoudiniAssetBlueprintComponent>(HC->GetComponent()) : nullptr;
 
 	const EHoudiniAssetState CurrentStateToProcess = HC->GetCurrentState();
 
@@ -1142,10 +1161,10 @@ FHoudiniEngineManager::UpdateInstantiating(UHoudiniCookable* HC, EHoudiniAssetSt
 		// If necessary, set asset transform to the component's transform.
 		if (HC->IsComponentSupported() 
 			&& HC->ComponentData->bUploadTransformsToHoudiniEngine
-			&& IsValid(HC->ComponentData->Component.Get()))
+			&& IsValid(HC->GetComponent()))
 		{
 			// Retrieve the current component-to-world transform for this component.
-			if (!FHoudiniEngineUtils::HapiSetAssetTransform(HC->NodeId, HC->ComponentData->Component->GetComponentTransform()))
+			if (!FHoudiniEngineUtils::HapiSetAssetTransform(HC->NodeId, HC->GetComponent()->GetComponentTransform()))
 				HOUDINI_LOG_MESSAGE(TEXT("Failed to upload the initial Transform back to HAPI."));
 		}
 

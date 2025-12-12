@@ -727,10 +727,6 @@ void
 UHoudiniCookable::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 {
 #if WITH_EDITORONLY_DATA
-	// Check the asset validity
-	if (!IsValid(InHoudiniAsset))
-		return;
-
 	if (!IsHoudiniAssetSupported())
 		return;
 
@@ -739,14 +735,19 @@ UHoudiniCookable::SetHoudiniAsset(UHoudiniAsset* InHoudiniAsset)
 		return;
 
 	HoudiniAssetData->HoudiniAsset = InHoudiniAsset;
+
+	//OnHoudiniAssetChanged();
 #endif
 }
 
 void
 UHoudiniCookable::OnHoudiniAssetChanged()
 {
+	UHoudiniAssetBlueprintComponent* MyHABC = Cast<UHoudiniAssetBlueprintComponent>(GetComponent());
+	if (MyHABC)
+		MyHABC->OnHoudiniAssetChanged();
+
 #if WITH_EDITORONLY_DATA
-	// TODO: clear input/params/outputs?
 	if(IsParameterSupported())
 		ParameterData->Parameters.Empty();
 #endif
@@ -764,6 +765,8 @@ UHoudiniCookable::OnHoudiniAssetChanged()
 
 	// Force an update on the next tick
 	bForceNeedUpdate = true;
+
+	SetNeedToUpdateEditorProperties(true);
 }
 
 
@@ -1140,7 +1143,7 @@ UHoudiniCookable::ClearNodesToCook()
 void
 UHoudiniCookable::UpdatePostDuplicate()
 {
-	if (IsComponentSupported() && IsValid(ComponentData->Component.Get()))
+	if (IsComponentSupported() && GetComponent())
 	{
 		// TODO:
 		// - Keep the output objects/components (remove duplicatetransient on the output object uproperties)
@@ -2767,4 +2770,36 @@ const FString& UHoudiniCookable::GetNodeLabelPrefix() const
 {
 	return NodeLabelPrefix;
 }
+
+
+void
+UHoudiniCookable::NotifyHoudiniRegisterCompleted()
+{
+	UHoudiniAssetBlueprintComponent* MyHABC = Cast<UHoudiniAssetBlueprintComponent>(GetComponent());
+	if (!MyHABC)
+		return;
+
+	MyHABC->NotifyHoudiniRegisterCompleted();
+}
+
+void
+UHoudiniCookable::NotifyHoudiniPreUnregister()
+{
+	UHoudiniAssetBlueprintComponent* MyHABC = Cast<UHoudiniAssetBlueprintComponent>(GetComponent());
+	if (!MyHABC)
+		return;
+
+	MyHABC->NotifyHoudiniPreUnregister();
+}
+
+void
+UHoudiniCookable::NotifyHoudiniPostUnregister()
+{
+	UHoudiniAssetBlueprintComponent* MyHABC = Cast<UHoudiniAssetBlueprintComponent>(GetComponent());
+	if (!MyHABC)
+		return;
+
+	MyHABC->NotifyHoudiniPostUnregister();
+}
+
 
