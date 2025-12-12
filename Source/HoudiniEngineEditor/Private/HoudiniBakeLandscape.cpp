@@ -79,11 +79,14 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	ULandscapeInfo* TargetLandscapeInfo = OutputLandscape->GetLandscapeInfo();
 	FHoudiniExtents Extents = LayerOutput.Extents;
 
+	// Layers are mandatory since 5.7
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION < 7
 	if (!OutputLandscape->bCanHaveLayersContent)
 	{
 		HOUDINI_LOG_MESSAGE(TEXT("Landscape {0} has no edit layers, so baking does nothing."), *OutputLandscape->GetActorLabel());
 		return true;
 	}
+#endif
 
 	//---------------------------------------------------------------------------------------------------------------------------
 	// For landscape layers baking is the act of copying cooked data to a baked layer. We do not need to do that if we already
@@ -116,8 +119,12 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 	FGuid BakedLayerGuid = BakedLayer->Guid;
 #endif
 
-	if (OutputLandscape->bHasLayersContent && LayerOutput.bClearLayer && 
-		!ClearedLayers.Contains(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer))
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	if (LayerOutput.bClearLayer && !ClearedLayers.Contains(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer))
+#else
+	if (OutputLandscape->bHasLayersContent &&
+		LayerOutput.bClearLayer && !ClearedLayers.Contains(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer))
+#endif
 	{
 		ClearedLayers.Add(LayerOutput.BakedEditLayer, LayerOutput.TargetLayer);
 		if (bIsHeightFieldLayer)
@@ -146,8 +153,11 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 
 		if (LayerOutput.TargetLayer == HAPI_UNREAL_VISIBILITY_LAYER_NAME)
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			TAlphamapAccessor<false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), ALandscapeProxy::VisibilityLayer);
+#else
 			FAlphamapAccessor<false, false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), ALandscapeProxy::VisibilityLayer);
-
+#endif
 			AlphaAccessor.SetData(
 				Extents.Min.X, Extents.Min.Y, Extents.Max.X, Extents.Max.Y,
 				Values.GetData(),
@@ -155,7 +165,11 @@ FHoudiniLandscapeBake::BakeLandscapeLayer(
 		}
 		else
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			TAlphamapAccessor<false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), TargetLayerInfo);
+#else
 			FAlphamapAccessor<false, true> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), TargetLayerInfo);
+#endif
 
 			AlphaAccessor.SetData(
 				Extents.Min.X, Extents.Min.Y, Extents.Max.X, Extents.Max.Y,
@@ -547,7 +561,12 @@ void FHoudiniLandscapeBake::BakeMaterials(
 		ULandscapeInfo* Info = Layer.Landscape->GetLandscapeInfo();
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		const TArray<TWeakObjectPtr<ALandscapeStreamingProxy>>& Proxies = Info->GetSortedStreamingProxies();
+#else
 		TArray<TWeakObjectPtr<ALandscapeStreamingProxy>>& Proxies = Info->StreamingProxies;
+#endif
 		for (auto ProxyPtr : Proxies)
 		{
 			ALandscapeStreamingProxy* Proxy = ProxyPtr.Get();
@@ -630,11 +649,13 @@ FHoudiniLandscapeBake::BakeLandscapeSplinesLayer(
 	ALandscape* const OutputLandscape = LayerOutput.Landscape;
 	ULandscapeInfo* const TargetLandscapeInfo = OutputLandscape->GetLandscapeInfo();
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7
 	if (!OutputLandscape->bCanHaveLayersContent)
 	{
 		HOUDINI_LOG_MESSAGE(TEXT("Landscape {0} has no edit layers, so baking does nothing."), *OutputLandscape->GetActorLabel());
 		return true;
 	}
+#endif
 
 	const FName BakedEditLayer = *LayerOutput.BakedEditLayer;
 

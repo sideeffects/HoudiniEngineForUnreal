@@ -105,7 +105,11 @@ bool FHoudiniEditorTestSkeletalMeshElectra::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 		auto & BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
-		auto & BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
+#else
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
+#endif
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), false, return true);
 
 		// For now, check we have the correct number of bones. Can add more complicated checks in the future if needed, such as checking
@@ -203,7 +207,11 @@ bool FHoudiniEditorTestSkeletalMeshElectraDefaultPhysicsAsset::RunTest(const FSt
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 		auto& BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
+#else
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
+#endif
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), false, return true);
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAsset.IsEmpty(), false, return true);
 
@@ -306,7 +314,11 @@ bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FStr
 			HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 			auto& BakedOutput = BakedOutputs[0];
 			HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
+#else
 			auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
+#endif
 			HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), false, return true);
 			HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAsset.IsEmpty(), false, return true);
 
@@ -482,7 +494,11 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingPhysicsAsset::RunTest(const FS
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 		auto& BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
+#else
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
+#endif
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), false, return true);
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAsset.IsEmpty(), true, return true);
 
@@ -587,7 +603,11 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingSkeleton::RunTest(const FStrin
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 		auto& BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
+#else
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
+#endif
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), true, return true);
 
 		// Check the skeletal mesh 

@@ -291,13 +291,17 @@ FLandscapeLayer*
 #endif
 FHoudiniLandscapeUtils::GetEditLayer(ALandscape* Landscape, const FName& LayerName)
 {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	// Landscape layers are mandatory since 5.7
+	// Nothing to do
+#else
 	if (!Landscape->bCanHaveLayersContent)
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		return Landscape->GetLayerConst(0);
 #else
 		return Landscape->GetLayer(0);
 #endif
-
+#endif
 	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
 	if (EditLayerIndex == INDEX_NONE)
 		return nullptr;
@@ -316,11 +320,16 @@ FLandscapeLayer*
 #endif
 FHoudiniLandscapeUtils::MoveEditLayerAfter(ALandscape* Landscape, const FName& LayerName, const FName& AfterLayerName)
 {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	// Landscape layers are mandatory since 5.7
+	// Nothing to do
+#else
 	if (!Landscape->bCanHaveLayersContent)
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
 		return Landscape->GetLayerConst(0);
 #else
 		return Landscape->GetLayer(0);
+#endif
 #endif
 
 	int32 EditLayerIndex = Landscape->GetLayerIndex(LayerName);
@@ -634,7 +643,11 @@ FHoudiniLandscapeUtils::ResolveLandscapes(
 		LandscapeActor->PreEditChange(nullptr);
 		LandscapeActor->SetLandscapeGuid(FGuid::NewGuid());
 		LandscapeActor->bCastStaticShadow = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		// Landscape layers are mandatory since 5.7 - Nothing to do
+#else
 		LandscapeActor->bCanHaveLayersContent = true;
+#endif
 
 		//---------------------------------------------------------------------------------------------------------------------------------
 		// Order is important: Assign materials, create landscape info, Create TargetLayerInfo assets.

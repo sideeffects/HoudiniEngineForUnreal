@@ -573,10 +573,12 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		return nullptr;
 	}
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7
 	if (!OutputLandscape->bCanHaveLayersContent)
 	{
 		HOUDINI_LOG_WARNING(TEXT("Target landscape does not have edit layers enabled. Cooking will directly affect the landscape: %s"), *(Part.TargetLandscapeName));
 	}
+#endif
 
 	// -----------------------------------------------------------------------------------------------------------------
 	// Set Layer names. The Baked layer name is always what the user specifies; If we are modifying an existing landscape,
@@ -616,7 +618,9 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	FLandscapeLayer* UnrealEditLayer = nullptr;
 #endif
 	bool bWasLocked = false;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7
 	if (OutputLandscape->bCanHaveLayersContent)
+#endif
 	{
 		UnrealEditLayer = FHoudiniLandscapeUtils::GetOrCreateEditLayer(OutputLandscape, FName(CookedLayerName));
 		if (!UnrealEditLayer)
@@ -671,7 +675,9 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		LayerType = TargetLayerType::Visibility;
 
 	if (UnrealEditLayer != nullptr && 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7
 		OutputLandscape->bHasLayersContent &&
+#endif
 		Part.bClearLayer &&
 		!ClearedLayers.Contains(CookedLayerName, Part.TargetLayerName))
 	{
@@ -707,8 +713,9 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	// ------------------------------------------------------------------------------------------------------------------
 	// Layer controls
 	// ------------------------------------------------------------------------------------------------------------------
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7
 	if (OutputLandscape->bHasLayersContent)
+#endif	
 	{
 		bool bLayerSubractive = false;
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
@@ -728,7 +735,12 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 			OutputLandscape->SetLayerSubstractiveBlendStatus(UnrealEditLayerIndex, Part.bSubtractiveEditLayer, TargetLayerInfo);
 #endif
 		if (TargetLayerInfo)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			// bNoWeightBlend has been replaced by BlendMethod (false is ELandscapeTargetLayerBlendMethod::FinalWeightBlending, true is ELandscapeTargetLayerBlendMethod::None)
+			TargetLayerInfo->SetBlendMethod(!Part.bIsWeightBlended ? ELandscapeTargetLayerBlendMethod::None : ELandscapeTargetLayerBlendMethod::FinalWeightBlending, false);
+#else
 			TargetLayerInfo->bNoWeightBlend = !Part.bIsWeightBlended;
+#endif
 	}
 
 	// ------------------------------------------------------------------------------------------------------------------
@@ -766,7 +778,9 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	if (LayerType == TargetLayerType::Paint || LayerType == TargetLayerType::Visibility)
 	{
 		FGuid LayerGUID;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7
 		if (OutputLandscape->bCanHaveLayersContent)
+#endif
 		{
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 6
 			LayerGUID = UnrealEditLayer->EditLayer->GetGuid();
@@ -792,7 +806,11 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 
 		if (LayerType == TargetLayerType::Visibility)
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			TAlphamapAccessor<false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), ALandscapeProxy::VisibilityLayer);
+#else
 			FAlphamapAccessor<false, false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), ALandscapeProxy::VisibilityLayer);
+#endif
 			AlphaAccessor.SetData(
 				Extents.Min.X, Extents.Min.Y, Extents.Max.X, Extents.Max.Y,
 				Values.GetData(),
@@ -800,7 +818,11 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 		}
 		else
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			TAlphamapAccessor<false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), TargetLayerInfo);
+#else
 			FAlphamapAccessor<false, false> AlphaAccessor(OutputLandscape->GetLandscapeInfo(), TargetLayerInfo);
+#endif
 			AlphaAccessor.SetData(
 				Extents.Min.X, Extents.Min.Y, Extents.Max.X, Extents.Max.Y,
 				Values.GetData(),
@@ -857,7 +879,11 @@ FHoudiniLandscapeTranslator::TranslateHeightFieldPart(
 	Obj->bClearLayer = Part.bClearLayer;
 	Obj->BakedLandscapeName = Landscape.BakedName.ToString();
 	Obj->LayerInfoObjects = Landscape.CreatedLayerInfoObjects;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	Obj->bCookedLayerRequiresBaking = (CookedLayerName != BakedLayerName);
+#else
 	Obj->bCookedLayerRequiresBaking = OutputLandscape->bCanHaveLayersContent && (CookedLayerName != BakedLayerName);
+#endif
 	Obj->BakeFolder = Part.BakeFolder;
 	Obj->MaterialInstance = Part.MaterialInstance;
 	Obj->bWriteLockedLayers = Part.bWriteLockedLayers;

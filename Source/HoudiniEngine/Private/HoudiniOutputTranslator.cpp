@@ -614,7 +614,9 @@ FHoudiniOutputTranslator::UpdateOutputs(
 					Landscape->Destroy();
 					continue;
 				}
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 1
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+				if (LandscapeInfo->GetSortedStreamingProxies().Num() == 0)
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 1
 				if (LandscapeInfo->Proxies.Num() == 0)
 #else
 				if (LandscapeInfo->StreamingProxies.Num() == 0)
