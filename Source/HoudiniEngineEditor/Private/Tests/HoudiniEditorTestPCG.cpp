@@ -180,7 +180,11 @@ UObject* FHoudiniEditorTestPCG::GetOutputObject(UHoudiniPCGDataObject* PCGDataOb
 
 	const FString & ObjectPath = Attr->Values[Index].ToString();
 
-	UObject* Object = StaticLoadObject(UObject::StaticClass(), nullptr, *ObjectPath);
+	UObject* Object = nullptr;
+	
+	if (!ObjectPath.IsEmpty())
+		Object = StaticLoadObject(UObject::StaticClass(), nullptr, *ObjectPath);
+
 	return Object;
 
 }
