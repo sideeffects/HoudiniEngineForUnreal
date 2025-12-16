@@ -529,6 +529,8 @@ public:
 	
 	int32 GetNumOutputs() const { return IsOutputSupported() ? OutputData->Outputs.Num() : 0; };
 
+	void UpdateParameters();
+
 	int32 GetNumParameters() const 
 	{
 #if WITH_EDITORONLY_DATA

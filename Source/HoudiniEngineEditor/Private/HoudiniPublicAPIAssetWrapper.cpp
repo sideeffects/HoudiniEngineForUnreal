@@ -749,7 +749,7 @@ UHoudiniPublicAPIAssetWrapper::Rebuild_Implementation()
 }
 
 bool
-UHoudiniPublicAPIAssetWrapper::Recook_Implementation()
+UHoudiniPublicAPIAssetWrapper::Recook_Implementation() const
 {
 	UHoudiniCookable* HC = nullptr;
 	if (!GetValidHoudiniCookableWithError(HC))
@@ -989,8 +989,14 @@ UHoudiniPublicAPIAssetWrapper::SetFloatParameterValue_Implementation(FName InPar
 		return false;
 	}
 
-	if (bDidChangeValue && bInMarkChanged)
+	if(bDidChangeValue && bInMarkChanged)
+	{
 		Param->MarkChanged(true);
+		Param->GetCookable()->UpdateParameters();
+
+		if(this->IsAutoCookingEnabled())
+			this->Recook();
+	}
 	
 	return true;
 }
@@ -1078,8 +1084,13 @@ UHoudiniPublicAPIAssetWrapper::SetColorParameterValue_Implementation(FName InPar
 	}
 
 	if (bDidChangeValue && bInMarkChanged)
+	{
 		Param->MarkChanged(true);
-	
+		Param->GetCookable()->UpdateParameters();
+
+		if(this->IsAutoCookingEnabled())
+			this->Recook();
+	}
 	return true;
 }
 
@@ -1203,8 +1214,14 @@ UHoudiniPublicAPIAssetWrapper::SetIntParameterValue_Implementation(FName InParam
 		return false;
 	}
 
-	if (bDidChangeValue && bInMarkChanged)
+	if(bDidChangeValue && bInMarkChanged)
+	{
 		Param->MarkChanged(true);
+		Param->GetCookable()->UpdateParameters();
+
+		if(this->IsAutoCookingEnabled())
+			this->Recook();
+	}
 
 	return true;
 }
@@ -1335,8 +1352,13 @@ UHoudiniPublicAPIAssetWrapper::SetBoolParameterValue_Implementation(FName InPara
 	}
 
 	if (bDidChangeValue && bInMarkChanged)
+	{
 		Param->MarkChanged(true);
+		Param->GetCookable()->UpdateParameters();
 
+		if(this->IsAutoCookingEnabled())
+			this->Recook();
+	}
 	return true;
 }
 
@@ -1472,9 +1494,14 @@ UHoudiniPublicAPIAssetWrapper::SetStringParameterValue_Implementation(FName InPa
 		return false;
 	}
 
-	if (bDidChangeValue && bInMarkChanged)
+	if(bDidChangeValue && bInMarkChanged)
+	{
 		Param->MarkChanged(true);
+		Param->GetCookable()->UpdateParameters();
 
+		if(this->IsAutoCookingEnabled())
+			this->Recook();
+	}
 	return true;
 }
 
@@ -1605,8 +1632,13 @@ UHoudiniPublicAPIAssetWrapper::SetAssetRefParameterValue_Implementation(FName In
 	}
 
 	if (bDidChangeValue && bInMarkChanged)
+	{
 		Param->MarkChanged(true);
+		Param->GetCookable()->UpdateParameters();
 
+		if(this->IsAutoCookingEnabled())
+			this->Recook();
+	}
 	return true;
 }
 
@@ -1829,6 +1861,10 @@ UHoudiniPublicAPIAssetWrapper::SetRampParameterNumPoints_Implementation(FName In
 			}
 
 			Param->MarkChanged(true);
+			Param->GetCookable()->UpdateParameters();
+
+			if(this->IsAutoCookingEnabled())
+				this->Recook();
 		}
 		else if (InNumPoints > CurrentNumPoints)
 		{
@@ -1857,6 +1893,10 @@ UHoudiniPublicAPIAssetWrapper::SetRampParameterNumPoints_Implementation(FName In
 			}
 			
 			Param->MarkChanged(true);
+			Param->GetCookable()->UpdateParameters();
+
+			if(this->IsAutoCookingEnabled())
+				this->Recook();
 		}
 
 		// If at this point InNumPoints != CurrentNumPoints then something went wrong, we couldn't delete all the
@@ -2520,7 +2560,10 @@ UHoudiniPublicAPIAssetWrapper::TriggerButtonParameter_Implementation(FName InBut
 		if (!ButtonParam->HasChanged() || !ButtonParam->NeedsToTriggerUpdate())
 		{
 			ButtonParam->MarkChanged(true);
-			// bDidTrigger = true;
+			ButtonParam->GetCookable()->UpdateParameters();
+
+			if(this->IsAutoCookingEnabled())
+				this->Recook();
 		}
 	}
 	else

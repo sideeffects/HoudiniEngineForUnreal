@@ -48,6 +48,7 @@
 #endif
 
 #include "HoudiniParameterInt.h"
+#include "HoudiniParameterUpdater.h"
 #include "Components/SplineComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedFoliageActor.h"
@@ -95,7 +96,7 @@ UCookableHoudiniAssetData::UCookableHoudiniAssetData(const FObjectInitializer& O
 UCookableParameterData::UCookableParameterData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bCookOnParameterChange(true)
-	, bParameterDefinitionUpdateNeeded(false)
+	, bParameterDefinitionUpdateNeeded(true)
 {
 
 }
@@ -2802,4 +2803,16 @@ UHoudiniCookable::NotifyHoudiniPostUnregister()
 	MyHABC->NotifyHoudiniPostUnregister();
 }
 
+void UHoudiniCookable::UpdateParameters()
+{
+	auto Updater = FHoudiniParameterUpdater::Get();
+	if(!Updater)
+		return;
+
+	// Only fetch parameters if we have an instantiated HDA... which we do not if in PreInstantiation.
+	// Otherwise we over-write out parameters.
+	bool bFetch = this->CurrentState != EHoudiniAssetState::PreInstantiation;
+
+	Updater->SendModifiedParametersToHoudini(this, bFetch);
+}
 

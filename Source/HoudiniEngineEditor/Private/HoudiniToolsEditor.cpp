@@ -2958,11 +2958,8 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 
 	// Update the parameters
 	FHoudiniParameterTranslator::UpdateParameters(
-		HC->GetNodeId(),
 		HC,
-		HC->GetParameters(),
-		HC->GetHoudiniAsset(),
-		HC->GetHapiAssetName(),
+		true, // Values
 		bForceFullUpdate,
 		bCacheRampParms,
 		bNeedToUpdateEditorProperties);
@@ -3006,11 +3003,8 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 
 		FHoudiniParameterTranslator::UploadChangedParameters(HC->GetParameters(), HC->GetNodeId());
 		FHoudiniParameterTranslator::UpdateParameters(
-			HC->GetNodeId(),
 			HC,
-			HC->GetParameters(),
-			HC->GetHoudiniAsset(),
-			HC->GetHapiAssetName(),
+			true, // Update values
 			bForceFullUpdate,
 			bCacheRampParms,
 			bNeedToUpdateEditorProperties);
@@ -3021,11 +3015,8 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 	{
 		FHoudiniParameterTranslator::UploadChangedParameters(HC->GetParameters(), HC->GetNodeId());
 		FHoudiniParameterTranslator::UpdateParameters(
-			HC->GetNodeId(),
 			HC,
-			HC->GetParameters(),
-			HC->GetHoudiniAsset(),
-			HC->GetHapiAssetName(),
+			true, // Update Values
 			bForceFullUpdate,
 			bCacheRampParms,
 			bNeedToUpdateEditorProperties);

@@ -416,6 +416,7 @@ public:
 
 	FOnHoudiniAssetStateChange OnPreInstantiationDelegate;
 	FOnHoudiniAssetStateChange OnPostProcessingDelegate;
+	FOnHoudiniAssetStateChange OnPostInstantiationDelegate;
 
 	bool IsInstantiating = false;
 	int32 CookCount = 0;

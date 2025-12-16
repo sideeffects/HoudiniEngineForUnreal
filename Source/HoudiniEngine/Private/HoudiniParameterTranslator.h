@@ -28,7 +28,7 @@
 
 #include "HAPI/HAPI_Common.h"
 #include "CoreMinimal.h"
-
+#include "HoudiniParameterUpdater.h"
 #include "HoudiniEnginePrivatePCH.h"
 
 class UHoudiniAsset;
@@ -39,14 +39,13 @@ class UHoudiniParameterFile;
 enum class EHoudiniFolderParameterType : uint8;
 enum class EHoudiniParameterType : uint8;
 
-struct HOUDINIENGINE_API FHoudiniParameterTranslator
+struct HOUDINIENGINE_API FHoudiniParameterTranslator : public FHoudiniParameterUpdater
 {
+	virtual void SendModifiedParametersToHoudini(UHoudiniCookable* InHC, bool bFetchFromHDA);
+
 	static bool UpdateParameters(
-		HAPI_NodeId InNodeId,
-		UObject* InOuter,
-		TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
-		UHoudiniAsset* InHoudiniAsset,
-		const FString& InHapiAssetName,
+		UHoudiniCookable* InHC,
+		bool bUpdateValues,
 		bool bForceFullUpdate,
 		bool bCacheRampParms,
 		bool& bNeedToUpdateEditorProperties);
@@ -55,9 +54,7 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 
 	//
 	static bool UpdateLoadedParameters(
-		HAPI_NodeId InNodeId,
-		TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
-		UObject* InOuter,
+		UHoudiniCookable* InHC,
 		bool bForceFullUpdate,
 		bool bCacheRampParams,
 		bool& bNeedToUpdateEditorProperties);
@@ -105,19 +102,16 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 		NewParameters are new and re-used parameters.
 	*/
 	static bool BuildAllParameters(
-		HAPI_NodeId AssetId,
-		class UObject* OuterObject,
+		UHoudiniCookable* InHC,
 		TArray<TObjectPtr<UHoudiniParameter>>& CurrentParameters,
 		TArray<TObjectPtr<UHoudiniParameter>>& NewParameters,
 		bool bUpdateValues,
 		bool InForceFullUpdate,
-		const UHoudiniAsset* InHoudiniAsset,
-		const FString& InHoudiniAssetName,
 		bool bCacheRampParms);
 
 	// Parameter creation
 	static UHoudiniParameter * CreateTypedParameter(
-		class UObject * Outer,
+		UHoudiniCookable* InHC,
 		const EHoudiniParameterType& ParmType,
 		const FString& ParmName );
 

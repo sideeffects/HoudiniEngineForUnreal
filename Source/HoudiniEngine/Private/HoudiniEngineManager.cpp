@@ -582,11 +582,8 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 
 				// Update the parameters
 				FHoudiniParameterTranslator::UpdateParameters(
-					HC->GetNodeId(),
 					HC,
-					HC->ParameterData->Parameters,
-					HC->IsHoudiniAssetSupported() ? HC->HoudiniAssetData->HoudiniAsset : nullptr,
-					HC->IsHoudiniAssetSupported() ? HC->HoudiniAssetData->HapiAssetName : FString(),
+					true, // Update values
 					bForceFullUpdate,
 					bCacheRampParms,
 					HC->bNeedToUpdateEditorProperties);
@@ -758,6 +755,8 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 
 			if (!bCookStarted)
 			{
+				bool bSuccess = !IsCookingEnabledForCookable(HC);
+				FHoudiniStatusManager::Get()->EndCooking(HC, bSuccess);
 	#if WITH_EDITORONLY_DATA
 				// Just refresh editor properties?
 				HC->bNeedToUpdateEditorProperties = true;
@@ -1405,14 +1404,11 @@ FHoudiniEngineManager::PreCook(UHoudiniCookable* HC)
 			}
 
 			// This will sync parameter definitions but not upload values to HAPI or fetch values for existing parameters
-			// in Unreal. It will creating missing parameters in Unreal.
-			//FHoudiniParameterTranslator::UpdateLoadedParameters(HAC);
+			// in Unreal. It will create missing parameters in Unreal.
 
 			bool bForceFullUpdate = HC->HasRebuildBeenRequested() || HC->HasRecookBeenRequested() || HC->IsParameterDefinitionUpdateNeeded();
 			bool bCacheRampParms = !HC->HasBeenLoaded() && !HC->HasBeenDuplicated();
 			FHoudiniParameterTranslator::UpdateLoadedParameters(
-				HC->GetNodeId(),
-				HC->ParameterData->Parameters,
 				HC,
 				bForceFullUpdate,
 				bCacheRampParms,
@@ -1520,11 +1516,8 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 			const bool bForceFullUpdate = HC->HasRebuildBeenRequested() || HC->HasRecookBeenRequested() || HC->IsParameterDefinitionUpdateNeeded();
 			const bool bCacheRampParms = !HC->HasBeenLoaded() && !HC->HasBeenDuplicated();
 			FHoudiniParameterTranslator::UpdateParameters(
-				HC->GetNodeId(),
 				HC,
-				HC->ParameterData->Parameters,
-				HC->IsHoudiniAssetSupported() ? HC->HoudiniAssetData->HoudiniAsset : nullptr,
-				HC->IsHoudiniAssetSupported() ? HC->HoudiniAssetData->HapiAssetName : FString(),
+				true, // Update values
 				bForceFullUpdate,
 				bCacheRampParms,
 				HC->bNeedToUpdateEditorProperties);

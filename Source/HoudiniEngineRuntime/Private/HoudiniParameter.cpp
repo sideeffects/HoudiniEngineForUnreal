@@ -25,6 +25,7 @@
 */
 
 #include "HoudiniParameter.h"
+#include "HoudiniCookable.h"
 
 UHoudiniParameter::UHoudiniParameter(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -272,3 +273,7 @@ UHoudiniParameter::OnSessionConnected()
 }
 
 
+UHoudiniCookable* UHoudiniParameter::GetCookable()
+{
+	return Cast<UHoudiniCookable>(GetOuter());
+}

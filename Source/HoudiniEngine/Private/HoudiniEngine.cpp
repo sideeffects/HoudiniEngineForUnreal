@@ -57,7 +57,7 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Misc/FileHelper.h"
 #include "HoudiniEngineStatusManager.h"
-
+#include "HoudiniParameterTranslator.h"
 #if WITH_EDITOR
 	#include "Widgets/Notifications/SNotificationList.h"
 	#include "Framework/Notifications/NotificationManager.h"
@@ -240,6 +240,8 @@ FHoudiniEngine::StartupModule()
 
 	// Create Unreal Object Input manager and its implementation (the singleton takes ownership of the implementation)
 	FUnrealObjectInputManager::SetSingleton(new FUnrealObjectInputManagerImpl());
+
+	FHoudiniParameterUpdater::SetInstance(new FHoudiniParameterTranslator);
 
 	// Set the session status to Not Started
 	SetSessionStatus(EHoudiniSessionStatus::NotStarted);

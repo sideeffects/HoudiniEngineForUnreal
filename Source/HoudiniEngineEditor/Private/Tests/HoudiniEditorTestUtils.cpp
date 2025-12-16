@@ -1443,11 +1443,14 @@ void UHoudiniEditorTestObject::PreInstantiationCallback(UHoudiniPublicAPIAssetWr
 		OnPreInstantiationDelegate.Broadcast(InAssetWrapper, this);
 }
 
-void UHoudiniEditorTestObject::PostInstantiationCallback(UHoudiniPublicAPIAssetWrapper* AssetWrapper)
+void UHoudiniEditorTestObject::PostInstantiationCallback(UHoudiniPublicAPIAssetWrapper* InAssetWrapper)
 {
 	this->IsInstantiating = false;
 
-	AssetWrapper->GetOnPostInstantiationDelegate().RemoveDynamic(this, &UHoudiniEditorTestObject::PostInstantiationCallback);
+	InAssetWrapper->GetOnPostInstantiationDelegate().RemoveDynamic(this, &UHoudiniEditorTestObject::PostInstantiationCallback);
+
+	if(OnPostInstantiationDelegate.IsBound())
+		OnPostInstantiationDelegate.Broadcast(InAssetWrapper, this);
 }
 
 void UHoudiniEditorTestObject::PostCookCallback(UHoudiniPublicAPIAssetWrapper* AssetWrapper, const bool bInCookSuccess)

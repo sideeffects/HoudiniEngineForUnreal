@@ -435,7 +435,7 @@ public:
 	 * @returns true If the HDA was successfully marked as needing to be cooked.
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
-	bool Recook();
+	bool Recook() const;
 
 	/**
 	 * Enable or disable auto cooking of the asset (on parameter changes, input updates and transform changes, for
