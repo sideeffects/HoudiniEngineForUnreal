@@ -697,7 +697,11 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 			bDisplayChildren = FolderParam->IsChosen();
 			break;
 		}
-
+		case EHoudiniFolderParameterType::Radio:
+		{
+			bDisplayChildren = FolderParam->IsChosen();
+			break;
+		}
 		default:
 			break;
 		}
@@ -1144,13 +1148,13 @@ FHoudiniParameterView::CreateRadioFolderRow(
 							[
 								SNew(STextBlock)
 									.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-									.Text_Lambda([FoldersParams]()
+									.Text_Lambda([FoldersParams, Index]()
 										{
 											FString Text;
 
 											if(!FoldersParams.IsEmpty())
 											{
-												UHoudiniParameterFolder* ParameterFolder = Cast<UHoudiniParameterFolder>(FoldersParams[0]->GetMainParameter());
+												UHoudiniParameterFolder* ParameterFolder = Cast<UHoudiniParameterFolder>(FoldersParams[Index]->GetMainParameter());
 												if(ParameterFolder->IsChosen())
 												{
 													Text = FString::Printf(TEXT("\u25C9 %s"), *ParameterFolder->GetParameterLabel());
