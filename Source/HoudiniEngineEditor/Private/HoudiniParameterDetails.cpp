@@ -1032,6 +1032,9 @@ FHoudiniParameterView::CreateTabbedFolderRow(
 	{
 		TSharedPtr<FHoudiniParameterView> Folder = FoldersParams[Index];
 
+		if(!Folder->GetMainParameter()->IsVisible())
+			continue;
+
 		HorizontalBox->AddSlot()
 			.Padding(0.0f, 10.0f, 2.0f, 0.0f)
 			.AutoWidth()
@@ -1108,6 +1111,9 @@ FHoudiniParameterView::CreateRadioFolderRow(
 	for(int32 Index = 0; Index < FoldersParams.Num(); Index++)
 	{
 		TSharedPtr<FHoudiniParameterView> Folder = FoldersParams[Index];
+
+		if(!Folder->GetMainParameter()->IsVisible())
+			continue;
 
 		HorizontalBox->AddSlot()
 			.Padding(0.0f, 10.0f, 2.0f, 0.0f)
