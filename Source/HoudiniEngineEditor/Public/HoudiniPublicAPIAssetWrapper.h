@@ -434,7 +434,7 @@ public:
 	 * 
 	 * @returns true If the HDA was successfully marked as needing to be cooked.
 	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API", BlueprintPure = false)
 	bool Recook() const;
 
 	/**

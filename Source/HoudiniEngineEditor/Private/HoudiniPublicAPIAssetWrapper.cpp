@@ -50,6 +50,7 @@
 #include "HoudiniParameterRamp.h"
 #include "HoudiniParameterString.h"
 #include "HoudiniParameterToggle.h"
+#include "HoudiniParameterButtonStrip.h"
 #include "HoudiniPDGManager.h"
 #include "HoudiniPublicAPI.h"
 #include "HoudiniPublicAPIBlueprintLib.h"
@@ -1207,6 +1208,17 @@ UHoudiniPublicAPIAssetWrapper::SetIntParameterValue_Implementation(FName InParam
 		// For ramps we have to use the appropriate function so that delete/insert operations are managed correctly
 		bDidChangeValue = SetRampParameterNumPoints(InParameterTupleName, InValue);
 	}
+	else if(ParamType == EHoudiniParameterType::ButtonStrip)
+	{
+		UHoudiniParameterButtonStrip* BSParam = Cast<UHoudiniParameterButtonStrip>(Param);
+		if(!IsValid(BSParam))
+		{
+			SetErrorMessage(FString::Printf(
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+			return false;
+		}
+		bDidChangeValue = BSParam->SetValue(InValue);
+	}
 	else
 	{
 		SetErrorMessage(FString::Printf(
@@ -1300,6 +1312,15 @@ UHoudiniPublicAPIAssetWrapper::GetIntParameterValue_Implementation(FName InParam
 		}
 
 		OutValue = FolderParam->IsChosen();
+		return true;
+	}
+	if(ParamType == EHoudiniParameterType::ButtonStrip)
+	{
+		UHoudiniParameterButtonStrip * BSParam = Cast<UHoudiniParameterButtonStrip>(Param);
+		if(!IsValid(BSParam))
+			return false;
+
+		OutValue = BSParam->GetValue();
 		return true;
 	}
 

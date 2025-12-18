@@ -70,7 +70,8 @@ public:
 	 *          current selection. If it is multiple selection, then the value is a bitmask of the
 	 *          selected values.
 	 */
-	void SetValue(const uint32 InValue) { Value = InValue; }
+	bool SetValue(const uint32 InValue);
+	int GetValue() const { return Value;  }
 
 	void SetNumberOfValues(const uint32 InNumValues) { Labels.SetNum(InNumValues); }
 

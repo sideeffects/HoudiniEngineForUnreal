@@ -74,6 +74,19 @@ bool UHoudiniParameterButtonStrip::GetValueAt(const uint32 Index) const
 	}
 }
 
+bool UHoudiniParameterButtonStrip::SetValue(const uint32 InValue)
+{
+	if(Value != InValue)
+	{
+		Value = InValue;
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 bool UHoudiniParameterButtonStrip::SetValueAt(const bool InValue, const uint32 Index)
 {
 	if (!Labels.IsValidIndex(Index))
