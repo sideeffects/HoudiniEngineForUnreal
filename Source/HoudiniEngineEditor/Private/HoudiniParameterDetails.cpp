@@ -3383,7 +3383,7 @@ TSharedRef<SWidget> FHoudiniParameterView::CreateWidgetButtonStrip(
 
 		TSharedPtr<SCheckBox> Button;
 
-		HorizontalBox->AddSlot().Padding(0).FillWidth(1.0f)
+		HorizontalBox->AddSlot().Padding(3.0f, 3.0f, 3.0f, 3.0f).FillWidth(1.0f)
 			[
 				SAssignNew(Button, SCheckBox)
 					.Style(_GetEditorStyle(), "Property.ToggleButton.Middle")
@@ -3405,9 +3405,14 @@ TSharedRef<SWidget> FHoudiniParameterView::CreateWidgetButtonStrip(
 						})
 					.Content()
 					[
-						SNew(STextBlock)
-							.Text(LabelText)
-							.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						SNew(SBox)
+							.HAlign(HAlign_Center)
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock)
+									.Text(LabelText)
+									.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+							]
 					]
 			];
 
