@@ -537,13 +537,16 @@ FHoudiniEngineUtils::ConvertUnrealString(const FString & UnrealString, std::stri
 }
 
 UWorld*
-FHoudiniEngineUtils::FindWorldInPackage(const FString& PackagePath, bool bCreateMissingPackage, bool& bOutCreatedPackage)
+FHoudiniEngineUtils::FindWorldInPackage(const FString& InPackagePath, bool bCreateMissingPackage, bool& bOutCreatedPackage)
 {
 	AActor* Result = nullptr;
 	UWorld* PackageWorld = nullptr;
 
 	bOutCreatedPackage = false;
 	
+	// Sometimes the "package Path" passed in as an object, os make sure we get the package's path.
+	FString PackagePath = FPackageName::ObjectPathToPackageName(InPackagePath);
+
 	// Try to load existing UWorld from the tile package path.
 	UPackage* Package = FindPackage(nullptr, *PackagePath);
 	if (!Package)
