@@ -28,7 +28,18 @@
 
 #include "CoreMinimal.h"
 #include "HoudiniPCGCookable.h"
+
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshadow"
+#endif
+
 #include "PCGComponent.h"
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 #include "UObject/ObjectMacros.h"
 #include "IDetailCustomization.h"
 
