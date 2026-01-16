@@ -54,8 +54,14 @@ UHoudiniEditorAssetStateSubsystem::NotifyOfHoudiniAssetStateChange(UObject* InHo
 	if (!IsValid(HC))
 		return;
 
-	// If we went from PostCook -> PreProcess, the cook was successful, and auto bake is enabled, auto bake!
-	if (InFromState == EHoudiniAssetState::PostCook && InToState == EHoudiniAssetState::PreProcess && HC->WasLastCookSuccessful() && HC->IsBakeAfterNextCookEnabled())
+	// Auto Bake needs to happen after output processing has already been handled,
+	// otherwise we won't have the OutputObjects required to handle baking properly.
+	// If we went from Processing -> None, then cook was successful, outputs have been processed,
+	// and if auto bake is enabled, then auto bake!
+	if (InFromState == EHoudiniAssetState::Processing 
+		&& InToState == EHoudiniAssetState::None 
+		&& HC->WasLastCookSuccessful() 
+		&& HC->IsBakeAfterNextCookEnabled())
 	{
 		FHoudiniBakeSettings BakeSettings;
 		BakeSettings.SetFromCookable(HC);
