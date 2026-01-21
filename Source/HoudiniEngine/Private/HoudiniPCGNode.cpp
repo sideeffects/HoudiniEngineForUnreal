@@ -474,16 +474,18 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 	UHoudiniPCGManagedResource* ManagedResource = nullptr;
 
-	UPCGComponent * PCGComponent = FHoudiniPCGUtils::GetSourceComponent(Context);
+	if (UPCGComponent * PCGComponent = FHoudiniPCGUtils::GetSourceComponent(Context))
+	{
 
-	PCGComponent->ForEachManagedResource([&ManagedResource, ResourceCrc, &Context](UPCGManagedResource* InResource)
-		{
-			if(!InResource->GetCrc().IsValid() 
-				|| (InResource->GetCrc() != ResourceCrc && InResource->IsA<UPCGManagedResource>()))
-				return;
+		PCGComponent->ForEachManagedResource([&ManagedResource, ResourceCrc, &Context](UPCGManagedResource* InResource)
+			{
+				if(!InResource->GetCrc().IsValid()
+					|| (InResource->GetCrc() != ResourceCrc && InResource->IsA<UPCGManagedResource>()))
+					return;
 
-			ManagedResource = Cast<UHoudiniPCGManagedResource>(InResource);
-		});
+				ManagedResource = Cast<UHoudiniPCGManagedResource>(InResource);
+			});
+	}
 
 	switch(HDAContext->ContextState)
 	{
@@ -523,32 +525,40 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			// NOTE: We instantiate, then once the HDA is ready in Houdini, we set parameters and cooked. This seems to be necessary to avoid
 			// paramters getting overridden on the first cook. Possibly a slight rework of Houdini Engine Manager could fix this.
 
-			UPCGComponent* SourceComponent = FHoudiniPCGUtils::GetSourceComponent(Context);
-
-			ManagedResource = NewObject<UHoudiniPCGManagedResource>(SourceComponent);
-			ManagedResource->PCGComponent = SourceComponent;
-			if(ManagedResource->PCGComponent)
+			if (UPCGComponent* SourceComponent = FHoudiniPCGUtils::GetSourceComponent(Context))
 			{
-				ManagedResource->PCGComponent->GetGraph()->OnGraphChangedDelegate.AddUObject(ManagedResource, &UHoudiniPCGManagedResource::OnGraphChanged);
+				ManagedResource = NewObject<UHoudiniPCGManagedResource>(SourceComponent);
+				ManagedResource->PCGComponent = SourceComponent;
+				if(ManagedResource->PCGComponent)
+				{
+					ManagedResource->PCGComponent->GetGraph()->OnGraphChangedDelegate.AddUObject(ManagedResource, &UHoudiniPCGManagedResource::OnGraphChanged);
+				}
+				ManagedResource->SetCrc(ResourceCrc);
+				ManagedResource->MarkAsUsed();
+				ManagedResource->HoudiniPCGComponent = UHoudiniPCGComponent::CreatePCGComponent(SourceComponent);
+				SourceComponent->AddToManagedResources(ManagedResource);
+
+				UHoudiniPCGCookable* PCGCookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
+				PCGCookable->CreateHoudiniCookable(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
+				PCGCookable->Cookable->SetIsPCG(true);
+				PCGCookable->Cookable->SetLandscapeModificationEnabled(ManagedResource->PCGComponent->bIgnoreLandscapeTracking);
+				PCGCookable->Cookable->SetNodeLabelPrefix(TEXT("PCG_Instance_"));
+				PCGCookable->Instantiate();
+				PCGCookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
+				ManagedResource->HoudiniPCGComponent->Cookable = PCGCookable;
+				HOUDINI_PCG_MESSAGE(TEXT("(%p) Creating Managed Resource, Instantiating..."), PCGCookable);
+
+				// Return now since instantiation is not instant.
+				HDAContext->ContextState = EHoudiniPCGContextState::Instantiating;
+				return false;
 			}
-			ManagedResource->SetCrc(ResourceCrc);
-			ManagedResource->MarkAsUsed();
-			ManagedResource->HoudiniPCGComponent = UHoudiniPCGComponent::CreatePCGComponent(SourceComponent);
-			SourceComponent->AddToManagedResources(ManagedResource);
+			else
+			{
+				// In UE5.7+ ExecuteInternal() is called if th graph is modified, even if it is not instanced. So
+				// just return and do nothing.
+				return true;
+			}
 
-			UHoudiniPCGCookable * PCGCookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
-			PCGCookable->CreateHoudiniCookable(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
-			PCGCookable->Cookable->SetIsPCG(true);
-			PCGCookable->Cookable->SetLandscapeModificationEnabled(ManagedResource->PCGComponent->bIgnoreLandscapeTracking);
-			PCGCookable->Cookable->SetNodeLabelPrefix(TEXT("PCG_Instance_"));
-			PCGCookable->Instantiate();
-			PCGCookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
-			ManagedResource->HoudiniPCGComponent->Cookable = PCGCookable;
-			HOUDINI_PCG_MESSAGE(TEXT("(%p) Creating Managed Resource, Instantiating..."), PCGCookable);
-
-			// Return now since instantiation is not instant.
-			HDAContext->ContextState = EHoudiniPCGContextState::Instantiating;
-			return false;
 		}
 		else
 		{
