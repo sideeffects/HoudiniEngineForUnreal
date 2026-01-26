@@ -211,7 +211,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraDefaultPhysicsAsset::RunTest(const FSt
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeletonPath.IsValid(), true, return true);
-		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAssetPath.IsValid(), false, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAssetPath.IsValid(), true, return true);
 
 		// For now, check we have the correct number of bones. Can add more complicated checks in the future if needed, such as checking
 		// parents, etc. Probably should not check the bone order though.
