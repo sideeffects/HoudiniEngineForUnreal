@@ -675,7 +675,7 @@ FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& In
 	// parameters which may be set on a per-actor basis.
 
 	// If we don't have a valid mesh component destroy the nodes and return false
-	if(!IsValid(MeshComponent))
+	if(!IsValid(MeshComponent) || !MeshComponent->GetOwner())
 	{
 		DestroyHAPINodes();
 		return false;
