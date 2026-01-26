@@ -250,6 +250,7 @@ public:
 	// BAKE
 
 	// Previously baked outputs
+	UPROPERTY(DuplicateTransient)
 	TArray<FHoudiniBakedOutput> BakedOutputs;
 
 	// Bake Options
