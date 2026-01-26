@@ -66,9 +66,9 @@ FHoudiniPCGUtils::GetPCGOutputData(const FHoudiniBakedOutput* BakedOutput)
 
 		FHoudiniPCGObjectOutput& PCGOutputObject = Outputs.Emplace_GetRef();
 		PCGOutputObject.OutputObjectIndex = ObjectIndex;
-		PCGOutputObject.ActorPath = BakedOutputObject.Actor;
-		PCGOutputObject.ComponentPath = BakedOutputObject.BakedComponent;
-		PCGOutputObject.ObjectPath = BakedOutputObject.BakedObject;
+		PCGOutputObject.ActorPath = BakedOutputObject.ActorPath;
+		PCGOutputObject.ComponentPath = BakedOutputObject.BakedComponentPath;
+		PCGOutputObject.ObjectPath = BakedOutputObject.BakedObjectPath;
 
 		if (PCGOutputObject.ActorPath.IsValid())
 		{

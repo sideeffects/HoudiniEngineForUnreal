@@ -3640,9 +3640,9 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 				UStaticMesh* DuplicatedMesh = FHoudiniEngineBakeUtils::BakeStaticMesh(
 					StaticMesh, PackageParams, InAllOutputs, TempCookFolderPath, AlreadyBakedStaticMeshMap, AlreadyBakedMaterialsMap);
 
-				BakedObjectEntry.Actor.Empty();
-				BakedObjectEntry.BakedComponent.Empty();
-				BakedObjectEntry.BakedObject = FSoftObjectPath(DuplicatedMesh).ToString();
+				BakedObjectEntry.ActorPath.Reset();
+				BakedObjectEntry.BakedComponentPath.Reset();
+				BakedObjectEntry.BakedObjectPath = FSoftObjectPath(DuplicatedMesh).ToString();
 			}
 		}
 		break;
@@ -3657,9 +3657,9 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 				FHoudiniEngineBakeUtils::BakeCurve(
 					HC, SplineComponent, GWorld->GetCurrentLevel(), PackageParams, BakeSettings, FName(PackageParams.ObjectName), BakedActor, BakedSplineComponent, NewBakeOutput);
 
-				BakedObjectEntry.Actor = FSoftObjectPath(BakedActor).ToString();
-				BakedObjectEntry.BakedComponent = FSoftObjectPath(BakedSplineComponent).ToString();
-				BakedObjectEntry.BakedObject.Empty();
+				BakedObjectEntry.ActorPath = FSoftObjectPath(BakedActor);
+				BakedObjectEntry.BakedComponentPath = FSoftObjectPath(BakedSplineComponent).ToString();
+				BakedObjectEntry.BakedObjectPath.Reset();
 			}
 		}
 		break;
@@ -3670,9 +3670,9 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 			if (Landscape)
 			{
 				FHoudiniEngineBakeUtils::BakeHeightfield(Landscape, PackageParams, LandscapeBakeType, NewBakeOutput);
-				BakedObjectEntry.Actor.Empty();
-				BakedObjectEntry.BakedComponent.Empty();
-				BakedObjectEntry.BakedObject.Empty();
+				BakedObjectEntry.ActorPath.Reset();
+				BakedObjectEntry.BakedComponentPath.Reset();
+				BakedObjectEntry.BakedObjectPath.Reset();
 			}
 		}
 		break;
@@ -3684,9 +3684,9 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 			{
 				UTexture2D* BakedTexture = FHoudiniEngineBakeUtils::BakeTextureToPackage(Texture, PackageParams, nullptr);
 
-				BakedObjectEntry.Actor.Empty();
-				BakedObjectEntry.BakedComponent.Empty();
-				BakedObjectEntry.BakedObject = FSoftObjectPath(BakedTexture).ToString();
+				BakedObjectEntry.ActorPath.Reset();
+				BakedObjectEntry.BakedComponentPath.Reset();
+				BakedObjectEntry.BakedObjectPath = FSoftObjectPath(BakedTexture).ToString();
 			}
 		}
 		break;

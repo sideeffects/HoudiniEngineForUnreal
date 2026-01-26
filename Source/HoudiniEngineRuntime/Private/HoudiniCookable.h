@@ -246,10 +246,13 @@ public:
 
 	FOnPostBakeDelegate& GetOnPostBakeDelegate() { return OnPostBakeDelegate; };
 
+	void PostLoad() override;
+
 	//-----------------------------------
 	// BAKE
 
 	// Previously baked outputs
+	UPROPERTY()
 	TArray<FHoudiniBakedOutput> BakedOutputs;
 
 	// Bake Options

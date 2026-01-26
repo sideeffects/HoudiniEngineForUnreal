@@ -100,14 +100,14 @@ bool FHoudiniEditorTestsProxyMeshVertices::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 				TArray<UStaticMeshComponent*> Components;
@@ -126,7 +126,7 @@ bool FHoudiniEditorTestsProxyMeshVertices::RunTest(const FString& Parameters)
 				for (auto& Error : Errors)
 					HOUDINI_LOG_ERROR(TEXT("Mesh Error: %s"), *Error);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 

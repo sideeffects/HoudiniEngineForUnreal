@@ -91,14 +91,14 @@ bool FHoudiniEditorTestInstancesMeshes::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 2, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 				TArray<UStaticMeshComponent*> Components;
@@ -106,7 +106,7 @@ bool FHoudiniEditorTestInstancesMeshes::RunTest(const FString& Parameters)
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components.Num(), 1, continue);
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components[0]->IsA<UStaticMeshComponent>(), 1, continue);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -134,7 +134,7 @@ bool FHoudiniEditorTestInstancesMeshes::RunTest(const FString& Parameters)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 				TArray<UStaticMeshComponent*> Components;
@@ -143,7 +143,7 @@ bool FHoudiniEditorTestInstancesMeshes::RunTest(const FString& Parameters)
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components[0]->IsA<UStaticMeshComponent>(), 1, continue);
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components[1]->IsA<UStaticMeshComponent>(), 1, continue);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(*OutputObject.ActorPath.ToString());
 			}
 		}
 
@@ -293,14 +293,14 @@ bool FHoudiniEditorTestBakingGroupedToBlueprint::RunTest(const FString& Paramete
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 4, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TSet<FString> BlueprintNames;
+		TSet<FSoftObjectPath> BlueprintNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				UBlueprint* Blueprint = Cast<UBlueprint>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Blueprint));
+				UBlueprint* Blueprint = Cast<UBlueprint>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.BlueprintPath.ToString()));
 				UWorld * World = Context->GetWorld();
 				AActor* Actor = World->SpawnActor<AActor>(Blueprint->GeneratedClass, FVector::ZeroVector, FRotator::ZeroRotator);
 
@@ -318,7 +318,7 @@ bool FHoudiniEditorTestBakingGroupedToBlueprint::RunTest(const FString& Paramete
 				HOUDINI_TEST_EQUAL_ON_FAIL(InstancedComponents.Num(), 1, continue);
 				HOUDINI_TEST_EQUAL_ON_FAIL(InstancedComponents[0]->IsA<UInstancedStaticMeshComponent>(), true, continue);
 
-			    BlueprintNames.Add(*OutputObject.Blueprint);
+			    BlueprintNames.Add(OutputObject.BlueprintPath);
 			}
 		}
 

@@ -102,7 +102,7 @@ bool FHoudiniEditorTestGeometryCollections::RunTest(const FString& Parameters)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AGeometryCollectionActor* Actor = Cast<AGeometryCollectionActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AGeometryCollectionActor* Actor = Cast<AGeometryCollectionActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				if (IsValid(Actor))
 					GeometryActors.Add(Actor);
 			}

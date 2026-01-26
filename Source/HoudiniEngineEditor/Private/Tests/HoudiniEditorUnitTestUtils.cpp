@@ -558,9 +558,9 @@ FHoudiniEditorUnitTestUtils::GetOutputActors(TArray<FHoudiniBakedOutput>& BakedO
 	{
 		for(auto & OutputObject : BakeOutput.BakedOutputObjects)
 		{
-			if (!OutputObject.Value.Actor.IsEmpty())
+			if (OutputObject.Value.ActorPath.IsValid())
 			{
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Value.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Value.ActorPath.ToString()));
 				if (IsValid(Actor))
 				{
 					Results.Add(Actor);
@@ -579,9 +579,9 @@ FHoudiniEditorUnitTestUtils::GetOutputInstancedActors(TArray<FHoudiniBakedOutput
 	{
 		for(auto& OutputObject : BakeOutput.BakedOutputObjects)
 		{
-			if(!OutputObject.Value.InstancedActors.IsEmpty())
+			if(!OutputObject.Value.InstancedActorPaths.IsEmpty())
 			{
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Value.InstancedActors[0]));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Value.InstancedActorPaths[0].ToString()));
 				if(IsValid(Actor))
 				{
 					Results.Add(Actor);

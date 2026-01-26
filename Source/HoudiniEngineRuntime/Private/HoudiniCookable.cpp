@@ -2816,3 +2816,17 @@ void UHoudiniCookable::UpdateParameters()
 	Updater->SendModifiedParametersToHoudini(this, bFetch);
 }
 
+void UCookableBakingData::PostLoad() 
+{
+	// This exists to fix up deprecated values and update them accordingly.
+	Super::PostLoad();
+
+	for (FHoudiniBakedOutput& Output : BakedOutputs)
+	{
+		for (auto It : Output.BakedOutputObjects)
+		{
+			It.Value.PostLoad();
+		}
+	}
+}
+

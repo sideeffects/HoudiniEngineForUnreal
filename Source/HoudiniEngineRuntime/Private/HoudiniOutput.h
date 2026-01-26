@@ -553,13 +553,26 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 		// Returns an array of valid instanced actors
 		TArray<AActor*> GetInstancedActorsIfValid(bool bInTryLoad=true) const;
 
+		// Deletes all baked output (including actors and assets)
+		void DeleteBakedOutput();
+
+		// USTRUCTs don't have a PostLoad(), so this should be called manually after load.
+		// (Currently UCookableBakingData).
+		void PostLoad();
+
 		// The actor that the baked output was associated with
 		UPROPERTY()
-		FString Actor;
+		FString Actor_DEPRECATED;
+
+		UPROPERTY()
+		FSoftObjectPath ActorPath;
 
 		// The blueprint that baked output was associated with, if any
 		UPROPERTY()
-		FString Blueprint;
+		FString Blueprint_DEPRECATED;
+
+		UPROPERTY()
+		FSoftObjectPath BlueprintPath;
 
 		// The intended bake actor name. The actor's actual name could have a numeric suffix for uniqueness.
 		UPROPERTY()
@@ -567,19 +580,31 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 
 		// The baked output asset
 		UPROPERTY()
-		FString BakedObject;
+		FString BakedObject_DEPRECATED;
+
+		UPROPERTY()
+		FSoftObjectPath BakedObjectPath;
 
 		// The baked output component 
 		UPROPERTY()
-		FString BakedComponent;
+		FString BakedComponent_DEPRECATED;
+
+		UPROPERTY()
+		FSoftObjectPath BakedComponentPath;
 
 		// In the case of instance actor component baking, this is the array of instanced actors
 		UPROPERTY()
-		TArray<FString> InstancedActors;
+		TArray<FString> InstancedActors_DEPRECATED;
+
+		UPROPERTY()
+		TArray<FSoftObjectPath> InstancedActorPaths;
 
 		// In the case of mesh split instancer baking: this is the array of instance components
 		UPROPERTY()
-		TArray<FString> InstancedComponents;
+		TArray<FString> InstancedComponents_DEPRECATED;
+
+		UPROPERTY()
+		TArray<FSoftObjectPath> InstancedComponentPaths;
 
 		// For landscapes this is the previously bake layer info assets (layer name as key, soft object path as value)
 		UPROPERTY()
@@ -599,23 +624,40 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutputObject
 
 		// Foliage Actor Instances
 		UPROPERTY()
-		TArray<FString> FoliageActors;
+		TArray<FString> FoliageActors_DEPRECATED;
+
+		// Foliage Actor Instances
+		UPROPERTY()
+		TArray<FSoftObjectPath> FoliageActorPaths;
 	
 		// All exported level instance actors.
 		UPROPERTY()
-		TArray<FString> LevelInstanceActors;
+		TArray<FString> LevelInstanceActors_DEPRECATED;
+
+		UPROPERTY()
+		TArray<FSoftObjectPath> LevelInstanceActorPaths;
 
 		// For landscape splines, this is the landscape that contains the splines.
 		UPROPERTY()
-		FString Landscape;
+		FString Landscape_DEPRECATED;
+
+		UPROPERTY()
+		FSoftObjectPath LandscapePath;
+
 
 		// For skeletal meshes, this is the skeleton that was baked for the skeletal mesh.
 		UPROPERTY()
-		FString BakedSkeleton;
+		FString BakedSkeleton_DEPRECATED;
+
+		UPROPERTY()
+		FSoftObjectPath BakedSkeletonPath;
 
 		// For skeletal meshes, this is the physics that was baked for the skeletal mesh.
 		UPROPERTY()
-		FString BakedPhysicsAsset;
+		FString BakedPhysicsAsset_DEPRECATED;
+
+		UPROPERTY()
+		FSoftObjectPath BakedPhysicsAssetPath;
 
 		// PCG Output Object. Referenced asa UObject so it compiles in non-PCG builds.
 		UPROPERTY()
@@ -632,9 +674,12 @@ struct HOUDINIENGINERUNTIME_API FHoudiniBakedOutput
 {
 	GENERATED_USTRUCT_BODY()
 
-	public:
-		UPROPERTY()
-		TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> BakedOutputObjects;
+public:
+
+	void DeleteBakedOutput();
+
+	UPROPERTY()
+	TMap<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject> BakedOutputObjects;
 };
 
 // Information about the data the output is to be placed in.

@@ -110,26 +110,26 @@ bool FHoudiniEditorTestSkeletalMeshElectra::RunTest(const FString& Parameters)
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
 
-		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), false, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(!BakedObject.BakedSkeletonPath.IsValid(), false, return true);
 
 		// For now, check we have the correct number of bones. Can add more complicated checks in the future if needed, such as checking
 		// parents, etc. Probably should not check the bone order though.
-		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedSkeleton), BakeFolder);
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedSkeletonPath.ToString()), BakeFolder);
 
-		FString SkeletonName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+		FString SkeletonName = FPaths::GetBaseFilename(*BakedObject.BakedSkeletonPath.ToString());
 		HOUDINI_TEST_EQUAL(SkeletonName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
 
-		USkeleton * Skeleton = Cast<USkeleton>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedSkeleton));
+		USkeleton * Skeleton = Cast<USkeleton>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedSkeletonPath.ToString()));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(Skeleton, return false);
 		auto & ReferenceSkeleton = Skeleton->GetReferenceSkeleton();
 		HOUDINI_TEST_EQUAL_ON_FAIL(ReferenceSkeleton.GetRawBoneNum(), 53, return true);
 
 		// Check the skeletal mesh 
-		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObject), BakeFolder);
-		FString SkeletalMeshName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObjectPath.ToString()), BakeFolder);
+		FString SkeletalMeshName = FPaths::GetBaseFilename(*BakedObject.BakedSkeletonPath.ToString());
 		HOUDINI_TEST_EQUAL(SkeletalMeshName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
 
-		USkeletalMesh * SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObject));
+		USkeletalMesh * SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObjectPath.ToString()));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMesh, return false);
 		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMesh->GetSkeleton(), Skeleton, return true);
 		auto & Materials = SkeletalMesh->GetMaterials();
@@ -137,7 +137,7 @@ bool FHoudiniEditorTestSkeletalMeshElectra::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL(FPaths::GetPath(Materials[0].MaterialInterface->GetPackage()->GetPathName()), BakeFolder);
 
 		// Check the skeletal mesh component
-		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponent));
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponentPath.ToString()));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMeshComponent, return false);
 		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponent->GetSkeletalMeshAsset(), SkeletalMesh, return true);
 		FString ActorName = SkeletalMeshComponent->GetOwner()->GetActorLabel();
@@ -210,27 +210,27 @@ bool FHoudiniEditorTestSkeletalMeshElectraDefaultPhysicsAsset::RunTest(const FSt
 #else
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
-		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), false, return true);
-		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAsset.IsEmpty(), false, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeletonPath.IsValid(), true, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAssetPath.IsValid(), false, return true);
 
 		// For now, check we have the correct number of bones. Can add more complicated checks in the future if needed, such as checking
 		// parents, etc. Probably should not check the bone order though.
-		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedSkeleton), BakeFolder);
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedSkeletonPath.ToString()), BakeFolder);
 
-		FString SkeletonName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+		FString SkeletonName = FPaths::GetBaseFilename(*BakedObject.BakedSkeletonPath.ToString());
 		HOUDINI_TEST_EQUAL(SkeletonName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
 
-		USkeleton* Skeleton = Cast<USkeleton>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedSkeleton));
+		USkeleton* Skeleton = Cast<USkeleton>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedSkeletonPath.ToString()));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(Skeleton, return false);
 		auto& ReferenceSkeleton = Skeleton->GetReferenceSkeleton();
 		HOUDINI_TEST_EQUAL_ON_FAIL(ReferenceSkeleton.GetRawBoneNum(), 53, return true);
 
 		// Check the skeletal mesh 
-		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObject), BakeFolder);
-		FString SkeletalMeshName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObjectPath.ToString()), BakeFolder);
+		FString SkeletalMeshName = FPaths::GetBaseFilename(*BakedObject.BakedSkeletonPath.ToString());
 		HOUDINI_TEST_EQUAL(SkeletalMeshName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
 
-		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObject));
+		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObjectPath.ToString()));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMesh, return false);
 		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMesh->GetSkeleton(), Skeleton, return true);
 		auto& Materials = SkeletalMesh->GetMaterials();
@@ -238,7 +238,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraDefaultPhysicsAsset::RunTest(const FSt
 		HOUDINI_TEST_EQUAL(FPaths::GetPath(Materials[0].MaterialInterface->GetPackage()->GetPathName()), BakeFolder);
 
 		// Check the skeletal mesh component
-		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponent));
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponentPath.ToString()));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMeshComponent, return false);
 		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponent->GetSkeletalMeshAsset(), SkeletalMesh, return true);
 		FString ActorName = SkeletalMeshComponent->GetOwner()->GetActorLabel();
@@ -317,27 +317,27 @@ bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FStr
 			auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
 
-			HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), false, return true);
-			HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAsset.IsEmpty(), false, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeletonPath.IsValid(), true, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAssetPath.IsValid(), true, return true);
 
 			// For now, check we have the correct number of bones. Can add more complicated checks in the future if needed, such as checking
 			// parents, etc. Probably should not check the bone order though.
-			HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedSkeleton), BakeFolder);
+			HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedSkeletonPath.ToString()), BakeFolder);
 
-			FString SkeletonName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+			FString SkeletonName = FPaths::GetBaseFilename(*BakedObject.BakedSkeletonPath.ToString());
 			HOUDINI_TEST_EQUAL(SkeletonName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
 
-			USkeleton* Skeleton = Cast<USkeleton>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedSkeleton));
+			USkeleton* Skeleton = Cast<USkeleton>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedSkeletonPath.ToString()));
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(Skeleton, return false);
 			auto& ReferenceSkeleton = Skeleton->GetReferenceSkeleton();
 			HOUDINI_TEST_EQUAL_ON_FAIL(ReferenceSkeleton.GetRawBoneNum(), 53, return true);
 
 			// Check the skeletal mesh 
-			HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObject), BakeFolder);
-			FString SkeletalMeshName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+			HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObjectPath.ToString()), BakeFolder);
+			FString SkeletalMeshName = FPaths::GetBaseFilename(*BakedObject.BakedSkeletonPath.ToString());
 			HOUDINI_TEST_EQUAL(SkeletalMeshName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
 
-			USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObject));
+			USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObjectPath.ToString()));
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMesh, return true);
 			HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMesh->GetSkeleton(), Skeleton, return true);
 			auto& Materials = SkeletalMesh->GetMaterials();
@@ -345,7 +345,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FStr
 			HOUDINI_TEST_EQUAL(FPaths::GetPath(Materials[0].MaterialInterface->GetPackage()->GetPathName()), BakeFolder);
 
 			// Check the skeletal mesh component
-			USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponent));
+			USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponentPath.ToString()));
 			HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMeshComponent, return true);
 			HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponent->GetSkeletalMeshAsset(), SkeletalMesh, return true);
 			FString ActorName = SkeletalMeshComponent->GetOwner()->GetActorLabel();
@@ -497,27 +497,27 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingPhysicsAsset::RunTest(const FS
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
 
-		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), false, return true);
-		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAsset.IsEmpty(), true, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeletonPath.IsValid(), true, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedPhysicsAssetPath.IsValid(), false, return true);
 
 		// For now, check we have the correct number of bones. Can add more complicated checks in the future if needed, such as checking
 		// parents, etc. Probably should not check the bone order though.
-		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedSkeleton), BakeFolder);
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedSkeletonPath.ToString()), BakeFolder);
 
-		FString SkeletonName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+		FString SkeletonName = FPaths::GetBaseFilename(*BakedObject.BakedSkeletonPath.ToString());
 		HOUDINI_TEST_EQUAL(SkeletonName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
 
-		USkeleton* Skeleton = Cast<USkeleton>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedSkeleton));
+		USkeleton* Skeleton = Cast<USkeleton>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedSkeletonPath.ToString()));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(Skeleton, return false);
 		auto& ReferenceSkeleton = Skeleton->GetReferenceSkeleton();
 		HOUDINI_TEST_EQUAL_ON_FAIL(ReferenceSkeleton.GetRawBoneNum(), 53, return true);
 
 		// Check the skeletal mesh 
-		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObject), BakeFolder);
-		FString SkeletalMeshName = FPaths::GetBaseFilename(*BakedObject.BakedSkeleton);
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObjectPath.ToString()), BakeFolder);
+		FString SkeletalMeshName = FPaths::GetBaseFilename(*BakedObject.BakedSkeletonPath.ToString());
 		HOUDINI_TEST_EQUAL(SkeletalMeshName.StartsWith(TEXT("TestSkeletalMeshOutputName")), true);
 
-		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObject));
+		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObjectPath.ToString()));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMesh, return true);
 		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMesh->GetSkeleton(), Skeleton, return true);
 		auto& Materials = SkeletalMesh->GetMaterials();
@@ -525,7 +525,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingPhysicsAsset::RunTest(const FS
 		HOUDINI_TEST_EQUAL(FPaths::GetPath(Materials[0].MaterialInterface->GetPackage()->GetPathName()), BakeFolder);
 
 		// Check the skeletal mesh component
-		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponent));
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponentPath.ToString()));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMeshComponent, return true);
 		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponent->GetSkeletalMeshAsset(), SkeletalMesh, return true);
 		FString ActorName = SkeletalMeshComponent->GetOwner()->GetActorLabel();
@@ -605,12 +605,12 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingSkeleton::RunTest(const FStrin
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
 
-		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeleton.IsEmpty(), true, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(BakedObject.BakedSkeletonPath.IsValid(), false, return true);
 
 		// Check the skeletal mesh 
-		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObject), BakeFolder);
+		HOUDINI_TEST_EQUAL(FPaths::GetPath(*BakedObject.BakedObjectPath.ToString()), BakeFolder);
 
-		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObject));
+		USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedObjectPath.ToString()));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMesh, return true);
 		auto& Materials = SkeletalMesh->GetMaterials();
 		HOUDINI_TEST_EQUAL_ON_FAIL(Materials.Num(), 1, return true);
@@ -622,7 +622,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingSkeleton::RunTest(const FStrin
 		HOUDINI_TEST_EQUAL(Skeleton->GetName(), TEXT("Test_Ref_Skeleton"));
 
 		// Check the skeletal mesh component
-		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponent));
+		USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(StaticLoadObject(UObject::StaticClass(), nullptr, *BakedObject.BakedComponentPath.ToString()));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(SkeletalMeshComponent, return false);
 		HOUDINI_TEST_EQUAL_ON_FAIL(SkeletalMeshComponent->GetSkeletalMeshAsset(), SkeletalMesh, return true);
 		FString ActorName = SkeletalMeshComponent->GetOwner()->GetActorLabel();

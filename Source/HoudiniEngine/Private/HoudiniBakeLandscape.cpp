@@ -494,12 +494,12 @@ FHoudiniLandscapeBake::MoveCookedToBakedLandscapes(
 						PackageParams);
 
 				Results.Add(BakeActor);
-				BakedOutputObject.Landscape = *BakeActor.Actor->GetPathName();	
+				BakedOutputObject.LandscapePath = *BakeActor.Actor->GetPathName();	
 				
 			}
 			else
 			{
-				BakedOutputObject.Landscape = LayerOutput->Landscape->GetPathName();
+				BakedOutputObject.LandscapePath = LayerOutput->Landscape->GetPathName();
 
 				if(LayerOutput->bLayerWasCreated)
 					BakedOutputObject.CreatedLandscapeLayers.Add(LayerOutput->BakedEditLayer);
@@ -831,8 +831,8 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 		{
 			// For a replace, delete previous baked actor for this output identifier, if any. Also check that
 			// it belongs to the same landscape.
-			if (BakeSettings.bReplaceActors && !BakedOutputObject.Actor.IsEmpty()
-					&& BakedOutputObject.Landscape == FSoftObjectPath(Landscape).ToString())
+			if (BakeSettings.bReplaceActors && BakedOutputObject.ActorPath.IsValid()
+					&& BakedOutputObject.LandscapePath == FSoftObjectPath(Landscape).ToString())
 			{
 				ULandscapeInfo* const LandscapeInfo = Landscape->GetLandscapeInfo();
 				if (IsValid(LandscapeInfo))
@@ -851,24 +851,24 @@ bool FHoudiniLandscapeBake::BakeLandscapeSplines(
 			FHoudiniEngineBakeUtils::RenameAndRelabelActor(ActorToBake, DesiredBakeName);
 
 			// Record in baked object entry
-			BakedOutputObject.Actor = FSoftObjectPath(ActorToBake).ToString();
-			BakedOutputObject.BakedComponent = FSoftObjectPath(ActorToBake->GetSplinesComponent()).ToString();
+			BakedOutputObject.ActorPath = ActorToBake;
+			BakedOutputObject.BakedComponentPath = FSoftObjectPath(ActorToBake->GetSplinesComponent()).ToString();
 		}
 		else
 		{
 			// Non-WP case, there are no landscape spline actors, so we just track the landscape's LandscapeSplinesComponent
-			BakedOutputObject.Actor.Empty();
+			BakedOutputObject.ActorPath.Reset();
 			ULandscapeSplinesComponent* const SplinesComponent = SplinesOutputObject->GetLandscapeSplinesComponent();
 			if (IsValid(SplinesComponent))
-				BakedOutputObject.BakedComponent = FSoftObjectPath(SplinesComponent).ToString();
+				BakedOutputObject.BakedComponentPath = FSoftObjectPath(SplinesComponent).ToString();
 			else
-				BakedOutputObject.BakedComponent.Empty();
+				BakedOutputObject.BakedComponentPath.Reset();
 		}
 
 		// Updated baked object entry
 		BakedOutputObject.ActorBakeName = *DesiredBakeName;
-		BakedOutputObject.BakedObject.Empty();
-		BakedOutputObject.Landscape = FSoftObjectPath(Landscape).ToString();
+		BakedOutputObject.BakedObjectPath.Reset();
+		BakedOutputObject.LandscapePath = FSoftObjectPath(Landscape).ToString();
 
 		// Delete temp edit layers, create baked layers and collect all segments per-landscape-layer.
 		for (const auto& LayerEntry : SplinesOutputObject->GetLayerOutputs())

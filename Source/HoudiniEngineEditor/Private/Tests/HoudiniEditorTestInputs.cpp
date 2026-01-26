@@ -90,7 +90,7 @@ bool FHoudiniEditorTestInput_SplineMeshes::RunTest(const FString& Parameters)
 				{
 					FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-					AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+					AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 					HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 					TArray<UStaticMeshComponent*> Components;

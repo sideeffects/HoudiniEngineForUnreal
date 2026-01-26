@@ -176,14 +176,14 @@ bool FHoudiniEditorTestInstancesActors::RunTest(const FString& Parameters)
 			HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 			// Go through each output and check we have two actors with one mesh component each.
-			TSet<FString> ActorNames;
+			TSet<FSoftObjectPath> ActorNames;
 			for (auto& BakedOutput : BakedOutputs)
 			{
 				for (auto It : BakedOutput.BakedOutputObjects)
 				{
 					FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-					AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+					AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 					HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 					TArray<UInstancedStaticMeshComponent*> Components;
@@ -204,7 +204,7 @@ bool FHoudiniEditorTestInstancesActors::RunTest(const FString& Parameters)
 
 					CheckPositions(Positions);
 
-					ActorNames.Add(*OutputObject.Actor);
+					ActorNames.Add(OutputObject.ActorPath);
 				}
 			}
 
@@ -229,14 +229,14 @@ bool FHoudiniEditorTestInstancesActors::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 				TArray<UStaticMeshComponent*> Components;
@@ -244,7 +244,7 @@ bool FHoudiniEditorTestInstancesActors::RunTest(const FString& Parameters)
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components.Num(), 1, continue);
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components[0]->IsA<UStaticMeshComponent>(), 1, continue);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -310,19 +310,19 @@ bool FHoudiniEditorTestBakingInstanceActors::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TArray<FString> ActorNames;
+		TArray<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				for (FString& InstanceActorName : OutputObject.InstancedActors)
+				for (FSoftObjectPath& InstanceActorName : OutputObject.InstancedActorPaths)
 				{
-					AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *InstanceActorName));
+					AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *InstanceActorName.ToString()));
 					HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
-					ActorNames.Add(*OutputObject.Actor);
+					ActorNames.Add(OutputObject.ActorPath);
 				}
 			}
 		}
@@ -348,7 +348,7 @@ bool FHoudiniEditorTestBakingInstanceActors::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TArray<FString> ActorNames;
+		TArray<FSoftObjectPath> ActorNames;
 		AActor * ParentActor = nullptr;
 
 		for (auto& BakedOutput : BakedOutputs)
@@ -357,7 +357,7 @@ bool FHoudiniEditorTestBakingInstanceActors::RunTest(const FString& Parameters)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 				ParentActor = Actor;
 
@@ -365,7 +365,7 @@ bool FHoudiniEditorTestBakingInstanceActors::RunTest(const FString& Parameters)
 				Actor->GetComponents(Components);
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components.Num(), 0, continue);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -441,18 +441,18 @@ bool FHoudiniEditorTestBakingSplitInstanceMeshes::RunTest(const FString& Paramet
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TArray<FString> ActorNames;
+		TArray<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				FString InstanceActorName  = OutputObject.Actor;
+				FString InstanceActorName  = OutputObject.ActorPath.ToString();
 				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *InstanceActorName));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -478,14 +478,14 @@ bool FHoudiniEditorTestBakingSplitInstanceMeshes::RunTest(const FString& Paramet
 
 		// Go through each output and check we have the instances. Build an array of instances.
 
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 				TArray<UInstancedStaticMeshComponent*> Components;
@@ -533,7 +533,7 @@ bool FHoudiniEditorTestBakingSplitInstanceMeshes::RunTest(const FString& Paramet
 					CheckPositions(InstancePositions, OriginIndex * 25);
 				}
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -601,14 +601,14 @@ bool FHoudiniEditorTestSingleInstancedMesh::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 				TArray<UStaticMeshComponent*> Components;
@@ -616,7 +616,7 @@ bool FHoudiniEditorTestSingleInstancedMesh::RunTest(const FString& Parameters)
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components.Num(), 1, continue);
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components[0]->IsA<UStaticMeshComponent>(), 1, continue);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -648,7 +648,7 @@ bool FHoudiniEditorTestSingleInstancedMesh::RunTest(const FString& Parameters)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 				TArray<UStaticMeshComponent*> Components;
@@ -656,7 +656,7 @@ bool FHoudiniEditorTestSingleInstancedMesh::RunTest(const FString& Parameters)
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components.Num(), 1, continue);
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components[0]->IsA<UStaticMeshComponent>(), 1, continue);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath.ToString());
 			}
 		}
 
@@ -725,14 +725,14 @@ bool FHoudiniEditorTestInstancesHSM::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 				TArray<UHierarchicalInstancedStaticMeshComponent*> Components;
@@ -740,7 +740,7 @@ bool FHoudiniEditorTestInstancesHSM::RunTest(const FString& Parameters)
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components.Num(), 1, continue);
 				HOUDINI_TEST_EQUAL_ON_FAIL(Components[0]->IsA<UStaticMeshComponent>(), 1, continue);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -764,14 +764,14 @@ bool FHoudiniEditorTestInstancesHSM::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 				TArray<UHierarchicalInstancedStaticMeshComponent*> Components;
@@ -787,7 +787,7 @@ bool FHoudiniEditorTestInstancesHSM::RunTest(const FString& Parameters)
 
 				CheckPositions(Positions);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -1169,13 +1169,13 @@ bool FHoudiniEditorTestLevelInstances::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
-				ActorNames.Append(OutputObject.LevelInstanceActors);
+				ActorNames.Append(OutputObject.LevelInstanceActorPaths);
 			}
 		}
 
@@ -1236,13 +1236,13 @@ bool FHoudiniEditorTestActorInstances::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
-				ActorNames.Append(OutputObject.InstancedActors);
+				ActorNames.Append(OutputObject.InstancedActorPaths);
 			}
 		}
 
@@ -1534,18 +1534,18 @@ bool FHoudiniEditorTestSplitInstanceMeshesMaterials::RunTest(const FString& Para
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TArray<FString> ActorNames;
+		TArray<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				FString InstanceActorName = OutputObject.Actor;
+				FString InstanceActorName = OutputObject.ActorPath.ToString();
 				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *InstanceActorName));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -1569,14 +1569,14 @@ bool FHoudiniEditorTestSplitInstanceMeshesMaterials::RunTest(const FString& Para
 
 		// Go through each output and check we have the instances. Build an array of instances.
 
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.Actor));
+				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *OutputObject.ActorPath.ToString()));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
 				const int NumInstanceComponents = 4;
@@ -1597,7 +1597,7 @@ bool FHoudiniEditorTestSplitInstanceMeshesMaterials::RunTest(const FString& Para
 
 				}
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -1606,7 +1606,7 @@ bool FHoudiniEditorTestSplitInstanceMeshesMaterials::RunTest(const FString& Para
 		TArray<FVector> InstancePositions;
 		InstancePositions.Reserve(100);
 
-		AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *(*ActorNames.CreateConstIterator())));
+		AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *(ActorNames.Array()[0]).ToString()));
 		TArray<UInstancedStaticMeshComponent*> Components;
 		Actor->GetComponents(Components);
 		for (int Index = 0; Index < Components.Num(); Index++)
@@ -1675,18 +1675,18 @@ bool FHoudiniEditorTestSplitInstanceCustomFloats::RunTest(const FString& Paramet
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 
 		// Go through each output and check we have two actors with one mesh component each.
-		TArray<FString> ActorNames;
+		TArray<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
 
-				FString InstanceActorName = OutputObject.Actor;
+				FString InstanceActorName = OutputObject.ActorPath.ToString();
 				AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *InstanceActorName));
 				HOUDINI_TEST_NOT_NULL_ON_FAIL(Actor, continue);
 
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -1710,13 +1710,13 @@ bool FHoudiniEditorTestSplitInstanceCustomFloats::RunTest(const FString& Paramet
 
 		// Go through each output and check we have the instances. Build an array of instances.
 
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
-				ActorNames.Add(*OutputObject.Actor);
+				ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -1725,7 +1725,7 @@ bool FHoudiniEditorTestSplitInstanceCustomFloats::RunTest(const FString& Paramet
 		TArray<FVector> InstancePositions;
 		InstancePositions.Reserve(100);
 
-		AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *(*ActorNames.CreateConstIterator())));
+		AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *(ActorNames.Array()[0]).ToString()));
 		TArray<UInstancedStaticMeshComponent*> Components;
 		Actor->GetComponents(Components);
 		for (int Index = 0; Index < Components.Num(); Index++)
@@ -1807,14 +1807,14 @@ bool FHoudiniEditorTestSplitPackedInstancer::RunTest(const FString& Parameters)
 
 		// Go through each output and check we have the instances. Build an array of instances.
 
-		TSet<FString> ActorNames;
+		TSet<FSoftObjectPath> ActorNames;
 		for (auto& BakedOutput : BakedOutputs)
 		{
 			for (auto It : BakedOutput.BakedOutputObjects)
 			{
 				FHoudiniBakedOutputObject& OutputObject = It.Value;
-				if (!OutputObject.Actor.IsEmpty())
-					ActorNames.Add(*OutputObject.Actor);
+				if (OutputObject.ActorPath.IsValid())
+					ActorNames.Add(OutputObject.ActorPath);
 			}
 		}
 
@@ -1823,7 +1823,7 @@ bool FHoudiniEditorTestSplitPackedInstancer::RunTest(const FString& Parameters)
 		TArray<FVector> InstancePositions;
 		InstancePositions.Reserve(100);
 
-		AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *(*ActorNames.CreateConstIterator())));
+		AActor* Actor = Cast<AActor>(StaticLoadObject(UObject::StaticClass(), nullptr, *(ActorNames.Array()[0]).ToString()));
 		TArray<UInstancedStaticMeshComponent*> Components;
 		Actor->GetComponents(Components);
 		HOUDINI_TEST_EQUAL_ON_FAIL(Components.Num(), 3, return true);

@@ -876,17 +876,17 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const FHoudiniBakedOutputObjec
 	// Result &= TestExpressionError(A.Actor.Equals(B.Actor), Header, "Actor");
 	// Result &= TestExpressionError(A.Blueprint.Equals(B.Blueprint), Header, "Blueprint");
 	Result &= TestExpressionError(A.ActorBakeName.IsEqual(B.ActorBakeName), Header, "ActorBakeName");
-	Result &= TestExpressionError(A.BakedObject.Equals(B.BakedObject), Header, "BakedObject");
-	Result &= TestExpressionError(A.BakedComponent.Equals(B.BakedComponent), Header, "BakedComponent");
-	Result &= TestExpressionError(A.InstancedActors.Num() == B.InstancedActors.Num(), Header, "InstancedActors.Num");
-	for (int i = 0; i < FMath::Min(A.InstancedActors.Num(), B.InstancedActors.Num()); i++)
+	Result &= TestExpressionError(A.BakedObjectPath.ToString().Equals(B.BakedObjectPath.ToString()), Header, "BakedObject");
+	Result &= TestExpressionError(A.BakedComponentPath.ToString().Equals(B.BakedComponentPath.ToString()), Header, "BakedComponent");
+	Result &= TestExpressionError(A.InstancedActorPaths.Num() == B.InstancedActorPaths.Num(), Header, "InstancedActors.Num");
+	for (int i = 0; i < FMath::Min(A.InstancedActorPaths.Num(), B.InstancedActorPaths.Num()); i++)
 	{
-		Result &= TestExpressionError(A.InstancedActors[i].Equals(B.InstancedActors[i]), Header, "InstancedActors");	
+		Result &= TestExpressionError(A.InstancedActorPaths[i].ToString().Equals(B.InstancedActorPaths[i].ToString()), Header, "InstancedActors");	
 	}
-	Result &= TestExpressionError(A.InstancedComponents.Num() == B.InstancedComponents.Num(), Header, "InstancedComponents.Num");
-	for (int i = 0; i < FMath::Min(A.InstancedComponents.Num(), B.InstancedComponents.Num()); i++)
+	Result &= TestExpressionError(A.InstancedComponentPaths.Num() == B.InstancedComponentPaths.Num(), Header, "InstancedComponents.Num");
+	for (int i = 0; i < FMath::Min(A.InstancedComponentPaths.Num(), B.InstancedComponentPaths.Num()); i++)
 	{
-		Result &= TestExpressionError(A.InstancedComponents[i].Equals(B.InstancedComponents[i]), Header, "InstancedComponents");	
+		Result &= TestExpressionError(A.InstancedComponentPaths[i].ToString().Equals(B.InstancedComponentPaths[i].ToString()), Header, "InstancedComponents");	
 	}
 	
 	return Result;

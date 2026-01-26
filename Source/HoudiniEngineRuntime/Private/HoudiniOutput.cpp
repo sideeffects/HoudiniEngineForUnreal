@@ -312,21 +312,21 @@ FHoudiniBakedOutputObjectIdentifier::operator==(const FHoudiniBakedOutputObjectI
 
 
 FHoudiniBakedOutputObject::FHoudiniBakedOutputObject()
-	: Actor()
+	: Actor_DEPRECATED()
 	, ActorBakeName(NAME_None)
-	, BakedObject()
-	, BakedComponent()
-	, BakedSkeleton()
+	, BakedObjectPath()
+	, BakedComponentPath()
+	, BakedSkeletonPath()
 {
 }
 
 
 FHoudiniBakedOutputObject::FHoudiniBakedOutputObject(AActor* InActor, FName InActorBakeName, UObject* InBakeObject, UObject* InBakedComponent)
-	: Actor(FSoftObjectPath(InActor).ToString())
+	: ActorPath(FSoftObjectPath(InActor))
 	, ActorBakeName(InActorBakeName)
-	, BakedObject(FSoftObjectPath(InBakeObject).ToString())
-	, BakedComponent(FSoftObjectPath(InBakedComponent).ToString())
-	, BakedSkeleton()
+	, BakedObjectPath(FSoftObjectPath(InBakeObject))
+	, BakedComponentPath(FSoftObjectPath(InBakedComponent).ToString())
+	, BakedSkeletonPath()
 {
 }
 
@@ -334,8 +334,6 @@ FHoudiniBakedOutputObject::FHoudiniBakedOutputObject(AActor* InActor, FName InAc
 AActor*
 FHoudiniBakedOutputObject::GetActorIfValid(bool bInTryLoad) const
 {
-	const FSoftObjectPath ActorPath(Actor);
-	
 	if (!ActorPath.IsValid())
 		return nullptr;
 	
@@ -352,14 +350,12 @@ FHoudiniBakedOutputObject::GetActorIfValid(bool bInTryLoad) const
 UObject*
 FHoudiniBakedOutputObject::GetBakedObjectIfValid(bool bInTryLoad) const 
 { 
-	const FSoftObjectPath ObjectPath(BakedObject);
-
-	if (!ObjectPath.IsValid())
+	if (!BakedObjectPath.IsValid())
 		return nullptr;
 	
-	UObject* Object = ObjectPath.ResolveObject();
+	UObject* Object = BakedObjectPath.ResolveObject();
 	if (!Object && bInTryLoad)
-		Object = ObjectPath.TryLoad();
+		Object = BakedObjectPath.TryLoad();
 
 	if (!IsValid(Object))
 		return nullptr;
@@ -370,7 +366,7 @@ FHoudiniBakedOutputObject::GetBakedObjectIfValid(bool bInTryLoad) const
 UObject*
 FHoudiniBakedOutputObject::GetBakedComponentIfValid(bool bInTryLoad) const 
 { 
-	const FSoftObjectPath ComponentPath(BakedComponent);
+	const FSoftObjectPath ComponentPath(BakedComponentPath);
 
 	if (!ComponentPath.IsValid())
 		return nullptr;
@@ -388,8 +384,6 @@ FHoudiniBakedOutputObject::GetBakedComponentIfValid(bool bInTryLoad) const
 UBlueprint*
 FHoudiniBakedOutputObject::GetBlueprintIfValid(bool bInTryLoad) const 
 { 
-	const FSoftObjectPath BlueprintPath(Blueprint);
-
 	if (!BlueprintPath.IsValid())
 		return nullptr;
 	
@@ -428,8 +422,6 @@ FHoudiniBakedOutputObject::GetLandscapeLayerInfoIfValid(const FName& InLayerName
 ALandscape*
 FHoudiniBakedOutputObject::GetLandscapeIfValid(bool bInTryLoad) const
 {
-    const FSoftObjectPath LandscapePath(Landscape);
-
     if (!LandscapePath.IsValid())
         return nullptr;
 
@@ -446,7 +438,7 @@ FHoudiniBakedOutputObject::GetLandscapeIfValid(bool bInTryLoad) const
 USkeleton*
 FHoudiniBakedOutputObject::GetBakedSkeletonIfValid(bool bInTryLoad) const
 {
-	const FSoftObjectPath SkeletonPath(BakedSkeleton);
+	const FSoftObjectPath SkeletonPath(BakedSkeletonPath);
 
 	if (!SkeletonPath.IsValid())
 		return nullptr;
@@ -464,7 +456,7 @@ FHoudiniBakedOutputObject::GetBakedSkeletonIfValid(bool bInTryLoad) const
 UPhysicsAsset*
 FHoudiniBakedOutputObject::GetBakedPhysicsAssetIfValid(bool bInTryLoad) const
 {
-	const FSoftObjectPath PhyscsAssetPath(BakedPhysicsAsset);
+	const FSoftObjectPath PhyscsAssetPath(BakedPhysicsAssetPath);
 
 	if (!PhyscsAssetPath.IsValid())
 		return nullptr;
@@ -484,16 +476,14 @@ FHoudiniBakedOutputObject::GetFoliageActorsIfValid(bool bInTryLoad) const
 {
 	TArray<AActor*> ValidActors;
 
-    for (const FString& ActorPathString : FoliageActors)
+    for (const FSoftObjectPath& FoliageActorPath : FoliageActorPaths)
     {
-        FSoftObjectPath ActorPath(ActorPathString);
-
-        if (!ActorPath.IsValid())
+        if (!FoliageActorPath.IsValid())
             continue;
 
-        UObject* ResolvedObject = ActorPath.ResolveObject();
+        UObject* ResolvedObject = FoliageActorPath.ResolveObject();
         if (!ResolvedObject && bInTryLoad)
-            ResolvedObject = ActorPath.TryLoad();
+            ResolvedObject = FoliageActorPath.TryLoad();
 
         if (!IsValid(ResolvedObject))
             continue;
@@ -512,16 +502,16 @@ TArray<AActor*> FHoudiniBakedOutputObject::GetInstancedActorsIfValid(bool bInTry
 {
     TArray<AActor*> ValidActors;
 
-    for (const FString& ActorPathString : InstancedActors)
+    for (const FSoftObjectPath& ActorPathString : InstancedActorPaths)
     {
-        FSoftObjectPath ActorPath(ActorPathString);
+        FSoftObjectPath InstancedActorPath(ActorPathString);
 
-        if (!ActorPath.IsValid())
+        if (!InstancedActorPath.IsValid())
             continue;
 
-        UObject* ResolvedObject = ActorPath.ResolveObject();
+        UObject* ResolvedObject = InstancedActorPath.ResolveObject();
         if (!ResolvedObject && bInTryLoad)
-            ResolvedObject = ActorPath.TryLoad();
+            ResolvedObject = InstancedActorPath.TryLoad();
 
         if (!IsValid(ResolvedObject))
             continue;
@@ -1469,3 +1459,89 @@ void UHoudiniOutput::DestroyCookedData(EHoudiniClearFlags ClearFlags)
 	OutputObjects.Empty();
 }
 
+void FHoudiniBakedOutputObject::PostLoad()
+{
+	// We changed FStrings to FSoftObjectPath. The old properties are deprecated, move them to the new property.
+
+	if (!Actor_DEPRECATED.IsEmpty())
+	{
+		ActorPath = Actor_DEPRECATED;
+		Actor_DEPRECATED.Empty();
+	}
+
+	if (!Blueprint_DEPRECATED.IsEmpty())
+	{
+		BlueprintPath = Blueprint_DEPRECATED;
+		Blueprint_DEPRECATED.Empty();
+	}
+
+	if (!BakedObject_DEPRECATED.IsEmpty())
+	{
+		BakedObjectPath = BakedObject_DEPRECATED;
+		BakedObject_DEPRECATED.Empty();
+	}
+
+	if(!BakedComponent_DEPRECATED.IsEmpty())
+	{
+		BakedComponentPath = BakedComponent_DEPRECATED;
+		BakedComponent_DEPRECATED.Empty();
+	}
+
+	if (!InstancedActors_DEPRECATED.IsEmpty())
+	{
+		InstancedActorPaths.Empty();
+		for (FString& Path : InstancedActors_DEPRECATED)
+		{
+			InstancedActorPaths.Add(FSoftObjectPath(Path));
+		}
+		InstancedActors_DEPRECATED.Empty();
+	}
+
+	if(!InstancedComponents_DEPRECATED.IsEmpty())
+	{
+		InstancedComponentPaths.Empty();
+		for(FString& Path : InstancedComponents_DEPRECATED)
+		{
+			InstancedComponentPaths.Add(FSoftObjectPath(Path));
+		}
+		InstancedComponents_DEPRECATED.Empty();
+	}
+
+	if(!FoliageActors_DEPRECATED.IsEmpty())
+	{
+		FoliageActorPaths.Empty();
+		for(FString& Path : FoliageActors_DEPRECATED)
+		{
+			FoliageActorPaths.Add(FSoftObjectPath(Path));
+		}
+		FoliageActors_DEPRECATED.Empty();
+	}
+
+	if(!LevelInstanceActors_DEPRECATED.IsEmpty())
+	{
+		FoliageActorPaths.Empty();
+		for(FString& Path : LevelInstanceActors_DEPRECATED)
+		{
+			LevelInstanceActorPaths.Add(FSoftObjectPath(Path));
+		}
+		LevelInstanceActorPaths.Empty();
+	}
+	
+	if(!Landscape_DEPRECATED.IsEmpty())
+	{
+		LandscapePath = Landscape_DEPRECATED;
+		Landscape_DEPRECATED.Empty();
+	}
+
+	if (!BakedSkeleton_DEPRECATED.IsEmpty())
+	{
+		BakedSkeletonPath = BakedSkeleton_DEPRECATED;
+		BakedSkeleton_DEPRECATED.Empty();
+	}
+
+	if (!BakedPhysicsAsset_DEPRECATED.IsEmpty())
+	{
+		BakedPhysicsAssetPath = BakedPhysicsAsset_DEPRECATED;
+		BakedPhysicsAsset_DEPRECATED.Empty();
+	}
+}

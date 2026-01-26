@@ -1068,38 +1068,38 @@ UHoudiniPCGCookable::DeleteFoliage(UWorld * World, UFoliageType * FoliageType, c
 void
 UHoudiniPCGCookable::DeleteBakedOutputObject(UWorld* World, FHoudiniBakedOutputObject& BakedOutputObject)
 {
-	DeleteBakedActor(BakedOutputObject.Actor);
-	DeleteBakedObject(BakedOutputObject.BakedObject);
-	DeleteBakedComponent(BakedOutputObject.Actor);
+	DeleteBakedActor(BakedOutputObject.ActorPath.ToString());
+	DeleteBakedObject(BakedOutputObject.BakedObjectPath.ToString());
+	DeleteBakedComponent(BakedOutputObject.ActorPath.ToString());
 
-	for (FString & ActorPath : BakedOutputObject.InstancedActors)
+	for (FSoftObjectPath & ActorPath : BakedOutputObject.InstancedActorPaths)
 	{
-		DeleteBakedActor(ActorPath);
+		DeleteBakedActor(ActorPath.ToString());
 	}
 
-	for(FString& ActorPath : BakedOutputObject.LevelInstanceActors)
+	for(FSoftObjectPath& ActorPath : BakedOutputObject.LevelInstanceActorPaths)
 	{
-		DeleteBakedActor(ActorPath);
+		DeleteBakedActor(ActorPath.ToString());
 	}
-	for(FString& ComponentPath : BakedOutputObject.InstancedComponents)
+	for(FSoftObjectPath& ComponentPath : BakedOutputObject.InstancedComponentPaths)
 	{
-		DeleteBakedActor(ComponentPath);
+		DeleteBakedActor(ComponentPath.ToString());
 	}
 
 
-	DeleteLandscapeLayer(BakedOutputObject.Landscape, BakedOutputObject.CreatedLandscapeLayers);
+	DeleteLandscapeLayer(BakedOutputObject.LandscapePath.ToString(), BakedOutputObject.CreatedLandscapeLayers);
 
-	DeleteBakedActor(BakedOutputObject.Actor);
+	DeleteBakedActor(BakedOutputObject.ActorPath.ToString());
 
 	DeleteFoliage(World, BakedOutputObject.FoliageType.Get(), BakedOutputObject.FoliageInstancePositions);
 
-	for(FString& FoliageActor : BakedOutputObject.FoliageActors)
+	for(FSoftObjectPath& FoliageActor : BakedOutputObject.FoliageActorPaths)
 	{
-		DeleteBakedActor(FoliageActor);
+		DeleteBakedActor(FoliageActor.ToString());
 	}
 
-	DeleteBakedObject(BakedOutputObject.BakedSkeleton);
-	DeleteBakedObject(BakedOutputObject.BakedPhysicsAsset);
+	DeleteBakedObject(BakedOutputObject.BakedSkeletonPath.ToString());
+	DeleteBakedObject(BakedOutputObject.BakedPhysicsAssetPath.ToString());
 }
 
 void

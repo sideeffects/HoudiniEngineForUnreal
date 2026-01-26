@@ -716,7 +716,7 @@ FHoudiniEngineBakeUtils::DeleteBakedDataTableObjects(TArray<FHoudiniBakedOutput>
 			if (Object->IsA<UDataTable>())
 			{
 				FHoudiniEngineUtils::ForceDeleteObject(Object);
-				It.Value.BakedObject.Empty();
+				It.Value.BakedObjectPath.Reset();
 			}
 		}
 	}
@@ -734,7 +734,7 @@ FHoudiniEngineBakeUtils::DeleteBakedDataTableObjects(TArray<FHoudiniBakedOutput>
 			if (Object->IsA<UUserDefinedStruct>() || Object->IsA<UUserDefinedStructEditorData>())
 			{
 				FHoudiniEngineUtils::ForceDeleteObject(Object);
-				It.Value.BakedObject.Empty();
+				It.Value.BakedObjectPath.Reset();
 			}
 		}
 	}
@@ -1352,7 +1352,7 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 			InstancesPositions.Add(Instance.Location);	
 		}
 
-		TArray<FString> ActorInstancePaths;
+		TArray<FSoftObjectPath> ActorInstancePaths;
 		ActorInstancePaths.Reserve(FoliageActors.Num());
 		for (auto & Instance : FoliageActors) 
 		{
@@ -1362,7 +1362,7 @@ FHoudiniEngineBakeUtils::BakeFoliageTypes(
 		// Store back output object.
 		BakedObject.FoliageType = TargetFoliageType;
 		BakedObject.FoliageInstancePositions = InstancesPositions;
-		BakedObject.FoliageActors = ActorInstancePaths;
+		BakedObject.FoliageActorPaths = ActorInstancePaths;
 		InBakeState.SetNewBakedOutputObject(InOutputIndex, Identifier, BakedObject);
     }
 
@@ -1651,7 +1651,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 			    StaticMesh, PreviousStaticMesh, MeshPackageParams, InAllOutputs, InBakedActors, InTempCookFolder.Path,
 				BakedObjectData, InOutAlreadyBakedStaticMeshMap, InOutAlreadyBakedMaterialsMap);
 
-			MeshBakedOutputObject.BakedObject = FSoftObjectPath(MeshForInstancing).ToString();
+			MeshBakedOutputObject.BakedObjectPath = FSoftObjectPath(MeshForInstancing);
 	    	InBakeState.SetNewBakedOutputObject(MeshOutputIndex, MeshIdentifier, MeshBakedOutputObject);
 	    }
 
@@ -1911,7 +1911,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 			    return false;
 		    }
 
-		    BakedOutputObject.BakedComponent = FSoftObjectPath(NewISMC).ToString();
+		    BakedOutputObject.BakedComponentPath = FSoftObjectPath(NewISMC).ToString();
 
 		    NewISMC->RegisterComponent();
 		    NewISMC->SetStaticMesh(MeshForInstancing);
@@ -1951,7 +1951,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_ISMC(
 		    if (bSpawnedActor)
 			    FoundActor->FinishSpawning(InTransform);
 
-		    BakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
+		    BakedOutputObject.ActorPath = FSoftObjectPath(FoundActor);
 		    FHoudiniEngineBakedActor& OutputEntry = OutActors.Add_GetRef(FHoudiniEngineBakedActor(
 			    FoundActor,
 			    BakeActorName,
@@ -2073,7 +2073,7 @@ bool FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_LevelInstances(
 		BakedActor->SetActorLabel(BakedName.ToString());
 		BakedActor->SetFolderPath(OutlinerPath);
 
-		BakedOutputObject.LevelInstanceActors.Add(BakedActor->GetPathName());
+		BakedOutputObject.LevelInstanceActorPaths.Add(BakedActor->GetPathName());
 
 		if (InCookable->GetRemoveOutputAfterBake())
 		{
@@ -2205,7 +2205,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 			    StaticMesh, PreviousStaticMesh, MeshPackageParams, InAllOutputs, InBakedActors, InTempCookFolder.Path,
 				BakedObjectData, InOutAlreadyBakedStaticMeshMap, InOutAlreadyBakedMaterialsMap);
 
-	    	MeshBakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
+	    	MeshBakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedStaticMesh).ToString();
 			InBakeState.SetNewBakedOutputObject(MeshOutputIndex, MeshIdentifier, MeshBakedOutputObject);
 	    }
 
@@ -2228,7 +2228,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 		}
 
 	    // Update the previous baked object
-	    BakedOutputObject.BakedObject = FSoftObjectPath(BakedStaticMesh).ToString();
+	    BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedStaticMesh);
 
 	    // Instancer name adds the split identifier (INSTANCERNUM_VARIATIONNUM)
 	    FString InstancerName = ObjectName + "_instancer";
@@ -2354,7 +2354,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 	    SetOutlinerFolderPath(FoundActor, WorldOutlinerFolderPath);
 
 	    // Update the previous baked component
-	    BakedOutputObject.BakedComponent = FSoftObjectPath(StaticMeshComponent).ToString();
+	    BakedOutputObject.BakedComponentPath = FSoftObjectPath(StaticMeshComponent).ToString();
 	    
 	    if (!IsValid(StaticMeshComponent))
 		    return false;
@@ -2387,7 +2387,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_SMC(
 			}
 	    }
 	    
-	    BakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
+	    BakedOutputObject.ActorPath = FSoftObjectPath(FoundActor);
 	    FHoudiniEngineBakedActor OutputEntry(
 		    FoundActor,
 		    BakeActorName,
@@ -2599,16 +2599,16 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 		if (ParentActor)
 		{
 			BakedOutputObject.ActorBakeName = ParentActorName;
-			BakedOutputObject.Actor = FSoftObjectPath(ParentActor).ToString();
+			BakedOutputObject.ActorPath = FSoftObjectPath(ParentActor);
 		}
 
 		// If we are baking in actor replacement mode, remove any previously baked instanced actors for this output
-		if (BakeSettings.bReplaceActors && BakedOutputObject.InstancedActors.Num() > 0)
+		if (BakeSettings.bReplaceActors && BakedOutputObject.InstancedActorPaths.Num() > 0)
 		{
 			UWorld* LevelWorld = DesiredLevel->GetWorld();
 			if (IsValid(LevelWorld))
 			{
-				for (const FString& ActorPathStr : BakedOutputObject.InstancedActors)
+				for (const FSoftObjectPath& ActorPathStr : BakedOutputObject.InstancedActorPaths)
 				{
 					const FSoftObjectPath ActorPath(ActorPathStr);
 
@@ -2635,7 +2635,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 		}
 
 		// Empty and reserve enough space for new instanced actors
-		BakedOutputObject.InstancedActors.Empty(InIAC->GetInstancedActors().Num());
+		BakedOutputObject.InstancedActorPaths.Empty(InIAC->GetInstancedActors().Num());
 
 		// Iterates on all the instances of the IAC
 		for (AActor* CurrentInstancedActor : InIAC->GetInstancedActors())
@@ -2691,7 +2691,7 @@ FHoudiniEngineBakeUtils::BakeInstancerOutputToActors_IAC(
 				NewActor->AttachToActor(ParentActor, FAttachmentTransformRules::KeepWorldTransform);
 			}
 
-			BakedOutputObject.InstancedActors.Add(FSoftObjectPath(NewActor).ToString());
+			BakedOutputObject.InstancedActorPaths.Add(FSoftObjectPath(NewActor).ToString());
 
 			FHoudiniEngineBakedActor& OutputEntry = OutActors.Add_GetRef(FHoudiniEngineBakedActor(
 				NewActor,
@@ -2900,7 +2900,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 		return false;
 
 	// Record the baked object
-	BakedOutputObject.BakedObject = FSoftObjectPath(BakedSM).ToString();
+	BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedSM);
 
 	if (bHasOutputSMC)
 	{
@@ -3007,7 +3007,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 			constexpr bool bCopyWorldTransform = true;
 			CopyPropertyToNewActorAndComponent(FoundActor, SMC, InSMC, bCopyWorldTransform);
 			SMC->SetStaticMesh(BakedSM);
-			BakedOutputObject.BakedComponent = FSoftObjectPath(SMC).ToString();
+			BakedOutputObject.BakedComponentPath = FSoftObjectPath(SMC).ToString();
 		}
 
 		FHoudiniEngineUtils::KeepOrClearActorTags(FoundActor, true, false, FoundHGPO);
@@ -3017,7 +3017,7 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 			FHoudiniEngineUtils::ApplyTagsToActorOnly(FoundHGPO->GenericPropertyAttributes, FoundActor->Tags);
 		}
 
-		BakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
+		BakedOutputObject.ActorPath = FSoftObjectPath(FoundActor);
 		OutBakedActorEntry = FHoudiniEngineBakedActor(
 			FoundActor, BakeActorName, WorldOutlinerFolderPath, InOutputIndex, InIdentifier, BakedSM, StaticMesh, SMC,
 			PackageParams.BakeFolder, PackageParams);
@@ -3026,8 +3026,8 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputObjectToActor(
 	else
 	{
 		// Implicit object, no component and no actor
-		BakedOutputObject.BakedComponent = nullptr;
-		BakedOutputObject.Actor = nullptr;
+		BakedOutputObject.BakedComponentPath = nullptr;
+		BakedOutputObject.ActorPath.Reset();
 		bOutBakedToActor = false;
 	}
 
@@ -3145,11 +3145,11 @@ FHoudiniEngineBakeUtils::BakeStaticMeshOutputToAsset(
 			return false;
 
 		// Record the baked object
-		BakedOutputObject.BakedObject = FSoftObjectPath(BakedSM).ToString();
+		BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedSM).ToString();
 
 		// Implicit object, no component and no actor
-		BakedOutputObject.BakedComponent = nullptr;
-		BakedOutputObject.Actor = nullptr;
+		BakedOutputObject.BakedComponentPath = nullptr;
+		BakedOutputObject.ActorPath.Reset();
 
 		// Record bake data
 		InBakeState.SetNewBakedOutputObject(InOutputIndex, Identifier, BakedOutputObject);
@@ -3248,9 +3248,9 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 		InBakeState.GetBakedSkeletons());
 
 	if (Skeleton != BakedSkeleton)
-		BakedOutputObject.BakedSkeleton = FSoftObjectPath(BakedSkeleton).ToString();
+		BakedOutputObject.BakedSkeletonPath = FSoftObjectPath(BakedSkeleton).ToString();
 	else
-		BakedOutputObject.BakedSkeleton = FSoftObjectPath(nullptr).ToString();
+		BakedOutputObject.BakedSkeletonPath = FSoftObjectPath(nullptr).ToString();
 
 	// Bake Physics Asset
 
@@ -3288,9 +3288,9 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 		InBakeState.GetBakedPhysicsAssets());
 
 	if (PhysicsAsset != BakedPhysicsAsset)
-		BakedOutputObject.BakedPhysicsAsset = FSoftObjectPath(BakedPhysicsAsset).ToString();
+		BakedOutputObject.BakedPhysicsAssetPath = FSoftObjectPath(BakedPhysicsAsset).ToString();
 	else
-		BakedOutputObject.BakedPhysicsAsset = FSoftObjectPath(nullptr).ToString();
+		BakedOutputObject.BakedPhysicsAssetPath = FSoftObjectPath(nullptr).ToString();
 
 	FHoudiniAttributeResolver Resolver;
 
@@ -3337,7 +3337,7 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	}
 
 	// Record the baked object
-	BakedOutputObject.BakedObject = FSoftObjectPath(BakedSK).ToString();
+	BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedSK);
 
 	if (bHasOutputSKC)
 	{
@@ -3435,10 +3435,10 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 			constexpr bool bCopyWorldTransform = true;
 			CopyPropertyToNewActorAndSkeletalComponent(FoundActor, SKC, InSKC, bCopyWorldTransform);
 			SKC->SetSkeletalMesh(BakedSK);
-			BakedOutputObject.BakedComponent = FSoftObjectPath(SKC).ToString();
+			BakedOutputObject.BakedComponentPath = FSoftObjectPath(SKC).ToString();
 		}
 
-		BakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
+		BakedOutputObject.ActorPath = FoundActor;
 		OutBakedActorEntry = FHoudiniEngineBakedActor(
 			FoundActor, BakeActorName, WorldOutlinerFolderPath, InOutputIndex, InIdentifier, BakedSK, SkeletalMesh, SKC,
 			PackageParams.BakeFolder, PackageParams);
@@ -3447,8 +3447,8 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputObjectToActor(
 	else
 	{
 		// Implicit object, no component and no actor
-		BakedOutputObject.BakedComponent = nullptr;
-		BakedOutputObject.Actor = nullptr;
+		BakedOutputObject.BakedComponentPath = nullptr;
+		BakedOutputObject.ActorPath.Reset();
 		bOutBakedToActor = false;
 	}
 
@@ -3937,7 +3937,7 @@ UUserDefinedStruct * FHoudiniEngineBakeUtils::CreateBakedUserDefinedStruct(
 	UPackage* Package = PackageParams.CreatePackageForObject(CreatedPackageName);
 
 	UUserDefinedStruct* BakedObject = DuplicateUserDefinedStruct(UserStruct, Package, CreatedPackageName);
-	BakedOutputObject.BakedObject = BakedObject->GetPathName();
+	BakedOutputObject.BakedObjectPath = BakedObject->GetPathName();
 	BakedObjectData.PackagesToSave.Add(Package);
 
 	InNewBakedOutput.BakedOutputObjects.Emplace(Identifier, BakedOutputObject);
@@ -4006,7 +4006,7 @@ UDataTable* FHoudiniEngineBakeUtils::CreateBakedDataTable(
 	BakedObjectData.PackagesToSave.Add(BakedDataTable->GetPackage());
 	BakedDataTable->MarkPackageDirty();
 
-	BakedOutputObject.BakedObject = BakedDataTable->GetPathName();
+	BakedOutputObject.BakedObjectPath = BakedDataTable->GetPathName();
 	InNewBakedOutput.BakedOutputObjects.Emplace(Identifier, BakedOutputObject);
 
 	return BakedDataTable;
@@ -4296,7 +4296,7 @@ UAnimSequence * FHoudiniEngineBakeUtils::CreateBakedAnimSequence(
 	BakedObjectData.PackagesToSave.Add(BakedAnimSequence->GetPackage());
 	BakedAnimSequence->MarkPackageDirty();
 
-	BakedOutputObject.BakedObject = BakedAnimSequence->GetPathName();
+	BakedOutputObject.BakedObjectPath = BakedAnimSequence->GetPathName();
 	InNewBakedOutput.BakedOutputObjects.Emplace(Identifier, BakedOutputObject);
 
 	return BakedAnimSequence;
@@ -4406,7 +4406,7 @@ FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 			if (!IsValid(BakedSM))
 				continue;
 
-			BakedOutputObject.BakedObject = FSoftObjectPath(BakedSM).ToString();
+			BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedSM).ToString();
 
 			// If we are baking in replace mode, remove previously baked components/instancers
 			if (BakeSettings.bReplaceActors && BakeSettings.bReplaceAssets)
@@ -4521,7 +4521,7 @@ FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 			continue;
 
 		// Record the baked object
-		BakedOutputObject.BakedObject = FSoftObjectPath(BakedGC).ToString();
+		BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedGC);
 
 		// Make sure we have a level to spawn to
 		if (!IsValid(DesiredLevel))
@@ -4637,10 +4637,10 @@ FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToActors(
 			CopyPropertyToNewGeometryCollectionActorAndComponent(NewGCActor, NewGCC, GeometryCollectionComponent, bCopyWorldTransform);
 			
 			NewGCC->SetRestCollection(BakedGC);
-			BakedOutputObject.BakedComponent = FSoftObjectPath(NewGCC).ToString();
+			BakedOutputObject.BakedComponentPath = FSoftObjectPath(NewGCC).ToString();
 		}
 		
-		BakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
+		BakedOutputObject.ActorPath = FoundActor;
 		const FHoudiniEngineBakedActor& BakedActorEntry = AllBakedActors.Add_GetRef(FHoudiniEngineBakedActor(
 			FoundActor, BakeActorName, WorldOutlinerFolderPath, InOutputIndex, Identifier, BakedGC, InGeometryCollection, GeometryCollectionComponent,
 			PackageParams.BakeFolder, PackageParams));
@@ -5078,7 +5078,7 @@ FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToAsset(
 			if (!IsValid(BakedSM))
 				continue;
 
-			BakedOutputObject.BakedObject = FSoftObjectPath(BakedSM).ToString();
+			BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedSM);
 
 			OldToNewStaticMeshMap.Add(FSoftObjectPath(StaticMesh), BakedSM);
 
@@ -5179,7 +5179,7 @@ FHoudiniEngineBakeUtils::BakeGeometryCollectionOutputToAsset(
 			continue;
 
 		// Record the baked object
-		BakedOutputObject.BakedObject = FSoftObjectPath(BakedGC).ToString();
+		BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedGC).ToString();
 
 		/*// Make sure we have a level to spawn to
 		if (!IsValid(DesiredLevel))
@@ -5422,9 +5422,9 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputToAsset(
 			InBakeState.GetBakedSkeletons());
 
 		if (Skeleton != BakedSkeleton)
-			BakedOutputObject.BakedSkeleton = FSoftObjectPath(BakedSkeleton).ToString();
+			BakedOutputObject.BakedSkeletonPath = FSoftObjectPath(BakedSkeleton).ToString();
 		else
-			BakedOutputObject.BakedSkeleton = FSoftObjectPath(nullptr).ToString();
+			BakedOutputObject.BakedSkeletonPath = FSoftObjectPath(nullptr).ToString();
 
 
 		//
@@ -5465,9 +5465,9 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputToAsset(
 			InBakeState.GetBakedPhysicsAssets());
 
 		if (PhysicsAsset != BakedPhysicsAsset)
-			BakedOutputObject.BakedPhysicsAsset = FSoftObjectPath(BakedPhysicsAsset).ToString();
+			BakedOutputObject.BakedPhysicsAssetPath = FSoftObjectPath(BakedPhysicsAsset).ToString();
 		else
-			BakedOutputObject.BakedPhysicsAsset = FSoftObjectPath(nullptr).ToString();
+			BakedOutputObject.BakedPhysicsAssetPath = FSoftObjectPath(nullptr).ToString();
 
 		//
 		// 3. Bake the Skeletal mesh
@@ -5518,11 +5518,11 @@ FHoudiniEngineBakeUtils::BakeSkeletalMeshOutputToAsset(
 		}
 
 		// Record the baked object
-		BakedOutputObject.BakedObject = FSoftObjectPath(BakedSKM).ToString();
+		BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedSKM).ToString();
 
 		// Implicit object, no component and no actor
-		BakedOutputObject.BakedComponent = nullptr;
-		BakedOutputObject.Actor = nullptr;
+		BakedOutputObject.BakedComponentPath = nullptr;
+		BakedOutputObject.ActorPath.Reset();
 
 		// Record bake data
 		InBakeState.SetNewBakedOutputObject(InOutputIndex, Identifier, MoveTemp(BakedOutputObject));
@@ -6896,7 +6896,7 @@ FHoudiniEngineBakeUtils::BakeCurve(
 	FindUnrealBakeActor(InOutputObject, InBakedOutputObject, InBakedActors, DesiredLevel, *(PackageParams.ObjectName), BakeSettings, InFallbackActor, FoundActor, bHasBakeActorName, BakeActorName);
 
 	// If we are baking in replace mode, remove the previous bake component
-	if (BakeSettings.bReplaceAssets && !InBakedOutputObject.BakedComponent.IsEmpty())
+	if (BakeSettings.bReplaceAssets && InBakedOutputObject.BakedComponentPath.IsValid())
 	{
 		UActorComponent* PrevComponent = Cast<UActorComponent>(InBakedOutputObject.GetBakedComponentIfValid());
 		if (PrevComponent && PrevComponent->GetOwner() == FoundActor)
@@ -6924,8 +6924,8 @@ FHoudiniEngineBakeUtils::BakeCurve(
 		BakeActorClass))
 		return false;
 
-	InBakedOutputObject.Actor = FSoftObjectPath(FoundActor).ToString();
-	InBakedOutputObject.BakedComponent = FSoftObjectPath(NewSplineComponent).ToString();
+	InBakedOutputObject.ActorPath = FSoftObjectPath(FoundActor);
+	InBakedOutputObject.BakedComponentPath = FSoftObjectPath(NewSplineComponent).ToString();
 
 	// If we are baking in replace mode, remove previously baked components/instancers
 	if (BakeSettings.bReplaceAssets && BakeSettings.bReplaceActors)
@@ -8301,7 +8301,7 @@ FHoudiniEngineBakeUtils::BakePDGWorkResultObject(
 			if (BakedWROActorEntry)
 			{
 				OutputActorOwner.SetOutputActor(nullptr);
-				const FString OldActorPath = FSoftObjectPath(WROActor).ToString();
+				const FSoftObjectPath OldActorPath = WROActor;
 				DetachAndRenameBakedPDGOutputActor(
 					WROActor, BakedWROActorEntry->ActorBakeName.ToString(), BakedWROActorEntry->WorldOutlinerFolder);
 				const FString NewActorPath = FSoftObjectPath(WROActor).ToString();
@@ -8312,8 +8312,8 @@ FHoudiniEngineBakeUtils::BakePDGWorkResultObject(
 					{
 						for (auto& Entry : BakedOutput.BakedOutputObjects)
 						{
-							if (Entry.Value.Actor == OldActorPath)
-								Entry.Value.Actor = NewActorPath;
+							if (Entry.Value.ActorPath == OldActorPath)
+								Entry.Value.ActorPath = NewActorPath;
 						}
 					}
 				}
@@ -8817,12 +8817,12 @@ FHoudiniEngineBakeUtils::BakeBlueprintsFromBakedActors(
 			{
 				UBlueprint* const BakedBlueprint = BakedActorMap[Actor];
 				if (BakedBlueprint)
-					BakedOutputObject->Blueprint = FSoftObjectPath(BakedBlueprint).ToString();
+					BakedOutputObject->BlueprintPath = FSoftObjectPath(BakedBlueprint);
 				else
-					BakedOutputObject->Blueprint.Empty();
-				BakedOutputObject->Actor.Empty();
+					BakedOutputObject->BlueprintPath.Reset();
+				BakedOutputObject->ActorPath.Reset();
 				// TODO: Set the baked component to the corresponding component in the blueprint?
-				BakedOutputObject->BakedComponent.Empty();
+				BakedOutputObject->BakedComponentPath.Reset();
 			}
 			continue;
 		}
@@ -8971,10 +8971,10 @@ FHoudiniEngineBakeUtils::BakeBlueprintsFromBakedActors(
 		// Record the blueprint as the previous bake blueprint and clear the info of the temp bake actor/component
 		if (BakedOutputObject)
 		{
-			BakedOutputObject->Blueprint = FSoftObjectPath(Blueprint).ToString();
-			BakedOutputObject->Actor.Empty();
+			BakedOutputObject->BlueprintPath = FSoftObjectPath(Blueprint);
+			BakedOutputObject->ActorPath.Reset();
 			// TODO: Set the baked component to the corresponding component in the blueprint?
-			BakedOutputObject->BakedComponent.Empty();
+			BakedOutputObject->BakedComponentPath.Reset();
 		}
 		
 		BakedObjectData.Blueprints.Add(Blueprint);
@@ -9458,7 +9458,7 @@ void FHoudiniEngineBakeUtils::FindUnrealBakeActor(
 		// If in replace mode, use previous bake actor if valid and in InLevel
 		if (BakeSettings.bReplaceActors)
 		{
-			const FSoftObjectPath PrevActorPath(InBakedOutputObject.Actor);
+			const FSoftObjectPath PrevActorPath(InBakedOutputObject.ActorPath);
 			const FString ActorPath = PrevActorPath.IsSubobject()
                 ? PrevActorPath.GetAssetPathString() + ":" + PrevActorPath.GetSubPathString()
                 : PrevActorPath.GetAssetPathString();
@@ -9766,7 +9766,7 @@ FHoudiniEngineBakeUtils::DestroyPreviousBakeOutput(
 		{
 			if (RemovePreviouslyBakedComponent(Component))
 			{
-				InBakedOutputObject.BakedComponent = nullptr;
+				InBakedOutputObject.BakedComponentPath = nullptr;
 				NumDeleted++;
 			}
 		}
@@ -9774,7 +9774,7 @@ FHoudiniEngineBakeUtils::DestroyPreviousBakeOutput(
 
 	if (bInDestroyBakedInstancedActors)
 	{
-		for (const FString& ActorPathStr : InBakedOutputObject.InstancedActors)
+		for (const FSoftObjectPath& ActorPathStr : InBakedOutputObject.InstancedActorPaths)
 		{
 			const FSoftObjectPath ActorPath(ActorPathStr);
 
@@ -9796,15 +9796,13 @@ FHoudiniEngineBakeUtils::DestroyPreviousBakeOutput(
 				}
 			}
 		}
-		InBakedOutputObject.InstancedActors.Empty();
+		InBakedOutputObject.InstancedActorPaths.Empty();
 	}
 
 	if (bInDestroyBakedInstancedComponents)
 	{
-		for (const FString& ComponentPathStr : InBakedOutputObject.InstancedComponents)
+		for (const FSoftObjectPath& ComponentPath : InBakedOutputObject.InstancedComponentPaths)
 		{
-			const FSoftObjectPath ComponentPath(ComponentPathStr);
-
 			if (!ComponentPath.IsValid())
 				continue;
 
@@ -9815,7 +9813,7 @@ FHoudiniEngineBakeUtils::DestroyPreviousBakeOutput(
 					NumDeleted++;
 			}
 		}
-		InBakedOutputObject.InstancedComponents.Empty();
+		InBakedOutputObject.InstancedComponentPaths.Empty();
 	}
 	
 	return NumDeleted;
@@ -9982,10 +9980,10 @@ FHoudiniEngineBakeUtils::BakeTexture(
 			continue;
 
 		// Record the baked object
-		BakedOutputObject.BakedObject = FSoftObjectPath(BakedTexture).ToString();
+		BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedTexture).ToString();
 		// No component and no actor
-		BakedOutputObject.BakedComponent = nullptr;
-		BakedOutputObject.Actor = nullptr;
+		BakedOutputObject.BakedComponentPath = nullptr;
+		BakedOutputObject.ActorPath.Reset();
 
 		// Record bake data
 		InBakeState.SetNewBakedOutputObject(InOutputIndex, OutputObjectId, BakedOutputObject);
@@ -10264,18 +10262,18 @@ FHoudiniEngineBakeUtils::RemoveBakedLevelInstances(
 			auto & BakedObj = BakedOutputObject.Value;
 
 			// If there are no level instance actors associated with this output object, ignore.
-			if (BakedObj.LevelInstanceActors.IsEmpty())
+			if (BakedObj.LevelInstanceActorPaths.IsEmpty())
 				continue;
 
 			if (BakeSettings.bReplaceActors)
 			{
-				for(const FString & Name : BakedObj.LevelInstanceActors)
+				for(const FSoftObjectPath & Name : BakedObj.LevelInstanceActorPaths)
 				{
 					ALevelInstance* LevelInstance = Cast<ALevelInstance>(
 						StaticLoadObject(
 							ALevelInstance::StaticClass(),
 							nullptr, 
-							*Name,
+							*Name.ToString(),
 							nullptr, 
 							LOAD_NoWarn, 
 							nullptr));
