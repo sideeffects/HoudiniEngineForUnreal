@@ -114,6 +114,20 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 	GetPerInstanceCustomData(InHGPO.GeoId, InHGPO.PartId, PartData);
 	GetMaterialOverridesFromAttributes(InHGPO.GeoId, InHGPO.PartId, 0, InHGPO.InstancerType, PartData.MaterialAttributes);
 
+	// Store custom prim data in the instancer
+	for (auto& Instancer : PartData.Instancers)
+	{
+		int NumInstances = Instancer.AttributeIndices.Num();
+		if (NumInstances <= 0)
+			continue;
+			
+		TArray<float> CustomPrimitiveData;
+		FHoudiniMeshTranslator::GetCustomPrimitiveData(
+			InHGPO.GeoId, InHGPO.PartId, Instancer.AttributeIndices[0], CustomPrimitiveData);
+
+		Instancer.CustomPrimData = CustomPrimitiveData;
+	}
+
 	return PartData;
 }
 
@@ -670,11 +684,20 @@ FHoudiniInstanceTranslator::CreateInstancer(
 		// trigger an async mesh wait until it has been computed.
 
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(InstanceObject);
+		bool bNaniteEnabled =
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		if (!StaticMesh->IsNaniteEnabled() && (Instancers.Settings.bForceHISM || (bMustUseInstancerComponent && StaticMesh->GetNumLODs() > 1)))
+			StaticMesh->IsNaniteEnabled();
 #else
-		if (!StaticMesh->NaniteSettings.bEnabled && (Instancers.Settings.bForceHISM || (bMustUseInstancerComponent && StaticMesh->GetNumLODs() > 1)))
+			StaticMesh->NaniteSettings.bEnabled;
 #endif
+
+		if (bNaniteEnabled && Instancers.Settings.bForceHISM)
+		{
+			// Warn the user that we wont use HISM because the mesh is a Nanite mesh
+			HOUDINI_LOG_WARNING(TEXT("Ignoring the Force HISM attribute (unreal_hierarchical_instancer) as the instanced mesh is a Nanite mesh."));
+		}
+
+		if (!bNaniteEnabled && (Instancers.Settings.bForceHISM || (bMustUseInstancerComponent && StaticMesh->GetNumLODs() > 1)))
 			InstancerType = HierarchicalInstancedStaticMeshComponent;
 		else if (bMustUseInstancerComponent)
 			InstancerType = InstancedStaticMeshComponent;
@@ -850,7 +873,8 @@ FHoudiniInstanceTranslator::CreateInstancer(
 	for (auto Object : Output.OutputComponents)
 	{
 		USceneComponent* InstancerComponent = Cast<USceneComponent>(Object);
-		SetPerInstanceCustomData(Instancers, InstancerPartData, InstancerComponent);
+		SetPerInstanceCustomData(Instancers, InstancerComponent);
+		FHoudiniMeshTranslator::SetCustomPrimitiveData(Instancers.CustomPrimData, InstancerComponent);
 
 		// If the instanced object (by ref) wasn't found, hide the component in game
 		if (Output.OutputObject == DefaultReferenceSM)
@@ -1151,6 +1175,8 @@ FHoudiniInstanceTranslator::CreateStaticMeshInstancer(
 	}
 
 	SetGenericPropertyAttributes(SMC, Instancers, InstancerPartData);
+
+	FHoudiniMeshTranslator::SetCustomPrimitiveData(Instancers.CustomPrimData, SMC);
 
 	return true;
 }
@@ -1933,7 +1959,6 @@ FHoudiniInstanceTranslator::GetPerInstanceCustomData(
 				}
 			}
 		}
-
 	}
 }
 
@@ -1941,7 +1966,6 @@ FHoudiniInstanceTranslator::GetPerInstanceCustomData(
 void
 FHoudiniInstanceTranslator::SetPerInstanceCustomData(
 	const FHoudiniInstancer& Instancers,
-	const FHoudiniInstancerPartData& PartData,
 	USceneComponent* InComponentToUpdate)
 {
 	if (Instancers.NumCustomFloats == 0)

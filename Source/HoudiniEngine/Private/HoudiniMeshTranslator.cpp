@@ -697,6 +697,15 @@ FHoudiniMeshTranslator::UpdateMeshComponent(
 			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(InMeshComponent, PropertyAttributes);
 		}
 	}
+
+	// Custom Primitive Data
+	{
+		TArray<float> CustomPrimitiveData;
+		FHoudiniMeshTranslator::GetCustomPrimitiveData(
+			InOutputIdentifier.GeoId, InOutputIdentifier.PartId, InOutputIdentifier.PrimitiveIndex, CustomPrimitiveData);
+
+		FHoudiniMeshTranslator::SetCustomPrimitiveData(CustomPrimitiveData, InMeshComponent);
+	}
 }
 
 bool
@@ -8687,7 +8696,8 @@ FHoudiniMeshTranslator::ProcessMaterialsForHSM(
 }
 
 
-bool FHoudiniMeshTranslator::IsGammaCorrectionDisabled(HAPI_NodeId  NodeId, HAPI_PartId PartId)
+bool 
+FHoudiniMeshTranslator::IsGammaCorrectionDisabled(HAPI_NodeId  NodeId, HAPI_PartId PartId)
 {
 	FHoudiniHapiAccessor Accessor(NodeId, PartId, HAPI_UNREAL_ATTRIB_DISABLE_GAMMA_CORRECTION);
 	TArray<int> Values;
@@ -8696,6 +8706,63 @@ bool FHoudiniMeshTranslator::IsGammaCorrectionDisabled(HAPI_NodeId  NodeId, HAPI
 		return false;
 
 	return Values[0] != 0;
+}
+
+
+void
+FHoudiniMeshTranslator::GetCustomPrimitiveData(
+	int32 InGeoNodeId,
+	int32 InPartId,
+	int32 InPrimIndex,
+	TArray<float>& OutCustomPrimData)
+{
+	// Get the number of custom primitive data
+	TArray<int32> NumCustomPrimDataArray;
+	FHoudiniHapiAccessor Accessor(InGeoNodeId, InPartId, HAPI_UNREAL_ATTRIB_NUM_CUSTOM_PRIM_DATA);
+	Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, NumCustomPrimDataArray, InPrimIndex, 1);
+	if (NumCustomPrimDataArray.IsEmpty())
+		return;
+
+	int32 NumCustomPrimData = NumCustomPrimDataArray[0];
+	OutCustomPrimData.SetNum(NumCustomPrimData);
+	for (int CustomPrimDataIndex = 0; CustomPrimDataIndex < NumCustomPrimData; CustomPrimDataIndex++)
+	{
+		TArray<float> Values;
+
+		FString CurrentAttr = TEXT(HAPI_UNREAL_ATTRIB_CUSTOM_PRIMITIVE_DATA_PREFIX) + FString::FromInt(CustomPrimDataIndex);
+		Accessor.Init(InGeoNodeId, InPartId, TCHAR_TO_ANSI(*CurrentAttr));
+		Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, Values, InPrimIndex, 1);
+		if (Values.IsEmpty())
+		{
+			HOUDINI_LOG_ERROR(TEXT("Could found attribute "), *CurrentAttr);
+			return;
+		}
+
+		OutCustomPrimData[CustomPrimDataIndex] = Values[0];
+	}
+}
+
+void
+FHoudiniMeshTranslator::SetCustomPrimitiveData(
+	const TArray<float>& CustomPrimData,
+	USceneComponent* InComponentToUpdate)
+{
+	if (CustomPrimData.IsEmpty())
+		return;
+
+	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(InComponentToUpdate);
+	if (!IsValid(PrimComp))
+		return;
+
+	PrimComp->Modify();
+
+	// Set both the custom primitive data array AND the default (details UI) array
+	PrimComp->SetCustomPrimitiveDataFloatArray(0, CustomPrimData);
+	PrimComp->SetDefaultCustomPrimitiveDataFloatArray(0, CustomPrimData);
+
+	PrimComp->MarkRenderStateDirty();
+
+	return;
 }
 
 #undef LOCTEXT_NAMESPACE

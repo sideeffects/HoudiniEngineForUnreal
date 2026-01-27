@@ -192,6 +192,9 @@
 #define HAPI_UNREAL_ATTRIB_INPUT_MESH_NAME					"unreal_input_mesh_name"
 #define HAPI_UNREAL_ATTRIB_INPUT_SOURCE_FILE				"unreal_input_source_file"
 
+#define HAPI_UNREAL_ATTRIB_NUM_CUSTOM_PRIM_DATA		        "unreal_num_custom_primitive_data"
+#define HAPI_UNREAL_ATTRIB_CUSTOM_PRIMITIVE_DATA_PREFIX		"unreal_custom_primitive_data"
+
 #define HAPI_UNREAL_ATTRIB_INSTANCE							"instance"
 #define HAPI_UNREAL_ATTRIB_INSTANCE_OVERRIDE				"unreal_instance"
 #define HAPI_UNREAL_ATRTIB_INSTANCE_ORIGIN                  "unreal_instance_origin"
