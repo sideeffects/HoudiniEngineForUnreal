@@ -657,11 +657,20 @@ FHoudiniInstanceTranslator::CreateInstancer(
 		// trigger an async mesh wait until it has been computed.
 
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(InstanceObject);
+		bool bNaniteEnabled =
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		if (!StaticMesh->IsNaniteEnabled() && (Instancers.Settings.bForceHISM || (bMustUseInstancerComponent && StaticMesh->GetNumLODs() > 1)))
+			StaticMesh->IsNaniteEnabled();
 #else
-		if (!StaticMesh->NaniteSettings.bEnabled && (Instancers.Settings.bForceHISM || (bMustUseInstancerComponent && StaticMesh->GetNumLODs() > 1)))
+			StaticMesh->NaniteSettings.bEnabled;
 #endif
+
+		if (bNaniteEnabled && Instancers.Settings.bForceHISM)
+		{
+			// Warn the user that we wont use HISM because the mesh is a Nanite mesh
+			HOUDINI_LOG_WARNING(TEXT("Ignoring the Force HISM attribute (unreal_hierarchical_instancer) as the instanced mesh is a Nanite mesh."));
+		}
+
+		if (!bNaniteEnabled && (Instancers.Settings.bForceHISM || (bMustUseInstancerComponent && StaticMesh->GetNumLODs() > 1)))
 			InstancerType = HierarchicalInstancedStaticMeshComponent;
 		else if (bMustUseInstancerComponent)
 			InstancerType = InstancedStaticMeshComponent;
@@ -1920,7 +1929,6 @@ FHoudiniInstanceTranslator::GetPerInstanceCustomData(
 				}
 			}
 		}
-
 	}
 }
 
