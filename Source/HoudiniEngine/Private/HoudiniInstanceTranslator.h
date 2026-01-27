@@ -228,7 +228,8 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 		UObject* InstanceObject,
 		const FHoudiniInstancerPartData& InstancerPartData,
 		USceneComponent* ParentComponent,
-		const TArray<UMaterialInterface*>& InstancerMaterials);
+		const TArray<UMaterialInterface*>& InstancerMaterials,
+		const InstancerComponentType& InstancerType);
 
 	// Create or update an IAC
 	static bool CreateInstancedActorInstancer(

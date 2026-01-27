@@ -720,7 +720,8 @@ FHoudiniInstanceTranslator::CreateInstancer(
 				InstanceObject,
 				InstancerPartData, 
 				ParentComponent, 
-				InstancerMaterials);
+				InstancerMaterials,
+				InstancerType);
 			bCheckRenderState = true;
 		}
 		break;
@@ -921,7 +922,8 @@ FHoudiniInstanceTranslator::CreateInstancedStaticMeshInstancer(
 	UObject* InstanceObject,
 	const FHoudiniInstancerPartData& InstancerPartData,
 	USceneComponent* ParentComponent,
-	const TArray<UMaterialInterface*>& InstancerMaterials)
+	const TArray<UMaterialInterface*>& InstancerMaterials,
+	const InstancerComponentType& InstancerType)
 {
 
 	UStaticMesh* InstancedStaticMesh = Cast<UStaticMesh>(InstanceObject);
@@ -937,23 +939,16 @@ FHoudiniInstanceTranslator::CreateInstancedStaticMeshInstancer(
 		ComponentOuter = ParentComponent->GetOwner();
 
 	UInstancedStaticMeshComponent* InstancedStaticMeshComponent = nullptr;
-
-	// It is recommended to avoid putting Nanite mesh in HISM since they have their own LOD mecanism.
-	// Will also improve performance by avoiding access to the render data to fetch the LOD count which could
-	// trigger an async mesh wait until it has been computed.
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-	if (!InstancedStaticMesh->IsNaniteEnabled() && (InstancedStaticMesh->GetNumLODs() > 1 || Instancer.Settings.bForceHISM))
-#else
-	if (!InstancedStaticMesh->NaniteSettings.bEnabled && (InstancedStaticMesh->GetNumLODs() > 1 || Instancer.Settings.bForceHISM))
-#endif
+	if(InstancerType == HierarchicalInstancedStaticMeshComponent)
 	{
-		// If the mesh has LODs, use Hierarchical ISMC
+		// Use Hierarchical ISMC
+		// Either forced, or if the mesh isn't Nanite and has LODs
 		InstancedStaticMeshComponent = NewObject<UHierarchicalInstancedStaticMeshComponent>(
 			ComponentOuter, UHierarchicalInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
 	}
 	else
 	{
-		// If the mesh doesnt have LOD, we can use a regular ISMC
+		// If the mesh doesnt have LODs, we can use a regular ISMC
 		InstancedStaticMeshComponent = NewObject<UInstancedStaticMeshComponent>(
 			ComponentOuter, UInstancedStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
 	}
