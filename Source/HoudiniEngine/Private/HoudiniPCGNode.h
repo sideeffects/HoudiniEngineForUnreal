@@ -162,5 +162,8 @@ protected:
 	virtual bool PrepareDataInternal(FPCGContext* InContext) const override;
 	virtual bool ExecuteInternal(FPCGContext* InContext) const override;
 	virtual void AbortInternal(FPCGContext* Context) const;
+
+	UHoudiniPCGManagedResource* GetManagedResource(FPCGContext* Context) const;
+
 };
 

@@ -123,7 +123,11 @@ public:
 	TObjectPtr<UHoudiniCookable> Cookable;
 
 	UPROPERTY()
-	TObjectPtr<UHoudiniPDGBakeOutput> PDGBakedOutput;
+	TObjectPtr<UHoudiniPDGBakeOutput> PDGBakedOutput_DEPRECATED;
+
+	// Previously baked outputs
+	UPROPERTY()
+	TArray<FHoudiniBakedOutput> BakedOutputs;
 
 	EPCGCookableState State = EPCGCookableState::None;
 	bool bIsCookingPDG = false;
@@ -185,11 +189,11 @@ private:
 
 	static bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
 
-	static void DeleteBakedActor(const FString& ActorPath);
-	static void DeleteBakedComponent(const FString& ActorPath);
-	static void DeleteBakedObject(const FString& ObjectPath);
+	static void DeleteBakedActor(const FSoftObjectPath& ActorPath);
+	static void DeleteBakedComponent(const FSoftObjectPath& Path);
+	static void DeleteBakedObject(const FSoftObjectPath& ObjectPath);
 	static void DeletePackage(UPackage* Package);
-	static void DeleteLandscapeLayer(const FString & LandscapePath, TArray<FString>& LandscapeLayers);
+	static void DeleteLandscapeLayer(const FSoftObjectPath& LandscapePath, TArray<FString>& LandscapeLayers);
 	static void DeleteFoliage(UWorld* World, UFoliageType* FoliageType, const TArray<FVector>& FoliageInstancePositions);
 	void DeleteBakedOutputObject(UWorld* World, FHoudiniBakedOutputObject& BakedOutputObject);
 };
