@@ -978,7 +978,7 @@ UHoudiniPCGCookable::DeleteBakedActor(const FSoftObjectPath& ActorPath)
 	if(!ActorPath.IsValid())
 		return;
 
-	UObject* Actor = StaticLoadObject(UObject::StaticClass(), nullptr, ActorPath.ToString());
+	UObject* Actor = StaticLoadObject(UObject::StaticClass(), nullptr, *ActorPath.ToString());
 	;
 	if(AActor* SceneActor = Cast<AActor>(Actor))
 	{
