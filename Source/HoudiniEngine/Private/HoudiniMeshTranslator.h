@@ -268,7 +268,8 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 			int32 InGeoNodeId,
 			int32 InPartId,
 			int32 InPrimIndex,
-			TArray<float>& OutCustomPrimData);
+			TArray<float>& OutCustomPrimData,
+			HAPI_AttributeOwner InAttribOwner = HAPI_AttributeOwner::HAPI_ATTROWNER_INVALID);
 
 		static void SetCustomPrimitiveData(
 			const TArray<float>& CustomPrimData,

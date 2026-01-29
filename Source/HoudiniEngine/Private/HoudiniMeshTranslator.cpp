@@ -8714,12 +8714,13 @@ FHoudiniMeshTranslator::GetCustomPrimitiveData(
 	int32 InGeoNodeId,
 	int32 InPartId,
 	int32 InPrimIndex,
-	TArray<float>& OutCustomPrimData)
+	TArray<float>& OutCustomPrimData,
+	HAPI_AttributeOwner InAttribOwner)
 {
 	// Get the number of custom primitive data
 	TArray<int32> NumCustomPrimDataArray;
 	FHoudiniHapiAccessor Accessor(InGeoNodeId, InPartId, HAPI_UNREAL_ATTRIB_NUM_CUSTOM_PRIM_DATA);
-	Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, NumCustomPrimDataArray, InPrimIndex, 1);
+	Accessor.GetAttributeData(InAttribOwner, NumCustomPrimDataArray, InPrimIndex, 1);
 	if (NumCustomPrimDataArray.IsEmpty())
 		return;
 
@@ -8728,14 +8729,13 @@ FHoudiniMeshTranslator::GetCustomPrimitiveData(
 	for (int CustomPrimDataIndex = 0; CustomPrimDataIndex < NumCustomPrimData; CustomPrimDataIndex++)
 	{
 		TArray<float> Values;
-
 		FString CurrentAttr = TEXT(HAPI_UNREAL_ATTRIB_CUSTOM_PRIMITIVE_DATA_PREFIX) + FString::FromInt(CustomPrimDataIndex);
 		Accessor.Init(InGeoNodeId, InPartId, TCHAR_TO_ANSI(*CurrentAttr));
-		Accessor.GetAttributeData(HAPI_ATTROWNER_PRIM, Values, InPrimIndex, 1);
+		Accessor.GetAttributeData(InAttribOwner, Values, InPrimIndex, 1);
 		if (Values.IsEmpty())
 		{
-			HOUDINI_LOG_ERROR(TEXT("Could found attribute "), *CurrentAttr);
-			return;
+			HOUDINI_LOG_ERROR(TEXT("Could not find attribute '%s' "), *CurrentAttr);
+			continue;
 		}
 
 		OutCustomPrimData[CustomPrimDataIndex] = Values[0];
