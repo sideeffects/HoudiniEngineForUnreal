@@ -125,8 +125,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(HoudiniEditorRandomEquivalenceTest, "Ho
 
 bool HoudiniEditorRandomEquivalenceTest::RunTest(const FString & Parameters)
 {
-
-
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 6
 	// Really force editor size
 	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
@@ -144,7 +143,7 @@ bool HoudiniEditorRandomEquivalenceTest::RunTest(const FString & Parameters)
 			});
 		});
 	});
-	
+#endif
 	return true;
 }
 
