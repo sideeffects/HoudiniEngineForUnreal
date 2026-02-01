@@ -51,6 +51,15 @@ enum class EHoudiniEngineBakeOption : uint8
 };
 
 UENUM()
+enum class EHoudiniEngineBakeType : uint8
+{
+	// Whether we are talking about outputs from "Regular" or "PDG" cooking.
+	All,
+	CookedOutputs,
+	PDGOutputs
+};
+
+UENUM()
 enum class EHoudiniEngineActorBakeOption : uint8
 {
 	OneActorPerComponent,

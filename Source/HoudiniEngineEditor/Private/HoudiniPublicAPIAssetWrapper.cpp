@@ -343,6 +343,38 @@ UHoudiniPublicAPIAssetWrapper::IsAutoBakeEnabled_Implementation() const
 }
 
 bool
+UHoudiniPublicAPIAssetWrapper::UnlinkBakedOutputs_Implementation(EHoudiniEngineBakeType BakeType)
+{
+	UHoudiniCookable* HC = nullptr;
+	if(!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if(BakeType == EHoudiniEngineBakeType::All || BakeType == EHoudiniEngineBakeType::CookedOutputs)
+		FHoudiniEngineBakeUtils::UnlinkBakedOutputs(HC);
+
+	if(BakeType == EHoudiniEngineBakeType::All || BakeType == EHoudiniEngineBakeType::PDGOutputs)
+		FHoudiniEngineBakeUtils::UnlinkBakedPDGOutputs(HC->GetPDGAssetLink());
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::DeleteBakedOutputs_Implementation(EHoudiniEngineBakeType BakeType)
+{
+	UHoudiniCookable* HC = nullptr;
+	if(!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if(BakeType == EHoudiniEngineBakeType::All || BakeType == EHoudiniEngineBakeType::CookedOutputs)
+		FHoudiniEngineBakeUtils::DeleteBakedOutputs(HC);
+
+	if(BakeType == EHoudiniEngineBakeType::All || BakeType == EHoudiniEngineBakeType::PDGOutputs)
+		FHoudiniEngineBakeUtils::DeleteBakedPDGOutputs(HC->GetPDGAssetLink());
+	
+	return true;
+}
+
+bool
 UHoudiniPublicAPIAssetWrapper::SetBakeMethod_Implementation(const EHoudiniEngineBakeOption InBakeMethod)
 {
 	UHoudiniCookable* HC = nullptr;

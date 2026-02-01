@@ -161,6 +161,8 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		TSharedPtr<FSlateDynamicImageBrush> GetHoudiniEngineUIResetParametersIconBrush() const { return HoudiniEngineUIResetParametersIconBrush; }
 
 		TSharedPtr<FSlateDynamicImageBrush>	GetHoudiniEngineUIBakeIconBrush() const { return HoudiniEngineUIBakeIconBrush; }
+		TSharedPtr<FSlateDynamicImageBrush>	GetHoudiniEngineUIDeleteBakeIconBrush() const { return HoudiniEngineUIDeleteBakeIconBrush; }
+		TSharedPtr<FSlateDynamicImageBrush>	GetHoudiniEngineUIUnlinkBakeIconBrush() const { return HoudiniEngineUIUnlinkBakeIconBrush; }
 		TSharedPtr<FSlateDynamicImageBrush>	GetHoudiniEngineUICookLogIconBrush() const { return HoudiniEngineUICookLogIconBrush; }
 		TSharedPtr<FSlateDynamicImageBrush> GetHoudiniEngineUIAssetHelpIconBrush() const { return HoudiniEngineUIAssetHelpIconBrush; }
 		TSharedPtr<FSlateDynamicImageBrush>	GetHoudiniEngineUIPDGIconBrush() const { return HoudiniEngineUIPDGIconBrush; }
@@ -366,6 +368,8 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIResetParametersIconBrush;
 
 		TSharedPtr<FSlateDynamicImageBrush>	HoudiniEngineUIBakeIconBrush;
+		TSharedPtr<FSlateDynamicImageBrush>	HoudiniEngineUIDeleteBakeIconBrush;
+		TSharedPtr<FSlateDynamicImageBrush>	HoudiniEngineUIUnlinkBakeIconBrush;
 		TSharedPtr<FSlateDynamicImageBrush>	HoudiniEngineUICookLogIconBrush;
 		TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIAssetHelpIconBrush;
 		TSharedPtr<FSlateDynamicImageBrush>	HoudiniEngineUIPDGIconBrush;

@@ -189,13 +189,6 @@ private:
 
 	static bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
 
-	static void DeleteBakedActor(const FSoftObjectPath& ActorPath);
-	static void DeleteBakedComponent(const FSoftObjectPath& Path);
-	static void DeleteBakedObject(const FSoftObjectPath& ObjectPath);
-	static void DeletePackage(UPackage* Package);
-	static void DeleteLandscapeLayer(const FSoftObjectPath& LandscapePath, TArray<FString>& LandscapeLayers);
-	static void DeleteFoliage(UWorld* World, UFoliageType* FoliageType, const TArray<FVector>& FoliageInstancePositions);
-	void DeleteBakedOutputObject(UWorld* World, FHoudiniBakedOutputObject& BakedOutputObject);
 };
 
 

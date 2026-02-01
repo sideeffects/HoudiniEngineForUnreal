@@ -536,6 +536,14 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
 	bool IsAutoBakeEnabled() const;
 
+	/** Unlinks the baked outputs from the Wrapper. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Houdini|Public API")
+	bool UnlinkBakedOutputs(EHoudiniEngineBakeType BakeType);
+
+	/**  Deletes any baked outputs created by the Wrapper. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Houdini|Public API")
+	bool DeleteBakedOutputs(EHoudiniEngineBakeType BakeType);
+
 	/**
 	 * Sets the bake method to use (to actor, blueprint, foliage).
 	 * @param InBakeMethod The new bake method to set.

@@ -3167,95 +3167,228 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 			return FReply::Handled();
 		};
 
+	auto OnDeleteBakeButtonClickedLambda = [InHC, PDGAssetLink]()
+		{
+			if (PDGAssetLink.IsValid())
+				FHoudiniEngineBakeUtils::DeleteBakedPDGOutputs(PDGAssetLink.Get());
+			return FReply::Handled();
+		};
+
+	auto OnUnlinkBakeButtonClickedLambda = [PDGAssetLink]()
+		{
+			if (PDGAssetLink.IsValid())
+				FHoudiniEngineBakeUtils::UnlinkBakedPDGOutputs(PDGAssetLink.Get());
+
+			return FReply::Handled();
+		};
+
 	// Button Row
 	FDetailWidgetRow& ButtonRow = InBakeGroup.AddWidgetRow();
 	BindEnablePDGWiddgetsTest(ButtonRow, InHC);
 
 	TSharedRef<SHorizontalBox> ButtonRowHorizontalBox = SNew(SHorizontalBox);
 
+	//----------------------------------------
 	// Bake Button
-	TSharedRef<SHorizontalBox> BakeHBox = SNew(SHorizontalBox);
-	TSharedPtr<SButton> BakeButton;
-	ButtonRowHorizontalBox->AddSlot()
-		/*.AutoWidth()*/
-		.Padding(15.f, 0.0f, 0.0f, 0.0f)
-		.MaxWidth(75.0f)
-		[
-			SNew(SBox)
-				.WidthOverride(75.0f)
-				[
-					SAssignNew(BakeButton, SButton)
-						//.Text(FText::FromString("Bake"))
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						//.ToolTipText(LOCTEXT("HoudiniPDGDetailsBakeButton", "Bake the Houdini PDG TOP Node(s)"))
-						.ToolTipText_Lambda([PDGAssetLink]()
-							{
-								switch(PDGAssetLink->HoudiniEngineBakeOption)
-								{
-								case EHoudiniEngineBakeOption::ToActor:
-								{
-									return LOCTEXT(
-										"HoudiniEnginePDGBakeButtonBakeToActorToolTip",
-										"Bake this Houdini PDG Asset's output assets and seperate the output actors from the PDG asset link.");
-								}
-								break;
+	//----------------------------------------
 
-								case EHoudiniEngineBakeOption::ToBlueprint:
-								{
-									return LOCTEXT(
-										"HoudiniEnginePDGBakeButtonBakeToBlueprintToolTip",
-										"Bake this Houdini PDG Asset's output assets to blueprints and remove temporary output actors that no "
-										"longer has output components from the PDG asset link.");
-								}
-								break;
-
-								case EHoudiniEngineBakeOption::ToAsset:
-								default:
-								{
-									return FText();
-								}
-								}
-							})
-						.Visibility(EVisibility::Visible)
-						.IsEnabled_Lambda([PDGAssetLink]() { return IsPDGLinked(PDGAssetLink); })
-						.OnClicked_Lambda(OnBakeButtonClickedLambda)
-						.Content()
-						[
-							SAssignNew(BakeHBox, SHorizontalBox)
-						]
-				]
-		];
-
-	TSharedPtr<FSlateDynamicImageBrush> BakeIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIBakeIconBrush();
-	if(BakeIconBrush.IsValid())
 	{
-		TSharedPtr<SImage> BakeImage;
-		BakeHBox->AddSlot()
-			.MaxWidth(16.0f)
+		// BakeButtonHBox contains the image and the text.
+
+		TSharedRef<SHorizontalBox> BakeButtonHBox = SNew(SHorizontalBox);
+
+		TSharedPtr<FSlateDynamicImageBrush> BakeIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIBakeIconBrush();
+		if(BakeIconBrush.IsValid())
+		{
+			TSharedPtr<SImage> BakeImage;
+			BakeButtonHBox->AddSlot()
+				.MaxWidth(16.0f)
+				[
+					SNew(SBox)
+						.WidthOverride(16.0f)
+						.HeightOverride(16.0f)
+						[
+							SAssignNew(BakeImage, SImage)
+						]
+				];
+
+			BakeImage->SetImage(TAttribute<const FSlateBrush*>::Create(TAttribute<const FSlateBrush*>::FGetter::CreateLambda([BakeIconBrush]() { return BakeIconBrush.Get(); })));
+		}
+
+		BakeButtonHBox->AddSlot()
+			.Padding(5.0, 0.0, 0.0, 0.0)
+			.Padding(5.0, 0.0, 0.0, 0.0)
+			.VAlign(VAlign_Center)
+			.AutoWidth()
 			[
-				SNew(SBox)
-					.WidthOverride(16.0f)
-					.HeightOverride(16.0f)
-					[
-						SAssignNew(BakeImage, SImage)
-					]
+				SNew(STextBlock)
+					.Text(FText::FromString("Bake"))
 			];
 
-		BakeImage->SetImage(
-			TAttribute<const FSlateBrush*>::Create(
-				TAttribute<const FSlateBrush*>::FGetter::CreateLambda([BakeIconBrush]() { return BakeIconBrush.Get(); })));
+		ButtonRowHorizontalBox->AddSlot()
+			.MaxWidth(150.0f)
+			[
+				SNew(SBox)
+					.WidthOverride(75.0f)
+					[
+						SNew(SButton)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Center)
+							.ToolTipText_Lambda([PDGAssetLink]()
+								{
+									switch(PDGAssetLink->HoudiniEngineBakeOption)
+									{
+									case EHoudiniEngineBakeOption::ToActor:
+									{
+										return LOCTEXT(
+											"HoudiniEnginePDGBakeButtonBakeToActorToolTip",
+											"Bake this Houdini PD G Asset's output assets and seperate the output actors from the PDG asset link.");
+									}
+									break;
+
+									case EHoudiniEngineBakeOption::ToBlueprint:
+									{
+										return LOCTEXT(
+											"HoudiniEnginePDGBakeButtonBakeToBlueprintToolTip",
+											"Bake this Houdini PDG Asset's output assets to blueprints and remove temporary output actors that no "
+											"longer has output components from the PDG asset link.");
+									}
+									break;
+
+									case EHoudiniEngineBakeOption::ToAsset:
+									default:
+									{
+										return FText();
+									}
+									}
+								})
+							.Visibility(EVisibility::Visible)
+							.IsEnabled_Lambda([PDGAssetLink]() { return IsPDGLinked(PDGAssetLink); })
+							.OnClicked_Lambda(OnBakeButtonClickedLambda)
+							[
+								BakeButtonHBox
+							]
+					]
+			];
+	}
+	//----------------------------------------
+	// Delete Bake Button
+	//----------------------------------------
+
+	{
+		// BakeButtonHBox contains the image and the text.
+
+		TSharedRef<SHorizontalBox> DeleteBakeButtonHBox = SNew(SHorizontalBox);
+
+		TSharedPtr<FSlateDynamicImageBrush> IconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIDeleteBakeIconBrush();
+
+		if(IconBrush.IsValid())
+		{
+			TSharedPtr<SImage> BakeImage;
+			DeleteBakeButtonHBox->AddSlot()
+				.MaxWidth(16.0f)
+				[
+					SNew(SBox)
+						.WidthOverride(16.0f)
+						.HeightOverride(16.0f)
+						[
+							SAssignNew(BakeImage, SImage)
+						]
+				];
+
+			BakeImage->SetImage(TAttribute<const FSlateBrush*>::Create(TAttribute<const FSlateBrush*>::FGetter::CreateLambda([IconBrush]() { return IconBrush.Get(); })));
+		}
+
+		DeleteBakeButtonHBox->AddSlot()
+			.Padding(5.0, 0.0, 0.0, 0.0)
+			.Padding(5.0, 0.0, 0.0, 0.0)
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString("Delete Bake"))
+			];
+
+		ButtonRowHorizontalBox->AddSlot()
+			.MaxWidth(150.0f)
+			[
+				SNew(SBox)
+					.WidthOverride(75.0f)
+					[
+						SNew(SButton)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Center)
+							.ToolTipText(LOCTEXT("HoudiniAssetPFGDetailsDeleteBakeButton", "Delete assets and actors from the previous Bake."))
+							.Visibility(EVisibility::Visible)
+							.IsEnabled_Lambda([PDGAssetLink]() { return IsPDGLinked(PDGAssetLink); })
+							.OnClicked_Lambda(OnDeleteBakeButtonClickedLambda)
+							[
+								DeleteBakeButtonHBox
+							]
+					]
+			];
 	}
 
-	BakeHBox->AddSlot()
-		.Padding(5.0, 0.0, 0.0, 0.0)
-		.Padding(5.0, 0.0, 0.0, 0.0)
-		.VAlign(VAlign_Center)
-		.AutoWidth()
-		[
-			SNew(STextBlock)
-				.Text(FText::FromString("Bake"))
-		];
+	//----------------------------------------
+	// Unlink Bake Button
+	//----------------------------------------
+
+	{
+		// BakeButtonHBox contains the image and the text.
+
+		TSharedRef<SHorizontalBox> UnlinkBakeButtonHBox = SNew(SHorizontalBox);
+
+		TSharedPtr<FSlateDynamicImageBrush> IconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIUnlinkBakeIconBrush();
+
+		if(IconBrush.IsValid())
+		{
+			TSharedPtr<SImage> BakeImage;
+			UnlinkBakeButtonHBox->AddSlot()
+				.MaxWidth(16.0f)
+				[
+					SNew(SBox)
+						.WidthOverride(16.0f)
+						.HeightOverride(16.0f)
+						[
+							SAssignNew(BakeImage, SImage)
+						]
+				];
+
+			BakeImage->SetImage(TAttribute<const FSlateBrush*>::Create(TAttribute<const FSlateBrush*>::FGetter::CreateLambda([IconBrush]() { return IconBrush.Get(); })));
+		}
+
+		UnlinkBakeButtonHBox->AddSlot()
+			.Padding(5.0, 0.0, 0.0, 0.0)
+			.Padding(5.0, 0.0, 0.0, 0.0)
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString("Unlink Bake"))
+			];
+
+		ButtonRowHorizontalBox->AddSlot()
+			.MaxWidth(150.0f)
+			[
+				SNew(SBox)
+					.WidthOverride(75.0f)
+					[
+						SNew(SButton)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Center)
+							.ToolTipText(LOCTEXT("HoudiniAssetPFGDetailsDeleteBakeButton", "Unlinks assets and actors from the previous Bake."))
+							.Visibility(EVisibility::Visible)
+							.IsEnabled_Lambda([PDGAssetLink]() { return IsPDGLinked(PDGAssetLink); })
+							.OnClicked_Lambda(OnUnlinkBakeButtonClickedLambda)
+							[
+								UnlinkBakeButtonHBox
+							]
+					]
+			];
+	}
+
+	//----------------------------------------
+	//----------------------------------------
 
 	// bake Type ComboBox
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> TypeComboBox;
@@ -3264,7 +3397,6 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 	TSharedPtr<FString> IntialSelec;
 	if(OptionSource)
 	{
-		// IntialSelec = (*OptionSource)[(int)InPDGAssetLink->HoudiniEngineBakeOption];
 		const FString DefaultStr = FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(PDGAssetLink->HoudiniEngineBakeOption);
 		const TSharedPtr<FString>* DefaultOption = OptionSource->FindByPredicate(
 			[DefaultStr](TSharedPtr<FString> InStringPtr)
@@ -3276,9 +3408,18 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 			IntialSelec = *DefaultOption;
 	}
 
-	ButtonRowHorizontalBox->AddSlot()
-		/*.AutoWidth()*/
-		.Padding(3.0, 0.0, 4.0f, 0.0f)
+	TSharedRef<SHorizontalBox> BakeOptionRowHorizontalBox = SNew(SHorizontalBox);
+
+	FDetailWidgetRow& BakeOptionRow = InBakeGroup.AddWidgetRow();
+
+	FHoudiniPDGDetails::BindEnablePDGWiddgetsTest(BakeOptionRow, InHC);
+
+	BakeOptionRow.NameWidget.Widget = SNew(STextBlock)
+		.Text(FText::FromString("Bake Output")).
+		Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT));
+
+	BakeOptionRow.ValueWidget.Widget = SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
 		.MaxWidth(93.f)
 		[
 			SNew(SBox)
@@ -3334,6 +3475,7 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 				]
 		];
 
+
 	// bake selection ComboBox
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> BakeSelectionComboBox;
 
@@ -3344,9 +3486,16 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 		PDGBakeSelectionIntialSelec = (*PDGBakeSelectionOptionSource)[(int)PDGAssetLink->PDGBakeSelectionOption];
 	}
 
-	ButtonRowHorizontalBox->AddSlot()
-		/*.AutoWidth()*/
-		.Padding(3.0, 0.0, 4.0f, 0.0f)
+	FDetailWidgetRow& BakOutputsRow = InBakeGroup.AddWidgetRow();
+
+	FHoudiniPDGDetails::BindEnablePDGWiddgetsTest(BakOutputsRow, InHC);
+
+	BakOutputsRow.NameWidget.Widget = SNew(STextBlock)
+		.Text(FText::FromString("Outputs To Bake")).
+		Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT));
+
+	BakOutputsRow.ValueWidget.Widget = SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
 		.MaxWidth(163.f)
 		[
 			SNew(SBox)

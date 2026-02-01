@@ -1272,4 +1272,18 @@ public:
 	static UUserDefinedStruct * DuplicateUserDefinedStruct(
 		UUserDefinedStruct* OldStruct, UPackage* Pacakge, FString& PackageName);
 
+	static void UnlinkBakedOutputs(UHoudiniCookable* HC);
+	static void UnlinkBakedPDGOutputs(UHoudiniPDGAssetLink* AssetLink);
+
+	static void DeleteBakedOutputs(UHoudiniCookable * HC);
+	static void DeleteBakedPDGOutputs(UHoudiniPDGAssetLink* AssetLink);
+
+	static void DeleteBakedActor(const FSoftObjectPath& ActorPath);
+	static void DeleteBakedComponent(const FSoftObjectPath& Path);
+	static void DeleteBakedObject(const FSoftObjectPath& ObjectPath);
+	static void DeletePackage(UPackage* Package);
+	static void DeleteLandscapeLayer(const FSoftObjectPath& LandscapePath, TArray<FString>& LandscapeLayers);
+	static void DeleteFoliage(UWorld* World, UFoliageType* FoliageType, const TArray<FVector>& FoliageInstancePositions);
+	static void DeleteBakedOutputObject(UWorld* World, FHoudiniBakedOutputObject& BakedOutputObject);
+
 };
