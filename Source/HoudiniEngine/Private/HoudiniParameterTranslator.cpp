@@ -2103,8 +2103,9 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 					HoudiniParameterIntChoice->SetIntValue(CurrentIntValue);
 				}
 
-				// Get the choice descriptors
-				if (bFullUpdate)
+				// Get the choice descriptors. NOTE: have to do this on every cook because they may be updated by the HDA.
+				bool bUpdateChoiceStrings = true;
+				if (bUpdateChoiceStrings)
 				{
 					// Set the default value at created
 					HoudiniParameterIntChoice->SetDefaultIntValue();
