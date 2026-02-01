@@ -80,6 +80,7 @@ SHoudiniFloatRampCurveEditor::Construct(const FArguments& InArgs)
 		.ZoomToFitHorizontal(InArgs._ZoomToFitHorizontal)
 		.ZoomToFitVertical(InArgs._ZoomToFitVertical));
 
+	this->SetRequireFocusToZoom(true);
 
 	UCurveEditorSettings* CurveEditorSettings = GetSettings();
 	if (CurveEditorSettings)
