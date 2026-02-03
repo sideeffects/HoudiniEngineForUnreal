@@ -173,6 +173,14 @@ TArray<FPCGPinProperties> UHoudiniPCGSettings::InputPinProperties() const
 		FString PinName = FHoudiniPCGUtils::GetHDAInputName(Index);
 		FPCGPinProperties& InputPinProperty = PinProperties.Emplace_GetRef(FName(PinName), EPCGDataType::Any, /*bAllowMultipleConnections=*/false);
 		InputPinProperty.SetNormalPin();
+#if	WITH_EDITORONLY_DATA
+		if (ParameterCookable && ParameterCookable->Cookable)
+		{
+			auto HoudiniInput = ParameterCookable->Cookable->GetInputAt(Index);
+			InputPinProperty.Tooltip = FText::FromString(HoudiniInput->GetInputLabel());
+		}
+
+#endif
 	}
 
 	return PinProperties;
