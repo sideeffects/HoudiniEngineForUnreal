@@ -3691,6 +3691,91 @@ FUnrealMeshTranslator::CreateInputNodeForCollider(
 	return true;
 }
 
+bool
+FUnrealMeshTranslator::CreateCustomPrimitiveDataAttributes(
+	const HAPI_NodeId MergeNodeId,
+	const HAPI_NodeId InputObjectNodeId,
+	const TArray<float>& InCustomPrimData)
+{
+	if (MergeNodeId < 0 || InputObjectNodeId < 0)
+		return false;
+
+	if (InCustomPrimData.Num() <= 0)
+		return true;
+
+	bool bSuccess = true;
+
+	// We will use an attribute wrangler node to add the new CPD attributes
+	HAPI_NodeId AttribWrangleNodeId;
+	if (FHoudiniEngineUtils::CreateNode(
+		InputObjectNodeId, TEXT("attribwrangle"),
+		TEXT("custom_prim_data"),
+		true, &AttribWrangleNodeId) != HAPI_RESULT_SUCCESS)
+	{
+		// Failed to create the node.
+		HOUDINI_LOG_WARNING(
+			TEXT("Failed to create custom primitive attribute: %s"),
+			*FHoudiniEngineUtils::GetErrorDescription());
+		return true;
+	}
+
+	// Connect the new node to the previous node. Set CollisionMergeNodeId to the attrib node
+	// as is this the final output of the chain.
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+		FHoudiniEngine::Get().GetSession(),
+		AttribWrangleNodeId, 0, MergeNodeId, 0), false);
+	//CollisionMergeNodeId = AttribWrangleNodeId;
+
+	// Set the wrangle's class to primitives
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId, "class", 0, 1), false);
+
+	// Create a Vex expression string that will contain the whole code snippet
+	FString VEXpressionString;
+
+	//  First add a line to set the number of CPD
+	FString FormatString = TEXT("i@{0} = {1};\n");
+	FString AttributeString = TEXT(HAPI_UNREAL_ATTRIB_NUM_CUSTOM_PRIM_DATA);
+	FString ValueString = FString::FromInt(InCustomPrimData.Num());
+	VEXpressionString += FString::Format(*FormatString, { AttributeString, ValueString });
+
+	// Now add a line for each of the CPD
+	FormatString = TEXT("f@{0} = {1};\n");
+	for (int32 Idx = 0; Idx < InCustomPrimData.Num(); Idx++)
+	{
+		// Construct the indexed attribute name
+		AttributeString = FString(HAPI_UNREAL_ATTRIB_CUSTOM_PRIMITIVE_DATA_PREFIX) + FString::FromInt(Idx);
+		// And convert the value to string
+		ValueString = FString::SanitizeFloat(InCustomPrimData[Idx]);
+
+		// Add the new line to the current VEXpression
+		VEXpressionString += FString::Format(*FormatString, { AttributeString, ValueString });
+
+	}
+
+	std::string VEXpression = H_TCHAR_TO_UTF8(*VEXpressionString);
+
+	// Set the snippet parameter to the VEXpression.
+	HAPI_ParmInfo ParmInfo;
+	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(AttribWrangleNodeId, "snippet", ParmInfo);
+	if (ParmId != -1)
+	{
+		FHoudiniApi::SetParmStringValue(FHoudiniEngine::Get().GetSession(), AttribWrangleNodeId,
+			VEXpression.c_str(), ParmId, 0);
+	}
+	else
+	{
+		HOUDINI_LOG_WARNING(TEXT("Invalid Parameter: %s"),
+			*FHoudiniEngineUtils::GetErrorDescription());
+	}
+
+// 	// Connect our node to the main merge node
+// 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+// 		FHoudiniEngine::Get().GetSession(),
+// 		MergeNodeId, 0, AttribWrangleNodeId, 0), false);
+
+	return true;
+}
+
 bool 
 FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	const int32 NodeId,
@@ -5434,6 +5519,13 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshComponentNew(
 	FUnrealObjectInputIdentifier Id = FUnrealObjectInputIdentifier(FullPath, EUnrealObjectInputNodeType::Reference);
 
 	FUnrealObjectInputUtils::AddNodeOrUpdateNode(Id, NodeId, OutHandle, GeoNode, &References, true);
+	/*
+	if (StaticMeshComponent->GetCustomPrimitiveData().Data.Num() > 0)
+	{
+		// Add the CPD attributes if any?
+		CreateCustomPrimitiveDataAttributes(NodeId, GeoNode, StaticMeshComponent->GetCustomPrimitiveData().Data);
+	}
+	*/
 
 	return true;
 }

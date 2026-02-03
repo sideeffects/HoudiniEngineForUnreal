@@ -804,3 +804,223 @@ FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& In
 
 	return true;
 }
+
+
+HAPI_NodeId
+FUnrealObjectInputCustomPrimitiveData::EnsureHAPINodeExists(
+	const HAPI_NodeId InParentNetworkNodeId)
+{
+	const FString OpTypeName(TEXT("attribwrangle"));
+	const FString NodeName(TEXT("custom_primitive_data"));
+	return EnsureHAPINodeExistsInternal(InParentNetworkNodeId, OpTypeName, NodeName, HAPINodeIds, 0);
+}
+
+bool
+FUnrealObjectInputCustomPrimitiveData::UpdateAsPrimWrangle(
+	const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo)
+{
+	// If we don't have a valid prim component destroy the nodes and return false
+	if (!IsValid(PrimComponent))
+	{
+		DestroyHAPINodes();
+		return false;
+	}
+
+	// Check that InNodeIdToConnectTo is valid
+	if (!InNodeIdToConnectTo.IsValid())
+		return false;
+
+	const HAPI_NodeId HAPINodeIdtoConnectTo = InNodeIdToConnectTo.GetHAPINodeId();
+
+	// Check if we already have a valid node, if not create it
+	const HAPI_NodeId CustomPrimDataNodeId = EnsureHAPINodeExists(
+		FHoudiniEngineUtils::HapiGetParentNodeId(HAPINodeIdtoConnectTo));
+	if (CustomPrimDataNodeId < 0)
+		return false;
+
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+
+	// Connect our input to InNodeIdToConnectTo's output
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+		Session,
+		CustomPrimDataNodeId, 0, HAPINodeIdtoConnectTo, 0), false);
+	/*
+	// Set group to exclude applying the material overrides to collision geo
+	HAPI_ParmInfo GroupParmInfo;
+	HAPI_ParmId GroupParmId = FHoudiniEngineUtils::HapiFindParameterByName(CustomPrimDataNodeId, "group", GroupParmInfo);
+	HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::SetParmStringValue(Session, CustomPrimDataNodeId, "* ^collision_*", GroupParmId, 0), false);
+	// Set grouptype to primitive
+	HOUDINI_CHECK_ERROR_RETURN(
+		FHoudiniApi::SetParmIntValue(Session, CustomPrimDataNodeId, "grouptype", 0, 4), false);
+	*/
+
+	// Construct a VEXpression to create and set custom prim data attributes.
+	// eg. i@unreal_num_custom_primitive_data = 2;
+	//     f@unreal_custom_primitive_data0 = 1.0;
+	//     f@unreal_custom_primitive_data1 = 2.0;
+	// Create a Vex expression string that will contain the whole code snippet
+	FString VEXpressionString;
+
+	//  First add a line to set the number of CPD
+	FString FormatString = TEXT("i@{0} = {1};\n");
+	FString AttributeString = TEXT(HAPI_UNREAL_ATTRIB_NUM_CUSTOM_PRIM_DATA);
+	FString ValueString = FString::FromInt(PrimComponent->GetCustomPrimitiveData().Data.Num());
+	VEXpressionString += FString::Format(*FormatString, { AttributeString, ValueString });
+
+	// Now add a line for each of the CPD
+	FormatString = TEXT("f@{0} = {1};\n");
+	for (int32 Idx = 0; Idx < PrimComponent->GetCustomPrimitiveData().Data.Num(); Idx++)
+	{
+		// Construct the indexed attribute name
+		AttributeString = FString(HAPI_UNREAL_ATTRIB_CUSTOM_PRIMITIVE_DATA_PREFIX) + FString::FromInt(Idx);
+		// And convert the value to string
+		ValueString = FString::SanitizeFloat(PrimComponent->GetCustomPrimitiveData().Data[Idx]);
+
+		// Add the new line to the current VEXpression
+		VEXpressionString += FString::Format(*FormatString, { AttributeString, ValueString });
+
+	}
+
+	if (bUsePrimWrangle)
+	{
+		// set the wrangle's class to primitives
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::SetParmIntValue(Session, CustomPrimDataNodeId, "class", 0, 1), false);
+	}
+	else
+	{
+		// set the wrangle's class to points
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::SetParmIntValue(Session, CustomPrimDataNodeId, "class", 0, 2), false);
+	}
+
+	// Set the snippet parameter to the VEXpression.
+	HAPI_ParmInfo ParmInfo;
+	HAPI_ParmId ParmId = FHoudiniEngineUtils::HapiFindParameterByName(CustomPrimDataNodeId, "snippet", ParmInfo);
+	if (ParmId != -1)
+	{
+		FHoudiniApi::SetParmStringValue(Session, CustomPrimDataNodeId,
+			H_TCHAR_TO_UTF8(*VEXpressionString), ParmId, 0);
+	}
+	else
+	{
+		HOUDINI_LOG_WARNING(TEXT("Invalid Parameter: %s"), *FHoudiniEngineUtils::GetErrorDescription());
+		return false;
+	}
+
+	return true;
+}
+
+/*
+bool
+FUnrealObjectInputCustomPrimitiveData::UpdateAsPointAttribCreate(
+	const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo)
+{
+	// If we don't have a valid mesh component destroy the nodes and return false
+	if (!IsValid(MeshComponent))
+	{
+		DestroyHAPINodes();
+		return false;
+	}
+
+	// Check that InNodeIdToConnectTo is valid
+	if (!InNodeIdToConnectTo.IsValid())
+		return false;
+
+	const HAPI_NodeId HAPINodeIdToConnectTo = InNodeIdToConnectTo.GetHAPINodeId();
+
+	// Check if we already have a valid node, if not create it
+	const HAPI_NodeId MaterialOverridesNodeId = EnsureHAPINodeExists(
+		FHoudiniEngineUtils::HapiGetParentNodeId(HAPINodeIdToConnectTo));
+	if (MaterialOverridesNodeId < 0)
+		return false;
+
+	HAPI_Session const* const Session = FHoudiniEngine::Get().GetSession();
+
+	// Connect our input to InNodeIdToConnectTo's output
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
+		Session,
+		MaterialOverridesNodeId, 0, HAPINodeIdToConnectTo, 0), false);
+
+	// Get the default material for in case we encounter invalid materials
+	UMaterialInterface const* const DefaultMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+	const FString DefaultMaterialPathName = IsValid(DefaultMaterial) ? DefaultMaterial->GetPathName() : TEXT("default");
+
+	const int32 NumMaterials = MeshComponent->GetNumMaterials();
+	FHoudiniApi::SetParmIntValue(
+		Session, MaterialOverridesNodeId, "numattr", 0, NumMaterials);
+	HAPI_ParmInfo ParmInfo;
+	HAPI_PartId ParmId;
+
+	for (int32 MatNum = 1; MatNum <= NumMaterials; ++MatNum)
+	{
+		UMaterialInterface const* const Material = MeshComponent->GetMaterial(MatNum - 1);
+		FString MatName(TEXT(HAPI_UNREAL_ATTRIB_MATERIAL));
+		if (NumMaterials > 1)
+			MatName += FString::FromInt(MatNum - 1);
+
+		// Get material path name
+		const FString MaterialPathName = IsValid(Material) ? Material->GetPathName() : DefaultMaterialPathName;
+
+		// parm name is one indexed
+		ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MaterialOverridesNodeId, TCHAR_TO_ANSI(*FString::Printf(TEXT("name%d"), MatNum)), ParmInfo);
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId, TCHAR_TO_ANSI(*MatName), ParmId, 0), false);
+
+		// set attribute type to string (index 3)
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::SetParmIntValue(Session, MaterialOverridesNodeId, TCHAR_TO_ANSI(*FString::Printf(TEXT("type%d"), MatNum)), 0, 3), false);
+
+		// set value to path of material
+		ParmId = FHoudiniEngineUtils::HapiFindParameterByName(MaterialOverridesNodeId, TCHAR_TO_ANSI(*FString::Printf(TEXT("string%d"), MatNum)), ParmInfo);
+		HOUDINI_CHECK_ERROR_RETURN(
+			FHoudiniApi::SetParmStringValue(Session, MaterialOverridesNodeId, TCHAR_TO_ANSI(*MaterialPathName), ParmId, 0), false);
+	}
+
+	return true;
+}
+*/
+
+void
+FUnrealObjectInputCustomPrimitiveData::SetPrimComponent(UPrimitiveComponent* const InPrimComponent)
+{
+	if (InPrimComponent == PrimComponent)
+		return;
+
+	PrimComponent = InPrimComponent;
+	MarkAsNeedsRebuild();
+}
+
+
+void
+FUnrealObjectInputCustomPrimitiveData::SetUsePrimWrangle(const bool bInUsePrimWrangle)
+{
+	if (bInUsePrimWrangle == bUsePrimWrangle)
+		return;
+	bUsePrimWrangle = bInUsePrimWrangle;
+	MarkAsNeedsRebuild();
+}
+
+
+bool
+FUnrealObjectInputCustomPrimitiveData::Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo)
+{
+	// If we don't have a valid prim component, destroy all nodes and return false
+	if (!IsValid(PrimComponent))
+	{
+		DestroyHAPINodes();
+		return false;
+	}
+
+	// Remove existing nodes if rebuilding
+	if (bNeedsRebuild)
+		DestroyHAPINodes();
+
+	bool bSuccess = UpdateAsPrimWrangle(InNodeIdToConnectTo);
+
+	if (bSuccess)
+		bNeedsRebuild = false;
+
+	return bSuccess;
+}

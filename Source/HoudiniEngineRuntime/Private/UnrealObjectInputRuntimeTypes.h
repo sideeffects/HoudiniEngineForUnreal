@@ -522,7 +522,8 @@ enum class EUnrealObjectInputModifierType : uint8
 	ActorAsReference,
 	DataLayerGroups,
 	HLODAttributes,
-	ActorProperties
+	ActorProperties,
+	CustomPrimitiveData
 };
 
 /** Represents a chain of FUnrealObjectInputModifiers, owned by a single FUnrealObjectInputNode. See FUnrealObjectInputModifier. */
