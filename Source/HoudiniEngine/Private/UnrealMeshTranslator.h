@@ -352,12 +352,6 @@ public:
 		const TOptional<FString> PhysicalMaterial = TOptional<FString>(),
 		const TOptional<FMeshNaniteSettings> InNaniteSettings = TOptional<FMeshNaniteSettings>());
 
-	// Create custom primitive data attributes
-	static bool CreateCustomPrimitiveDataAttributes(
-		const int32 NodeId,
-		const int32 PartId,
-		const TArray<float>& InCustomPrimData);
-
 	// Gets the simple physical Material path for the mesh component overrides or,
 	// if not set, from the body setup
 	static FString GetSimplePhysicalMaterialPath(UBodySetup const* BodySetup);

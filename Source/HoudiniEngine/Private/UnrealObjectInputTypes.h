@@ -251,9 +251,6 @@ public:
 
 	virtual bool Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo) override;
 
-protected:
-	virtual bool UpdateAsPrimWrangle(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo);
-
 private:
 	HAPI_NodeId EnsureHAPINodeExists(const HAPI_NodeId InParentNetworkNodeId);
 
