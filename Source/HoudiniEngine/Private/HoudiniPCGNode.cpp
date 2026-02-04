@@ -408,6 +408,9 @@ FPCGCrc FHoudiniDigitalAssetPCGElement::SetCrc(FPCGContext* Context) const
 
 void FHoudiniDigitalAssetPCGElement::AbortInternal(FPCGContext* Context) const
 {
+	if(!Context)
+		return;
+
 	FPCGCrc ResourceCrc = SetCrc(Context);
 
 	UPCGComponent* SourceComponent = FHoudiniPCGUtils::GetSourceComponent(Context);
@@ -462,6 +465,9 @@ bool FHoudiniDigitalAssetPCGElement::PrepareDataInternal(FPCGContext* Context) c
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniDigitalAssetAittributesElement::PrepareDataInternal);
 
+	if(!Context)
+		return true;
+
 	FPCHoudiniDigitalAssetAttributesContext* ThisContext = static_cast<FPCHoudiniDigitalAssetAttributesContext*>(Context);
 	check(ThisContext);
 
@@ -490,6 +496,9 @@ bool FHoudiniDigitalAssetPCGElement::PrepareDataInternal(FPCGContext* Context) c
 bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniDigitalAssetPCGElement::ExecuteInternal);
+
+	if(!Context)
+		return true;
 
 	FPCHoudiniDigitalAssetAttributesContext* HDAContext = static_cast<FPCHoudiniDigitalAssetAttributesContext*>(Context);
 	check(HDAContext);
