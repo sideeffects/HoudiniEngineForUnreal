@@ -30,10 +30,12 @@
 #include "HoudiniApi.h"
 #include "HoudiniEditorTestUtils.h"
 #include "HoudiniEditorUnitTestUtils.h"
-#include "Components/InstancedStaticMeshComponent.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEngineAttributes.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniParameterFloat.h"
+
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Misc/DefaultValueHelper.h"
 
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMiscMeshes_ActorProperties, "Houdini.UnitTests.Mesh.ActorProperties",
@@ -366,6 +368,101 @@ bool FHoudiniEditorTestMiscMeshes_MaterialProperties::RunTest(const FString& Par
 
 			return true;
 		}));
+
+	return true;
+}
+
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestMiscMeshes_CustomPrimitiveData, "Houdini.UnitTests.Mesh.CustomPrimitiveData",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool 
+FHoudiniEditorTestMiscMeshes_CustomPrimitiveData::RunTest(const FString& Parameters)
+{
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(
+		this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(
+		new FHoudiniTestContext(
+			this, 
+			TEXT("/Game/TestHDAs/Mesh/Misc/TestCustomPrimData"), 
+			FTransform::Identity,
+			false));
+
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		SET_HDA_PARAMETER(Context, UHoudiniParameterFloat, "custprim1", 0.88f, 0);
+		SET_HDA_PARAMETER(Context, UHoudiniParameterFloat, "custprim1", 0.77f, 1);
+		SET_HDA_PARAMETER(Context, UHoudiniParameterFloat, "custprim1", 0.66f, 2);
+		SET_HDA_PARAMETER(Context, UHoudiniParameterFloat, "custprim1", 0.55f, 3);
+
+		SET_HDA_PARAMETER(Context, UHoudiniParameterFloat, "custprim2", 0.234f, 0);
+		SET_HDA_PARAMETER(Context, UHoudiniParameterFloat, "custprim2", 0.666f, 1);
+		SET_HDA_PARAMETER(Context, UHoudiniParameterFloat, "custprim2", 0.42f, 2);
+		SET_HDA_PARAMETER(Context, UHoudiniParameterFloat, "custprim2", 0.12345678f, 3);
+		
+		Context->StartCookingHDA();
+		
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		TArray<UHoudiniOutput*> Outputs;
+		Context->GetOutputs(Outputs);
+
+		// We should have one outputs, a mesh
+		HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 1, return true);
+
+		UHoudiniOutput* TestOutput = Outputs[0];
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(TestOutput, return true);
+
+		// We should have one output object
+		HOUDINI_TEST_EQUAL_ON_FAIL(TestOutput->GetOutputObjects().Num(), 1, return true);
+
+		// That output object should have one valid output component - a SMC
+		TArray<UStaticMeshComponent*> StaticMeshOutputComponents =
+			FHoudiniEditorUnitTestUtils::GetOutputsWithComponent<UStaticMeshComponent>(Outputs);
+		HOUDINI_TEST_EQUAL_ON_FAIL(StaticMeshOutputComponents.Num(), 1, return true);
+
+		UStaticMeshComponent* SMC = StaticMeshOutputComponents[0];
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(SMC, return true);
+
+		// Make sure the SMC has 8 custom primitive data
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetCustomPrimitiveData().Data.Num(), 8, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetDefaultCustomPrimitiveData().Data.Num(), 8, return true);
+
+		// Check their values
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetCustomPrimitiveData().Data[0], 0.88f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetCustomPrimitiveData().Data[1], 0.77f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetCustomPrimitiveData().Data[2], 0.66f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetCustomPrimitiveData().Data[3], 0.55f, return true);
+
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetCustomPrimitiveData().Data[4], 0.234f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetCustomPrimitiveData().Data[5], 0.666f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetCustomPrimitiveData().Data[6], 0.42f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetCustomPrimitiveData().Data[7], 0.12345678f, return true);
+
+		// Check their default values
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetDefaultCustomPrimitiveData().Data[0], 0.88f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetDefaultCustomPrimitiveData().Data[1], 0.77f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetDefaultCustomPrimitiveData().Data[2], 0.66f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetDefaultCustomPrimitiveData().Data[3], 0.55f, return true);
+
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetDefaultCustomPrimitiveData().Data[4], 0.234f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetDefaultCustomPrimitiveData().Data[5], 0.666f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetDefaultCustomPrimitiveData().Data[6], 0.42f, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(SMC->GetDefaultCustomPrimitiveData().Data[7], 0.12345678f, return true);
+
+		return true;
+	}));
 
 	return true;
 }

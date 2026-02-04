@@ -8757,8 +8757,16 @@ FHoudiniMeshTranslator::SetCustomPrimitiveData(
 	PrimComp->Modify();
 
 	// Set both the custom primitive data array AND the default (details UI) array
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 5
 	PrimComp->SetCustomPrimitiveDataFloatArray(0, CustomPrimData);
 	PrimComp->SetDefaultCustomPrimitiveDataFloatArray(0, CustomPrimData);
+#else
+	for (int Idx = 0; Idx < CustomPrimData.Num(); Idx++)
+	{
+		PrimComp->SetCustomPrimitiveDataFloat(Idx, CustomPrimData[Idx]);
+		PrimComp->SetDefaultCustomPrimitiveDataFloat(Idx, CustomPrimData[Idx]);
+	}
+#endif
 
 	PrimComp->MarkRenderStateDirty();
 
