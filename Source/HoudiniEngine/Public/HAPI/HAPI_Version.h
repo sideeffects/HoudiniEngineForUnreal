@@ -26,8 +26,10 @@
 // The three components of the Houdini version that HAPI is
 // expecting to compile against.
 #define HAPI_VERSION_HOUDINI_MAJOR 21
+
 #define HAPI_VERSION_HOUDINI_MINOR 0
-#define HAPI_VERSION_HOUDINI_BUILD 615
+
+#define HAPI_VERSION_HOUDINI_BUILD 618
 #define HAPI_VERSION_HOUDINI_PATCH 0
 
 // The two components of the Houdini Engine (marketed) version.
