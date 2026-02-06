@@ -223,3 +223,40 @@ private:
 
 	TObjectPtr<UMeshComponent> MeshComponent;
 };
+
+
+/**
+ * A modifier that adds an attribute wrangle either on prim/points that sets
+ *   - unreal_num_custom_primitive_data to indicate the number of CPD
+ *   - unreal_custom_primitive_dataX for each Custom Primitive Data value (X being the zero based index)
+ */
+class HOUDINIENGINE_API FUnrealObjectInputCustomPrimitiveData : public FUnrealObjectInputModifier
+{
+public:
+	FUnrealObjectInputCustomPrimitiveData(FUnrealObjectInputNode& InOwner, UPrimitiveComponent* InPC, bool bInUsePrimWrangle = true)
+		: FUnrealObjectInputModifier(InOwner), PrimComponent(InPC), bUsePrimWrangle(bInUsePrimWrangle) {
+	}
+
+	static EUnrealObjectInputModifierType StaticGetType() { return EUnrealObjectInputModifierType::CustomPrimitiveData; }
+	virtual EUnrealObjectInputModifierType GetType() const override { return StaticGetType(); }
+
+	/** Set the PrimComponent. This set the modifier as requiring a rebuild. */
+	void SetPrimComponent(UPrimitiveComponent* InPrimComponent);
+	UPrimitiveComponent* GetPrimComponent() const { return PrimComponent; }
+
+	/** Set whether to use a primitive wrangle or point wrangle. */
+	void SetUsePrimWrangle(bool bInUsePrimWrangle);
+	/** Get whether to use a primitive wrangle or point wrangle. */
+	bool UsePrimWrangle() const { return bUsePrimWrangle; }
+
+	virtual bool Update(const FUnrealObjectInputHAPINodeId& InNodeIdToConnectTo) override;
+
+private:
+	HAPI_NodeId EnsureHAPINodeExists(const HAPI_NodeId InParentNetworkNodeId);
+
+	/** The primitive component to get the custom primitive data from. */
+	TObjectPtr<UPrimitiveComponent> PrimComponent;
+
+	/** Whether to use a primitive oe point wrangle to create the attributes. */
+	bool bUsePrimWrangle;
+};

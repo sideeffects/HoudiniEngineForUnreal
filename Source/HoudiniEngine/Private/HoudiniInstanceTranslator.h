@@ -131,6 +131,9 @@ struct HOUDINIENGINE_API FHoudiniInstancer
 	TArray<float> CustomFloats;
 
 	UPROPERTY()
+	TArray<float> CustomPrimData;
+
+	UPROPERTY()
 	bool bVisible = true;
 };
 
@@ -340,7 +343,6 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 	// Update PerInstanceCustom data on the given component if possible
 	static void SetPerInstanceCustomData(
 		const FHoudiniInstancer& Instancers, 
-		const FHoudiniInstancerPartData& InstancePartData,
 		USceneComponent* InComponentToUpdate);
 
 	static void SetGenericPropertyAttributes(UObject* Object, 

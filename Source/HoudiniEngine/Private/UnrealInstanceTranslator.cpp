@@ -442,6 +442,20 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputActorProperties>(Handle, InstancerChainName, ISMC);
 		}
 
+		// Custom Primitive Data - as point attributes
+		if (FUnrealObjectInputModifier* Modifier = FUnrealObjectInputUtils::FindFirstModifierOfType(Handle, InstancerChainName, EUnrealObjectInputModifierType::CustomPrimitiveData))
+		{
+			FUnrealObjectInputCustomPrimitiveData* const CustomPrimDataModifier
+				= static_cast<FUnrealObjectInputCustomPrimitiveData*>(Modifier);
+			if (CustomPrimDataModifier)
+				CustomPrimDataModifier->SetUsePrimWrangle(false);
+		}
+		else
+		{
+			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputCustomPrimitiveData>(
+				Handle, InstancerChainName, ISMC, false);
+		}
+
 		// Update all modifiers
 		FUnrealObjectInputUtils::UpdateAllModifierChains(Handle);
 

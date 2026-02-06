@@ -7900,6 +7900,22 @@ FHoudiniEngineBakeUtils::CopyPropertyToNewActorAndComponent(
 		NewSMC->SetWorldTransform(InSMC->GetComponentTransform());
 	}
 
+	// Also copy custom primitive data on the SMC if any
+	FCustomPrimitiveData InPrimData = InSMC->GetCustomPrimitiveData();
+	if (!InPrimData.Data.IsEmpty())
+	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 5
+		NewSMC->SetCustomPrimitiveDataFloatArray(0, InPrimData.Data);
+		NewSMC->SetDefaultCustomPrimitiveDataFloatArray(0, InPrimData.Data);
+#else
+		for (int Idx = 0; Idx < InPrimData.Data.Num(); Idx++)
+		{
+			NewSMC->SetCustomPrimitiveDataFloat(Idx, InPrimData.Data[Idx]);
+			NewSMC->SetDefaultCustomPrimitiveDataFloat(Idx, InPrimData.Data[Idx]);
+		}
+#endif
+	}
+
 	NewSMC->PostEditChange();
 }
 

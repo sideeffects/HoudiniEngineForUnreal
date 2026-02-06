@@ -263,6 +263,18 @@ struct HOUDINIENGINE_API FHoudiniMeshTranslator
 		void CopyAttributesFromHGPOForSplit(
 			const FHoudiniOutputObjectIdentifier& InOutputObjectIdentifier, TMap<FString, FString>& OutAttributes, TMap<FString, FString>& OutTokens);
 
+		// Return Custom Primitive Data attributes found on the mesh
+		static void GetCustomPrimitiveData(
+			int32 InGeoNodeId,
+			int32 InPartId,
+			int32 InPrimIndex,
+			TArray<float>& OutCustomPrimData,
+			HAPI_AttributeOwner InAttribOwner = HAPI_AttributeOwner::HAPI_ATTROWNER_INVALID);
+
+		static void SetCustomPrimitiveData(
+			const TArray<float>& CustomPrimData,
+			USceneComponent* InComponentToUpdate);
+
 		//-----------------------------------------------------------------------------------------------------------------------------
 		// ACCESSORS
 		//-----------------------------------------------------------------------------------------------------------------------------

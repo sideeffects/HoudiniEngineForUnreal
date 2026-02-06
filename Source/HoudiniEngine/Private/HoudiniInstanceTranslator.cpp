@@ -113,6 +113,20 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 	GetPerInstanceCustomData(InHGPO.GeoId, InHGPO.PartId, PartData);
 	GetMaterialOverridesFromAttributes(InHGPO.GeoId, InHGPO.PartId, 0, InHGPO.InstancerType, PartData.MaterialAttributes);
 
+	// Store custom prim data in the instancer
+	for (auto& Instancer : PartData.Instancers)
+	{
+		int NumInstances = Instancer.AttributeIndices.Num();
+		if (NumInstances <= 0)
+			continue;
+			
+		TArray<float> CustomPrimitiveData;
+		FHoudiniMeshTranslator::GetCustomPrimitiveData(
+			InHGPO.GeoId, InHGPO.PartId, Instancer.AttributeIndices[0], CustomPrimitiveData);
+
+		Instancer.CustomPrimData = CustomPrimitiveData;
+	}
+
 	return PartData;
 }
 
@@ -848,7 +862,8 @@ FHoudiniInstanceTranslator::CreateInstancer(
 	for (auto Object : Output.OutputComponents)
 	{
 		USceneComponent* InstancerComponent = Cast<USceneComponent>(Object);
-		SetPerInstanceCustomData(Instancers, InstancerPartData, InstancerComponent);
+		SetPerInstanceCustomData(Instancers, InstancerComponent);
+		FHoudiniMeshTranslator::SetCustomPrimitiveData(Instancers.CustomPrimData, InstancerComponent);
 
 		// If the instanced object (by ref) wasn't found, hide the component in game
 		if (Output.OutputObject == DefaultReferenceSM)
@@ -1143,6 +1158,8 @@ FHoudiniInstanceTranslator::CreateStaticMeshInstancer(
 	}
 
 	SetGenericPropertyAttributes(SMC, Instancers, InstancerPartData);
+
+	FHoudiniMeshTranslator::SetCustomPrimitiveData(Instancers.CustomPrimData, SMC);
 
 	return true;
 }
@@ -1932,7 +1949,6 @@ FHoudiniInstanceTranslator::GetPerInstanceCustomData(
 void
 FHoudiniInstanceTranslator::SetPerInstanceCustomData(
 	const FHoudiniInstancer& Instancers,
-	const FHoudiniInstancerPartData& PartData,
 	USceneComponent* InComponentToUpdate)
 {
 	if (Instancers.NumCustomFloats == 0)

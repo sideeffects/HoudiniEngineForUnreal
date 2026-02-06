@@ -305,14 +305,35 @@ void FHoudiniStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSc
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
 			//FRHICommandListBase& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 			DynamicPrimitiveUniformBuffer.Set(
-				Collector.GetRHICommandList(), GetLocalToWorld(), PreviousLocalToWorld, GetBounds(), GetLocalBounds(), true, bHasPrecomputedVolumetricLightmap, bOutputVelocity);
-
+				Collector.GetRHICommandList(),
+				GetLocalToWorld(), 
+				PreviousLocalToWorld,
+				GetBounds(),
+				GetLocalBounds(), 
+				GetLocalBounds(),
+				true, 
+				bHasPrecomputedVolumetricLightmap, 
+				bOutputVelocity,
+				GetCustomPrimitiveData());
 #elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 			DynamicPrimitiveUniformBuffer.Set(
-				GetLocalToWorld(), PreviousLocalToWorld, GetBounds(), GetLocalBounds(), true, bHasPrecomputedVolumetricLightmap, bOutputVelocity);
+				GetLocalToWorld(),
+				PreviousLocalToWorld, 
+				GetBounds(), 
+				GetLocalBounds(),
+				true, 
+				bHasPrecomputedVolumetricLightmap,
+				bOutputVelocity);
 #else
 			DynamicPrimitiveUniformBuffer.Set(
-				GetLocalToWorld(), PreviousLocalToWorld, GetBounds(), GetLocalBounds(), true, bHasPrecomputedVolumetricLightmap, DrawsVelocity(), bOutputVelocity);			
+				GetLocalToWorld(), 
+				PreviousLocalToWorld,
+				GetBounds(), 
+				GetLocalBounds(), 
+				true,
+				bHasPrecomputedVolumetricLightmap, 
+				DrawsVelocity(), 
+				bOutputVelocity);
 #endif
 
 			if (BufferSet->TriangleIndexBuffer.Indices.Num() > 0)

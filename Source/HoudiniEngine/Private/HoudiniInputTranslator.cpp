@@ -3336,6 +3336,20 @@ FHoudiniInputTranslator::HapiCreateInputNodeForSkeletalMeshComponent(
 			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputActorProperties>(Handle, ModifierChainName, SKC);
 		}
 
+		// Custom Primitive Data - as prim attributes
+		if (FUnrealObjectInputModifier* Modifier = FUnrealObjectInputUtils::FindFirstModifierOfType(Handle, ModifierChainName, EUnrealObjectInputModifierType::CustomPrimitiveData))
+		{
+			FUnrealObjectInputCustomPrimitiveData* const CustomPrimDataModifier
+				= static_cast<FUnrealObjectInputCustomPrimitiveData*>(Modifier);
+			if (CustomPrimDataModifier)
+				CustomPrimDataModifier->SetUsePrimWrangle(true);
+		}
+		else
+		{
+			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputCustomPrimitiveData>(
+				Handle, ModifierChainName, SKC, true);
+		}
+
 		// Update all modifiers
 		FUnrealObjectInputUtils::UpdateAllModifierChains(InObject->InputNodeHandle);
 	}
@@ -3801,6 +3815,22 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 		if(!TagsModifier)
 		{
 			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputActorProperties>(InObject->InputNodeHandle, ModifierChainName, SMC);
+		}
+
+		// Custom Primitive Data
+		//const HAPI_AttributeOwner CPDAttrOwner = InInputSettings.bImportAsReference ? HAPI_ATTROWNER_POINT : HAPI_ATTROWNER_PRIM;
+		const bool bUsePrimWrangle = !InInputSettings.bImportAsReference;
+		if (FUnrealObjectInputModifier* Modifier = FUnrealObjectInputUtils::FindFirstModifierOfType(InObject->InputNodeHandle, ModifierChainName, EUnrealObjectInputModifierType::CustomPrimitiveData))
+		{
+			FUnrealObjectInputCustomPrimitiveData* const CustomPrimDataModifier 
+				= static_cast<FUnrealObjectInputCustomPrimitiveData*>(Modifier);
+			if (CustomPrimDataModifier)
+				CustomPrimDataModifier->SetUsePrimWrangle(bUsePrimWrangle);
+		}
+		else
+		{
+			FUnrealObjectInputUtils::CreateAndAddModifier<FUnrealObjectInputCustomPrimitiveData>(
+				InObject->InputNodeHandle, ModifierChainName, SMC, bUsePrimWrangle);
 		}
 
 		// Update all modifiers

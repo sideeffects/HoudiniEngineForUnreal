@@ -242,7 +242,7 @@ FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(UHoudiniCookable* InHC)
 	// want to control these separately.
 	bool bKeepTags = false;
 	
-	// Look for detail generic propety attributes on the outputs
+	// Look for detail generic property attributes on the outputs
 	// and see if any of them apply to the Cookable or its component/HAC
 	int32 NumOutputs = InHC->GetNumOutputs();
 	TArray<FHoudiniGenericAttribute> GenericAttributes;
@@ -266,7 +266,7 @@ FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(UHoudiniCookable* InHC)
 				GenericAttributes,
 				HAPI_ATTROWNER_DETAIL);
 
-			bKeepTags = bKeepTags || CurrentHGPO.bKeepTags;
+			bKeepTags = bKeepTags || CurrentHGPO.bKeepTags;			
 		}
 	}
 
@@ -308,6 +308,48 @@ FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(UHoudiniCookable* InHC)
 				HOUDINI_LOG_MESSAGE(TEXT("Modified UProperty %s on Houdini Component named %s"), *CurrentPropertyName, *DisplayName);
 			}
 		}
+	}
+
+	// TODO: Needed?
+	// Apply Custom prim data on the Cookable component if we have one
+	// This is mostly so they can be visible when selecting the HAC
+	UPrimitiveComponent* CookablePrimComponent = Cast<UPrimitiveComponent>(CookableComponent);
+	if (CookablePrimComponent)
+	{
+		TArray<float> DetailCustomPrimData;
+		for (int32 OutputIdx = 0; OutputIdx < NumOutputs; OutputIdx++)
+		{
+			UHoudiniOutput* CurrentOutput = InHC->GetOutputAt(OutputIdx);
+			if (!IsValid(CurrentOutput))
+				continue;
+
+			const TArray<FHoudiniGeoPartObject>& CurrentOutputHGPO = CurrentOutput->GetHoudiniGeoPartObjects();
+			for (auto& CurrentHGPO : CurrentOutputHGPO)
+			{
+				// Look for detail custom prim data attributes
+				TArray<float> CurrentCustomPrimData;
+				FHoudiniMeshTranslator::GetCustomPrimitiveData(
+					CurrentHGPO.GeoId,
+					CurrentHGPO.PartId,
+					0,
+					CurrentCustomPrimData,
+					HAPI_ATTROWNER_DETAIL);
+
+				if (!CurrentCustomPrimData.IsEmpty())
+				{
+					if (DetailCustomPrimData.Num() < CurrentCustomPrimData.Num())
+						DetailCustomPrimData.SetNum(CurrentCustomPrimData.Num());
+
+					for (int Idx = 0; Idx < CurrentCustomPrimData.Num(); Idx++)
+						DetailCustomPrimData[Idx] = CurrentCustomPrimData[Idx];
+				}
+			}
+		}
+
+		// Apply the details custom prim data found on the cookable component
+		if (!DetailCustomPrimData.IsEmpty())
+			FHoudiniMeshTranslator::SetCustomPrimitiveData(
+				DetailCustomPrimData, CookablePrimComponent);
 	}
 
 	return true;
