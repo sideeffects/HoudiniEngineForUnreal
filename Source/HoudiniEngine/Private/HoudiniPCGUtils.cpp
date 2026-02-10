@@ -421,7 +421,7 @@ FHoudiniPCGUtils::GetHDAInputName(int Index)
 }
 
 FVector3d
-FHoudiniPCGUtils::HoudiniToUnrealPosition(float HoudiniVector[3])
+FHoudiniPCGUtils::HoudiniToUnrealScaled(float HoudiniVector[3])
 {
 	FVector3d Position;
 	Position.X = HoudiniVector[0] * 100.0;
@@ -431,7 +431,7 @@ FHoudiniPCGUtils::HoudiniToUnrealPosition(float HoudiniVector[3])
 }
 
 FVector3d
-FHoudiniPCGUtils::HoudiniToUnrealVector(float HoudiniVector[3])
+FHoudiniPCGUtils::HoudiniToUnrealUnscaled(float HoudiniVector[3])
 {
 	FVector3d Position;
 	Position.X = HoudiniVector[0];

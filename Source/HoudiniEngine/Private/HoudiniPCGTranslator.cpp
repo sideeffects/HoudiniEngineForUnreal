@@ -221,7 +221,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
 			for(int Index = 0; Index < Points.Num(); Index++)
 			{
-				FVector Position = FHoudiniPCGUtils::HoudiniToUnrealPosition(&Values[Index * 3]);
+				FVector Position = FHoudiniPCGUtils::HoudiniToUnrealScaled(&Values[Index * 3]);
 				Points[Index].Transform.SetLocation(Position);
 				
 			}
@@ -243,7 +243,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
 			for(int Index = 0; Index < Points.Num(); Index++)
 			{
-				FVector3d Scale = FHoudiniPCGUtils::HoudiniToUnrealVector(&Values[Index * 3]);
+				FVector3d Scale = FHoudiniPCGUtils::HoudiniToUnrealUnscaled(&Values[Index * 3]);
 				Points[Index].Transform.SetScale3D(Scale);
 			}
 		}
@@ -253,7 +253,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
 			for(int Index = 0; Index < Points.Num(); Index++)
 			{
-				FVector3d BoundsMin = FHoudiniPCGUtils::HoudiniToUnrealVector(&Values[Index * 3]);
+				FVector3d BoundsMin = FHoudiniPCGUtils::HoudiniToUnrealScaled(&Values[Index * 3]);
 				Points[Index].BoundsMin = BoundsMin;
 			}
 		}
@@ -263,7 +263,7 @@ UPCGPointData* FHoudiniPCGTranslator::CreatePCGPointData(HAPI_NodeId NodeId, HAP
 			Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
 			for(int Index = 0; Index < Points.Num(); Index++)
 			{
-				FVector3d BoundsMax = FHoudiniPCGUtils::HoudiniToUnrealVector(&Values[Index * 3]);
+				FVector3d BoundsMax = FHoudiniPCGUtils::HoudiniToUnrealScaled(&Values[Index * 3]);
 				Points[Index].BoundsMax = BoundsMax;
 			}
 		}
