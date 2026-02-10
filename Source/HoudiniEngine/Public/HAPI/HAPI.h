@@ -7800,6 +7800,158 @@ HAPI_DECL HAPI_GetInstancerPartTransforms( const HAPI_Session * session,
                                            HAPI_Transform * transforms_array,
                                            int start, int length );
 
+/// @brief  Retrieves the camera parms for a SOP camera primitive
+///
+/// @ingroup Cameras
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id. The HAPI_PartInfo::type must be
+///                 HAPI_PARTTYPE_CAMERA.
+///
+/// @param[out]     camera_info
+///                 Pointer to a ::HAPI_CameraInfo struct that the SOP camera
+///                 primitive's parms will be written to.
+///                 
+HAPI_DECL HAPI_GetCameraInfo( const HAPI_Session * session,
+                              HAPI_NodeId node_id,
+                              HAPI_PartId part_id,
+                              HAPI_CameraInfo * camera_info );
+
+/// @brief  Retrieves the transform of the SOP camera primitive. Scale is always
+///         locked to [1, 1, 1].
+///
+/// @ingroup Cameras
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id.
+///
+/// @param[in]      part_id
+///                 The part id. The HAPI_PartInfo::type must be
+///                 HAPI_PARTTYPE_CAMERA.
+///
+/// @param[out]     transform
+///                 Pointer to a HAPI_Transform that will be written to with the
+///                 camera's transform info.
+///
+HAPI_DECL HAPI_GetCameraTransform( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   HAPI_PartId part_id,
+                                   HAPI_Transform * transform );
+
+/// @brief          Creates a SOP Camera node which can then be configured with
+///                 ::HAPI_SetInputCameraInfo() and
+///                 ::HAPI_SetInputCameraTransform().
+///
+/// @ingroup Cameras
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      parent_node_id
+///                 The node id of the parent OBJ node or SOP subnetwork node in
+///                 which the input camera node should be created, or -1 to
+///                 create a new dummy parent OBJ node for this input node.
+///                 <!-- min -1 -->
+///                 <!-- default -1 -->
+///
+/// @param[out]     node_id
+///                 Newly created node's id. Use ::HAPI_GetNodeInfo() to get
+///                 more information about this node.
+///
+/// @param[in]      camera_name
+///                 The name of the camera. The name of the camera will be added
+///                 to the SOP camera primitive as a "name" attribute. You can
+///                 also pass NULL if you want the default name to be used.
+///                 <!-- default NULL -->
+///                 <!-- string -->
+///
+/// @param[in]      node_label
+///                 Give this input node a name for easy debugging.
+///                 The node's parent OBJ node and the Null SOP node will both
+///                 get this given name with "input_" prepended.
+///                 You can also pass NULL in which case the name will
+///                 be "input#" where # is some number.
+///                 <!-- default NULL -->
+///                 <!-- string -->
+///
+HAPI_DECL HAPI_CreateInputCameraNode( const HAPI_Session * session,
+                                      HAPI_NodeId parent_node_id,
+                                      HAPI_NodeId * node_id,
+                                      const char * camera_name,
+                                      const char * node_label ); 
+
+/// @brief          Configures the SOP Camera node's parameters.
+///
+/// @ingroup Cameras
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id of a node created with
+///                 ::HAPI_CreateInputCameraNode().
+///
+/// @param[in]      camera_info
+///                 A ::HAPI_CameraInfo struct with camera configuration that
+///                 will be used to set the parameters on the camera node.
+///
+HAPI_DECL HAPI_SetInputCameraInfo( const HAPI_Session * session,
+                                   HAPI_NodeId node_id,
+                                   const HAPI_CameraInfo * camera_info);
+
+/// @brief          Configures the SOP Camera node's transform parameters.
+///
+/// @ingroup Cameras
+///
+/// @param[in]      session
+///                 The session of Houdini you are interacting with.
+///                 See @ref HAPI_Sessions for more on sessions.
+///                 Pass NULL to just use the default in-process session.
+///                 <!-- default NULL -->
+///
+/// @param[in]      node_id
+///                 The node id of a node created with
+///                 ::HAPI_CreateInputCameraNode().
+///
+/// @param[in]      rst_order
+///                 The order in which the camera's transformations occur.
+///
+/// @param[in]      rot_order
+///                 The order in which the camera's rotations occur.
+///
+/// @param[in]      transform
+///                 A ::HAPI_Transform struct that will be used to set the
+///                 transform related parameters on the camera node. Only the
+///                 position and rotation quaternion will be used. Other fields
+///                 will be ignored.
+///
+HAPI_DECL HAPI_SetInputCameraTransform( const HAPI_Session * session,
+                                        HAPI_NodeId node_id,
+                                        HAPI_RSTOrder rst_order,
+                                        HAPI_XYZOrder rot_order,
+                                        const HAPI_Transform * transform );
+
 /// @defgroup GeometrySetters Geometry Setters
 /// Functions for setting geometry (SOP) data
 

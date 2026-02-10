@@ -188,6 +188,13 @@ HAPI_DECL_RETURN( void )
 HAPI_DECL_RETURN( HAPI_Keyframe )
     HAPI_Keyframe_Create();
 
+// CAMERAS ------------------------------------------------------------------
+
+HAPI_DECL_RETURN(void)
+    HAPI_CameraInfo_Init(HAPI_CameraInfo* in);
+HAPI_DECL_RETURN(HAPI_CameraInfo)
+    HAPI_CameraInfo_Create();
+
 // VOLUMES ------------------------------------------------------------------
 
 HAPI_DECL_RETURN( void )

@@ -609,6 +609,15 @@ enum HAPI_InputCurveParameterization
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_InputCurveParameterization )
 
+enum HAPI_CameraProjectionType
+{
+    HAPI_CAMERAPROJECTIONTYPE_INVALID = -1,
+    HAPI_CAMERAPROJECTIONTYPE_PERSPECTIVE,
+    HAPI_CAMERAPROJECTIONTYPE_ORTHO,
+    HAPI_CAMERAPROJECTIONTYPE_MAX
+};
+HAPI_C_ENUM_TYPEDEF(HAPI_CameraProjectionType)
+
 enum HAPI_VolumeType
 {
     HAPI_VOLUMETYPE_INVALID = -1,
@@ -726,6 +735,7 @@ enum HAPI_PartType
     HAPI_PARTTYPE_INSTANCER,
     HAPI_PARTTYPE_BOX,
     HAPI_PARTTYPE_SPHERE,
+    HAPI_PARTTYPE_CAMERA,
     HAPI_PARTTYPE_MAX
 };
 HAPI_C_ENUM_TYPEDEF( HAPI_PartType )
@@ -2045,6 +2055,31 @@ struct HAPI_API HAPI_SphereInfo
     float radius;
 };
 HAPI_C_STRUCT_TYPEDEF( HAPI_SphereInfo )
+
+/// Data for SOP camera primitives
+struct HAPI_API HAPI_CameraInfo
+{
+    double focal;
+    double aperture;
+    double pixelAspect;
+    double focusDistance;
+    double fStop;
+    double imagingDistance;
+    HAPI_Int64 resX;
+    HAPI_Int64 resY;
+    double cropX[ 2 ];
+    double cropY[ 2 ];
+    double winX[ 2 ];
+    double winY[ 2 ];
+    double clipNear;
+    double clipFar;
+    double shutterOpen;
+    double shutterClose;
+    double orthoZoom;
+    double guideScale;
+    HAPI_CameraProjectionType projection;
+};
+HAPI_C_STRUCT_TYPEDEF( HAPI_CameraInfo )
 
 // PDG Structs --------------------------------------------------------------
 
