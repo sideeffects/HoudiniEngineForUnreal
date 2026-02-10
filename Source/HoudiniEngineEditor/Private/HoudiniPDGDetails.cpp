@@ -3387,38 +3387,38 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 			];
 	}
 
-	//----------------------------------------
-	//----------------------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------------------
+	// Bake Target (Actor or Blueprint) aka BakeTypeOptions
+	//---------------------------------------------------------------------------------------------------------------------------------------------------
 
-	// bake Type ComboBox
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> TypeComboBox;
 
-	TArray<TSharedPtr<FString>>* OptionSource = FHoudiniEngineEditor::Get().GetHoudiniEnginePDGBakeTypeOptionsLabels();
-	TSharedPtr<FString> IntialSelec;
-	if(OptionSource)
+	TArray<TSharedPtr<FString>>* BakeTargetEnumLabels = FHoudiniEngineEditor::Get().GetHoudiniEnginePDGBakeTypeOptionsLabels();
+	TSharedPtr<FString> BakeTargetEnumInitialValue;
+	if(BakeTargetEnumLabels)
 	{
 		const FString DefaultStr = FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(PDGAssetLink->HoudiniEngineBakeOption);
-		const TSharedPtr<FString>* DefaultOption = OptionSource->FindByPredicate(
-			[DefaultStr](TSharedPtr<FString> InStringPtr)
+		const TSharedPtr<FString>* DefaultOption = BakeTargetEnumLabels->FindByPredicate(
+			[DefaultStr](const TSharedPtr<FString> & InString)
 			{
-				return InStringPtr.IsValid() && *InStringPtr == DefaultStr;
+				return InString.IsValid() && *InString == DefaultStr;
 			}
 		);
 		if(DefaultOption)
-			IntialSelec = *DefaultOption;
+			BakeTargetEnumInitialValue = *DefaultOption;
 	}
 
 	TSharedRef<SHorizontalBox> BakeOptionRowHorizontalBox = SNew(SHorizontalBox);
 
-	FDetailWidgetRow& BakeOptionRow = InBakeGroup.AddWidgetRow();
+	FDetailWidgetRow& BakeTargetDetailWidgetRow = InBakeGroup.AddWidgetRow();
 
-	FHoudiniPDGDetails::BindEnablePDGWiddgetsTest(BakeOptionRow, InHC);
+	FHoudiniPDGDetails::BindEnablePDGWiddgetsTest(BakeTargetDetailWidgetRow, InHC);
 
-	BakeOptionRow.NameWidget.Widget = SNew(STextBlock)
+	BakeTargetDetailWidgetRow.NameWidget.Widget = SNew(STextBlock)
 		.Text(FText::FromString("Bake Output")).
 		Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT));
 
-	BakeOptionRow.ValueWidget.Widget = SNew(SHorizontalBox)
+	BakeTargetDetailWidgetRow.ValueWidget.Widget = SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.MaxWidth(93.f)
 		[
@@ -3427,8 +3427,8 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 				.WidthOverride(93.f)
 				[
 					SAssignNew(TypeComboBox, SComboBox<TSharedPtr<FString>>)
-						.OptionsSource(OptionSource)
-						.InitiallySelectedItem(IntialSelec)
+						.OptionsSource(BakeTargetEnumLabels)
+						.InitiallySelectedItem(BakeTargetEnumInitialValue)
 						.OnGenerateWidget_Lambda(
 							[](TSharedPtr< FString > InItem)
 							{
@@ -3439,7 +3439,7 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 									.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
 							})
 						.OnSelectionChanged_Lambda(
-							[PDGAssetLink](TSharedPtr< FString > NewChoice, ESelectInfo::Type SelectType)
+							[PDGAssetLink](const TSharedPtr<FString> & NewChoice, ESelectInfo::Type SelectType)
 							{
 								if(!IsValidWeakPointer(PDGAssetLink))
 									return;
@@ -3466,7 +3466,7 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 							})
 						[
 							SNew(STextBlock)
-								.Text_Lambda([PDGAssetLink, TypeComboBox, OptionSource]()
+								.Text_Lambda([PDGAssetLink, TypeComboBox, BakeTargetEnumLabels]()
 									{
 										return FText::FromString(FHoudiniEngineEditor::Get().GetStringFromHoudiniEngineBakeOption(PDGAssetLink->HoudiniEngineBakeOption));
 									})
@@ -3475,15 +3475,17 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 				]
 		];
 
+	//---------------------------------------------------------------------------------------------------------------------------------------------------
+	// bake selection ComboBox (Network, Node or all)
+	//---------------------------------------------------------------------------------------------------------------------------------------------------
 
-	// bake selection ComboBox
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> BakeSelectionComboBox;
 
 	TArray<TSharedPtr<FString>>* PDGBakeSelectionOptionSource = FHoudiniEngineEditor::Get().GetHoudiniEnginePDGBakeSelectionOptionsLabels();
-	TSharedPtr<FString> PDGBakeSelectionIntialSelec;
+	TSharedPtr<FString> PDGBakeSelectionIntialSelection;
 	if(PDGBakeSelectionOptionSource)
 	{
-		PDGBakeSelectionIntialSelec = (*PDGBakeSelectionOptionSource)[(int)PDGAssetLink->PDGBakeSelectionOption];
+		PDGBakeSelectionIntialSelection = (*PDGBakeSelectionOptionSource)[(int)PDGAssetLink->PDGBakeSelectionOption];
 	}
 
 	FDetailWidgetRow& BakOutputsRow = InBakeGroup.AddWidgetRow();
@@ -3504,7 +3506,7 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 				[
 					SAssignNew(TypeComboBox, SComboBox<TSharedPtr<FString>>)
 						.OptionsSource(PDGBakeSelectionOptionSource)
-						.InitiallySelectedItem(PDGBakeSelectionIntialSelec)
+						.InitiallySelectedItem(PDGBakeSelectionIntialSelection)
 						.OnGenerateWidget_Lambda(
 							[](TSharedPtr< FString > InItem)
 							{

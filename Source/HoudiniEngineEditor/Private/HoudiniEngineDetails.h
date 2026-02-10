@@ -33,6 +33,7 @@
 #include "HoudiniEngineDetails.h"
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
+#include "IDetailGroup.h"
 
 #include "Framework/SlateDelegates.h"
 #include "Framework/SlateDelegates.h"
@@ -59,6 +60,8 @@ class SVerticalBox;
 #define IsValidWeakPointer(InWeakObjectPointer) \
 	FHoudiniEngineDetails::IsValidWeakObjectPointer(InWeakObjectPointer, true, TEXT(__FILE__), __LINE__)
 
+#define HOUDINI_DETAILS_FONT TEXT("PropertyWindow.NormalFont")
+#define HOUDINI_ENGINE_UI_BUTTON_WIDTH											   150.0f
 
 class SHoudiniAssetLogWidget : public SCompoundWidget
 {
@@ -84,11 +87,14 @@ struct EHoudiniDetailsFlags
 	bool bBakeButton = true;
 	bool bDisplayOnOutputLess = false;
 	bool bAssetOptions = true;
-	bool bGenerateBar = true;
+	
+	bool bCookButtons = true;
+	bool bCookTriggers = true;
+	bool bCookOutputOptions = true;
+	bool bTemporaryCookFolderRow = true;
+
 	bool bReplacePreviousBake = true;
 	bool bRemoveHDAOutputAfterBake = true;
-	bool bTemporaryCookFolderRow = true;
-	bool bCookTriggers = true;
 	bool bDoNotGenerateOutputs = true;
 	bool bPushTransformToHoudini = true;
 
@@ -119,11 +125,6 @@ public:
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
 		const EHoudiniDetailsFlags& DetailsFlags);
 
-	// RESET PARAMETERS - used by PCG, this is like GENERATE, but no Rebuild/Recook buttons.
-	static void CreateResetParametersOnlyWidgets(
-		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
-
 	// BAKE
 	static void CreateBakeWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
@@ -135,9 +136,27 @@ public:
 		IDetailCategoryBuilder& InPDGCategory,
 		UHoudiniPDGAssetLink* InPDGAssetLink);
 
+	// COOK TRIGGER OPTIONS
+	static void CreateCookTriggerWidgets(
+		IDetailGroup& Group,
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
+		const EHoudiniDetailsFlags& DetailsFlags);
+	
+	// OUTPUT OPTIONS
+	static void CreateOutputWidgets(
+		IDetailGroup& Group,
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
+		const EHoudiniDetailsFlags& DetailsFlags);
+
 	// ASSET OPTIONS
 	static void CreateAssetOptionsWidgets(
 		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
+		const EHoudiniDetailsFlags& DetailsFlags);
+
+	// ASSET OPTIONS
+	static void CreateMiscOptionsWidgets(
+		IDetailGroup& Group,
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
 		const EHoudiniDetailsFlags& DetailsFlags);
 
@@ -153,31 +172,41 @@ public:
 
 	static void CreateInstallInfoWindow();
 
-	static void AddRemovedHDAOutputAfterBakeCheckBox(const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
-		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, 
-		TSharedPtr<SVerticalBox>& LeftColumnVerticalBox);
+	static void AddRemovedHDAOutputAfterBakeCheckBox(
+		IDetailGroup& OptionsGroup,
+		const TWeakObjectPtr<UHoudiniCookable>& MainHC,
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
 
-	static void AddRenterBakedActorsCheckbox(const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
-		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, 
-		TSharedPtr<SVerticalBox>& LeftColumnVerticalBox);
-
-	static void AddAutoBakeCheckbox(const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
-		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, 
-		TSharedPtr<SVerticalBox>& RightColumnVerticalBox);
-
-	static void AddReplaceCheckbox(const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
-		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, 
-		TSharedPtr<SVerticalBox>& RightColumnVerticalBox);
-
-	static void AddBakeFolderSelector(
-		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder, 
+	static void AddRenterBakedActorsCheckbox(
+		IDetailGroup& OptionsGroup,
 		const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
 
-	static void AddBakeControlBar(
-		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder, 
+	static void AddAutoBakeCheckbox(
+		IDetailGroup& OptionsGroup,
+		const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+
+	static void AddReplaceCheckbox(
+		IDetailGroup& OptionsGroup,
+		const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+
+	static void AddBakeFolderSelector(
+		IDetailGroup& OptionsGroup,
+		const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+
+	static void AddBakeButtons(
+		IDetailGroup& Group,
 		const TWeakObjectPtr<UHoudiniCookable>& MainHC, 
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, 
+		EHoudiniDetailsFlags DetailsFlags);
+
+	static void AddBakeOutputTypes(
+		IDetailGroup& Group,
+		const TWeakObjectPtr<UHoudiniCookable>& MainHC,
+		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
 		EHoudiniDetailsFlags DetailsFlags);
 
 	static FReply ShowCookLog(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
@@ -194,11 +223,6 @@ public:
 	static TSharedPtr<SWidget> ConstructActionMenu(
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables,
 		class IDetailLayoutBuilder*);
-
-	static void AddHeaderRowForCookable(
-		IDetailCategoryBuilder& HoudiniEngineCategoryBuilder,
-		const TWeakObjectPtr<UHoudiniCookable>& HoudiniCookable,
-		int32 MenuSection);
 
 	static void AddHeaderRowForHoudiniPDGAssetLink(
 		IDetailCategoryBuilder& PDGCategoryBuilder,
@@ -239,9 +263,6 @@ private:
 		const bool& bIsBakePath,
 		const TWeakObjectPtr<UHoudiniCookable>& InMainHC,
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
-
-
-	static void CreateResetParametersButton(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs, TSharedRef<SHorizontalBox> ButtonHorizontalBox);
 
 };
 

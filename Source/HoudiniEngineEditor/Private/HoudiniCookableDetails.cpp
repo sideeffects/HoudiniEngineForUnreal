@@ -320,22 +320,11 @@ FHoudiniCookableDetails::CreateHoudiniEngineDetails(
 	// Houdini Engine Session Status
 	HoudiniEngineDetails->AddSessionStatusRow(HouEngineCategory, InCookables);
 
-	// Create Generate Category. If not, just so "Reset Parameters" button.
-	if(DetailsFlags.bGenerateBar)
-	{
-		HoudiniEngineDetails->CreateGenerateWidgets(HouEngineCategory, InCookables, DetailsFlags);
-	}
-	else
-	{
-		HoudiniEngineDetails->CreateResetParametersOnlyWidgets(HouEngineCategory, InCookables);
-	}
+	HoudiniEngineDetails->CreateGenerateWidgets(HouEngineCategory, InCookables, DetailsFlags);
 
 	// Create Bake Category
 	HoudiniEngineDetails->CreateBakeWidgets(HouEngineCategory, InCookables, DetailsFlags);
 
-	// Create Asset Options Category
-	if (DetailsFlags.bAssetOptions)
-		HoudiniEngineDetails->CreateAssetOptionsWidgets(HouEngineCategory, InCookables, DetailsFlags);
 
 	// Create Help and Debug Category
 	HoudiniEngineDetails->CreateHelpAndDebugWidgets(HouEngineCategory, InCookables);
@@ -421,17 +410,13 @@ FHoudiniCookableDetails::CreateParameterDetails(
 	if (!IsValidWeakPointer(MainCookable))
 		return;
 
-	if (MainCookable->GetNumParameters() <= 0)
-		return;
-
 	// If we have selected more than one component that have different HDAs, 
 	// we need to create multiple categories one for each different HDA
 	FString ParamCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PARAMS);
 	ParamCatName += MultiSelectionIdentifier;
 
 	// Create the Parameters details category
-	IDetailCategoryBuilder& HouParameterCategory =
-		DetailBuilder.EditCategory(*ParamCatName, FText::GetEmpty(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& HouParameterCategory = DetailBuilder.EditCategory(*ParamCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
 	// If we are running Houdini Engine Indie license, we need to display a special label.
 	bool bIsIndieLicense = FHoudiniEngine::Get().IsLicenseIndie();

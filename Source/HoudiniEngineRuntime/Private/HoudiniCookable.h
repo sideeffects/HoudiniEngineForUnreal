@@ -1086,22 +1086,7 @@ protected:
 	UPROPERTY(Transient)
 	bool bAllowUpdateEditorProperties;
 
-#if WITH_EDITORONLY_DATA
 public:
-
-	UPROPERTY()
-	bool bGenerateMenuExpanded;
-
-	UPROPERTY()
-	bool bBakeMenuExpanded;
-
-	UPROPERTY()
-	bool bAssetOptionMenuExpanded;
-
-	UPROPERTY()
-	bool bHelpAndDebugMenuExpanded;
-#endif
-
 	// Indicates the Id of the AssetEditor viewing this cookable
 	// Can be null/empty if not viewded by an AssetEditor
 	UPROPERTY()

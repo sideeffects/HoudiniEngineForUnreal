@@ -118,7 +118,8 @@ void UHoudiniPCGSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 		Flags.bBakeButton = false;
 		Flags.bDisplayOnOutputLess = true;
 		Flags.bAssetOptions = false;
-		Flags.bGenerateBar = false;
+		Flags.bCookButtons = false;
+		Flags.bCookTriggers = false;
 		Flags.bReplacePreviousBake = false;
 
 		CookableDetails->CreateHoudiniEngineDetails(DetailBuilder, Cookables, FString(), Flags);

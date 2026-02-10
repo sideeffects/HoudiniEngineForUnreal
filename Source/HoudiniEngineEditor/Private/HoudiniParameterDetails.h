@@ -218,6 +218,8 @@ protected:
 	void Construct(const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables);
 	void Construct(TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
 
+	void AddParameterResetButton(IDetailCategoryBuilder& HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
+
 	static void SetMultiParmWidgets(FHoudiniParameterView* ParameterView);
 
 	TSharedPtr<FHoudiniParameterView> Root = nullptr;

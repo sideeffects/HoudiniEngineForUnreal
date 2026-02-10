@@ -204,6 +204,129 @@ FHoudiniParameterView::FHoudiniParameterView() :
 	SharedWidgetData = MakeShared<FSharedWidgetData>();
 }
 
+void 
+FHoudiniParameterDetails::AddParameterResetButton(
+	IDetailCategoryBuilder& HouParameterCategory,
+	const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs)
+{
+	auto ShouldEnableResetParametersButtonLambda = [InHCs]()
+		{
+			for(auto& NextHC : InHCs)
+			{
+				if(!IsValidWeakPointer(NextHC))
+					continue;
+
+				// Reset parameters to default values?
+				for(int32 n = 0; n < NextHC->GetNumParameters(); ++n)
+				{
+					UHoudiniParameter* NextParm = NextHC->GetParameterAt(n);
+					if(IsValid(NextParm) && !NextParm->IsDefault())
+						return true;
+				}
+			}
+
+			return false;
+		};
+
+	auto OnResetParametersClickedLambda = [InHCs]()
+		{
+			for(auto& NextHC : InHCs)
+			{
+				if(!IsValidWeakPointer(NextHC))
+					continue;
+
+				// Reset parameters to default values?
+				for(int32 n = 0; n < NextHC->GetNumParameters(); ++n)
+				{
+					UHoudiniParameter* NextParm = NextHC->GetParameterAt(n);
+					if(IsValid(NextParm) && !NextParm->IsDefault())
+					{
+						NextParm->RevertToDefault();
+					}
+				}
+			}
+			return FReply::Handled();
+		};
+
+	TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIResetParametersIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIResetParametersIconBrush();
+
+	TSharedPtr<SButton> ResetParametersButton;
+	TSharedPtr<SHorizontalBox> ResetParametersButtonHorizontalBox;
+
+	TSharedPtr<SHorizontalBox> ButtonHorizontalBox = SNew(SHorizontalBox);
+
+	ButtonHorizontalBox->AddSlot()
+		.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+		//.Padding(2.0f, 0.0f, 0.0f, 2.0f)
+		[
+			SNew(SBox)
+				.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+				[
+					SAssignNew(ResetParametersButton, SButton)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.ToolTipText(LOCTEXT("HoudiniAssetDetailsResetParametersAssetButton", "Reset the selected Houdini Asset's parameters to their default values."))
+						//.Text(FText::FromString("Reset Parameters"))
+						.IsEnabled_Lambda(ShouldEnableResetParametersButtonLambda)
+						.Visibility(EVisibility::Visible)
+						.OnClicked_Lambda(OnResetParametersClickedLambda)
+						.Content()
+						[
+							SNew(SHorizontalBox)
+								+ SHorizontalBox::Slot()
+								.HAlign(HAlign_Center)
+								[
+									SAssignNew(ResetParametersButtonHorizontalBox, SHorizontalBox)
+								]
+						]
+				]
+		];
+
+	if(HoudiniEngineUIResetParametersIconBrush.IsValid())
+	{
+		TSharedPtr<SImage> ResetParametersImage;
+		ResetParametersButtonHorizontalBox->AddSlot()
+			.MaxWidth(16.0f)
+			//.Padding(0.0f, 0.0f, 3.0f, 0.0f)
+			[
+				SNew(SBox)
+					.WidthOverride(16.0f)
+					.HeightOverride(16.0f)
+					[
+						SAssignNew(ResetParametersImage, SImage)
+							//.ColorAndOpacity(FSlateColor::UseForeground())
+					]
+			];
+
+		ResetParametersImage->SetImage(
+			TAttribute<const FSlateBrush*>::Create(
+				TAttribute<const FSlateBrush*>::FGetter::CreateLambda([HoudiniEngineUIResetParametersIconBrush]()
+					{
+						return HoudiniEngineUIResetParametersIconBrush.Get();
+					})
+			)
+		);
+
+
+		FDetailWidgetRow& DetailsRow = HouParameterCategory.AddCustomRow(LOCTEXT("ResetParameters", "ResetParameters"));
+
+		DetailsRow.WholeRowWidget.Widget = ButtonHorizontalBox.ToSharedRef();
+
+	}
+
+	ResetParametersButtonHorizontalBox->AddSlot()
+		.Padding(5.0, 0.0, 0.0, 0.0)
+		//.FillWidth(4.2f)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+				//.MinDesiredWidth(160.f)
+				.Text(FText::FromString("Reset Parameters"))
+		];
+}
+
 void
 FHoudiniParameterDetails::CreateDetails(
 	IDetailCategoryBuilder& HouParameterCategory,
@@ -212,7 +335,25 @@ FHoudiniParameterDetails::CreateDetails(
 {
 	Construct(Cookables);
 
-	Root->CreateDetails(HouParameterCategory, DetailBuilder);
+	if(Root.IsValid() && !Root->Children.IsEmpty())
+	{
+		AddParameterResetButton(HouParameterCategory, Cookables);
+		Root->CreateDetails(HouParameterCategory, DetailBuilder);
+	}
+	else
+	{
+		HouParameterCategory.AddCustomRow(LOCTEXT("NoParameters", "NoParameters"))
+			.WholeRowContent()
+			[
+				SNew(SBox)
+				.Padding(5.0f, 5.0f, 0.0f, 0.0f)
+					[
+						SNew(STextBlock)
+							.Text(FText::FromString("HDA contains no parameters"))
+							.Font(_GetEditorStyle().GetFontStyle(HOUDINI_DETAILS_FONT))
+					]
+			];
+	}
 
 	// Uncomment for debugging. Do not delete.
 	//Root->PrintOut(0);
