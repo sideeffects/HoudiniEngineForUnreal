@@ -2697,6 +2697,55 @@ FHoudiniInputDetails::AddLandscapeAutoSelectSplinesCheckBox(
 	}
 }
 
+
+void FHoudiniInputDetails::AddPCGOptions(
+	TSharedRef<SVerticalBox> InVerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	InVerticalBox->AddSlot()
+		[
+			SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0, 7.0, 0.0, 0.0)
+					[
+						SNew(STextBlock)
+							.Text(FText::FromString("PCG Attribute"))
+							.ToolTipText(LOCTEXT("PCGAttribute_Tooltip", "The name of the PCG Attribute to use to use to override the input object, if the input pin is connected."))
+							.Font(IDetailLayoutBuilder::GetDetailFont())
+
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0, 3.0, 0.0, 0.0)
+					[
+						SNew(SEditableTextBox)
+							.MinDesiredWidth(160)
+							.Text_Lambda([InInputs]() {
+
+								if(InInputs.IsEmpty() || !InInputs[0].IsValid())
+									return FText::GetEmpty();
+								else
+									return FText::FromString(InInputs[0]->GetPCGAttribute());
+
+								})
+							.ToolTipText(LOCTEXT("PCGAttribute_Tooltip", "The name of the PCG Attribute to use to use to override the input object, if the input pin is connected."))
+							.Font(IDetailLayoutBuilder::GetDetailFont())
+							.OnTextCommitted_Lambda([=](const FText& InputText, ETextCommit::Type CommitType)
+								{
+									if(CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
+										return;
+
+									if(InInputs.IsEmpty() || !InInputs[0].IsValid())
+										return;
+
+									InInputs[0]->SetPCGAttribute(InputText.ToString());
+								})
+						]
+		];
+}
+
 void
 FHoudiniInputDetails::AddExportOptions(
 	TSharedRef<SVerticalBox> InVerticalBox,
@@ -3225,6 +3274,9 @@ FHoudiniInputDetails::AddCurveInputUI(
 				CategoryBuilder.GetParentLayout().ForceRefreshDetails();
 		}
 	};
+
+	if (IsInsidePCG(InInputs))
+		AddPCGOptions(InVerticalBox, InInputs);
 
 	AddExportOptions(InVerticalBox, InInputs);
 
@@ -5934,6 +5986,9 @@ FHoudiniInputDetails::AddGeometryInputUI(
 		}
 	};
 
+	if(IsInsidePCG(InInputs))
+		AddPCGOptions(InVerticalBox, InInputs);
+
 	AddExportOptions(InVerticalBox, InInputs);
 
 	FText InputsMenuTitle = FText::Format(
@@ -6100,6 +6155,9 @@ FHoudiniInputDetails::AddWorldInputUI(
 
 	if (!IsValidWeakPointer(MainInput))
 		return;
+
+	if(IsInsidePCG(InInputs))
+		AddPCGOptions(InVerticalBox, InInputs);
 
 	AddExportOptions(InVerticalBox, InInputs);
 	AddLandscapeOptions(InVerticalBox, InInputs);
@@ -7833,6 +7891,20 @@ FHoudiniInputDetails::Helper_CancelWorldSelection(const TArray<TWeakObjectPtr<UH
 	}
 
 	return true;
+}
+
+bool FHoudiniInputDetails::IsInsidePCG(const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if(InInputs.IsEmpty() || !InInputs[0].IsValid())
+		return false;
+
+	UHoudiniCookable* HC = InInputs[0]->GetTypedOuter<UHoudiniCookable>();
+
+	if(!HC || !HC->GetIsPCG())
+		return false;
+	else
+		return true;
+
 }
 
 #undef LOCTEXT_NAMESPACE

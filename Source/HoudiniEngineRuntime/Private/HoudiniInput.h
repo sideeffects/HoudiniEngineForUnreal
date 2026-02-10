@@ -146,6 +146,7 @@ public:
 	FString GetInputName() const						{ return Name; };
 	FString GetInputLabel() const						{ return Label; };
 	FString GetInputHelp() const						{ return Help; };	
+	FString GetPCGAttribute() const						{ return PCGAttribute;  }
 	bool GetPackBeforeMerge() const						{ return bPackBeforeMerge; };
 	bool GetImportAsReference() const					{ return InputSettings.bImportAsReference; };
 	bool GetImportAsReferenceRotScaleEnabled() const	{ return InputSettings.bImportAsReferenceRotScaleEnabled; };
@@ -319,6 +320,11 @@ public:
 	void SetImportAsReferenceMaterialEnabled(const bool& bInImportAsReferenceMaterialEnabled)
 		{ InputSettings.bImportAsReferenceMaterialEnabled = bInImportAsReferenceMaterialEnabled; };
 	
+	void SetPCGAttribute(const FString& InPCGAttribute)
+	{
+		PCGAttribute = InPCGAttribute;
+	}
+
 	void SetExportMainGeometry(const bool& bInExportMainGeo)
 		{ InputSettings.bExportMainGeometry = bInExportMainGeo; };
 	void SetExportLODs(const bool& bInExportLODs)
@@ -587,6 +593,9 @@ protected:
 	// Help for this parameter/input
 	UPROPERTY()
 	FString Help;
+
+	UPROPERTY()
+	FString PCGAttribute = TEXT("object");
 
 	//-------------------------------------------------------------------------------------------------------------------------
 	// General Input options

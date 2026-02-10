@@ -42,7 +42,6 @@
 HOUDINI_PCG_DEFINE_LOG_CATEGORY();
 
 FString FHoudiniPCGUtils::ParameterInputPinName = FString(TEXT("Parameters"));
-FName FHoudiniPCGUtils::HDAInputObjectName = FName(FString(TEXT("object")));
 FCriticalSection FHoudiniPCGUtils::CriticalSection;
 EHoudiniPCGSessionStatus FHoudiniPCGUtils::SessionStatus;
 
@@ -224,28 +223,6 @@ FHoudiniPCGUtils::HasPCGOutputs(const FHoudiniBakedOutput* HoudiniOutput)
 			return true;
 	}
 	return false;
-}
-
-
-EHoudiniPCGInputType
-FHoudiniPCGUtils::GetInputType(const UPCGData* PCGData)
-{
-	if(PCGData->IsA<UPCGPointData>())
-		return EHoudiniPCGInputType::PCGData;
-	else if(PCGData->IsA<UPCGParamData>())
-	{
-		const UPCGMetadata* Metadata = PCGData->ConstMetadata();
-
-		const FPCGMetadataAttribute<FSoftObjectPath>* ObjectAttrs = static_cast<const FPCGMetadataAttribute<FSoftObjectPath>*>(Metadata->GetConstAttribute(HDAInputObjectName));
-		if(ObjectAttrs)
-			return EHoudiniPCGInputType::UnrealObjects;
-		else
-			return EHoudiniPCGInputType::PCGData;
-	}
-	else
-	{
-		return EHoudiniPCGInputType::None;
-	}
 }
 
 TArray<FString>

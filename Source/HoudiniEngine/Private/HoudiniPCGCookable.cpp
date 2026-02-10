@@ -264,7 +264,7 @@ UHoudiniPCGCookable::ApplyInputsToCookable(const FPCGContext* Context)
 		for(const FPCGTaggedData& InputData : ContextInputData)
 		{
 			const UPCGMetadata* Metadata = InputData.Data->ConstMetadata();
-			TArray<FString> UnrealObjects = GetUnrealObjectPaths(Context, Metadata);
+			TArray<FString> UnrealObjects = GetUnrealObjectPaths(Input->GetPCGAttribute(), Context, Metadata);
 			if(!UnrealObjects.IsEmpty())
 			{
 				UnrealObjectPaths.Append(UnrealObjects);
@@ -809,9 +809,9 @@ UHoudiniPCGCookable::Update(FPCGContext* Context)
 }
 
 TArray<FString>
-UHoudiniPCGCookable::GetUnrealObjectPaths(const FPCGContext* Context, const UPCGMetadata* Metadata)
+UHoudiniPCGCookable::GetUnrealObjectPaths(const FString& InputName, const FPCGContext* Context, const UPCGMetadata* Metadata)
 {
-	FHoudiniPCGAttributes Attributes(Metadata, FHoudiniPCGUtils::HDAInputObjectName);
+	FHoudiniPCGAttributes Attributes(Metadata, FName(InputName));
 
 	// Extract all soft object paths from the PCG node inputs.
 

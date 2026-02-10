@@ -185,7 +185,7 @@ private:
 
 	static UHoudiniPCGDataObject* GetPCGDataObjects(const FPCGTaggedData& TaggedData);
 
-	TArray<FString> GetUnrealObjectPaths(const FPCGContext* Context, const UPCGMetadata* Metadata);
+	TArray<FString> GetUnrealObjectPaths(const FString& InputName, const FPCGContext* Context, const UPCGMetadata* Metadata);
 
 	static bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
 
