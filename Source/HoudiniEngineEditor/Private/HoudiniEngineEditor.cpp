@@ -1534,7 +1534,8 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 				FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
 				FUIAction(
 					FExecuteAction::CreateLambda([this]() { return SendToHoudini_World(); }),
-					FCanExecuteAction::CreateLambda([=] { return ((Actors.Num() > 0)); })
+					// Prevent a crash if the NodeSyncPanel hasn't been created yet...
+					FCanExecuteAction::CreateLambda([this, &Actors] { return Actors.Num() > 0 && NodeSyncPanel.IsValid(); })
 				)
 			);
 		})

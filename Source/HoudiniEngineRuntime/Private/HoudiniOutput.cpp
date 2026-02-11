@@ -1394,7 +1394,11 @@ void FHoudiniOutputObject::DestroyCookedData(EHoudiniClearFlags ClearFlags)
 
 	if(UDataTable* Table = Cast<UDataTable>(OutputObject.Get()))
 	{
-		if (Table->RowStruct)
+		// Only delete Non-Native RowStructs:
+		// This prevents a crash when deleting a DataTable whose RowStruct is native,
+		// as it seems that UE has issues duplicating native structs.
+		// In that case - Table->RowStruct is already transient anyway.
+		if (Table->RowStruct && !Table->RowStruct->IsNative())
 		{
 			Table->RowStruct = Cast<UScriptStruct>(StaticDuplicateObject(Table->RowStruct, GetTransientPackage()));
 			Table->RowStruct->SetFlags(RF_Transient);
