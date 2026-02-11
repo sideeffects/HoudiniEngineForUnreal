@@ -256,11 +256,13 @@ FHoudiniParameterDetails::AddParameterResetButton(
 	TSharedPtr<SHorizontalBox> ButtonHorizontalBox = SNew(SHorizontalBox);
 
 	ButtonHorizontalBox->AddSlot()
-		.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+		//.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
 		//.Padding(2.0f, 0.0f, 0.0f, 2.0f)
+		.HAlign(HAlign_Center)
 		[
 			SNew(SBox)
 				.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+				.HAlign(HAlign_Center)
 				[
 					SAssignNew(ResetParametersButton, SButton)
 						.VAlign(VAlign_Center)
