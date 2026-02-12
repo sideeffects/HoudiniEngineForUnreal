@@ -44,9 +44,8 @@
 struct FHoudiniParameterView;
 extern float HoudiniIndentColorScale;
 
-struct FSharedWidgetData
+struct FParameterLayout
 {
-	float SplitterWidth = 0.5f;
 	int IndentLevel = 0;
 	float ColorScale = 0.0f;
 };
@@ -70,17 +69,26 @@ public:
 	UHoudiniParameter* GetMainParameter() const;
 	EHoudiniParameterType GetParameterType() const;
 	EHoudiniFolderParameterType GetFolderType() const;
+	const FString& GetParameterLabel() const;
 
 	TArray<TSharedPtr<FHoudiniParameterView>> Children;
 	TSharedPtr<FHoudiniParameterView> Parent;
 	TArray<TWeakObjectPtr<UHoudiniParameter>> LinkedParameters;
 	FString Name;
-	TSharedPtr<FSharedWidgetData> SharedWidgetData;
+	TSharedPtr<FParameterLayout> LayoutData;
 	TSharedPtr<FHoudiniParameterView> NextJoined;
 	bool bIsJoinedToPrevious = false;
 	bool bShowMultiParms = false;
+	TWeakObjectPtr<UHoudiniCookable> Cookable;
+	TSharedPtr<SSplitter> Splitter;
 
 private:
+	void SetDividerExpansion(float Value) const;
+	float GetDividerExpansion() const;
+
+	FString GetDividerLayoutKey() const;
+
+	static FString LayoutSection;
 
 	void CreateJoinedDetails(IDetailCategoryBuilder& HouParameterCategory, IDetailLayoutBuilder& DetailBuilder);
 
@@ -184,20 +192,16 @@ private:
 	template< class T >
 	static TArray<TWeakObjectPtr<T>> CastParameters(const TArray<TWeakObjectPtr<UHoudiniParameter>>& InParams);
 
-	static FDetailWidgetRow& CreatePropertyRow(
-		const FString& Name,
+	FDetailWidgetRow& CreatePropertyRow(
 		IDetailCategoryBuilder& HouParameterCategory,
 		const TSharedRef<SWidget>& NameWidget,
-		const TSharedRef<SWidget>& ValueWidget,
-		const TSharedPtr<FSharedWidgetData>& SharedData);
+		const TSharedRef<SWidget>& ValueWidget);
 
-	static FDetailWidgetRow& CreateIndentedWholeRow(
-		const FString& Name,
+	FDetailWidgetRow& CreateIndentedWholeRow(
 		IDetailCategoryBuilder& HouParameterCategory,
-		const TSharedRef<SWidget>& Widget,
-		const TSharedPtr<FSharedWidgetData>& SharedData);
+		const TSharedRef<SWidget>& Widget);
 
-	static TSharedRef<SWidget> Indent(const FSharedWidgetData* SharedData, TSharedRef<SWidget> Widget);
+	static TSharedRef<SWidget> Indent(const FParameterLayout* LayoutData, TSharedRef<SWidget> Widget);
 	static FString GetHoudiniParameterTypeString(EHoudiniParameterType Type);
 };
 
@@ -216,7 +220,7 @@ public:
 
 protected:
 	void Construct(const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables);
-	void Construct(TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
+	void Construct(UHoudiniCookable* HC, TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
 
 	void AddParameterResetButton(IDetailCategoryBuilder& HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
 

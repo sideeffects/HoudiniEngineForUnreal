@@ -48,20 +48,25 @@
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Layout/SExpandableArea.h"
 #include "Engine/SkeletalMesh.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundBase.h"
 #include "Widgets/Input/NumericUnitTypeInterface.inl"
+#include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE
 
 float HoudiniIndentColorScale = 0.11f;
 
+FString FHoudiniParameterView::LayoutSection = TEXT("HoudiniEngine.Layout");
+
+
 FDetailWidgetRow& FHoudiniParameterView::CreateIndentedWholeRow(
-	const FString& Name,
 	IDetailCategoryBuilder& HouParameterCategory,
-	const TSharedRef<SWidget>& WholeRowWidget,
-	const TSharedPtr<FSharedWidgetData>& SharedData)
+	const TSharedRef<SWidget>& WholeRowWidget)
 {
+	const FString& Label = this->GetParameterLabel();
+
 	FLinearColor Color = FLinearColor::Black;
 
 	TSharedPtr<SWidget> CustomRowContent = SNew(SBorder)
@@ -77,9 +82,9 @@ FDetailWidgetRow& FHoudiniParameterView::CreateIndentedWholeRow(
 				]
 		];
 
-	TSharedPtr<SWidget> BoxedWidget = FHoudiniParameterView::Indent(SharedData.Get(), CustomRowContent.ToSharedRef());
+	TSharedPtr<SWidget> BoxedWidget = FHoudiniParameterView::Indent(LayoutData.Get(), CustomRowContent.ToSharedRef());
 
-	FDetailWidgetRow& Row = HouParameterCategory.AddCustomRow(FText::FromString(Name));
+	FDetailWidgetRow& Row = HouParameterCategory.AddCustomRow(FText::FromString(Label));
 
 	Row.WholeRowContent()
 		[
@@ -90,13 +95,13 @@ FDetailWidgetRow& FHoudiniParameterView::CreateIndentedWholeRow(
 }
 
 FDetailWidgetRow& FHoudiniParameterView::CreatePropertyRow(
-	const FString& Name,
 	IDetailCategoryBuilder& HouParameterCategory,
 	const TSharedRef<SWidget>& NameWidget,
-	const TSharedRef<SWidget>& ValueWidget,
-	const TSharedPtr<FSharedWidgetData>& SharedData)
+	const TSharedRef<SWidget>& ValueWidget)
 {
 	FLinearColor Color = FLinearColor::Black;
+
+	const FString& Label = this->GetParameterLabel();
 
 	TSharedPtr<SWidget> CustomRowContent = SNew(SBorder)
 		.Padding(0.0f, 0.0f, 0.0f, 0.0f)
@@ -107,7 +112,7 @@ FDetailWidgetRow& FHoudiniParameterView::CreatePropertyRow(
 				.BorderBackgroundColor(Color)
 				.Padding(0.0f)
 				[
-					SNew(SSplitter)
+					SAssignNew(Splitter, SSplitter)
 						.Orientation(Orient_Horizontal)
 						// Style to match Details panel splitter
 						.Style(&FAppStyle::Get().GetWidgetStyle<FSplitterStyle>("DetailsView.Splitter"))
@@ -117,8 +122,32 @@ FDetailWidgetRow& FHoudiniParameterView::CreatePropertyRow(
 						// Left: text/label
 						+ SSplitter::Slot()
 						.SizeRule(SSplitter::FractionOfParent)
-						.Value_Lambda([SharedData]() { return SharedData->SplitterWidth; })
-						.OnSlotResized_Lambda([SharedData](float NewValue) { SharedData->SplitterWidth = NewValue; })
+						.Value_Lambda([this]() { return GetDividerExpansion(); })
+						.OnSlotResized_Lambda([this](float NewValue)
+						{
+							SetDividerExpansion(NewValue);
+
+							if (this->Parent)
+							{
+								// Update sibilings so they all stay in sink.
+								for(auto Child : Parent->Children)
+								{
+									if(Child->Splitter.IsValid() && Child->Splitter->GetChildren()->Num() > 2)
+									{
+										SSplitter::FSlot* LeftSlot = (SSplitter::FSlot*)&Child->Splitter->GetChildren()->GetSlotAt(0);
+										SSplitter::FSlot* RightSlot = (SSplitter::FSlot*)&Child->Splitter->GetChildren()->GetSlotAt(1);
+										
+										if(LeftSlot && RightSlot)
+										{
+											LeftSlot->SetSizeValue(NewValue);
+											RightSlot->SetSizeValue(1.0 - NewValue);
+										}
+
+										Child->Splitter->Invalidate(EInvalidateWidgetReason::LayoutAndVolatility);
+									}
+								}
+							}
+						})
 						[
 							SNew(SBorder)
 								.BorderImage(FCoreStyle::Get().GetBrush("NoBrush"))
@@ -131,17 +160,25 @@ FDetailWidgetRow& FHoudiniParameterView::CreatePropertyRow(
 					// Right: value widget
 					+ SSplitter::Slot()
 						.SizeRule(SSplitter::FractionOfParent)
-						.Value_Lambda([SharedData]() { return 1.0f - SharedData->SplitterWidth; })
+						.Value_Lambda([this]() { return 1.0f - GetDividerExpansion(); })
 						[
-							ValueWidget
+							SNew(SBorder)
+								.BorderImage(FCoreStyle::Get().GetBrush("NoBrush"))
+								.BorderBackgroundColor(Color)
+								.Clipping(EWidgetClipping::ClipToBounds)
+								.Padding(FMargin(5.0f, 0.0f))
+							[
+								ValueWidget
+							]
+
 						]
 				]
 		];
 
 
-	TSharedPtr<SWidget> BoxedWidget = Indent(SharedData.Get(), CustomRowContent.ToSharedRef());
+	TSharedPtr<SWidget> BoxedWidget = Indent(LayoutData.Get(), CustomRowContent.ToSharedRef());
 
-	FDetailWidgetRow& Row = HouParameterCategory.AddCustomRow(FText::FromString(Name));
+	FDetailWidgetRow& Row = HouParameterCategory.AddCustomRow(FText::FromString(Label));
 
 	Row.WholeRowContent()
 		[
@@ -151,17 +188,17 @@ FDetailWidgetRow& FHoudiniParameterView::CreatePropertyRow(
 	return Row;
 }
 
-TSharedRef<SWidget> FHoudiniParameterView::Indent(const FSharedWidgetData* SharedData, TSharedRef<SWidget> Widget)
+TSharedRef<SWidget> FHoudiniParameterView::Indent(const FParameterLayout* LayoutData, TSharedRef<SWidget> Widget)
 {
 	TSharedPtr<SWidget> Root;
 	TSharedPtr<SBorder> Last;
 
-	for(int Indent = 0; Indent <= SharedData->IndentLevel; Indent++)
+	for(int Indent = 0; Indent <= LayoutData->IndentLevel; Indent++)
 	{
 		FLinearColor Color = FLinearColor(0.f, 0.0f, 0.0f, 0.0f);
-		if(Indent == SharedData->IndentLevel)
+		if(Indent == LayoutData->IndentLevel)
 		{
-			Color = FLinearColor(SharedData->ColorScale, SharedData->ColorScale, SharedData->ColorScale, SharedData->ColorScale);
+			Color = FLinearColor(LayoutData->ColorScale, LayoutData->ColorScale, LayoutData->ColorScale, LayoutData->ColorScale);
 		}
 		else if(Indent > 0)
 		{
@@ -201,7 +238,7 @@ TSharedRef<SWidget> FHoudiniParameterView::Indent(const FSharedWidgetData* Share
 FHoudiniParameterView::FHoudiniParameterView() :
 	Parent(nullptr)
 {
-	SharedWidgetData = MakeShared<FSharedWidgetData>();
+	LayoutData = MakeShared<FParameterLayout>();
 }
 
 void 
@@ -370,22 +407,22 @@ void FHoudiniParameterView::SetIndent(int Indent)
 	switch(ParameterType)
 	{
 	case EHoudiniParameterType::Folder:
-		this->SharedWidgetData->IndentLevel = Indent;
+		this->LayoutData->IndentLevel = Indent;
 		if(Indent > 0)
-			this->SharedWidgetData->ColorScale = HoudiniIndentColorScale;
+			this->LayoutData->ColorScale = HoudiniIndentColorScale;
 		Indent++;
 		break;
 
 	case EHoudiniParameterType::MultiParm:
-		SharedWidgetData->IndentLevel = Indent;
-		SharedWidgetData->ColorScale = HoudiniIndentColorScale;
+		LayoutData->IndentLevel = Indent;
+		LayoutData->ColorScale = HoudiniIndentColorScale;
 		Indent++;
 		break;
 
 	default:
-		this->SharedWidgetData->IndentLevel = Indent;
+		this->LayoutData->IndentLevel = Indent;
 		if(Indent > 0)
-			this->SharedWidgetData->ColorScale = HoudiniIndentColorScale;
+			this->LayoutData->ColorScale = HoudiniIndentColorScale;
 		break;
 	}
 
@@ -401,7 +438,7 @@ FHoudiniParameterDetails::Construct(const TArray<TWeakObjectPtr<UHoudiniCookable
 	ParameterViews.Empty();
 
 	if(!Cookables.IsEmpty() && Cookables[0].IsValid())
-		Construct(Cookables[0]->GetParameters());
+		Construct(Cookables[0].Get(), Cookables[0]->GetParameters());
 
 	for(int32 ParamIdx = 0; ParamIdx < Cookables[0]->GetNumParameters(); ParamIdx++)
 	{
@@ -477,7 +514,7 @@ FHoudiniParameterDetails::SetMultiParmWidgets(FHoudiniParameterView* ParameterVi
 }
 
 void
-FHoudiniParameterDetails::Construct(TArray<TObjectPtr<UHoudiniParameter>>& Parameters)
+FHoudiniParameterDetails::Construct(UHoudiniCookable* HC, TArray<TObjectPtr<UHoudiniParameter>>& Parameters)
 {
 	// Deserialize the parameters into a non-flat tree. This can, in theory, be done by a depth-first
 	// traversal, but this is way simpler. And, more importantly,
@@ -557,6 +594,7 @@ FHoudiniParameterDetails::Construct(TArray<TObjectPtr<UHoudiniParameter>>& Param
 		auto ParentView = (ParameterParents[Index] == -1) ? Root : ParameterViews[ParameterParents[Index]];
 		ParentView->Children.Add(ParameterViews[Index]);
 		ParameterViews[Index]->Parent = ParentView;
+		ParameterViews[Index]->Cookable = HC;
 	}
 
 	// Set multiparm widgets
@@ -573,16 +611,52 @@ FHoudiniParameterView::CreateNameWidget(const UHoudiniParameter* Parameter)
 	TSharedRef<SWidget> Widget =
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
-		.AutoWidth()
+		.FillWidth(1.0)
 		.Padding(0.0f, 0.0f)
 		[
 			SNew(STextBlock)
+				.Clipping(EWidgetClipping::ClipToBoundsAlways)
 				.Text(FText::FromString(bShowLabel ? Parameter->GetParameterLabel() : FString(TEXT(""))))
 				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
 				.ToolTipText(GetParameterTooltip(Parameter))
 
 		];
 	return Widget;
+}
+
+FString FHoudiniParameterView::GetDividerLayoutKey() const
+{
+
+	FString Result = this->Cookable->GetHoudiniAsset()->GetPathName();
+
+	if (this->Parent && this->Parent->GetMainParameter())
+	{
+		Result += TEXT("/") / this->Parent->GetMainParameter()->GetParameterName();
+	}
+
+	Result += TEXT("_split");
+	return Result;
+}
+
+void FHoudiniParameterView::SetDividerExpansion(float Value) const
+{
+	FString Key = GetDividerLayoutKey();
+	GConfig->SetFloat(*LayoutSection, *Key, Value, GEditorPerProjectIni);
+//	GConfig->Flush(false, GEditorPerProjectIni);
+}
+
+float FHoudiniParameterView::GetDividerExpansion() const
+{
+	FString Key = GetDividerLayoutKey();
+	float Value;
+	bool bExists = GConfig->GetFloat(*LayoutSection, *Key, Value, GEditorPerProjectIni);
+	if(!bExists)
+	{
+		SetDividerExpansion(0.3f);
+	}
+
+	return Value;
 }
 
 void 
@@ -720,10 +794,8 @@ FHoudiniParameterView::CreateJoinedDetails(IDetailCategoryBuilder& HouParameterC
 	}
 
 	CreateIndentedWholeRow(
-		this->Name,
 		HouParameterCategory,
-		HorizontalBox,
-		SharedWidgetData);
+		HorizontalBox);
 
 }
 void 
@@ -858,11 +930,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetMultiParm(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 
 		break;
 	}
@@ -874,11 +944,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetInt(IntParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 
 		break;
 	}
@@ -890,11 +958,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetFloat(FloatParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 
 		break;
 	}
@@ -907,11 +973,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetString(HouParameterCategory, StringParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 
 		break;
 	}
@@ -922,11 +986,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetChoice(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 
 		break;
 	}
@@ -937,11 +999,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetChoice(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 
 		break;
 	}
@@ -952,10 +1012,8 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> Widget = CreateWidgetSeparator(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreateIndentedWholeRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
-			Widget,
-			SharedWidgetData);
+			Widget);
 		break;
 	}
 
@@ -966,11 +1024,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetColor(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 		break;
 	}
 
@@ -983,11 +1039,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetColorRamp(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 		break;
 	}
 
@@ -1000,11 +1054,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetFloatRamp(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 		break;
 	}
 
@@ -1015,11 +1067,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetButton(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 		break;
 	}
 
@@ -1033,11 +1083,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetFile(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 		break;
 	}
 	case EHoudiniParameterType::ButtonStrip:
@@ -1047,11 +1095,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetButtonStrip(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 		break;
 	}
 
@@ -1062,11 +1108,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetOperatorPath(HouParameterCategory, TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 
 		break;
 	}
@@ -1077,11 +1121,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = SNullWidget::NullWidget;
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 		break;
 	}
 
@@ -1092,11 +1134,9 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 		TSharedRef<SWidget> ValueWidget = CreateWidgetToggle(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
-			Param->GetParameterLabel(),
 			HouParameterCategory,
 			NameWidget,
-			ValueWidget,
-			SharedWidgetData);
+			ValueWidget);
 		break;
 	}
 	case EHoudiniParameterType::Invalid:
@@ -1159,6 +1199,20 @@ FHoudiniParameterView::GetParameterType() const
 		return EHoudiniParameterType::Invalid;
 
 }
+
+const FString& 
+FHoudiniParameterView::GetParameterLabel() const
+{
+	UHoudiniParameter* Parameter = GetMainParameter();
+	if(Parameter)
+		return Parameter->GetParameterLabel();
+	else
+	{
+		static const FString EmptyParameterString = TEXT("");
+		return EmptyParameterString;
+	}
+}
+
 
 void 
 FHoudiniParameterView::CreateTabbedFolderRow(
@@ -1235,7 +1289,7 @@ FHoudiniParameterView::CreateTabbedFolderRow(
 	FDetailWidgetRow& TabRow = HouParameterCategory.AddCustomRow(FText::FromString(Parameter->GetParameterLabel()));
 	TabRow.WholeRowContent()
 		[
-			Indent(this->SharedWidgetData.Get(), HorizontalBox.ToSharedRef())
+			Indent(this->LayoutData.Get(), HorizontalBox.ToSharedRef())
 		];
 
 }
@@ -1332,7 +1386,7 @@ FHoudiniParameterView::CreateRadioFolderRow(
 	FDetailWidgetRow& TabRow = HouParameterCategory.AddCustomRow(FText::FromString(Parameter->GetParameterLabel()));
 	TabRow.WholeRowContent()
 		[
-			Indent(this->SharedWidgetData.Get(), HorizontalBox.ToSharedRef())
+			Indent(this->LayoutData.Get(), HorizontalBox.ToSharedRef())
 		];
 
 }
@@ -1389,7 +1443,7 @@ FHoudiniParameterView::CreateCollapsableFolderRow(
 	FDetailWidgetRow& TabRow = HouParameterCategory.AddCustomRow(FText::FromString(FolderParam->GetParameterLabel()));
 	TabRow.WholeRowContent()
 		[
-			Indent(this->Parent->SharedWidgetData.Get(), HorizontalBox.ToSharedRef())
+			Indent(this->Parent->LayoutData.Get(), HorizontalBox.ToSharedRef())
 		];
 }
 
@@ -1438,7 +1492,7 @@ FHoudiniParameterView::CreateSimpleFolderRow(
 	FDetailWidgetRow& TabRow = HouParameterCategory.AddCustomRow(FText::FromString(FolderParam->GetParameterLabel()));
 	TabRow.WholeRowContent()
 		[
-			Indent(this->Parent->SharedWidgetData.Get(), HorizontalBox.ToSharedRef())
+			Indent(this->Parent->LayoutData.Get(), HorizontalBox.ToSharedRef())
 		];
 }
 
@@ -1514,7 +1568,7 @@ FHoudiniParameterView::PrintOut(int Spacing)
 		ParameterTypeName = GetHoudiniParameterTypeString(this->LinkedParameters[0]->GetParameterType());
 
 	HOUDINI_LOG_MESSAGE(TEXT("%sType: %s"), *Spaces, *ParameterTypeName);
-	HOUDINI_LOG_MESSAGE(TEXT("%sIndent: %d"), *Spaces, this->SharedWidgetData->IndentLevel);
+	HOUDINI_LOG_MESSAGE(TEXT("%sIndent: %d"), *Spaces, this->LayoutData->IndentLevel);
 
 	for(auto Child : Children)
 	{
