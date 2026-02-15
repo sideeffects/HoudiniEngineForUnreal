@@ -2179,6 +2179,12 @@ UHoudiniCookable::GetUseOutputNodes() const
 }
 
 bool
+UHoudiniCookable::GetForcePCGOutputs() const
+{
+	return bForcePCGOutputs;
+}
+
+bool
 UHoudiniCookable::GetOutputTemplateGeos() const
 {
 	return OutputData->bOutputTemplateGeos;
@@ -2380,6 +2386,12 @@ UHoudiniCookable::SetUseOutputNodes(bool bEnable)
 		return;
 
 	OutputData->bUseOutputNodes = bEnable;
+}
+
+void
+UHoudiniCookable::SetForcePCG(bool bEnable)
+{
+	bForcePCGOutputs = bEnable;
 }
 
 void

@@ -48,8 +48,11 @@ bool HasAttribute(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Ow
 }
 
 
-bool FHoudiniPCGTranslator::IsPCGOutput(HAPI_NodeId NodeId, HAPI_PartId PartId)
+bool FHoudiniPCGTranslator::IsPCGOutput(bool bForcePCG, HAPI_NodeId NodeId, HAPI_PartId PartId)
 {
+	if(bForcePCG)
+		return true;
+
 	if(HasAttribute(NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_POINT, HOUDINI_PCG_PARAMS_OUTPUT_NAME))
 		return true;
 	if(HasAttribute(NodeId, PartId, HAPI_AttributeOwner::HAPI_ATTROWNER_VERTEX, HOUDINI_PCG_PARAMS_OUTPUT_NAME))

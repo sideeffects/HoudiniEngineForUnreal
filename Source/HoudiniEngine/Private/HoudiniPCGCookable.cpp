@@ -661,6 +661,7 @@ UHoudiniPCGCookable::UpdateParametersAndInputs(FPCGContext* Context)
 		Settings = Context->GetInputSettings<UHoudiniPCGSettings>();
 
 	Cookable->GetOutputData()->bCreateSceneComponents = Settings ? Settings->bCreateSceneComponents : false;
+	Cookable->SetForcePCG(Settings ? Settings->bForcePCGOutputs : false);
 
 	if(Context)
 	{

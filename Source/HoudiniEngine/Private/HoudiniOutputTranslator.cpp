@@ -112,7 +112,8 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		HC->OutputData->bOutputTemplateGeos,
 		HC->OutputData->bUseOutputNodes,
 		HC->OutputData->bEnableCurveEditing,
-		HC->OutputData->bCreateSceneComponents);
+		HC->OutputData->bCreateSceneComponents,
+		HC->bForcePCGOutputs);
 
 	// 2. Update tags and generic attributes on the Cookable and its component (if any)
 	UpdateOutputAttributesAndTags(HC);
@@ -198,7 +199,8 @@ FHoudiniOutputTranslator::UpdateOutputObjects(
 	bool bOutputTemplateGeos,
 	bool bUseOutputNodes,
 	bool bEnableCurveEditing,
-	bool bCreateSceneComponents)
+	bool bCreateSceneComponents,
+	bool bForcePCG)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateOutputObjects);
 
@@ -217,7 +219,7 @@ FHoudiniOutputTranslator::UpdateOutputObjects(
 	TArray<TObjectPtr<UHoudiniOutput>> NewOutputs;
 	if (FHoudiniOutputTranslator::BuildAllOutputs(
 		InNodeId, InOuter, InNodeIdsToCook, InOutputNodeCookCounts,
-		Outputs, NewOutputs, bOutputTemplateGeos, bUseOutputNodes, bEnableCurveEditing, bCreateSceneComponents))
+		Outputs, NewOutputs, bOutputTemplateGeos, bUseOutputNodes, bEnableCurveEditing, bCreateSceneComponents, bForcePCG))
 	{
 		ClearAndRemoveOutputs(Outputs, EHoudiniClearFlags::EHoudiniClear_Assets);
 
@@ -1254,7 +1256,8 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	bool InOutputTemplatedGeos,
 	bool InUseOutputNodes, 
 	bool bGatherEditableCurves,
-	bool bCreateSceneComponents)
+	bool bCreateSceneComponents,
+	bool bForcePCGOutput)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs);
 
@@ -1923,7 +1926,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 									
 								}
 #if defined(HOUDINI_USE_PCG)
-								else if (FHoudiniPCGTranslator::IsPCGOutput(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+								else if (FHoudiniPCGTranslator::IsPCGOutput(bForcePCGOutput, CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
 								{
 									CurrentPartType = EHoudiniPartType::PCG;
 								}
@@ -1990,7 +1993,7 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 							CurrentPartType = EHoudiniPartType::LandscapeSpline;
 						}
 #if defined(HOUDINI_USE_PCG)
-						else if(FHoudiniPCGTranslator::IsPCGOutput(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+						else if(FHoudiniPCGTranslator::IsPCGOutput(bForcePCGOutput, CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
 						{
 							CurrentPartType = EHoudiniPartType::PCG;
 						}

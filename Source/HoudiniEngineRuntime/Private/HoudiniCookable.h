@@ -502,6 +502,7 @@ public:
 	bool GetCookOnCookableInputCook() const;
 	bool IsOutputless() const;
 	bool GetUseOutputNodes() const;
+	bool GetForcePCGOutputs() const;
 	bool GetOutputTemplateGeos() const;
 	bool GetUploadTransformsToHoudiniEngine() const;
 	bool GetLandscapeUseTempLayers() const;
@@ -738,6 +739,7 @@ public:
 	void SetCookOnCookableInputCook(bool bEnable);
 	void SetOutputless(bool bEnable);
 	void SetUseOutputNodes(bool bEnable);
+	void SetForcePCG(bool bEnable);
 	void SetOutputTemplateGeos(bool bEnable);
 	void SetUploadTransformsToHoudiniEngine(bool bEnable);
 	void SetLandscapeUseTempLayers(bool bEnable);
@@ -912,6 +914,10 @@ protected:
 
 	UPROPERTY()
 	bool bShouldUpdateUI = false;
+
+	// Should outputs be treated as PCG?
+	UPROPERTY()
+	bool bForcePCGOutputs = false;
 
 	// Ids of the nodes that should also be cooked with this cookable
 	// This can be used for additional outputs or templated nodes if used.

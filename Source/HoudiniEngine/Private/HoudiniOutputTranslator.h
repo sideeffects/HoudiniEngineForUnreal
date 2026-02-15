@@ -88,7 +88,8 @@ public:
 		bool InOutputTemplatedGeos,
 		bool InUseOutputNodes,
 		bool bGatherEditableCurves,
-		bool bCreateSceneComponents);
+		bool bCreateSceneComponents,
+		bool bForcePCGOutput);
 
 	// Helpers functions used to convert HAPI types
 	static EHoudiniGeoType ConvertHapiGeoType(const HAPI_GeoType& InType);
@@ -123,7 +124,8 @@ protected:
 		bool bOutputTemplateGeos,
 		bool bUseOutputNodes,
 		bool bEnableCurveEditing,
-		bool bCreateComponents);
+		bool bCreateComponents,
+		bool bForcePCG);
 
 	// 2. Update tags and generic attributes on HAC
 	static bool UpdateOutputAttributesAndTags(UHoudiniCookable* InHC);

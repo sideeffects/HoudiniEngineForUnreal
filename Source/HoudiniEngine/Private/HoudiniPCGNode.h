@@ -105,8 +105,16 @@ public:
 	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
 	bool bAutomaticallyDeleteTempAssets = true;
 
-	UPROPERTY(EditAnywhere, Category = HoudiniPCG)
+	UPROPERTY(EditAnywhere, Category = HoudiniPCG, 
+		meta = (DisplayName = "Use PCG Cache",
+		ToolTip = "If enabled, this node will use PCG's built in cache. Using the PCG cache means PCG will only trigger the node's execution when an input changes, which will be problematic when using external HDA inputs. Disabling the cache will cause the node to regenerate more frequently, but ensures up-to-date results."))
 	bool bUsePCGCache = true;
+
+	UPROPERTY(EditAnywhere, Category = HoudiniPCG, 
+		meta = (DisplayName = "Force PCG Outputs", 
+			ToolTip = "Forces outputs to be treated as if unreal_pcg_param attribute were specified."))
+
+	bool bForcePCGOutputs = false;
 
 	UPROPERTY()
 	int64 IterationCount = 0; // dummy value to keep track of changes.

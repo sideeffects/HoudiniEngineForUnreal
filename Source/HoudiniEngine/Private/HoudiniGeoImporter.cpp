@@ -1176,7 +1176,9 @@ UHoudiniGeoImporter::BuildAllOutputsForNode(
 
 	// TArray<UHoudiniOutput*> OldOutputs;	
 	TMap<HAPI_NodeId, int32> OutputNodeCookCount;
-	if (!FHoudiniOutputTranslator::BuildAllOutputs(InNodeId, InOuter, OutputNodes, OutputNodeCookCount, InOldOutputs, OutNewOutputs, bOutputTemplateGeos, bInUseOutputNodes, bGatherEditableCurves, bCreateSceneComponents))
+	if (!FHoudiniOutputTranslator::BuildAllOutputs(InNodeId, InOuter, 
+		OutputNodes, OutputNodeCookCount, InOldOutputs, OutNewOutputs, 
+		bOutputTemplateGeos, bInUseOutputNodes, bGatherEditableCurves, bCreateSceneComponents, false))
 	{
 		// Couldn't create the package
 		HOUDINI_LOG_ERROR(TEXT("Houdini GEO Importer: Failed to process the File SOP's outputs!"));

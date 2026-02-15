@@ -41,7 +41,7 @@ public:
 	static UHoudiniPCGOutputData* CreatePCGParamsOutput(UHoudiniOutput* CurOutput);
 	static UHoudiniPCGOutputData* CreatePCGSplinesOutput(UHoudiniOutput* CurOutput);
 
-	static bool IsPCGOutput(HAPI_NodeId NodeId, HAPI_PartId PartId);
+	static bool IsPCGOutput(bool bForcePCG, HAPI_NodeId NodeId, HAPI_PartId PartId);
 private:
 	static UPCGParamData * CreatePCGAttributes(HAPI_NodeId NodeId, HAPI_PartId PartId, HAPI_AttributeOwner Owner);
 	static void CreatePCGMetaAttributes(UPCGMetadata* MetaData, 
