@@ -1,10 +1,10 @@
 {
 	"FileVersion" : 3,
 	"FriendlyName" : "Houdini Engine",
-	"Version" : 22000231,
+	"Version" : 22000234,
 	"VersionName" : "3.0 - H22
 .0
-.231",
+.234",
 	"CreatedBy" : "Side Effects Software Inc.",
 	"CreatedByURL": "https://www.sidefx.com/",
 	"DocsURL": "https://www.sidefx.com/docs/unreal/",
