@@ -671,7 +671,6 @@ public:
 	// Delegate for when a network completes a cook. Passes the asset link, the network, a bAnyWorkItemsFailed.
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPostTOPNetworkCookDelegate, UHoudiniPDGAssetLink*, UTOPNetwork*, const bool);
 	
-	static FString GetAssetLinkStatus(const EPDGLinkState& InLinkState);
 	static FString GetTOPNodeStatus(const UTOPNode* InTOPNode);
 	static FLinearColor GetTOPNodeStatusColor(const UTOPNode* InTOPNode);
 

@@ -1442,28 +1442,6 @@ UHoudiniPDGAssetLink::ResetTOPNetworkWorkItemTally(UTOPNetwork* TOPNetwork)
 	}
 }
 
-
-FString 
-UHoudiniPDGAssetLink::GetAssetLinkStatus(const EPDGLinkState& InLinkState)
-{
-	FString Status;
-	switch (InLinkState)
-	{
-	case EPDGLinkState::Inactive:
-		Status = TEXT("Inactive");
-	case EPDGLinkState::Linking:
-		Status = TEXT("Linking");
-	case EPDGLinkState::Linked:
-		Status = TEXT("Linked");
-	case EPDGLinkState::Error_Not_Linked:
-		Status = TEXT("Not Linked");
-	default:
-		Status = TEXT("");
-	}
-
-	return Status;
-}
-
 FString
 UHoudiniPDGAssetLink::GetTOPNodeStatus(const UTOPNode* InTOPNode)
 {
