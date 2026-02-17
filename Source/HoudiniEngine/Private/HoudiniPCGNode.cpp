@@ -105,9 +105,34 @@ void UHoudiniPCGSettings::GetStaticTrackedKeys(FPCGSelectionKeyToSettingsMap& Ou
 	OutKeysToSettings.FindOrAdd(Key).Emplace(this, /*bCulling=*/false);
 }
 
+void UHoudiniPCGSettings::UpdateInputLabelsFromCookable(UPCGNode* Node, const TArray<TObjectPtr<UPCGPin>>& InputPins)
+{
+	// This function is called either from 
+	//		ApplyDeprecationBeforeUpdatePins() which is called during PostLoad()
+	//	or	PostEditPropertyChanged() which is Epic's recommendation of where to put it after the ParameterCookable is recooked.	
+
+	// First PCG Node input is skipped as its Parameters.
+	for(int Index = 1; Index < InputPins.Num(); Index++)
+	{
+		FString NewPinName = this->GetHDAInputName(Index - 1);
+		FName& OldPinName = InputPins[Index]->Properties.Label;
+		if(NewPinName.IsEmpty())
+			NewPinName = FHoudiniPCGUtils::GetHDAInputName(Index);
+
+		Node->RenameInputPin(OldPinName, FName(NewPinName));
+	}
+}
+
 void UHoudiniPCGSettings::ApplyDeprecationBeforeUpdatePins(UPCGNode* InOutNode, TArray<TObjectPtr<UPCGPin>>& InputPins, TArray<TObjectPtr<UPCGPin>>& OutputPins)
 {
 	Super::ApplyDeprecationBeforeUpdatePins(InOutNode, InputPins, OutputPins);
+	if (PinLayoutVersion == 0)
+	{
+		// Upgrade old Input names ("Input 0", etc) to using the label from the HDA.
+		UpdateInputLabelsFromCookable(InOutNode, InputPins);
+
+		PinLayoutVersion = 1;
+	}
 }
 
 FString UHoudiniPCGSettings::GetAdditionalTitleInformation() const
@@ -156,6 +181,23 @@ FName UHoudiniPCGSettings::GetOutputPinName() const
 	return FName(*FString::Printf(TEXT("Outputs")));
 }
 
+FString UHoudiniPCGSettings::GetHDAInputName(int Index) const
+{
+	FString Result;
+	if(!IsValid(ParameterCookable))
+		return Result;
+
+	if(!IsValid(ParameterCookable->Cookable))
+		return  Result;
+
+	if(ParameterCookable->Cookable->GetNumInputs() <= Index)
+		return Result;
+
+	Result = ParameterCookable->Cookable->GetInputAt(Index)->GetInputLabel();
+
+	return Result;
+}
+
 TArray<FPCGPinProperties> UHoudiniPCGSettings::InputPinProperties() const
 {
 	TArray<FPCGPinProperties> PinProperties;
@@ -170,17 +212,12 @@ TArray<FPCGPinProperties> UHoudiniPCGSettings::InputPinProperties() const
 
 	for(int Index = 0; Index < NumInputs; Index++)
 	{
-		FString PinName = FHoudiniPCGUtils::GetHDAInputName(Index);
+		FString PinName = GetHDAInputName(Index);
+		if (PinName.IsEmpty())
+			PinName = FHoudiniPCGUtils::GetHDAInputName(Index);
+
 		FPCGPinProperties& InputPinProperty = PinProperties.Emplace_GetRef(FName(PinName), EPCGDataType::Any, /*bAllowMultipleConnections=*/false);
 		InputPinProperty.SetNormalPin();
-#if	WITH_EDITORONLY_DATA
-		if (ParameterCookable && ParameterCookable->Cookable)
-		{
-			auto HoudiniInput = ParameterCookable->Cookable->GetInputAt(Index);
-			InputPinProperty.Tooltip = FText::FromString(HoudiniInput->GetInputLabel());
-		}
-
-#endif
 	}
 
 	return PinProperties;
@@ -194,6 +231,13 @@ FPCGElementPtr UHoudiniPCGSettings::CreateElement() const
 
 void UHoudiniPCGSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) 
 {
+	UPCGNode* Node = Cast<UPCGNode>(GetOuter());
+	if(Node)
+	{
+		UpdateInputLabelsFromCookable(Node, Node->GetInputPins());
+	}
+
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
@@ -342,7 +386,7 @@ void UHoudiniPCGSettings::SetNodeLabelPrefix()
 	ParameterCookable->Cookable->SetNodeLabelPrefix(NodeLabel);
 }
 
-void UHoudiniPCGSettings::ResetFromHDA()
+void UHoudiniPCGSettings::RefreshFromHDA()
 {
 	this->Modify();
 
@@ -360,6 +404,7 @@ void UHoudiniPCGSettings::PopulateInputsAndOutputs()
 	this->Modify();
 
 	UCookableInputData* InputData = ParameterCookable->Cookable->GetInputData();
+
 	NumInputs = InputData ? ParameterCookable->Cookable->GetInputData()->Inputs.Num() : 0;
 
 	FProperty* Prop = FindFProperty<FProperty>(GetClass(), GET_MEMBER_NAME_CHECKED(UHoudiniPCGSettings, IterationCount));

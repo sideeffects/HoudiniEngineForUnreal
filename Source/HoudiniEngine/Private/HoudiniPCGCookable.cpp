@@ -251,7 +251,7 @@ UHoudiniPCGCookable::ApplyInputsToCookable(const FPCGContext* Context)
 	{
 		UHoudiniInput* Input = this->Cookable->GetInputAt(Index);
 
-		FString InputName = FHoudiniPCGUtils::GetHDAInputName(Index);
+		FString InputName = Input->GetInputLabel();
 
 		const TArray<FPCGTaggedData>& ContextInputData = Context->InputData.GetInputsByPin(FName(InputName));
 

@@ -87,7 +87,7 @@ void UHoudiniPCGSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 								{
 									if (Settings.IsValid())
 									{
-										Settings.Get()->ResetFromHDA();
+										Settings.Get()->RefreshFromHDA();
 									}
 									return FReply::Handled();
 								})
@@ -95,7 +95,7 @@ void UHoudiniPCGSettingsCustomization::CustomizeDetails(IDetailLayoutBuilder& De
 							[
 								SNew(STextBlock)
 									.Font(IDetailLayoutBuilder::GetDetailFont())
-									.Text(LOCTEXT("UHoudiniPCGSettingsCustomizationRebuildHDA", "Reset From HDA"))
+									.Text(LOCTEXT("UHoudiniPCGSettingsCustomizationRebuildHDA", "Refresh From HDA"))
 							]
 					]
 			];

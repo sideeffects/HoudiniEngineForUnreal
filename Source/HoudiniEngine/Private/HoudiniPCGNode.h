@@ -79,7 +79,8 @@ public:
 	virtual TArray<FPCGPinProperties> OutputPinProperties() const override;
 	virtual TArray<FPCGPinProperties> InputPinProperties() const override;
 
-	void ResetFromHDA();
+	void RefreshFromHDA();
+	void UpdateInputLabelsFromCookable(UPCGNode* Node, const TArray<TObjectPtr<UPCGPin>>& InputPins);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = HoudiniPCG)
 	TObjectPtr<UHoudiniAsset> HoudiniAsset;
@@ -124,6 +125,9 @@ public:
 	UPROPERTY(Instanced)
 	TObjectPtr<UHoudiniPCGCookable> ParameterCookable;
 
+	UPROPERTY()
+	int PinLayoutVersion = 0;
+
 protected:
 #if WITH_EDITOR
 	virtual EPCGChangeType GetChangeTypeForProperty(const FName& InPropertyName) const override { return Super::GetChangeTypeForProperty(InPropertyName) | EPCGChangeType::Cosmetic; }
@@ -140,6 +144,8 @@ protected:
 	void SetupCookable();
 	void ForceRefreshUI();
 	void SetNodeLabelPrefix();
+
+	FString GetHDAInputName(int Index) const;
 };
 
 enum class EHoudiniPCGContextState
