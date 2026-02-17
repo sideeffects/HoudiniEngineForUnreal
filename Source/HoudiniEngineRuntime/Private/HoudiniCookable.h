@@ -252,6 +252,7 @@ public:
 	// BAKE
 
 	// Previously baked outputs
+	UPROPERTY()
 	TArray<FHoudiniBakedOutput> BakedOutputs;
 
 	// Bake Options
