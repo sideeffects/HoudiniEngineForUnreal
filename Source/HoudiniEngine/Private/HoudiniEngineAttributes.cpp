@@ -1503,6 +1503,8 @@ HAPI_StorageType FHoudiniHapiAccessor::GetTypeWithoutArray(HAPI_StorageType Stor
 
 bool FHoudiniHapiAccessor::GetAttributeStrings(HAPI_AttributeOwner Owner, FHoudiniEngineIndexedStringMap& StringArray, int IndexStart, int IndexCount)
 {
+	StringArray = {};
+
 	HAPI_AttributeInfo AttrInfo;
 	if (!GetInfo(AttrInfo, Owner))
 		return false;
