@@ -730,7 +730,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 						HC->GetNodeId(),
 						bUseOutputNodes,
 						bOutputTemplateGeos,
-						HC->OutputData->bEnableCurveEditing,
+						HC->GetEnableCurveEditing(),
 						NodesToCook);
 				}
 
@@ -1437,12 +1437,12 @@ FHoudiniEngineManager::PreCook(UHoudiniCookable* HC)
 			// Handle loaded outputs
 			FHoudiniOutputTranslator::UpdateLoadedOutputs(
 				HC->GetNodeId(),
-				HC->OutputData->Outputs,
-				HC->GetComponent());
+				HC->GetOutputs(),
+				HC->GetComponent(),
+				HC->GetEnableCurveEditing());
 		}		
 
 		// TODO: Handle loaded curve ?
-		// TODO: Handle editable node ?
 	}
 
 	if (HC->IsParameterSupported())

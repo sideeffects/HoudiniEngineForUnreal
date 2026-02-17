@@ -216,9 +216,11 @@ public:
 	// Whether or not to support multiple mesh outputs on one HDA output. This is currently in Alpha  testing.
 	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 0))
 	bool bSplitMeshSupport = false;
-		
+	
+	// Look for editable curve::1.0 nodes to create curve inputs
+	// Legacy workflow - deprecated - disabled by default
 	UPROPERTY()
-	bool bEnableCurveEditing;
+	bool bEnableCurveEditing = false;
 
 	// Generation properties for the Static Meshes
 	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 1)/*, meta = (ShowOnlyInnerProperties)*/)

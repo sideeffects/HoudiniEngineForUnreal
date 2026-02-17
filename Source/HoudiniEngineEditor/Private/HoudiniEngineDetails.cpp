@@ -1878,13 +1878,13 @@ FHoudiniEngineDetails::CreateMiscOptionsWidgets(
 	// Curve Editing
 	if(MainHC->IsOutputSupported())
 	{
-		auto TooltipText = LOCTEXT("HoudiniEngineEnableCurveEditingTooltip", "Enable curve editing.");
-
+		auto TooltipText = LOCTEXT("HoudiniEngineEnableEditableCurvesTooltip",
+			"Enables a legacy/deprecated workflow that uses editable curve::1.0 nodes to create curve inputs.");
 
 		FDetailWidgetRow& Row = Group.AddWidgetRow();
 		Row.NameWidget.Widget = SNew(STextBlock)
 			.MinDesiredWidth(160.f)
-			.Text(LOCTEXT("HoudiniEngineEnableCurveEditingToolLabel", "Enable Curve Editing"))
+			.Text(LOCTEXT("HoudiniEngineEnableEditableCurvesLabel", "Enable Editable Curves"))
 			.Font(_GetEditorStyle().GetFontStyle(HOUDINI_DETAILS_FONT))
 			.ToolTipText(TooltipText);
 
@@ -2519,7 +2519,9 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 	// Curve Editing
 	if (MainHC->IsOutputSupported())
 	{
-		TooltipText = LOCTEXT("HoudiniEngineEnableCurveEditingTooltip", "Enable curve editing.");
+		TooltipText = LOCTEXT("HoudiniEngineEnableEditableCurvesTooltip",
+			"Enables a legacy/deprecated workflow that uses editable curve::1.0 nodes to create curve inputs.");
+
 		MiscVerticalBox->AddSlot()
 		.AutoHeight()
 		[
@@ -2529,7 +2531,7 @@ FHoudiniEngineDetails::CreateAssetOptionsWidgets(
 			[
 				SNew(STextBlock)
 				.MinDesiredWidth(160.f)
-				.Text(LOCTEXT("HoudiniEngineEnableCurveEditingToolLabel", "Enable Curve Editing"))
+				.Text(LOCTEXT("HoudiniEngineEnableEditableCurvesLabel", "Enable Editable Curves"))
 				.ToolTipText(TooltipText)
 			]
 			+ SHorizontalBox::Slot()
