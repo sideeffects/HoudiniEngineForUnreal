@@ -176,7 +176,7 @@ UCookableOutputData::UCookableOutputData(const FObjectInitializer& ObjectInitial
 	, bOutputTemplateGeos(false)
 	, bUseOutputNodes(true)
 	, bSplitMeshSupport(false)
-	, bEnableCurveEditing(true)
+	, bEnableCurveEditing(false)
 	, bLandscapeUseTempLayers(false)
 {
 	StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();

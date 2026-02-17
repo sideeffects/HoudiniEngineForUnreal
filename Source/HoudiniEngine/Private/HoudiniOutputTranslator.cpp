@@ -111,7 +111,7 @@ FHoudiniOutputTranslator::UpdateOutputs(
 		HC->OutputData->bOutputless,
 		HC->OutputData->bOutputTemplateGeos,
 		HC->OutputData->bUseOutputNodes,
-		HC->OutputData->bEnableCurveEditing,
+		HC->GetEnableCurveEditing(),
 		HC->OutputData->bCreateSceneComponents);
 
 	// 2. Update tags and generic attributes on the Cookable and its component (if any)
@@ -984,7 +984,8 @@ bool
 FHoudiniOutputTranslator::UpdateLoadedOutputs(
 	HAPI_NodeId InNodeId,
 	TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
-	USceneComponent* InComponent)
+	USceneComponent* InComponent,
+	const bool bEnableCurveEditing)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateLoadedOutputs);
 
@@ -999,111 +1000,118 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(
 	TArray<HAPI_NodeId> EditableCurvePartIds;
 	TArray<FString> EditableCurvePartNames;
 
-	// Iterate through all objects to get all editable curve's object geo and part Ids.
-	for (int32 ObjectId = 0; ObjectId < ObjectInfos.Num(); ++ObjectId)
+	//
+	// LEGACY WORKFLOW - Editable Curves
+	// 
+	// Look for editable curve nodes in the asset if the EnableEditableCurve option is enabled
+	if (bEnableCurveEditing)
 	{
-		// Retrieve the object info
-		const HAPI_ObjectInfo& CurrentHapiObjectInfo = ObjectInfos[ObjectId];
-
-		// Cache/convert them
-		FHoudiniObjectInfo CurrentObjectInfo;
-		CacheObjectInfo(CurrentHapiObjectInfo, CurrentObjectInfo);
-
-		// Start by getting the number of editable nodes
-		int32 EditableNodeCount = 0;
+		// Iterate through all objects to get all editable curve's object geo and part Ids.
+		for (int32 ObjectId = 0; ObjectId < ObjectInfos.Num(); ++ObjectId)
 		{
-			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateLoadedOutputs-ComposeChildNodeList-EditableNodes);
-			HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
-				FHoudiniEngine::Get().GetSession(),
-				CurrentHapiObjectInfo.nodeId,
-				HAPI_NODETYPE_SOP, 
-				HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
-				true,
-				&EditableNodeCount));
-		}
+			// Retrieve the object info
+			const HAPI_ObjectInfo& CurrentHapiObjectInfo = ObjectInfos[ObjectId];
 
-		if (EditableNodeCount > 0)
-		{
-			TArray< HAPI_NodeId > EditableNodeIds;
-			EditableNodeIds.SetNumUninitialized(EditableNodeCount);
-			HOUDINI_CHECK_ERROR(FHoudiniApi::GetComposedChildNodeList(
-				FHoudiniEngine::Get().GetSession(),
-				InNodeId, EditableNodeIds.GetData(), EditableNodeCount));
+			// Cache/convert them
+			FHoudiniObjectInfo CurrentObjectInfo;
+			CacheObjectInfo(CurrentHapiObjectInfo, CurrentObjectInfo);
 
-			for (int32 nEditable = 0; nEditable < EditableNodeCount; nEditable++)
+			// Start by getting the number of editable nodes
+			int32 EditableNodeCount = 0;
 			{
-				HAPI_GeoInfo CurrentEditableGeoInfo;
-				FHoudiniApi::GeoInfo_Init(&CurrentEditableGeoInfo);
-				HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
+				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::UpdateLoadedOutputs - ComposeChildNodeList - EditableNodes);
+				HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
 					FHoudiniEngine::Get().GetSession(),
-					EditableNodeIds[nEditable], &CurrentEditableGeoInfo));
+					CurrentHapiObjectInfo.nodeId,
+					HAPI_NODETYPE_SOP,
+					HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
+					true,
+					&EditableNodeCount));
+			}
 
-				// Do not process the main display geo twice!
-				if (CurrentEditableGeoInfo.isDisplayGeo)
-					continue;
+			if (EditableNodeCount > 0)
+			{
+				TArray<HAPI_NodeId> EditableNodeIds;
+				EditableNodeIds.SetNumUninitialized(EditableNodeCount);
+				HOUDINI_CHECK_ERROR(FHoudiniApi::GetComposedChildNodeList(
+					FHoudiniEngine::Get().GetSession(),
+					InNodeId, EditableNodeIds.GetData(), EditableNodeCount));
 
-				// We only handle editable curves for now
-				if (CurrentEditableGeoInfo.type != HAPI_GeoType::HAPI_GEOTYPE_CURVE)
-					continue;
-
-				// Check if the curve is closed (-1 unknown, could not find parameter on node). A closed curve will
-				// be returned as a mesh by HAPI instead of a curve
-				int32 CurveClosed = -1;
-				if (!FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
-						EditableNodeIds[nEditable], HAPI_UNREAL_PARAM_CURVE_CLOSED, 0, CurveClosed))
+				for (int32 nEditable = 0; nEditable < EditableNodeCount; nEditable++)
 				{
-					CurveClosed = -1;
-				}
-				else
-				{
-					if (CurveClosed)
-						CurveClosed = 1;
-					else
-						CurveClosed = 0;
-				}
-				
-				// Cook the editable node to get its parts
-				if (CurrentEditableGeoInfo.partCount <= 0)
-				{
-					//HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
-					//FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), CurrentEditableGeoInfo.nodeId, &CookOptions);
-					FHoudiniEngineUtils::HapiCookNode(CurrentEditableGeoInfo.nodeId, nullptr, true);
-
+					HAPI_GeoInfo CurrentEditableGeoInfo;
+					FHoudiniApi::GeoInfo_Init(&CurrentEditableGeoInfo);
 					HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
 						FHoudiniEngine::Get().GetSession(),
-						CurrentEditableGeoInfo.nodeId,
-						&CurrentEditableGeoInfo));
-				}
+						EditableNodeIds[nEditable], &CurrentEditableGeoInfo));
 
-				// Iterate on this geo's parts
-				for (int32 PartId = 0; PartId < CurrentEditableGeoInfo.partCount; ++PartId)
-				{
-					// Get part information.
-					HAPI_PartInfo CurrentHapiPartInfo;
-					FHoudiniApi::PartInfo_Init(&CurrentHapiPartInfo);
-
-					if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(
-						FHoudiniEngine::Get().GetSession(), CurrentEditableGeoInfo.nodeId, PartId, &CurrentHapiPartInfo))
+					// Do not process the main display geo twice!
+					if (CurrentEditableGeoInfo.isDisplayGeo)
 						continue;
 
-					// A closed curve will be returned as a mesh in HAPI
-					if (CurrentHapiPartInfo.type != HAPI_PartType::HAPI_PARTTYPE_CURVE &&
+					// We only handle editable curves for now
+					if (CurrentEditableGeoInfo.type != HAPI_GeoType::HAPI_GEOTYPE_CURVE)
+						continue;
+
+					// Check if the curve is closed (-1 unknown, could not find parameter on node). A closed curve will
+					// be returned as a mesh by HAPI instead of a curve
+					int32 CurveClosed = -1;
+					if (!FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
+						EditableNodeIds[nEditable], HAPI_UNREAL_PARAM_CURVE_CLOSED, 0, CurveClosed))
+					{
+						CurveClosed = -1;
+					}
+					else
+					{
+						if (CurveClosed)
+							CurveClosed = 1;
+						else
+							CurveClosed = 0;
+					}
+
+					// Cook the editable node to get its parts
+					if (CurrentEditableGeoInfo.partCount <= 0)
+					{
+						//HAPI_CookOptions CookOptions = FHoudiniEngine::GetDefaultCookOptions();
+						//FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), CurrentEditableGeoInfo.nodeId, &CookOptions);
+						FHoudiniEngineUtils::HapiCookNode(CurrentEditableGeoInfo.nodeId, nullptr, true);
+
+						HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
+							FHoudiniEngine::Get().GetSession(),
+							CurrentEditableGeoInfo.nodeId,
+							&CurrentEditableGeoInfo));
+					}
+
+					// Iterate on this geo's parts
+					for (int32 PartId = 0; PartId < CurrentEditableGeoInfo.partCount; ++PartId)
+					{
+						// Get part information.
+						HAPI_PartInfo CurrentHapiPartInfo;
+						FHoudiniApi::PartInfo_Init(&CurrentHapiPartInfo);
+
+						if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetPartInfo(
+							FHoudiniEngine::Get().GetSession(), CurrentEditableGeoInfo.nodeId, PartId, &CurrentHapiPartInfo))
+							continue;
+
+						// A closed curve will be returned as a mesh in HAPI
+						if (CurrentHapiPartInfo.type != HAPI_PartType::HAPI_PARTTYPE_CURVE &&
 							(CurveClosed <= 0 || CurrentHapiPartInfo.type != HAPI_PartType::HAPI_PARTTYPE_MESH))
-						continue;
+							continue;
 
-					// Get the editable curve's part name
-					FHoudiniEngineString hapiSTR(CurrentHapiPartInfo.nameSH);
-					FString PartName;
-					hapiSTR.ToFString(PartName);
-					
-					EditableCurveObjIds.Add(CurrentHapiObjectInfo.nodeId);
-					EditableCurveGeoIds.Add(CurrentEditableGeoInfo.nodeId);
-					EditableCurvePartIds.Add(CurrentHapiPartInfo.id);
-					EditableCurvePartNames.Add(PartName);
+						// Get the editable curve's part name
+						FHoudiniEngineString hapiSTR(CurrentHapiPartInfo.nameSH);
+						FString PartName;
+						hapiSTR.ToFString(PartName);
+
+						EditableCurveObjIds.Add(CurrentHapiObjectInfo.nodeId);
+						EditableCurveGeoIds.Add(CurrentEditableGeoInfo.nodeId);
+						EditableCurvePartIds.Add(CurrentHapiPartInfo.id);
+						EditableCurvePartNames.Add(PartName);
+					}
 				}
 			}
 		}
-	}
+	}	
 
 	int32 Idx = 0;
 	for (auto& CurrentOutput : InOutputs)
@@ -1113,8 +1121,11 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(
 			// Output curve
 			FHoudiniSplineTranslator::CreateAllSplinesFromHoudiniOutput(CurrentOutput, InComponent);
 		}
-		else
+		else if (bEnableCurveEditing)
 		{
+			//
+			// LEGACY WORKFLOW - Editable Curves
+			// 
 			// The HAC is Loaded, re-assign node id to its editable curves
 			if (CurrentOutput->HasEditableNodeBuilt())
 			{
@@ -1191,7 +1202,6 @@ FHoudiniOutputTranslator::UpdateLoadedOutputs(
 				}
 			}
 		}
-
 		
 		// Mark our outputs as loaded so they can be matched for potential reuse
 		// This indicates that the HGPO's ids are invalid and that HGPO should be matched using partnames instead
@@ -1378,61 +1388,59 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 	// outputs based on 'height' volumes 
 	TSet<int32> TileIds;
 	
-	// VA: Editable nodes fetching have been moved here to fetch them for the whole asset, only once.
-	//     It seemed unnecessary to have to fetch these for every Object node. Instead,
-	//     we'll collect all the editable nodes for the HDA and process them only on the first loop.
-	//     This also allows us to use more 'strict' Object node retrieval for output processing since
-	//     we don't have to worry that we might miss any editable nodes.
-	
-	// Start by getting the number of editable nodes
+	//
+	// LEGACY WORKFLOW - Editable Curves
+	// 
+	// Start by getting the number of editable nodes if the EnableEditableCurve option is enabled
 	TArray<HAPI_GeoInfo> EditableGeoInfos;
-	int32 EditableNodeCount = 0;
-	if (bAssetHasChildren)
+	if (bGatherEditableCurves)
 	{
-		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs-ComposeChildNodeList-EditableNodes);
-		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
-			FHoudiniEngine::Get().GetSession(),
-			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
-			true, &EditableNodeCount));
-	}
-	
-	// All editable nodes will be output, regardless
-	// of whether the subnet is considered visible or not.
-	if (EditableNodeCount > 0)
-	{
-		TArray<HAPI_NodeId> EditableNodeIds;
-		EditableNodeIds.SetNumUninitialized(EditableNodeCount);
-		HOUDINI_CHECK_ERROR(FHoudiniApi::GetComposedChildNodeList(
-			FHoudiniEngine::Get().GetSession(), 
-			AssetId, EditableNodeIds.GetData(), EditableNodeCount));
-
-		for (int32 nEditable = 0; nEditable < EditableNodeCount; nEditable++)
+		int32 EditableNodeCount = 0;
+		if (bAssetHasChildren)
 		{
-			HAPI_GeoInfo CurrentEditableGeoInfo;
-			FHoudiniApi::GeoInfo_Init(&CurrentEditableGeoInfo);
-			HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
-				FHoudiniEngine::Get().GetSession(), 
-				EditableNodeIds[nEditable], &CurrentEditableGeoInfo));
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniOutputTranslator::BuildAllOutputs - ComposeChildNodeList - EditableNodes);
+			HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
+				FHoudiniEngine::Get().GetSession(),
+				AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
+				true, &EditableNodeCount));
+		}
 
-			// TODO: Check whether this display geo is actually being output
-			//       Just because this is a display node doesn't mean that it will be output (it
-			//       might be in a hidden subnet)
-			
-			// Do not process the main display geo twice!
-			if (CurrentEditableGeoInfo.isDisplayGeo)
-				continue;
+		// All editable nodes will be output, regardless
+		// of whether the subnet is considered visible or not.
+		if (EditableNodeCount > 0)
+		{
+			TArray<HAPI_NodeId> EditableNodeIds;
+			EditableNodeIds.SetNumUninitialized(EditableNodeCount);
+			HOUDINI_CHECK_ERROR(FHoudiniApi::GetComposedChildNodeList(
+				FHoudiniEngine::Get().GetSession(),
+				AssetId, EditableNodeIds.GetData(), EditableNodeCount));
 
-			// We only handle editable curves for now
-			if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE || !bGatherEditableCurves)
-				continue;
+			for (int32 nEditable = 0; nEditable < EditableNodeCount; nEditable++)
+			{
+				HAPI_GeoInfo CurrentEditableGeoInfo;
+				FHoudiniApi::GeoInfo_Init(&CurrentEditableGeoInfo);
+				HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
+					FHoudiniEngine::Get().GetSession(),
+					EditableNodeIds[nEditable], &CurrentEditableGeoInfo));
 
-			// Add this geo to the geo info array
-			EditableGeoInfos.Add(CurrentEditableGeoInfo);
+				// TODO: Check whether this display geo is actually being output
+				//       Just because this is a display node doesn't mean that it will be output (it
+				//       might be in a hidden subnet)
+
+				// Do not process the main display geo twice!
+				if (CurrentEditableGeoInfo.isDisplayGeo)
+					continue;
+
+				// We only handle editable curves for now
+				if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE || !bGatherEditableCurves)
+					continue;
+
+				// Add this geo to the geo info array
+				EditableGeoInfos.Add(CurrentEditableGeoInfo);
+			}
 		}
 	}
-
 	
-
 	const bool bIsSopAsset = AssetInfo.nodeId != AssetInfo.objectNodeId;
 	bool bUseOutputFromSubnets = true;
 	if (bAssetHasChildren)

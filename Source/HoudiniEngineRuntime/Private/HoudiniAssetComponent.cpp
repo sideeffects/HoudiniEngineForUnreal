@@ -249,7 +249,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	bAllowPlayInEditorRefinement_DEPRECATED = false;
 	bNeedToUpdateEditorProperties_DEPRECATED = false;
 	bLandscapeUseTempLayers_DEPRECATED = false;
-	bEnableCurveEditing_DEPRECATED = true;
+	bEnableCurveEditing_DEPRECATED = false;
 #endif
 
 	//

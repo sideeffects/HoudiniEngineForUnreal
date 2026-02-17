@@ -2593,53 +2593,59 @@ FHoudiniEngineUtils::GatherAllAssetOutputs(
 	TArray<HAPI_Transform> ObjectTransforms;
 	if (!FHoudiniEngineUtils::HapiGetObjectInfos(AssetId, ObjectInfos, ObjectTransforms))
 		return false;
-
-	// Find the editable nodes in the asset.
-	TArray<HAPI_GeoInfo> EditableGeoInfos;
-	int32 EditableNodeCount = 0;
-	if (bAssetHasChildren)
-	{
-		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs-ComposeChildNodeList);
-		HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
-			FHoudiniEngine::Get().GetSession(),
-			AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
-			true, &EditableNodeCount));
-	}
 	
-	// All editable nodes will be output, regardless
-	// of whether the subnet is considered visible or not.
-	if (EditableNodeCount > 0)
+	//
+	// LEGACY WORKFLOW - Editable Curves
+	// 
+	// Find the editable nodes in the asset if the EnableEditableCurve option is enabled
+	TArray<HAPI_GeoInfo> EditableGeoInfos;
+	if (bGatherEditableCurves)
 	{
-		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs-GetComposedChildNodeList);
-		TArray<HAPI_NodeId> EditableNodeIds;
-		EditableNodeIds.SetNumUninitialized(EditableNodeCount);
-		HOUDINI_CHECK_ERROR(FHoudiniApi::GetComposedChildNodeList(
-			FHoudiniEngine::Get().GetSession(), 
-			AssetId, EditableNodeIds.GetData(), EditableNodeCount));
-
-		for (int32 nEditable = 0; nEditable < EditableNodeCount; nEditable++)
+		int32 EditableNodeCount = 0;
+		if (bAssetHasChildren)
 		{
-			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs-GetEditableGeoInfo);
-			HAPI_GeoInfo CurrentEditableGeoInfo;
-			FHoudiniApi::GeoInfo_Init(&CurrentEditableGeoInfo);
-			HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
-				FHoudiniEngine::Get().GetSession(), 
-				EditableNodeIds[nEditable], &CurrentEditableGeoInfo));
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs - ComposeChildNodeList);
+			HOUDINI_CHECK_ERROR(FHoudiniApi::ComposeChildNodeList(
+				FHoudiniEngine::Get().GetSession(),
+				AssetId, HAPI_NODETYPE_SOP, HAPI_NODEFLAGS_EDITABLE | HAPI_NODEFLAGS_NON_BYPASS,
+				true, &EditableNodeCount));
+		}
 
-			// TODO: Check whether this display geo is actually being output
-			//       Just because this is a display node doesn't mean that it will be output (it
-			//       might be in a hidden subnet)
-			
-			// Do not process the main display geo twice!
-			if (CurrentEditableGeoInfo.isDisplayGeo)
-				continue;
+		// All editable nodes will be output, regardless
+		// of whether the subnet is considered visible or not.
+		if (EditableNodeCount > 0)
+		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs - GetComposedChildNodeList);
+			TArray<HAPI_NodeId> EditableNodeIds;
+			EditableNodeIds.SetNumUninitialized(EditableNodeCount);
+			HOUDINI_CHECK_ERROR(FHoudiniApi::GetComposedChildNodeList(
+				FHoudiniEngine::Get().GetSession(),
+				AssetId, EditableNodeIds.GetData(), EditableNodeCount));
 
-			// We only handle editable curves for now
-			if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE || !bGatherEditableCurves)
-				continue;
+			for (int32 nEditable = 0; nEditable < EditableNodeCount; nEditable++)
+			{
+				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::GatherAllAssetOutputs - GetEditableGeoInfo);
+				HAPI_GeoInfo CurrentEditableGeoInfo;
+				FHoudiniApi::GeoInfo_Init(&CurrentEditableGeoInfo);
+				HOUDINI_CHECK_ERROR(FHoudiniApi::GetGeoInfo(
+					FHoudiniEngine::Get().GetSession(),
+					EditableNodeIds[nEditable], &CurrentEditableGeoInfo));
 
-			// Add this geo to the geo info array
-			EditableGeoInfos.Add(CurrentEditableGeoInfo);
+				// TODO: Check whether this display geo is actually being output
+				//       Just because this is a display node doesn't mean that it will be output (it
+				//       might be in a hidden subnet)
+
+				// Do not process the main display geo twice!
+				if (CurrentEditableGeoInfo.isDisplayGeo)
+					continue;
+
+				// We only handle editable curves for now
+				if (CurrentEditableGeoInfo.type != HAPI_GEOTYPE_CURVE || !bGatherEditableCurves)
+					continue;
+
+				// Add this geo to the geo info array
+				EditableGeoInfos.Add(CurrentEditableGeoInfo);
+			}
 		}
 	}
 

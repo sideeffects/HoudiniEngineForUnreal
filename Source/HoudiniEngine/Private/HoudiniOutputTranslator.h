@@ -72,7 +72,8 @@ public:
 	static bool UpdateLoadedOutputs(
 		HAPI_NodeId InNodeId,
 		TArray<TObjectPtr<UHoudiniOutput>>& InOutputs,
-		USceneComponent* InComponent);
+		USceneComponent* InComponent,
+		const bool bEnableCurveEditing);
 
 	//
 	static bool UploadChangedEditableOutput(
