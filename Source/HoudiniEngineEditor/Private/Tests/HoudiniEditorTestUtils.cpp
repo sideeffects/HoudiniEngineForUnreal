@@ -196,12 +196,15 @@ void FHoudiniEditorTestUtils::InstantiateAsset(
 	Wrapper->SetCookOnParameterOrInputChanges(true);
 	Wrapper->SetCookOnTransformChange(false);
 
+	// 
+	Wrapper->GetHoudiniCookable()->SetEnableCurveEditing(Settings.bEnableCurveEditing);
+
 	TestObject->InAssetWrappers.Add(Wrapper); // Need to assign it to TestObject otherwise it will be garbage collected!!!
 
 	// Set properties based off test settings.
-	Wrapper->GetHoudiniAssetComponent()->SetOverrideGlobalProxyStaticMeshSettings(true);
-	Wrapper->GetHoudiniAssetComponent()->SetEnableProxyStaticMeshOverride(Settings.bUseProxyMesh);
-	Wrapper->GetHoudiniAssetComponent()->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(!Settings.bUseProxyMesh);
+	Wrapper->GetHoudiniCookable()->SetOverrideGlobalProxyStaticMeshSettings(true);
+	Wrapper->GetHoudiniCookable()->SetEnableProxyStaticMeshOverride(Settings.bUseProxyMesh);
+	Wrapper->GetHoudiniCookable()->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(!Settings.bUseProxyMesh);
 
 	// Bind delegates from the asset wrapper to UHoudiniEditorTestObject which we use to proxy to non-dynamic delegates
 	// like OnPreInstantiation.
