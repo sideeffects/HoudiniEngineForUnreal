@@ -57,6 +57,7 @@ class SWindow;
 struct FHoudiniActorTestSettings
 {
 	bool bUseProxyMesh = false;
+	bool bEnableCurveEditing = false;
 };
 
 // Struct to override FAutomationTestBase behaviour as we see fit

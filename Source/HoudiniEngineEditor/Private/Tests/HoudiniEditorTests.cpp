@@ -141,7 +141,9 @@ bool HoudiniEditorRandomEquivalenceTest::RunTest(const FString & Parameters)
 	// Really force editor size
 	FHoudiniEditorTestUtils::InitializeTests(this, [this]
 	{
-		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_curve"), TEXT("simple_curve"), {}, [this](bool IsSuccessful)
+		FHoudiniActorTestSettings Settings = {};
+		Settings.bEnableCurveEditing = true;
+		FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_curve"), TEXT("simple_curve"), Settings, [this](bool IsSuccessful)
 		{
 			FHoudiniEditorTestUtils::RunOrSetupDifferentialTest(this, TEXT("RandomTests"), TEXT("/Game/TestHDAs/Random/simple_heightfield"), TEXT("simple_heightfield"), {}, [this](bool IsSuccessful)
 			{
