@@ -79,7 +79,7 @@ public:
 	virtual TArray<FPCGPinProperties> OutputPinProperties() const override;
 	virtual TArray<FPCGPinProperties> InputPinProperties() const override;
 
-	void RefreshFromHDA();
+	void RebuildFromHDA();
 	void UpdateInputLabelsFromCookable(UPCGNode* Node, const TArray<TObjectPtr<UPCGPin>>& InputPins);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = HoudiniPCG)

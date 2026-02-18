@@ -386,7 +386,7 @@ void UHoudiniPCGSettings::SetNodeLabelPrefix()
 	ParameterCookable->Cookable->SetNodeLabelPrefix(NodeLabel);
 }
 
-void UHoudiniPCGSettings::RefreshFromHDA()
+void UHoudiniPCGSettings::RebuildFromHDA()
 {
 	this->Modify();
 
@@ -545,6 +545,14 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 	if(!Context)
 		return true;
 
+	UPCGComponent* SourceComponent = FHoudiniPCGUtils::GetSourceComponent(Context);
+	if(!SourceComponent)
+	{
+		// In UE5.7+ ExecuteInternal() is called if the graph is modified, even if it is not instanced. So
+		// just return and do nothing.
+		return true;
+	}
+
 	FPCHoudiniDigitalAssetAttributesContext* HDAContext = static_cast<FPCHoudiniDigitalAssetAttributesContext*>(Context);
 	check(HDAContext);
 
@@ -582,51 +590,95 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 	{
 		HOUDINI_PCG_MESSAGE(TEXT("First time called with context %p"), HDAContext);
 
-		// Sadly, we must always force the Cookable to be created since the user may have edited the Parameter Cookable
-		// without saving the HDA, meaning the HDAs in session sync get out of sync.
+		//----------------------------------------------------------------------------------------------------------------------------------------
+		// If the Managed Resource is invalid, don't use it.
+		//----------------------------------------------------------------------------------------------------------------------------------------
 
 		if(ManagedResource)
 		{
-			HOUDINI_PCG_MESSAGE(TEXT("(%p) Invalid Managed Resource Found, ignoring."), ManagedResource->HoudiniPCGComponent->Cookable.Get());
-			ManagedResource->DestroyCookable();
-			ManagedResource = nullptr;
+			if(!IsValid(ManagedResource->HoudiniPCGComponent) ||
+				!IsValid(ManagedResource->HoudiniPCGComponent->Cookable) ||
+				ManagedResource->bInvalidateResource)
+			{
+				if(ManagedResource->HoudiniPCGComponent)
+				{
+					HOUDINI_PCG_MESSAGE(TEXT("(%p) Invalid Managed Resource Found, ignoring."), ManagedResource->HoudiniPCGComponent->Cookable.Get());
+					ManagedResource->DestroyCookable();
+				}
+				ManagedResource = nullptr;
+			}
 		}
 
 		//----------------------------------------------------------------------------------------------------------------------------------------
 		// If we didn't find a managed resource (or we ignored the old one), we need create a new one and start a cook.
 		//----------------------------------------------------------------------------------------------------------------------------------------
 
-		UPCGComponent* SourceComponent = FHoudiniPCGUtils::GetSourceComponent(Context);
-		if(!SourceComponent)
+		if(!ManagedResource)
 		{
-			// In UE5.7+ ExecuteInternal() is called if the graph is modified, even if it is not instanced. So
-			// just return and do nothing.
-			return true;
-		}
+			// No previous resource found, so create a new one and instantiate the HDA. Note that next time Execute is called, this ManagedResource
+			// will be found.
+			// NOTE: We instantiate, then once the HDA is ready in Houdini, we set parameters and cooked. This seems to be necessary to avoid
+			// parameters getting overridden on the first cook. Possibly a slight rework of Houdini Engine Manager could fix this.
 
-		ManagedResource = NewObject<UHoudiniPCGManagedResource>(SourceComponent);
-		ManagedResource->PCGComponent = SourceComponent;
-		if(ManagedResource->PCGComponent)
+			ManagedResource = NewObject<UHoudiniPCGManagedResource>(SourceComponent);
+			ManagedResource->PCGComponent = SourceComponent;
+			if(ManagedResource->PCGComponent)
+			{
+				ManagedResource->PCGComponent->GetGraph()->OnGraphChangedDelegate.AddUObject(ManagedResource, &UHoudiniPCGManagedResource::OnGraphChanged);
+			}
+			ManagedResource->SetCrc(ResourceCrc);
+			ManagedResource->MarkAsUsed();
+			ManagedResource->HoudiniPCGComponent = UHoudiniPCGComponent::CreatePCGComponent(SourceComponent);
+			SourceComponent->AddToManagedResources(ManagedResource);
+
+			UHoudiniPCGCookable* PCGCookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
+			PCGCookable->CreateHoudiniCookable(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
+			PCGCookable->Cookable->SetIsPCG(true);
+			PCGCookable->Cookable->SetLandscapeModificationEnabled(ManagedResource->PCGComponent->bIgnoreLandscapeTracking);
+			PCGCookable->Cookable->SetNodeLabelPrefix(TEXT("PCG_Instance_"));
+			PCGCookable->Instantiate();
+			PCGCookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
+			ManagedResource->HoudiniPCGComponent->Cookable = PCGCookable;
+			HOUDINI_PCG_MESSAGE(TEXT("(%p) Creating Managed Resource, Instantiating..."), PCGCookable);
+
+			// Return now since instantiation is not instant.
+			HDAContext->ContextState = EHoudiniPCGContextState::Instantiating;
+		}
+		else
 		{
-			ManagedResource->PCGComponent->GetGraph()->OnGraphChangedDelegate.AddUObject(ManagedResource, &UHoudiniPCGManagedResource::OnGraphChanged);
+			// We have a managed resource... update the cookable, and if that triggered a cook, we're done. If not, we can just re-use the last cook.
+			// Attempt to apply parameters, inputs. If a cook was started, return - we need to wait for it to complete asynchronouosly.
+
+			ManagedResource->HoudiniPCGComponent->Cookable->CopyParametersAndInputs(Settings->ParameterCookable);
+			bool bSuccess = ManagedResource->HoudiniPCGComponent->Cookable->UpdateParametersAndInputs(Context);
+			if(!bSuccess)
+			{
+				HOUDINI_PCG_MESSAGE(TEXT("An error occured, not processing PCG node."));
+				return true;
+			}
+
+			ManagedResource->MarkAsReused();
+
+			if(ManagedResource->HoudiniPCGComponent->Cookable->NeedsCook())
+			{
+				// Remove previous baked output before cooking. (Cooked output is already cleaned up).
+
+				ManagedResource->HoudiniPCGComponent->Cookable->DeleteBakedOutput(SourceComponent->GetWorld());
+
+				// Something changed, so we must cook.
+				ManagedResource->HoudiniPCGComponent->Cookable->StartCook();
+				HOUDINI_PCG_MESSAGE(TEXT("A cook was started."));
+				HDAContext->ContextState = EHoudiniPCGContextState::Cooking;
+				return false;
+			}
+			else
+			{
+				// Nothing changed so we can re-use output as-is.
+				HOUDINI_PCG_MESSAGE(TEXT("Nothing Changed: returning Managed Resource."));
+				HDAContext->ContextState = EHoudiniPCGContextState::Done;
+				return true;
+			}
 		}
-		ManagedResource->SetCrc(ResourceCrc);
-		ManagedResource->MarkAsUsed();
-		ManagedResource->HoudiniPCGComponent = UHoudiniPCGComponent::CreatePCGComponent(SourceComponent);
-		SourceComponent->AddToManagedResources(ManagedResource);
-
-		UHoudiniPCGCookable* PCGCookable = NewObject<UHoudiniPCGCookable>(ManagedResource->HoudiniPCGComponent);
-		PCGCookable->CreateHoudiniCookable(Settings->HoudiniAsset, nullptr, ManagedResource->HoudiniPCGComponent);
-		PCGCookable->Cookable->SetIsPCG(true);
-		PCGCookable->Cookable->SetLandscapeModificationEnabled(ManagedResource->PCGComponent->bIgnoreLandscapeTracking);
-		PCGCookable->Cookable->SetNodeLabelPrefix(TEXT("PCG_Instance_"));
-		PCGCookable->Instantiate();
-		PCGCookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
-		ManagedResource->HoudiniPCGComponent->Cookable = PCGCookable;
-		HOUDINI_PCG_MESSAGE(TEXT("(%p) Creating Managed Resource, Instantiating..."), PCGCookable);
-
-		// Return now since instantiation is not instant.
-		HDAContext->ContextState = EHoudiniPCGContextState::Instantiating;
 		return false;
 	}
 	break;
