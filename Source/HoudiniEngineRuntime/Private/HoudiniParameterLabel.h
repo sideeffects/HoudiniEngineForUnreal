@@ -47,12 +47,6 @@ public:
 	UPROPERTY()
 	TArray<FString> LabelStrings;
 
-	FORCEINLINE
-	void AddLabelString(FString &NewString) { LabelStrings.Add(NewString); };
-
-	FString GetStringAtIndex(int32 Index);
-
-	FORCEINLINE
-	void EmptyLabelString() { LabelStrings.Empty(); };
-	
+	UPROPERTY()
+	TArray<FString> ExpressionStrings;
 };

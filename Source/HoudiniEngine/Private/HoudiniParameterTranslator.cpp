@@ -2300,19 +2300,19 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 
 				// Get the actual value for this property.
 				TArray<HAPI_StringHandle> StringHandles;
+				StringHandles.SetNumZeroed(ParmInfo.size);
 
 				if (bHasValidNodeId)
 				{
-					StringHandles.SetNumZeroed(ParmInfo.size);
+
 					FHoudiniApi::GetParmStringValues(
 						FHoudiniEngine::Get().GetSession(),
-						InNodeId, false, &StringHandles[0],
+						InNodeId, true, &StringHandles[0],
 						ParmInfo.stringValuesIndex, ParmInfo.size);
 				}
 				else if (DefaultStringValues && DefaultStringValues->IsValidIndex(ParmInfo.stringValuesIndex) &&
 						DefaultStringValues->IsValidIndex(ParmInfo.stringValuesIndex + ParmInfo.size - 1))
 				{
-					StringHandles.SetNumZeroed(ParmInfo.size);
 					FPlatformMemory::Memcpy(
 						StringHandles.GetData(),
 						DefaultStringValues->GetData() + ParmInfo.stringValuesIndex,
@@ -2323,7 +2323,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 					return false;
 				}
 				
-				HoudiniParameterLabel->EmptyLabelString();
+				HoudiniParameterLabel->LabelStrings.Empty();
 
 				// Convert HAPI string handles to Unreal strings.
 				for (int32 Idx = 0; Idx < StringHandles.Num(); ++Idx)
@@ -2331,7 +2331,27 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 					FString ValueString = TEXT("");
 					FHoudiniEngineString HoudiniEngineString(StringHandles[Idx]);
 					HoudiniEngineString.ToFString(ValueString);
-					HoudiniParameterLabel->AddLabelString(ValueString);
+					HoudiniParameterLabel->LabelStrings.Add(ValueString);
+				}
+
+				if(bHasValidNodeId)
+				{
+
+					FHoudiniApi::GetParmStringValues(
+						FHoudiniEngine::Get().GetSession(),
+						InNodeId, false, &StringHandles[0],
+						ParmInfo.stringValuesIndex, ParmInfo.size);
+
+					HoudiniParameterLabel->ExpressionStrings.Empty();
+
+					// Convert HAPI string handles to Unreal strings.
+					for(int32 Idx = 0; Idx < StringHandles.Num(); ++Idx)
+					{
+						FString ValueString = TEXT("");
+						FHoudiniEngineString HoudiniEngineString(StringHandles[Idx]);
+						HoudiniEngineString.ToFString(ValueString);
+						HoudiniParameterLabel->ExpressionStrings.Add(ValueString);
+					}
 				}
 			}
 		}

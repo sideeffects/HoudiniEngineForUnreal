@@ -746,8 +746,8 @@ FHoudiniParameterView::CreateJoinedDetails(IDetailCategoryBuilder& HouParameterC
 		case EHoudiniParameterType::Label:
 		{
 			TArray<TWeakObjectPtr<UHoudiniParameterLabel>> TypedParams = CastParameters<UHoudiniParameterLabel>(Parameter->LinkedParameters);
-			TSharedRef<SWidget> NameWidget = CreateWidgetLabel(TypedParams, nullptr);
-			TSharedRef<SWidget> ValueWidget = SNullWidget::NullWidget;
+			TSharedRef<SWidget> NameWidget = CreateNameWidget(Param);
+			TSharedRef<SWidget> ValueWidget = CreateWidgetLabel(TypedParams, nullptr);
 			WidgetNames.Add(NameWidget);
 			WidgetValues.Add(ValueWidget);
 			break;
@@ -1117,8 +1117,8 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 	case EHoudiniParameterType::Label:
 	{
 		TArray<TWeakObjectPtr<UHoudiniParameterLabel>> TypedParams = CastParameters<UHoudiniParameterLabel>(LinkedParameters);
-		TSharedRef<SWidget> NameWidget = CreateWidgetLabel(TypedParams, MultiParmButtons);
-		TSharedRef<SWidget> ValueWidget = SNullWidget::NullWidget;
+		TSharedRef<SWidget> NameWidget = CreateNameWidget(Param); 
+		TSharedRef<SWidget> ValueWidget = CreateWidgetLabel(TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
 			HouParameterCategory,
@@ -3633,16 +3633,29 @@ FHoudiniParameterView::CreateWidgetLabel(
 
 	for(int32 Index = 0; Index < MainParam->GetTupleSize(); ++Index)
 	{
-		FString NextLabelString = MainParam->GetStringAtIndex(Index);
+		FString NextLabelString;
+		if (MainParam->LabelStrings.IsValidIndex(Index))
+			NextLabelString = MainParam->LabelStrings[Index];
 		FText ParameterLabelText = FText::FromString(NextLabelString);
 
-		FText ParamTooltipText = FText::FromString("Column " + FString::FromInt(Index) + ": " + NextLabelString);
+		FString Expression;
+		if (MainParam->ExpressionStrings.IsValidIndex(Index))
+		{
+			Expression = MainParam->ExpressionStrings[Index];
+		}
+		else
+		{
+			Expression = NextLabelString;
+		}
+
+		FString Tooltip = FString::Printf(TEXT("Column %d: %s"), Index, *Expression);
+		FText ParamTooltipText = FText::FromString(Tooltip);
 
 		TSharedPtr<STextBlock> TextBlock;
-		// Add Label UI.
+
 		HorizontalBox->AddSlot()
-			.Padding(1, 2, 16, 2)
-			.AutoWidth()
+			.Padding(4, 8)
+			.FillWidth(1.0)
 			[
 				SAssignNew(TextBlock, STextBlock)
 					.Text(ParameterLabelText)

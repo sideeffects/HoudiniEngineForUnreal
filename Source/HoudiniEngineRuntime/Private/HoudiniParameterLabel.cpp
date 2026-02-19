@@ -49,14 +49,3 @@ UHoudiniParameterLabel::Create(
 
 	return HoudiniAssetParameter;
 }
-
-FString 
-UHoudiniParameterLabel::GetStringAtIndex(int32 Index) 
-{
-	if (LabelStrings.IsValidIndex(Index)) 
-	{
-		return LabelStrings[Index];
-	}
-
-	return FString("");
-}
