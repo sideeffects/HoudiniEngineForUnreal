@@ -627,6 +627,11 @@ FHoudiniParameterView::CreateNameWidget(const UHoudiniParameter* Parameter)
 
 FString FHoudiniParameterView::GetDividerLayoutKey() const
 {
+	if(!this->Cookable.IsValid())
+	{
+		// Sometimes Unreal will try to recreate the details panel after the cookable has been destroyed.
+		return TEXT("");
+	}
 
 	FString Result = this->Cookable->GetHoudiniAsset()->GetPathName();
 
