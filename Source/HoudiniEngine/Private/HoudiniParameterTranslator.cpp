@@ -257,19 +257,16 @@ FHoudiniParameterTranslator::BuildAllParameters(
 		HAPI_Result Result = FHoudiniApi::GetAssetInfo(
 			FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo);
 		
-		if (Result != HAPI_RESULT_SUCCESS)
-		{
-			HOUDINI_LOG_ERROR(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());
-			return false;
-		}
-
-		NodeId = AssetInfo.nodeId;
+		if (Result == HAPI_RESULT_SUCCESS)
+			NodeId = AssetInfo.nodeId;
+		else
+			NodeId = InHC->GetNodeId();
 
 		// .. the asset's node info
 		HAPI_NodeInfo NodeInfo;
 		FHoudiniApi::NodeInfo_Init(&NodeInfo);
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
-			FHoudiniEngine::Get().GetSession(), AssetInfo.nodeId, &NodeInfo), false);
+			FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo), false);
 
 		ParmCount = NodeInfo.parmCount;
 	}
