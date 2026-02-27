@@ -77,7 +77,7 @@ HAPI_DECL HAPI_CreateInProcessSession( HAPI_Session * session,
 ///
 /// @param[in]      log_file
 ///                 When a filepath is provided for this argument, all logs will
-///                 be appended to the specified file. The specfied path must be
+///                 be appended to the specified file. The specified path must be
 ///                 an absolute path. The server will create any intermediate
 ///                 directories in the filepath that do not already exist. When
 ///                 this argument is NULL/nullptr, logging will be directed to
@@ -549,7 +549,7 @@ HAPI_DECL HAPI_GetSessionEnvInt( const HAPI_Session * session,
 ///                 <!-- default NULL -->
 ///
 /// @param[in]      variable_name
-///                 Name of the environmnet variable.
+///                 Name of the environment variable.
 ///                 <!-- string -->
 ///
 /// @param[out]     value
@@ -570,7 +570,7 @@ HAPI_DECL HAPI_GetServerEnvInt( const HAPI_Session * session,
 ///                 <!-- default NULL -->
 ///
 /// @param[in]      variable_name
-///                 Name of the environmnet variable.
+///                 Name of the environment variable.
 ///                 <!-- string -->
 ///
 /// @param[out]     value
@@ -679,7 +679,7 @@ HAPI_DECL HAPI_SetServerEnvInt( const HAPI_Session * session,
 ///                 <!-- default NULL -->
 ///
 /// @param[in]      variable_name
-///                 Name of the environmnet variable.
+///                 Name of the environment variable.
 ///                 <!-- string -->
 ///
 /// @param[in]      value
@@ -899,7 +899,7 @@ HAPI_DECL HAPI_GetComposedNodeCookResult( const HAPI_Session * session,
 ///             Preferred verbosity level.
 ///
 /// @param[out] buffer_length
-///             Lenght of buffer char array ready to be filled.
+///             Length of buffer char array ready to be filled.
 ///
 HAPI_DECL HAPI_GetNodeCookResultLength( const HAPI_Session * session,
                                         HAPI_NodeId node_id,
@@ -2426,7 +2426,7 @@ HAPI_DECL HAPI_GetManagerNodeId( const HAPI_Session * session,
 ///         and using recursive mode, the recursion will stop as soon as a
 ///         display SOP is found within each OBJ geometry network. It is
 ///         almost never useful to get a list of ALL display SOP nodes
-///         recursively as they would all containt the same geometry. Even so,
+///         recursively as they would all contain the same geometry. Even so,
 ///         this special case only comes up if the display SOP itself is a
 ///         subnet.
 ///
@@ -2535,7 +2535,7 @@ HAPI_DECL HAPI_GetComposedChildNodeList( const HAPI_Session * session,
 ///                 If you are creating an Object or SOP node, you can pass
 ///                 parent_node_id == -1 as long as you include the table name
 ///                 (ie. Object/ or Sop/) as a prefix to the operator_name.
-///                 This covenience is only available for Object or SOP nodes.
+///                 This convenience is only available for Object or SOP nodes.
 ///                 This is the common case for when creating asset nodes
 ///                 from a loaded asset library. In that case, just pass
 ///                 whatever ::HAPI_GetAvailableAssets() returns.
@@ -3191,7 +3191,7 @@ HAPI_DECL HAPI_GetOutputNodeId( const HAPI_Session * session,
                                 HAPI_NodeId * output_node_id );
 
 /// @defgroup Parms Parms
-/// Functions for wroking with Node parameters (parms)
+/// Functions for working with Node parameters (parms)
 
 /// @brief  Fill an array of ::HAPI_ParmInfo structs with parameter
 ///         information from the asset instance node.
@@ -3884,7 +3884,7 @@ HAPI_DECL HAPI_GetParmNodeValue( const HAPI_Session * session,
 
 /// @brief  Extract a file specified by path on a parameter. This will copy
 ///         the file to the destination directory from wherever it might be,
-///         inlcuding inside the asset definition or online.
+///         including inside the asset definition or online.
 ///
 /// @ingroup Parms
 ///
@@ -4555,7 +4555,7 @@ HAPI_DECL HAPI_GetObjectInfo( const HAPI_Session * session,
                               HAPI_NodeId node_id,
                               HAPI_ObjectInfo * object_info );
 
-/// @brief  Get the tranform of an OBJ node.
+/// @brief  Get the transform of an OBJ node.
 ///
 /// @ingroup Objects
 ///
@@ -11332,7 +11332,7 @@ HAPI_DECL HAPI_DeleteGroup( const HAPI_Session * session,
 ///                 Should be less than or equal to the size
 ///                 of @p membership_array. When setting edge group membership,
 ///                 this parameter should be set to the number of points (which
-///                 are used to implictly define the edges), not to the number
+///                 are used to implicitly define the edges), not to the number
 ///                 edges in the group.
 ///		    <!-- source ::HAPI_PartInfo_GetElementCountByGroupType -->
 ///
@@ -11753,7 +11753,7 @@ HAPI_DECL HAPI_ExtractImageToFile( const HAPI_Session * session,
 ///                 <!-- string -->
 ///
 /// @param[in]      destination_folder_path
-///                 The folder where the image file sould be created.
+///                 The folder where the image file should be created.
 ///                 <!-- string -->
 ///
 /// @param[in]      destination_file_name
@@ -13597,7 +13597,7 @@ HAPI_DECL HAPI_GetViewport( const HAPI_Session * session,
 /// @brief  Set the ::HAPI_Viewport info for synchronizing viewport in
 ///	    SessionSync. When SessionSync is running, this can be
 ///	    used to set the viewport information which Houdini
-///	    will then synchronizse with for its viewport.
+///	    will then synchronize with for its viewport.
 ///
 /// @ingroup SessionSync
 ///
