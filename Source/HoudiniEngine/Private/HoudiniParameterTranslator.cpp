@@ -260,7 +260,7 @@ FHoudiniParameterTranslator::BuildAllParameters(
 		if (Result == HAPI_RESULT_SUCCESS)
 			NodeId = AssetInfo.nodeId;
 		else
-			NodeId = InHC->GetNodeId();
+			NodeId = AssetId;
 
 		// .. the asset's node info
 		HAPI_NodeInfo NodeInfo;
