@@ -1834,8 +1834,8 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 		InInputObject->SetNeedsToTriggerUpdate(false);
 	}
 
-	// Mark the outer package as dirty, to ensure that the changes are saved when using OFPA / World partition
-	InInputObject->MarkPackageDirty();
+	// No Need to needlessy mark our package dirty after uploading an input object
+	//InInputObject->MarkPackageDirty();
 
 	return bSuccess;
 }
