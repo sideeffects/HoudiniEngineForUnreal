@@ -478,6 +478,10 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
 
+		// Extract displacement
+		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+
 		// Set other material properties.
 		Material->TwoSided = true;
 		Material->SetShadingModel(MSM_DefaultLit);
@@ -1632,6 +1636,132 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 				FHoudiniMaterialTranslator::PositionExpression(MatInputNormal.Expression, MaterialNodeY, 0.0f);
 				Material->bTangentSpaceNormal = bTangentSpaceNormal;
 			}
+		}
+	}
+
+	return bExpressionCreated;
+}
+
+
+bool
+FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
+	const HAPI_NodeId& InAssetId,
+	const FString& InHoudiniAssetName,
+	const HAPI_MaterialInfo& InMaterialInfo,
+	const FHoudiniPackageParams& InPackageParams,
+	UMaterial* Material,
+	TArray<UPackage*>& OutPackages,
+	int32& MaterialNodeY)
+{
+	if (!IsValid(Material))
+		return false;
+
+	bool bExpressionCreated = false;
+
+	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
+
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
+
+	// Displacement texture creation parameters.
+	FCreateTexture2DParameters CreateTexture2DParameters;
+	CreateTexture2DParameters.SourceGuidHash = FGuid();
+	CreateTexture2DParameters.bUseAlpha = false;
+	CreateTexture2DParameters.CompressionSettings = TC_Default;
+	CreateTexture2DParameters.bDeferCompression = true;
+	CreateTexture2DParameters.bSRGB = false;
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
+	FScalarMaterialInput& MatInputDisplacement = MaterialEditorOnly->Displacement;
+#else
+	FScalarMaterialInput& MatInputDisplacement = Material->Displacement;
+#endif
+
+	// See if a separate displacement texture is available.
+	HAPI_ParmInfo ParmDisplacementTextureInfo;
+	HAPI_ParmId ParmDisplacementTextureId = FHoudiniMaterialTranslator::FindTextureParam(
+		InMaterialInfo.nodeId,
+		HAPI_UNREAL_PARAM_MAP_DISPLACEMENT,
+		HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_ENABLED,
+		HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_OGL,
+		"",
+		HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_CPM,
+		"",
+		ParmDisplacementTextureInfo,
+		GeneratingParameterName);
+
+	if (ParmDisplacementTextureId >= 0)
+	{
+		UTexture2D* Texture;
+		UMaterialExpressionTextureSampleParameter2D* TextureExpression;
+		FHoudiniMaterialTranslator::GetTextureAndExpression(MatInputDisplacement.Expression, false, Texture, TextureExpression);
+
+		// Get the node path for the texture package's meta data
+		FString NodePath;
+		FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, InMaterialInfo.nodeId, NodePath);
+
+		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmDisplacementTextureId);
+		if (bRenderSuccessful)
+		{
+			HAPI_ImagePacking ImagePacking;
+			const char* PlaneType;
+			bool bFoundImagePlanes = FHoudiniTextureTranslator::GetPlaneInfo(
+				ParmDisplacementTextureId, InMaterialInfo,
+				ImagePacking, PlaneType, CreateTexture2DParameters.bUseAlpha);
+
+			bool bTextureCreated = false;
+			if (bFoundImagePlanes)
+			{
+				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+					InMaterialInfo.nodeId,
+					PlaneType,
+					HAPI_IMAGE_DATA_INT8,
+					ImagePacking,
+					Texture,
+					NodePath,
+					HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DISPLACEMENT,
+					InPackageParams,
+					CreateTexture2DParameters,
+					TEXTUREGROUP_World,
+					OutPackages);
+			}
+			else
+			{
+				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+					InMaterialInfo.nodeId,
+					HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
+					HAPI_IMAGE_DATA_INT8,
+					HAPI_IMAGE_PACKING_RGBA,
+					Texture,
+					NodePath,
+					HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DISPLACEMENT,
+					InPackageParams,
+					CreateTexture2DParameters,
+					TEXTUREGROUP_World,
+					OutPackages);
+			}
+
+			if (bTextureCreated)
+			{
+				bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
+					Texture,
+					TextureExpression,
+					MatInputDisplacement.Expression,
+					true,
+					Material,
+					ObjectFlag,
+					GeneratingParameterName,
+					SAMPLERTYPE_LinearColor); //SAMPLERTYPE_Color);				
+			}
+		}
+
+		if (bExpressionCreated)
+		{
+			FHoudiniMaterialTranslator::PositionExpression(MatInputDisplacement.Expression, MaterialNodeY, 0.0f);
+			
+			// Automatically enable tesselation on the material if we have a  displacement map
+			Material->bEnableTessellation = true;
 		}
 	}
 
