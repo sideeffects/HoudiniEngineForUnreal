@@ -403,6 +403,7 @@
 #define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE     TEXT( "E" )
 #define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK TEXT( "O" )
 #define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DISPLACEMENT TEXT( "D" )
+#define HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OCCLUSION    TEXT( "AO" )
 
 // Texture planes.
 #define HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA        "C A"
@@ -534,8 +535,21 @@
 // Materials displacement
 #define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT				"dispTex_texture"
 #define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_ENABLED		"dispTex_enable"
+
 #define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_OGL			"ogl_displacemap"
-#define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_CPM			"heightpath"
+#define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_OGL_ENABLED	"ogl_use_displacemap"
+
+#define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_CPM			"height_map"
+
+// Materials occlusion
+#define HAPI_UNREAL_PARAM_MAP_OCCLUSION					"occlusion_texture"
+#define HAPI_UNREAL_PARAM_MAP_OCCLUSION_ENABLED			"occlusion_useTexture"
+
+#define HAPI_UNREAL_PARAM_MAP_OCCLUSION_OGL				"ogl_occlusionmap"
+#define HAPI_UNREAL_PARAM_MAP_OCCLUSION_OGL_ENABLED		"ogl_use_occlusionmap"
+
+// No occlusion in CPM
+//#define HAPI_UNREAL_PARAM_MAP_OCCLUSION_CPM			"occlusion_map"
 
 // Number of GUID characters to keep for packages
 #define PACKAGE_GUID_LENGTH								8

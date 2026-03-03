@@ -482,6 +482,10 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
 
+		// Extract AO
+		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+
 		// Set other material properties.
 		Material->TwoSided = true;
 		Material->SetShadingModel(MSM_DefaultLit);
@@ -912,9 +916,19 @@ FHoudiniMaterialTranslator::GetMaterialRelativePath(const HAPI_NodeId& InAssetId
 
 	if (AssetNodeName.Len() > 0 && MaterialNodeName.Len() > 0)
 	{
-		// Remove AssetNodeName part from MaterialNodeName. Extra position is for separator.
-		OutRelativePath = MaterialNodeName.Mid(AssetNodeName.Len() + 1);
-		return true;
+		if (MaterialNodeName.StartsWith(AssetNodeName))
+		{
+			// Remove AssetNodeName part from MaterialNodeName. Extra position is for separator.
+			OutRelativePath = MaterialNodeName.Mid(AssetNodeName.Len() + 1);
+			return true;
+		}
+		else if (FPaths::MakePathRelativeTo(MaterialNodeName, *AssetNodeName))
+		{
+			// In some case material might not be contained in the AssetName (ie, NodeSync)
+			OutRelativePath = MaterialNodeName;
+			return true;
+		}
+		
 	}
 
 	return false;
@@ -1767,6 +1781,130 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 
 	return bExpressionCreated;
 }
+
+
+bool
+FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
+	const HAPI_NodeId& InAssetId,
+	const FString& InHoudiniAssetName,
+	const HAPI_MaterialInfo& InMaterialInfo,
+	const FHoudiniPackageParams& InPackageParams,
+	UMaterial* Material,
+	TArray<UPackage*>& OutPackages,
+	int32& MaterialNodeY)
+{
+	if (!IsValid(Material))
+		return false;
+
+	bool bExpressionCreated = false;
+
+	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
+
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
+
+	// Occlusion texture creation parameters.
+	FCreateTexture2DParameters CreateTexture2DParameters;
+	CreateTexture2DParameters.SourceGuidHash = FGuid();
+	CreateTexture2DParameters.bUseAlpha = false;
+	CreateTexture2DParameters.CompressionSettings = TC_Default;
+	CreateTexture2DParameters.bDeferCompression = true;
+	CreateTexture2DParameters.bSRGB = false;
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
+	FScalarMaterialInput& MatInputOcclusion = MaterialEditorOnly->AmbientOcclusion;
+#else
+	FScalarMaterialInput& MatInputOcclusion = Material->AmbientOcclusion;
+#endif
+
+	// See if a separate AO texture is available.
+	HAPI_ParmInfo ParmOcclusionTextureInfo;
+	HAPI_ParmId ParmOcclusionTextureId = FHoudiniMaterialTranslator::FindTextureParam(
+		InMaterialInfo.nodeId,
+		HAPI_UNREAL_PARAM_MAP_OCCLUSION,
+		HAPI_UNREAL_PARAM_MAP_OCCLUSION_ENABLED,
+		HAPI_UNREAL_PARAM_MAP_OCCLUSION_OGL,
+		"",
+		"",
+		"",
+		ParmOcclusionTextureInfo,
+		GeneratingParameterName);
+
+	if (ParmOcclusionTextureId >= 0)
+	{
+		UTexture2D* Texture;
+		UMaterialExpressionTextureSampleParameter2D* TextureExpression;
+		FHoudiniMaterialTranslator::GetTextureAndExpression(MatInputOcclusion.Expression, false, Texture, TextureExpression);
+
+		// Get the node path for the texture package's meta data
+		FString NodePath;
+		FHoudiniMaterialTranslator::GetMaterialRelativePath(InAssetId, InMaterialInfo.nodeId, NodePath);
+
+		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmOcclusionTextureId);
+		if (bRenderSuccessful)
+		{
+			HAPI_ImagePacking ImagePacking;
+			const char* PlaneType;
+			bool bFoundImagePlanes = FHoudiniTextureTranslator::GetPlaneInfo(
+				ParmOcclusionTextureId, InMaterialInfo,
+				ImagePacking, PlaneType, CreateTexture2DParameters.bUseAlpha);
+
+			bool bTextureCreated = false;
+			if (bFoundImagePlanes)
+			{
+				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+					InMaterialInfo.nodeId,
+					PlaneType,
+					HAPI_IMAGE_DATA_INT8,
+					ImagePacking,
+					Texture,
+					NodePath,
+					HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OCCLUSION,
+					InPackageParams,
+					CreateTexture2DParameters,
+					TEXTUREGROUP_World,
+					OutPackages);
+			}
+			else
+			{
+				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
+					InMaterialInfo.nodeId,
+					HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
+					HAPI_IMAGE_DATA_INT8,
+					HAPI_IMAGE_PACKING_RGBA,
+					Texture,
+					NodePath,
+					HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OCCLUSION,
+					InPackageParams,
+					CreateTexture2DParameters,
+					TEXTUREGROUP_World,
+					OutPackages);
+			}
+
+			if (bTextureCreated)
+			{
+				bExpressionCreated = FHoudiniMaterialTranslator::CreateTextureExpression(
+					Texture,
+					TextureExpression,
+					MatInputOcclusion.Expression,
+					true,
+					Material,
+					ObjectFlag,
+					GeneratingParameterName,
+					SAMPLERTYPE_LinearColor); //SAMPLERTYPE_Color);				
+			}
+		}
+
+		if (bExpressionCreated)
+		{
+			FHoudiniMaterialTranslator::PositionExpression(MatInputOcclusion.Expression, MaterialNodeY, 0.0f);
+		}
+	}
+
+	return bExpressionCreated;
+}
+
 
 bool
 FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
