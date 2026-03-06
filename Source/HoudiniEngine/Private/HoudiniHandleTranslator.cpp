@@ -78,7 +78,6 @@ FHoudiniHandleTranslator::BuildAllHandles(
 
 	HAPI_AssetInfo AssetInfo;
 	FHoudiniApi::AssetInfo_Init(&AssetInfo);
-
 	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo))
 		return false;
 

@@ -928,7 +928,6 @@ FHoudiniMaterialTranslator::GetMaterialRelativePath(const HAPI_NodeId& InAssetId
 			OutRelativePath = MaterialNodeName;
 			return true;
 		}
-		
 	}
 
 	return false;
@@ -1754,6 +1753,40 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 					CreateTexture2DParameters,
 					TEXTUREGROUP_World,
 					OutPackages);
+			}
+
+			// Look for the height scale param
+			bool FoundScaleParam = false;
+			FString ParmName;
+			HAPI_ParmInfo ParmHeightScaleInfo;
+			HAPI_ParmId ParmHeightScaleId = FHoudiniMaterialTranslator::FindConstantParam(
+				InMaterialInfo.nodeId,
+				HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_SCALE_CPM,
+				"",
+				HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_SCALE_CPM,
+				"",
+				"",
+				ParmHeightScaleInfo,
+				ParmName);
+
+			if (ParmHeightScaleId >= 0
+				&& ParmHeightScaleInfo.size > 0 
+				&& ParmHeightScaleInfo.floatValuesIndex >= 0)
+			{
+				float ScaleValue = 1.0f;
+				if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmFloatValues(
+					FHoudiniEngine::Get().GetSession(),
+					InMaterialInfo.nodeId,
+					(float*)&ScaleValue,
+					ParmHeightScaleInfo.floatValuesIndex,
+					1))
+				{
+					if (ScaleValue > 0.0f)
+					{
+						// Apply the scale to the default displacement value of 4cm
+						Material->DisplacementScaling.Magnitude = 4.0 * ScaleValue;
+					}
+				}
 			}
 
 			if (bTextureCreated)

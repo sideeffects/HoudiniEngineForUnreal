@@ -540,6 +540,7 @@
 #define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_OGL_ENABLED	"ogl_use_displacemap"
 
 #define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_CPM			"height_map"
+#define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_SCALE_CPM	"height"
 
 // Materials occlusion
 #define HAPI_UNREAL_PARAM_MAP_OCCLUSION					"occlusion_texture"
