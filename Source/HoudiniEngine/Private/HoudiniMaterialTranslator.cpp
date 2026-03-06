@@ -1761,8 +1761,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 			HAPI_ParmInfo ParmHeightScaleInfo;
 			HAPI_ParmId ParmHeightScaleId = FHoudiniMaterialTranslator::FindConstantParam(
 				InMaterialInfo.nodeId,
-				HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_SCALE_CPM,
-				"",
+				HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_SCALE,
+				HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_SCALE_OGL,
 				HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_SCALE_CPM,
 				"",
 				"",

@@ -4456,6 +4456,18 @@ FHoudiniMeshTranslator::CreateNeededMaterials()
 		false, 
 		bTreatExistingMaterialsAsUpToDate);
 
+	// See if we have material attributes that we want to apply to the generated materials
+	TArray<FHoudiniGenericAttribute> MatAttributes;
+	FHoudiniMaterialTranslator::GetMaterialParameterAttributes(HGPO.GeoId, HGPO.PartId, HAPI_ATTROWNER_PRIM, MatAttributes);
+	if (MatAttributes.Num() > 0)
+	{
+		for (auto& CurMat : OutMaterialArray)
+		{
+			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(
+				CurMat, MatAttributes, 0, true);
+		}
+	}
+
 	if (bMaterialOverrideNeedsCreateInstance && PartFaceMaterialOverrides.Num() > 0)
 	{
 		// Map containing unique face materials override attribute

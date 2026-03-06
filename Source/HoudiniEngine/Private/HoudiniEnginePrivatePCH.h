@@ -535,9 +535,11 @@
 // Materials displacement
 #define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT				"dispTex_texture"
 #define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_ENABLED		"dispTex_enable"
+#define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_SCALE		"dispTex_scale"
 
 #define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_OGL			"ogl_displacemap"
 #define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_OGL_ENABLED	"ogl_use_displacemap"
+#define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_SCALE_OGL	"ogl_displacescale"
 
 #define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_CPM			"height_map"
 #define HAPI_UNREAL_PARAM_MAP_DISPLACEMENT_SCALE_CPM	"height"
