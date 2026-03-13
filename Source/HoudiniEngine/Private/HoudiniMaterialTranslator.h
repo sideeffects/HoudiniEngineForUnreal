@@ -466,6 +466,24 @@ protected:
 		TArray<UPackage*>& OutPackages,
 		int32& MaterialNodeY);
 
+	static bool CreateMaterialComponentDisplacement(
+		const HAPI_NodeId& InAssetId,
+		const FString& InHoudiniAssetName,
+		const HAPI_MaterialInfo& InMaterialInfo,
+		const FHoudiniPackageParams& InPackageParams,
+		UMaterial* Material,
+		TArray<UPackage*>& OutPackages,
+		int32& MaterialNodeY);
+
+	static bool CreateMaterialComponentOcclusion(
+		const HAPI_NodeId& InAssetId,
+		const FString& InHoudiniAssetName,
+		const HAPI_MaterialInfo& InMaterialInfo,
+		const FHoudiniPackageParams& InPackageParams,
+		UMaterial* Material,
+		TArray<UPackage*>& OutPackages,
+		int32& MaterialNodeY);
+
 public:
 
 	// Material node construction offsets.
