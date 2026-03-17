@@ -636,6 +636,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			PCGCookable->Cookable->SetIsPCG(true);
 			PCGCookable->Cookable->SetLandscapeModificationEnabled(ManagedResource->PCGComponent->bIgnoreLandscapeTracking);
 			PCGCookable->Cookable->SetNodeLabelPrefix(TEXT("PCG_Instance_"));
+			PCGCookable->Cookable->SetHasBeenLoaded(false);
 			PCGCookable->Instantiate();
 			PCGCookable->bAutomaticallyDeleteAssets = Settings->bAutomaticallyDeleteTempAssets;
 			ManagedResource->HoudiniPCGComponent->Cookable = PCGCookable;
@@ -650,7 +651,7 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			// Attempt to apply parameters, inputs. If a cook was started, return - we need to wait for it to complete asynchronouosly.
 
 			ManagedResource->HoudiniPCGComponent->Cookable->CopyParametersAndInputs(Settings->ParameterCookable);
-			bool bSuccess = ManagedResource->HoudiniPCGComponent->Cookable->UpdateParametersAndInputs(Context);
+			bool bSuccess = ManagedResource->HoudiniPCGComponent->Cookable->ApplyPCGDataOnNodeInputs(Context);
 			if(!bSuccess)
 			{
 				HOUDINI_PCG_MESSAGE(TEXT("An error occured, not processing PCG node."));
@@ -689,9 +690,15 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 		if(Cookable->State == EPCGCookableState::Initialized)
 		{
+			// The Houdini Cookable is initialized, so et inputs/outputs and start cooking.
+
 			Cookable->Cookable->SetOutputSupported(true);
+
+			// Copy inputs and parameters from the Parameter Cookable...
 			Cookable->CopyParametersAndInputs(Settings->ParameterCookable);
-			Cookable->UpdateParametersAndInputs(Context);
+
+			// ... and then override with PCG Data inputs.
+			Cookable->ApplyPCGDataOnNodeInputs(Context);
 
 			if(!Cookable->GetErrors().IsEmpty())
 			{

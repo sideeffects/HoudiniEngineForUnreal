@@ -266,14 +266,37 @@ UHoudiniParameter::OnSessionConnected()
 {
 	NodeId = INDEX_NONE;
 
-	// Dont invalidate existing parmId as this will prevent the Parm UI
-	// From properly showing up.
-	//ParmId = INDEX_NONE;
-	//ParentParmId = INDEX_NONE;
+	ParmId = INDEX_NONE;
+	ParentParmId = INDEX_NONE;
 }
 
 
-UHoudiniCookable* UHoudiniParameter::GetCookable()
+UHoudiniCookable* UHoudiniParameter::GetCookable() const
 {
-	return Cast<UHoudiniCookable>(GetOuter());
+	UHoudiniCookable* HC = Cast<UHoudiniCookable>(GetOuter());
+	return HC;
 }
+
+const TObjectPtr<UHoudiniParameter> UHoudiniParameter::GetParent()
+{
+	return Parent;
+}
+
+const TArray<TObjectPtr<UHoudiniParameter>>& UHoudiniParameter::GetChildren()
+{
+	return Children;
+}
+
+void UHoudiniParameter::SetParent(UHoudiniParameter* InParent)
+{
+	this->Parent = InParent;
+	InParent->Children.Add(this);
+}
+
+void UHoudiniParameter::ClearTree()
+{
+	this->Parent = nullptr;
+	this->Children.Empty();
+}
+
+

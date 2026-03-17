@@ -25,6 +25,9 @@
 */
 
 #include "HoudiniParameterMultiParm.h"
+#include <HoudiniParameterUpdater.h>
+
+#include "HoudiniCookable.h"
 
 UHoudiniParameterMultiParm::UHoudiniParameterMultiParm(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer), bIsShown(false), InstanceStartOffset(0)
@@ -46,55 +49,9 @@ UHoudiniParameterMultiParm::Create(
 		InOuter, UHoudiniParameterMultiParm::StaticClass(), ParamName, RF_Public | RF_Transactional);
 
 	HoudiniAssetParameter->SetParameterType(EHoudiniParameterType::MultiParm);
-	//HoudiniAssetParameter->UpdateFromParmInfo(InParentParameter, InNodeId, ParmInfo);
-
 	HoudiniAssetParameter->DefaultInstanceCount = -1;
 
 	return HoudiniAssetParameter;
-}
-
-bool
-UHoudiniParameterMultiParm::SetValue(const int32 InValue)
-{
-	if (InValue == Value)
-		return false;
-	
-	Value = InValue;
-
-	this->MarkChanged(true);
-	return true;
-}
-
-void
-UHoudiniParameterMultiParm::InsertElement(int32 Index) 
-{
-	this->Modification.Type = EHoudiniMultiParmModificationType::Insert;
-	this->Modification.Value = Index;
-	this->MarkChanged(true);
-}
-
-void 
-UHoudiniParameterMultiParm::RemoveElement(int32 Index) 
-{
-	if(Index < 0)
-		return;
-
-	this->Modification.Type = EHoudiniMultiParmModificationType::Removed;
-	this->Modification.Value = Index;
-	this->MarkChanged(true);
-}
-
-bool 
-UHoudiniParameterMultiParm::SetNumElements(int Count) 
-{
-	if(this->GetInstanceCount() == Count)
-		return false;
-
-	this->Modification.Type = EHoudiniMultiParmModificationType::Resize;
-	this->Modification.Value = Count;
-	this->MarkChanged(true);
-
-	return true;
 }
 
 bool 
@@ -115,5 +72,21 @@ UHoudiniParameterMultiParm::SetDefaultInstanceCount(int32 InCount)
 void UHoudiniParameterMultiParm::MarkDefault(const bool& bInDefault)
 {
 	Super::MarkDefault(bInDefault);
-	Modification = FHoudiniMultiParmModification();
 }
+
+bool UHoudiniParameterMultiParm::CanModifyMultiParm() const
+{
+	return true;
+#if 0
+	UHoudiniCookable* HC = GetCookable();
+	auto State = HC->GetCurrentState();
+
+	if(State == EHoudiniAssetState::NeedInstantiation || State == EHoudiniAssetState::NewHDA)
+		return false;
+	else if (HC->GetNodeId() == INDEX_NONE)
+		return false;
+	else
+		return true;
+#endif
+}
+

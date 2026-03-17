@@ -35,17 +35,40 @@ class UHoudiniAsset;
 class UHoudiniCookable;
 class UHoudiniParameter;
 class UHoudiniParameterFile;
+class UHoudiniParameterMultiParm;
 
 enum class EHoudiniFolderParameterType : uint8;
 enum class EHoudiniParameterType : uint8;
 
-struct HOUDINIENGINE_API FHoudiniParameterTranslator : public FHoudiniParameterUpdater
+struct HOUDINIENGINE_API FHoudiniParameterTranslator 
 {
-	virtual void SendModifiedParametersToHoudini(UHoudiniCookable* InHC, bool bFetchFromHDA);
+	static bool SetNumMultiParmElements(UHoudiniParameterMultiParm* MultiParm, int NewSize);
+	static bool InsertMultiParmInstance(UHoudiniParameterMultiParm* MultiParm, int Index);
+	static bool RemoveMultiParmInstance(UHoudiniParameterMultiParm* MultiParm, int Index);
 
-	static bool UpdateParameters(
+	static bool InitializeParametersFromAssetDefinition(UHoudiniCookable* InHC);
+
+	static bool InstantiateParameters(UHoudiniCookable* InHC);
+
+	static bool MatchParameterToHoudini(
+		UHoudiniCookable* HC,
+		TArray<HAPI_ParmInfo>& ParmInfos,
+		TMap<int, HAPI_ParmInfo*>& IdToParmInfo,
+		TMap<FString, int>& NameToId);
+
+	static TArray<TObjectPtr<UHoudiniParameter>> CreateNewParameters(
+		UHoudiniCookable* HC,
+		int NodeId,
+		const TArray<HAPI_ParmInfo>& ParmInfos,
+		const TMap<int, UHoudiniParameter*>& IdToParmInfo,
+		const TArray<int>* DefaultIntValues,
+		const TArray<float>* DefaultFloatValues,
+		const TArray<HAPI_StringHandle>* DefaultStringValues,
+		const TArray<HAPI_ParmChoiceInfo>* DefaultChoiceValues);
+
+	static bool UpdateParametersFromHoudini(
 		UHoudiniCookable* InHC,
-		bool bUpdateValues,
+		bool bFetchParameterValues,
 		bool bForceFullUpdate,
 		bool bCacheRampParms,
 		bool& bNeedToUpdateEditorProperties);
@@ -61,11 +84,13 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator : public FHoudiniParameterU
 
 	// 
 	static bool UploadChangedParameters(
-		TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
+		const TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
 		HAPI_NodeId InNodeId);
 
+	static bool ForceUploadAllParameterValues(const TArray<TObjectPtr<UHoudiniParameter>>& InParameters);
+
 	//
-	static bool UploadParameterValue(UHoudiniParameter* InParam);
+	static bool UploadParameterToHoudini(UHoudiniParameter* InParam, bool bValuesOnly);
 
 	//
 	static bool UploadMultiParmValues(UHoudiniParameter* InParam);
@@ -81,7 +106,7 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator : public FHoudiniParameterU
 
 	//
 	static bool SyncMultiParmValuesAtLoad(
-		UHoudiniParameter* MultiParam, TArray<TObjectPtr<UHoudiniParameter>> &OldParams, const int32& InAssetId, const HAPI_AssetInfo& AssetInfo);
+		UHoudiniParameter* MultiParam, const TArray<TObjectPtr<UHoudiniParameter>> &OldParams, const int32& InAssetId, const HAPI_AssetInfo& AssetInfo);
 	
 	// 
 	static bool GetMultiParmInstanceStartIdx(
@@ -103,9 +128,9 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator : public FHoudiniParameterU
 	*/
 	static bool BuildAllParameters(
 		UHoudiniCookable* InHC,
-		TArray<TObjectPtr<UHoudiniParameter>>& CurrentParameters,
+		const TArray<TObjectPtr<UHoudiniParameter>>& CurrentParameters,
 		TArray<TObjectPtr<UHoudiniParameter>>& NewParameters,
-		bool bUpdateValues,
+		bool bFetchValuesFromHoudini,
 		bool InForceFullUpdate,
 		bool bCacheRampParms);
 
@@ -125,7 +150,7 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator : public FHoudiniParameterU
 		HAPI_NodeId InNodeId,
 		const HAPI_ParmInfo& ParmInfo,
 		bool bFullUpdate = true,
-		bool bUpdateValue = true,
+		bool bFetchValueFromHoudini = true,
 		const TArray<int>* DefaultIntValues = nullptr,
 		const TArray<float>* DefaultFloatValues = nullptr,
 		const TArray<HAPI_StringHandle>* DefaultStringValues = nullptr,
@@ -171,4 +196,15 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator : public FHoudiniParameterU
 		const HAPI_ParmInfo* ParamInfo);
 
 	static bool RevertRampParameters(TMap<FString, UHoudiniParameter*> & InRampParams, const int32 & AssetId);
+};
+
+struct HOUDINIENGINE_API FHoudiniEngineParameterUpdater : public FHoudiniParameterUpdater
+{
+	virtual ~FHoudiniEngineParameterUpdater() {};
+
+	virtual bool InstantiateParameters(UHoudiniCookable* InHC);
+	virtual void SendModifiedParametersToHoudini(UHoudiniCookable* InHC, bool bFetchFromHDA) override;
+	virtual bool SetNumMultiParmElements(UHoudiniParameterMultiParm* MultiParm, int NewSize) override;
+	virtual bool InsertMultiParmInstance(UHoudiniParameterMultiParm* MultiParm, int Index) override;
+	virtual bool RemoveMultiParmInstance(UHoudiniParameterMultiParm* MultiParm, int Index) override;
 };

@@ -38,6 +38,9 @@ public:
 
 	virtual void OnSessionLost() override;
 
+	virtual void StartInstantiating(UHoudiniCookable* Cookable) override;
+	virtual void EndInstantiating(UHoudiniCookable* Cookable, bool bSuccess) override;
+
 	virtual void StartCooking(UHoudiniCookable * Cookable) override;
 	virtual void EndCooking(UHoudiniCookable* Cookable, bool bSuccess) override;
 

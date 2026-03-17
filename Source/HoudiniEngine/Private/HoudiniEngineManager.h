@@ -101,18 +101,20 @@ public:
 
 	void UploadedParametersAndInputs(UHoudiniCookable* InHC);
 
+	bool StartInstantiation(UHoudiniCookable* HC);
+
 protected:
 
 	// Updates a given task's status
 	// Returns true if the given task's status was properly found
-	bool UpdateTaskStatus(
+	static bool UpdateTaskStatus(
 		FGuid& OutTaskGUID,
 		FHoudiniEngineTaskInfo& OutTaskInfo,
 		bool bNotifications = true);
 
 	// Start a task to instantiate the given HoudiniAsset
 	// Return true if the task was successfully created
-	bool StartTaskAssetInstantiation(
+	static bool StartTaskAssetInstantiation(
 		UHoudiniAsset* HoudiniAsset,
 		const FString& DisplayName,
 		const FString& NodeLabelPrefix,
@@ -121,8 +123,11 @@ protected:
 
 	// Updates progress of the instantiation task
 	// Returns true if a state change should be made
-	bool UpdateInstantiating(
+	static bool UpdateInstantiatingFromTask(
 		UHoudiniCookable* HC, EHoudiniAssetState& NewState, bool bDoNotifications);
+
+public:
+	bool UpdateInstantiating(UHoudiniCookable* HC);
 
 	// Start a task to instantiate the Houdini Asset with the given node Id
 	// Returns true if the task was successfully created
@@ -183,6 +188,7 @@ protected:
 	// Enable auto-save if we no longer have an object preventing autosaving
 	void EnableEditorAutoSave(const UObject* InObject);
 
+	void InitializePDG(UHoudiniCookable* HC);
 private:
 
 	// Ticker handle, used for processing HAC.

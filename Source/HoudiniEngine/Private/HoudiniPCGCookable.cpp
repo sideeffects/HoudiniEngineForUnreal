@@ -86,6 +86,17 @@ UHoudiniPCGCookable::Rebuild()
 	this->Cookable->MarkAsNeedRebuild();
 }
 
+
+void 
+UHoudiniPCGCookable::OnStateChange(EHoudiniAssetState OldState, EHoudiniAssetState NewState)
+{
+	if (OldState == EHoudiniAssetState::Instantiating)
+	{
+		if(NewState == EHoudiniAssetState::None)
+			this->State = EPCGCookableState::Initialized;
+	}
+}
+
 void
 UHoudiniPCGCookable::OnCookingCompleteInternal(bool bSuccess)
 {
@@ -160,6 +171,11 @@ UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPCGSett
 			this->OnCookingComplete(bSuccess);
 		});
 
+	Cookable->GetOnCookableStateChangeDelegate().AddLambda([this](UHoudiniCookable*, const EHoudiniAssetState OldState, const EHoudiniAssetState NewState)
+		{
+			this->OnStateChange(OldState, NewState);
+		});
+
 	Cookable->SetDoSlateNotifications(false);
 	Cookable->SetAllowUpdateEditorProperties(false);
 	Cookable->SetParameterSupported(true);
@@ -173,6 +189,7 @@ UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPCGSett
 	Cookable->SetPDGSupported(true);
 	Cookable->SetBakingSupported(true);
 	Cookable->SetProxySupported(true);
+	Cookable->SetCookAfterInstantiation(false);
 
 	if(Component)
 	{
@@ -223,14 +240,14 @@ UHoudiniPCGCookable::InvalidateCookable()
 }
 
 bool
-UHoudiniPCGCookable::ApplyParametersToCookable(const FPCGContext* Context)
+UHoudiniPCGCookable::ApplyParameterPCGDataToCookable(const FPCGContext* Context)
 {
 	const TArray<FPCGTaggedData> Inputs = Context->InputData.GetInputsByPin(FName(FHoudiniPCGUtils::ParameterInputPinName));
 
 	bool bChanged = false;
 	for(auto& TaggedData : Inputs)
 	{
-		bChanged |= ApplyParametersToCookable(TaggedData.Data);
+		bChanged |= ApplyParameterPCGDataToCookable(TaggedData.Data);
 	}
 
 	if (bChanged)
@@ -243,7 +260,7 @@ UHoudiniPCGCookable::ApplyParametersToCookable(const FPCGContext* Context)
 
 
 bool
-UHoudiniPCGCookable::ApplyInputsToCookable(const FPCGContext* Context)
+UHoudiniPCGCookable::ApplyInputsPCGDataToCookable(const FPCGContext* Context)
 {
 	int NumInputs = this->Cookable->GetNumInputs();
 
@@ -330,7 +347,7 @@ UHoudiniPCGCookable::AddTrackedObjects(const FPCGContext* Context)
 }
 
 bool
-UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data)
+UHoudiniPCGCookable::ApplyParameterPCGDataToCookable(const UPCGData* Data)
 {
 	const UPCGMetadata* Metadata = Data->ConstMetadata();
 
@@ -352,26 +369,38 @@ UHoudiniPCGCookable::ApplyParametersToCookable(const UPCGData* Data)
 		if (!AttributeSet.Contains(ParameterName))
 			continue;
 
+		bool bThisValueChanged = false;
+
 		FHoudiniPCGAttributes Attributes(Metadata, FName(ParameterName));
 		if(UHoudiniParameterString* ParameterString = Cast<UHoudiniParameterString>(Parameter))
 		{
-			TArray<FString> Values = FHoudiniPCGUtils::GetValueAsString(ParameterString->GetDefaultValues(), Attributes, 0);
-			bChanged |= ParameterString->SetValuesIfChanged(Values);
+			TArray<FString> Values = FHoudiniPCGUtils::GetValueAsString(Attributes, 0);
+			if (!Values.IsEmpty())
+				bThisValueChanged |= ParameterString->SetValuesIfChanged(Values);
 		}
 		else if(UHoudiniParameterFloat* ParameterFloat = Cast<UHoudiniParameterFloat>(Parameter))
 		{
-			TArray<float> Values = FHoudiniPCGUtils::GetValueAsFloat(ParameterFloat->GetDefaultValues(), Attributes, 0);
-			bChanged |= ParameterFloat->SetValuesIfChanged(Values);
+			TArray<float> Values = FHoudiniPCGUtils::GetValueAsFloat(Attributes, 0);
+			if(!Values.IsEmpty())
+				bThisValueChanged |= ParameterFloat->SetValuesIfChanged(Values);
 		}
 		else if(UHoudiniParameterInt* ParameterInt = Cast<UHoudiniParameterInt>(Parameter))
 		{
-			TArray<int> Values = FHoudiniPCGUtils::GetValueAsInt(ParameterInt->GetDefaultValues(), Attributes, 0);
-			bChanged |= ParameterInt->SetValuesIfChanged(Values);
+			TArray<int> Values = FHoudiniPCGUtils::GetValueAsInt(Attributes, 0);
+			if(!Values.IsEmpty())
+				bThisValueChanged |= ParameterInt->SetValuesIfChanged(Values);
 		}
 		else if(UHoudiniParameterToggle* ParameterToggle = Cast<UHoudiniParameterToggle>(Parameter))
 		{
-			TArray<int> Values = FHoudiniPCGUtils::GetValueAsInt(ParameterToggle->GetDefaultValues(), Attributes, 0);
-			bChanged |= ParameterToggle->SetValuesIfChanged(Values);
+			TArray<int> Values = FHoudiniPCGUtils::GetValueAsInt(Attributes, 0);
+			if(!Values.IsEmpty())
+				bThisValueChanged |= ParameterToggle->SetValuesIfChanged(Values);
+		}
+
+		if (bThisValueChanged)
+		{
+			Parameter->MarkChanged(true);
+			bChanged = true;
 		}
 	}
 
@@ -652,7 +681,7 @@ UHoudiniPCGCookable::CopyParametersAndInputs(const UHoudiniPCGCookable * Other)
 }
 
 bool
-UHoudiniPCGCookable::UpdateParametersAndInputs(FPCGContext* Context)
+UHoudiniPCGCookable::ApplyPCGDataOnNodeInputs(FPCGContext* Context)
 {
 	Cookable->SetOutputSupported(true);
 
@@ -665,8 +694,8 @@ UHoudiniPCGCookable::UpdateParametersAndInputs(FPCGContext* Context)
 
 	if(Context)
 	{
-		bParamsChanged |= this->ApplyParametersToCookable(Context);
-		bInputsChanged |= this->ApplyInputsToCookable(Context);
+		bParamsChanged |= this->ApplyParameterPCGDataToCookable(Context);
+		bInputsChanged |= this->ApplyInputsPCGDataToCookable(Context);
 	}
 
 	return true;
@@ -724,6 +753,9 @@ UHoudiniPCGCookable::StartCook()
 		// Non-PDG
 		HOUDINI_PCG_MESSAGE(TEXT("(%p) Starting to Cook."), this);
 		Cookable->MarkAsNeedCook();
+
+		// No idea why MarkAsNeedCook() sets has been loaded.
+		Cookable->SetHasBeenLoaded(false);
 	}
 }
 
@@ -821,8 +853,7 @@ UHoudiniPCGCookable::GetUnrealObjectPaths(const FString& InputName, const FPCGCo
 	NewInputPaths.Reserve(NumRows);
 	for(int Row = 0; Row < NumRows; Row++)
 	{
-		TArray<FString> DefaultPaths = {};
-		TArray<FString> Paths = FHoudiniPCGUtils::GetValueAsString(DefaultPaths, Attributes, Row);
+		TArray<FString> Paths = FHoudiniPCGUtils::GetValueAsString(Attributes, Row);
 		for(FString Path : Paths)
 		{
 			if(!Path.IsEmpty())

@@ -41,6 +41,8 @@ struct FHoudiniLogRecord
 enum EHoudiniStatusManagerStatus
 {
 	Idle,				// With not connected, or connected before first cook.
+	Instantiating,		// Instantiating
+	Instantiated,
 	Cooking,			// A Cook is in progress.
 	CookComplete,		// Cooking complete.
 	Baking,				// A Bake is in progress.
@@ -67,6 +69,9 @@ public:
 	static FHoudiniStatusManager* Get();
 
 	virtual void OnSessionLost() {};
+
+	virtual void StartInstantiating(UHoudiniCookable* Cookable) {};
+	virtual void EndInstantiating(UHoudiniCookable* Cookable, bool bSuccess) {};
 
 	virtual void StartCooking(UHoudiniCookable* Cookable) {};
 	virtual void EndCooking(UHoudiniCookable* Cookable, bool bSuccess) {};

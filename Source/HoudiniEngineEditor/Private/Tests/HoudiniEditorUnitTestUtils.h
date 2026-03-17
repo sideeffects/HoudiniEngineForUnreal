@@ -34,6 +34,7 @@
 #include "HoudiniStaticMesh.h"
 #include "HoudiniStaticMeshComponent.h"
 #include "CoreMinimal.h"
+#include "HoudiniParameterUpdater.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 #include "GeometryCollection/GeometryCollectionActor.h"
 #include "GeometryCollection/GeometryCollectionComponent.h"
@@ -356,7 +357,7 @@ struct FHoudiniEditorUnitTestUtils
 		{\
 			return true;\
 		}\
-		__Parameter->SetNumElements(_PARAMETER_VALUE);\
+		FHoudiniParameterUpdater::Get()->SetNumMultiParmElements(__Parameter, _PARAMETER_VALUE);\
 	}
 
 enum class EHoudiniContextState : uint8

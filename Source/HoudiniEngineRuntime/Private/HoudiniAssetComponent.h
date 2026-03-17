@@ -147,7 +147,7 @@ public:
 	const TArray<FHoudiniBakedOutput>& GetBakedOutputs() const;
 		
 #if WITH_EDITORONLY_DATA
-	TArray<TObjectPtr<UHoudiniParameter>>& GetParameters();
+	void SetParameters(const TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
 	const TArray<TObjectPtr<UHoudiniParameter>>& GetParameters() const;
 #endif
 

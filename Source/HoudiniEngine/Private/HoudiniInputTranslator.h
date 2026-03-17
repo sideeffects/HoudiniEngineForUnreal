@@ -85,7 +85,8 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		UObject* InOuter,
 		TArray<TObjectPtr<UHoudiniInput>>& Inputs,
 		TArray<TObjectPtr<UHoudiniParameter>>& Parameters,
-		bool bLoadedInputs);
+		bool bLoadedInputs,
+		bool bIsInitialization);
 
 	// Update inputs from the asset
 	// @AssetId: NodeId of the digital asset

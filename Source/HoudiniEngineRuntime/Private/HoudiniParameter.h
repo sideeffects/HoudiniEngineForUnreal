@@ -212,7 +212,7 @@ public:
 	// Invalidate ids
 	virtual void InvalidateData();
 
-	UHoudiniCookable* GetCookable();
+	UHoudiniCookable* GetCookable() const;
 
 	//------------------------------------------------------------------------------------------------
 	// Notifications
@@ -222,7 +222,19 @@ public:
 
 	void OnSessionConnected();
 
+	// Family management. We construct parent and child relationships based off ParmIds.
+	const TObjectPtr<UHoudiniParameter> GetParent();
+	const TArray<TObjectPtr<UHoudiniParameter>>& GetChildren();
+	void SetParent(UHoudiniParameter* Parent);
+	void ClearTree();
+
 protected:
+
+	UPROPERTY()
+	TObjectPtr<UHoudiniParameter> Parent = nullptr;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UHoudiniParameter>> Children;
 
 	//---------------------------------------------------------------------------------------------
 	// ParmInfos
@@ -252,11 +264,11 @@ protected:
 	UPROPERTY(DuplicateTransient)
 	int32 NodeId;
 
-	// Id of this parameter.
+	// Id of this parameter.  TODO: make transient, but needed for backwards compatibility for now.
 	UPROPERTY()
 	int32 ParmId;
 
-	// Id of parent parameter, -1 if root is parent.
+	// Id of parent parameter, -1 if root is parent. TODO: make transient, but needed for backwards compatibility for now.,
 	UPROPERTY()
 	int32 ParentParmId;
 
@@ -326,8 +338,8 @@ protected:
 	uint32 TagCount;	
 
 	// The index to use to look into the values array in order to retrieve the actual value(s) of this parameter.
-	UPROPERTY()
-	int32 ValueIndex;
+	UPROPERTY(DuplicateTransient, Transient)
+	int32 ValueIndex = INDEX_NONE;
 
 	//-------------------------------------------------------------------------------------------------------------------------
 	// Expression

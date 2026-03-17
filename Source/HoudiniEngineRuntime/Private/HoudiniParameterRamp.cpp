@@ -29,7 +29,7 @@
 #include "HoudiniParameterFloat.h"
 #include "HoudiniParameterColor.h"
 #include "HoudiniParameterChoice.h"
-
+#include "HoudiniParameterUpdater.h"
 #include "UObject/UnrealType.h"
 
 // Generic helpers to avoid logic duplication across ramp parameters
@@ -100,7 +100,7 @@ HoudiniParameterRampStatics::SyncCachedPoints(ParamT* Param)
 	// Remove points
 	for (int32 IdxCurrentPointLeft = Idx; IdxCurrentPointLeft < Param->Points.Num(); ++IdxCurrentPointLeft) 
 	{
-		Param->RemoveElement(IdxCurrentPointLeft);
+		FHoudiniParameterUpdater::Get()->RemoveMultiParmInstance(Param, IdxCurrentPointLeft);
 
 		TObjectPtr<PointT> Point = Param->Points[IdxCurrentPointLeft];
 

@@ -95,7 +95,7 @@ public:
 
 	// UpdateParametersAndInputs() pulls the inputs and parameters from the context and cooks the Houdini Cookable.
 	// Returns true if succeeded, fals if failed. bParamsChanged && bInputsChanged are updated.
-	bool UpdateParametersAndInputs(FPCGContext* Context);
+	bool ApplyPCGDataOnNodeInputs(FPCGContext* Context);
 
 	void StartCook();
 	bool NeedsCook() const;
@@ -167,15 +167,17 @@ private:
 
 	static void CopyPCGOutputDataToPinData(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const UHoudiniPCGOutputData* PCGOutput);
 
-	bool ApplyInputsToCookable(const FPCGContext* InContext);
+	bool ApplyInputsPCGDataToCookable(const FPCGContext* InContext);
 
-	bool ApplyParametersToCookable(const FPCGContext* Context);
+	bool ApplyParameterPCGDataToCookable(const FPCGContext* Context);
 
-	bool ApplyParametersToCookable(const UPCGData* Data);
+	bool ApplyParameterPCGDataToCookable(const UPCGData* Data);
 
 	void OnCookingComplete(bool bSuccess);
 
 	void OnCookingCompleteInternal(bool bSuccess);
+
+	void OnStateChange(EHoudiniAssetState OldState, EHoudiniAssetState NewState);
 
 	void InvalidateCookable();
 

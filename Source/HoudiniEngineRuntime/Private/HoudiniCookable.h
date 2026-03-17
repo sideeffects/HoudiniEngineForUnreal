@@ -433,6 +433,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniCookable : public UObject, public IHoudin
 	friend struct FHoudiniHandleTranslator;
 	friend class UHoudiniAssetComponent;
 	friend class UHoudiniAssetBlueprintComponent;
+	friend struct FHoudiniEngineParameterUpdater;
 
 	// Delegate for when EHoudiniAssetState changes from InFromState to InToState on a HoudiniCookable (InHC)
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCookableStateChangeDelegate, UHoudiniCookable*, const EHoudiniAssetState, const EHoudiniAssetState);
@@ -492,6 +493,7 @@ public:
 	void SetCookableGUID(const FGuid& InGUID) { CookableGUID = InGUID; };
 
 	bool IsCookingEnabled() const { return bEnableCooking; };
+	bool CookAfterInstantiatation() const { return bCookAfterInstantiation;  }
 	bool HasBeenLoaded() const { return bHasBeenLoaded; };
 	bool HasBeenDuplicated() const { return bHasBeenDuplicated; };
 	bool HasRecookBeenRequested() const { return bRecookRequested; };
@@ -522,6 +524,8 @@ public:
 
 	FHoudiniStaticMeshGenerationProperties& GetStaticMeshGenerationProperties();
 	FMeshBuildSettings& GetStaticMeshBuildSettings();
+
+	void ConstructParameterTree();
 
 	// Feature data accessors
 	int32 GetNumInputs() const
@@ -630,8 +634,9 @@ public:
 	bool NeedUpdateOutputs() const;
 
 #if WITH_EDITORONLY_DATA
-	TArray<TObjectPtr<UHoudiniParameter>>& GetParameters();
 	const TArray<TObjectPtr<UHoudiniParameter>>& GetParameters() const;
+	void SetParameters(const TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
+	void SetParametersAndInstantiate(const TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
 #endif
 #if WITH_EDITORONLY_DATA
 	TArray<TObjectPtr<UHoudiniInput>>& GetInputs();
@@ -718,6 +723,7 @@ public:
 	bool SetTemporaryCookFolder(const FDirectoryPath& InPath);
 	bool SetBakeFolder(const FDirectoryPath& InPath);
 
+	void SetCookAfterInstantiation(bool bInCookAfterInstantiation);
 	void SetCookingEnabled(const bool& bInCookingEnabled);
 	void SetHasBeenLoaded(const bool& InLoaded);
 	void SetHasBeenDuplicated(const bool& InDuplicated);
@@ -865,7 +871,7 @@ protected:
 	// Do any object - specific cleanup required immediately after loading an object.
 	// This is not called for newly - created objects, and by default will always execute on the game thread.
 	virtual void PostLoad() override;
-
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual void PostEditImport() override;
 
 	virtual void BeginDestroy() override;
@@ -941,6 +947,9 @@ protected:
 
 	UPROPERTY(DuplicateTransient)
 	bool bEnableCooking;	// bEnableCooking
+
+	UPROPERTY()
+	bool bCookAfterInstantiation;
 
 	UPROPERTY(DuplicateTransient)
 	bool bForceNeedUpdate;	// bForceNeedUpdate

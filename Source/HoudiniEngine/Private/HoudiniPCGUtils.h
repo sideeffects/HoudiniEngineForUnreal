@@ -111,9 +111,9 @@ public:
 	static TArray<FHoudiniPCGObjectOutput> GetPCGOutputData(const FHoudiniBakedOutput * BakedOutput);
 	static TArray<FHoudiniPCGObjectOutput> GetPCGOutputData(const FTOPWorkResult* WorkItem);
 
-	static TArray<FString> GetValueAsString(const TArray<FString>& DefaultValues, const FHoudiniPCGAttributes & Attributes, int RowIndex);
-	static TArray<int> GetValueAsInt(const TArray<int>& DefaultValues, const FHoudiniPCGAttributes& Attributes, int RowIndex);
-	static TArray<float> GetValueAsFloat(const TArray<float> & DefaultValues, const FHoudiniPCGAttributes& Attributes, int RowIndex);
+	static TArray<FString> GetValueAsString(const FHoudiniPCGAttributes & Attributes, int RowIndex);
+	static TArray<int> GetValueAsInt(const FHoudiniPCGAttributes& Attributes, int RowIndex);
+	static TArray<float> GetValueAsFloat(const FHoudiniPCGAttributes& Attributes, int RowIndex);
 
 	static void LogVisualWarning(const FPCGContext* Context, const FString& ErrorText);
 	static void LogVisualError(const FPCGContext* Context, const FString & ErrorText);

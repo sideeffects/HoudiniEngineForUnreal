@@ -326,6 +326,8 @@ public:
 			const int64 BufferSize,
 			const bool BufferCyclic);
 
+		FHoudiniEngineManager* GetManager() { return HoudiniEngineManager; }
+
 	private:
 
 		// Singleton instance of Houdini Engine.

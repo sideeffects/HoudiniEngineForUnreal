@@ -2957,7 +2957,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 	bool bNeedToUpdateEditorProperties = false;
 
 	// Update the parameters
-	FHoudiniParameterTranslator::UpdateParameters(
+	FHoudiniParameterTranslator::UpdateParametersFromHoudini(
 		HC,
 		true, // Values
 		bForceFullUpdate,
@@ -3002,7 +3002,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 			break;
 
 		FHoudiniParameterTranslator::UploadChangedParameters(HC->GetParameters(), HC->GetNodeId());
-		FHoudiniParameterTranslator::UpdateParameters(
+		FHoudiniParameterTranslator::UpdateParametersFromHoudini(
 			HC,
 			true, // Update values
 			bForceFullUpdate,
@@ -3014,7 +3014,7 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 	if (Preset->MultiParmParameters.Num() > 0)
 	{
 		FHoudiniParameterTranslator::UploadChangedParameters(HC->GetParameters(), HC->GetNodeId());
-		FHoudiniParameterTranslator::UpdateParameters(
+		FHoudiniParameterTranslator::UpdateParametersFromHoudini(
 			HC,
 			true, // Update Values
 			bForceFullUpdate,

@@ -241,7 +241,7 @@ FHoudiniEngine::StartupModule()
 	// Create Unreal Object Input manager and its implementation (the singleton takes ownership of the implementation)
 	FUnrealObjectInputManager::SetSingleton(new FUnrealObjectInputManagerImpl());
 
-	FHoudiniParameterUpdater::SetInstance(new FHoudiniParameterTranslator);
+	FHoudiniParameterUpdater::SetInstance(new FHoudiniEngineParameterUpdater);
 
 	// Set the session status to Not Started
 	SetSessionStatus(EHoudiniSessionStatus::NotStarted);

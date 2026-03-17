@@ -33,6 +33,7 @@
 #include "HoudiniAssetComponent.h"
 #include "HoudiniCookable.h"
 #include "HoudiniEngine.h"
+#include "HoudiniEngineManager.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniInput.h"
@@ -54,7 +55,8 @@
 #include "HoudiniParameterSeparator.h"
 #include "HoudiniParameterString.h"
 #include "HoudiniParameterToggle.h"
-
+#include "Misc/MessageDialog.h"
+#include "HoudiniEngine.h"
 
 
 // Default values for certain UI min and max parameter values
@@ -70,8 +72,397 @@
 #define HAPI_UNREAL_PARAM_PIVOT						"p"
 #define HAPI_UNREAL_PARAM_UNIFORMSCALE				"scale"
 
+
+TArray<TObjectPtr<UHoudiniParameter>> FHoudiniParameterTranslator::CreateNewParameters(
+	UHoudiniCookable* HC,
+	int NodeId,
+	const TArray<HAPI_ParmInfo>& ParmInfos,
+	const TMap<int, UHoudiniParameter*>& IdToParmInfo,
+	const TArray<int>* DefaultIntValues,
+	const TArray<float>* DefaultFloatValues,
+	const TArray<HAPI_StringHandle>* DefaultStringValues,
+	const TArray<HAPI_ParmChoiceInfo>* DefaultChoiceValues)
+{
+	//--------------------------------------------------------------------------------------------------------------------------
+	// Now go thru all Param Infos and create new parameters, if not in the IdToParamInfo map.
+	//--------------------------------------------------------------------------------------------------------------------------
+
+	TArray<TObjectPtr<UHoudiniParameter>> NewParameters;
+
+	for(int Index = 0; Index < ParmInfos.Num(); Index++)
+	{
+		const HAPI_ParmInfo& ParmInfo = ParmInfos[Index];
+
+		if(IdToParmInfo.Contains(ParmInfo.id))
+			continue;
+
+		EHoudiniParameterType ParmType = EHoudiniParameterType::Invalid;
+		GetParmTypeFromParmInfo(ParmInfo, ParmType);
+
+		FString NewParmName;
+		FHoudiniEngineString(ParmInfo.nameSH).ToFString(NewParmName);
+
+		UHoudiniParameter* Parameter = CreateTypedParameter(HC, ParmType, NewParmName);
+		Parameter->SetParmId(ParmInfo.id);
+		Parameter->SetParentParmId(ParmInfo.parentId);
+		NewParameters.Add(Parameter);
+
+		UpdateParameterFromInfo(Parameter, NodeId, ParmInfos[Index], true, true, DefaultIntValues, DefaultFloatValues, DefaultStringValues, DefaultChoiceValues);
+
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------------
+	//--------------------------------------------------------------------------------------------------------------------------
+
+	const bool bCacheRampParms = !HC->HasBeenLoaded() && !HC->HasBeenDuplicated();
+
+	// Go through all new parameters and do per-parameter type settings
+	for(int Index = 0; Index < NewParameters.Num(); Index++)
+	{
+		UHoudiniParameter* Parameter = NewParameters[Index];
+
+		switch(Parameter->GetParameterType())
+		{
+
+		case EHoudiniParameterType::FolderList:
+			if(UHoudiniParameterFolderList* CurFolderList = Cast<UHoudiniParameterFolderList>(Parameter))
+			{
+				// For new parameter, set the initially activate tab menu,
+				if(!IsValid(CurFolderList))
+					continue;
+
+				int ChildParmIndex = Index + 1;
+
+				UHoudiniParameterFolder* FirstChildFolder = Cast<UHoudiniParameterFolder>(NewParameters[ChildParmIndex]);
+				if(!IsValid(FirstChildFolder))
+					continue;
+
+				if(FirstChildFolder->GetFolderType() == EHoudiniFolderParameterType::Radio ||
+					FirstChildFolder->GetFolderType() == EHoudiniFolderParameterType::Tabs)
+				{
+					if(!CurFolderList->IsTabMenu())
+					{
+						CurFolderList->SetIsTabMenu(true);
+						FirstChildFolder->SetChosen(true);
+					}
+				}
+			}
+			break;
+
+		case EHoudiniParameterType::FloatRamp:
+			if(UHoudiniParameterRampFloat* FloatRampParam = Cast<UHoudiniParameterRampFloat>(Parameter))
+			{
+				if(bCacheRampParms)
+					FloatRampParam->bCaching = false;
+
+				FloatRampParam->UpdatePointsArray(NewParameters, Index + 1);
+			}
+			break;
+
+		case EHoudiniParameterType::ColorRamp:
+			if(UHoudiniParameterRampColor* ColorRampParam = Cast<UHoudiniParameterRampColor>(Parameter))
+			{
+				if(bCacheRampParms)
+					ColorRampParam->bCaching = false;
+
+				ColorRampParam->UpdatePointsArray(NewParameters, Index + 1);
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return NewParameters;
+}
+
+bool FHoudiniParameterTranslator::MatchParameterToHoudini(
+	UHoudiniCookable* HC,
+	TArray<HAPI_ParmInfo>& ParmInfos,
+	TMap<int, HAPI_ParmInfo*>& IdToParmInfo,
+	TMap<FString, int>& NameToId)
+{
+	// This function will fetch al lHAPI_ParmInfo from the node in Houdini and match them 
+	// * by name * to the stored Unreal Cookable parameters. After, all found parameters will
+	// have calid ParmIds, while unfound will be invalid.
+	// It returns some useful maps about the paramters.
+	//
+	// NOTE: Values are NOT updated. 
+	
+	HAPI_NodeInfo NodeInfo;
+	FHoudiniApi::NodeInfo_Init(&NodeInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), HC->GetNodeId(), &NodeInfo), false);
+
+	ParmInfos.SetNum(NodeInfo.parmCount);
+	if(NodeInfo.parmCount > 0)
+	{
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), HC->GetNodeId(), &ParmInfos[0], 0, ParmInfos.Num()), false);
+	}
+
+	TArray<FString> ParameterNames;
+
+	for(HAPI_ParmInfo& ParmInfo : ParmInfos)
+	{
+		FString ParmName;
+		FHoudiniEngineString(ParmInfo.nameSH).ToFString(ParmName);
+		ParameterNames.Add(ParmName);
+
+		IdToParmInfo.Add(ParmInfo.id, &ParmInfo);
+		NameToId.Add(ParmName, ParmInfo.id);
+	}
+
+	for(UHoudiniParameter* Parameter : HC->GetParameters())
+	{
+		// Attempt to match the Unreal Parameter to the HAPI_ParmInfo.
+
+		int* FoundID = NameToId.Find(Parameter->GetParameterName());
+		if(FoundID)
+			Parameter->SetParmId(*FoundID);
+		else
+			Parameter->SetParmId(INDEX_NONE);
+	}
+
+	return true;
+
+}
+
+bool FHoudiniParameterTranslator::InitializeParametersFromAssetDefinition(UHoudiniCookable* InHC)
+{
+	HAPI_AssetLibraryId AssetLibraryId = -1;
+	FString HoudiniAssetName;
+
+	if(!FHoudiniEngineUtils::LoadHoudiniAsset(InHC->GetHoudiniAsset(), AssetLibraryId))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Cancelling BuildAllParameters - could not load Houdini Asset."));
+		return false;
+	}
+
+	// Handle hda files that contain multiple assets
+	TArray<HAPI_StringHandle> AssetNames;
+	if(!FHoudiniEngineUtils::GetSubAssetNames(AssetLibraryId, AssetNames))
+	{
+		HOUDINI_LOG_ERROR(TEXT("Cancelling BuildAllParameters - unable to retrieve asset names."));
+		return false;
+	}
+
+	if(AssetNames.Num() == 0)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Cancelling BuildAllParameters - unable to retrieve asset names."));
+		return false;
+	}
+
+	// If no InHoudiniAssetName was specified, pick the first asset from the library
+	if(InHC->GetHapiAssetName().IsEmpty())
+	{
+		const FHoudiniEngineString HoudiniEngineString(AssetNames[0]);
+		HoudiniEngineString.ToFString(HoudiniAssetName);
+	}
+	else
+	{
+		// Ensure that the specified asset name is in the library
+		for(const HAPI_StringHandle& Handle : AssetNames)
+		{
+			const FHoudiniEngineString HoudiniEngineString(Handle);
+			FString AssetNameStr;
+			HoudiniEngineString.ToFString(AssetNameStr);
+			if(AssetNameStr == InHC->GetHapiAssetName())
+			{
+				HoudiniAssetName = AssetNameStr;
+				break;
+			}
+		}
+	}
+
+	if(HoudiniAssetName.IsEmpty())
+	{
+		HOUDINI_LOG_ERROR(TEXT("Cancelling BuildAllParametersFromAssetDefinition - could not find asset in library."));
+		return false;
+	}
+
+	// Default value counts and arrays for if we need to fetch those from Houdini.
+	int DefaultIntValueCount = 0;
+	int DefaultFloatValueCount = 0;
+	int DefaultStringValueCount = 0;
+	int DefaultChoiceValueCount = 0;
+	TArray<int> DefaultIntValues;
+	TArray<float> DefaultFloatValues;
+	TArray<HAPI_StringHandle> DefaultStringValues;
+	TArray<HAPI_ParmChoiceInfo> DefaultChoiceValues;
+	int32 ParmCount = 0;
+
+	HAPI_Result Result = FHoudiniApi::GetAssetDefinitionParmCounts(
+		FHoudiniEngine::Get().GetSession(),
+		AssetLibraryId,
+		H_TCHAR_TO_UTF8(*HoudiniAssetName),
+		&ParmCount,
+		&DefaultIntValueCount,
+		&DefaultFloatValueCount,
+		&DefaultStringValueCount,
+		&DefaultChoiceValueCount);
+
+	if(Result != HAPI_RESULT_SUCCESS)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());
+		return false;
+	}
+
+	if(ParmCount == 0)
+		return true;
+
+
+	// Allocate space in the default value arrays
+	// Fetch default values from HAPI
+	DefaultIntValues.SetNumZeroed(DefaultIntValueCount);
+	DefaultFloatValues.SetNumZeroed(DefaultFloatValueCount);
+	DefaultStringValues.SetNumZeroed(DefaultStringValueCount);
+	DefaultChoiceValues.SetNumZeroed(DefaultChoiceValueCount);
+
+	Result = FHoudiniApi::GetAssetDefinitionParmValues(
+		FHoudiniEngine::Get().GetSession(), AssetLibraryId, H_TCHAR_TO_UTF8(*HoudiniAssetName),
+		DefaultIntValues.GetData(), 0, DefaultIntValueCount,
+		DefaultFloatValues.GetData(), 0, DefaultFloatValueCount,
+		false, DefaultStringValues.GetData(), 0, DefaultStringValueCount,
+		DefaultChoiceValues.GetData(), 0, DefaultChoiceValueCount);
+
+	if(Result != HAPI_RESULT_SUCCESS)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());
+		return false;
+	}
+
+	TArray<HAPI_ParmInfo> ParmInfos;
+
+	ParmInfos.SetNum(ParmCount);
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetAssetDefinitionParmInfos(
+		FHoudiniEngine::Get().GetSession(), AssetLibraryId, H_TCHAR_TO_UTF8(*HoudiniAssetName), &ParmInfos[0], 0, ParmCount), false);
+
+
+	// So get new parameters using defaults. We don't have a node this point.
+	TArray<TObjectPtr<UHoudiniParameter>> NewParameters = CreateNewParameters(InHC, INDEX_NONE, ParmInfos, {}, &DefaultIntValues, &DefaultFloatValues, &DefaultStringValues, &DefaultChoiceValues);
+
+	InHC->SetParameters(NewParameters);
+
+	return true;
+}
+
+bool FHoudiniParameterTranslator::InstantiateParameters(UHoudiniCookable* HC)
+{
+	// This function should be called after a Cookable is instantiated but before
+	// cooking. It pushes all parameter to the Houdini Node. Importantly, it ensures
+	// multi-parms are fully expanded.
+
+	// Go in a loop, processing multiparms, until we don't process any more. This is to ensure
+	// multiparms within multiparms are full expanded.
+
+	bool bProcessMultiParm = true;
+	TArray<HAPI_ParmInfo> ParmInfos;
+	TMap<int, HAPI_ParmInfo*> IdToParmInfo;
+	TMap<FString, int> NameToId;
+
+	//--------------------------------------------------------------------------------------------------------------------------
+	// Expand all multi-parms
+	//--------------------------------------------------------------------------------------------------------------------------
+
+	while (bProcessMultiParm)
+	{
+		bProcessMultiParm = false;
+
+		MatchParameterToHoudini(HC, ParmInfos, IdToParmInfo, NameToId);
+
+		// Do we have any multi-parm? I so, update
+
+		TArray<UHoudiniParameterMultiParm*> MultiParms;
+
+		for(UHoudiniParameter* Parameter : HC->GetParameters())
+		{
+			if(UHoudiniParameterMultiParm* MultiParm = Cast<UHoudiniParameterMultiParm>(Parameter))
+			{
+				MultiParms.Add(MultiParm);
+			}
+
+		}
+
+		for (UHoudiniParameterMultiParm* MultiParm : MultiParms)
+		{
+			if(MultiParm->GetParmId() != INDEX_NONE && IdToParmInfo.Contains(MultiParm->GetParmId()))
+			{
+				HAPI_ParmInfo* ParmInfo = IdToParmInfo[MultiParm->GetParmId()];
+				if(MultiParm->MultiParmInstanceCount != ParmInfo->instanceCount)
+				{
+					// Counts differ between Houdini and Unreal, so temporarily reset the Unreal
+					// copy to what Houdini has and resize it.
+					int NewCount = MultiParm->MultiParmInstanceCount;
+					MultiParm->MultiParmInstanceCount = ParmInfo->instanceCount;
+					bool bSuccess = SetNumMultiParmElements(MultiParm, NewCount);
+					bProcessMultiParm = true;
+
+					MultiParm->MultiParmInstanceCount = NewCount;
+					if (!bSuccess)
+					{
+						HOUDINI_LOG_ERROR(TEXT("Failed to instantiate multi-parms"));
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------------
+	// Get new parameters, removed unused parameters, combine into a single list, sorted by ParmInfo order.
+	//--------------------------------------------------------------------------------------------------------------------------
+
+	// Only keep those that were matched.
+	TArray<TObjectPtr<UHoudiniParameter>> ReusedParameters;
+	TMap<int, UHoudiniParameter*> IdToParameter;
+
+	for(UHoudiniParameter* Parameter : HC->GetParameters())
+	{
+		if(Parameter->GetParmId() != INDEX_NONE)
+		{
+			IdToParameter.Add(Parameter->GetParmId(), Parameter);
+			ReusedParameters.Add(Parameter);
+		}
+	}
+
+	// So get parameters.
+	TArray<TObjectPtr<UHoudiniParameter>> NewParameters = CreateNewParameters(HC, HC->GetNodeId(), ParmInfos, IdToParameter, nullptr, nullptr, nullptr, nullptr);
+
+	// Combine all parameters, old and new. They need to be sorted to appear in the correct order.
+	TArray<TObjectPtr<UHoudiniParameter>> UnsortedParameters = ReusedParameters;
+	UnsortedParameters.Append(NewParameters);
+
+	// reorder to the same order as the param infos.
+	TMap<int, int> IdToInfo;
+	for(int Index = 0; Index < ParmInfos.Num(); Index++)
+		IdToInfo.Add(ParmInfos[Index].id, Index);
+
+	TArray<TObjectPtr<UHoudiniParameter>> FinalParameters;
+	FinalParameters.SetNumZeroed(UnsortedParameters.Num());
+
+	for(UHoudiniParameter* Parameter : UnsortedParameters)
+	{
+		int Position = IdToInfo[Parameter->GetParmId()];
+		FinalParameters[Position] = Parameter;
+	}
+
+	HC->SetParameters(FinalParameters);
+
+	// Fetch all info from Houdini, except the values. Then push the values to Houdini.
+
+	bool bNeedToUpdateEditorProperties = false;
+	bool bSuccess = UpdateParametersFromHoudini(HC, false, true, true, bNeedToUpdateEditorProperties);
+	if(!bSuccess)
+		return bSuccess;
+
+	bSuccess = ForceUploadAllParameterValues(HC->GetParameters());
+
+	return bSuccess;
+}
+
 bool
-FHoudiniParameterTranslator::UpdateParameters(
+FHoudiniParameterTranslator::UpdateParametersFromHoudini(
 	UHoudiniCookable* InHC,
 	bool bUpdateValues,
 	bool bForceFullUpdate,
@@ -87,7 +478,7 @@ FHoudiniParameterTranslator::UpdateParameters(
 		// This messes up unreal's Garbage collection and would cause crashes on duplication
 
 		// Replace with the new parameters
-		InHC->GetParameters() = NewParameters;
+		InHC->SetParameters(NewParameters);
 
 #if WITH_EDITORONLY_DATA
 		// Indicate we want to update the details panel after the parameter changes/updates
@@ -137,12 +528,12 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(
 	bool bNeedToFetchAssetInfo = true;
 	HAPI_AssetInfo AssetInfo;
 
-	TArray<TObjectPtr<UHoudiniParameter>>& InParameters = InHC->GetParameters();
+	const TArray<TObjectPtr<UHoudiniParameter>>& Parameters = InHC->GetParameters();
 
 	// This is the first cook on loading after a save or duplication
-	for (int32 Idx = 0; Idx < InParameters.Num(); ++Idx)
+	for (int32 Idx = 0; Idx < Parameters.Num(); ++Idx)
 	{
-		UHoudiniParameter* Param = InParameters[Idx];
+		UHoudiniParameter* Param = Parameters[Idx];
 		if (!IsValid(Param))
 			continue;
 
@@ -160,7 +551,7 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(
 				}
 
 				// TODO: Simplify this, should be handled in BuildAllParameters
-				SyncMultiParmValuesAtLoad(Param, InParameters, InHC->GetNodeId(), AssetInfo);
+				SyncMultiParmValuesAtLoad(Param, Parameters, InHC->GetNodeId(), AssetInfo);
 			}
 			break;
 
@@ -185,7 +576,7 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(
 	const FString HoudiniAssetName = FString();
 	if (FHoudiniParameterTranslator::BuildAllParameters(
 		InHC,
-		InParameters,
+		Parameters,
 		NewParameters, 
 		false,
 		bForceFullUpdate, 
@@ -195,7 +586,7 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(
 		// This causes crashes upon duplication due to uncollected zombie objects...
 		// GC is supposed to handle this by itself
 		// Simply replace with the new parameters
-		InParameters = NewParameters;
+		InHC->SetParameters(NewParameters);
 
 #if WITH_EDITORONLY_DATA
 		// Indicate we want to update the details panel after the parameter changes/updates
@@ -209,154 +600,45 @@ FHoudiniParameterTranslator::UpdateLoadedParameters(
 bool
 FHoudiniParameterTranslator::BuildAllParameters(
 	UHoudiniCookable* InHC,
-	TArray<TObjectPtr<UHoudiniParameter>>& CurrentParameters,
+	const TArray<TObjectPtr<UHoudiniParameter>>& InCurrentParameters,
 	TArray<TObjectPtr<UHoudiniParameter>>& NewParameters,
-	bool bUpdateValues,
+	bool bFetchValuesFromHoudini,
 	bool InForceFullUpdate,
 	bool bCacheRampParms)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::BuildAllParameters);
 
-	HAPI_NodeId AssetId = InHC->GetNodeId();
+	TArray<TObjectPtr<UHoudiniParameter>> CurrentParameters = InCurrentParameters;
 
-	// Ensure the asset has a valid node ID or a valid HoudiniAsset
-	const bool bIsAssetValid = IsValid(InHC->GetHoudiniAssetData());	
-	if (AssetId < 0 && !bIsAssetValid)
+	HAPI_NodeId NodeId = InHC->GetNodeId();
+
+	// Ensure the asset has a valid node ID or a valid HoudiniAsset. Note this function used to handle
+	// asset definitions, but that should be handled with a call to InitializeParametersFromAssetDefinition()
+	if (NodeId == INDEX_NONE)
 	{	
 		return false;
 	}
 
-	int32 ParmCount = 0;
-
-	// Default value counts and arrays for if we need to fetch those from Houdini.
-	int DefaultIntValueCount = 0;
-	int DefaultFloatValueCount = 0;
-	int DefaultStringValueCount = 0;
-	int DefaultChoiceValueCount = 0;
-	TArray<int> DefaultIntValues;
-	TArray<float> DefaultFloatValues;
-	TArray<HAPI_StringHandle> DefaultStringValues;
-	TArray<HAPI_ParmChoiceInfo> DefaultChoiceValues;
+	// Get the asset's info
+	HAPI_AssetInfo AssetInfo;
+	FHoudiniApi::AssetInfo_Init(&AssetInfo);
+	HAPI_Result Result = FHoudiniApi::GetAssetInfo(FHoudiniEngine::Get().GetSession(), NodeId, &AssetInfo);
 	
-	HAPI_NodeId NodeId = -1;
-	HAPI_AssetLibraryId AssetLibraryId = -1;
-	FString HoudiniAssetName;
+	if(Result != HAPI_RESULT_SUCCESS)
+		return false;
+
+	HAPI_NodeInfo NodeInfo;
+	FHoudiniApi::NodeInfo_Init(&NodeInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+		FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo), false);
+
+	int ParmCount = NodeInfo.parmCount;
 	
-	if (AssetId >= 0)
-	{
-		// Get the asset's info
-		HAPI_AssetInfo AssetInfo;
-		FHoudiniApi::AssetInfo_Init(&AssetInfo);
-		HAPI_Result Result = FHoudiniApi::GetAssetInfo(
-			FHoudiniEngine::Get().GetSession(), AssetId, &AssetInfo);
-		
-		if (Result == HAPI_RESULT_SUCCESS)
-			NodeId = AssetInfo.nodeId;
-		else
-			NodeId = InHC->GetNodeId();
-
-		// .. the asset's node info
-		HAPI_NodeInfo NodeInfo;
-		FHoudiniApi::NodeInfo_Init(&NodeInfo);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
-			FHoudiniEngine::Get().GetSession(), NodeId, &NodeInfo), false);
-
-		ParmCount = NodeInfo.parmCount;
-	}
-	else
-	{
-		if (!FHoudiniEngineUtils::LoadHoudiniAsset(InHC->GetHoudiniAsset(), AssetLibraryId) )
-		{
-			HOUDINI_LOG_ERROR(TEXT("Cancelling BuildAllParameters - could not load Houdini Asset."));
-			return false;
-		}
-
-		// Handle hda files that contain multiple assets
-		TArray<HAPI_StringHandle> AssetNames;
-		if (!FHoudiniEngineUtils::GetSubAssetNames(AssetLibraryId, AssetNames))
-		{
-			HOUDINI_LOG_ERROR(TEXT("Cancelling BuildAllParameters - unable to retrieve asset names."));
-			return false;
-		}
-		
-		if (AssetNames.Num() == 0)
-		{
-			HOUDINI_LOG_ERROR(TEXT("Cancelling BuildAllParameters - unable to retrieve asset names."));
-			return false;
-		}
-
-		// If no InHoudiniAssetName was specified, pick the first asset from the library
-		if (InHC->GetHapiAssetName().IsEmpty())
-		{
-			const FHoudiniEngineString HoudiniEngineString(AssetNames[0]);
-			HoudiniEngineString.ToFString(HoudiniAssetName);
-		}
-		else
-		{
-			// Ensure that the specified asset name is in the library
-			for (const HAPI_StringHandle& Handle : AssetNames)
-			{
-				const FHoudiniEngineString HoudiniEngineString(Handle);
-				FString AssetNameStr;
-				HoudiniEngineString.ToFString(AssetNameStr);
-				if (AssetNameStr == InHC->GetHapiAssetName())
-				{
-					HoudiniAssetName = AssetNameStr;
-					break;
-				}
-			}
-		}
-
-		if (HoudiniAssetName.IsEmpty())
-		{
-			HOUDINI_LOG_ERROR(TEXT("Cancelling BuildAllParametersFromAssetDefinition - could not find asset in library."));
-			return false;
-		}
-
-		HAPI_Result Result = FHoudiniApi::GetAssetDefinitionParmCounts(
-			FHoudiniEngine::Get().GetSession(), 
-			AssetLibraryId, 
-			H_TCHAR_TO_UTF8(*HoudiniAssetName), 
-			&ParmCount,
-			&DefaultIntValueCount, 
-			&DefaultFloatValueCount, 
-			&DefaultStringValueCount, 
-			&DefaultChoiceValueCount);
-		
-		if (Result != HAPI_RESULT_SUCCESS)
-		{
-			HOUDINI_LOG_ERROR(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());
-			return false;
-		}
-
-		if (ParmCount > 0)
-		{
-			// Allocate space in the default value arrays
-			// Fetch default values from HAPI
-			DefaultIntValues.SetNumZeroed(DefaultIntValueCount);
-			DefaultFloatValues.SetNumZeroed(DefaultFloatValueCount);
-			DefaultStringValues.SetNumZeroed(DefaultStringValueCount);
-			DefaultChoiceValues.SetNumZeroed(DefaultChoiceValueCount);
-			
-			Result = FHoudiniApi::GetAssetDefinitionParmValues(
-				FHoudiniEngine::Get().GetSession(), AssetLibraryId, H_TCHAR_TO_UTF8(*HoudiniAssetName),
-				DefaultIntValues.GetData(), 0, DefaultIntValueCount,
-				DefaultFloatValues.GetData(), 0, DefaultFloatValueCount,
-				false, DefaultStringValues.GetData(), 0, DefaultStringValueCount,
-				DefaultChoiceValues.GetData(), 0, DefaultChoiceValueCount);
-			
-			if (Result != HAPI_RESULT_SUCCESS)
-			{
-				HOUDINI_LOG_ERROR(TEXT("Hapi failed: %s"), *FHoudiniEngineUtils::GetErrorDescription());
-				return false;
-			}
-		}
-	}
 
 	NewParameters.Empty();
 	if (ParmCount == 0)
 	{
-		// The asset doesnt have any parameter, we're done.
+		// The asset doesn't have any parameter, we're done.
 		return true;
 	}
 	else if (ParmCount < 0)
@@ -369,16 +651,7 @@ FHoudiniParameterTranslator::BuildAllParameters(
 	TArray<HAPI_ParmInfo> ParmInfos;
 	ParmInfos.SetNumUninitialized(ParmCount);
 
-	if (AssetId >= 0)
-	{
-		HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParameters(
-				FHoudiniEngine::Get().GetSession(), NodeId, &ParmInfos[0], 0, ParmCount), false);
-	}
-	else
-	{
-		HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetAssetDefinitionParmInfos(
-				FHoudiniEngine::Get().GetSession(), AssetLibraryId, H_TCHAR_TO_UTF8(*HoudiniAssetName), &ParmInfos[0], 0, ParmCount), false);
-	}
+	HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), NodeId, &ParmInfos[0], 0, ParmCount), false);
 
 	// Create a name lookup cache for the current parameters
 	// Use an array has in some cases, multiple parameters can have the same name!
@@ -522,12 +795,14 @@ FHoudiniParameterTranslator::BuildAllParameters(
 
 			// Do a fast update of this parameter
 			if (!FHoudiniParameterTranslator::UpdateParameterFromInfo(
-					HoudiniAssetParameter, NodeId, ParmInfo, InForceFullUpdate, bUpdateValues, 
-					AssetId >= 0 ? nullptr : &DefaultIntValues,
-					AssetId >= 0 ? nullptr : &DefaultFloatValues,
-					AssetId >= 0 ? nullptr : &DefaultStringValues,
-					AssetId >= 0 ? nullptr : &DefaultChoiceValues))
+					HoudiniAssetParameter, NodeId, ParmInfo, 
+					InForceFullUpdate, 
+					bFetchValuesFromHoudini, 
+					nullptr, nullptr, nullptr, nullptr))
+			{
 				continue;
+			}
+
 
 			// Reset the states of ramp parameters.
 			switch (HoudiniAssetParameter->GetParameterType())
@@ -568,13 +843,12 @@ FHoudiniParameterTranslator::BuildAllParameters(
 			// Create a new parameter object of the appropriate type
 			HoudiniAssetParameter = CreateTypedParameter(InHC, ParmType, NewParmName);
 			// Fully update this parameter
-			if (!FHoudiniParameterTranslator::UpdateParameterFromInfo(
-					HoudiniAssetParameter, NodeId, ParmInfo, true, true,
-					AssetId >= 0 ? nullptr : &DefaultIntValues,
-					AssetId >= 0 ? nullptr : &DefaultFloatValues,
-					AssetId >= 0 ? nullptr : &DefaultStringValues,
-					AssetId >= 0 ? nullptr : &DefaultChoiceValues))
+			if(!FHoudiniParameterTranslator::UpdateParameterFromInfo(
+				HoudiniAssetParameter, NodeId, ParmInfo, true, true,
+				nullptr, nullptr, nullptr, nullptr))
+			{
 				continue;
+			}
 
 			// Record float and color ramps for further processing (creating their Points arrays)
 			const EHoudiniParameterType NewParamType = HoudiniAssetParameter->GetParameterType();
@@ -1298,7 +1572,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 	HAPI_NodeId InNodeId, 
 	const HAPI_ParmInfo& ParmInfo,
 	bool bFullUpdate,
-	bool bUpdateValue,
+	bool bFetchValueFromHoudini,
 	const TArray<int>* DefaultIntValues,
 	const TArray<float>* DefaultFloatValues,
 	const TArray<HAPI_StringHandle>* DefaultStringValues,
@@ -1320,8 +1594,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 	HoudiniParameter->SetTagCount(ParmInfo.tagCount);
 	HoudiniParameter->SetTupleSize(ParmInfo.size);
 
-	HoudiniParameter->SetChoiceListType(
-		static_cast<EHoudiniParameterChoiceListType>(ParmInfo.choiceListType));
+	HoudiniParameter->SetChoiceListType(static_cast<EHoudiniParameterChoiceListType>(ParmInfo.choiceListType));
 
 	HoudiniParameter->SetVisible(!ParmInfo.invisible);
 	HoudiniParameter->SetDisabled(ParmInfo.disabled);
@@ -1335,7 +1608,6 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 	UHoudiniParameterMultiParm* MultiParm = Cast<UHoudiniParameterMultiParm>(HoudiniParameter);
 	if(MultiParm)
 		MultiParm->InstanceStartOffset = ParmInfo.instanceStartOffset;
-	
 
 	// Get the parameter type
 	EHoudiniParameterType ParmType = HoudiniParameter->GetParameterType();
@@ -1426,7 +1698,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 					FHoudiniEngine::Get().GetSession(),
 					InNodeId, ParmInfo.id, Idx, &TagNameSH))
 				{
-					HOUDINI_LOG_WARNING(TEXT("Failed to retrive parameter tag name: parmId: %d, tag index: %d"), ParmInfo.id, Idx);
+					HOUDINI_LOG_WARNING(TEXT("Failed to retrieve parameter tag name: parmId: %d, tag index: %d"), ParmInfo.id, Idx);
 					continue;
 				}
 
@@ -1434,7 +1706,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				FHoudiniEngineString::ToFString(TagNameSH, NameString);
 				if (NameString.IsEmpty())
 				{
-					HOUDINI_LOG_WARNING(TEXT("Failed to retrive parameter tag name: parmId: %d, tag index: %d"), ParmInfo.id, Idx);
+					HOUDINI_LOG_WARNING(TEXT("Failed to retrieve parameter tag name: parmId: %d, tag index: %d"), ParmInfo.id, Idx);
 					continue;
 				}
 
@@ -1443,7 +1715,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 					FHoudiniEngine::Get().GetSession(),
 					InNodeId, ParmInfo.id, TCHAR_TO_ANSI(*NameString), &TagValueSH))
 				{
-					HOUDINI_LOG_WARNING(TEXT("Failed to retrive parameter tag value: parmId: %d, tag: %s"), ParmInfo.id, *NameString);
+					HOUDINI_LOG_WARNING(TEXT("Failed to retrieve parameter tag value: parmId: %d, tag: %s"), ParmInfo.id, *NameString);
 				}
 
 				FString ValueString = TEXT("");
@@ -1478,7 +1750,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				HoudiniParameterButtonStrip->SetValueIndex(ParmInfo.intValuesIndex);
 
 				// Stop if we don't want to update the value
-				if (bUpdateValue)
+				if (bFetchValueFromHoudini)
 				{
 					if (bHasValidNodeId)
 					{
@@ -1557,7 +1829,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				HoudiniParameterColor->SetValueIndex(ParmInfo.floatValuesIndex);
 
 				// Update the Parameter value if we want to
-				if (bUpdateValue)
+				if (bFetchValueFromHoudini)
 				{
 					// Get the actual value for this property.
 					FLinearColor Color = FLinearColor::White;
@@ -1656,7 +1928,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 					}
 				}
 
-				if (bUpdateValue)
+				if (bFetchValueFromHoudini)
 				{
 					// Get the actual values for this property.
 					TArray< HAPI_StringHandle > StringHandles;
@@ -1715,7 +1987,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				// Set the valueIndex
 				HoudiniParameterFloat->SetValueIndex(ParmInfo.floatValuesIndex);
 				
-				if (bUpdateValue)
+				if (bFetchValueFromHoudini)
 				{
 					// Update the parameter's value
 					HoudiniParameterFloat->SetNumberOfValues(ParmInfo.size);
@@ -1921,7 +2193,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				// Set the valueIndex
 				HoudiniParameterInt->SetValueIndex(ParmInfo.intValuesIndex);
 
-				if (bUpdateValue)
+				if (bFetchValueFromHoudini)
 				{
 					// Get the actual values for this property.
 					HoudiniParameterInt->SetNumberOfValues(ParmInfo.size);
@@ -2042,7 +2314,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				// Set the valueIndex
 				HoudiniParameterIntChoice->SetValueIndex(ParmInfo.intValuesIndex);
 
-				if (bUpdateValue)
+				if (bFetchValueFromHoudini)
 				{
 					// Get the actual values for this property.
 					int32 CurrentIntValue = 0;
@@ -2156,7 +2428,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 						HoudiniParameterIntChoice->SetIntValueArray(ChoiceIdx, IntValue);
 					}
 				}
-				else if (bUpdateValue)
+				else if (bFetchValueFromHoudini)
 				{
 					// We still need to match the string value to the label
 					HoudiniParameterIntChoice->UpdateStringValueFromInt();
@@ -2174,7 +2446,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				// Set the valueIndex
 				HoudiniParameterStringChoice->SetValueIndex(ParmInfo.stringValuesIndex);
 
-				if (bUpdateValue)
+				if (bFetchValueFromHoudini)
 				{
 					// Get the actual values for this property.
 					HAPI_StringHandle StringHandle;
@@ -2274,7 +2546,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 						}
 					}
 				}
-				else if (bUpdateValue)
+				else if (bFetchValueFromHoudini)
 				{
 					// We still need to match the string value to the label
 					HoudiniParameterStringChoice->UpdateIntValueFromString();
@@ -2364,29 +2636,11 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 					return false;
 
 				// Set the valueIndex
+				HoudiniParameterMulti->Modify();
 				HoudiniParameterMulti->SetValueIndex(ParmInfo.intValuesIndex);
-
-				// Set the multiparm value
-				int32 MultiParmValue = 0;
-
-				if (bHasValidNodeId)
-				{
-					HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmIntValues(
-						FHoudiniEngine::Get().GetSession(),
-						InNodeId, &MultiParmValue, ParmInfo.intValuesIndex, 1), false);
-				}
-				else if (DefaultIntValues && DefaultIntValues->IsValidIndex(ParmInfo.intValuesIndex))
-				{
-					MultiParmValue = (*DefaultIntValues)[ParmInfo.intValuesIndex];
-				}
-				else
-				{
-					return false;
-				}
-
-				HoudiniParameterMulti->SetValue(MultiParmValue);
 				HoudiniParameterMulti->MultiParmInstanceCount = ParmInfo.instanceCount;
 				HoudiniParameterMulti->MultiParmInstanceLength = ParmInfo.instanceLength;
+				HoudiniParameterMulti->PostEditChange();
 
 			}
 
@@ -2428,7 +2682,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				HoudiniParameterString->SetValueIndex(ParmInfo.stringValuesIndex);
 
 				// Stop if we don't want to update the value
-				if (bUpdateValue)
+				if (bFetchValueFromHoudini)
 				{
 					// Get the actual value for this property.
 					TArray< HAPI_StringHandle > StringHandles;
@@ -2497,7 +2751,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 				HoudiniParameterToggle->SetValueIndex(ParmInfo.intValuesIndex);
 
 				// Stop if we don't want to update the value
-				if (bUpdateValue)
+				if (bFetchValueFromHoudini)
 				{
 					// Get the actual values for this property.
 					HoudiniParameterToggle->SetNumberOfValues(ParmInfo.size);
@@ -2631,9 +2885,57 @@ FHoudiniParameterTranslator::HapiGetParameterHasTag(
 }
 
 
+bool 
+FHoudiniParameterTranslator::ForceUploadAllParameterValues(const TArray<TObjectPtr<UHoudiniParameter>>& InParameters)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadAllParameterValues);
+	bool bResult = true;
+
+	TArray<UHoudiniParameter*> RampsToUpload;
+	for(int32 ParmIdx = 0; ParmIdx < InParameters.Num(); ParmIdx++)
+	{
+		UHoudiniParameter* CurrentParm = InParameters[ParmIdx].Get();
+		if(!IsValid(CurrentParm))
+			continue;
+
+		bool bSuccess = false;
+		const EHoudiniParameterType CurrentParmType = CurrentParm->GetParameterType();
+
+		if(CurrentParmType == EHoudiniParameterType::FloatRamp ||
+			CurrentParmType == EHoudiniParameterType::ColorRamp)
+		{
+			RampsToUpload.Add(CurrentParm);
+		}
+		else
+		{
+			bSuccess = UploadParameterToHoudini(CurrentParm, true);
+		}
+
+
+		if(bSuccess)
+		{
+			CurrentParm->MarkChanged(false);
+		}
+	}
+
+	for(UHoudiniParameter* const RampParam : RampsToUpload)
+	{
+		if(!IsValid(RampParam))
+			continue;
+
+		if(UploadParameterToHoudini(RampParam, true))
+			RampParam->MarkChanged(false);
+		else
+			bResult = false;
+	}
+
+	return bResult;
+
+}
+
 bool
 FHoudiniParameterTranslator::UploadChangedParameters(
-	TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
+	const TArray<TObjectPtr<UHoudiniParameter>>& InParameters,
 	HAPI_NodeId InNodeId)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadChangedParameters);
@@ -2649,8 +2951,11 @@ FHoudiniParameterTranslator::UploadChangedParameters(
 	TArray<UHoudiniParameter*> RampsToUpload;
 	for (int32 ParmIdx = 0; ParmIdx < InParameters.Num(); ParmIdx++)
 	{
-		TObjectPtr<UHoudiniParameter>& CurrentParm = InParameters[ParmIdx];
-		if (!IsValid(CurrentParm) || !CurrentParm->HasChanged())
+		UHoudiniParameter* CurrentParm = InParameters[ParmIdx].Get();
+		if (!IsValid(CurrentParm))
+			continue;
+		
+		if (!CurrentParm->HasChanged())
 			continue;
 
 		bool bSuccess = false;
@@ -2674,7 +2979,7 @@ FHoudiniParameterTranslator::UploadChangedParameters(
 			}
 			else
 			{
-				bSuccess = UploadParameterValue(CurrentParm);
+				bSuccess = UploadParameterToHoudini(CurrentParm, false);
 			}
 		}
 
@@ -2700,7 +3005,7 @@ FHoudiniParameterTranslator::UploadChangedParameters(
 		if (!IsValid(RampParam))
 			continue;
 
-		if (UploadParameterValue(RampParam))
+		if (UploadParameterToHoudini(RampParam, false))
 			RampParam->MarkChanged(false);
 		else
 			bResult = false;
@@ -2710,11 +3015,18 @@ FHoudiniParameterTranslator::UploadChangedParameters(
 }
 
 bool
-FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
+FHoudiniParameterTranslator::UploadParameterToHoudini(UHoudiniParameter* InParam, bool bValuesOnly)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue);
 	if (!IsValid(InParam))
 		return false;
+
+	if(InParam->GetParmId() == INDEX_NONE)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Cannot set invalid parameter %s"), *InParam->GetParameterName());
+		return false;
+	}
+
 
 	switch (InParam->GetParameterType())
 	{
@@ -2856,6 +3168,9 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - Button);
 
+			if(bValuesOnly)
+				return true;
+
 			UHoudiniParameterButton* ButtonParam = Cast<UHoudiniParameterButton>(InParam);
 			if (!ButtonParam)
 				return false;
@@ -2863,18 +3178,22 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 			TArray<int32> DataArray;
 			DataArray.Add(1);
 
+			int ValueIndex = ButtonParam->GetValueIndex();
 			// Set the button parameter value to 1, (setting button param to any value will call the callback function.)
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValues(
 				FHoudiniEngine::Get().GetSession(),
 				ButtonParam->GetNodeId(),
 				DataArray.GetData(),
-				ButtonParam->GetValueIndex(), 1), false);
+				ValueIndex, 1), false);
 		}
 		break;
 
 		case EHoudiniParameterType::ButtonStrip: 
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - Strip);
+
+			if(bValuesOnly)
+				return true;
 
 			UHoudiniParameterButtonStrip* ButtonStripParam = Cast<UHoudiniParameterButtonStrip>(InParam);
 			if (!ButtonStripParam)
@@ -2920,9 +3239,8 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 
 		case EHoudiniParameterType::MultiParm: 
 		{
-			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - MultiParm);
-			if (!UploadMultiParmValues(InParam))
-				return false;
+			// Multiparms do not have values. Changing the number of instances in a multi-parm should be done
+			// elsewhere.
 		}
 
 		break;
@@ -3047,7 +3365,7 @@ FHoudiniParameterTranslator::GetFolderTypeFromParamInfo(const HAPI_ParmInfo* Par
 
 bool
 FHoudiniParameterTranslator::SyncMultiParmValuesAtLoad(
-	UHoudiniParameter* InParam, TArray<TObjectPtr<UHoudiniParameter>>& OldParams, const int32& InAssetId, const HAPI_AssetInfo& AssetInfo)
+	UHoudiniParameter* InParam, const TArray<TObjectPtr<UHoudiniParameter>>& OldParams, const int32& InAssetId, const HAPI_AssetInfo& AssetInfo)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::SyncMultiParmValuesAtLoad);
 
@@ -3356,75 +3674,6 @@ bool FHoudiniParameterTranslator::UploadRampParameter(UHoudiniParameter* InParam
 	return true;
 }
 
-bool FHoudiniParameterTranslator::UploadMultiParmValues(UHoudiniParameter* InParam) 
-{
-	UHoudiniParameterMultiParm* MultiParam = Cast<UHoudiniParameterMultiParm>(InParam);
-	if (!MultiParam)
-		return false;
-
-	int ParamIndex = MultiParam->Modification.Value;
-	auto Type = MultiParam->Modification.Type;
-
-	MultiParam->Modification.Type = EHoudiniMultiParmModificationType::None;
-	MultiParam->Modification.Value = 0;
-
-	switch (Type)
-	{
-	case EHoudiniMultiParmModificationType::None:
-		break;
-	case EHoudiniMultiParmModificationType::Insert:
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::InsertMultiparmInstance(
-			FHoudiniEngine::Get().GetSession(),
-			MultiParam->GetNodeId(),
-			MultiParam->GetParmId(),
-			ParamIndex),
-			false);
-		break;
-	case EHoudiniMultiParmModificationType::Removed:
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
-			FHoudiniEngine::Get().GetSession(),
-			MultiParam->GetNodeId(),
-			MultiParam->GetParmId(),
-			ParamIndex),
-			false);
-		break;
-	case EHoudiniMultiParmModificationType::Resize:
-	{
-		int NewCount = ParamIndex;
-		int OldCount = MultiParam->GetInstanceCount();
-		if (NewCount > OldCount)
-		{
-			for (int Index = OldCount; Index < NewCount; Index++)
-			{
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::InsertMultiparmInstance(
-					FHoudiniEngine::Get().GetSession(),
-					MultiParam->GetNodeId(),
-					MultiParam->GetParmId(),
-					Index + MultiParam->InstanceStartOffset),
-					false);
-			}
-		} 
-		else
-		{
-			for(int Index = OldCount - 1; Index >= NewCount; Index--)
-			{
-				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
-					FHoudiniEngine::Get().GetSession(),
-					MultiParam->GetNodeId(),
-					MultiParam->GetParmId(),
-					Index + MultiParam->InstanceStartOffset),
-					false);
-			}
-		}
-	}
-		break;
-	default:
-		break;
-	}
-
-	return true;
-}
-
 bool
 FHoudiniParameterTranslator::UploadDirectoryPath(UHoudiniParameterFile* InParam) 
 {
@@ -3613,15 +3862,283 @@ FHoudiniParameterTranslator::RevertRampParameters(TMap<FString, UHoudiniParamete
 	return true;
 }
 
-void FHoudiniParameterTranslator::SendModifiedParametersToHoudini(UHoudiniCookable * InHC, bool bFetch)
+void FHoudiniEngineParameterUpdater::SendModifiedParametersToHoudini(UHoudiniCookable * InHC, bool bFetch)
 {
-	UploadChangedParameters(InHC->ParameterData->Parameters, InHC->GetNodeId());
+	FHoudiniParameterTranslator::UploadChangedParameters(InHC->GetParameters(), InHC->GetNodeId());
 
 	bool bForceFullUpdate = false;
 	bool bCacheRampParms = true;
 
 	if (bFetch)
-		UpdateParameters(InHC, true, bForceFullUpdate, bCacheRampParms, InHC->bAllowUpdateEditorProperties);
+		FHoudiniParameterTranslator::UpdateParametersFromHoudini(InHC, true, bForceFullUpdate, bCacheRampParms, InHC->bAllowUpdateEditorProperties);
 
+}
+
+bool FHoudiniEngineParameterUpdater::SetNumMultiParmElements(UHoudiniParameterMultiParm* MultiParm, int NewSize)
+{
+	return FHoudiniParameterTranslator::SetNumMultiParmElements(MultiParm, NewSize);
+}
+
+bool FHoudiniEngineParameterUpdater::InsertMultiParmInstance(UHoudiniParameterMultiParm* MultiParm, int Index)
+{
+	return FHoudiniParameterTranslator::InsertMultiParmInstance(MultiParm, Index);
+}
+
+bool FHoudiniEngineParameterUpdater::RemoveMultiParmInstance(UHoudiniParameterMultiParm* MultiParm, int Index)
+{
+	return FHoudiniParameterTranslator::RemoveMultiParmInstance(MultiParm, Index);
+}
+
+static bool HoudiniEnsureInstantiated(UHoudiniCookable* HC)
+{
+	if(HC->GetCurrentState() != EHoudiniAssetState::NeedInstantiation)
+		return true;
+
+	HC->SetCurrentState(EHoudiniAssetState::PreInstantiation);
+
+	HC->SetCookAfterInstantiation(false);
+
+	bool bSuccess = FHoudiniEngine::Get().GetManager()->StartInstantiation(HC);
+	if(!bSuccess)
+		return false;
+
+	{
+		FScopedSlowTask CancelTask(0.f, FText::FromString(TEXT("Instantiating HDA...")));
+		double StartTime = FPlatformTime::Seconds();
+		bool bShown = false;
+
+		while(true)
+		{
+			bSuccess = FHoudiniEngine::Get().GetManager()->UpdateInstantiating(HC);
+			if(!bSuccess)
+				break;
+
+			auto State = HC->GetCurrentState();
+			if(State == EHoudiniAssetState::None)
+				break;
+
+			if (State == EHoudiniAssetState::NeedInstantiation)
+			{
+				HC->SetNodeId(INDEX_NONE);
+
+				FMessageDialog::Open(
+					EAppMsgType::Ok,
+					FText::FromString(TEXT("HDA Instantiation Failed. See log for details.")));
+
+				HOUDINI_LOG_ERROR(TEXT("Multiparms update was cancelled."));
+
+				HC->SetCurrentState(EHoudiniAssetState::NeedInstantiation);
+			}
+
+			if(((FPlatformTime::Seconds() - StartTime) > 1.5) && !bShown)
+			{
+				CancelTask.MakeDialog(/*bShowCancelButton=*/true);
+				bShown = true;
+			}
+
+			if(CancelTask.ShouldCancel())
+			{
+				HC->SetNodeId(INDEX_NONE);
+
+				FMessageDialog::Open(
+					EAppMsgType::Ok,
+					FText::FromString(TEXT("Cancelled HDA Instantiation. Parameters not updated.")));
+
+				HOUDINI_LOG_ERROR(TEXT("Multiparms update was cancelled."));
+
+				HC->SetCurrentState(EHoudiniAssetState::NeedInstantiation);
+				break;
+			}
+
+			// This keeps the UI responsive.
+			CancelTask.EnterProgressFrame(0.f);
+
+			FPlatformProcess::Sleep(0.01f);
+		}
+	}
+
+	return true;
+}
+
+static bool HoudiniWaitForMultiParmsUpdateComplete(UHoudiniCookable* HC)
+{
+	// This functions is called to wait for Multiparm processing to complete... this means Hapi Status
+	// has returned to a ready state. Should processing take a long time, a simple info dialog is shown
+	// which can be cancelled. If the user cancels, they're told the session may be out of sync and 
+	// they should recook.
+
+	double StartTime = FPlatformTime::Seconds();
+
+	bool bShown = false;
+	bool bWasCancelled = false;
+	{
+		FScopedSlowTask CancelTask(0.f, FText::FromString(TEXT("Updating Multiparms in Houdini...")));
+
+		while(true)
+		{
+			int Status = HAPI_STATE_STARTING_COOK;
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetStatus(FHoudiniEngine::Get().GetSession(), HAPI_STATUS_COOK_STATE, &Status), false);
+
+			if(Status == HAPI_STATE_READY ||
+				Status == HAPI_STATE_MAX_READY_STATE ||
+				Status == HAPI_STATE_READY_WITH_FATAL_ERRORS ||
+				Status == HAPI_STATE_READY_WITH_COOK_ERRORS)
+			{
+				break;
+			}
+
+			if(((FPlatformTime::Seconds() - StartTime) > 1.5) && !bShown)
+			{
+				CancelTask.MakeDialog(/*bShowCancelButton=*/true);
+				bShown = true;
+			}
+
+			if(CancelTask.ShouldCancel())
+			{
+				bWasCancelled = true;
+				break;
+			}
+
+			FPlatformProcess::Sleep(0.01f);
+		}
+	}
+
+	if(bWasCancelled)
+	{
+		FMessageDialog::Open(
+			EAppMsgType::Ok,
+			FText::FromString(TEXT("Multiparm update was cancelled. Houdini data will be out of sync with Unreal; try recooking.")));
+
+		HOUDINI_LOG_ERROR(TEXT("Multiparms update was cancelled."));
+	}
+	return true;
+}
+
+bool FHoudiniParameterTranslator::SetNumMultiParmElements(UHoudiniParameterMultiParm* MultiParm, int NewSize)
+{
+	UHoudiniCookable* HC = MultiParm->GetCookable();
+
+	if(!HoudiniEnsureInstantiated(HC))
+		return false;
+
+	int Delta = NewSize - MultiParm->GetInstanceCount();
+
+	if(Delta == 0)
+	{
+		return true;
+	}
+	else if (Delta > 0)
+	{
+		for(int32 n = 0; n < Delta; ++n)
+		{
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::InsertMultiparmInstance(
+				FHoudiniEngine::Get().GetSession(), HC->GetNodeId(),
+				MultiParm->GetParmId(), MultiParm->InstanceStartOffset + MultiParm->GetInstanceCount() + n), 
+				false);
+		}
+	}
+	else if (Delta < 0)
+	{
+		int Last = MultiParm->InstanceStartOffset + MultiParm->GetInstanceCount() - 1;
+		for(int32 n = 0; n < FMath::Abs(Delta); ++n)
+		{
+			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
+				FHoudiniEngine::Get().GetSession(), HC->GetNodeId(),
+				MultiParm->GetParmId(), Last), 
+				false);
+			Last--;
+
+		}
+	}
+
+	bool bUpdateValues = false;
+	bool bForceFullUpdate = true;
+	bool bCacheRampParms = true;
+	bool bNeedToUpdateEditorProperties = false;
+
+	HoudiniWaitForMultiParmsUpdateComplete(HC);
+
+	bool bSuccess = true;
+	if(HC->GetCurrentState() != EHoudiniAssetState::Instantiating)
+	{
+
+		bSuccess = UpdateParametersFromHoudini(HC, bUpdateValues, bForceFullUpdate, bCacheRampParms, bNeedToUpdateEditorProperties);
+	}
+
+	HC->CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
+
+	return bSuccess;
+}
+
+
+bool FHoudiniParameterTranslator::InsertMultiParmInstance(UHoudiniParameterMultiParm* MultiParm, int ParamIndex)
+{
+	UHoudiniCookable* HC = MultiParm->GetCookable();
+
+	if(!HoudiniEnsureInstantiated(HC))
+		return false;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::InsertMultiparmInstance(
+		FHoudiniEngine::Get().GetSession(),
+		MultiParm->GetNodeId(),
+		MultiParm->GetParmId(),
+		ParamIndex),
+		false);
+
+	bool bUpdateValues = true;
+	bool bForceFullUpdate = true;
+	bool bCacheRampParms = true;
+	bool bNeedToUpdateEditorProperties = false;
+
+	HoudiniWaitForMultiParmsUpdateComplete(HC);
+
+	bool bSuccess = true;
+	if(HC->GetCurrentState() != EHoudiniAssetState::Instantiating)
+	{
+		bSuccess = UpdateParametersFromHoudini(HC, bUpdateValues, bForceFullUpdate, bCacheRampParms, bNeedToUpdateEditorProperties);
+	}
+
+	HC->CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
+
+	return bSuccess;
+}
+
+bool FHoudiniParameterTranslator::RemoveMultiParmInstance(UHoudiniParameterMultiParm* MultiParm, int ParamIndex)
+{
+	UHoudiniCookable* HC = MultiParm->GetCookable();
+
+	if(!HoudiniEnsureInstantiated(HC))
+		return false;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
+		FHoudiniEngine::Get().GetSession(),
+		MultiParm->GetNodeId(),
+		MultiParm->GetParmId(),
+		ParamIndex + MultiParm->GetInstanceStartOffset()),
+		false);
+
+	bool bFetchValuesFromHoudini = true;
+	bool bForceFullUpdate = true;
+	bool bCacheRampParms = true;
+	bool bNeedToUpdateEditorProperties = false;
+
+	HoudiniWaitForMultiParmsUpdateComplete(HC);
+	
+	bool bSuccess = true;
+	if(HC->GetCurrentState() != EHoudiniAssetState::Instantiating)
+	{
+
+		bSuccess = UpdateParametersFromHoudini(HC, bFetchValuesFromHoudini, bForceFullUpdate, bCacheRampParms, bNeedToUpdateEditorProperties);
+	}
+
+	HC->CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
+
+	return bSuccess;
+}
+
+bool FHoudiniEngineParameterUpdater::InstantiateParameters(UHoudiniCookable* InHC)
+{
+	bool bSuccess = FHoudiniParameterTranslator::InstantiateParameters(InHC);
+	return bSuccess;
 }
 

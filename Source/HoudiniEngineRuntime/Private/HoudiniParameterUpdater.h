@@ -27,6 +27,7 @@
 #pragma once
 
 class UHoudiniCookable;
+class UHoudiniParameterMultiParm;
 
 class HOUDINIENGINERUNTIME_API FHoudiniParameterUpdater
 {
@@ -34,9 +35,16 @@ class HOUDINIENGINERUNTIME_API FHoudiniParameterUpdater
 	// in the Runtime module. So provide an API here.
 
 public:
+	virtual ~FHoudiniParameterUpdater() {}
+
 	static FHoudiniParameterUpdater* Get();
 	static void SetInstance(FHoudiniParameterUpdater* NewInstance);
 	virtual void SendModifiedParametersToHoudini(UHoudiniCookable* InHC, bool bFetchFromHDA) {};
+
+	virtual bool InstantiateParameters(UHoudiniCookable* InHC) { return false;  }
+	virtual bool SetNumMultiParmElements(UHoudiniParameterMultiParm* MultiParm, int NewSize) { return false;  };
+	virtual bool InsertMultiParmInstance(UHoudiniParameterMultiParm* MultiParm, int Index) { return false; };
+	virtual bool RemoveMultiParmInstance(UHoudiniParameterMultiParm* MultiParm, int Index) { return false; };
 
 private:
 	static FHoudiniParameterUpdater* Instance;

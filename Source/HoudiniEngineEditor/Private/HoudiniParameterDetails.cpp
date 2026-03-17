@@ -36,6 +36,7 @@
 #include "FoliageType.h"
 #include "HoudiniInputDetails.h"
 #include "HoudiniParameterFolderList.h"
+#include "HoudiniParameterTranslator.h"
 #include "SAssetDropTarget.h"
 #include "SHoudiniColorRamp.h"
 #include "SHoudiniFloatRamp.h"
@@ -60,6 +61,10 @@ float HoudiniIndentColorScale = 0.11f;
 
 FString FHoudiniParameterView::LayoutSection = TEXT("HoudiniEngine.Layout");
 
+#define MULTIPARM_TOOLTIP "Changes the number of multiparms.\nThis requires the HDA to be cooked in an active Houdini session."
+#define MULTIPARM_APPEND_TOOLTIP "Appends a new multiparm instance.\nThis requires the HDA to be cooked in an active Houdini session."
+#define MULTIPARM_REMOVE_LAST_TOOLTIP "Removes the last  multiparm instance.\nThis requires the HDA to be cooked in an active Houdini session."
+#define MULTIPARM_REMOVE_ALL_TOOLTIP "Removes all instances in the multiparm.\nThis requires the HDA to be cooked in an active Houdini session."
 
 FDetailWidgetRow& FHoudiniParameterView::CreateIndentedWholeRow(
 	IDetailCategoryBuilder& HouParameterCategory,
@@ -377,6 +382,33 @@ FHoudiniParameterDetails::CreateDetails(
 	if(Root.IsValid() && !Root->Children.IsEmpty())
 	{
 		AddParameterResetButton(HouParameterCategory, Cookables);
+
+		bool bMultiParmsEditable = true;
+		for(auto Param : Cookables[0]->GetParameters())
+		{
+			UHoudiniParameterMultiParm* MultiParm = Cast<UHoudiniParameterMultiParm>(Param);
+			if(MultiParm && !MultiParm->CanModifyMultiParm())
+			{
+				bMultiParmsEditable = false;
+				break;
+			}
+		}
+		if (!bMultiParmsEditable)
+		{
+			HouParameterCategory.AddCustomRow(FText::FromString("MP Warning"))
+				[
+					SNew(SBox)
+					.Padding(0.0f,10.0f)
+					[
+						SNew(STextBlock)
+							.ColorAndOpacity(FSlateColor(FLinearColor(0.5f, 0.5f, 0.0f)))
+							.Justification(ETextJustify::Center)
+							.Text(FText::FromString("This HDA contains multiparms which will only be editable after cooking."))
+					]
+				];
+		}
+
+
 		Root->CreateDetails(HouParameterCategory, DetailBuilder);
 	}
 	else
@@ -514,7 +546,7 @@ FHoudiniParameterDetails::SetMultiParmWidgets(FHoudiniParameterView* ParameterVi
 }
 
 void
-FHoudiniParameterDetails::Construct(UHoudiniCookable* HC, TArray<TObjectPtr<UHoudiniParameter>>& Parameters)
+FHoudiniParameterDetails::Construct(UHoudiniCookable* HC, const TArray<TObjectPtr<UHoudiniParameter>>& Parameters)
 {
 	// Deserialize the parameters into a non-flat tree. This can, in theory, be done by a depth-first
 	// traversal, but this is way simpler. And, more importantly,
@@ -586,12 +618,26 @@ FHoudiniParameterDetails::Construct(UHoudiniCookable* HC, TArray<TObjectPtr<UHou
 		}
 	}
 
+	// Map all Ids to parameters for quick look up
+	TMap<UHoudiniParameter*, int> ParameterToIndex;
+	for(int Index = 0; Index < Parameters.Num(); Index++)
+	{
+		ParameterToIndex.Add(Parameters[Index], Index);
+	}
+
+
 	// Construct tree.
 	Root = MakeShareable(new FHoudiniParameterView());
 
 	for(int Index = 0; Index < Parameters.Num(); Index++)
 	{
-		auto ParentView = (ParameterParents[Index] == -1) ? Root : ParameterViews[ParameterParents[Index]];
+		TSharedPtr<FHoudiniParameterView> ParentView = Root;
+		if(Parameters[Index]->GetParent())
+		{
+			int ParentIndex = ParameterToIndex[Parameters[Index]->GetParent()];
+			ParentView = ParameterViews[ParentIndex];
+		}
+
 		ParentView->Children.Add(ParameterViews[Index]);
 		ParameterViews[Index]->Parent = ParentView;
 		ParameterViews[Index]->Cookable = HC;
@@ -835,7 +881,7 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 			TArray<TWeakObjectPtr<UHoudiniParameterMultiParm>> TypedParentParams = CastParameters<UHoudiniParameterMultiParm>(MultiParm->LinkedParameters);
 
 			int Index = Param->GetMultiParmInstanceNumber();
-			MultiParmButtons = CreateMultiParmWidgets(TypedParentParams, Index);
+			MultiParmButtons = CreateMultiParmWidgets(DetailBuilder, TypedParentParams, Index);
 		}
 	}
 
@@ -932,7 +978,7 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 	{
 		TArray<TWeakObjectPtr<UHoudiniParameterMultiParm>> TypedParams = CastParameters<UHoudiniParameterMultiParm>(LinkedParameters);
 		TSharedRef<SWidget> NameWidget = CreateNameWidget(Param);
-		TSharedRef<SWidget> ValueWidget = CreateWidgetMultiParm(TypedParams, MultiParmButtons);
+		TSharedRef<SWidget> ValueWidget = CreateWidgetMultiParm(DetailBuilder, TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
 			HouParameterCategory,
@@ -1665,12 +1711,13 @@ FHoudiniParameterView::CreateWidgetOperatorPath(
 
 TSharedRef<SWidget>
 FHoudiniParameterView::CreateWidgetMultiParm(
+	IDetailLayoutBuilder& DetailBuilder,
 	TArray<TWeakObjectPtr<UHoudiniParameterMultiParm>>& MultiParmParams,
 	const TSharedPtr<SWidget>& ExtraWidgets)
 {
 	const TWeakObjectPtr<UHoudiniParameterMultiParm>& MainParam = MultiParmParams[0];
 
-	auto OnInstanceValueChangedLambda = [MultiParmParams](int32 InValue, ETextCommit::Type CommitType)
+	auto OnInstanceValueChangedLambda = [MultiParmParams, &DetailBuilder](int32 InValue, ETextCommit::Type CommitType)
 		{
 			if(CommitType != ETextCommit::Type::OnEnter && CommitType != ETextCommit::Type::OnUserMovedFocus)
 				return;
@@ -1678,11 +1725,25 @@ FHoudiniParameterView::CreateWidgetMultiParm(
 			if(InValue < 0)
 				return;
 
+			
 			for(auto& Param : MultiParmParams)
 			{
-				if(Param->SetNumElements(InValue))
-					Param->MarkChanged(true);
+				FHoudiniParameterTranslator::SetNumMultiParmElements(Param.Get(), InValue);
 			}
+			DetailBuilder.ForceRefreshDetails();
+		};
+
+	auto CanEditMultiParms = [MultiParmParams]()
+		{
+			for(auto& Param : MultiParmParams)
+			{
+				if(!Param.IsValid())
+					return false;
+
+				if(!Param->CanModifyMultiParm())
+					return false;
+			}
+			return true;
 		};
 
 	TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
@@ -1693,6 +1754,7 @@ FHoudiniParameterView::CreateWidgetMultiParm(
 		.MinWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_MIN_WIDTH)
 		.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 		.FillWidth(1.0f)
+
 #else
 		.AutoWidth()
 #endif
@@ -1702,58 +1764,72 @@ FHoudiniParameterView::CreateWidgetMultiParm(
 
 				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				.AllowSpin(true)
+				.IsEnabled_Lambda(CanEditMultiParms)
 				.OnValueCommitted(SNumericEntryBox<int32>::FOnValueCommitted::CreateLambda([OnInstanceValueChangedLambda](int32 InValue, ETextCommit::Type CommitType) {
 				OnInstanceValueChangedLambda(InValue, CommitType);
 					}))
 				.Value(MainParam->GetInstanceCount())
+				.ToolTipTextFormat(FTextFormat::FromString(MULTIPARM_TOOLTIP))
 		];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 		[
-			PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateLambda([MainParam, MultiParmParams]()
-				{
-					for(auto& Param : MultiParmParams)
+			SNew(SBox)
+				.IsEnabled_Lambda(CanEditMultiParms)
+				[
+
+				PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateLambda([MainParam, MultiParmParams, &DetailBuilder]()
 					{
-						if(!IsValidWeakPointer(Param))
-							continue;
+						for(auto& Param : MultiParmParams)
+						{
+							if(!IsValidWeakPointer(Param))
+								continue;
 
-						Param->SetNumElements(Param->GetInstanceCount() + 1);
-
-					}
-				}),
-				LOCTEXT("AddMultiparmInstanceToolTipAddLastInstance", "Add an Instance"), true)
+							FHoudiniParameterTranslator::SetNumMultiParmElements(Param.Get(), Param->GetInstanceCount() + 1);
+						}
+						DetailBuilder.ForceRefreshDetails();
+					}),
+					LOCTEXT("AddMultiparmInstanceToolTipAddLastInstance", MULTIPARM_APPEND_TOOLTIP), true)
+				]
 		];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 		[
-			// Remove the last multiparm instance
-			PropertyCustomizationHelpers::MakeRemoveButton(FSimpleDelegate::CreateLambda([MainParam, MultiParmParams]()
-				{
+			SNew(SBox)
+				.IsEnabled_Lambda(CanEditMultiParms)
+				[
+					// Remove the last multiparm instance
+					PropertyCustomizationHelpers::MakeRemoveButton(FSimpleDelegate::CreateLambda([MainParam, MultiParmParams, &DetailBuilder]()
+						{
 
-					for(auto& Param : MultiParmParams)
-					{
-						Param->RemoveElement(Param->GetInstanceCount() - 1);
-					}
-
-				}),
-				LOCTEXT("RemoveLastMultiParamLastToolTipRemoveLastInstance", "Remove the last instance"), true)
+							for(auto& Param : MultiParmParams)
+							{
+								FHoudiniParameterTranslator::RemoveMultiParmInstance(Param.Get(), Param->GetInstanceCount() - 1);
+							}
+							DetailBuilder.ForceRefreshDetails();
+						}),
+						LOCTEXT("RemoveLastMultiParamLastToolTipRemoveLastInstance", MULTIPARM_REMOVE_LAST_TOOLTIP), true)
+				]
 		];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
 		[
-			PropertyCustomizationHelpers::MakeEmptyButton(FSimpleDelegate::CreateLambda([MainParam, MultiParmParams]()
-				{
-					for(auto& Param : MultiParmParams)
-					{
-
-						Param->MarkChanged(true);
-						Param->Modify();
-						Param->SetNumElements(0);
-					}
-
-				}),
-				LOCTEXT("HoudiniParameterRemoveAllMultiparmInstancesToolTip", "Remove all instances"), true)
+			SNew(SBox)
+				.IsEnabled_Lambda(CanEditMultiParms)
+				[
+					PropertyCustomizationHelpers::MakeEmptyButton(FSimpleDelegate::CreateLambda([MainParam, MultiParmParams, &DetailBuilder]()
+						{
+							for(auto& Param : MultiParmParams)
+							{
+								FHoudiniParameterTranslator::SetNumMultiParmElements(Param.Get(), 0);
+							}
+							DetailBuilder.ForceRefreshDetails();
+						}),
+						LOCTEXT("HoudiniParameterRemoveAllMultiparmInstancesToolTip", MULTIPARM_REMOVE_ALL_TOOLTIP), true)
+				]
 		];
+
+	AddMultiParamWidgetsToBox(HorizontalBox, ExtraWidgets);
 
 	return HorizontalBox;
 }
@@ -2620,35 +2696,52 @@ FHoudiniParameterView::GetParameterTypeString(
 }
 
 TSharedPtr<SWidget> FHoudiniParameterView::CreateMultiParmWidgets(
+	IDetailLayoutBuilder& DetailBuilder,
 	const TArray<TWeakObjectPtr<UHoudiniParameterMultiParm>>& ParentMultiParams,
 	int InstanceIndex)
 {
 	if(InstanceIndex == INDEX_NONE)
 		return SNullWidget::NullWidget;
 
-	TSharedRef<SWidget> AddButton = PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateLambda([ParentMultiParams, InstanceIndex]()
+	auto CanEditMultiParms = [ParentMultiParams]()
+		{
+			for(auto& Param : ParentMultiParams)
+			{
+				if(!Param.IsValid())
+					return false;
+
+				if(!Param->CanModifyMultiParm())
+					return false;
+			}
+			return true;
+		};
+
+	TSharedRef<SWidget> AddButton = PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateLambda([ParentMultiParams, InstanceIndex, &DetailBuilder]()
 		{
 			for(auto& ParentParam : ParentMultiParams)
 			{
-				// Add button call back
 				if(!IsValidWeakPointer(ParentParam))
 					continue;
 
-				ParentParam->InsertElement(InstanceIndex);
-
+				FHoudiniParameterTranslator::InsertMultiParmInstance(ParentParam.Get(), InstanceIndex);
 			}
-		}),
-		LOCTEXT("HoudiniParameterMultiParamAddBeforeCurrentInstanceToolTip", "Insert an instance before this instance"));
+			DetailBuilder.ForceRefreshDetails();
 
-	TSharedRef<SWidget> RemoveButton = PropertyCustomizationHelpers::MakeRemoveButton(FSimpleDelegate::CreateLambda([ParentMultiParams, InstanceIndex]()
+		}),
+		LOCTEXT("HoudiniParameterMultiParamAddBeforeCurrentInstanceToolTip", "Insert an instance before this instance.\nThis requires the HDA to be cooked in an active Houdini session."));
+
+	TSharedRef<SWidget> RemoveButton = PropertyCustomizationHelpers::MakeRemoveButton(FSimpleDelegate::CreateLambda([ParentMultiParams, InstanceIndex, &DetailBuilder]()
 		{
 			for(auto& ParentParam : ParentMultiParams)
 			{
-				ParentParam->RemoveElement(InstanceIndex);
+				if(!IsValidWeakPointer(ParentParam))
+					continue;
+				FHoudiniParameterTranslator::RemoveMultiParmInstance(ParentParam.Get(), InstanceIndex);
 			}
+			DetailBuilder.ForceRefreshDetails();
 
 		}),
-		LOCTEXT("HoudiniParameterMultiParamDeleteCurrentInstanceToolTip", "Remove an instance"), true);
+		LOCTEXT("HoudiniParameterMultiParamDeleteCurrentInstanceToolTip", "Remove an instance.\nThis requires the HDA to be cooked in an active Houdini session."), true);
 
 	TSharedRef<SWidget> IndentText = SNew(STextBlock)
 		.TextStyle(FAppStyle::Get(), "SmallText")
@@ -2665,13 +2758,21 @@ TSharedPtr<SWidget> FHoudiniParameterView::CreateMultiParmWidgets(
 		.AutoWidth()
 		.Padding(0.0f, 0.0f)
 		[
-			AddButton
+			SNew(SBox)
+				.IsEnabled_Lambda(CanEditMultiParms)
+				[
+					AddButton
+				]
 		]
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		.Padding(0.0f, 0.0f)
 		[
-			RemoveButton
+			SNew(SBox)
+				.IsEnabled_Lambda(CanEditMultiParms)
+				[
+					RemoveButton
+				]
 		]
 		+ SHorizontalBox::Slot()
 		.FillWidth(1.f)

@@ -35,6 +35,7 @@
 #include "HoudiniParameterString.h"
 #include "HoudiniParameterToggle.h"
 #include "HoudiniEngineRuntime.h"
+#include "HoudiniParameterTranslator.h"
 
 
 FHoudiniPresetCurveInputObject::FHoudiniPresetCurveInputObject()
@@ -610,9 +611,8 @@ FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetMultiParmV
 	{
 		return;
 	}
-	Param->SetNumElements(Values.Count);
 
-	Param->MarkChanged(true);
+	FHoudiniParameterTranslator::SetNumMultiParmElements(Param, Values.Count);
 }
 
 

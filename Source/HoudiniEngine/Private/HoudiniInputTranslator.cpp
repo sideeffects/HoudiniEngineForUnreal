@@ -1343,12 +1343,18 @@ FHoudiniInputTranslator::ConnectInputNode(UHoudiniInput* InInput)
 		return false;
 
 	HAPI_NodeId AssetNodeId = InInput->GetAssetNodeId();
-	if (AssetNodeId < 0)
+	if(AssetNodeId < 0)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Invalid AssetNodeId on UHoudiniInput"));
 		return false;
+	}
 
 	HAPI_NodeId InputNodeId = InInput->GetInputNodeId();
-	if (InputNodeId < 0)
+	if(InputNodeId < 0)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Invalid InputNodeId on UHoudiniInput"));
 		return false;
+	}
 
 	// Helper for connecting our input or setting the object path parameter
 	if (InInput->IsObjectPathParameter())
@@ -1362,9 +1368,6 @@ FHoudiniInputTranslator::ConnectInputNode(UHoudiniInput* InInput)
 	}
 	else
 	{
-		// TODO: CHECK ME!
-		//if (!FHoudiniEngineUtils::IsHoudiniNodeValid(InputNodeId))
-		//	return false;
 
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
 			FHoudiniEngine::Get().GetSession(), AssetNodeId,
@@ -5131,7 +5134,8 @@ FHoudiniInputTranslator::UpdateInputs(
 	UObject* InOuter, 
 	TArray<TObjectPtr<UHoudiniInput>>& Inputs,
 	TArray<TObjectPtr<UHoudiniParameter>>& Parameters,
-	bool bLoadedInputs)
+	bool bLoadedInputs,
+	bool bIsInitialization=false)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::UpdateInputs);
 
@@ -5139,6 +5143,15 @@ FHoudiniInputTranslator::UpdateInputs(
 	// and make sure that the object path parameter inputs' parameter ids are up to date
 	if (!FHoudiniInputTranslator::BuildAllInputs(InNodeId, InOuter, Inputs, Parameters))
 		return false;
+
+	if (bIsInitialization)
+	{
+		// We don't want inputs marked as changed when initializing a new cookable.
+		for(auto CurrentInput : Inputs)
+		{
+			CurrentInput->MarkChanged(false);
+		}
+	}
 
 	// If we weren't loaded - we're done
 	if (!bLoadedInputs)
@@ -5150,7 +5163,6 @@ FHoudiniInputTranslator::UpdateInputs(
 		if (!IsValid(CurrentInput))
 			continue;
 
-		//
 		CurrentInput->SetAssetNodeId(InNodeId);
 
 		// We need to delete the nodes created for the input objects if they are valid

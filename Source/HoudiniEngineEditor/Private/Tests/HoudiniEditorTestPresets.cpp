@@ -32,6 +32,7 @@
 #include "HoudiniParameterInt.h"
 #include "HoudiniParameterString.h"
 #include "HoudiniParameterToggle.h"
+#include "HoudiniParameterMultiParm.h"
 #include "HoudiniPreset.h"
 
 #include "Chaos/HeightField.h"

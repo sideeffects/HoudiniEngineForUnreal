@@ -781,8 +781,9 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 	// -----------------------------------------------------
 	TMap<UHoudiniParameter*, UHoudiniParameter*> ParameterMapping;
 	
-	TArray<TObjectPtr<UHoudiniParameter>>& FromParameters = FromComponent->GetParameters();
-	GetParameters().SetNum(FromParameters.Num());
+	const TArray<TObjectPtr<UHoudiniParameter>>& FromParameters = FromComponent->GetParameters();
+	TArray<TObjectPtr<UHoudiniParameter>> ToParameters;
+	ToParameters.SetNum(FromParameters.Num());
 
 	for (int i = 0; i < FromParameters.Num(); i++)
 	{
@@ -795,7 +796,7 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 
 		if (GetParameters().IsValidIndex(i))
 		{
-			ToParameter = GetParameters()[i];
+			ToParameter = ToParameters[i];
 		}
 
 		if (ToParameter)
@@ -818,7 +819,7 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 		{
 			// TODO: Check whether parameters are the same to avoid recreating them.
 			ToParameter = FromParameter->DuplicateAndCopyState(this, ClearFlags, SetFlags);
-			GetParameters()[i] = ToParameter;
+			ToParameters[i] = ToParameter;
 		}
 		
 		check(ToParameter);
@@ -834,11 +835,13 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 	}
 
 	// Apply remappings on the new parameters
-	for (UHoudiniParameter* ToParameter : GetParameters())
+	for (UHoudiniParameter* ToParameter : ToParameters)
 	{
 		ToParameter->RemapParameters(ParameterMapping);
 		ToParameter->RemapInputs(InputMapping);
 	}
+
+	SetParameters(ToParameters);
 
 	FProperty* ParametersProperty = GetClass()->FindPropertyByName(TEXT("Parameters"));
 	FPropertyChangedEvent Evt(ParametersProperty);
@@ -1417,7 +1420,7 @@ UHoudiniAssetBlueprintComponent::OnComponentCreated()
 		// the shared objects will get deleted when the component instance gets destroyed).
 		// These objects will be properly duplicated when copying state from the component template.
 		GetInputs().Empty();
-		GetParameters().Empty();
+		SetParameters({});
 	}
 
 	// Wait until InitializeComponent() for blueprint construction to complete before we start caching blueprint data.
@@ -1888,7 +1891,7 @@ UHoudiniAssetBlueprintComponent::OnHoudiniAssetChanged()
 		InvalidateData();
 		SetCanDeleteHoudiniNodes(false);
 #if WITH_EDITORONLY_DATA
-		GetParameters().Empty();
+		SetParameters({});
 		GetInputs().Empty();
 #endif
 	}

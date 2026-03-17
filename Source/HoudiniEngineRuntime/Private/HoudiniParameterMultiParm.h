@@ -30,26 +30,6 @@
 
 #include "HoudiniParameterMultiParm.generated.h"
 
-UENUM()
-enum class EHoudiniMultiParmModificationType : uint8
-{
-	None,
-	Insert,
-	Removed,
-	Resize
-};
-
-struct FHoudiniMultiParmModification
-{
-	// Information to make the multiparm. Value's meaning depends on type:
-	// Insert -> Value == Index to insert before
-	// Remove -> Value == Index to remove
-	// Resize -> Value == Count of new size
-
-	EHoudiniMultiParmModificationType Type = EHoudiniMultiParmModificationType::None;
-	int Value = 0;
-};
-
 UCLASS()
 class HOUDINIENGINERUNTIME_API UHoudiniParameterMultiParm : public UHoudiniParameter
 {
@@ -65,21 +45,15 @@ public:
 		UObject* Outer,
 		const FString& ParamName);
 
-	int GetValue() const { return Value; };
-
 	int GetInstanceLength() const { return MultiParmInstanceLength;  }
 	int GetInstanceCount() const { return MultiParmInstanceCount; };
 	int GetInstanceStartOffset() const { return InstanceStartOffset; }
 
-	bool SetValue(int InValue);
 	void SetIsShown(bool InIsShown) { bIsShown = InIsShown; };
 
 	bool IsShown() const { return bIsShown; };
 
-
-	void InsertElement(int Index);
-	void RemoveElement(int Index);
-	bool SetNumElements(int NewSize);
+	bool CanModifyMultiParm() const;
 
 	UPROPERTY()
 	bool bIsShown;
@@ -119,11 +93,6 @@ public:
 	void SetDefaultInstanceCount(int32 InCount);
 
 	void MarkDefault(const bool& bInDefault) override;
-
-public:
-	void InitializeModifyArray();
-
-	FHoudiniMultiParmModification Modification;
 
 	friend struct FHoudiniParameterTranslator;
 

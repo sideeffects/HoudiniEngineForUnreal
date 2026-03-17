@@ -47,6 +47,30 @@ void FHoudiniEngineStatusManager::ClearStatus(const UHoudiniCookable* Cookable)
 		*CookableStatus = {};
 }
 
+void FHoudiniEngineStatusManager::StartInstantiating(UHoudiniCookable* Cookable)
+{
+	FScopeLock Lock(&Mutex);
+	FHoudiniCookableStatus& CookableStatus = CurrentStatuses.FindOrAdd(Cookable);
+	CookableStatus = {};
+	CookableStatus.Status = EHoudiniStatusManagerStatus::Instantiating;
+	CookableStatus.StartTime = FPlatformTime::Seconds();
+}
+
+void FHoudiniEngineStatusManager::EndInstantiating(UHoudiniCookable* Cookable, bool bSuccess)
+{
+	FScopeLock Lock(&Mutex);
+	FHoudiniCookableStatus& CookableStatus = CurrentStatuses.FindOrAdd(Cookable);
+	CookableStatus.Status = EHoudiniStatusManagerStatus::Instantiated;
+	if(!bSuccess)
+	{
+		if(CookableStatus.NumErrors == 0)
+		{
+			// Add a generic message if we failed but no other errors were logged.
+			AddLog(TEXT("Instantiating Failed."), ELogVerbosity::Type::Error);
+		}
+	}
+}
+
 void FHoudiniEngineStatusManager::StartCooking(UHoudiniCookable* Cookable)
 {
 	FScopeLock Lock(&Mutex);
@@ -290,6 +314,25 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 			}
 		}
 		break;
+	case EHoudiniStatusManagerStatus::Instantiated:
+	{
+		if(CookableStatus->NumErrors > 0)
+		{
+			OutStatusColor = FLinearColor(1.0f, 0.5f, 0.5f);
+			OutStatusString = FString::Printf(TEXT("Instantiated. %s and %s"), *GetErrors(CookableStatus->NumErrors), *GetWarnings(CookableStatus->NumWarnings));
+		}
+		else if(CookableStatus->NumWarnings > 0)
+		{
+			OutStatusColor = FLinearColor::Yellow;
+			OutStatusString = FString::Printf(TEXT("Instantiated with %s"), *GetWarnings(CookableStatus->NumWarnings));
+		}
+		else
+		{
+			OutStatusColor = FLinearColor::Green;
+			OutStatusString = TEXT("Instantiated");
+		}
+	}
+	break;
 	case EHoudiniStatusManagerStatus::BakingComplete:
 		{
 			if(CookableStatus->NumErrors > 0)

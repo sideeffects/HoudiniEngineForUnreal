@@ -56,6 +56,8 @@
 #include "HoudiniPublicAPIBlueprintLib.h"
 #include "HoudiniPublicAPIInputTypes.h"
 #include <Selection.h>
+
+#include "HoudiniParameterTranslator.h"
 #include "Landscape.h"
 #include "LandscapeInfo.h"
 #include "LandscapeStreamingProxy.h"
@@ -1119,8 +1121,6 @@ UHoudiniPublicAPIAssetWrapper::SetColorParameterValue_Implementation(FName InPar
 	if (bDidChangeValue && bInMarkChanged)
 	{
 		Param->MarkChanged(true);
-		Param->GetCookable()->UpdateParameters();
-
 		if(this->IsAutoCookingEnabled())
 			this->Recook();
 	}
@@ -1204,7 +1204,13 @@ UHoudiniPublicAPIAssetWrapper::SetIntParameterValue_Implementation(FName InParam
 			return false;
 		}
 
-		bDidChangeValue = MultiParam->SetNumElements(InValue);
+		bDidChangeValue = false;
+		if (MultiParam->GetInstanceCount() != InValue)
+		{
+			bDidChangeValue = true;
+			FHoudiniParameterTranslator::SetNumMultiParmElements(MultiParam, InValue);
+		}
+
 	}
 	else if (ParamType == EHoudiniParameterType::Toggle)
 	{

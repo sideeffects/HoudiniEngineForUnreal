@@ -131,6 +131,7 @@ private:
 		const TSharedPtr<SWidget>& ExtraWidgets);
 
 	static TSharedRef<SWidget> CreateWidgetMultiParm(
+		IDetailLayoutBuilder& DetailBuilder,
 		TArray<TWeakObjectPtr<UHoudiniParameterMultiParm>>& MultiParmParams,
 		const TSharedPtr<SWidget>& ExtraWidgets);
 
@@ -186,6 +187,7 @@ private:
 	static FString GetParameterTypeString(const EHoudiniParameterType InType, const int32 InTupleSize);
 
 	static TSharedPtr<SWidget> CreateMultiParmWidgets(
+		IDetailLayoutBuilder& DetailBuilder,
 		const TArray<TWeakObjectPtr<UHoudiniParameterMultiParm>>& ParentMultiParams,
 		int InstanceIndex);
 
@@ -220,7 +222,7 @@ public:
 
 protected:
 	void Construct(const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables);
-	void Construct(UHoudiniCookable* HC, TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
+	void Construct(UHoudiniCookable* HC, const TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
 
 	void AddParameterResetButton(IDetailCategoryBuilder& HouParameterCategory, const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs);
 

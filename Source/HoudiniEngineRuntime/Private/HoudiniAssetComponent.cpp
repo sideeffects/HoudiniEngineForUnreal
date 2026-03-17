@@ -353,15 +353,13 @@ UHoudiniAssetComponent::GetDisplayName() const
 }
 
 #if WITH_EDITORONLY_DATA
-TArray<TObjectPtr<UHoudiniParameter>>&
-UHoudiniAssetComponent::GetParameters()
-{ 
-	if (GetCookable())
-		return GetCookable()->GetParameters();
-
-	return Parameters_DEPRECATED; 
+void UHoudiniAssetComponent::SetParameters(const TArray<TObjectPtr<UHoudiniParameter>>& Parameters)
+{
+	if(GetCookable())
+		return GetCookable()->SetParameters(Parameters);
 }
 #endif
+
 
 #if WITH_EDITORONLY_DATA
 const TArray<TObjectPtr<UHoudiniParameter>>&

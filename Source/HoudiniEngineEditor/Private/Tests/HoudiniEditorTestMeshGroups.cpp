@@ -188,6 +188,13 @@ void FHoudiniMeshAutomationTest::ExecuteMeshTest(TSharedPtr<FHoudiniTestContext>
 {
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, Settings]()
 	{
+		// Cook once to ensure parameters are up to date.
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, Settings]()
+	{
 		// Set number of multiparms; cook before we update he values.
 		SET_HDA_PARAMETER_NUM_ELEMENTS(Context, UHoudiniParameterMultiParm, "cube_groups", Settings.CubeGroups.Num());
 		SET_HDA_PARAMETER_NUM_ELEMENTS(Context, UHoudiniParameterMultiParm, "sphere_groups", Settings.SphereGroups.Num());
