@@ -48,6 +48,8 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 
 	static bool InitializeParametersFromAssetDefinition(UHoudiniCookable* InHC);
 
+	static bool SyncUnrealParametersToHoudini(UHoudiniCookable* InHC);
+
 	static bool InstantiateParameters(UHoudiniCookable* InHC);
 
 	static TArray<TObjectPtr<UHoudiniParameter>> CreateNewParameters(

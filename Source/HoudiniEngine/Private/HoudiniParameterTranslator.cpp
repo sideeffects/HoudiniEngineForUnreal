@@ -383,11 +383,15 @@ bool FHoudiniParameterTranslator::FetchNewParameters(UHoudiniCookable* HC)
 	return bSuccess;
 }
 
-bool FHoudiniParameterTranslator::InstantiateParameters(UHoudiniCookable* HC)
+bool FHoudiniParameterTranslator::SyncUnrealParametersToHoudini(UHoudiniCookable* HC)
 {
-	// This function should be called after a Cookable is instantiated but before
-	// cooking. It pushes all parameter to the Houdini Node. Importantly, it ensures
-	// multi-parms are fully expanded.
+	// This function will set the ParmId of each Unreal Parameter to Houdini parms, based off name.
+	// It will also expand multi-parms, and again match the ParmIds of any new parameters in Houdini
+	//	until no more multi-parms are expanded.
+	//
+	// After this, any remaining Unreal parameters are deleted; there are no longer valid.
+	//
+	// Then new parameters in Houdini are create in Unreal.
 
 	//--------------------------------------------------------------------------------------------------------------------------
 	// Fetch ParmInfo and push parameters that match.
@@ -405,20 +409,23 @@ bool FHoudiniParameterTranslator::InstantiateParameters(UHoudiniCookable* HC)
 
 	for(UHoudiniParameter* Parameter : HC->GetParameters())
 	{
-		int* FoundID = NameToId.Find(Parameter->GetParameterName());
-		if(FoundID)
-			Parameter->SetParmId(*FoundID);
-		else
-			Parameter->SetParmId(INDEX_NONE);
+		if(Parameter->GetParmId() == INDEX_NONE)
+		{
+			int* FoundID = NameToId.Find(Parameter->GetParameterName());
+			if(FoundID)
+				Parameter->SetParmId(*FoundID);
+			else
+				Parameter->SetParmId(INDEX_NONE);
+		}
 	}
 
 	//--------------------------------------------------------------------------------------------------------------------------
 	// Expand all multi-parms
-	// Go in a loop, processing multiparms, until we don't process anymore. This is to ensure
+	// Go in a loop, processing multi-parms, until we don't process anymore. This is to ensure
 	// multi-parms within multi-parms are full expanded.
 	//--------------------------------------------------------------------------------------------------------------------------
 
-	while (bProcessMultiParm)
+	while(bProcessMultiParm)
 	{
 		bProcessMultiParm = false;
 
@@ -432,36 +439,46 @@ bool FHoudiniParameterTranslator::InstantiateParameters(UHoudiniCookable* HC)
 			{
 				if(MultiParm->GetParmId() != INDEX_NONE && IdToParmInfo.Contains(MultiParm->GetParmId()))
 				{
-					MultiParms.Add(MultiParm);
+					HAPI_ParmInfo* ParmInfo = IdToParmInfo[MultiParm->GetParmId()];
+					if(MultiParm->MultiParmInstanceCount != ParmInfo->instanceCount)
+					{
+						int NewSize = MultiParm->MultiParmInstanceCount;
+
+						int Delta = NewSize - ParmInfo->instanceCount;
+
+						if(Delta > 0)
+						{
+							for(int32 Offset = 0; Offset < Delta; Offset++)
+							{
+								HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::InsertMultiparmInstance(
+									FHoudiniEngine::Get().GetSession(), HC->GetNodeId(),
+									MultiParm->GetParmId(), MultiParm->InstanceStartOffset + Offset),
+									false);
+							}
+						}
+						else if(Delta < 0)
+						{
+							int Last = MultiParm->InstanceStartOffset + MultiParm->GetInstanceCount() - 1;
+							for(int32 Offset = 0; Offset < FMath::Abs(Delta); ++Offset)
+							{
+								HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
+									FHoudiniEngine::Get().GetSession(), HC->GetNodeId(),
+									MultiParm->GetParmId(), Last),
+									false);
+								Last--;
+
+							}
+						}
+
+						bProcessMultiParm = true;
+					}
 				}
 			}
 		}
 
-		for (UHoudiniParameterMultiParm* MultiParm : MultiParms)
+		if(bProcessMultiParm)
 		{
-			HAPI_ParmInfo* ParmInfo = IdToParmInfo[MultiParm->GetParmId()];
-			if(MultiParm->MultiParmInstanceCount != ParmInfo->instanceCount)
-			{
-				// Counts differ between Houdini and Unreal, so temporarily reset the Unreal
-				// copy to what Houdini has and resize it.
-				int NewCount = MultiParm->MultiParmInstanceCount;
-				MultiParm->MultiParmInstanceCount = ParmInfo->instanceCount;
-				bSuccess = SetNumMultiParmElements(MultiParm, NewCount);
-				bProcessMultiParm = true;
-
-				MultiParm->MultiParmInstanceCount = NewCount;
-				if (!bSuccess)
-				{
-					HOUDINI_LOG_ERROR(TEXT("Failed to instantiate multi-parms"));
-					return false;
-				}
-			}
-		}
-
-		if (bProcessMultiParm)
-		{
-			// Fetch the latest parameter infos, as the multi-parms
-			// may have generated new parameters in Houdini which we can, on the next loop iterations, 
+			// Fetch the latest parameter infos, as the multi-parms have generate new parameters in Houdini which we can
 			// match to those in Unreal.
 
 			FetchParameterInfo(HC, ParmInfos, IdToParmInfo, NameToId);
@@ -479,21 +496,24 @@ bool FHoudiniParameterTranslator::InstantiateParameters(UHoudiniCookable* HC)
 		}
 	}
 
-	//--------------------------------------------------------------------------------------------------------------------------
-	// Get new parameters, removed unused parameters, combine into a single list, sorted by ParmInfo order.
-	//--------------------------------------------------------------------------------------------------------------------------
-
 	HC->RemoveInvalidParameters();
 
 	bSuccess = FetchNewParameters(HC);
 
+	HC->CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
+
+	return bSuccess;
+}
+
+bool FHoudiniParameterTranslator::InstantiateParameters(UHoudiniCookable* HC)
+{
+	//
+	// This function should be called after a Cookable is instantiated but before
+	// cooking. It pushes all parameter to the Houdini Node. 
+
+	bool bSuccess = SyncUnrealParametersToHoudini(HC);
 	if(!bSuccess)
 		return false;
-
-	//--------------------------------------------------------------------------------------------------------------------------
-	// Now we've expanded all multi-parms, deleted unused parameters, and fetched new parameters... we can push our 
-	// Unreal values to override those in Houdini.
-	//--------------------------------------------------------------------------------------------------------------------------
 
 	bSuccess = ForceUploadAllParameterValues(HC->GetParameters());
 
@@ -524,7 +544,6 @@ FHoudiniParameterTranslator::UpdateParametersFromHoudini(
 		bNeedToUpdateEditorProperties = true;
 #endif
 	}
-
 
 	return true;
 }
@@ -4027,39 +4046,11 @@ bool FHoudiniParameterTranslator::SetNumMultiParmElements(UHoudiniParameterMulti
 	if(!HoudiniEnsureInstantiated(HC))
 		return false;
 
-	int Delta = NewSize - MultiParm->GetInstanceCount();
+	MultiParm->MultiParmInstanceCount = NewSize;
 
-	if(Delta == 0)
-	{
-		return true;
-	}
-	else if (Delta > 0)
-	{
-		for(int32 n = 0; n < Delta; ++n)
-		{
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::InsertMultiparmInstance(
-				FHoudiniEngine::Get().GetSession(), HC->GetNodeId(),
-				MultiParm->GetParmId(), MultiParm->InstanceStartOffset + MultiParm->GetInstanceCount() + n), 
-				false);
-		}
-	}
-	else if (Delta < 0)
-	{
-		int Last = MultiParm->InstanceStartOffset + MultiParm->GetInstanceCount() - 1;
-		for(int32 n = 0; n < FMath::Abs(Delta); ++n)
-		{
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
-				FHoudiniEngine::Get().GetSession(), HC->GetNodeId(),
-				MultiParm->GetParmId(), Last), 
-				false);
-			Last--;
+	SyncUnrealParametersToHoudini(HC);
 
-		}
-	}
 
-	HoudiniWaitForMultiParmsUpdateComplete(HC);
-
-	HC->CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
 
 	return true;
 }
@@ -4104,11 +4095,13 @@ bool FHoudiniParameterTranslator::RemoveMultiParmInstance(UHoudiniParameterMulti
 	if(!HoudiniEnsureInstantiated(HC))
 		return false;
 
+	int InstanceOffset = ParamIndex + MultiParm->GetInstanceStartOffset();
+
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
 		FHoudiniEngine::Get().GetSession(),
 		MultiParm->GetNodeId(),
 		MultiParm->GetParmId(),
-		ParamIndex + MultiParm->GetInstanceStartOffset()),
+		ParamIndex),
 		false);
 
 	bool bFetchValuesFromHoudini = true;
