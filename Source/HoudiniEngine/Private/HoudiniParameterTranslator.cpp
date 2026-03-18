@@ -458,7 +458,7 @@ bool FHoudiniParameterTranslator::SyncUnrealParametersToHoudini(UHoudiniCookable
 						}
 						else if(Delta < 0)
 						{
-							int Last = MultiParm->InstanceStartOffset + MultiParm->GetInstanceCount() - 1;
+							int Last = MultiParm->InstanceStartOffset + ParmInfo->instanceCount - 1;
 							for(int32 Offset = 0; Offset < FMath::Abs(Delta); ++Offset)
 							{
 								HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
