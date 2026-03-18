@@ -1698,6 +1698,18 @@ void UHoudiniCookable::SetParameters(const TArray<TObjectPtr<UHoudiniParameter>>
 #endif
 
 #if WITH_EDITORONLY_DATA
+void UHoudiniCookable::RemoveInvalidParameters()
+{
+	ParameterData->Parameters.RemoveAll([](const UHoudiniParameter* Param)
+		{
+			return Param->GetParmId() == INDEX_NONE;
+		});
+
+	ConstructParameterTree();
+}
+#endif
+
+#if WITH_EDITORONLY_DATA
 void UHoudiniCookable::SetParametersAndInstantiate(const TArray<TObjectPtr<UHoudiniParameter>>& Parameters)
 {
 	SetParameters(Parameters);

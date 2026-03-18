@@ -177,19 +177,21 @@ TArray<TObjectPtr<UHoudiniParameter>> FHoudiniParameterTranslator::CreateNewPara
 	return NewParameters;
 }
 
-bool FHoudiniParameterTranslator::MatchParameterToHoudini(
+bool FHoudiniParameterTranslator::FetchParameterInfo(
 	UHoudiniCookable* HC,
 	TArray<HAPI_ParmInfo>& ParmInfos,
 	TMap<int, HAPI_ParmInfo*>& IdToParmInfo,
 	TMap<FString, int>& NameToId)
 {
-	// This function will fetch al lHAPI_ParmInfo from the node in Houdini and match them 
-	// * by name * to the stored Unreal Cookable parameters. After, all found parameters will
-	// have calid ParmIds, while unfound will be invalid.
-	// It returns some useful maps about the paramters.
-	//
-	// NOTE: Values are NOT updated. 
-	
+	// Fetches the HAPI_ParmInfo for the Cookable and also generates:
+	//	IdToParmInfo		look up from id to HAPI_ParmInfo
+	//	NameToId			parameter name to id
+	// for quick look ups.
+
+	ParmInfos.Empty();
+	IdToParmInfo.Empty();
+	NameToId.Empty();
+
 	HAPI_NodeInfo NodeInfo;
 	FHoudiniApi::NodeInfo_Init(&NodeInfo);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), HC->GetNodeId(), &NodeInfo), false);
@@ -200,27 +202,15 @@ bool FHoudiniParameterTranslator::MatchParameterToHoudini(
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), HC->GetNodeId(), &ParmInfos[0], 0, ParmInfos.Num()), false);
 	}
 
-	TArray<FString> ParameterNames;
+	// Create a lookup from id to parm-info.
 
 	for(HAPI_ParmInfo& ParmInfo : ParmInfos)
 	{
 		FString ParmName;
 		FHoudiniEngineString(ParmInfo.nameSH).ToFString(ParmName);
-		ParameterNames.Add(ParmName);
 
 		IdToParmInfo.Add(ParmInfo.id, &ParmInfo);
 		NameToId.Add(ParmName, ParmInfo.id);
-	}
-
-	for(UHoudiniParameter* Parameter : HC->GetParameters())
-	{
-		// Attempt to match the Unreal Parameter to the HAPI_ParmInfo.
-
-		int* FoundID = NameToId.Find(Parameter->GetParameterName());
-		if(FoundID)
-			Parameter->SetParmId(*FoundID);
-		else
-			Parameter->SetParmId(INDEX_NONE);
 	}
 
 	return true;
@@ -347,31 +337,92 @@ bool FHoudiniParameterTranslator::InitializeParametersFromAssetDefinition(UHoudi
 	return true;
 }
 
+bool FHoudiniParameterTranslator::FetchNewParameters(UHoudiniCookable* HC)
+{
+	// Fetch Parameter data from HAPI, create maps for quick look up via Ids.
+	TArray<HAPI_ParmInfo> ParmInfos;
+	TMap<int, HAPI_ParmInfo*> IdToParmInfo;
+	TMap<FString, int> NameToId;
+
+	FetchParameterInfo(HC, ParmInfos, IdToParmInfo, NameToId);
+
+	TMap<int, UHoudiniParameter*> IdToParameter;
+	for (auto Param : HC->GetParameters())
+		IdToParameter.Add(Param->GetParmId(), Param);
+
+	// Get the new parameters from HAPI
+	
+	TArray<TObjectPtr<UHoudiniParameter>> NewParameters = 
+		CreateNewParameters(HC, HC->GetNodeId(), ParmInfos, IdToParameter, nullptr, nullptr, nullptr, nullptr);
+
+	// Combine all parameters, old and new.
+	
+	TArray<TObjectPtr<UHoudiniParameter>> UnsortedParameters = HC->GetParameters();
+	UnsortedParameters.Append(NewParameters);
+
+	// reorder to the same order as the param infos. If we don't new parameters would just be added at the end,
+	// which doesn't provide a consistent layout.
+
+	TArray<TObjectPtr<UHoudiniParameter>> FinalParameters;
+	FinalParameters.SetNumZeroed(UnsortedParameters.Num());
+
+	for(UHoudiniParameter* Parameter : UnsortedParameters)
+	{
+		// Place each parameter in its correct position in the final array.
+		HAPI_ParmInfo* ParamInfo = IdToParmInfo[Parameter->GetParmId()];
+		int Position = ParamInfo - ParmInfos.GetData();
+		FinalParameters[Position] = Parameter;
+	}
+
+	HC->SetParameters(FinalParameters);
+
+	// Fetch all info from Houdini, except the values, since we want to preserve what we have in Houdini.
+
+	bool bNeedToUpdateEditorProperties = false;
+	bool bSuccess = UpdateParametersFromHoudini(HC, false, true, true, bNeedToUpdateEditorProperties);
+	return bSuccess;
+}
+
 bool FHoudiniParameterTranslator::InstantiateParameters(UHoudiniCookable* HC)
 {
 	// This function should be called after a Cookable is instantiated but before
 	// cooking. It pushes all parameter to the Houdini Node. Importantly, it ensures
 	// multi-parms are fully expanded.
 
-	// Go in a loop, processing multiparms, until we don't process any more. This is to ensure
-	// multiparms within multiparms are full expanded.
+	//--------------------------------------------------------------------------------------------------------------------------
+	// Fetch ParmInfo and push parameters that match.
+	//--------------------------------------------------------------------------------------------------------------------------
 
 	bool bProcessMultiParm = true;
 	TArray<HAPI_ParmInfo> ParmInfos;
 	TMap<int, HAPI_ParmInfo*> IdToParmInfo;
 	TMap<FString, int> NameToId;
+	bool bSuccess = FetchParameterInfo(HC, ParmInfos, IdToParmInfo, NameToId);
+	if(!bSuccess)
+		return false;
+
+	// Attempt to match the Unreal Parameter to the HAPI_ParmInfo.
+
+	for(UHoudiniParameter* Parameter : HC->GetParameters())
+	{
+		int* FoundID = NameToId.Find(Parameter->GetParameterName());
+		if(FoundID)
+			Parameter->SetParmId(*FoundID);
+		else
+			Parameter->SetParmId(INDEX_NONE);
+	}
 
 	//--------------------------------------------------------------------------------------------------------------------------
 	// Expand all multi-parms
+	// Go in a loop, processing multiparms, until we don't process anymore. This is to ensure
+	// multi-parms within multi-parms are full expanded.
 	//--------------------------------------------------------------------------------------------------------------------------
 
 	while (bProcessMultiParm)
 	{
 		bProcessMultiParm = false;
 
-		MatchParameterToHoudini(HC, ParmInfos, IdToParmInfo, NameToId);
-
-		// Do we have any multi-parm? I so, update
+		// Do we have any multi-parm? If so, update
 
 		TArray<UHoudiniParameterMultiParm*> MultiParms;
 
@@ -379,32 +430,51 @@ bool FHoudiniParameterTranslator::InstantiateParameters(UHoudiniCookable* HC)
 		{
 			if(UHoudiniParameterMultiParm* MultiParm = Cast<UHoudiniParameterMultiParm>(Parameter))
 			{
-				MultiParms.Add(MultiParm);
+				if(MultiParm->GetParmId() != INDEX_NONE && IdToParmInfo.Contains(MultiParm->GetParmId()))
+				{
+					MultiParms.Add(MultiParm);
+				}
 			}
-
 		}
 
 		for (UHoudiniParameterMultiParm* MultiParm : MultiParms)
 		{
-			if(MultiParm->GetParmId() != INDEX_NONE && IdToParmInfo.Contains(MultiParm->GetParmId()))
+			HAPI_ParmInfo* ParmInfo = IdToParmInfo[MultiParm->GetParmId()];
+			if(MultiParm->MultiParmInstanceCount != ParmInfo->instanceCount)
 			{
-				HAPI_ParmInfo* ParmInfo = IdToParmInfo[MultiParm->GetParmId()];
-				if(MultiParm->MultiParmInstanceCount != ParmInfo->instanceCount)
-				{
-					// Counts differ between Houdini and Unreal, so temporarily reset the Unreal
-					// copy to what Houdini has and resize it.
-					int NewCount = MultiParm->MultiParmInstanceCount;
-					MultiParm->MultiParmInstanceCount = ParmInfo->instanceCount;
-					bool bSuccess = SetNumMultiParmElements(MultiParm, NewCount);
-					bProcessMultiParm = true;
+				// Counts differ between Houdini and Unreal, so temporarily reset the Unreal
+				// copy to what Houdini has and resize it.
+				int NewCount = MultiParm->MultiParmInstanceCount;
+				MultiParm->MultiParmInstanceCount = ParmInfo->instanceCount;
+				bSuccess = SetNumMultiParmElements(MultiParm, NewCount);
+				bProcessMultiParm = true;
 
-					MultiParm->MultiParmInstanceCount = NewCount;
-					if (!bSuccess)
-					{
-						HOUDINI_LOG_ERROR(TEXT("Failed to instantiate multi-parms"));
-						return false;
-					}
+				MultiParm->MultiParmInstanceCount = NewCount;
+				if (!bSuccess)
+				{
+					HOUDINI_LOG_ERROR(TEXT("Failed to instantiate multi-parms"));
+					return false;
 				}
+			}
+		}
+
+		if (bProcessMultiParm)
+		{
+			// Fetch the latest parameter infos, as the multi-parms
+			// may have generated new parameters in Houdini which we can, on the next loop iterations, 
+			// match to those in Unreal.
+
+			FetchParameterInfo(HC, ParmInfos, IdToParmInfo, NameToId);
+
+			// Attempt to match the Unreal Parameter to the HAPI_ParmInfo.
+
+			for(UHoudiniParameter* Parameter : HC->GetParameters())
+			{
+				int* FoundID = NameToId.Find(Parameter->GetParameterName());
+				if(FoundID)
+					Parameter->SetParmId(*FoundID);
+				else
+					Parameter->SetParmId(INDEX_NONE);
 			}
 		}
 	}
@@ -413,48 +483,17 @@ bool FHoudiniParameterTranslator::InstantiateParameters(UHoudiniCookable* HC)
 	// Get new parameters, removed unused parameters, combine into a single list, sorted by ParmInfo order.
 	//--------------------------------------------------------------------------------------------------------------------------
 
-	// Only keep those that were matched.
-	TArray<TObjectPtr<UHoudiniParameter>> ReusedParameters;
-	TMap<int, UHoudiniParameter*> IdToParameter;
+	HC->RemoveInvalidParameters();
 
-	for(UHoudiniParameter* Parameter : HC->GetParameters())
-	{
-		if(Parameter->GetParmId() != INDEX_NONE)
-		{
-			IdToParameter.Add(Parameter->GetParmId(), Parameter);
-			ReusedParameters.Add(Parameter);
-		}
-	}
+	bSuccess = FetchNewParameters(HC);
 
-	// So get parameters.
-	TArray<TObjectPtr<UHoudiniParameter>> NewParameters = CreateNewParameters(HC, HC->GetNodeId(), ParmInfos, IdToParameter, nullptr, nullptr, nullptr, nullptr);
-
-	// Combine all parameters, old and new. They need to be sorted to appear in the correct order.
-	TArray<TObjectPtr<UHoudiniParameter>> UnsortedParameters = ReusedParameters;
-	UnsortedParameters.Append(NewParameters);
-
-	// reorder to the same order as the param infos.
-	TMap<int, int> IdToInfo;
-	for(int Index = 0; Index < ParmInfos.Num(); Index++)
-		IdToInfo.Add(ParmInfos[Index].id, Index);
-
-	TArray<TObjectPtr<UHoudiniParameter>> FinalParameters;
-	FinalParameters.SetNumZeroed(UnsortedParameters.Num());
-
-	for(UHoudiniParameter* Parameter : UnsortedParameters)
-	{
-		int Position = IdToInfo[Parameter->GetParmId()];
-		FinalParameters[Position] = Parameter;
-	}
-
-	HC->SetParameters(FinalParameters);
-
-	// Fetch all info from Houdini, except the values. Then push the values to Houdini.
-
-	bool bNeedToUpdateEditorProperties = false;
-	bool bSuccess = UpdateParametersFromHoudini(HC, false, true, true, bNeedToUpdateEditorProperties);
 	if(!bSuccess)
-		return bSuccess;
+		return false;
+
+	//--------------------------------------------------------------------------------------------------------------------------
+	// Now we've expanded all multi-parms, deleted unused parameters, and fetched new parameters... we can push our 
+	// Unreal values to override those in Houdini.
+	//--------------------------------------------------------------------------------------------------------------------------
 
 	bSuccess = ForceUploadAllParameterValues(HC->GetParameters());
 
@@ -655,29 +694,16 @@ FHoudiniParameterTranslator::BuildAllParameters(
 
 	// Create a name lookup cache for the current parameters
 	// Use an array has in some cases, multiple parameters can have the same name!
-	TMap<FString, TArray<UHoudiniParameter*>> CurrentParametersByName;
-	CurrentParametersByName.Reserve(CurrentParameters.Num());
+	TMap<int, UHoudiniParameter*> CurrentParametersById;
+	CurrentParametersById.Reserve(CurrentParameters.Num());
 	for (const auto& Parm : CurrentParameters)
 	{
 		if (!IsValid(Parm))
 			continue;
 
 		FString ParmName = Parm->GetParameterName();
-		TArray<UHoudiniParameter*>* FoundParmArray = CurrentParametersByName.Find(ParmName);
-		if (!FoundParmArray)
-		{
-			// Create a new array
-			TArray<UHoudiniParameter*> ParmArray;
-			ParmArray.Add(Parm);
-
-			// add the new array to the map
-			CurrentParametersByName.Add(ParmName, ParmArray);
-		}
-		else
-		{		
-			// add this parameter to the existing array
-			FoundParmArray->Add(Parm);
-		}
+		if (Parm->GetParmId() != INDEX_NONE)
+			CurrentParametersById.Add(Parm->GetParmId(), Parm);
 	}
 
 	// Create properties for parameters.
@@ -742,45 +768,19 @@ FHoudiniParameterTranslator::BuildAllParameters(
 
 		// Not using the name lookup map!
 		UHoudiniParameter* FoundHoudiniParameter = nullptr;
-		TArray<UHoudiniParameter*>* MatchingParameters = CurrentParametersByName.Find(NewParmName);
+		UHoudiniParameter** MatchingParameters = CurrentParametersById.Find(ParmInfo.id);
 		if ((ParmType != EHoudiniParameterType::Invalid) && MatchingParameters)
 		{
-			//for (auto& CurrentParm : *MatchingParameters)
-			for(int32 Idx = MatchingParameters->Num() - 1; Idx >= 0; Idx--)
+
+			UHoudiniParameter* CurrentParm = (*MatchingParameters);
+			if (CurrentParm && 
+				ParmType == CurrentParm->GetParameterType() &&
+				CurrentParm->GetTupleSize() == ParmInfo.size &&
+				CheckParameterTypeAndClassMatch(CurrentParm, ParmType))
 			{
-				UHoudiniParameter* CurrentParm = (*MatchingParameters)[Idx];
-				if (!CurrentParm)
-					continue;
-
-				// First Check the parameter types match
-				if (ParmType != CurrentParm->GetParameterType())
-				{
-					// Types do not match
-					continue;
-				}
-
-				// Then, make sure the tuple size hasn't changed
-				if (CurrentParm->GetTupleSize() != ParmInfo.size)
-				{
-					// Tuple do not match
-					continue;
-				}
-
-				if (!CheckParameterTypeAndClassMatch(CurrentParm, ParmType))
-				{
-					// Wrong class
-					continue;
-				}
-
 				// We can reuse this parameter
 				FoundHoudiniParameter = CurrentParm;
-
-				// Remove it from the array/map
-				MatchingParameters->RemoveAt(Idx);
-				if (MatchingParameters->Num() <= 0)
-					CurrentParametersByName.Remove(NewParmName);
-
-				break;
+				CurrentParametersById.Remove(ParmInfo.id);
 			}
 		}
 
@@ -3876,7 +3876,13 @@ void FHoudiniEngineParameterUpdater::SendModifiedParametersToHoudini(UHoudiniCoo
 
 bool FHoudiniEngineParameterUpdater::SetNumMultiParmElements(UHoudiniParameterMultiParm* MultiParm, int NewSize)
 {
-	return FHoudiniParameterTranslator::SetNumMultiParmElements(MultiParm, NewSize);
+	bool bSuccess = FHoudiniParameterTranslator::SetNumMultiParmElements(MultiParm, NewSize);
+	if(!bSuccess)
+		return false;
+
+	bSuccess = FHoudiniParameterTranslator::FetchNewParameters(MultiParm->GetCookable());
+	return bSuccess;
+
 }
 
 bool FHoudiniEngineParameterUpdater::InsertMultiParmInstance(UHoudiniParameterMultiParm* MultiParm, int Index)
@@ -4051,23 +4057,11 @@ bool FHoudiniParameterTranslator::SetNumMultiParmElements(UHoudiniParameterMulti
 		}
 	}
 
-	bool bUpdateValues = false;
-	bool bForceFullUpdate = true;
-	bool bCacheRampParms = true;
-	bool bNeedToUpdateEditorProperties = false;
-
 	HoudiniWaitForMultiParmsUpdateComplete(HC);
-
-	bool bSuccess = true;
-	if(HC->GetCurrentState() != EHoudiniAssetState::Instantiating)
-	{
-
-		bSuccess = UpdateParametersFromHoudini(HC, bUpdateValues, bForceFullUpdate, bCacheRampParms, bNeedToUpdateEditorProperties);
-	}
 
 	HC->CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
 
-	return bSuccess;
+	return true;
 }
 
 

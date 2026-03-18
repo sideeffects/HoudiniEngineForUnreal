@@ -50,12 +50,6 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 
 	static bool InstantiateParameters(UHoudiniCookable* InHC);
 
-	static bool MatchParameterToHoudini(
-		UHoudiniCookable* HC,
-		TArray<HAPI_ParmInfo>& ParmInfos,
-		TMap<int, HAPI_ParmInfo*>& IdToParmInfo,
-		TMap<FString, int>& NameToId);
-
 	static TArray<TObjectPtr<UHoudiniParameter>> CreateNewParameters(
 		UHoudiniCookable* HC,
 		int NodeId,
@@ -196,6 +190,20 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 		const HAPI_ParmInfo* ParamInfo);
 
 	static bool RevertRampParameters(TMap<FString, UHoudiniParameter*> & InRampParams, const int32 & AssetId);
+
+	static bool FetchNewParameters(UHoudiniCookable* HC);
+
+	static bool FetchParameterInfo(
+		UHoudiniCookable* HC,
+		TArray<HAPI_ParmInfo>& ParmInfos,
+		TMap<int, HAPI_ParmInfo*>& IdToParmInfo,
+		TMap<FString, int>& NameToId);
+
+	static bool CreateParameterInfo(
+		UHoudiniCookable* HC,
+		TArray<HAPI_ParmInfo>& ParmInfos,
+		TMap<int, HAPI_ParmInfo*>& IdToParmInfo);
+
 };
 
 struct HOUDINIENGINE_API FHoudiniEngineParameterUpdater : public FHoudiniParameterUpdater

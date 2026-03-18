@@ -637,6 +637,7 @@ public:
 	const TArray<TObjectPtr<UHoudiniParameter>>& GetParameters() const;
 	void SetParameters(const TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
 	void SetParametersAndInstantiate(const TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
+	void RemoveInvalidParameters();
 #endif
 #if WITH_EDITORONLY_DATA
 	TArray<TObjectPtr<UHoudiniInput>>& GetInputs();
