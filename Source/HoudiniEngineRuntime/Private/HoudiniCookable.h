@@ -217,6 +217,10 @@ public:
 	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere, meta = (DisplayPriority = 0))
 	bool bSplitMeshSupport = false;
 	
+	// Controls whether or not to apply transforms to PCG Data.
+	UPROPERTY()
+	bool bApplyPCGTransform = false;
+
 	// Look for editable curve::1.0 nodes to create curve inputs
 	// Legacy workflow - deprecated - disabled by default
 	UPROPERTY()
@@ -674,6 +678,7 @@ public:
 	EHoudiniBakeAfterNextCook GetBakeAfterNextCook() const;
 	bool IsPlayInEditorRefinementAllowed() const;
 	EHoudiniEngineActorBakeOption GetActorBakeOption() const;
+	bool GetApplyPCGTransform() const;
 
 	FName GetAssetEditorId() const { return AssetEditorId; };
 
@@ -753,6 +758,7 @@ public:
 	void SetUploadTransformsToHoudiniEngine(bool bEnable);
 	void SetLandscapeUseTempLayers(bool bEnable);
 	void SetEnableCurveEditing(bool bEnable);
+	void SetApplyPCGTransform(bool bEnable);
 
 	// Set whether or not bake after cooking (disabled, always or once).
 	void SetBakeAfterNextCook(const EHoudiniBakeAfterNextCook InBakeAfterNextCook);

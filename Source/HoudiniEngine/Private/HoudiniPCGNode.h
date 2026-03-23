@@ -113,9 +113,14 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = HoudiniPCG, 
 		meta = (DisplayName = "Force PCG Outputs", 
-			ToolTip = "Forces outputs to be treated as if unreal_pcg_param attribute were specified."))
+		ToolTip = "Forces outputs to be treated as if unreal_pcg_param attribute were specified."))
 
 	bool bForcePCGOutputs = false;
+
+	UPROPERTY(EditAnywhere, Category = HoudiniPCG,
+		meta = (DisplayName = "Apply PCG Transform",
+			ToolTip = "Applies the PCG Component's transform to the PCG point and spline data outputs."))
+	bool bApplyTransform = false;
 
 	UPROPERTY()
 	int64 IterationCount = 0; // dummy value to keep track of changes.

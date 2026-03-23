@@ -164,6 +164,7 @@ FHoudiniOutputTranslator::ProcessOutputs(
 		HC->HasNoProxyMeshNextCookBeenRequested(),
 		HC->IsBakeAfterNextCookEnabled(),
 		HC->GetSplitMeshSupport(),
+		HC->GetApplyPCGTransform(),
 		HC->GetStaticMeshGenerationProperties(),
 		HC->GetStaticMeshBuildSettings(),
 		bOutHasHoudiniStaticMeshOutput,
@@ -368,6 +369,7 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 	bool bHasNoProxyMeshNextCookBeenRequested,
 	bool bIsBakeAfterNextCookEnabled,
 	bool bSplitMeshSupport,
+	bool bApplyPCGTransform,
 	const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 	const FMeshBuildSettings& InStaticMeshBuildSettings,
 	bool& bOutHasHoudiniStaticMeshOutput,
@@ -675,7 +677,9 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 			case EHoudiniOutputType::PCG:
 			{
 #if defined(HOUDINI_USE_PCG)
-				FHoudiniPCGTranslator::CreatePCGFromOutput(CurOutput);
+
+				const FTransform& Transform = bApplyPCGTransform ? InOuterComponent->GetComponentToWorld() : FTransform::Identity;
+				FHoudiniPCGTranslator::CreatePCGFromOutput(CurOutput, Transform);
 #endif
 				break;
 			}

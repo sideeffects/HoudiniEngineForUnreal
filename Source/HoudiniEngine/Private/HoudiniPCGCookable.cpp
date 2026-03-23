@@ -691,7 +691,7 @@ UHoudiniPCGCookable::ApplyPCGDataOnNodeInputs(FPCGContext* Context)
 
 	Cookable->GetOutputData()->bCreateSceneComponents = Settings ? Settings->bCreateSceneComponents : false;
 	Cookable->SetForcePCG(Settings ? Settings->bForcePCGOutputs : false);
-
+	Cookable->SetApplyPCGTransform(Settings ? Settings->bApplyTransform : false);
 	if(Context)
 	{
 		bParamsChanged |= this->ApplyParameterPCGDataToCookable(Context);

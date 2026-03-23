@@ -142,6 +142,7 @@ protected:
 		bool bHasNoProxyMeshNextCookBeenRequested,
 		bool bIsBakeAfterNextCookEnabled,
 		bool bSplitMeshSupport,
+		bool bApplyPCGTransform,
 		const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties,
 		const FMeshBuildSettings& InStaticMeshBuildSettings,
 		bool& bOutHasHoudiniStaticMeshOutput,

@@ -1778,6 +1778,17 @@ UHoudiniCookable::GetNodesToCookCookCounts() const
 	return NodesToCookCookCounts;
 }
 
+bool UHoudiniCookable::GetApplyPCGTransform() const
+{
+	return OutputData ?  OutputData->bApplyPCGTransform : false;
+}
+
+void UHoudiniCookable::SetApplyPCGTransform(bool bEnable)
+{
+	if(OutputData)
+		OutputData->bApplyPCGTransform = bEnable;
+}
+
 bool
 UHoudiniCookable::IsOverrideGlobalProxyStaticMeshSettings() const
 {
