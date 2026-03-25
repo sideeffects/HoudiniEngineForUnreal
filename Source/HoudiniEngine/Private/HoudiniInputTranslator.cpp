@@ -137,17 +137,180 @@ struct FHoudiniMoveTracker
 };
 #endif
 
+bool FHoudiniInputTranslator::AllocateInputToParameter(UHoudiniParameterOperatorPath* InParameter)
+{
+	UHoudiniCookable* HC = InParameter->GetCookable();
+
+	UHoudiniInput* Input = CreateInput(HC);
+	HC->GetInputs().Add(Input);
+
+	Input->SetOwningParameter(InParameter);
+	InParameter->HoudiniInput = Input;
+	Input->SetObjectPathParameter(InParameter->GetParmId(), false);
+
+	// If the node is a COP node, look for the node info's input count
+	HAPI_NodeInfo AssetNodeInfo;
+	FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), HC->GetNodeId(), &AssetNodeInfo), false);
+	bool bIsCOPInput = (AssetNodeInfo.type == HAPI_NODETYPE_COP || AssetNodeInfo.type == HAPI_NODETYPE_COP2);
+
+	UpdateInput(Input, INDEX_NONE, bIsCOPInput);
+
+	HC->GetInputs().Add(Input);
+
+	return true;
+
+}
+
+bool FHoudiniInputTranslator::RemoveOperatorPathParameter(UHoudiniParameterOperatorPath* InParameter)
+{
+	UHoudiniCookable* HC = InParameter->GetCookable();
+
+	int FoundIndex = INDEX_NONE;
+
+	for (int Index = 0; Index < HC->GetInputs().Num(); Index++)
+	{
+		UHoudiniInput* HoudiniInput = HC->GetInputs()[Index];
+		if (HoudiniInput->GetOwningParameter() == InParameter) 
+		{
+			FoundIndex = Index;
+			break;
+		}
+	}
+
+	if(FoundIndex == INDEX_NONE)
+		return false;
+
+	UHoudiniInput* HoudiniInput = HC->GetInputs()[FoundIndex];
+	HoudiniInput->SetOwningParameter(nullptr);
+	InParameter->HoudiniInput = nullptr;
+	HC->GetInputs().RemoveAt(FoundIndex);
+	return true;
+}
+
+
+UHoudiniInput* FHoudiniInputTranslator::CreateInput(UHoudiniCookable* InHC)
+{
+	FName InputObjectName = MakeUniqueObjectName(
+		InHC,
+		UHoudiniInput::StaticClass(),
+		TEXT("Input"));
+
+	UHoudiniInput* NewInput = NewObject<UHoudiniInput>(
+		InHC,
+		UHoudiniInput::StaticClass(),
+		InputObjectName,
+		RF_Transactional);
+
+	NewInput->SetCookable(InHC);
+
+	return NewInput;
+}
+
+void FHoudiniInputTranslator::UpdateInput(UHoudiniInput* CurrentInput, int InputIdx, bool bIsCOPInput)
+{
+	UHoudiniCookable * HC = CurrentInput->GetCookable();
+
+	// Create default Name/Label/Help
+	FString CurrentInputName = TEXT("Input") + FString::FromInt(InputIdx + 1);
+	FString CurrentInputLabel = CurrentInputName;
+	FString CurrentInputHelp;
+
+	// Set the nodeId
+	CurrentInput->SetAssetNodeId(HC->GetNodeId());
+
+	// Is this an object path parameter input?
+	if(!CurrentInput->GetOwningParameter().IsValid())
+	{
+		if(!bIsCOPInput)
+		{
+			// Mark this input as a SOP input
+			CurrentInput->SetSOPInput(InputIdx);
+		}
+		else
+		{
+			// Mark this input as a COP input
+			CurrentInput->SetCOPInput(InputIdx);
+		}
+
+		// Get and set the name
+		HAPI_StringHandle InputStringHandle;
+		if(HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeInputName(
+			FHoudiniEngine::Get().GetSession(),
+			HC->GetNodeId(), InputIdx, &InputStringHandle))
+		{
+			FHoudiniEngineString HoudiniEngineString(InputStringHandle);
+			HoudiniEngineString.ToFString(CurrentInputLabel);
+		}
+	}
+	else
+	{
+		// Get this input's parameter index in the objpath param array
+
+		UHoudiniParameter* CurrentParm = CurrentInput->GetOwningParameter().Get();
+
+		int32 ParmId = -1;
+		if(IsValid(CurrentParm))
+		{
+			ParmId = CurrentParm->GetParmId();
+			CurrentInputName = CurrentParm->GetParameterName();
+			CurrentInputLabel = CurrentParm->GetParameterLabel();
+			CurrentInputHelp = CurrentParm->GetParameterHelp();
+		}
+
+		UHoudiniParameterOperatorPath* CurrentObjPathParm = Cast<UHoudiniParameterOperatorPath>(CurrentParm);
+		if(IsValid(CurrentObjPathParm))
+		{
+			CurrentObjPathParm->HoudiniInput = CurrentInput;
+		}
+
+		// Mark this input as an object path parameter input
+		CurrentInput->SetObjectPathParameter(ParmId, bIsCOPInput);
+	}
+
+	CurrentInput->SetName(CurrentInputName);
+	CurrentInput->SetLabel(CurrentInputLabel);
+
+	if(CurrentInputHelp.IsEmpty())
+	{
+		CurrentInputHelp = CurrentInputLabel + TEXT("(") + CurrentInputName + TEXT(")");
+	}
+	CurrentInput->SetHelp(CurrentInputHelp);
+
+	// If the input type is invalid, 
+	// We need to initialize its default
+	bool bBlueprintStructureChanged = false;
+	if(CurrentInput->GetInputType() == EHoudiniInputType::Invalid)
+	{
+		// Initialize it to the default corresponding to its name
+		CurrentInput->SetInputType(GetDefaultInputTypeFromLabel(CurrentInputLabel), bBlueprintStructureChanged);
+
+		// Preset the default HDA for objpath input
+		SetDefaultInputFromParameterValue(CurrentInput, bBlueprintStructureChanged);
+	}
+
+	// Update input objects data on UE side for all types of inputs.
+	switch(CurrentInput->GetInputType())
+	{
+	case EHoudiniInputType::Curve:
+		FHoudiniSplineTranslator::UpdateHoudiniInputCurves(CurrentInput);
+		break;
+	case EHoudiniInputType::Geometry:
+		break;
+	case EHoudiniInputType::World:
+		break;
+	default:
+		break;
+	}
+}
+
 bool
-FHoudiniInputTranslator::BuildAllInputs(
-	HAPI_NodeId NodeId,
-	class UObject* InOuterObject,
-	TArray<TObjectPtr<UHoudiniInput>>& Inputs,
-	TArray<TObjectPtr<UHoudiniParameter>>& Parameters)
+FHoudiniInputTranslator::BuildAllInputs(UHoudiniCookable* InHC)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::BuildAllInputs);
 
 	// Ensure the asset has a valid node ID
-	if (NodeId < 0)
+	if (InHC->GetNodeId() < 0)
 	{
 		return false;
 	}
@@ -155,10 +318,10 @@ FHoudiniInputTranslator::BuildAllInputs(
 	// Start by getting the asset's info
 	HAPI_AssetInfo AssetInfo;
 	bool bAssetInfoSuccess = (HAPI_RESULT_SUCCESS == FHoudiniApi::GetAssetInfo(
-		FHoudiniEngine::Get().GetSession(), NodeId, &AssetInfo));
+		FHoudiniEngine::Get().GetSession(), InHC->GetNodeId(), &AssetInfo));
 
 	// Get the number of geo (SOP) inputs
-	// It's best to update the input count even if the hda hasnt cooked
+	// It's best to update the input count even if the hda hasn't cooked
 	// as it can cause loaded geo inputs to disappear upon loading the level
 	int32 InputCount = bAssetInfoSuccess ? AssetInfo.geoInputCount : 0;
 
@@ -166,258 +329,88 @@ FHoudiniInputTranslator::BuildAllInputs(
 	HAPI_NodeInfo AssetNodeInfo;
 	FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
-		FHoudiniEngine::Get().GetSession(), NodeId, &AssetNodeInfo), false);
+		FHoudiniEngine::Get().GetSession(), InHC->GetNodeId(), &AssetNodeInfo), false);
 
 	// If the node is a COP node, look for the node info's input count
 	bool bIsCOPInput = false;
 	if (AssetNodeInfo.type == HAPI_NODETYPE_COP || AssetNodeInfo.type == HAPI_NODETYPE_COP2)
 	{
-		InputCount += AssetNodeInfo.inputCount;
+		InputCount = AssetNodeInfo.inputCount;
 		bIsCOPInput = true;
 	}
 
 	// Keep track of the number of node inputs (not counting params)
 	int32 NodeInputCount = InputCount;
 
-	// Also look for object path parameters inputs
-	// Helper map to get the parameter index, given the parameter name
-	TMap<FString, int32> ParameterNameToIndexMap;
-	TArray<TWeakObjectPtr<UHoudiniParameter>> InputParameters;
-	TArray<FString> InputParameterNames;
-	for (auto Param : Parameters)
+	// Assign any new parameter operator paths
+	for (UHoudiniParameter* Param : InHC->GetParameters())
 	{
-		if (!Param)
-			continue;
-		
-		if (Param->GetParameterType() == EHoudiniParameterType::Input)
+		if (UHoudiniParameterOperatorPath* OpPath  = Cast<UHoudiniParameterOperatorPath>(Param))
 		{
-			int InsertionIndex = InputParameters.Num();
-			ParameterNameToIndexMap.Add(Param->GetParameterName(), InsertionIndex);
-			InputParameters.Add(Param);
-			InputParameterNames.Add(Param->GetParameterName());
+			if (!OpPath->HoudiniInput.IsValid())
+				AllocateInputToParameter(OpPath);
 		}
 	}
 
-	InputCount += InputParameters.Num();
+	// Seperate out parameter and HDA inputs. 
+	TArray<UHoudiniInput*> ParameterInputs;
+	TArray<UHoudiniInput*> HDAInputs;
+	for (UHoudiniInput* Input : InHC->GetInputs())
+	{
+		if (Input->IsObjectPathParameter())
+		{
+			// Only add parameter inputs which still exist.
+			if(Input->GetOwningParameter().IsValid())
+			{
+				ParameterInputs.Add(Input);
+			}
+		}
+		else
+		{
+			HDAInputs.Add(Input);
+		}
+	}
 
 	// Append new inputs as needed
-	if (InputCount > Inputs.Num())
+	if (InputCount > HDAInputs.Num())
 	{
-		int32 NumNewInputs = InputCount - Inputs.Num();
-		for (int32 InputIdx = Inputs.Num(); InputIdx < InputCount; ++InputIdx)
+		for (int32 InputIdx = HDAInputs.Num(); InputIdx < InputCount; ++InputIdx)
 		{
-			FString InputObjectName = TEXT("Input") + FString::FromInt(InputIdx + 1);
-			UHoudiniInput * NewInput = NewObject< UHoudiniInput >(
-				InOuterObject,
-				UHoudiniInput::StaticClass(),
-				FName(*InputObjectName),
-				RF_Transactional);
-
-			if (!IsValid(NewInput))
-			{
-				//HOUDINI_LOG_WARNING("Failed to create asset input");
-				continue;
-			}
-			// Create a default curve object here to avoid Transaction issue
-			//NewInput->CreateDefaultCurveInputObject();
-
-			Inputs.Add(NewInput);
+			UHoudiniInput* NewInput = CreateInput(InHC);
+			HDAInputs.Add(NewInput);
 		}			
 	}
-	else if (InputCount < Inputs.Num())
+	else if (InputCount < HDAInputs.Num())
 	{
-		// DO NOT DELETE PARAM INPUTS THAT ARE STILL PRESENT!
-		// This can cause issues with some input type when recooking the HDA after removing inputs!
 		// Make sure that we only delete inputs that are not present anymore!
-		for (int32 InputIdx = Inputs.Num() - 1; InputIdx >= 0; InputIdx--)
+		for (int32 InputIdx = HDAInputs.Num() - 1; InputIdx >= 0; InputIdx--)
 		{
-			UHoudiniInput* CurrentInput = Inputs[InputIdx];
+			UHoudiniInput* CurrentInput = HDAInputs[InputIdx];
 			if (IsValid(CurrentInput))
 			{
-				// Do not delete a param input that is still present!
-				if (CurrentInput->IsObjectPathParameter()
-					&& InputParameterNames.Contains(CurrentInput->GetInputName()))
-					continue;
-
+				// Disconnect old inputs; the actual object will be cleaned up by garbage collection.
 				FHoudiniInputTranslator::DisconnectAndDestroyInput(CurrentInput, CurrentInput->GetInputType());
 
-				// DO NOT MANUALLY DESTROY THE OLD/DANGLING INPUTS!
-				// This messes up unreal's Garbage collection and would cause crashes on duplication
-				//CurrentInput->ConditionalBeginDestroy();
-				//CurrentInput = nullptr;
 			}
 
-			Inputs.RemoveAt(InputIdx);
+			HDAInputs.RemoveAt(InputIdx);
 
 			// Stop deleting inputs once we've removed enough
-			if (Inputs.Num() <= InputCount)
+			if (HDAInputs.Num() <= InputCount)
 				break;
 		}
 
-		Inputs.SetNum(InputCount);
+		HDAInputs.SetNum(InputCount);
 	}
 
-	// Input index -> InputParameter index
-	// Special values: -1 = SOP input. Ignore completely. -2 = To be determined later
-	// Used to preserve inputs after insertion/deletion
-	TArray<int32> InputIdxToInputParamIndex;
-	InputIdxToInputParamIndex.SetNum(Inputs.Num());
+	InHC->GetInputs() = HDAInputs;
 
-	// Keep a set of used indices, to figure out the unused indices later
-	TSet<int32> UsedParameterIndices;
-	for (int32 InputIdx = 0; InputIdx < Inputs.Num(); InputIdx++)
+	InHC->GetInputs().Append(ParameterInputs);
+
+	for (int32 InputIdx = 0; InputIdx < InHC->GetInputs().Num(); InputIdx++)
 	{
-		// SOP input -> Parameter map doesn't make sense - ignore this
-		if (InputIdx < NodeInputCount)
-		{
-			// Ignore completely
-			InputIdxToInputParamIndex[InputIdx] = -1;
-		}
-		else
-		{
-			UHoudiniInput* CurrentInput = Inputs[InputIdx];
-			if (!IsValid(CurrentInput))
-				continue;
-
-			if (ParameterNameToIndexMap.Contains(CurrentInput->GetInputName()))
-			{
-				const int32 ParameterIndex = ParameterNameToIndexMap[CurrentInput->GetInputName()];
-				InputIdxToInputParamIndex[InputIdx] = ParameterIndex;
-				UsedParameterIndices.Add(ParameterIndex);
-			}
-			else
-			{
-				// To be determined in the second pass
-				InputIdxToInputParamIndex[InputIdx] = -2;
-			}
-		}
-	}
-
-	// Second pass for InputIdxToInputParamIndex
-	// Fill in the inputs that could not be mapped onto old inputs. Used when inserting a new element.
-	for (int32 NewInputIndex = 0; NewInputIndex < Inputs.Num(); NewInputIndex++)
-	{
-		if (InputIdxToInputParamIndex[NewInputIndex] == -2)
-		{
-			// Find the first free index
-			for (int32 FreeIdx = 0; FreeIdx < InputParameters.Num(); FreeIdx++)
-			{
-				if (!UsedParameterIndices.Contains(FreeIdx))
-				{
-					InputIdxToInputParamIndex[NewInputIndex] = FreeIdx;
-					UsedParameterIndices.Add(FreeIdx);
-					break;
-				}
-			}
-		}
-	}
-
-	// Now, check the inputs in the array match the geo inputs
-	//for (int32 GeoInIdx = 0; GeoInIdx < NodeInputCount; GeoInIdx++)
-	bool bBlueprintStructureChanged = false;
-	for (int32 InputIdx = 0; InputIdx < Inputs.Num(); InputIdx++)
-	{
-		UHoudiniInput* CurrentInput = Inputs[InputIdx];
-		if (!IsValid(CurrentInput))
-			continue;
-
-		// Create default Name/Label/Help
-		FString CurrentInputName = TEXT("Input") + FString::FromInt(InputIdx + 1);
-		FString CurrentInputLabel = CurrentInputName;
-		FString CurrentInputHelp;
-
-		// Set the nodeId
-		CurrentInput->SetAssetNodeId(NodeId);
-
-		// Is this an object path parameter input?
-		bool bIsObjectPath = InputIdx >= NodeInputCount;
-		if (!bIsObjectPath)
-		{
-			if (!bIsCOPInput)
-			{
-				// Mark this input as a SOP input
-				CurrentInput->SetSOPInput(InputIdx);
-			}
-			else
-			{
-				// Mark this input as a COP input
-				CurrentInput->SetCOPInput(InputIdx);
-			}
-
-			// Get and set the name
-			HAPI_StringHandle InputStringHandle;
-			if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeInputName(
-				FHoudiniEngine::Get().GetSession(),
-				NodeId, InputIdx, &InputStringHandle))
-			{
-				FHoudiniEngineString HoudiniEngineString(InputStringHandle);
-				HoudiniEngineString.ToFString(CurrentInputLabel);
-			}
-		}
-		else
-		{
-			// Get this input's parameter index in the objpath param array
-			int32 CurrentParmIdx = InputIdxToInputParamIndex[InputIdx];
-			
-			UHoudiniParameter* CurrentParm = nullptr;
-			if (InputParameters.IsValidIndex(CurrentParmIdx))
-			{
-				if (InputParameters[CurrentParmIdx].IsValid())
-					CurrentParm = InputParameters[CurrentParmIdx].Get();
-			}
-
-			int32 ParmId = -1;
-			if (IsValid(CurrentParm))
-			{
-				ParmId = CurrentParm->GetParmId();
-				CurrentInputName = CurrentParm->GetParameterName();
-				CurrentInputLabel = CurrentParm->GetParameterLabel();
-				CurrentInputHelp = CurrentParm->GetParameterHelp();
-			}
-
-			UHoudiniParameterOperatorPath* CurrentObjPathParm = Cast<UHoudiniParameterOperatorPath>(CurrentParm);
-			if (IsValid(CurrentObjPathParm))
-			{
-				CurrentObjPathParm->HoudiniInput = CurrentInput;
-			}
-
-			// Mark this input as an object path parameter input
-			CurrentInput->SetObjectPathParameter(ParmId, bIsCOPInput);
-		}
-
-		CurrentInput->SetName(CurrentInputName);
-		CurrentInput->SetLabel(CurrentInputLabel);
-
-		if ( CurrentInputHelp.IsEmpty() )
-		{
-			CurrentInputHelp = CurrentInputLabel + TEXT("(") + CurrentInputName + TEXT(")");
-		}
-		CurrentInput->SetHelp(CurrentInputHelp);
-
-		// If the input type is invalid, 
-		// We need to initialize its default
-		if (CurrentInput->GetInputType() == EHoudiniInputType::Invalid)
-		{
-			// Initialize it to the default corresponding to its name
-			CurrentInput->SetInputType(GetDefaultInputTypeFromLabel(CurrentInputLabel), bBlueprintStructureChanged);
-
-			// Preset the default HDA for objpath input
-			SetDefaultInputFromParameterValue(CurrentInput, bBlueprintStructureChanged);
-		}
-
-		// Update input objects data on UE side for all types of inputs.
-		switch (CurrentInput->GetInputType())
-		{
-			case EHoudiniInputType::Curve:
-				FHoudiniSplineTranslator::UpdateHoudiniInputCurves(CurrentInput);
-				break;
-			case EHoudiniInputType::Geometry:
-				break;
-			case EHoudiniInputType::World:
-				break;
-			default:
-				break;
-		}
+		UHoudiniInput* CurrentInput = InHC->GetInputs()[InputIdx];
+		UpdateInput(CurrentInput, InputIdx, bIsCOPInput);
 	}
 
 	return true;
@@ -5130,10 +5123,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForTexture2D(
 
 bool
 FHoudiniInputTranslator::UpdateInputs(
-	HAPI_NodeId InNodeId, 
-	UObject* InOuter, 
-	TArray<TObjectPtr<UHoudiniInput>>& Inputs,
-	TArray<TObjectPtr<UHoudiniParameter>>& Parameters,
+	UHoudiniCookable* InHC,
 	bool bLoadedInputs,
 	bool bIsInitialization=false)
 {
@@ -5141,13 +5131,13 @@ FHoudiniInputTranslator::UpdateInputs(
 
 	// We need to call BuildAllInputs here to update all the inputs,
 	// and make sure that the object path parameter inputs' parameter ids are up to date
-	if (!FHoudiniInputTranslator::BuildAllInputs(InNodeId, InOuter, Inputs, Parameters))
+	if (!FHoudiniInputTranslator::BuildAllInputs(InHC))
 		return false;
 
 	if (bIsInitialization)
 	{
 		// We don't want inputs marked as changed when initializing a new cookable.
-		for(auto CurrentInput : Inputs)
+		for(auto CurrentInput : InHC->GetInputs())
 		{
 			CurrentInput->MarkChanged(false);
 		}
@@ -5158,12 +5148,12 @@ FHoudiniInputTranslator::UpdateInputs(
 		return true;
 
 	// If we were loaded - we also need to update the NodeId stored on all the inputs
-	for (auto CurrentInput : Inputs)
+	for (auto CurrentInput : InHC->GetInputs())
 	{
 		if (!IsValid(CurrentInput))
 			continue;
 
-		CurrentInput->SetAssetNodeId(InNodeId);
+		CurrentInput->SetAssetNodeId(InHC->GetNodeId());
 
 		// We need to delete the nodes created for the input objects if they are valid
 		// (since the node IDs are transients, this likely means we're handling a recook/rebuild

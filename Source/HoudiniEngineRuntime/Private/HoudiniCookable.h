@@ -883,6 +883,8 @@ protected:
 
 	virtual void BeginDestroy() override;
 
+	void FixupInputPointers();
+
 protected:
 
 	// Id of the corresponding Houdini node.

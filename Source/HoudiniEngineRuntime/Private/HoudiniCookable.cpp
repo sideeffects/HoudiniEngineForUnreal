@@ -48,6 +48,7 @@
 #endif
 
 #include "HoudiniParameterInt.h"
+#include "HoudiniParameterOperatorPath.h"
 #include "HoudiniParameterUpdater.h"
 #include "Components/SplineComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
@@ -1428,27 +1429,10 @@ void
 UHoudiniCookable::MarkAsNeedInstantiation()
 {
 	// Invalidate the asset ID
-	NodeId = -1;
+	NodeId = INDEX_NONE;
 
-#if WITH_EDITORONLY_DATA
-	if((IsParameterSupported() && ParameterData->Parameters.Num() <= 0)
-		&& (IsInputSupported() && InputData->Inputs.Num() <= 0)
-		&& (IsOutputSupported() && OutputData->Outputs.Num() <= 0))
-	{
-		// The asset has no parameters or inputs.
-		// This likely indicates it has never cooked/been instantiated.
-		// Set its state to NewHDA to force its instantiation
-		// so that we can have its parameters/input interface
-		SetCurrentState(EHoudiniAssetState::NewHDA);
-	}
-	else
-	{
-		// The asset has cooked before since we have a parameter/input interface
-		// Set its state to need instantiation so that the asset is instantiated
-		// after being modified
-		SetCurrentState(EHoudiniAssetState::NeedInstantiation);
-	}
-#endif
+	SetCurrentState(EHoudiniAssetState::NeedInstantiation);
+
 	CurrentStateResult = EHoudiniAssetStateResult::None;
 
 	// Reset some of the asset's flag
@@ -2806,6 +2790,38 @@ void UHoudiniCookable::PostDuplicate(bool bDuplicateForPIE)
 #endif
 }
 
+void 
+UHoudiniCookable::FixupInputPointers()
+{
+#if WITH_EDITORONLY_DATA
+	// Ensure pointer consistency with operator paths. This could be done in Serialize(), with a new version,
+	// but it works fine to do this after load.
+
+	for(UHoudiniParameter* Parameter : ParameterData->Parameters)
+	{
+		if(UHoudiniParameterOperatorPath* OperatorPath = Cast<UHoudiniParameterOperatorPath>(Parameter))
+		{
+			if(OperatorPath->HoudiniInput.IsValid())
+			{
+				OperatorPath->HoudiniInput.Get()->SetOwningParameter(OperatorPath);
+			}
+			else
+			{
+				HOUDINI_LOG_ERROR(TEXT("Could not match operator path"));
+			}
+		}
+	}
+
+	// older UHoudiniAssetComponent HDAs which were upgraded have a different layout/outer than newly 
+	// created Cookables, so we need to save an explicit pointer in the input, rather than grab its outer.
+
+	for(UHoudiniInput* Input : InputData->Inputs)
+	{
+		Input->SetCookable(this);
+	}
+#endif
+}
+
 void
 UHoudiniCookable::PostLoad()
 {
@@ -2822,6 +2838,9 @@ UHoudiniCookable::PostLoad()
 		Parameter->SetParentParmId(INDEX_NONE);
 		Parameter->SetParmId(INDEX_NONE);
 	}
+
+	FixupInputPointers();
+
 #endif
 	// Mark as need instantiation
 	MarkAsNeedInstantiation();

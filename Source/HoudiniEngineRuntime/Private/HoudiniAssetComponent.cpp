@@ -2826,6 +2826,8 @@ UHoudiniAssetComponent::TransferDataToCookable(UHoudiniCookable* HC)
 #if WITH_EDITORONLY_DATA
 	HC->InputData->Inputs = Inputs_DEPRECATED; // COOKABLE - INPUTS
 	Inputs_DEPRECATED.Empty();
+
+	HC->FixupInputPointers();
 #endif
 
 	HC->OutputData->Outputs = Outputs_DEPRECATED; // COOKABLE - OUTPUTS

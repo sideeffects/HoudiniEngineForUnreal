@@ -67,7 +67,7 @@ class UHoudiniInputPackedLevelActor;
 class UHoudiniInputTexture;
 class FUnrealObjectInputHandle;
 class FUnrealObjectInputIdentifier;
-
+class UHoudiniParameterOperatorPath;
 struct FHoudiniInputObjectSettings;
 
 class AActor;
@@ -81,25 +81,19 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 	// UpdateInputs just call BuildAllInputs
 	// both should be merged
 	static bool UpdateInputs(
-		HAPI_NodeId InNodeId,
-		UObject* InOuter,
-		TArray<TObjectPtr<UHoudiniInput>>& Inputs,
-		TArray<TObjectPtr<UHoudiniParameter>>& Parameters,
+		UHoudiniCookable * InHC,
 		bool bLoadedInputs,
 		bool bIsInitialization);
 
-	// Update inputs from the asset
-	// @AssetId: NodeId of the digital asset
-	// @OuterObject: Object to use for transactions and as Outer for new inputs
-	// @CurrentInputs: pre: current & post: invalid inputs
-	// @NewParameters: pre: empty & post: new inputs
-	// On Return: CurrentInputs are the old inputs that are no longer valid,
-	// NewInputs are new and re-used inputs.
-	static bool BuildAllInputs(
-		HAPI_NodeId AssetId,
-		class UObject* OuterObject,
-		TArray<TObjectPtr<UHoudiniInput>>& Inputs,
-		TArray<TObjectPtr<UHoudiniParameter>>& Parameters);
+	static bool BuildAllInputs(UHoudiniCookable* OuterObject);
+
+	static UHoudiniInput* CreateInput(UHoudiniCookable *InHC);
+
+	static void UpdateInput(UHoudiniInput* InInput, int HDAIndex, bool bIsCop);
+
+	static bool AllocateInputToParameter(UHoudiniParameterOperatorPath* InParameter);
+
+	static bool RemoveOperatorPathParameter(UHoudiniParameterOperatorPath * InParameter);
 
 	// Update all the inputs that have been marked as change
 	static bool UploadChangedInputs(

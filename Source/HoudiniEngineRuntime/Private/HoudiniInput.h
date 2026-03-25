@@ -40,7 +40,7 @@
 #include "HoudiniInput.generated.h"
 
 
-
+class UHoudiniParameter;
 class FReply;
 
 enum class EHoudiniCurveType : int8;
@@ -63,15 +63,17 @@ public:
 
 	// Equality operator,
 	// We consider two inputs equals if they have the same name, objparam state, and input index/parmId
-	// TODO: ParmId might be an incorrect condition
+
 	bool operator==(const UHoudiniInput& other) const
 	{
 		return (bIsObjectPathParameter == other.bIsObjectPathParameter 
 			&& InputIndex == other.InputIndex
-			&& ParmId == other.ParmId
 			&& Name.Equals(other.Name)
 			&& Label.Equals(other.Label));
 	}
+
+	void SetCookable(UHoudiniCookable* HC) { Cookable = HC;  }
+	UHoudiniCookable* GetCookable() { return Cookable; }
 
 	bool Matches(const UHoudiniInput& other) const { return (*this == other); };
 
@@ -168,6 +170,7 @@ public:
 	bool GetCurvePointSelectionUseAbsLocation() const	{ return bCurvePointSelectionUseAbsLocation; }
 	bool GetCurvePointSelectionUseAbsRotation() const	{ return bCurvePointSelectionUseAbsRotation; }
 	bool IsObjectPathParameter() const					{ return bIsObjectPathParameter; };
+	TWeakObjectPtr<UHoudiniParameter> GetOwningParameter() { return OwningParameter;  }
 	bool IsCOPInput() const								{ return bIsCOPInput; };
 	float GetUnrealSplineResolution() const				{ return InputSettings.UnrealSplineResolution; };
 	virtual bool GetCookOnCurveChange() const			{ return bCookOnCurveChanged; };
@@ -367,6 +370,7 @@ public:
 		{ InputSettings.bExportMergedPaintLayers = bOnOff; }
 	void SetExportLevelInstanceContent(bool bOnOff)
 		{ InputSettings.bExportLevelInstanceContent = bOnOff; }
+	void SetOwningParameter(UHoudiniParameter* Parameter);
 
 	virtual void SetCookOnCurveChange(const bool & bInCookOnCurveChanged) 
 		{ bCookOnCurveChanged = bInCookOnCurveChanged; };
@@ -565,7 +569,12 @@ protected:
 	UPROPERTY()
 	bool bIsObjectPathParameter;
 
+	// Parameter this Input belongs to, likely an Operator Path.
+	UPROPERTY()
+	TWeakObjectPtr<UHoudiniParameter> OwningParameter;
+
 	// Indicates if we're a COP input
+	UPROPERTY()
 	bool bIsCOPInput;
 
 	// Array containing all the node Ids created by this input
@@ -713,6 +722,9 @@ protected:
 	// The node ids of InputNodeIds previously used by this input that are pending delete
 	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
 	TSet<int32> InputNodesPendingDelete;
+
+	UPROPERTY()
+	TObjectPtr<UHoudiniCookable> Cookable;
 
 	//-------------------------------------------------------------------------------------------------------------------------
 	// PCG inputs

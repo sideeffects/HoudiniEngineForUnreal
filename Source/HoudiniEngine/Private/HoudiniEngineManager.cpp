@@ -1181,10 +1181,7 @@ FHoudiniEngineManager::UpdateInstantiatingFromTask(UHoudiniCookable* HC, EHoudin
 		if (HC->IsInputSupported())
 		{
 			FHoudiniInputTranslator::UpdateInputs(
-				HC->GetNodeId(), 
 				HC,
-				HC->InputData->Inputs,
-				HC->ParameterData->Parameters,
 				HC->HasBeenLoaded(),
 				true);
 		}
@@ -1443,10 +1440,7 @@ FHoudiniEngineManager::PreCook(UHoudiniCookable* HC)
 		{
 			// Handle loaded inputs
 			FHoudiniInputTranslator::UpdateInputs(
-				HC->GetNodeId(), 
 				HC, 
-				HC->InputData->Inputs, 
-				HC->ParameterData->Parameters, 
 				HC->HasBeenLoaded(),
 				false /* Not initializing */);
 		}
@@ -1550,10 +1544,7 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		{
 			// Update our inputs
 			FHoudiniInputTranslator::UpdateInputs(
-				HC->GetNodeId(),
 				HC,
-				HC->InputData->Inputs,
-				HC->ParameterData->Parameters,
 				false,
 				true);
 		}

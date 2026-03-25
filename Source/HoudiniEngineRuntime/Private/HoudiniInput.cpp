@@ -55,6 +55,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Landscape.h"
 #include "LandscapeInfo.h"
+#include "HoudiniParameterOperatorPath.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 	#include "GeometryCollection/GeometryCollectionActor.h"
 	#include "GeometryCollection/GeometryCollectionComponent.h"
@@ -2172,6 +2173,12 @@ UHoudiniInput::IsDataUploadNeeded()
 	return HasChanged();
 }
 
+void 
+UHoudiniInput::SetOwningParameter(UHoudiniParameter* Parameter)
+{
+	OwningParameter = Parameter;
+}
+
 // Indicates if this input has changed and should be updated
 bool 
 UHoudiniInput::HasChanged()
@@ -2960,4 +2967,3 @@ UHoudiniInput::OnSessionConnected()
 	ResetInputObjects(InputObjectArray);
 
 }
-

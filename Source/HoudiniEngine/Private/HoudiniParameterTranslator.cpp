@@ -57,6 +57,7 @@
 #include "HoudiniParameterToggle.h"
 #include "Misc/MessageDialog.h"
 #include "HoudiniEngine.h"
+#include "HoudiniInputTranslator.h"
 
 
 // Default values for certain UI min and max parameter values
@@ -2192,12 +2193,9 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UpdateParameterFromInfo__Input);
 			// Inputs parameters are just stored, and handled separately by UHoudiniInputs
 			UHoudiniParameterOperatorPath* HoudiniParameterOperatorPath = Cast<UHoudiniParameterOperatorPath>(HoudiniParameter);
-			if (IsValid(HoudiniParameterOperatorPath))
+			if (IsValid(HoudiniParameterOperatorPath) && !HoudiniParameterOperatorPath->HoudiniInput.IsValid())
 			{
-				// DO NOT CREATE A DUPLICATE INPUT HERE!
-				// Inputs are created by the input translator, and will be tied to this parameter there
-
-				// Set the valueIndex
+				FHoudiniInputTranslator::AllocateInputToParameter(HoudiniParameterOperatorPath);
 				HoudiniParameterOperatorPath->SetValueIndex(ParmInfo.stringValuesIndex);
 			}
 		}
@@ -3283,7 +3281,7 @@ FHoudiniParameterTranslator::UploadParameterToHoudini(UHoudiniParameter* InParam
 		default:
 		{
 			// TODO: implement other parameter types!
-			return true;
+			break;
 		}
 		break;
 	}
@@ -4101,7 +4099,7 @@ bool FHoudiniParameterTranslator::RemoveMultiParmInstance(UHoudiniParameterMulti
 		FHoudiniEngine::Get().GetSession(),
 		MultiParm->GetNodeId(),
 		MultiParm->GetParmId(),
-		ParamIndex),
+		InstanceOffset),
 		false);
 
 	bool bFetchValuesFromHoudini = true;

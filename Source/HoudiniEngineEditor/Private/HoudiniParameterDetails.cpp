@@ -1706,7 +1706,15 @@ FHoudiniParameterView::CreateWidgetOperatorPath(
 
 	TSharedRef<SWidget> Widget = FHoudiniInputDetails::CreateInputValueWidget(HouInputCategory, EditedInputs);
 
-	return Widget;
+	TSharedPtr<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		[
+			Widget
+		];
+
+	AddMultiParamWidgetsToBox(HorizontalBox.ToSharedRef(), ExtraWidgets); 
+
+	return HorizontalBox.ToSharedRef();
 }
 
 TSharedRef<SWidget>
