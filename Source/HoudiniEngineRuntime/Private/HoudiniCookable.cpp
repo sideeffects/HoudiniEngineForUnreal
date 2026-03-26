@@ -431,12 +431,11 @@ UHoudiniCookable::SetParameterData(UCookableParameterData* InParameterData)
 			bChanged = true;
 			if(IsValid(InParameterData->Parameters[Index]))
 			{
-
-		//		ParameterData->Parameters[Index] = DuplicateObject(InParameterData->Parameters[Index], ParameterData);
-				ParameterData->Parameters[Index] = NewObject<UHoudiniParameter>(ParameterData, InParameterData->Parameters[Index].GetClass());
-			//	UEngine::FCopyPropertiesForUnrelatedObjectsParams Params;
-				UEngine::CopyPropertiesForUnrelatedObjects(InParameterData->Parameters[Index], ParameterData->Parameters[Index]);
-
+				ParameterData->Parameters[Index] = DuplicateObject(InParameterData->Parameters[Index], this);
+				ParameterData->Parameters[Index]->SetNodeId(this->GetNodeId());
+				ParameterData->Parameters[Index]->SetParmId(INDEX_NONE);
+				ParameterData->Parameters[Index]->SetParentParmId(INDEX_NONE);
+				ParameterData->Parameters[Index]->MarkChanged(true);
 				ParameterData->Parameters[Index]->MarkChanged(true);
 			}
 			else
