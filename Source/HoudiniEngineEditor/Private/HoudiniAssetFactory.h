@@ -68,4 +68,8 @@ class UHoudiniAssetFactory : public UFactory, public FReimportHandler
 
 		// Attempt to reimport the specified object from its source
 		virtual EReimportResult::Type Reimport(UObject * Obj) override;
+
+#if defined(HOUDINI_USE_PCG)
+		bool AreAnyPCGComponentsGenerating();
+#endif
 };

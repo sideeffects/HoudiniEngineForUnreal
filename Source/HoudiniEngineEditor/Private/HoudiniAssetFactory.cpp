@@ -34,6 +34,10 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/FileHelper.h"
 #include "Internationalization/Internationalization.h"
+#include "UObject/UObjectIterator.h"
+#if defined(HOUDINI_USE_PCG)
+#include "PCGComponent.h"
+#endif
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
 
@@ -77,6 +81,60 @@ UHoudiniAssetFactory::GetDisplayName() const
 	return LOCTEXT("HoudiniAssetFactoryDescription", "Houdini Engine Asset");
 }
 
+#if defined(HOUDINI_USE_PCG)
+bool UHoudiniAssetFactory::AreAnyPCGComponentsGenerating()
+{
+	if(!GEngine)
+	{
+		return false;
+	}
+
+	for(const FWorldContext& WorldContext : GEngine->GetWorldContexts())
+	{
+		UWorld* World = WorldContext.World();
+		if(!World)
+		{
+			continue;
+		}
+
+		// Optional: skip preview/inactive worlds if you only care about editor/game/PIE
+		if(World->WorldType != EWorldType::Editor &&
+			World->WorldType != EWorldType::PIE &&
+			World->WorldType != EWorldType::Game)
+		{
+			continue;
+		}
+
+		for(TActorIterator<AActor> ActorIt(World); ActorIt; ++ActorIt)
+		{
+			AActor* Actor = *ActorIt;
+			if(!Actor)
+			{
+				continue;
+			}
+
+			TInlineComponentArray<UPCGComponent*> PCGComponents;
+			Actor->GetComponents(PCGComponents);
+
+			for(UPCGComponent* PCGComponent : PCGComponents)
+			{
+				if(!PCGComponent)
+				{
+					continue;
+				}
+
+				if(PCGComponent->IsGenerating())
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+#endif
+
 UObject *
 UHoudiniAssetFactory::FactoryCreateBinary(
 	UClass * InClass, UObject* InParent, FName InName, EObjectFlags Flags,
@@ -86,6 +144,18 @@ UHoudiniAssetFactory::FactoryCreateBinary(
 	// Broadcast notification that a new asset is being imported.
 	GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPreImport(this, InClass, InParent, InName, Type);
 
+#if defined(HOUDINI_USE_PCG)
+	// PCG does not handle re-import well, when generating, so make sure PCG is not executing; otherwise
+	// a crash occurs when allocating a new object.
+
+	bool bPCGExecuting = AreAnyPCGComponentsGenerating();
+	if (bPCGExecuting)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Cannot import HDAs while PCG is generating. Please cancel current PCG operations."));
+		return nullptr;
+
+	}
+#endif
 	// Create a new asset.
 	UHoudiniAsset * HoudiniAsset = NewObject<UHoudiniAsset>(InParent, InName, Flags);
 
