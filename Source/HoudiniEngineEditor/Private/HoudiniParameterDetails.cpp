@@ -377,6 +377,8 @@ FHoudiniParameterDetails::CreateDetails(
 	IDetailLayoutBuilder& DetailBuilder,
 	const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterDetails::CreateDetails);
+
 	Construct(Cookables);
 
 	if(Root.IsValid() && !Root->Children.IsEmpty())
@@ -467,6 +469,7 @@ void FHoudiniParameterView::SetIndent(int Indent)
 void
 FHoudiniParameterDetails::Construct(const TArray<TWeakObjectPtr<UHoudiniCookable>>& Cookables)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterDetails::CreateDetails);
 	ParameterViews.Empty();
 
 	if(!Cookables.IsEmpty() && Cookables[0].IsValid())
@@ -852,6 +855,8 @@ FHoudiniParameterView::CreateJoinedDetails(IDetailCategoryBuilder& HouParameterC
 void 
 FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategory, IDetailLayoutBuilder& DetailBuilder)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterView::CreateDetails);
+
 	UHoudiniParameter* Param = (!this->LinkedParameters.IsEmpty() && LinkedParameters[0].IsValid()) ?
 		this->LinkedParameters[0].Get() : nullptr;
 
@@ -1156,7 +1161,7 @@ FHoudiniParameterView::CreateDetails(IDetailCategoryBuilder& HouParameterCategor
 	{
 		TArray<TWeakObjectPtr<UHoudiniParameterOperatorPath>> TypedParams = CastParameters<UHoudiniParameterOperatorPath>(LinkedParameters);
 		TSharedRef<SWidget> NameWidget = CreateNameWidget(Param);
-		TSharedRef<SWidget> ValueWidget = CreateWidgetOperatorPath(HouParameterCategory, TypedParams, MultiParmButtons);
+		TSharedRef<SWidget> ValueWidget = CreateWidgetOperatorPath(DetailBuilder, HouParameterCategory, TypedParams, MultiParmButtons);
 
 		FDetailWidgetRow& Row = CreatePropertyRow(
 			HouParameterCategory,
@@ -1675,10 +1680,13 @@ FHoudiniParameterView::CreateWidgetColorRamp(
 
 TSharedRef<SWidget>
 FHoudiniParameterView::CreateWidgetOperatorPath(
+	IDetailLayoutBuilder& DetailBuilder,
 	IDetailCategoryBuilder& HouInputCategory,
 	const TArray<TWeakObjectPtr<UHoudiniParameterOperatorPath>>& OperatorPathParams,
 	const TSharedPtr<SWidget>& ExtraWidgets)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterView::FHoudiniParameterView::CreateWidgetOperatorPath);
+
 	auto& MainParam = OperatorPathParams[0];
 
 	if(!MainParam.IsValid())
@@ -1704,7 +1712,7 @@ FHoudiniParameterView::CreateWidgetOperatorPath(
 		EditedInputs.Add(LinkedInput);
 	}
 
-	TSharedRef<SWidget> Widget = FHoudiniInputDetails::CreateInputValueWidget(HouInputCategory, EditedInputs);
+	TSharedRef<SWidget> Widget = FHoudiniInputDetails::CreateInputValueWidget(DetailBuilder, HouInputCategory, EditedInputs);
 
 	TSharedPtr<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()

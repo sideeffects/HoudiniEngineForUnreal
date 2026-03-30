@@ -30,6 +30,7 @@
 
 #include "Widgets/SBoxPanel.h"
 #include "IDetailsView.h"
+#include "DetailLayoutBuilder.h"
 
 class UHoudiniInput;
 class UHoudiniSplineComponent;
@@ -46,11 +47,13 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 {
 	public:
 		static void CreateWidget(
+			IDetailLayoutBuilder& DetailBuilder,
 			IDetailCategoryBuilder& HouInputCategoryBuilder,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs, FDetailWidgetRow* InputRow = nullptr);
 
 
 		static TSharedRef<SWidget> CreateInputValueWidget(
+			IDetailLayoutBuilder& DetailBuilder,
 			IDetailCategoryBuilder& HouInputCategory,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
@@ -64,6 +67,7 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 
 		// ComboBox :  Input Type
 		static void AddInputTypeComboBox(
+			IDetailLayoutBuilder& DetailBuilder,
 			IDetailCategoryBuilder& CategoryBuilder,
 			TSharedRef<SVerticalBox> InVerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs,

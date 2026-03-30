@@ -3951,6 +3951,7 @@ static bool HoudiniEnsureInstantiated(UHoudiniCookable* HC)
 				HOUDINI_LOG_ERROR(TEXT("Multiparms update was cancelled."));
 
 				HC->SetCurrentState(EHoudiniAssetState::NeedInstantiation);
+				break;
 			}
 
 			if(((FPlatformTime::Seconds() - StartTime) > 1.5) && !bShown)

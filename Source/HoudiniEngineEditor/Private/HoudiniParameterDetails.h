@@ -126,6 +126,7 @@ private:
 		const TSharedPtr<SWidget>& ExtraWidgets);
 
 	static TSharedRef<SWidget> CreateWidgetOperatorPath(
+		IDetailLayoutBuilder& DetailBuilder,
 		IDetailCategoryBuilder& HouInputCategory,
 		const TArray<TWeakObjectPtr<UHoudiniParameterOperatorPath>>& InJoinedParams,
 		const TSharedPtr<SWidget>& ExtraWidgets);

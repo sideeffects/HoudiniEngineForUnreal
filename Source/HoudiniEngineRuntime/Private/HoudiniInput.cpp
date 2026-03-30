@@ -1025,7 +1025,6 @@ UHoudiniInput::SetInputType(const EHoudiniInputType& InInputType, bool& bOutBlue
 			break;
 	}
 
-	FHoudiniEngineRuntimeUtils::ForceDetailsPanelToUpdate();
 }
 
 UHoudiniInputObject*
@@ -2321,55 +2320,55 @@ UHoudiniInput::GetTransformOffset(const int32& AtIndex) const
 	return FTransform::Identity;
 }
 
-TOptional<float>
+float
 UHoudiniInput::GetPositionOffsetX(int32 AtIndex) const
 {
 	return GetTransformOffset(AtIndex).GetLocation().X;
 }
 
-TOptional<float>
+float
 UHoudiniInput::GetPositionOffsetY(int32 AtIndex) const
 {
 	return GetTransformOffset(AtIndex).GetLocation().Y;
 }
 
-TOptional<float>
+float
 UHoudiniInput::GetPositionOffsetZ(int32 AtIndex) const
 {
 	return GetTransformOffset(AtIndex).GetLocation().Z;
 }
 
-TOptional<float>
+float
 UHoudiniInput::GetUserInputRoll(int32 AtIndex) const
 {
 	return GetUserInputRotator(AtIndex).Roll;
 }
 
-TOptional<float>
+float
 UHoudiniInput::GetUserInputPitch(int32 AtIndex) const
 {
 	return GetUserInputRotator(AtIndex).Pitch;
 }
 
-TOptional<float>
+float
 UHoudiniInput::GetUserInputYaw(int32 AtIndex) const
 {
 	return GetUserInputRotator(AtIndex).Yaw;
 }
 
-TOptional<float>
+float
 UHoudiniInput::GetScaleOffsetX(int32 AtIndex) const
 {
 	return GetTransformOffset(AtIndex).GetScale3D().X;
 }
 
-TOptional<float>
+float
 UHoudiniInput::GetScaleOffsetY(int32 AtIndex) const
 {
 	return GetTransformOffset(AtIndex).GetScale3D().Y;
 }
 
-TOptional<float>
+float
 UHoudiniInput::GetScaleOffsetZ(int32 AtIndex) const
 {
 	return GetTransformOffset(AtIndex).GetScale3D().Z;

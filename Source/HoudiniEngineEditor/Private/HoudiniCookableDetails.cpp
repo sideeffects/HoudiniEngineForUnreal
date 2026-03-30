@@ -89,6 +89,8 @@ FHoudiniCookableDetails::FHoudiniCookableDetails()
 void
 FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniCookableDetails::CustomizeDetails);
+
 	// Get all components which are being customized.
 	TArray<TWeakObjectPtr<UObject>> ObjectsCustomized;
 	DetailBuilder.GetObjectsBeingCustomized(ObjectsCustomized);
@@ -403,6 +405,8 @@ FHoudiniCookableDetails::CreateParameterDetails(
 	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables,
 	const FString& MultiSelectionIdentifier)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniCookableDetails::CreateParameterDetails);
+
 	if(InCookables.IsEmpty())
 		return;
 
@@ -562,7 +566,7 @@ FHoudiniCookableDetails::CreateInputDetails(
 			EditedInputs.Add(LinkedInput);
 		}
 
-		FHoudiniInputDetails::CreateWidget(HouInputCategory, EditedInputs);
+		FHoudiniInputDetails::CreateWidget(DetailBuilder, HouInputCategory, EditedInputs);
 	}
 }
 
