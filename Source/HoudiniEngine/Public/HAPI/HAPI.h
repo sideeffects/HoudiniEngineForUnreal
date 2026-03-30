@@ -1076,7 +1076,8 @@ HAPI_DECL HAPI_GetConnectionError( char * string_value,
 /// @param[out]     count
 ///                 Total cook count.
 ///
-HAPI_DECL HAPI_GetCookingTotalCount( const HAPI_Session * session,
+HAPI_DECL_DEPRECATED(9.0.0, 22.0.270)
+HAPI_GetCookingTotalCount(const HAPI_Session* session,
                                      int * count );
 
 /// @brief  Get current number of nodes that have already cooked in the
@@ -1096,7 +1097,8 @@ HAPI_DECL HAPI_GetCookingTotalCount( const HAPI_Session * session,
 /// @param[out]     count
 ///                 Current cook count.
 ///
-HAPI_DECL HAPI_GetCookingCurrentCount( const HAPI_Session * session,
+HAPI_DECL_DEPRECATED(9.0.0, 22.0.270)
+HAPI_GetCookingCurrentCount(const HAPI_Session* session,
                                        int * count );
 
 /// @brief  Interrupt a cook or load operation.
