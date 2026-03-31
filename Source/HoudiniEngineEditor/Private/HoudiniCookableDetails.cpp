@@ -259,6 +259,14 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 		}
 
 		//
+		// IMAGE DETAILS
+		//
+		if (MainCookable->IsImageSupported())
+		{
+			CreateImageDetails(DetailBuilder, HCs);
+		}
+
+		//
 		// MESH CONVERSION OPTIONS
 		//
 		if(MainCookable->IsOutputSupported())
@@ -2522,6 +2530,185 @@ FHoudiniCookableDetails::CreateMeshGenerationDetails(
 			]
 		];
 	}
+}
+
+void
+FHoudiniCookableDetails::CreateImageDetails(
+	IDetailLayoutBuilder& DetailBuilder,
+	TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables)
+{
+	if (InCookables.Num() <= 0)
+		return;
+
+	TWeakObjectPtr<UHoudiniCookable> MainCookable = InCookables[0];
+	if (!IsValidWeakPointer(MainCookable))
+		return;
+
+	if (!MainCookable->IsImageSupported())
+		return;
+
+	// Create the Image category
+	FString BuildSettingsCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_IMAGE);
+
+	// If we have selected more than one component that have different HDAs, 
+	// we need to create multiple categories one for each different HDA
+	// OutputCatName += MultiSelectionIdentifier;
+
+	IDetailCategoryBuilder& HouImageCategory =
+		DetailBuilder.EditCategory(*BuildSettingsCatName, FText::GetEmpty(), ECategoryPriority::Important);
+
+	FString Label = TEXT("Image output properties");
+	IDetailGroup& ProxyGrp = HouImageCategory.AddGroup(FName(*Label), FText::FromString(Label));
+
+	//
+	// bOverrideDefaultResolution
+	//
+	{
+		ProxyGrp.AddWidgetRow()
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString("Override Default Resolution"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.Padding(2, 2, 5, 2)
+			.AutoHeight()
+			[
+				SNew(SCheckBox)
+				.IsChecked_Lambda([MainCookable]()
+				{
+					if (!IsValidWeakPointer(MainCookable))
+						return ECheckBoxState::Unchecked;
+
+					return MainCookable->GetImageData()->bOverrideDefaultResolution ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				})
+				.OnCheckStateChanged_Lambda([MainCookable, InCookables](ECheckBoxState NewState)
+				{
+					if (!IsValidWeakPointer(MainCookable))
+						return;
+
+					const bool bNewState = NewState == ECheckBoxState::Checked;
+					if (MainCookable->GetImageData()->bOverrideDefaultResolution == bNewState)
+						return;
+
+					FScopedTransaction Transaction(
+						TEXT(HOUDINI_MODULE_EDITOR),
+						LOCTEXT("HoudiniImageOverrideResolution", "HoudiniImage Properties: Changed bOverrideDefaultResolution"),
+						MainCookable->GetOuter());
+
+					for (auto CurCookable : InCookables)
+					{
+						if (!IsValidWeakPointer(CurCookable))
+							continue;
+
+						UCookableImageData* ImageData = CurCookable->GetImageData();
+						if (!ImageData || ImageData->bOverrideDefaultResolution == bNewState)
+							continue;
+
+						CurCookable->Modify();
+						ImageData->bOverrideDefaultResolution = bNewState;
+
+						// Mark that cookable for recook
+						// TODO: Check cookable has texture output 
+						if(ImageData->bIsCOPHDA)
+							CurCookable->MarkAsNeedCook();
+					}
+				})
+			]
+		];
+	}
+
+	//
+	// FVector2D ResolutionOverride
+	//
+
+	// Lambdas for changing the parameter value
+	auto ChangeValueAt = [InCookables](const int32& Value, const int32& ValueIndex)
+	{
+		if (InCookables.Num() == 0)
+			return;
+
+		if (!IsValidWeakPointer(InCookables[0]))
+			return;
+
+		bool bChanged = false;
+		for (int Idx = 0; Idx < InCookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(InCookables[Idx]))
+				continue;
+
+			InCookables[Idx]->Modify();
+
+			if (InCookables[Idx]->GetImageData())
+			{
+				if (ValueIndex == 0)
+				{
+					if (Value != InCookables[Idx]->GetImageData()->ResolutionOverride.X)
+					{
+						InCookables[Idx]->GetImageData()->ResolutionOverride.X = Value;
+						InCookables[Idx]->MarkAsNeedCook();
+						bChanged = true;
+					}
+				}
+				else
+				{
+					if (Value != InCookables[Idx]->GetImageData()->ResolutionOverride.Y)
+					{
+						InCookables[Idx]->GetImageData()->ResolutionOverride.Y = Value;
+						InCookables[Idx]->MarkAsNeedCook();
+						bChanged = true;
+					}
+				}
+			}
+		}
+	};
+
+	typedef SNumericVectorInputBox<int32, FIntPoint, 2> SNumericVectorInputBoxInt2;
+	{
+		ProxyGrp.AddWidgetRow()
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString("Resolution Override"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.Padding(2, 2, 5, 2)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+				.FillWidth(1.0)
+				[
+					SNew(SNumericVectorInputBoxInt2)
+					.Font(FAppStyle::Get().GetFontStyle("PropertyWindow.NormalFont"))
+					.AllowSpin(false)
+					.bColorAxisLabels(true)
+					.X_Lambda([MainCookable]() { return MainCookable->GetImageData()->ResolutionOverride.X; })
+					.Y_Lambda([MainCookable]() { return MainCookable->GetImageData()->ResolutionOverride.Y; })
+					.OnXCommitted_Lambda([InCookables, ChangeValueAt](int32 NewValue, ETextCommit::Type TextCommitType)
+						{ ChangeValueAt(NewValue, 0); })
+					.OnYCommitted_Lambda([InCookables, ChangeValueAt](int32 NewValue, ETextCommit::Type TextCommitType)
+						{ ChangeValueAt(NewValue, 1); })
+					.IsEnabled_Lambda([MainCookable]() { return MainCookable->GetImageData()->bOverrideDefaultResolution; })
+				]
+			]
+		];
+	}
+
+	//
+	// FString OutputFileFormat
+	//
 }
 
 #undef LOCTEXT_NAMESPACE

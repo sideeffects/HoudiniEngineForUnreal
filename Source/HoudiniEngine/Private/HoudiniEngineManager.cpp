@@ -1486,6 +1486,12 @@ FHoudiniEngineManager::PreCook(UHoudiniCookable* HC)
 		}
 	}
 
+	// Update Image Parameters for this cookable
+	if (HC->IsImageSupported())
+	{
+		FHoudiniEngineUtils::UpdateImageDataOnCookable(HC);
+	}
+
 	HC->ClearRefineMeshesTimer();
 
 	return true;
@@ -1603,6 +1609,10 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		FHoudiniPDGManager::NotifyAssetCooked(HC, HC->bLastCookSuccess);
 	}
 
+	if (HC->IsImageSupported())
+	{
+		FHoudiniEngineUtils::UpdateImageDataOnCookable(HC);
+	}
 
 	// Clear the HasBeenLoaded flag
 	if (HC->HasBeenLoaded())

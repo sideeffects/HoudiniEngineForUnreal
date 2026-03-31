@@ -36,6 +36,7 @@
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineStyle.h"
+#include "HoudiniEngineUtils.h"
 #include "SHoudiniAssetEditorViewport.h"
 #include "SHoudiniNodeSyncPanel.h"
 
@@ -410,6 +411,7 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 			HoudiniCookableBeingEdited->SetOutputSupported(true);
 			HoudiniCookableBeingEdited->SetComponentSupported(true);
 			HoudiniCookableBeingEdited->SetBakingSupported(true);
+			HoudiniCookableBeingEdited->SetImageSupported(true);
 
 			// NO PDG - NO PROXIES
 			HoudiniCookableBeingEdited->SetPDGSupported(false);
@@ -901,31 +903,20 @@ FHoudiniAssetEditor::UpdateTextureOutputOnPreviewMesh()
 		SelectedTexture->WaitForStreaming();
 	}
 
-	// Iterate on the HAC's component	
-	for (USceneComponent* CurrentSceneComp : CookableComponent->GetAttachChildren())
+	UStaticMeshComponent* SMC = FHoudiniEngineUtils::GetTextureMesh(CookableComponent);
+	if (IsValid(SMC))
 	{
-		if (!IsValid(CurrentSceneComp) || !CurrentSceneComp->IsA<UStaticMeshComponent>())
-			continue;
-
-		// Get the static mesh component
-		UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(CurrentSceneComp);
-		if (!IsValid(SMC))
-			continue;
-
-		// Check if the SMC is the Houdini Logo
-		if (SMC->GetStaticMesh() != HoudiniCOPMesh)
-			continue;
-
 		UMaterialInstanceConstant* MaterialInstance =
 			Cast<UMaterialInstanceConstant>(SMC->GetMaterial(0));
-		if (!MaterialInstance)
-			continue;
 
-		// Apply material instance parameters
-		FName MatParamName = FName("cop");
-		MaterialInstance->SetTextureParameterValueEditorOnly(MatParamName, SelectedTexture);
+		if (MaterialInstance)
+		{
+			// Apply material instance parameters
+			FName MatParamName = FName("cop");
+			MaterialInstance->SetTextureParameterValueEditorOnly(MatParamName, SelectedTexture);
 
-		MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
+			MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
+		}
 	}
 }
 

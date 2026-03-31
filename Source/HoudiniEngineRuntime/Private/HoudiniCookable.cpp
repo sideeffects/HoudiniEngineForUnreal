@@ -273,7 +273,17 @@ UCookablePDGData::SetPDGAssetLink(UHoudiniPDGAssetLink* InPDGAssetLink)
 	PDGAssetLink = InPDGAssetLink;
 }
 
-
+//
+//
+//
+UCookableImageData::UCookableImageData(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, bIsCOPHDA(false)
+	, bOverrideDefaultResolution(false)
+{
+	ResolutionOverride = FIntPoint(1024, 1024);
+	OutputFileFormat = FString();
+}
 
 //
 // HOUDINI COOKABLE
@@ -335,6 +345,9 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 
 	bHasProxy = false;
 	ProxyData = CreateDefaultSubobject<UCookableProxyData>(TEXT("ProxyData"));
+
+	bHasImage = false;
+	ImageData = CreateDefaultSubobject<UCookableImageData>(TEXT("ImageData"));
 
 	bNeedToUpdateEditorProperties = false;
 	bIsPCG = false;

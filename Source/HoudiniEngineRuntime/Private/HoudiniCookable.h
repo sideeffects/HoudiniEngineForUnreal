@@ -417,7 +417,29 @@ public:
 };
 
 
+UCLASS()
+class HOUDINIENGINERUNTIME_API UCookableImageData : public UObject
+{
+	GENERATED_UCLASS_BODY()
 
+	friend class UHoudiniCookable;
+
+public:
+
+	UCookableImageData();
+
+	UPROPERTY()
+	bool bIsCOPHDA;
+
+	UPROPERTY()
+	bool bOverrideDefaultResolution;
+
+	UPROPERTY()
+	FIntPoint ResolutionOverride;
+
+	//UPROPERTY()
+	FString OutputFileFormat;
+};
 
 
 UCLASS()
@@ -475,6 +497,7 @@ public:
 	UCookablePDGData* GetPDGData() const { return IsPDGSupported() ? PDGData : nullptr; };
 	UCookableBakingData* GetBakingData() { return IsBakingSupported() ? BakingData : nullptr; };
 	UCookableProxyData* GetProxyData() { return IsProxySupported() ? ProxyData : nullptr; };
+	UCookableImageData* GetImageData() const { return IsImageSupported() ? ImageData : nullptr; };
 
 	bool SetParameterData(UCookableParameterData * ParameterData);
 	bool SetInputData(UCookableInputData*);
@@ -805,6 +828,7 @@ public:
 	virtual bool IsPDGSupported() const { return bHasPDG && PDGData; };
 	virtual bool IsBakingSupported() const { return IsOutputSupported() && bHasBaking && BakingData; };
 	virtual bool IsProxySupported() const { return IsOutputSupported() && bHasProxy && ProxyData; };
+	virtual bool IsImageSupported() const { return bHasImage && ImageData; };
 
 	// Needed for BP support
 	virtual void NotifyHoudiniRegisterCompleted();
@@ -820,6 +844,7 @@ public:
 	virtual void SetPDGSupported(bool bSupport) { bHasPDG = bSupport; };
 	virtual void SetBakingSupported(bool bSupport) { bHasBaking = bSupport; };
 	virtual void SetProxySupported(bool bSupport) { bHasProxy = bSupport; };
+	virtual void SetImageSupported(bool bSupport) { bHasImage = bSupport; };
 
 	// Turn On/Off Notifications & Unreal UI
 	void SetDoSlateNotifications(bool bOnOff) { bDoSlateNotifications = bOnOff;  }
@@ -1058,6 +1083,15 @@ protected:
 	// Structure containing the PDG data
 	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
 	TObjectPtr<UCookablePDGData> PDGData;
+
+	// Image/COP
+	// Indicates if this cookable has access to COP/Images
+	UPROPERTY()
+	bool bHasImage;
+
+	// Structure containing COP/Image PDG data
+	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
+	TObjectPtr<UCookableImageData> ImageData;
 
 	// Baking
 	// Indicates if this cookable has access to baking

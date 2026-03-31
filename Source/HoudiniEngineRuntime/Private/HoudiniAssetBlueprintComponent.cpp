@@ -96,6 +96,8 @@ UHoudiniAssetBlueprintComponent::UHoudiniAssetBlueprintComponent(const FObjectIn
 		HoudiniCookable->SetCurrentState(EHoudiniAssetState::None);
 		HoudiniCookable->SetHasBeenLoaded(false);
 
+		HoudiniCookable->SetImageSupported(false);
+
 		// Indicate that we are the cookable's component
 		HoudiniCookable->SetComponent(this);
 	}

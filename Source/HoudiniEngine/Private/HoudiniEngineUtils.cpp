@@ -4898,6 +4898,39 @@ FHoudiniEngineUtils::AddTextureMeshToComponent(
 }
 
 bool
+FHoudiniEngineUtils::UpdateTextureMeshRatio(
+	USceneComponent* InComponent,
+	UTexture2D* InTexture)
+{
+	if (!InTexture)
+		return false;
+
+	// No need to do anything if we dont have the texture mesh
+	UStaticMeshComponent* HoudiniCOPSMC = FHoudiniEngineUtils::GetTextureMesh(InComponent);
+	if ( !HoudiniCOPSMC || !InTexture)
+		return false;
+
+	// Now we need to scale the mesh according to the texture's aspect ratio
+	FVector Scale = FVector::OneVector;
+	float fRatio = (float)InTexture->GetSizeX() / (float)InTexture->GetSizeY();
+	if (fRatio > 1.0)
+	{		
+		fRatio = 1.0 / fRatio;
+		Scale = FVector(1.0, 1.0, fRatio);
+		//Scale = FVector(1.0, fRatio, 1.0);
+	}
+	else if (fRatio < 1.0)
+	{
+		//fRatio = 1.0 / fRatio;
+		//Scale = FVector(1.0, 1.0, fRatio);
+		Scale = FVector(1.0, fRatio, 1.0);
+	}
+	HoudiniCOPSMC->SetRelativeScale3D(Scale);
+
+	return true;
+}
+
+bool
 FHoudiniEngineUtils::RemoveTextureMeshFromComponent(USceneComponent* InComponent)
 {
 	if (!IsValid(InComponent))
@@ -4939,10 +4972,23 @@ FHoudiniEngineUtils::HasTextureMesh(USceneComponent* InComponent)
 	if (!IsValid(InComponent))
 		return false;
 
+	UStaticMeshComponent* FoundSMC = FHoudiniEngineUtils::GetTextureMesh(InComponent);
+	if (FoundSMC != nullptr)
+		return true;
+
+	return false;
+}
+
+UStaticMeshComponent*
+FHoudiniEngineUtils::GetTextureMesh(USceneComponent* InComponent)
+{
+	if (!IsValid(InComponent))
+		return nullptr;
+
 	// Get the COP SM
 	UStaticMesh* HoudiniCOPMesh = FHoudiniEngine::Get().GetHoudiniCOPStaticMesh().Get();
 	if (!HoudiniCOPMesh)
-		return false;
+		return nullptr;
 
 	// Iterate on the HAC's component
 	for (USceneComponent* CurrentSceneComp : InComponent->GetAttachChildren())
@@ -4957,12 +5003,11 @@ FHoudiniEngineUtils::HasTextureMesh(USceneComponent* InComponent)
 
 		// Check if the SMC is the Houdini Logo
 		if (SMC->GetStaticMesh() == HoudiniCOPMesh)
-			return true;
+			return SMC;
 	}
 
-	return false;
+	return nullptr;
 }
-
 
 
 int32
@@ -9340,6 +9385,66 @@ TArray<char> HoudiniTCHARToUTF(const TCHAR* Text)
 	FTCHARToUTF8_Convert::Convert(&Result[0], Length, Text, Length);
 
 	return Result;
+}
+
+void
+FHoudiniEngineUtils::UpdateImageDataOnCookable(UHoudiniCookable* InHC)
+{
+	int32 InNodeId = InHC->GetNodeId();
+	if (InNodeId < 0)
+		return;
+
+	// Start by seeing if the HDA is a COP HDA
+	HAPI_NodeInfo NodeInfo;
+	if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), InHC->GetNodeId(), &NodeInfo))
+	{
+		InHC->ImageData->bIsCOPHDA = HAPI_NODETYPE_COP == NodeInfo.type;
+	}
+
+	// Apply COP overrides on the HDA's parent COP network if needed
+	if (InHC->ImageData->bIsCOPHDA)
+	{
+		// Make sure our COP HDA's parent is a COPnet
+		HAPI_NodeInfo ParentNodeInfo;
+		FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeInfo.parentId, &ParentNodeInfo);
+
+		/*
+		FString ParentName;
+		if (FHoudiniEngineString::ToFString(ParentNodeInfo.nameSH, ParentName))
+		{
+			if (ParentName != TEXT("copnet"))
+				HOUDINI_LOG_WARNING(TEXT("COP HDA's parent is not a COP net! Bad things will happen!"));
+		}
+		*/
+		
+		if (InHC->ImageData->bOverrideDefaultResolution)
+		{
+			// setres - enable resolution override 
+			HAPI_Result Result = FHoudiniApi::SetParmIntValue(
+				FHoudiniEngine::Get().GetSession(),
+				NodeInfo.parentId, "setres", 0, 1);
+
+			// default_xres, default_yres - resolution override
+			Result = FHoudiniApi::SetParmIntValue(
+				FHoudiniEngine::Get().GetSession(),
+				NodeInfo.parentId, "res", 0, InHC->ImageData->ResolutionOverride.X);
+
+			Result = FHoudiniApi::SetParmIntValue(
+				FHoudiniEngine::Get().GetSession(),
+				NodeInfo.parentId, "res", 1, InHC->ImageData->ResolutionOverride.Y);
+
+			// Handle other parameters as well?
+			// setpixelscale, defaultpixelscale
+			// setborder, border
+			// setprecision, precision
+			// docompile, singleoutput
+		}
+
+		if (!InHC->ImageData->OutputFileFormat.IsEmpty())
+		{
+			// TODO
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

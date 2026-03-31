@@ -190,6 +190,7 @@ UHoudiniPCGCookable::CreateHoudiniCookable(UHoudiniAsset* Asset, UHoudiniPCGSett
 	Cookable->SetBakingSupported(true);
 	Cookable->SetProxySupported(true);
 	Cookable->SetCookAfterInstantiation(false);
+	Cookable->SetImageSupported(false);
 
 	if(Component)
 	{

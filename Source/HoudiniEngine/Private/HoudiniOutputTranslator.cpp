@@ -769,6 +769,9 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 
 		// ... if we only have texture outputs, use a texture quad
 		FHoudiniEngineUtils::AddTextureMeshToComponent(InOuterComponent, VisibleTexture, VisibleMat);
+
+		// .. and update its aspect ratio to match the texture
+		FHoudiniEngineUtils::UpdateTextureMeshRatio(InOuterComponent, VisibleTexture);
 	}
 	else
 	{

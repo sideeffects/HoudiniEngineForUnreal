@@ -940,18 +940,6 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Indicates if a HAC has the Houdini logo mesh
 		static bool HasHoudiniLogo(USceneComponent* InComponent);
 
-		// Adds a default quad mesh for texture output
-		static bool AddTextureMeshToComponent(
-			USceneComponent* InComponent, 
-			UTexture2D* InTexture,
-			UMaterialInterface* InMaterial);
-
-		// Removes the default quad mesh for texture output
-		static bool RemoveTextureMeshFromComponent(USceneComponent* InComponent);
-
-		// Indicates if a HAC has the default texture mesh
-		static bool HasTextureMesh(USceneComponent* InComponent);
-
 		// 
 		static HAPI_PartInfo ToHAPIPartInfo(const FHoudiniPartInfo& InHPartInfo);
 
@@ -1504,6 +1492,32 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// -------------------------------------------------
 		static FString JSONToString(const TSharedPtr<FJsonObject>& JSONObject);
 		static bool JSONFromString(const ::FString& JSONString, TSharedPtr<FJsonObject>& OutJSONObject);
+
+
+		//
+		// Image/COP Utilities
+		//
+		static void UpdateImageDataOnCookable(UHoudiniCookable* InHC);
+
+		// Adds a default quad mesh for texture output
+		static bool AddTextureMeshToComponent(
+			USceneComponent* InComponent, 
+			UTexture2D* InTexture,
+			UMaterialInterface* InMaterial);
+
+		// Removes the default quad mesh for texture output
+		static bool RemoveTextureMeshFromComponent(USceneComponent* InComponent);
+
+		// Indicates if a HAC has the default texture mesh
+		static bool HasTextureMesh(USceneComponent* InComponent);
+
+		// Returns the default texture mesh used by a given HAC
+		static UStaticMeshComponent* GetTextureMesh(USceneComponent* InComponent);
+
+		// Update the aspect ratio of the default texture mesh
+		static bool UpdateTextureMeshRatio(
+			USceneComponent* InComponent,
+			UTexture2D* InTexture);
 
 		// -------------------------------------------------
 		// Mesh Attribute Utilities
