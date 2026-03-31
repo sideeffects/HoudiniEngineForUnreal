@@ -2113,9 +2113,16 @@ UHoudiniInput::SetBoundSelectorObjectAt(const int32& AtIndex, AActor* InActor)
 
 // Helper function indicating what classes are supported by an input type
 TArray<const UClass*>
-UHoudiniInput::GetAllowedClasses(const EHoudiniInputType& InInputType)
+UHoudiniInput::GetAllowedClasses(const EHoudiniInputType& InInputType, bool bIsCOPInput)
 {
 	TArray<const UClass*> AllowedClasses;
+	if (bIsCOPInput)
+	{
+		// COP inputs only accept Textures
+		AllowedClasses.Add(UTexture2D::StaticClass());
+		return AllowedClasses;
+	}
+
 	switch (InInputType)
 	{
 		case EHoudiniInputType::Geometry:
@@ -2151,9 +2158,9 @@ UHoudiniInput::GetAllowedClasses(const EHoudiniInputType& InInputType)
 
 // Helper function indicating if an object is supported by an input type
 bool 
-UHoudiniInput::IsObjectAcceptable(const EHoudiniInputType& InInputType, const UObject* InObject)
+UHoudiniInput::IsObjectAcceptable(const EHoudiniInputType& InInputType, const UObject* InObject, bool IsCOPInput)
 {
-	TArray<const UClass*> AllowedClasses = GetAllowedClasses(InInputType);
+	TArray<const UClass*> AllowedClasses = GetAllowedClasses(InInputType, IsCOPInput);
 	for (auto CurClass : AllowedClasses)
 	{
 		if (InObject->IsA(CurClass))

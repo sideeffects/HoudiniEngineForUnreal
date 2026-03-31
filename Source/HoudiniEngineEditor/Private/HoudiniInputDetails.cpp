@@ -5931,7 +5931,6 @@ FHoudiniInputDetails::AddGeometryInputUI(
 		return;
 
 	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
-
 	if (!IsValidWeakPointer(MainInput))
 		return;
 
@@ -6723,10 +6722,8 @@ FHoudiniInputDetails::Helper_CreateGeometryInputObjectExpanded(
 	UHoudiniInputObject* HoudiniInputObject = MainInput->GetHoudiniInputObjectAt(EHoudiniInputType::Geometry, InObjectIdx);
 	UObject* InputObject = HoudiniInputObject ? HoudiniInputObject->GetObject() : nullptr;
 
-
 	// Create thumbnail for this static mesh.
 	constexpr int32 ThumbnailSize = 46;
-
 	TSharedPtr<FAssetThumbnail> StaticMeshThumbnail = MakeShareable(
 		new FAssetThumbnail(InputObject, ThumbnailSize, ThumbnailSize, AssetThumbnailPool));
 
@@ -6902,7 +6899,9 @@ FHoudiniInputDetails::Helper_CreateGeometryInputObjectExpanded(
 	StaticMeshComboButton->SetOnGetMenuContent(FOnGetContent::CreateLambda(
 		[MainInput, InInputs, InObjectIdx, WeakStaticMeshComboButton, UpdateGeometryObjectAt]()
 		{
-			TArray<const UClass*> AllowedClasses = UHoudiniInput::GetAllowedClasses(EHoudiniInputType::Geometry);
+			TArray<const UClass*> AllowedClasses = UHoudiniInput::GetAllowedClasses(
+				EHoudiniInputType::Geometry, MainInput->IsCOPInput());
+
 			UObject* DefaultObj = MainInput->GetInputObjectAt(InObjectIdx);
 
 			TArray<UFactory*> NewAssetFactories;
@@ -6966,7 +6965,10 @@ FHoudiniInputDetails::Helper_CreateGeometryInputObjectExpanded(
 								TArray<FAssetData> CBSelections;
 								GEditor->GetContentBrowserSelections(CBSelections);
 
-								TArray<const UClass*> AllowedClasses = UHoudiniInput::GetAllowedClasses(EHoudiniInputType::Geometry);
+								bool bIsCOPInput = false;
+								if (!InInputs.IsEmpty() && InInputs[0]->IsCOPInput())
+									bIsCOPInput = true;
+
 								int32 CurrentObjectIdx = InObjectIdx;
 								for(auto& CurAssetData : CBSelections)
 								{
@@ -6974,7 +6976,7 @@ FHoudiniInputDetails::Helper_CreateGeometryInputObjectExpanded(
 									if(!IsValid(Object))
 										continue;
 
-									if(!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::Geometry, Object))
+									if(!UHoudiniInput::IsObjectAcceptable(EHoudiniInputType::Geometry, Object, bIsCOPInput))
 										continue;
 
 									UpdateGeometryObjectAt(InInputs, CurrentObjectIdx++, Object, true);

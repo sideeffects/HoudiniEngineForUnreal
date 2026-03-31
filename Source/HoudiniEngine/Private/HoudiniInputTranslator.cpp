@@ -264,6 +264,19 @@ void FHoudiniInputTranslator::UpdateInput(UHoudiniInput* CurrentInput, int Input
 			CurrentObjPathParm->HoudiniInput = CurrentInput;
 		}
 
+		// Check via the param info if the object path parameter points to a cop input
+		HAPI_ParmInfo ParmInfo;
+		FHoudiniApi::ParmInfo_Init(&ParmInfo);
+		if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmInfo(
+			FHoudiniEngine::Get().GetSession(), HC->GetNodeId(), ParmId, &ParmInfo))
+		{
+			if (ParmInfo.inputNodeType & HAPI_NODETYPE_COP 
+				|| ParmInfo.inputNodeType & HAPI_NODETYPE_COP2)
+				bIsCOPInput = true;
+			else
+				bIsCOPInput = false;
+		}
+
 		// Mark this input as an object path parameter input
 		CurrentInput->SetObjectPathParameter(ParmId, bIsCOPInput);
 	}

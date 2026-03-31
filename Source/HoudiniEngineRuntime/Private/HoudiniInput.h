@@ -91,10 +91,12 @@ public:
 		const FString& CurveParameterizationString);
 	
 	// Helper function indicating what classes are supported by an input type
-	static TArray<const UClass*> GetAllowedClasses(const EHoudiniInputType& InInputType);
+	static TArray<const UClass*> GetAllowedClasses(
+		const EHoudiniInputType& InInputType, bool bIsCOPInput = false);
 
-	// Helper function indicating if an object is supported by an input type	
-	static bool IsObjectAcceptable(const EHoudiniInputType& InInputType, const UObject* InObject);
+	// Helper function indicating if an object is supported by an input type
+	static bool IsObjectAcceptable(
+		const EHoudiniInputType& InInputType, const UObject* InObject, bool bIsCOPInput = false);
 
 	//------------------------------------------------------------------------------------------------
 	// Accessors
