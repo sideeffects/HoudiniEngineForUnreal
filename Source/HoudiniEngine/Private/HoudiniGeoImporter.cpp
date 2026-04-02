@@ -763,17 +763,21 @@ UHoudiniGeoImporter::CreateCopTextures(
 		const TArray<FHoudiniGeoPartObject>& GeoPartObjects = CurOutput->GetHoudiniGeoPartObjects();
 		if (GeoPartObjects.Num() <= 0)
 			continue;
+
 		HAPI_NodeId CopNode = GeoPartObjects[0].GeoId;
+		EHoudiniTextureType TextureType = FHoudiniTextureTranslator::GetTextureTypeFromName(GeoPartObjects[0].PartName);
 
 		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderCOPTexture(CopNode);
 		if (bRenderSuccessful)
 		{
-			FCreateTexture2DParameters CreateTexture2DParameters;
-			CreateTexture2DParameters.SourceGuidHash = FGuid();
-			CreateTexture2DParameters.bUseAlpha = true;
-			CreateTexture2DParameters.CompressionSettings = TC_Default;
-			CreateTexture2DParameters.bDeferCompression = true;
-			CreateTexture2DParameters.bSRGB = true;
+			FCreateTexture2DParameters CreateTexture2DParameters
+				= FHoudiniTextureTranslator::GetTextureParametersFromType(TextureType);
+			float Gamma = 1.0;
+			if (TextureType == EHoudiniTextureType::Diffuse
+				|| TextureType == EHoudiniTextureType::Emissive)
+			{
+				Gamma = 2.2;
+			}
 
 			UTexture2D* Texture = nullptr;
 			FHoudiniTextureTranslator::CreateTexture(
@@ -781,6 +785,7 @@ UHoudiniGeoImporter::CreateCopTextures(
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA,
 				HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
+				Gamma,
 				Texture,
 				"",
 				"",

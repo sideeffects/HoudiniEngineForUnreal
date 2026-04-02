@@ -478,12 +478,12 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
 
-		// Extract displacement
-		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
-
 		// Extract AO
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+
+		// Extract displacement
+		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
 
 		// Set other material properties.
@@ -1071,19 +1071,6 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 
 	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 
-	// Names of generating Houdini parameters.
-	FString GeneratingParameterNameDiffuseTexture = TEXT("");
-	FString GeneratingParameterNameUniformColor = TEXT("");
-	FString GeneratingParameterNameVertexColor = TEXT(HAPI_UNREAL_ATTRIB_COLOR);
-
-	// Diffuse texture creation parameters.
-	FCreateTexture2DParameters CreateTexture2DParameters;
-	CreateTexture2DParameters.SourceGuidHash = FGuid();
-	CreateTexture2DParameters.bUseAlpha = false;
-	CreateTexture2DParameters.CompressionSettings = TC_Default;
-	CreateTexture2DParameters.bDeferCompression = true;
-	CreateTexture2DParameters.bSRGB = true;
-
 	// Attempt to look up previously created expressions.
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
@@ -1101,6 +1088,11 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	HAPI_ParmInfo CPMSwitchInfo;
 	HAPI_ParmId CPMSwitchId = FHoudiniEngineUtils::HapiFindParameterByName(InMaterialInfo.nodeId, HAPI_UNREAL_PARAM_MAP_DIFFUSE_CPM_SWITCH, CPMSwitchInfo);
 	const char* DiffuseString = CPMSwitchId >= 0 ? "" : HAPI_UNREAL_PARAM_COLOR_DIFFUSE;
+
+	// Names of generating Houdini parameters.
+	FString GeneratingParameterNameDiffuseTexture = TEXT("");
+	FString GeneratingParameterNameUniformColor = TEXT("");
+	FString GeneratingParameterNameVertexColor = TEXT(HAPI_UNREAL_ATTRIB_COLOR);
 
 	FHoudiniMaterialTranslator::SetColorExpression(
 		InMaterialInfo.nodeId,
@@ -1140,6 +1132,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	// If we have diffuse texture parameter.
 	if (ParmDiffuseTextureId >= 0)
 	{
+		// Diffuse texture creation parameters.
+		FCreateTexture2DParameters CreateTexture2DParameters
+			= FHoudiniTextureTranslator::GetTextureParametersFromType(EHoudiniTextureType::Diffuse);
+
 		HAPI_ImagePacking ImagePacking;
 		const char* PlaneType;
 		bool bFoundImagePlanes = FHoudiniTextureTranslator::GetPlaneInfo(
@@ -1157,6 +1153,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 				PlaneType,
 				HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
+				2.2,
 				TextureDiffuse,
 				NodePath,
 				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DIFFUSE,
@@ -1207,17 +1204,6 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 
 	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 
-	// Name of generating Houdini parameters.
-	FString GeneratingParameterNameTexture = TEXT("");
-
-	// Opacity texture creation parameters.
-	FCreateTexture2DParameters CreateTexture2DParameters;
-	CreateTexture2DParameters.SourceGuidHash = FGuid();
-	CreateTexture2DParameters.bUseAlpha = false;
-	CreateTexture2DParameters.CompressionSettings = TC_Grayscale;
-	CreateTexture2DParameters.bDeferCompression = true;
-	CreateTexture2DParameters.bSRGB = true;
-
 	// Attempt to look up previously created expressions.
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
@@ -1225,6 +1211,9 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 #else
 	FScalarMaterialInput& MatInputOpacityMask = Material->OpacityMask;
 #endif
+
+	// Name of generating Houdini parameters.
+	FString GeneratingParameterNameTexture = TEXT("");
 
 	// See if opacity texture is available.
 	HAPI_ParmInfo ParmOpacityTextureInfo;
@@ -1242,6 +1231,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 	// If we have opacity texture parameter.
 	if (ParmOpacityTextureId >= 0)
 	{
+		// Opacity texture creation parameters.
+		FCreateTexture2DParameters CreateTexture2DParameters
+			= FHoudiniTextureTranslator::GetTextureParametersFromType(EHoudiniTextureType::Opacity);
+
 		HAPI_ImagePacking ImagePacking;
 		const char* PlaneType;
 		bool bFoundImagePlanes = FHoudiniTextureTranslator::GetPlaneInfo(
@@ -1263,6 +1256,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 				PlaneType,
 				HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
+				1.0,
 				TextureOpacity,
 				NodePath,
 				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OPACITY_MASK,
@@ -1324,9 +1318,6 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 
 	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 
-	// Name of generating Houdini parameters.
-	FString GeneratingParameterNameScalar = TEXT("");
-	FString GeneratingParameterNameTexture = TEXT("");
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
@@ -1371,6 +1362,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 			}
 		}
 	}
+
+	// Name of generating Houdini parameters.
+	FString GeneratingParameterNameScalar = TEXT("");
+	FString GeneratingParameterNameTexture = TEXT("");
 
 	// Retrieve opacity value
 	HAPI_ParmInfo ParmOpacityValueInfo;
@@ -1496,28 +1491,15 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 	if (!IsValid(Material))
 		return false;
 
-	bool bExpressionCreated = false;
-	bool bTangentSpaceNormal = true;
-
-	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
-
-	// Name of generating Houdini parameter.
-	FString GeneratingParameterName = TEXT("");
-
-	// Normal texture creation parameters.
-	FCreateTexture2DParameters CreateTexture2DParameters;
-	CreateTexture2DParameters.SourceGuidHash = FGuid();
-	CreateTexture2DParameters.bUseAlpha = false;
-	CreateTexture2DParameters.CompressionSettings = TC_Normalmap;
-	CreateTexture2DParameters.bDeferCompression = true;
-	CreateTexture2DParameters.bSRGB = false;
-
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FVectorMaterialInput& MatInputNormal = MaterialEditorOnly->Normal;
 #else
 	FVectorMaterialInput& MatInputNormal = Material->Normal;
 #endif
+
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
 
 	// See if separate normal texture is available.
 	HAPI_ParmInfo ParmNormalTextureInfo;
@@ -1532,6 +1514,13 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 		ParmNormalTextureInfo,
 		GeneratingParameterName);
 
+	// Normal texture creation parameters.
+	FCreateTexture2DParameters CreateTexture2DParameters
+		= FHoudiniTextureTranslator::GetTextureParametersFromType(EHoudiniTextureType::Normal);
+
+	bool bExpressionCreated = false;
+	bool bTangentSpaceNormal = true;
+	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 	if (ParmNormalTextureId >= 0)
 	{
 		bTangentSpaceNormal = FHoudiniMaterialTranslator::RequiresWorldSpaceNormals(InMaterialInfo.nodeId);
@@ -1552,8 +1541,9 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
 				HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
+				1.0,
 				Texture,
-				NodePath,
+				NodePath,				
 				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
 				InPackageParams,
 				CreateTexture2DParameters,
@@ -1622,6 +1612,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 					HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL,
 					HAPI_IMAGE_DATA_INT8,
 					HAPI_IMAGE_PACKING_RGB,
+					1.0,
 					Texture,
 					NodePath,
 					HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
@@ -1669,27 +1660,15 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 	if (!IsValid(Material))
 		return false;
 
-	bool bExpressionCreated = false;
-
-	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
-
-	// Name of generating Houdini parameter.
-	FString GeneratingParameterName = TEXT("");
-
-	// Displacement texture creation parameters.
-	FCreateTexture2DParameters CreateTexture2DParameters;
-	CreateTexture2DParameters.SourceGuidHash = FGuid();
-	CreateTexture2DParameters.bUseAlpha = false;
-	CreateTexture2DParameters.CompressionSettings = TC_Default;
-	CreateTexture2DParameters.bDeferCompression = true;
-	CreateTexture2DParameters.bSRGB = false;
-
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FScalarMaterialInput& MatInputDisplacement = MaterialEditorOnly->Displacement;
 #else
 	FScalarMaterialInput& MatInputDisplacement = Material->Displacement;
 #endif
+
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
 
 	// See if a separate displacement texture is available.
 	HAPI_ParmInfo ParmDisplacementTextureInfo;
@@ -1704,6 +1683,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 		ParmDisplacementTextureInfo,
 		GeneratingParameterName);
 
+	bool bExpressionCreated = false;
+	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 	if (ParmDisplacementTextureId >= 0)
 	{
 		UTexture2D* Texture;
@@ -1717,6 +1698,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmDisplacementTextureId);
 		if (bRenderSuccessful)
 		{
+			// Displacement texture creation parameters.
+			FCreateTexture2DParameters CreateTexture2DParameters
+				= FHoudiniTextureTranslator::GetTextureParametersFromType(EHoudiniTextureType::Displacement);
+
 			HAPI_ImagePacking ImagePacking;
 			const char* PlaneType;
 			bool bFoundImagePlanes = FHoudiniTextureTranslator::GetPlaneInfo(
@@ -1731,6 +1716,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 					PlaneType,
 					HAPI_IMAGE_DATA_INT8,
 					ImagePacking,
+					1.0,
 					Texture,
 					NodePath,
 					HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DISPLACEMENT,
@@ -1746,6 +1732,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 					HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
 					HAPI_IMAGE_DATA_INT8,
 					HAPI_IMAGE_PACKING_RGBA,
+					1.0,
 					Texture,
 					NodePath,
 					HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_DISPLACEMENT,
@@ -1829,20 +1816,6 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 	if (!IsValid(Material))
 		return false;
 
-	bool bExpressionCreated = false;
-
-	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
-
-	// Name of generating Houdini parameter.
-	FString GeneratingParameterName = TEXT("");
-
-	// Occlusion texture creation parameters.
-	FCreateTexture2DParameters CreateTexture2DParameters;
-	CreateTexture2DParameters.SourceGuidHash = FGuid();
-	CreateTexture2DParameters.bUseAlpha = false;
-	CreateTexture2DParameters.CompressionSettings = TC_Default;
-	CreateTexture2DParameters.bDeferCompression = true;
-	CreateTexture2DParameters.bSRGB = false;
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
@@ -1850,6 +1823,9 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 #else
 	FScalarMaterialInput& MatInputOcclusion = Material->AmbientOcclusion;
 #endif
+
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
 
 	// See if a separate AO texture is available.
 	HAPI_ParmInfo ParmOcclusionTextureInfo;
@@ -1864,6 +1840,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 		ParmOcclusionTextureInfo,
 		GeneratingParameterName);
 
+	bool bExpressionCreated = false;
+	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 	if (ParmOcclusionTextureId >= 0)
 	{
 		UTexture2D* Texture;
@@ -1877,6 +1855,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmOcclusionTextureId);
 		if (bRenderSuccessful)
 		{
+			// Occlusion texture creation parameters.
+			FCreateTexture2DParameters CreateTexture2DParameters
+				= FHoudiniTextureTranslator::GetTextureParametersFromType(EHoudiniTextureType::Occlusion);
+
 			HAPI_ImagePacking ImagePacking;
 			const char* PlaneType;
 			bool bFoundImagePlanes = FHoudiniTextureTranslator::GetPlaneInfo(
@@ -1891,6 +1873,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 					PlaneType,
 					HAPI_IMAGE_DATA_INT8,
 					ImagePacking,
+					1.0,
 					Texture,
 					NodePath,
 					HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OCCLUSION,
@@ -1906,6 +1889,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 					HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
 					HAPI_IMAGE_DATA_INT8,
 					HAPI_IMAGE_PACKING_RGBA,
+					1.0,
 					Texture,
 					NodePath,
 					HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_OCCLUSION,
@@ -1952,27 +1936,15 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 	if (!IsValid(Material))
 		return false;
 
-	bool bExpressionCreated = false;
-
-	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
-
-	// Name of generating Houdini parameter.
-	FString GeneratingParameterName = TEXT("");
-
-	// Specular texture creation parameters.
-	FCreateTexture2DParameters CreateTexture2DParameters;
-	CreateTexture2DParameters.SourceGuidHash = FGuid();
-	CreateTexture2DParameters.bUseAlpha = false;
-	CreateTexture2DParameters.CompressionSettings = TC_Grayscale;
-	CreateTexture2DParameters.bDeferCompression = true;
-	CreateTexture2DParameters.bSRGB = false;
-
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FScalarMaterialInput& MatInputSpecular = MaterialEditorOnly->Specular;
 #else
 	FScalarMaterialInput& MatInputSpecular = Material->Specular;
 #endif
+
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
 
 	// See if specular texture is available.
 	HAPI_ParmInfo ParmSpecularTextureInfo;
@@ -1987,6 +1959,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 		ParmSpecularTextureInfo,
 		GeneratingParameterName);
 
+	bool bExpressionCreated = false;
+	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 	if (ParmSpecularTextureId >= 0)
 	{
 		UTexture2D* Texture;
@@ -2000,11 +1974,16 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmSpecularTextureId);
 		if (bRenderSuccessful)
 		{
+			// Specular texture creation parameters.
+			FCreateTexture2DParameters CreateTexture2DParameters
+				= FHoudiniTextureTranslator::GetTextureParametersFromType(EHoudiniTextureType::Specular);
+
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
 				HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
+				1.0,
 				Texture,
 				NodePath,
 				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_SPECULAR,
@@ -2057,27 +2036,15 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 	if (!IsValid(Material))
 		return false;
 
-	bool bExpressionCreated = false;
-
-	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
-
-	// Name of generating Houdini parameter.
-	FString GeneratingParameterName = TEXT("");
-
-	// Roughness texture creation parameters.
-	FCreateTexture2DParameters CreateTexture2DParameters;
-	CreateTexture2DParameters.SourceGuidHash = FGuid();
-	CreateTexture2DParameters.bUseAlpha = false;
-	CreateTexture2DParameters.CompressionSettings = TC_Grayscale;
-	CreateTexture2DParameters.bDeferCompression = true;
-	CreateTexture2DParameters.bSRGB = false;
-
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FScalarMaterialInput& MatInputRoughness = MaterialEditorOnly->Roughness;
 #else
 	FScalarMaterialInput& MatInputRoughness = Material->Roughness;
 #endif
+
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
 
 	// See if roughness texture is available.
 	HAPI_ParmInfo ParmRoughnessTextureInfo;
@@ -2092,6 +2059,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 		ParmRoughnessTextureInfo,
 		GeneratingParameterName);
 
+	bool bExpressionCreated = false;
+	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 	if (ParmRoughnessTextureId >= 0)
 	{
 		UTexture2D* Texture;
@@ -2105,11 +2074,16 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmRoughnessTextureId);
 		if (bRenderSuccessful)
 		{
+			// Roughness texture creation parameters.
+			FCreateTexture2DParameters CreateTexture2DParameters
+				= FHoudiniTextureTranslator::GetTextureParametersFromType(EHoudiniTextureType::Roughness);
+
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
 				HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
+				1.0,
 				Texture,
 				NodePath,
 				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_ROUGHNESS,
@@ -2162,27 +2136,15 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 	if (!IsValid(Material))
 		return false;
 
-	bool bExpressionCreated = false;
-
-	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
-
-	// Name of generating Houdini parameter.
-	FString GeneratingParameterName = TEXT("");
-
-	// Metallic texture creation parameters.
-	FCreateTexture2DParameters CreateTexture2DParameters;
-	CreateTexture2DParameters.SourceGuidHash = FGuid();
-	CreateTexture2DParameters.bUseAlpha = false;
-	CreateTexture2DParameters.CompressionSettings = TC_Grayscale;
-	CreateTexture2DParameters.bDeferCompression = true;
-	CreateTexture2DParameters.bSRGB = false;
-
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
 	FScalarMaterialInput& MatInputMetallic = MaterialEditorOnly->Metallic;
 #else
 	FScalarMaterialInput& MatInputMetallic = Material->Metallic;	
 #endif
+
+	// Name of generating Houdini parameter.
+	FString GeneratingParameterName = TEXT("");
 
 	// See if metallic texture is available.
 	HAPI_ParmInfo ParmMetallicTextureInfo;
@@ -2197,6 +2159,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 		ParmMetallicTextureInfo,
 		GeneratingParameterName);
 
+	bool bExpressionCreated = false;
+	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 	if (ParmMetallicTextureId >= 0)
 	{
 		UTexture2D* Texture;
@@ -2210,11 +2174,16 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderTexture(InMaterialInfo.nodeId, ParmMetallicTextureId);
 		if (bRenderSuccessful)
 		{
+			// Metallic texture creation parameters.
+			FCreateTexture2DParameters CreateTexture2DParameters
+				= FHoudiniTextureTranslator::GetTextureParametersFromType(EHoudiniTextureType::Metallic);
+
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
 				HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
+				1.0,
 				Texture,
 				NodePath,
 				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_METALLIC,
@@ -2267,21 +2236,6 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 	if (!IsValid(Material))
 		return false;
 
-	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
-
-	// Names of generating Houdini parameters.
-	FString GeneratingParameterNameEmissiveTexture = TEXT("");
-	FString GeneratingParameterNameEmissiveColor = TEXT("");
-	FString GeneratingParameterNameEmissiveIntensity = TEXT("");
-
-	// Emissive texture creation parameters.
-	FCreateTexture2DParameters CreateTexture2DParameters;
-	CreateTexture2DParameters.SourceGuidHash = FGuid();
-	CreateTexture2DParameters.bUseAlpha = false;
-	CreateTexture2DParameters.CompressionSettings = TC_Default;
-	CreateTexture2DParameters.bDeferCompression = true;
-	CreateTexture2DParameters.bSRGB = true;
-
 	// Attempt to look up previously created expressions.
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();
@@ -2289,6 +2243,13 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 #else
 	FColorMaterialInput& MatInputEmissive = Material->EmissiveColor;
 #endif
+
+	// Names of generating Houdini parameters.
+	FString GeneratingParameterNameEmissiveTexture = TEXT("");
+	FString GeneratingParameterNameEmissiveColor = TEXT("");
+	FString GeneratingParameterNameEmissiveIntensity = TEXT("");
+
+	EObjectFlags ObjectFlag = (InPackageParams.PackageMode == EPackageMode::Bake) ? RF_Standalone : RF_NoFlags;
 
 	// Locate emissive color expression.
 	UMaterialExpressionVectorParameter* ExpressionEmissiveColor =
@@ -2356,6 +2317,10 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 	// If we have an emissive texture parameter.
 	if (ParmEmissiveTextureId >= 0)
 	{
+		// Emissive texture creation parameters.
+		FCreateTexture2DParameters CreateTexture2DParameters
+			= FHoudiniTextureTranslator::GetTextureParametersFromType(EHoudiniTextureType::Emissive);
+
 		HAPI_ImagePacking ImagePacking;
 		const char* PlaneType;
 		bool bFoundImagePlanes = FHoudiniTextureTranslator::GetPlaneInfo(
@@ -2373,6 +2338,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 				PlaneType,
 				HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
+				2.2,
 				TextureEmissive,
 				NodePath,
 				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_EMISSIVE,

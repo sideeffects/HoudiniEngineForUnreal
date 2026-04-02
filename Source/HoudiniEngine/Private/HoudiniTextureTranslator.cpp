@@ -134,6 +134,7 @@ FHoudiniTextureTranslator::HapiExtractImage(
 	const char* InPlaneType,
 	const HAPI_ImageDataFormat InImageDataFormat,
 	const HAPI_ImagePacking InImagePacking,
+	const float InGamma,
 	TArray<char>& OutImageBuffer)
 {
 	// See if we have the images planes we want
@@ -187,6 +188,7 @@ FHoudiniTextureTranslator::HapiExtractImage(
 	ImageInfo.dataFormat = InImageDataFormat;
 	ImageInfo.interleaved = true;
 	ImageInfo.packing = InImagePacking;
+	ImageInfo.gamma = InGamma;
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetImageInfo(
 		FHoudiniEngine::Get().GetSession(),
@@ -245,12 +247,11 @@ FHoudiniTextureTranslator::CreatePackageForTexture(
 
 bool
 FHoudiniTextureTranslator::CreateTexture(
-	// HAPI extraction parameters
 	const HAPI_NodeId InMaterialNodeId,
 	const char* InPlaneType,
 	HAPI_ImageDataFormat InImageDataFormat,
 	HAPI_ImagePacking InImagePacking,
-	// Texture creation parameters
+	float InGamma,
 	UTexture2D*& OutTexture,
 	const FString& InNodePath,
 	const FString& InTextureType,
@@ -262,7 +263,7 @@ FHoudiniTextureTranslator::CreateTexture(
 	bool bTextureCreated = false;
 	TArray<char> ImageBuffer;
 	if (FHoudiniTextureTranslator::HapiExtractImage(
-		InMaterialNodeId, InPlaneType, InImageDataFormat, InImagePacking, ImageBuffer))
+		InMaterialNodeId, InPlaneType, InImageDataFormat, InImagePacking, InGamma, ImageBuffer))
 	{
 		UPackage* TexturePackage = nullptr;
 		if (IsValid(OutTexture))
@@ -527,13 +528,6 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 		if (HAPI_RESULT_SUCCESS != Result)
 			continue;
 
-		FCreateTexture2DParameters CreateTexture2DParameters;
-		CreateTexture2DParameters.SourceGuidHash = FGuid();
-		CreateTexture2DParameters.bUseAlpha = true;
-		CreateTexture2DParameters.CompressionSettings = TC_Default;
-		CreateTexture2DParameters.bDeferCompression = true;
-		CreateTexture2DParameters.bSRGB = true;
-
 		// Create custom package param for this output
 		FHoudiniPackageParams MyPackageParams = InPackageParams;
 		MyPackageParams.ObjectId = HGPO.ObjectId;
@@ -541,15 +535,29 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 		MyPackageParams.PartId = HGPO.PartId;
 		MyPackageParams.SplitStr = HGPO.PartName;
 
+		// Infer what that texture is using its name:
+		// ie, an output named "normal" implies a normal map etc..
+		EHoudiniTextureType TextureType = FHoudiniTextureTranslator::GetTextureTypeFromName(HGPO.PartName);
+		FCreateTexture2DParameters CreateTexture2DParameters
+			= FHoudiniTextureTranslator::GetTextureParametersFromType(TextureType);	
+
+		float Gamma = 1.0;
+		if (TextureType == EHoudiniTextureType::Diffuse
+			|| TextureType == EHoudiniTextureType::Emissive)
+		{
+			Gamma = 2.2;
+		}
+
 		UTexture2D* Texture = nullptr;
 		FHoudiniTextureTranslator::CreateTexture(
 			CopNodeId,
 			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA,
 			HAPI_IMAGE_DATA_INT8,
 			HAPI_IMAGE_PACKING_RGBA,
+			Gamma,
 			Texture,
-			"",
-			"",
+			HGPO.NodePath, 
+			FHoudiniTextureTranslator::GetTextureTypeString(TextureType),			
 			MyPackageParams,
 			CreateTexture2DParameters,
 			TEXTUREGROUP_World,
@@ -656,4 +664,103 @@ FHoudiniTextureTranslator::CreateDefaultCopMaterialForTexture(
 	}
 
 	return NewMaterialInstance;
+}
+
+
+EHoudiniTextureType
+FHoudiniTextureTranslator::GetTextureTypeFromName(const FString& Name)
+{
+	// Default to a color/diffuse texture
+	EHoudiniTextureType Type = EHoudiniTextureType::Diffuse;
+	if (Name.Contains("normal"))
+		Type = EHoudiniTextureType::Normal;
+	else if (Name.Contains("specular"))
+		Type = EHoudiniTextureType::Specular;
+	else if (Name.Contains("roughness"))
+		Type = EHoudiniTextureType::Roughness;
+	else if (Name.Contains("emissive"))
+		Type = EHoudiniTextureType::Emissive;
+	else if (Name.Contains("opacity") 
+		|| Name.Contains("alpha"))
+		Type = EHoudiniTextureType::Opacity;
+	else if (Name.Contains("occlusion"))
+		Type = EHoudiniTextureType::Occlusion;
+	else if (Name.Contains("displacement")
+		|| Name.Contains("height"))
+		Type = EHoudiniTextureType::Displacement;
+
+	return Type;
+}
+
+FString
+FHoudiniTextureTranslator::GetTextureTypeString(const EHoudiniTextureType& InType)
+{
+	FString TypeString = FString();
+	switch (InType)
+	{		
+		case EHoudiniTextureType::Diffuse:
+			TypeString = TEXT("diffuse");
+			break;
+		case EHoudiniTextureType::Metallic:
+			TypeString = TEXT("metallic"); 
+			break;
+		case EHoudiniTextureType::Specular:
+			TypeString = TEXT("specular"); 
+			break;
+		case EHoudiniTextureType::Roughness:
+			TypeString = TEXT("roughness"); 
+			break;
+		case EHoudiniTextureType::Emissive:
+			TypeString = TEXT("emissive"); 
+			break;
+		case EHoudiniTextureType::Opacity:
+			TypeString = TEXT("opacity"); 
+			break;
+		case EHoudiniTextureType::Normal:
+			TypeString = TEXT("normal"); 
+			break;
+		case EHoudiniTextureType::Occlusion:
+			TypeString = TEXT("occlusion"); 
+			break;
+		case EHoudiniTextureType::Displacement:
+			TypeString = TEXT("displacement"); 
+			break;
+
+		case EHoudiniTextureType::Invalid:
+			break;
+	}
+
+	return TypeString;
+}
+
+
+FCreateTexture2DParameters
+FHoudiniTextureTranslator::GetTextureParametersFromType(const EHoudiniTextureType& InType)
+{
+	FCreateTexture2DParameters TextureParams;
+	TextureParams.SourceGuidHash = FGuid();
+	TextureParams.bUseAlpha = false;
+	TextureParams.bDeferCompression = true;
+	TextureParams.bVirtualTexture = false;
+	//TextureParams.MipGenSettings = TMGS_FromTextureGroup;
+	//TextureParams.TextureGroup = TEXTUREGROUP_MAX;
+
+	// Compression
+	TextureParams.CompressionSettings = TC_Default;
+	if (InType == EHoudiniTextureType::Opacity 
+		|| InType == EHoudiniTextureType::Specular
+		|| InType == EHoudiniTextureType::Roughness
+		|| InType == EHoudiniTextureType::Metallic)
+		TextureParams.CompressionSettings = TC_Grayscale;
+	else if (InType == EHoudiniTextureType::Normal)
+		TextureParams.CompressionSettings = TC_Normalmap;
+	
+	// SRGB
+	// Only for color channels: diffuse, emissive
+	TextureParams.bSRGB = false;
+	if (InType == EHoudiniTextureType::Diffuse
+		|| InType == EHoudiniTextureType::Emissive)
+		TextureParams.bSRGB = true;
+
+	return TextureParams;
 }

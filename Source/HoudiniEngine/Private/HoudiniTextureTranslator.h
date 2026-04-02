@@ -38,6 +38,22 @@ class UHoudiniOutput;
 struct FHoudiniPackageParams;
 struct FCreateTexture2DParameters;
 
+UENUM()
+enum class EHoudiniTextureType : uint8
+{
+	Invalid = 0,
+
+	Diffuse = 1,
+	Metallic = 2,
+	Specular = 3,
+	Roughness = 4,
+	Emissive = 5,
+	Opacity = 6,
+	Normal = 7,	
+	Occlusion = 8,
+	Displacement = 9
+};
+
 struct HOUDINIENGINE_API FHoudiniTextureTranslator
 {
 public:
@@ -68,6 +84,7 @@ public:
 		const char* InPlaneType,
 		const HAPI_ImageDataFormat InImageDataFormat,
 		const HAPI_ImagePacking InImagePacking,
+		const float InGamma,
 		TArray<char>& OutImageBuffer);
 
 	static UPackage* CreatePackageForTexture(
@@ -79,12 +96,11 @@ public:
 	// Create a texture from a HAPI material.
 	// Returns true if the texture is successfully created, false otherwise.
 	static bool CreateTexture(
-		// HAPI extraction parameters
 		const HAPI_NodeId InMaterialNodeId,
 		const char* InPlaneType,
 		HAPI_ImageDataFormat InImageDataFormat,
 		HAPI_ImagePacking InImagePacking,
-		// Texture creation parameters
+		float InGamma,
 		UTexture2D*& OutTexture,
 		const FString& InNodePath,
 		const FString& InTextureType,
@@ -111,4 +127,10 @@ public:
 	static UMaterialInterface* CreateDefaultCopMaterialForTexture(
 		UTexture2D* InTexture,
 		const FHoudiniPackageParams& InPackageParams);
+
+	static EHoudiniTextureType GetTextureTypeFromName(const FString& InName);
+
+	static FCreateTexture2DParameters GetTextureParametersFromType(const EHoudiniTextureType& InType);
+
+	static FString GetTextureTypeString(const EHoudiniTextureType& InType);
 };
