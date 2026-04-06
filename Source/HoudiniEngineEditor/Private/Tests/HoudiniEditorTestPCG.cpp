@@ -939,6 +939,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGNativeOutputsC
 
 	bool FHoudiniEditorTestPCG_PCGNativeOutputsCookedWithTransform::RunTest(const FString& Parameters)
 {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 6
 	/// Make sure we have a Houdini Session before doing anything.
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
@@ -1135,7 +1136,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGNativeOutputsC
 
 			return true;
 		}));
-
+#endif
 	return true;
 }
 
@@ -1576,6 +1577,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPCG_PCGSplinesCookedW
 
 bool FHoudiniEditorTestPCG_PCGSplinesCookedWithTransform::RunTest(const FString& Parameters)
 {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 6
 	/// Make sure we have a Houdini Session before doing anything.
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
 
@@ -1655,7 +1657,7 @@ bool FHoudiniEditorTestPCG_PCGSplinesCookedWithTransform::RunTest(const FString&
 
 			return true;
 		}));
-
+#endif
 	return true;
 }
 
