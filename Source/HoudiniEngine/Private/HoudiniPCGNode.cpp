@@ -105,6 +105,20 @@ void UHoudiniPCGSettings::GetStaticTrackedKeys(FPCGSelectionKeyToSettingsMap& Ou
 	OutKeysToSettings.FindOrAdd(Key).Emplace(this, /*bCulling=*/false);
 }
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 7)
+FPCGDataTypeIdentifier UHoudiniPCGSettings::GetCurrentPinTypesID(const UPCGPin* Pin) const
+{
+	if (Pin->IsOutputPin())
+	{
+		return FPCGDataTypeIdentifier{ EPCGDataType::Any };
+	}
+	else
+	{
+		return Super::GetCurrentPinTypesID(Pin);
+	}
+}
+#endif
+
 void UHoudiniPCGSettings::UpdateInputLabelsFromCookable(UPCGNode* Node, const TArray<TObjectPtr<UPCGPin>>& InputPins)
 {
 	// This function is called either from 
@@ -172,7 +186,7 @@ FString UHoudiniPCGSettings::GetAdditionalTitleInformation() const
 TArray<FPCGPinProperties> UHoudiniPCGSettings::OutputPinProperties() const
 {
 	TArray<FPCGPinProperties> PinProperties;
-	PinProperties.Emplace(GetOutputPinName(), EPCGDataType::Param | EPCGDataType::Point | EPCGDataType::Spline, false);
+	PinProperties.Emplace(GetOutputPinName(), EPCGDataType::PointOrParam, true, true);
 	return PinProperties;
 }
 

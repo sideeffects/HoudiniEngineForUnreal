@@ -63,6 +63,10 @@ public:
 	virtual bool CanCullTaskIfUnwired() const { return false; }
 	virtual void BeginDestroy() override;
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 7)
+	virtual FPCGDataTypeIdentifier GetCurrentPinTypesID(const UPCGPin* InPin) const override;
+#endif
+
 #if WITH_EDITOR
 	//~Begin UPCGSettings interface
 	virtual FName GetDefaultNodeName() const override { return FName(TEXT("HoudiniDigitalAsset")); }

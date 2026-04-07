@@ -1785,7 +1785,9 @@ FHoudiniParameterView::CreateWidgetMultiParm(
 				OnInstanceValueChangedLambda(InValue, CommitType);
 					}))
 				.Value(MainParam->GetInstanceCount())
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 6)
 				.ToolTipTextFormat(FTextFormat::FromString(MULTIPARM_TOOLTIP))
+#endif
 		];
 
 	HorizontalBox->AddSlot().AutoWidth().Padding(2.0f, 0.0f)
