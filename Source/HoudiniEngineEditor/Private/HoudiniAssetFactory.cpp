@@ -24,6 +24,12 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+// Work around for Epic Mac complication issue.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshadow"
+#endif
+
 #include "HoudiniAssetFactory.h"
 
 #include "HoudiniEngineEditorPrivatePCH.h"
