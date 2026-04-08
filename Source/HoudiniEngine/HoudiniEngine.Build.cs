@@ -80,7 +80,7 @@ public class HoudiniEngine : ModuleRules
 
     private string GetHFSPath()
     {
-        string HoudiniVersion = "21.0.679";
+        string HoudiniVersion = "21.0.671";     // TRENT_MOD (4/8/26): Original version is "21.0.679". Modified for what I have locally.
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Side Effects Software";
@@ -254,7 +254,7 @@ public class HoudiniEngine : ModuleRules
         }
 
         string Info = string.Format("Houdini Engine : Houdini {0} could not be found. Houdini Engine will not be available in this build.", HoudiniVersion);
-        LogInformation(Info);
+        LogError(Info);
 
         return "";
     }
