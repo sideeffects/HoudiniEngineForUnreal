@@ -324,25 +324,6 @@ FHoudiniLandscapeBake::BakeLandscape(
 	
 	}
 
-	if (BakedObjectData.PackagesToSave.Num() > 0)
-	{
-		FEditorFileUtils::PromptForCheckoutAndSave(BakedObjectData.PackagesToSave, true, false);
-	}
-
-	if (BakedObjectData.PackagesToSave.Num() > 0)
-	{
-		// These packages were either created during the Bake process or they weren't
-		// loaded in the first place so be sure to unload them again to preserve their "state".
-
-		TArray<UPackage*> PackagesToUnload;
-		for (UPackage* Package : BakedObjectData.PackagesToSave)
-		{
-			if (!Package->IsDirty())
-				PackagesToUnload.Add(Package);
-		}
-		UPackageTools::UnloadPackages(PackagesToUnload);
-	}
-
 #if WITH_EDITOR
 	FEditorDelegates::RefreshLevelBrowser.Broadcast();
 	FEditorDelegates::RefreshAllBrowsers.Broadcast();
