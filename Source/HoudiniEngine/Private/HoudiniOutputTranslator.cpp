@@ -65,7 +65,7 @@
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Editor.h"
 #include "EditorSupportDelegates.h"
-#include "Engine/UserDefinedStruct.h"
+#include "StructUtils/UserDefinedStruct.h"
 #include "Engine/WorldComposition.h"
 #include "FileHelpers.h"
 #include "HAL/PlatformFileManager.h"

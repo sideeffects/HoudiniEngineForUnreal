@@ -105,7 +105,7 @@ bool FHoudiniEditorTestSkeletalMeshElectra::RunTest(const FString& Parameters)
 		auto & BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin()->Value;
 #else
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
@@ -206,7 +206,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraDefaultPhysicsAsset::RunTest(const FSt
 		auto& BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin()->Value;
 #else
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
@@ -312,7 +312,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraCustomPhysicsAsset::RunTest(const FStr
 			HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-			auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
+			auto& BakedObject = BakedOutput.BakedOutputObjects.begin()->Value;
 #else
 			auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
@@ -492,7 +492,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingPhysicsAsset::RunTest(const FS
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
 		
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin()->Value;
 #else
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
@@ -600,7 +600,7 @@ bool FHoudiniEditorTestSkeletalMeshElectraExistingSkeleton::RunTest(const FStrin
 		auto& BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin()->Value;
 #else
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif

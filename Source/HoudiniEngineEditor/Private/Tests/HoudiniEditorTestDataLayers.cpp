@@ -178,7 +178,7 @@ bool FHoudiniEditorTestLandscapeDataLayers::RunTest(const FString& Parameters)
 		auto& BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;;
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin()->Value;
 #else
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
@@ -262,7 +262,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesDataLayers, 
 
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 2, return true);
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		auto& BakedObject0 = ObjIt.ElementIt->Value.Value;
+		auto& BakedObject0 = ObjIt->Value;
 #else
 		auto& BakedObject0 = ObjIt.Value();
 #endif
@@ -280,7 +280,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesDataLayers, 
 		++ObjIt;
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		auto& BakedObject1 = ObjIt.ElementIt->Value.Value;
+		auto& BakedObject1 = ObjIt->Value;
 #else
 		auto& BakedObject1 = ObjIt.Value();
 #endif
