@@ -53,7 +53,7 @@
 
 TSharedRef<IDetailCustomization> UHoudiniPCGSettingsDetails::MakeInstance()
 {
-	return MakeShareable(new UHoudiniPCGComponentDetails);
+	return MakeShareable(new UHoudiniPCGSettingsDetails);
 }
 
 void UHoudiniPCGSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
