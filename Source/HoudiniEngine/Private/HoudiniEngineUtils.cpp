@@ -9394,6 +9394,9 @@ FHoudiniEngineUtils::UpdateImageDataOnCookable(UHoudiniCookable* InHC)
 	if (InNodeId < 0)
 		return;
 
+	if (!InHC->IsImageSupported())
+		return;
+
 	// Start by seeing if the HDA is a COP HDA
 	HAPI_NodeInfo NodeInfo;
 	if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), InHC->GetNodeId(), &NodeInfo))
@@ -9402,49 +9405,121 @@ FHoudiniEngineUtils::UpdateImageDataOnCookable(UHoudiniCookable* InHC)
 	}
 
 	// Apply COP overrides on the HDA's parent COP network if needed
-	if (InHC->ImageData->bIsCOPHDA)
+	if (!InHC->ImageData->bIsCOPHDA)
+		return;
+
+	/*
+	// Make sure our COP HDA's parent is a COPnet
+	HAPI_NodeInfo ParentNodeInfo;
+	FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeInfo.parentId, &ParentNodeInfo);
+
+	FString ParentName;
+	if (FHoudiniEngineString::ToFString(ParentNodeInfo.nameSH, ParentName))
 	{
-		// Make sure our COP HDA's parent is a COPnet
-		HAPI_NodeInfo ParentNodeInfo;
-		FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeInfo.parentId, &ParentNodeInfo);
+		if (ParentName != TEXT("copnet"))
+			HOUDINI_LOG_WARNING(TEXT("COP HDA's parent is not a COP net! Bad things will happen!"));
+	}
+	*/
 
-		/*
-		FString ParentName;
-		if (FHoudiniEngineString::ToFString(ParentNodeInfo.nameSH, ParentName))
+	bool bApplyResolutionOverride = false;
+	FIntPoint ResOverride = FIntPoint::ZeroValue;
+	if (InHC->ImageData->bOverrideDefaultResolution)
+	{
+		bApplyResolutionOverride = true;
+		ResOverride = InHC->ImageData->ResolutionOverride;
+	}
+	else
+	{
+		// see if the HDA node has resolution override attributes
+		TArray<int> Data;
+		FHoudiniHapiAccessor Accessor(InHC->NodeId, 0, "unreal_image_resolution_override");
+		Accessor.bCanBeArray = true;
+		bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data);
+		if (bSuccess)
 		{
-			if (ParentName != TEXT("copnet"))
-				HOUDINI_LOG_WARNING(TEXT("COP HDA's parent is not a COP net! Bad things will happen!"));
-		}
-		*/
-		
-		if (InHC->ImageData->bOverrideDefaultResolution)
-		{
-			// setres - enable resolution override 
-			HAPI_Result Result = FHoudiniApi::SetParmIntValue(
-				FHoudiniEngine::Get().GetSession(),
-				NodeInfo.parentId, "setres", 0, 1);
-
-			// default_xres, default_yres - resolution override
-			Result = FHoudiniApi::SetParmIntValue(
-				FHoudiniEngine::Get().GetSession(),
-				NodeInfo.parentId, "res", 0, InHC->ImageData->ResolutionOverride.X);
-
-			Result = FHoudiniApi::SetParmIntValue(
-				FHoudiniEngine::Get().GetSession(),
-				NodeInfo.parentId, "res", 1, InHC->ImageData->ResolutionOverride.Y);
-
-			// Handle other parameters as well?
-			// setpixelscale, defaultpixelscale
-			// setborder, border
-			// setprecision, precision
-			// docompile, singleoutput
-		}
-
-		if (!InHC->ImageData->OutputFileFormat.IsEmpty())
-		{
-			// TODO
+			bApplyResolutionOverride = true;
+			ResOverride.X = Data[0];
+			ResOverride.Y = Data[1];
 		}
 	}
+
+	// setres - enable resolution override 
+	HAPI_Result Result = FHoudiniApi::SetParmIntValue(
+		FHoudiniEngine::Get().GetSession(),
+		NodeInfo.parentId, "setres", 0, bApplyResolutionOverride ? 1 : 0);
+
+	if (bApplyResolutionOverride && ResOverride.X > 2 && ResOverride.Y > 2)
+	{
+		// default_xres, default_yres - resolution override
+		Result = FHoudiniApi::SetParmIntValue(
+			FHoudiniEngine::Get().GetSession(),
+			NodeInfo.parentId, "res", 0, ResOverride.X);
+
+		Result = FHoudiniApi::SetParmIntValue(
+			FHoudiniEngine::Get().GetSession(),
+			NodeInfo.parentId, "res", 1, ResOverride.Y);
+	}
+
+	// Pixel Scale
+	bool bApplyPixelScaleOverride = false;
+	float PixelScaleOverride = 0.0f;
+	if (InHC->ImageData->bOverridePixelScale)
+	{
+		bApplyPixelScaleOverride = true;
+		PixelScaleOverride = InHC->ImageData->PixelScale;
+	}
+	else
+	{
+		// see if the HDA node has pixel scale override attributes
+		TArray<float> Data;
+		FHoudiniHapiAccessor Accessor(InHC->NodeId, 0, "unreal_image_pixel_scale_override");
+		Accessor.bCanBeArray = false;
+		bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data);
+		if (bSuccess && Data.Num() > 0)
+		{
+			bApplyPixelScaleOverride = true;
+			PixelScaleOverride = Data[0];
+		}
+	}
+
+	// setpixelscale - enable pixelscale override 
+	Result = FHoudiniApi::SetParmIntValue(
+		FHoudiniEngine::Get().GetSession(),
+		NodeInfo.parentId, "setpixelscale", 0, bApplyPixelScaleOverride ? 1 : 0);
+
+	if (bApplyPixelScaleOverride && PixelScaleOverride > 0.0f)
+	{
+		// defaultpixelscale - pixelscale override
+		Result = FHoudiniApi::SetParmFloatValue(
+			FHoudiniEngine::Get().GetSession(),
+			NodeInfo.parentId, "pixelscale", 0, PixelScaleOverride);
+	}
+
+	// Precision
+	bool b32BitsPrecisionOverride = InHC->ImageData->bUse32BitsPrecision;
+
+	// see if the HDA node has pixel scale override attributes
+	TArray<int> Data;
+	FHoudiniHapiAccessor Accessor(InHC->NodeId, 0, "unreal_image_use_32bits_precision");
+	Accessor.bCanBeArray = false;
+	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data);
+	if (bSuccess && Data.Num() > 0)
+	{
+		b32BitsPrecisionOverride = (bool)Data[0];
+	}
+
+	// setprecision, precision
+	Result = FHoudiniApi::SetParmIntValue(
+		FHoudiniEngine::Get().GetSession(),
+		NodeInfo.parentId, "setprecision", 0, b32BitsPrecisionOverride ? 0 : 1);
+
+	Result = FHoudiniApi::SetParmIntValue(
+		FHoudiniEngine::Get().GetSession(),
+		NodeInfo.parentId, "precision", 0, b32BitsPrecisionOverride);
+
+	// Handle other parameters as well?
+	// setborder, border
+	// docompile, singleoutput
 }
 
 #undef LOCTEXT_NAMESPACE

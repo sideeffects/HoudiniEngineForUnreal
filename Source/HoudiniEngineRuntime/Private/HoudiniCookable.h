@@ -437,8 +437,17 @@ public:
 	UPROPERTY()
 	FIntPoint ResolutionOverride;
 
+	UPROPERTY()
+	bool bOverridePixelScale;
+
+	UPROPERTY()
+	float PixelScale;
+
+	UPROPERTY()
+	bool bUse32BitsPrecision;
+
 	//UPROPERTY()
-	FString OutputFileFormat;
+	//FString OutputFileFormat;
 };
 
 

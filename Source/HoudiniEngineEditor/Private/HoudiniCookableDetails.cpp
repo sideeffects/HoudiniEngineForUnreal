@@ -2585,7 +2585,11 @@ FHoudiniCookableDetails::CreateImageDetails(
 					if (!IsValidWeakPointer(MainCookable))
 						return ECheckBoxState::Unchecked;
 
-					return MainCookable->GetImageData()->bOverrideDefaultResolution ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+					UCookableImageData* ImageData = MainCookable->GetImageData();
+					if (!ImageData)
+						return ECheckBoxState::Unchecked;
+
+					return ImageData->bOverrideDefaultResolution ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 				})
 				.OnCheckStateChanged_Lambda([MainCookable, InCookables](ECheckBoxState NewState)
 				{
@@ -2593,7 +2597,8 @@ FHoudiniCookableDetails::CreateImageDetails(
 						return;
 
 					const bool bNewState = NewState == ECheckBoxState::Checked;
-					if (MainCookable->GetImageData()->bOverrideDefaultResolution == bNewState)
+					if (!MainCookable->GetImageData()
+						|| MainCookable->GetImageData()->bOverrideDefaultResolution == bNewState)
 						return;
 
 					FScopedTransaction Transaction(
@@ -2628,7 +2633,7 @@ FHoudiniCookableDetails::CreateImageDetails(
 	//
 
 	// Lambdas for changing the parameter value
-	auto ChangeValueAt = [InCookables](const int32& Value, const int32& ValueIndex)
+	auto ChangeResolutionValueAt = [InCookables](const int32& Value, const int32& ValueIndex)
 	{
 		if (InCookables.Num() == 0)
 			return;
@@ -2644,25 +2649,25 @@ FHoudiniCookableDetails::CreateImageDetails(
 
 			InCookables[Idx]->Modify();
 
-			if (InCookables[Idx]->GetImageData())
+			if (!InCookables[Idx]->GetImageData())
+				continue;
+
+			if (ValueIndex == 0)
 			{
-				if (ValueIndex == 0)
+				if (Value != InCookables[Idx]->GetImageData()->ResolutionOverride.X)
 				{
-					if (Value != InCookables[Idx]->GetImageData()->ResolutionOverride.X)
-					{
-						InCookables[Idx]->GetImageData()->ResolutionOverride.X = Value;
-						InCookables[Idx]->MarkAsNeedCook();
-						bChanged = true;
-					}
+					InCookables[Idx]->GetImageData()->ResolutionOverride.X = Value;
+					InCookables[Idx]->MarkAsNeedCook();
+					bChanged = true;
 				}
-				else
+			}
+			else
+			{
+				if (Value != InCookables[Idx]->GetImageData()->ResolutionOverride.Y)
 				{
-					if (Value != InCookables[Idx]->GetImageData()->ResolutionOverride.Y)
-					{
-						InCookables[Idx]->GetImageData()->ResolutionOverride.Y = Value;
-						InCookables[Idx]->MarkAsNeedCook();
-						bChanged = true;
-					}
+					InCookables[Idx]->GetImageData()->ResolutionOverride.Y = Value;
+					InCookables[Idx]->MarkAsNeedCook();
+					bChanged = true;
 				}
 			}
 		}
@@ -2696,10 +2701,10 @@ FHoudiniCookableDetails::CreateImageDetails(
 					.bColorAxisLabels(true)
 					.X_Lambda([MainCookable]() { return MainCookable->GetImageData()->ResolutionOverride.X; })
 					.Y_Lambda([MainCookable]() { return MainCookable->GetImageData()->ResolutionOverride.Y; })
-					.OnXCommitted_Lambda([InCookables, ChangeValueAt](int32 NewValue, ETextCommit::Type TextCommitType)
-						{ ChangeValueAt(NewValue, 0); })
-					.OnYCommitted_Lambda([InCookables, ChangeValueAt](int32 NewValue, ETextCommit::Type TextCommitType)
-						{ ChangeValueAt(NewValue, 1); })
+					.OnXCommitted_Lambda([InCookables, ChangeResolutionValueAt](int32 NewValue, ETextCommit::Type TextCommitType)
+						{ ChangeResolutionValueAt(NewValue, 0); })
+					.OnYCommitted_Lambda([InCookables, ChangeResolutionValueAt](int32 NewValue, ETextCommit::Type TextCommitType)
+						{ ChangeResolutionValueAt(NewValue, 1); })
 					.IsEnabled_Lambda([MainCookable]() { return MainCookable->GetImageData()->bOverrideDefaultResolution; })
 				]
 			]
@@ -2707,8 +2712,201 @@ FHoudiniCookableDetails::CreateImageDetails(
 	}
 
 	//
-	// FString OutputFileFormat
+	// bOverridePixelScale
 	//
+	{
+		ProxyGrp.AddWidgetRow()
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString("Override Default Pixel Scale"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.Padding(2, 2, 5, 2)
+			.AutoHeight()
+			[
+				SNew(SCheckBox)
+				.IsChecked_Lambda([MainCookable]()
+				{
+					if (!IsValidWeakPointer(MainCookable))
+						return ECheckBoxState::Unchecked;
+
+					UCookableImageData* ImageData = MainCookable->GetImageData();
+					if (!ImageData)
+						return ECheckBoxState::Unchecked;
+
+					return ImageData->bOverridePixelScale ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				})
+				.OnCheckStateChanged_Lambda([MainCookable, InCookables](ECheckBoxState NewState)
+				{
+					if (!IsValidWeakPointer(MainCookable))
+						return;
+
+					const bool bNewState = NewState == ECheckBoxState::Checked;
+					if (!MainCookable->GetImageData()
+						|| MainCookable->GetImageData()->bOverridePixelScale == bNewState)
+						return;
+
+					FScopedTransaction Transaction(
+						TEXT(HOUDINI_MODULE_EDITOR),
+						LOCTEXT("HoudiniImageOverridePxlScale", "HoudiniImage Properties: Changed bOverridePixelScale"),
+						MainCookable->GetOuter());
+
+					for (auto CurCookable : InCookables)
+					{
+						if (!IsValidWeakPointer(CurCookable))
+							continue;
+
+						UCookableImageData* ImageData = CurCookable->GetImageData();
+						if (!ImageData || ImageData->bOverridePixelScale == bNewState)
+							continue;
+
+						CurCookable->Modify();
+						ImageData->bOverridePixelScale = bNewState;
+
+						// Mark that cookable for recook
+						// TODO: Check cookable has texture output 
+						if(ImageData->bIsCOPHDA)
+							CurCookable->MarkAsNeedCook();
+					}
+				})
+			]
+		];
+	}
+
+	//
+	// PixelScale
+	//
+
+	// Lambdas for changing the the pixel scale values on cookables
+	auto ChangePixelScaleValue = [InCookables](const float& Value)
+	{
+		if (InCookables.Num() == 0)
+			return;
+
+		bool bChanged = false;
+		for (int Idx = 0; Idx < InCookables.Num(); Idx++)
+		{
+			if (!IsValidWeakPointer(InCookables[Idx]))
+				continue;
+
+			InCookables[Idx]->Modify();
+
+			if (InCookables[Idx]->GetImageData())
+			{
+				if (Value != InCookables[Idx]->GetImageData()->PixelScale)
+				{
+					InCookables[Idx]->GetImageData()->PixelScale = Value;
+					InCookables[Idx]->MarkAsNeedCook();
+					bChanged = true;
+				}
+			}
+		}
+	};
+
+	ProxyGrp.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(FText::FromString("Pixel Scale"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.MaxWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+			.FillWidth(1.0)
+			[
+				SNew(SNumericEntryBox<float>)
+				.Font(FAppStyle::Get().GetFontStyle("PropertyWindow.NormalFont"))
+				.AllowSpin(false)
+				.Value_Lambda([MainCookable]() { return MainCookable->GetImageData()->PixelScale; })
+				.OnValueCommitted_Lambda([InCookables, ChangePixelScaleValue](int32 NewValue, ETextCommit::Type TextCommitType)
+					{ ChangePixelScaleValue(NewValue); })
+				.IsEnabled_Lambda([MainCookable]() { return MainCookable->GetImageData()->bOverridePixelScale; })
+			]
+		]
+	];
+
+	//
+	// bUse32BitsPrecision
+	//
+	{
+		ProxyGrp.AddWidgetRow()
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString("Use 32 Bits precision"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.Padding(2, 2, 5, 2)
+			.AutoHeight()
+			[
+				SNew(SCheckBox)
+				.IsChecked_Lambda([MainCookable]()
+				{
+					if (!IsValidWeakPointer(MainCookable))
+						return ECheckBoxState::Unchecked;
+
+					UCookableImageData* ImageData = MainCookable->GetImageData();
+					if (!ImageData)
+						return ECheckBoxState::Unchecked;
+
+					return ImageData->bUse32BitsPrecision ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				})
+				.OnCheckStateChanged_Lambda([MainCookable, InCookables](ECheckBoxState NewState)
+				{
+					if (!IsValidWeakPointer(MainCookable))
+						return;
+
+					const bool bNewState = NewState == ECheckBoxState::Checked;
+					if (!MainCookable->GetImageData() 
+						|| MainCookable->GetImageData()->bUse32BitsPrecision == bNewState)
+						return;
+
+					FScopedTransaction Transaction(
+						TEXT(HOUDINI_MODULE_EDITOR),
+						LOCTEXT("HoudiniImageOverridePxlScale", "HoudiniImage Properties: Changed bUse32BitsPrecision"),
+						MainCookable->GetOuter());
+
+					for (auto CurCookable : InCookables)
+					{
+						if (!IsValidWeakPointer(CurCookable))
+							continue;
+
+						UCookableImageData* ImageData = CurCookable->GetImageData();
+						if (!ImageData || ImageData->bUse32BitsPrecision == bNewState)
+							continue;
+
+						CurCookable->Modify();
+						ImageData->bUse32BitsPrecision = bNewState;
+
+						// Mark that cookable for recook
+						// TODO: Check cookable has texture output 
+						if(ImageData->bIsCOPHDA)
+							CurCookable->MarkAsNeedCook();
+					}
+				})
+			]
+		];
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
