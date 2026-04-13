@@ -595,13 +595,25 @@ bool FHoudiniAnimationTranslator::CreateAnimationFromMotionClip(UHoudiniOutput* 
 			TSharedPtr<FJsonObject> JsonObject;
 			if (GetFbxCustomAttributes(GeoId, MeshPartId, RootBoneIndex, JsonObject))
 			{
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+				TArray<UE::FSharedString> Keys;
+#else
 				TArray<FString> Keys;
+#endif
 				JsonObject->Values.GetKeys(Keys);
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+				for (const UE::FSharedString& Key : Keys)
+#else
 				for (const FString& Key : Keys)
+#endif
 				{
 					if (double Value; JsonObject->TryGetNumberField(Key, Value))
 					{
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+						TArray<FRichCurveKey>& CurveData = FbxCustomAttributes.FindOrAdd(*Key);
+#else
 						TArray<FRichCurveKey>& CurveData = FbxCustomAttributes.FindOrAdd(Key);
+#endif
 						CurveData.Add(FRichCurveKey(FrameTime, static_cast<float>(Value)));
 					}
 				}

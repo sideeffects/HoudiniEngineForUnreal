@@ -1940,7 +1940,7 @@ FHoudiniInstanceTranslator::GetPerInstanceCustomData(
 		Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
 		if (Values.IsEmpty())
 		{
-			HOUDINI_LOG_ERROR(TEXT("Could found attribute "), *CurrentAttr);
+			HOUDINI_LOG_ERROR(TEXT("Could not find attribute: %s"), *CurrentAttr);
 			return;
 		}
 
