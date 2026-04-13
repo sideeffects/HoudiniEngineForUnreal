@@ -86,7 +86,9 @@ bool FHoudiniEditorTestLandscapeHLOD::RunTest(const FString& Parameters)
 		auto& BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 7
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin()->Value;
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 7
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
 #else
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
@@ -143,7 +145,9 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesHLOD, "Houdi
 
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 2, return true);
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 7
+		auto& BakedObject0 = ObjIt->Value;
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 7
 		auto& BakedObject0 = ObjIt.ElementIt->Value.Value;
 #else
 		auto& BakedObject0 = ObjIt.Value();
@@ -158,7 +162,9 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesHLOD, "Houdi
 
 		// Check second output instancer has HLODLayer.
 		++ObjIt;
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 7
+		auto& BakedObject1 = ObjIt->Value;
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 7
 		auto& BakedObject1 = ObjIt.ElementIt->Value.Value;
 #else
 		auto& BakedObject1 = ObjIt.Value();

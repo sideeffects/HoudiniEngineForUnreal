@@ -177,8 +177,10 @@ bool FHoudiniEditorTestLandscapeDataLayers::RunTest(const FString& Parameters)
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutputs.Num(), 1, return true);
 		auto& BakedOutput = BakedOutputs[0];
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 1, return true);
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 7
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin()->Value;
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 7
+		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().ElementIt->Value.Value;
 #else
 		auto& BakedObject = BakedOutput.BakedOutputObjects.begin().Value();
 #endif
@@ -261,7 +263,9 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesDataLayers, 
 		auto ObjIt = BakedOutput.BakedOutputObjects.begin();
 
 		HOUDINI_TEST_EQUAL_ON_FAIL(BakedOutput.BakedOutputObjects.Num(), 2, return true);
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 7
+		auto& BakedObject0 = ObjIt->Value;
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 7
 		auto& BakedObject0 = ObjIt.ElementIt->Value.Value;
 #else
 		auto& BakedObject0 = ObjIt.Value();
@@ -279,7 +283,9 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInstancesDataLayers, 
 		// Check second output instancer has DataLayer2.
 		++ObjIt;
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 7
+		auto& BakedObject1 = ObjIt->Value;
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION == 7
 		auto& BakedObject1 = ObjIt.ElementIt->Value.Value;
 #else
 		auto& BakedObject1 = ObjIt.Value();

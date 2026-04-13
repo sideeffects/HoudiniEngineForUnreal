@@ -8522,7 +8522,11 @@ FString FHoudiniEngineUtils::RSTOrderToString(HAPI_RSTOrder RstOrder)
 
 FString FHoudiniEngineUtils::HapiTransformToString(HAPI_Transform Transform)
 {
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+	TStringBuilderBase<TCHAR> Output;
+#else
 	FStringBuilderBase Output;
+#endif
 	Output.Appendf(TEXT("P: %f, %f, %f "), Transform.position[0], Transform.position[1], Transform.position[2]);
 	Output.Appendf(TEXT("Q: %f, %f, %f, %f "), Transform.rotationQuaternion[0], Transform.rotationQuaternion[1],
 	               Transform.rotationQuaternion[2], Transform.rotationQuaternion[3]);
@@ -8544,9 +8548,11 @@ FString FHoudiniEngineUtils::DumpNode(HAPI_NodeId NodeId)
 	if(Result != HAPI_RESULT_SUCCESS)
 		return FString::Printf(TEXT("Failed to get node info: %s\n"), *FHoudiniEngineUtils::GetErrorDescription());
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+	TStringBuilderBase<TCHAR> Output;
+#else
 	FStringBuilderBase Output;
-
-
+#endif
 	Output.Appendf(TEXT("Node ID: %d\n"), NodeId);
 	Output.Appendf(TEXT("    Name: %s\n"), *FHoudiniEngineString(NodeInfo.nameSH).ToFString());
 	Output.Appendf(TEXT("    Type: %s\n"), *NodeTypeToString(NodeInfo.type));
@@ -8582,7 +8588,11 @@ FString FHoudiniEngineUtils::DumpAttribute(HAPI_NodeId NodeId, HAPI_PartId PartI
 		return FString::Printf(TEXT("Failed to get attribute info: %s\n"), *FHoudiniEngineUtils::GetErrorDescription());
 	}
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+	TStringBuilderBase<TCHAR> Output;
+#else
 	FStringBuilderBase Output;
+#endif
 	Output.Appendf(TEXT("            Storage: %s\n"), *StorageTypeToString(AttributeInfo.storage));
 	Output.Appendf(TEXT("            Type: %s\n"), *AttributeTypeToString(AttributeInfo.typeInfo));
 	Output.Appendf(TEXT("            Tuple Size: %d\n"), AttributeInfo.tupleSize);
