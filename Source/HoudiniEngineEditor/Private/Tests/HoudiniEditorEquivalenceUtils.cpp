@@ -1494,7 +1494,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterChoice*
 
 	Result &= TestExpressionError(A->IntValue == B->IntValue, Header, "IntValue");
 	Result &= TestExpressionError(A->DefaultIntValue == B->DefaultIntValue, Header, "DefaultIntValue");
-	Result &= TestExpressionError(A->StringValue.Equals(B->StringValue), Header, "StringValue");
+	Result &= TestExpressionError(A->GetSelectedValueAsString().Equals(B->GetSelectedValueAsString()), Header, "StringValue");
 	Result &= TestExpressionError(A->DefaultStringValue.Equals(B->DefaultStringValue), Header, "DefaultStringValue");
 	Result &= TestExpressionError(A->StringChoiceValues.Num() == B->StringChoiceValues.Num(), Header, "StringChoiceValues.Num");
 	for (int i = 0; i < FMath::Min(A->StringChoiceValues.Num(), B->StringChoiceValues.Num()); i++)

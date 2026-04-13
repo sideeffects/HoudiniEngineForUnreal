@@ -34,7 +34,7 @@ UHoudiniParameterChoice::UHoudiniParameterChoice(const FObjectInitializer & Obje
 }
 
 UHoudiniParameterChoice *
-UHoudiniParameterChoice::Create( UObject* InOuter, const FString& InParamName, const EHoudiniParameterType& InParmType)
+UHoudiniParameterChoice::Create( UObject* InOuter, const FString& InParamName, EHoudiniParameterType InParmType)
 {
 	FString ParamNameStr = "HoudiniParameterChoice_" + InParamName;
 	FName ParamName = MakeUniqueObjectName(InOuter, UHoudiniParameterChoice::StaticClass(), *ParamNameStr);
@@ -45,100 +45,91 @@ UHoudiniParameterChoice::Create( UObject* InOuter, const FString& InParamName, c
 
 	HoudiniAssetParameter->SetParameterType(InParmType);
 
-	//HoudiniAssetParameter->UpdateFromParmInfo(InParentParameter, InNodeId, ParmInfo);
-
 	return HoudiniAssetParameter;
 }
 
-void
-UHoudiniParameterChoice::BeginDestroy()
+int32
+UHoudiniParameterChoice::GetChoiceSelection() const
 {
-	// We need to clean up our arrays
-	for (auto& Ptr : ChoiceLabelsPtr)
+	return IntValue;
+}
+
+FString
+UHoudiniParameterChoice::GetSelectedValueAsString() const
+{
+	FString StringValue;
+	if (GetParameterType() == EHoudiniParameterType::IntChoice)
 	{
-		Ptr.Reset();
-	}
-	ChoiceLabelsPtr.Empty();
+		// IntChoices only have labels
+		if (!StringChoiceLabels.IsValidIndex(IntValue))
+			return FString();
 
-	// Then the string arrays
-	StringChoiceLabels.Empty();
-	StringChoiceValues.Empty();
-
-	IntValuesArray.Empty();
-
-	Super::BeginDestroy();
-}
-
-
-FString*
-UHoudiniParameterChoice::GetStringChoiceValueAt(const int32& InAtIndex)
-{
-	if (!StringChoiceValues.IsValidIndex(InAtIndex))
-		return nullptr;
-
-	return &(StringChoiceValues[InAtIndex]);
-}
-
-FString*
-UHoudiniParameterChoice::GetStringChoiceLabelAt(const int32& InAtIndex)
-{
-	if (!StringChoiceLabels.IsValidIndex(InAtIndex))
-		return nullptr;
-
-	return &(StringChoiceLabels[InAtIndex]);
-}
-
-void
-UHoudiniParameterChoice::SetNumChoices(const int32& InNumChoices)
-{
-	// Set the array sizes
-	StringChoiceValues.SetNumZeroed(InNumChoices); 
-	StringChoiceLabels.SetNumZeroed(InNumChoices);
-
-	IntValuesArray.SetNumZeroed(InNumChoices);
-
-	UpdateChoiceLabelsPtr();
-}
-
-// Update the pointers to the ChoiceLabels
-bool 
-UHoudiniParameterChoice::UpdateChoiceLabelsPtr()
-{
-	/*
-	bool bNeedUpdate = false;
-	if (StringChoiceLabels.Num() != ChoiceLabelsPtr.Num())
-	{
-		bNeedUpdate = true;
+		StringValue = StringChoiceLabels[IntValue];
 	}
 	else
 	{
-		for (int32 Idx = 0; Idx < ChoiceLabelsPtr.Num(); Idx++)
-		{
-			if (ChoiceLabelsPtr[Idx].Get() == &(StringChoiceLabels[Idx]))
-				continue;
+		// StringChoices should use values
+		if (!StringChoiceValues.IsValidIndex(IntValue))
+			return FString();
 
-			bNeedUpdate = true;
-			break;
-		}
+		StringValue = StringChoiceValues[IntValue];
 	}
 
-	if (!bNeedUpdate)
-		return true;
-	*/
+	return StringValue;
+}
 
-	// Updates the Label Ptr array
-	ChoiceLabelsPtr.SetNumZeroed(StringChoiceLabels.Num());
-	for (int32 Idx = 0; Idx < ChoiceLabelsPtr.Num(); Idx++)
-	{
-		ChoiceLabelsPtr[Idx] = MakeShared<FString>(StringChoiceLabels[Idx]);
-	}
+int32
+UHoudiniParameterChoice::GetNumChoices() const
+{
+	return StringChoiceLabels.Num();
+}
 
-	return true;
+FString
+UHoudiniParameterChoice::GetSelectedItemLabel() const
+{
+	return StringChoiceLabels.IsValidIndex(IntValue) ? StringChoiceLabels[IntValue] : FString();
+}
+
+bool
+UHoudiniParameterChoice::IsStringChoice() const
+{
+	return ParmType == EHoudiniParameterType::StringChoice;
+}
+
+bool
+UHoudiniParameterChoice::IsChildOfRamp() const
+{
+	return bIsChildOfRamp;
+}
+
+void
+UHoudiniParameterChoice::SetDefaultValues()
+{
+	if (IntValuesArray.IsValidIndex(GetChoiceSelection()))
+		DefaultIntValue = IntValuesArray[GetChoiceSelection()];
+
+	if (StringChoiceValues.IsValidIndex(GetChoiceSelection()))
+		DefaultStringValue = StringChoiceValues[GetChoiceSelection()];
+}
+
+void
+UHoudiniParameterChoice::SetIsChildOfRamp()
+{
+	bIsChildOfRamp = true;
 }
 
 bool 
-UHoudiniParameterChoice::SetIntValue(const int32& InIntValue)
+UHoudiniParameterChoice::SetChoiceSelection(int32 InIntValue)
 {
+	if (InIntValue == INDEX_NONE && GetNumChoices() > 0)
+	{
+		// Should always have a valid selection if possible, so set it to first one.
+		InIntValue = 0;
+	}
+
+	if (InIntValue >= GetNumChoices())
+		InIntValue = 0;
+
 	if (InIntValue == IntValue)
 		return false;
 
@@ -148,103 +139,29 @@ UHoudiniParameterChoice::SetIntValue(const int32& InIntValue)
 }
 
 bool
-UHoudiniParameterChoice::SetStringValue(const FString& InStringValue)
-{
-	if (InStringValue.Equals(StringValue))
-		return false;
-
-	StringValue = InStringValue;
-
-	return true;	
-};
-
-bool 
-UHoudiniParameterChoice::UpdateIntValueFromString()
-{	
-	int32 FoundInt = INDEX_NONE;
-	if (GetParameterType() == EHoudiniParameterType::IntChoice)
-	{
-		// Update the int values from the string value
-		FoundInt = StringChoiceLabels.Find(StringValue);
-	}
-	else
-	{
-		// Update the int values from the string value
-		FoundInt = StringChoiceValues.Find(StringValue);
-	}
-	
-	if (FoundInt == INDEX_NONE)
-		return false;
-
-	if (IntValue == FoundInt)
-		return false;
-
-	IntValue = FoundInt;
-
-	return true;
-}
-
-bool
-UHoudiniParameterChoice::UpdateStringValueFromInt()
-{
-	// Update the string value from the int value
-	FString NewStringValue;
-	if (GetParameterType() == EHoudiniParameterType::IntChoice)
-	{
-		// IntChoices only have labels
-		if (!StringChoiceLabels.IsValidIndex(IntValue))
-			return false;
-
-		NewStringValue = StringChoiceLabels[IntValue];
-	}
-	else
-	{
-		// StringChoices should use values
-		if (!StringChoiceValues.IsValidIndex(IntValue))
-			return false;
-
-		NewStringValue = StringChoiceValues[IntValue];
-	}
-
-	if (StringValue.Equals(NewStringValue))
-		return false;
-
-	StringValue = NewStringValue;	
-
-	return true;
-}
-
-const int32
-UHoudiniParameterChoice::GetIntValueFromLabel(const FString& InSelectedLabel) const
-{
-	return StringChoiceLabels.Find(InSelectedLabel);
-}
-
-TOptional< TSharedPtr<FString> >
-UHoudiniParameterChoice::GetValue(int32 Idx) const
-{
-	if (Idx == 0 && StringChoiceValues.IsValidIndex(IntValue))
-	{
-		return TOptional< TSharedPtr< FString > >(MakeShared<FString>(StringChoiceValues[IntValue]));
-	}
-
-	return TOptional< TSharedPtr< FString > >();
-}
-
-bool
 UHoudiniParameterChoice::IsDefault() const 
 {
 	if (bIsChildOfRamp)
 		return true;
 
-	if (GetParameterType() == EHoudiniParameterType::IntChoice) 
+	int Selection = GetChoiceSelection();
+	if (Selection == INDEX_NONE || Selection > GetNumChoices())
 	{
-		return IntValue == DefaultIntValue;
+		if (GetNumChoices() == 0)
+			return true;
+		else
+			return false;
 	}
 
-	if (GetParameterType() == EHoudiniParameterType::StringChoice) 
+
+	if (GetParameterType() == EHoudiniParameterType::IntChoice) 
 	{
-		return StringValue == DefaultStringValue;
+
+		return  IntValuesArray[Selection] == DefaultIntValue;
+	}
+	else if (GetParameterType() == EHoudiniParameterType::StringChoice) 
+	{
+		return  StringChoiceValues[Selection] == DefaultStringValue;
 	}
 
 	return true;
@@ -263,7 +180,125 @@ UHoudiniParameterChoice::RevertToDefault()
 	}
 }
 
-int32 UHoudiniParameterChoice::GetIndexFromValueArray(int32 Index) const
+const TArray<FString>& 
+UHoudiniParameterChoice::GetStringValues() const
 {
-	return IntValuesArray.Find(Index);
+	return StringChoiceValues;
+}
+
+const TArray<FString>&
+UHoudiniParameterChoice::GetLabels() const
+{
+	return StringChoiceLabels;
+}
+
+void 
+UHoudiniParameterChoice::SetIntChoices(const TArray<FString>& Labels, const TArray<int>& Values)
+{
+	// Get the value of the previous selection before overwriting the values.
+	bool bHasPreviousSelection = this->GetIntValues().IsValidIndex(GetChoiceSelection());
+	int PreviousSelectionValue = 0;
+
+	if (bHasPreviousSelection)
+	{
+		PreviousSelectionValue = this->GetIntValues()[GetChoiceSelection()];
+	}
+	else
+	{
+		if (GetNumChoices() == 0)
+			this->SetChoiceSelection(INDEX_NONE);
+		else
+			this->SetChoiceSelection(0);
+	}
+	
+	// Overwrite values;
+	this->StringChoiceLabels = Labels;
+	this->IntValuesArray = Values;
+	this->StringChoiceValues.SetNum(Values.Num());
+
+	// Restore previous selection if possible. If not, set to index 0 (or invalid if no entries).
+	if (bHasPreviousSelection)
+	{
+		SetChoiceSelection(IntValuesArray.Find(PreviousSelectionValue));
+		if (this->GetChoiceSelection() == INDEX_NONE)
+		{
+			if (GetNumChoices() == 0)
+				this->SetChoiceSelection(INDEX_NONE);
+			else
+				this->SetChoiceSelection(0);
+		}
+	}
+
+	MakeSharedLabelsList();
+}
+
+void
+UHoudiniParameterChoice::SetStringChoices(const TArray<FString>& Labels, const TArray<FString>& Values)
+{
+	// Get the value of the previous selection before overwriting the values.
+	bool bHasPreviousSelection = this->GetStringValues().IsValidIndex(GetChoiceSelection());
+	FString PreviousSelectionValue;
+
+	if (bHasPreviousSelection)
+	{
+		PreviousSelectionValue = this->GetStringValues()[GetChoiceSelection()];
+	}
+	else
+	{
+		if (GetNumChoices() == 0)
+			this->SetChoiceSelection(INDEX_NONE);
+		else
+			this->SetChoiceSelection(0);
+	}
+
+	// Overwrite values;
+	this->StringChoiceLabels = Labels;
+	this->IntValuesArray.SetNum(Values.Num());
+	this->StringChoiceValues = Values;
+
+	// Restore previous selection if possible. If not, set to index 0 (or invalid if no entries).
+	if (bHasPreviousSelection)
+	{
+		SetChoiceSelection(StringChoiceValues.Find(PreviousSelectionValue));
+		if (this->GetChoiceSelection() == INDEX_NONE)
+		{
+			if (GetNumChoices() == 0)
+				this->SetChoiceSelection(INDEX_NONE);
+			else
+				this->SetChoiceSelection(0);
+		}
+	}
+
+	MakeSharedLabelsList();
+}
+
+void
+UHoudiniParameterChoice::MakeSharedLabelsList() 
+{
+	SharedLabelsList.Empty();
+
+	auto& Labels = GetLabels();
+
+	for (FString OptionLabel : GetLabels())
+	{
+		SharedLabelsList.Add(MakeShareable(new FString(OptionLabel)));
+	}
+}
+
+const TArray<int>& 
+UHoudiniParameterChoice::GetIntValues() const
+{
+	return IntValuesArray;
+}
+
+const TArray<TSharedPtr<FString>>* 
+UHoudiniParameterChoice::GetSharedLabelsList() const
+{
+	return &SharedLabelsList;
+}
+
+void UHoudiniParameterChoice::PostLoad()
+{
+	Super::PostLoad();
+	MakeSharedLabelsList();
 }

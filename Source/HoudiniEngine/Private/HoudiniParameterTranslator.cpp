@@ -2328,127 +2328,81 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 			UHoudiniParameterChoice* HoudiniParameterIntChoice = Cast<UHoudiniParameterChoice>(HoudiniParameter);
 			if (IsValid(HoudiniParameterIntChoice))
 			{
-				// Set the valueIndex
 				HoudiniParameterIntChoice->SetValueIndex(ParmInfo.intValuesIndex);
 
 				if (bFetchValueFromHoudini)
 				{
-					// Get the actual values for this property.
-					int32 CurrentIntValue = 0;
+					auto SetParameterFromChoices = [&](const TArray<HAPI_ParmChoiceInfo>& ParmChoices)
+						{
+							TArray<FString> Labels;
+							TArray<int> Values;
+							Labels.SetNum(ParmChoices.Num());
+							Values.SetNum(ParmChoices.Num());
 
+							for (int32 Index = 0; Index < ParmChoices.Num(); ++Index)
+							{
+								// Fetch Label
+								FHoudiniEngineString HoudiniEngineString(ParmChoices[Index].labelSH);
+								HoudiniEngineString.ToFString(Labels[Index]);
+
+								// Fetch Value if needed, defaults to index if not required.
+								Values[Index] = Index;
+								if (ParmInfo.useMenuItemTokenAsValue)
+								{
+									FHoudiniEngineString HoudiniTokenString(ParmChoices[Index].valueSH);
+									FString Token;
+									HoudiniTokenString.ToFString(Token);
+									if (Token.IsNumeric())
+									{
+										Values[Index] = FCString::Atoi(*Token);
+									}									
+								}
+							}
+							HoudiniParameterIntChoice->SetIntChoices(Labels, Values);
+						};
+
+					// Get the choice descriptors. NOTE: have to do this on every cook because they may be updated by the HDA.
 					if (bHasValidNodeId)
 					{
-						HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmIntValues(
+						// Extract choice labels and values;
+
+						TArray<HAPI_ParmChoiceInfo> ParmChoices;
+
+						ParmChoices.SetNum(ParmInfo.choiceCount);
+						for (int32 Idx = 0; Idx < ParmChoices.Num(); Idx++)
+							FHoudiniApi::ParmChoiceInfo_Init(&(ParmChoices[Idx]));
+
+						HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmChoiceLists(
+							FHoudiniEngine::Get().GetSession(),
+							InNodeId, &ParmChoices[0],
+							ParmInfo.choiceIndex, ParmInfo.choiceCount), false);
+
+						SetParameterFromChoices(ParmChoices);
+
+						int CurrentIntValue = INDEX_NONE;
+						HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmIntValues(
 							FHoudiniEngine::Get().GetSession(),
 							InNodeId, &CurrentIntValue,
 							ParmInfo.intValuesIndex, 1/*ParmInfo.size*/), false);
+
+						int SelectionIndex = HoudiniParameterIntChoice->GetIntValues().Find(CurrentIntValue);
+						HoudiniParameterIntChoice->SetChoiceSelection(SelectionIndex);
+
 					}
-					else if (DefaultIntValues && DefaultIntValues->IsValidIndex(ParmInfo.intValuesIndex))
+					else if (DefaultChoiceValues)
 					{
-						CurrentIntValue = (*DefaultIntValues)[ParmInfo.intValuesIndex];
-					}
-					else
-					{
-						return false;
-					}
+						SetParameterFromChoices(*DefaultChoiceValues);
 
-					// Get the value from the index array, if applicable.
-					if (CurrentIntValue < HoudiniParameterIntChoice->GetNumChoices())
-						CurrentIntValue = HoudiniParameterIntChoice->GetIndexFromValueArray(CurrentIntValue);
-
-					// Check the value is valid
-					if (CurrentIntValue >= ParmInfo.choiceCount)
-					{
-						HOUDINI_LOG_WARNING(TEXT("parm '%s' has an invalid value %d, menu tokens are not supported for choice menus"),
-							*HoudiniParameterIntChoice->GetParameterName(), CurrentIntValue);
-						CurrentIntValue = 0;
-					}
-
-					HoudiniParameterIntChoice->SetIntValue(CurrentIntValue);
-				}
-
-				// Get the choice descriptors. NOTE: have to do this on every cook because they may be updated by the HDA.
-				bool bUpdateChoiceStrings = true;
-				if (bUpdateChoiceStrings)
-				{
-					// Set the default value at created
-					HoudiniParameterIntChoice->SetDefaultIntValue();
-					// Get the choice descriptors.
-					TArray< HAPI_ParmChoiceInfo > ParmChoices;
-
-					ParmChoices.SetNum(ParmInfo.choiceCount);
-					for (int32 Idx = 0; Idx < ParmChoices.Num(); Idx++)
-						FHoudiniApi::ParmChoiceInfo_Init(&(ParmChoices[Idx]));
-
-					if (bHasValidNodeId)
-					{
-						HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmChoiceLists(
-							FHoudiniEngine::Get().GetSession(), 
-							InNodeId, &ParmChoices[0],
-							ParmInfo.choiceIndex, ParmInfo.choiceCount), false);
-					}
-					else if (DefaultChoiceValues && DefaultChoiceValues->IsValidIndex(ParmInfo.choiceIndex) &&
-						DefaultChoiceValues->IsValidIndex(ParmInfo.choiceIndex + ParmInfo.choiceCount - 1))
-					{
-						FPlatformMemory::Memcpy(
-							ParmChoices.GetData(),
-							DefaultChoiceValues->GetData() + ParmInfo.choiceIndex,
-							sizeof(HAPI_ParmChoiceInfo) * ParmInfo.choiceCount);
-					}
-					else
-					{
-						return false;
-					}
-
-					// Set the array sizes
-					HoudiniParameterIntChoice->SetNumChoices(ParmInfo.choiceCount);
-
-					bool bMatchedSelectionLabel = false;
-					int32 CurrentIntValue = HoudiniParameterIntChoice->GetIntValueIndex();
-					for (int32 ChoiceIdx = 0; ChoiceIdx < ParmChoices.Num(); ++ChoiceIdx)
-					{
-						FString * ChoiceLabel = HoudiniParameterIntChoice->GetStringChoiceLabelAt(ChoiceIdx);
-						if (ChoiceLabel)
+						if (DefaultIntValues && DefaultIntValues->IsValidIndex(ParmInfo.intValuesIndex))
 						{
-							FHoudiniEngineString HoudiniEngineString(ParmChoices[ChoiceIdx].labelSH);
-							if (!HoudiniEngineString.ToFString(*ChoiceLabel))
-								return false;
-							//StringChoiceLabels.Add(TSharedPtr< FString >(ChoiceLabel));
+							int CurrentIntValue = (*DefaultIntValues)[ParmInfo.intValuesIndex];
+
+							int SelectionIndex = HoudiniParameterIntChoice->GetIntValues().Find(CurrentIntValue);
+							HoudiniParameterIntChoice->SetChoiceSelection(SelectionIndex);
 						}
 
-						// Match our string value to the corresponding selection label.
-						if (ChoiceIdx == CurrentIntValue)
-						{
-							HoudiniParameterIntChoice->SetStringValue(*ChoiceLabel);
-						}
-
-						int32 IntValue = ChoiceIdx;
-
-						// If useMenuItemTokenAsValue is set, then the value is not the index. Find the value using the token, if possible.
-						if (ParmInfo.useMenuItemTokenAsValue)
-						{
-							if (ChoiceIdx < ParmChoices.Num())
-							{
-								FHoudiniEngineString HoudiniEngineString(ParmChoices[ChoiceIdx].valueSH);
-								FString Token;
-								if (HoudiniEngineString.ToFString(Token))
-								{
-									if (Token.IsNumeric())
-									{
-										int32 Value = FCString::Atoi(*Token);
-										IntValue = Value;
-									}
-								}
-							}
-						}
-
-						HoudiniParameterIntChoice->SetIntValueArray(ChoiceIdx, IntValue);
+						HoudiniParameterIntChoice->SetDefaultValues();
 					}
-				}
-				else if (bFetchValueFromHoudini)
-				{
-					// We still need to match the string value to the label
-					HoudiniParameterIntChoice->UpdateStringValueFromInt();
 				}
 			}
 		}
@@ -2460,113 +2414,82 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 			UHoudiniParameterChoice* HoudiniParameterStringChoice = Cast<UHoudiniParameterChoice>(HoudiniParameter);
 			if (IsValid(HoudiniParameterStringChoice))
 			{
-				// Set the valueIndex
-				HoudiniParameterStringChoice->SetValueIndex(ParmInfo.stringValuesIndex);
+				HoudiniParameterStringChoice->SetValueIndex(ParmInfo.intValuesIndex);
 
 				if (bFetchValueFromHoudini)
 				{
-					// Get the actual values for this property.
-					HAPI_StringHandle StringHandle;
+					auto SetParameterFromChoices = [&](const TArray<HAPI_ParmChoiceInfo>& ParmChoices)
+						{
+							TArray<FString> Labels;
+							TArray<FString> Values;
+							Labels.SetNum(ParmChoices.Num());
+							Values.SetNum(ParmChoices.Num());
 
+							for (int32 Index = 0; Index < ParmChoices.Num(); ++Index)
+							{
+								// Fetch Label
+								FHoudiniEngineString HoudiniEngineString(ParmChoices[Index].labelSH);
+								HoudiniEngineString.ToFString(Labels[Index]);
+
+								// Fetch Value
+								FHoudiniEngineString HoudiniTokenString(ParmChoices[Index].valueSH);
+								FString Token;
+								HoudiniTokenString.ToFString(Values[Index]);
+							}
+							HoudiniParameterStringChoice->SetStringChoices(Labels, Values);
+						};
+
+					// Get the choice descriptors. NOTE: have to do this on every cook because they may be updated by the HDA.
 					if (bHasValidNodeId)
 					{
-						HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmStringValues(
-							FHoudiniEngine::Get().GetSession(),
-							InNodeId, false, &StringHandle,
-							ParmInfo.stringValuesIndex, 1/*ParmInfo.size*/), false);
-					}
-					else if (DefaultStringValues && DefaultStringValues->IsValidIndex(ParmInfo.stringValuesIndex))
-					{
-						StringHandle = (*DefaultStringValues)[ParmInfo.stringValuesIndex];
-					}
-					else
-					{
-						return false;
-					}
+						// Extract choice labels and values;
 
-					// If useMenuItemTokenAsValue is set, then the value is not the index. Find the value using the token, if possible.
-					if (ParmInfo.useMenuItemTokenAsValue)
-					{
-						// NOT HANDLED
-					}
+						TArray<HAPI_ParmChoiceInfo> ParmChoices;
 
-					// Get the string value
-					FString StringValue;
-					FHoudiniEngineString HoudiniEngineString(StringHandle);
-					HoudiniEngineString.ToFString(StringValue);
+						ParmChoices.SetNum(ParmInfo.choiceCount);
+						for (int32 Idx = 0; Idx < ParmChoices.Num(); Idx++)
+							FHoudiniApi::ParmChoiceInfo_Init(&(ParmChoices[Idx]));
 
-					HoudiniParameterStringChoice->SetStringValue(StringValue);
-				}
-
-				// Get the choice descriptors
-				if (bFullUpdate)
-				{
-					// Set default value at created.
-					HoudiniParameterStringChoice->SetDefaultStringValue();
-					// Get the choice descriptors.
-					TArray< HAPI_ParmChoiceInfo > ParmChoices;
-
-					ParmChoices.SetNum(ParmInfo.choiceCount);
-					for (int32 Idx = 0; Idx < ParmChoices.Num(); Idx++)
-						FHoudiniApi::ParmChoiceInfo_Init(&(ParmChoices[Idx]));
-
-					if (bHasValidNodeId)
-					{
-						HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParmChoiceLists(
+						HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmChoiceLists(
 							FHoudiniEngine::Get().GetSession(),
 							InNodeId, &ParmChoices[0],
 							ParmInfo.choiceIndex, ParmInfo.choiceCount), false);
-					}
-					else if (DefaultChoiceValues && DefaultChoiceValues->IsValidIndex(ParmInfo.choiceIndex) &&
-						DefaultChoiceValues->IsValidIndex(ParmInfo.choiceIndex + ParmInfo.choiceCount - 1))
-					{
-						FPlatformMemory::Memcpy(
-							ParmChoices.GetData(),
-							DefaultChoiceValues->GetData() + ParmInfo.choiceIndex,
-							sizeof(HAPI_ParmChoiceInfo) * ParmInfo.choiceCount);
-					}
-					else
-					{
-						return false;
-					}
 
-					// Set the array sizes
-					HoudiniParameterStringChoice->SetNumChoices(ParmInfo.choiceCount);
+						SetParameterFromChoices(ParmChoices);
 
-					bool bMatchedSelectionLabel = false;
-					FString CurrentStringValue = HoudiniParameterStringChoice->GetStringValue();
-					for (int32 ChoiceIdx = 0; ChoiceIdx < ParmChoices.Num(); ++ChoiceIdx)
+						// Set current value
+						HAPI_StringHandle StringHandle;
+						HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetParmStringValues(
+							FHoudiniEngine::Get().GetSession(),
+							InNodeId, false, &StringHandle,
+							ParmInfo.stringValuesIndex, 1/*ParmInfo.size*/), false);
+						
+						FString CurrentStringValue;
+						FHoudiniEngineString HoudiniEngineString(StringHandle);
+						HoudiniEngineString.ToFString(CurrentStringValue);
+						
+						const int32 SelectionIndex = HoudiniParameterStringChoice->GetStringValues().Find(CurrentStringValue);
+						HoudiniParameterStringChoice->SetChoiceSelection(SelectionIndex);
+
+					}
+					else if (DefaultChoiceValues)
 					{
-						FString * ChoiceValue = HoudiniParameterStringChoice->GetStringChoiceValueAt(ChoiceIdx);
-						if (ChoiceValue)
+						SetParameterFromChoices(*DefaultChoiceValues);
+
+						if (DefaultStringValues && DefaultStringValues->IsValidIndex(ParmInfo.stringValuesIndex))
 						{
-							FHoudiniEngineString HoudiniEngineString(ParmChoices[ChoiceIdx].valueSH);
-							if (!HoudiniEngineString.ToFString(*ChoiceValue))
-								return false;
-							//StringChoiceValues.Add(TSharedPtr< FString >(ChoiceValue));
+							const HAPI_StringHandle StringHandle = (*DefaultStringValues)[ParmInfo.stringValuesIndex];
+
+							FString CurrentStringValue;
+							FHoudiniEngineString HoudiniEngineString(StringHandle);
+							HoudiniEngineString.ToFString(CurrentStringValue);
+
+							const int32 SelectionIndex = HoudiniParameterStringChoice->GetStringValues().Find(CurrentStringValue);
+							HoudiniParameterStringChoice->SetChoiceSelection(SelectionIndex);
 						}
 
-						FString * ChoiceLabel = HoudiniParameterStringChoice->GetStringChoiceLabelAt(ChoiceIdx);
-						if (ChoiceLabel)
-						{
-							FHoudiniEngineString HoudiniEngineString(ParmChoices[ChoiceIdx].labelSH);
-							if (!HoudiniEngineString.ToFString(*ChoiceLabel))
-								return false;
-							//StringChoiceLabels.Add(TSharedPtr< FString >(ChoiceLabel));
-						}
-
-						// If this is a string choice list, we need to match name with corresponding selection label.
-						if (!bMatchedSelectionLabel && ChoiceValue->Equals(CurrentStringValue))
-						{
-							bMatchedSelectionLabel = true;
-							HoudiniParameterStringChoice->SetIntValue(ChoiceIdx);
-						}
+						HoudiniParameterStringChoice->SetDefaultValues();
 					}
-				}
-				else if (bFetchValueFromHoudini)
-				{
-					// We still need to match the string value to the label
-					HoudiniParameterStringChoice->UpdateIntValueFromString();
 				}
 			}
 		}
@@ -3122,8 +3045,8 @@ FHoudiniParameterTranslator::UploadParameterToHoudini(UHoudiniParameter* InParam
 				return false;
 
 			// Set the parameter's int value.
-			const int32 IntValueIndex = ChoiceParam->GetIntValueIndex();
-			const int32 IntValue = ChoiceParam->GetIntValue(IntValueIndex);
+			int SelectionIndex = ChoiceParam->GetChoiceSelection();
+			int IntValue = ChoiceParam->GetIntValues()[SelectionIndex];
 				
 			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValues(
 				FHoudiniEngine::Get().GetSession(),
@@ -3144,7 +3067,7 @@ FHoudiniParameterTranslator::UploadParameterToHoudini(UHoudiniParameter* InParam
 				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - StringChoice);
 
 				// Set the parameter's string value.
-				std::string ConvertedString = H_TCHAR_TO_UTF8(*(ChoiceParam->GetStringValue()));
+				std::string ConvertedString = H_TCHAR_TO_UTF8(*(ChoiceParam->GetSelectedValueAsString()));
 				HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmStringValue(
 					FHoudiniEngine::Get().GetSession(),
 					ChoiceParam->GetNodeId(), ConvertedString.c_str(), ChoiceParam->GetParmId(), 0), false);
@@ -3154,7 +3077,7 @@ FHoudiniParameterTranslator::UploadParameterToHoudini(UHoudiniParameter* InParam
 				TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - StringChoice - Int);
 
 				// Set the parameter's int value.
-				int32 IntValue = ChoiceParam->GetIntValueIndex();
+				int32 IntValue = ChoiceParam->GetChoiceSelection();
 				HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::SetParmIntValues(
 					FHoudiniEngine::Get().GetSession(),
 					ChoiceParam->GetNodeId(), &IntValue, ChoiceParam->GetValueIndex(), ChoiceParam->GetTupleSize()), false);

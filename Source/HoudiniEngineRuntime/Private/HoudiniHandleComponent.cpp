@@ -163,11 +163,14 @@ UHoudiniHandleParameter::Bind(TSharedPtr<FString> & OutValue, const char * CmpNa
 		if (Parameter->GetTupleSize() <= InTupleIdx)
 			InTupleIdx = 0;
 
-		auto Optional = ChoiceParameter->GetValue(InTupleIdx);
-		if (Optional.IsSet())
+		int Index = InTupleIdx;
+		if (Index == 0)
+			Index = ChoiceParameter->GetChoiceSelection();
+
+		const TArray<FString>& Values = ChoiceParameter->GetStringValues();
+		if (Values.IsValidIndex(Index))
 		{
-			TupleIndex = InTupleIdx;
-			OutValue = Optional.GetValue();
+			OutValue = MakeShareable(new FString(Values[Index]));
 			return true;
 		}
 	}
@@ -181,9 +184,7 @@ UHoudiniHandleParameter::Get(TSharedPtr<FString> DefaultValue) const
 	UHoudiniParameterChoice* ChoiceParameter = Cast<UHoudiniParameterChoice>(AssetParameter);
 	if (ChoiceParameter)
 	{
-		auto Optional = ChoiceParameter->GetValue(TupleIndex);
-		if (Optional.IsSet())
-			return Optional.GetValue();
+		return MakeShareable( new FString(ChoiceParameter->GetSelectedValueAsString()));
 	}
 
 	return DefaultValue;

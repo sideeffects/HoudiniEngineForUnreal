@@ -97,7 +97,7 @@ FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterChoice* Param, 
 	}
 	
 	FHoudiniPresetIntValues Values;
-	Values.Values.Add(Param->GetIntValueIndex() );
+	Values.Values.Add(Param->GetChoiceSelection() );
 
 	OutValues.Add(Param->GetParameterName(), Values);
 	OutValueStr = Values.ToString();
@@ -226,7 +226,7 @@ FHoudiniPresetHelpers::GetParameterValues(const UHoudiniParameterChoice* Param, 
 	}
 	
 	FHoudiniPresetStringValues Values;
-	Values.Values.Add(Param->GetStringValue() );
+	Values.Values.Add(Param->GetSelectedValueAsString() );
 
 	OutValues.Add(Param->GetParameterName(), Values);
 	OutValueStr = Values.ToString();
@@ -450,7 +450,7 @@ FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetIntValues&
 	
 	if (Values.Values.Num() > 0)
 	{
-		Parm->SetIntValue( Values.Values[0] );
+		Parm->SetChoiceSelection( Values.Values[0] );
 		Parm->MarkChanged(true);
 	}
 }
@@ -564,7 +564,15 @@ FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetStringValu
 	
 	if (Values.Values.Num() > 0)
 	{
-		Parm->SetStringValue( Values.Values[0] );
+		int Index = Parm->GetStringValues().Find(Values.Values[0]);
+		if (Index != INDEX_NONE)
+		{
+			Parm->SetChoiceSelection(Index);
+		}
+		else
+		{
+			HOUDINI_LOG_ERROR(TEXT("Cannot apply preset choice %s to parameter %s as it does not exist."), *Values.Values[0] , *Parm->GetParameterName());
+		}
 		Parm->MarkChanged(true);
 	}
 }

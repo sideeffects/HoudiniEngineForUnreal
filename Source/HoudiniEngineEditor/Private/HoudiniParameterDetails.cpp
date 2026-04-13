@@ -1885,12 +1885,14 @@ FHoudiniParameterView::CreateWidgetChoice(
 			if(!NewChoice.IsValid())
 				return;
 
+			const int32 NewSelection = ChoiceParams[0]->GetLabels().Find(*NewChoice);
+			if (NewSelection == INDEX_NONE)
+				return;
+
 			FScopedTransaction Transaction(
 				TEXT(HOUDINI_MODULE_RUNTIME),
 				LOCTEXT("HoudiniParameterChoiceChange", "Houdini Parameter Choice: Changing selection"),
 				ChoiceParams[0]->GetOuter());
-
-			const int32 NewIntValue = ChoiceParams[0]->GetIntValueFromLabel(*NewChoice);
 
 			bool bChanged = false;
 			for(int Idx = 0; Idx < ChoiceParams.Num(); Idx++)
@@ -1899,11 +1901,10 @@ FHoudiniParameterView::CreateWidgetChoice(
 					continue;
 
 				ChoiceParams[Idx]->Modify();
-				if(ChoiceParams[Idx]->SetIntValue(NewIntValue))
+				if(ChoiceParams[Idx]->SetChoiceSelection(NewSelection))
 				{
 					bChanged = true;
 					ChoiceParams[Idx]->MarkChanged(true);
-					ChoiceParams[Idx]->UpdateStringValueFromInt();
 				}
 			}
 
@@ -1915,12 +1916,12 @@ FHoudiniParameterView::CreateWidgetChoice(
 		};
 
 	// 
-	MainParam->UpdateChoiceLabelsPtr();
-	TArray<TSharedPtr<FString>>* OptionSource = MainParam->GetChoiceLabelsPtr();
-	TSharedPtr<FString> IntialSelec;
-	if(OptionSource && OptionSource->IsValidIndex(MainParam->GetIntValueIndex()))
+	auto ChoiceLabels = MainParam->GetSharedLabelsList();
+
+	TSharedPtr<FString> InitialSelection;
+	if(ChoiceLabels->IsValidIndex(MainParam->GetChoiceSelection()))
 	{
-		IntialSelec = (*OptionSource)[MainParam->GetIntValueIndex()];
+		InitialSelection = (*ChoiceLabels)[MainParam->GetChoiceSelection()];
 	}
 
 	TSharedRef< SHorizontalBox > HorizontalBox = SNew(SHorizontalBox);
@@ -1928,8 +1929,8 @@ FHoudiniParameterView::CreateWidgetChoice(
 	HorizontalBox->AddSlot().Padding(2, 2, 5, 2)
 		[
 			SAssignNew(ComboBox, SComboBox< TSharedPtr< FString > >)
-				.OptionsSource(OptionSource)
-				.InitiallySelectedItem(IntialSelec)
+				.OptionsSource(ChoiceLabels)
+				.InitiallySelectedItem(InitialSelection)
 				.OnGenerateWidget_Lambda(
 					[](TSharedPtr< FString > InItem)
 					{
@@ -1942,7 +1943,7 @@ FHoudiniParameterView::CreateWidgetChoice(
 					})
 				[
 					SNew(STextBlock)
-						.Text_Lambda([MainParam]() { return FText::FromString(MainParam->GetLabel()); })
+						.Text_Lambda([MainParam]() { return FText::FromString(MainParam->GetSelectedItemLabel()); })
 						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				]
 		];

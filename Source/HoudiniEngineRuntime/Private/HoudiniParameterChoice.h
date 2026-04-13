@@ -43,75 +43,50 @@ public:
 	static UHoudiniParameterChoice * Create(
 		UObject* Outer,
 		const FString& ParamName,
-		const EHoudiniParameterType& ParmType);
+		EHoudiniParameterType ParmType);
 
-	virtual void BeginDestroy() override;
+	virtual void PostLoad();
 
-	//------------------------------------------------------------------------------------------------
-	// Accessors
-	//------------------------------------------------------------------------------------------------
+	bool SetChoiceSelection(int32 InSelectionIndex);
+	int GetChoiceSelection() const;
 
-	const int32		GetIntValueIndex() const		{ return IntValue; };
-	const FString	GetStringValue() const	{ return StringValue; };	
-	const int32		GetNumChoices() const	{ return StringChoiceLabels.Num(); };
-	const FString	GetLabel() const		{ return StringChoiceLabels.IsValidIndex(IntValue) ? StringChoiceLabels[IntValue] : FString(); };
-	const bool		IsStringChoice() const	{ return ParmType == EHoudiniParameterType::StringChoice; };
-	const int32		GetIntValue(int32 InIntValueIndex)	{ return IntValuesArray.IsValidIndex(InIntValueIndex) ? IntValuesArray[InIntValueIndex] : IntValue; }
-	void			SetIntValueArray(int32 Index, int32 Value) { if (IntValuesArray.IsValidIndex(Index)) IntValuesArray[Index] = Value; }
+	int32 GetNumChoices() const;
 
-	bool		    IsDefault() const override;
+	bool IsChildOfRamp() const;
+	void SetIsChildOfRamp();
+	bool IsStringChoice() const;
 
-	TOptional<TSharedPtr<FString>> GetValue(int32 Idx) const;
-	
-	const int32		GetIntValueFromLabel(const FString& InSelectedLabel) const;	
+	// Accessors.
+	const TArray<int>& GetIntValues() const;
+	const TArray<FString>& GetStringValues() const;
+	const TArray<FString>& GetLabels() const;
+	const TArray<TSharedPtr<FString>>* GetSharedLabelsList() const;
 
-	FString*		GetStringChoiceValueAt(const int32& InAtIndex);
-	FString*		GetStringChoiceLabelAt(const int32& InAtIndex);
+	FString GetSelectedItemLabel() const;
+	FString	GetSelectedValueAsString() const;
 
-	bool			IsChildOfRamp() const { return bIsChildOfRamp; };
-	
-	// Returns the ChoiceLabel SharedPtr array, used for UI only	
-	TArray<TSharedPtr<FString>>* GetChoiceLabelsPtr() { return &ChoiceLabelsPtr; };
+	// Functions for setting choices. This is done all at once so that the currently selected item
+	// can be updated even if the current choice changed position in the array.
+	void SetIntChoices(const TArray<FString>&Labels, const TArray<int>& Values);
+	void SetStringChoices(const TArray<FString>& Labels, const TArray<FString>& Values);
 
-	//------------------------------------------------------------------------------------------------
-	// Mutators
-	//------------------------------------------------------------------------------------------------
-	bool			SetIntValue(const int32& InIntValue);
-	bool			SetStringValue(const FString& InStringValue);
-	void			SetNumChoices(const int32& InNumChoices);
-
-	// For string choices only, update the int values from the string value
-	bool			UpdateIntValueFromString();
-	// For int choices only, update the string value from the int value
-	bool			UpdateStringValueFromInt();
-	// Update the pointers to the ChoiceLabels
-	bool			UpdateChoiceLabelsPtr();
-
-	void			SetDefaultIntValue() { DefaultIntValue = IntValue; };
-	void			SetDefaultStringValue() { DefaultStringValue = StringValue; };
-
-	void			SetIsChildOfRamp() { bIsChildOfRamp = true; };
-
-	void			RevertToDefault() override;
-
-	int32 GetIndexFromValueArray(int32 Index) const;
+	// Default handling.
+	void SetDefaultValues();
+	virtual void RevertToDefault() override;
+	virtual bool IsDefault() const override;
 
 protected:
+	void MakeSharedLabelsList();
 
-	// Current int value for this property.
-	// More of an index to IntValuesArray
+	// IntValue is badly named. It;s the currently Selected Choice Number, an Index NOT a value.
 	UPROPERTY()
 	int32 IntValue;
 
-	// Default int value for this property, assigned at creating the parameter.
+	// Default int value for this property, assigned at creating the parameter. Taken from IntValuesArray[] 
 	UPROPERTY()
 	int32 DefaultIntValue;
 
-	// Current string value for this property
-	UPROPERTY()
-	FString StringValue;
-
-	// Default string value for this property, assigned at creating the parameter.
+	// Default int value for this property, assigned at creating the parameter. Taken from StringChoiceValues[] 
 	UPROPERTY()
 	FString DefaultStringValue;
 
@@ -124,9 +99,6 @@ protected:
 	UPROPERTY()
 	TArray<FString> StringChoiceLabels;
 
-	// Array of SharedPtr pointing to this parameter's label, used for UI only
-	TArray<TSharedPtr<FString>> ChoiceLabelsPtr;
-
 	UPROPERTY()
 	bool bIsChildOfRamp;
 
@@ -135,5 +107,6 @@ protected:
 	UPROPERTY()
 	TArray<int32> IntValuesArray;
 	
+	mutable TArray<TSharedPtr<FString>> SharedLabelsList;
 
 };

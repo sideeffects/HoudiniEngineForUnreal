@@ -1192,7 +1192,7 @@ UHoudiniPublicAPIAssetWrapper::SetIntParameterValue_Implementation(FName InParam
 			return false;
 		}
 
-		bDidChangeValue = ChoiceParam->SetIntValue(InValue);
+		bDidChangeValue = ChoiceParam->SetChoiceSelection(InValue);
 	}
 	else if (ParamType == EHoudiniParameterType::MultiParm)
 	{
@@ -1310,7 +1310,7 @@ UHoudiniPublicAPIAssetWrapper::GetIntParameterValue_Implementation(FName InParam
 			return false;
 		}
 
-		OutValue = ChoiceParam->GetIntValue(ChoiceParam->GetIntValueIndex());
+		OutValue = ChoiceParam->GetIntValues()[ChoiceParam->GetChoiceSelection()];
 		return true;
 	}
 	else if (ParamType == EHoudiniParameterType::MultiParm)
@@ -1524,7 +1524,17 @@ UHoudiniPublicAPIAssetWrapper::SetStringParameterValue_Implementation(FName InPa
 			return false;
 		}
 
-		bDidChangeValue = ChoiceParam->SetStringValue(InValue);
+		int Index = ChoiceParam->GetStringValues().Find(InValue);
+		if (Index != INDEX_NONE)
+		{
+			bDidChangeValue = ChoiceParam->SetChoiceSelection(Index);
+		}
+		else
+		{
+			HOUDINI_LOG_ERROR(TEXT("Cannot apply preset choice %s to parameter %s as it does not exist."), *InValue, *ChoiceParam->GetParameterName());
+			bDidChangeValue = false;
+		}
+
 	}
 	else if (ParamType == EHoudiniParameterType::File || ParamType == EHoudiniParameterType::FileDir ||
 		ParamType == EHoudiniParameterType::FileGeo || ParamType == EHoudiniParameterType::FileImage)
@@ -1620,7 +1630,7 @@ UHoudiniPublicAPIAssetWrapper::GetStringParameterValue_Implementation(FName InPa
 			return false;
 		}
 
-		OutValue = ChoiceParam->GetStringValue();
+		OutValue = ChoiceParam->GetSelectedValueAsString();
 		return true;
 	}
 	else if (ParamType == EHoudiniParameterType::File || ParamType == EHoudiniParameterType::FileDir ||
