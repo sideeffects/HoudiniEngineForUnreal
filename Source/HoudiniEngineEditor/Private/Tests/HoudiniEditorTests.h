@@ -28,6 +28,7 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 
+#include "Runtime/Launch/Resources/Version.h"
 #include "CoreMinimal.h"
 
 // Disable landscape tests due to Unreal 5.6 - potentially fixed on 5.7?

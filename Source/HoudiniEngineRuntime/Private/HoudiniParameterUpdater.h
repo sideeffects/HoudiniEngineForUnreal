@@ -26,6 +26,8 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+
 class UHoudiniCookable;
 class UHoudiniParameterMultiParm;
 

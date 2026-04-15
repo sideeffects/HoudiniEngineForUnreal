@@ -28,6 +28,9 @@
 #include "HoudiniPCGManagedResource.generated.h"
 
 class UHoudiniPCGComponent;
+class UPCGComponent;
+class UPCGGraphInterface;
+enum class EPCGChangeType : uint32;
 
 UCLASS(BlueprintType)
 class HOUDINIENGINE_API UHoudiniPCGManagedResource : public UPCGManagedResource
@@ -70,4 +73,3 @@ public:
 	bool bInvalidateResource = false;
 
 };
-

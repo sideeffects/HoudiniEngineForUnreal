@@ -30,6 +30,8 @@
 #endif
 
 #include "PCGContext.h"
+#include "PCGElement.h"
+#include "PCGPin.h"
 
 #if defined(__clang__)
 #pragma clang diagnostic pop
@@ -40,6 +42,11 @@
 #include "HoudiniCookable.h"
 #include "HoudiniPCGCookable.h"
 #include "HoudiniPCGNode.generated.h"
+
+struct FPropertyChangedEvent;
+class UPCGNode;
+class UPCGPin;
+class UHoudiniPCGManagedResource;
 
 UENUM()
 enum class EHoudiniPCGOutputType : uint8
@@ -189,4 +196,3 @@ protected:
 	UHoudiniPCGManagedResource* GetManagedResource(FPCGContext* Context) const;
 
 };
-

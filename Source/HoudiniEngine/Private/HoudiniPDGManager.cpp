@@ -815,7 +815,9 @@ FHoudiniPDGManager::Update()
 		for(const FString& Line : Lines)
 		{
 			if (!Line.IsEmpty())
-			HOUDINI_COMMANDLET_MESSAGE(TEXT("%s"), *Line);
+			{
+				HOUDINI_COMMANDLET_MESSAGE(TEXT("%s"), *Line);
+			}
 		}
 	}
 

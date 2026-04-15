@@ -39,6 +39,7 @@
 #include <HoudiniParameterButton.h>
 #include "HoudiniParameterLabel.h"
 #include "HoudiniParameterFolder.h"
+#include "Widgets/Layout/SSplitter.h"
 #include "HoudiniParameterDetails.generated.h"
 
 struct FHoudiniParameterView;
