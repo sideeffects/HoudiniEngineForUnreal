@@ -9418,19 +9418,6 @@ FHoudiniEngineUtils::UpdateImageDataOnCookable(UHoudiniCookable* InHC)
 	if (!InHC->ImageData->bIsCOPHDA)
 		return;
 
-	/*
-	// Make sure our COP HDA's parent is a COPnet
-	HAPI_NodeInfo ParentNodeInfo;
-	FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), NodeInfo.parentId, &ParentNodeInfo);
-
-	FString ParentName;
-	if (FHoudiniEngineString::ToFString(ParentNodeInfo.nameSH, ParentName))
-	{
-		if (ParentName != TEXT("copnet"))
-			HOUDINI_LOG_WARNING(TEXT("COP HDA's parent is not a COP net! Bad things will happen!"));
-	}
-	*/
-
 	bool bApplyResolutionOverride = false;
 	FIntPoint ResOverride = FIntPoint::ZeroValue;
 	if (InHC->ImageData->bOverrideDefaultResolution)
@@ -9506,26 +9493,41 @@ FHoudiniEngineUtils::UpdateImageDataOnCookable(UHoudiniCookable* InHC)
 	}
 
 	// Precision
-	bool b32BitsPrecisionOverride = InHC->ImageData->bUse32BitsPrecision;
-
-	// see if the HDA node has pixel scale override attributes
-	TArray<int> Data;
-	FHoudiniHapiAccessor Accessor(InHC->NodeId, 0, "unreal_image_use_32bits_precision");
-	Accessor.bCanBeArray = false;
-	bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data);
-	if (bSuccess && Data.Num() > 0)
+	// This is controlled via the image data format property
+	// 0 auto: not overriden
+	// 1 int8: not overriden
+	// 2 float16: overriden to 16bits
+	// 3 float32: overriden to 32bits
+	bool bOverridePrecision = false;
+	int PrecisionOverrideValue = 1;
+	if (InHC->ImageData->ImageDataFormat == 2
+		|| InHC->ImageData->ImageDataFormat == 3)
 	{
-		b32BitsPrecisionOverride = (bool)Data[0];
+		bOverridePrecision = true;
+		PrecisionOverrideValue = InHC->ImageData->ImageDataFormat == 2 ? 0 : 1;
+	}
+	else
+	{
+		// See if the HDA has a data format override attribute
+		TArray<int> Data;
+		FHoudiniHapiAccessor Accessor(InHC->NodeId, 0, "unreal_image_data_format");
+		Accessor.bCanBeArray = false;
+		bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data);
+		if (bSuccess && Data.Num() > 0)
+		{
+			bOverridePrecision = true;
+			PrecisionOverrideValue = Data[0] == 2 ? 0 : 1;
+		}
 	}
 
 	// setprecision, precision
 	Result = FHoudiniApi::SetParmIntValue(
 		FHoudiniEngine::Get().GetSession(),
-		NodeInfo.parentId, "setprecision", 0, b32BitsPrecisionOverride ? 0 : 1);
+		NodeInfo.parentId, "setprecision", 0, bOverridePrecision ? 1 : 0);
 
 	Result = FHoudiniApi::SetParmIntValue(
 		FHoudiniEngine::Get().GetSession(),
-		NodeInfo.parentId, "precision", 0, b32BitsPrecisionOverride);
+		NodeInfo.parentId, "precision", 0, PrecisionOverrideValue);
 
 	// Handle other parameters as well?
 	// setborder, border

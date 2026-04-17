@@ -699,7 +699,15 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 
 			case EHoudiniOutputType::Cop:
 			{
-				FHoudiniTextureTranslator::ProcessCopOutput(CurOutput, PackageParams);
+				int ImageDataFormat = OuterHC ? OuterHC->GetImageData()->ImageDataFormat : 0;
+				if(!OuterHC)
+				{
+					// TODO: Should not be needed
+					UHoudiniCookable* HC = Cast<UHoudiniCookable>(CurOutput->GetOuter());
+					ImageDataFormat = HC ? HC->GetImageData()->ImageDataFormat : 0;
+				}
+
+				FHoudiniTextureTranslator::ProcessCopOutput(CurOutput, PackageParams, ImageDataFormat);
 
 				NumTextureOutputs += CurOutput->GetOutputObjects().Num();
 				for (auto& It : CurOutput->GetOutputObjects())

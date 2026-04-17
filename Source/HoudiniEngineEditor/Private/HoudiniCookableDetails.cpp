@@ -2840,15 +2840,16 @@ FHoudiniCookableDetails::CreateImageDetails(
 		]
 	];
 
+	/*
 	//
-	// bUse32BitsPrecision
+	// bUse16BitsPrecision
 	//
 	{
 		ProxyGrp.AddWidgetRow()
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(FText::FromString("Use 32 Bits precision"))
+			.Text(FText::FromString("Use 16 Bits precision"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
@@ -2869,7 +2870,7 @@ FHoudiniCookableDetails::CreateImageDetails(
 					if (!ImageData)
 						return ECheckBoxState::Unchecked;
 
-					return ImageData->bUse32BitsPrecision ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+					return ImageData->bUse16BitsPrecision ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 				})
 				.OnCheckStateChanged_Lambda([MainCookable, InCookables](ECheckBoxState NewState)
 				{
@@ -2878,12 +2879,12 @@ FHoudiniCookableDetails::CreateImageDetails(
 
 					const bool bNewState = NewState == ECheckBoxState::Checked;
 					if (!MainCookable->GetImageData() 
-						|| MainCookable->GetImageData()->bUse32BitsPrecision == bNewState)
+						|| MainCookable->GetImageData()->bUse16BitsPrecision == bNewState)
 						return;
 
 					FScopedTransaction Transaction(
 						TEXT(HOUDINI_MODULE_EDITOR),
-						LOCTEXT("HoudiniImageOverridePxlScale", "HoudiniImage Properties: Changed bUse32BitsPrecision"),
+						LOCTEXT("HoudiniImage16Bits", "HoudiniImage Properties: Changed bUse16BitsPrecision"),
 						MainCookable->GetOuter());
 
 					for (auto CurCookable : InCookables)
@@ -2892,11 +2893,11 @@ FHoudiniCookableDetails::CreateImageDetails(
 							continue;
 
 						UCookableImageData* ImageData = CurCookable->GetImageData();
-						if (!ImageData || ImageData->bUse32BitsPrecision == bNewState)
+						if (!ImageData || ImageData->bUse16BitsPrecision == bNewState)
 							continue;
 
 						CurCookable->Modify();
-						ImageData->bUse32BitsPrecision = bNewState;
+						ImageData->bUse16BitsPrecision = bNewState;
 
 						// Mark that cookable for recook
 						// TODO: Check cookable has texture output 
@@ -2904,6 +2905,83 @@ FHoudiniCookableDetails::CreateImageDetails(
 							CurCookable->MarkAsNeedCook();
 					}
 				})
+			]
+		];
+	}
+	*/
+	//
+	// ImageDataFormat
+	//
+	{
+		ProxyGrp.AddWidgetRow()
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString("Image Data Format"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.Padding(2, 2, 5, 2)
+			.AutoHeight()
+			[
+				SNew(SComboBox<TSharedPtr<FString>>)
+				//.IsEnabled(HoudiniSplineComponent->GetCurveMethod() == EHoudiniCurveMethod::Breakpoints)
+				.OptionsSource(FHoudiniEngineEditor::Get().GetHoudiniEngineImageDataFormatsLabels())
+				.InitiallySelectedItem((*FHoudiniEngineEditor::Get().GetHoudiniEngineImageDataFormatsLabels())[(int32)MainCookable->GetImageData()->ImageDataFormat])
+				.OnGenerateWidget_Lambda([](TSharedPtr<FString> ChoiceEntry)
+				{
+					FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
+						return SNew(STextBlock)
+						.Text(ChoiceEntryText)
+						.ToolTipText(ChoiceEntryText)
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+				})
+				.OnSelectionChanged_Lambda(
+				[MainCookable, InCookables](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
+				{
+					if(!NewChoice.IsValid())
+						return;
+
+					const int NewFormat =
+						FHoudiniEngineEditor::Get().StringToImageDataFormat(*NewChoice.Get());
+
+					for(auto& CurCookable : InCookables)
+					{
+						if (!IsValidWeakPointer(CurCookable))
+							continue;
+
+						UCookableImageData* ImageData = CurCookable->GetImageData();
+						if (!ImageData || ImageData->ImageDataFormat == NewFormat)
+							continue;
+
+						CurCookable->Modify();
+						ImageData->ImageDataFormat = NewFormat;
+
+						// Mark that cookable for recook
+						// TODO: Check cookable has texture output 
+						if (ImageData->bIsCOPHDA)
+							CurCookable->MarkAsNeedCook();
+					}
+
+					//if(MainCookable.IsValid())
+					//	FHoudiniEngineUtils::UpdateEditorProperties(true);
+				})
+				[
+					SNew(STextBlock)
+					.Text_Lambda([MainCookable]()
+					{
+						if(!IsValidWeakPointer(MainCookable))
+							return FText();
+
+						return FText::FromString(
+							FHoudiniEngineEditor::Get().GetStringFromHoudiniImageDataFormat(MainCookable->GetImageData()->ImageDataFormat));
+					})
+					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
 			]
 		];
 	}

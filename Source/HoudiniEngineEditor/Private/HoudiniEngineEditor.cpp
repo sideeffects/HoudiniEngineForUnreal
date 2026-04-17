@@ -1061,6 +1061,13 @@ FHoudiniEngineEditor::InitializeWidgetResource()
 	HoudiniEngineBakeActorOptionsLabels.Add(MakeShareable(new FString(FHoudiniEngineEditor::GetStringfromActorBakeOption(EHoudiniEngineActorBakeOption::OneActorPerComponent))));
 	HoudiniEngineBakeActorOptionsLabels.Add(MakeShareable(new FString(FHoudiniEngineEditor::GetStringfromActorBakeOption(EHoudiniEngineActorBakeOption::OneActorPerHDA))));
 
+	// Choice labels for image data types
+	HoudiniImageDataFormatOptionsLabels.Reset();
+	HoudiniImageDataFormatOptionsLabels.Add(MakeShareable(new FString(TEXT("Auto"))));
+	HoudiniImageDataFormatOptionsLabels.Add(MakeShareable(new FString(TEXT("Int8"))));
+	HoudiniImageDataFormatOptionsLabels.Add(MakeShareable(new FString(TEXT("Float16"))));
+	HoudiniImageDataFormatOptionsLabels.Add(MakeShareable(new FString(TEXT("Float32"))));
+
 	static FString IconsDir = FHoudiniEngineUtils::GetHoudiniEnginePluginDir() / TEXT("Resources/Icons/");
 
 	// Houdini Logo Brush
@@ -1920,6 +1927,46 @@ FHoudiniEngineEditor::GetStringfromActorBakeOption(EHoudiniEngineActorBakeOption
 		break;
 	}
 	return Str;
+}
+
+FString
+FHoudiniEngineEditor::GetStringFromHoudiniImageDataFormat(int ImageDataFormat)
+{
+	FString Str;
+	switch (ImageDataFormat)
+	{
+	case 0:
+		Str = "Auto";
+		break;
+
+	case 1:
+		Str = "Int8";
+		break;
+
+	case 2:
+		Str = "Float16";
+		break;
+
+	case 3:
+		Str = "Float32";
+		break;
+	}
+
+	return Str;
+}
+
+int
+FHoudiniEngineEditor::StringToImageDataFormat(const FString& InString)
+{
+	if (InString == "Auto")
+		return  0;
+	if (InString == "Int8")
+		return  1;
+	if (InString == "Float16")
+		return  2;
+	if (InString == "Float32")
+		return  3;
+	return 0;
 }
 
 

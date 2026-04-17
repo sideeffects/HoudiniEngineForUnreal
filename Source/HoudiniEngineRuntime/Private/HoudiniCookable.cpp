@@ -281,11 +281,10 @@ UCookableImageData::UCookableImageData(const FObjectInitializer& ObjectInitializ
 	, bIsCOPHDA(false)
 	, bOverrideDefaultResolution(false)
 	, bOverridePixelScale(false)
-	, bUse32BitsPrecision(true)
+	, ImageDataFormat(0)
 {
 	ResolutionOverride = FIntPoint(1024, 1024);
 	PixelScale = 1.0;
-	//OutputFileFormat = FString();
 }
 
 //

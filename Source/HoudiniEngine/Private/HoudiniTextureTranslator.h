@@ -82,7 +82,7 @@ public:
 	static bool HapiExtractImage(
 		const HAPI_NodeId InMaterialNodeId,
 		const char* InPlaneType,
-		const HAPI_ImageDataFormat InImageDataFormat,
+		//const HAPI_ImageDataFormat InImageDataFormat,
 		const HAPI_ImagePacking InImagePacking,
 		const float InGamma,
 		TArray<char>& OutImageBuffer);
@@ -98,7 +98,7 @@ public:
 	static bool CreateTexture(
 		const HAPI_NodeId InMaterialNodeId,
 		const char* InPlaneType,
-		HAPI_ImageDataFormat InImageDataFormat,
+		//HAPI_ImageDataFormat InImageDataFormat,
 		HAPI_ImagePacking InImagePacking,
 		float InGamma,
 		UTexture2D*& OutTexture,
@@ -122,7 +122,8 @@ public:
 
 	static bool ProcessCopOutput(
 		UHoudiniOutput* InOutput,
-		const FHoudiniPackageParams& InPackageParams);
+		const FHoudiniPackageParams& InPackageParams,
+		int ImageDataFormat);
 
 	static UMaterialInterface* CreateDefaultCopMaterialForTexture(
 		UTexture2D* InTexture,
@@ -133,4 +134,8 @@ public:
 	static FCreateTexture2DParameters GetTextureParametersFromType(const EHoudiniTextureType& InType);
 
 	static FString GetTextureTypeString(const EHoudiniTextureType& InType);
+
+	static bool IsHDRFromName(const FString& Name);
+
+	static bool Is16BitCOP(const HAPI_NodeId& InNodeId);
 };

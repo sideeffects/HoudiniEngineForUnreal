@@ -1151,7 +1151,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				PlaneType,
-				HAPI_IMAGE_DATA_INT8,
+				//HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
 				2.2,
 				TextureDiffuse,
@@ -1164,6 +1164,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 
 			if (bTextureCreated)
 			{
+				bool bRGB32Texture = TextureDiffuse ? TextureDiffuse->CompressionSettings == TC_HDR_F32 : false;
 				FHoudiniMaterialTranslator::CreateTextureExpression(
 					TextureDiffuse,
 					ExpressionTextureSample,
@@ -1172,7 +1173,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 					Material,
 					ObjectFlag,
 					GeneratingParameterNameDiffuseTexture,
-					SAMPLERTYPE_Color);
+					bRGB32Texture ? SAMPLERTYPE_LinearColor : SAMPLERTYPE_Color);
 			}
 		}
 	}
@@ -1254,7 +1255,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				PlaneType,
-				HAPI_IMAGE_DATA_INT8,
+				//HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
 				1.0,
 				TextureOpacity,
@@ -1539,11 +1540,11 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-				HAPI_IMAGE_DATA_INT8,
+				//HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
 				1.0,
 				Texture,
-				NodePath,				
+				NodePath,
 				HAPI_UNREAL_PACKAGE_META_GENERATED_TEXTURE_NORMAL,
 				InPackageParams,
 				CreateTexture2DParameters,
@@ -1610,7 +1611,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 				bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 					InMaterialInfo.nodeId,
 					HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL,
-					HAPI_IMAGE_DATA_INT8,
+					//HAPI_IMAGE_DATA_INT8,
 					HAPI_IMAGE_PACKING_RGB,
 					1.0,
 					Texture,
@@ -1714,7 +1715,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 					InMaterialInfo.nodeId,
 					PlaneType,
-					HAPI_IMAGE_DATA_INT8,
+					//HAPI_IMAGE_DATA_INT8,
 					ImagePacking,
 					1.0,
 					Texture,
@@ -1730,7 +1731,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 					InMaterialInfo.nodeId,
 					HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-					HAPI_IMAGE_DATA_INT8,
+					//HAPI_IMAGE_DATA_INT8,
 					HAPI_IMAGE_PACKING_RGBA,
 					1.0,
 					Texture,
@@ -1871,7 +1872,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 					InMaterialInfo.nodeId,
 					PlaneType,
-					HAPI_IMAGE_DATA_INT8,
+					//HAPI_IMAGE_DATA_INT8,
 					ImagePacking,
 					1.0,
 					Texture,
@@ -1887,7 +1888,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 					InMaterialInfo.nodeId,
 					HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-					HAPI_IMAGE_DATA_INT8,
+					//HAPI_IMAGE_DATA_INT8,
 					HAPI_IMAGE_PACKING_RGBA,
 					1.0,
 					Texture,
@@ -1981,7 +1982,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-				HAPI_IMAGE_DATA_INT8,
+				//HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
 				1.0,
 				Texture,
@@ -2081,7 +2082,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-				HAPI_IMAGE_DATA_INT8,
+				//HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
 				1.0,
 				Texture,
@@ -2181,7 +2182,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-				HAPI_IMAGE_DATA_INT8,
+				//HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
 				1.0,
 				Texture,
@@ -2336,7 +2337,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				PlaneType,
-				HAPI_IMAGE_DATA_INT8,
+				//HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
 				2.2,
 				TextureEmissive,
@@ -2349,6 +2350,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 
 			if (bTextureCreated)
 			{
+				bool bRGB32Texture = TextureEmissive ? TextureEmissive->CompressionSettings == TC_HDR_F32 : false;
 				FHoudiniMaterialTranslator::CreateTextureExpression(
 					TextureEmissive,
 					ExpressionTextureSample,
@@ -2357,7 +2359,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 					Material,
 					ObjectFlag,
 					GeneratingParameterNameEmissiveTexture,
-					SAMPLERTYPE_Color);
+					bRGB32Texture ? SAMPLERTYPE_LinearColor : SAMPLERTYPE_Color);
 			}
 		}
 	}

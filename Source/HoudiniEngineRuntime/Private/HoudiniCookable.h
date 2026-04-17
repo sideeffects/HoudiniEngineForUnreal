@@ -443,8 +443,9 @@ public:
 	UPROPERTY()
 	float PixelScale;
 
+	// 0 INT8, 1 FLOAT16, 2 FLOAT32
 	UPROPERTY()
-	bool bUse32BitsPrecision;
+	int ImageDataFormat;
 
 	//UPROPERTY()
 	//FString OutputFileFormat;
