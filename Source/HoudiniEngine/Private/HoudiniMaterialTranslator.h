@@ -401,7 +401,8 @@ protected:
 		const FHoudiniPackageParams& InPackageParams,
 		UMaterial* Material,
 		TArray<UPackage*>& OutPackages,
-		int32& MaterialNodeY);
+		int32& MaterialNodeY,
+		bool bHDR);
 
 	static bool CreateMaterialComponentNormal(
 		const HAPI_NodeId& InAssetId,
@@ -410,7 +411,8 @@ protected:
 		const FHoudiniPackageParams& InPackageParams,
 		UMaterial* Material,
 		TArray<UPackage*>& OutPackages,
-		int32& MaterialNodeY);
+		int32& MaterialNodeY,
+		bool bHDR);
 
 	static bool CreateMaterialComponentSpecular(
 		const HAPI_NodeId& InAssetId,
@@ -419,7 +421,8 @@ protected:
 		const FHoudiniPackageParams& InPackageParams,
 		UMaterial* Material,
 		TArray<UPackage*>& OutPackages,
-		int32& MaterialNodeY);
+		int32& MaterialNodeY,
+		bool bHDR);
 
 	static bool CreateMaterialComponentRoughness(
 		const HAPI_NodeId& InAssetId,
@@ -428,7 +431,8 @@ protected:
 		const FHoudiniPackageParams& InPackageParams,
 		UMaterial* Material,
 		TArray<UPackage*>& OutPackages,
-		int32& MaterialNodeY);
+		int32& MaterialNodeY,
+		bool bHDR);
 
 	static bool CreateMaterialComponentMetallic(
 		const HAPI_NodeId& InAssetId,
@@ -437,7 +441,8 @@ protected:
 		const FHoudiniPackageParams& InPackageParams,
 		UMaterial* Material,
 		TArray<UPackage*>& OutPackages,
-		int32& MaterialNodeY);
+		int32& MaterialNodeY,
+		bool bHDR);
 
 	static bool CreateMaterialComponentEmissive(
 		const HAPI_NodeId& InAssetId,
@@ -446,7 +451,8 @@ protected:
 		const FHoudiniPackageParams& InPackageParams,
 		UMaterial* Material,
 		TArray<UPackage*>& OutPackages,
-		int32& MaterialNodeY);
+		int32& MaterialNodeY,
+		bool bHDR);
 
 	static bool CreateMaterialComponentOpacity(
 		const HAPI_NodeId& InAssetId,
@@ -455,7 +461,8 @@ protected:
 		const FHoudiniPackageParams& InPackageParams,
 		UMaterial* Material,
 		TArray<UPackage*>& OutPackages,
-		int32& MaterialNodeY);
+		int32& MaterialNodeY,
+		bool bHDR);
 
 	static bool CreateMaterialComponentOpacityMask(
 		const HAPI_NodeId& InAssetId,
@@ -464,7 +471,8 @@ protected:
 		const FHoudiniPackageParams& InPackageParams,
 		UMaterial* Material,
 		TArray<UPackage*>& OutPackages,
-		int32& MaterialNodeY);
+		int32& MaterialNodeY,
+		bool bHDR);
 
 	static bool CreateMaterialComponentDisplacement(
 		const HAPI_NodeId& InAssetId,
@@ -473,7 +481,8 @@ protected:
 		const FHoudiniPackageParams& InPackageParams,
 		UMaterial* Material,
 		TArray<UPackage*>& OutPackages,
-		int32& MaterialNodeY);
+		int32& MaterialNodeY,
+		bool bHDR);
 
 	static bool CreateMaterialComponentOcclusion(
 		const HAPI_NodeId& InAssetId,
@@ -482,7 +491,8 @@ protected:
 		const FHoudiniPackageParams& InPackageParams,
 		UMaterial* Material,
 		TArray<UPackage*>& OutPackages,
-		int32& MaterialNodeY);
+		int32& MaterialNodeY,
+		bool bHDR);
 
 public:
 

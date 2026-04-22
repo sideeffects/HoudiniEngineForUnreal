@@ -98,7 +98,7 @@ public:
 	static bool CreateTexture(
 		const HAPI_NodeId InMaterialNodeId,
 		const char* InPlaneType,
-		//HAPI_ImageDataFormat InImageDataFormat,
+		HAPI_ImageDataFormat InImageDataFormat,
 		HAPI_ImagePacking InImagePacking,
 		float InGamma,
 		UTexture2D*& OutTexture,

@@ -330,6 +330,10 @@
 // PDG Attributes
 #define HAPI_UNREAL_ATTRIB_PDG_ASSET                        "unreal_pdg_asset"
 
+// COP Attributes
+#define HAPI_UNREAL_ATTRIB_HDR_TEXTURE                      "unreal_hdr_texture"
+#define HAPI_UNREAL_ATTRIB_HDR_TEXTURE_CHANNEL              "unreal_hdr_texture_channel"
+
 // Geometry Node
 #define HAPI_UNREAL_PARAM_TRANSLATE							"t"
 #define HAPI_UNREAL_PARAM_ROTATE							"r"

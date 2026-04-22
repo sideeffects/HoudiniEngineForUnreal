@@ -783,7 +783,7 @@ UHoudiniGeoImporter::CreateCopTextures(
 			FHoudiniTextureTranslator::CreateTexture(
 				CopNode,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA,
-				//HAPI_IMAGE_DATA_INT8,
+				HAPI_IMAGE_DATA_INT8,//HAPI_IMAGE_DATA_FLOAT32,
 				HAPI_IMAGE_PACKING_RGBA,
 				Gamma,
 				Texture,

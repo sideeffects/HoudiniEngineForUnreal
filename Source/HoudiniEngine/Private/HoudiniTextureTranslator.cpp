@@ -258,7 +258,7 @@ bool
 FHoudiniTextureTranslator::CreateTexture(
 	const HAPI_NodeId InMaterialNodeId,
 	const char* InPlaneType,
-	//HAPI_ImageDataFormat InImageDataFormat,
+	HAPI_ImageDataFormat InImageDataFormat,
 	HAPI_ImagePacking InImagePacking,
 	float InGamma,
 	UTexture2D*& OutTexture,
@@ -269,6 +269,33 @@ FHoudiniTextureTranslator::CreateTexture(
 	const TextureGroup InLODGroup,
 	TArray<UPackage*>& OutPackages)
 {
+	HAPI_ImageInfo ImageInfo;
+	FHoudiniApi::ImageInfo_Init(&ImageInfo);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetImageInfo(
+		FHoudiniEngine::Get().GetSession(),
+		InMaterialNodeId, &ImageInfo), false);
+
+	// Only INT8 / FLOAT16/32 are supported
+	if (InImageDataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT8
+		//&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT16
+		&& InImageDataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT16
+		&& InImageDataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT32)
+	{
+		// Unsupported data format - default to RGBA8
+		ImageInfo.dataFormat = HAPI_IMAGE_DATA_INT8;
+	}
+	else
+	{
+		ImageInfo.dataFormat = InImageDataFormat;
+	}
+	ImageInfo.interleaved = true;
+	ImageInfo.packing = InImagePacking;
+	ImageInfo.gamma = InGamma;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetImageInfo(
+		FHoudiniEngine::Get().GetSession(),
+		InMaterialNodeId, &ImageInfo), false);
+
 	bool bTextureCreated = false;
 	TArray<char> ImageBuffer;
 	if (FHoudiniTextureTranslator::HapiExtractImage(
@@ -278,7 +305,7 @@ FHoudiniTextureTranslator::CreateTexture(
 		if (IsValid(OutTexture))
 			TexturePackage = Cast<UPackage>(OutTexture->GetOuter());
 
-		HAPI_ImageInfo ImageInfo;
+		//HAPI_ImageInfo ImageInfo;
 		FHoudiniApi::ImageInfo_Init(&ImageInfo);
 		HAPI_Result Result = FHoudiniApi::GetImageInfo(
 			FHoudiniEngine::Get().GetSession(),
@@ -715,6 +742,31 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 			Gamma = 2.2;
 		}
 
+		/*
+		// Look for the HDR attributes
+		FString HDRChannels = FString();
+		{
+			// see if the user wants hdr (float) texture from its name
+			{
+				FHoudiniHapiAccessor Accessor(HGPO.GeoId, 0, "unreal_hdr_texture");
+				TArray<int> AttribValue;
+				if (Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, AttribValue, 0, 1))
+					bIsHDR = AttribValue.IsEmpty() ? false : AttribValue[0] == 1;
+			}
+
+			// we can also search for individual flags on channels
+			{
+				FHoudiniHapiAccessor Accessor(HGPO.GeoId, 0, "unreal_hdr_texture_channel");
+				TArray<FString> AttribValue;
+				if (Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, AttribValue, 0, 1))
+				{
+					if (!AttribValue.IsEmpty())
+						HDRChannels = AttribValue[0];
+				}
+			}
+		}
+		*/
+
 		switch (ImageDataFormat)
 		{
 			case 1:
@@ -762,10 +814,11 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 		ImageInfo.interleaved = true;
 		ImageInfo.packing = HAPI_IMAGE_PACKING_RGBA;// InImagePacking;
 		ImageInfo.gamma = Gamma;// InGamma;
-
+		/*
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetImageInfo(
 			FHoudiniEngine::Get().GetSession(),
 			CopNodeId, &ImageInfo), false);
+		*/
 
 		// Create custom package param for this output
 		FHoudiniPackageParams MyPackageParams = InPackageParams;
@@ -778,7 +831,7 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 		FHoudiniTextureTranslator::CreateTexture(
 			CopNodeId,
 			HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA,
-			//HAPI_IMAGE_DATA_INT8,
+			ImageInfo.dataFormat,
 			HAPI_IMAGE_PACKING_RGBA,
 			Gamma,
 			Texture,

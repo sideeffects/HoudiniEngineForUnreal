@@ -439,6 +439,51 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		Material->Expressions.Empty();
 #endif
 
+		// Gather informations on the material node here
+		bool bIsHDR = false;
+		FString HDRTextureChannels = FString();
+		{
+			// see if the user wants hdr (float) texture from its name
+			{
+				FHoudiniHapiAccessor Accessor(InAssetId, 0, HAPI_UNREAL_ATTRIB_HDR_TEXTURE);
+				TArray<int> AttribValue;
+				if (Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, AttribValue, 0, 1))
+					bIsHDR = AttribValue.IsEmpty() ? false : AttribValue[0] == 1;
+			}
+
+			// we can also search for individual flags on channels
+			{
+				FHoudiniHapiAccessor Accessor(InAssetId, 0, HAPI_UNREAL_ATTRIB_HDR_TEXTURE_CHANNEL);
+				TArray<FString> AttribValue;
+				if (Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, AttribValue, 0, 1))
+				{
+					if(!AttribValue.IsEmpty())
+						HDRTextureChannels = AttribValue[0];
+				}
+			}
+			
+			/*
+			// Attempt to get the precision instrisic attribute?
+			// see if the user wants hdr (float) texture from its name
+			bool bIs16bit = false;
+			{
+				FHoudiniHapiAccessor Accessor(InAssetId, 0, "precision");
+				TArray<int> AttribValue;
+				if (Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, AttribValue, 0, 1))
+					bIs16bit = AttribValue.IsEmpty() ? false : AttribValue[0] == 1;
+			}
+
+			// see if the user wants hdr (float) texture from its name
+			{
+				FHoudiniHapiAccessor Accessor(InAssetId, 0, "intrisic:precision");
+				TArray<int> AttribValue;
+				if (Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, AttribValue, 0, 1))
+					bIs16bit = AttribValue.IsEmpty() ? false : AttribValue[0] == 1;
+			}
+			*/
+		}
+
+
 		// Generate various components for this material.
 		bool bMaterialComponentCreated = false;
 		int32 MaterialNodeY = FHoudiniMaterialTranslator::MaterialExpressionNodeY;
@@ -447,44 +492,54 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		Material->BlendMode = BLEND_Opaque;
 
 		// Extract diffuse plane.
+		bool bChannelHDR = bIsHDR ? true : HDRTextureChannels.Contains("diffuse") || HDRTextureChannels.Contains("basecolor");
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY, bChannelHDR);
 
 		// Extract metallic plane.
+		bChannelHDR = bIsHDR ? true : HDRTextureChannels.Contains("metallic");
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY, bChannelHDR);
 
 		// Extract specular plane.
+		bChannelHDR = bIsHDR ? true : HDRTextureChannels.Contains("specular");
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY, bChannelHDR);
 
 		// Extract roughness plane.
+		bChannelHDR = bIsHDR ? true : HDRTextureChannels.Contains("roughness");
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY, bChannelHDR);
 
 		// Extract emissive plane.
+		bChannelHDR = bIsHDR ? true : HDRTextureChannels.Contains("emissive");
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY, bChannelHDR);
 
 		// Extract opacity plane.
+		bChannelHDR = bIsHDR ? true : HDRTextureChannels.Contains("opacity");
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY, bChannelHDR);
 
 		// Extract opacity mask plane.
+		bChannelHDR = bIsHDR ? true : HDRTextureChannels.Contains("opacitymask");
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY, bChannelHDR);
 
 		// Extract normal plane.
+		bChannelHDR = bIsHDR ? true : HDRTextureChannels.Contains("normal");
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY, bChannelHDR);
 
 		// Extract AO
+		bChannelHDR = bIsHDR ? true : HDRTextureChannels.Contains("occlusion") || HDRTextureChannels.Contains("ao");
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY, bChannelHDR);
 
 		// Extract displacement
+		bChannelHDR = bIsHDR ? true : HDRTextureChannels.Contains("displacement") || HDRTextureChannels.Contains("height");
 		bMaterialComponentCreated |= FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
-			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY);
+			InAssetId, AssetName, MaterialInfo, InPackageParams, Material, OutPackages, MaterialNodeY, bChannelHDR);
 
 		// Set other material properties.
 		Material->TwoSided = true;
@@ -1064,7 +1119,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 	const FHoudiniPackageParams& InPackageParams,
 	UMaterial* Material,
 	TArray<UPackage*>& OutPackages,
-	int32& MaterialNodeY)
+	int32& MaterialNodeY,
+	bool bHDR)
 {
 	if (!IsValid(Material))
 		return false;
@@ -1151,7 +1207,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				PlaneType,
-				//HAPI_IMAGE_DATA_INT8,
+				bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
 				2.2,
 				TextureDiffuse,
@@ -1196,7 +1252,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 	const FHoudiniPackageParams& InPackageParams,
 	UMaterial* Material,
 	TArray<UPackage*>& OutPackages,
-	int32& MaterialNodeY)
+	int32& MaterialNodeY,
+	bool bHDR)
 {
 	if (!IsValid(Material))
 		return false;
@@ -1255,7 +1312,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				PlaneType,
-				//HAPI_IMAGE_DATA_INT8,
+				bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
 				1.0,
 				TextureOpacity,
@@ -1304,12 +1361,13 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 bool
 FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 	const HAPI_NodeId& InAssetId,
-	const FString& InHoudiniAssetName, 
+	const FString& InMaterialName,
 	const HAPI_MaterialInfo& InMaterialInfo,
 	const FHoudiniPackageParams& InPackageParams,
-	UMaterial* Material, 
-	TArray<UPackage*>& OutPackages, 
-	int32& MaterialNodeY)
+	UMaterial* Material,
+	TArray<UPackage*>& OutPackages,
+	int32& MaterialNodeY,
+	bool bHDR)
 {
 	if (!IsValid(Material))
 		return false;
@@ -1487,7 +1545,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 	const FHoudiniPackageParams& InPackageParams,
 	UMaterial* Material,
 	TArray<UPackage*>& OutPackages,
-	int32& MaterialNodeY)
+	int32& MaterialNodeY,
+	bool bHDR)
 {
 	if (!IsValid(Material))
 		return false;
@@ -1540,7 +1599,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-				//HAPI_IMAGE_DATA_INT8,
+				bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
 				1.0,
 				Texture,
@@ -1611,7 +1670,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 				bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 					InMaterialInfo.nodeId,
 					HAPI_UNREAL_MATERIAL_TEXTURE_NORMAL,
-					//HAPI_IMAGE_DATA_INT8,
+					bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 					HAPI_IMAGE_PACKING_RGB,
 					1.0,
 					Texture,
@@ -1656,7 +1715,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 	const FHoudiniPackageParams& InPackageParams,
 	UMaterial* Material,
 	TArray<UPackage*>& OutPackages,
-	int32& MaterialNodeY)
+	int32& MaterialNodeY,
+	bool bHDR)
 {
 	if (!IsValid(Material))
 		return false;
@@ -1715,7 +1775,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 					InMaterialInfo.nodeId,
 					PlaneType,
-					//HAPI_IMAGE_DATA_INT8,
+					bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 					ImagePacking,
 					1.0,
 					Texture,
@@ -1731,7 +1791,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 					InMaterialInfo.nodeId,
 					HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-					//HAPI_IMAGE_DATA_INT8,
+					bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 					HAPI_IMAGE_PACKING_RGBA,
 					1.0,
 					Texture,
@@ -1812,7 +1872,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 	const FHoudiniPackageParams& InPackageParams,
 	UMaterial* Material,
 	TArray<UPackage*>& OutPackages,
-	int32& MaterialNodeY)
+	int32& MaterialNodeY,
+	bool bHDR)
 {
 	if (!IsValid(Material))
 		return false;
@@ -1872,7 +1933,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 					InMaterialInfo.nodeId,
 					PlaneType,
-					//HAPI_IMAGE_DATA_INT8,
+					bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 					ImagePacking,
 					1.0,
 					Texture,
@@ -1888,7 +1949,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 				bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 					InMaterialInfo.nodeId,
 					HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-					//HAPI_IMAGE_DATA_INT8,
+					bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 					HAPI_IMAGE_PACKING_RGBA,
 					1.0,
 					Texture,
@@ -1932,7 +1993,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 	const FHoudiniPackageParams& InPackageParams,
 	UMaterial* Material, 
 	TArray<UPackage*>& OutPackages, 
-	int32& MaterialNodeY)
+	int32& MaterialNodeY,
+	bool bHDR)
 {
 	if (!IsValid(Material))
 		return false;
@@ -1982,7 +2044,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-				//HAPI_IMAGE_DATA_INT8,
+				bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
 				1.0,
 				Texture,
@@ -2032,7 +2094,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 	const FHoudiniPackageParams& InPackageParams,
 	UMaterial* Material, 
 	TArray<UPackage*>& OutPackages, 
-	int32& MaterialNodeY)
+	int32& MaterialNodeY,
+	bool bHDR)
 {
 	if (!IsValid(Material))
 		return false;
@@ -2082,7 +2145,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-				//HAPI_IMAGE_DATA_INT8,
+				bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
 				1.0,
 				Texture,
@@ -2132,7 +2195,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 	const FHoudiniPackageParams& InPackageParams,
 	UMaterial* Material,
 	TArray<UPackage*>& OutPackages,
-	int32& MaterialNodeY)
+	int32& MaterialNodeY,
+	bool bHDR)
 {
 	if (!IsValid(Material))
 		return false;
@@ -2182,7 +2246,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR,
-				//HAPI_IMAGE_DATA_INT8,
+				bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 				HAPI_IMAGE_PACKING_RGBA,
 				1.0,
 				Texture,
@@ -2232,7 +2296,8 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 	const FHoudiniPackageParams& InPackageParams,
 	UMaterial* Material,
 	TArray<UPackage*>& OutPackages,
-	int32& MaterialNodeY)
+	int32& MaterialNodeY,
+	bool bHDR)
 {
 	if (!IsValid(Material))
 		return false;
@@ -2337,7 +2402,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 			bool bTextureCreated = FHoudiniTextureTranslator::CreateTexture(
 				InMaterialInfo.nodeId,
 				PlaneType,
-				//HAPI_IMAGE_DATA_INT8,
+				bHDR ? HAPI_IMAGE_DATA_FLOAT32 : HAPI_IMAGE_DATA_INT8,
 				ImagePacking,
 				2.2,
 				TextureEmissive,
