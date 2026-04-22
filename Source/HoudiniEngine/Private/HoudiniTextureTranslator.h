@@ -82,7 +82,6 @@ public:
 	static bool HapiExtractImage(
 		const HAPI_NodeId InMaterialNodeId,
 		const char* InPlaneType,
-		//const HAPI_ImageDataFormat InImageDataFormat,
 		const HAPI_ImagePacking InImagePacking,
 		const float InGamma,
 		TArray<char>& OutImageBuffer);

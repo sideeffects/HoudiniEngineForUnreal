@@ -764,10 +764,10 @@ UHoudiniGeoImporter::CreateCopTextures(
 		if (GeoPartObjects.Num() <= 0)
 			continue;
 
-		HAPI_NodeId CopNode = GeoPartObjects[0].GeoId;
+		HAPI_NodeId CopNodeId = GeoPartObjects[0].GeoId;
 		EHoudiniTextureType TextureType = FHoudiniTextureTranslator::GetTextureTypeFromName(GeoPartObjects[0].PartName);
 
-		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderCOPTexture(CopNode);
+		bool bRenderSuccessful = FHoudiniTextureTranslator::HapiRenderCOPTexture(CopNodeId);
 		if (bRenderSuccessful)
 		{
 			FCreateTexture2DParameters CreateTexture2DParameters
@@ -779,11 +779,20 @@ UHoudiniGeoImporter::CreateCopTextures(
 				Gamma = 2.2;
 			}
 
+			// see if the user wants hdr (float) texture from its name
+			bool bIsHDR = FHoudiniTextureTranslator::IsHDRFromName(GeoPartObjects[0].PartName);
+
+			// see if the COP network is set to use 16 bits
+			bool bIs16bit = FHoudiniTextureTranslator::Is16BitCOP(CopNodeId);
+			HAPI_ImageDataFormat ImageDataFormat = HAPI_IMAGE_DATA_INT8;
+			if(bIsHDR)
+				ImageDataFormat = bIs16bit ? HAPI_IMAGE_DATA_FLOAT16 : HAPI_IMAGE_DATA_FLOAT32;
+
 			UTexture2D* Texture = nullptr;
 			FHoudiniTextureTranslator::CreateTexture(
-				CopNode,
+				CopNodeId,
 				HAPI_UNREAL_MATERIAL_TEXTURE_COLOR_ALPHA,
-				HAPI_IMAGE_DATA_INT8,//HAPI_IMAGE_DATA_FLOAT32,
+				ImageDataFormat,
 				HAPI_IMAGE_PACKING_RGBA,
 				Gamma,
 				Texture,

@@ -439,11 +439,11 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 		Material->Expressions.Empty();
 #endif
 
-		// Gather informations on the material node here
+		// Gather informations on the texture formathere
 		bool bIsHDR = false;
 		FString HDRTextureChannels = FString();
 		{
-			// see if the user wants hdr (float) texture from its name
+			// See if the user wants all textures as hdr (float32)
 			{
 				FHoudiniHapiAccessor Accessor(InAssetId, 0, HAPI_UNREAL_ATTRIB_HDR_TEXTURE);
 				TArray<int> AttribValue;
@@ -451,7 +451,8 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 					bIsHDR = AttribValue.IsEmpty() ? false : AttribValue[0] == 1;
 			}
 
-			// we can also search for individual flags on channels
+			// ... we can also search for individual flags on channels
+			if(!bIsHDR)
 			{
 				FHoudiniHapiAccessor Accessor(InAssetId, 0, HAPI_UNREAL_ATTRIB_HDR_TEXTURE_CHANNEL);
 				TArray<FString> AttribValue;
@@ -461,26 +462,6 @@ FHoudiniMaterialTranslator::CreateHoudiniMaterials(
 						HDRTextureChannels = AttribValue[0];
 				}
 			}
-			
-			/*
-			// Attempt to get the precision instrisic attribute?
-			// see if the user wants hdr (float) texture from its name
-			bool bIs16bit = false;
-			{
-				FHoudiniHapiAccessor Accessor(InAssetId, 0, "precision");
-				TArray<int> AttribValue;
-				if (Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, AttribValue, 0, 1))
-					bIs16bit = AttribValue.IsEmpty() ? false : AttribValue[0] == 1;
-			}
-
-			// see if the user wants hdr (float) texture from its name
-			{
-				FHoudiniHapiAccessor Accessor(InAssetId, 0, "intrisic:precision");
-				TArray<int> AttribValue;
-				if (Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, AttribValue, 0, 1))
-					bIs16bit = AttribValue.IsEmpty() ? false : AttribValue[0] == 1;
-			}
-			*/
 		}
 
 

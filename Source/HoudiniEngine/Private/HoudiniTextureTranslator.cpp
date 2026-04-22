@@ -132,7 +132,6 @@ bool
 FHoudiniTextureTranslator::HapiExtractImage(
 	const HAPI_NodeId InMaterialNodeId,
 	const char* InPlaneType,
-	//const HAPI_ImageDataFormat InImageDataFormat,
 	const HAPI_ImagePacking InImagePacking,
 	const float InGamma,
 	TArray<char>& OutImageBuffer)
@@ -189,7 +188,7 @@ FHoudiniTextureTranslator::HapiExtractImage(
 		&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT16
 		&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT32)
 	{
-		// fallback to efault INT8 for unsupported image format
+		// fallback to default INT8 for unsupported image format
 		ImageInfo.dataFormat = HAPI_IMAGE_DATA_INT8;
 	}
 
@@ -277,7 +276,6 @@ FHoudiniTextureTranslator::CreateTexture(
 
 	// Only INT8 / FLOAT16/32 are supported
 	if (InImageDataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT8
-		//&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT16
 		&& InImageDataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT16
 		&& InImageDataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT32)
 	{
@@ -292,6 +290,7 @@ FHoudiniTextureTranslator::CreateTexture(
 	ImageInfo.packing = InImagePacking;
 	ImageInfo.gamma = InGamma;
 
+	// Update the image info before extracting the image
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetImageInfo(
 		FHoudiniEngine::Get().GetSession(),
 		InMaterialNodeId, &ImageInfo), false);
@@ -299,13 +298,12 @@ FHoudiniTextureTranslator::CreateTexture(
 	bool bTextureCreated = false;
 	TArray<char> ImageBuffer;
 	if (FHoudiniTextureTranslator::HapiExtractImage(
-		InMaterialNodeId, InPlaneType, /*InImageDataFormat,*/ InImagePacking, InGamma, ImageBuffer))
+		InMaterialNodeId, InPlaneType, InImagePacking, InGamma, ImageBuffer))
 	{
 		UPackage* TexturePackage = nullptr;
 		if (IsValid(OutTexture))
 			TexturePackage = Cast<UPackage>(OutTexture->GetOuter());
 
-		//HAPI_ImageInfo ImageInfo;
 		FHoudiniApi::ImageInfo_Init(&ImageInfo);
 		HAPI_Result Result = FHoudiniApi::GetImageInfo(
 			FHoudiniEngine::Get().GetSession(),
@@ -742,31 +740,7 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 			Gamma = 2.2;
 		}
 
-		/*
-		// Look for the HDR attributes
-		FString HDRChannels = FString();
-		{
-			// see if the user wants hdr (float) texture from its name
-			{
-				FHoudiniHapiAccessor Accessor(HGPO.GeoId, 0, "unreal_hdr_texture");
-				TArray<int> AttribValue;
-				if (Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, AttribValue, 0, 1))
-					bIsHDR = AttribValue.IsEmpty() ? false : AttribValue[0] == 1;
-			}
-
-			// we can also search for individual flags on channels
-			{
-				FHoudiniHapiAccessor Accessor(HGPO.GeoId, 0, "unreal_hdr_texture_channel");
-				TArray<FString> AttribValue;
-				if (Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, 1, AttribValue, 0, 1))
-				{
-					if (!AttribValue.IsEmpty())
-						HDRChannels = AttribValue[0];
-				}
-			}
-		}
-		*/
-
+		// Data format can be overriden via the details panels
 		switch (ImageDataFormat)
 		{
 			case 1:
@@ -803,7 +777,6 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 
 		// Only INT8 / FLOAT16/32 are supported
 		if (ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT8
-			//&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT16
 			&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT16
 			&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT32)
 		{
@@ -812,13 +785,8 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 		}
 
 		ImageInfo.interleaved = true;
-		ImageInfo.packing = HAPI_IMAGE_PACKING_RGBA;// InImagePacking;
+		ImageInfo.packing = HAPI_IMAGE_PACKING_RGBA;
 		ImageInfo.gamma = Gamma;// InGamma;
-		/*
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetImageInfo(
-			FHoudiniEngine::Get().GetSession(),
-			CopNodeId, &ImageInfo), false);
-		*/
 
 		// Create custom package param for this output
 		FHoudiniPackageParams MyPackageParams = InPackageParams;
