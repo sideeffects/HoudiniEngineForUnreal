@@ -331,6 +331,10 @@
 #define HAPI_UNREAL_ATTRIB_PDG_ASSET                        "unreal_pdg_asset"
 
 // COP Attributes
+
+#define HAPI_UNREAL_ATTRIB_COP_RESOLUTION_OVERRIDE          "unreal_image_resolution_override"
+#define HAPI_UNREAL_ATTRIB_COP_PIXEL_SCALE_OVERRIDE         "unreal_image_pixel_scale_override"
+#define HAPI_UNREAL_ATTRIB_COP_IMAGE_DATA_FORMAT            "unreal_image_data_format"
 #define HAPI_UNREAL_ATTRIB_HDR_TEXTURE                      "unreal_hdr_texture"
 #define HAPI_UNREAL_ATTRIB_HDR_TEXTURE_CHANNEL              "unreal_hdr_texture_channel"
 

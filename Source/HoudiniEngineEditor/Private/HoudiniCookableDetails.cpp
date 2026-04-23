@@ -2547,6 +2547,9 @@ FHoudiniCookableDetails::CreateImageDetails(
 	if (!MainCookable->IsImageSupported())
 		return;
 
+	if(!MainCookable->GetImageData()->bIsCOPHDA)
+		return;
+
 	// Create the Image category
 	FString BuildSettingsCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_IMAGE);
 
@@ -2557,7 +2560,7 @@ FHoudiniCookableDetails::CreateImageDetails(
 	IDetailCategoryBuilder& HouImageCategory =
 		DetailBuilder.EditCategory(*BuildSettingsCatName, FText::GetEmpty(), ECategoryPriority::Important);
 
-	FString Label = TEXT("Image output properties");
+	FString Label = TEXT("COP Image Output Properties");
 	IDetailGroup& ProxyGrp = HouImageCategory.AddGroup(FName(*Label), FText::FromString(Label));
 
 	//

@@ -949,6 +949,10 @@ FHoudiniEngineEditor::RegisterSectionMappings()
 	CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_MESHGEN);
 	Section->AddCategory(*CatName);
 
+	// HoudiniImageData
+	CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_IMAGE);
+	Section->AddCategory(*CatName);
+
 	// HoudiniProxyMeshGeneration
 	//CatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PROXY);
 	//Section->AddCategory(*CatName);

@@ -9429,7 +9429,7 @@ FHoudiniEngineUtils::UpdateImageDataOnCookable(UHoudiniCookable* InHC)
 	{
 		// see if the HDA node has resolution override attributes
 		TArray<int> Data;
-		FHoudiniHapiAccessor Accessor(InHC->NodeId, 0, "unreal_image_resolution_override");
+		FHoudiniHapiAccessor Accessor(InHC->NodeId, 0, HAPI_UNREAL_ATTRIB_COP_RESOLUTION_OVERRIDE);
 		Accessor.bCanBeArray = true;
 		bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data);
 		if (bSuccess)
@@ -9469,7 +9469,7 @@ FHoudiniEngineUtils::UpdateImageDataOnCookable(UHoudiniCookable* InHC)
 	{
 		// see if the HDA node has pixel scale override attributes
 		TArray<float> Data;
-		FHoudiniHapiAccessor Accessor(InHC->NodeId, 0, "unreal_image_pixel_scale_override");
+		FHoudiniHapiAccessor Accessor(InHC->NodeId, 0, HAPI_UNREAL_ATTRIB_COP_PIXEL_SCALE_OVERRIDE);
 		Accessor.bCanBeArray = false;
 		bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data);
 		if (bSuccess && Data.Num() > 0)
@@ -9510,7 +9510,7 @@ FHoudiniEngineUtils::UpdateImageDataOnCookable(UHoudiniCookable* InHC)
 	{
 		// See if the HDA has a data format override attribute
 		TArray<int> Data;
-		FHoudiniHapiAccessor Accessor(InHC->NodeId, 0, "unreal_image_data_format");
+		FHoudiniHapiAccessor Accessor(InHC->NodeId, 0, HAPI_UNREAL_ATTRIB_COP_IMAGE_DATA_FORMAT);
 		Accessor.bCanBeArray = false;
 		bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_DETAIL, Data);
 		if (bSuccess && Data.Num() > 0)
