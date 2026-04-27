@@ -28,7 +28,7 @@
 
 UHoudiniParameterFolder::UHoudiniParameterFolder(const FObjectInitializer & ObjectInitializer)
 	: Super(ObjectInitializer)
-	,bExpanded(true)
+	,bExpanded(false)
 	,bChosen(false)
 {
 	ParmType = EHoudiniParameterType::Folder;
