@@ -1621,7 +1621,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFolder*
 	Result &= TestExpressionError(A->bExpanded == B->bExpanded, Header, "bExpanded");
 	Result &= TestExpressionError(A->bChosen == B->bChosen, Header, "bChosen");
 	Result &= TestExpressionError(A->ChildCounter == B->ChildCounter, Header, "ChildCounter");
-	Result &= TestExpressionError(A->bIsContentShown == B->bIsContentShown, Header, "bIsContentShown");
+	//Result &= TestExpressionError(A->bIsContentShown == B->bIsContentShown, Header, "bIsContentShown");
 	
 	return Result;
 }
@@ -1640,7 +1640,7 @@ bool FHoudiniEditorEquivalenceUtils::IsEquivalent(const UHoudiniParameterFolderL
 	}
 
 	Result &= TestExpressionError(A->bIsTabMenu == B->bIsTabMenu, Header, "bIsTabMenu");
-	Result &= TestExpressionError(A->bIsTabsShown == B->bIsTabsShown, Header, "bIsTabsShown");
+	//Result &= TestExpressionError(A->bIsTabsShown == B->bIsTabsShown, Header, "bIsTabsShown");
 
 	return Result;
 }
