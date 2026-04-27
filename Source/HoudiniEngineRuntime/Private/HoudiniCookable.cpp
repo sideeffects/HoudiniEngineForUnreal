@@ -2448,6 +2448,10 @@ UHoudiniCookable::OnDestroy(bool bDestroyingHierarchy)
 			if (CurrentInput->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad))
 				continue;
 
+			int InputNodeId = CurrentInput->GetInputNodeId();
+			if(InputNodeId != INDEX_NONE)
+				FHoudiniEngineRuntime::Get().MarkNodeIdAsPendingDelete(InputNodeId, true);
+
 			// Destroy connected Houdini asset.
 			CurrentInput->ConditionalBeginDestroy();
 			CurrentInput = nullptr;
