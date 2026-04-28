@@ -1047,7 +1047,7 @@ protected:
 	bool bHasHoudiniAsset;
 
 	// Structure containing the HDA data
-	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
+	UPROPERTY()
 	TObjectPtr<UCookableHoudiniAssetData> HoudiniAssetData;
 
 	// PARAMETERS
@@ -1056,7 +1056,7 @@ protected:
 	bool bHasParameters;
 
 	// Structure containing the parameter data
-	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
+	UPROPERTY()
 	TObjectPtr<UCookableParameterData> ParameterData;
 
 	// INPUTS
@@ -1065,7 +1065,7 @@ protected:
 	bool bHasInputs;
 
 	// Structure containing the input data
-	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
+	UPROPERTY()
 	TObjectPtr<UCookableInputData> InputData;
 
 	// OUTPUTS
@@ -1074,7 +1074,7 @@ protected:
 	bool bHasOutputs;
 
 	// Structure containing the output data
-	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
+	UPROPERTY()
 	TObjectPtr<UCookableOutputData> OutputData;
 
 	// COMPONENTS / TRANSFORM
@@ -1083,7 +1083,7 @@ protected:
 	bool bHasComponent; // bIsInWorld?
 
 	// Structure containing the component's data
-	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
+	UPROPERTY()
 	TObjectPtr<UCookableComponentData> ComponentData;
 
 	// PDG
@@ -1092,7 +1092,7 @@ protected:
 	bool bHasPDG;
 
 	// Structure containing the PDG data
-	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
+	UPROPERTY()
 	TObjectPtr<UCookablePDGData> PDGData;
 
 	// Image/COP
@@ -1101,7 +1101,7 @@ protected:
 	bool bHasImage;
 
 	// Structure containing COP/Image PDG data
-	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
+	UPROPERTY()
 	TObjectPtr<UCookableImageData> ImageData;
 
 	// Baking
@@ -1109,7 +1109,7 @@ protected:
 	UPROPERTY()
 	bool bHasBaking;
 	// Structure containing the Baking data
-	UPROPERTY(EditAnywhere, Category = "Houdini Cookable")
+	UPROPERTY()
 	TObjectPtr<UCookableBakingData> BakingData;
 
 	// Proxy
