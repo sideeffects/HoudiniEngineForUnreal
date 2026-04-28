@@ -68,18 +68,6 @@ public:
 	TWeakObjectPtr<UPCGComponent> PCGComponent;
 };
 
-class UHoudiniPCGComponentDetails  : public IDetailCustomization
-{
-public:
-	UHoudiniPCGComponentDetails();
-
-	// Factory method to register the customization
-	static TSharedRef<IDetailCustomization> MakeInstance();
-
-	// Override to customize the details panel
-	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
-};
-
 UCLASS()
 class HOUDINIENGINE_API AHoudiniPCGActor : public AActor
 {
