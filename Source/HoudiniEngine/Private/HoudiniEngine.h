@@ -269,6 +269,9 @@ public:
 		// Returns the default material for COPs
 		virtual TWeakObjectPtr<UMaterial> GetHoudiniDefaultCOPMaterial() const { return HoudiniDefaultCOPMaterial; };
 
+		// Returns the default output material for COPs
+		virtual TWeakObjectPtr<UMaterial> GetHoudiniDefaultCOPOutputMaterial() const { return HoudiniDefaultCOPOutputMaterial; };
+
 		// Returns the default Houdini material
 		virtual TWeakObjectPtr<UMaterial> GetHoudiniDefaultMaterial() const { return HoudiniDefaultMaterial; };
 		// Returns the default template Houdini material
@@ -404,8 +407,11 @@ public:
 		// Static mesh used for texture/COPs rendering.
 		TWeakObjectPtr<UStaticMesh> HoudiniCOPStaticMesh;
 
-		// Material used as default COP material.
+		// Material used as default COP material (when viewing in the HDA editor)
 		TWeakObjectPtr<UMaterial> HoudiniDefaultCOPMaterial;
+
+		// Material used as default COP material for outputs (when generating materials)
+		TWeakObjectPtr<UMaterial> HoudiniDefaultCOPOutputMaterial;
 
 		// Houdini logo brush.
 		TSharedPtr<FSlateDynamicImageBrush> HoudiniLogoBrush;

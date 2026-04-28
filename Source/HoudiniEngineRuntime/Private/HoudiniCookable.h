@@ -51,6 +51,7 @@ class UHoudiniInput;
 class UHoudiniOutput;
 class UHoudiniPDGAssetLink;
 class UHoudiniParameter;
+class UMaterialInterface;
 
 UCLASS()
 class HOUDINIENGINERUNTIME_API UCookableHoudiniAssetData : public UObject
@@ -447,8 +448,11 @@ public:
 	UPROPERTY()
 	int ImageDataFormat;
 
-	//UPROPERTY()
-	//FString OutputFileFormat;
+	UPROPERTY()
+	bool bGenerateMaterial;
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInterface> MaterialToInstance = nullptr;
 };
 
 
@@ -462,10 +466,7 @@ class HOUDINIENGINERUNTIME_API UHoudiniCookable : public UObject, public IHoudin
 	friend class FHoudiniEngineManager;
 	friend struct FHoudiniEngineUtils;
 	friend struct FHoudiniOutputTranslator;
-	//friend struct FHoudiniInputTranslator;
-	//friend struct FHoudiniSplineTranslator;
 	friend struct FHoudiniParameterTranslator;
-	//friend struct FHoudiniPDGManager;
 	friend struct FHoudiniHandleTranslator;
 	friend class UHoudiniAssetComponent;
 	friend class UHoudiniAssetBlueprintComponent;
@@ -492,7 +493,7 @@ public:
 	//------------------------------------------------------------------------------------------------
 
 	int32 GetNodeId() const { return NodeId; };
-	void SetNodeId(int InNodeId) { NodeId = InNodeId;  }
+	void SetNodeId(int InNodeId) { NodeId = InNodeId; }
 
 	EHoudiniAssetState GetCurrentState() const { return CurrentState; };
 	EHoudiniAssetStateResult GetCurrentStateResult() const { return CurrentStateResult; };

@@ -76,6 +76,10 @@
 #include "HAL/FileManager.h"
 #include "InstancedFoliageActor.h"
 #include "LandscapeInfo.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 1
+#include "MaterialShared.h"
+#endif
+#include "Materials/MaterialInstanceConstant.h"
 #include "Modules/ModuleManager.h"
 #include "WorldBrowserModule.h"
 
@@ -393,6 +397,10 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 	{
 		InOuterComponent = OuterHC ? OuterHC->GetComponent() : nullptr;
 	}
+	else if (!OuterHC)
+	{
+		OuterHC = Cast<UHoudiniCookable>(InOuterComponent->GetOuter());
+	}
 
 	// NOTE: The world can be NULL when, for example, when working with
 	// HoudiniAssetComponents in Blueprints.
@@ -474,6 +482,18 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 	// We track them to prevent recreate the same houdini material over and over if it is assigned to multiple parts.
 	// (this can easily happen when using packed prims)
 	TMap<FHoudiniMaterialIdentifier, TObjectPtr<UMaterialInterface>> AllOutputMaterials;
+
+	// For COP HDAs, handle generating materials if asked
+	bool bShouldGenerateCOPMaterial = false;
+	UMaterialInterface* COPMaterialSource = nullptr;
+	UMaterialInstanceConstant* GeneratedCOPMaterial = nullptr;
+	FMaterialUpdateContext MaterialUpdateContext;
+	FHoudiniOutputObjectIdentifier GeneratedMaterialOutputID(0, 0, 0, TEXT("material"));
+	if (OuterHC && OuterHC->GetImageData())
+	{
+		bShouldGenerateCOPMaterial = OuterHC->GetImageData()->bGenerateMaterial;
+		COPMaterialSource = bShouldGenerateCOPMaterial ? OuterHC->GetImageData()->MaterialToInstance : nullptr;
+	}
 
 	UTexture2D* VisibleTexture = nullptr;
 	UMaterialInterface* VisibleMat = nullptr;
@@ -700,16 +720,55 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 			case EHoudiniOutputType::Cop:
 			{
 				int ImageDataFormat = OuterHC ? OuterHC->GetImageData()->ImageDataFormat : 0;
-				if(!OuterHC)
-				{
-					// TODO: Should not be needed
-					UHoudiniCookable* HC = Cast<UHoudiniCookable>(CurOutput->GetOuter());
-					ImageDataFormat = HC ? HC->GetImageData()->ImageDataFormat : 0;
-				}
 
 				FHoudiniTextureTranslator::ProcessCopOutput(CurOutput, PackageParams, ImageDataFormat);
 
 				NumTextureOutputs += CurOutput->GetOutputObjects().Num();
+
+				// Update generated material if we have any
+				if (bShouldGenerateCOPMaterial && NumTextureOutputs > 0)
+				{
+					bool bUpdateOutID = false;
+					if (GeneratedCOPMaterial == nullptr)
+					{
+						// Create the COP output material if we haven't already
+						GeneratedCOPMaterial = FHoudiniTextureTranslator::CreateCopOutputMaterialInstance(COPMaterialSource, PackageParams);
+						MaterialUpdateContext.AddMaterialInstance(GeneratedCOPMaterial);
+
+						bUpdateOutID = true;
+					}
+
+					for (auto& CurOutputObject : CurOutput->GetOutputObjects())
+					{
+						UTexture2D* CurTexture = Cast<UTexture2D>(CurOutputObject.Value.OutputObject);
+						if(CurTexture == nullptr)
+							continue;
+
+						if (bUpdateOutID)
+						{
+							GeneratedMaterialOutputID.ObjectId = CurOutputObject.Key.ObjectId;
+							GeneratedMaterialOutputID.GeoId = CurOutputObject.Key.GeoId;
+							GeneratedMaterialOutputID.PartId = CurOutputObject.Key.PartId;
+						}
+
+						FString ParamName = CurOutputObject.Key.SplitIdentifier;
+						if (COPMaterialSource == nullptr)
+						{
+							// For the default material - handle some name replacement
+							if(ParamName.Equals(TEXT("basecolor")))
+								ParamName = TEXT("diffuse");
+							else if (ParamName.Equals(TEXT("height")))
+								ParamName = TEXT("displacement");
+
+							// For the default cop output material - we also need to modify the matching "has"boolean parameter first
+							FString HasParamName = TEXT("has") + ParamName;
+							FHoudiniTextureTranslator::UpdateBooleanParamOnCopOutputMaterialInstance(GeneratedCOPMaterial, true, HasParamName);
+						}
+
+						FHoudiniTextureTranslator::UpdateTexureParamOnCopOutputMaterialInstance(GeneratedCOPMaterial, CurTexture, ParamName);
+					}
+				}
+
 				for (auto& It : CurOutput->GetOutputObjects())
 				{
 					// If we haven;t already selected a texture to display..
@@ -763,7 +822,7 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 	{
 		// If we have valid outputs, we don't need to display the houdini logo anymore...
 		FHoudiniEngineUtils::RemoveHoudiniLogoFromComponent(InOuterComponent);
-		// .. or the default COP nesh
+		// .. or the default COP mesh
 		FHoudiniEngineUtils::RemoveTextureMeshFromComponent(InOuterComponent);
 	}
 	else if (NumTextureOutputs > 0)
@@ -784,6 +843,27 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 
 		// .. and update its aspect ratio to match the texture
 		FHoudiniEngineUtils::UpdateTextureMeshRatio(InOuterComponent, VisibleTexture);
+
+		// If we generated a material for COP HDAs - add it to the outputs
+		if (bShouldGenerateCOPMaterial && GeneratedCOPMaterial != nullptr)
+		{
+			// We need to add a new Output
+			TObjectPtr<UHoudiniOutput> Output =
+				NewObject<UHoudiniOutput>(
+					OuterHC,
+					UHoudiniOutput::StaticClass(),
+					FName(TEXT("Generated COP Material Instance")),
+					RF_NoFlags);
+
+			Output->Type = EHoudiniOutputType::Cop;
+			Output->bCreateSceneComponents = false;
+
+			FHoudiniOutputObject OutputObject;
+			OutputObject.OutputObject = GeneratedCOPMaterial;
+			Output->OutputObjects.Add(GeneratedMaterialOutputID, OutputObject);
+
+			Outputs.Add(Output);
+		}
 	}
 	else
 	{

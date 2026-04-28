@@ -1066,3 +1066,121 @@ FHoudiniTextureTranslator::GetTextureParametersFromType(const EHoudiniTextureTyp
 
 	return TextureParams;
 }
+
+UMaterialInstanceConstant*
+FHoudiniTextureTranslator::CreateCopOutputMaterialInstance(
+	UMaterialInterface* InSourceMaterial,
+	const FHoudiniPackageParams& InPackageParams)
+{
+	// Try to find the material we want to create an instance of, or use the default one if non is provided
+	UMaterialInterface* SourceMaterial = InSourceMaterial ? InSourceMaterial
+	: Cast<UMaterialInterface>(FHoudiniEngine::Get().GetHoudiniDefaultCOPOutputMaterial());
+
+	if (!SourceMaterial)
+		return nullptr;
+
+	// Create/Retrieve the package for the MI
+	FString MaterialInstanceName;
+	FString MaterialInstanceNamePrefix = UPackageTools::SanitizePackageName(
+		SourceMaterial->GetName()
+		+ TEXT("_instance_")
+		+ InPackageParams.ComponentGUID.ToString());
+
+	// See if we can find an existing package for that instance
+	UPackage* MaterialInstancePackage = FHoudiniMaterialTranslator::CreatePackageForMaterial(
+		-1, MaterialInstanceNamePrefix, InPackageParams, MaterialInstanceName);
+
+	// Couldn't create a package for that Material Instance
+	if (!MaterialInstancePackage)
+		return nullptr;
+
+	bool bNewMaterialCreated = false;
+	UMaterialInstanceConstant* NewMaterialInstance = LoadObject<UMaterialInstanceConstant>(
+		MaterialInstancePackage, *MaterialInstanceName, nullptr, LOAD_None, nullptr);
+
+	if (!NewMaterialInstance)
+	{
+		// Factory to create materials.
+		UMaterialInstanceConstantFactoryNew* MaterialInstanceFactory = NewObject<UMaterialInstanceConstantFactoryNew>();
+		if (!MaterialInstanceFactory)
+			return nullptr;
+
+		// Create the new material instance
+		MaterialInstanceFactory->AddToRoot();
+		MaterialInstanceFactory->InitialParent = SourceMaterial;
+		NewMaterialInstance = (UMaterialInstanceConstant*)MaterialInstanceFactory->FactoryCreateNew(
+			UMaterialInstanceConstant::StaticClass(),
+			MaterialInstancePackage,
+			FName(*MaterialInstanceName),
+			RF_Public | RF_Standalone,
+			NULL,
+			GWarn);
+
+		if (NewMaterialInstance)
+			bNewMaterialCreated = true;
+
+		MaterialInstanceFactory->RemoveFromRoot();
+	}
+
+	if (!NewMaterialInstance)
+		return nullptr;
+
+	// Update context for generated materials (will trigger when the object goes out of scope).
+	FMaterialUpdateContext MaterialUpdateContext;
+
+	if (bNewMaterialCreated)
+	{
+		// Add meta information to this package.
+		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
+			MaterialInstancePackage, NewMaterialInstance, HAPI_UNREAL_PACKAGE_META_GENERATED_OBJECT, TEXT("true"));
+		FHoudiniEngineUtils::AddHoudiniMetaInformationToPackage(
+			MaterialInstancePackage, NewMaterialInstance, HAPI_UNREAL_PACKAGE_META_GENERATED_NAME, *MaterialInstanceName);
+		// Notify registry that we have created a new material.
+		FAssetRegistryModule::AssetCreated(NewMaterialInstance);
+
+		// Dirty the material
+		NewMaterialInstance->MarkPackageDirty();
+	}
+
+	return NewMaterialInstance;
+}
+
+bool
+FHoudiniTextureTranslator::UpdateTexureParamOnCopOutputMaterialInstance(
+	UMaterialInstanceConstant* InSourceMaterial,
+	UTexture2D* InTexture,
+	const FString& InParamName)
+{
+	if(!InSourceMaterial || !InTexture)
+		return false;
+
+	// Update context for generated materials (will trigger when the object goes out of scope).
+	//FMaterialUpdateContext MaterialUpdateContext;
+
+	// Apply material instance parameters
+	FName MatParamName = FName(InParamName);
+	//MaterialInstance->GetParameterInfo(GlobalParameter, MatParamName, nullptr);
+
+	InSourceMaterial->SetTextureParameterValueEditorOnly(MatParamName, InTexture);
+
+	return true;
+}
+
+bool
+FHoudiniTextureTranslator::UpdateBooleanParamOnCopOutputMaterialInstance(
+	UMaterialInstanceConstant* InSourceMaterial,
+	const bool InValue,
+	const FString& InParamName)
+{
+	if (!InSourceMaterial)
+		return false;
+
+	// Update context for generated materials (will trigger when the object goes out of scope).
+	//FMaterialUpdateContext MaterialUpdateContext;
+
+	// Apply material instance parameters
+	FName MatParamName = FName(InParamName);
+	InSourceMaterial->SetStaticSwitchParameterValueEditorOnly(MatParamName, InValue);
+
+	return true;
+}

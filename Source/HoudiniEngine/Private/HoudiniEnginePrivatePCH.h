@@ -52,6 +52,7 @@
 #define HAPI_UNREAL_RESOURCE_HOUDINI_COP_MESH			TEXT( "/HoudiniEngine/houdini_default_cop_mesh" )
 #define HAPI_UNREAL_RESOURCE_EDITOR_PLANE				TEXT( "/Engine/EditorMeshes/EditorPlane" )
 #define HAPI_UNREAL_RESOURCE_HOUDINI_COP_MATERIAL		TEXT( "/HoudiniEngine/houdini_default_cop_material" )
+#define HAPI_UNREAL_RESOURCE_HOUDINI_COP_OUT_MATERIAL	TEXT( "/HoudiniEngine/houdini_cop_output_material" )
 
 #define HAPI_UNREAL_RESOURCE_HOUDINI_DEFAULT_REFERENCE_MESH             TEXT("/HoudiniEngine/default_reference_static_mesh.default_reference_static_mesh")
 #define HAPI_UNREAL_RESOURCE_HOUDINI_DEFAULT_REFERENCE_MESH_MATERIAL    TEXT("/HoudiniEngine/default_reference_static_mesh_material.default_reference_static_mesh_material")

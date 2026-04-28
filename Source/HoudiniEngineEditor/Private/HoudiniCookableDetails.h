@@ -116,10 +116,6 @@ public:
 
 private:
 
-	// Handler for double clicking the static mesh thumbnail, opens the editor.
-	FReply OnThumbnailDoubleClick(
-		const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent, UObject* Object);
-
 	// Structure holding the output's details
 	TSharedPtr<FHoudiniOutputDetails, ESPMode::NotThreadSafe> OutputDetails;
 

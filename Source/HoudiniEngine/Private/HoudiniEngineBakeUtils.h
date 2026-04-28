@@ -510,14 +510,15 @@ public:
 		const FHoudiniPackageParams& PackageParams,
 		FHoudiniBakedObjectData& BakedObjectData);
 	
-	static bool BakeTexture(
+	static bool BakeTexturesAndMaterials(
 		UHoudiniCookable* InCookable,
 		int32 InOutputIndex,
 		const TArray<UHoudiniOutput*>& InAllOutputs,
 		FHoudiniEngineBakeState& InBakeState,
 		const FDirectoryPath& InBakeFolder,
 		const FHoudiniBakeSettings& BakeSettings,
-		FHoudiniBakedObjectData& BakedObjectData);
+		FHoudiniBakedObjectData& BakedObjectData,
+		TMap<UTexture2D*, UTexture2D*>& InTempToBakeTextureMap);
 
 	static UTexture2D* BakeTextureToPackage(
 		UTexture2D* InOriginalTexture,
@@ -530,6 +531,11 @@ public:
 		const FString & SubTextureName,
 		const FHoudiniPackageParams& PackageParams,
 		FHoudiniBakedObjectData& BakedObjectData);
+
+	static UMaterialInterface* BakeMaterialToPackage(
+		UMaterialInterface* InOriginalMaterial,
+		const FHoudiniPackageParams& InPackageParams,
+		UMaterialInterface* InPreviousBakeMaterial);
 
 	// Bake a cookable based on the bInReplace and BakeOption arguments.
 	// Returns true if the underlying bake function (for example, BakeHoudiniActorToActors, returns true (or a valid UObject*))

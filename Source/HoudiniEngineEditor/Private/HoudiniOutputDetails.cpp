@@ -173,7 +173,9 @@ FHoudiniOutputDetails::CreateWidget(
 
 		case EHoudiniOutputType::Cop:
 		{
+			// For COP output, create both texture and material widgets
 			FHoudiniOutputDetails::CreateTextureOutputWidget(HouOutputCategory, MainOutput);
+			FHoudiniOutputDetails::CreateMaterialOutputWidget(HouOutputCategory, MainOutput);
 			break;
 		}
 
@@ -3688,6 +3690,19 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 				BakedObjectEntry.BakedComponentPath.Reset();
 				BakedObjectEntry.BakedObjectPath = FSoftObjectPath(BakedTexture).ToString();
 			}
+
+			UMaterialInterface* Material = Cast<UMaterialInterface>(BakedOutputObject);
+			if (Material)
+			{
+				// When baking a Generated COP Material - we should also bake the Texture it uses
+				bool bSuccess = FHoudiniEngineBakeUtils::BakeCookableToAssets(HC, BakeSettings);
+
+				/*UMaterialInterface* BakedMaterial = FHoudiniEngineBakeUtils::BakeMaterialToPackage(Material, PackageParams, nullptr);
+
+				BakedObjectEntry.ActorPath.Reset();
+				BakedObjectEntry.BakedComponentPath.Reset();
+				BakedObjectEntry.BakedObjectPath = FSoftObjectPath(BakedMaterial).ToString();*/
+			}
 		}
 		break;
 	}
@@ -4516,6 +4531,236 @@ FHoudiniOutputDetails::CreateTextureOutputWidget(
 			PropertyCustomizationHelpers::MakeBrowseButton(
 				FSimpleDelegate::CreateSP(
 					this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)CurrentTexture), TAttribute<FText>(Tooltip))
+		];
+	}
+}
+
+
+
+void
+FHoudiniOutputDetails::CreateMaterialOutputWidget(
+	IDetailCategoryBuilder& HouOutputCategory,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput)
+{
+	if (!IsValidWeakPointer(InOutput))
+		return;
+
+	const TWeakObjectPtr<UHoudiniCookable>& HC = Cast<UHoudiniCookable>(InOutput->GetOuter());
+	if (!IsValidWeakPointer(HC))
+		return;
+
+	// Go through this output's object
+	int32 OutputObjIdx = 0;
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
+	for (auto& IterObject : OutputObjects)
+	{
+		UMaterialInterface* CurrentMaterial = Cast<UMaterialInterface>(IterObject.Value.OutputObject);
+		if (!IsValid(CurrentMaterial))
+			continue;
+
+		FHoudiniOutputObjectIdentifier& OutputIdentifier = IterObject.Key;
+
+		// Find the corresponding HGPO in the output
+		FHoudiniGeoPartObject HoudiniGeoPartObject;
+		for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
+		{
+			if (!OutputIdentifier.Matches(curHGPO))
+				continue;
+
+			HoudiniGeoPartObject = curHGPO;
+			break;
+		}
+
+		FString MaterialName = CurrentMaterial->GetName();
+		FString MaterialPathName = CurrentMaterial->GetPathName();
+		if (!IsValid(CurrentMaterial))
+		{
+			CurrentMaterial = nullptr;
+			MaterialName = TEXT("Material (invalid)") + FString::FromInt(OutputObjIdx);
+			MaterialPathName = TEXT("Material (invalid)") + FString::FromInt(OutputObjIdx);
+		}
+
+		TSharedPtr<SBorder> ThumbnailBorder;
+		TSharedPtr<SHorizontalBox> HorizontalBox = NULL;
+		// Get thumbnail pool for this builder.
+		IDetailLayoutBuilder& DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
+		TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+		// Create thumbnail for this material.
+		TSharedPtr<FAssetThumbnail> MaterialThumbnail =
+			MakeShareable(new FAssetThumbnail(CurrentMaterial, 64, 64, AssetThumbnailPool));
+
+		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+		FString MaterialLabel = TEXT("Material");
+		IDetailGroup& MaterialGrp = HouOutputCategory.AddGroup(FName(*MaterialName), FText::FromString(MaterialName));
+		MaterialGrp.AddWidgetRow()
+		.NameContent()
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString(MaterialLabel))
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		[
+			VerticalBox
+		];
+
+		VerticalBox->AddSlot()
+		.Padding(0, 2)
+		[
+			SAssignNew(HorizontalBox, SHorizontalBox)
+		];
+
+		HorizontalBox->AddSlot()
+		.Padding(0.0f, 0.0f, 2.0f, 0.0f)
+		.AutoWidth()
+		[
+			SAssignNew(ThumbnailBorder, SBorder)
+			.Padding(5.0f)
+			.BorderImage(
+				this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, (const TWeakObjectPtr<UObject>&)CurrentMaterial, OutputObjIdx)
+			.OnMouseDoubleClick(
+				this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&)CurrentMaterial)
+			[
+				SNew(SBox)
+				.WidthOverride(64)
+				.HeightOverride(64)
+				.ToolTipText(FText::FromString(MaterialPathName))
+				[
+					MaterialThumbnail->MakeThumbnailWidget()
+				]
+			]
+		];
+
+		// Store thumbnail for this Material and  index.
+		{
+			TPairInitializer<const TWeakObjectPtr<UMaterialInterface>&, int32> Pair(CurrentMaterial, OutputObjIdx);
+			MaterialInterfaceThumbnailBorders.Add(Pair, ThumbnailBorder);
+		}
+
+		// ComboBox and buttons
+		TSharedPtr<SVerticalBox> ComboAndButtonBox;
+		HorizontalBox->AddSlot()
+		.FillWidth(1.0f)
+		.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+		[
+			SAssignNew(ComboAndButtonBox, SVerticalBox)
+		];
+
+		// Add Combo box
+		TSharedPtr< SComboButton > AssetComboButton;
+		ComboAndButtonBox->AddSlot()
+		.VAlign(VAlign_Center)
+		.FillHeight(1.0f)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.VAlign(VAlign_Center)
+			.FillHeight(1.0f)
+			[
+				SAssignNew(AssetComboButton, SComboButton)
+				.ButtonStyle(_GetEditorStyle(), "PropertyEditor.AssetComboStyle")
+				.ForegroundColor(_GetEditorStyle().GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+				/*
+				.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent,
+					TWeakObjectPtr<UMaterialInterface>(CurrentMaterial), (const TWeakObjectPtr<UObject>&)CurrentMaterial, InOutput, OutputObjIdx)
+				*/
+				.ContentPadding(2.0f)
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.TextStyle(_GetEditorStyle(), "PropertyEditor.AssetClass")
+					.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+					.Text(FText::FromString(MaterialName))
+				]
+			]
+		];
+
+		// Create tooltip.
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Asset"), FText::FromString(MaterialName));
+		FText Tooltip = FText::Format(
+			LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
+
+
+		// Add buttons
+		TSharedPtr<SHorizontalBox> ButtonBox;
+		ComboAndButtonBox->AddSlot()
+		.FillHeight(1.0f)
+		[
+			SAssignNew(ButtonBox, SHorizontalBox)
+		];
+
+
+		// Bake button
+		FString BakeName = IterObject.Value.BakeName;
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Text(LOCTEXT("BakeMaterial", "Bake Material"))
+			.IsEnabled(true)
+			.OnClicked_Lambda([BakeName, CurrentMaterial, OutputIdentifier, InOutput, HC]()
+			{
+				if (!CurrentMaterial || !InOutput.IsValid() || !HC.IsValid())
+					return FReply::Handled();
+
+				FHoudiniOutputObject* const FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+				if (!FoundOutputObject)
+					return FReply::Handled();
+
+				TArray<UHoudiniOutput*> AllOutputs;
+				FString TempCookFolder;
+				FString BakeFolder;
+				FHoudiniBakeSettings BakeSettings;
+				AllOutputs.Reserve(HC->GetNumOutputs());
+				HC->GetOutputs(AllOutputs);
+				TempCookFolder = HC->GetTemporaryCookFolderOrDefault();
+				BakeFolder = HC->GetBakeFolderOrDefault();
+				BakeSettings.SetFromCookable(HC.Get());
+
+				FHoudiniGeoPartObject HoudiniGeoPartObject;
+				for (const auto& curHGPO : InOutput->GetHoudiniGeoPartObjects())
+				{
+					if (!OutputIdentifier.Matches(curHGPO))
+						continue;
+
+					HoudiniGeoPartObject = curHGPO;
+					break;
+				}
+
+				FHoudiniOutputDetails::OnBakeOutputObject(
+					BakeName,
+					CurrentMaterial,
+					OutputIdentifier,
+					*FoundOutputObject,
+					HoudiniGeoPartObject,
+					(UObject*)HC.Get(),
+					InOutput.Get(),
+					BakeFolder,
+					BakeSettings,
+					TempCookFolder,
+					EHoudiniLandscapeOutputBakeType::InValid,
+					AllOutputs);
+
+				return FReply::Handled();
+			})
+			.ToolTipText(LOCTEXT("HoudiniMaterialBakeButton", "Bake this material and its textures to the Bake folder."))
+		];
+
+		// Browse CB button
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			PropertyCustomizationHelpers::MakeBrowseButton(
+				FSimpleDelegate::CreateSP(
+					this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)CurrentMaterial), TAttribute<FText>(Tooltip))
 		];
 	}
 }

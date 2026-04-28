@@ -111,9 +111,9 @@
 #endif
 
 #include "Materials/Material.h"
-#include "Materials/Material.h"
 #include "Materials/MaterialExpressionTextureSample.h" 
 #include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "Math/Box.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
@@ -136,7 +136,6 @@
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	#include "LevelInstance/LevelInstanceComponent.h"
 #endif
-#include "Materials/MaterialExpressionTextureSample.h" 
 #include "WorldPartition/WorldPartition.h"
 #include "WorldPartition/WorldPartitionSubsystem.h"
 #include "HoudiniHLODLayerUtils.h"
@@ -481,8 +480,9 @@ FHoudiniEngineBakeUtils::BakeCookableToAssets(
 		FHoudiniEngine::Get().CreateTaskSlateNotification(FText::FromString(Msg));
 	}
 
-	TMap<UMaterialInterface*, UMaterialInterface*> AlreadyBakedMaterialsMap;
-	TMap<UStaticMesh*, UStaticMesh*> AlreadyBakedStaticMeshMap;
+	//TMap<UMaterialInterface*, UMaterialInterface*> AlreadyBakedMaterialsMap;
+	//TMap<UStaticMesh*, UStaticMesh*> AlreadyBakedStaticMeshMap;
+	TMap<UTexture2D*, UTexture2D*> TempToBakeTextureMap;
 	for (int32 OutputIdx = 0; OutputIdx < NumOutputs; ++OutputIdx)
 	{
 		UHoudiniOutput* Output = Outputs[OutputIdx];
@@ -578,14 +578,15 @@ FHoudiniEngineBakeUtils::BakeCookableToAssets(
 
 		case EHoudiniOutputType::Cop:
 		{
-			FHoudiniEngineBakeUtils::BakeTexture(
+			FHoudiniEngineBakeUtils::BakeTexturesAndMaterials(
 				InCookable,
 				OutputIdx,
 				Outputs,
 				BakeState,
 				InCookable->GetBakeFolder(),
 				BakeSettings,
-				BakedObjectData);
+				BakedObjectData,
+				TempToBakeTextureMap);
 		}
 		break;
 
@@ -7195,7 +7196,10 @@ GetHoudiniGeneratedNameFromMetaInformation(
 
 UMaterialInterface *
 FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
-	UMaterialInterface * Material, UMaterialInterface* PreviousBakeMaterial, const FString & MaterialName, const FHoudiniPackageParams& ObjectPackageParams,
+	UMaterialInterface * Material, 
+	UMaterialInterface* PreviousBakeMaterial,
+	const FString & MaterialName, 
+	const FHoudiniPackageParams& ObjectPackageParams,
 	FHoudiniBakedObjectData& BakedObjectData,
 	TMap<UMaterialInterface *, UMaterialInterface *>& InOutAlreadyBakedMaterialsMap)
 {
@@ -9870,14 +9874,15 @@ FHoudiniEngineBakeUtils::BakeSingleMaterialToPackage(
 }
 
 bool
-FHoudiniEngineBakeUtils::BakeTexture(
+FHoudiniEngineBakeUtils::BakeTexturesAndMaterials(
 	UHoudiniCookable* InCookable,
 	int32 InOutputIndex,
 	const TArray<UHoudiniOutput*>& InAllOutputs,
 	FHoudiniEngineBakeState& InBakeState,
 	const FDirectoryPath& InBakeFolder,
 	const FHoudiniBakeSettings& BakeSettings,
-	FHoudiniBakedObjectData& BakedObjectData)
+	FHoudiniBakedObjectData& BakedObjectData,
+	TMap<UTexture2D*, UTexture2D*>& InTempToBakeTextureMap)
 {
 	if ((InOutputIndex < 0) || !InAllOutputs.IsValidIndex(InOutputIndex))
 		return false;
@@ -9886,8 +9891,7 @@ FHoudiniEngineBakeUtils::BakeTexture(
 	UHoudiniOutput* CookedOutput = InAllOutputs[InOutputIndex];
 	if (!IsValid(CookedOutput))
 		return false;
-
-
+		
 	// Determine the relevant WorldContext based on the output owner
 	UWorld* WorldContext = InCookable ? InCookable->GetWorld() : GWorld;
 
@@ -9944,11 +9948,13 @@ FHoudiniEngineBakeUtils::BakeTexture(
 			continue;
 
 		FHoudiniOutputObject& OutputObject = It.Value;
-		if (!OutputObject.OutputObject->IsA<UTexture2D>())
+		if (!OutputObject.OutputObject->IsA<UTexture2D>()
+			&& !OutputObject.OutputObject->IsA<UMaterialInterface>())
 			continue;
 
 		UTexture2D* Texture = Cast<UTexture2D>(OutputObject.OutputObject);
-		if (!Texture)
+		UMaterialInterface* Material = Cast<UMaterialInterface>(OutputObject.OutputObject);
+		if (!Texture && !Material)
 			continue;
 
 		FDirectoryPath BakeFolder = InBakeFolder;
@@ -9958,7 +9964,9 @@ FHoudiniEngineBakeUtils::BakeTexture(
 			BakeFolder.Path = *Attribute;
 		}
 
-		FString ObjectName = FHoudiniPackageParams::GetPackageNameExcludingGUID(Texture);
+		FString ObjectName = Texture ? FHoudiniPackageParams::GetPackageNameExcludingGUID(Texture) 
+			: FHoudiniPackageParams::GetPackageNameExcludingGUID(Material);
+
 		if (FString* Value = OutputObject.CachedAttributes.Find(HAPI_UNREAL_ATTRIB_CUSTOM_OUTPUT_NAME_V2))
 		{
 			ObjectName = *Value;
@@ -9994,13 +10002,51 @@ FHoudiniEngineBakeUtils::BakeTexture(
 			false,
 			bSkipBakeFolderResolutionAndUseDefault);
 
-		UTexture2D* PreviousTexture = Cast<UTexture2D>(BakedOutputObject.GetBakedObjectIfValid());
-		UTexture2D* BakedTexture = FHoudiniEngineBakeUtils::BakeTextureToPackage(Texture, PackageParams, PreviousTexture);
-		if (!BakedTexture)
-			continue;
+		if (Texture)
+		{
+			UTexture2D* PreviousTexture = Cast<UTexture2D>(BakedOutputObject.GetBakedObjectIfValid());
+			UTexture2D* BakedTexture = FHoudiniEngineBakeUtils::BakeTextureToPackage(Texture, PackageParams, PreviousTexture);
+			if (!BakedTexture)
+				continue;
 
-		// Record the baked object
-		BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedTexture).ToString();
+			InTempToBakeTextureMap.FindOrAdd(Texture, BakedTexture);
+
+			// Record the baked object
+			BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedTexture).ToString();
+		}
+		else if (Material)
+		{
+			UMaterialInterface* PreviousMat = Cast<UMaterialInterface>(BakedOutputObject.GetBakedObjectIfValid());
+			UMaterialInterface* BakedMat = FHoudiniEngineBakeUtils::BakeMaterialToPackage(Material, PackageParams, PreviousMat);
+			if (!BakedMat)
+				continue;
+
+			// Replace all the textures used in the duplicated material with the baked textures
+			TMap<FMaterialParameterInfo, FMaterialParameterMetadata> AllTextureParameters;
+			BakedMat->GetAllParametersOfType(EMaterialParameterType::Texture, AllTextureParameters);
+			for (auto& TextureParm : AllTextureParameters)
+			{
+				FMaterialParameterInfo CurParmInfo = TextureParm.Key;
+				UTexture* CurrentParmTexture = nullptr;
+				if(!BakedMat->GetTextureParameterValue(CurParmInfo, CurrentParmTexture, true))
+					continue;
+
+				UTexture2D* CurrentTexture2D = Cast<UTexture2D>(CurrentParmTexture);
+				UTexture2D** BakedTexture = InTempToBakeTextureMap.Find(CurrentTexture2D);
+				if(!BakedTexture)
+					continue;
+
+				UMaterialInstanceConstant* MatInst = Cast<UMaterialInstanceConstant>(BakedMat);
+				if(!MatInst)
+					continue;
+
+				MatInst->SetTextureParameterValueEditorOnly(CurParmInfo, *BakedTexture);
+			}
+
+			// Record the baked object
+			BakedOutputObject.BakedObjectPath = FSoftObjectPath(BakedMat).ToString();
+		}
+
 		// No component and no actor
 		BakedOutputObject.BakedComponentPath = nullptr;
 		BakedOutputObject.ActorPath.Reset();
@@ -10051,6 +10097,46 @@ FHoudiniEngineBakeUtils::BakeTextureToPackage(
 	}
 
 	return DuplicatedTexture;
+}
+
+UMaterialInterface*
+FHoudiniEngineBakeUtils::BakeMaterialToPackage(
+	UMaterialInterface* InOriginalMaterial,
+	const FHoudiniPackageParams& InPackageParams,
+	UMaterialInterface* InPreviousBakeMaterial)
+{
+	if (!IsValid(InOriginalMaterial))
+	{
+		return nullptr;
+	}
+
+	// We only deal with MaterialInterfaces.
+	if (!InOriginalMaterial->IsA(UMaterialInterface::StaticClass()))
+	{
+		return nullptr;
+	}
+
+	FString MaterialName = InOriginalMaterial->GetName();
+
+	// Duplicate the material
+	FHoudiniBakedObjectData BakedObjectData;
+	TMap<UMaterialInterface*, UMaterialInterface*> FakeAlreadyBakedMaterialsMap;
+	UMaterialInterface* DuplicatedMaterial = FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
+		InOriginalMaterial, InPreviousBakeMaterial, MaterialName, InPackageParams, BakedObjectData, FakeAlreadyBakedMaterialsMap);
+
+	if (!IsValid(DuplicatedMaterial))
+		return nullptr;
+
+	FHoudiniEngineBakeUtils::SaveBakedPackages(BakedObjectData.PackagesToSave);
+	// Sync the CB to the baked objects
+	if (GEditor)
+	{
+		TArray<UObject*> Objects;
+		Objects.Add(DuplicatedMaterial);
+		GEditor->SyncBrowserToObjects(Objects);
+	}
+
+	return DuplicatedMaterial;
 }
 
 UClass*

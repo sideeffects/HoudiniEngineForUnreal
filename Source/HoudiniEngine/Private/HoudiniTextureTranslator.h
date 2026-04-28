@@ -34,6 +34,7 @@
 class UPackage;
 class UTexture2D;
 class UHoudiniOutput;
+class UMaterialInstanceConstant;
 
 struct FHoudiniPackageParams;
 struct FCreateTexture2DParameters;
@@ -127,6 +128,20 @@ public:
 	static UMaterialInterface* CreateDefaultCopMaterialForTexture(
 		UTexture2D* InTexture,
 		const FHoudiniPackageParams& InPackageParams);
+
+	static UMaterialInstanceConstant* CreateCopOutputMaterialInstance(
+		UMaterialInterface* InSourceMaterial,
+		const FHoudiniPackageParams& InPackageParams);
+
+	static bool UpdateTexureParamOnCopOutputMaterialInstance(
+		UMaterialInstanceConstant* InSourceMaterial,
+		UTexture2D* InTexture,
+		const FString& InParamName);
+
+	static bool UpdateBooleanParamOnCopOutputMaterialInstance(
+		UMaterialInstanceConstant* InSourceMaterial,
+		const bool InValue,
+		const FString& InParamName);
 
 	static EHoudiniTextureType GetTextureTypeFromName(const FString& InName);
 
