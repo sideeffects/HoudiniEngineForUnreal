@@ -165,6 +165,10 @@ protected:
 	void UpdateOutputList();
 	void UpdateTextureOutputOnPreviewMesh();
 
+	// Use Generated Material toggle
+	TSharedRef<SWidget> MakeUseGeneratedMaterialWidget();
+	void UpdateMaterialOnPreviewMesh();
+
 	void OnPostOutputProcess(UHoudiniCookable* _HC, bool  bSuccess);
 
 	//virtual void CreateEditorModeManager() override;
@@ -207,7 +211,13 @@ protected:
 	bool bShowBlueChannel;
 	bool bShowAlphaChannel;
 
+	// Indicates we want to visualise the generated COP Material
+	bool bUseGeneratedCOPMaterial;
+
 	int32 SelectedTextureOutput;
 	int32 NumTextureOutputs;
 	TArray<TSharedPtr<FString>> OutputList;
+
+	UMaterialInterface* DefaultCOPMaterial;
+	UMaterialInterface* GeneratedCOPMaterial;
 };

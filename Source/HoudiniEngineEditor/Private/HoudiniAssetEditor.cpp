@@ -328,8 +328,13 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 	bShowBlueChannel = true;
 	bShowAlphaChannel = true;
 
+	bUseGeneratedCOPMaterial = false;
+
 	SelectedTextureOutput = 0;
 	NumTextureOutputs = 0;
+
+	DefaultCOPMaterial = nullptr;
+	GeneratedCOPMaterial = nullptr;
 
 	// Get the next available Identifier for our details
 	if(HoudiniAssetEditorIdentifier.IsEmpty())
@@ -491,6 +496,8 @@ FHoudiniAssetEditor::OnPostOutputProcess(UHoudiniCookable* _HC, bool  bSuccess)
 
 	UpdateTextureOutputOnPreviewMesh();
 
+	UpdateMaterialOnPreviewMesh();
+
 	ViewportPtr->Invalidate();
 
 }
@@ -622,11 +629,13 @@ FHoudiniAssetEditor::FillToolbar(FToolBarBuilder& ToolbarBuilder)
 {
 	TSharedRef<SWidget> ChannelControl = MakeChannelControlWidget();
 	TSharedRef<SWidget> TextureOutput = MakeTextureOutputWidget();
+	TSharedRef<SWidget> UseGeneratedMat = MakeUseGeneratedMaterialWidget();
 
 	ToolbarBuilder.BeginSection("Channels");
 	{
 		ToolbarBuilder.AddWidget(ChannelControl);
 		ToolbarBuilder.AddWidget(TextureOutput);
+		ToolbarBuilder.AddWidget(UseGeneratedMat);
 	}
 	ToolbarBuilder.EndSection();
 }
@@ -738,7 +747,7 @@ FHoudiniAssetEditor::MakeChannelControlWidget()
 			.ForegroundColor(this, &FHoudiniAssetEditor::GetChannelButtonForegroundColor, ETextureChannelButton::Red)
 			.OnCheckStateChanged_Lambda(OnChannelCheckStateChanged, ETextureChannelButton::Red)
 			.IsChecked(this, &FHoudiniAssetEditor::OnGetChannelButtonCheckState, ETextureChannelButton::Red)
-			//.IsEnabled(this, &FTextureEditorToolkit::IsChannelButtonEnabled, ETextureChannelButton::Red)
+			.IsEnabled_Lambda([this]() { return bUseGeneratedCOPMaterial ? false : true; })
 			.Visibility_Lambda(GetChannelVisibilty)
 			[
 				SNew(STextBlock)
@@ -757,7 +766,7 @@ FHoudiniAssetEditor::MakeChannelControlWidget()
 			.ForegroundColor(this, &FHoudiniAssetEditor::GetChannelButtonForegroundColor, ETextureChannelButton::Green)
 			.OnCheckStateChanged_Lambda(OnChannelCheckStateChanged, ETextureChannelButton::Green)
 			.IsChecked(this, &FHoudiniAssetEditor::OnGetChannelButtonCheckState, ETextureChannelButton::Green)
-			//.IsEnabled(this, &FTextureEditorToolkit::IsChannelButtonEnabled, ETextureChannelButton::Green)
+			.IsEnabled_Lambda([this]() { return bUseGeneratedCOPMaterial ? false : true; })
 			.Visibility_Lambda(GetChannelVisibilty)
 			[
 				SNew(STextBlock)
@@ -777,7 +786,7 @@ FHoudiniAssetEditor::MakeChannelControlWidget()
 			.ForegroundColor(this, &FHoudiniAssetEditor::GetChannelButtonForegroundColor, ETextureChannelButton::Blue)
 			.OnCheckStateChanged_Lambda(OnChannelCheckStateChanged, ETextureChannelButton::Blue)
 			.IsChecked(this, &FHoudiniAssetEditor::OnGetChannelButtonCheckState, ETextureChannelButton::Blue)
-			//.IsEnabled(this, &FTextureEditorToolkit::IsChannelButtonEnabled, ETextureChannelButton::Blue)
+			.IsEnabled_Lambda([this]() { return bUseGeneratedCOPMaterial ? false : true; })
 			.Visibility_Lambda(GetChannelVisibilty)
 			[
 				SNew(STextBlock)
@@ -796,7 +805,7 @@ FHoudiniAssetEditor::MakeChannelControlWidget()
 			.ForegroundColor(this, &FHoudiniAssetEditor::GetChannelButtonForegroundColor, ETextureChannelButton::Alpha)
 			.OnCheckStateChanged_Lambda(OnChannelCheckStateChanged, ETextureChannelButton::Alpha)
 			.IsChecked(this, &FHoudiniAssetEditor::OnGetChannelButtonCheckState, ETextureChannelButton::Alpha)
-			//.IsEnabled(this, &FTextureEditorToolkit::IsChannelButtonEnabled, ETextureChannelButton::Alpha)
+			.IsEnabled_Lambda([this]() { return bUseGeneratedCOPMaterial ? false : true; })
 			.Visibility_Lambda(GetChannelVisibilty)
 			[
 				SNew(STextBlock)
@@ -807,6 +816,73 @@ FHoudiniAssetEditor::MakeChannelControlWidget()
 
 	return ChannelControl;
 }
+
+TSharedRef<SWidget>
+FHoudiniAssetEditor::MakeUseGeneratedMaterialWidget()
+{
+	auto OnCheckStateChanged = [this](ECheckBoxState NewState)
+	{
+		bool bNewState = NewState == ECheckBoxState::Checked;
+		if(bUseGeneratedCOPMaterial == bNewState)
+			return;
+
+		// Get the current material we're using
+		UMaterialInterface* CurrentMaterial = nullptr;
+		if (HoudiniCookableBeingEdited)
+		{
+			UStaticMeshComponent* SMC = FHoudiniEngineUtils::GetTextureMesh(HoudiniCookableBeingEdited->GetComponent());
+			if (IsValid(SMC))
+				CurrentMaterial = SMC->GetMaterial(0);
+		}		
+
+		if(!bUseGeneratedCOPMaterial)
+			DefaultCOPMaterial = CurrentMaterial;
+		else
+			GeneratedCOPMaterial = CurrentMaterial;
+
+		bUseGeneratedCOPMaterial = bNewState;
+		UpdateMaterialOnPreviewMesh();
+	};
+
+	auto GetVisibilty = [this]()
+	{
+		return bIsViewingCopHDA ? EVisibility::Visible : EVisibility::Hidden;
+	};
+
+	TSharedRef<SWidget> MaterialWidget =
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.Padding(10, 2, 2, 2)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString("Use Generated Material"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Visibility_Lambda(GetVisibilty)
+		]
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.Padding(2)
+		.AutoWidth()
+		[
+			SNew(SCheckBox)
+			.OnCheckStateChanged_Lambda(OnCheckStateChanged)
+			.IsChecked_Lambda([this](){	return bUseGeneratedCOPMaterial ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;})
+			.IsEnabled_Lambda([this](){ return HoudiniCookableBeingEdited ? HoudiniCookableBeingEdited->GetImageData()->bGenerateMaterial : false;})
+			.Visibility_Lambda(GetVisibilty)
+			/*
+			[
+				SNew(STextBlock)
+				.Font(FAppStyle::Get().GetFontStyle("TextureEditor.ChannelButtonFont"))
+				.Text(FText::FromString("Use Generated Material"))
+			]
+			*/
+		];
+
+	return MaterialWidget;
+}
+
 
 
 void
@@ -890,7 +966,7 @@ FHoudiniAssetEditor::UpdateTextureOutputOnPreviewMesh()
 		{
 			// ... Get the first valid texture for display purpose
 			SelectedTexture = Cast<UTexture2D>(It.Value.OutputObject);
-			if (IsValid(CurOutput))
+			if (IsValid(SelectedTexture))
 				break;
 		}
 	}
@@ -917,6 +993,63 @@ FHoudiniAssetEditor::UpdateTextureOutputOnPreviewMesh()
 
 			MaterialUpdateContext.AddMaterialInstance(MaterialInstance);
 		}
+	}
+}
+
+
+void
+FHoudiniAssetEditor::UpdateMaterialOnPreviewMesh()
+{
+	// No need to do anything if we aren't viewing a COP
+	if (!bIsViewingCopHDA)
+		return;
+
+	// Get our cookable's Static Mesh Component
+	UStaticMeshComponent* SMC = nullptr;
+	if (HoudiniCookableBeingEdited)
+	{
+		SMC = FHoudiniEngineUtils::GetTextureMesh(HoudiniCookableBeingEdited->GetComponent());
+	}
+
+	if (!SMC)
+		return;
+
+	// See if we should display the generated material (if we have one)
+	bool bGenMat = HoudiniCookableBeingEdited ? HoudiniCookableBeingEdited->GetImageData()->bGenerateMaterial : false;
+	bool bUseGenMat = bGenMat ? bUseGeneratedCOPMaterial : false;
+
+	// Get the generated material
+	UMaterialInterface* GeneratedMaterial = nullptr;
+	if (bUseGenMat)
+	{
+		// TODO: FORT LOOP - dont assume material is the last output!
+		UHoudiniOutput* CurOutput = HoudiniCookableBeingEdited->GetOutputAt(HoudiniCookableBeingEdited->GetNumOutputs() - 1);
+		if (IsValid(CurOutput) && CurOutput->GetType() == EHoudiniOutputType::Cop)
+		{
+			for (auto& It : CurOutput->GetOutputObjects())
+			{
+				// ... Get the first valid texture for display purpose
+				GeneratedMaterial = Cast<UMaterialInterface>(It.Value.OutputObject);
+				if (IsValid(CurOutput))
+					break;
+			}
+		}
+
+		if (GeneratedMaterial)
+		{
+			SMC->SetMaterial(0, GeneratedMaterial);
+		}
+		/*
+		else
+		{
+			SMC->SetMaterial(0, GeneratedCOPMaterial);
+		}
+		*/
+	}
+	else if (DefaultCOPMaterial)
+	{
+		// Reuse the default COP Material
+		SMC->SetMaterial(0, DefaultCOPMaterial);
 	}
 }
 
@@ -967,22 +1100,34 @@ FHoudiniAssetEditor::MakeTextureOutputWidget()
 	TSharedPtr<FString> InitiallySelectedOutput = OutputList.Num() > 0 ? OutputList[0] : nullptr;
 	TSharedRef<SWidget> OutputControl = 
 		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.Padding(10, 2, 2, 2)
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString("Texture Output"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Visibility_Lambda(GetOutputVisibility)
+		]
 		+SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
-		.Padding(2.0f)
+		.Padding(2)
 		.AutoWidth()
 		[
 			SNew(SComboBox<TSharedPtr<FString>>)
 			.OptionsSource(&OutputList)
 			.InitiallySelectedItem(InitiallySelectedOutput)
 			.Visibility_Lambda(GetOutputVisibility)
+			.IsEnabled_Lambda([this]() { return bUseGeneratedCOPMaterial ? false : true; })
 			.OnGenerateWidget_Lambda([](TSharedPtr<FString> ChoiceEntry)
 			{
 				FText ChoiceEntryText = FText::FromString(*ChoiceEntry);
 				return SNew(STextBlock)
 					.Text(ChoiceEntryText)
 					.ToolTipText(ChoiceEntryText)
-					.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+					//.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")));
+					.Font(IDetailLayoutBuilder::GetDetailFont());
 			})
 			.OnSelectionChanged_Lambda([=](TSharedPtr<FString> NewChoice, ESelectInfo::Type SelectType)
 			{
@@ -997,7 +1142,8 @@ FHoudiniAssetEditor::MakeTextureOutputWidget()
 					else
 						return FText::FromString(FString::FromInt(SelectedTextureOutput));
 				})
-				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				//.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(IDetailLayoutBuilder::GetDetailFont())
 			]
 		];
 		
@@ -1062,21 +1208,10 @@ FHoudiniAssetEditor::CreateModeToolbarWidgets(FToolBarBuilder& IgnoredBuilder)
 FText 
 FHoudiniAssetEditor::GetViewportCornerText() const
 {
-	return LOCTEXT("HDA_CornerText", "HDA");
-
-	/*
-	switch (GetCurrentMode())
-	{
-	case EHoudiniAssetEditorMode::ViewMode:
-		return LOCTEXT("ViewMode_CornerText", "View");
-	case EHoudiniAssetEditorMode::HDAMode:
-		return LOCTEXT("HDAMode_CornerText", "Edit HDA");
-	case EHoudiniAssetEditorMode::SessionSyncMode:
-		return LOCTEXT("SessionSyncMode_CornerText", "Session Sync");
-	default:
-		return FText::GetEmpty();
-	}
-	*/
+	if(bIsViewingCopHDA)
+		return LOCTEXT("COP_CornerText", "COP");
+	else
+		return LOCTEXT("HDA_CornerText", "HDA");
 }
 
 

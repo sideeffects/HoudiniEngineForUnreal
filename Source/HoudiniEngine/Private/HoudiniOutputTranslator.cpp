@@ -856,6 +856,14 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 			GeneratedCOPMaterial->PostEditChange();
 		}
 
+		if(VisibleTexture)
+		{
+			// Fully stream in the texture before drawing it.
+			// Not doing this would cause the texture to appear blurry in the 2D viewport
+			VisibleTexture->SetForceMipLevelsToBeResident(30.0f);
+			VisibleTexture->WaitForStreaming();
+		}
+
 		bool bIsInAssetEditor = OuterHC ? !OuterHC->AssetEditorId.IsNone() : false;
 
 		// If we're in the asset editor - or if we haven't generated any material
@@ -863,15 +871,7 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 		bool bCreateDefaultMaterial = bIsInAssetEditor || GeneratedCOPMaterial == nullptr;
 		if (bCreateDefaultMaterial)
 		{
-			//if(VisibleTexture)
-			{
-				// Fully stream in the texture before drawing it.
-				// Not doing this would cause the texture to appear blurry in the ortho viewport
-				VisibleTexture->SetForceMipLevelsToBeResident(30.0f);
-				VisibleTexture->WaitForStreaming();
-
-				VisibleMat = FHoudiniTextureTranslator::CreateDefaultCopMaterialForTexture(VisibleTexture, PackageParams);
-			}
+			VisibleMat = FHoudiniTextureTranslator::CreateDefaultCopMaterialForTexture(VisibleTexture, PackageParams);
 		}
 		else
 		{
