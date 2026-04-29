@@ -4864,16 +4864,22 @@ FHoudiniEngineUtils::AddTextureMeshToComponent(
 	if (FHoudiniEngineUtils::HasHoudiniLogo(InComponent))
 		FHoudiniEngineUtils::RemoveHoudiniLogoFromComponent(InComponent);
 
-	// No need to do anything if we already show the default mesh
-	if (FHoudiniEngineUtils::HasTextureMesh(InComponent))
+	UStaticMeshComponent* HoudiniCOPSMC = FHoudiniEngineUtils::GetTextureMesh(InComponent);
+	if (HoudiniCOPSMC)
+	{
+		// No need to create anything if we already show the default COP SMC
+		// just update the material
+		HoudiniCOPSMC->SetMaterial(0, InMaterial);
 		return true;
+	}
 
 	// Get the COP SM
 	UStaticMesh* HoudiniCOPMesh = FHoudiniEngine::Get().GetHoudiniCOPStaticMesh().Get();
 	if (!HoudiniCOPMesh)
 		return false;
 
-	UStaticMeshComponent* HoudiniCOPSMC = NewObject<UStaticMeshComponent>(
+	// Create a default COP SMC
+	HoudiniCOPSMC = NewObject<UStaticMeshComponent>(
 		InComponent, UStaticMeshComponent::StaticClass(), NAME_None, RF_Transactional);
 
 	if (!HoudiniCOPSMC)

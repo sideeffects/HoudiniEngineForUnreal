@@ -827,23 +827,6 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 	}
 	else if (NumTextureOutputs > 0)
 	{
-		// Create a temporary material to display the texture
-		if (VisibleTexture)
-		{
-			// Fully stream in the texture before drawing it.
-			// Not doing this would cause the texture to appear blurry in the ortho viewport
-			VisibleTexture->SetForceMipLevelsToBeResident(30.0f);
-			VisibleTexture->WaitForStreaming();
-
-			VisibleMat = FHoudiniTextureTranslator::CreateDefaultCopMaterialForTexture(VisibleTexture, PackageParams);
-		}
-
-		// ... if we only have texture outputs, use a texture quad
-		FHoudiniEngineUtils::AddTextureMeshToComponent(InOuterComponent, VisibleTexture, VisibleMat);
-
-		// .. and update its aspect ratio to match the texture
-		FHoudiniEngineUtils::UpdateTextureMeshRatio(InOuterComponent, VisibleTexture);
-
 		// If we generated a material for COP HDAs - add it to the outputs
 		if (bShouldGenerateCOPMaterial && GeneratedCOPMaterial != nullptr)
 		{
@@ -863,7 +846,44 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 			Output->OutputObjects.Add(GeneratedMaterialOutputID, OutputObject);
 
 			Outputs.Add(Output);
+
+			// Dirty the material
+			GeneratedCOPMaterial->MarkPackageDirty();
+
+			// Update the material instance
+			GeneratedCOPMaterial->InitStaticPermutation();
+			GeneratedCOPMaterial->PreEditChange(nullptr);
+			GeneratedCOPMaterial->PostEditChange();
 		}
+
+		bool bIsInAssetEditor = OuterHC ? !OuterHC->AssetEditorId.IsNone() : false;
+
+		// If we're in the asset editor - or if we haven't generated any material
+		// we need to create a temporary material to display the textures
+		bool bCreateDefaultMaterial = bIsInAssetEditor || GeneratedCOPMaterial == nullptr;
+		if (bCreateDefaultMaterial)
+		{
+			//if(VisibleTexture)
+			{
+				// Fully stream in the texture before drawing it.
+				// Not doing this would cause the texture to appear blurry in the ortho viewport
+				VisibleTexture->SetForceMipLevelsToBeResident(30.0f);
+				VisibleTexture->WaitForStreaming();
+
+				VisibleMat = FHoudiniTextureTranslator::CreateDefaultCopMaterialForTexture(VisibleTexture, PackageParams);
+			}
+		}
+		else
+		{
+			// Not in the HDA editor and we have a generated material - just use it
+			VisibleMat = GeneratedCOPMaterial;
+		}
+
+		// ... if we only have texture outputs, use a texture quad
+		FHoudiniEngineUtils::AddTextureMeshToComponent(InOuterComponent, VisibleTexture, VisibleMat);
+
+		// .. and update its aspect ratio to match the texture
+		FHoudiniEngineUtils::UpdateTextureMeshRatio(InOuterComponent, VisibleTexture);
 	}
 	else
 	{
