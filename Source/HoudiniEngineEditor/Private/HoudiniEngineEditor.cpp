@@ -1574,7 +1574,7 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 				FUIAction(
 					FExecuteAction::CreateLambda([this]() { return SendToHoudini_World(); }),
 					// Prevent a crash if the NodeSyncPanel hasn't been created yet...
-					FCanExecuteAction::CreateLambda([this, &Actors] { return Actors.Num() > 0 && NodeSyncPanel.IsValid(); })
+					FCanExecuteAction::CreateLambda([this, Actors] { return Actors.Num() > 0 && NodeSyncPanel.IsValid(); })
 				)
 			);
 		})

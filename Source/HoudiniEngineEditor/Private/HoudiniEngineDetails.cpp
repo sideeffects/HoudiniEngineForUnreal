@@ -214,6 +214,9 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 		.Font(IDetailLayoutBuilder::GetDetailFont())
 		.ToolTipText_Lambda([MainCookable]()
 		{
+			if (!IsValidWeakPointer(MainCookable))
+				return FText();
+
 			// Display the full name of the node for tooltip
 			return FText::FromString(MainCookable->GetHoudiniAssetData()->HapiAssetName);
 		})
@@ -222,6 +225,9 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 	// Lambda for updating the Houdini asset
 	auto UpdateHoudiniAsset = [MainCookable](const TArray<TWeakObjectPtr<UHoudiniCookable>>& InCookables, UObject* InObject)
 	{
+		if (!IsValidWeakPointer(MainCookable))
+			return;
+
 		if (!InObject->IsA<UHoudiniAsset>())
 			return;
 
@@ -293,6 +299,9 @@ FHoudiniEngineDetails::CreateHoudiniAssetDetails(
 			.NewAssetFactories(TArray<UFactory*>())
 			.ToolTipText_Lambda([MainCookable]()
 			{
+				if (!IsValidWeakPointer(MainCookable))
+					return FText();
+
 				// Display the full name of the node for tooltip
 				return FText::FromString(MainCookable->GetHoudiniAssetData()->HapiAssetName);
 			})
@@ -775,6 +784,9 @@ FHoudiniEngineDetails::AddBakeFolderSelector(
 
 	auto OnBakeFolderBrowseButtonClickedLambda = [MainHC, InHCs]()
 		{
+			if (!IsValidWeakPointer(MainHC))
+				return FReply::Handled();
+
 			TSharedRef<SSelectFolderPathDialog> Dialog =
 				SNew(SSelectFolderPathDialog)
 				.InitialPath(FText::FromString(MainHC->GetBakeFolderOrDefault()))
@@ -819,6 +831,9 @@ FHoudiniEngineDetails::AddBakeFolderSelector(
 									.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 									.ToolTipText_Lambda([MainHC]()
 										{
+											if (!IsValidWeakPointer(MainHC))
+												return FText();
+
 											FFormatNamedArguments Args;
 											Args.Add(TEXT("Folder"), FText::FromString(MainHC->GetBakeFolderOrDefault()));
 
@@ -971,6 +986,9 @@ FHoudiniEngineDetails::AddBakeOutputTypes(
 						.InitiallySelectedItem(IntialSelec)
 						.IsEnabled_Lambda([MainHC]()
 							{
+								if (!IsValidWeakPointer(MainHC))
+									return false;
+
 								// Only enabled when in "Bake To Actor" mode
 								return (MainHC->GetHoudiniEngineBakeOption() == EHoudiniEngineBakeOption::ToActor);
 							})
@@ -1034,6 +1052,9 @@ FHoudiniEngineDetails::AddBakeButtons(
 
 	auto OnBakeButtonClickedLambda = [InHCs, MainHC]()
 	{
+		if (!IsValidWeakPointer(MainHC))
+			return FReply::Handled();
+
 		FHoudiniBakeSettings BakeSettings;
 		EHoudiniEngineBakeOption BakeOption;
 		bool bRemoveOutputAfterBake;
@@ -1620,6 +1641,9 @@ FHoudiniEngineDetails::CreateOutputWidgets(
 
 			auto OnCookFolderBrowseButtonClickedLambda = [InHCs, MainHC]()
 				{
+					if (!IsValidWeakPointer(MainHC))
+						return FReply::Handled();
+
 					TSharedRef<SSelectFolderPathDialog> Dialog =
 						SNew(SSelectFolderPathDialog)
 						.InitialPath(FText::FromString(MainHC->GetTemporaryCookFolderOrDefault()))
@@ -1653,6 +1677,9 @@ FHoudiniEngineDetails::CreateOutputWidgets(
 								.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 								.ToolTipText_Lambda([MainHC]()
 								{
+										if (!IsValidWeakPointer(MainHC))
+											return FText();
+
 										FFormatNamedArguments Args;
 										Args.Add(TEXT("Folder"), FText::FromString(MainHC->GetTemporaryCookFolderOrDefault()));
 
@@ -3753,6 +3780,9 @@ FHoudiniEngineDetails::CreateNodeSyncWidgets(
 
 	auto OnFetchFolderBrowseButtonClickedLambda = [InCookables, MainHNSC, UpdateNodePath]()
 	{
+		if (!IsValidWeakPointer(MainHNSC))
+			return FReply::Handled();
+
 		UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
 		if (!HoudiniEditorNodeSyncSubsystem)
 			return FReply::Handled();
@@ -3806,6 +3836,9 @@ FHoudiniEngineDetails::CreateNodeSyncWidgets(
 		.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
 		.ToolTipText_Lambda([MainHNSC, FetchPathTooltipString]()
 		{
+			if (!IsValidWeakPointer(MainHNSC))
+				return FText::FromString(FetchPathTooltipString);
+
 			FString TooltipString = FetchPathTooltipString;
 
 			UHoudiniEditorNodeSyncSubsystem* HoudiniEditorNodeSyncSubsystem = GEditor->GetEditorSubsystem<UHoudiniEditorNodeSyncSubsystem>();
@@ -3928,15 +3961,24 @@ FHoudiniEngineDetails::CreateNodeSyncWidgets(
 		.Justification(ETextJustify::Left)
 		.Text_Lambda([MainHNSC]()
 		{
+			if (!IsValidWeakPointer(MainHNSC))
+				return FText();
+
 			return FText::FromString(MainHNSC->FetchMessage);
 		})
 		.ColorAndOpacity_Lambda([MainHNSC]()
 		{
+			if (!IsValidWeakPointer(MainHNSC))
+				return FSlateColor(FLinearColor::Transparent);
+
 			FLinearColor StatusColor = UHoudiniEditorNodeSyncSubsystem::GetStatusColor(MainHNSC->FetchStatus);
 			return FSlateColor(StatusColor);
 		})
 		.ToolTipText_Lambda([MainHNSC]()
 		{
+			if (!IsValidWeakPointer(MainHNSC))
+				return FText();
+
 			return FText::FromString(MainHNSC->FetchMessage);
 		})
 	];

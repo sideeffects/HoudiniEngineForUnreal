@@ -3368,11 +3368,17 @@ FHoudiniInputDetails::AddCurveInputUI(
 
 	TSharedRef<SVerticalBox> InputsCollapsed_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
 	{
+		if (!IsValidWeakPointer(MainInput))
+			return EVisibility::Collapsed;
+
 		return MainInput->GetCurveInputsMenuExpanded() ? EVisibility::Collapsed : EVisibility::Visible;
 	});
 
 	TSharedRef<SVerticalBox> InputsExpanded_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
 	{
+		if (!IsValidWeakPointer(MainInput))
+			return EVisibility::Collapsed;
+
 		return MainInput->GetCurveInputsMenuExpanded() ? EVisibility::Visible : EVisibility::Collapsed;
 	});
 
@@ -3430,6 +3436,9 @@ FHoudiniInputDetails::AddCurveInputUI(
 			SNew(SButton)
 			.OnClicked_Lambda([InInputs, MainInput, &CategoryBuilder]()
 			{
+				if (!IsValidWeakPointer(MainInput))
+					return FReply::Handled();
+
 				TArray<TObjectPtr<UHoudiniInputObject>>* CurveInputComponentArray = MainInput->GetHoudiniInputObjectArray(EHoudiniInputType::Curve);
 
 				// Detach all curves before deleting.
@@ -5918,6 +5927,9 @@ FHoudiniInputDetails::Helper_CreateBoundSelectorPickerWidget(const TArray<TWeakO
 		if (!IsValid(Actor))
 			return false;
 
+		if (!IsValidWeakPointer(MainInput))
+			return false;
+
 		const TArray<TObjectPtr<AActor>>* BoundObjects = MainInput->GetBoundSelectorObjectArray();
 		if (!BoundObjects)
 			return false;
@@ -6080,11 +6092,17 @@ FHoudiniInputDetails::AddGeometryInputUI(
 		
 	TSharedRef<SVerticalBox> InputsCollapsed_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
 	{
+		if (!IsValidWeakPointer(MainInput))
+			return EVisibility::Collapsed;
+
 		return MainInput->GetGeometryInputsMenuExpanded() ? EVisibility::Collapsed : EVisibility::Visible;
 	});
 	
 	TSharedRef<SVerticalBox> InputsExpanded_VerticalBox = SNew(SVerticalBox).Visibility_Lambda([MainInput]()
 	{
+		if (!IsValidWeakPointer(MainInput))
+			return EVisibility::Collapsed;
+
 		return MainInput->GetGeometryInputsMenuExpanded() ? EVisibility::Visible : EVisibility::Collapsed;
 	});
 
@@ -6961,6 +6979,9 @@ FHoudiniInputDetails::Helper_CreateGeometryInputObjectExpanded(
 	StaticMeshComboButton->SetOnGetMenuContent(FOnGetContent::CreateLambda(
 		[MainInput, InInputs, InObjectIdx, WeakStaticMeshComboButton, UpdateGeometryObjectAt]()
 		{
+			if (!IsValidWeakPointer(MainInput))
+				return SNullWidget::NullWidget;
+
 			TArray<const UClass*> AllowedClasses = UHoudiniInput::GetAllowedClasses(
 				EHoudiniInputType::Geometry, MainInput->IsCOPInput());
 

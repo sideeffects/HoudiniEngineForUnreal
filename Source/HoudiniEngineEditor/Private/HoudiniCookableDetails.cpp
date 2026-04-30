@@ -766,7 +766,7 @@ FHoudiniCookableDetails::CreateProxyDetails(
 
 				return MainCookable->IsProxyStaticMeshEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
-			.IsEnabled_Lambda([MainCookable]() {return MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
+			.IsEnabled_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) && MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
 			.OnCheckStateChanged_Lambda([MainCookable, InCookables, RefineCookablesIfNeeded](ECheckBoxState NewState)
 			{
 				if (!IsValidWeakPointer(MainCookable))
@@ -827,7 +827,7 @@ FHoudiniCookableDetails::CreateProxyDetails(
 
 				return MainCookable->GetProxyData()->bEnableProxyStaticMeshRefinementByTimerOverride ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
-			.IsEnabled_Lambda([MainCookable]() {return MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
+			.IsEnabled_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) && MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
 			.OnCheckStateChanged_Lambda([MainCookable, InCookables](ECheckBoxState NewState)
 			{
 				if (!IsValidWeakPointer(MainCookable))
@@ -1013,7 +1013,7 @@ FHoudiniCookableDetails::CreateProxyDetails(
 
 				return MainCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
-			.IsEnabled_Lambda([MainCookable]() {return MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
+			.IsEnabled_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) && MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
 			.OnCheckStateChanged_Lambda([MainCookable, InCookables](ECheckBoxState NewState)
 			{
 				if (!IsValidWeakPointer(MainCookable))
@@ -1071,7 +1071,7 @@ FHoudiniCookableDetails::CreateProxyDetails(
 
 				return MainCookable->GetProxyData()->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
-			.IsEnabled_Lambda([MainCookable]() {return MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
+			.IsEnabled_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) && MainCookable->IsOverrideGlobalProxyStaticMeshSettings(); })
 			.OnCheckStateChanged_Lambda([MainCookable, InCookables](ECheckBoxState NewState)
 			{
 				if (!IsValidWeakPointer(MainCookable))
@@ -1779,9 +1779,9 @@ FHoudiniCookableDetails::CreateMeshBuildSettingsDetails(
 		.MaxDesiredWidth(125.0f * 3.0f)
 		[
 			SNew(SVectorInputBox)
-			.X_Lambda([MainCookable]() { return MainCookable->GetStaticMeshBuildSettings().BuildScale3D.X; })
-			.Y_Lambda([MainCookable]() { return MainCookable->GetStaticMeshBuildSettings().BuildScale3D.Y; })
-			.Z_Lambda([MainCookable]() { return MainCookable->GetStaticMeshBuildSettings().BuildScale3D.Z; })
+			.X_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) ? MainCookable->GetStaticMeshBuildSettings().BuildScale3D.X : 1.0f; })
+			.Y_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) ? MainCookable->GetStaticMeshBuildSettings().BuildScale3D.Y : 1.0f; })
+			.Z_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) ? MainCookable->GetStaticMeshBuildSettings().BuildScale3D.Z : 1.0f; })
 			.bColorAxisLabels(false)
 			.AllowSpin(false)
 			.OnXCommitted_Lambda([InCookables, OnBuildScaleChange, MarkCookableOutputsNeedUpdate](float NewValue, ETextCommit::Type TextCommitType)
@@ -1831,6 +1831,9 @@ FHoudiniCookableDetails::CreateMeshBuildSettingsDetails(
 			.MaxValue(100.0f)
 			.Value_Lambda([MainCookable]()
 			{	
+				if (!IsValidWeakPointer(MainCookable))
+					return 0.0f;
+
 				return MainCookable->GetStaticMeshBuildSettings().DistanceFieldResolutionScale;
 			})
 			.OnValueChanged_Lambda([InCookables, MarkCookableOutputsNeedUpdate, OnDistanceFieldResChanged](float NewValue)
@@ -1854,6 +1857,9 @@ FHoudiniCookableDetails::CreateMeshBuildSettingsDetails(
 			SNew(SCheckBox)
 			.IsChecked_Lambda([MainCookable]()
 			{		
+				if (!IsValidWeakPointer(MainCookable))
+					return ECheckBoxState::Unchecked;
+
 				return MainCookable->GetStaticMeshBuildSettings().bGenerateDistanceFieldAsIfTwoSided ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			})
 			.OnCheckStateChanged_Lambda([InCookables, MarkCookableOutputsNeedUpdate](ECheckBoxState NewState)
@@ -1882,6 +1888,9 @@ FHoudiniCookableDetails::CreateMeshBuildSettingsDetails(
 		.AllowClear(true)
 		.ObjectPath_Lambda([MainCookable]()
 		{
+			if (!IsValidWeakPointer(MainCookable))
+				return FString("");
+
 			if (MainCookable->GetStaticMeshBuildSettings().DistanceFieldReplacementMesh)
 				return MainCookable->GetStaticMeshBuildSettings().DistanceFieldReplacementMesh->GetPathName();
 			else
@@ -2708,13 +2717,25 @@ FHoudiniCookableDetails::CreateImageDetails(
 						.Font(FAppStyle::Get().GetFontStyle("PropertyWindow.NormalFont"))
 						.AllowSpin(false)
 						.bColorAxisLabels(true)
-						.X_Lambda([MainCookable]() { return MainCookable->GetImageData()->ResolutionOverride.X; })
-						.Y_Lambda([MainCookable]() { return MainCookable->GetImageData()->ResolutionOverride.Y; })
+						.X_Lambda([MainCookable]()
+						{
+							if (!IsValidWeakPointer(MainCookable) || !MainCookable->GetImageData())
+								return 0;
+
+							return MainCookable->GetImageData()->ResolutionOverride.X;
+						})
+						.Y_Lambda([MainCookable]()
+						{
+							if (!IsValidWeakPointer(MainCookable) || !MainCookable->GetImageData())
+								return 0;
+
+							return MainCookable->GetImageData()->ResolutionOverride.Y;
+						})
 						.OnXCommitted_Lambda([InCookables, ChangeResolutionValueAt](int32 NewValue, ETextCommit::Type TextCommitType)
 							{ ChangeResolutionValueAt(NewValue, 0); })
 						.OnYCommitted_Lambda([InCookables, ChangeResolutionValueAt](int32 NewValue, ETextCommit::Type TextCommitType)
 							{ ChangeResolutionValueAt(NewValue, 1); })
-						.IsEnabled_Lambda([MainCookable]() { return MainCookable->GetImageData()->bOverrideDefaultResolution; })
+						.IsEnabled_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) && MainCookable->GetImageData() && MainCookable->GetImageData()->bOverrideDefaultResolution; })
 						.ToolTipText(TooltipText)
 					]
 				]
@@ -2850,10 +2871,10 @@ FHoudiniCookableDetails::CreateImageDetails(
 					SNew(SNumericEntryBox<float>)
 					.Font(FAppStyle::Get().GetFontStyle("PropertyWindow.NormalFont"))
 					.AllowSpin(false)
-					.Value_Lambda([MainCookable]() { return MainCookable->GetImageData()->PixelScale; })
+					.Value_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) && MainCookable->GetImageData() ? MainCookable->GetImageData()->PixelScale : 0.0f; })
 					.OnValueCommitted_Lambda([InCookables, ChangePixelScaleValue](int32 NewValue, ETextCommit::Type TextCommitType)
 						{ ChangePixelScaleValue(NewValue); })
-					.IsEnabled_Lambda([MainCookable]() { return MainCookable->GetImageData()->bOverridePixelScale; })
+					.IsEnabled_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) && MainCookable->GetImageData() && MainCookable->GetImageData()->bOverridePixelScale; })
 					.ToolTipText(TooltipText)
 				]
 			]
@@ -3102,7 +3123,7 @@ FHoudiniCookableDetails::CreateImageDetails(
 					UMaterialInterface* DroppedMat = Cast<UMaterialInterface>(InAssets[0].GetAsset());
 					UpdateMaterialToInstance(DroppedMat);
 				})
-				.IsEnabled_Lambda([MainCookable]() { return MainCookable->GetImageData()->bGenerateMaterial; })
+				.IsEnabled_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) && MainCookable->GetImageData() && MainCookable->GetImageData()->bGenerateMaterial; })
 				.ToolTipText(TooltipText)
 				[
 					SAssignNew(HorizontalBox, SHorizontalBox)
@@ -3187,7 +3208,7 @@ FHoudiniCookableDetails::CreateImageDetails(
 				})
 				.ContentPadding(2.0f)
 				.ToolTipText(TooltipText)
-				.IsEnabled_Lambda([MainCookable]() { return MainCookable->GetImageData()->bGenerateMaterial; })
+				.IsEnabled_Lambda([MainCookable]() { return IsValidWeakPointer(MainCookable) && MainCookable->GetImageData() && MainCookable->GetImageData()->bGenerateMaterial; })
 				.ButtonContent()
 				[
 					SNew(STextBlock)

@@ -420,12 +420,18 @@ void FHoudiniPDGDetails::AddAssetOptions(IDetailCategoryBuilder& InPDGCategory, 
 				SAssignNew(AutoLoadCheckBox, SCheckBox)
 					.IsChecked_Lambda([PDGAssetLink]()
 						{
+							if (!IsValidWeakPointer(PDGAssetLink))
+								return ECheckBoxState::Unchecked;
+
 							return PDGAssetLink->GetSelectedTOPNode()
 								? (PDGAssetLink->GetSelectedTOPNode()->bAutoLoad ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 								: ECheckBoxState::Unchecked;
 						})
 					.OnCheckStateChanged_Lambda([PDGAssetLink](ECheckBoxState NewState)
 						{
+							if (!IsValidWeakPointer(PDGAssetLink))
+								return;
+
 							const bool bNewState = (NewState == ECheckBoxState::Checked) ? true : false;
 							UTOPNode* TOPNode = PDGAssetLink->GetSelectedTOPNode();
 							if(!IsValid(TOPNode) || TOPNode->bAutoLoad == bNewState)
@@ -514,12 +520,18 @@ void FHoudiniPDGDetails::AddAssetOptions(IDetailCategoryBuilder& InPDGCategory, 
 				SAssignNew(ShowResCheckBox, SCheckBox)
 					.IsChecked_Lambda([PDGAssetLink]()
 						{
+							if (!IsValidWeakPointer(PDGAssetLink))
+								return ECheckBoxState::Unchecked;
+
 							return PDGAssetLink->GetSelectedTOPNode()
 								? (PDGAssetLink->GetSelectedTOPNode()->IsVisibleInLevel() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 								: ECheckBoxState::Unchecked;
 						})
 					.OnCheckStateChanged_Lambda([PDGAssetLink](ECheckBoxState NewState)
 						{
+							if (!IsValidWeakPointer(PDGAssetLink))
+								return;
+
 							const bool bNewState = (NewState == ECheckBoxState::Checked) ? true : false;
 							UTOPNode* const TOPNode = PDGAssetLink->GetSelectedTOPNode();
 							if(!IsValid(TOPNode) || TOPNode->IsVisibleInLevel() == bNewState)
@@ -867,6 +879,9 @@ FHoudiniPDGDetails::AddPDGAssetStatus(
 			SNew(STextBlock)
 			.Text_Lambda([InHC]()
 			{
+				if (!IsValidWeakPointer(InHC))
+					return FText();
+
 				FString PDGStatusString;
 				FLinearColor PDGStatusColor;
 				GetPDGStatusAndColor(InHC->GetPDGAssetLink(), PDGStatusString, PDGStatusColor);
@@ -874,6 +889,9 @@ FHoudiniPDGDetails::AddPDGAssetStatus(
 			})
 			.ColorAndOpacity_Lambda([InHC]()
 			{
+				if (!IsValidWeakPointer(InHC))
+					return FSlateColor(FLinearColor::Transparent);
+
 				FString PDGStatusString;
 				FLinearColor PDGStatusColor;
 				GetPDGStatusAndColor(InHC->GetPDGAssetLink(), PDGStatusString, PDGStatusColor);
@@ -1446,6 +1464,9 @@ void FHoudiniPDGDetails::AddTOPNetworkSelectWidgets(IDetailGroup& TOPNetWorkGrp,
 	TSharedPtr<SComboBox<TSharedPtr<FTextAndTooltip>>> ComboBoxTOPNet;
 	int32 SelectedIndex = TOPNetworksPtr.IndexOfByPredicate([PDGAssetLink](const TSharedPtr<FTextAndTooltip>& InEntry)
 		{
+			if (!IsValidWeakPointer(PDGAssetLink))
+				return false;
+
 			return InEntry.IsValid() && InEntry->Value == PDGAssetLink->SelectedTOPNetworkIndex;
 		});
 	if(SelectedIndex < 0)
@@ -1478,10 +1499,16 @@ void FHoudiniPDGDetails::AddTOPNetworkSelectWidgets(IDetailGroup& TOPNetWorkGrp,
 					SNew(STextBlock)
 						.Text_Lambda([PDGAssetLink]()
 							{
+								if (!IsValidWeakPointer(PDGAssetLink))
+									return FText();
+
 								return FText::FromString(PDGAssetLink->GetSelectedTOPNetworkName());
 							})
 						.ToolTipText_Lambda([PDGAssetLink]()
 							{
+								if (!IsValidWeakPointer(PDGAssetLink))
+									return FText();
+
 								UTOPNetwork const* const Network = PDGAssetLink->GetSelectedTOPNetwork();
 								if(IsValid(Network))
 								{
@@ -1647,9 +1674,13 @@ void FHoudiniPDGDetails::AddTOPNetworkDirtyAllAndCookOutputWidgets(IDetailGroup&
 									})
 								.OnClicked_Lambda([PDGAssetLink, InHC, DirtyAll]()
 									{
-										if(IsValid(PDGAssetLink->GetSelectedTOPNetwork()) && IsValidWeakPointer(InHC))
+										if (!IsValidWeakPointer(PDGAssetLink) || !IsValidWeakPointer(InHC))
+											return FReply::Handled();
+
+										UTOPNetwork* const TOPNetwork = PDGAssetLink->GetSelectedTOPNetwork();
+										if(IsValid(TOPNetwork))
 										{
-											FHoudiniPDGManager::CookOutput(InHC.Get(), PDGAssetLink->GetSelectedTOPNetwork());
+											FHoudiniPDGManager::CookOutput(InHC.Get(), TOPNetwork);
 										}
 										return FReply::Handled();
 									})
@@ -1716,7 +1747,13 @@ void FHoudiniPDGDetails::AddTOPNetworkDirtyAllAndCookOutputWidgets(IDetailGroup&
 		.AutoWidth()
 		[
 			SNew(STextBlock)
-				.Text_Lambda([PDGAssetLink]() { return PDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded ? LOCTEXT("CookOutAndBake", "Cook Output & Bake") : LOCTEXT("CookOut", "Cook Output"); })
+				.Text_Lambda([PDGAssetLink]()
+				{
+					if (!IsValidWeakPointer(PDGAssetLink))
+						return LOCTEXT("CookOut", "Cook Output");
+
+					return PDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded ? LOCTEXT("CookOutAndBake", "Cook Output & Bake") : LOCTEXT("CookOut", "Cook Output");
+				})
 		];
 
 	BindEnablePDGWiddgetsTest(PDGDirtyCookRow, InHC);
@@ -1757,9 +1794,13 @@ TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNetworkCancelWidgets(const TWeakObjec
 					})
 				.OnReleased_Lambda([PDGAssetLink]()
 					{
-						if(IsValid(PDGAssetLink->GetSelectedTOPNetwork()))
+						if (!IsValidWeakPointer(PDGAssetLink))
+							return;
+
+						UTOPNetwork* const TOPNetwork = PDGAssetLink->GetSelectedTOPNetwork();
+						if(IsValid(TOPNetwork))
 						{
-							FHoudiniPDGManager::CancelCook(PDGAssetLink->GetSelectedTOPNetwork());
+							FHoudiniPDGManager::CancelCook(TOPNetwork);
 						}
 					})
 				.Content()
@@ -1837,15 +1878,19 @@ TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNetworkPauseWidgets(const TWeakObject
 					})
 				.OnReleased_Lambda([PDGAssetLink, PauseHBox]()
 					{
-						if(IsValid(PDGAssetLink->GetSelectedTOPNetwork()))
+						if (!IsValidWeakPointer(PDGAssetLink))
+							return;
+
+						UTOPNetwork* const TOPNetwork = PDGAssetLink->GetSelectedTOPNetwork();
+						if(IsValid(TOPNetwork))
 						{
-							if (PDGAssetLink->GetSelectedTOPNetwork()->IsPaused())
+							if (TOPNetwork->IsPaused())
 							{
-								FHoudiniPDGManager::ResumeCook(PDGAssetLink->GetSelectedTOPNetwork());
+								FHoudiniPDGManager::ResumeCook(TOPNetwork);
 							}
 							else
 							{
-								FHoudiniPDGManager::PauseCook(PDGAssetLink->GetSelectedTOPNetwork());
+								FHoudiniPDGManager::PauseCook(TOPNetwork);
 							}
 						}
 					//	return FReply::Handled();
@@ -1937,9 +1982,13 @@ TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNodeCancelWidgets(const TWeakObjectPt
 					})
 				.OnReleased_Lambda([PDGAssetLink]()
 					{
-						if(IsValid(PDGAssetLink->GetSelectedTOPNode()))
+						if (!IsValidWeakPointer(PDGAssetLink))
+							return;
+
+						UTOPNode* const TOPNode = PDGAssetLink->GetSelectedTOPNode();
+						if(IsValid(TOPNode))
 						{
-							FHoudiniPDGManager::CancelCook(PDGAssetLink->GetSelectedTOPNode());
+							FHoudiniPDGManager::CancelCook(TOPNode);
 						}
 					})
 				.Content()
@@ -2020,15 +2069,19 @@ TSharedPtr<SBox> FHoudiniPDGDetails::AddTOPNodePauseWidgets(const TWeakObjectPtr
 					})
 				.OnReleased_Lambda([PDGAssetLink, PauseHBox]()
 					{
-						if(IsValid(PDGAssetLink->GetSelectedTOPNetwork()))
+						if (!IsValidWeakPointer(PDGAssetLink))
+							return;
+
+						UTOPNode* const TOPNode = PDGAssetLink->GetSelectedTOPNode();
+						if(IsValid(TOPNode))
 						{
-							if(PDGAssetLink->GetSelectedTOPNode()->IsPaused())
+							if(TOPNode->IsPaused())
 							{
-								FHoudiniPDGManager::ResumeCook(PDGAssetLink->GetSelectedTOPNode());
+								FHoudiniPDGManager::ResumeCook(TOPNode);
 							}
 							else
 							{
-								FHoudiniPDGManager::PauseCook(PDGAssetLink->GetSelectedTOPNode());
+								FHoudiniPDGManager::PauseCook(TOPNode);
 							}
 						}
 						//	return FReply::Handled();
@@ -2493,6 +2546,9 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 		// Lambda for selecting a TOPNode
 		auto OnTOPNodeChanged = [PDGAssetLink](TSharedPtr<FTextAndTooltip> InNewChoice)
 		{
+			if (!IsValidWeakPointer(PDGAssetLink))
+				return;
+
 			UTOPNetwork* const TOPNetwork = PDGAssetLink->GetSelectedTOPNetwork();
 			if (!InNewChoice.IsValid() || !IsValid(TOPNetwork))
 				return;
@@ -2577,6 +2633,9 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 					})
 					.ToolTipText_Lambda([PDGAssetLink]()
 					{
+						if (!IsValidWeakPointer(PDGAssetLink))
+							return FText();
+
 						UTOPNode const * const TOPNode = PDGAssetLink->GetSelectedTOPNode();
 						if (IsValid(TOPNode))
 						{
@@ -2697,6 +2756,9 @@ FHoudiniPDGDetails::AddTOPNodeWidget(
 					})
 					.OnClicked_Lambda([PDGAssetLink]()
 					{
+						if (!IsValidWeakPointer(PDGAssetLink))
+							return FReply::Handled();
+
 						UTOPNode* const Node = PDGAssetLink->GetSelectedTOPNode();
 						if (IsValid(Node))
 						{
@@ -3136,6 +3198,9 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 
 	auto OnBakeButtonClickedLambda = [PDGAssetLink]()
 		{
+			if (!IsValidWeakPointer(PDGAssetLink))
+				return FReply::Handled();
+
 			switch(PDGAssetLink->HoudiniEngineBakeOption)
 			{
 			case EHoudiniEngineBakeOption::ToActor:
@@ -3744,6 +3809,9 @@ void FHoudiniPDGDetails::BindEnablePDGWiddgetsTest(FDetailWidgetRow& InRow, cons
 	InRow.IsEnabledAttr.Bind(
 		TAttribute<bool>::FGetter::CreateLambda([InCookable]()
 			{
+				if(!IsValidWeakPointer(InCookable))
+					return false;
+
 				if(!IsValid(InCookable->GetPDGAssetLink()))
 					return false;
 
@@ -3785,6 +3853,9 @@ void FHoudiniPDGDetails::AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGr
 			SNew(SCheckBox)
 				.IsChecked_Lambda([PDGAssetLink]()
 					{
+						if(!IsValidWeakPointer(PDGAssetLink))
+							return ECheckBoxState::Unchecked;
+
 						return PDGAssetLink->bRecenterBakedActors ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 					})
 				.OnCheckStateChanged_Lambda([PDGAssetLink](ECheckBoxState NewState)
@@ -3832,6 +3903,9 @@ void FHoudiniPDGDetails::AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGr
 				SNew(SCheckBox)
 					.IsChecked_Lambda([PDGAssetLink]()
 						{
+							if(!IsValidWeakPointer(PDGAssetLink))
+								return ECheckBoxState::Unchecked;
+
 							return PDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 						})
 					.OnCheckStateChanged_Lambda([PDGAssetLink](ECheckBoxState NewState)
@@ -3883,6 +3957,9 @@ void FHoudiniPDGDetails::AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGr
 						})
 					.IsChecked_Lambda([PDGAssetLink]()
 						{
+							if(!IsValidWeakPointer(PDGAssetLink))
+								return ECheckBoxState::Unchecked;
+
 							return PDGAssetLink->IsAutoBakeNodesWithFailedWorkItemsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 						})
 					.OnCheckStateChanged_Lambda([PDGAssetLink](ECheckBoxState NewState)
@@ -3959,10 +4036,13 @@ void FHoudiniPDGDetails::AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGr
 								.ToolTipText(LOCTEXT("HoudiniEngineUIRecenterBakedActorsCheckBoxToolTip", "After baking recenter the baked actors to their bounding box center."))
 								.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 						]
-						.IsChecked_Lambda([PDGAssetLink]()
-							{
-								return PDGAssetLink->bRecenterBakedActors ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-							})
+							.IsChecked_Lambda([PDGAssetLink]()
+								{
+									if(!IsValidWeakPointer(PDGAssetLink))
+										return ECheckBoxState::Unchecked;
+
+									return PDGAssetLink->bRecenterBakedActors ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+								})
 						.OnCheckStateChanged_Lambda([PDGAssetLink](ECheckBoxState NewState)
 							{
 								if(!IsValidWeakPointer(PDGAssetLink))
@@ -4004,6 +4084,9 @@ void FHoudiniPDGDetails::AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGr
 							]
 							.IsChecked_Lambda([PDGAssetLink]()
 								{
+									if(!IsValidWeakPointer(PDGAssetLink))
+										return ECheckBoxState::Unchecked;
+
 									return PDGAssetLink->bBakeAfterAllWorkResultObjectsLoaded ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 								})
 							.OnCheckStateChanged_Lambda([PDGAssetLink](ECheckBoxState NewState)
@@ -4051,6 +4134,9 @@ void FHoudiniPDGDetails::AddBakeAdditionalSettingsWidgets(IDetailGroup& InBakeGr
 								})
 							.IsChecked_Lambda([PDGAssetLink]()
 								{
+									if(!IsValidWeakPointer(PDGAssetLink))
+										return ECheckBoxState::Unchecked;
+
 									return PDGAssetLink->IsAutoBakeNodesWithFailedWorkItemsEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 								})
 							.OnCheckStateChanged_Lambda([PDGAssetLink](ECheckBoxState NewState)

@@ -2308,6 +2308,9 @@ FHoudiniParameterView::CreateWidgetFloat(
 							.Z(TAttribute<TOptional<float>>::Create(TAttribute<TOptional<float>>::FGetter::CreateUObject(MainParam.Get(), &UHoudiniParameterFloat::GetValue, SwapVector3 ? 1 : 2)))
 							.OnXCommitted_Lambda([ChangeFloatValueAt, ChangeFloatValueUniformly, FloatParams, MainParam, SwapVector3](float Val, ETextCommit::Type TextCommitType)
 								{
+									if (!IsValidWeakPointer(MainParam))
+										return;
+
 									if(MainParam->IsUniformLocked())
 										ChangeFloatValueUniformly(Val, true);
 									else
@@ -2315,6 +2318,9 @@ FHoudiniParameterView::CreateWidgetFloat(
 								})
 							.OnYCommitted_Lambda([ChangeFloatValueAt, ChangeFloatValueUniformly, FloatParams, MainParam, SwapVector3](float Val, ETextCommit::Type TextCommitType)
 								{
+									if (!IsValidWeakPointer(MainParam))
+										return;
+
 									if(MainParam->IsUniformLocked())
 										ChangeFloatValueUniformly(Val, true);
 									else
@@ -2322,6 +2328,9 @@ FHoudiniParameterView::CreateWidgetFloat(
 								})
 							.OnZCommitted_Lambda([ChangeFloatValueAt, ChangeFloatValueUniformly, FloatParams, MainParam, SwapVector3](float Val, ETextCommit::Type TextCommitType)
 								{
+									if (!IsValidWeakPointer(MainParam))
+										return;
+
 									if(MainParam->IsUniformLocked())
 										ChangeFloatValueUniformly(Val, true);
 									else
@@ -2329,6 +2338,9 @@ FHoudiniParameterView::CreateWidgetFloat(
 								})
 							.OnXChanged_Lambda([ChangeFloatValueAt, ChangeFloatValueUniformly, FloatParams, MainParam, SwapVector3](float Val)
 								{
+									if (!IsValidWeakPointer(MainParam))
+										return;
+
 									if(MainParam->IsUniformLocked())
 										ChangeFloatValueUniformly(Val, false);
 									else
@@ -2336,6 +2348,9 @@ FHoudiniParameterView::CreateWidgetFloat(
 								})
 							.OnYChanged_Lambda([ChangeFloatValueAt, ChangeFloatValueUniformly, FloatParams, MainParam, SwapVector3](float Val)
 								{
+									if (!IsValidWeakPointer(MainParam))
+										return;
+
 									if(MainParam->IsUniformLocked())
 										ChangeFloatValueUniformly(Val, false);
 									else
@@ -2343,6 +2358,9 @@ FHoudiniParameterView::CreateWidgetFloat(
 								})
 							.OnZChanged_Lambda([ChangeFloatValueAt, ChangeFloatValueUniformly, FloatParams, MainParam, SwapVector3](float Val)
 								{
+									if (!IsValidWeakPointer(MainParam))
+										return;
+
 									if(MainParam->IsUniformLocked())
 										ChangeFloatValueUniformly(Val, false);
 									else
@@ -2908,6 +2926,9 @@ TSharedRef<SWidget> FHoudiniParameterView::CreateWidgetColor(
 				.ShowBackgroundForAlpha(bHasAlpha)
 				.OnMouseButtonDown_Lambda([ColorParams, MainParam, bHasAlpha](const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 					{
+						if (!IsValidWeakPointer(MainParam))
+							return FReply::Handled();
+
 						FColorPickerArgs PickerArgs;
 						PickerArgs.ParentWidget = FSlateApplication::Get().GetActiveTopLevelWindow();
 						PickerArgs.bUseAlpha = bHasAlpha;
@@ -2915,6 +2936,9 @@ TSharedRef<SWidget> FHoudiniParameterView::CreateWidgetColor(
 							TAttribute< float >::FGetter::CreateUObject(GEngine, &UEngine::GetDisplayGamma));
 						PickerArgs.OnColorCommitted = FOnLinearColorValueChanged::CreateLambda([MainParam, ColorParams](FLinearColor InColor)
 							{
+								if (!IsValidWeakPointer(MainParam))
+									return;
+
 								FScopedTransaction Transaction(
 									TEXT(HOUDINI_MODULE_RUNTIME),
 									LOCTEXT("HoudiniParameterColorChange", "Houdini Parameter Color: Changing value"),
@@ -3549,6 +3573,9 @@ FHoudiniParameterView::CreateWidgetFile(
 
 	auto UpdateCheckRelativePath = [MainParam](const FString& PickedPath)
 		{
+			if (!IsValidWeakPointer(MainParam))
+				return PickedPath;
+
 			UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(MainParam->GetOuter());
 			if(MainParam->GetOuter() && !PickedPath.IsEmpty() && FPaths::IsRelative(PickedPath))
 			{
@@ -3621,6 +3648,9 @@ FHoudiniParameterView::CreateWidgetFile(
 								})
 							.OnPathPicked(FOnPathPicked::CreateLambda([MainParam, FileParams, UpdateCheckRelativePath, Idx](const FString& PickedPath)
 								{
+									if (!IsValidWeakPointer(MainParam))
+										return;
+
 									if(MainParam->GetNumValues() <= Idx)
 										return;
 

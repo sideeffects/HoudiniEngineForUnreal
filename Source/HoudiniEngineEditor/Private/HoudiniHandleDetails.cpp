@@ -104,9 +104,27 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		[
 			SNew(SVectorInputBox)
 			.bColorAxisLabels(true)
-			.X_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().GetLocation().X; })
-			.Y_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().GetLocation().Y; })
-			.Z_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().GetLocation().Z; })
+			.X_Lambda([MainHandle]()
+			{
+				if (!IsValidWeakPointer(MainHandle))
+					return 0.0;
+
+				return MainHandle->GetRelativeTransform().GetLocation().X;
+			})
+			.Y_Lambda([MainHandle]()
+			{
+				if (!IsValidWeakPointer(MainHandle))
+					return 0.0;
+
+				return MainHandle->GetRelativeTransform().GetLocation().Y;
+			})
+			.Z_Lambda([MainHandle]()
+			{
+				if (!IsValidWeakPointer(MainHandle))
+					return 0.0;
+
+				return MainHandle->GetRelativeTransform().GetLocation().Z;
+			})
 			.OnXCommitted_Lambda([OnLocationChangedLambda](float Val, ETextCommit::Type TextCommitType)
 			{
 				OnLocationChangedLambda(Val, 0);
@@ -181,9 +199,27 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		[
 			SNew(SVectorInputBox)
 			.bColorAxisLabels(true)
-			.X_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().Rotator().Roll; })
-			.Y_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().Rotator().Pitch; })
-			.Z_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().Rotator().Yaw; })
+			.X_Lambda([MainHandle]()
+			{
+				if (!IsValidWeakPointer(MainHandle))
+					return 0.0;
+
+				return MainHandle->GetRelativeTransform().Rotator().Roll;
+			})
+			.Y_Lambda([MainHandle]()
+			{
+				if (!IsValidWeakPointer(MainHandle))
+					return 0.0;
+
+				return MainHandle->GetRelativeTransform().Rotator().Pitch;
+			})
+			.Z_Lambda([MainHandle]()
+			{
+				if (!IsValidWeakPointer(MainHandle))
+					return 0.0;
+
+				return MainHandle->GetRelativeTransform().Rotator().Yaw;
+			})
 			.OnXCommitted_Lambda([OnRotationChangedLambda](float Val, ETextCommit::Type TextCommitType)
 			{
 				OnRotationChangedLambda(Val, 0);
@@ -259,9 +295,27 @@ FHoudiniHandleDetails::CreateWidget(IDetailCategoryBuilder & HouHandleCategory, 
 		[
 			SNew(SVectorInputBox)
 			.bColorAxisLabels(true)
-			.X_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().GetScale3D().X; })
-			.Y_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().GetScale3D().Y; })
-			.Z_Lambda([MainHandle]() {return MainHandle->GetRelativeTransform().GetScale3D().Z; })
+			.X_Lambda([MainHandle]()
+			{
+				if (!IsValidWeakPointer(MainHandle))
+					return 1.0;
+
+				return MainHandle->GetRelativeTransform().GetScale3D().X;
+			})
+			.Y_Lambda([MainHandle]()
+			{
+				if (!IsValidWeakPointer(MainHandle))
+					return 1.0;
+
+				return MainHandle->GetRelativeTransform().GetScale3D().Y;
+			})
+			.Z_Lambda([MainHandle]()
+			{
+				if (!IsValidWeakPointer(MainHandle))
+					return 1.0;
+
+				return MainHandle->GetRelativeTransform().GetScale3D().Z;
+			})
 			.OnXCommitted_Lambda([OnScaleChangedLambda](float Val, ETextCommit::Type TextCommitType)
 			{
 				OnScaleChangedLambda(Val, 0);
