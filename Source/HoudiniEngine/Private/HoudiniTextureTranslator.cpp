@@ -414,28 +414,39 @@ FHoudiniTextureTranslator::CreateUnrealTexture(
 	switch (ImageInfo.dataFormat)
 	{
 		case HAPI_IMAGE_DATA_INT16:
+		{
 			SrcFormat = TSF_RGBA16;
-			break;
+		}
+		break;
 
 		case HAPI_IMAGE_DATA_FLOAT16:
+		{
 			SrcFormat = TSF_RGBA16F;
 			CompSetting = TC_HDR_Compressed;
 			bDeferComp = false;
 			bSRGB = false;
-			break;
-
+		}
+		break;
+			
 		case HAPI_IMAGE_DATA_FLOAT32:
+		{
 			SrcFormat = TSF_RGBA32F;
 			CompSetting = TC_HDR_F32;
 			bDeferComp = false;
-			break;
+		}
+		break;
 
 		case HAPI_IMAGE_DATA_INT32:
 			// unsupported by UE
 		case HAPI_IMAGE_DATA_INT8:
 		default:
+		{
+			bDeferComp = false;
 			SrcFormat = TSF_BGRA8;
-			break;
+			CompSetting = TextureParameters.CompressionSettings;
+			bSRGB = TextureParameters.bSRGB;
+		}
+		break;
 	}
 
 	Texture->Source.Init(ImageInfo.xRes, ImageInfo.yRes, 1, 1, SrcFormat);
@@ -571,7 +582,6 @@ FHoudiniTextureTranslator::CreateUnrealTexture(
 	}
 	else if (SrcFormat == TSF_RGBA16F)
 	{
-		// Not supported by COPZ resolver ?
 		FFloat16* DestPtr16f = nullptr;
 		const FFloat16* SrcData16f = (const FFloat16*)SrcData;
 
@@ -599,38 +609,6 @@ FHoudiniTextureTranslator::CreateUnrealTexture(
 			}
 		}
 	}	
-	/*
-	// int32 - Not supported in UE
-	else if (SrcFormat == TSF_RGBA32F)
-	{
-		int32* DestPtr32 = nullptr;
-		const int32* SrcData32 = (const int32*)SrcData;
-
-		//const int32 BytesPerPixel = sizeof(int32) * 4;
-		for (uint32 y = 0; y < SrcHeight; y++)
-		{
-			DestPtr32 = (int32*)&MipData[(SrcHeight - 1 - y) * SrcWidth * sizeof(int32) * 4];
-
-			for (uint32 x = 0; x < SrcWidth; x++)
-			{
-				uint32 DataOffset = y * SrcWidth * PackOffset + x * PackOffset;
-
-				*DestPtr32++ = *(int32*)(SrcData32 + DataOffset + OffsetR); // R
-				*DestPtr32++ = *(int32*)(SrcData32 + DataOffset + OffsetG); // G
-				*DestPtr32++ = *(int32*)(SrcData32 + DataOffset + OffsetB); // B
-
-				if (TextureParameters.bUseAlpha && PackOffset == 4)
-				{
-					*DestPtr32++ = *(int32*)(SrcData32 + DataOffset + OffsetA); // A
-					if (*(int32*)(SrcData + DataOffset + OffsetA) != 0xFFFF)
-						bHasAlphaValue = true;
-				}
-				else
-					*DestPtr32++ = 0xFFFF;
-			}
-		}
-	}
-	*/
 	else if (SrcFormat == TSF_RGBA32F)
 	{
 		float* DestPtr32f = nullptr;
@@ -665,7 +643,7 @@ FHoudiniTextureTranslator::CreateUnrealTexture(
 	Texture->Source.UnlockMip(0);
 
 	// Texture creation parameters.
-	Texture->SRGB = bSRGB;
+	Texture->SRGB = bSRGB ? 1 : 0;
 	Texture->CompressionSettings = CompSetting;
 	Texture->CompressionNoAlpha = !bHasAlphaValue;
 	Texture->DeferCompression = bDeferComp;
@@ -677,6 +655,7 @@ FHoudiniTextureTranslator::CreateUnrealTexture(
 		Texture->Source.SetId(TextureParameters.SourceGuidHash, true);
 	}
 	*/
+	Texture->UpdateResource();
 
 	Texture->PostEditChange();
 

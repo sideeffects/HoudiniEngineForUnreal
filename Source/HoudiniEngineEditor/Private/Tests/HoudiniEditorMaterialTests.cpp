@@ -128,7 +128,7 @@ bool HoudiniEditorMaterialTest_Material_Textures::RunTest(const FString& Paramet
 			// The texture needs these settings, otherwise RawData->Lock() will fail.
 			Texture->CompressionSettings = TextureCompressionSettings::TC_VectorDisplacementmap;
 			Texture->MipGenSettings = TextureMipGenSettings::TMGS_NoMipmaps;
-			Texture->SRGB = false;
+			//Texture->SRGB = false;
 			Texture->UpdateResource();
 
 			// Get the texture's first mipmap (i.e. the full resolution texture).
@@ -155,13 +155,23 @@ bool HoudiniEditorMaterialTest_Material_Textures::RunTest(const FString& Paramet
 			bool AllCorrect = true;
 			for (auto& PixelTestCase : PixelTestCases)
 			{
+				bool bThisPixelCorrect = true;
 				int32 Index = PixelTestCase.y * MipMap->SizeX + PixelTestCase.x;
 				if (FormattedImageData)
 				{
-					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].R, PixelTestCase.r, AllCorrect = false);
-					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].G, PixelTestCase.g, AllCorrect = false);
-					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].B, PixelTestCase.b, AllCorrect = false);
-					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].A, PixelTestCase.a, AllCorrect = false);
+					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].R, PixelTestCase.r, bThisPixelCorrect = false);
+					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].G, PixelTestCase.g, bThisPixelCorrect = false);
+					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].B, PixelTestCase.b, bThisPixelCorrect = false);
+					HOUDINI_TEST_EQUAL_ON_FAIL(FormattedImageData[Index].A, PixelTestCase.a, bThisPixelCorrect = false);
+				}
+
+				if (!bThisPixelCorrect)
+				{
+					AllCorrect = false;
+					HOUDINI_LOG_ERROR(TEXT("At Index %d - X %d Y %d - expected %d,%d,%d,%d and read %d,%d,%d,%d"),
+						Index, PixelTestCase.x, PixelTestCase.y,
+						PixelTestCase.r, PixelTestCase.g, PixelTestCase.b, PixelTestCase.a,
+						FormattedImageData[Index].R, FormattedImageData[Index].G, FormattedImageData[Index].B, FormattedImageData[Index].A);
 				}
 			}
 
@@ -258,20 +268,20 @@ bool HoudiniEditorMaterialTest_Material_Textures::RunTest(const FString& Paramet
 		// Metallic is the butterfly image pulled directly from file.
 		TArray<FHoudiniEditorMaterialTests::FTexturePixelTestCase> MetallicTestCases = {
 			{0, 0, 0, 0, 0, 255},
-			{65, 85, 85, 89, 66, 255},
-			{81, 109, 85, 70, 56, 255},
-			{388, 378, 217, 90, 92, 255},
-			{468, 425, 70, 74, 53, 255}
+			{65, 85, 23, 25, 13, 255},
+			{81, 109, 23, 15, 9, 255},
+			{388, 378, 179, 26, 27, 255},
+			{468, 425, 15, 17, 8, 255}
 		};
 		HOUDINI_TEST_EQUAL(CheckPixelTestCases(MatInputMetallic.Expression, MetallicTestCases), true);
 
 		// Specular is the default Worley Noise COP.
 		TArray<FHoudiniEditorMaterialTests::FTexturePixelTestCase> SpecularTestCases = {
-			{0, 0, 115, 115, 115, 255},
-			{912, 194, 28, 28, 28, 255},
-			{483, 540, 221, 221, 221, 255},
-			{657, 826, 114, 114, 114, 255},
-			{1023, 1023, 118, 118, 118, 255}
+			{0, 0, 44, 44, 44, 255},
+			{912, 194, 2, 2, 2, 255},
+			{483, 540, 186, 186, 186, 255},
+			{657, 826, 43, 43, 43, 255},
+			{1023, 1023, 47, 47, 47, 255}
 		};
 		HOUDINI_TEST_EQUAL(CheckPixelTestCases(MatInputSpecular.Expression, SpecularTestCases), true);
 
@@ -294,10 +304,10 @@ bool HoudiniEditorMaterialTest_Material_Textures::RunTest(const FString& Paramet
 		// Normal is the butterfly image pulled directly from file.
 		TArray<FHoudiniEditorMaterialTests::FTexturePixelTestCase> NormalTestCases = {
 			{0, 0, 0, 0, 0, 255},
-			{65, 85, 85, 89, 66, 255},
-			{81, 109, 85, 70, 56, 255},
-			{388, 378, 217, 90, 92, 255},
-			{468, 425, 70, 74, 53, 255}
+			{65, 85, 23, 25, 13, 255},
+			{81, 109, 23, 15, 9, 255},
+			{388, 378, 179, 26, 27, 255},
+			{468, 425, 15, 17, 8, 255}
 		};
 		HOUDINI_TEST_EQUAL(CheckPixelTestCases(MatInputNormal.Expression, NormalTestCases), true);
 

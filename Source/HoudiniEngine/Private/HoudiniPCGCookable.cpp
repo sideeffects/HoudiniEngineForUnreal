@@ -674,7 +674,7 @@ UHoudiniPCGCookable::CopyParametersAndInputs(const UHoudiniPCGCookable * Other)
 
 	UHoudiniPDGAssetLink* ThisPDGAssetLink =  Cookable->GetPDGAssetLink();
 	UHoudiniPDGAssetLink* OtherPDGAssetLink = Other->Cookable->GetPDGAssetLink();
-	if (OtherPDGAssetLink)
+	if (ThisPDGAssetLink && OtherPDGAssetLink)
 	{
 		ThisPDGAssetLink->SelectedTOPNetworkIndex = OtherPDGAssetLink->SelectedTOPNetworkIndex;
 	}
