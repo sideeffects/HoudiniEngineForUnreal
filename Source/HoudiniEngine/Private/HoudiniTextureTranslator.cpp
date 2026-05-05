@@ -909,12 +909,6 @@ FHoudiniTextureTranslator::Is16BitCOP(const HAPI_NodeId& InNodeId)
 		FHoudiniEngine::Get().GetSession(), NodeInfo.parentId, &ParentNodeInfo))
 		return false;
 
-	if (HAPI_NODETYPE_COP != ParentNodeInfo.type)
-	{
-		// TEST
-		HOUDINI_LOG_ERROR(TEXT("Parent Node is not a COP"));
-	}
-
 	// TODO: Handle subnet - keep climbing hierarchy until we reach a COP net?
 
 	// see if the parent COP network is set to override the precision
