@@ -8210,11 +8210,11 @@ HAPI_DECL HAPI_SetAttributeStringData( const HAPI_Session * session,
 ///                 data type. Generally should be the same struct
 ///                 returned by ::HAPI_GetAttributeInfo().
 ///
-/// @param[in]      string_array
+/// @param[in]      string_fixed_array
 ///                 An array of strings at least the size of
-///                 <tt>string_count/tt>.
+///                 <tt>string_fixed_length/tt>.
 ///
-/// @param[in]      string_count
+/// @param[in]      string_fixed_length
 ///                 Number of strings that are indexed.
 ///
 /// @param[in]      indices_array
@@ -8237,8 +8237,8 @@ HAPI_DECL HAPI_SetAttributeIndexedStringData( const HAPI_Session* session,
                                               HAPI_PartId part_id,
                                               const char* name,
                                               const HAPI_AttributeInfo* attr_info,
-                                              const char** string_array,
-                                              int string_count,
+                                              const char** string_fixed_array,
+                                              int string_fixed_length,
                                               const int* indices_array,
                                               int indices_start,
                                               int indices_length);
