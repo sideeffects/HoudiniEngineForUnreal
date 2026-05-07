@@ -9322,11 +9322,21 @@ void FHoudiniPerfTimer::Stop()
 
 TArray<char> HoudiniTCHARToUTF(const TCHAR* Text)
 {
-	int32 Length = FCString::Strlen(Text);
 	TArray<char> Result;
-	Result.SetNumZeroed(Length + 1);
 
-	FTCHARToUTF8_Convert::Convert(&Result[0], Length, Text, Length);
+	if (!Text)
+	{
+		Result.Add('\0');
+		return Result;
+	}
+
+	FTCHARToUTF8 Converted(Text);
+
+	const int32 ByteCount = Converted.Length(); // excludes null terminator
+	Result.SetNumUninitialized(ByteCount + 1);
+
+	FMemory::Memcpy(Result.GetData(), Converted.Get(), ByteCount);
+	Result[ByteCount] = '\0';
 
 	return Result;
 }
