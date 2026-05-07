@@ -744,12 +744,8 @@ FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& In
 
 		auto MakeHoudiniParamName = [&](int Index, const FString& Name)
 			{
-				// Make sure the attribute name will be valid
-				FString SanitizedName = Name;
-				FHoudiniEngineUtils::SanitizeHAPIVariableName(SanitizedName);
-
 				FString ParamPrefix = MaterialInfos.Num() == 1 ? "" : FString::FromInt(Index) + FString("_");
-				return FString::Printf(TEXT("unreal_material_parameter_%s%s"), *ParamPrefix, *SanitizedName);
+				return FString::Printf(TEXT("unreal_material_parameter_%s%s"), *ParamPrefix, *Name);
 			};
 
 		for(int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
@@ -773,23 +769,33 @@ FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& In
 				for(auto Scalar : MaterialInfo->Scalars)
 				{
 					FString AttributeName = MakeHoudiniParamName(Section.MaterialIndex, Scalar.Name);
-					Builder.Append(FString::Printf(TEXT("    f@%s = %.17g;\n"), *AttributeName, Scalar.Value));
+					Builder.Append(FString::Printf(TEXT("    {\n")));
+					Builder.Append(FString::Printf(TEXT("		string attr = encodeattrib(\"%s\");\n"), *AttributeName));
+					Builder.Append(FString::Printf(TEXT("		float v = %.17g;\n"),Scalar.Value));
+					Builder.Append(FString::Printf(TEXT("		setprimattrib(0, attr, @primnum, v, \"set\");\n")));
+					Builder.Append(FString::Printf(TEXT("    }\n")));
 				}
 
 				for(auto Vector : MaterialInfo->Vectors)
 				{
 					FString AttributeName = MakeHoudiniParamName(Section.MaterialIndex, Vector.Name);
-					Builder.Append(FString::Printf(TEXT("    p@%s = { "), *AttributeName));
-					Builder.Append(FString::Printf(TEXT(" %.17g, "), Vector.Value.R));
-					Builder.Append(FString::Printf(TEXT(" %.17g, "), Vector.Value.G));
-					Builder.Append(FString::Printf(TEXT(" %.17g, "), Vector.Value.B));
-					Builder.Append(FString::Printf(TEXT(" %.17g };\n"), Vector.Value.A));
+					
+					Builder.Append(FString::Printf(TEXT("    {\n")));
+					Builder.Append(FString::Printf(TEXT("		string attr = encodeattrib(\"%s\");\n"), *AttributeName));
+					Builder.Append(FString::Printf(TEXT("		vector v = set(%.17g, %.17g, %.17g);\n"), Vector.Value.R, Vector.Value.G, Vector.Value.B));
+					Builder.Append(FString::Printf(TEXT("		setprimattrib(0, attr, @primnum, v, \"set\");\n")));
+					Builder.Append(FString::Printf(TEXT("    }\n")));
 				}
 
 				for(auto Texture : MaterialInfo->Textures)
 				{
 					FString AttributeName = MakeHoudiniParamName(Section.MaterialIndex, Texture.Name);
-					Builder.Append(FString::Printf(TEXT("    s@%s = \"%s\";\n"), *AttributeName, *Texture.Value));
+
+					Builder.Append(FString::Printf(TEXT("    {\n")));
+					Builder.Append(FString::Printf(TEXT("		string attr = encodeattrib(\"%s\");\n"), *AttributeName));
+					Builder.Append(FString::Printf(TEXT("		setprimattrib(0, attr, @primnum, \"%s\", \"set\");\n"), *Texture.Value));
+					Builder.Append(FString::Printf(TEXT("    }\n")));
+
 				}
 
 				Builder.Append(TEXT("}\n"));
