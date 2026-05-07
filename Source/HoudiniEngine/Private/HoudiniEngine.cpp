@@ -655,7 +655,7 @@ FHoudiniEngine::StartSession(
 	{
 		// Disable the performance monitor to prevent random crashed when under heavy load.
 		// TODO: remove me when the race condition in H is fixed.
-		FPlatformMisc::SetEnvironmentVar(TEXT("HARS_DISABLE_PERFMON_LOGGING"), TEXT("1"));
+	//	FPlatformMisc::SetEnvironmentVar(TEXT("HARS_DISABLE_PERFMON_LOGGING"), TEXT("1"));
 	};
 
 
