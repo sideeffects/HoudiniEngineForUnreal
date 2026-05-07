@@ -318,6 +318,9 @@ struct FHoudiniPresetInputValue : public FHoudiniPresetBase
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")
 	bool bPreferNaniteFallbackMesh = false;
 	
+	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	bool bUseMeshDescription = true;
+	
 	// Input properties
 
 	UPROPERTY(EditAnywhere, Category="Houdini Preset")

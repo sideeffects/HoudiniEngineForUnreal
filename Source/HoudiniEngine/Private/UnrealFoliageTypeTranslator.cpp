@@ -43,10 +43,11 @@ FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticM
 	HAPI_NodeId& InputObjectNodeId,
 	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
-	const bool& ExportAllLODs,
-	const bool& ExportSockets,
-	const bool& ExportColliders,
-	bool ExportMaterialParameters)
+	bool ExportAllLODs,
+	bool ExportSockets,
+	bool ExportColliders,
+	bool ExportMaterialParameters,
+	bool UseMeshDescription)
 {
 	if (!IsValid(InFoliageType))
 		return false;
@@ -65,6 +66,7 @@ FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticM
 	ExportOptions.bMainMesh = true;
 	ExportOptions.bMaterialParameters = ExportMaterialParameters;
 	ExportOptions.bPreferNaniteFallbackMesh = false;
+	ExportOptions.bUseMeshDescription = UseMeshDescription;
 
 	bool bSuccess = CreateInputNodeForStaticMesh(
 		InputObjectNodeId,

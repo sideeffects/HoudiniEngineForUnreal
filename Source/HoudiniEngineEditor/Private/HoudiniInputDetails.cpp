@@ -720,6 +720,14 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		return InInput->GetExportMaterialParameters() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	};
 
+	auto IsCheckedUseMeshDescription = [](const TWeakObjectPtr<UHoudiniInput>& InInput)
+		{
+			if (!IsValidWeakPointer(InInput))
+				return ECheckBoxState::Unchecked;
+
+			return InInput->GetUseMeshDescription() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		};
+
 	// Lambda for changing ExportMainGeometry state
 	auto CheckStateChangedExportMainGeo = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
@@ -916,6 +924,38 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		}
 	};
 
+	auto CheckStateChangedUseMeshDescription = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			bool bNewState = (NewState == ECheckBoxState::Checked);
+
+			if (MainInput->GetUseMeshDescription() == bNewState)
+				return;
+
+			// Record a transaction for undo/redo
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Use Mesh Description"),
+				MainInput->GetOuter());
+
+			for (auto CurInput : InInputsToUpdate)
+			{
+				if (!IsValidWeakPointer(CurInput))
+					continue;
+
+				if (CurInput->GetUseMeshDescription() == bNewState)
+					continue;
+
+				CurInput->Modify();
+
+				CurInput->SetUseMeshDescription(bNewState);
+				CurInput->MarkChanged(true);
+				CurInput->MarkAllInputObjectsChanged(true);
+			}
+		};
+
 	// Lambda for changing ExportMaterialParameters state
 	auto CheckStateChangedExportMaterialParameters = [MainInput](const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputsToUpdate, ECheckBoxState NewState)
 	{
@@ -1044,6 +1084,28 @@ FHoudiniInputDetails::AddExportCheckboxes(TSharedRef< SVerticalBox > VerticalBox
 		})
 	];
 
+	TSharedPtr<SCheckBox> CheckBoxUseMeshDescription;
+	VerticalBox->AddSlot()
+		.Padding(2, 2, 5, 2)
+		.AutoHeight()
+		[
+			SAssignNew(CheckBoxExportColliders, SCheckBox)
+				.Content()
+				[
+					SNew(STextBlock)
+						.Text(LOCTEXT("UseMeshDescription", "Use Mesh Description"))
+						.ToolTipText(LOCTEXT("UseMeshDescriptionTip", "If enabled, input will try to use the Unreal Mesh Description, which is not always present or accurate."))
+						.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				]
+				.IsChecked_Lambda([=]()
+					{
+						return IsCheckedUseMeshDescription(MainInput);
+					})
+				.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
+					{
+						return CheckStateChangedUseMeshDescription(InInputs, NewState);
+					})
+		];
 
 	TSharedPtr<SCheckBox> CheckBoxExportMaterialParameters;
 	VerticalBox->AddSlot()

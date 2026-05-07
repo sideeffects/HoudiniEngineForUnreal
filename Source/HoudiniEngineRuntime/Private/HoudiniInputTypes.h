@@ -104,6 +104,10 @@ public:
 	UPROPERTY()
 	bool bExportColliders;
 	
+	// Indicates that we should try to use Mesh Description if available
+	UPROPERTY()
+	bool bUseMeshDescription;
+
 	// Indicates that material parameters should be exported as attributes
 	UPROPERTY()
 	bool bExportMaterialParameters;

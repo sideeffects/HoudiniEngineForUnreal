@@ -156,6 +156,7 @@ public:
 	bool GetExportSockets() const						{ return InputSettings.bExportSockets; };
 	bool GetPreferNaniteFallbackMesh() const			{ return InputSettings.bPreferNaniteFallbackMesh; }
 	bool GetExportColliders() const						{ return InputSettings.bExportColliders; };
+	bool GetUseMeshDescription() const					{ return InputSettings.bUseMeshDescription; };
 	bool GetExportMaterialParameters() const			{ return InputSettings.bExportMaterialParameters; };
 	bool GetDirectlyConnectHdas() const					{ return bDirectlyConnectHdas; }
 	bool GetExportOptionsMenuExpanded() const			{ return bExportOptionsMenuExpanded; }
@@ -327,6 +328,8 @@ public:
 		{ InputSettings.bExportSockets = bInExportSockets; };
 	void SetPreferNaniteFallbackMesh(const bool& bInPreferNaniteFallbackMesh)
 		{ InputSettings.bPreferNaniteFallbackMesh = bInPreferNaniteFallbackMesh; };
+	void SetUseMeshDescription(const bool& bInUseMeshDescription)
+		{ InputSettings.bUseMeshDescription = bInUseMeshDescription; };
 	void SetExportColliders(const bool& bInExportColliders)
 		{ InputSettings.bExportColliders = bInExportColliders; };
 	void SetExportMaterialParameters(const bool& bInExportMaterialParameters)

@@ -61,6 +61,7 @@ struct HOUDINIENGINE_API FUnrealMeshExportOptions
 	bool bMainMesh = true;
 	bool bMaterialParameters = false;
 	bool bPreferNaniteFallbackMesh = false;
+	bool bUseMeshDescription = true;
 };
 
 

@@ -348,6 +348,7 @@ FHoudiniPresetHelpers::UpdateGenericInputSettings(FHoudiniPresetInputValue& Valu
 	Value.bExportMaterialParameters = Input->GetExportMaterialParameters();
 	Value.bMergeSplineMeshComponents = Input->IsMergeSplineMeshComponentsEnabled();
 	Value.bPreferNaniteFallbackMesh = Input->GetPreferNaniteFallbackMesh();
+	Value.bUseMeshDescription = Input->GetUseMeshDescription();
 }
 
 void
@@ -669,7 +670,8 @@ FHoudiniPresetHelpers::ApplyPresetParameterValues(const FHoudiniPresetInputValue
 	Input->SetExportMaterialParameters( PresetInput.bExportMaterialParameters );
 	Input->SetMergeSplineMeshComponents( PresetInput.bMergeSplineMeshComponents );
 	Input->SetPreferNaniteFallbackMesh( PresetInput.bPreferNaniteFallbackMesh );
-	
+	Input->SetUseMeshDescription(PresetInput.bUseMeshDescription);
+
 	// Overwrite this input with the type and input objects that were captured by the preset. 
 	bool bBlueprintStructureModified = false;
 	Input->SetInputType( PresetInput.InputType, bBlueprintStructureModified );

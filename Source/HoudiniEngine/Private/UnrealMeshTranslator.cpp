@@ -5440,6 +5440,9 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshComponentNew(
 
 EHoudiniMeshSource FUnrealMeshTranslator::DetermineMeshSource(const FUnrealMeshExportOptions& ExportOptions, const UStaticMesh* StaticMesh)
 {
+	if (!ExportOptions.bUseMeshDescription)
+		return EHoudiniMeshSource::LODResource;
+
 	bool bAllMeshDescriptionValid = true;
 	for (int LODIndex = 0; LODIndex < StaticMesh->GetNumLODs(); LODIndex++)
 	{

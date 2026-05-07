@@ -3707,6 +3707,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 		ExportOptions.bMainMesh = InInputSettings.bExportMainGeometry;
 		ExportOptions.bMaterialParameters = InInputSettings.bExportMaterialParameters;
 		ExportOptions.bPreferNaniteFallbackMesh = InInputSettings.bPreferNaniteFallbackMesh;
+		ExportOptions.bUseMeshDescription = InInputSettings.bUseMeshDescription;
 
 		bSuccess = FUnrealMeshTranslator::CreateInputNodeForStaticMesh(
 			CreatedNodeId,
@@ -5876,7 +5877,8 @@ FHoudiniInputTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 			InInputSettings.bExportLODs,
 			InInputSettings.bExportSockets,
 			InInputSettings.bExportColliders,
-			InInputSettings.bExportMaterialParameters);
+			InInputSettings.bExportMaterialParameters,
+			InInputSettings.bUseMeshDescription);
 	}
 
 	// Update this input object's OBJ NodeId

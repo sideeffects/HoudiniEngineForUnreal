@@ -46,10 +46,11 @@ public:
 		HAPI_NodeId& InputObjectNodeId,
 		const FString& InputNodeName,
 		FUnrealObjectInputHandle& OutHandle,
-		const bool& ExportAllLODs = false,
-		const bool& ExportSockets = false,
-		const bool& ExportColliders = false,
-		bool ExportMaterialParameters = false);
+		bool ExportAllLODs,
+		bool ExportSockets,
+		bool ExportColliders,
+		bool ExportMaterialParameters,
+		bool UseMeshDescription);
 
 	// Create an input node that references the asset via InRef (unreal_instance).
 	// Also calls CreateHoudiniFoliageTypeAttributes, to create the unreal_foliage attribute, as well as
