@@ -246,9 +246,10 @@ FHoudiniTextureTranslator::CreatePackageForTexture(
 		MyPackageParams.ObjectName = TextureInfoDescriptor;
 	}
 
-	// If we have a part name (output name) be sure to it
-	if(!InPackageParams.SplitStr.IsEmpty())
-		MyPackageParams.ObjectName += InPackageParams.SplitStr;
+	// If we have a part name (output name) be sure to add it
+	// ... but only if it's different from the texture type!
+	if(!InPackageParams.SplitStr.IsEmpty() && !InPackageParams.SplitStr.Equals(InTextureType))
+		MyPackageParams.ObjectName += TEXT("_") + InPackageParams.SplitStr;
 
 	return MyPackageParams.CreatePackageForObject(OutTextureName);
 }
