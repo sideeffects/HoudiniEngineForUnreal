@@ -71,6 +71,7 @@ SHoudiniPresetUIBase::SHoudiniPresetUIBase()
 	, bApplyAssetOptions(false)
 	, bApplyStaticMeshGenSettings(false)
 	, bApplyProxyMeshGenSettings(false)
+	, bApplyImageData(false)
 	, LabelColumnWidth(0.35f)
 	, NameColumnWidth(0.3f)
 	, ValueColumnWidth(0.35f)
@@ -1047,6 +1048,37 @@ SHoudiniPresetUIBase::Construct(const FArguments& InArgs)
 		];
 	}
 
+	// Image Settings
+	Container->AddSlot()
+	.AutoHeight()
+	.Padding(0.f, 8.f, 0.f, 10.f)
+	[
+		SNew(STextBlock)
+		.Font( FAppStyle::Get().GetFontStyle("HeadingExtraSmall") )
+		.Text( LOCTEXT("CreatePresetFromHDA_PresetImageHeading", "Image Data") )
+		.ToolTipText( LOCTEXT("CreatePresetFromHDA_PresetImageHeadingTooltip", "Image Data settings to include in this preset.") )
+		.TransformPolicy(ETextTransformPolicy::ToUpper)
+	];
+
+	{
+		// Image Data
+		Container->AddSlot()
+		.AutoHeight()
+		.Padding(0.f, 0.f, 0.f, 1.f)
+		[
+			SNew(SCheckBox)
+			.IsChecked_Lambda( [this]() -> ECheckBoxState { return bApplyImageData ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; } )
+			.OnCheckStateChanged_Lambda( [this](const ECheckBoxState NewState) -> void { bApplyImageData = NewState == ECheckBoxState::Checked; } )
+			.ToolTipText( LOCTEXT("CreatePresetFromHDA_ApplyImageTooltip", "Whether or not this preset will apply Image Data settings.") )
+			.Content()
+			[
+				SNew(STextBlock)
+				.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Text(LOCTEXT("CreatePresetFromHDA_ApplyImageDataTooltip", "Apply Image Data Settings"))
+			]
+		];
+	}
+
 	// Main Panel Structure
 	TSharedPtr<SWidget> ActionButtons = CreateActionButtonsRow();
 	TSharedPtr<SVerticalBox> DescriptionLinesContainer = SNew(SVerticalBox);
@@ -1426,7 +1458,8 @@ SHoudiniPresetUIBase::PopulateAssetFromUI(UHoudiniPreset* Preset)
 	Preset->BakeFolder = HC->GetBakeFolderOrDefault();
 
 	FHoudiniToolsEditor::CopySettingsToPreset(
-		HC, bApplyAssetOptions, bApplyBakeOptions, bApplyStaticMeshGenSettings, bApplyProxyMeshGenSettings, Preset);
+		HC, bApplyAssetOptions, bApplyBakeOptions, bApplyStaticMeshGenSettings, 
+		bApplyProxyMeshGenSettings, bApplyImageData, Preset);
 
 	// Transfer int params that we want to keep (checked by the user)
 	Preset->IntParameters.Empty();
@@ -1761,6 +1794,7 @@ SHoudiniUpdatePresetFromHDA::PostConstruct()
 	bApplyAssetOptions = SelectedPreset->bApplyAssetOptions;
 	bApplyStaticMeshGenSettings = SelectedPreset->bApplyStaticMeshGenSettings;
 	bApplyProxyMeshGenSettings = SelectedPreset->bApplyProxyMeshGenSettings;
+	bApplyImageData = SelectedPreset->bApplyImageData;
 
 	PresetLabel = SelectedPreset->Name;
 	PresetDescription = SelectedPreset->Description;

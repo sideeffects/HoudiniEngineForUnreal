@@ -162,6 +162,7 @@ protected:
 	bool bApplyAssetOptions;
 	bool bApplyStaticMeshGenSettings;
 	bool bApplyProxyMeshGenSettings;
+	bool bApplyImageData;
 
 	FText PresetNameError;
 

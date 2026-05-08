@@ -2762,6 +2762,7 @@ FHoudiniToolsEditor::CopySettingsToPreset(
 	const bool bApplyBakeOptions,
 	const bool bApplyMeshGenSettings,
 	const bool bApplyProxyMeshGenSettings,
+	const bool bApplyImageData,
 	UHoudiniPreset* Preset)
 {
 	// Populate Bake options
@@ -2797,6 +2798,18 @@ FHoudiniToolsEditor::CopySettingsToPreset(
 	Preset->ProxyMeshAutoRefineTimeoutSecondsOverride = HC->GetProxyMeshAutoRefineTimeoutSeconds();
 	Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride = HC->IsProxyStaticMeshRefinementOnPreSaveWorldEnabled();
 	Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride = HC->IsProxyStaticMeshRefinementOnPreBeginPIEEnabled();
+
+	// Image Data
+	Preset->bApplyImageData = bApplyImageData;
+	if (HC->GetImageData())
+	{
+		Preset->bOverrideDefaultResolution = HC->GetImageData()->bOverrideDefaultResolution;
+		Preset->ResolutionOverride = HC->GetImageData()->ResolutionOverride;
+		Preset->bOverridePixelScale = HC->GetImageData()->bOverridePixelScale;
+		Preset->PixelScale = HC->GetImageData()->PixelScale;
+		Preset->bGenerateMaterial = HC->GetImageData()->bGenerateMaterial;
+		Preset->MaterialToInstance = HC->GetImageData()->MaterialToInstance;
+	}	
 }
 
 
@@ -2947,6 +2960,19 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 	if(Preset->bApplyBakeFolder)
 	{
 		HC->SetBakeFolderPath(Preset->BakeFolder);
+	}
+
+	if (Preset->bApplyImageData)
+	{
+		if (HC->GetImageData())
+		{
+			HC->GetImageData()->bOverrideDefaultResolution = Preset->bOverrideDefaultResolution;
+			HC->GetImageData()->ResolutionOverride = Preset->ResolutionOverride;
+			HC->GetImageData()->bOverridePixelScale = Preset->bOverridePixelScale;
+			HC->GetImageData()->PixelScale = Preset->PixelScale;
+			HC->GetImageData()->bGenerateMaterial = Preset->bGenerateMaterial;
+			HC->GetImageData()->MaterialToInstance = Preset->MaterialToInstance;
+		}
 	}
 
 	// When recooking/rebuilding the HDA, force a full update of all params
@@ -3193,6 +3219,20 @@ FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(
 		HC->SetProxyMeshAutoRefineTimeoutSecondsOverride(Preset->ProxyMeshAutoRefineTimeoutSecondsOverride);
 		HC->SetEnableProxyStaticMeshRefinementOnPreSaveWorldOverride(Preset->bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride);
 		HC->SetEnableProxyStaticMeshRefinementOnPreBeginPIEOverride(Preset->bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride);
+	}
+
+	if (Preset->bApplyImageData)
+	{
+		// Populate Image Data settings
+		if (HC->GetImageData())
+		{
+			HC->GetImageData()->bOverrideDefaultResolution = Preset->bOverrideDefaultResolution;
+			HC->GetImageData()->ResolutionOverride = Preset->ResolutionOverride;
+			HC->GetImageData()->bOverridePixelScale = Preset->bOverridePixelScale;
+			HC->GetImageData()->PixelScale = Preset->PixelScale;
+			HC->GetImageData()->bGenerateMaterial = Preset->bGenerateMaterial;
+			HC->GetImageData()->MaterialToInstance = Preset->MaterialToInstance;
+		}
 	}
 
 	// TODO COOKABLE

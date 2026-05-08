@@ -313,6 +313,7 @@ public:
 		const bool bApplyBakeOptions,
 		const bool bApplyMeshGenSettings,
 		const bool bApplyProxyMeshGenSettings,
+		const bool bApplyImageData,
 		UHoudiniPreset* Preset);
 
 	// Find all the presets that can be applied the given Houdini Asset. 

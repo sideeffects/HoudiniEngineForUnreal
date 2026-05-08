@@ -435,133 +435,156 @@ public:
 	// We add toggles specifically for temp/bake folders since we might want to
 	// control them separately respective options groups.
 	
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Cook Options")
 	bool bApplyTemporaryCookFolder;
 	
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Cook Options")
 	FString TemporaryCookFolder;
 	
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Bake options")
 	bool bApplyBakeFolder;
 	
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Bake Options")
 	FString BakeFolder;
 	
 	// Bake Options
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Bake Options")
 	bool bApplyBakeOptions;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Bake Options")
 	EHoudiniEngineBakeOption HoudiniEngineBakeOption;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Bake Options", meta = (DisplayName = "Remove Cooked Output After Bake"))
 	bool bRemoveOutputAfterBake;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Bake Options")
 	bool bRecenterBakedActors;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Bake Options")
 	bool bAutoBake;
 	
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Bake Options")
 	bool bReplacePreviousBake;
 	
 	// Asset Options
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Cook Options")
 	bool bApplyAssetOptions;
 
 	// Asset Options - Cook Triggers
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Cook Options")
 	bool bCookOnParameterChange;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Cook Options")
 	bool bCookOnTransformChange;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Cook Options", meta = (DisplayName = "Cook on HDA Input Cook"))
 	bool bCookOnAssetInputCook;
 
 	// Asset Options - Outputs
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Cook Options")
 	bool bDoNotGenerateOutputs;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Cook Options")
 	bool bUseOutputNodes;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Cook Options", meta = (DisplayName = "Use Templated Geos"))
 	bool bOutputTemplateGeos;
 
 	// Asset Options - Misc
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Cook Options", meta = (DisplayName = "Push Transforms to Houdini"))
 	bool bUploadTransformsToHoudiniEngine;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Cook Options", meta = (DisplayName = "Temp Landscape Layers"))
 	bool bLandscapeUseTempLayers;
 
 	
 	// Parameters
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Houdini Parameters")
 	TMap<FString, FHoudiniPresetFloatValues> FloatParameters;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Houdini Parameters")
 	TMap<FString, FHoudiniPresetIntValues> IntParameters;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Houdini Parameters")
 	TMap<FString, FHoudiniPresetStringValues> StringParameters;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Houdini Parameters")
 	TMap<FString, FHoudiniPresetRampFloatValues> RampFloatParameters;
 	
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Houdini Parameters")
 	TMap<FString, FHoudiniPresetRampColorValues> RampColorParameters;
 
-	UPROPERTY(EditAnywhere, Category = "Houdini Preset")
+	UPROPERTY(EditAnywhere, Category = "Houdini Parameters")
 	TMap<FString, FHoudiniPresetMultiParmValues> MultiParmParameters;
 
 	// Inputs
 	
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="Houdini Parameters")
 	TArray<FHoudiniPresetInputValue> InputParameters;
 
 	// Static Mesh Generation Settings
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="HoudiniMeshGeneration")
 	bool bApplyStaticMeshGenSettings;
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="HoudiniMeshGeneration")
 	FHoudiniStaticMeshGenerationProperties StaticMeshGenerationProperties;
 	
-	UPROPERTY(Category = "HoudiniMeshGeneration", EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "HoudiniMeshGeneration")
 	FMeshBuildSettings StaticMeshBuildSettings;
 	
 	// Proxy Mesh Gen Settings
 
-	UPROPERTY(EditAnywhere, Category="Houdini Preset")
+	UPROPERTY(EditAnywhere, Category="HoudiniProxyMeshGeneration")
 	bool bApplyProxyMeshGenSettings;
 
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "HoudiniProxyMeshGeneration")
 	bool bOverrideGlobalProxyStaticMeshSettings;
 
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Enable Proxy Static Mesh"))
+	UPROPERTY(EditAnywhere, Category = "HoudiniProxyMeshGeneration", meta = (DisplayName="Enable Proxy Static Mesh"))
 	bool bEnableProxyStaticMeshOverride;
 	
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes After a Timeout"))
+	UPROPERTY(EditAnywhere, Category = "HoudiniProxyMeshGeneration", meta = (DisplayName="Refine Proxy Static Meshes After a Timeout"))
 	bool bEnableProxyStaticMeshRefinementByTimerOverride;
 	
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Proxy Mesh Auto Refine Timeout Seconds"))
+	UPROPERTY(EditAnywhere, Category = "HoudiniProxyMeshGeneration", meta = (DisplayName="Proxy Mesh Auto Refine Timeout Seconds"))
 	float ProxyMeshAutoRefineTimeoutSecondsOverride;
 	
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes When Saving a Map"))
+	UPROPERTY(EditAnywhere, Category = "HoudiniProxyMeshGeneration", meta = (DisplayName="Refine Proxy Static Meshes When Saving a Map"))
 	bool bEnableProxyStaticMeshRefinementOnPreSaveWorldOverride;
 	
-	UPROPERTY(Category = "HoudiniProxyMeshGeneration", EditAnywhere, meta = (DisplayName="Refine Proxy Static Meshes On PIE"))
+	UPROPERTY(EditAnywhere, Category = "HoudiniProxyMeshGeneration", meta = (DisplayName="Refine Proxy Static Meshes On PIE"))
 	bool bEnableProxyStaticMeshRefinementOnPreBeginPIEOverride;
 
+	// Image settings (cop HDAs only)
+	UPROPERTY(EditAnywhere, Category="HoudiniImageData")
+	bool bApplyImageData;
+
+	UPROPERTY(EditAnywhere, Category = "HoudiniImageData", meta = (DisplayName="Override Default Resolution"))
+	bool bOverrideDefaultResolution;
+
+	UPROPERTY(EditAnywhere, Category = "HoudiniImageData", meta = (DisplayName="Resolution Override"))
+	FIntPoint ResolutionOverride;
+
+	UPROPERTY(EditAnywhere, Category = "HoudiniImageData", meta = (DisplayName="Override Pixel Scale"))
+	bool bOverridePixelScale;
+
+	UPROPERTY(EditAnywhere, Category = "HoudiniImageData", meta = (DisplayName="Pixel Scale"))
+	float PixelScale;
+		
+	UPROPERTY(EditAnywhere, Category = "HoudiniImageData", meta = (DisplayName="Generate Material"))
+	bool bGenerateMaterial;
+
+	UPROPERTY(EditAnywhere, Category = "HoudiniImageData", meta = (DisplayName="Source Material"))
+	TObjectPtr<UMaterialInterface> MaterialToInstance = nullptr;
+	
+	
 	// Raw image data of the icon to be displayed
 	UPROPERTY()
 	FHImageData IconImageData;
