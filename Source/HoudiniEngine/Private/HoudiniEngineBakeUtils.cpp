@@ -7207,22 +7207,35 @@ FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
 	bool bIsPreviousBakeMaterialValid = IsValid(PreviousBakeMaterial);
 	int32 BakeCounter = 0;
 	TArray<UMaterialExpression*> PreviousBakeMaterialExpressions;
+	TArray<FTextureParameterValue> PreviousBakeMaterialTextureParameters;
 
-	
-	if (bIsPreviousBakeMaterialValid && PreviousBakeMaterial->IsA(UMaterial::StaticClass()))
+	if (bIsPreviousBakeMaterialValid)
 	{
-		UMaterial * PreviousMaterialCast = Cast<UMaterial>(PreviousBakeMaterial);
 		bIsPreviousBakeMaterialValid = MaterialPackageParams.MatchesPackagePathNameExcludingBakeCounter(PreviousBakeMaterial);
-
-		if (bIsPreviousBakeMaterialValid && PreviousMaterialCast)
+		if (bIsPreviousBakeMaterialValid)
 		{
 			MaterialPackageParams.GetBakeCounterFromBakedAsset(PreviousBakeMaterial, BakeCounter);
-
+			
+			if (PreviousBakeMaterial->IsA(UMaterial::StaticClass()))
+			{
+				UMaterial * PreviousMaterialCast = Cast<UMaterial>(PreviousBakeMaterial);
+				if (PreviousMaterialCast)
+				{
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
-			PreviousBakeMaterialExpressions = PreviousMaterialCast->GetExpressionCollection().Expressions;
+					PreviousBakeMaterialExpressions = PreviousMaterialCast->GetExpressionCollection().Expressions;
 #else
-			PreviousBakeMaterialExpressions = PreviousMaterialCast->Expressions;
+					PreviousBakeMaterialExpressions = PreviousMaterialCast->Expressions;
 #endif
+				}
+			}
+			else if (PreviousBakeMaterial->IsA(UMaterialInstance::StaticClass()))
+			{
+				const UMaterialInstance * PreviousMaterialInstance = Cast<UMaterialInstance>(PreviousBakeMaterial);
+				if (PreviousMaterialInstance)
+				{
+					PreviousBakeMaterialTextureParameters = PreviousMaterialInstance->TextureParameterValues;
+				}
+			}
 		}
 	}
 	
@@ -7251,8 +7264,10 @@ FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
 		MaterialPackage, DuplicatedMaterial,
 		HAPI_UNREAL_PACKAGE_META_BAKED_OBJECT, TEXT("true"));
 
-	// Retrieve and check various sampling expressions. If they contain textures, duplicate (and bake) them.
 	UMaterial * DuplicatedMaterialCast = Cast<UMaterial>(DuplicatedMaterial);
+	UMaterialInstance * DuplicatedMaterialInstance = Cast<UMaterialInstance>(DuplicatedMaterial);
+	
+	// Retrieve and check various sampling expressions. If they contain textures, duplicate (and bake) them.
 	if (DuplicatedMaterialCast)
 	{
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
@@ -7273,7 +7288,23 @@ FHoudiniEngineBakeUtils::DuplicateMaterialAndCreatePackage(
 				Expression, PreviousBakeExpression, MaterialPackageParams, BakedObjectData);
 		}
 	}
-
+	else if (DuplicatedMaterialInstance)
+	{
+		auto& TextureParameterValues = DuplicatedMaterialInstance->TextureParameterValues;
+		const int32 NumTextureParams = TextureParameterValues.Num();
+		for (int32 ParamIdx = 0; ParamIdx < NumTextureParams; ++ParamIdx)
+		{
+			FTextureParameterValue& ParameterValue = TextureParameterValues[ParamIdx];
+			FTextureParameterValue PreviousBakeParameterValue;
+			if (bIsPreviousBakeMaterialValid && PreviousBakeMaterialTextureParameters.IsValidIndex(ParamIdx))
+			{
+				PreviousBakeParameterValue = PreviousBakeMaterialTextureParameters[ParamIdx];
+			}
+			FHoudiniEngineBakeUtils::ReplaceDuplicatedMaterialInstanceTextureSample(
+				ParameterValue, PreviousBakeParameterValue, MaterialPackageParams, BakedObjectData);
+		}
+	}
+	
 	// Notify registry that we have created a new duplicate material.
 	FAssetRegistryModule::AssetCreated(DuplicatedMaterial);
 
@@ -7332,6 +7363,33 @@ FHoudiniEngineBakeUtils::ReplaceDuplicatedMaterialTextureSample(
 
 		// Re-assign generated texture.
 		TextureSample->Texture = DuplicatedTexture;
+	}
+}
+
+void
+FHoudiniEngineBakeUtils::ReplaceDuplicatedMaterialInstanceTextureSample(FTextureParameterValue& TextureParameterValue, FTextureParameterValue PreviousBakeTextureParameterValue, const FHoudiniPackageParams& PackageParams, FHoudiniBakedObjectData& BakedObjectData)
+{
+	UTexture2D * Texture = Cast<UTexture2D>(TextureParameterValue.ParameterValue);
+	if (!IsValid(Texture))
+		return;
+
+	UPackage * TexturePackage = Cast< UPackage >(Texture->GetOuter());
+	if (!IsValid(TexturePackage))
+		return;
+
+	// Try to get the previous bake's texture
+	UTexture2D* PreviousBakeTexture = Cast<UTexture2D>(PreviousBakeTextureParameterValue.ParameterValue);
+
+	FString GeneratedTextureName;
+	if (FHoudiniEngineBakeUtils::GetHoudiniGeneratedNameFromMetaInformation(
+		TexturePackage, Texture, GeneratedTextureName))
+	{
+		// Duplicate texture.
+		UTexture2D * DuplicatedTexture = FHoudiniEngineBakeUtils::DuplicateTextureAndCreatePackage(
+			Texture, PreviousBakeTexture, GeneratedTextureName, PackageParams, BakedObjectData);
+
+		// Re-assign generated texture.
+		TextureParameterValue.ParameterValue = DuplicatedTexture;
 	}
 }
 

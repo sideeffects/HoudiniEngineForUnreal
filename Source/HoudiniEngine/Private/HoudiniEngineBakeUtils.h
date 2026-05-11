@@ -31,6 +31,7 @@
 #include "HoudiniPackageParams.h"
 #include "LevelInstance/LevelInstanceActor.h"
 #include "Materials/MaterialExpression.h"
+#include "Materials/MaterialInstance.h"
 #include "HoudiniEngineOutputStats.h"
 
 #include "HoudiniEngineBakeUtils.generated.h"
@@ -507,6 +508,12 @@ public:
 	static void ReplaceDuplicatedMaterialTextureSample(
 		UMaterialExpression * MaterialExpression,
 		UMaterialExpression* PreviousBakeMaterialExpression,
+		const FHoudiniPackageParams& PackageParams,
+		FHoudiniBakedObjectData& BakedObjectData);
+
+	static void ReplaceDuplicatedMaterialInstanceTextureSample(
+		FTextureParameterValue& InTextureParameterValue,
+		FTextureParameterValue InPreviousBakeTextureParameterValue,
 		const FHoudiniPackageParams& PackageParams,
 		FHoudiniBakedObjectData& BakedObjectData);
 	
