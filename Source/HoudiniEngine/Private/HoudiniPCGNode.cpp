@@ -699,6 +699,21 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 	break;
 	case EHoudiniPCGContextState::Instantiating:
 	{
+		if (!IsValid(ManagedResource))
+		{
+			// User delete component mid-cook?
+			HOUDINI_LOG_ERROR(TEXT("Houdini PCG ManagedResource lost..."));
+			return true;
+		}
+
+		// Wait for cooking to complete.
+		if (!IsValid(ManagedResource->HoudiniPCGComponent))
+		{
+			// User delete component mid-cook?
+			HOUDINI_LOG_ERROR(TEXT("Houdini PCG Component lost..."));
+			return true;
+		}
+
 		UHoudiniPCGCookable* Cookable = ManagedResource->HoudiniPCGComponent->Cookable.Get();
 		Cookable->Update(HDAContext);
 
@@ -738,13 +753,21 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 	break;
 	case EHoudiniPCGContextState::Cooking:
 	{
+		if (!IsValid(ManagedResource))
+		{
+			// User delete component mid-cook?
+			HOUDINI_LOG_ERROR(TEXT("Houdini PCG ManagedResource lost..."));
+			return true;
+		}
+
 		// Wait for cooking to complete.
 		if(!IsValid(ManagedResource->HoudiniPCGComponent))
 		{
 			// User delete component mid-cook?
-			HOUDINI_PCG_MESSAGE(TEXT("Houdini PCG Component lost..."));
+			HOUDINI_LOG_ERROR(TEXT("Houdini PCG Component lost..."));
 			return true;
 		}
+
 		UHoudiniPCGCookable* Cookable = ManagedResource->HoudiniPCGComponent->Cookable.Get();
 		Cookable->Update(Context);
 
