@@ -49,7 +49,7 @@ public:
 	virtual void PostApplyToComponent() override;
 	virtual bool Release(bool bHardRelease, TSet<TSoftObjectPtr<AActor>>& OutActorsToDelete) override;
 	virtual bool ReleaseIfUnused(TSet<TSoftObjectPtr<AActor>>& OutActorsToDelete) override;
-	virtual bool MoveResourceToNewActor(AActor* NewActor) override;
+
 	virtual void MarkAsUsed() override;
 	virtual void MarkAsReused() override;
 	virtual void PostLoad() override;

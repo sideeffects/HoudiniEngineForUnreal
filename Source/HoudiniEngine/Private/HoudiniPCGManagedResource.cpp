@@ -110,11 +110,6 @@ void UHoudiniPCGManagedResource::PostLoad()
 	bInvalidateResource = true;
 }
 
-bool UHoudiniPCGManagedResource::MoveResourceToNewActor(AActor* NewActor)
-{
-	return Super::MoveResourceToNewActor(NewActor);
-}
-
 #if WITH_EDITOR
 void UHoudiniPCGManagedResource::ChangeTransientState(EPCGEditorDirtyMode NewEditingMode)
 {
