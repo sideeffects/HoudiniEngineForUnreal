@@ -109,8 +109,8 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 	if (!bSuccess)
 		return {};
 
+	GetPerInstanceCustomData(InHGPO.GeoId, InHGPO.PartId, InHGPO.InstancerType, PartData);
 	GetGenericPropertiesAttributes(InHGPO.GeoId, InHGPO.PartId, PartData.AllPropertyAttributes);
-	GetPerInstanceCustomData(InHGPO.GeoId, InHGPO.PartId, PartData);
 	GetMaterialOverridesFromAttributes(InHGPO.GeoId, InHGPO.PartId, 0, InHGPO.InstancerType, PartData.MaterialAttributes);
 
 	// Store custom prim data in the instancer
@@ -1901,11 +1901,14 @@ void
 FHoudiniInstanceTranslator::GetPerInstanceCustomData(
 	int32 InGeoNodeId,
 	int32 InPartId,
+	EHoudiniInstancerType InIntancerType,
 	FHoudiniInstancerPartData& OutInstancedOutputPartData)
 {
+	HAPI_AttributeOwner Owner = InIntancerType == EHoudiniInstancerType::PackedPrimitive ? HAPI_ATTROWNER_PRIM : HAPI_ATTROWNER_POINT;
+
 	TArray<int32> CustomFloatsArray;
 	FHoudiniHapiAccessor Accessor(InGeoNodeId, InPartId, HAPI_UNREAL_ATTRIB_INSTANCE_NUM_CUSTOM_FLOATS);
-	Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, CustomFloatsArray);
+	Accessor.GetAttributeData(Owner, CustomFloatsArray);
 	if (CustomFloatsArray.IsEmpty())
 		return;
 
@@ -1924,7 +1927,7 @@ FHoudiniInstanceTranslator::GetPerInstanceCustomData(
 
 		FString CurrentAttr = TEXT(HAPI_UNREAL_ATTRIB_INSTANCE_CUSTOM_DATA_PREFIX) + FString::FromInt(CustomFloatIndex);
 		Accessor.Init(InGeoNodeId, InPartId, TCHAR_TO_ANSI(*CurrentAttr));
-		Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, Values);
+		Accessor.GetAttributeData(Owner, Values);
 		if (Values.IsEmpty())
 		{
 			HOUDINI_LOG_ERROR(TEXT("Could not find attribute: %s"), *CurrentAttr);

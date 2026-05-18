@@ -1841,6 +1841,116 @@ bool FHoudiniEditorTestSplitPackedInstancer::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPackedInstancesCustomAttributes, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.PackedInstancesCustomAttributes",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestPackedInstancesCustomAttributes::RunTest(const FString& Parameters)
+{
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Tests baking of packed instanced meshes.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, InstancesCustomDataHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			SET_HDA_PARAMETER(Context, UHoudiniParameterToggle, "packed", true, 0);
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			TArray<UHoudiniOutput*> Outputs;
+			Context->GetOutputs(Outputs);
+
+			// We should have two outputs, one mesh, one instancer.
+			HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 2, return true);
+			TArray<UInstancedStaticMeshComponent*> InstancedStaticMeshComponents = FHoudiniEditorUnitTestUtils::GetOutputsWithComponent<UInstancedStaticMeshComponent>(Outputs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(InstancedStaticMeshComponents.Num(), 1, return true);
+			auto InstancedStaticMeshComponent = InstancedStaticMeshComponents[0];
+
+
+			HOUDINI_TEST_EQUAL_ON_FAIL(InstancedStaticMeshComponent->GetNumRenderInstances(), 9, return true);
+
+			auto InstanceData = InstancedStaticMeshComponent->PerInstanceSMCustomData;
+			HOUDINI_TEST_EQUAL_ON_FAIL(InstanceData.Num(), 27, return true);
+
+			TArray<UStaticMesh*> StaticMeshes = FHoudiniEditorUnitTestUtils::GetOutputsWithObject<UStaticMesh>(Outputs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(StaticMeshes.Num(), 1, return true);
+
+			return true;
+		}));
+
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestNotPackedInstancesCustomAttributes, FHoudiniInstanceAutomationTest, "Houdini.UnitTests.Instances.AttributeInstancesCustomAttributes",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+	bool FHoudiniEditorTestNotPackedInstancesCustomAttributes::RunTest(const FString& Parameters)
+{
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// Tests baking of packed instanced meshes.
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/// Make sure we have a Houdini Session before doing anything.
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	// Now create the test context.
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, InstancesCustomDataHDA, FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			SET_HDA_PARAMETER(Context, UHoudiniParameterToggle, "packed", false, 0);
+			SET_HDA_PARAMETER(Context, UHoudiniParameterString, "path", "/Script/Engine.StaticMesh'/Game/TestObjects/SM_Cube.SM_Cube'", 0);
+
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			TArray<UHoudiniOutput*> Outputs;
+			Context->GetOutputs(Outputs);
+
+			// We should have one output, the instancer
+			HOUDINI_TEST_EQUAL_ON_FAIL(Outputs.Num(), 1, return true);
+			TArray<UInstancedStaticMeshComponent*> InstancedStaticMeshComponents = FHoudiniEditorUnitTestUtils::GetOutputsWithComponent<UInstancedStaticMeshComponent>(Outputs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(InstancedStaticMeshComponents.Num(), 1, return true);
+			auto InstancedStaticMeshComponent = InstancedStaticMeshComponents[0];
+
+
+			HOUDINI_TEST_EQUAL_ON_FAIL(InstancedStaticMeshComponent->GetNumRenderInstances(), 9, return true);
+
+			auto InstanceData = InstancedStaticMeshComponent->PerInstanceSMCustomData;
+			HOUDINI_TEST_EQUAL_ON_FAIL(InstanceData.Num(), 27, return true);
+
+			TArray<UStaticMesh*> StaticMeshes = FHoudiniEditorUnitTestUtils::GetOutputsWithObject<UStaticMesh>(Outputs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(StaticMeshes.Num(), 0, return true);
+
+			return true;
+		}));
+
+
+	return true;
+}
+
+
+
 
 #endif
 
