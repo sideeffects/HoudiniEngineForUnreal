@@ -4898,7 +4898,7 @@ FHoudiniEngineBakeUtils::BakeBlueprints(UHoudiniCookable* InCookable, const FHou
 		FHoudiniEngine::Get().FinishTaskSlateNotification( FText::FromString(Msg) );
 	}
 	
-	TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+	FHoudiniEngineRuntimeUtils::TryCollectGarbage();
 
 	// Broadcast that the bake is complete
 	InCookable->HandleOnPostBake(bSuccess);
@@ -9151,7 +9151,7 @@ FHoudiniEngineBakeUtils::BakePDGTOPNodeBlueprints(
 		FHoudiniEngine::Get().FinishTaskSlateNotification( FText::FromString(Msg) );
 	}
 	
-	TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+	FHoudiniEngineRuntimeUtils::TryCollectGarbage();
 
 	return bSuccess;
 }
@@ -9285,7 +9285,7 @@ FHoudiniEngineBakeUtils::BakePDGAssetLinkBlueprints(
 		FHoudiniEngine::Get().FinishTaskSlateNotification( FText::FromString(Msg) );
 	}
 	
-	TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+	FHoudiniEngineRuntimeUtils::TryCollectGarbage();
 
 	// Broadcast that the bake is complete
 	InPDGAssetLink->HandleOnPostBake(bSuccess);

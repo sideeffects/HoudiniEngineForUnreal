@@ -73,6 +73,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniEngineRuntimeUtils
 		// Helper function for returning a class from its name
 		static UClass* GetClassByName(const FString& InName);
 
+		// Runs Unreal garbage collection using Houdini Engine's standard keep flags.
+		static void TryCollectGarbage();
+
 		// -----------------------------------------------
 		// Bounding Box utilities
 		// -----------------------------------------------

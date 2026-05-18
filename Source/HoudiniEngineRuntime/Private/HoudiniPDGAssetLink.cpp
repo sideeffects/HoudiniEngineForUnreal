@@ -2012,7 +2012,7 @@ FTOPWorkResultObject::DestroyResultOutputs(const FGuid& InHoudiniComponentGuid)
 	ResultOutputs.Empty();
 
 	if (bDidDestroyObjects)
-		TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+		FHoudiniEngineRuntimeUtils::TryCollectGarbage();
 	
 	// Delete the output objects we found
 	if (OutputObjectsToDelete.Num() > 0)

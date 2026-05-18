@@ -8904,7 +8904,7 @@ FHoudiniEngineUtils::TriageHoudiniCookablesForProxyMeshRefinement(
 
 		if(ProxyMeshPackagesToSave.Num() > 0)
 		{
-			TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+			FHoudiniEngineRuntimeUtils::TryCollectGarbage();
 
 			FEditorFileUtils::PromptForCheckoutAndSave(ProxyMeshPackagesToSave, true, false);
 		}
