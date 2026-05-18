@@ -90,7 +90,8 @@ public:
 	FORCEINLINE
 	void SetIsContentShown(const bool& bInShown) { bIsContentShown = bInShown; };
 
-
+	virtual void MarkChanged(const bool& bInChanged) override;
+	virtual void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate);
 
 private:
 	UPROPERTY()

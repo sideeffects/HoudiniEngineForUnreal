@@ -289,11 +289,11 @@ protected:
 	bool bIsDisabled;
 
 	// Is set to true if value of this parameter has been changed by user.
-	UPROPERTY()
+	UPROPERTY(Transient)
 	bool bHasChanged;
 
 	// Is set to true if value of this parameter will trigger an update of the asset
-	UPROPERTY()
+	UPROPERTY(Transient)
 	bool bNeedsToTriggerUpdate;
 
 	// Indicates that this parameter is still using its default value
