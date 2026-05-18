@@ -39,7 +39,9 @@
 #include "HoudiniEngineUtils.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/FileHelper.h"
+#include "Misc/PackageName.h"
 #include "Internationalization/Internationalization.h"
+#include "ObjectTools.h"
 #include "UObject/UObjectIterator.h"
 #if defined(HOUDINI_USE_PCG)
 #include "PCGComponent.h"
@@ -194,48 +196,81 @@ UHoudiniAssetFactory::FactoryCreateBinary(
 UObject*
 UHoudiniAssetFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
-	// "houdini.hdalibrary" files (expanded hda / hda folder) need a special treatment,
-	// but ".hda" files can be loaded normally
+	FString NameOfFile = FPaths::GetBaseFilename(Filename);
 	FString FileExtension = FPaths::GetExtension(Filename);
-	if (FileExtension.Compare(TEXT("hdalibrary"), ESearchCase::IgnoreCase) != 0)
+	FString PathToFile = FPaths::GetPath(Filename);
+
+	// Load HDA normally.
+	if (FileExtension.Compare(TEXT("hda"), ESearchCase::IgnoreCase) == 0)
 	{
 		return Super::FactoryCreateFile(InClass, InParent, InName, Flags, Filename, Parms, Warn, bOutOperationCanceled);
 	}
 
-	// Make sure the file name is sections.list
-	FString NameOfFile = FPaths::GetBaseFilename(Filename);
-	if (NameOfFile.Compare(TEXT("houdini"), ESearchCase::IgnoreCase) != 0)
+	// Make sure the file name is houdini.hdalibrary and that is lives a directory ending in .hda
+	if ((FileExtension.Compare(TEXT("hdalibrary"), ESearchCase::IgnoreCase) != 0) || NameOfFile.Compare(TEXT("houdini"), ESearchCase::IgnoreCase) != 0)
 	{
 		HOUDINI_LOG_ERROR(TEXT("Failed to load file '%s'. File is not a valid extended HDA."), *Filename);
 		return nullptr;
 	}
 
-	// Make sure that the proper .list file is loaded
-	FString PathToFile = FPaths::GetPath(Filename);
-	if (PathToFile.Find(TEXT(".hda")) != (PathToFile.Len() - 4))
+	if (!PathToFile.EndsWith(TEXT(".hda"), ESearchCase::IgnoreCase))
 	{
-		HOUDINI_LOG_ERROR(TEXT("Failed to load file '%s'. File is not a valid extended HDA."), *Filename);
+		HOUDINI_LOG_ERROR(TEXT("Failed to load file '%s'. File is not a valid extended HDA. Directory must end in .hda."), *Filename);
 		return nullptr;
 	}
 
 	FString NewFilename = PathToFile;
-	FString NewFileNameNoHDA = FPaths::GetBaseFilename(PathToFile);
+	FString NewFileNameNoHDA = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(PathToFile));
+	UObject* NewParent = InParent;
+
+
+	// AssetTools initially names the package after "houdini.hdalibrary". Retarget expanded
+	// HDAs to the parent .hda directory name so the package and top-level asset match.
+	// Note that that Unreal will not save the original InParent package since its empty, which is
+	// what we want.
+
+	if (UPackage* ImportPackage = InParent ? InParent->GetOutermost() : nullptr)
+	{
+		const FString ImportPackageName = ImportPackage->GetName();
+		if (FPackageName::IsValidLongPackageName(ImportPackageName))
+		{
+			const FString PackagePath = FPackageName::GetLongPackagePath(ImportPackageName);
+			const FString ExpandedHDAPackageName = PackagePath / NewFileNameNoHDA;
+
+			if (ImportPackageName != ExpandedHDAPackageName)
+			{
+				UPackage* ExpandedHDAPackage = CreatePackage(*ExpandedHDAPackageName);
+				if (!ExpandedHDAPackage)
+				{
+					HOUDINI_LOG_ERROR(TEXT("Failed to load file '%s'. Could not create package '%s'."), *Filename, *ExpandedHDAPackageName);
+					return nullptr;
+				}
+
+				ExpandedHDAPackage->FullyLoad();
+
+				if (StaticFindObject(UObject::StaticClass(), ExpandedHDAPackage, *NewFileNameNoHDA))
+				{
+					HOUDINI_LOG_ERROR(TEXT("Failed to load file '%s'. Asset '%s.%s' already exists."), *Filename, *ExpandedHDAPackageName, *NewFileNameNoHDA);
+					return nullptr;
+				}
+
+				NewParent = ExpandedHDAPackage;
+			}
+		}
+	}
+
 	FName NewIname = FName(*NewFileNameNoHDA);
 	FString NewFileExtension = FPaths::GetExtension(NewFilename);
 
 	// load as binary
 	TArray<uint8> Data;
-	if (!FFileHelper::LoadFileToArray(Data, *Filename))
-	{
-		HOUDINI_LOG_ERROR(TEXT("Failed to load file '%s' to array"), *Filename);
-		return nullptr;
-	}
 
+	Data.Add(1);
 	Data.Add(0);
 	ParseParms(Parms);
 	const uint8* Ptr = &Data[0];
 
-	return FactoryCreateBinary(InClass, InParent, NewIname, Flags, nullptr, *NewFileExtension, Ptr, Ptr + Data.Num() - 1, Warn);
+	return FactoryCreateBinary(InClass, NewParent, NewIname, Flags, nullptr, *NewFileExtension, Ptr, Ptr + Data.Num() - 1, Warn);
 }
 
 bool
