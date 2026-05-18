@@ -338,6 +338,7 @@ struct HOUDINIENGINE_API FHoudiniInstanceTranslator
 	static void GetPerInstanceCustomData(
 		int32 InGeoNodeId,
 		int32 InPartId,
+		EHoudiniInstancerType InInstancerType,
 		FHoudiniInstancerPartData& OutInstancedOutputPartData);
 
 	// Update PerInstanceCustom data on the given component if possible
