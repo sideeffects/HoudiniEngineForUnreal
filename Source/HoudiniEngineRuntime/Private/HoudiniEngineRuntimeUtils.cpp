@@ -52,7 +52,7 @@
 
 static TAutoConsoleVariable<int32> CVarHoudiniGarbageCollection(
 	TEXT("Houdini.GarbageCollection"),
-	1, // default value
+	0, // default value
 	TEXT("Enable (1) or disable (0) Houdini Engine garbage collection."),
 	ECVF_Default
 );
