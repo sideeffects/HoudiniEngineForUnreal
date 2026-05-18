@@ -129,8 +129,12 @@ TArray<TObjectPtr<UHoudiniParameter>> FHoudiniParameterTranslator::CreateNewPara
 			if(UHoudiniParameterFolderList* CurFolderList = Cast<UHoudiniParameterFolderList>(Parameter))
 			{
 				// For new parameter, set the initially activate tab menu,
-				if(!IsValid(CurFolderList))
+				if (!IsValid(CurFolderList))
 					continue;
+
+				int NumFolders = CurFolderList->GetTupleSize();
+				if (NumFolders == 0)
+					break;
 
 				int ChildParmIndex = Index + 1;
 

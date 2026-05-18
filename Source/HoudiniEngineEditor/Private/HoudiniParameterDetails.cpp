@@ -475,9 +475,9 @@ FHoudiniParameterDetails::Construct(const TArray<TWeakObjectPtr<UHoudiniCookable
 	if(!Cookables.IsEmpty() && Cookables[0].IsValid())
 		Construct(Cookables[0].Get(), Cookables[0]->GetParameters());
 
+	// Match up linked parameters.
 	for(int32 ParamIdx = 0; ParamIdx < Cookables[0]->GetNumParameters(); ParamIdx++)
 	{
-		// We only want to create root parameters here, they will recursively create child parameters.
 		UHoudiniParameter* CurrentParam = Cookables[0]->GetParameterAt(ParamIdx);
 		if(!IsValid(CurrentParam))
 			continue;
