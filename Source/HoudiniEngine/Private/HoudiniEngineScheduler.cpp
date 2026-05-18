@@ -31,12 +31,10 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"
 
-const uint32
-FHoudiniEngineScheduler::InitialTaskSize = 256u;
+const uint32 FHoudiniEngineScheduler::InitialTaskSize = 256u;
 
-// Update frequency in (ms) for polling the scheduler
-const float
-FHoudiniEngineScheduler::UpdateFrequency = 0.1f;
+// Update frequency in seconds for polling the scheduler.
+const float FHoudiniEngineScheduler::UpdateFrequency = 0.001f;
 
 FHoudiniEngineScheduler::FHoudiniEngineScheduler()
 	: WakeUpEvent(FEventRef(EEventMode::AutoReset))
@@ -669,7 +667,8 @@ FHoudiniEngineScheduler::ProcessQueuedTasks()
 		if (FPlatformProcess::SupportsMultithreading())
 		{
 			// We want to yield for a bit.
-			WakeUpEvent->Wait(UpdateFrequency * 1000.0f);
+			
+			WakeUpEvent->Wait(static_cast<int>(UpdateFrequency * 1000.0));
 		}
 		else
 		{
