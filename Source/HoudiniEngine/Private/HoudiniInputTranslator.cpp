@@ -34,6 +34,7 @@
 #include "HoudiniDataLayerUtils.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniInput.h"
@@ -4428,7 +4429,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 					if (IsValid(InputObject))
 					{
 						InObject->Update(InputObject, InputSettings);
-						TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+						FHoudiniEngineRuntimeUtils::TryCollectGarbage();
 					}
 				}
 				else if (!bPendingDeleteOrRebuild && !bInvalidState)
@@ -4448,7 +4449,7 @@ FHoudiniInputTranslator::HapiCreateInputNodeForActor(
 				if (IsValid(InputObject))
 				{
 					InObject->Update(InputObject, InputSettings);
-					TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+					FHoudiniEngineRuntimeUtils::TryCollectGarbage();
 				}
 			}
 		}
@@ -5341,7 +5342,7 @@ FHoudiniInputTranslator::UpdateWorldInput(UHoudiniInput* InInput)
 		{
 			bHasChanged = true;
 			if (ActorObject->GetLastUpdateNumComponentsRemoved() > 0)
-				TryCollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+				FHoudiniEngineRuntimeUtils::TryCollectGarbage();
 		}
 	}
 
