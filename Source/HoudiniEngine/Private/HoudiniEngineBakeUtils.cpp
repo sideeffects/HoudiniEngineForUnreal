@@ -8557,7 +8557,7 @@ FHoudiniEngineBakeUtils::BakePDGTOPNodeOutputsKeepActors(
 		}
 	}
 
-	OutBakedActors = MoveTemp(OurBakedActors);
+	OutBakedActors.Append(OurBakedActors);
 
 	return true;
 }
@@ -8652,6 +8652,8 @@ bool FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(
 
 	const bool bBakeBlueprints = false;
 	const bool bIsAutoBake = false;
+
+	BakedActors.Empty();
 
 	bool bSuccess = true;
 	switch (InBakeSelectionOption)
