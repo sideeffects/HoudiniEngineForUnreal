@@ -548,8 +548,8 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			{
 				ManagedResource->PCGComponent->GetGraph()->OnGraphChangedDelegate.AddUObject(ManagedResource, &UHoudiniPCGManagedResource::OnGraphChanged);
 			}
-			ManagedResource->SetCrc(ResourceCrc);
 			ManagedResource->MarkAsUsed();
+			ManagedResource->SetCrc(ResourceCrc);
 			ManagedResource->HoudiniPCGComponent = UHoudiniPCGComponent::CreatePCGComponent(SourceComponent);
 			SourceComponent->AddToManagedResources(ManagedResource);
 
