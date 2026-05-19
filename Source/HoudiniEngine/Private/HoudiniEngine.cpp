@@ -259,7 +259,11 @@ FHoudiniEngine::StartupModule()
 	{
 		if (bEnableCookingGlobal && !bNoneSession)
 		{
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+			PostEngineInitCallback = FCoreDelegates::GetOnPostEngineInit().AddLambda([]()
+#else
 			PostEngineInitCallback = FCoreDelegates::OnPostEngineInit.AddLambda([]()
+#endif
 			{
 				FHoudiniEngine& HEngine = FHoudiniEngine::Get();
 				HEngine.UnregisterPostEngineInitCallback();
@@ -1787,7 +1791,15 @@ void
 FHoudiniEngine::UnregisterPostEngineInitCallback()
 {
 	if (PostEngineInitCallback.IsValid())
+	{
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+		FCoreDelegates::GetOnPostEngineInit().Remove(PostEngineInitCallback);
+		PostEngineInitCallback.Reset();
+#else
 		FCoreDelegates::OnPostEngineInit.Remove(PostEngineInitCallback);
+		PostEngineInitCallback.Reset();
+#endif
+	}
 }
 
 bool 

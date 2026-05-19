@@ -709,7 +709,11 @@ FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& In
 
 	// Build up Vex code for actor tags
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+	TStringBuilder<256> Builder;
+#else
 	FStringBuilderBase Builder;
+#endif
 
 	for(auto Tag : Tags)
 	{

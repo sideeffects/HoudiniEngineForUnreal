@@ -4463,7 +4463,11 @@ bool FUnrealMeshTranslator::GetOrCreateMaterialZipNode(
 	const HAPI_NodeId MaterialTableNode,
 	const TArray<FUnrealMaterialInfo>& MaterialInfos)
 {
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+	TStringBuilder<256> AttributesToCopy;
+#else
 	FStringBuilderBase AttributesToCopy;
+#endif
 
 	for (const FUnrealMaterialInfo & Info : MaterialInfos)
 	{
@@ -4916,7 +4920,6 @@ bool FUnrealMeshTranslator::GetOrConstructStaticMeshRenderNode(
 		TArray<FUnrealMaterialInfo> MaterialInfos;
 		GetMaterialInfo(MaterialInterfaces, MaterialInfos);
 
-
 		// Material Table.
 		if(!ExportData.Contains(MaterialTableName))
 		{
@@ -4924,7 +4927,11 @@ bool FUnrealMeshTranslator::GetOrConstructStaticMeshRenderNode(
 		}
 
 		// if we need material parameters create a new node and zip the geometry and materials
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+		TStringBuilder<256> StringBuilder;
+#else
 		FStringBuilderBase StringBuilder;
+#endif
 		StringBuilder.Append(GeometryLabel);
 		StringBuilder.Append(TEXT("_mparams"));
 
@@ -4966,7 +4973,11 @@ bool FUnrealMeshTranslator::GetOrConstructStaticMeshRenderNode(
 
 FString FUnrealMeshTranslator::MakeUniqueExportName(const FUnrealMeshExportOptions& ExportOptions)
 {
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+	TStringBuilder<256> LabelBuilder;
+#else
 	FStringBuilderBase LabelBuilder;
+#endif
 	LabelBuilder.Append("final");
 
 	if(ExportOptions.bMainMesh)
@@ -5545,7 +5556,6 @@ bool FUnrealMeshTranslator::GetOrConstructSplineMeshRenderNode(
 		TArray<FUnrealMaterialInfo> MaterialInfos;
 		GetMaterialInfo(MaterialInterfaces, MaterialInfos);
 
-
 		// Material Table.
 		if(!ExportData.Contains(MaterialTableName))
 		{
@@ -5553,7 +5563,11 @@ bool FUnrealMeshTranslator::GetOrConstructSplineMeshRenderNode(
 		}
 
 		// if we need material parameters create a new node and zip the geometry and materials
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+		TStringBuilder<256> StringBuilder;
+#else
 		FStringBuilderBase StringBuilder;
+#endif
 		StringBuilder.Append(GeometryLabel);
 		StringBuilder.Append(TEXT("_mparams"));
 

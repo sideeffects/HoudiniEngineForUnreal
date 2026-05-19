@@ -618,8 +618,11 @@ FUnrealObjectInputIdentifier::operator==(const FUnrealObjectInputIdentifier& InO
 FString
 FUnrealObjectInputIdentifier::ToString() const
 {
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+	TStringBuilder<256> Builder;
+#else
 	FStringBuilderBase Builder;
-
+#endif
 	Builder.Append(TEXT("type: "));
 	switch(this->GetNodeType())
 	{
