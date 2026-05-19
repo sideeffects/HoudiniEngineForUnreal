@@ -1106,6 +1106,9 @@ UHoudiniGeoImporter::CookFileNode(const HAPI_NodeId& InNodeId)
 
 	// Wait for the cook to finish
 	int32 status = HAPI_STATE_MAX_READY_STATE + 1;
+	constexpr double CookingStatusLogIntervalSeconds = 3.0;
+	double LastCookingStatusLogTime = FPlatformTime::Seconds();
+
 	while (status > HAPI_STATE_MAX_READY_STATE)
 	{
 		// Retrieve the status
@@ -1113,11 +1116,19 @@ UHoudiniGeoImporter::CookFileNode(const HAPI_NodeId& InNodeId)
 			FHoudiniEngine::Get().GetSession(),
 			HAPI_STATUS_COOK_STATE, &status), false);
 
-		HOUDINI_LOG_MESSAGE(TEXT("Still Cooking, current status: %s."), *FHoudiniEngineUtils::GetStatusString(HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS));
+		if (status > HAPI_STATE_MAX_READY_STATE)
+		{
+			const double CurrentTime = FPlatformTime::Seconds();
+			if ((CurrentTime - LastCookingStatusLogTime) >= CookingStatusLogIntervalSeconds)
+			{
+				HOUDINI_LOG_MESSAGE(TEXT("Still Cooking, current status: %s."), *FHoudiniEngineUtils::GetStatusString(HAPI_STATUS_COOK_STATE, HAPI_STATUSVERBOSITY_ERRORS));
+				LastCookingStatusLogTime = CurrentTime;
+			}
+		}
 
 		// Go to bed..
 		if (status > HAPI_STATE_MAX_READY_STATE)
-			FPlatformProcess::Sleep(0.5f);
+			FPlatformProcess::Sleep(0.001f);
 	}
 
 	if (status != HAPI_STATE_READY)
