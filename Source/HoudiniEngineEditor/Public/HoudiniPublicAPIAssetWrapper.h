@@ -474,6 +474,19 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
 	bool IsCookOnAssetInputCookEnabled() const;
 
+	/**
+	 * Enable or disable proxy mesh generation.
+	 * @param bInSetEnabled Whether or not to generate proxy mesh on cook.
+	 * @return true if the value was changed.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetProxyMeshEnabled(const bool bInSetEnabled);
+
+	/** Returns true if proxy mesh generation is enabled on the Houdini Asset. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool IsProxyMeshEnabled() const;
+
+
 	// Baking
 
 	/**

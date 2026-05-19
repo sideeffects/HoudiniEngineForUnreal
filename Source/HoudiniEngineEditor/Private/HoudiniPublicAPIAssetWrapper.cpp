@@ -926,6 +926,31 @@ UHoudiniPublicAPIAssetWrapper::IsCookOnAssetInputCookEnabled_Implementation() co
 	return HC->GetCookOnCookableInputCook();
 }
 
+// Enable or disable proxy mesh generation.
+bool UHoudiniPublicAPIAssetWrapper::SetProxyMeshEnabled_Implementation(const bool bInSetEnabled)
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if (HC->IsProxyStaticMeshEnabled() == bInSetEnabled)
+		return false;
+
+	HC->SetEnableProxyStaticMeshOverride(bInSetEnabled);
+	HC->Modify();
+
+	return true;
+}
+
+// Returns true if proxy mesh generation is enabled on the Houdini Asset.
+bool UHoudiniPublicAPIAssetWrapper::IsProxyMeshEnabled_Implementation() const
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	return HC->IsProxyStaticMeshEnabled();
+}
 
 bool
 UHoudiniPublicAPIAssetWrapper::SetFloatParameterValue_Implementation(FName InParameterTupleName, float InValue, int32 InAtIndex, bool bInMarkChanged)
