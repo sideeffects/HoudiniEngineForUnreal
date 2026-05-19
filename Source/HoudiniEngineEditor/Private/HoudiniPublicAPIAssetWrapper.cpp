@@ -405,6 +405,34 @@ UHoudiniPublicAPIAssetWrapper::GetBakeMethod_Implementation(EHoudiniEngineBakeOp
 }
 
 bool
+UHoudiniPublicAPIAssetWrapper::SetBakeActorGrouping_Implementation(const EHoudiniEngineActorBakeOption InActorBakeOption)
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if (HC->GetActorBakeOption() != InActorBakeOption)
+	{
+		HC->SetActorBakeOption(InActorBakeOption);
+		HC->Modify();
+	}
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::GetBakeActorGrouping_Implementation(EHoudiniEngineActorBakeOption& OutActorBakeOption)
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	OutActorBakeOption = HC->GetActorBakeOption();
+
+	return true;
+}
+
+bool
 UHoudiniPublicAPIAssetWrapper::SetRemoveOutputAfterBake_Implementation(const bool bInRemoveOutputAfterBake)
 {
 	UHoudiniCookable* HC = nullptr;
@@ -511,6 +539,157 @@ UHoudiniPublicAPIAssetWrapper::GetBakedOutputActors_Implementation()
 
 	return OutputActors;
 }
+
+// COP / IMAGE
+bool 
+UHoudiniPublicAPIAssetWrapper::GetOverrideDefaultResolution_Implementation(FIntPoint& OutResolutionOverride) const
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if(!HC->GetImageData())
+		return false;
+
+	OutResolutionOverride = HC->GetImageData()->ResolutionOverride;
+	
+	return HC->GetImageData()->bOverrideDefaultResolution;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::SetOverrideDefaultResolution_Implementation(const FIntPoint& InResolutionOverride)
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if (!HC->GetImageData())
+		return false;
+
+	HC->GetImageData()->ResolutionOverride = InResolutionOverride;
+	HC->GetImageData()->bOverrideDefaultResolution = true;
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::GetOverridePixelScale_Implementation(float& OutPixelScale) const
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if (!HC->GetImageData())
+		return false;
+
+	OutPixelScale = HC->GetImageData()->PixelScale;
+	return HC->GetImageData()->bOverridePixelScale;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::SetOverridePixelScale_Implementation(const float& InPixelScale)
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if (!HC->GetImageData())
+		return false;
+
+	HC->GetImageData()->PixelScale = InPixelScale;
+	HC->GetImageData()->bOverridePixelScale = true;
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::GetImageDataFormat_Implementation(EHoudiniEngineImageDataFormat& OutImageDataFormat) const
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if (!HC->GetImageData())
+		return false;
+
+	OutImageDataFormat = HC->GetImageData()->ImageDataFormat;
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::SetImageDataFormat_Implementation(const EHoudiniEngineImageDataFormat& InImageDataFormat)
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if (!HC->GetImageData())
+		return false;
+	
+	HC->GetImageData()->ImageDataFormat = InImageDataFormat;
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::GetGenerateMaterial_Implementation(bool& OutGenerateMaterial) const
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if (!HC->GetImageData())
+		return false;
+
+	OutGenerateMaterial = HC->GetImageData()->bGenerateMaterial;
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::SetGenerateMaterial_Implementation(const bool InGenerateMaterial)
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if (!HC->GetImageData())
+		return false;
+
+	HC->GetImageData()->bGenerateMaterial = InGenerateMaterial;
+
+	return true;
+}
+
+UMaterialInterface*
+UHoudiniPublicAPIAssetWrapper::GetMaterialToInstance_Implementation() const
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return nullptr;
+
+	if (!HC->GetImageData())
+		return nullptr;
+
+	return HC->GetImageData()->MaterialToInstance;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::SetMaterialToInstance_Implementation(UMaterialInterface* InMaterial)
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if (!HC->GetImageData())
+		return false;
+
+	HC->GetImageData()->MaterialToInstance = InMaterial;
+
+	return true;
+}
+
 
 bool
 UHoudiniPublicAPIAssetWrapper::GetValidHoudiniAssetActorWithError(AHoudiniAssetActor*& OutActor) const
@@ -961,6 +1140,31 @@ UHoudiniPublicAPIAssetWrapper::IsCookOnAssetInputCookEnabled_Implementation() co
 	return HC->GetCookOnCookableInputCook();
 }
 
+// Enable or disable proxy mesh generation.
+bool UHoudiniPublicAPIAssetWrapper::SetProxyMeshEnabled_Implementation(const bool bInSetEnabled)
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	if (HC->IsProxyStaticMeshEnabled() == bInSetEnabled)
+		return false;
+
+	HC->SetEnableProxyStaticMeshOverride(bInSetEnabled);
+	HC->Modify();
+
+	return true;
+}
+
+// Returns true if proxy mesh generation is enabled on the Houdini Asset.
+bool UHoudiniPublicAPIAssetWrapper::IsProxyMeshEnabled_Implementation() const
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	return HC->IsProxyStaticMeshEnabled();
+}
 
 bool
 UHoudiniPublicAPIAssetWrapper::SetFloatParameterValue_Implementation(FName InParameterTupleName, float InValue, int32 InAtIndex, bool bInMarkChanged)

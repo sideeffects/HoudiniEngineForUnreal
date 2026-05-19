@@ -1579,8 +1579,12 @@ FHoudiniEngineCommands::StopPerformanceMonitoring()
 	if (TraceStorePath.IsEmpty())
 	{
 		using UE::Trace::FStoreClient;
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+		TUniquePtr<FStoreClient> StoreClient = FStoreClient::Create(TEXT("localhost"));
+#else
 		FStoreClient* StoreClientPtr = FStoreClient::Connect(TEXT("localhost"));
 		TUniquePtr<FStoreClient> StoreClient = TUniquePtr<FStoreClient>(StoreClientPtr);
+#endif
 
 		if (StoreClient)
 		{

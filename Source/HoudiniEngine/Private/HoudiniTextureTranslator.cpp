@@ -667,7 +667,7 @@ bool
 FHoudiniTextureTranslator::ProcessCopOutput(
 	UHoudiniOutput* InOutput,
 	const FHoudiniPackageParams& InPackageParams,
-	int ImageDataFormat)
+	EHoudiniEngineImageDataFormat ImageDataFormat)
 {
 	if (!InOutput)
 		return false;
@@ -723,22 +723,21 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 		// Data format can be overriden via the details panels
 		switch (ImageDataFormat)
 		{
-			case 1:
+			case EHoudiniEngineImageDataFormat::Int8:
 			bIsHDR = false;
 			bIs16bit = false;
 			break;
 
-			case 2:
+			case EHoudiniEngineImageDataFormat::Float16:
 			bIsHDR = true;
 			bIs16bit = true;
 			break;
 
-			case 3:
+			case EHoudiniEngineImageDataFormat::Float32:
 			bIsHDR = true;
 			bIs16bit = false;
 			break;
 
-			case 0:
 			default:
 			// do nothing
 			break;

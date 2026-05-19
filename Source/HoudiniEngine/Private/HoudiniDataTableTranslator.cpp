@@ -789,7 +789,11 @@ FHoudiniDataTableTranslator::CreateRowStruct(const FHoudiniGeoPartObject& HGPO,
 			{
 				ObjectTools::DeleteSingleObject(Obj);
 			}
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+		}, EGetObjectsFlags::IncludeNestedObjects);
+#else
 		}, true);
+#endif
 
 	NewStruct = FStructureEditorUtils::CreateUserDefinedStruct(Package, FName(PackageName), RF_Standalone | RF_Public);
 	TFieldIterator<FProperty> It(NewStruct);

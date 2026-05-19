@@ -10537,7 +10537,11 @@ FHoudiniEngineBakeUtils::DeletePackage(UPackage* Package)
 
 	TArray<UObject*> ObjectsToDelete;
 	ObjectsToDelete.Add(Package);
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+	GetObjectsWithOuter(Package, ObjectsToDelete, EGetObjectsFlags::IncludeNestedObjects);
+#else
 	GetObjectsWithOuter(Package, ObjectsToDelete, true);
+#endif
 
 	ObjectTools::DeleteObjectsUnchecked(ObjectsToDelete);
 }

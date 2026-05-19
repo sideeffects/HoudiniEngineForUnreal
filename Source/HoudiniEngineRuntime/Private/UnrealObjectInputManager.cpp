@@ -54,9 +54,11 @@ FUnrealObjectInputManager* FUnrealObjectInputManager::Get()
 {
 	if (Singleton == nullptr)
 	{
-		// This should not happen!
-		HOUDINI_LOG_ERROR(TEXT("FUnrealObjectInputManager not initialized correctly!!!!!!!!!!!!!!!!!!!!"));
-		HOUDINI_LOG_ERROR(TEXT("Plugin will not function correctly !!!!!!!!!!!!!!!!!!!!"));
+#if WITH_EDITOR
+		// This should not happen for Editor builds!
+		HOUDINI_LOG_ERROR(TEXT("FUnrealObjectInputManager not initialized correctly!"));
+		HOUDINI_LOG_ERROR(TEXT("Plugin will not function correctly !"));
+#endif
 		SetSingleton(new FUnrealObjectInputManager());
 	}
 	return Singleton;

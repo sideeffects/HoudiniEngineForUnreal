@@ -719,7 +719,7 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 
 			case EHoudiniOutputType::Cop:
 			{
-				int ImageDataFormat = OuterHC ? OuterHC->GetImageData()->ImageDataFormat : 0;
+				EHoudiniEngineImageDataFormat ImageDataFormat = OuterHC ? OuterHC->GetImageData()->ImageDataFormat : EHoudiniEngineImageDataFormat::Int8;
 
 				FHoudiniTextureTranslator::ProcessCopOutput(CurOutput, PackageParams, ImageDataFormat);
 

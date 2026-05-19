@@ -1934,24 +1934,24 @@ FHoudiniEngineEditor::GetStringfromActorBakeOption(EHoudiniEngineActorBakeOption
 }
 
 FString
-FHoudiniEngineEditor::GetStringFromHoudiniImageDataFormat(int ImageDataFormat)
+FHoudiniEngineEditor::GetStringFromHoudiniImageDataFormat(EHoudiniEngineImageDataFormat ImageDataFormat)
 {
 	FString Str;
 	switch (ImageDataFormat)
 	{
-	case 0:
+	case EHoudiniEngineImageDataFormat::Auto:
 		Str = "Auto";
 		break;
 
-	case 1:
+	case EHoudiniEngineImageDataFormat::Int8:
 		Str = "Int8";
 		break;
 
-	case 2:
+	case EHoudiniEngineImageDataFormat::Float16:
 		Str = "Float16";
 		break;
 
-	case 3:
+	case EHoudiniEngineImageDataFormat::Float32:
 		Str = "Float32";
 		break;
 	}
@@ -1959,18 +1959,19 @@ FHoudiniEngineEditor::GetStringFromHoudiniImageDataFormat(int ImageDataFormat)
 	return Str;
 }
 
-int
+EHoudiniEngineImageDataFormat
 FHoudiniEngineEditor::StringToImageDataFormat(const FString& InString)
 {
 	if (InString == "Auto")
-		return  0;
+		return  EHoudiniEngineImageDataFormat::Auto;
 	if (InString == "Int8")
-		return  1;
+		return  EHoudiniEngineImageDataFormat::Int8;
 	if (InString == "Float16")
-		return  2;
+		return  EHoudiniEngineImageDataFormat::Float16;
 	if (InString == "Float32")
-		return  3;
-	return 0;
+		return  EHoudiniEngineImageDataFormat::Float32;
+
+	return EHoudiniEngineImageDataFormat::Auto;
 }
 
 

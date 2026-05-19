@@ -192,7 +192,7 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		static FString GetStringfromActorBakeOption(EHoudiniEngineActorBakeOption ActorBakeOption);
 
 		//
-		static FString GetStringFromHoudiniImageDataFormat(int ImageDataFormat);
+		static FString GetStringFromHoudiniImageDataFormat(EHoudiniEngineImageDataFormat ImageDataFormat);
 
 
 		// Return HoudiniEngineBakeOption from FString
@@ -208,7 +208,7 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		static EHoudiniEngineActorBakeOption StringToHoudiniEngineActorBakeOption(const FString& InString);
 
 		//
-		static int StringToImageDataFormat(const FString& InString);
+		static EHoudiniEngineImageDataFormat StringToImageDataFormat(const FString& InString);
 
 		// Convert EPDGBakePackageReplaceModeOption to EPackageReplaceMode
 		// TODO: perhaps EPackageReplaceMode can be moved to HoudiniEngineRuntime to avoid having both

@@ -499,6 +499,19 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
 	bool IsCookOnAssetInputCookEnabled() const;
 
+	/**
+	 * Enable or disable proxy mesh generation.
+	 * @param bInSetEnabled Whether or not to generate proxy mesh on cook.
+	 * @return true if the value was changed.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetProxyMeshEnabled(const bool bInSetEnabled);
+
+	/** Returns true if proxy mesh generation is enabled on the Houdini Asset. */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool IsProxyMeshEnabled() const;
+
+
 	// Baking
 
 	/**
@@ -559,6 +572,23 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
 	bool GetBakeMethod(EHoudiniEngineBakeOption& OutBakeMethod);
+
+
+	/**
+	 * Gets the currently set actor bake option (Bake Actor Grouping - OneActorPerComponent, OneActorPerHDA).
+	 * @param OutActorBakeOption The current bake method.
+	 * @return false if the asset/wrapper is invalid.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool GetBakeActorGrouping(EHoudiniEngineActorBakeOption& OutActorBakeOption);
+
+	/**
+	 * Sets the actor bake option to use (Bake Actor Grouping - OneActorPerComponent, OneActorPerHDA).
+	 * @param InActorBakeOption The new bake actor option to set.
+	 * @return false if the asset/wrapper is invalid.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetBakeActorGrouping(const EHoudiniEngineActorBakeOption InActorBakeOption);
 
 	/**
 	 * Set the bRemoveOutputAfterBake property, that controls if temporary outputs are removed after a successful bake.
@@ -1183,6 +1213,92 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
 	EHoudiniProxyRefineRequestResult RefineAllCurrentProxyOutputs(const bool bInSilent);
+
+
+	// COP / IMAGE
+
+	/**
+	 * Returns the default resolution override for COP HDAs
+	 * @param OutResolutionOverride the image resolution override if valid
+	 * @return true if the wrapped asset has valid image data and is overriding the default resolution
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool GetOverrideDefaultResolution(FIntPoint& OutResolutionOverride) const;
+
+	/**
+	 * Sets the default resolution override for COP HDAs
+	 * @param InResolutionOverride the image resolution to be set
+	 * @return true if the wrapped asset has valid image data
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetOverrideDefaultResolution(const FIntPoint& InResolutionOverride);
+
+	/**
+	 * Returns the pixel scale override for COP HDAs
+	 * @param OutPixelScale the pixels scale override if valid
+	 * @return true if the wrapped asset has valid image data and is overriding the default pixel scale
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool GetOverridePixelScale(float& OutPixelScale) const;
+
+	/**
+	 * Sets the pixel scale override for COP HDAs
+	 * @param InPixelScale the pixel scale to be set
+	 * @return true if the wrapped asset has valid image data
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetOverridePixelScale(const float& InPixelScale);
+
+	// TODO
+	/**
+	 * Returns the image data format for COP HDAs (0 INT8, 1 FLOAT16, 2 FLOAT32)
+	 * @param OutImageDataFormat the image data format if valid
+	 * @return true if the wrapped asset has valid image data
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool GetImageDataFormat(EHoudiniEngineImageDataFormat& OutImageDataFormat) const;
+
+	/**
+	 * Sets the image data format for COP HDAs
+	 * @param InImageDataFormat the image data format to be set
+	 * @return true if the wrapped asset has valid image data
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetImageDataFormat(const EHoudiniEngineImageDataFormat& InImageDataFormat);
+
+	/**
+	 * Returns rue if a COP HDAs is set to generate materials auitomatically
+	 * @param OutGenerateMaterial indicates if the HDAs is set to generate materials
+	 * @return true if the wrapped asset has valid image data and is set to generate materials
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool GetGenerateMaterial(bool& OutGenerateMaterial) const;
+
+	/**
+	 * Sets if a COP HDA should automatically generate material
+	 * @param InGenerateMaterial the value to be set
+	 * @return true if the wrapped asset has valid image data
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Houdini|Public API")
+	bool SetGenerateMaterial(const bool InGenerateMaterial);
+	
+	/**
+	 * Returns the default resolution override for COP HDAs
+	 * @param OutResolutionOverride the image resolution override if valid
+	 * @return true if the wrapped asset has image data and is overriding the default resolution
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Houdini|Public API")
+	UMaterialInterface* GetMaterialToInstance() const;
+	
+	/**
+	 * Sets the default resolution override for COP HDAs
+	 * @param InResolutionOverride the image resolution to be set
+	 * @return true if the wrapped asset has image data
+	 */
+	 
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool SetMaterialToInstance(UMaterialInterface* InMaterial);
+	
 
 	// PDG
 

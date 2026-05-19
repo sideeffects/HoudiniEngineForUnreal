@@ -228,7 +228,11 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 			FLinearColor Cyan(0.0f, 1.0f, 1.0f);
 			OutStatusColor = Cyan;
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+			TStringBuilder<256> StringBuilder;
+#else
 			FStringBuilderBase StringBuilder;
+#endif
 			StringBuilder.Append(TEXT("Cooking..."));
 
 			double DeltaTime = FPlatformTime::Seconds() - CookableStatus->StartTime;
@@ -250,7 +254,11 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 		FLinearColor Cyan(0.0f, 1.0f, 1.0f);
 		OutStatusColor = Cyan;
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+		TStringBuilder<256> StringBuilder;
+#else
 		FStringBuilderBase StringBuilder;
+#endif
 		StringBuilder.Append(TEXT("PDG Executing..."));
 
 		const UHoudiniPDGAssetLink* AssetLink = Cookable->GetPDGData()->PDGAssetLink;
@@ -274,7 +282,11 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 			FLinearColor Cyan(0.0f, 1.0f, 1.0f);
 			OutStatusColor = Cyan;
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+			TStringBuilder<256> StringBuilder;
+#else
 			FStringBuilderBase StringBuilder;
+#endif
 			StringBuilder.Append(TEXT("Baking..."));
 
 			double DeltaTime = FPlatformTime::Seconds() - CookableStatus->StartTime;
@@ -376,7 +388,11 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 
 FString FHoudiniEngineStatusManager::GetLogs(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs)
 {
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+	TStringBuilder<256> StringBuilder;
+#else
 	FStringBuilderBase StringBuilder;
+#endif
 
 	for (auto & Cookable : InHCs)
 	{

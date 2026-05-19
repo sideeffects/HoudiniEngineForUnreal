@@ -8595,7 +8595,7 @@ FString FHoudiniEngineUtils::RSTOrderToString(HAPI_RSTOrder RstOrder)
 FString FHoudiniEngineUtils::HapiTransformToString(HAPI_Transform Transform)
 {
 #if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
-	TStringBuilderBase<TCHAR> Output;
+	TStringBuilder<256> Output;
 #else
 	FStringBuilderBase Output;
 #endif
@@ -8621,7 +8621,7 @@ FString FHoudiniEngineUtils::DumpNode(HAPI_NodeId NodeId)
 		return FString::Printf(TEXT("Failed to get node info: %s\n"), *FHoudiniEngineUtils::GetErrorDescription());
 
 #if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
-	TStringBuilderBase<TCHAR> Output;
+	TStringBuilder<256> Output;
 #else
 	FStringBuilderBase Output;
 #endif
@@ -8661,7 +8661,7 @@ FString FHoudiniEngineUtils::DumpAttribute(HAPI_NodeId NodeId, HAPI_PartId PartI
 	}
 
 #if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
-	TStringBuilderBase<TCHAR> Output;
+	TStringBuilder<256> Output;
 #else
 	FStringBuilderBase Output;
 #endif
@@ -9516,11 +9516,11 @@ FHoudiniEngineUtils::UpdateImageDataOnCookable(UHoudiniCookable* InHC)
 	// 3 float32: overriden to 32bits
 	bool bOverridePrecision = false;
 	int PrecisionOverrideValue = 1;
-	if (InHC->ImageData->ImageDataFormat == 2
-		|| InHC->ImageData->ImageDataFormat == 3)
+	if (InHC->ImageData->ImageDataFormat == EHoudiniEngineImageDataFormat::Float16
+		|| InHC->ImageData->ImageDataFormat == EHoudiniEngineImageDataFormat::Float32)
 	{
 		bOverridePrecision = true;
-		PrecisionOverrideValue = InHC->ImageData->ImageDataFormat == 2 ? 0 : 1;
+		PrecisionOverrideValue = InHC->ImageData->ImageDataFormat == EHoudiniEngineImageDataFormat::Float16 ? 0 : 1;
 	}
 	else
 	{

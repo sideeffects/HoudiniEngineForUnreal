@@ -30,6 +30,7 @@
 #include "HAPI/HAPI_Common.h"
 #include "Engine/TextureDefines.h"
 #include "Engine/EngineTypes.h"
+#include "HoudiniEngineRuntimeCommon.h"
 
 class UPackage;
 class UTexture2D;
@@ -123,7 +124,7 @@ public:
 	static bool ProcessCopOutput(
 		UHoudiniOutput* InOutput,
 		const FHoudiniPackageParams& InPackageParams,
-		int ImageDataFormat);
+		EHoudiniEngineImageDataFormat ImageDataFormat);
 
 	static UMaterialInterface* CreateDefaultCopMaterialForTexture(
 		UTexture2D* InTexture,

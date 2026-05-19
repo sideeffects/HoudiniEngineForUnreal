@@ -46,7 +46,11 @@ void FHoudiniStatusManager::ErrorLog(const TCHAR* Format, ...)
 	{
 		va_list Args;
 		va_start(Args, Format);
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+		TStringBuilder<256> Builder;
+#else
 		FStringBuilderBase Builder;
+#endif
 		Builder.AppendV(Format, Args);
 		Instance->AddLog(Builder.ToString(), ELogVerbosity::Error);
 		va_end(Args);
@@ -59,7 +63,11 @@ void FHoudiniStatusManager::WarningLog(const TCHAR* Format, ...)
 	{
 		va_list Args;
 		va_start(Args, Format);
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+		TStringBuilder<256> Builder;
+#else
 		FStringBuilderBase Builder;
+#endif
 		Builder.AppendV(Format, Args);
 		Instance->AddLog(Builder.ToString(), ELogVerbosity::Warning);
 		va_end(Args);

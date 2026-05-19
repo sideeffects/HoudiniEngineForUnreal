@@ -2921,7 +2921,7 @@ FHoudiniCookableDetails::CreateImageDetails(
 					if(!NewChoice.IsValid())
 						return;
 
-					const int NewFormat =
+					const EHoudiniEngineImageDataFormat NewFormat =
 						FHoudiniEngineEditor::Get().StringToImageDataFormat(*NewChoice.Get());
 
 					for(auto& CurCookable : InCookables)

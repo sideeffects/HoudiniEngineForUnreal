@@ -1278,8 +1278,11 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 						if(!AssetLink->GetSelectedTOPNetwork())
 							return FText::FromString(FString("No active TOP Network."));
 
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+						TStringBuilder<256> Builder;
+#else
 						FStringBuilderBase Builder;
-
+#endif
 						Builder.Append(TEXT("Output Nodes: "));
 						int OutputCount = 0;
 						int CookedCount = 0;

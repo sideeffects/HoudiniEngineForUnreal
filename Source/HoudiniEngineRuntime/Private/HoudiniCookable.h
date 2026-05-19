@@ -446,7 +446,7 @@ public:
 
 	// 0 INT8, 1 FLOAT16, 2 FLOAT32
 	UPROPERTY()
-	int ImageDataFormat;
+	EHoudiniEngineImageDataFormat ImageDataFormat;
 
 	UPROPERTY()
 	bool bGenerateMaterial;

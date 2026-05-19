@@ -281,12 +281,12 @@ UCookableImageData::UCookableImageData(const FObjectInitializer& ObjectInitializ
 	, bIsCOPHDA(false)
 	, bOverrideDefaultResolution(false)
 	, bOverridePixelScale(false)
-	, ImageDataFormat(0)
 	, bGenerateMaterial(false)
 {
 	ResolutionOverride = FIntPoint(1024, 1024);
 	PixelScale = 1.0;
 	MaterialToInstance = nullptr;
+	ImageDataFormat = EHoudiniEngineImageDataFormat::Auto;
 }
 
 //
