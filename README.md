@@ -24,7 +24,7 @@ Source code for the plugin is available on this repository for UE5.
 
 In general, we support the latest two releases of UE5.X, but will try to make the source code compatible with previous versions of Unreal.
 
-> For Houdini 21.0 - there is now two versions of the plugins: one with PCG support and one without PCG. Supporting PCG means that the Houdini Engine plugin now needs to depend on the PCG plugin, which is still considered experimental by Epic. We provide both versions of the plugin with your Houdini install and on this repo's release page, but the source code available here is with PCG support enabled. If you want to use the source code available here but would like to disable the PCG dependancy, instructions are provided at the bottom of this page.
+> For Houdini 21.0 - there is now two versions of the plugins: one with PCG support and one without PCG. Supporting PCG means that the Houdini Engine plugin now needs to depend on the PCG plugin, which is still considered experimental by Epic. We provide both versions of the plugin with your Houdini install and on this repo's release page, but the source code available here is with PCG support enabled. If you want to use the source code available here but would like to disable the PCG dependency, instructions are provided at the bottom of this page.
 
 # Installing the plugin
 
@@ -78,4 +78,3 @@ You can learn how to export an Houdini Digital Assets (HDA), import it into Unre
 01. Delete all the `Intermediate` and `Binaries` folder in the HoudiniEngine's plugin directory (if they exist).
 01. Regenerate your project's file. On windows, this can be done by right-clicking on the uproject file, and selecting `Generate Viual Studio Project Files`
 01. Build your project / the plugin.
-
