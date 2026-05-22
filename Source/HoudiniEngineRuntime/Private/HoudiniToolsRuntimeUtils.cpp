@@ -292,6 +292,11 @@ FHoudiniToolsRuntimeUtils::ToolTypeToString(const EHoudiniToolType ToolType, FSt
 			OutString = TEXT("BATCH");
 			return true;
 		}
+		case EHoudiniToolType::HTOOLTYPE_HDA_EDITOR:
+		{
+			OutString = TEXT("HDAEDITOR");
+			return true;
+		}
 	default:
 		break;
 	}
@@ -721,6 +726,8 @@ FHoudiniToolsRuntimeUtils::WriteJSONFromHoudiniAsset(const UHoudiniAsset* Houdin
 		ToolTypeString = TEXT("OPERATOR_MULTI");
 	else if ( ToolType == EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH)
 		ToolTypeString = TEXT("BATCH");
+	else if (ToolType == EHoudiniToolType::HTOOLTYPE_HDA_EDITOR)
+		ToolTypeString = TEXT("HDAEDITOR");
 
 	JSONObject->SetStringField(TEXT("toolType"), ToolTypeString);
 

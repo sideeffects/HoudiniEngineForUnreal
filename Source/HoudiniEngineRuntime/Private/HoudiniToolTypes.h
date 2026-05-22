@@ -56,7 +56,10 @@ enum class EHoudiniToolType : uint8
 	HTOOLTYPE_OPERATOR_MULTI UMETA(DisplayName = "Operator (multiple)"),
 
 	// For tools that needs to be applied each time for each single selected
-	HTOOLTYPE_OPERATOR_BATCH UMETA(DisplayName = "Batch Operator")
+	HTOOLTYPE_OPERATOR_BATCH UMETA(DisplayName = "Batch Operator"),
+
+	// For tools that dont need to be instantiated in the world but needs to be opened in the Houdini Asset Editor
+	HTOOLTYPE_HDA_EDITOR UMETA(DisplayName = "Houdini Asset Editor")
 };
 
 UENUM()

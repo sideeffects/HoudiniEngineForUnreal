@@ -27,6 +27,7 @@
 #include "AssetTypeActions_HoudiniPreset.h"
 
 #include "HoudiniAsset.h"
+#include "HoudiniAssetEditor.h"
 #include "HoudiniEngineEditor.h"
 #include "HoudiniEngineEditorPrivatePCH.h"
 #include "HoudiniEngineEditorUtils.h"
@@ -285,5 +286,24 @@ FAssetTypeActions_HoudiniPreset::ExecuteInstantiate(TArray<TWeakObjectPtr<UHoudi
 	}
 }
 
+void
+FAssetTypeActions_HoudiniPreset::OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor)
+{
+	const EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
+
+	for (auto ObjIt = InObjects.CreateConstIterator(); ObjIt; ++ObjIt)
+	{
+		UHoudiniPreset* HoudiniPreset = Cast<UHoudiniPreset>(*ObjIt);
+		if (!HoudiniPreset)
+			continue;
+
+		UHoudiniAsset* HoudiniAsset = HoudiniPreset->SourceHoudiniAsset;
+		if (!HoudiniAsset || !HoudiniAsset->AssetImportData)
+			continue;
+
+		TSharedRef<FHoudiniAssetEditor> NewHDAEditor(new FHoudiniAssetEditor());
+		NewHDAEditor->InitHoudiniAssetEditor(Mode, EditWithinLevelEditor, HoudiniAsset, HoudiniPreset);
+	}
+}
 
 #undef LOCTEXT_NAMESPACE

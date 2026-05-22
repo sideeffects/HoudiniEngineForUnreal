@@ -119,7 +119,11 @@ public:
 
 	
 	// Init the editor
-	void InitHoudiniAssetEditor(const EToolkitMode::Type Mode, const TSharedPtr<class IToolkitHost>& InitToolkitHost, class UHoudiniAsset* InitHDA);
+	void InitHoudiniAssetEditor(
+		const EToolkitMode::Type Mode,
+		const TSharedPtr<class IToolkitHost>& InitToolkitHost, 
+		class UHoudiniAsset* InitHDA,
+		class UHoudiniPreset* InitPreset);
 
 	// On Editor Close
 	virtual void OnClose() override;

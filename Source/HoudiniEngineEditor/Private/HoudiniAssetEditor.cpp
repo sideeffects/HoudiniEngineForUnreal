@@ -37,6 +37,7 @@
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineStyle.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniToolsEditor.h"
 #include "SHoudiniAssetEditorViewport.h"
 #include "SHoudiniNodeSyncPanel.h"
 
@@ -317,7 +318,8 @@ void
 FHoudiniAssetEditor::InitHoudiniAssetEditor(
 	const EToolkitMode::Type Mode,
 	const TSharedPtr<class IToolkitHost>& InitToolkitHost,
-	class UHoudiniAsset* InitHDA)
+	class UHoudiniAsset* InitHDA,
+	class UHoudiniPreset* InitPreset)
 {
 	HoudiniAssetBeingEdited = InitHDA;
 
@@ -433,6 +435,18 @@ FHoudiniAssetEditor::InitHoudiniAssetEditor(
 
 			// Register the Cookable with the Manager
 			FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(HoudiniCookableBeingEdited);
+
+			if (IsValid(InitPreset))
+			{
+				// If we have a preset, we have to apply it during PreCook
+				HoudiniCookableBeingEdited->QueuePreCookCallback([InitPreset](UHoudiniCookable* HC)
+				{
+					if (IsValid(InitPreset))
+					{
+						FHoudiniToolsEditor::ApplyPresetToHoudiniCookable(InitPreset, HC);
+					}
+				});
+			}
 		}
 	}
 

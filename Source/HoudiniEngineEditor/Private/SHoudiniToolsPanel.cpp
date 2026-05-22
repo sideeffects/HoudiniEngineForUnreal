@@ -2749,6 +2749,9 @@ SHoudiniToolsPanel::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 		case EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH:
 			HoudiniToolTip += TEXT("Operator (Batch):\nDouble clicking on this tool will instantiate the asset in the world.\nAn instance of the asset will be created for each of the selected object, and the asset's first input will be set to that object.\n");
 			break;
+		case EHoudiniToolType::HTOOLTYPE_HDA_EDITOR:
+			HoudiniToolTip += TEXT("Houdini Asset Editor:\nDouble clicking on this tool will open it in the Houdini Asset Editor\nUse this for tools that do not need to be placed in the world.\n");
+			break;
 		case EHoudiniToolType::HTOOLTYPE_GENERATOR:
 		default:
 			HoudiniToolTip += TEXT("Generator:\nDouble clicking on this tool will instantiate the asset in the world.\n");
@@ -2756,7 +2759,8 @@ SHoudiniToolsPanel::MakeListViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 	}
 
 	// Add a description from the tools selection type
-	if ( HoudiniTool->Type != EHoudiniToolType::HTOOLTYPE_GENERATOR )
+	if ( HoudiniTool->Type != EHoudiniToolType::HTOOLTYPE_GENERATOR
+		&& HoudiniTool->Type != EHoudiniToolType::HTOOLTYPE_HDA_EDITOR)
 	{
 		switch ( HoudiniTool->SelectionType )
 		{
@@ -3012,6 +3016,9 @@ SHoudiniToolsPanel::MakeTileViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 		case EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH:
 			HoudiniToolTip += TEXT("Operator (Batch):\nDouble clicking on this tool will instantiate the asset in the world.\nAn instance of the asset will be created for each of the selected object, and the asset's first input will be set to that object.\n");
 			break;
+		case EHoudiniToolType::HTOOLTYPE_HDA_EDITOR:
+			HoudiniToolTip += TEXT("Houdini Asset Editor:\nDouble clicking on this tool will open it in the Houdini Asset Editor.\nUse this for tools that do not need to be placed in the world.\n");
+			break;
 		case EHoudiniToolType::HTOOLTYPE_GENERATOR:
 		default:
 			HoudiniToolTip += TEXT("Generator:\nDouble clicking on this tool will instantiate the asset in the world.\n");
@@ -3019,7 +3026,8 @@ SHoudiniToolsPanel::MakeTileViewWidget( TSharedPtr< FHoudiniTool > HoudiniTool, 
 	}
 
 	// Add a description from the tools selection type
-	if ( HoudiniTool->Type != EHoudiniToolType::HTOOLTYPE_GENERATOR )
+	if ( HoudiniTool->Type != EHoudiniToolType::HTOOLTYPE_GENERATOR 
+			&& HoudiniTool->Type != EHoudiniToolType::HTOOLTYPE_HDA_EDITOR)
 	{
 		switch ( HoudiniTool->SelectionType )
 		{

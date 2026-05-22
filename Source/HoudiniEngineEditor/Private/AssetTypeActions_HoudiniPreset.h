@@ -51,6 +51,8 @@ class FAssetTypeActions_HoudiniPreset : public FAssetTypeActions_Base
 		virtual bool HasActions(const TArray< UObject * > & InObjects) const override;
 		virtual void GetActions(const TArray< UObject * > & InObjects, class FMenuBuilder & MenuBuilder) override;
 
+		virtual void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>()) override;
+
 	protected:
 
 		// Handler to apply the preset to the selected HoudiniAsset actors

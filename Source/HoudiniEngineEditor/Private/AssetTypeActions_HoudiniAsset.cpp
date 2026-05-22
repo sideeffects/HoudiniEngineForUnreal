@@ -432,25 +432,6 @@ FAssetTypeActions_HoudiniAsset::ExecuteApplyAssetToSelection(TArray<TWeakObjectP
 		return;
 
 	FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(HoudiniAsset, InType, EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY);
-
-	/*
-	// Creating a temporary tool for the selected asset
-	TSoftObjectPtr<UHoudiniAsset> HoudiniAssetPtr(HoudiniAsset);
-	FHoudiniTool HoudiniTool(
-		HoudiniAssetPtr,
-		FText::FromString(HoudiniAsset->GetName()),
-		Type,
-		EHoudiniToolSelectionType::HTOOL_SELECTION_WORLD_ONLY,
-		FText(),
-		NULL,
-		FString(),
-		false,
-		FFilePath(),
-		FHoudiniToolDirectory(),
-		FString());
-
-	SHoudiniToolPalette::InstantiateHoudiniTool(&HoudiniTool);
-	*/
 }
 
 void
@@ -490,7 +471,7 @@ FAssetTypeActions_HoudiniAsset::OpenAssetEditor(const TArray<UObject*>& InObject
 		if (UHoudiniAsset* HDA = Cast<UHoudiniAsset>(*ObjIt))
 		{
 			TSharedRef<FHoudiniAssetEditor> NewHDAEditor(new FHoudiniAssetEditor());
-			NewHDAEditor->InitHoudiniAssetEditor(Mode, EditWithinLevelEditor, HDA);
+			NewHDAEditor->InitHoudiniAssetEditor(Mode, EditWithinLevelEditor, HDA, nullptr);
 		}
 	}
 }

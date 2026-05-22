@@ -487,6 +487,13 @@ FHoudiniEngineEditorUtils::InstantiateHoudiniAsset(
 				GEditor->SelectActor(CreatedActor, true, true, true);
 		}
 	}
+	else if (InType == EHoudiniToolType::HTOOLTYPE_HDA_EDITOR)
+	{
+		if (IsValid(InPreset))
+			GEditor->EditObject(InPreset);
+		else
+			GEditor->EditObject(AssetObj);
+	}
 	else
 	{
 		// We only need to create a single instance of the asset, regarding of the selection

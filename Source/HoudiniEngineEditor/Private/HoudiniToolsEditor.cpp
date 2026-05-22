@@ -1525,6 +1525,8 @@ FHoudiniToolsEditor::GetHoudiniToolDescriptionFromJSON(const FString& JsonFilePa
 			OutType = EHoudiniToolType::HTOOLTYPE_OPERATOR_MULTI;
 		else if (ToolType.Equals(TEXT("BATCH"), ESearchCase::IgnoreCase))
 			OutType = EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH;
+		else if (ToolType.Equals(TEXT("HDAEDITOR"), ESearchCase::IgnoreCase))
+			OutType = EHoudiniToolType::HTOOLTYPE_HDA_EDITOR;
 	}
 
 	// Read the tooltip
@@ -2318,6 +2320,8 @@ bool FHoudiniToolsEditor::WriteJSONFromHoudiniAsset(const UHoudiniAsset* Houdini
 		ToolTypeString = TEXT("OPERATOR_MULTI");
 	else if ( ToolType == EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH)
 		ToolTypeString = TEXT("BATCH");
+	else if (ToolType == EHoudiniToolType::HTOOLTYPE_HDA_EDITOR)
+		ToolTypeString = TEXT("HDAEDITOR");
 
 	JSONObject->SetStringField(TEXT("toolType"), ToolTypeString);
 
@@ -2448,6 +2452,11 @@ bool FHoudiniToolsEditor::ToolTypeToString(const EHoudiniToolType ToolType, FStr
 		case EHoudiniToolType::HTOOLTYPE_OPERATOR_BATCH:
 		{
 			OutString = TEXT("BATCH");
+			return true;
+		}
+		case EHoudiniToolType::HTOOLTYPE_HDA_EDITOR:
+		{
+			OutString = TEXT("HDAEDITOR");
 			return true;
 		}
 	default:
