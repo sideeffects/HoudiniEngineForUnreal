@@ -957,11 +957,14 @@ FHoudiniTextureTranslator::GetTextureTypeFromName(const FString& Name)
 	else if (Name.Contains("opacity") 
 		|| Name.Contains("alpha"))
 		Type = EHoudiniTextureType::Opacity;
-	else if (Name.Contains("occlusion"))
+	else if (Name.Contains("occlusion")
+		|| Name.Contains("ao"))
 		Type = EHoudiniTextureType::Occlusion;
 	else if (Name.Contains("displacement")
 		|| Name.Contains("height"))
 		Type = EHoudiniTextureType::Displacement;
+	else if (Name.Contains("metal"))
+		Type = EHoudiniTextureType::Metallic;
 
 	return Type;
 }
@@ -1021,21 +1024,53 @@ FHoudiniTextureTranslator::GetTextureParametersFromType(const EHoudiniTextureTyp
 	//TextureParams.TextureGroup = TEXTUREGROUP_MAX;
 
 	// Compression
-	TextureParams.CompressionSettings = TC_Default;
-	if (InType == EHoudiniTextureType::Opacity 
-		|| InType == EHoudiniTextureType::Specular
-		|| InType == EHoudiniTextureType::Roughness
-		|| InType == EHoudiniTextureType::Metallic)
-		TextureParams.CompressionSettings = TC_Grayscale;
-	else if (InType == EHoudiniTextureType::Normal)
-		TextureParams.CompressionSettings = TC_Normalmap;
+	switch (InType)
+	{
+		// NORMAL
+		case EHoudiniTextureType::Normal:
+			TextureParams.CompressionSettings = TC_Normalmap;
+			break;
+
+		// GREYSCALE
+		case EHoudiniTextureType::Metallic:
+		case EHoudiniTextureType::Specular:
+		case EHoudiniTextureType::Roughness:
+		case EHoudiniTextureType::Opacity:
+		case EHoudiniTextureType::Occlusion:
+		case EHoudiniTextureType::Displacement:
+			TextureParams.CompressionSettings = TC_Grayscale;
+			break;
+
+		// DEFAULT
+		case EHoudiniTextureType::Diffuse:
+		case EHoudiniTextureType::Emissive:
+		default:
+			TextureParams.CompressionSettings = TC_Default;
+			break;
+	}
 	
 	// SRGB
 	// Only for color channels: diffuse, emissive
-	TextureParams.bSRGB = false;
-	if (InType == EHoudiniTextureType::Diffuse
-		|| InType == EHoudiniTextureType::Emissive)
-		TextureParams.bSRGB = true;
+	switch (InType)
+	{
+		// SRGB OFF
+		case EHoudiniTextureType::Normal:
+		case EHoudiniTextureType::Metallic:
+		case EHoudiniTextureType::Specular:
+		case EHoudiniTextureType::Roughness:
+		case EHoudiniTextureType::Opacity:
+		case EHoudiniTextureType::Occlusion:
+		case EHoudiniTextureType::Displacement:
+			TextureParams.bSRGB = false;
+			break;
+
+		// SRGB ON
+		case EHoudiniTextureType::Diffuse:
+		case EHoudiniTextureType::Emissive:
+		default:
+			TextureParams.bSRGB = true;
+			break;
+	}
 
 	return TextureParams;
 }
