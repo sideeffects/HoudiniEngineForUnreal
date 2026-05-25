@@ -27,6 +27,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#include "UObject/SoftObjectPath.h"
 #include "Misc/Guid.h"
 
 #include "HAPI/HAPI_Common.h"
@@ -56,6 +58,228 @@ public:
 	// The GUID of the commandlet we are looking for
 	UPROPERTY()
 	FGuid CommandletGuid;
+};
+
+/**
+ * UDP-safe copy of FHoudiniPackageParams used by PDG import messages.
+ *
+ * FHoudiniPackageParams keeps a reflected OuterPackage UObject pointer. This wrapper mirrors the serializable
+ * fields explicitly and transports the outer package as an FSoftObjectPath so UdpMessaging does not deserialize
+ * a hard UObject pointer on its worker thread.
+ */
+USTRUCT()
+struct HOUDINIENGINE_API FHoudiniPDGImportPackageParams
+{
+public:
+	GENERATED_BODY();
+
+	FHoudiniPDGImportPackageParams();
+	FHoudiniPDGImportPackageParams(const FHoudiniPackageParams& InPackageParams);
+
+	void SetPackageParams(const FHoudiniPackageParams& InPackageParams);
+	void PopulatePackageParams(FHoudiniPackageParams& OutPackageParams) const;
+
+	UPROPERTY()
+	EPackageMode PackageMode;
+
+	UPROPERTY()
+	EPackageReplaceMode ReplaceMode;
+
+	UPROPERTY()
+	FString BakeFolder;
+
+	UPROPERTY()
+	FString TempCookFolder;
+
+	UPROPERTY()
+	FSoftObjectPath OuterPackagePath;
+
+	UPROPERTY()
+	FString ObjectName;
+
+	UPROPERTY()
+	FString HoudiniAssetName;
+
+	UPROPERTY()
+	FString HoudiniAssetActorName;
+
+	UPROPERTY()
+	int32 ObjectId;
+
+	UPROPERTY()
+	int32 GeoId;
+
+	UPROPERTY()
+	int32 PartId;
+
+	UPROPERTY()
+	FString SplitStr;
+
+	UPROPERTY()
+	FGuid ComponentGUID;
+
+	UPROPERTY()
+	FString PDGTOPNetworkName;
+
+	UPROPERTY()
+	FString PDGTOPNodeName;
+
+	UPROPERTY()
+	int32 PDGWorkItemIndex;
+
+	UPROPERTY()
+	int32 PDGWorkResultArrayIndex;
+
+	UPROPERTY()
+	FString NameOverride;
+
+	UPROPERTY()
+	FString FolderOverride;
+
+	UPROPERTY()
+	bool OverideEnabled;
+};
+
+/**
+ * UDP-safe copy of the static mesh generation settings used by PDG import messages.
+ *
+ * The original settings include hard UObject references and an FBodyInstance, which can make UE's CBOR
+ * deserializer call StaticFindObject() on the UdpMessaging worker thread. This wrapper mirrors the plain
+ * settings and carries object references as soft paths so they can be resolved later on the import path.
+ */
+USTRUCT()
+struct HOUDINIENGINE_API FHoudiniPDGImportStaticMeshGenerationProperties
+{
+public:
+	GENERATED_BODY();
+
+	FHoudiniPDGImportStaticMeshGenerationProperties();
+	FHoudiniPDGImportStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties);
+
+	void SetStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties);
+	void PopulateStaticMeshGenerationProperties(FHoudiniStaticMeshGenerationProperties& OutStaticMeshGenerationProperties) const;
+
+	UPROPERTY()
+	bool bGeneratedDoubleSidedGeometry;
+
+	UPROPERTY()
+	FSoftObjectPath GeneratedPhysMaterialPath;
+
+	UPROPERTY()
+	FName DefaultBodyInstanceCollisionProfileName;
+
+	UPROPERTY()
+	TEnumAsByte<enum ECollisionChannel> DefaultBodyInstanceObjectType;
+
+	UPROPERTY()
+	TEnumAsByte<ECollisionEnabled::Type> DefaultBodyInstanceCollisionEnabled;
+
+	UPROPERTY()
+	FCollisionResponseContainer DefaultBodyInstanceResponseToChannels;
+
+	UPROPERTY()
+	FSoftObjectPath DefaultBodyInstancePhysMaterialOverridePath;
+
+	UPROPERTY()
+	TEnumAsByte<enum ECollisionTraceFlag> GeneratedCollisionTraceFlag;
+
+	UPROPERTY()
+	int32 GeneratedLightMapResolution;
+
+	UPROPERTY()
+	FWalkableSlopeOverride GeneratedWalkableSlopeOverride;
+
+	UPROPERTY()
+	int32 GeneratedLightMapCoordinateIndex;
+
+	UPROPERTY()
+	bool bGeneratedUseMaximumStreamingTexelRatio;
+
+	UPROPERTY()
+	float GeneratedStreamingDistanceMultiplier;
+
+	UPROPERTY()
+	FSoftObjectPath GeneratedFoliageDefaultSettingsPath;
+
+	UPROPERTY()
+	TArray<FSoftObjectPath> GeneratedAssetUserDataPaths;
+};
+
+/**
+ * UDP-safe copy of FMeshBuildSettings used by PDG import messages.
+ *
+ * FMeshBuildSettings contains a reflected UStaticMesh reference for DistanceFieldReplacementMesh. This wrapper
+ * mirrors the remaining build settings and transports that mesh as an FSoftObjectPath to avoid deserializing a
+ * hard UObject pointer in the UDP worker.
+ */
+USTRUCT()
+struct HOUDINIENGINE_API FHoudiniPDGImportMeshBuildSettings
+{
+public:
+	GENERATED_BODY();
+
+	FHoudiniPDGImportMeshBuildSettings();
+	FHoudiniPDGImportMeshBuildSettings(const FMeshBuildSettings& InMeshBuildSettings);
+
+	void SetMeshBuildSettings(const FMeshBuildSettings& InMeshBuildSettings);
+	void PopulateMeshBuildSettings(FMeshBuildSettings& OutMeshBuildSettings) const;
+
+	UPROPERTY()
+	bool bUseMikkTSpace;
+
+	UPROPERTY()
+	bool bRecomputeNormals;
+
+	UPROPERTY()
+	bool bRecomputeTangents;
+
+	UPROPERTY()
+	bool bComputeWeightedNormals;
+
+	UPROPERTY()
+	bool bRemoveDegenerates;
+
+	UPROPERTY()
+	bool bBuildReversedIndexBuffer;
+
+	UPROPERTY()
+	bool bUseHighPrecisionTangentBasis;
+
+	UPROPERTY()
+	bool bUseFullPrecisionUVs;
+
+	UPROPERTY()
+	bool bUseBackwardsCompatibleF16TruncUVs;
+
+	UPROPERTY()
+	bool bGenerateLightmapUVs;
+
+	UPROPERTY()
+	bool bGenerateDistanceFieldAsIfTwoSided;
+
+	UPROPERTY()
+	bool bSupportFaceRemap;
+
+	UPROPERTY()
+	int32 MinLightmapResolution;
+
+	UPROPERTY()
+	int32 SrcLightmapIndex;
+
+	UPROPERTY()
+	int32 DstLightmapIndex;
+
+	UPROPERTY()
+	FVector BuildScale3D;
+
+	UPROPERTY()
+	float DistanceFieldResolutionScale;
+
+	UPROPERTY()
+	FSoftObjectPath DistanceFieldReplacementMeshPath;
+
+	UPROPERTY()
+	int32 MaxLumenMeshCards;
 };
 
 USTRUCT()
@@ -107,17 +331,17 @@ public:
 	// HAPI_PDG_WorkItemId WorkItemId;
 	int32 WorkItemId;
 
-	// Package params for the asset 
+	// Package params for the asset. Uses a wire-safe copy that excludes UObject references.
 	UPROPERTY()
-	FHoudiniPackageParams PackageParams;
+	FHoudiniPDGImportPackageParams PackageParams;
 
 	// Settings used during static mesh generation
 	UPROPERTY()
-	FHoudiniStaticMeshGenerationProperties StaticMeshGenerationProperties;
+	FHoudiniPDGImportStaticMeshGenerationProperties StaticMeshGenerationProperties;
 
 	// Static mesh build settings used during mesh builds
 	UPROPERTY()
-	FMeshBuildSettings MeshBuildSettings;
+	FHoudiniPDGImportMeshBuildSettings MeshBuildSettings;
 };
 
 
@@ -205,4 +429,3 @@ public:
 	TArray<FHoudiniPDGImportNodeOutput> Outputs;
 
 };
-
