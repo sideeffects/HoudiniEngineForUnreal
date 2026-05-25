@@ -984,21 +984,16 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 
 	UHoudiniCookable* Cookable = nullptr;
 
-	if(!GetTOPAssetLinkNetworkAndNode(EventInfo.nodeId, Cookable, TOPNetwork, TOPNode)
-		|| !IsValid(Cookable) || !IsValid(TOPNetwork) || !IsValid(TOPNode))
-	{
-		// Prevent PDG warning spam
-		if ((EventInfo.workItemId != -1) && (EventInfo.nodeId != -1))
-			HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
-
+	if (EventType == HAPI_PDG_EVENT_SCHEDULER_ADDED)
 		return;
-	}
 
-	UHoudiniPDGAssetLink* PDGAssetLink = Cookable->GetPDGAssetLink();
+	bool bFoundNetworkAndNode = GetTOPAssetLinkNetworkAndNode(EventInfo.nodeId, Cookable, TOPNetwork, TOPNode);
 
-	HOUDINI_PDG_MESSAGE(
-		TEXT("[ProcessPDGEvent]: TOPNode: %s, WorkItem ID: %d, Event Type: %s, Current State: %s, Last State %s"),
-		*(TOPNode->NodePath), EventInfo.workItemId, *EventName, *CurrentWorkItemStateName, *LastWorkItemStateName);
+	UHoudiniPDGAssetLink* PDGAssetLink = bFoundNetworkAndNode ? Cookable->GetPDGAssetLink() : nullptr;
+
+	FString TOPNodeName = bFoundNetworkAndNode ? *(TOPNode->NodePath) : TEXT("<no-node>");
+	HOUDINI_PDG_MESSAGE(TEXT("[ProcessPDGEvent]: TOPNode: %s, WorkItem ID: %d, Event Type: %s, Current State: %s, Last State %s"),
+		*TOPNodeName, EventInfo.workItemId, *EventName, *CurrentWorkItemStateName, *LastWorkItemStateName);
 	
 	FLinearColor MsgColor = FLinearColor::White;
 
@@ -1006,20 +1001,40 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 	switch (EventType)
 	{	
 		case HAPI_PDG_EVENT_NULL:
+			if (!bFoundNetworkAndNode)
+			{
+				HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
+				return;
+			}
 			SetTOPNodePDGState(PDGAssetLink, TOPNode, EPDGNodeState::None);
 			break;
 
 		case HAPI_PDG_EVENT_NODE_CLEAR:
+			if (!bFoundNetworkAndNode)
+			{
+				HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
+				return;
+			}
 			NotifyTOPNodePDGStateClear(PDGAssetLink, TOPNode);
 			break;
 
 		case HAPI_PDG_EVENT_WORKITEM_ADD:
+			if (!bFoundNetworkAndNode)
+			{
+				HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
+				return;
+			}
 			CreateOrRelinkWorkItem(TOPNode, InContextID, EventInfo.workItemId);
 			bUpdatePDGNodeState = true;
 			NotifyTOPNodeCreatedWorkItem(PDGAssetLink, TOPNode, EventInfo.workItemId);
 			break;
 
 		case HAPI_PDG_EVENT_WORKITEM_REMOVE:
+			if (!bFoundNetworkAndNode)
+			{
+				HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
+				return;
+			}
 			RemoveWorkItem(PDGAssetLink, EventInfo.workItemId, TOPNode);
 			bUpdatePDGNodeState = true;
 			NotifyTOPNodeRemovedWorkItem(PDGAssetLink, TOPNode, EventInfo.workItemId);
@@ -1034,6 +1049,11 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 			break;
 
 		case HAPI_PDG_EVENT_COOK_COMPLETE:
+			if (!bFoundNetworkAndNode)
+			{
+				HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
+				return;
+			}
 			SetTOPNodePDGState(PDGAssetLink, TOPNode, EPDGNodeState::Cook_Complete);
 			FHoudiniStatusManager::Get()->EndPDG(Cookable, true);
 			TOPNode->HandleOnPDGEventCookComplete();
@@ -1041,15 +1061,31 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 			break;
 
 		case HAPI_PDG_EVENT_DIRTY_START:
+			if (!bFoundNetworkAndNode)
+			{
+				HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
+				return;
+			}
 			SetTOPNodePDGState(PDGAssetLink, TOPNode, EPDGNodeState::Dirtying);
 			break;
 
 		case HAPI_PDG_EVENT_DIRTY_STOP:
+			if (!bFoundNetworkAndNode)
+			{
+				HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
+				return;
+			}
 			SetTOPNodePDGState(PDGAssetLink, TOPNode, EPDGNodeState::Dirtied);
 			break;
 
 		case HAPI_PDG_EVENT_WORKITEM_STATE_CHANGE:
 		{
+			if (!bFoundNetworkAndNode)
+			{
+				HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
+				return;
+			}
+
 			// Last states
 			bUpdatePDGNodeState = true;
 			if (LastWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_WAITING && CurrentWorkItemState != HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_WAITING)
@@ -1067,6 +1103,12 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 				// Handled previously cooked WI
 			}
 			else if (LastWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_FAIL && CurrentWorkItemState != HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_COOKED_FAIL)
+			{
+			}
+			else if (LastWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_UNDEFINED && CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_UNCOOKED)
+			{
+			}
+			else if (LastWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_UNCOOKED && CurrentWorkItemState == HAPI_PDG_WorkItemState::HAPI_PDG_WORKITEM_WAITING)
 			{
 			}
 			else
@@ -1128,6 +1170,12 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 		break;
 
 		case HAPI_PDG_EVENT_COOK_START:
+			if (!bFoundNetworkAndNode)
+			{
+				// This seems to be a valid event so ignore it.
+				//HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
+				return;
+			}
 			TOPNode->HandleOnPDGEventCookStart();
 			break;
 		// Unhandled events

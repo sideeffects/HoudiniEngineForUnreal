@@ -203,19 +203,35 @@ extern bool HOUDINIENGINERUNTIME_API IsHoudiniPCGLoggingEnabled();
 // ---------------------------------------------------------
 // PDG Debug Logging
 // ---------------------------------------------------------
-// Set HOUDINI_ENGINE_DEBUG_PDG=1 to enable PDG logging
+
+
+extern bool HOUDINIENGINERUNTIME_API IsHoudiniPDGLoggingEnabled();
+
+#define HOUDINI_ENGINE_DEBUG_PDG 1
 #if defined(HOUDINI_ENGINE_LOGGING) && defined(HOUDINI_ENGINE_DEBUG_PDG)
 	DECLARE_LOG_CATEGORY_EXTERN(LogHoudiniEnginePDG, Log, All);
 	#define HOUDINI_PDG_DEFINE_LOG_CATEGORY() \
 			DEFINE_LOG_CATEGORY(LogHoudiniEnginePDG);
 	#define HOUDINI_PDG_MESSAGE( HOUDINI_LOG_TEXT, ... ) \
-			HOUDINI_DEBUG_EXPAND_UE_LOG( PDG, Log, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ) 
+			if (IsHoudiniPDGLoggingEnabled())\
+			{\
+				HOUDINI_DEBUG_EXPAND_UE_LOG( PDG, Log, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ); \
+			}
 	#define HOUDINI_PDG_FATAL( HOUDINI_LOG_TEXT, ... ) \
-			HOUDINI_DEBUG_EXPAND_UE_LOG( PDG, Fatal, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ) 
+			if (IsHoudiniPDGLoggingEnabled())\
+			{\
+				HOUDINI_DEBUG_EXPAND_UE_LOG( PDG, Fatal, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ); \
+			}
 	#define HOUDINI_PDG_ERROR( HOUDINI_LOG_TEXT, ... ) \
-			HOUDINI_DEBUG_EXPAND_UE_LOG( PDG, Error, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ) 
+			if (IsHoudiniPDGLoggingEnabled())\
+			{\
+				HOUDINI_DEBUG_EXPAND_UE_LOG( PDG, Error, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ); \
+			}
 	#define HOUDINI_PDG_WARNING( HOUDINI_LOG_TEXT, ... ) \
-			HOUDINI_DEBUG_EXPAND_UE_LOG( PDG, Warning, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ) 
+			if (IsHoudiniPDGLoggingEnabled())\
+			{\
+				HOUDINI_DEBUG_EXPAND_UE_LOG( PDG, Warning, HOUDINI_LOG_TEXT, ##__VA_ARGS__ ); \
+			}
 #else 
 	#define HOUDINI_PDG_DEFINE_LOG_CATEGORY() 
 	#define HOUDINI_PDG_MESSAGE( HOUDINI_LOG_TEXT, ... ) 

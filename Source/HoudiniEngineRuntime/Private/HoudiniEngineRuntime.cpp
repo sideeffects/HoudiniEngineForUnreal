@@ -379,5 +379,19 @@ bool IsHoudiniPCGLoggingEnabled()
 	bool Enabled = CVarHoudiniPCGLogging.GetValueOnAnyThread() != 0;
 	return Enabled;
 }
+
+static TAutoConsoleVariable<int32> CVarHoudiniPDGLogging(
+	TEXT("Houdini.PDGLogging"),
+	0, // default value
+	TEXT("Enable (1) or disable (0) PDG Logging."),
+	ECVF_Default
+);
+
+bool IsHoudiniPDGLoggingEnabled()
+{
+	bool Enabled = CVarHoudiniPDGLogging.GetValueOnAnyThread() != 0;
+	return Enabled;
+}
+
 #undef LOCTEXT_NAMESPACE
 
