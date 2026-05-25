@@ -96,6 +96,8 @@
 #include "Kismet2/ComponentEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "LandscapeEdit.h"
+#include "LandscapeComponent.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeInfo.h"
 #include "LandscapeInfoMap.h"
 #include "LandscapeStreamingProxy.h"
@@ -9673,6 +9675,107 @@ FHoudiniEngineBakeUtils::CenterActorToBoundingBoxCenter(AActor* InActor)
 	const bool bOnlyCollidingComponents = false;
 	const bool bIncludeFromChildActors = true;
 
+#if WITH_EDITOR
+	if (ALandscapeProxy* LandscapeProxy = Cast<ALandscapeProxy>(InActor))
+	{
+		ULandscapeInfo* LandscapeInfo = LandscapeProxy->GetLandscapeInfo();
+		bool bIsMainLandscapeActor = IsValid(LandscapeInfo) && Cast<ALandscape>(LandscapeProxy);
+
+		FBox Box(ForceInit);
+		if (bIsMainLandscapeActor)
+		{
+			Box = LandscapeInfo->GetLoadedBounds();
+		}
+		else
+		{
+			for (const ULandscapeComponent* LandscapeComponent : LandscapeProxy->LandscapeComponents)
+			{
+				if (IsValid(LandscapeComponent) && LandscapeComponent->IsRegistered())
+					Box += LandscapeComponent->Bounds.GetBox();
+			}
+
+			for (const ULandscapeHeightfieldCollisionComponent* CollisionComponent : LandscapeProxy->CollisionComponents)
+			{
+				if (IsValid(CollisionComponent) && CollisionComponent->IsRegistered())
+					Box += CollisionComponent->Bounds.GetBox();
+			}
+		}
+		if (!Box.IsValid)
+			return;
+
+		FVector3d Origin;
+		FVector3d BoxExtent;
+		Box.GetCenterAndExtents(Origin, BoxExtent);
+
+		FTransform RootTransform = RootComponent->GetComponentTransform();
+		FVector3d RootLocation = RootComponent->GetComponentLocation();
+		FVector3d LocalDelta = RootTransform.InverseTransformVector(Origin - RootLocation);
+
+		// Landscape component X/Y relative locations must match their integer section bases.
+		// Snap the root movement to landscape grid coordinates and keep the exact Z movement.
+		const FIntPoint SectionBaseDelta(
+			FMath::RoundToInt32(LocalDelta.X),
+			FMath::RoundToInt32(LocalDelta.Y));
+		const bool bUpdateSectionBase = SectionBaseDelta.X != 0 || SectionBaseDelta.Y != 0;
+		if (bUpdateSectionBase && !IsValid(LandscapeInfo))
+			return;
+
+		const FVector3d SnappedLocalDelta(
+			static_cast<double>(SectionBaseDelta.X),
+			static_cast<double>(SectionBaseDelta.Y),
+			LocalDelta.Z);
+		const FVector3d TargetRootLocation = RootLocation + RootTransform.TransformVector(SnappedLocalDelta);
+		const FVector3d Delta = TargetRootLocation - RootLocation;
+
+		TMap<ULandscapeComponent*, FIntPoint> OriginalLandscapeSectionBases;
+		for (ULandscapeComponent* LandscapeComponent : LandscapeProxy->LandscapeComponents)
+		{
+			if (IsValid(LandscapeComponent))
+				OriginalLandscapeSectionBases.Add(LandscapeComponent, LandscapeComponent->GetSectionBase());
+		}
+
+		TMap<ULandscapeHeightfieldCollisionComponent*, FIntPoint> OriginalCollisionSectionBases;
+		for (ULandscapeHeightfieldCollisionComponent* CollisionComponent : LandscapeProxy->CollisionComponents)
+		{
+			if (IsValid(CollisionComponent))
+				OriginalCollisionSectionBases.Add(CollisionComponent, CollisionComponent->GetSectionBase());
+		}
+
+		RootComponent->SetWorldLocation(TargetRootLocation);
+
+		for (USceneComponent* SceneComponent : RootComponent->GetAttachChildren())
+		{
+			if (!IsValid(SceneComponent))
+				continue;
+
+			SceneComponent->SetWorldLocation(SceneComponent->GetComponentLocation() - Delta);
+		}
+
+		if (bUpdateSectionBase)
+		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+			LandscapeProxy->SetSectionBase(LandscapeProxy->GetSectionBase() + SectionBaseDelta);
+#else
+			LandscapeProxy->SetAbsoluteSectionBase(LandscapeProxy->LandscapeSectionOffset + SectionBaseDelta);
+#endif
+
+			for (const TPair<ULandscapeComponent*, FIntPoint>& Entry : OriginalLandscapeSectionBases)
+			{
+				if (IsValid(Entry.Key))
+					Entry.Key->SetSectionBase(Entry.Value);
+			}
+
+			for (const TPair<ULandscapeHeightfieldCollisionComponent*, FIntPoint>& Entry : OriginalCollisionSectionBases)
+			{
+				if (IsValid(Entry.Key))
+					Entry.Key->SetSectionBase(Entry.Value);
+			}
+		}
+
+		return;
+	}
+#endif
+
 	// InActor->GetActorBounds(bOnlyCollidingComponents, Origin, BoxExtent, bIncludeFromChildActors);
 	FBox Box(ForceInit);
 	InActor->ForEachComponent<UPrimitiveComponent>(bIncludeFromChildActors, [&](const UPrimitiveComponent* InPrimComp)
@@ -9684,12 +9787,14 @@ FHoudiniEngineBakeUtils::CenterActorToBoundingBoxCenter(AActor* InActor)
 			Box += InPrimComp->Bounds.GetBox();
 		}
 	});
+	if (!Box.IsValid)
+		return;
 
 	FVector3d Origin;
 	FVector3d BoxExtent;
 	Box.GetCenterAndExtents(Origin, BoxExtent);
 
-	const FVector3d Delta = Origin - RootComponent->GetComponentLocation();
+	FVector3d Delta = Origin - RootComponent->GetComponentLocation();
 	// Actor->SetActorLocation(Origin);
 	RootComponent->SetWorldLocation(Origin);
 
