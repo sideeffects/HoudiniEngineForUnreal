@@ -310,7 +310,13 @@ UHoudiniGeoImportCommandlet::HandleImportBGEOMessage(
 	TMap<FHoudiniOutputObjectIdentifier, TArray<FHoudiniGenericAttribute>> OutputObjectAttributes;
 	TMap<FHoudiniOutputObjectIdentifier, FHoudiniInstancerPartData> InstancedOutputPartData;
 
-	TTuple<bool,FString> Result = ImportBGEO(InMessage.FilePath, PackageParams, Outputs, &InMessage.StaticMeshGenerationProperties, &InMessage.MeshBuildSettings, &OutputObjectAttributes, &InstancedOutputPartData);
+	FHoudiniStaticMeshGenerationProperties StaticMeshGenerationProperties;
+	InMessage.StaticMeshGenerationProperties.PopulateStaticMeshGenerationProperties(StaticMeshGenerationProperties);
+
+	FMeshBuildSettings MeshBuildSettings;
+	InMessage.MeshBuildSettings.PopulateMeshBuildSettings(MeshBuildSettings);
+
+	TTuple<bool,FString> Result = ImportBGEO(InMessage.FilePath, PackageParams, Outputs, &StaticMeshGenerationProperties, &MeshBuildSettings, &OutputObjectAttributes, &InstancedOutputPartData);
 	if (Result.Key == true)
 	{
 		FHoudiniPDGImportBGEOResultMessage* Reply = new FHoudiniPDGImportBGEOResultMessage();

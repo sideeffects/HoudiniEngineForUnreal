@@ -26,16 +26,218 @@
 
 #include "HoudiniPDGImporterMessages.h"
 #include "HoudiniEngineRuntimeUtils.h"
+#include "HoudiniRuntimeSettings.h"
+
+#include "Engine/AssetUserData.h"
+#include "Engine/StaticMesh.h"
+#include "FoliageType_InstancedStaticMesh.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+
+namespace
+{
+template <typename ObjectType>
+ObjectType* ResolveSoftObjectPath(const FSoftObjectPath& InPath)
+{
+	if (!InPath.IsValid())
+		return nullptr;
+
+	UObject* Object = InPath.ResolveObject();
+	if (!Object)
+		Object = InPath.TryLoad();
+
+	return Cast<ObjectType>(Object);
+}
+
+FSoftObjectPath MakeSoftObjectPath(UObject* InObject)
+{
+	return InObject ? FSoftObjectPath(InObject) : FSoftObjectPath();
+}
+}
 
 
+FHoudiniPDGImportPackageParams::FHoudiniPDGImportPackageParams()
+{
+	SetPackageParams(FHoudiniPackageParams());
+}
+
+FHoudiniPDGImportPackageParams::FHoudiniPDGImportPackageParams(const FHoudiniPackageParams& InPackageParams)
+{
+	SetPackageParams(InPackageParams);
+}
+
+void FHoudiniPDGImportPackageParams::SetPackageParams(const FHoudiniPackageParams& InPackageParams)
+{
+	PackageMode = InPackageParams.PackageMode;
+	ReplaceMode = InPackageParams.ReplaceMode;
+	BakeFolder = InPackageParams.BakeFolder;
+	TempCookFolder = InPackageParams.TempCookFolder;
+	OuterPackagePath = MakeSoftObjectPath(InPackageParams.OuterPackage.Get());
+	ObjectName = InPackageParams.ObjectName;
+	HoudiniAssetName = InPackageParams.HoudiniAssetName;
+	HoudiniAssetActorName = InPackageParams.HoudiniAssetActorName;
+	ObjectId = InPackageParams.ObjectId;
+	GeoId = InPackageParams.GeoId;
+	PartId = InPackageParams.PartId;
+	SplitStr = InPackageParams.SplitStr;
+	ComponentGUID = InPackageParams.ComponentGUID;
+	PDGTOPNetworkName = InPackageParams.PDGTOPNetworkName;
+	PDGTOPNodeName = InPackageParams.PDGTOPNodeName;
+	PDGWorkItemIndex = InPackageParams.PDGWorkItemIndex;
+	PDGWorkResultArrayIndex = InPackageParams.PDGWorkResultArrayIndex;
+	NameOverride = InPackageParams.NameOverride;
+	FolderOverride = InPackageParams.FolderOverride;
+	OverideEnabled = InPackageParams.OverideEnabled;
+}
+
+void FHoudiniPDGImportPackageParams::PopulatePackageParams(FHoudiniPackageParams& OutPackageParams) const
+{
+	UObject* KeepOuter = OutPackageParams.OuterPackage;
+	OutPackageParams.PackageMode = PackageMode;
+	OutPackageParams.ReplaceMode = ReplaceMode;
+	OutPackageParams.BakeFolder = BakeFolder;
+	OutPackageParams.TempCookFolder = TempCookFolder;
+	OutPackageParams.OuterPackage = KeepOuter ? KeepOuter : ResolveSoftObjectPath<UObject>(OuterPackagePath);
+	OutPackageParams.ObjectName = ObjectName;
+	OutPackageParams.HoudiniAssetName = HoudiniAssetName;
+	OutPackageParams.HoudiniAssetActorName = HoudiniAssetActorName;
+	OutPackageParams.ObjectId = ObjectId;
+	OutPackageParams.GeoId = GeoId;
+	OutPackageParams.PartId = PartId;
+	OutPackageParams.SplitStr = SplitStr;
+	OutPackageParams.ComponentGUID = ComponentGUID;
+	OutPackageParams.PDGTOPNetworkName = PDGTOPNetworkName;
+	OutPackageParams.PDGTOPNodeName = PDGTOPNodeName;
+	OutPackageParams.PDGWorkItemIndex = PDGWorkItemIndex;
+	OutPackageParams.PDGWorkResultArrayIndex = PDGWorkResultArrayIndex;
+	OutPackageParams.NameOverride = NameOverride;
+	OutPackageParams.FolderOverride = FolderOverride;
+	OutPackageParams.OverideEnabled = OverideEnabled;
+}
+
+FHoudiniPDGImportStaticMeshGenerationProperties::FHoudiniPDGImportStaticMeshGenerationProperties()
+{
+	SetStaticMeshGenerationProperties(FHoudiniStaticMeshGenerationProperties());
+}
+
+FHoudiniPDGImportStaticMeshGenerationProperties::FHoudiniPDGImportStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties)
+{
+	SetStaticMeshGenerationProperties(InStaticMeshGenerationProperties);
+}
+
+void FHoudiniPDGImportStaticMeshGenerationProperties::SetStaticMeshGenerationProperties(const FHoudiniStaticMeshGenerationProperties& InStaticMeshGenerationProperties)
+{
+	bGeneratedDoubleSidedGeometry = InStaticMeshGenerationProperties.bGeneratedDoubleSidedGeometry;
+	GeneratedPhysMaterialPath = MakeSoftObjectPath(InStaticMeshGenerationProperties.GeneratedPhysMaterial.Get());
+	DefaultBodyInstanceCollisionProfileName = InStaticMeshGenerationProperties.DefaultBodyInstance.GetCollisionProfileName();
+	DefaultBodyInstanceObjectType = InStaticMeshGenerationProperties.DefaultBodyInstance.GetObjectType();
+	DefaultBodyInstanceCollisionEnabled = InStaticMeshGenerationProperties.DefaultBodyInstance.GetCollisionEnabled(false);
+	DefaultBodyInstanceResponseToChannels = InStaticMeshGenerationProperties.DefaultBodyInstance.GetResponseToChannels();
+	DefaultBodyInstancePhysMaterialOverridePath = MakeSoftObjectPath(InStaticMeshGenerationProperties.DefaultBodyInstance.GetPhysMaterialOverride());
+	GeneratedCollisionTraceFlag = InStaticMeshGenerationProperties.GeneratedCollisionTraceFlag;
+	GeneratedLightMapResolution = InStaticMeshGenerationProperties.GeneratedLightMapResolution;
+	GeneratedWalkableSlopeOverride = InStaticMeshGenerationProperties.GeneratedWalkableSlopeOverride;
+	GeneratedLightMapCoordinateIndex = InStaticMeshGenerationProperties.GeneratedLightMapCoordinateIndex;
+	bGeneratedUseMaximumStreamingTexelRatio = InStaticMeshGenerationProperties.bGeneratedUseMaximumStreamingTexelRatio;
+	GeneratedStreamingDistanceMultiplier = InStaticMeshGenerationProperties.GeneratedStreamingDistanceMultiplier;
+	GeneratedFoliageDefaultSettingsPath = MakeSoftObjectPath(InStaticMeshGenerationProperties.GeneratedFoliageDefaultSettings.Get());
+
+	GeneratedAssetUserDataPaths.Reset(InStaticMeshGenerationProperties.GeneratedAssetUserData.Num());
+	for (UAssetUserData* AssetUserData : InStaticMeshGenerationProperties.GeneratedAssetUserData)
+	{
+		GeneratedAssetUserDataPaths.Add(MakeSoftObjectPath(AssetUserData));
+	}
+}
+
+void FHoudiniPDGImportStaticMeshGenerationProperties::PopulateStaticMeshGenerationProperties(FHoudiniStaticMeshGenerationProperties& OutStaticMeshGenerationProperties) const
+{
+	OutStaticMeshGenerationProperties.bGeneratedDoubleSidedGeometry = bGeneratedDoubleSidedGeometry;
+	OutStaticMeshGenerationProperties.GeneratedPhysMaterial = ResolveSoftObjectPath<UPhysicalMaterial>(GeneratedPhysMaterialPath);
+	OutStaticMeshGenerationProperties.DefaultBodyInstance.SetCollisionProfileName(DefaultBodyInstanceCollisionProfileName);
+	OutStaticMeshGenerationProperties.DefaultBodyInstance.SetObjectType(DefaultBodyInstanceObjectType.GetValue());
+	OutStaticMeshGenerationProperties.DefaultBodyInstance.SetCollisionEnabled(DefaultBodyInstanceCollisionEnabled.GetValue(), false);
+	OutStaticMeshGenerationProperties.DefaultBodyInstance.SetResponseToChannels(DefaultBodyInstanceResponseToChannels);
+	OutStaticMeshGenerationProperties.DefaultBodyInstance.SetPhysMaterialOverride(ResolveSoftObjectPath<UPhysicalMaterial>(DefaultBodyInstancePhysMaterialOverridePath));
+	OutStaticMeshGenerationProperties.GeneratedCollisionTraceFlag = GeneratedCollisionTraceFlag;
+	OutStaticMeshGenerationProperties.GeneratedLightMapResolution = GeneratedLightMapResolution;
+	OutStaticMeshGenerationProperties.GeneratedWalkableSlopeOverride = GeneratedWalkableSlopeOverride;
+	OutStaticMeshGenerationProperties.GeneratedLightMapCoordinateIndex = GeneratedLightMapCoordinateIndex;
+	OutStaticMeshGenerationProperties.bGeneratedUseMaximumStreamingTexelRatio = bGeneratedUseMaximumStreamingTexelRatio;
+	OutStaticMeshGenerationProperties.GeneratedStreamingDistanceMultiplier = GeneratedStreamingDistanceMultiplier;
+	OutStaticMeshGenerationProperties.GeneratedFoliageDefaultSettings = ResolveSoftObjectPath<UFoliageType_InstancedStaticMesh>(GeneratedFoliageDefaultSettingsPath);
+
+	OutStaticMeshGenerationProperties.GeneratedAssetUserData.Reset(GeneratedAssetUserDataPaths.Num());
+	for (const FSoftObjectPath& AssetUserDataPath : GeneratedAssetUserDataPaths)
+	{
+		if (UAssetUserData* AssetUserData = ResolveSoftObjectPath<UAssetUserData>(AssetUserDataPath))
+		{
+			OutStaticMeshGenerationProperties.GeneratedAssetUserData.Add(AssetUserData);
+		}
+	}
+}
+
+FHoudiniPDGImportMeshBuildSettings::FHoudiniPDGImportMeshBuildSettings()
+{
+	SetMeshBuildSettings(FMeshBuildSettings());
+}
+
+FHoudiniPDGImportMeshBuildSettings::FHoudiniPDGImportMeshBuildSettings(const FMeshBuildSettings& InMeshBuildSettings)
+{
+	SetMeshBuildSettings(InMeshBuildSettings);
+}
+
+void FHoudiniPDGImportMeshBuildSettings::SetMeshBuildSettings(const FMeshBuildSettings& InMeshBuildSettings)
+{
+	bUseMikkTSpace = InMeshBuildSettings.bUseMikkTSpace;
+	bRecomputeNormals = InMeshBuildSettings.bRecomputeNormals;
+	bRecomputeTangents = InMeshBuildSettings.bRecomputeTangents;
+	bComputeWeightedNormals = InMeshBuildSettings.bComputeWeightedNormals;
+	bRemoveDegenerates = InMeshBuildSettings.bRemoveDegenerates;
+	bBuildReversedIndexBuffer = InMeshBuildSettings.bBuildReversedIndexBuffer;
+	bUseHighPrecisionTangentBasis = InMeshBuildSettings.bUseHighPrecisionTangentBasis;
+	bUseFullPrecisionUVs = InMeshBuildSettings.bUseFullPrecisionUVs;
+	bUseBackwardsCompatibleF16TruncUVs = InMeshBuildSettings.bUseBackwardsCompatibleF16TruncUVs;
+	bGenerateLightmapUVs = InMeshBuildSettings.bGenerateLightmapUVs;
+	bGenerateDistanceFieldAsIfTwoSided = InMeshBuildSettings.bGenerateDistanceFieldAsIfTwoSided;
+	bSupportFaceRemap = InMeshBuildSettings.bSupportFaceRemap;
+	MinLightmapResolution = InMeshBuildSettings.MinLightmapResolution;
+	SrcLightmapIndex = InMeshBuildSettings.SrcLightmapIndex;
+	DstLightmapIndex = InMeshBuildSettings.DstLightmapIndex;
+	BuildScale3D = InMeshBuildSettings.BuildScale3D;
+	DistanceFieldResolutionScale = InMeshBuildSettings.DistanceFieldResolutionScale;
+	DistanceFieldReplacementMeshPath = MakeSoftObjectPath(InMeshBuildSettings.DistanceFieldReplacementMesh.Get());
+	MaxLumenMeshCards = InMeshBuildSettings.MaxLumenMeshCards;
+}
+
+void FHoudiniPDGImportMeshBuildSettings::PopulateMeshBuildSettings(FMeshBuildSettings& OutMeshBuildSettings) const
+{
+	OutMeshBuildSettings.bUseMikkTSpace = bUseMikkTSpace;
+	OutMeshBuildSettings.bRecomputeNormals = bRecomputeNormals;
+	OutMeshBuildSettings.bRecomputeTangents = bRecomputeTangents;
+	OutMeshBuildSettings.bComputeWeightedNormals = bComputeWeightedNormals;
+	OutMeshBuildSettings.bRemoveDegenerates = bRemoveDegenerates;
+	OutMeshBuildSettings.bBuildReversedIndexBuffer = bBuildReversedIndexBuffer;
+	OutMeshBuildSettings.bUseHighPrecisionTangentBasis = bUseHighPrecisionTangentBasis;
+	OutMeshBuildSettings.bUseFullPrecisionUVs = bUseFullPrecisionUVs;
+	OutMeshBuildSettings.bUseBackwardsCompatibleF16TruncUVs = bUseBackwardsCompatibleF16TruncUVs;
+	OutMeshBuildSettings.bGenerateLightmapUVs = bGenerateLightmapUVs;
+	OutMeshBuildSettings.bGenerateDistanceFieldAsIfTwoSided = bGenerateDistanceFieldAsIfTwoSided;
+	OutMeshBuildSettings.bSupportFaceRemap = bSupportFaceRemap;
+	OutMeshBuildSettings.MinLightmapResolution = MinLightmapResolution;
+	OutMeshBuildSettings.SrcLightmapIndex = SrcLightmapIndex;
+	OutMeshBuildSettings.DstLightmapIndex = DstLightmapIndex;
+	OutMeshBuildSettings.BuildScale3D = BuildScale3D;
+	OutMeshBuildSettings.DistanceFieldResolutionScale = DistanceFieldResolutionScale;
+	OutMeshBuildSettings.DistanceFieldReplacementMesh = ResolveSoftObjectPath<UStaticMesh>(DistanceFieldReplacementMeshPath);
+	OutMeshBuildSettings.MaxLumenMeshCards = MaxLumenMeshCards;
+}
 FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage()
 	: FilePath()
 	, Name()
 	, TOPNodeId(-1)
 	, WorkItemId(-1)
 {
-	StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
-	MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+	StaticMeshGenerationProperties.SetStaticMeshGenerationProperties(FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties());
+	MeshBuildSettings.SetMeshBuildSettings(FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings());
 }
 
 FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
@@ -49,8 +251,8 @@ FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
 	, WorkItemId(-1)
 {
 	SetPackageParams(InPackageParams);
-	StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
-	MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+	StaticMeshGenerationProperties.SetStaticMeshGenerationProperties(FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties());
+	MeshBuildSettings.SetMeshBuildSettings(FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings());
 }
 
 FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
@@ -66,8 +268,8 @@ FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
 	, WorkItemId(InWorkItemId)
 {
 	SetPackageParams(InPackageParams);
-	StaticMeshGenerationProperties = FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties();
-	MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
+	StaticMeshGenerationProperties.SetStaticMeshGenerationProperties(FHoudiniEngineRuntimeUtils::GetDefaultStaticMeshGenerationProperties());
+	MeshBuildSettings.SetMeshBuildSettings(FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings());
 }
 
 FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
@@ -91,15 +293,12 @@ FHoudiniPDGImportBGEOMessage::FHoudiniPDGImportBGEOMessage(
 
 void FHoudiniPDGImportBGEOMessage::SetPackageParams(const FHoudiniPackageParams& InPackageParams)
 {
-	PackageParams = InPackageParams;
-	PackageParams.OuterPackage = nullptr;
+	PackageParams.SetPackageParams(InPackageParams);
 }
 
 void FHoudiniPDGImportBGEOMessage::PopulatePackageParams(FHoudiniPackageParams& OutPackageParams) const
 {
-	UObject* KeepOuter = OutPackageParams.OuterPackage;
-	OutPackageParams = PackageParams;
-	OutPackageParams.OuterPackage = KeepOuter;
+	PackageParams.PopulatePackageParams(OutPackageParams);
 }
 
 FHoudiniPDGImportBGEOResultMessage::FHoudiniPDGImportBGEOResultMessage()
@@ -130,4 +329,3 @@ FHoudiniPDGImportBGEODiscoverMessage::FHoudiniPDGImportBGEODiscoverMessage(const
 {
 	
 }
-
