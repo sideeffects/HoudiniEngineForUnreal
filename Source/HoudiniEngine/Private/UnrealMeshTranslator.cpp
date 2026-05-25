@@ -5297,15 +5297,14 @@ HAPI_NodeId FUnrealMeshExportData::GetOrCreateConstructionGeoNode(
 	FUnrealObjectInputIdentifier Identifier = MakeNodeIdentifier(Label, NodeType);
 	RegisteredIdentifiers.Add(Label, Identifier);
 
-	// Is there a HAPI node for this label which isn't registered? Is so, fetch the Handle and register it.
+	// Is there a clean HAPI node for this label which isn't registered? If so, fetch the handle and register it.
 	if (ExistingUnassignedHAPINodes.Contains(Label))
 	{
 		HAPI_NodeId GeoNodeId = ExistingUnassignedHAPINodes[Label];
 		ExistingUnassignedHAPINodes.Remove(Label);
 
 		FUnrealObjectInputHandle Handle;
-		bool bSuccess = FUnrealObjectInputUtils::FindNodeViaManager(Identifier, Handle);
-		if(bSuccess)
+		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			RegisteredHandles.Add(Label, Handle);
 			RegisteredGeoNodes.Add(Label, GeoNodeId);
@@ -5313,13 +5312,12 @@ HAPI_NodeId FUnrealMeshExportData::GetOrCreateConstructionGeoNode(
 		}
 		else
 		{
-			// This means we found a node that the reference input system knows nothing about. We need to overwrite it,
-			// so delete it.
+			// This node is either unmanaged/invalid or explicitly dirty. Delete it so it is rebuilt below.
 			FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), GeoNodeId);
 		}
 	}
 
-	// IF we get her, we'll create a new node.
+	// If we get here, we'll create a new node.
 
 	bCreated = true;
 	HAPI_NodeId GeoNodeId = INDEX_NONE;
