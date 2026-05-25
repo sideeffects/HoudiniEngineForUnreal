@@ -2118,8 +2118,8 @@ bool FHoudiniPDGManager::CreateBGEOCommandletAndEndpoint()
 		if (ProjectPathOrName.IsEmpty())
 			return false;
 
-		// Get the executable path for the app/editor
-		FString ExePath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
+		// Use the running editor executable, which may be a project editor binary outside Engine/Binaries.
+		FString ExePath = FPlatformProcess::ExecutablePath();
 		if (!ExePath.IsEmpty())
 			ExePath = FileManager.ConvertToAbsolutePathForExternalAppForRead(*ExePath);
 
