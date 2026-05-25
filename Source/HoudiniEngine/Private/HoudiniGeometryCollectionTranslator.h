@@ -104,6 +104,11 @@ struct HOUDINIENGINE_API FHoudiniGeometryCollectionTranslator
 		static bool GetGeometryCollectionData(const TArray<UHoudiniOutput*>& InAllOutputs, const FHoudiniPackageParams& InPackageParams, TMap<FString, FHoudiniGeometryCollectionData>& OutGeometryCollectionData);
 	
 		static void ApplyGeometryCollectionAttributes(UGeometryCollection* GeometryCollection, FHoudiniGeometryCollectionPiece FirstPiece);
+		static void ApplyGenericPropertiesAttributes(
+			const FHoudiniGeometryCollectionData& GeometryCollectionData,
+			const FHoudiniGeometryCollectionPiece& FirstPiece,
+			UGeometryCollection* GeometryCollection,
+			UGeometryCollectionComponent* GeometryCollectionComponent);
 
 		// Copied from GeometryCollectionConversion.h
 		// As we cannot access the UE function without depending on the GC plugin.

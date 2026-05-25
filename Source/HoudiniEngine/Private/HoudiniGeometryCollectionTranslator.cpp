@@ -235,6 +235,7 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 	
 		// Apply all geometry collection attributes that are static across all pieces.
 		ApplyGeometryCollectionAttributes(GeometryCollection, FirstPiece);
+		ApplyGenericPropertiesAttributes(GCData, FirstPiece, GeometryCollection, GeometryCollectionComponent);
 	
 		// Set output object
 		OutputObject.OutputObject = GeometryCollection;
@@ -324,6 +325,52 @@ FHoudiniGeometryCollectionTranslator::CreateGeometryCollectionComponent(UObject 
 	GeometryCollectionComponent->RegisterComponent();
 	
 	return GeometryCollectionComponent;
+}
+
+void
+FHoudiniGeometryCollectionTranslator::ApplyGenericPropertiesAttributes(
+	const FHoudiniGeometryCollectionData& GeometryCollectionData,
+	const FHoudiniGeometryCollectionPiece& FirstPiece,
+	UGeometryCollection* GeometryCollection,
+	UGeometryCollectionComponent* GeometryCollectionComponent)
+{
+	TArray<FHoudiniGenericAttribute> PropertyAttributes;
+
+	FHoudiniEngineUtils::GetGenericPropertiesAttributes(
+		GeometryCollectionData.Identifier.GeoId,
+		GeometryCollectionData.Identifier.PartId,
+		true,
+		GeometryCollectionData.Identifier.PrimitiveIndex,
+		INDEX_NONE,
+		GeometryCollectionData.Identifier.PointIndex,
+		PropertyAttributes);
+
+	if (FirstPiece.InstancerOutputIdentifier && FirstPiece.InstancedPartId >= 0)
+	{
+		FHoudiniEngineUtils::GetGenericPropertiesAttributes(
+			FirstPiece.InstancerOutputIdentifier->GeoId,
+			FirstPiece.InstancedPartId,
+			true,
+			0,
+			0,
+			0,
+			PropertyAttributes);
+	}
+
+	if (PropertyAttributes.IsEmpty())
+		return;
+
+	FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(GeometryCollection, PropertyAttributes);
+
+	if (IsValid(GeometryCollectionComponent))
+	{
+		FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(GeometryCollectionComponent, PropertyAttributes);
+
+		if (AActor* Owner = GeometryCollectionComponent->GetOwner())
+		{
+			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(Owner, PropertyAttributes);
+		}
+	}
 }
 
 
