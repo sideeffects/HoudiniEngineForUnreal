@@ -759,6 +759,12 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 								ParamName = TEXT("diffuse");
 							else if (ParamName.Equals(TEXT("height")))
 								ParamName = TEXT("displacement");
+							else if (ParamName.Equals(TEXT("alpha")))
+								ParamName = TEXT("opacity");
+							else if (ParamName.Equals(TEXT("ao")))
+								ParamName = TEXT("occlusion");
+							else if (ParamName.Equals(TEXT("compact")))
+								ParamName = TEXT("rma");
 
 							// For the default cop output material - we also need to modify the matching "has"boolean parameter first
 							FString HasParamName = TEXT("has") + ParamName;

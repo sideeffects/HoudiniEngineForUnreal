@@ -53,7 +53,8 @@ enum class EHoudiniTextureType : uint8
 	Opacity = 6,
 	Normal = 7,	
 	Occlusion = 8,
-	Displacement = 9
+	Displacement = 9,
+	RMA = 10
 };
 
 struct HOUDINIENGINE_API FHoudiniTextureTranslator

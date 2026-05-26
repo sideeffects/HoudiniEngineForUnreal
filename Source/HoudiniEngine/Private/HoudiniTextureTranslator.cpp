@@ -965,6 +965,8 @@ FHoudiniTextureTranslator::GetTextureTypeFromName(const FString& Name)
 		Type = EHoudiniTextureType::Displacement;
 	else if (Name.Contains("metal"))
 		Type = EHoudiniTextureType::Metallic;
+	else if (Name.Contains("rma") || Name.Contains("compact"))
+		Type = EHoudiniTextureType::RMA;
 
 	return Type;
 }
@@ -1002,6 +1004,9 @@ FHoudiniTextureTranslator::GetTextureTypeString(const EHoudiniTextureType& InTyp
 			break;
 		case EHoudiniTextureType::Displacement:
 			TypeString = TEXT("displacement"); 
+			break;
+		case EHoudiniTextureType::RMA:
+			TypeString = TEXT("RMA");
 			break;
 
 		case EHoudiniTextureType::Invalid:
@@ -1041,6 +1046,11 @@ FHoudiniTextureTranslator::GetTextureParametersFromType(const EHoudiniTextureTyp
 			TextureParams.CompressionSettings = TC_Grayscale;
 			break;
 
+		// COMPACT
+		case EHoudiniTextureType::RMA:
+			TextureParams.CompressionSettings = TC_Masks;
+			break;
+
 		// DEFAULT
 		case EHoudiniTextureType::Diffuse:
 		case EHoudiniTextureType::Emissive:
@@ -1061,6 +1071,7 @@ FHoudiniTextureTranslator::GetTextureParametersFromType(const EHoudiniTextureTyp
 		case EHoudiniTextureType::Opacity:
 		case EHoudiniTextureType::Occlusion:
 		case EHoudiniTextureType::Displacement:
+		case EHoudiniTextureType::RMA:
 			TextureParams.bSRGB = false;
 			break;
 
