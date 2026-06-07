@@ -505,7 +505,7 @@ bool FHoudiniParameterTranslator::SyncUnrealParametersToHoudini(UHoudiniCookable
 
 	bSuccess = FetchNewParameters(HC);
 
-	HC->CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
+	HC->SetCookCount(FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId()));
 
 	return bSuccess;
 }
@@ -4009,7 +4009,7 @@ bool FHoudiniParameterTranslator::InsertMultiParmInstance(UHoudiniParameterMulti
 		bSuccess = UpdateParametersFromHoudini(HC, bUpdateValues, bForceFullUpdate, bCacheRampParms, bNeedToUpdateEditorProperties);
 	}
 
-	HC->CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
+	HC->SetCookCount(FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId()));
 
 	return bSuccess;
 }
@@ -4044,7 +4044,7 @@ bool FHoudiniParameterTranslator::RemoveMultiParmInstance(UHoudiniParameterMulti
 		bSuccess = UpdateParametersFromHoudini(HC, bFetchValuesFromHoudini, bForceFullUpdate, bCacheRampParms, bNeedToUpdateEditorProperties);
 	}
 
-	HC->CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
+	HC->SetCookCount(FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId()));
 
 	return bSuccess;
 }

@@ -5459,6 +5459,25 @@ FHoudiniEngineUtils::HapiGetParameterDataAsInteger(
 	return true;
 }
 
+bool
+FHoudiniEngineUtils::HapiSetParameterDataAsIntegerIfChanged(
+	HAPI_NodeId NodeId,
+	const std::string& ParmName,
+	int32 DesiredValue,
+	int32 TupleIndex)
+{
+	int CurrentValue = INDEX_NONE;
+	if (HAPI_RESULT_SUCCESS == FHoudiniApi::GetParmIntValue(
+		FHoudiniEngine::Get().GetSession(), NodeId, ParmName.c_str(), TupleIndex, &CurrentValue)
+		&& CurrentValue == DesiredValue)
+	{
+		return true;
+	}
+
+	return HAPI_RESULT_SUCCESS == FHoudiniApi::SetParmIntValue(
+		FHoudiniEngine::Get().GetSession(), NodeId, ParmName.c_str(), TupleIndex, DesiredValue);
+}
+
 
 bool
 FHoudiniEngineUtils::HapiGetParameterDataAsFloat(
@@ -8461,13 +8480,29 @@ TMap< HAPI_AttributeOwner, TArray<FString>> FHoudiniEngineUtils::GetAllAttribute
 void FHoudiniEngineUtils::DumpNode(const FString& NodePath)
 {
 	HAPI_NodeId UnrealContentNodeId = -1;
-	HAPI_Result result = FHoudiniApi::GetNodeFromPath(
-		FHoudiniEngine::Get().GetSession(), -1, TCHAR_TO_ANSI(*NodePath), &UnrealContentNodeId);
-	if (result != HAPI_RESULT_SUCCESS)
+
+	const bool bIsNodeIdString = NodePath.IsNumeric();
+	if (bIsNodeIdString)
 	{
-		HOUDINI_LOG_DISPLAY(TEXT("Failed to get node from path: %s"), *NodePath);
+		UnrealContentNodeId = FCString::Atoi(*NodePath);
+	}
+	else
+	{
+		HAPI_Result result = FHoudiniApi::GetNodeFromPath(
+			FHoudiniEngine::Get().GetSession(), -1, TCHAR_TO_ANSI(*NodePath), &UnrealContentNodeId);
+		if (result != HAPI_RESULT_SUCCESS)
+		{
+			HOUDINI_LOG_DISPLAY(TEXT("Failed to get node from path: %s"), *NodePath);
+			return;
+		}
+	}
+
+	if (UnrealContentNodeId < 0)
+	{
+		HOUDINI_LOG_DISPLAY(TEXT("Invalid node id: %s"), *NodePath);
 		return;
 	}
+
 	FString Output = DumpNode(UnrealContentNodeId);
 	HOUDINI_LOG_DISPLAY(TEXT("%s"), *Output);
 }
@@ -8625,8 +8660,10 @@ FString FHoudiniEngineUtils::DumpNode(HAPI_NodeId NodeId)
 #else
 	FStringBuilderBase Output;
 #endif
+	FString NodePath;
+	const bool bHasNodePath = FHoudiniEngineUtils::HapiGetAbsNodePath(NodeId, NodePath);
 	Output.Appendf(TEXT("Node ID: %d\n"), NodeId);
-	Output.Appendf(TEXT("    Name: %s\n"), *FHoudiniEngineString(NodeInfo.nameSH).ToFString());
+	Output.Appendf(TEXT("    Path: %s\n"), bHasNodePath ? *NodePath : *FHoudiniEngineString(NodeInfo.nameSH).ToFString());
 	Output.Appendf(TEXT("    Type: %s\n"), *NodeTypeToString(NodeInfo.type));
 
 	// Get GeoInfo for this node

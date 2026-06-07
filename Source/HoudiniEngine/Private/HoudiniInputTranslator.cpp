@@ -916,30 +916,26 @@ FHoudiniInputTranslator::UpdateTransformType(UHoudiniInput* InInput)
 	// Get the Input node ID from the host ID
 	HAPI_NodeId InputNodeId = -1;
 	HAPI_NodeId HostAssetId = InInput->GetAssetNodeId();
+	const HAPI_Session* const Session = FHoudiniEngine::Get().GetSession();
 
 	bool bSuccess = true;
-	const std::string sXformType = "xformtype"; 
+	const std::string sXformType = "xformtype";
+
 	if (InInput->IsObjectPathParameter())
 	{
 		// Directly change the Parameter xformtype
 		// (This will only work if the object merge is editable/unlocked)
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
-			FHoudiniEngine::Get().GetSession(),
-			HostAssetId, sXformType.c_str(), 0, nTransformType))
-			bSuccess = false;
+		bSuccess &= FHoudiniEngineUtils::HapiSetParameterDataAsIntegerIfChanged(HostAssetId, sXformType, nTransformType);
 	}
 	else
 	{
 		// Query the object merge's node ID via the input
 		if (HAPI_RESULT_SUCCESS == FHoudiniApi::QueryNodeInput(
-			FHoudiniEngine::Get().GetSession(),
+			Session,
 			HostAssetId, InInput->GetInputIndex(), &InputNodeId))
 		{
 			// Change its Parameter xformtype
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
-				FHoudiniEngine::Get().GetSession(),
-				InputNodeId, sXformType.c_str(), 0, nTransformType))
-				bSuccess = false;
+			bSuccess &= FHoudiniEngineUtils::HapiSetParameterDataAsIntegerIfChanged(InputNodeId, sXformType, nTransformType);
 		}
 	}
 
@@ -957,7 +953,7 @@ FHoudiniInputTranslator::UpdateTransformType(UHoudiniInput* InInput)
 			// Get the Input node ID from the host ID
 			InputObjectNodeId = -1;
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::QueryNodeInput(
-				FHoudiniEngine::Get().GetSession(),
+				Session,
 				ParentNodeId, n, &InputObjectNodeId))
 				continue;
 
@@ -965,10 +961,7 @@ FHoudiniInputTranslator::UpdateTransformType(UHoudiniInput* InInput)
 				continue;
 
 			// Change the xformtype parameter on the object merge
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
-				FHoudiniEngine::Get().GetSession(), InputObjectNodeId,
-				sXformType.c_str(), 0, nTransformType))
-				bSuccess = false;
+			bSuccess &= FHoudiniEngineUtils::HapiSetParameterDataAsIntegerIfChanged(InputObjectNodeId, sXformType, nTransformType);
 		}
 	}
 
@@ -994,6 +987,7 @@ FHoudiniInputTranslator::UpdatePackBeforeMerge(UHoudiniInput* InInput)
 
 	// Get the Input node ID from the host ID
 	HAPI_NodeId HostAssetId = InInput->GetAssetNodeId();
+	const HAPI_Session* const Session = FHoudiniEngine::Get().GetSession();
 
 	bool bSuccess = true;
 	const std::string sPack = "pack";
@@ -1011,7 +1005,7 @@ FHoudiniInputTranslator::UpdatePackBeforeMerge(UHoudiniInput* InInput)
 			// Get the Input node ID from the host ID
 			InputObjectNodeId = -1;
 			if (HAPI_RESULT_SUCCESS != FHoudiniApi::QueryNodeInput(
-				FHoudiniEngine::Get().GetSession(),
+				Session,
 				ParentNodeId, n, &InputObjectNodeId))
 				continue;
 
@@ -1019,16 +1013,10 @@ FHoudiniInputTranslator::UpdatePackBeforeMerge(UHoudiniInput* InInput)
 				continue;
 
 			// Change the pack parameter on the object merge
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
-				FHoudiniEngine::Get().GetSession(), InputObjectNodeId,
-				sPack.c_str(), 0, nPackValue))
-				bSuccess = false;
+			bSuccess &= FHoudiniEngineUtils::HapiSetParameterDataAsIntegerIfChanged(InputObjectNodeId, sPack, nPackValue);
 
 			// Change the pivot parameter on the object merge to "origin"
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetParmIntValue(
-				FHoudiniEngine::Get().GetSession(), InputObjectNodeId,
-				sPivot.c_str(), 0, 0))
-				bSuccess = false;
+			bSuccess &= FHoudiniEngineUtils::HapiSetParameterDataAsIntegerIfChanged(InputObjectNodeId, sPivot, 0);
 		}
 	}
 

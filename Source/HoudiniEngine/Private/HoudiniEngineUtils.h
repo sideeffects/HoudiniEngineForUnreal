@@ -836,6 +836,12 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			int32 DefaultValue,
 			int32 & OutValue);
 
+		static bool HapiSetParameterDataAsIntegerIfChanged(
+			HAPI_NodeId NodeId,
+			const std::string& ParmName,
+			int32 DesiredValue,
+			int32 TupleIndex = 0);
+
 		static bool HapiGetParameterDataAsFloat(
 			HAPI_NodeId NodeId,
 			const std::string& ParmName,
@@ -1696,4 +1702,3 @@ public:
 			UWorld* InWorld,
 			bool bInSuccess);
 };
-

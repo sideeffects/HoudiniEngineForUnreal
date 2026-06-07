@@ -298,7 +298,7 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 	NodeId = -1;
 	CurrentState = EHoudiniAssetState::NewHDA;
 	CurrentStateResult = EHoudiniAssetStateResult::None;
-	CookCount = 0;
+	SetCookCount(0);
 	Name = FString();
 
 	// Create unique cookable GUID.
@@ -1453,7 +1453,7 @@ UHoudiniCookable::MarkAsNeedInstantiation()
 	CurrentStateResult = EHoudiniAssetStateResult::None;
 
 	// Reset some of the asset's flag
-	CookCount = 0;
+	SetCookCount(0);
 	bHasBeenLoaded = true;
 	bPendingDelete = false;
 	bRecookRequested = false;

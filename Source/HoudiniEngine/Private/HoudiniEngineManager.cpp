@@ -653,7 +653,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 					FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(HC->NodeId, HC->GetOwner());
 
 					// Reset the cook counter.
-					HC->CookCount = 0;
+					HC->SetCookCount(0);
 					//if (HC->IsOutputsSupported())
 						HC->ClearNodesToCook();
 
@@ -826,7 +826,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 
 			// Update the cook count to prevent a cook loop
 			const int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
-			HC->CookCount = CookCount;
+			HC->SetCookCount(CookCount);
 
 			HC->SetCurrentState(EHoudiniAssetState::None);
 
@@ -902,7 +902,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 								// this indicates that the user has changed something in Houdini so we need to trigger an update
 								HC->SetCurrentState(EHoudiniAssetState::PreCook);
 								// Make sure to update the cookcount to prevent loop cooking
-								HC->CookCount = CookCount;
+								HC->SetCookCount(CookCount);
 							}
 						}
 					}
@@ -1071,7 +1071,7 @@ FHoudiniEngineManager::UpdateInstantiating(UHoudiniCookable* HC)
 		FHoudiniParameterTranslator::InstantiateParameters(HC);
 		InitializePDG(HC);
 
-		HC->CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
+		HC->SetCookCount(FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId()));
 
 		HC->SetCurrentState(NewState);
 
@@ -1164,7 +1164,7 @@ FHoudiniEngineManager::UpdateInstantiatingFromTask(UHoudiniCookable* HC, EHoudin
 		FHoudiniEngineUtils::AssignUniqueActorLabelIfNeeded(HC->NodeId, HC->GetOwner());
 
 		// Reset the cook counter and nodes to cook
-		HC->CookCount = 0;
+		HC->SetCookCount(0);
 		HC->ClearNodesToCook();
 
 		// If necessary, set asset transform to the component's transform.
@@ -1241,7 +1241,7 @@ FHoudiniEngineManager::UpdateInstantiatingFromTask(UHoudiniCookable* HC, EHoudin
 		}
 
 		// Reset the cook counter.
-		HC->CookCount = 0;
+		HC->SetCookCount(0);
 
 		// Make sure the asset ID is invalid
 		HC->NodeId = -1;
@@ -1515,7 +1515,7 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 
 	// Update the asset cook count using the node infos
 	const int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
-	HC->CookCount = CookCount;
+	HC->SetCookCount(CookCount);
 
 	bool bNeedsToTriggerViewportUpdate = false;
 	if (HC->bLastCookSuccess)
