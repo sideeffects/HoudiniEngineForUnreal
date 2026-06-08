@@ -46,6 +46,8 @@ public:
 		UObject* Outer,
 		const FString& ParamName);
 
+	int GetChosenFolder();
+
 	void AddTabFolder(UHoudiniParameterFolder* InFolderParm);
 
 	FORCEINLINE

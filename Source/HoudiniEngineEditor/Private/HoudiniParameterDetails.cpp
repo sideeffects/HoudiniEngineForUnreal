@@ -1318,6 +1318,7 @@ FHoudiniParameterView::CreateTabbedFolderRow(
 									{
 										UHoudiniParameterFolder* ParameterFolder = Cast<UHoudiniParameterFolder>(FoldersParams[It]->LinkedParameters[0].Get());
 										ParameterFolder->SetChosen(It == Index);
+										ParameterFolder->MarkChanged(true);
 									}
 
 									DetailBuilder.ForceRefreshDetails();
@@ -1398,6 +1399,7 @@ FHoudiniParameterView::CreateRadioFolderRow(
 									{
 										UHoudiniParameterFolder* ParameterFolder = Cast<UHoudiniParameterFolder>(FoldersParams[It]->LinkedParameters[0].Get());
 										ParameterFolder->SetChosen(It == Index);
+										ParameterFolder->MarkChanged(true);
 									}
 
 									DetailBuilder.ForceRefreshDetails();

@@ -3205,6 +3205,27 @@ FHoudiniParameterTranslator::UploadParameterToHoudini(UHoudiniParameter* InParam
 		}
 		break;
 
+		case EHoudiniParameterType::FolderList:
+		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - FolderList);
+
+			UHoudiniParameterFolderList* FolderListParam = Cast<UHoudiniParameterFolderList>(InParam);
+			if (!FolderListParam)
+				return false;
+
+			int ChosenFolder = FolderListParam->GetChosenFolder();
+			if (ChosenFolder != INDEX_NONE)
+			{
+				// Set the toggle parameter values.
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValues(
+					FHoudiniEngine::Get().GetSession(),
+					FolderListParam->GetNodeId(),
+					&ChosenFolder,
+					FolderListParam->GetValueIndex(), 1), false);
+			}
+		}
+		break;
+
 		default:
 		{
 			// TODO: implement other parameter types!

@@ -106,3 +106,16 @@ UHoudiniParameterFolderList::RemapParameters(const TMap<UHoudiniParameter*, UHou
 		TabFolders[i] = ToParameter;
 	}
 }
+
+int UHoudiniParameterFolderList::GetChosenFolder()
+{
+	for (int Index = 0; Index < Children.Num(); Index++)
+	{
+		UHoudiniParameterFolder* Folder = Cast<UHoudiniParameterFolder>(this->Children[Index]);
+		if (Folder && Folder->IsChosen())
+		{
+			return Index;
+		}
+	}
+	return INDEX_NONE;
+}
