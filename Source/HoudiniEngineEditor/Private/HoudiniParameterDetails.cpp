@@ -551,50 +551,6 @@ FHoudiniParameterDetails::SetMultiParmWidgets(FHoudiniParameterView* ParameterVi
 void
 FHoudiniParameterDetails::Construct(UHoudiniCookable* HC, const TArray<TObjectPtr<UHoudiniParameter>>& Parameters)
 {
-	// Deserialize the parameters into a non-flat tree. This can, in theory, be done by a depth-first
-	// traversal, but this is way simpler. And, more importantly,
-	// avoids some issues with multiparms, which are missing dome data in earlier versions of the plugin.
-
-	// Map all Ids to parameters for quick look up
-	TMap<int, int> IdToParameter;
-	for(int Index = 0; Index < Parameters.Num(); Index++)
-	{
-		IdToParameter.Add(Parameters[Index]->GetParmId(), Index);
-	}
-
-	// Make an array of all parameter parents. Note that folder list's folders do not always have a parent
-	// set, so we need to special case that.
-
-	TArray<int> ParameterParents;
-	ParameterParents.SetNumZeroed(Parameters.Num());
-
-	int ParamIndex = 0;
-	while(ParamIndex < Parameters.Num())
-	{
-		UHoudiniParameter* Parameter = Parameters[ParamIndex];
-		int ParamId = Parameters[ParamIndex]->GetParmId();
-		int TupleSize = Parameters[ParamIndex]->GetTupleSize();
-
-		if(Parameter->GetParentParmId() != -1)
-		{
-			ParameterParents[ParamIndex] = IdToParameter[Parameter->GetParentParmId()];
-		}
-		else
-		{
-			ParameterParents[ParamIndex] = -1;
-		}
-
-		ParamIndex++;
-
-		if(Parameter->GetParameterType() == EHoudiniParameterType::FolderList)
-		{
-			for(int Index = 0; Index < TupleSize; Index++)
-			{
-				ParameterParents[ParamIndex] = IdToParameter[ParamId];
-				ParamIndex++;
-			}
-		}
-	}
 
 	// Create a parameter view for each parameter
 
@@ -607,7 +563,7 @@ FHoudiniParameterDetails::Construct(UHoudiniCookable* HC, const TArray<TObjectPt
 	}
 
 	// Keep track of joined parameters
-	ParamIndex = 0;
+	int ParamIndex = 0;
 	while(ParamIndex < Parameters.Num())
 	{
 		int PrevParamIndex = ParamIndex;
@@ -1742,7 +1698,6 @@ FHoudiniParameterView::CreateWidgetMultiParm(
 
 			if(InValue < 0)
 				return;
-
 			
 			for(auto& Param : MultiParmParams)
 			{

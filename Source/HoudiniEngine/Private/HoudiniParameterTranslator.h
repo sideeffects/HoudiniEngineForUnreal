@@ -52,6 +52,12 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 
 	static bool InstantiateParameters(UHoudiniCookable* InHC);
 
+	static int HandleMultiParmChildren(const TArray<HAPI_ParmInfo>& ParmInfos, TArray<int>& ParentParmIds, HAPI_ParmId MultiParmId, int ChildIndex);
+
+	static int HandleFolderList(const TArray<HAPI_ParmInfo>& ParmInfos, TArray<int>& ParentParmIds, int FolderListIndex);
+
+	static TArray<int> CreateLogicalParentParamIds(const TArray<HAPI_ParmInfo>& ParmInfos);
+
 	static TArray<TObjectPtr<UHoudiniParameter>> CreateNewParameters(
 		UHoudiniCookable* HC,
 		int NodeId,
@@ -145,6 +151,7 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 		UHoudiniParameter * HoudiniParameter,
 		HAPI_NodeId InNodeId,
 		const HAPI_ParmInfo& ParmInfo,
+		int InParentParmId = INDEX_NONE,
 		bool bFullUpdate = true,
 		bool bFetchValueFromHoudini = true,
 		const TArray<int>* DefaultIntValues = nullptr,
@@ -193,7 +200,7 @@ struct HOUDINIENGINE_API FHoudiniParameterTranslator
 
 	static bool RevertRampParameters(TMap<FString, UHoudiniParameter*> & InRampParams, const int32 & AssetId);
 
-	static bool FetchNewParameters(UHoudiniCookable* HC);
+	static bool FetchNewParametersAndRemoveOld(UHoudiniCookable* HC);
 
 	static bool FetchParameterInfo(
 		UHoudiniCookable* HC,

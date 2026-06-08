@@ -73,11 +73,118 @@
 #define HAPI_UNREAL_PARAM_PIVOT						"p"
 #define HAPI_UNREAL_PARAM_UNIFORMSCALE				"scale"
 
+int FHoudiniParameterTranslator::HandleMultiParmChildren(const TArray<HAPI_ParmInfo>& ParmInfos, TArray<int>& ParentParmIds, HAPI_ParmId MultiParmId, int ChildIndex)
+{
+	// Helper function for FHoudiniParameterTranslator::CreateLogicalParentParamIds(). Ensures correct assignment of parents to children.
+	while (ParmInfos.IsValidIndex(ChildIndex))
+	{
+		const HAPI_ParmInfo& ChildParm = ParmInfos[ChildIndex];
+		if (!ChildParm.isChildOfMultiParm || ChildParm.parentId != MultiParmId)
+			break;
+
+		if (ChildParm.type == HAPI_PARMTYPE_FOLDERLIST || ChildParm.type == HAPI_PARMTYPE_FOLDERLIST_RADIO)
+		{
+			ChildIndex = FHoudiniParameterTranslator::HandleFolderList(ParmInfos, ParentParmIds, ChildIndex);
+		}
+		else if (ChildParm.type == HAPI_PARMTYPE_MULTIPARMLIST)
+		{
+			++ChildIndex;
+			ChildIndex = FHoudiniParameterTranslator::HandleMultiParmChildren(ParmInfos, ParentParmIds, ChildParm.id, ChildIndex);
+		}
+		else
+		{
+			++ChildIndex;
+		}
+	}
+
+	return ChildIndex;
+}
+
+int FHoudiniParameterTranslator::HandleFolderList(const TArray<HAPI_ParmInfo>& ParmInfos, TArray<int>& ParentParmIds, int FolderListIndex)
+{
+	// Helper function for FHoudiniParameterTranslator::CreateLogicalParentParamIds(). Ensures correct assignment of parents to children.
+	const HAPI_ParmInfo& FolderList = ParmInfos[FolderListIndex];
+	int NextIndex = FolderListIndex + 1;
+
+	// After a folder list comes the folders. Assign Parent Ids.
+	for (int FolderIndex = 0; FolderIndex < FolderList.size; FolderIndex++)
+	{
+		const int ParmIndex = FolderListIndex + 1 + FolderIndex;
+		if (!ParmInfos.IsValidIndex(ParmIndex) || !ParentParmIds.IsValidIndex(ParmIndex))
+			return NextIndex;
+
+		ParentParmIds[ParmIndex] = FolderList.id;
+		++NextIndex;
+	}
+
+	// After the folders come the parameters for the folders
+	for (int FolderIndex = 0; FolderIndex < FolderList.size; FolderIndex++)
+	{
+		const int FolderParmIndex = FolderListIndex + 1 + FolderIndex;
+		if (!ParmInfos.IsValidIndex(FolderParmIndex))
+			return NextIndex;
+
+		const HAPI_ParmInfo& FolderParm = ParmInfos[FolderParmIndex];
+
+		for (int FolderParameterIndex = 0; FolderParameterIndex < FolderParm.size; FolderParameterIndex++)
+		{
+			if (!ParmInfos.IsValidIndex(NextIndex) || !ParentParmIds.IsValidIndex(NextIndex))
+				return NextIndex;
+
+			const HAPI_ParmInfo& Parm = ParmInfos[NextIndex];
+
+			if (Parm.type == HAPI_PARMTYPE_FOLDERLIST || Parm.type == HAPI_PARMTYPE_FOLDERLIST_RADIO)
+			{
+				ParentParmIds[NextIndex] = FolderParm.id;
+				NextIndex = FHoudiniParameterTranslator::HandleFolderList(ParmInfos, ParentParmIds, NextIndex);
+			}
+			else if (Parm.type == HAPI_PARMTYPE_MULTIPARMLIST)
+			{
+				ParentParmIds[NextIndex] = FolderParm.id;
+				++NextIndex;
+				NextIndex = FHoudiniParameterTranslator::HandleMultiParmChildren(ParmInfos, ParentParmIds, Parm.id, NextIndex);
+			}
+			else
+			{
+				ParentParmIds[NextIndex] = FolderParm.id;
+				NextIndex++;
+			}
+		}
+	}
+
+	return NextIndex;
+}
+
+TArray<int> FHoudiniParameterTranslator::CreateLogicalParentParamIds(const TArray<HAPI_ParmInfo>& ParmInfos)
+{
+	// HAPI parent ids are not set for folders or multi-parms, but it makes our code much simpler if we treat folders/ mps as
+	// children of folder lists, and the folder's parameters as children of the folder. So this function
+	// generates an array of corrected parent ids.
+	TArray<int> ParentParmIds;
+	ParentParmIds.Reserve(ParmInfos.Num());
+	for (const HAPI_ParmInfo& ParmInfo : ParmInfos)
+		ParentParmIds.Add(ParmInfo.parentId);
+
+	int NextIndex = 0;
+	while (NextIndex < ParmInfos.Num())
+	{
+		const HAPI_ParmInfo& ParmInfo = ParmInfos[NextIndex];
+		if (ParmInfo.type == HAPI_PARMTYPE_FOLDERLIST || ParmInfo.type == HAPI_PARMTYPE_FOLDERLIST_RADIO)
+		{
+			NextIndex = FHoudiniParameterTranslator::HandleFolderList(ParmInfos, ParentParmIds, NextIndex);
+		}
+		else
+		{
+			++NextIndex;
+		}
+	}
+	return ParentParmIds;
+}
 
 TArray<TObjectPtr<UHoudiniParameter>> FHoudiniParameterTranslator::CreateNewParameters(
 	UHoudiniCookable* HC,
 	int NodeId,
-	const TArray<HAPI_ParmInfo>& ParmInfos,
+	const TArray<HAPI_ParmInfo>& InParmInfos,
 	const TMap<int, UHoudiniParameter*>& IdToParmInfo,
 	const TArray<int>* DefaultIntValues,
 	const TArray<float>* DefaultFloatValues,
@@ -88,11 +195,13 @@ TArray<TObjectPtr<UHoudiniParameter>> FHoudiniParameterTranslator::CreateNewPara
 	// Now go thru all Param Infos and create new parameters, if not in the IdToParamInfo map.
 	//--------------------------------------------------------------------------------------------------------------------------
 
+	TArray<int> LogicalParentParmIds = CreateLogicalParentParamIds(InParmInfos);
+
 	TArray<TObjectPtr<UHoudiniParameter>> NewParameters;
 
-	for(int Index = 0; Index < ParmInfos.Num(); Index++)
+	for(int Index = 0; Index < InParmInfos.Num(); Index++)
 	{
-		const HAPI_ParmInfo& ParmInfo = ParmInfos[Index];
+		const HAPI_ParmInfo& ParmInfo = InParmInfos[Index];
 
 		if(IdToParmInfo.Contains(ParmInfo.id))
 			continue;
@@ -105,10 +214,10 @@ TArray<TObjectPtr<UHoudiniParameter>> FHoudiniParameterTranslator::CreateNewPara
 
 		UHoudiniParameter* Parameter = CreateTypedParameter(HC, ParmType, NewParmName);
 		Parameter->SetParmId(ParmInfo.id);
-		Parameter->SetParentParmId(ParmInfo.parentId);
+		Parameter->SetParentParmId(LogicalParentParmIds[Index]);
 		NewParameters.Add(Parameter);
 
-		UpdateParameterFromInfo(Parameter, NodeId, ParmInfos[Index], true, true, DefaultIntValues, DefaultFloatValues, DefaultStringValues, DefaultChoiceValues);
+		UpdateParameterFromInfo(Parameter, NodeId, ParmInfo, LogicalParentParmIds[Index], true, true, DefaultIntValues, DefaultFloatValues, DefaultStringValues, DefaultChoiceValues);
 
 	}
 
@@ -342,12 +451,40 @@ bool FHoudiniParameterTranslator::InitializeParametersFromAssetDefinition(UHoudi
 	return true;
 }
 
-bool FHoudiniParameterTranslator::FetchNewParameters(UHoudiniCookable* HC)
+bool FHoudiniParameterTranslator::FetchNewParametersAndRemoveOld(UHoudiniCookable* HC)
 {
 	// Fetch Parameter data from HAPI, create maps for quick look up via Ids.
 	TArray<HAPI_ParmInfo> ParmInfos;
 	TMap<int, HAPI_ParmInfo*> IdToParmInfo;
 	TMap<FString, int> NameToId;
+	TSet<FString> TabMenuFolderLists;
+	TMap<FString, FString> ChosenFolderByFolderListName;
+	TMap<FString, int32> ChosenFolderIndexByFolderListName;
+
+	// Multiparm layout changes can recreate the containing folder list and folders, so cache the chosen tab by name.
+	for (UHoudiniParameter* Parameter : HC->GetParameters())
+	{
+		UHoudiniParameterFolderList* FolderList = Cast<UHoudiniParameterFolderList>(Parameter);
+		if (!IsValid(FolderList) || !FolderList->IsTabMenu())
+			continue;
+
+		TabMenuFolderLists.Add(FolderList->GetParameterName());
+
+		const int32 ChosenFolderIndex = FolderList->GetChosenFolder();
+		if (ChosenFolderIndex == INDEX_NONE)
+			continue;
+
+		ChosenFolderIndexByFolderListName.Add(FolderList->GetParameterName(), ChosenFolderIndex);
+
+		if (!FolderList->GetChildren().IsValidIndex(ChosenFolderIndex))
+			continue;
+
+		UHoudiniParameterFolder* ChosenFolder = Cast<UHoudiniParameterFolder>(FolderList->GetChildren()[ChosenFolderIndex].Get());
+		if (!IsValid(ChosenFolder))
+			continue;
+
+		ChosenFolderByFolderListName.Add(FolderList->GetParameterName(), ChosenFolder->GetParameterName());
+	}
 
 	FetchParameterInfo(HC, ParmInfos, IdToParmInfo, NameToId);
 
@@ -360,26 +497,74 @@ bool FHoudiniParameterTranslator::FetchNewParameters(UHoudiniCookable* HC)
 	TArray<TObjectPtr<UHoudiniParameter>> NewParameters = 
 		CreateNewParameters(HC, HC->GetNodeId(), ParmInfos, IdToParameter, nullptr, nullptr, nullptr, nullptr);
 
-	// Combine all parameters, old and new.
-	
-	TArray<TObjectPtr<UHoudiniParameter>> UnsortedParameters = HC->GetParameters();
+	// Combine valid existing parameters with the new ones, ignore old invalid parameters.
+
+	TArray<TObjectPtr<UHoudiniParameter>> UnsortedParameters;
+	for (UHoudiniParameter* Parameter : HC->GetParameters())
+	{
+		if (IsValid(Parameter) && IdToParmInfo.Contains(Parameter->GetParmId()))
+		{
+			UnsortedParameters.Add(Parameter);
+		}
+	}
+
 	UnsortedParameters.Append(NewParameters);
 
 	// reorder to the same order as the param infos. If we don't new parameters would just be added at the end,
 	// which doesn't provide a consistent layout.
 
 	TArray<TObjectPtr<UHoudiniParameter>> FinalParameters;
-	FinalParameters.SetNumZeroed(UnsortedParameters.Num());
+	FinalParameters.SetNumZeroed(ParmInfos.Num());
 
 	for(UHoudiniParameter* Parameter : UnsortedParameters)
 	{
 		// Place each parameter in its correct position in the final array.
-		HAPI_ParmInfo* ParamInfo = IdToParmInfo[Parameter->GetParmId()];
+		HAPI_ParmInfo* ParamInfo = IdToParmInfo.FindChecked(Parameter->GetParmId());
 		int Position = ParamInfo - ParmInfos.GetData();
 		FinalParameters[Position] = Parameter;
 	}
 
 	HC->SetParameters(FinalParameters);
+
+	// Restore tab menu state after SetParameters() rebuilds the tree from the refreshed parameter layout.
+	for (UHoudiniParameter* Parameter : HC->GetParameters())
+	{
+		UHoudiniParameterFolderList* FolderList = Cast<UHoudiniParameterFolderList>(Parameter);
+		if (!IsValid(FolderList) || !TabMenuFolderLists.Contains(FolderList->GetParameterName()))
+			continue;
+
+		FolderList->SetIsTabMenu(true);
+
+		bool bRestoredChosen = false;
+		int32 FolderIndex = 0;
+		for (const TObjectPtr<UHoudiniParameter>& ChildParameter : FolderList->GetChildren())
+		{
+			UHoudiniParameterFolder* Folder = Cast<UHoudiniParameterFolder>(ChildParameter.Get());
+			if (!IsValid(Folder))
+				continue;
+
+			bool bChosen = false;
+			if (const FString* ChosenFolderName = ChosenFolderByFolderListName.Find(FolderList->GetParameterName()))
+			{
+				bChosen = Folder->GetParameterName() == *ChosenFolderName;
+			}
+			else if (const int32* ChosenFolderIndex = ChosenFolderIndexByFolderListName.Find(FolderList->GetParameterName()))
+			{
+				bChosen = FolderIndex == *ChosenFolderIndex;
+			}
+
+			Folder->SetChosen(bChosen);
+			bRestoredChosen |= bChosen;
+			++FolderIndex;
+		}
+
+		// If the previously chosen tab no longer exists, keep the old default behavior and fall back to the first tab.
+		if (!bRestoredChosen && FolderList->GetChildren().Num() > 0)
+		{
+			if (UHoudiniParameterFolder* FirstFolder = Cast<UHoudiniParameterFolder>(FolderList->GetChildren()[0].Get()))
+				FirstFolder->SetChosen(true);
+		}
+	}
 
 	// Fetch all info from Houdini, except the values, since we want to preserve what we have in Houdini.
 
@@ -503,7 +688,7 @@ bool FHoudiniParameterTranslator::SyncUnrealParametersToHoudini(UHoudiniCookable
 
 	HC->RemoveInvalidParameters();
 
-	bSuccess = FetchNewParameters(HC);
+	bSuccess = FetchNewParametersAndRemoveOld(HC);
 
 	HC->SetCookCount(FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId()));
 
@@ -715,6 +900,7 @@ FHoudiniParameterTranslator::BuildAllParameters(
 	ParmInfos.SetNumUninitialized(ParmCount);
 
 	HOUDINI_CHECK_ERROR_RETURN( FHoudiniApi::GetParameters(FHoudiniEngine::Get().GetSession(), NodeId, &ParmInfos[0], 0, ParmCount), false);
+	TArray<int> LogicalParentParmIds = CreateLogicalParentParamIds(ParmInfos);
 
 	// Create a name lookup cache for the current parameters
 	// Use an array has in some cases, multiple parameters can have the same name!
@@ -754,20 +940,22 @@ FHoudiniParameterTranslator::BuildAllParameters(
 		// Check if any parent folder of this parameter is invisible 
 		bool SkipParm = false;
 		bool ParentFolderVisible = true;
-		HAPI_ParmId ParentId = ParmInfo.parentId;
+		HAPI_ParmId ParentId = LogicalParentParmIds[ParamIdx];
 		while (ParentId > 0 && !SkipParm)
 		{
-			if (const HAPI_ParmInfo* ParentInfoPtr = ParmInfos.FindByPredicate([=](const HAPI_ParmInfo& Info) {
+			const int32 ParentIndex = ParmInfos.IndexOfByPredicate([=](const HAPI_ParmInfo& Info) {
 				return Info.id == ParentId;
-			}))
+			});
+			if (ParmInfos.IsValidIndex(ParentIndex))
 			{
+				const HAPI_ParmInfo& ParentInfo = ParmInfos[ParentIndex];
 				// We now keep invisible parameters but show/hid them in UpdateParameterFromInfo().
-				if (ParentInfoPtr->invisible && ParentInfoPtr->type == HAPI_PARMTYPE_FOLDER)
+				if (ParentInfo.invisible && ParentInfo.type == HAPI_PARMTYPE_FOLDER)
 					ParentFolderVisible = false;
 
 				// Prevent endless loops!
-				if (ParentId != ParentInfoPtr->parentId)
-					ParentId = ParentInfoPtr->parentId;
+				if (ParentId != LogicalParentParmIds[ParentIndex])
+					ParentId = LogicalParentParmIds[ParentIndex];
 				else
 					ParentId = -1;
 			}
@@ -819,7 +1007,7 @@ FHoudiniParameterTranslator::BuildAllParameters(
 
 			// Do a fast update of this parameter
 			if (!FHoudiniParameterTranslator::UpdateParameterFromInfo(
-					HoudiniAssetParameter, NodeId, ParmInfo, 
+					HoudiniAssetParameter, NodeId, ParmInfo, LogicalParentParmIds[ParamIdx],
 					InForceFullUpdate, 
 					bFetchValuesFromHoudini, 
 					nullptr, nullptr, nullptr, nullptr))
@@ -868,7 +1056,7 @@ FHoudiniParameterTranslator::BuildAllParameters(
 			HoudiniAssetParameter = CreateTypedParameter(InHC, ParmType, NewParmName);
 			// Fully update this parameter
 			if(!FHoudiniParameterTranslator::UpdateParameterFromInfo(
-				HoudiniAssetParameter, NodeId, ParmInfo, true, true,
+				HoudiniAssetParameter, NodeId, ParmInfo, LogicalParentParmIds[ParamIdx], true, true,
 				nullptr, nullptr, nullptr, nullptr))
 			{
 				continue;
@@ -1595,6 +1783,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 	UHoudiniParameter * HoudiniParameter, 
 	HAPI_NodeId InNodeId, 
 	const HAPI_ParmInfo& ParmInfo,
+	int InParentParmId,
 	bool bFullUpdate,
 	bool bFetchValueFromHoudini,
 	const TArray<int>* DefaultIntValues,
@@ -1612,7 +1801,7 @@ FHoudiniParameterTranslator::UpdateParameterFromInfo(
 	if (bHasValidNodeId)
 		HoudiniParameter->SetNodeId(InNodeId);
 	HoudiniParameter->SetParmId(ParmInfo.id);
-	HoudiniParameter->SetParentParmId(ParmInfo.parentId);
+	HoudiniParameter->SetParentParmId(InParentParmId == INDEX_NONE ? ParmInfo.parentId : InParentParmId);
 
 	HoudiniParameter->SetChildIndex(ParmInfo.childIndex);
 	HoudiniParameter->SetTagCount(ParmInfo.tagCount);
@@ -3845,7 +4034,7 @@ bool FHoudiniEngineParameterUpdater::SetNumMultiParmElements(UHoudiniParameterMu
 	if(!bSuccess)
 		return false;
 
-	bSuccess = FHoudiniParameterTranslator::FetchNewParameters(MultiParm->GetCookable());
+	bSuccess = FHoudiniParameterTranslator::FetchNewParametersAndRemoveOld(MultiParm->GetCookable());
 	return bSuccess;
 
 }
@@ -3997,8 +4186,6 @@ bool FHoudiniParameterTranslator::SetNumMultiParmElements(UHoudiniParameterMulti
 
 	SyncUnrealParametersToHoudini(HC);
 
-
-
 	return true;
 }
 
@@ -4042,13 +4229,11 @@ bool FHoudiniParameterTranslator::RemoveMultiParmInstance(UHoudiniParameterMulti
 	if(!HoudiniEnsureInstantiated(HC))
 		return false;
 
-	int InstanceOffset = ParamIndex + MultiParm->GetInstanceStartOffset();
-
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::RemoveMultiparmInstance(
 		FHoudiniEngine::Get().GetSession(),
 		MultiParm->GetNodeId(),
 		MultiParm->GetParmId(),
-		InstanceOffset),
+		ParamIndex),
 		false);
 
 	bool bFetchValuesFromHoudini = true;
@@ -4075,4 +4260,3 @@ bool FHoudiniEngineParameterUpdater::InstantiateParameters(UHoudiniCookable* InH
 	bool bSuccess = FHoudiniParameterTranslator::InstantiateParameters(InHC);
 	return bSuccess;
 }
-

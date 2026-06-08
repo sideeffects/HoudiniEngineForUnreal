@@ -2996,28 +2996,19 @@ UHoudiniCookable::ConstructParameterTree()
 			Parameter->ClearTree();
 		}
 
-	}
-
-	for(int Index = 0; Index < ParameterData->Parameters.Num(); Index++)
-	{
-		UHoudiniParameter* Parameter = ParameterData->Parameters[Index];
-
-		UHoudiniParameter** ParentParameter = IdToParameter.Find(Parameter->GetParentParmId());
-		if(ParentParameter)
+		for (int Index = 0; Index < ParameterData->Parameters.Num(); Index++)
 		{
-			Parameter->SetParent(*ParentParameter);
-		}
+			UHoudiniParameter* Parameter = ParameterData->Parameters[Index];
 
-		// HAPI doesn't consider folders to be children of folder lists, but we do.
-		if (Parameter->GetParameterType() == EHoudiniParameterType::FolderList)
-		{
-			for (int ChildIndex = 0; ChildIndex < Parameter->GetTupleSize(); ChildIndex++)
+			UHoudiniParameter** ParentParameter = IdToParameter.Find(Parameter->GetParentParmId());
+			if (ParentParameter)
 			{
-				UHoudiniParameter* ChildParameter = ParameterData->Parameters[Index + ChildIndex + 1];
-				ChildParameter->SetParent(Parameter);
+				Parameter->SetParent(*ParentParameter);
 			}
 		}
+
 	}
+
 #endif
 }
 
