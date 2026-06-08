@@ -895,6 +895,18 @@ FHoudiniLandscapeSplineTranslator::CopySegmentMeshAttributesFromHoudini(
 		Accessor.Init(InNodeId, InPartId, TCHAR_TO_ANSI(*MeshCenterAdjustAttrName));
 		Accessor.GetAttributeData(InAttrOwner, 2, CenterAdjust, InStartIndex, InCount);
 
+		// scale to width
+		TArray<int> ScaleToWidth;
+		FString ScaleToWidthAttrName = FString::Printf(TEXT("%s%s"), *AttrNamePrefix, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SCALE_TO_WIDTH_SUFFIX));
+		Accessor.Init(InNodeId, InPartId, TCHAR_TO_ANSI(*ScaleToWidthAttrName));
+		Accessor.GetAttributeData(InAttrOwner, 1, ScaleToWidth, InStartIndex, InCount);
+
+		// center horizontally
+		TArray<int> CenterHorizontally;
+		FString CenterHAttrName = FString::Printf(TEXT("%s%s"), *AttrNamePrefix, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CENTER_H_SUFFIX));
+		Accessor.Init(InNodeId, InPartId, TCHAR_TO_ANSI(*CenterHAttrName));
+		Accessor.GetAttributeData(InAttrOwner, 1, CenterHorizontally, InStartIndex, InCount);
+
 		// material overrides
 		TArray<TArray<FString>> MeterialOverideList;
 		FString MaterialAttrNamePrefix = AttrNamePrefix + TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH_MATERIAL_OVERRIDE_SUFFIX);
@@ -933,7 +945,7 @@ FHoudiniLandscapeSplineTranslator::CopySegmentMeshAttributesFromHoudini(
 
 			bool bSetOne =  false;
 
-			if (MeshReferences.IsValidIndex(Index))
+			if (MeshReferences.IsValidIndex(Index) && !MeshReferences[Index].IsEmpty())
 			{
 				SegmentMeshData.MeshRef = MeshReferences[Index];
 				bSetOne = true;
@@ -956,6 +968,16 @@ FHoudiniLandscapeSplineTranslator::CopySegmentMeshAttributesFromHoudini(
 			if (MeterialOverideList.IsValidIndex(Index))
 			{
 				SegmentMeshData.MaterialOverrideRef = MeterialOverideList[Index];
+				bSetOne = true;
+			}
+			if (ScaleToWidth.IsValidIndex(Index))
+			{
+				SegmentMeshData.bScaleToWidth = (ScaleToWidth[Index] != 0);
+				bSetOne = true;
+			}
+			if (CenterHorizontally.IsValidIndex(Index))
+			{
+				SegmentMeshData.bCenterH = (CenterHorizontally[Index] != 0);
 				bSetOne = true;
 			}
 
@@ -1076,6 +1098,9 @@ FHoudiniLandscapeSplineTranslator::GetSplineDataFromAttributes(
 	Accessor.Init(InNodeId, InPartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SEGMENT_LOWER_TERRAIN);
 	bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, 1, SplineData.SegmentLowerTerrains, InFirstPointIndex, InNumPoints);
 
+	Accessor.Init(InNodeId, InPartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SEGMENT_CAST_SHADOW);
+	bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, 1, SplineData.SegmentCastShadows, InFirstPointIndex, InNumPoints);
+
 	Accessor.Init(InNodeId, InPartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_EDITLAYER_NAME);
 	bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_POINT, 1, SplineData.SegmentEditLayers, InFirstPointIndex, InNumPoints);
 
@@ -1128,6 +1153,22 @@ FHoudiniLandscapeSplineTranslator::GetSplineDataFromAttributes(
 		if (bSuccess && LowerTerrains.Num() > 0)
 		{
 			SplineData.DefaultLowerTerrain = LowerTerrains[0];
+		}
+	}
+
+	// segment cast shadow
+	if (SplineData.SegmentCastShadows.IsEmpty())
+	{
+		TArray<int> CastShadows;
+
+		HAPI_AttributeInfo PrimCastShadowAttrInfo;
+		Accessor.Init(InNodeId, InPartId, HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SEGMENT_CAST_SHADOW);
+		Accessor.GetInfo(PrimCastShadowAttrInfo, HAPI_ATTROWNER_PRIM);
+		bSuccess = Accessor.GetAttributeData(PrimCastShadowAttrInfo, CastShadows);
+
+		if (bSuccess && CastShadows.Num() > 0)
+		{
+			SplineData.DefaultCastShadow = CastShadows[0];
 		}
 	}
 
@@ -1330,6 +1371,11 @@ FHoudiniLandscapeSplineTranslator::SetSegmentData(
 	if (InSplineData.SegmentLowerTerrains.IsValidIndex(InVertexIndex))
 		InSegment->bLowerTerrain = InSplineData.SegmentLowerTerrains[InVertexIndex];
 
+	// bCastShadow
+	InSegment->bCastShadow = InSplineData.DefaultCastShadow != 0;
+	if (InSplineData.SegmentCastShadows.IsValidIndex(InVertexIndex))
+		InSegment->bCastShadow = InSplineData.SegmentCastShadows[InVertexIndex] != 0;
+
 	// Segment static meshes
 
 	const TArray<FHoudiniLandscapeSplineMesh> * Meshes = nullptr;
@@ -1357,6 +1403,8 @@ FHoudiniLandscapeSplineTranslator::SetSegmentData(
 
 		SplineMeshEntry.Scale = InputMesh.MeshScale;
 		SplineMeshEntry.CenterAdjust = InputMesh.CenterAdjust;
+		SplineMeshEntry.bScaleToWidth = InputMesh.bScaleToWidth;
+		SplineMeshEntry.bCenterH = InputMesh.bCenterH;
 
 		for(int MaterialIdx = 0; MaterialIdx < SplineMeshEntry.MaterialOverrides.Num(); MaterialIdx++)
 		{

@@ -148,6 +148,8 @@ struct FHoudiniLandscapeSplineMesh
 	TArray<FString> MaterialOverrideRef; // the outer index is material 0, 1, 2 ... 
 	FVector MeshScale = FVector::OneVector;
 	FVector2d CenterAdjust = FVector2d::Zero();
+	bool bScaleToWidth = true;
+	bool bCenterH = false;
 };
 
 
@@ -187,6 +189,7 @@ struct FHoudiniLandscapeSplineData
 	TArray<FString> SegmentPaintLayerNames;
 	TArray<int> SegmentRaiseTerrains;
 	TArray<int> SegmentLowerTerrains;
+	TArray<int> SegmentCastShadows;
 	TArray<FString> SegmentEditLayers;
 	TArray<int> SegmentEditLayersClear;
 	TArray<FString> SegmentEditLayersAfter;
@@ -201,6 +204,7 @@ struct FHoudiniLandscapeSplineData
 	FString DefaultPaintLayerName;
 	int DefaultRaiseTerrain = 1;
 	int DefaultLowerTerrain = 1;
+	int DefaultCastShadow = 1;
 	FString DefaultEditLayer;
 	bool DefaultEditLayerClear = false;
 	FString DefaultEditLayerAfter;

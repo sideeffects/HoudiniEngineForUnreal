@@ -638,6 +638,9 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 	
 	if (AddLowerTerrainAttribute(OutNodeId, SplinesData.SegmentLowerTerrains, HAPI_ATTROWNER_PRIM))
 		bNeedToCommit = true;
+
+	if (AddCastShadowAttribute(OutNodeId, SplinesData.SegmentCastShadows, HAPI_ATTROWNER_PRIM))
+		bNeedToCommit = true;
 	
 	if (AddSegmentMeshesAttributes(OutNodeId, SplinesData.PerMeshSegmentData))
 		bNeedToCommit = true;
@@ -1013,6 +1016,7 @@ bool FUnrealLandscapeSplineTranslator::ExtractSplineData(
 	OutSplinesData.SegmentPaintLayerNames.Empty(TotalNumSegments);
 	OutSplinesData.SegmentRaiseTerrains.Empty(TotalNumSegments);
 	OutSplinesData.SegmentLowerTerrains.Empty(TotalNumSegments);
+	OutSplinesData.SegmentCastShadows.Empty(TotalNumSegments);
 
 	// We only have to resample the splines if the spline resolution is different than the internal spline resolution
 	// on the landscape splines component.
@@ -1040,6 +1044,7 @@ bool FUnrealLandscapeSplineTranslator::ExtractSplineData(
 				OutSplinesData.SegmentPaintLayerNames.AddDefaulted();
 				OutSplinesData.SegmentRaiseTerrains.AddDefaulted();
 				OutSplinesData.SegmentLowerTerrains.AddDefaulted();
+				OutSplinesData.SegmentCastShadows.AddDefaulted();
 
 				continue;
 			}
@@ -1052,6 +1057,7 @@ bool FUnrealLandscapeSplineTranslator::ExtractSplineData(
 				OutSplinesData.SegmentPaintLayerNames.AddDefaulted();
 				OutSplinesData.SegmentRaiseTerrains.AddDefaulted();
 				OutSplinesData.SegmentLowerTerrains.AddDefaulted();
+				OutSplinesData.SegmentCastShadows.AddDefaulted();
 
 				continue;
 			}
@@ -1216,6 +1222,7 @@ bool FUnrealLandscapeSplineTranslator::ExtractSplineData(
 			OutSplinesData.SegmentPaintLayerNames.Emplace(SegmentData.Segment->LayerName.ToString());
 			OutSplinesData.SegmentRaiseTerrains.Add(SegmentData.Segment->bRaiseTerrain);
 			OutSplinesData.SegmentLowerTerrains.Add(SegmentData.Segment->bLowerTerrain);
+			OutSplinesData.SegmentCastShadows.Add(SegmentData.Segment->bCastShadow);
 
 			// Extract the spline mesh configuration for the segment
 			const int32 NumMeshes = SegmentData.Segment->SplineMeshes.Num();
@@ -1275,6 +1282,20 @@ bool FUnrealLandscapeSplineTranslator::ExtractSplineData(
 				SegmentMeshData.MeshScales[SegmentData.GlobalSegmentIndex * 3 + 0] = SplineMeshEntry.Scale.X;
 				SegmentMeshData.MeshScales[SegmentData.GlobalSegmentIndex * 3 + 1] = SplineMeshEntry.Scale.Z;
 				SegmentMeshData.MeshScales[SegmentData.GlobalSegmentIndex * 3 + 2] = SplineMeshEntry.Scale.Y;
+
+				// Initialize mesh scale-to-width per segment array if needed
+				if (SegmentMeshData.MeshScaleToWidths.IsEmpty())
+				{
+					SegmentMeshData.MeshScaleToWidths.SetNum(TotalNumSegments);
+				}
+				SegmentMeshData.MeshScaleToWidths[SegmentData.GlobalSegmentIndex] = SplineMeshEntry.bScaleToWidth;
+
+				// Initialize mesh center-horizontally per segment array if needed
+				if (SegmentMeshData.MeshCenterHs.IsEmpty())
+				{
+					SegmentMeshData.MeshCenterHs.SetNum(TotalNumSegments);
+				}
+				SegmentMeshData.MeshCenterHs[SegmentData.GlobalSegmentIndex] = SplineMeshEntry.bCenterH;
 			}
 		}
 	}
@@ -1446,6 +1467,22 @@ bool FUnrealLandscapeSplineTranslator::AddLowerTerrainAttribute(HAPI_NodeId InNo
 }
 
 
+bool FUnrealLandscapeSplineTranslator::AddCastShadowAttribute(HAPI_NodeId InNodeId, const TArray<int8>& InData, HAPI_AttributeOwner InAttribOwner)
+{
+	if (InData.IsEmpty())
+		return false;
+
+	const FString AttributeName = HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SEGMENT_CAST_SHADOW;
+
+	HAPI_AttributeInfo AttrInfo;
+	FHoudiniHapiAccessor Accessor(InNodeId, 0, TCHAR_TO_ANSI(*AttributeName));
+	Accessor.AddAttribute(InAttribOwner, HAPI_STORAGETYPE_INT8, 1, InData.Num(), &AttrInfo);
+	HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttrInfo, InData), false);
+
+	return true;
+}
+
+
 bool FUnrealLandscapeSplineTranslator::AddSegmentMeshesAttributes(HAPI_NodeId InNodeId, const TArray<FHoudiniUnrealLandscapeSplineSegmentMeshData>& InPerMeshSegmentData)
 {
 	int32 NumMeshAttrs = InPerMeshSegmentData.Num();
@@ -1471,6 +1508,18 @@ bool FUnrealLandscapeSplineTranslator::AddSegmentMeshesAttributes(HAPI_NodeId In
 		FHoudiniHapiAccessor ScaleAttrAccessor(InNodeId, 0, TCHAR_TO_ANSI(*MeshScaleAttrName));
 		ScaleAttrAccessor.AddAttribute(HAPI_ATTROWNER_PRIM, HAPI_STORAGETYPE_FLOAT, 3, NumSegments, &AttrInfo);
 		bool bSuccess = ScaleAttrAccessor.SetAttributeData(AttrInfo, MeshSegmentData.MeshScales);
+
+		// Add the mesh scale-to-width attribute
+		FString ScaleToWidthAttrName = FString::Printf(TEXT("%s%s"), *MeshAttrName, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_SCALE_TO_WIDTH_SUFFIX));
+		FHoudiniHapiAccessor ScaleToWidthAttrAccessor(InNodeId, 0, TCHAR_TO_ANSI(*ScaleToWidthAttrName));
+		ScaleToWidthAttrAccessor.AddAttribute(HAPI_ATTROWNER_PRIM, HAPI_STORAGETYPE_INT8, 1, NumSegments, &AttrInfo);
+		bSuccess &= ScaleToWidthAttrAccessor.SetAttributeData(AttrInfo, MeshSegmentData.MeshScaleToWidths);
+
+		// Add the mesh center-horizontally attribute
+		FString CenterHAttrName = FString::Printf(TEXT("%s%s"), *MeshAttrName, TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_CENTER_H_SUFFIX));
+		FHoudiniHapiAccessor CenterHAttrAccessor(InNodeId, 0, TCHAR_TO_ANSI(*CenterHAttrName));
+		CenterHAttrAccessor.AddAttribute(HAPI_ATTROWNER_PRIM, HAPI_STORAGETYPE_INT8, 1, NumSegments, &AttrInfo);
+		bSuccess &= CenterHAttrAccessor.SetAttributeData(AttrInfo, MeshSegmentData.MeshCenterHs);
 
 		// Material overrides
 		int NumMaterialOverrides = MeshSegmentData.MeshMaterialOverrideRefs.Num();
