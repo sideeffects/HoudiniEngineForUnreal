@@ -26,6 +26,7 @@
 
 #include "HoudiniInput.h"
 
+#include "HoudiniCookable.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniAssetComponent.h"
@@ -116,6 +117,19 @@ UHoudiniInput::UHoudiniInput()
 #endif
 	
 	CachedBounds.Init();
+}
+
+UHoudiniCookable*
+UHoudiniInput::GetCookable()
+{
+	if (UHoudiniCookable* HC = GetTypedOuter<UHoudiniCookable>())
+		return HC;
+
+	// Loaded v2 inputs may still be outered to the deprecated HAC after migration.
+	if (UHoudiniAssetComponent* HAC = GetTypedOuter<UHoudiniAssetComponent>())
+		return HAC->GetCookable();
+
+	return nullptr;
 }
 
 void

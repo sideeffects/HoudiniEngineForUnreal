@@ -203,8 +203,6 @@ UHoudiniInput* FHoudiniInputTranslator::CreateInput(UHoudiniCookable* InHC)
 		InputObjectName,
 		RF_Transactional);
 
-	NewInput->SetCookable(InHC);
-
 	return NewInput;
 }
 

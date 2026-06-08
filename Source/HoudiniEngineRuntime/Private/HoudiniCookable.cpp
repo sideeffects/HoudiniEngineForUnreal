@@ -2829,13 +2829,6 @@ UHoudiniCookable::FixupInputPointers()
 		}
 	}
 
-	// older UHoudiniAssetComponent HDAs which were upgraded have a different layout/outer than newly 
-	// created Cookables, so we need to save an explicit pointer in the input, rather than grab its outer.
-
-	for(UHoudiniInput* Input : InputData->Inputs)
-	{
-		Input->SetCookable(this);
-	}
 #endif
 }
 

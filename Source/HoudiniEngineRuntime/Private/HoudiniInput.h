@@ -72,8 +72,7 @@ public:
 			&& Label.Equals(other.Label));
 	}
 
-	void SetCookable(UHoudiniCookable* HC) { Cookable = HC;  }
-	UHoudiniCookable* GetCookable() { return Cookable; }
+	UHoudiniCookable* GetCookable();
 
 	bool Matches(const UHoudiniInput& other) const { return (*this == other); };
 
@@ -727,9 +726,6 @@ protected:
 	// The node ids of InputNodeIds previously used by this input that are pending delete
 	UPROPERTY(Transient, DuplicateTransient, NonTransactional)
 	TSet<int32> InputNodesPendingDelete;
-
-	UPROPERTY()
-	TObjectPtr<UHoudiniCookable> Cookable;
 
 	//-------------------------------------------------------------------------------------------------------------------------
 	// PCG inputs
