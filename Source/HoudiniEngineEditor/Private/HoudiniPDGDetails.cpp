@@ -3483,8 +3483,9 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 	FHoudiniPDGDetails::BindEnablePDGWiddgetsTest(BakeTargetDetailWidgetRow, InHC);
 
 	BakeTargetDetailWidgetRow.NameWidget.Widget = SNew(STextBlock)
-		.Text(FText::FromString("Bake Output")).
-		Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT));
+		.Text(FText::FromString("Bake Output"))
+		.ToolTipText(FText::FromString(TEXT("The type of Unreal object the baked outputs should use.")))
+		.Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT));
 
 	BakeTargetDetailWidgetRow.ValueWidget.Widget = SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -3561,8 +3562,9 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 	FHoudiniPDGDetails::BindEnablePDGWiddgetsTest(BakOutputsRow, InHC);
 
 	BakOutputsRow.NameWidget.Widget = SNew(STextBlock)
-		.Text(FText::FromString("Outputs To Bake")).
-		Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT));
+		.Text(FText::FromString("Outputs To Bake"))
+		.ToolTipText(FText::FromString(TEXT("PDG Outputs to bake.")))
+		.Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT));
 
 	BakOutputsRow.ValueWidget.Widget = SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -3639,6 +3641,7 @@ void FHoudiniPDGDetails::AddBakeReplaceModeWidgets(IDetailGroup& InBakeGroup, co
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString(TEXT("Replace Mode")))
+			.ToolTipText(FText::FromString(TEXT("How previous bakes are replaced or kept.")))
 			.Font(_GetEditorStyle().GetFontStyle(HOUDINI_PDG_DETAILS_FONT))
 		];
 
