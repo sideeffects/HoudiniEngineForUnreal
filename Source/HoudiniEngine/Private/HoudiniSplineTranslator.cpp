@@ -1885,7 +1885,7 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 		bool bReusedPreviousOutput = false;
 		if (!FoundOutputObject) 
 		{
-			HOUDINI_LOG_WARNING(
+			HOUDINI_LOG_MESSAGE(
 				TEXT("Creating Unreal Spline (default): Object [%d %s], Geo [%d], Part [%d %s], Curve# [%d], number of points [%d]."),
 				InHGPO.ObjectId, *InHGPO.ObjectName, InHGPO.GeoId, InHGPO.PartId, *InHGPO.PartName, CurveIdx, CurvePointsCounts[n]);
 			
@@ -2108,7 +2108,7 @@ FHoudiniSplineTranslator::CreateOutputSplinesFromHoudiniGeoPartObject(
 			InSplines.Remove(CurveIdentifier);
 		}
 
-		HOUDINI_LOG_WARNING(
+		HOUDINI_LOG_MESSAGE(
 			TEXT("Finished Generating Unreal Spline: Object [%d %s], Geo [%d], Part [%d %s], Curve# [%d], number of points [%d]."),
 			InHGPO.ObjectId, *InHGPO.ObjectName, InHGPO.GeoId, InHGPO.PartId, *InHGPO.PartName, CurveIdx, CurvePointsCounts[n]);
 	}
