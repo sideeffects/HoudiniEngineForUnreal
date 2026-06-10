@@ -866,9 +866,11 @@ FHoudiniMaterialTranslator::GetMaterialRelativePath(const HAPI_NodeId& InAssetId
 {
 	HAPI_MaterialInfo MaterialInfo;
 	FHoudiniApi::MaterialInfo_Init(&MaterialInfo);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetMaterialInfo(
-		FHoudiniEngine::Get().GetSession(), InMaterialNodeId,
-		&MaterialInfo), false);
+	if (HAPI_RESULT_SUCCESS != FHoudiniApi::GetMaterialInfo(
+		FHoudiniEngine::Get().GetSession(), InMaterialNodeId, &MaterialInfo))
+	{
+		return false;
+	}
 
 	return GetMaterialRelativePath(InAssetId, MaterialInfo, OutRelativePath);
 }

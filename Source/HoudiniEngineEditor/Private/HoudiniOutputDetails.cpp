@@ -1451,7 +1451,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 
 	const TWeakObjectPtr<UHoudiniAssetComponent>& HAC = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
 	const TWeakObjectPtr<UHoudiniCookable>& HC = Cast<UHoudiniCookable>(InOutput->GetOuter());
-	if (!IsValidWeakPointer(HAC) && !IsValidWeakPointer(HC))
+	if (!HAC.IsValid() && !HC.IsValid())
 		return;
 
 	const TWeakObjectPtr<AActor>& OwnerActor = HC.IsValid() ? HC->GetOwner() : HAC->GetOwner();

@@ -643,9 +643,15 @@ FHoudiniInstanceTranslator::CreateInstancer(
 	USceneComponent* ParentComponent,
 	const TArray<UMaterialInterface *>& InstancerMaterials)
 {
-	// See what type of component we want to create
+	// Do not attempt to create packed primitives instancers with empty objects
 	InstancerComponentType InstancerType = InstancerComponentType::Invalid;
+	if (InstancerPartData.GeoPartObject.InstancerType == EHoudiniInstancerType::PackedPrimitive
+		&& Instancers.ObjectPath.IsEmpty())
+	{
+		return {};
+	}
 
+	// See what type of component we want to create
 	InstanceObject = LoadInstancedObject(*Instancers.ObjectPath);
 
 	while (UObjectRedirector* Redirector = Cast<UObjectRedirector>(InstanceObject))
