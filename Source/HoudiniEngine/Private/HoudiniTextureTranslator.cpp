@@ -160,11 +160,11 @@ FHoudiniTextureTranslator::HapiExtractImage(
 		else if (InPlaneTypeString.Equals("C A"))
 		{
 			if (ImagePlanesStringArray[n].Equals("C"))
-			{				
+			{
 				bCFound = true;
 				// If only color is found, still allow image extraction
 				bFound = true;
-			}				
+			}
 			else if (ImagePlanesStringArray[n].Equals("A"))
 			{
 				bAFound = true;
@@ -184,7 +184,9 @@ FHoudiniTextureTranslator::HapiExtractImage(
 		FHoudiniEngine::Get().GetSession(),
 		InMaterialNodeId, &ImageInfo), false);
 
+	// Only INT8/16 & FLOAT16/32 are supported
 	if (ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT8
+		&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT16
 		&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT16
 		&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT32)
 	{
@@ -192,8 +194,9 @@ FHoudiniTextureTranslator::HapiExtractImage(
 		ImageInfo.dataFormat = HAPI_IMAGE_DATA_INT8;
 	}
 
-	// For HDR (Float16/32 images) - UE wants us to use linear colors - so no gamma 2.2
+	// For HDR (Int16/Float16/32 images) - UE wants us to use linear colors - so no gamma 2.2
 	bool bIsHDR = (ImageInfo.dataFormat != HAPI_IMAGE_DATA_INT8);
+
 	ImageInfo.interleaved = true;
 	ImageInfo.packing = InImagePacking;
 	ImageInfo.gamma = bIsHDR ? 1.0f : InGamma;
@@ -275,8 +278,9 @@ FHoudiniTextureTranslator::CreateTexture(
 		FHoudiniEngine::Get().GetSession(),
 		InMaterialNodeId, &ImageInfo), false);
 
-	// Only INT8 / FLOAT16/32 are supported
+	// Only INT8/16 & FLOAT16/32 are supported
 	if (InImageDataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT8
+		&& InImageDataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT16
 		&& InImageDataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT16
 		&& InImageDataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT32)
 	{
@@ -287,6 +291,7 @@ FHoudiniTextureTranslator::CreateTexture(
 	{
 		ImageInfo.dataFormat = InImageDataFormat;
 	}
+
 	ImageInfo.interleaved = true;
 	ImageInfo.packing = InImagePacking;
 	ImageInfo.gamma = InGamma;
@@ -417,6 +422,9 @@ FHoudiniTextureTranslator::CreateUnrealTexture(
 		case HAPI_IMAGE_DATA_INT16:
 		{
 			SrcFormat = TSF_RGBA16;
+			CompSetting = TextureParameters.CompressionSettings;
+			bDeferComp = false;
+			bSRGB = TextureParameters.bSRGB;
 		}
 		break;
 
@@ -573,7 +581,7 @@ FHoudiniTextureTranslator::CreateUnrealTexture(
 				if (TextureParameters.bUseAlpha && PackOffset == 4)
 				{
 					*DestPtr16++ = *(uint16*)(SrcData16 + DataOffset + OffsetA); // A
-					if (*(uint16*)(SrcData + DataOffset + OffsetA) != 0xFFFF)
+					if (*(uint16*)(SrcData16 + DataOffset + OffsetA) != 0xFFFF)
 						bHasAlphaValue = true;
 				}
 				else
@@ -707,6 +715,12 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 		FCreateTexture2DParameters CreateTexture2DParameters
 			= FHoudiniTextureTranslator::GetTextureParametersFromType(TextureType);
 
+		HAPI_ImageInfo ImageInfo;
+		FHoudiniApi::ImageInfo_Init(&ImageInfo);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetImageInfo(
+			FHoudiniEngine::Get().GetSession(),
+			CopNodeId, &ImageInfo), false);
+
 		// see if the user wants hdr (float) texture from its name
 		bool bIsHDR = FHoudiniTextureTranslator::IsHDRFromName(HGPO.PartName);
 
@@ -717,55 +731,52 @@ FHoudiniTextureTranslator::ProcessCopOutput(
 		if (TextureType == EHoudiniTextureType::Diffuse
 			|| TextureType == EHoudiniTextureType::Emissive)
 		{
-			Gamma = 2.2;
+			Gamma = 2.2f;
 		}
 
 		// Data format can be overriden via the details panels
 		switch (ImageDataFormat)
 		{
 			case EHoudiniEngineImageDataFormat::Int8:
-			bIsHDR = false;
-			bIs16bit = false;
-			break;
+				bIsHDR = false;
+				ImageInfo.dataFormat = HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT8;
+				break;
+
+			case EHoudiniEngineImageDataFormat::Int16:
+				bIsHDR = true;
+				Gamma = 1.0; // unreal can only accept 16bit color in linear space
+				ImageInfo.dataFormat = HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT16;
+				break;
 
 			case EHoudiniEngineImageDataFormat::Float16:
-			bIsHDR = true;
-			bIs16bit = true;
-			break;
+				bIsHDR = true;
+				ImageInfo.dataFormat = HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT16;
+				break;
 
 			case EHoudiniEngineImageDataFormat::Float32:
-			bIsHDR = true;
-			bIs16bit = false;
-			break;
+				bIsHDR = true;
+				ImageInfo.dataFormat = HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT32;
+				break;
+
+			case EHoudiniEngineImageDataFormat::Auto:
+				if (bIsHDR)
+				{
+					ImageInfo.dataFormat = bIs16bit ? HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT16 : HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT32;
+				}
+				else
+				{
+					ImageInfo.dataFormat = HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT8;
+				}
+				break;
 
 			default:
-			// do nothing
-			break;
-		}
-
-		HAPI_ImageInfo ImageInfo;
-		FHoudiniApi::ImageInfo_Init(&ImageInfo);
-		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetImageInfo(
-			FHoudiniEngine::Get().GetSession(),
-			CopNodeId, &ImageInfo), false);
-
-		if (bIsHDR)
-		{
-			ImageInfo.dataFormat = bIs16bit ? HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT16 : HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT32;
-		}
-
-		// Only INT8 / FLOAT16/32 are supported
-		if (ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT8
-			&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT16
-			&& ImageInfo.dataFormat != HAPI_ImageDataFormat::HAPI_IMAGE_DATA_FLOAT32)
-		{
-			// Unsupported data format - default to RGBA8
-			ImageInfo.dataFormat = HAPI_IMAGE_DATA_INT8;
+				ImageInfo.dataFormat = HAPI_ImageDataFormat::HAPI_IMAGE_DATA_INT8;
+				break;
 		}
 
 		ImageInfo.interleaved = true;
 		ImageInfo.packing = HAPI_IMAGE_PACKING_RGBA;
-		ImageInfo.gamma = Gamma;// InGamma;
+		ImageInfo.gamma = bIsHDR ? 1.0 : Gamma;
 
 		// Create custom package param for this output
 		FHoudiniPackageParams MyPackageParams = InPackageParams;

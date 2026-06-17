@@ -103,10 +103,10 @@ bool FHoudiniEditorTestLandscapeSplines_Simple::RunTest(const FString& Parameter
 		{
 			Positions.Add(Transform.TransformPosition(ControlPoints[Index]->Location));
 		}
-		HOUDINI_TEST_EQUAL(Positions[0], FVector(-50000.0, -50000.0, 0.0), 0.1);
-		HOUDINI_TEST_EQUAL(Positions[1], FVector(0.0, -50000.0, 0.0), 0.1);
-		HOUDINI_TEST_EQUAL(Positions[2], FVector(0.0, 50000.0, 0.0), 0.1);
-		HOUDINI_TEST_EQUAL(Positions[3], FVector(0.0, 0.0, 0.0), 0.1);
+		HOUDINI_TEST_EQUAL(Positions[0], FVector(-50000.0f, -50000.0f, 0.0f), 0.1f);
+		HOUDINI_TEST_EQUAL(Positions[1], FVector(0.0f, -50000.0f, 0.0f), 0.1f);
+		HOUDINI_TEST_EQUAL(Positions[2], FVector(0.0f, 50000.0f, 0.0f), 0.1f);
+		HOUDINI_TEST_EQUAL(Positions[3], FVector(0.0f, 0.0f, 0.0f), 0.1f);
 
 		HOUDINI_TEST_EQUAL(IsValid(ControlPoints[1]->Mesh), true);
 		HOUDINI_TEST_EQUAL(ControlPoints[1]->MeshScale, FVector(99.0, 99.0, 99.0));
@@ -190,10 +190,10 @@ bool FHoudiniEditorTestLandscapeSplines_WorldPartition::RunTest(const FString& P
 		{
 			Positions.Add(Transform.TransformPosition(ControlPoints[Index]->Location));
 		}
-		HOUDINI_TEST_EQUAL(Positions[0], FVector(-50000.0, -50000.0, 0.0), 0.1);
-		HOUDINI_TEST_EQUAL(Positions[1], FVector(0.0, -50000.0, 0.0), 0.1);
-		HOUDINI_TEST_EQUAL(Positions[2], FVector(0.0, 50000.0, 0.0), 0.1);
-		HOUDINI_TEST_EQUAL(Positions[3], FVector(0.0, 0.0, 0.0), 0.1);
+		HOUDINI_TEST_EQUAL(Positions[0], FVector(-50000.0f, -50000.0f, 0.0f), 0.1f);
+		HOUDINI_TEST_EQUAL(Positions[1], FVector(0.0f, -50000.0f, 0.0f), 0.1f);
+		HOUDINI_TEST_EQUAL(Positions[2], FVector(0.0f, 50000.0f, 0.0f), 0.1f);
+		HOUDINI_TEST_EQUAL(Positions[3], FVector(0.0f, 0.0f, 0.0f), 0.1f);
 
 		HOUDINI_TEST_EQUAL(IsValid(ControlPoints[1]->Mesh), true);
 		HOUDINI_TEST_EQUAL(ControlPoints[1]->MeshScale, FVector(99.0, 99.0, 99.0));
@@ -276,10 +276,10 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapeSplineMeshes
 			{
 				Positions.Add(Transform.TransformPosition(ControlPoints[Index]->Location));
 			}
-			HOUDINI_TEST_EQUAL(Positions[0], FVector(-50000.0, -50000.0, 0.0), 0.1);
-			HOUDINI_TEST_EQUAL(Positions[1], FVector(0.0, -50000.0, 0.0), 0.1);
-			HOUDINI_TEST_EQUAL(Positions[2], FVector(0.0, 50000.0, 0.0), 0.1);
-			HOUDINI_TEST_EQUAL(Positions[3], FVector(0.0, 0.0, 0.0), 0.1);
+			HOUDINI_TEST_EQUAL(Positions[0], FVector(-50000.0f, -50000.0f, 0.0f), 0.1f);
+			HOUDINI_TEST_EQUAL(Positions[1], FVector(0.0f, -50000.0f, 0.0f), 0.1f);
+			HOUDINI_TEST_EQUAL(Positions[2], FVector(0.0f, 50000.0f, 0.0f), 0.1f);
+			HOUDINI_TEST_EQUAL(Positions[3], FVector(0.0f, 0.0f, 0.0f), 0.1f);
 
 			HOUDINI_TEST_EQUAL(IsValid(ControlPoints[1]->Mesh), true);
 			HOUDINI_TEST_EQUAL(ControlPoints[1]->MeshScale, FVector(99.0, 99.0, 99.0));

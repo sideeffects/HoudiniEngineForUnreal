@@ -776,7 +776,7 @@ UHoudiniGeoImporter::CreateCopTextures(
 			if (TextureType == EHoudiniTextureType::Diffuse
 				|| TextureType == EHoudiniTextureType::Emissive)
 			{
-				Gamma = 2.2;
+				Gamma = 2.2f;
 			}
 
 			// see if the user wants hdr (float) texture from its name

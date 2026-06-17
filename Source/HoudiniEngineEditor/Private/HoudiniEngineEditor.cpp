@@ -1069,6 +1069,7 @@ FHoudiniEngineEditor::InitializeWidgetResource()
 	HoudiniImageDataFormatOptionsLabels.Reset();
 	HoudiniImageDataFormatOptionsLabels.Add(MakeShareable(new FString(TEXT("Auto"))));
 	HoudiniImageDataFormatOptionsLabels.Add(MakeShareable(new FString(TEXT("Int8"))));
+	HoudiniImageDataFormatOptionsLabels.Add(MakeShareable(new FString(TEXT("Int16"))));
 	HoudiniImageDataFormatOptionsLabels.Add(MakeShareable(new FString(TEXT("Float16"))));
 	HoudiniImageDataFormatOptionsLabels.Add(MakeShareable(new FString(TEXT("Float32"))));
 
@@ -1947,6 +1948,10 @@ FHoudiniEngineEditor::GetStringFromHoudiniImageDataFormat(EHoudiniEngineImageDat
 		Str = "Int8";
 		break;
 
+	case EHoudiniEngineImageDataFormat::Int16:
+		Str = "Int16";
+		break;
+
 	case EHoudiniEngineImageDataFormat::Float16:
 		Str = "Float16";
 		break;
@@ -1966,6 +1971,8 @@ FHoudiniEngineEditor::StringToImageDataFormat(const FString& InString)
 		return  EHoudiniEngineImageDataFormat::Auto;
 	if (InString == "Int8")
 		return  EHoudiniEngineImageDataFormat::Int8;
+	if (InString == "Int16")
+		return  EHoudiniEngineImageDataFormat::Int16;
 	if (InString == "Float16")
 		return  EHoudiniEngineImageDataFormat::Float16;
 	if (InString == "Float32")

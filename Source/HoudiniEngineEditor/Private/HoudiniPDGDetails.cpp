@@ -1153,7 +1153,7 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 				SNew(SBorder)
 				.IsEnabled_Lambda([AssetLink]() { return IsPDGLinked(AssetLink); })
 				.BorderImage(_GetEditorStyle().GetBrush("ToolPanel.GroupBorder"))
-				.BorderBackgroundColor(FSlateColor(FLinearColor(0.6, 0.6, 0.6)))
+				.BorderBackgroundColor(FSlateColor(FLinearColor(0.6f, 0.6f, 0.6f)))
 				.Padding(FMargin(1.0f, 5.0f))
 				[
 					SNew(SBox)
@@ -1206,7 +1206,7 @@ FHoudiniPDGDetails::AddWorkItemStatusWidget(
 				SNew(SBorder)
 				.IsEnabled_Lambda([AssetLink]() { return IsPDGLinked(AssetLink); })
 				.BorderImage(_GetEditorStyle().GetBrush("ToolPanel.GroupBorder"))
-				.BorderBackgroundColor(FSlateColor(FLinearColor(0.8, 0.8, 0.8)))
+				.BorderBackgroundColor(FSlateColor(FLinearColor(0.8f, 0.8f, 0.8f)))
 				.Padding(FMargin(1.0f, 5.0f))
 				[
 					SNew(SBox)

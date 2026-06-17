@@ -233,6 +233,7 @@ enum class EHoudiniEngineImageDataFormat : int8
 
 	Auto = 0,
 	Int8 = 1,
-	Float16 = 2,
-	Float32 = 3
+	Int16 = 2,
+	Float16 = 3,
+	Float32 = 4
 };
