@@ -74,7 +74,7 @@ void FHoudiniInstanceAutomationTest::CheckPositions(const TArray<FVector>& Posit
 
 		FVector ExpectedGlobalPosition = GetHDAInstancePosition(HDA_AttribIndex);
 
-		HOUDINI_TEST_EQUALISH_ON_FAIL(Positions[Index], ExpectedGlobalPosition, 0.1, break);
+		HOUDINI_TEST_EQUALISH_ON_FAIL(Positions[Index], ExpectedGlobalPosition, 0.1f, break);
 	}
 }
 
