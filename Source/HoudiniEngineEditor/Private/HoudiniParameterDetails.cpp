@@ -725,7 +725,7 @@ SCustomizedBox::OnPaint(
 	Line.SetNumZeroed(2);
 	// Initialize color buffer
 	FLinearColor Color = FLinearColor::White;
-	Color.A = 0.3;
+	Color.A = 0.3f;
 
 	// draw the bottom line if this row is the tab folder list 
 	if (bIsTabFolderListRow)
@@ -835,7 +835,7 @@ SCustomizedBox::OnPaint(
 			Line[1].X = AllottedGeometry.Size.X - 20.f;
 			Line[1].Y = Line[0].Y;
 
-			Color.A = 0.7;
+			Color.A = 0.7f;
 
 			FSlateDrawElement::MakeLines(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(), Line,
 				ESlateDrawEffect::None, Color, true, 1.5f);
