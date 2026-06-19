@@ -91,7 +91,7 @@ FHoudiniHandleComponentVisualizer::DrawVisualization(
 	if (!ColorMapActive.Contains(AssetId) || !ColorMapInactive.Contains(AssetId)) 
 	{
 		FLinearColor NewActiveColor = FLinearColor::MakeRandomColor();
-		FLinearColor NewInactiveColor = NewActiveColor.CopyWithNewOpacity(0.1)/2.5f;
+		FLinearColor NewInactiveColor = NewActiveColor.CopyWithNewOpacity(0.1f)/2.5f;
 
 		ColorMapActive.Add(AssetId, NewActiveColor);
 		ColorMapInactive.Add(AssetId, NewInactiveColor);
