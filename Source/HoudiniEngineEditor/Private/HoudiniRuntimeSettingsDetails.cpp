@@ -58,6 +58,13 @@ FHoudiniRuntimeSettingsDetails::~FHoudiniRuntimeSettingsDetails()
 void
 FHoudiniRuntimeSettingsDetails::CustomizeDetails(IDetailLayoutBuilder & DetailBuilder)
 {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+	// UE 5.8 asserts if the FBodyInstance settings row installs a second reset-to-default
+	// handler from its property type customization. Hide the property on this settings page
+	// until the engine-side customization is made compatible again.
+	DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UHoudiniRuntimeSettings, DefaultBodyInstance));
+#endif
+
 	// Create basic categories.
 	DetailBuilder.EditCategory("Session", FText::GetEmpty(), ECategoryPriority::Important);
 	DetailBuilder.EditCategory("Instantiating", FText::GetEmpty(), ECategoryPriority::Important);
