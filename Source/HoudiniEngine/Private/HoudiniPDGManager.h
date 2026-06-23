@@ -112,7 +112,7 @@ public:
 	static void DirtyTOPNode(UTOPNode* InTOPNode);
 
 	// Dirty the TOP network and clear all work item results.
-	static void DirtyAll(UTOPNetwork* InTOPNet);
+	static bool DirtyAll(UTOPNetwork* InTOPNet);
 
 	// Cook the output TOP node of the currently selected TOP network.
 	static bool CookOutput(UHoudiniCookable* HC, UTOPNetwork* InTOPNet);

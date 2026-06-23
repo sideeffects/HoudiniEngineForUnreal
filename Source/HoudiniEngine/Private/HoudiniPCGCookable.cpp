@@ -711,52 +711,88 @@ UHoudiniPCGCookable::NeedsCook() const
 }
 
 
-void
+bool
 UHoudiniPCGCookable::StartCook()
 {
 	ensure(NeedsCook());
 
-	bInputsChanged = false;
-	bParamsChanged = false;
-
 	Errors.Empty();
 
-	State = EPCGCookableState::Cooking;
+	if (!IsValid(Cookable))
+	{
+		AddCookError(TEXT("Cannot start a Houdini PCG cook because the cookable is invalid."));
+		return false;
+	}
 
+	bIsCookingPDG = false;
 	UHoudiniPDGAssetLink* PDGAssetLink = Cookable->GetPDGAssetLink();
-	bIsCookingPDG = IsValid(PDGAssetLink);
-
-	if (bIsCookingPDG)
+	if (IsValid(PDGAssetLink))
 	{
 		HOUDINI_PCG_MESSAGE(TEXT("(%p) Starting to Cook with PDG."), this);
 
-		HOUDINI_LOG_MESSAGE(TEXT("################>>> Cookable %p AssetLink %p"), this, PDGAssetLink);
-		UWorld* World= this->GetWorld();
+		UWorld* World = this->GetWorld();
 		PDGAssetLink->SetOutputWorld(World);
-		PDGAssetLink->GetSelectedTOPNetwork();
-		auto * TOPNetwork = PDGAssetLink->GetSelectedTOPNetwork();
-
-		TOPNetwork->GetOnPostCookDelegate().AddLambda([this](UTOPNetwork* Link, bool bSuccess)
+		UTOPNetwork* TOPNetwork = PDGAssetLink->GetSelectedTOPNetwork();
+		if (!IsValid(TOPNetwork))
 		{
+			AddCookError(TEXT("Cannot start a Houdini PDG cook because no TOP network is selected."));
+			return false;
+		}
+
+		if (PDGTopNetworkCookedDelegate.IsValid())
+		{
+			TOPNetwork->GetOnPostCookDelegate().Remove(PDGTopNetworkCookedDelegate);
+			PDGTopNetworkCookedDelegate.Reset();
+		}
+
+		PDGTopNetworkCookedDelegate = TOPNetwork->GetOnPostCookDelegate().AddLambda([this](UTOPNetwork* Link, bool bSuccess)
+		{
+			if (Link && PDGTopNetworkCookedDelegate.IsValid())
+			{
+				Link->GetOnPostCookDelegate().Remove(PDGTopNetworkCookedDelegate);
+				PDGTopNetworkCookedDelegate.Reset();
+			}
+
 			if (State == EPCGCookableState::Cooking)
 			{
 				OnCookingCompleteInternal(bSuccess);
 			}
 		});
-		if(IsValid(TOPNetwork))
+
+		if (!FHoudiniPDGManager::DirtyAll(TOPNetwork))
 		{
-			FHoudiniPDGManager::DirtyAll(TOPNetwork);
-			FHoudiniPDGManager::CookOutput(Cookable, TOPNetwork);
+			TOPNetwork->GetOnPostCookDelegate().Remove(PDGTopNetworkCookedDelegate);
+			PDGTopNetworkCookedDelegate.Reset();
+			AddCookError(FString::Printf(TEXT("Failed to dirty Houdini PDG TOP network '%s' before starting the cook."), *TOPNetwork->NodeName));
+			return false;
 		}
+
+		if (!FHoudiniPDGManager::CookOutput(Cookable, TOPNetwork))
+		{
+			TOPNetwork->GetOnPostCookDelegate().Remove(PDGTopNetworkCookedDelegate);
+			PDGTopNetworkCookedDelegate.Reset();
+			AddCookError(FString::Printf(TEXT("Failed to start a Houdini PDG cook for TOP network '%s'."), *TOPNetwork->NodeName));
+			return false;
+		}
+
+		bIsCookingPDG = true;
+		bInputsChanged = false;
+		bParamsChanged = false;
+		State = EPCGCookableState::Cooking;
+		return true;
 	}
 	else
 	{
 		// Non-PDG
 		HOUDINI_PCG_MESSAGE(TEXT("(%p) Starting to Cook."), this);
+		bInputsChanged = false;
+		bParamsChanged = false;
+		State = EPCGCookableState::Cooking;
 		Cookable->MarkAsNeedCook();
 
 		// No idea why MarkAsNeedCook() sets has been loaded.
 		Cookable->SetHasBeenLoaded(false);
+		return true;
 	}
 }
 

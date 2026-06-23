@@ -546,17 +546,20 @@ FHoudiniPDGManager::CookTOPNode(UTOPNode* InTOPNode)
 }
 
 
-void
+bool
 FHoudiniPDGManager::DirtyAll(UTOPNetwork* InTOPNet)
 {
 	if (!IsValid(InTOPNet))
-		return;
+		return false;
+
+	if (!FHoudiniEngine::Get().GetSession())
+		return false;
 	
 	// Dirty the specified TOP network...
 	if (HAPI_RESULT_SUCCESS != FHoudiniApi::DirtyPDGNode(FHoudiniEngine::Get().GetSession(), InTOPNet->NodeId, true))
 	{
 		HOUDINI_LOG_ERROR(TEXT("PDG Dirty All - Failed to dirty all of %s's TOP nodes!"), *(InTOPNet->NodeName));
-		return;
+		return false;
 	}
 
 	// ... and clear its work item results.
@@ -564,6 +567,7 @@ FHoudiniPDGManager::DirtyAll(UTOPNetwork* InTOPNet)
 
 	InTOPNet->NetworkState = EPDGNodeState::Dirtied;
 	InTOPNet->LoadState = EPDGLoadState::None;
+	return true;
 }
 
 

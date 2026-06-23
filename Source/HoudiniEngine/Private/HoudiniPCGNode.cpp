@@ -681,7 +681,12 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 				ManagedResource->HoudiniPCGComponent->Cookable->DeleteBakedOutput(SourceComponent->GetWorld());
 
 				// Something changed, so we must cook.
-				ManagedResource->HoudiniPCGComponent->Cookable->StartCook();
+				if (!ManagedResource->HoudiniPCGComponent->Cookable->StartCook())
+				{
+					HDAContext->ContextState = EHoudiniPCGContextState::Done;
+					FHoudiniPCGUtils::LogVisualError(Context, ManagedResource->HoudiniPCGComponent->Cookable->GetErrors());
+					return true;
+				}
 				HOUDINI_PCG_MESSAGE(TEXT("A cook was started."));
 				HDAContext->ContextState = EHoudiniPCGContextState::Cooking;
 				return false;
@@ -738,8 +743,14 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 
 			if (Cookable->NeedsCook())
 			{
+				if (!Cookable->StartCook())
+				{
+					HDAContext->ContextState = EHoudiniPCGContextState::Done;
+					FHoudiniPCGUtils::LogVisualError(Context, Cookable->GetErrors());
+					return true;
+				}
+
 				HDAContext->ContextState = EHoudiniPCGContextState::Cooking;
-				Cookable->StartCook();
 				return false;
 			}
 			else

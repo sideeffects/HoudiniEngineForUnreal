@@ -97,7 +97,7 @@ public:
 	// Returns true if succeeded, fals if failed. bParamsChanged && bInputsChanged are updated.
 	bool ApplyPCGDataOnNodeInputs(FPCGContext* Context);
 
-	void StartCook();
+	bool StartCook();
 	bool NeedsCook() const;
 
 	void CopyParametersAndInputs(const UHoudiniPCGCookable * Other);
@@ -192,6 +192,4 @@ private:
 	static bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
 
 };
-
-
 
