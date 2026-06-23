@@ -89,6 +89,7 @@
 #include "SSubobjectEditor.h"
 #include "UnrealEdGlobals.h"
 #include "UObject/MetaData.h"
+#include "UObject/UObjectGlobals.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
 #include <vector>
@@ -3301,6 +3302,12 @@ FHoudiniEngineUtils::HapiSetAssetTransform(HAPI_NodeId AssetId, const FTransform
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
 			FHoudiniEngine::Get().GetSession(),
 			AssetId, &TransformEuler), false);
+	}
+	else if (LocalAssetNodeInfo.type == HAPI_NODETYPE_COP)
+	{
+		// Can't set transform on COP HDAs.. 
+		// Just pretend everything's fine
+		return true;
 	}
 	else
 		return false;

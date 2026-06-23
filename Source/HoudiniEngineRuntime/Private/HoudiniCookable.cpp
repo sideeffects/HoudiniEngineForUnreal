@@ -1149,8 +1149,15 @@ UHoudiniCookable::NeedUpdate() const
 		return true;
 
 	// Check if the HAC's transform has changed and we need to cook because of it
-	if (IsComponentSupported() && ComponentData->bHasComponentTransformChanged && ComponentData->bCookOnTransformChange)
+	bool bIsCOPHDA = IsImageSupported() ? ImageData->bIsCOPHDA : false;
+
+	if (IsComponentSupported()
+		&& ComponentData->bHasComponentTransformChanged
+		&& ComponentData->bCookOnTransformChange
+		&& !bIsCOPHDA)
+	{
 		return true;
+	}
 
 	// If we don't want to cook on parameter/input change dont bother looking for updates
 	//if (!bCookOnParameterChange && !bRecookRequested && !bRebuildRequested)
