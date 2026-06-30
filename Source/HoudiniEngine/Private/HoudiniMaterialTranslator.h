@@ -391,7 +391,7 @@ protected:
 		UMaterial* Material,
 		const EObjectFlags ObjectFlag,
 		const FString& GeneratingParameterName,
-		const EMaterialSamplerType SamplerType);
+		const EMaterialSamplerType SamplerType = SAMPLERTYPE_LinearColor);
 
 	// Create various material components.
 	static bool CreateMaterialComponentDiffuse(

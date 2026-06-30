@@ -1072,12 +1072,61 @@ FHoudiniMaterialTranslator::CreateTextureExpression(
 	UMaterial* Material,
 	const EObjectFlags ObjectFlag,
 	const FString& GeneratingParameterName,
-	const EMaterialSamplerType SamplerType)
+	const EMaterialSamplerType InSamplerType)
 {
 	// Create the sampling expression, if it hasn't been created yet.
 	if (!TextureExpression)
 		TextureExpression = NewObject<UMaterialExpressionTextureSampleParameter2D>(
 			Material, UMaterialExpressionTextureSampleParameter2D::StaticClass(), NAME_None, ObjectFlag);
+
+	// Get the sampler type from the texture
+	EMaterialSamplerType SamplerType = InSamplerType;
+	if (Texture)
+	{
+		switch (Texture->CompressionSettings)
+		{
+			case TC_Default:
+				SamplerType = SAMPLERTYPE_Color;
+				break;
+			
+			case TC_Normalmap:
+				SamplerType = SAMPLERTYPE_Normal;
+				break;
+
+			case TC_Masks:
+				SamplerType = SAMPLERTYPE_Masks;
+				break;
+
+			case TC_Grayscale:
+				SamplerType = SAMPLERTYPE_LinearGrayscale;
+				break;
+
+			case TC_HDR:
+			case TC_HDR_Compressed:
+			case TC_HalfFloat:
+			case TC_HDR_F32:
+				SamplerType = SAMPLERTYPE_LinearColor;
+				break;
+
+			case TC_Alpha:
+				SamplerType = SAMPLERTYPE_Alpha;
+				break;
+
+			case TC_Displacementmap:
+				SamplerType = SAMPLERTYPE_LinearGrayscale;
+				break;
+
+			case TC_VectorDisplacementmap:
+			case TC_EditorIcon:
+			case TC_DistanceFieldFont:
+			case TC_BC7:
+			case TC_LQ:
+			case TC_EncodedReflectionCapture:
+			case TC_SingleFloat:
+			default:
+				break;
+		}
+	}
 
 	// Record generating parameter.
 	TextureExpression->Desc = GeneratingParameterName;
@@ -1202,8 +1251,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 				OutPackages);
 
 			if (bTextureCreated)
-			{
-				bool bRGB32Texture = TextureDiffuse ? TextureDiffuse->CompressionSettings == TC_HDR_F32 : false;
+			{	
 				FHoudiniMaterialTranslator::CreateTextureExpression(
 					TextureDiffuse,
 					ExpressionTextureSample,
@@ -1211,8 +1259,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDiffuse(
 					false,
 					Material,
 					ObjectFlag,
-					GeneratingParameterNameDiffuseTexture,
-					bRGB32Texture ? SAMPLERTYPE_LinearColor : SAMPLERTYPE_Color);
+					GeneratingParameterNameDiffuseTexture);
 			}
 		}
 	}
@@ -1315,8 +1362,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacityMask(
 					true,
 					Material,
 					ObjectFlag,
-					GeneratingParameterNameTexture,
-					SAMPLERTYPE_Grayscale);
+					GeneratingParameterNameTexture);
 			}
 
 			if (bExpressionCreated)
@@ -1602,8 +1648,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 					true,
 					Material,
 					ObjectFlag,
-					GeneratingParameterName,
-					SAMPLERTYPE_Normal);
+					GeneratingParameterName);
 			}
 		}
 
@@ -1673,8 +1718,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentNormal(
 						true,
 						Material,
 						ObjectFlag,
-						GeneratingParameterName,
-						SAMPLERTYPE_Normal);
+						GeneratingParameterName);
 				}
 			}
 
@@ -1829,8 +1873,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentDisplacement(
 					true,
 					Material,
 					ObjectFlag,
-					GeneratingParameterName,
-					SAMPLERTYPE_LinearColor); //SAMPLERTYPE_Color);				
+					GeneratingParameterName);
 			}
 		}
 
@@ -1953,8 +1996,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOcclusion(
 					true,
 					Material,
 					ObjectFlag,
-					GeneratingParameterName,
-					SAMPLERTYPE_LinearColor); //SAMPLERTYPE_Color);				
+					GeneratingParameterName);
 			}
 		}
 
@@ -2047,8 +2089,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentSpecular(
 					true,
 					Material,
 					ObjectFlag,
-					GeneratingParameterName,
-					SAMPLERTYPE_LinearGrayscale);
+					GeneratingParameterName);
 			}
 		}
 
@@ -2148,8 +2189,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentRoughness(
 					true,
 					Material,
 					ObjectFlag,
-					GeneratingParameterName,
-					SAMPLERTYPE_LinearGrayscale);
+					GeneratingParameterName);
 			}
 		}
 
@@ -2249,8 +2289,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentMetallic(
 					true,
 					Material,
 					ObjectFlag,
-					GeneratingParameterName,
-					SAMPLERTYPE_LinearGrayscale);
+					GeneratingParameterName);
 			}
 		}
 
@@ -2398,7 +2437,6 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 
 			if (bTextureCreated)
 			{
-				bool bRGB32Texture = TextureEmissive ? TextureEmissive->CompressionSettings == TC_HDR_F32 : false;
 				FHoudiniMaterialTranslator::CreateTextureExpression(
 					TextureEmissive,
 					ExpressionTextureSample,
@@ -2406,8 +2444,7 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 					false,
 					Material,
 					ObjectFlag,
-					GeneratingParameterNameEmissiveTexture,
-					bRGB32Texture ? SAMPLERTYPE_LinearColor : SAMPLERTYPE_Color);
+					GeneratingParameterNameEmissiveTexture);
 			}
 		}
 	}
