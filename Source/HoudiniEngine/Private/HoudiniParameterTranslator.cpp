@@ -3239,11 +3239,15 @@ FHoudiniParameterTranslator::UploadParameterToHoudini(UHoudiniParameter* InParam
 
 			// Set the parameter's int value.
 			int SelectionIndex = ChoiceParam->GetChoiceSelection();
-			int IntValue = ChoiceParam->GetIntValues()[SelectionIndex];
-				
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValues(
-				FHoudiniEngine::Get().GetSession(),
-				ChoiceParam->GetNodeId(), &IntValue, ChoiceParam->GetValueIndex(), ChoiceParam->GetTupleSize()), false);
+
+			if (ChoiceParam->GetIntValues().IsValidIndex(SelectionIndex))
+			{
+				int IntValue = ChoiceParam->GetIntValues()[SelectionIndex];
+
+				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValues(
+					FHoudiniEngine::Get().GetSession(),
+					ChoiceParam->GetNodeId(), &IntValue, ChoiceParam->GetValueIndex(), ChoiceParam->GetTupleSize()), false);
+			}
 		}
 		break;
 

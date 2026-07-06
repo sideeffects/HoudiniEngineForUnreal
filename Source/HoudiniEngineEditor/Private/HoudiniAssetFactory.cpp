@@ -201,7 +201,7 @@ UHoudiniAssetFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FNam
 	FString PathToFile = FPaths::GetPath(Filename);
 
 	// Load HDA normally.
-	if (FileExtension.Compare(TEXT("hda"), ESearchCase::IgnoreCase) == 0)
+	if (FileExtension.Compare(TEXT("hdalibrary"), ESearchCase::IgnoreCase) != 0)
 	{
 		return Super::FactoryCreateFile(InClass, InParent, InName, Flags, Filename, Parms, Warn, bOutOperationCanceled);
 	}
