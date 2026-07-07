@@ -84,31 +84,23 @@ FString FHoudiniMeshAutomationTest::GetCollisionTypeName(EHoudiniCollisionType T
 	{
 	case EHoudiniCollisionType::None:
 		return TEXT("");
-		break;
 	case EHoudiniCollisionType::MainMesh:
 		return TEXT("");
-		break;
 	case EHoudiniCollisionType::SimpleBox:
 		return TEXT("simple_box");
-		break;
 	case EHoudiniCollisionType::SimpleSphere:
 		return TEXT("simple_sphere");
-		break;
 	case EHoudiniCollisionType::SimpleCapsule:
 		return TEXT("simple_capsule");
-		break;
 	case EHoudiniCollisionType::Kdop10x:
 		return TEXT("simple_kdop10x");
-		break;
 	case EHoudiniCollisionType::Kdop10y:
 		return TEXT("simple_kdop10y");
-		break;
 	case EHoudiniCollisionType::Kdop10z:
 		return TEXT("simple_kdop10z");
 		break;
 	case EHoudiniCollisionType::Kdop18:
 		return TEXT("simple_kdop18");
-		break;
 	case EHoudiniCollisionType::Kdop26:
 		return TEXT("simple_kdop266");
 	}
