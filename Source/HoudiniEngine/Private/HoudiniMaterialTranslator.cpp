@@ -1134,7 +1134,6 @@ FHoudiniMaterialTranslator::CreateTextureExpression(
 
 	TextureExpression->Texture = Texture;
 	TextureExpression->SamplerType = SamplerType;
-
 	// Assign expression to material.
 	_AddMaterialExpression(Material, TextureExpression);
 	if (SetMatInputExpression)
@@ -1419,38 +1418,6 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 	UMaterialExpressionScalarParameter* ExpressionScalarOpacity = nullptr;
 	UTexture2D* TextureOpacity = nullptr;
 
-	// If opacity sampling expression was not created, check if diffuse contains an alpha plane.
-	if (!ExpressionTextureOpacitySample)
-	{
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
-		UMaterialExpression* MaterialExpressionDiffuse = MaterialEditorOnly->BaseColor.Expression;
-#else
-		UMaterialExpression* MaterialExpressionDiffuse = Material->BaseColor.Expression;
-#endif
-
-		if (MaterialExpressionDiffuse)
-		{
-			// Locate diffuse sampling expression.
-			UMaterialExpressionTextureSampleParameter2D* ExpressionTextureDiffuseSample =
-				Cast<UMaterialExpressionTextureSampleParameter2D>(
-					FHoudiniMaterialTranslator::MaterialLocateExpression(
-						MaterialExpressionDiffuse,
-						UMaterialExpressionTextureSampleParameter2D::StaticClass()));
-
-			// See if there's an alpha plane in this expression's texture.
-			if (ExpressionTextureDiffuseSample)
-			{
-				UTexture2D* DiffuseTexture = Cast<UTexture2D>(ExpressionTextureDiffuseSample->Texture);
-				if (DiffuseTexture && !DiffuseTexture->CompressionNoAlpha)
-				{
-					// The diffuse texture has an alpha channel (that wasn't discarded), so we can use it
-					ExpressionTextureOpacitySample = ExpressionTextureDiffuseSample;
-					bNeedsTranslucency = true;
-				}
-			}
-		}
-	}
-
 	// Name of generating Houdini parameters.
 	FString GeneratingParameterNameScalar = TEXT("");
 	FString GeneratingParameterNameTexture = TEXT("");
@@ -1498,6 +1465,39 @@ FHoudiniMaterialTranslator::CreateMaterialComponentOpacity(
 
 				// If alpha is less than 1, we need translucency.
 				bNeedsTranslucency |= (OpacityValue != 1.0f);
+			}
+		}
+	}
+
+	// If the opacity sampling expression was not created, or was set to 1.0 (default)
+	// check if diffuse contains an alpha plane, and use it for opacity.
+	if (!ExpressionScalarOpacity || !bNeedsTranslucency)
+	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+		UMaterialExpression* MaterialExpressionDiffuse = MaterialEditorOnly->BaseColor.Expression;
+#else
+		UMaterialExpression* MaterialExpressionDiffuse = Material->BaseColor.Expression;
+#endif
+
+		if (MaterialExpressionDiffuse)
+		{
+			// Locate diffuse sampling expression.
+			UMaterialExpressionTextureSampleParameter2D* ExpressionTextureDiffuseSample =
+				Cast<UMaterialExpressionTextureSampleParameter2D>(
+					FHoudiniMaterialTranslator::MaterialLocateExpression(
+						MaterialExpressionDiffuse,
+						UMaterialExpressionTextureSampleParameter2D::StaticClass()));
+
+			// See if there's an alpha plane in this expression's texture.
+			if (ExpressionTextureDiffuseSample)
+			{
+				UTexture2D* DiffuseTexture = Cast<UTexture2D>(ExpressionTextureDiffuseSample->Texture);
+				if (DiffuseTexture && !DiffuseTexture->CompressionNoAlpha)
+				{
+					// The diffuse texture has an alpha channel (that wasn't discarded), so we can use it
+					ExpressionTextureOpacitySample = ExpressionTextureDiffuseSample;
+					bNeedsTranslucency = true;
+				}
 			}
 		}
 	}
