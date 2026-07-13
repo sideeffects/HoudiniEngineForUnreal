@@ -276,7 +276,7 @@ UHoudiniAssetComponent::UHoudiniAssetComponent(const FObjectInitializer & Object
 	// Initialize the default SM Build settings with the plugin's settings default values
 	StaticMeshBuildSettings_DEPRECATED = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 
-	//bWantsOnUpdateTransform = true;
+	bWantsOnUpdateTransform = true;
 
 	bIsPDGAssetLinkInitialized_DEPRECATED = false;
 
