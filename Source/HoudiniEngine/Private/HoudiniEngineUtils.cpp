@@ -3238,7 +3238,7 @@ FHoudiniEngineUtils::UploadCookableTransform(UHoudiniCookable* HC)
 	if (!HC->IsFullyLoaded())
 		return false;
 
-	if (HC->CookCount > 0 && HC->GetNodeId() >= 0)
+	if (HC->GetNodeId() >= 0)
 	{
 		if (!FHoudiniEngineUtils::HapiSetAssetTransform(HC->GetNodeId(), HC->ComponentData->Component->GetComponentTransform()))
 			return false;
