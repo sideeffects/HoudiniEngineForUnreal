@@ -3448,7 +3448,6 @@ FHoudiniEngineDetails::AddHeaderRowForHoudiniPDGAssetLink(IDetailCategoryBuilder
 		{
 			case HOUDINI_ENGINE_UI_SECTION_BAKE:
 				return FText::FromString(HOUDINI_ENGINE_UI_SECTION_BAKE_HEADER_TEXT);
-			break;
 		}
 		return FText::FromString("");
 	};

@@ -193,10 +193,8 @@ struct FHoudiniTool
 		{
 			case EHoudiniPackageToolType::HoudiniAsset:
 				return HoudiniAsset.LoadSynchronous();
-				break;
 			case EHoudiniPackageToolType::Preset:
 				return HoudiniPreset.LoadSynchronous();
-				break;
 			default: ;
 		}
 		return nullptr;
@@ -208,10 +206,8 @@ struct FHoudiniTool
 		{
 			case EHoudiniPackageToolType::HoudiniAsset:
 				return UHoudiniAsset::StaticClass();
-				break;
 			case EHoudiniPackageToolType::Preset:
 				return UHoudiniPreset::StaticClass();
-				break;
 			default: ;
 		}
 		return nullptr;

@@ -1216,7 +1216,6 @@ UHoudiniAssetBlueprintComponent::IsInputTypeSupported(EHoudiniInputType InType) 
 		case EHoudiniInputType::Geometry:
 		case EHoudiniInputType::Curve:
 			return true;
-			break;
 
 		default:
 			break;
@@ -1232,7 +1231,6 @@ UHoudiniAssetBlueprintComponent::IsOutputTypeSupported(EHoudiniOutputType InType
 		case EHoudiniOutputType::Mesh:
 		case EHoudiniOutputType::Instancer:
 			return true;
-			break;
 		default:
 			break;
 	}

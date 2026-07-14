@@ -295,7 +295,6 @@ SSelectHoudiniPathDialog::FillHoudiniNodeInfo(FHoudiniNodeInfoPtr InNodeInfo)
 	case HAPI_NODETYPE_NONE:
 		InNodeInfo->NodeType = TEXT("INVALID");
 		return;
-		break;
 
 	case HAPI_NODETYPE_OBJ:
 		InNodeInfo->NodeType = TEXT("OBJ");
@@ -495,4 +494,3 @@ SSelectHoudiniPathDialog::OnButtonClick(EAppReturnType::Type ButtonID)
 }
 
 #undef LOCTEXT_NAMESPACE
-
