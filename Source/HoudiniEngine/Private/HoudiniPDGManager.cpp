@@ -2416,9 +2416,8 @@ bool FHoudiniPDGManager::CreateBGEOCommandletAndEndpoint()
 		const UHoudiniRuntimeSettings* HoudiniRuntimeSettings = GetDefault<UHoudiniRuntimeSettings>();
 		if (HoudiniRuntimeSettings->bSendCommandletOutputToConsole)
 		{
-			FPlatformProcess::CreatePipe(BGEOReadPipe, BGEOWritePipe, true);
-			FPlatformProcess::ClosePipe(BGEOWritePipe, nullptr);
-			BGEOWritePipe = nullptr;
+			// Keep the read end local and let the child inherit the write end for stdout/stderr.
+			FPlatformProcess::CreatePipe(BGEOReadPipe, BGEOWritePipe, false);
 		}
 		else
 		{
@@ -2436,13 +2435,15 @@ bool FHoudiniPDGManager::CreateBGEOCommandletAndEndpoint()
 			0,
 			nullptr,
 			BGEOWritePipe,
-			BGEOReadPipe);
+			nullptr);
 
-
-
+		if (BGEOWritePipe)
+		{
+			FPlatformProcess::ClosePipe(nullptr, BGEOWritePipe);
+			BGEOWritePipe = nullptr;
+		}
 		if (!BGEOCommandletProcHandle.IsValid())
 		{
-
 			FPlatformProcess::ClosePipe(BGEOReadPipe, nullptr);
 			BGEOReadPipe = nullptr;
 			return false;

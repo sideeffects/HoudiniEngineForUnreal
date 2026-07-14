@@ -249,7 +249,7 @@ protected:
 		UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category = Session, meta = (DisplayName = "Sync the Houdini Viewport to Unreal's viewport.", EditCondition = "bSyncViewport"))
 		bool bSyncHoudiniViewport;
 
-		// Enable when wanting to sync the Houdini and Unreal viewport when using Session Sync.
+		// Enable to send PDG commandlet output to the main Unreal process.
 		UPROPERTY(GlobalConfig, EditAnywhere, AdvancedDisplay, Category = Session)
 		bool bSendCommandletOutputToConsole;
 
