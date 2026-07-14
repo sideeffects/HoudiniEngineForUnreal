@@ -125,32 +125,36 @@ FHoudiniLatentTestCommand::IsTimedOut(FHoudiniTestContext* Context)
 	double DeltaTime = FPlatformTime::Seconds() - Context->TimeStarted;
 	if(DeltaTime > Context->MaxTime)
 	{
-		Context->Test->AddError(FString::Printf(TEXT("***************** Test timed out After %.2f seconds*************"), DeltaTime));
-
-		const EHoudiniBGEOCommandletStatus Status = FHoudiniEngine::Get().GetPDGCommandletStatus();
-
-		FString CommandletStatus;
-		switch (Status)
+		if(!bHasTimedOut)
 		{
-		case EHoudiniBGEOCommandletStatus::NotStarted:
-			CommandletStatus = TEXT("Not Started");
-			break;
-		case EHoudiniBGEOCommandletStatus::Running:
-			CommandletStatus = TEXT("Running");
-			break;
-		case EHoudiniBGEOCommandletStatus::Connected:
-			CommandletStatus = TEXT("Connected");
-			break;
+			bHasTimedOut = true;
+			Context->Test->AddError(FString::Printf(TEXT("***************** Test timed out After %.2f seconds*************"), DeltaTime));
 
-		case EHoudiniBGEOCommandletStatus::Crashed:
-			CommandletStatus = TEXT("Crashed");
-			break;
-		default:
-			CommandletStatus = TEXT("Unknown");
-			break;
+			const EHoudiniBGEOCommandletStatus Status = FHoudiniEngine::Get().GetPDGCommandletStatus();
+
+			FString CommandletStatus;
+			switch (Status)
+			{
+			case EHoudiniBGEOCommandletStatus::NotStarted:
+				CommandletStatus = TEXT("Not Started");
+				break;
+			case EHoudiniBGEOCommandletStatus::Running:
+				CommandletStatus = TEXT("Running");
+				break;
+			case EHoudiniBGEOCommandletStatus::Connected:
+				CommandletStatus = TEXT("Connected");
+				break;
+
+			case EHoudiniBGEOCommandletStatus::Crashed:
+				CommandletStatus = TEXT("Crashed");
+				break;
+			default:
+				CommandletStatus = TEXT("Unknown");
+				break;
+			}
+
+			Context->Test->AddError(FString::Printf(TEXT("**** Commandlet Status: %s"), *CommandletStatus));
 		}
-
-		Context->Test->AddError(FString::Printf(TEXT("**** Commandlet Status: %s"), *CommandletStatus));
 
 		return true;
 	}

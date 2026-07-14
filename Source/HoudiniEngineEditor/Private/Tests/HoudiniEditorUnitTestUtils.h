@@ -466,6 +466,7 @@ public:
 
 	TSharedPtr<FHoudiniTestContext> SingleContext;
 	TSharedPtr<FHoudiniMultiTestContext> MultiContext;
+	bool bHasTimedOut = false;
 
 	// Like its base class, return true when the command is complete, false when it should be called again.
 	virtual bool Update() override;
