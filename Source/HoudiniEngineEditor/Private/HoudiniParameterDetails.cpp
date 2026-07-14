@@ -3568,15 +3568,22 @@ FHoudiniParameterView::CreateWidgetFile(
 	{
 		FString FileWidgetPath = MainParam->GetValueAt(Idx);
 		FString FileWidgetBrowsePath = BrowseWidgetDirectory;
+		const bool IsDirectoryPicker = MainParam->GetParameterType() == EHoudiniParameterType::FileDir;
 
 		if(!FileWidgetPath.IsEmpty())
 		{
-			FString FileWidgetDirPath = FPaths::GetPath(FileWidgetPath);
-			if(!FileWidgetDirPath.IsEmpty())
-				FileWidgetBrowsePath = FileWidgetDirPath;
+			if (IsDirectoryPicker)
+			{
+				FileWidgetBrowsePath = FileWidgetPath;
+			}
+			else
+			{
+				FString FileWidgetDirPath = FPaths::GetPath(FileWidgetPath);
+				if(!FileWidgetDirPath.IsEmpty())
+					FileWidgetBrowsePath = FileWidgetDirPath;
+			}
 		}
 
-		bool IsDirectoryPicker = MainParam->GetParameterType() == EHoudiniParameterType::FileDir;
 		bool bIsNewFile = !MainParam->IsReadOnly();
 
 		FText BrowseTooltip = LOCTEXT("FileButtonToolTipText", "Choose a file from this computer");

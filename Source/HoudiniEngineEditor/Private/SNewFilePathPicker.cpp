@@ -38,6 +38,34 @@
 
 #define LOCTEXT_NAMESPACE "SNewFilePathPicker"
 
+namespace
+{
+	FString GetDialogDefaultDirectory(const FString& InPath, const bool bTreatAsDirectory)
+	{
+		FString NormalizedPath = InPath;
+		NormalizedPath.TrimStartAndEndInline();
+		if (NormalizedPath.IsEmpty())
+		{
+			return NormalizedPath;
+		}
+
+		FPaths::NormalizeFilename(NormalizedPath);
+
+		if (bTreatAsDirectory)
+		{
+			if (FPaths::FileExists(NormalizedPath))
+			{
+				return FPaths::GetPath(NormalizedPath);
+			}
+
+			return NormalizedPath;
+		}
+
+		const FString ParentDirectory = FPaths::GetPath(NormalizedPath);
+		return ParentDirectory.IsEmpty() ? NormalizedPath : ParentDirectory;
+	}
+}
+
 /* SNewFilePathPicker interface
  *****************************************************************************/
 
@@ -292,8 +320,8 @@ FReply SNewFilePathPicker::HandleBrowseButtonClicked()
 	}
 
 	const FString DefaultPath = BrowseDirectory.IsSet()
-		? BrowseDirectory.Get()
-		: FPaths::GetPath(FilePath.Get());
+		? GetDialogDefaultDirectory(BrowseDirectory.Get(), true)
+		: GetDialogDefaultDirectory(FilePath.Get(), IsDirectoryPicker.Get());
 
 	// show the file browse dialog
 	if (!FSlateApplication::IsInitialized())
@@ -348,4 +376,3 @@ void SNewFilePathPicker::HandleTextBoxTextCommitted( const FText& NewText, EText
 }
 
 #undef LOCTEXT_NAMESPACE
-
