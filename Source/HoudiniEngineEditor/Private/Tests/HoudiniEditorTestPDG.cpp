@@ -62,7 +62,7 @@ bool FHoudiniEditorTestPDGCommandletMesh::RunTest(const FString& Parameters)
 	// Now create the test context.
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPDG::TestMeshHDA, FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
-	Context->MaxTime = 240.0;
+	Context->MaxTime = 30.0;
 	Context->SetProxyMeshEnabled(false);
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
@@ -171,7 +171,7 @@ bool FHoudiniEditorTestPDGCommandletMeshInternalMaterials::RunTest(const FString
 	// Now create the test context.
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPDG::TestMeshHDA, FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
-	Context->MaxTime = 240.0;
+	Context->MaxTime = 30.0;
 	Context->SetProxyMeshEnabled(false);
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
@@ -272,7 +272,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGTwoOutputsCommandl
 	// Now create the test context.
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, FHoudiniEditorTestPDG::TwoOutputsHDA, FTransform::Identity, false));
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
-	Context->MaxTime = 240.0;
+	Context->MaxTime = 30.0;
 	Context->SetProxyMeshEnabled(false);
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()

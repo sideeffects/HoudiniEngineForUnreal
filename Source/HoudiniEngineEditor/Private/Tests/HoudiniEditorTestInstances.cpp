@@ -1400,7 +1400,7 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 
 	// Now create the test context.
 	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, PDGHDA, FTransform::Identity, false));
-	Context->MaxTime = 240.0;
+	Context->MaxTime = 30.0;
 
 	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
 

@@ -421,7 +421,7 @@ struct FHoudiniTestContext
 	// Bakes the top network. Synchronous, returns the baked actors.
 	TArray<FHoudiniEngineBakedActor> BakeSelectedTopNetwork();
 
-	double MaxTime = 120.0f;					// Max time (seconds) this test can run.
+	double MaxTime = 30.0f;						// Max time (seconds) this test can run.
 	double TimeStarted = 0.0f;					// Time this test started. Used to test for timeout.
 
 	FAutomationTestBase* Test = nullptr;		// Unit test underway
