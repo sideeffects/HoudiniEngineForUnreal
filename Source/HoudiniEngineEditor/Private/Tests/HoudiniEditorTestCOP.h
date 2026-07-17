@@ -29,6 +29,8 @@
 
 #include "CoreMinimal.h"
 
+class UTexture2D;
+
 class FHoudiniEditorTestCOP
 {
 public:

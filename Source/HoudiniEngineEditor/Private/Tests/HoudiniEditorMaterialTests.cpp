@@ -26,6 +26,8 @@
 
 #include "HoudiniEditorMaterialTests.h"
 
+#include "HoudiniEngineRuntimePrivatePCH.h"
+
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "HoudiniCookable.h"

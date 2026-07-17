@@ -28,7 +28,8 @@
 
 #include "HoudiniEditorTestCOP.h"
 #include "HoudiniCookable.h"
-//#include "HoudiniParameterToggle.h"
+
+#include "HoudiniEngineRuntimePrivatePCH.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 #include "HoudiniEditorTestUtils.h"
