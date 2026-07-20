@@ -1,6 +1,6 @@
 # Houdini Engine for Unreal - Version 3
 
-> The source code in this branch is intended to be used with Unreal Engine 5.7, 5.6 and 5.5, but should also be compatible with earlier versions of UE5.
+> The source code in this branch is intended to be used with Unreal Engine 5.8, 5.7 and 5.6, but should also be compatible with earlier versions of UE5.
 
 Welcome to the repository for the Houdini Engine For Unreal Plugin.
 
@@ -16,15 +16,15 @@ Please send bug reports, feature requests and questions to [Side FX's support](h
 
 # Compatibility
 
-Currently, the plugins has [binaries](https://github.com/sideeffects/HoudiniEngineForUnreal/releases) that have been built for UE5.6, UE5.5, and is linked with the latest production build of Houdini.
+Currently, the plugins has [binaries](https://github.com/sideeffects/HoudiniEngineForUnreal/releases) that have been built for UE5.8, UE5.7, and is linked with the latest production build of Houdini.
 
 Source code for the plugin is available on this repository for UE5.
 
-> Please note that all UE5.X versions of the plugin use the same source files/branches, the sources in the 5.0 branch are also intended to be used with more recent versions of the plugin (ie 5.6 , 5.5 etc.)
+> Please note that all UE5.X versions of the plugin use the same source files/branches, the sources in the 5.0 branch are also intended to be used with more recent versions of the plugin (ie 5.8 , 5.7 etc.)
 
 In general, we support the latest two releases of UE5.X, but will try to make the source code compatible with previous versions of Unreal.
 
-> For Houdini 21.0 - there is now two versions of the plugins: one with PCG support and one without PCG. Supporting PCG means that the Houdini Engine plugin now needs to depend on the PCG plugin, which is still considered experimental by Epic. We provide both versions of the plugin with your Houdini install and on this repo's release page, but the source code available here is with PCG support enabled. If you want to use the source code available here but would like to disable the PCG dependency, instructions are provided at the bottom of this page.
+> As PCG was officially released in UE5.7 - there is no longer two versions of the plugin, one with PCG support and one without. Previous versions of the plugin (H21.0 - UE5.6 and under) provided both versions of the plugin. The source code available on this repository is with PCG support enabled. If you want to use the source code available here but would like to disable the PCG dependency, instructions are provided at the bottom of this page.
 
 # Installing the plugin
 
@@ -34,7 +34,7 @@ Windows/Mac OS:
 02. Download the Houdini Engine version zip file that matches your Houdini version.  
 03. Extract the **HoudiniEngine** folder to the **Plugins\Runtime** of your Unreal Directory. You can either copy it to Unreal's engine version directory or your Unreal project directory.
 
-    When installing the plugin to the engine, you want the final path to be: `PATH\TO\UE_5.X\Engine\Plugins\Runtime\HoudiniEngine` and when installing to an unral project `PATH\TO\PROJECT\Plugins\HoudiniEngine`
+    When installing the plugin to the engine, you want the final path to be: `PATH\TO\UE_5.X\Engine\Plugins\Runtime\HoudiniEngine` and when installing to an unreal project `PATH\TO\PROJECT\Plugins\HoudiniEngine`
 
     **Note: For Unreal Engine 5, if you're using the Epic Games Launcher version of Unreal and are not building from source, we recommend you use Unreal's project directory.** 
 	
