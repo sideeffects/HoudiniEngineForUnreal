@@ -221,7 +221,7 @@ TArray<FString> GetCollisionGroups(HAPI_NodeId NodeId)
 
 	TArray<FString> CollisionGroupNames;
 
-	for (const FString GroupName : GroupNames)
+	for (const FString& GroupName : GroupNames)
 	{
 		if (GroupName.StartsWith(TEXT("collision")))
 		{
@@ -590,7 +590,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_NaniteMeshes, "
 			{
 				HAPI_NodeId NodeId = NaniteMesh->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
 
-				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
 
 				// We should have 1 LOD, 755677 prims
 				int NumPrimitives = GetPrimitiveCount(NodeId);
@@ -616,7 +616,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_NaniteMeshes, "
 			{
 				HAPI_NodeId NodeId = NaniteMesh_Fallback->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
 
-				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
 
 				// We should have 1 LOD, different number of prims depending on Unreal version.
 
@@ -643,7 +643,7 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_NaniteMeshes, "
 			{
 				HAPI_NodeId NodeId = NaniteMesh_MaterialParams->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
 
-				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
 
 				// We should have 1 LOD, 755677 prims
 				int LODPrimitiveCount = GetPrimitiveCount(NodeId);
