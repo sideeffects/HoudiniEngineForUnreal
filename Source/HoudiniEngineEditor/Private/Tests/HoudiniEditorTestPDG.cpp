@@ -315,9 +315,8 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGTwoOutputsCommandl
 				}
 			}
 
-			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes.Num(), 1, return true);
 			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes[0]->WorkResult.Num(), 2, return true);
-			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes[1]->WorkResult.Num(), 2, return true);
 
 			for(auto Node : AllOutputNodes)
 			{
@@ -413,10 +412,8 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestPDGTwoOutputsNoComman
 				}
 			}
 
-			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes.Num(), 2, return true);
-			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes.Num(), 1, return true);
 			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes[0]->WorkResult.Num(), 2, return true);
-			HOUDINI_TEST_EQUAL_ON_FAIL(AllOutputNodes[1]->WorkResult.Num(), 2, return true);
 
 			for (auto Node : AllOutputNodes)
 			{

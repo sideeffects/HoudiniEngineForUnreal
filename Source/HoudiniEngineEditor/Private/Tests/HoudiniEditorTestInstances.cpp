@@ -1393,91 +1393,99 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/// Make sure we have a Houdini Session before doing anything.
-	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
-
-	FHoudiniEngineCommands::SetPDGCommandletEnabled(true);
-	FHoudiniEngineCommands::StartPDGCommandlet();
-
-	// Now create the test context.
-	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, PDGHDA, FTransform::Identity, false));
-	Context->MaxTime = 30.0;
-
-	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
-
-	Context->SetProxyMeshEnabled(true);
-
-
-	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(
+		this,
+		FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName,
+		[this]()
 		{
-			return FHoudiniEngine::Get().IsPDGCommandletConnected();
-		}));
-
-	// HDA Path and kick Cook.
-	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
-		{
-			FString TempDir = FPaths::ProjectIntermediateDir() / "Temp";
-			SET_HDA_PARAMETER(Context, UHoudiniParameterString, "working_dir", TempDir, 0);
-
-			Context->StartCookingHDA();
-			return true;
-		}));
-
-	// kick PDG Cook.
-	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
-		{
-			UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
-			if(!AssetLink)
-				return false;
-
-			Context->StartCookingSelectedTOPNetwork();
-			return true;
-		}));
-
-	// Bake and check results.
-	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
-		{
-			UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
-			UTOPNetwork* Network = AssetLink->GetTOPNetwork(0);
-			HOUDINI_TEST_NOT_NULL(Network);
-
-			UTOPNode* Node = nullptr;
-			for (UTOPNode* It : Network->AllTOPNodes)
+			auto StopPDGCommandlet = []()
 			{
-				if (It->NodeName == "HE_OUT_X")
+				FHoudiniEngineCommands::StopPDGCommandlet();
+				FHoudiniEngineCommands::SetPDGCommandletEnabled(false);
+			};
+
+			FHoudiniEngineCommands::SetPDGCommandletEnabled(true);
+			FHoudiniEngineCommands::StartPDGCommandlet();
+
+			// Now create the test context.
+			TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, PDGHDA, FTransform::Identity, false));
+			Context->MaxTime = 30.0;
+
+			HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, StopPDGCommandlet(); return);
+
+			Context->SetProxyMeshEnabled(true);
+
+			AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
 				{
-					Node = It;
-					break;
-				}
-			}
-			HOUDINI_TEST_NOT_NULL(Node);
-			if (!Node)
-				return false;
+					return FHoudiniEngine::Get().IsPDGCommandletConnected();
+				}));
 
-			HOUDINI_TEST_EQUAL_ON_FAIL(Node->WorkResult.Num(), 10, return true);
+			// HDA Path and kick Cook.
+			AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+				{
+					FString TempDir = FPaths::ProjectIntermediateDir() / "Temp";
+					SET_HDA_PARAMETER(Context, UHoudiniParameterString, "working_dir", TempDir, 0);
 
+					Context->StartCookingHDA();
+					return true;
+				}));
 
-			for (auto& Result : Node->WorkResult)
-			{
-				auto ResultOutputs = Result.ResultObjects[0].GetResultOutputs();
-				HOUDINI_TEST_EQUAL_ON_FAIL(ResultOutputs.Num(), 1, return true);
+			// kick PDG Cook.
+			AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+				{
+					UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
+					if(!AssetLink)
+						return false;
 
-				UHoudiniOutput* Output = ResultOutputs[0];
+					Context->StartCookingSelectedTOPNetwork();
+					return true;
+				}));
 
-				TArray<FHoudiniOutputObject> OutputObjects;
-				Output->GetOutputObjects().GenerateValueArray(OutputObjects);
+			// Bake and check results.
+			AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, StopPDGCommandlet]()
+				{
+					UHoudiniPDGAssetLink* AssetLink = Context->GetPDGAssetLink();
+					UTOPNetwork* Network = AssetLink->GetTOPNetwork(0);
+					HOUDINI_TEST_NOT_NULL(Network);
 
-				HOUDINI_TEST_EQUAL_ON_FAIL(OutputObjects.Num(), 1, return true);
+					UTOPNode* Node = nullptr;
+					for (UTOPNode* It : Network->AllTOPNodes)
+					{
+						if (It->NodeName == "HE_OUT_X")
+						{
+							Node = It;
+							break;
+						}
+					}
+					HOUDINI_TEST_NOT_NULL(Node);
+					if (!Node)
+						return false;
 
-				const FHoudiniOutputObject& OutputObject = OutputObjects[0];
+					HOUDINI_TEST_EQUAL_ON_FAIL(Node->WorkResult.Num(), 10, StopPDGCommandlet(); return true);
 
-				HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents.Num(), 1, return true);
-				HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents[0]->IsA(UInstancedStaticMeshComponent::StaticClass()), 1, return true);
-			}
+					for (auto& Result : Node->WorkResult)
+					{
+						auto ResultOutputs = Result.ResultObjects[0].GetResultOutputs();
+						HOUDINI_TEST_EQUAL_ON_FAIL(ResultOutputs.Num(), 1, StopPDGCommandlet(); return true);
 
-			FHoudiniEngineCommands::StopPDGCommandlet();
-			FHoudiniEngineCommands::SetPDGCommandletEnabled(false);
-			return true;
-		}));
+						UHoudiniOutput* Output = ResultOutputs[0];
+
+						TArray<FHoudiniOutputObject> OutputObjects;
+						Output->GetOutputObjects().GenerateValueArray(OutputObjects);
+
+						HOUDINI_TEST_EQUAL_ON_FAIL(OutputObjects.Num(), 1, StopPDGCommandlet(); return true);
+
+						const FHoudiniOutputObject& OutputObject = OutputObjects[0];
+
+						HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents.Num(), 1, StopPDGCommandlet(); return true);
+						HOUDINI_TEST_EQUAL_ON_FAIL(OutputObject.OutputComponents[0]->IsA(UInstancedStaticMeshComponent::StaticClass()), 1, StopPDGCommandlet(); return true);
+					}
+
+					StopPDGCommandlet();
+					return true;
+				}));
+		},
+		{});
 
 	return true;
 }
@@ -1957,4 +1965,3 @@ IMPLEMENT_SIMPLE_CLASS_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestNotPackedInstan
 
 
 #endif
-
