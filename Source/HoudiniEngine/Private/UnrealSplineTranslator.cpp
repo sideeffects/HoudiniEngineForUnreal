@@ -33,8 +33,6 @@
 #include "HoudiniSplineTranslator.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputUtils.h"
-#include "UnrealObjectInputRuntimeUtils.h"
-
 #include "Components/SplineComponent.h"
 
 
@@ -65,13 +63,14 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 		FUnrealObjectInputOptions Options;
 		Options.UnrealSplineResolution = SplineResolution;
 		Options.bUseLegacyInputCurves = bInUseLegacyInputCurves;
-		Identifier = FUnrealObjectInputIdentifier(SplineComponent, Options, true);
+		Identifier = FUnrealObjectInputIdentifier(SplineComponent, Options, EUnrealObjectInputNodeType::Leaf);
 
 		FUnrealObjectInputHandle Handle;
 		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId) && FUnrealObjectInputUtils::AreReferencedHAPINodesValid(Handle))
+			NodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
+			if (Handle.IsValid() && FUnrealObjectInputUtils::AreReferencedHAPINodesValid(Handle))
 			{
 				if (!bInputNodesCanBeDeleted)
 				{
@@ -85,18 +84,17 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 			}
 		}
 
-		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FinalInputNodeName = FUnrealObjectInputManager::Get().GetDefaultNodeName(Identifier);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputManager::Get().EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			ParentNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ParentHandle);
 
 		// Set CreatedInputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
 		// (Option changes could mean that CreatedInputNodeId is associated with a completely different entry, albeit for
 		// the same asset, in the manager)
 		if (Handle.IsValid())
 		{
-			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedInputNodeId))
-				CreatedInputNodeId = -1;
+			CreatedInputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 		}
 		else
 		{
@@ -111,8 +109,7 @@ FUnrealSplineTranslator::CreateInputNodeForSplineComponent(
 		// the same asset, in the manager)
 		if (Handle.IsValid())
 		{
-			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, CreatedInputNodeId))
-				CreatedInputNodeId = -1;
+			CreatedInputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 		}
 		else
 		{

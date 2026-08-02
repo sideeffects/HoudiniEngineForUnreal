@@ -32,9 +32,9 @@
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniInputTypes.h"
 #include "HoudiniSkeletalMeshUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
-#include "UnrealObjectInputRuntimeUtils.h"
 #include "UnrealObjectInputUtils.h"
 #include "UnrealMeshTranslator.h"
 
@@ -88,15 +88,106 @@ GetComponentSpaceTransforms(TArray<FTransform>& OutResult, const FReferenceSkele
 }
 
 bool
+FUnrealSkeletalMeshTranslator::BuildMeshInputObjectIdentifiers(
+	const USkeletalMesh* InSkeletalMesh,
+	const FHoudiniInputObjectSettings& ExportOptions,
+	const bool bForceCreateReferenceNode,
+	bool& bOutSingleLeafNodeOnly,
+	FUnrealObjectInputOptions& OutReferenceNode,
+	TArray<FUnrealObjectInputOptions>& OutPerOptionIdentifiers)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FUnrealSkeletalMeshTranslator::BuildMeshInputObjectIdentifiers);
+
+	FUnrealObjectInputOptions DefaultOptions;
+	DefaultOptions.bImportAsReference = false;
+	DefaultOptions.bImportAsReferenceRotScaleEnabled = false;
+	DefaultOptions.bExportLODs = false;
+	DefaultOptions.bExportSockets = false;
+	DefaultOptions.bExportColliders = false;
+	DefaultOptions.bMainMeshIsNaniteFallbackMesh = false;
+	DefaultOptions.bExportMaterialParameters = ExportOptions.bExportMaterialParameters;
+
+	const bool bEffectiveMainMeshIsNaniteFallbackMesh =
+		ExportOptions.bPreferNaniteFallbackMesh && (ExportOptions.bExportMainGeometry || ExportOptions.bExportLODs);
+
+	uint32 NumLeaves = 0;
+	if (ExportOptions.bExportMainGeometry)
+		NumLeaves++;
+	if (ExportOptions.bExportLODs)
+		NumLeaves++;
+	if (ExportOptions.bExportSockets)
+		NumLeaves++;
+	if (ExportOptions.bExportColliders)
+		NumLeaves++;
+	if (NumLeaves <= 1 && !bForceCreateReferenceNode)
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportLODs = ExportOptions.bExportLODs;
+		Options.bExportSockets = ExportOptions.bExportSockets;
+		Options.bExportColliders = ExportOptions.bExportColliders;
+		Options.bMainMeshIsNaniteFallbackMesh = bEffectiveMainMeshIsNaniteFallbackMesh;
+
+		bOutSingleLeafNodeOnly = true;
+		OutReferenceNode = FUnrealObjectInputOptions();
+		OutPerOptionIdentifiers = { Options };
+		return true;
+	}
+
+	bOutSingleLeafNodeOnly = false;
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportLODs = ExportOptions.bExportLODs;
+		Options.bExportSockets = ExportOptions.bExportSockets;
+		Options.bExportColliders = ExportOptions.bExportColliders;
+		Options.bMainMeshIsNaniteFallbackMesh = bEffectiveMainMeshIsNaniteFallbackMesh;
+
+		OutReferenceNode = Options;
+	}
+
+	TArray<FUnrealObjectInputOptions> PerOptionIdentifiers;
+	if (ExportOptions.bExportMainGeometry)
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bMainMeshIsNaniteFallbackMesh = bEffectiveMainMeshIsNaniteFallbackMesh;
+		// TODO: add a specific main mesh option?
+		PerOptionIdentifiers.Add(Options);
+	}
+
+	if (ExportOptions.bExportLODs)
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportLODs = true;
+		Options.bMainMeshIsNaniteFallbackMesh = bEffectiveMainMeshIsNaniteFallbackMesh;
+		PerOptionIdentifiers.Add(Options);
+	}
+
+	if (ExportOptions.bExportSockets)
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportSockets = true;
+		PerOptionIdentifiers.Add(Options);
+	}
+
+	if (ExportOptions.bExportColliders)
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportColliders = true;
+		PerOptionIdentifiers.Add(Options);
+	}
+
+	OutPerOptionIdentifiers = MoveTemp(PerOptionIdentifiers);
+	return true;
+}
+
+bool
 FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 	USkeletalMesh* SkeletalMesh,
 	HAPI_NodeId& InputNodeId,
 	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
 	USkeletalMeshComponent* SkeletalMeshComponent /*=nullptr*/,
-	const FUnrealMeshExportOptions& ExportOptions,
-	const bool& bInputNodesCanBeDeleted /*=true*/,
-	const bool& bExportMaterialParameters /*= false*/)
+	const FHoudiniInputObjectSettings& ExportOptions,
+	const bool& bInputNodesCanBeDeleted /*=true*/)
 {
 	// Create nodes for the mesh data
 	FUnrealObjectInputHandle SKMeshHandle;
@@ -107,8 +198,7 @@ FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 			SKMeshHandle,
 			SkeletalMeshComponent /*=nullptr*/,
 			ExportOptions,
-			bInputNodesCanBeDeleted /*=true*/,
-			bExportMaterialParameters /*= false*/))
+			bInputNodesCanBeDeleted /*=true*/))
 	{
 		return false;
 	}
@@ -132,13 +222,30 @@ FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 		}
 
 		// Build the identifier for the reference node that represents the full SKMesh with capture pose
-		FUnrealObjectInputOptions Options = SKMeshHandle.GetIdentifier().GetOptions();
+		bool bSingleLeafNodeOnly = false;
+		FUnrealObjectInputOptions ReferenceNodeOptions;
+		TArray<FUnrealObjectInputOptions> PerOptionInputOptions;
+		static constexpr bool bForceCreateInputRefNode = false;
+		if (!BuildMeshInputObjectIdentifiers(
+				SkeletalMesh,
+				ExportOptions,
+				bForceCreateInputRefNode,
+				bSingleLeafNodeOnly,
+				ReferenceNodeOptions,
+				PerOptionInputOptions))
+		{
+			return false;
+		}
+
+		FUnrealObjectInputOptions Options = bSingleLeafNodeOnly
+			? PerOptionInputOptions[0]
+			: ReferenceNodeOptions;
 		Options.AddBoolOption(TEXT("bCapturePose"), true);
-		FUnrealObjectInputIdentifier Identifier(SkeletalMesh, Options, false);
+		FUnrealObjectInputIdentifier Identifier(SkeletalMesh, Options, EUnrealObjectInputNodeType::LeafWithReferences);
 		FUnrealObjectInputHandle RefNodeHandle;
 		// Check if the exists in the manager and get the HAPI NodeId for it (if valid)
-		if (FUnrealObjectInputUtils::FindNodeViaManager(Identifier, RefNodeHandle))
-			FUnrealObjectInputUtils::GetHAPINodeId(RefNodeHandle, PackFolderNodeId);
+		if (FUnrealObjectInputManager::Get().FindNode(Identifier, RefNodeHandle))
+			PackFolderNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(RefNodeHandle);
 
 		FUnrealObjectInputHandle ParentHandle;
 		HAPI_NodeId ParentNodeId = -1;
@@ -148,10 +255,10 @@ FUnrealSkeletalMeshTranslator::HapiCreateInputNodeForSkeletalMesh(
 		if (PackFolderNodeId < 0)
 		{
 			FString FinalInputNodeName = InputNodeName + TEXT("_packed");
-			FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+			FinalInputNodeName = FUnrealObjectInputManager::Get().GetDefaultNodeName(Identifier);
 			// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-			if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-				FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+			if (FUnrealObjectInputManager::Get().EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+				ParentNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ParentHandle);
 			
 			// Create geo object node
 			HOUDINI_CHECK_ERROR_RETURN(
@@ -215,9 +322,8 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
 	USkeletalMeshComponent* SkeletalMeshComponent /*=nullptr*/,
-	const FUnrealMeshExportOptions& ExportOptions,
-	const bool& bInputNodesCanBeDeleted /*=true*/,
-	const bool& bExportMaterialParameters /*= false*/)
+	const FHoudiniInputObjectSettings& ExportOptions,
+	const bool& bInputNodesCanBeDeleted /*=true*/)
 {
 	// If we don't have a skeletal mesh there's nothing to do.
 	if (!IsValid(SkeletalMesh))
@@ -237,33 +343,32 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 		// Check if we already have an input node for this asset
 		static constexpr bool bForceCreateInputRefNode = false;
 		bool bSingleLeafNodeOnly = false;
-		FUnrealObjectInputIdentifier IdentReferenceNode;
-		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
-		static constexpr bool bMainMeshIsNaniteFallbackMesh = false;
+		FUnrealObjectInputOptions ReferenceNodeOptions;
+		TArray<FUnrealObjectInputOptions> PerOptionInputOptions;
 
 
-		if (!FUnrealObjectInputUtils::BuildMeshInputObjectIdentifiers(
+		if (!BuildMeshInputObjectIdentifiers(
 			SkeletalMesh,
 			ExportOptions,
-			bMainMeshIsNaniteFallbackMesh,
-			bExportMaterialParameters,
 			bForceCreateInputRefNode,
 			bSingleLeafNodeOnly,
-			IdentReferenceNode,
-			IdentPerOption))
+			ReferenceNodeOptions,
+			PerOptionInputOptions))
 		{
 			return false;
 		}
 
+		FUnrealObjectInputIdentifier IdentReferenceNode;
 		if (bSingleLeafNodeOnly)
 		{
 			// We'll create the skeletal mesh input node entirely is this function call
-			check(!IdentPerOption.IsEmpty());
-			Identifier = IdentPerOption[0];
+			check(!PerOptionInputOptions.IsEmpty());
+			Identifier = FUnrealObjectInputIdentifier(SkeletalMesh, PerOptionInputOptions[0], EUnrealObjectInputNodeType::Leaf);
 		}
 		else
 		{
 			// Look for the reference node that references the per-option (LODs, colliders) nodes
+			IdentReferenceNode = FUnrealObjectInputIdentifier(SkeletalMesh, ReferenceNodeOptions, EUnrealObjectInputNodeType::LeafWithReferences);
 			Identifier = IdentReferenceNode;
 		}
 
@@ -271,7 +376,8 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId) && (bSingleLeafNodeOnly || FUnrealObjectInputUtils::AreReferencedHAPINodesValid(Handle)))
+			NodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
+			if (Handle.IsValid() && (bSingleLeafNodeOnly || FUnrealObjectInputUtils::AreReferencedHAPINodesValid(Handle)))
 			{
 				if (!bInputNodesCanBeDeleted)
 				{
@@ -285,10 +391,10 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 			}
 		}
 
-		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FinalInputNodeName = FUnrealObjectInputManager::Get().GetDefaultNodeName(Identifier);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputManager::Get().EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			ParentNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ParentHandle);
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
 		// For the single leaf node case we can simply continue this function
@@ -297,26 +403,27 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 		if (!bSingleLeafNodeOnly)
 		{
 			TSet<FUnrealObjectInputHandle> PerOptionNodeHandles;
-			PerOptionNodeHandles.Reserve(IdentPerOption.Num());
-			for (const FUnrealObjectInputIdentifier& OptionIdentifier : IdentPerOption)
+			PerOptionNodeHandles.Reserve(PerOptionInputOptions.Num());
+			for (const FUnrealObjectInputOptions& Options : PerOptionInputOptions)
 			{
-				const FUnrealObjectInputOptions& Options = OptionIdentifier.GetOptions();
+				const FUnrealObjectInputIdentifier OptionIdentifier(SkeletalMesh, Options, EUnrealObjectInputNodeType::Leaf);
 
 				FString NodeLabel;
-				FUnrealObjectInputUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
+				NodeLabel = FUnrealObjectInputManager::Get().GetDefaultNodeName(OptionIdentifier);
 
 				HAPI_NodeId NewNodeId = -1;
 				FUnrealObjectInputHandle OptionHandle;
-				if (FUnrealObjectInputUtils::FindNodeViaManager(OptionIdentifier, OptionHandle))
+				if (FUnrealObjectInputManager::Get().FindNode(OptionIdentifier, OptionHandle))
 				{
-					FUnrealObjectInputUtils::GetHAPINodeId(OptionHandle, NewNodeId);
+					NewNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(OptionHandle);
 				}
 
-				FUnrealMeshExportOptions ExportInputOptions;
-				ExportInputOptions.bLODs = Options.bExportLODs;
-				ExportInputOptions.bSockets = Options.bExportSockets;
-				ExportInputOptions.bColliders = Options.bExportColliders;
-				ExportInputOptions.bMainMesh = !Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders;
+				FHoudiniInputObjectSettings ExportInputOptions;
+				ExportInputOptions.bExportLODs = Options.bExportLODs;
+				ExportInputOptions.bExportSockets = Options.bExportSockets;
+				ExportInputOptions.bExportColliders = Options.bExportColliders;
+				ExportInputOptions.bExportMainGeometry = !Options.bExportLODs && !Options.bExportSockets && !Options.bExportColliders;
+				ExportInputOptions.bExportMaterialParameters = Options.bExportMaterialParameters;
 				// Recursive call
 				if (!FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 					SkeletalMesh,
@@ -325,8 +432,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 					OptionHandle,
 					SkeletalMeshComponent,
 					ExportInputOptions,
-					bInputNodesCanBeDeleted,
-					Options.bExportMaterialParameters))
+					bInputNodesCanBeDeleted))
 				{
 					return false;
 				}
@@ -340,7 +446,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 				return false;
 
 			OutHandle = RefNodeHandle;
-			FUnrealObjectInputUtils::GetHAPINodeId(IdentReferenceNode, InputNodeId);
+			InputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(IdentReferenceNode);
 			return true;
 		}
 
@@ -349,8 +455,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 		// the same asset, in the manager)
 		if (Handle.IsValid())
 		{
-			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId))
-				InputNodeId = -1;
+			InputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 		}
 		else
 		{
@@ -361,14 +466,14 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 	// Node ID for the newly created node
 	HAPI_NodeId NewNodeId = -1;
 
-	bool DoExportSockets = ExportOptions.bSockets && (SkeletalMesh->NumSockets() > 0);
-	bool DoExportLODs = ExportOptions.bLODs && (SkeletalMesh->GetLODNum() > 1);
+	bool DoExportSockets = ExportOptions.bExportSockets && (SkeletalMesh->NumSockets() > 0);
+	bool DoExportLODs = ExportOptions.bExportLODs && (SkeletalMesh->GetLODNum() > 1);
 
 	// Export colliders if there are some
 	// For Skeletal mesh, we need to look at all the SKBodySetups
 	bool DoExportColliders = false;
 	TArray<TObjectPtr<USkeletalBodySetup>> BodySetups;
-	if (ExportOptions.bColliders && SkeletalMesh->GetPhysicsAsset())
+	if (ExportOptions.bExportColliders && SkeletalMesh->GetPhysicsAsset())
 	{
 		BodySetups = SkeletalMesh->GetPhysicsAsset()->SkeletalBodySetups;
 		for (auto& CurBS : BodySetups)
@@ -465,7 +570,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 		// Don't export LOD0 with the LODs  since we have a separate "main mesh" input
 		FirstLODIndex = 1;
 	}
-	else if (ExportOptions.bMainMesh)
+	else if (ExportOptions.bExportMainGeometry)
 	{
 		// Just export the main mesh (LOD0)
 		LastLODIndex = 0;
@@ -505,14 +610,14 @@ FUnrealSkeletalMeshTranslator::CreateInputNodesForSkeletalMesh(
 			{
 				// Use mesh description
 				if (!SetSkeletalMeshDataOnNodeFromMeshDescription(
-						SkeletalMesh, SkeletalMeshComponent, CurrentLODNodeId, LODIndex, DoExportLODs, bExportMaterialParameters))
+						SkeletalMesh, SkeletalMeshComponent, CurrentLODNodeId, LODIndex, DoExportLODs, ExportOptions.bExportMaterialParameters))
 				{
 					HOUDINI_LOG_ERROR(TEXT("Failed to set the skeletal mesh data on the input node for %s LOD %d."), *InputNodeName, LODIndex);
 					continue;
 				}
 			}
 			else if (!FUnrealSkeletalMeshTranslator::SetSkeletalMeshDataOnNodeFromSourceModel(
-				SkeletalMesh, SkeletalMeshComponent, CurrentLODNodeId, LODIndex, DoExportLODs, bExportMaterialParameters))
+				SkeletalMesh, SkeletalMeshComponent, CurrentLODNodeId, LODIndex, DoExportLODs, ExportOptions.bExportMaterialParameters))
 			{
 				HOUDINI_LOG_ERROR(TEXT("Failed to set the skeletal mesh data on the input node for %s LOD %d."), *InputNodeName, LODIndex);
 				continue;
@@ -1935,7 +2040,7 @@ FUnrealSkeletalMeshTranslator::CreateInputNodeForCapturePose(
 	// Build an identifier for the capture pose node
 	FUnrealObjectInputOptions Options;
 	Options.AddBoolOption(TEXT("bCapturePose"), true);
-	FUnrealObjectInputIdentifier Identifier(InSkeletalMesh, Options, true);
+	FUnrealObjectInputIdentifier Identifier(InSkeletalMesh, Options, EUnrealObjectInputNodeType::Leaf);
 	FUnrealObjectInputHandle ParentHandle;
 	HAPI_NodeId ParentNodeId = InParentNodeId;
 
@@ -1944,7 +2049,8 @@ FUnrealSkeletalMeshTranslator::CreateInputNodeForCapturePose(
 		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
+			NodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
+			if (Handle.IsValid())
 			{
 				if (!bInputNodesCanBeDeleted)
 				{
@@ -1958,18 +2064,17 @@ FUnrealSkeletalMeshTranslator::CreateInputNodeForCapturePose(
 			}
 		}
 
-		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FinalInputNodeName = FUnrealObjectInputManager::Get().GetDefaultNodeName(Identifier);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputManager::Get().EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			ParentNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ParentHandle);
 
 		// Set InputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
 		// (Option changes could mean that InputNodeId is associated with a completely different entry, albeit for
 		// the same asset, in the manager)
 		if (Handle.IsValid())
 		{
-			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, PreviousNodeId))
-				PreviousNodeId = -1;
+			PreviousNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 		}
 		else
 		{

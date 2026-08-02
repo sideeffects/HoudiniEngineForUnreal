@@ -28,6 +28,7 @@
 
 #include "HoudiniEngine.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniInputTypes.h"
 #include "FoliageType_InstancedStaticMesh.h"
 #include "HoudiniGenericAttribute.h"
 #include "HoudiniInputTranslator.h"
@@ -41,13 +42,8 @@ bool
 FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 	UFoliageType_InstancedStaticMesh* InFoliageType, 
 	HAPI_NodeId& InputObjectNodeId,
-	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
-	bool ExportAllLODs,
-	bool ExportSockets,
-	bool ExportColliders,
-	bool ExportMaterialParameters,
-	bool UseMeshDescription)
+	const FHoudiniInputObjectSettings& InInputSettings)
 {
 	if (!IsValid(InFoliageType))
 		return false;
@@ -58,29 +54,21 @@ FUnrealFoliageTypeTranslator::HapiCreateInputNodeForFoliageType_InstancedStaticM
 
 	UStaticMeshComponent* const StaticMeshComponent = nullptr;
 	FUnrealObjectInputHandle InputNodeHandle;
-
-	FUnrealMeshExportOptions ExportOptions;
-	ExportOptions.bLODs = ExportAllLODs;
-	ExportOptions.bSockets = ExportSockets;
-	ExportOptions.bColliders = ExportColliders;
-	ExportOptions.bMainMesh = true;
-	ExportOptions.bMaterialParameters = ExportMaterialParameters;
+	FHoudiniInputObjectSettings ExportOptions = InInputSettings;
+	ExportOptions.bExportMainGeometry = true;
 	ExportOptions.bPreferNaniteFallbackMesh = false;
-	ExportOptions.bUseMeshDescription = UseMeshDescription;
 
 	bool bSuccess = CreateInputNodeForStaticMesh(
-		InputObjectNodeId,
 		InputNodeHandle,
 		InputSM,
 		StaticMeshComponent,
-		InputNodeName,
 		ExportOptions,
-		true,
-		false);
+		true);
 
 	if (bSuccess)
 	{
 		OutHandle = InputNodeHandle;
+		InputObjectNodeId = GetHapiNodeId(InputNodeHandle);
 		const int32 PartId = 0; 
 		CreateHoudiniFoliageTypeAttributes(InFoliageType, InputObjectNodeId, PartId, HAPI_ATTROWNER_DETAIL);
 		

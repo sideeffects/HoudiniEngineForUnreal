@@ -36,6 +36,7 @@
 class UFoliageType;
 class UFoliageType_InstancedStaticMesh;
 class UStaticMeshComponent;
+struct FHoudiniInputObjectSettings;
 
 struct HOUDINIENGINE_API FUnrealFoliageTypeTranslator : public FUnrealMeshTranslator
 {
@@ -44,13 +45,8 @@ public:
 	static bool HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 		UFoliageType_InstancedStaticMesh* InFoliageType,
 		HAPI_NodeId& InputObjectNodeId,
-		const FString& InputNodeName,
 		FUnrealObjectInputHandle& OutHandle,
-		bool ExportAllLODs,
-		bool ExportSockets,
-		bool ExportColliders,
-		bool ExportMaterialParameters,
-		bool UseMeshDescription);
+		const FHoudiniInputObjectSettings& InInputSettings);
 
 	// Create an input node that references the asset via InRef (unreal_instance).
 	// Also calls CreateHoudiniFoliageTypeAttributes, to create the unreal_foliage attribute, as well as

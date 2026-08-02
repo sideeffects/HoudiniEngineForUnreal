@@ -30,10 +30,10 @@
 #include "HoudiniEngineAttributes.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEnginePrivatePCH.h"
+#include "HoudiniInputTypes.h"
 #include "UnrealMeshTranslator.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputTypes.h"
-#include "UnrealObjectInputRuntimeUtils.h"
 #include "UnrealObjectInputUtils.h"
 
 #include "Engine/StaticMesh.h"
@@ -68,27 +68,26 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	FString ISMCName = InNodeName + TEXT("_") + ISMC->GetName();
 	FHoudiniEngineUtils::SanitizeHAPIVariableName(ISMCName);
 
-	FUnrealMeshExportOptions ExportOptions;
-	ExportOptions.bLODs = bExportLODs;
-	ExportOptions.bSockets = bExportSockets;
-	ExportOptions.bColliders = bExportColliders;
-	ExportOptions.bMainMesh = true;
-	ExportOptions.bMaterialParameters = bExportMaterialParameters;
+	FHoudiniInputObjectSettings ExportOptions;
+	ExportOptions.bExportLODs = bExportLODs;
+	ExportOptions.bExportSockets = bExportSockets;
+	ExportOptions.bExportColliders = bExportColliders;
+	ExportOptions.bExportMainGeometry = true;
+	ExportOptions.bExportMaterialParameters = bExportMaterialParameters;
 	ExportOptions.bPreferNaniteFallbackMesh = bPreferNaniteFallbackMesh;
 
 	FUnrealObjectInputHandle SMNodeHandle;
 	bool bSuccess = FUnrealMeshTranslator::CreateInputNodeForStaticMesh(
-		SMNodeId,
 		SMNodeHandle,
 		SM,
 		ISMC,
-		InNodeName,
 		ExportOptions,
-		true,
-		false);
+		true);
 
 	if (!bSuccess)
 		return false;
+
+	SMNodeId = GetHapiNodeId(SMNodeHandle);
 
 	// Modifier chain name for component overrides on the static mesh (used with the ref counted input system).
 	const FName MeshChainName("sm_overrides");
@@ -99,9 +98,9 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 	FUnrealObjectInputIdentifier Identifier;
 	{
 		// Build the identifier for the entry in the manager
-		constexpr bool bIsLeaf = false;
-		FUnrealObjectInputOptions Options = SMNodeHandle.GetIdentifier().GetOptions();
-		Identifier = FUnrealObjectInputIdentifier(ISMC, Options, bIsLeaf);
+		// TODO: Shouldn't this calculate its own options?
+		FUnrealObjectInputOptions Options;
+		Identifier = FUnrealObjectInputIdentifier(ISMC, Options, EUnrealObjectInputNodeType::LeafWithReferences);
 
 		// If the entry exists in the manager, the associated HAPI nodes are valid, and it is not marked as dirty, then
 		// return the existing entry
@@ -116,7 +115,8 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 				if (ReferencedNodes.Num() == 1 && ReferencedNodes.Contains(SMNodeHandle))
 				{
 					HAPI_NodeId NodeId = -1;
-					if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
+					NodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
+					if (Handle.IsValid())
 					{
 						// The obj merge should be along input 0 from NodeId until we get to a node that does not have
 						// an input
@@ -150,18 +150,17 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 			}
 		}
 		// If the entry does not exist, or is invalid, then we need create it
-		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FinalInputNodeName = FUnrealObjectInputManager::Get().GetDefaultNodeName(Identifier);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputManager::Get().EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			ParentNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ParentHandle);
 
 		// Set OutCreatedNodeId to the current NodeId associated with Handle, since that is what we are replacing.
 		// (Option changes could mean that OutCreatedNodeId is associated with a completely different entry, albeit for
 		// the same asset, in the manager)
 		if (Handle.IsValid())
 		{
-			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, OutCreatedNodeId))
-				OutCreatedNodeId = -1;
+			OutCreatedNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 		}
 		else
 		{
@@ -182,9 +181,10 @@ FUnrealInstanceTranslator::HapiCreateInputNodeForInstancer(
 		// If we have existing valid HAPI nodes (so we are rebuilding a dirty / old version) reuse those nodes. This
 		// is quite important, to keep our obj merges / node references in _Houdini_ valid
 		bool bCreateNodes = true;
-		if (FUnrealObjectInputUtils::AreHAPINodesValid(Identifier))
+		if (FUnrealObjectInputManager::Get().AreHAPINodesValid(Identifier))
 		{
-			if (FUnrealObjectInputUtils::GetHAPINodeId(Identifier, MatNodeId))
+			MatNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Identifier);
+			if (MatNodeId >= 0)
 			{
 				ObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(MatNodeId);
 				if (ObjectNodeId >= 0)

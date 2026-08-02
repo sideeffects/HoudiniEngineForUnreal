@@ -36,8 +36,6 @@
 #include "Engine/Polys.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputUtils.h"
-#include "UnrealObjectInputRuntimeUtils.h"
-
 #include "HoudiniEngineRuntimeUtils.h"
 
 // Includes for Brush building code. Remove when the code is in the correct place.
@@ -81,12 +79,13 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 
 	{
 		const FUnrealObjectInputOptions Options;
-		Identifier = FUnrealObjectInputIdentifier(BrushActor, Options, true);
+		Identifier = FUnrealObjectInputIdentifier(BrushActor, Options, EUnrealObjectInputNodeType::Leaf);
 		FUnrealObjectInputHandle Handle;
 		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
+			NodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
+			if (Handle.IsValid())
 			{
 				if (!bInputNodesCanBeDeleted)
 					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
@@ -97,17 +96,16 @@ bool FUnrealBrushTranslator::CreateInputNodeForBrush(
 			}
 		}
 
-		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
-		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
-			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		FinalInputNodeName = FUnrealObjectInputManager::Get().GetDefaultNodeName(Identifier);
+		if (FUnrealObjectInputManager::Get().EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
+			ParentNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ParentHandle);
 
 		// Set InputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
 		// (Option changes could mean that InputNodeId is associated with a completely different entry, albeit for
 		// the same asset, in the manager)
 		if (Handle.IsValid())
 		{
-			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId))
-				InputNodeId = -1;
+			InputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 		}
 		else
 		{

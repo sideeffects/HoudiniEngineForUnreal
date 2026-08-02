@@ -36,7 +36,6 @@
 #include "HoudiniLandscapeRuntimeUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputManager.h"
-#include "UnrealObjectInputRuntimeUtils.h"
 
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
@@ -508,12 +507,10 @@ UHoudiniInputObject::GetInputNodeId() const
 	if (!InputNodeHandle.IsValid())
 		return -1;
 
-	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return -1;
+	const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
 
 	FUnrealObjectInputNode const* Node = nullptr;
-	if (!Manager->GetNode(InputNodeHandle, Node))
+	if (!Manager.GetNode(InputNodeHandle, Node))
 		return -1;
 	if (!Node)
 		return -1;
@@ -543,15 +540,13 @@ UHoudiniInputObject::GetInputObjectNodeId() const
 		return -1;
 
 	const EUnrealObjectInputNodeType NodeType = InputNodeHandle.GetIdentifier().GetNodeType();
-	if (NodeType != EUnrealObjectInputNodeType::Leaf && NodeType != EUnrealObjectInputNodeType::Reference)
+	if (NodeType != EUnrealObjectInputNodeType::Leaf && NodeType != EUnrealObjectInputNodeType::LeafWithReferences)
 		return -1;
 
-	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return -1;
+	const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
 
 	FUnrealObjectInputNode const* Node = nullptr;
-	if (!Manager->GetNode(InputNodeHandle, Node))
+	if (!Manager.GetNode(InputNodeHandle, Node))
 		return -1;
 	if (!Node)
 		return -1;
@@ -825,7 +820,7 @@ UHoudiniInputObject::MarkChanged(const bool& bInChanged)
 	if (bInChanged && InputNodeHandle.IsValid())
 	{
 		static constexpr bool bAlsoDirtyReferencedNodes = true;
-		FUnrealObjectInputRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
+		FUnrealObjectInputManager::Get().MarkAsDirty(InputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
 	}
 }
 
@@ -837,10 +832,10 @@ UHoudiniInputActor::MarkChanged(const bool& bInChanged)
 
 	static constexpr bool bAlsoDirtyReferencedNodes = true;
 	if (bInChanged && InputNodeHandle.IsValid())
-		FUnrealObjectInputRuntimeUtils::MarkInputNodeAsDirty(InputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
+		FUnrealObjectInputManager::Get().MarkAsDirty(InputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
 
 	if (bInChanged && SplinesMeshInputNodeHandle.IsValid())
-		FUnrealObjectInputRuntimeUtils::MarkInputNodeAsDirty(SplinesMeshInputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
+		FUnrealObjectInputManager::Get().MarkAsDirty(SplinesMeshInputNodeHandle.GetIdentifier(), bAlsoDirtyReferencedNodes);
 
 	for (auto& CurComponent : ActorComponents)
 	{
@@ -1455,17 +1450,14 @@ UHoudiniInputObject::InvalidateData()
 	// nodes associated with the handle matches InputNodeId / InputObjectNodeId
 	if (InputNodeHandle.IsValid())
 	{
-		const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-		if (Manager)
+		const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+		TArray<int32> ManagedNodeIds;
+		if (Manager.GetHAPINodeIds(InputNodeHandle.GetIdentifier(), ManagedNodeIds))
 		{
-			TArray<int32> ManagedNodeIds;
-			if (Manager->GetHAPINodeIds(InputNodeHandle.GetIdentifier(), ManagedNodeIds))
-			{
-				if (ManagedNodeIds.Contains(InputNodeId))
-					InputNodeId = -1;
-				if (ManagedNodeIds.Contains(InputObjectNodeId))
-					InputObjectNodeId = -1;
-			}
+			if (ManagedNodeIds.Contains(InputNodeId))
+				InputNodeId = -1;
+			if (ManagedNodeIds.Contains(InputObjectNodeId))
+				InputObjectNodeId = -1;
 		}
 	}
 
@@ -2493,17 +2485,14 @@ UHoudiniInputActor::InvalidateSplinesMeshData()
 		// nodes associated with the handle matches SplinesMeshNodeId / SplinesMeshObjectNodeId
 		if (SplinesMeshInputNodeHandle.IsValid())
 		{
-			const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-			if (Manager)
+			const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+			TArray<int32> ManagedNodeIds;
+			if (Manager.GetHAPINodeIds(SplinesMeshInputNodeHandle.GetIdentifier(), ManagedNodeIds))
 			{
-				TArray<int32> ManagedNodeIds;
-				if (Manager->GetHAPINodeIds(SplinesMeshInputNodeHandle.GetIdentifier(), ManagedNodeIds))
-				{
-					if (ManagedNodeIds.Contains(SplinesMeshNodeId))
-						SplinesMeshNodeId = -1;
-					if (ManagedNodeIds.Contains(SplinesMeshObjectNodeId))
-						SplinesMeshObjectNodeId = -1;
-				}
+				if (ManagedNodeIds.Contains(SplinesMeshNodeId))
+					SplinesMeshNodeId = -1;
+				if (ManagedNodeIds.Contains(SplinesMeshObjectNodeId))
+					SplinesMeshObjectNodeId = -1;
 			}
 		}
 

@@ -38,7 +38,6 @@
 
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputUtils.h"
-#include "UnrealObjectInputRuntimeUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniPCGUtils.h"
 #include "HoudiniPCGDataObject.h"
@@ -136,10 +135,10 @@ bool FUnrealPCGDataTranslator::CreateInputNodeForPCGData(
 
 	// Merge all nodes into the input.
 
-	const FUnrealObjectInputIdentifier MergeNodeIdentifier(PCGDataCollection, {}, false);
+	const FUnrealObjectInputIdentifier MergeNodeIdentifier(PCGDataCollection, {}, EUnrealObjectInputNodeType::LeafWithReferences);
 	FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(MergeNodeIdentifier, Handles, OutHandle, true, bInputNodesCanBeDeleted);
 
-	HAPI_NodeId MergeNodeId = FUnrealObjectInputUtils::GetHAPINodeId(MergeNodeIdentifier);
+	HAPI_NodeId MergeNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(MergeNodeIdentifier);
 
 	HAPI_NodeId InputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(MergeNodeId);
 	FUnrealObjectInputUtils::AddNodeOrUpdateNode(MergeNodeIdentifier, MergeNodeId, OutHandle, InputObjectNodeId, nullptr, bInputNodesCanBeDeleted);
@@ -198,7 +197,7 @@ FUnrealPCGDataTranslator::CreateInputNode(const FString & Name, UObject * Object
 {
 	// Create Identifier for this object and handle
 	FUnrealObjectInputOptions Options;
-	FUnrealObjectInputIdentifier Identifier = FUnrealObjectInputIdentifier(Object, Options, true);
+	FUnrealObjectInputIdentifier Identifier = FUnrealObjectInputIdentifier(Object, Options, EUnrealObjectInputNodeType::Leaf);
 	FUnrealObjectInputHandle Handle;
 
 	if(FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
@@ -210,18 +209,18 @@ FUnrealPCGDataTranslator::CreateInputNode(const FString & Name, UObject * Object
 	// Make sure we have a parent node.
 	FUnrealObjectInputHandle ParentHandle;
 
-	FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted);
-	HAPI_NodeId ParentNodeId = FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle);
+	FUnrealObjectInputManager::Get().EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted);
+	HAPI_NodeId ParentNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ParentHandle);
 
 	// Create the input node
 	FString FinalInputNodeName = Name;
-	FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+	FinalInputNodeName = FUnrealObjectInputManager::Get().GetDefaultNodeName(Identifier);
 	HAPI_NodeId NewNodeId = FHoudiniEngineUtils::CreateInputHapiNode(FinalInputNodeName, ParentNodeId);
 	if(!FHoudiniEngineUtils::IsHoudiniNodeValid(NewNodeId))
 		return {};
 
 	// Remove previous node and its parent.
-	HAPI_NodeId PreviousInputNodeId = FUnrealObjectInputUtils::GetHAPINodeId(Handle);
+	HAPI_NodeId PreviousInputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 	if(PreviousInputNodeId != INDEX_NONE)
 	{
 		HAPI_NodeId PreviousInputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(PreviousInputNodeId);
@@ -268,7 +267,7 @@ FUnrealPCGDataTranslator::CreateInputNodeForPCGSplineData(const FString& InputNo
 	if(!Handle.IsValid())
 		return Handle;
 
-	HAPI_NodeId NodeId = FUnrealObjectInputUtils::GetHAPINodeId(Handle);
+	HAPI_NodeId NodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 
 	UHoudiniPCGDataAttributeVector3d * PosAttr = Cast<UHoudiniPCGDataAttributeVector3d>(PCGDataObject->FindAttribute(TEXT("P")));
 	if(!PosAttr)
@@ -357,7 +356,7 @@ FUnrealPCGDataTranslator::CreateInputNodeForPCGAttrData(const FString& InputNode
 	Part.pointCount = NumPoints;
 	Part.type = HAPI_PARTTYPE_MESH;
 
-	HAPI_NodeId NodeId = FUnrealObjectInputUtils::GetHAPINodeId(Handle);
+	HAPI_NodeId NodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetPartInfo(FHoudiniEngine::Get().GetSession(), NodeId, 0, &Part), {});
 

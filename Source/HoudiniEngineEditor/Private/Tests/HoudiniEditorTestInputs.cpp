@@ -134,6 +134,17 @@ bool FHoudiniEditorTestInput_SplineMeshes::RunTest(const FString& Parameters)
 	return true;
 }
 
+int GetPrimitiveCount(HAPI_NodeId NodeId)
+{
+	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+
+	HAPI_PartInfo PartInfo;
+	FHoudiniApi::GetPartInfo(Session, NodeId, 0, &PartInfo);
+
+	int NumPrims = PartInfo.faceCount;
+	
+	return NumPrims;
+}
 
 TArray<int> GetPrimitiveLOD(HAPI_NodeId NodeId)
 {
@@ -182,19 +193,6 @@ TArray<int> GetPrimitiveLOD(HAPI_NodeId NodeId)
 	return Results;
 }
 
-
-int GetPrimitiveCount(HAPI_NodeId NodeId)
-{
-	// Returns an array, one per primitive, that indicated LOD Index. 0 if not set.
-
-	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
-
-	HAPI_PartInfo PartInfo;
-	FHoudiniApi::GetPartInfo(Session, NodeId, 0, &PartInfo);
-
-	int NumPrims = PartInfo.faceCount;
-	return NumPrims;
-}
 
 TArray<int> CountLODPrimitives(TArray<int> LODs)
 {
@@ -328,21 +326,24 @@ TArray<FString> GetMeshSockets(HAPI_NodeId NodeId)
 }
 
 
-IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_Meshes, "Houdini.UnitTests.Inputs.Meshes",
+namespace
+{
+	const FString TestInputMeshesMap = TEXT("/Game/TestHDAs/Inputs/Meshes/TestInputMesh.umap");
+	const FString TestInputMeshActorsMap = TEXT("/Game/TestHDAs/Inputs/Meshes/TestInputActorMesh.umap");
+	const FString CubeMaterialName = TEXT("/Game/TestHDAs/Inputs/Meshes/CubeMaterial.CubeMaterial");
+	const FString SphereMaterialName = TEXT("/Game/TestHDAs/Inputs/Meshes/SphereMaterial.SphereMaterial");
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_Meshes, "Houdini.UnitTests.Inputs.Meshes.Assets.Simultaneous",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
 
 bool FHoudiniEditorTestInput_Meshes::RunTest(const FString& Parameters)
 {
-	// This test cooks the same HDA with different export options to verify the ability to export meshes
-	// with different options, eg. lods, material parameters, collisions, sockets.
-
 	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
-
-	// Now create the test context.
 
 	TSharedPtr<FHoudiniMultiTestContext> Context(new FHoudiniMultiTestContext());
 
-	TSharedPtr<FHoudiniTestContext> MeshMainContext(new FHoudiniTestContext(this, FString(TEXT("/Game/TestHDAs/Inputs/Meshes/TestInputMesh.umap")), TEXT("Mesh_Main")));
+	TSharedPtr<FHoudiniTestContext> MeshMainContext(new FHoudiniTestContext(this, TestInputMeshesMap, TEXT("Mesh_Main")));
 	HOUDINI_TEST_EQUAL_ON_FAIL(MeshMainContext->IsValid(), true, return false);
 	MeshMainContext->SetProxyMeshEnabled(false);
 	Context->Contexts.Add(MeshMainContext);
@@ -357,32 +358,30 @@ bool FHoudiniEditorTestInput_Meshes::RunTest(const FString& Parameters)
 	MeshLODsCollidersSockets->SetProxyMeshEnabled(false);
 	Context->Contexts.Add(MeshLODsCollidersSockets);
 
-
 	TSharedPtr<FHoudiniTestContext> MeshLODsMaterialParams(new FHoudiniTestContext(this, MeshMainContext->GetWorld(), TEXT("Mesh_LODsMaterialParams")));
 	HOUDINI_TEST_EQUAL_ON_FAIL(MeshLODsMaterialParams->IsValid(), true, return false);
 	MeshLODsMaterialParams->SetProxyMeshEnabled(false);
 	Context->Contexts.Add(MeshLODsMaterialParams);
 
-	AddCommand(new FHoudiniLatentTestCommand(MeshMainContext, [this, MeshMainContext ]()
+	AddCommand(new FHoudiniLatentTestCommand(MeshMainContext, [MeshMainContext]()
 		{
 			MeshMainContext->StartCookingHDA();
 			return true;
 		}));
-	
 
-	AddCommand(new FHoudiniLatentTestCommand(MainMeshLODs, [this, MainMeshLODs]()
+	AddCommand(new FHoudiniLatentTestCommand(MainMeshLODs, [MainMeshLODs]()
 		{
 			MainMeshLODs->StartCookingHDA();
 			return true;
 		}));
 
-	AddCommand(new FHoudiniLatentTestCommand(MeshLODsCollidersSockets, [this, MeshLODsCollidersSockets]()
+	AddCommand(new FHoudiniLatentTestCommand(MeshLODsCollidersSockets, [MeshLODsCollidersSockets]()
 		{
 			MeshLODsCollidersSockets->StartCookingHDA();
 			return true;
 		}));
 
-	AddCommand(new FHoudiniLatentTestCommand(MeshLODsMaterialParams, [this, MeshLODsMaterialParams]()
+	AddCommand(new FHoudiniLatentTestCommand(MeshLODsMaterialParams, [MeshLODsMaterialParams]()
 		{
 			MeshLODsMaterialParams->StartCookingHDA();
 			return true;
@@ -390,37 +389,27 @@ bool FHoudiniEditorTestInput_Meshes::RunTest(const FString& Parameters)
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, MeshMainContext, MainMeshLODs, MeshLODsCollidersSockets, MeshLODsMaterialParams]()
 		{
-			const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
-
-			FString CubeMaterialName = TEXT("/Game/TestHDAs/Inputs/Meshes/CubeMaterial.CubeMaterial");
-			FString SphereMaterialName = TEXT("/Game/TestHDAs/Inputs/Meshes/SphereMaterial.SphereMaterial");
-
 			{
 				HAPI_NodeId NodeId = MeshMainContext->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
 
-				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
 
-				// We should have 1 LOD, 528 prims
 				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
 				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
 				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
 				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
 
-				// Check MaterialName
 				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
 
-				// We should have no material parameters
 				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
 				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
 
-				// No Collisions
 				TArray<FString> Collisions = GetCollisionGroups(NodeId);
 				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
 
-				// No Sockets
 				TArray<FString> Sockets = GetMeshSockets(NodeId);
 				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
 			}
@@ -428,33 +417,27 @@ bool FHoudiniEditorTestInput_Meshes::RunTest(const FString& Parameters)
 			{
 				HAPI_NodeId NodeId = MainMeshLODs->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
 
-				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
 
-				// We should have 2 LODs, 528 prims in the first one, 12 in the second one.
 				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
 				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
 				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
 				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
 				HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
 
-				// Check MaterialNames
 				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
 				FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
 
-				// We should have no material parameters
 				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
-				// We should have no material parameters
 				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
 
-				// No Collisions
 				TArray<FString> Collisions = GetCollisionGroups(NodeId);
 				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
 
-				// No Sockets
 				TArray<FString> Sockets = GetMeshSockets(NodeId);
 				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
 			}
@@ -462,32 +445,27 @@ bool FHoudiniEditorTestInput_Meshes::RunTest(const FString& Parameters)
 			{
 				HAPI_NodeId NodeId = MeshLODsCollidersSockets->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
 
-				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
 
-				// We should have 2 LODs, 528 prims in the first one, 12 in the second one.
 				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
 				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
 				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
 				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
 				HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
 
-				// Check MaterialNames
 				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
 				FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
 
-				// We should have no material parameters
 				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
 				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
 
-				// Collisions
 				TArray<FString> Collisions = GetCollisionGroups(NodeId);
 				HOUDINI_TEST_EQUAL(Collisions.Num(), 2);
 
-				// 2 Sockets
 				TArray<FString> Sockets = GetMeshSockets(NodeId);
 				HOUDINI_TEST_EQUAL(Sockets.Num(), 2);
 			}
@@ -495,35 +473,610 @@ bool FHoudiniEditorTestInput_Meshes::RunTest(const FString& Parameters)
 			{
 				HAPI_NodeId NodeId = MeshLODsMaterialParams->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
 
-				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, true);
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
 
-				// We should have 2 LODs, 528 prims in the first one, 12 in the second one.
 				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
 				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
 				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
 				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
 				HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
 
-				// Check MaterialNames
 				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
 				FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
 
-				// We should have material parameters
 				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(ScalarParam0, 0.5f);
 				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
 				HOUDINI_TEST_EQUAL(ScalarParam1, 1.0f);
 
-				// No Collisions
 				TArray<FString> Collisions = GetCollisionGroups(NodeId);
 				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
 
-				// No Sockets
 				TArray<FString> Sockets = GetMeshSockets(NodeId);
 				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
 			}
+
+			return true;
+		}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_MeshMain, "Houdini.UnitTests.Inputs.Meshes.Assets.MeshMain",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_MeshMain::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TestInputMeshesMap, TEXT("Mesh_Main")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+		{
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			HAPI_NodeId NodeId = Context->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+			TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+			TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+
+			FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+
+			float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+			float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+			TArray<FString> Collisions = GetCollisionGroups(NodeId);
+			HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+			TArray<FString> Sockets = GetMeshSockets(NodeId);
+			HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+
+			return true;
+		}));
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_MeshLODs, "Houdini.UnitTests.Inputs.Meshes.Assets.MeshLODs",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_MeshLODs::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TestInputMeshesMap, TEXT("Mesh_LODs")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+		{
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			HAPI_NodeId NodeId = Context->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+			TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+			TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+			FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+			FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+			float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+			float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+			TArray<FString> Collisions = GetCollisionGroups(NodeId);
+			HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+			TArray<FString> Sockets = GetMeshSockets(NodeId);
+			HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+
+			return true;
+		}));
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_MeshLODsCollidersSockets, "Houdini.UnitTests.Inputs.Meshes.Assets.MeshLODsCollidersSockets",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_MeshLODsCollidersSockets::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TestInputMeshesMap, TEXT("Mesh_LODsCollidersSockets")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+		{
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			HAPI_NodeId NodeId = Context->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+			TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+			TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+			FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+			FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+			float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+			float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+			TArray<FString> Collisions = GetCollisionGroups(NodeId);
+			HOUDINI_TEST_EQUAL(Collisions.Num(), 2);
+
+			TArray<FString> Sockets = GetMeshSockets(NodeId);
+			HOUDINI_TEST_EQUAL(Sockets.Num(), 2);
+
+			return true;
+		}));
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_MeshLODsMaterialParams, "Houdini.UnitTests.Inputs.Meshes.Assets.MeshLODsMaterialParams",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_MeshLODsMaterialParams::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TestInputMeshesMap, TEXT("Mesh_LODsMaterialParams")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+		{
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			HAPI_NodeId NodeId = Context->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+			TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+			TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+			FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+			FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+			float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam0, 0.5f);
+			float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam1, 1.0f);
+
+			TArray<FString> Collisions = GetCollisionGroups(NodeId);
+			HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+			TArray<FString> Sockets = GetMeshSockets(NodeId);
+			HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+
+			return true;
+		}));
+
+return true;
+}
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_MeshesActors, "Houdini.UnitTests.Inputs.Meshes.Actors.Simultaneous",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_MeshesActors::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	TSharedPtr<FHoudiniMultiTestContext> Context(new FHoudiniMultiTestContext());
+
+	TSharedPtr<FHoudiniTestContext> MeshMainContext(new FHoudiniTestContext(this, TestInputMeshesMap, TEXT("Mesh_Main")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(MeshMainContext->IsValid(), true, return false);
+	MeshMainContext->SetProxyMeshEnabled(false);
+	Context->Contexts.Add(MeshMainContext);
+
+	TSharedPtr<FHoudiniTestContext> MainMeshLODs(new FHoudiniTestContext(this, MeshMainContext->GetWorld(), TEXT("Mesh_LODs")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(MainMeshLODs->IsValid(), true, return false);
+	MainMeshLODs->SetProxyMeshEnabled(false);
+	Context->Contexts.Add(MainMeshLODs);
+
+	TSharedPtr<FHoudiniTestContext> MeshLODsCollidersSockets(new FHoudiniTestContext(this, MeshMainContext->GetWorld(), TEXT("Mesh_LODsCollidersSockets")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(MeshLODsCollidersSockets->IsValid(), true, return false);
+	MeshLODsCollidersSockets->SetProxyMeshEnabled(false);
+	Context->Contexts.Add(MeshLODsCollidersSockets);
+
+	TSharedPtr<FHoudiniTestContext> MeshLODsMaterialParams(new FHoudiniTestContext(this, MeshMainContext->GetWorld(), TEXT("Mesh_LODsMaterialParams")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(MeshLODsMaterialParams->IsValid(), true, return false);
+	MeshLODsMaterialParams->SetProxyMeshEnabled(false);
+	Context->Contexts.Add(MeshLODsMaterialParams);
+
+	AddCommand(new FHoudiniLatentTestCommand(MeshMainContext, [MeshMainContext]()
+		{
+			MeshMainContext->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(MainMeshLODs, [MainMeshLODs]()
+		{
+			MainMeshLODs->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(MeshLODsCollidersSockets, [MeshLODsCollidersSockets]()
+		{
+			MeshLODsCollidersSockets->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(MeshLODsMaterialParams, [MeshLODsMaterialParams]()
+		{
+			MeshLODsMaterialParams->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, MeshMainContext, MainMeshLODs, MeshLODsCollidersSockets, MeshLODsMaterialParams]()
+		{
+			{
+				HAPI_NodeId NodeId = MeshMainContext->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+
+				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+
+				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+				TArray<FString> Collisions = GetCollisionGroups(NodeId);
+				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+				TArray<FString> Sockets = GetMeshSockets(NodeId);
+				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+			}
+
+			{
+				HAPI_NodeId NodeId = MainMeshLODs->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+				FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+				TArray<FString> Collisions = GetCollisionGroups(NodeId);
+				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+				TArray<FString> Sockets = GetMeshSockets(NodeId);
+				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+			}
+
+			{
+				HAPI_NodeId NodeId = MeshLODsCollidersSockets->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+				FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+				TArray<FString> Collisions = GetCollisionGroups(NodeId);
+				HOUDINI_TEST_EQUAL(Collisions.Num(), 2);
+
+				TArray<FString> Sockets = GetMeshSockets(NodeId);
+				HOUDINI_TEST_EQUAL(Sockets.Num(), 2);
+			}
+
+			{
+				HAPI_NodeId NodeId = MeshLODsMaterialParams->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+				HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+				TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+				TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+				HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+				HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+				FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+				FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+				float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam0, 0.5f);
+				float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+				HOUDINI_TEST_EQUAL(ScalarParam1, 1.0f);
+
+				TArray<FString> Collisions = GetCollisionGroups(NodeId);
+				HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+				TArray<FString> Sockets = GetMeshSockets(NodeId);
+				HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+			}
+
+			return true;
+		}));
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_MeshMainActors, "Houdini.UnitTests.Inputs.Meshes.Actors.MeshMain",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_MeshMainActors::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TestInputMeshesMap, TEXT("Mesh_Main")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+		{
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			HAPI_NodeId NodeId = Context->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+			TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+			TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 1, return true);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+
+			FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+
+			float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+			float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+			TArray<FString> Collisions = GetCollisionGroups(NodeId);
+			HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+			TArray<FString> Sockets = GetMeshSockets(NodeId);
+			HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+
+			return true;
+		}));
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_MeshLODsActors, "Houdini.UnitTests.Inputs.Meshes.Actors.MeshLODs",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_MeshLODsActors::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TestInputMeshActorsMap, TEXT("Mesh_LODs")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+		{
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			HAPI_NodeId NodeId = Context->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+			TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+			TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+			FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+			FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+			float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+			float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+			TArray<FString> Collisions = GetCollisionGroups(NodeId);
+			HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+			TArray<FString> Sockets = GetMeshSockets(NodeId);
+			HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
+
+			return true;
+		}));
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_MeshLODsCollidersSocketsActors, "Houdini.UnitTests.Inputs.Meshes.Actors.MeshLODsCollidersSockets",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_MeshLODsCollidersSocketsActors::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TestInputMeshActorsMap, TEXT("Mesh_LODsCollidersSockets")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+		{
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			HAPI_NodeId NodeId = Context->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+			TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+			TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+			FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+			FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+			float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam0, InvalidParam);
+			float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam1, InvalidParam);
+
+			TArray<FString> Collisions = GetCollisionGroups(NodeId);
+			HOUDINI_TEST_EQUAL(Collisions.Num(), 2);
+
+			TArray<FString> Sockets = GetMeshSockets(NodeId);
+			HOUDINI_TEST_EQUAL(Sockets.Num(), 2);
+
+			return true;
+		}));
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_MeshLODsMaterialParamsActors, "Houdini.UnitTests.Inputs.Meshes.Actors.MeshLODsMaterialParams",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_MeshLODsMaterialParamsActors::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, TestInputMeshActorsMap, TEXT("Mesh_LODsMaterialParams")));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+	Context->SetProxyMeshEnabled(false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+		{
+			Context->StartCookingHDA();
+			return true;
+		}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+		{
+			HAPI_NodeId NodeId = Context->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
+
+			HOUDINI_TEST_NOT_EQUAL_ON_FAIL(static_cast<int>(NodeId), -1, return true);
+
+			TArray<int> PrimitiveLODs = GetPrimitiveLOD(NodeId);
+			TArray<int> LODPrimitiveCount = CountLODPrimitives(PrimitiveLODs);
+			HOUDINI_TEST_EQUAL_ON_FAIL(LODPrimitiveCount.Num(), 2, return true);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[0], 528);
+			HOUDINI_TEST_EQUAL(LODPrimitiveCount[1], 12);
+
+			FString Material0 = GetMaterialForLOD(NodeId, 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material0, SphereMaterialName);
+			FString Material1 = GetMaterialForLOD(NodeId, 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(Material1, CubeMaterialName);
+
+			float ScalarParam0 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_0_SphereScalarParam", 0, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam0, 0.5f);
+			float ScalarParam1 = GetScalarParameterForLOD(NodeId, "unreal_material_parameter_1_CubeScalarParam", 1, PrimitiveLODs);
+			HOUDINI_TEST_EQUAL(ScalarParam1, 1.0f);
+
+			TArray<FString> Collisions = GetCollisionGroups(NodeId);
+			HOUDINI_TEST_EQUAL(Collisions.Num(), 0);
+
+			TArray<FString> Sockets = GetMeshSockets(NodeId);
+			HOUDINI_TEST_EQUAL(Sockets.Num(), 0);
 
 			return true;
 		}));
@@ -582,11 +1135,6 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_NaniteMeshes, "
 
 	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, NaniteMesh, NaniteMesh_Fallback, NaniteMesh_MaterialParams]()
 		{
-			const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
-
-			FString CubeMaterialName = TEXT("/Game/TestHDAs/Inputs/Meshes/CubeMaterial.CubeMaterial");
-			FString SphereMaterialName = TEXT("/Game/TestHDAs/Inputs/Meshes/SphereMaterial.SphereMaterial");
-
 			{
 				HAPI_NodeId NodeId = NaniteMesh->HAC->GetOutputAt(0)->GetHoudiniGeoPartObjects()[0].GeoId;
 
@@ -671,5 +1219,3 @@ IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_NaniteMeshes, "
 
 	return true;
 }
-
-

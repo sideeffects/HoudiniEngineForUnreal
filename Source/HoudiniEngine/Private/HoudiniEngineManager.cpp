@@ -1751,8 +1751,13 @@ FHoudiniEngineManager::StartTaskAssetDelete(const HAPI_NodeId& InNodeId, FGuid& 
 	// Get the Asset's NodeInfo
 	HAPI_NodeInfo AssetNodeInfo;
 	FHoudiniApi::NodeInfo_Init(&AssetNodeInfo);
-	HOUDINI_CHECK_ERROR(FHoudiniApi::GetNodeInfo(
-		FHoudiniEngine::Get().GetSession(), InNodeId, &AssetNodeInfo));
+
+	HAPI_Result Result = FHoudiniApi::GetNodeInfo(FHoudiniEngine::Get().GetSession(), InNodeId, &AssetNodeInfo);
+	if (Result != HAPI_RESULT_SUCCESS)
+	{
+		// If the node didn't exist, possibly user deleted in session sync, so just assume "job done".
+		return true;
+	}
 	
 	HAPI_NodeId OBJNodeToDelete = InNodeId;
 	if (AssetNodeInfo.type == HAPI_NODETYPE_SOP)

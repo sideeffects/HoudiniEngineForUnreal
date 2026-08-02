@@ -31,7 +31,9 @@
 #include "CoreMinimal.h"
 #include "Engine/SkeletalMesh.h"
 
-struct FUnrealMeshExportOptions;
+struct FHoudiniInputObjectSettings;
+class FUnrealObjectInputIdentifier;
+class FUnrealObjectInputOptions;
 class USkeletalMesh;
 class USkeletalMeshComponent;
 class USkeletalMeshSocket;
@@ -48,9 +50,8 @@ struct HOUDINIENGINE_API FUnrealSkeletalMeshTranslator
 			const FString& InputNodeName,
 			FUnrealObjectInputHandle& OutHandle,
 			class USkeletalMeshComponent* SkeletalMeshComponent,
-			const FUnrealMeshExportOptions& FUnrealMeshExportOptions,
-			const bool& bInputNodesCanBeDeleted,
-			const bool& bExportMaterialParameters);
+			const FHoudiniInputObjectSettings& InInputSettings,
+			const bool& bInputNodesCanBeDeleted);
 
 		// Create nodes for the mesh data only: mesh, LODs, colliders, sockets.
 		static bool CreateInputNodesForSkeletalMesh(
@@ -59,9 +60,8 @@ struct HOUDINIENGINE_API FUnrealSkeletalMeshTranslator
 			const FString& InputNodeName,
 			FUnrealObjectInputHandle& OutHandle,
 			class USkeletalMeshComponent* SkeletalMeshComponent,
-			const FUnrealMeshExportOptions& FUnrealMeshExportOptions,
-			const bool& bInputNodesCanBeDeleted,
-			const bool& bExportMaterialParameters);
+			const FHoudiniInputObjectSettings& InInputSettings,
+			const bool& bInputNodesCanBeDeleted);
 
 		// Actually exports the skeletal mesh data (mesh, skeleton ... ) using LOD's SourceModel to the newly created input node - returns true on success
 		static bool SetSkeletalMeshDataOnNodeFromSourceModel(
@@ -101,5 +101,14 @@ struct HOUDINIENGINE_API FUnrealSkeletalMeshTranslator
 			HAPI_NodeId& InOutSkeletonNodeId,
 			FUnrealObjectInputHandle& OutHandle,
 			const bool bInputNodesCanBeDeleted);
+
+	private:
+		static bool BuildMeshInputObjectIdentifiers(
+			const USkeletalMesh* InSkeletalMesh,
+			const FHoudiniInputObjectSettings& ExportOptions,
+			const bool bForceCreateReferenceNode,
+			bool& bOutSingleLeafNodeOnly,
+			FUnrealObjectInputOptions& OutReferenceNode,
+			TArray<FUnrealObjectInputOptions>& OutPerOptionIdentifiers);
 
 };

@@ -51,9 +51,9 @@ public:
 
 	FUnrealObjectInputManagerImpl();
 	
-	virtual ~FUnrealObjectInputManagerImpl();
+	virtual ~FUnrealObjectInputManagerImpl() override;
 
-	virtual bool FindNode(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle) const override;
+	virtual bool FindNode(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle) override;
 
 	virtual bool Contains(const FUnrealObjectInputHandle& InHandle) const override;
 	virtual bool Contains(const FUnrealObjectInputIdentifier& InIdentifier) const override;
@@ -115,6 +115,12 @@ public:
 	virtual bool EnsureParentsExist(
 		const FUnrealObjectInputIdentifier& InIdentifier,
 		FUnrealObjectInputHandle& OutParentHandle,
+		const bool& bInputNodesCanBeDeleted) override;
+
+	virtual bool EnsureContainerExists(
+		const FUnrealObjectInputIdentifier& InIdentifier,
+		FUnrealObjectInputHandle& OutContainerHandle,
+		bool& bCreated,
 		const bool& bInputNodesCanBeDeleted) override;
 
 	virtual bool IsDirty(const FUnrealObjectInputIdentifier& InIdentifier) const override;

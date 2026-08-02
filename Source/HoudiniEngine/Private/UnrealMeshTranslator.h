@@ -51,18 +51,7 @@ struct FStaticMeshSourceModel;
 struct FStaticMeshLODResources;
 struct FMeshDescription;
 struct FKConvexElem;
-
-
-struct HOUDINIENGINE_API FUnrealMeshExportOptions
-{
-	bool bLODs = true;
-	bool bSockets = true;
-	bool bColliders = true;
-	bool bMainMesh = true;
-	bool bMaterialParameters = false;
-	bool bPreferNaniteFallbackMesh = false;
-	bool bUseMeshDescription = true;
-};
+struct FHoudiniInputObjectSettings;
 
 
 struct HOUDINIENGINE_API FUnrealMaterialInfo
@@ -82,54 +71,19 @@ HAPI_NodeId GetHapiNodeId(FUnrealObjectInputHandle Handle);
 
 struct HOUDINIENGINE_API FUnrealMeshExportData
 {
-	// This struct is created on each invocation of the Unreal Mesh Translator. The Unreal Mesh Translator
-	// keeps track of multiple Geo (Object) Nodes which keep track of different parts of the mesh, eg.
-	// lod0 and lod1 would contain the geometry for the lods, and all_lods contains all lods merged together.
-	//
-	
-	FUnrealMeshExportData(const UObject* Parent, bool bCanDelete);
+public:	
+	FUnrealMeshExportData(const UObject* Parent, const FHoudiniInputObjectSettings& ExportOptions, bool bCanDelete);
 
-	// This function creates a Geo Construction node if it doesn't exist. If the Geo node does exist then
-	// the function will ensure handles and identifiers exist. 
-	HAPI_NodeId GetOrCreateConstructionGeoNode(
-		bool& bCreated,
-		const FString& Label, 
-		const EUnrealObjectInputNodeType NodeType);
-
-	// This function must  be called if GetOrCreateConstructionGeoNode() returned with bCreated == true.
-	// See implementation for more details. NodeId must be a Hapi Node internal to the created Geo.
-	HAPI_NodeId RegisterConstructionNode(
-		const FString& Label,
-		const HAPI_NodeId NodeId,
-		const TSet<FUnrealObjectInputHandle>* ReferencedNodes = nullptr);
-
-	// Accessors to constructor nodes. Really all you need is the first function, GetConstructionHandles(),
-	// but the others just provide convenient shortcuts to reduce code verbosity.
-	const TMap<FString, FUnrealObjectInputHandle>& GetConstructionHandles();
-	bool Contains(const FString& Label);
-	HAPI_NodeId GetHapiNodeId(const FString& Label);
-	FUnrealObjectInputHandle GetNodeHandle(const FString& Label);
-
-private:
-	HAPI_NodeId GetConstructionSubnetNodeId() const { return ConstructionSubnetNodeId; }
-	void EnsureConstructionSubnetExists();
-	bool ScanForExistingNodesInHoudini();
-	FUnrealObjectInputIdentifier MakeNodeIdentifier(const FString& Label, EUnrealObjectInputNodeType NodeType);
-	static FString CleanInputPath(const FString& ObjectPath);
-
-	// For each Label keep track of the data associated with it.
-	TMap<FString, FUnrealObjectInputHandle> RegisteredHandles;
-	TMap<FString, FUnrealObjectInputIdentifier> RegisteredIdentifiers;
-	TMap<FString, HAPI_NodeId> RegisteredGeoNodes;
-	TMap<FString, HAPI_NodeId> ExistingUnassignedHAPINodes; 
-
-	// ConstructionSubnetHandle is a handle to the node where all the construction happens. Keep a cached copy of the
-	// Hapi node, since we access it a lot.
 	FUnrealObjectInputHandle ConstructionSubnetHandle;
 	HAPI_NodeId ConstructionSubnetNodeId = INDEX_NONE;
-	FString ConstructionSubnetPath;
-
 	bool bCanDelete = true;
+	bool bExportMainGeometry = false;
+	bool bExportLODs = false;
+	bool bExportSockets = false;
+	bool bExportColliders = false;
+	bool bPreferNaniteFallbackMesh = false;
+	bool bExportMaterialParameters = false;
+	bool bUseMeshDescription = false;
 };
 
 enum HOUDINIENGINE_API EHoudiniMeshSource
@@ -187,60 +141,25 @@ public:
 	//	The best way to see all this in action is to look in SessionSync.
 	//
 
+	static bool CreateInputNodeForStaticMeshAsset(
+		FUnrealObjectInputHandle& OutHandle,
+		const UStaticMesh* Mesh,
+		const FHoudiniInputObjectSettings& ExportOptions,
+		const bool bInputNodesCanBeDeleted);
 
-	// HAPI : Marshaling, extract geometry and create input asset for it - return true on success
 	static bool CreateInputNodeForStaticMesh(
-		HAPI_NodeId& InputObjectNodeId,
 		FUnrealObjectInputHandle& OutHandle,
 		const UStaticMesh* Mesh,
 		const UStaticMeshComponent* StaticMeshComponent,
-		const FString& InputNodeName,
-		const FUnrealMeshExportOptions& ExportOptions,
-		const bool bInputNodesCanBeDeleted,
-		const bool bForceReferenceInputNodeCreation);
-
-	static bool CreateInputNodeForStaticMeshNew(
-		HAPI_NodeId& InputObjectNodeId,
-		FUnrealObjectInputHandle& OutHandle,
-		const UStaticMesh* Mesh,
-		const FString& InputNodeName,
-		const FUnrealMeshExportOptions& ExportOptions,
+		const FHoudiniInputObjectSettings& ExportOptions,
 		const bool bInputNodesCanBeDeleted);
 
-	static bool CreateInputNodeForStaticMeshNew(
-		HAPI_NodeId& InputObjectNodeId,
-		FUnrealObjectInputHandle& OutHandle,
-		const UStaticMesh* Mesh,
-		const UStaticMeshComponent* StaticMeshComponent,
-		const FString& InputNodeName,
-		const FUnrealMeshExportOptions& ExportOptions,
-		const bool bInputNodesCanBeDeleted);
-
-	static bool CreateInputNodeForStaticMeshComponentNew(
-		HAPI_NodeId& InputObjectNodeId,
+	static bool CreateInputNodeForStaticMeshComponent(
 		FUnrealObjectInputHandle& OutHandle,
 		const FUnrealObjectInputHandle& StaticMeshHandle,
 		const UStaticMeshComponent* StaticMeshComponent,
-		const FString& InputNodeName,
-		const FUnrealMeshExportOptions& ExportOptions,
+		const FHoudiniInputObjectSettings& ExportOptions,
 		const bool bInputNodesCanBeDeleted);
-
-	static bool CreateInputNodeForSplineMeshComponentNew(
-		HAPI_NodeId& InputObjectNodeId,
-		FUnrealObjectInputHandle& OutHandle,
-		const USplineMeshComponent* StaticMeshComponent,
-		const FUnrealMeshExportOptions& ExportOptions,
-		const bool bInputNodesCanBeDeleted);
-
-	// Convert the Mesh using FStaticMeshLODResources
-	static bool CreateInputNodeForStaticMeshLODResources(
-		const HAPI_NodeId NodeId,
-		const FStaticMeshLODResources& LODResources,
-		const int32 LODIndex,
-		const bool DoExportLODs,
-		const bool bInExportMaterialParametersAsAttributes,
-		const UStaticMesh* StaticMesh,
-		const UStaticMeshComponent* StaticMeshComponent);
 
 	// Helper for converting mesh assets using FMeshDescription
 	static bool CreateAndPopulateMeshPartFromMeshDescription(
@@ -263,16 +182,6 @@ public:
 		const UAssetImportData* ImportData,
 		bool bCommitGeo,
 		HAPI_PartInfo& OutPartInfo);
-
-	// Convert the Mesh using FMeshDescription
-	static bool CreateInputNodeForMeshDescription(
-		const HAPI_NodeId& NodeId,
-		const FMeshDescription& MeshDescription,
-		const int32 InLODIndex,
-		bool bAddLODGroups,
-		bool bInExportMaterialParametersAsAttributes,
-		const UStaticMesh* StaticMesh,
-		const UStaticMeshComponent* StaticMeshComponent);
 
 	static bool CreateInputNodeForBox(
 		HAPI_NodeId& OutBoxNodeId,
@@ -303,19 +212,6 @@ public:
 		const HAPI_NodeId InParentNodeID,
 		const int32 ColliderIndex,
 		const FKConvexElem& ConvexCollider);
-
-	static bool CreateInputNodeForCollider(
-		HAPI_NodeId& OutNodeId,
-		const HAPI_NodeId InParentNodeID,
-		const int32 ColliderIndex,
-		const FString& ColliderName,
-		const TArray<float>& ColliderVertices,
-		const TArray<int32>& ColliderIndices);
-
-	static bool CreateInputNodeForMeshSockets(
-		const TArray<UStaticMeshSocket*>& InMeshSocket,
-		const HAPI_NodeId InParentNodeId,
-		HAPI_NodeId& OutSocketsNodeId);
 
 	// Helper function to extract the array of material names used by a given mesh
 	// This is used for marshalling static mesh's materials.
@@ -357,7 +253,42 @@ public:
 	// if not set, from the body setup
 	static FString GetSimplePhysicalMaterialPath(UBodySetup const* BodySetup);
 
+private:
+	// Convert the Mesh using FStaticMeshLODResources
+	static bool CreateInputNodeForStaticMeshLODResources(
+		const HAPI_NodeId NodeId,
+		const FStaticMeshLODResources& LODResources,
+		const int32 LODIndex,
+		const bool DoExportLODs,
+		const bool bInExportMaterialParametersAsAttributes,
+		const UStaticMesh* StaticMesh,
+		const UStaticMeshComponent* StaticMeshComponent);
+
+	// Convert the Mesh using FMeshDescription
+	static bool CreateInputNodeForMeshDescription(
+		const HAPI_NodeId& NodeId,
+		const FMeshDescription& MeshDescription,
+		const int32 InLODIndex,
+		bool bAddLODGroups,
+		bool bInExportMaterialParametersAsAttributes,
+		const UStaticMesh* StaticMesh,
+		const UStaticMeshComponent* StaticMeshComponent);
+
+	static bool CreateInputNodeForCollider(
+		HAPI_NodeId& OutNodeId,
+		const HAPI_NodeId InParentNodeID,
+		const int32 ColliderIndex,
+		const FString& ColliderName,
+		const TArray<float>& ColliderVertices,
+		const TArray<int32>& ColliderIndices);
+
+	static bool CreateInputNodeForMeshSockets(
+		const TArray<UStaticMeshSocket*>& InMeshSocket,
+		const HAPI_NodeId InParentNodeId,
+		HAPI_NodeId& OutSocketsNodeId);
+
 	static bool GetOrCreateExportStaticMeshLOD(
+		FUnrealObjectInputHandle& Handle,
 		FUnrealMeshExportData& ExportData,
 		const int LODIndex,
 		const bool bAddLODGroups,
@@ -365,36 +296,34 @@ public:
 		const EHoudiniMeshSource MeshSource);
 
 	static bool GetOrCreateStaticMeshLODGeometries(
+		FUnrealObjectInputHandle& Handle,
 		FUnrealMeshExportData& ExportData,
 		const UStaticMesh* StaticMesh,
-		const FUnrealMeshExportOptions& ExportOptions,
 		EHoudiniMeshSource MeshSource);
 
 	static bool GetOrConstructStaticMeshGeometryNode(
-		FString& GeometryLabel,
+		FUnrealObjectInputHandle& Geometry,
 		FUnrealMeshExportData& ExportData,
-		const FUnrealMeshExportOptions& ExportOptions,
 		const UStaticMesh* Mesh);
 
 	static bool GetOrConstructStaticMeshRenderNode(
-		FString & RenderMeshLabel,
+		FUnrealObjectInputHandle& RenderMeshLabel,
 		FUnrealMeshExportData& ExportData,
-		const FUnrealMeshExportOptions& ExportOptions,
 		const UStaticMesh* Mesh);
 
 	static bool GetOrConstructCollisions(
-		FString& CollisionsLabel,
-		FUnrealMeshExportData& ExportData,
-		const FUnrealMeshExportOptions& ExportOptions,
+		FUnrealObjectInputHandle& CollisionsHandle,
+		const FUnrealMeshExportData& ExportData,
 		const UStaticMesh* Mesh);
 
 	static bool GetOrConstructStaticMesh(
-		FString& MeshLabel,
+		FUnrealObjectInputHandle& StaticMeshHandle,
 		FUnrealMeshExportData& ExportData,
-		const FUnrealMeshExportOptions& ExportOptions,
 		const UStaticMesh* StaticMesh);
 
-	static FString MakeUniqueExportName(const FUnrealMeshExportOptions& ExportOptions);
+	static FString GenerateNodeNameSuffix(const FUnrealMeshExportData& ExportData);
+
+	static FString MakeUniqueExportName(const FUnrealMeshExportData& ExportData);
 
 	static TArray<UMaterialInterface*> GetMaterials(const UStaticMesh* Mesh);
 
@@ -405,39 +334,31 @@ public:
 		const TArray<HAPI_NodeId> & Inputs);
 
 	static bool GetOrConstructSplineMeshRenderNode(
-		FString& RenderMeshLabel,
+		FUnrealObjectInputHandle& RenderMeshHandle,
 		FUnrealMeshExportData& ExportData,
-		const FUnrealMeshExportOptions& ExportOptions,
 		const USplineMeshComponent* Mesh);
 
 	static bool GetOrConstructSplineMeshGeometryNode(
-		FString& GeometryLabel,
+		FUnrealObjectInputHandle& GeometryHandle,
 		FUnrealMeshExportData& ExportData,
-		const FUnrealMeshExportOptions& ExportOptions,
 		const USplineMeshComponent* Mesh);
 
 
 	static bool GetOrConstructSplineMeshComponent(
-		FString& MeshLabel,
+		FUnrealObjectInputHandle& MeshHandle,
 		FUnrealMeshExportData& ExportData,
-		const FUnrealMeshExportOptions& ExportOptions,
 		const USplineMeshComponent* SplineMeshComponent);
 
 	static bool GetOrCreateSplineMeshLODGeometries(
+		FUnrealObjectInputHandle& LODsHandle,
 		FUnrealMeshExportData& ExportData,
-		const USplineMeshComponent* SplineMeshComponent,
-		const FUnrealMeshExportOptions& ExportOptions);
+		const USplineMeshComponent* SplineMeshComponent);
 
 	static bool GetOrCreateExportSplineMeshLOD(
+		FUnrealObjectInputHandle& Handle,
 		FUnrealMeshExportData& ExportData,
 		const int LODIndex,
 		const USplineMeshComponent* Mesh);
-
-	static FString MakeLODName(int LODIndex, EHoudiniMeshSource Source);
-
-	static FString MakeMeshSourceStr(EHoudiniMeshSource Source);
-
-	static EHoudiniMeshSource DetermineMeshSource(const FUnrealMeshExportOptions& ExportOptions, const UStaticMesh * StaticMesh);
 
 	static bool ExportCollisions(
 		int32& NextMergeIndex,
@@ -448,9 +369,8 @@ public:
 
 
 	static bool GetOrConstructSockets(
-		FString& SocketsLabel,
+		FUnrealObjectInputHandle& SocketsHandle,
 		FUnrealMeshExportData& ExportData,
-		const FUnrealMeshExportOptions& ExportOptions,
 		const UStaticMesh* Mesh);
 
 	static bool GetMaterialInfo(
@@ -458,7 +378,16 @@ public:
 		TArray<FUnrealMaterialInfo>& OutMaterialInfos);
 
 	static bool GetOrCreateMaterialTableNode(
+		FUnrealObjectInputHandle& MaterialTableHandle,
 		FUnrealMeshExportData& MeshNodes,
+		const TArray<FUnrealMaterialInfo>& MaterialInfos);
+
+
+	static bool GetOrCreateMaterialZipNode(
+		FUnrealObjectInputHandle& ZipNodeHandle,
+		const FUnrealMeshExportData& ExportData,
+		const FUnrealObjectInputHandle& MeshNode,
+		const FUnrealObjectInputHandle& MaterialTableNode,
 		const TArray<FUnrealMaterialInfo>& MaterialInfos);
 
 	static bool GetOrCreateMaterialZipNode(
@@ -468,12 +397,11 @@ public:
 		const HAPI_NodeId MaterialTableNode,
 		const TArray<FUnrealMaterialInfo>& MaterialInfos);
 
-	static const FString LODPrefix;
-	static const FString HiResMeshName;
-	static const FString MTLParams;
-	static const FString CombinePrefix;
-	static const FString MaterialTableName;
+	static FString MakeLODName(int LODIndex, EHoudiniMeshSource Source);
 
-	static  bool bUseNewMeshPath;
+	static FString MakeMeshSourceStr(EHoudiniMeshSource Source);
 
+	static EHoudiniMeshSource DetermineMeshSource(
+		const FUnrealMeshExportData& ExportData,
+		const UStaticMesh* StaticMesh);
 };

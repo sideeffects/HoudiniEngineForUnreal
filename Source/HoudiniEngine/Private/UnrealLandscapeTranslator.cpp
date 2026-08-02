@@ -51,7 +51,6 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 
 #include "UnrealObjectInputRuntimeTypes.h"
-#include "UnrealObjectInputRuntimeUtils.h"
 #include "UnrealObjectInputUtils.h"
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniHLODLayerUtils.h"
@@ -855,13 +854,14 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 	{
 		const FUnrealObjectInputOptions Options = FUnrealObjectInputOptions::MakeOptionsForLandscapeData(
 			InputSettings, bExportSelectionOnly ? &SelectedComponents : nullptr);
-		Identifier = FUnrealObjectInputIdentifier(InLandscape, Options, true);
+		Identifier = FUnrealObjectInputIdentifier(InLandscape, Options, EUnrealObjectInputNodeType::Leaf);
 
 		FUnrealObjectInputHandle Handle;
 		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
+			NodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
+			if (Handle.IsValid())
 			{
 				if (!bInputNodesCanBeDeleted)
 					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
@@ -872,18 +872,17 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 			}
 		}
 
-		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FinalInputNodeName = FUnrealObjectInputManager::Get().GetDefaultNodeName(Identifier);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputManager::Get().EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			ParentNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ParentHandle);
 
 		// Set InputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
 		// (Option changes could mean that InputNodeId is associated with a completely different entry, albeit for
 		// the same asset, in the manager)
 		if (Handle.IsValid())
 		{
-			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId))
-				InputNodeId = -1;
+			InputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 		}
 		else
 		{
@@ -2666,4 +2665,3 @@ bool FUnrealLandscapeTranslator::SendAllEditLayerTargetLayersToHoudini(
 
 	return true;
 }
-

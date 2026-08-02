@@ -42,14 +42,19 @@ class FUnrealObjectInputIdentifier;
 class HOUDINIENGINERUNTIME_API FUnrealObjectInputManager
 {
 public:
-	/** Multicast delegate type to be used for notifications when a node entry in the manager is added, updated or deleted. */
+	// FUnrealObjectInputManager is the entry main entry point for managing input objects.
+	//	This class existing in the HoudiniEngineRuntime module, but is implemented in the HoudiniEngine module,
+	// hence all the virtual functions (this is because Hapi is not linked to the runtime, but the manager needs
+	// to be available there).
+
+	// Multicast delegate type to be used for notifications when a node entry in the manager is added, updated or deleted.
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnNodeAddUpdateDelete, const FUnrealObjectInputIdentifier&)
 
 	virtual ~FUnrealObjectInputManager();
 
-	static FUnrealObjectInputManager* Get();
+	static FUnrealObjectInputManager& Get();
 
-	virtual bool FindNode(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle) const ;
+	virtual bool FindNode(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle) ;
 
 	virtual bool Contains(const FUnrealObjectInputHandle& InHandle) const ;
 	virtual bool Contains(const FUnrealObjectInputIdentifier& InIdentifier) const ;
@@ -108,8 +113,11 @@ public:
 	virtual bool GetHAPINodeIds(const FUnrealObjectInputIdentifier& InIdentifier, TArray<int32>& OutNodeIds) const ;
 	virtual bool GetAllHAPINodeIds(TArray<FUnrealObjectInputHAPINodeId>& OutNodeIds) const ;
 	virtual bool GetAllHAPINodeIds(TArray<int32>& OutNodeIds) const ;
+	int32 GetHAPINodeId(const FUnrealObjectInputHandle& InHandle) const;
+	int32 GetHAPINodeId(const FUnrealObjectInputIdentifier& InIdentifier) const;
 
 	virtual bool EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle, const bool& bInputNodesCanBeDeleted) ;
+	virtual bool EnsureContainerExists(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutContainerHandle, bool& bCreated, const bool& bInputNodesCanBeDeleted) ;
 
 	virtual bool IsDirty(const FUnrealObjectInputIdentifier& InIdentifier) const ;
 	virtual bool MarkAsDirty(const FUnrealObjectInputIdentifier& InIdentifier, bool bInAlsoDirtyReferencedNodes) ;
@@ -146,4 +154,3 @@ private:
 
 	static FUnrealObjectInputManager* Singleton;
 };
-

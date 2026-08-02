@@ -30,7 +30,6 @@
 #include "HoudiniEngineAttributes.h"
 #include "HoudiniEngineUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
-#include "UnrealObjectInputRuntimeUtils.h"
 #include "UnrealObjectInputUtils.h"
 
 bool FUnrealLevelInstanceTranslator::AddLevelInstance(
@@ -73,13 +72,14 @@ FUnrealLevelInstanceTranslator::CreateNodeForLevelInstance(
 	{
 		FUnrealObjectInputOptions Options;
 		Options.bExportLevelInstanceContent = false;
-		Identifier = FUnrealObjectInputIdentifier(LevelInstance, Options, true);
+		Identifier = FUnrealObjectInputIdentifier(LevelInstance, Options, EUnrealObjectInputNodeType::Leaf);
 
 		FUnrealObjectInputHandle Handle;
 		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId))
+			NodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
+			if (Handle.IsValid())
 			{
 				if (!bInputNodesCanBeDeleted)
 					FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(Handle, bInputNodesCanBeDeleted);
@@ -90,17 +90,16 @@ FUnrealLevelInstanceTranslator::CreateNodeForLevelInstance(
 			}
 		}
 
-		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
-		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
-			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		FinalInputNodeName = FUnrealObjectInputManager::Get().GetDefaultNodeName(Identifier);
+		if (FUnrealObjectInputManager::Get().EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted))
+			ParentNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ParentHandle);
 
 		// Set InputNodeId to the current NodeId associated with Handle, since that is what we are replacing.
 		// (Option changes could mean that InputNodeId is associated with a completely different entry, albeit for
 		// the same asset, in the manager)
 		if (Handle.IsValid())
 		{
-			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId))
-				InputNodeId = -1;
+			InputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 		}
 		else
 		{
@@ -224,5 +223,3 @@ void FUnrealLevelInstanceTranslator::CreateAttributeData(HAPI_NodeId NodeId, ALe
 
 	FHoudiniEngineUtils::HapiCommitGeo(NodeId);
 }
-
-

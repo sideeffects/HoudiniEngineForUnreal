@@ -47,8 +47,10 @@ FUnrealObjectInputManagerImpl::~FUnrealObjectInputManagerImpl()
 bool
 FUnrealObjectInputManagerImpl::FindNode(
 	const FUnrealObjectInputIdentifier& InIdentifier,
-	FUnrealObjectInputHandle& OutHandle) const
+	FUnrealObjectInputHandle& OutHandle)
 {
+	OutHandle = FUnrealObjectInputHandle();
+
 	if (!InIdentifier.IsValid())
 		return false;
 
@@ -59,6 +61,14 @@ FUnrealObjectInputManagerImpl::FindNode(
 	FUnrealObjectInputNode const* const Node = *NodeEntry;
 	if (!Node)
 		return false; 
+
+	if (!Node->AreHAPINodesValid())
+	{
+		FUnrealObjectInputNode* const MutableNode = *NodeEntry;
+		RemoveNode(InIdentifier);
+		delete MutableNode;
+		return false;
+	}
 
 	OutHandle = FUnrealObjectInputHandle(InIdentifier);
 	return true;
@@ -131,8 +141,11 @@ FUnrealObjectInputManagerImpl::AddReferenceNode(
 	if (!InIdentifier.IsValid())
 		return false;
 
-	if (InIdentifier.GetNodeType() != EUnrealObjectInputNodeType::Reference)
+	if (InIdentifier.GetNodeType() != EUnrealObjectInputNodeType::LeafWithReferences)
+	{
+		HOUDINI_LOG_ERROR(TEXT("Mismatch Node Types."));
 		return false;
+	}
 	
 	if (Contains(InIdentifier))
 		return false;
@@ -228,7 +241,7 @@ FUnrealObjectInputManagerImpl::UpdateReferenceNode(
 	const TOptional<int32> InReferencesConnectToNodeId,
 	const bool bInClearDirtyFlag)
 {
-	if (!InIdentifier.IsValid() || InIdentifier.GetNodeType() != EUnrealObjectInputNodeType::Reference)
+	if (!InIdentifier.IsValid() || InIdentifier.GetNodeType() != EUnrealObjectInputNodeType::LeafWithReferences)
 		return false;
 
 	FUnrealObjectInputNode* Node = nullptr;
@@ -328,75 +341,105 @@ FUnrealObjectInputManagerImpl::EnsureParentsExist(
 	FUnrealObjectInputIdentifier ParentIdentifier;
 	if (!InIdentifier.MakeParentIdentifier(ParentIdentifier))
 	{
-		// If InIdentifier is valid, but does not have a valid parent identifier, then it cannot have a parent
 		OutParentHandle = FUnrealObjectInputHandle();
 		return true;
 	}
-		
-	FUnrealObjectInputHandle ParentHandle;
-	const bool bParentEntryExists = FindNode(ParentIdentifier, ParentHandle);
-	if (bParentEntryExists && AreHAPINodesValid(ParentIdentifier))
-	{
-		// Make sure we prevent node destruction if needed
-		if (!bInputNodesCanBeDeleted)
-			FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
 
-		OutParentHandle = std::move(ParentHandle);
+	bool bParentCreated = false;
+	return EnsureContainerExists(ParentIdentifier, OutParentHandle, bParentCreated, bInputNodesCanBeDeleted);
+}
+
+bool
+FUnrealObjectInputManagerImpl::EnsureContainerExists(
+	const FUnrealObjectInputIdentifier& InIdentifier,
+	FUnrealObjectInputHandle& OutContainerHandle,
+	bool& bCreated,
+	const bool& bInputNodesCanBeDeleted)
+{
+	OutContainerHandle = FUnrealObjectInputHandle();
+	bCreated = false;
+
+	if (!InIdentifier.IsValid())
+	{
+		HOUDINI_LOG_ERROR(TEXT("Invalid FUnrealObjectInputIdentifier"));
+		return false;
+	}
+
+	if (InIdentifier.GetNodeType() != EUnrealObjectInputNodeType::Container)
+	{
+		HOUDINI_LOG_ERROR(TEXT("EnsureContainerExists requires a Container identifier"));
+		return false;
+	}
+
+	FUnrealObjectInputHandle ContainerHandle;
+	const bool bContainerEntryExists = FindNode(InIdentifier, ContainerHandle);
+	if (bContainerEntryExists && AreHAPINodesValid(InIdentifier))
+	{
+		if (!bInputNodesCanBeDeleted)
+			FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(ContainerHandle, bInputNodesCanBeDeleted);
+
+		OutContainerHandle = std::move(ContainerHandle);
 		return true;
 	}
-	
-	FUnrealObjectInputHandle GrandParentHandle;
-	if (!EnsureParentsExist(ParentIdentifier, GrandParentHandle, bInputNodesCanBeDeleted))
+
+	FUnrealObjectInputHandle ParentHandle;
+	if (!EnsureParentsExist(InIdentifier, ParentHandle, bInputNodesCanBeDeleted))
 		return false;
-	
-	int32 GrandParentNodeId = -1;
-	if (GrandParentHandle.IsValid())
+
+	int32 ParentNodeId = -1;
+	if (ParentHandle.IsValid())
 	{
 		FUnrealObjectInputNode* Node = nullptr;
-		if (GetNode(GrandParentHandle, Node))
-			GrandParentNodeId = Node->GetHAPINodeId();
+		if (GetNode(ParentHandle, Node))
+			ParentNodeId = Node->GetHAPINodeId();
 	}
 
-	// Create an obj subnet
-	const FString NodeLabel = GetDefaultNodeName(ParentIdentifier);
+	FUnrealObjectInputIdentifier ParentIdentifier;
+	const bool bHasParent = InIdentifier.MakeParentIdentifier(ParentIdentifier) && ParentIdentifier.IsValid();
+
+	const FString NodeLabel = GetDefaultNodeName(InIdentifier);
 	static constexpr bool bCookOnCreation = true;
-	const bool bIsTopLevelNode = GrandParentNodeId < 0;
+	const bool bIsTopLevelNode = !bHasParent;
 	const FString OperatorName = bIsTopLevelNode ? TEXT("Object/subnet") : TEXT("subnet");
-	int32 ParentNodeId = -1;
+	int32 ContainerNodeId = -1;
 	const HAPI_Result ResultVariable = FHoudiniEngineUtils::CreateNode(
-		GrandParentNodeId, OperatorName, NodeLabel, bCookOnCreation, &ParentNodeId);
+		ParentNodeId, OperatorName, NodeLabel, bCookOnCreation, &ContainerNodeId);
 	if (ResultVariable != HAPI_RESULT_SUCCESS)
 	{
 		const FString ErrorMessage = FHoudiniEngineUtils::GetErrorDescription();
-		HOUDINI_LOG_WARNING(TEXT( "Failed to create node via HAPI: %s" ), *ErrorMessage);
+		HOUDINI_LOG_WARNING(TEXT("Failed to create node via HAPI: %s"), *ErrorMessage);
 		return false;
 	}
 
-	// In session sync, if the subnet's display flag is enabled, it can cause slow deletion / creation of nodes inside
-	// nested subnets due to display flag propagation checks. So we attempt to disable the display flag of top level
-	// subnets here.
 	if (bIsTopLevelNode)
 	{
-		if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), ParentNodeId, 0))
+		if (HAPI_RESULT_SUCCESS != FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), ContainerNodeId, 0))
 		{
 			const FString ErrorMessage = FHoudiniEngineUtils::GetErrorDescription();
 			HOUDINI_LOG_WARNING(TEXT("Failed to disable the display flag of an input subnet via HAPI: %s"), *ErrorMessage);
 		}
 	}
 
-	if (!bParentEntryExists || !ParentHandle.IsValid())
-		AddContainer(ParentIdentifier, ParentNodeId, ParentHandle);
+	bool bContainerUpdated = false;
+	if (!bContainerEntryExists || !ContainerHandle.IsValid())
+	{
+		bContainerUpdated = AddContainer(InIdentifier, ContainerNodeId, ContainerHandle);
+	}
 	else
-		UpdateContainer(ParentIdentifier, ParentNodeId);
+	{
+		bContainerUpdated = UpdateContainer(InIdentifier, ContainerNodeId);
+	}
 
-	// Make sure we prevent node destruction if needed
-	if (!bInputNodesCanBeDeleted)
-		FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
-	else
-		FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(ParentHandle, bInputNodesCanBeDeleted);
-	
-	OutParentHandle = std::move(ParentHandle);
+	if (!bContainerUpdated)
+		return false;
 
+	if (!ContainerHandle.IsValid())
+		ContainerHandle = FUnrealObjectInputHandle(InIdentifier);
+
+	FUnrealObjectInputUtils::UpdateInputNodeCanBeDeleted(ContainerHandle, bInputNodesCanBeDeleted);
+
+	bCreated = true;
+	OutContainerHandle = std::move(ContainerHandle);
 	return true;
 }
 
@@ -421,7 +464,7 @@ FUnrealObjectInputManagerImpl::MarkAsDirty(const FUnrealObjectInputIdentifier& I
 	if (!Node)
 		return false;
 
-	if (bInAlsoDirtyReferencedNodes && InIdentifier.GetNodeType() == EUnrealObjectInputNodeType::Reference)
+	if (bInAlsoDirtyReferencedNodes && InIdentifier.GetNodeType() == EUnrealObjectInputNodeType::LeafWithReferences)
 	{
 		FUnrealObjectInputReferenceNode* const RefNode = static_cast<FUnrealObjectInputReferenceNode*>(Node);
 		if (!RefNode)
@@ -523,17 +566,26 @@ FUnrealObjectInputManagerImpl::GetAllHAPINodeIds(TArray<int32>& OutNodeIds) cons
 bool
 FUnrealObjectInputManagerImpl::Clear()
 {
-	// Destroy the Node structs
-	for (auto& Entry : InputNodes)
-	{
-		FUnrealObjectInputNode* Node = Entry.Value;
-		if (!Node)
-			continue;
+	TArray<FUnrealObjectInputNode*> NodesToDelete;
+	NodesToDelete.Reserve(InputNodes.Num());
 
-		delete Node;
-		Entry.Value = nullptr;
+	for (const auto& Entry : InputNodes)
+	{
+		if (Entry.Value)
+			NodesToDelete.Add(Entry.Value);
 	}
+
+	// Clear manager-owned state before deleting nodes: node destructors release handles that can call back into the
+	// manager and mutate InputNodes / BackLinks.
 	InputNodes.Empty();
+	BackLinks.Empty();
+	WorldOriginNodeId.Reset();
+
+	for (FUnrealObjectInputNode* Node : NodesToDelete)
+	{
+		delete Node;
+	}
+
 	return true;
 }
 
@@ -571,47 +623,7 @@ FUnrealObjectInputManagerImpl::GetDefaultNodeName(const FUnrealObjectInputIdenti
 {
 	if (!InIdentifier.IsValid())
 		return FString();
-
-	const AActor* Actor = Cast<const AActor>(InIdentifier.GetObject());
-
-	const EUnrealObjectInputNodeType Type = InIdentifier.GetNodeType();
-	if (Type == EUnrealObjectInputNodeType::Leaf || Type == EUnrealObjectInputNodeType::Reference)
-	{
-		TArray<FString> NameParts;
-		NameParts.Reserve(4);
-
-		// Get the object name, or for actors, get their label
-		/*FString ObjectName = IsValid(Actor) ? Actor->GetActorNameOrLabel() : InIdentifier.GetObject()->GetName();
-		FHoudiniEngineUtils::SanitizeHAPIVariableName(ObjectName);*/
-
-		FString ObjectName = InIdentifier.GetObject()->GetName();
-		FHoudiniEngineUtils::SanitizeHAPIVariableName(ObjectName);
-
-		NameParts.Add(ObjectName);
-
-		const FUnrealObjectInputOptions& Options = InIdentifier.GetOptions();
-		if (Type == EUnrealObjectInputNodeType::Reference)
-			NameParts.Add(TEXT("merge"));
-
-		// Add part generated from Options 
-		const FString OptionsSuffix = Options.GenerateNodeNameSuffix();
-		if (!OptionsSuffix.IsEmpty())
-			NameParts.Add(OptionsSuffix);
-
-		// Add empty part so that name ends with _ so that numeric suffixes on name clashes are easier to see
-		NameParts.Add(TEXT(""));
-		return FString::Join(NameParts, TEXT("_"));
-	}
-	
-	// Get the object name, or for actors, get their label
-	FString ObjectName;
-	if (IsValid(Actor))
-		ObjectName = Actor->GetActorNameOrLabel();
-	else
-		ObjectName = FPaths::GetBaseFilename(InIdentifier.GetNormalizedObjectPath());
-
-	FHoudiniEngineUtils::SanitizeHAPIVariableName(ObjectName);
-	return ObjectName;
+	return InIdentifier.GetNodeName();
 }
 
 bool
@@ -883,4 +895,3 @@ bool FUnrealObjectInputManagerImpl::Contains(const FUnrealObjectInputIdentifier&
 {
 	return InputNodes.Contains(InIdentifier);
 }
-

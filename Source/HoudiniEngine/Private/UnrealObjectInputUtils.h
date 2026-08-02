@@ -34,10 +34,11 @@
 
 #include "HAPI/HAPI_Common.h"
 
+#include "UnrealObjectInputManager.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 
 
-struct FUnrealMeshExportOptions;
+struct FHoudiniInputObjectSettings;
 // UE forward declarations
 class UObject;
 class ULandscapeSplinesComponent;
@@ -46,22 +47,6 @@ class ULandscapeSplinesComponent;
 struct HOUDINIENGINE_API FUnrealObjectInputUtils
 {
 	public:
-		// Find the node in the input manager that corresponds to Identifier. If it could not be found return false.
-		// If found, return true and set Handle to reference the node.
-		static bool FindNodeViaManager(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle);
-
-		// Returns the node associated with InHandle. Returns nullptr if the handle is invalid or the node does not exist.
-		static FUnrealObjectInputNode* GetNodeViaManager(const FUnrealObjectInputHandle& InHandle);
-
-		// Returns the node associated with InIdentifier. Returns nullptr if the handle is invalid or the node does not exist.
-		static FUnrealObjectInputNode* GetNodeViaManager(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle);
-
-		// Helper to get a handle to the parent of node of InHandle.
-		static bool FindParentNodeViaManager(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle);
-
-		// Returns true if the HAPI nodes for input referenced by InHandle are valid (exist).
-		static bool AreHAPINodesValid(const FUnrealObjectInputHandle& InHandle);
-
 		// Helper that checks that the input entry associated with InIdentifier exists, the HAPI nodes for are valid and
 		// the entry is not marked as dirty.
 		static bool NodeExistsAndIsNotDirty(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle);
@@ -80,50 +65,14 @@ struct HOUDINIENGINE_API FUnrealObjectInputUtils
 			const bool& bInputNodesCanBeDeleted,
 			const TOptional<int32> InReferencesConnectToNodeId=TOptional<int32>());
 
-		// Helper to get the HAPI NodeId associated with InHandle. Recommend using the 2nd overload below, as its easier to use.
-		static bool GetHAPINodeId(const FUnrealObjectInputHandle& InHandle, int32& OutNodeId);
-
-		static HAPI_NodeId GetHAPINodeId(const FUnrealObjectInputHandle& Handle);
-
-		static FUnrealObjectInputHandle GetHandle(const FUnrealObjectInputIdentifier &Identifier);
-
 		// Helper to set the CanBeDeleted property on the input object associated with InHandle
 		static bool UpdateInputNodeCanBeDeleted(const FUnrealObjectInputHandle& InHandle, const bool& bCanBeDeleted);
-
-		// Helper to get the default input node name to use via the new input system.
-		static bool GetDefaultInputNodeName(const FUnrealObjectInputIdentifier& InIdentifier, FString& OutNodeName);
-
-		// Helper to ensure that the parent/container nodes of a given identifier exist
-		static bool EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle, const bool& bInputNodesCanBeDeleted);
 
 		// Helper to set the references on a reference node
 		static bool SetReferencedNodes(const FUnrealObjectInputHandle& InRefNodeHandle, const TSet<FUnrealObjectInputHandle>& InReferencedNodes);
 
 		// Helper to get the references on a reference node
 		static bool GetReferencedNodes(const FUnrealObjectInputHandle& InRefNodeHandle, TSet<FUnrealObjectInputHandle>& OutReferencedNodes);
-
-		// Helper to build identifiers for static/skeletal mesh inputs based on options (such as LODs, Colliders, Sockets)
-		static bool BuildMeshInputObjectIdentifiers(
-			UObject const* const InInputObject,
-			const FUnrealMeshExportOptions ExportOptions,
-			const bool bInMainMeshIsNaniteFallbackMesh,
-			const bool bExportMaterialParameters,
-			const bool bForceCreateReferenceNode,
-			bool &bOutSingleLeafNodeOnly,
-			FUnrealObjectInputIdentifier& OutInputIdentifier,
-			TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers);
-
-		// Helper to build identifiers for landscape spline inputs based on options (such as send control points)
-		static bool BuildLandscapeSplinesInputObjectIdentifiers(
-			ULandscapeSplinesComponent const* const InSplinesComponent,
-			const bool bInExportSplineCurves,
-			const bool bInExportControlPoints,
-			const bool bInExportLeftRightCurves,
-			const float InUnrealSplineResolution,
-			const bool bForceCreateReferenceNode,
-			bool &bOutSingleLeafNodeOnly,
-			FUnrealObjectInputIdentifier& OutReferenceNode,
-			TArray<FUnrealObjectInputIdentifier>& OutPerOptionIdentifiers);
 
 		// Helper to set an object_merge SOP's xformtype to "Into Specified Object" and the xformpath to the manager's
 		// WorldOrigin null.
@@ -184,8 +133,8 @@ struct HOUDINIENGINE_API FUnrealObjectInputUtils
 template<class T, class... Args>
 T* FUnrealObjectInputUtils::CreateAndAddModifier(const FUnrealObjectInputHandle& InHandle, const FName InChainName, Args... ConstructorArguments)
 {
-	FUnrealObjectInputNode* Node = GetNodeViaManager(InHandle);
-	if (!Node || !InHandle.IsValid())
+	FUnrealObjectInputNode* Node = nullptr;
+	if (!InHandle.IsValid() || !FUnrealObjectInputManager::Get().GetNode(InHandle, Node) || !Node)
 		return nullptr;
 
 	return Node->CreateAndAddModifier<T>(InChainName, ConstructorArguments...);

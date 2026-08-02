@@ -32,7 +32,6 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
-#include "UnrealObjectInputRuntimeUtils.h"
 #include "UnrealObjectInputUtils.h"
 
 #include "Landscape.h"
@@ -237,6 +236,79 @@ FHoudiniUnResampledPoint::CalculateRotationTo(const FHoudiniUnResampledPoint& In
 }
 
 bool
+FUnrealLandscapeSplineTranslator::BuildLandscapeSplinesInputObjectIdentifiers(
+	ULandscapeSplinesComponent const* const InSplinesComponent,
+	const bool bInExportSplineCurves,
+	const bool bInExportControlPoints,
+	const bool bInExportLeftRightCurves,
+	const float InUnrealSplineResolution,
+	const bool bForceCreateReferenceNode,
+	bool& bOutSingleLeafNodeOnly,
+	FUnrealObjectInputOptions& OutReferenceNode,
+	TArray<FUnrealObjectInputOptions>& OutPerOptionIdentifiers)
+{
+	const FUnrealObjectInputOptions DefaultOptions;
+
+	uint32 NumLeaves = 0;
+	if (bInExportSplineCurves)
+		NumLeaves++;
+	if (bInExportControlPoints)
+		NumLeaves++;
+	if (bInExportLeftRightCurves)
+		NumLeaves++;
+	if (NumLeaves <= 1 && !bForceCreateReferenceNode)
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportLandscapeSplineControlPoints = bInExportControlPoints;
+		Options.bExportLandscapeSplineLeftRightCurves = bInExportLeftRightCurves;
+		if (!bInExportControlPoints)
+			Options.UnrealSplineResolution = InUnrealSplineResolution;
+
+		bOutSingleLeafNodeOnly = true;
+		OutReferenceNode = FUnrealObjectInputOptions();
+		OutPerOptionIdentifiers = { Options };
+		return true;
+	}
+
+	bOutSingleLeafNodeOnly = false;
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportLandscapeSplineControlPoints = bInExportControlPoints;
+		Options.bExportLandscapeSplineLeftRightCurves = bInExportLeftRightCurves;
+		Options.UnrealSplineResolution = InUnrealSplineResolution;
+
+		OutReferenceNode = Options;
+	}
+
+	TArray<FUnrealObjectInputOptions> PerOptionIdentifiers;
+	if (bInExportSplineCurves)
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		// TODO: add a specific spline curves option?
+		Options.UnrealSplineResolution = InUnrealSplineResolution;
+		PerOptionIdentifiers.Add(Options);
+	}
+
+	if (bInExportControlPoints)
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportLandscapeSplineControlPoints = true;
+		PerOptionIdentifiers.Add(Options);
+	}
+
+	if (bInExportLeftRightCurves)
+	{
+		FUnrealObjectInputOptions Options = DefaultOptions;
+		Options.bExportLandscapeSplineLeftRightCurves = true;
+		Options.UnrealSplineResolution = InUnrealSplineResolution;
+		PerOptionIdentifiers.Add(Options);
+	}
+
+	OutPerOptionIdentifiers = MoveTemp(PerOptionIdentifiers);
+	return true;
+}
+
+bool
 FUnrealLandscapeSplineTranslator::CreateInputNode(
 	ULandscapeSplinesComponent* const InSplinesComponent, 
 	bool bForceReferenceInputNodeCreation,
@@ -265,9 +337,9 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 	{
 		// Check if we already have an input node for this component and its options
 		bool bSingleLeafNodeOnly = false;
-		FUnrealObjectInputIdentifier IdentReferenceNode;
-		TArray<FUnrealObjectInputIdentifier> IdentPerOption;
-		if (!FUnrealObjectInputUtils::BuildLandscapeSplinesInputObjectIdentifiers(
+		FUnrealObjectInputOptions ReferenceNodeOptions;
+		TArray<FUnrealObjectInputOptions> PerOptionInputOptions;
+		if (!BuildLandscapeSplinesInputObjectIdentifiers(
 			InSplinesComponent,
 			bInExportCurves,
 			bInExportControlPoints,
@@ -275,28 +347,31 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 			InSplineResolution,
 			bForceReferenceInputNodeCreation,
 			bSingleLeafNodeOnly,
-			IdentReferenceNode,
-			IdentPerOption))
+			ReferenceNodeOptions,
+			PerOptionInputOptions))
 		{
 			return false;
 		}
 
+		FUnrealObjectInputIdentifier IdentReferenceNode;
 		if (bSingleLeafNodeOnly)
 		{
 			// We'll create the splines input node entirely is this function call
-			check(!IdentPerOption.IsEmpty());
-			Identifier = IdentPerOption[0];
+			check(!PerOptionInputOptions.IsEmpty());
+			Identifier = FUnrealObjectInputIdentifier(InSplinesComponent, PerOptionInputOptions[0], EUnrealObjectInputNodeType::Leaf);
 		}
 		else
 		{
 			// Look for the reference node that references the per-option (curves, control points) nodes
+			IdentReferenceNode = FUnrealObjectInputIdentifier(InSplinesComponent, ReferenceNodeOptions, EUnrealObjectInputNodeType::LeafWithReferences);
 			Identifier = IdentReferenceNode;
 		}
 		FUnrealObjectInputHandle Handle;
 		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId) && (bSingleLeafNodeOnly || FUnrealObjectInputUtils::AreReferencedHAPINodesValid(Handle)))
+			NodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
+			if (Handle.IsValid() && (bSingleLeafNodeOnly || FUnrealObjectInputUtils::AreReferencedHAPINodesValid(Handle)))
 			{
 				if (!bInInputNodesCanBeDeleted)
 				{
@@ -310,10 +385,10 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 			}
 		}
 
-		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FinalInputNodeName = FUnrealObjectInputManager::Get().GetDefaultNodeName(Identifier);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputManager::Get().EnsureParentsExist(Identifier, ParentHandle, bInInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			ParentNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ParentHandle);
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
 		// For the single leaf node case we can simply continue this function
@@ -322,22 +397,22 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 		if (!bSingleLeafNodeOnly)
 		{
 			TSet<FUnrealObjectInputHandle> PerOptionNodeHandles;
-			PerOptionNodeHandles.Reserve(IdentPerOption.Num());
-			for (const FUnrealObjectInputIdentifier& OptionIdentifier : IdentPerOption)
+			PerOptionNodeHandles.Reserve(PerOptionInputOptions.Num());
+			for (const FUnrealObjectInputOptions& Options : PerOptionInputOptions)
 			{
 				FUnrealObjectInputHandle OptionHandle;
-				const FUnrealObjectInputOptions& Options = OptionIdentifier.GetOptions();
 				HAPI_NodeId NewNodeId = -1;
+				const FUnrealObjectInputIdentifier OptionIdentifier(InSplinesComponent, Options, EUnrealObjectInputNodeType::Leaf);
 				FString NodeLabel;
-				FUnrealObjectInputUtils::GetDefaultInputNodeName(OptionIdentifier, NodeLabel);
+				NodeLabel = FUnrealObjectInputManager::Get().GetDefaultNodeName(OptionIdentifier);
 
-				if (FUnrealObjectInputUtils::FindNodeViaManager(OptionIdentifier, OptionHandle))
+				if (FUnrealObjectInputManager::Get().FindNode(OptionIdentifier, OptionHandle))
 				{
 					// The node already exists, but it is dirty. Fetch its HAPI node ID so that the old
 					// node can be deleted when creating the new HAPI node.
 					// TODO: maybe the new input system manager should delete the old HAPI nodes when we set the new
 					//		 HAPI node IDs on the node entries in the manager?
-					FUnrealObjectInputUtils::GetHAPINodeId(OptionHandle, NewNodeId);
+					NewNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(OptionHandle);
 				}
 
 				static constexpr bool bForceInputRefNodeCreation = false;
@@ -367,7 +442,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 				return false;
 			
 			OutInputNodeHandle = RefNodeHandle;
-			FUnrealObjectInputUtils::GetHAPINodeId(IdentReferenceNode, OutCreatedInputNodeId);
+			OutCreatedInputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(IdentReferenceNode);
 			return true;
 		}
 
@@ -376,8 +451,7 @@ FUnrealLandscapeSplineTranslator::CreateInputNode(
 		// the same asset, in the manager)
 		if (Handle.IsValid())
 		{
-			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, OutCreatedInputNodeId))
-				OutCreatedInputNodeId = -1;
+			OutCreatedInputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 		}
 		else
 		{

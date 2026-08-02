@@ -185,7 +185,7 @@ public:
 	
 	const TArray<FString>& GetMaterialReferences();
 
-	// Formats Input Reference path strings obtained by UObject::GetFullName() of format:
+	// Formats Input LeafWithReferences path strings obtained by UObject::GetFullName() of format:
 	//`Material /path/to/asset` and adds single quotes: `Material'/path/to/asset'`
 	static FString FormatAssetReference(FString AssetReference);
 
@@ -666,7 +666,7 @@ public:
 protected:
 	
 	// NOTE: We are using this reference to the component since the component, for now,
-	// lives on the same actor as this input object. If we use a Soft Object Reference instead the editor
+	// lives on the same actor as this input object. If we use a Soft Object LeafWithReferences instead the editor
 	// will complain about breaking references everytime we try to delete the actor.
 	UPROPERTY(Instanced)
 	TObjectPtr<UHoudiniSplineComponent> CachedComponent;

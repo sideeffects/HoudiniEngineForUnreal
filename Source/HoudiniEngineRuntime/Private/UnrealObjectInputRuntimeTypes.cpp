@@ -61,6 +61,11 @@ uint32 _GetArrayHash(const T* Ptr, uint64 Size, uint32 PreviousHash = 0)
 #endif
 }
 
+uint32 GetIdentifierPathHash(const FString& InPath)
+{
+	return GetTypeHash(MakeStringView(InPath));
+}
+
 
 bool
 FUnrealObjectInputHAPINodeId::Set(const int32 InHAPINodeId, const int32 InUniqueHoudiniNodeId)
@@ -82,12 +87,10 @@ FUnrealObjectInputHAPINodeId::Set(const int32 InHAPINodeId)
 	if (InHAPINodeId < 0)
 		return false;
 
-	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return false;
+	const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
 
 	int32 TheUniqueHoudiniNodeId = -1;
-	if (!Manager->GetUniqueHoudiniNodeId(InHAPINodeId, TheUniqueHoudiniNodeId))
+	if (!Manager.GetUniqueHoudiniNodeId(InHAPINodeId, TheUniqueHoudiniNodeId))
 		return false;
 
 	HAPINodeId = InHAPINodeId;
@@ -105,11 +108,8 @@ FUnrealObjectInputHAPINodeId::IsSet() const
 bool
 FUnrealObjectInputHAPINodeId::IsValid() const
 {
-	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return false;
-
-	return Manager->IsHAPINodeValid(*this);
+	const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+	return Manager.IsHAPINodeValid(*this);
 }
 
 FUnrealObjectInputOptions::FUnrealObjectInputOptions()
@@ -245,6 +245,19 @@ FUnrealObjectInputOptions::MakeOptionsForLandscapeSplineActor(const FHoudiniInpu
 		Options.bExportLandscapeSplineLeftRightCurves = InInputSettings.bLandscapeSplinesExportLeftRightCurves;
 	}
 
+	return Options;
+}
+
+FUnrealObjectInputOptions
+FUnrealObjectInputOptions::MakeOptionsForMesh(const FHoudiniInputObjectSettings& InInputSettings)
+{
+	FUnrealObjectInputOptions Options;
+	Options.bExportColliders = InInputSettings.bExportColliders;
+	Options.bExportLODs = InInputSettings.bExportLODs;
+	Options.bExportMaterialParameters = InInputSettings.bExportMaterialParameters;
+	Options.bExportMainGeometry = InInputSettings.bExportMainGeometry;
+	Options.bExportSockets = InInputSettings.bExportSockets;
+	Options.bMainMeshIsNaniteFallbackMesh = InInputSettings.bPreferNaniteFallbackMesh;
 	return Options;
 }
 
@@ -483,175 +496,181 @@ FUnrealObjectInputOptions::operator==(const FUnrealObjectInputOptions& InOther) 
 
 
 FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier()
-	: Object(nullptr)
-	, Path()
-	, Options()
-	, NodeType(EUnrealObjectInputNodeType::Invalid)
 {
+	NodeType = EUnrealObjectInputNodeType::Invalid;
 }
 
-FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(UObject const* const InObject, const FUnrealObjectInputOptions& InOptions, const bool bIsLeaf)
-	: Object(InObject)
-	, Path()
-	, Options(InOptions)
-	, NodeType(bIsLeaf ? EUnrealObjectInputNodeType::Leaf : EUnrealObjectInputNodeType::Reference)
+FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const UObject* InObject, const FUnrealObjectInputOptions& InOptions, EUnrealObjectInputNodeType InNodeType)
 {
+	Path = MakeNormalizedPath(InObject);
+	FString Options = InOptions.GenerateNodeNameSuffix();
+	Path += TEXT("_") + Options;
+
+	NodeType = InNodeType;
 }
 
-FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(UObject const* const InObject)
-	: Object(InObject)
-	, Path()
-	, Options()
-	, NodeType(EUnrealObjectInputNodeType::Container)
+FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const UObject* InObject, EUnrealObjectInputNodeType InNodeType)
 {
+	Path = MakeNormalizedPath(InObject);	
+	NodeType = InNodeType;
 }
 
-FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(UPackage const* const InPackage)
-	: Object(nullptr)
-	, Path(::IsValid(InPackage) ? InPackage->GetPathName() : FString())
-	, Options()
-	, NodeType(EUnrealObjectInputNodeType::Container)
+FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const UPackage* InPackage, EUnrealObjectInputNodeType InNodeType)
 {
+	Path = NormalizeObjectPath(InPackage->GetPathName());
+	NodeType = InNodeType;
 }
 
-FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const FString& InPath, EUnrealObjectInputNodeType Type)
-	: Object(nullptr)
-	, Path(InPath)
-	, Options()
-	, NodeType(Type)
+FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(const FString& InPath, EUnrealObjectInputNodeType InNodeType)
 {
+	Path = InPath;
+	NodeType = InNodeType;
 }
 
+FUnrealObjectInputIdentifier::FUnrealObjectInputIdentifier(
+	const FUnrealObjectInputIdentifier& InParent,
+	const FString& ChildName,
+	EUnrealObjectInputNodeType InNodeType)
+{
+	const FString NormalizedChildName = NormalizeObjectPath(ChildName);
+	if (InParent.GetPath().IsEmpty())
+		Path = NormalizedChildName;
+	else if (NormalizedChildName.IsEmpty())
+		Path = InParent.GetPath();
+	else
+		Path = InParent.GetPath() / NormalizedChildName;
+
+	NodeType = InNodeType;
+}
+
+
+FString 
+FUnrealObjectInputIdentifier::GetPath() const
+{
+	return Path;
+}
+
+FString 
+FUnrealObjectInputIdentifier::GetParentPath() const
+{
+	FString Directory = FPaths::GetPath(Path);
+	return Directory;
+}
+
+FString
+FUnrealObjectInputIdentifier::GetNodeName() const
+{
+	FString Name = FPaths::GetCleanFilename(Path);
+	return Name;
+}
+
+FString
+FUnrealObjectInputIdentifier::NormalizeObjectPath(const FString& InObjectPath)
+{
+	return InObjectPath.Replace(TEXT("."), TEXT("/")).Replace(TEXT(":"), TEXT("/"));
+}
+
+FString
+FUnrealObjectInputIdentifier::MakeNormalizedPath(const UObject* InObject)
+{
+	if (!::IsValid(InObject))
+		return FString();
+
+	const UPackage* Package = InObject->GetPackage();
+	FString NormalizedPath = ::IsValid(Package)
+		? Package->GetPathName()
+		: FString();
+
+	TArray<const UObject*> Chain;
+	Chain.Add(InObject);
+	for (const UObject* Outer = InObject->GetOuter(); ::IsValid(Outer) && Outer != Package; Outer = Outer->GetOuter())
+	{
+		Chain.Add(Outer);
+	}
+
+	Algo::Reverse(Chain);
+	for (const UObject* Outer : Chain)
+	{
+		FString OwnerName = Outer->GetName().Replace(TEXT("/"), TEXT("_")).Replace(TEXT("."), TEXT("_")).Replace(TEXT(":"), TEXT("_"));
+		if (NormalizedPath.IsEmpty())
+			NormalizedPath = OwnerName;
+		else
+			NormalizedPath /= OwnerName;
+	}
+
+	return NormalizedPath;
+}
 
 bool FUnrealObjectInputIdentifier::IsValid() const
 {
-	switch(NodeType)
-	{
-		case EUnrealObjectInputNodeType::Invalid:
-			return false;
-
-		case EUnrealObjectInputNodeType::Container:
-			return Object.IsValid() || !Path.IsEmpty();
-
-		case EUnrealObjectInputNodeType::Reference:
-		case EUnrealObjectInputNodeType::Leaf:
-			return Object.IsValid() || !Path.IsEmpty();
-	}
-
-	return false;
+	return NodeType != EUnrealObjectInputNodeType::Invalid;
 }
 
 void
 FUnrealObjectInputIdentifier::Reset()
 {
-	Object.Reset();
-	Path = FString();
-	Options = FUnrealObjectInputOptions();
+	Path.Empty();
 	NodeType = EUnrealObjectInputNodeType::Invalid;
 }
 
 uint32
 FUnrealObjectInputIdentifier::GetTypeHash() const
 {
-	FString ObjectPath = Object.IsValid() ? Object->GetPathName() : Path;
-
-	switch(NodeType)
+	if (NodeType == EUnrealObjectInputNodeType::Invalid)
 	{
-		case EUnrealObjectInputNodeType::Invalid:
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
-			return 0;
+		return 0;
 #else
-			return ::GetTypeHash(FString());
+		return ::GetTypeHash(FString());
 #endif
-		case EUnrealObjectInputNodeType::Container:
-		{
-			//return FName::GetTypeHash(ObjectPath);
-			//return ::GetTypeHash(ObjectPath.GetComparisonIndex()) + ObjectPath.GetNumber();
-			const TPair<FName, FUnrealObjectInputOptions> Pair(ObjectPath, Options);
-			return ::GetTypeHash(Pair);
-		}
-
-		case EUnrealObjectInputNodeType::Reference:
-		case EUnrealObjectInputNodeType::Leaf:
-		{
-			const TPair<FName, FUnrealObjectInputOptions> Pair(ObjectPath, Options);
-			return ::GetTypeHash(Pair);
-		}
 	}
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2
-	return 0;
-#else
-	return ::GetTypeHash(FString());
-#endif
+	return HashCombineFast(GetIdentifierPathHash(Path), static_cast<uint32>(NodeType));
 }
 
 bool
 FUnrealObjectInputIdentifier::operator==(const FUnrealObjectInputIdentifier& InOther) const
 {
-	// NodeTypes must be the same
 	if (NodeType != InOther.NodeType)
+	{
 		return false;
+	}
 
-	// NodeTypes are equal and invalid
 	if (NodeType == EUnrealObjectInputNodeType::Invalid)
+	{
 		return true;
+	}
 
-	bool bOptionsEqual = Object == InOther.Object && Options == InOther.Options;
-	bool bPathsEqual = Path == InOther.Path;
-	if (NodeType == EUnrealObjectInputNodeType::Leaf)
-		return bOptionsEqual && bPathsEqual;
-
-	if(NodeType == EUnrealObjectInputNodeType::Reference)
-		return bOptionsEqual && bPathsEqual;
-
-	if (Object.IsValid() && InOther.Object.IsValid())
-		return Object == InOther.Object;
-
-	if(Object.Get() == nullptr && InOther.Object.Get() == nullptr)
-		return bPathsEqual;
-
-	return false;
+	return Path == InOther.Path;
 }
 
+EUnrealObjectInputNodeType
+FUnrealObjectInputIdentifier::GetNodeType() const
+{
+	return NodeType;
+}
 
 FString
 FUnrealObjectInputIdentifier::ToString() const
 {
-#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
-	TStringBuilder<256> Builder;
-#else
-	FStringBuilderBase Builder;
-#endif
-	Builder.Append(TEXT("type: "));
-	switch(this->GetNodeType())
+	FString NodeTypeString;
+	switch (NodeType)
 	{
 	case EUnrealObjectInputNodeType::Container:
-		Builder.Append(TEXT("container"));
+		NodeTypeString = TEXT("Container");
 		break;
 	case EUnrealObjectInputNodeType::Leaf:
-		Builder.Append(TEXT("leaf"));
+		NodeTypeString = TEXT("Leaf");
 		break;
-	case EUnrealObjectInputNodeType::Reference:
-		Builder.Append(TEXT("reference"));
+	case EUnrealObjectInputNodeType::LeafWithReferences:
+		NodeTypeString = TEXT("LeafWithReferences");
 		break;
 	default:
-		Builder.Append(TEXT("unknown"));
+		NodeTypeString = TEXT("Invalid");
 		break;
 	}
 
-	if (this->Object.IsValid())
-	{
-		Builder.Append(TEXT(" object: "));
-		Builder.Append(this->Object->GetPathName());
-	}
-	else
-	{
-		Builder.Append(TEXT(" path: "));
-		Builder.Append(this->Path);
-	}
-
-	return Builder.ToString();
+	return FString::Printf(TEXT("Path=%s, NodeType=%s"), *Path, *NodeTypeString);
 }
 
 bool
@@ -660,46 +679,16 @@ FUnrealObjectInputIdentifier::MakeParentIdentifier(FUnrealObjectInputIdentifier&
 	if (!IsValid())
 		return false;
 
-	// if (NodeType == EUnrealObjectInputNodeType::Leaf || NodeType == EUnrealObjectInputNodeType::Reference)
-	if (Object.IsValid())
+	const FString ParentPath = GetParentPath();
+	if (ParentPath.IsEmpty())
 	{
-		FUnrealObjectInputIdentifier ParentIdentifier;
-		UObject const* const Outer = Object->GetOuter();
-		if (::IsValid(Outer))
-		{
-			UPackage const* const Package = Cast<UPackage>(Outer);
-			if (::IsValid(Package))
-			{
-				ParentIdentifier = FUnrealObjectInputIdentifier(Package);				
-			}
-			else
-			{
-				ParentIdentifier = FUnrealObjectInputIdentifier(Outer);
-			}
-		}
-		else
-		{
-			const FString ParentPath(FPaths::GetPath(Object->GetPathName()));
-			ParentIdentifier = FUnrealObjectInputIdentifier(ParentPath);
-		}
-
-		if (ParentIdentifier.IsValid())
-		{
-			OutParentIdentifier = ParentIdentifier;
-			return true;
-		}
-		
+		OutParentIdentifier.Reset();
 		return false;
 	}
 
-	const FUnrealObjectInputIdentifier ParentIdentifier = FUnrealObjectInputIdentifier(FPaths::GetPath(Path));
-	if (ParentIdentifier.IsValid())
-	{
-		OutParentIdentifier = ParentIdentifier;
-		return true;
-	}
-	
-	return false;
+	// Parent entries are represented as container nodes in the input tree.
+	OutParentIdentifier = FUnrealObjectInputIdentifier(ParentPath, EUnrealObjectInputNodeType::Container);
+	return true;
 }
 
 
@@ -759,10 +748,8 @@ FUnrealObjectInputHandle::Initialize(const FUnrealObjectInputIdentifier& InIdent
 	if (!Identifier.IsValid())
 		return false;
 	
-	if (FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get())
-	{
-		bIsInitialized = Manager->AddRef(Identifier);
-	}
+	FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+	bIsInitialized = Manager.AddRef(Identifier);
 
 	return bIsInitialized;
 }
@@ -785,10 +772,8 @@ FUnrealObjectInputHandle::DeInitialize()
 	}
 #endif
 
-	if (FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get())
-	{
-		Manager->RemoveRef(Identifier);
-	}
+	FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+	Manager.RemoveRef(Identifier);
 
 	Identifier = FUnrealObjectInputIdentifier();
 	bIsInitialized = false;
@@ -813,11 +798,9 @@ FUnrealObjectInputHandle::IsValid() const
 	if (!Identifier.IsValid() || !bIsInitialized)
 		return false;
 	
-	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return false;
+	FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
 
-	return Manager->Contains(*this);
+	return Manager.Contains(*this);
 }
 
 void FUnrealObjectInputHandle::Reset()
@@ -887,13 +870,11 @@ FUnrealObjectInputBackLinkHandle::Initialize(const FUnrealObjectInputIdentifier&
 	if (!Identifier.IsValid() || !SourceIdentifier.IsValid())
 		return false;
 	
-	if (FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get())
+	FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+	if (Manager.AddRef(Identifier))
 	{
-		if (Manager->AddRef(Identifier))
-		{
-			bIsInitialized = true;
-			Manager->AddBackLink(Identifier, SourceIdentifier);
-		}
+		bIsInitialized = true;
+		Manager.AddBackLink(Identifier, SourceIdentifier);
 	}
 
 	return bIsInitialized;
@@ -913,11 +894,9 @@ FUnrealObjectInputBackLinkHandle::DeInitialize()
 		return;
 	}
 
-	if (FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get())
-	{
-		Manager->RemoveBackLink(Identifier, SourceIdentifier);
-		Manager->RemoveRef(Identifier);
-	}
+	FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+	Manager.RemoveBackLink(Identifier, SourceIdentifier);
+	Manager.RemoveRef(Identifier);
 
 	SourceIdentifier = FUnrealObjectInputIdentifier();
 	Identifier = FUnrealObjectInputIdentifier();
@@ -1010,11 +989,8 @@ bool FUnrealObjectInputNode::DeleteHAPINodes()
 	if (!NodeId.IsValid())
 		return false;
 
-	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return false;
-
-	return Manager->DeleteHAPINode(NodeId);
+	const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+	return Manager.DeleteHAPINode(NodeId);
 }
 
 void
@@ -1297,9 +1273,8 @@ FUnrealObjectInputNode::UpdateModifiers(const FName InChainName)
 		const FUnrealObjectInputHAPINodeId OutputNodeId = GetOutputNodeIdOfModifierChain(OutputChainName);
 		if (OutputNodeId.IsValid())
 		{
-			const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-			if (Manager)
-				Manager->SetHAPINodeDisplay(OutputNodeId, true);
+			const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+			Manager.SetHAPINodeDisplay(OutputNodeId, true);
 		}
 	}
 	
@@ -1405,11 +1380,8 @@ bool FUnrealObjectInputLeafNode::DeleteHAPINodes()
 	if (!ObjectNodeId.IsValid())
 		return false;
 
-	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return false;
-
-	return Manager->DeleteHAPINode(ObjectNodeId);
+	const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+	return Manager.DeleteHAPINode(ObjectNodeId);
 }
 
 void
@@ -1486,13 +1458,11 @@ bool FUnrealObjectInputReferenceNode::AreReferencedHAPINodesValid() const
 	if (ReferencedNodes.IsEmpty())
 		return true;
 
-	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return false;
+	FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
 
 	for (const FUnrealObjectInputHandle& Handle : ReferencedNodes)
 	{
-		if (!Manager->AreHAPINodesValid(Handle.GetIdentifier()))
+		if (!Manager.AreHAPINodesValid(Handle.GetIdentifier()))
 			return false;
 	}
 
@@ -1508,13 +1478,11 @@ void FUnrealObjectInputReferenceNode::MarkAsDirty(const bool bInAlsoDirtyReferen
 	if (!bInAlsoDirtyReferencedNodes || ReferencedNodes.IsEmpty())
 		return;
 
-	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return;
+	FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
 
 	for (const FUnrealObjectInputHandle& Handle : ReferencedNodes)
 	{
-		Manager->MarkAsDirty(Handle.GetIdentifier(), bInAlsoDirtyReferencedNodes);
+		Manager.MarkAsDirty(Handle.GetIdentifier(), bInAlsoDirtyReferencedNodes);
 	}
 }
 
@@ -1538,9 +1506,7 @@ FUnrealObjectInputReferenceNode::SetReferencesConnectToNodeId(const int32 InRefe
 bool
 FUnrealObjectInputModifier::DestroyHAPINodes()
 {
-	const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-	if (!Manager)
-		return false;
+	const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
 
 	bool bSuccess = true;
 	for (FUnrealObjectInputHAPINodeId NodeId : HAPINodeIds)
@@ -1548,7 +1514,7 @@ FUnrealObjectInputModifier::DestroyHAPINodes()
 		if (!NodeId.IsValid())
 			continue;
 		// TODO: can we ensure that node input and output nodes are linked after deleting node?
-		if (!Manager->DeleteHAPINode(NodeId))
+		if (!Manager.DeleteHAPINode(NodeId))
 			bSuccess = false;
 	}
 	HAPINodeIds.Empty();
@@ -1558,27 +1524,21 @@ FUnrealObjectInputModifier::DestroyHAPINodes()
 
 FUnrealObjectInputUpdateScope::FUnrealObjectInputUpdateScope()
 {
-	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
-	if (Manager)
-	{
-		OnCreatedHandle = Manager->GetOnNodeAddedDelegate().AddRaw(this, &FUnrealObjectInputUpdateScope::OnNodeCreatedOrUpdated);
-		OnUpdatedHandle = Manager->GetOnNodeUpdatedDelegate().AddRaw(this, &FUnrealObjectInputUpdateScope::OnNodeCreatedOrUpdated);
-		OnDestroyedHandle = Manager->GetOnNodeDeletedDelegate().AddRaw(this, &FUnrealObjectInputUpdateScope::OnNodeDestroyed);
-	}
+	FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+	OnCreatedHandle = Manager.GetOnNodeAddedDelegate().AddRaw(this, &FUnrealObjectInputUpdateScope::OnNodeCreatedOrUpdated);
+	OnUpdatedHandle = Manager.GetOnNodeUpdatedDelegate().AddRaw(this, &FUnrealObjectInputUpdateScope::OnNodeCreatedOrUpdated);
+	OnDestroyedHandle = Manager.GetOnNodeDeletedDelegate().AddRaw(this, &FUnrealObjectInputUpdateScope::OnNodeDestroyed);
 }
 
 FUnrealObjectInputUpdateScope::~FUnrealObjectInputUpdateScope()
 {
-	FUnrealObjectInputManager* const Manager = FUnrealObjectInputManager::Get();
-	if (Manager)
-	{
-		if (OnDestroyedHandle.IsValid())
-			Manager->GetOnNodeDeletedDelegate().Remove(OnDestroyedHandle);
-		if (OnUpdatedHandle.IsValid())
-			Manager->GetOnNodeUpdatedDelegate().Remove(OnUpdatedHandle);
-		if (OnCreatedHandle.IsValid())
-			Manager->GetOnNodeAddedDelegate().Remove(OnCreatedHandle);
-	}
+	FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+	if (OnDestroyedHandle.IsValid())
+		Manager.GetOnNodeDeletedDelegate().Remove(OnDestroyedHandle);
+	if (OnUpdatedHandle.IsValid())
+		Manager.GetOnNodeUpdatedDelegate().Remove(OnUpdatedHandle);
+	if (OnCreatedHandle.IsValid())
+		Manager.GetOnNodeAddedDelegate().Remove(OnCreatedHandle);
 }
 
 void FUnrealObjectInputUpdateScope::OnNodeCreatedOrUpdated(const FUnrealObjectInputIdentifier& InIdentifier)

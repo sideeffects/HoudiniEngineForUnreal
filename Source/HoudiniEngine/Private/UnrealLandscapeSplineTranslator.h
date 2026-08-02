@@ -41,6 +41,8 @@ class UMaterialInterface;
 class UStaticMesh;
 
 class FUnrealObjectInputHandle;
+class FUnrealObjectInputIdentifier;
+class FUnrealObjectInputOptions;
 struct FHoudiniUnrealLandscapeSplineSegmentMeshData;
 struct FHoudiniUnrealLandscapeSplinesControlPointData;
 struct FHoudiniUnrealLandscapeSplinesData;
@@ -219,6 +221,18 @@ public:
 		HAPI_NodeId& OutNodeId);
 
 private:
+	// Build landscape spline input options based on the selected export options.
+	static bool BuildLandscapeSplinesInputObjectIdentifiers(
+		ULandscapeSplinesComponent const* const InSplinesComponent,
+		const bool bInExportSplineCurves,
+		const bool bInExportControlPoints,
+		const bool bInExportLeftRightCurves,
+		const float InUnrealSplineResolution,
+		const bool bForceCreateReferenceNode,
+		bool& bOutSingleLeafNodeOnly,
+		FUnrealObjectInputOptions& OutReferenceNode,
+		TArray<FUnrealObjectInputOptions>& OutPerOptionIdentifiers);
+
 	// Extract landscape splines data arrays: positions, and various attributes.
 	static bool ExtractSplineData(
 		ULandscapeSplinesComponent* const InSplinesComponent,
@@ -262,4 +276,3 @@ private:
 	static bool AddMeshScaleAttribute(HAPI_NodeId InNodeId, const TArray<float>& InTangentLengths);
 	static bool AddControlPointAttributes(HAPI_NodeId InNodeId, const FHoudiniUnrealLandscapeSplineControlPointAttributes& InControlPointAttributes);
 };
-

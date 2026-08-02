@@ -30,10 +30,10 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineTimers.h"
+#include "HoudiniInputTypes.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniMeshUtils.h"
 #include "UnrealObjectInputRuntimeTypes.h"
-#include "UnrealObjectInputRuntimeUtils.h"
 #include "UnrealObjectInputUtils.h"
 
 #include "Components/SplineMeshComponent.h"
@@ -66,29 +66,6 @@
 #if WITH_EDITOR
 	#include "EditorFramework/AssetImportData.h"
 #endif
-
-const FString FUnrealMeshTranslator::LODPrefix = TEXT("lod");
-const FString FUnrealMeshTranslator::HiResMeshName = TEXT("hires");
-const FString FUnrealMeshTranslator::MTLParams = TEXT("mtl_params");
-const FString FUnrealMeshTranslator::CombinePrefix = TEXT("combined_");
-const FString FUnrealMeshTranslator::MaterialTableName = TEXT("material_table");
-
-bool
-FUnrealMeshTranslator::CreateInputNodeForStaticMesh(
-	HAPI_NodeId& InputNodeId,
-	FUnrealObjectInputHandle& OutHandle,
-	const UStaticMesh* StaticMesh,
-	const UStaticMeshComponent* StaticMeshComponent,
-	const FString& InputNodeName,
-	const FUnrealMeshExportOptions& ExportOptions,
-	const bool bInputNodesCanBeDeleted,
-	const bool bForceReferenceInputNodeCreation)
-{
-	TRACE_CPUPROFILER_EVENT_SCOPE(FUnrealMeshTranslator::HapiCreateInputNodeForStaticMesh);
-
-	bool bSuccess = CreateInputNodeForStaticMeshNew(InputNodeId, OutHandle, StaticMesh, StaticMeshComponent, InputNodeName, ExportOptions, bInputNodesCanBeDeleted);
-	return bSuccess;
-}
 
 bool
 FUnrealMeshTranslator::CreateInputNodeForMeshSockets(
@@ -3773,23 +3750,29 @@ bool FUnrealMeshTranslator::GetMaterialInfo(
 
 
 bool FUnrealMeshTranslator::GetOrCreateMaterialTableNode(
+	FUnrealObjectInputHandle& MaterialTableHandle,
 	FUnrealMeshExportData& ExportData,
 	const TArray<FUnrealMaterialInfo>& MaterialInfos)
 {
-	// Get or create the GeoNode.
-	bool bCreated = false;
-	HAPI_NodeId GeoNodeId = ExportData.GetOrCreateConstructionGeoNode(bCreated, MaterialTableName, EUnrealObjectInputNodeType::Leaf);
-	if(GeoNodeId == INDEX_NONE)
-		return false;
+	FString MaterialTableName = TEXT("material_table");
 
-	// If we already created the geo node, we don't have to recreate the internal nodes.
-	if(!bCreated)
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), MaterialTableName, EUnrealObjectInputNodeType::Leaf);
+
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, MaterialTableHandle);
+	if (bSuccess || MaterialTableHandle.IsValid())
+	{
 		return true;
+	}
+
+	// Material table does not exist create it.
+
+	HAPI_NodeId GeoNodeId = INDEX_NONE;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), MaterialTableName, true, &GeoNodeId), false);
 
 	HAPI_NodeId MaterialNodeId;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(GeoNodeId, TEXT("null"), TEXT("material_node"), false, &MaterialNodeId), false);
 
-	ExportData.RegisterConstructionNode(MaterialTableName, MaterialNodeId);
+	FUnrealObjectInputManager::Get().AddLeaf(Identifier, GeoNodeId, MaterialNodeId, MaterialTableHandle);
 
 	// Create part.
 	HAPI_PartInfo Part;
@@ -3800,7 +3783,7 @@ bool FUnrealMeshTranslator::GetOrCreateMaterialTableNode(
 	Part.attributeCounts[HAPI_ATTROWNER_PRIM] = 0;
 	Part.attributeCounts[HAPI_ATTROWNER_VERTEX] = 0;
 	Part.attributeCounts[HAPI_ATTROWNER_DETAIL] = 0;
-	Part.pointCount = MaterialInfos.Num();
+	Part.pointCount = 3;
 	Part.vertexCount = 3 * MaterialInfos.Num();
 	Part.faceCount = MaterialInfos.Num();
 	Part.type = HAPI_PARTTYPE_MESH;
@@ -3970,6 +3953,42 @@ bool FUnrealMeshTranslator::GetOrCreateMaterialTableNode(
 }
 
 bool FUnrealMeshTranslator::GetOrCreateMaterialZipNode(
+	FUnrealObjectInputHandle& ZipNodeHandle,
+	const FUnrealMeshExportData& ExportData,
+	const FUnrealObjectInputHandle& Geometry,
+	const FUnrealObjectInputHandle& MaterialTableNode,
+	const TArray<FUnrealMaterialInfo>& MaterialInfos)
+{
+	FString NodeName = TEXT("zip_node_") + GenerateNodeNameSuffix(ExportData);
+
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), NodeName, EUnrealObjectInputNodeType::LeafWithReferences);
+
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, ZipNodeHandle);
+	if (bSuccess || ZipNodeHandle.IsValid())
+	{
+		return true;
+	}
+
+	HAPI_NodeId GeoNodeId = INDEX_NONE;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), NodeName, true, &GeoNodeId), false);
+
+	HAPI_NodeId ZipNodeId = INDEX_NONE;
+	bSuccess = GetOrCreateMaterialZipNode(ZipNodeId, GeoNodeId, GetHapiNodeId(Geometry), GetHapiNodeId(MaterialTableNode), MaterialInfos);
+	if (!bSuccess)
+		return false;
+
+	TSet<FUnrealObjectInputHandle> Handles;
+	Handles.Add(Geometry);
+	Handles.Add(MaterialTableNode);
+
+	bSuccess = FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, ZipNodeId, ZipNodeHandle, &Handles);
+	if (!bSuccess)
+		return false;
+
+	return true;
+}
+
+bool FUnrealMeshTranslator::GetOrCreateMaterialZipNode(
 	HAPI_NodeId& AttribCopyNodeId,
 	const HAPI_NodeId ParentNodeId,
 	const HAPI_NodeId MeshNode,
@@ -4033,92 +4052,75 @@ bool FUnrealMeshTranslator::GetOrCreateMaterialZipNode(
 	return true;
 }
 
-bool FUnrealMeshExportData::ScanForExistingNodesInHoudini()
-{
-	// This function looks in the top level Geo node in Houdini to see which nodes already exist.
-	// We currently do this on each Unreal->Houdini export, possibly we could keep track of this
-	// per Mesh, but this also allows us to cache data from existing sessions?
-	
-	int ChildCount = 0;
-
-	HAPI_NodeId ParentNodeId = GetConstructionSubnetNodeId();
-	if(ParentNodeId == INDEX_NONE)
-		return true;
-
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ComposeChildNodeList(
-		FHoudiniEngine::Get().GetSession(),
-		ParentNodeId,
-		HAPI_NODETYPE_ANY,
-		HAPI_NODEFLAGS_ANY,
-		false,
-		&ChildCount), false);
-
-	if(ChildCount == 0)
-		return true;
-
-	// Retrieve all the display node ids
-	TArray<HAPI_NodeId> ChildNodeIds;
-	ChildNodeIds.SetNum(ChildCount);
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetComposedChildNodeList(
-		FHoudiniEngine::Get().GetSession(),
-		ParentNodeId,
-		ChildNodeIds.GetData(),
-		ChildCount), false);
-
-	// See what we have
-
-	for(int ChildNodeId : ChildNodeIds)
-	{
-		FString NodeLabel;
-		FHoudiniEngineUtils::GetHoudiniAssetName(ChildNodeId, NodeLabel);
-		ExistingUnassignedHAPINodes.Add(NodeLabel, ChildNodeId);
-	}
-	return true;
-}
-
 bool FUnrealMeshTranslator::GetOrCreateStaticMeshLODGeometries(
+	FUnrealObjectInputHandle& LODsHandle,
 	FUnrealMeshExportData& ExportData,
 	const UStaticMesh* StaticMesh,
-	const FUnrealMeshExportOptions& ExportOptions,
 	EHoudiniMeshSource MeshSource)
 {
-	if(ExportOptions.bMainMesh)
+	FString NodeName = TEXT("lodgeo");
+	if (ExportData.bExportMainGeometry)
+		NodeName += TEXT("_main");
+	if (ExportData.bExportLODs)
+		NodeName += TEXT("_lods");
+
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), NodeName, EUnrealObjectInputNodeType::LeafWithReferences);
+
+	// Does the Geo Node already exist? If so, return it.
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, LODsHandle);
+	if (bSuccess || LODsHandle.IsValid())
+	{
+		return true;
+	}
+
+	TSet<FUnrealObjectInputHandle> Handles;
+
+	if(ExportData.bExportMainGeometry)
 	{
 		FString Label = MakeLODName(0, MeshSource);
 
-		if(!ExportData.Contains(Label))
-		{
-			const bool bAddLODGroups = ExportOptions.bLODs;
-			GetOrCreateExportStaticMeshLOD(ExportData, 0, bAddLODGroups, StaticMesh, MeshSource);
-		}
+		const bool bAddLODGroups = true;
+		FUnrealObjectInputHandle Handle;
+		GetOrCreateExportStaticMeshLOD(Handle, ExportData, 0, bAddLODGroups, StaticMesh, MeshSource);
+		Handles.Add(Handle);
 	}
 
-	if(ExportOptions.bLODs)
+	if(ExportData.bExportLODs)
 	{
 		int NumLODs = StaticMesh->GetNumLODs();
 
-		for(int LODIndex = 0; LODIndex < NumLODs; LODIndex++)
+		int LODStart = ExportData.bExportMainGeometry ? 1 : 0;
+
+		for(int LODIndex = LODStart; LODIndex < NumLODs; LODIndex++)
 		{
 			FString NodeLabel = MakeLODName(LODIndex, MeshSource);
-			if(!ExportData.Contains(NodeLabel))
-			{
-				const bool bAddLODGroups = true;
-				GetOrCreateExportStaticMeshLOD(ExportData, LODIndex, bAddLODGroups, StaticMesh, MeshSource);
-			}
+
+			constexpr bool bAddLODGroups = true;
+			FUnrealObjectInputHandle Handle;
+			GetOrCreateExportStaticMeshLOD(Handle, ExportData, LODIndex, bAddLODGroups, StaticMesh, MeshSource);
+			Handles.Add(Handle);
 		}
 	}
 
-	return true;
+
+	HAPI_NodeId GeoNodeId = INDEX_NONE;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), NodeName, true, &GeoNodeId), false);
+
+
+	HAPI_NodeId MergeNodeId;
+	bSuccess = CreateMergeNode(MergeNodeId, TEXT("Merge"), GeoNodeId, GetHapiNodeIds(Handles.Array()));
+
+	FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, MergeNodeId, LODsHandle, &Handles);
+
+	return bSuccess;
 }
 
 
-bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshNew(
-	HAPI_NodeId& InputObjectNodeId,
+bool FUnrealMeshTranslator::CreateInputNodeForStaticMesh(
 	FUnrealObjectInputHandle& OutHandle,
 	const UStaticMesh* StaticMesh,
 	const UStaticMeshComponent* StaticMeshComponent,
-	const FString& InputNodeName,
-	const FUnrealMeshExportOptions& ExportOptions,
+	const FHoudiniInputObjectSettings& ExportOptions,
 	const bool bInputNodesCanBeDeleted)
 {
 	FUnrealObjectInputHandle StaticMeshHandle;
@@ -4130,14 +4132,16 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshNew(
 	{
 		// Spline Mesh requires special handling, since its geometry is per-component.
 
+		const USplineMeshComponent* SplineMeshComponent = Cast<USplineMeshComponent>(StaticMeshComponent);
+
 		FUnrealObjectInputHandle ComponentHandle;
 
-		bool bSuccess = CreateInputNodeForSplineMeshComponentNew(
-			InputObjectNodeId,
+		FUnrealMeshExportData ExportData(SplineMeshComponent, ExportOptions, bInputNodesCanBeDeleted);
+		
+		bool bSuccess = GetOrConstructSplineMeshComponent(
 			ComponentHandle,
-			Cast<USplineMeshComponent>(StaticMeshComponent),
-			ExportOptions,
-			bInputNodesCanBeDeleted);
+			ExportData,
+			SplineMeshComponent);
 
 		if(bSuccess)
 		{
@@ -4148,11 +4152,9 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshNew(
 	{
 		// Static Mesh with optional component.
 
-		bool bSuccess = CreateInputNodeForStaticMeshNew(
-			InputObjectNodeId,
+		bool bSuccess = CreateInputNodeForStaticMeshAsset(
 			StaticMeshHandle,
 			StaticMesh,
-			InputNodeName,
 			ExportOptions,
 			bInputNodesCanBeDeleted);
 
@@ -4163,12 +4165,10 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshNew(
 		{
 			FUnrealObjectInputHandle ComponentHandle;
 
-			bSuccess = CreateInputNodeForStaticMeshComponentNew(
-				InputObjectNodeId,
+			bSuccess = CreateInputNodeForStaticMeshComponent(
 				ComponentHandle,
 				StaticMeshHandle,
 				StaticMeshComponent,
-				InputNodeName,
 				ExportOptions,
 				bInputNodesCanBeDeleted);
 
@@ -4187,46 +4187,21 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshNew(
 	return true;
 }
 
-bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshNew(
-	HAPI_NodeId& InputObjectNodeId,
+bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshAsset(
 	FUnrealObjectInputHandle& OutHandle,
 	const UStaticMesh* StaticMesh,
-	const FString& InputNodeName,
-	const FUnrealMeshExportOptions& ExportOptions,
+	const FHoudiniInputObjectSettings& ExportOptions,
 	const bool bInputNodesCanBeDeleted)
 {
 	// ExportData contains information about the mesh being constructed.
-	FUnrealMeshExportData ExportData(StaticMesh, bInputNodesCanBeDeleted);
+	FUnrealMeshExportData ExportData(StaticMesh, ExportOptions, bInputNodesCanBeDeleted);
 
-	FString MeshLabel;
-	bool bSuccess = GetOrConstructStaticMesh(MeshLabel, ExportData, ExportOptions, StaticMesh);
-	if(!bSuccess || !ExportData.Contains(MeshLabel))
-		return false;
-
-	// Fetch the construction results.
-	InputObjectNodeId = ExportData.GetHapiNodeId(MeshLabel);
-	OutHandle = ExportData.GetNodeHandle(MeshLabel);
-
-	return true;
-}
-
-FString FUnrealMeshExportData::CleanInputPath(const FString & ObjectPath)
-{
-	FString Path = ObjectPath.Replace(TEXT(":"), TEXT("/")).Replace(TEXT("."), TEXT("/"));
-	return Path;
-}
-
-void FUnrealMeshExportData::EnsureConstructionSubnetExists()
-{
-	// Just add a dummy node to make sure parent exists.
-	FString Path = ConstructionSubnetPath + TEXT("/Dummy");
-
-	FUnrealObjectInputIdentifier TopLevelIdentifier = FUnrealObjectInputIdentifier(Path);
-	FUnrealObjectInputUtils::EnsureParentsExist(TopLevelIdentifier, ConstructionSubnetHandle, bCanDelete);
-	ConstructionSubnetNodeId = FUnrealObjectInputUtils::GetHAPINodeId(ConstructionSubnetHandle);
+	bool bSuccess = GetOrConstructStaticMesh(OutHandle, ExportData, StaticMesh);
+	return bSuccess;
 }
 
 bool FUnrealMeshTranslator::GetOrCreateExportStaticMeshLOD(
+	FUnrealObjectInputHandle& LODHandle,
 	FUnrealMeshExportData& ExportData,
 	const int LODIndex,
 	const bool bAddLODGroups,
@@ -4236,21 +4211,24 @@ bool FUnrealMeshTranslator::GetOrCreateExportStaticMeshLOD(
 {
 	FString LODName = MakeLODName(LODIndex, RequestedMeshSource);
 
-	bool bCreated = false;
-	HAPI_NodeId GeoNodeId = ExportData.GetOrCreateConstructionGeoNode(bCreated, LODName, EUnrealObjectInputNodeType::Leaf);
-	if(GeoNodeId == INDEX_NONE)
-		return false;
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), LODName, EUnrealObjectInputNodeType::Leaf);
 
-	// If the geo node already existed, don't recreate it.
-	if(!bCreated)
+	// Does the Geo Node already exist? If so, return it.
+
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, LODHandle);
+	if (bSuccess || LODHandle.IsValid())
+	{
 		return true;
+	}
+
+	HAPI_NodeId GeoNodeId = INDEX_NONE;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), LODName, true, &GeoNodeId), false);
 
 	HAPI_NodeId NodeId;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), GeoNodeId, "null", H_TCHAR_TO_UTF8(*LODName), true, &NodeId), false);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), GeoNodeId, "null", "mesh", true, &NodeId), false);
 
-	ExportData.RegisterConstructionNode(LODName, NodeId);
+	bSuccess = FUnrealObjectInputManager::Get().AddLeaf(Identifier, GeoNodeId, NodeId, LODHandle);
 
-	// Try to use the prefered mesh source. Not all options are available on every mesh, so provide fallbacks.
 	EHoudiniMeshSource MeshSource = RequestedMeshSource;
 
 	if (MeshSource == EHoudiniMeshSource::HiResMeshDescription)
@@ -4272,7 +4250,7 @@ bool FUnrealMeshTranslator::GetOrCreateExportStaticMeshLOD(
 		}
 	}
 
-	bool bSuccess = false;
+	bSuccess = false;
 
 	switch(MeshSource)
 	{
@@ -4344,147 +4322,121 @@ TArray<UMaterialInterface*> FUnrealMeshTranslator::GetMaterials(const UStaticMes
 	return Results;
 }
 bool FUnrealMeshTranslator::GetOrConstructStaticMeshGeometryNode(
-	FString& GeometryLabel, 
+	FUnrealObjectInputHandle& GeometryHandle,
 	FUnrealMeshExportData& ExportData,
-	const FUnrealMeshExportOptions& ExportOptions,
 	const UStaticMesh* StaticMesh)
 {
-	EHoudiniMeshSource MeshSource = DetermineMeshSource(ExportOptions, StaticMesh);
+	EHoudiniMeshSource MeshSource = DetermineMeshSource(ExportData, StaticMesh);
 
 	// Create all low-level geometry nodes required by these export options. For example, lod0, lod1
-	bool bSuccess = GetOrCreateStaticMeshLODGeometries(ExportData, StaticMesh, ExportOptions, MeshSource);
-	if(!bSuccess)
-		return false;
-
-	// Constructs the geometry nodes for the current mesh, if needed. Usuall the main mesh and/or lods and/or
-	// hires mesh.
-	if (ExportOptions.bMainMesh && !ExportOptions.bLODs)
-	{
-		// If we are just constructing the main mesh and no LODs, we don't need to create an extra
-		// merge node, just return the current node.
-
-		GeometryLabel = MakeLODName(0, MeshSource);
-
-		return true;
-	}
-	else if(ExportOptions.bLODs)
-	{
-		// Combine all LODs and return that node.
-
-		GeometryLabel = TEXT("all_lods_") + MakeMeshSourceStr(MeshSource);
-
-		if(ExportData.Contains(GeometryLabel))
-			return true;
-
-		TSet<FUnrealObjectInputHandle> NodeIds;
-
-		// Add each LOD... ignore LOD0, if its needed it will already have been added.
-		auto & Handles = ExportData.GetConstructionHandles();
-		for (int LODIndex = 0; LODIndex < StaticMesh->GetNumLODs(); LODIndex++)
-		{
-			FString LODName = MakeLODName(LODIndex, MeshSource);
-			if (Handles.Contains(LODName))
-			{
-				NodeIds.Add(Handles[LODName]);
-			}
-		}
-
-		// Create the geo node, but if it already exists just re-use it.
-
-		bool bCreated = false;
-		HAPI_NodeId GeoNode = ExportData.GetOrCreateConstructionGeoNode(bCreated, GeometryLabel, EUnrealObjectInputNodeType::Reference);
-		if(GeoNode == INDEX_NONE)
-			return false;
-
-		if(!bCreated)
-			return true;
-
-		HAPI_NodeId NodeId;
-		bSuccess = CreateMergeNode(NodeId, GeometryLabel, GeoNode, GetHapiNodeIds(NodeIds.Array()));
-
-		ExportData.RegisterConstructionNode(GeometryLabel, NodeId, &NodeIds);
-		return bSuccess;
-	}
-	return false;
+	bool bSuccess = GetOrCreateStaticMeshLODGeometries(GeometryHandle, ExportData, StaticMesh, MeshSource);
+	return bSuccess;
 }
 
 bool FUnrealMeshTranslator::GetOrConstructStaticMeshRenderNode(
-	FString& RenderMeshLabel,
+	FUnrealObjectInputHandle& RenderMeshHandle,
 	FUnrealMeshExportData& ExportData,
-	const FUnrealMeshExportOptions& ExportOptions,
 	const UStaticMesh* StaticMesh)
 {
+	FString RenderNodeName = TEXT("render_") + GenerateNodeNameSuffix(ExportData);
+
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), RenderNodeName, EUnrealObjectInputNodeType::LeafWithReferences);
+
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, RenderMeshHandle);
+	if (bSuccess || RenderMeshHandle.IsValid())
+	{
+		return true;
+	}
+
+	// Render Mesh does not exist, so create it.
+
+	HAPI_NodeId GeoNodeId = INDEX_NONE;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), RenderNodeName, true, &GeoNodeId), false);
+
 
 	// Get or create the geometry node for this set of export options.
-	FString GeometryLabel;
-	bool bSuccess = GetOrConstructStaticMeshGeometryNode(
-		GeometryLabel,
+	FUnrealObjectInputHandle GeometryHandle;
+	bSuccess = GetOrConstructStaticMeshGeometryNode(
+		GeometryHandle,
 		ExportData,
-		ExportOptions,
 		StaticMesh);
 
 	if(!bSuccess)
 		return false;
 
-	if (ExportOptions.bMaterialParameters)
+	TSet<FUnrealObjectInputHandle> MergeInputs;
+
+	if (ExportData.bExportMaterialParameters)
 	{
+		// If we are exporting material parameters we create a "zip node" which applies materials to the 
+		// geometry node.
+
 		// Fetch Materials
 		TArray<UMaterialInterface*> MaterialInterfaces = FUnrealMeshTranslator::GetMaterials(StaticMesh);
 		TArray<FUnrealMaterialInfo> MaterialInfos;
 		GetMaterialInfo(MaterialInterfaces, MaterialInfos);
 
 		// Material Table.
-		if(!ExportData.Contains(MaterialTableName))
-		{
-			GetOrCreateMaterialTableNode(ExportData, MaterialInfos);
-		}
-
-		// if we need material parameters create a new node and zip the geometry and materials
-#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
-		TStringBuilder<256> StringBuilder;
-#else
-		FStringBuilderBase StringBuilder;
-#endif
-		StringBuilder.Append(GeometryLabel);
-		StringBuilder.Append(TEXT("_mparams"));
-
-		RenderMeshLabel = StringBuilder.ToString();
-
-		TSet<FUnrealObjectInputHandle> References;
-		References.Add(ExportData.GetNodeHandle(GeometryLabel));
-		References.Add(ExportData.GetNodeHandle(MaterialTableName));
-
-		// Get or create the geo node. If it already exists, don't recreate it.
-		bool bCreated = false;
-		HAPI_NodeId GeoNodeId = ExportData.GetOrCreateConstructionGeoNode(bCreated, RenderMeshLabel, EUnrealObjectInputNodeType::Reference);
-		if(GeoNodeId == INDEX_NONE)
+		FUnrealObjectInputHandle MaterialTableHandle;
+		bSuccess = GetOrCreateMaterialTableNode(MaterialTableHandle, ExportData, MaterialInfos);
+		if (!bSuccess)
 			return false;
 
-		if(!bCreated)
-			return true;
+		// The render mesh node doesn't exist, created it.
 
-		HAPI_NodeId ZipNodeId;
+		FUnrealObjectInputHandle ZipHandle;
 
 		bSuccess = GetOrCreateMaterialZipNode(
-			ZipNodeId,
-			GeoNodeId,
-			ExportData.GetHapiNodeId(GeometryLabel),
-			ExportData.GetHapiNodeId(MaterialTableName),
+			ZipHandle,
+			ExportData,
+			GeometryHandle,
+			MaterialTableHandle,
 			MaterialInfos);
+		
+		if (!bSuccess)
+			return false;
 
-		ExportData.RegisterConstructionNode(RenderMeshLabel, ZipNodeId, &References);
-
-		return bSuccess;
+		MergeInputs.Add(ZipHandle);
 	}
 	else
 	{
-		RenderMeshLabel = GeometryLabel;
+		// if we don't use material parameters, just use the geometry.
+		MergeInputs.Add(GeometryHandle);
+
 	}
+
+	HAPI_NodeId MergeNodeId;
+	bSuccess = CreateMergeNode(MergeNodeId, TEXT("Merge"), GeoNodeId, GetHapiNodeIds(MergeInputs.Array()));
+	if (!bSuccess)
+		return false;
+
+	bSuccess = FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, MergeNodeId, RenderMeshHandle, &MergeInputs);
+	if (!bSuccess)
+		return false;
 
 	return true;
 }
 
-FString FUnrealMeshTranslator::MakeUniqueExportName(const FUnrealMeshExportOptions& ExportOptions)
+FString FUnrealMeshTranslator::GenerateNodeNameSuffix(const FUnrealMeshExportData& ExportData)
+{
+	TArray<FString> NameParts;
+	if (ExportData.bExportColliders)
+		NameParts.Add(TEXT("colliders"));
+	if (ExportData.bExportLODs)
+		NameParts.Add(TEXT("lods"));
+	if (ExportData.bExportSockets)
+		NameParts.Add(TEXT("sockets"));
+	if (ExportData.bPreferNaniteFallbackMesh)
+		NameParts.Add(TEXT("nanite_fallback"));
+	if (ExportData.bExportMaterialParameters)
+		NameParts.Add(TEXT("material_params"));
+	if (!ExportData.bExportMainGeometry)
+		NameParts.Add(TEXT("no_main_geo"));
+
+	return FString::Join(NameParts, TEXT("_"));
+}
+
+FString FUnrealMeshTranslator::MakeUniqueExportName(const FUnrealMeshExportData& ExportData)
 {
 #if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
 	TStringBuilder<256> LabelBuilder;
@@ -4493,162 +4445,157 @@ FString FUnrealMeshTranslator::MakeUniqueExportName(const FUnrealMeshExportOptio
 #endif
 	LabelBuilder.Append("final");
 
-	if(ExportOptions.bMainMesh)
+	if(ExportData.bExportMainGeometry)
 		LabelBuilder.Append(TEXT("_main"));
 
-	if(ExportOptions.bLODs)
+	if(ExportData.bExportLODs)
 		LabelBuilder.Append(TEXT("_lods"));
 
-	if(ExportOptions.bColliders)
+	if(ExportData.bExportColliders)
 		LabelBuilder.Append(TEXT("_colliders"));
 
-	if(ExportOptions.bSockets)
+	if(ExportData.bExportSockets)
 		LabelBuilder.Append(TEXT("_sockets"));
 
-	if(ExportOptions.bPreferNaniteFallbackMesh)
+	if(ExportData.bPreferNaniteFallbackMesh)
 		LabelBuilder.Append(TEXT("_nanite"));
 
-	if(ExportOptions.bMaterialParameters)
+	if(ExportData.bExportMaterialParameters)
 		LabelBuilder.Append(TEXT("_materialparams"));
 
 	return LabelBuilder.ToString();
 }
 
 bool FUnrealMeshTranslator::GetOrConstructStaticMesh(
-	FString& MeshLabel,
+	FUnrealObjectInputHandle& StaticMeshHandle,
 	FUnrealMeshExportData& ExportData,
-	const FUnrealMeshExportOptions& ExportOptions,
 	const UStaticMesh* StaticMesh)
 {
-	MeshLabel = MakeUniqueExportName(ExportOptions);
+	FString MeshLabel = MakeUniqueExportName(ExportData);
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), MeshLabel, EUnrealObjectInputNodeType::LeafWithReferences);
 
-	// Get or create the geo node. Don't construct internal nodes if it already exists.
-	bool bCreated = false;
-	HAPI_NodeId GeoNode = ExportData.GetOrCreateConstructionGeoNode(bCreated, MeshLabel, EUnrealObjectInputNodeType::Reference);
-	if(GeoNode == INDEX_NONE)
-		return false;
-
-	if(!bCreated)
+	// Did we already construct this version of the mesh? If so, return it
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, StaticMeshHandle);
+	if (bSuccess || StaticMeshHandle.IsValid())
+	{
 		return true;
+	}
+
+	// Construct all the component parts of the mesh and put them together.
 
 	TSet<FUnrealObjectInputHandle> ReferencedNodes;
-	if(ExportOptions.bLODs || ExportOptions.bMainMesh)
+	if(ExportData.bExportLODs || ExportData.bExportMainGeometry)
 	{
-		FString RenderMesh;
-		bool bSuccess = GetOrConstructStaticMeshRenderNode(RenderMesh, ExportData, ExportOptions, StaticMesh);
+		FUnrealObjectInputHandle Handle;
+		bSuccess = GetOrConstructStaticMeshRenderNode(Handle, ExportData, StaticMesh);
 		if(!bSuccess)
 			return false;
 
-		ReferencedNodes.Add(ExportData.GetNodeHandle(RenderMesh));
+		ReferencedNodes.Add(Handle);
 	}
 
-	if (ExportOptions.bColliders)
+	if (ExportData.bExportColliders)
 	{
-		FString CollisionLabel;
-		bool bSuccess = GetOrConstructCollisions(CollisionLabel, ExportData, ExportOptions, StaticMesh);
+		FUnrealObjectInputHandle Handle;
+		bSuccess = GetOrConstructCollisions(Handle, ExportData, StaticMesh);
 		if(!bSuccess)
 			return false;
 
-		ReferencedNodes.Add(ExportData.GetNodeHandle(CollisionLabel));
+		ReferencedNodes.Add(Handle);
 	}
 
-	if(ExportOptions.bSockets)
+	if(ExportData.bExportSockets)
 	{
-		FString SocketsLabel;
-		bool bSuccess = GetOrConstructSockets(SocketsLabel, ExportData, ExportOptions, StaticMesh);
+		FUnrealObjectInputHandle Handle;
+		bSuccess = GetOrConstructSockets(Handle, ExportData, StaticMesh);
 		if(!bSuccess)
 			return false;
 
-		ReferencedNodes.Add(ExportData.GetNodeHandle(SocketsLabel));
+		ReferencedNodes.Add(Handle);
 	}
 
-	HAPI_NodeId NodeId;
-	bool bSuccess = CreateMergeNode(NodeId, MeshLabel, GeoNode, GetHapiNodeIds(ReferencedNodes.Array()));
+	HAPI_NodeId GeoNodeId = INDEX_NONE;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), MeshLabel, true, &GeoNodeId), false);
 
-	ExportData.RegisterConstructionNode(MeshLabel, NodeId, &ReferencedNodes);
+	HAPI_NodeId MergeNodeId;
+	bSuccess = CreateMergeNode(MergeNodeId, MeshLabel, GeoNodeId, GetHapiNodeIds(ReferencedNodes.Array()));
 
-	if(!bSuccess || GeoNode == INDEX_NONE)
+	if(!bSuccess)
 		return false;
+	
+	// Register with the input manager.
+	bSuccess = FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, MergeNodeId, StaticMeshHandle, &ReferencedNodes);
 
 	return bSuccess;
 }
 
 bool FUnrealMeshTranslator::GetOrConstructSplineMeshComponent(
-	FString& MeshLabel,
+	FUnrealObjectInputHandle& SplineMeshHandle,
 	FUnrealMeshExportData& ExportData,
-	const FUnrealMeshExportOptions& ExportOptions,
 	const USplineMeshComponent* SplineMeshComponent)
 {
 	UStaticMesh* StaticMesh = SplineMeshComponent->GetStaticMesh();
 	if(!IsValid(StaticMesh))
 		return true;
 
-	MeshLabel = MakeUniqueExportName(ExportOptions);
+	FString MeshLabel = MakeUniqueExportName(ExportData);
 
-	// Get or create the geo node. Don't construct internal nodes if it already exists.
-	bool bCreated = false;
-	HAPI_NodeId GeoNode = ExportData.GetOrCreateConstructionGeoNode(bCreated, MeshLabel, EUnrealObjectInputNodeType::Reference);
-	if(GeoNode == INDEX_NONE)
-		return false;
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), MeshLabel, EUnrealObjectInputNodeType::LeafWithReferences);
 
-	if(!bCreated)
-		return true;
-
-	if(ExportOptions.bMaterialParameters)
+	// Does the Geo Node already exist? If so, return it.
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, SplineMeshHandle);
+	if (bSuccess || SplineMeshHandle.IsValid())
 	{
-		// Fetch Materials
-		TArray<UMaterialInterface*> MaterialInterfaces = FUnrealMeshTranslator::GetMaterials(StaticMesh);
-		TArray<FUnrealMaterialInfo> MaterialInfos;
-		GetMaterialInfo(MaterialInterfaces, MaterialInfos);
-
-		// Material Table.
-		if(!ExportData.Contains(MaterialTableName))
-		{
-			GetOrCreateMaterialTableNode(ExportData, MaterialInfos);
-		}
+		return true;
 	}
+
+	// Input doesn't exist, so make it.
 
 	TSet<FUnrealObjectInputHandle> ReferencedNodes;
-	if(ExportOptions.bLODs || ExportOptions.bMainMesh)
+	if(ExportData.bExportLODs || ExportData.bExportMainGeometry)
 	{
-		FString RenderMesh;
-		bool bSuccess = GetOrConstructSplineMeshRenderNode(RenderMesh, ExportData, ExportOptions, SplineMeshComponent);
+		FUnrealObjectInputHandle Handle;
+		bSuccess = GetOrConstructSplineMeshRenderNode(Handle, ExportData, SplineMeshComponent);
 		if(!bSuccess)
 			return false;
 
-		ReferencedNodes.Add(ExportData.GetNodeHandle(RenderMesh));
+		ReferencedNodes.Add(Handle);
 	}
 
-	if(ExportOptions.bColliders)
+	if(ExportData.bExportColliders)
 	{
-		FString CollisionLabel;
-		bool bSuccess = GetOrConstructCollisions(CollisionLabel, ExportData, ExportOptions, StaticMesh);
+		FUnrealObjectInputHandle Handle;
+		bSuccess = GetOrConstructCollisions(Handle, ExportData, StaticMesh);
 		if(!bSuccess)
 			return false;
 
-		ReferencedNodes.Add(ExportData.GetNodeHandle(CollisionLabel));
+		ReferencedNodes.Add(Handle);
 	}
 
-	if(ExportOptions.bSockets)
+	if(ExportData.bExportSockets)
 	{
-		FString SocketsLabel;
-		bool bSuccess = GetOrConstructSockets(SocketsLabel, ExportData, ExportOptions, StaticMesh);
+		FUnrealObjectInputHandle Handle;
+		bSuccess = GetOrConstructSockets(Handle, ExportData, StaticMesh);
 		if(!bSuccess)
 			return false;
 
-		ReferencedNodes.Add(ExportData.GetNodeHandle(SocketsLabel));
+		ReferencedNodes.Add(Handle);
 	}
 
-	HAPI_NodeId NodeId;
-	bool bSuccess = CreateMergeNode(NodeId, MeshLabel, GeoNode, GetHapiNodeIds(ReferencedNodes.Array()));
+	HAPI_NodeId GeoNodeId = INDEX_NONE;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), MeshLabel, true, &GeoNodeId), false);
 
-	ExportData.RegisterConstructionNode(MeshLabel, NodeId, &ReferencedNodes);
+	HAPI_NodeId MergeNodeId;
 
-	if(!bSuccess || GeoNode == INDEX_NONE)
+	auto NodeIds = GetHapiNodeIds(ReferencedNodes.Array());
+	bSuccess = CreateMergeNode(MergeNodeId, MeshLabel, GeoNodeId, NodeIds);
+
+	bSuccess = FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, MergeNodeId, SplineMeshHandle, &ReferencedNodes);
+
+	if(!bSuccess || GeoNodeId == INDEX_NONE)
 		return false;
 
 	return bSuccess;
-	return true;
 }
 
 bool FUnrealMeshTranslator::CreateMergeNode(
@@ -4657,7 +4604,6 @@ bool FUnrealMeshTranslator::CreateMergeNode(
 	const HAPI_NodeId ParentNodeId,
 	const TArray<HAPI_NodeId>& Inputs)
 {
-
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("merge"), NodeLabel, true, &NodeId), false);
 
 	for(int Index = 0; Index < Inputs.Num(); Index++)
@@ -4666,7 +4612,6 @@ bool FUnrealMeshTranslator::CreateMergeNode(
 	}
 
 	return true;
-
 }
 
 FString FUnrealMeshTranslator::MakeMeshSourceStr(EHoudiniMeshSource Source)
@@ -4693,202 +4638,102 @@ FString FUnrealMeshTranslator::MakeMeshSourceStr(EHoudiniMeshSource Source)
 FString FUnrealMeshTranslator::MakeLODName(int LODIndex, EHoudiniMeshSource Source)
 {
 	FString SourceString = MakeMeshSourceStr(Source);
-	FString Result = FString::Printf(TEXT("%s%d_%s"), *LODPrefix, LODIndex, *SourceString);
+	FString Result = FString::Printf(TEXT("lod%d_%s"), LODIndex, *SourceString);
 	return Result;
 }
 
 
 bool FUnrealMeshTranslator::GetOrConstructCollisions(
-	FString& CollisionsLabel,
-	FUnrealMeshExportData& ExportData,
-	const FUnrealMeshExportOptions& ExportOptions,
+	FUnrealObjectInputHandle& CollisionsHandle,
+	const FUnrealMeshExportData& ExportData,
 	const UStaticMesh* Mesh)
 {
-	CollisionsLabel = TEXT("collisions");
+	FString CollisionsNodeName = TEXT("collisions");
 
-	bool bCreated = false;
-	HAPI_NodeId GeoNode = ExportData.GetOrCreateConstructionGeoNode(bCreated, CollisionsLabel, EUnrealObjectInputNodeType::Leaf);
-	if(GeoNode == INDEX_NONE)
-		return false;
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), CollisionsNodeName, EUnrealObjectInputNodeType::Leaf);
 
-	if(!bCreated)
-		return false;
+	// Does the Geo Node already exist? If so, return it.
+	FUnrealObjectInputHandle Handle;
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, Handle);
+	if (bSuccess || Handle.IsValid())
+	{
+		CollisionsHandle = Handle;
+		return true;
+	}
+
+	// Collisions do not exist, so make them. An outer geo node, a merge node and connect all the collisions to that node.
+
+	HAPI_NodeId GeoNodeId = INDEX_NONE;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), CollisionsNodeName, true, &GeoNodeId), false);
 
 	HAPI_NodeId MergeNodeId = INDEX_NONE;
-	
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(GeoNode, TEXT("merge"), *CollisionsLabel, true, &MergeNodeId), false);
-
-	ExportData.RegisterConstructionNode(CollisionsLabel, MergeNodeId);
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(GeoNodeId, TEXT("merge"), TEXT("merge_all_collisions"), true, &MergeNodeId), false);
 
 	int NextMergeIndex = 0;
-	bool bSuccess = ExportCollisions(NextMergeIndex, Mesh, MergeNodeId, GeoNode, Mesh->GetBodySetup()->AggGeom);
+	bSuccess = ExportCollisions(NextMergeIndex, Mesh, MergeNodeId, GeoNodeId, Mesh->GetBodySetup()->AggGeom);
 	if(!bSuccess)
-		return bSuccess;
+		return false;
+
+	bSuccess = FUnrealObjectInputManager::Get().AddLeaf(Identifier, GeoNodeId, MergeNodeId, CollisionsHandle);
 
 	return bSuccess;
 }
 
 bool FUnrealMeshTranslator::GetOrConstructSockets(
-	FString& SocketsLabel,
+	FUnrealObjectInputHandle& SocketsHandle,
 	FUnrealMeshExportData& ExportData,
-	const FUnrealMeshExportOptions& ExportOptions,
 	const UStaticMesh* Mesh)
 {
-	SocketsLabel = TEXT("sockets");
+	FString SocketsLabel = TEXT("sockets");
 
-	bool bCreated = false;
-	HAPI_NodeId GeoNode = ExportData.GetOrCreateConstructionGeoNode(bCreated, SocketsLabel, EUnrealObjectInputNodeType::Leaf);
-	if(GeoNode == INDEX_NONE)
-		return false;
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), SocketsLabel, EUnrealObjectInputNodeType::Leaf);
 
-	if(!bCreated)
+	// Does the Geo Node already exist? If so, return it.
+	FUnrealObjectInputHandle Handle;
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, Handle);
+	if (bSuccess || Handle.IsValid())
+	{
+		SocketsHandle = Handle;
 		return true;
+	}
+
+	// Sockets do not exist, create a Geo Node then add sockets to it.
+
+	HAPI_NodeId GeoNodeId = INDEX_NONE;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), SocketsLabel, true, &GeoNodeId), false);
 
 	// Create an input node for the mesh sockets
 	HAPI_NodeId SocketsNodeId = -1;
-	bool bSuccess = CreateInputNodeForMeshSockets(Mesh->Sockets, GeoNode, SocketsNodeId);
+	bSuccess = CreateInputNodeForMeshSockets(Mesh->Sockets, GeoNodeId, SocketsNodeId);
 	if(!bSuccess)
-		return bSuccess;
+		return false;
 
-	ExportData.RegisterConstructionNode(SocketsLabel, SocketsNodeId);
+	bSuccess = FUnrealObjectInputManager::Get().AddLeaf(Identifier, GeoNodeId, SocketsNodeId, SocketsHandle);
 
 	return bSuccess;
 }
 
-bool FUnrealMeshExportData::Contains(const FString& Label)
+FUnrealMeshExportData::FUnrealMeshExportData(const UObject* Object, const FHoudiniInputObjectSettings& ExportOptions, bool bInCanDoDelete)
 {
-	return RegisteredHandles.Contains(Label);
-}
-
-
-HAPI_NodeId FUnrealMeshExportData::GetHapiNodeId(const FString& Label)
-{
-	HAPI_NodeId NodeId = INDEX_NONE;
-
-	FUnrealObjectInputUtils::GetHAPINodeId(RegisteredHandles[Label], NodeId);
-	return NodeId;
-}
-
-const TMap<FString, FUnrealObjectInputHandle>& FUnrealMeshExportData::GetConstructionHandles()
-{
-	return RegisteredHandles;
-}
-
-FUnrealMeshExportData::FUnrealMeshExportData(const UObject* Object, bool bInCanDoDelete)
-{
-	FString ObjectPath = Object->GetPathName();
 	bCanDelete = bInCanDoDelete;
+	bExportMainGeometry = ExportOptions.bExportMainGeometry;
+	bExportLODs = ExportOptions.bExportLODs;
+	bExportSockets = ExportOptions.bExportSockets;
+	bExportColliders = ExportOptions.bExportColliders;
+	bPreferNaniteFallbackMesh = ExportOptions.bPreferNaniteFallbackMesh;
+	bExportMaterialParameters = ExportOptions.bExportMaterialParameters;
+	bUseMeshDescription = ExportOptions.bUseMeshDescription;
 
-	ConstructionSubnetPath = CleanInputPath(ObjectPath);
-
-	EnsureConstructionSubnetExists();
-
-	ScanForExistingNodesInHoudini();
+	bool bCreated = false;
+	FUnrealObjectInputIdentifier TopLevelIdentifier = FUnrealObjectInputIdentifier(Object, EUnrealObjectInputNodeType::Container);
+	FUnrealObjectInputManager::Get().EnsureContainerExists(
+		TopLevelIdentifier,
+		ConstructionSubnetHandle,
+		bCreated,
+		bCanDelete);
+	ConstructionSubnetNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ConstructionSubnetHandle);
 }
 
-
-HAPI_NodeId FUnrealMeshExportData::GetOrCreateConstructionGeoNode(
-	bool& bCreated,
-	const FString& Label,
-	EUnrealObjectInputNodeType NodeType)
-{
-	bCreated = false;
-
-	// Have we already seen this identifier and registered it? If so, just return it.
-	if (RegisteredIdentifiers.Contains(Label))
-	{
-		FUnrealObjectInputIdentifier Identifier = RegisteredIdentifiers[Label];
-		ensure(RegisteredHandles.Contains(Label));
-		ensure(RegisteredGeoNodes.Contains(Label));
-
-		HAPI_NodeId NodeId = INDEX_NONE;
-		FUnrealObjectInputUtils::GetHAPINodeId(Identifier, NodeId);
-		return NodeId;
-
-	}
-
-	FUnrealObjectInputIdentifier Identifier = MakeNodeIdentifier(Label, NodeType);
-	RegisteredIdentifiers.Add(Label, Identifier);
-
-	// Is there a clean HAPI node for this label which isn't registered? If so, fetch the handle and register it.
-	if (ExistingUnassignedHAPINodes.Contains(Label))
-	{
-		HAPI_NodeId GeoNodeId = ExistingUnassignedHAPINodes[Label];
-		ExistingUnassignedHAPINodes.Remove(Label);
-
-		FUnrealObjectInputHandle Handle;
-		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
-		{
-			RegisteredHandles.Add(Label, Handle);
-			RegisteredGeoNodes.Add(Label, GeoNodeId);
-			return GeoNodeId;
-		}
-		else
-		{
-			// This node is either unmanaged/invalid or explicitly dirty. Delete it so it is rebuilt below.
-			FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), GeoNodeId);
-		}
-	}
-
-	// If we get here, we'll create a new node.
-
-	bCreated = true;
-	HAPI_NodeId GeoNodeId = INDEX_NONE;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(GetConstructionSubnetNodeId(), TEXT("geo"), Label, true, &GeoNodeId), INDEX_NONE);
-
-	RegisteredGeoNodes.Add(Label, GeoNodeId);
-
-	return GeoNodeId;
-}
-
-HAPI_NodeId FUnrealMeshExportData::RegisterConstructionNode(
-	const FString& Label,
-	const HAPI_NodeId NodeId,
-	const TSet<FUnrealObjectInputHandle>* ReferencedNodes)
-{
-	// This function must  be called if GetOrCreateConstructionGeoNode() returned with bCreated == true.
-	// For reasons which are not entirely clear to me FUnrealObjectInputUtils::AddNodeOrUpdateNode()
-	// requires both an Geo (Object) node and an internal SOP. Since we cannot create the internal SOP
-	// until after we create the GEO we must call GetOrCreateConstructionGeoNode() first, then call RegisterConstructionNode()
-	// later. 
-
-	// If this call crashes, you didn't call GetOrCreateConstructionGeoNode() :^)
-
-	FUnrealObjectInputIdentifier* FoundId = RegisteredIdentifiers.Find(Label);
-	ensure(FoundId);
-	HAPI_NodeId GeoNodeId = RegisteredGeoNodes[Label]; 
-
-	FUnrealObjectInputHandle Handle;
-
-	if (FoundId)
-	{
-		FUnrealObjectInputUtils::AddNodeOrUpdateNode(*FoundId, NodeId, Handle, GeoNodeId, ReferencedNodes, bCanDelete);
-	}
-
-	RegisteredHandles.Add(Label, Handle);
-
-	return GeoNodeId;
-}
-
-FUnrealObjectInputIdentifier FUnrealMeshExportData::MakeNodeIdentifier(const FString& Label, EUnrealObjectInputNodeType NodeType)
-{
-	FString FullPath = FString::Printf(TEXT("%s/%s"), *ConstructionSubnetPath, *Label);
-	FullPath = FullPath.Replace(TEXT("."), TEXT("/"));
-
-	// Why does the Id need a type? Sure its a property of the Handle or internal node? I am perplexed.
-	FUnrealObjectInputIdentifier Id = FUnrealObjectInputIdentifier(FullPath, NodeType);
-	RegisteredIdentifiers.Add(Label, Id);
-	return Id;
-}
-
-FUnrealObjectInputHandle FUnrealMeshExportData::GetNodeHandle(const FString& Label)
-{
-	FUnrealObjectInputHandle* Found = RegisteredHandles.Find(Label);
-	if(Found)
-		return *Found;
-	else
-		return FUnrealObjectInputHandle();
-}
 
 TArray<HAPI_NodeId> GetHapiNodeIds(const TArray<FUnrealObjectInputIdentifier>& Identifiers)
 {
@@ -4902,9 +4747,7 @@ TArray<HAPI_NodeId> GetHapiNodeIds(const TArray<FUnrealObjectInputIdentifier>& I
 
 HAPI_NodeId GetHapiNodeId(FUnrealObjectInputIdentifier Identifier)
 {
-	HAPI_NodeId NodeId = INDEX_NONE;
-	FUnrealObjectInputUtils::GetHAPINodeId(Identifier, NodeId);
-	return NodeId;
+	return FUnrealObjectInputManager::Get().GetHAPINodeId(Identifier);
 }
 
 TArray<HAPI_NodeId> GetHapiNodeIds(const TArray<FUnrealObjectInputHandle>& Handles)
@@ -4919,50 +4762,50 @@ TArray<HAPI_NodeId> GetHapiNodeIds(const TArray<FUnrealObjectInputHandle>& Handl
 
 HAPI_NodeId GetHapiNodeId(FUnrealObjectInputHandle Handle)
 {
-	HAPI_NodeId NodeId = INDEX_NONE;
-	FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId);
-	return NodeId;
+	return FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 }
 
 
-bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshComponentNew(
-	HAPI_NodeId& InputObjectNodeId,
+bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshComponent(
 	FUnrealObjectInputHandle& OutHandle,
 	const FUnrealObjectInputHandle& StaticMeshHandle,
 	const UStaticMeshComponent* StaticMeshComponent,
-	const FString& InputNodeName,
-	const FUnrealMeshExportOptions& ExportOptions,
+	const FHoudiniInputObjectSettings& ExportOptions,
 	const bool bInputNodesCanBeDeleted)
 {
-	FString TopLevelNodePath = *StaticMeshComponent->GetPathName();
 	FUnrealObjectInputHandle ParentHandle;
 
-	FUnrealObjectInputIdentifier TopLevelIdentifier = FUnrealObjectInputIdentifier(TopLevelNodePath);
-	FUnrealObjectInputUtils::EnsureParentsExist(TopLevelIdentifier, ParentHandle, bInputNodesCanBeDeleted);
-	HAPI_NodeId ParentNodeId = FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle);
+	FUnrealMeshExportData SMCExportData(StaticMeshComponent, ExportOptions, bInputNodesCanBeDeleted);
 
-	FString GeoNodeLabel = TEXT("component");
+	FString MeshLabel = MakeUniqueExportName(SMCExportData);
 
-	HAPI_NodeId GeoNode;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ParentNodeId, TEXT("geo"), GeoNodeLabel, true, &GeoNode), false);
+	FUnrealObjectInputIdentifier Identifier(SMCExportData.ConstructionSubnetHandle.GetIdentifier(), MeshLabel, EUnrealObjectInputNodeType::LeafWithReferences);
+
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, OutHandle);
+	if (bSuccess || OutHandle.IsValid())
+	{
+		return true;
+	}
+
+	// Node does not exist, create it.
+
+	HAPI_NodeId GeoNodeId;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(SMCExportData.ConstructionSubnetNodeId, TEXT("geo"), MeshLabel, true, &GeoNodeId), false);
 
 	TSet<FUnrealObjectInputHandle> References;
 	References.Add(StaticMeshHandle);
 
 	HAPI_NodeId NodeId;
-	bool bSuccess = CreateMergeNode(NodeId, TEXT("static_mesh"), GeoNode, GetHapiNodeIds(References.Array()));
+	bSuccess = CreateMergeNode(NodeId, TEXT("merge_node"), GeoNodeId, GetHapiNodeIds(References.Array()));
 
-	FString FullPath = FString::Printf(TEXT("%s/%s"), *TopLevelNodePath, *GeoNodeLabel);
-	FUnrealObjectInputIdentifier Id = FUnrealObjectInputIdentifier(FullPath, EUnrealObjectInputNodeType::Reference);
+	bSuccess = FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, NodeId, OutHandle, &References);
 
-	FUnrealObjectInputUtils::AddNodeOrUpdateNode(Id, NodeId, OutHandle, GeoNode, &References, true);
-
-	return true;
+	return bSuccess;
 }
 
-EHoudiniMeshSource FUnrealMeshTranslator::DetermineMeshSource(const FUnrealMeshExportOptions& ExportOptions, const UStaticMesh* StaticMesh)
+EHoudiniMeshSource FUnrealMeshTranslator::DetermineMeshSource(const FUnrealMeshExportData& ExportData, const UStaticMesh* StaticMesh)
 {
-	if (!ExportOptions.bUseMeshDescription)
+	if (!ExportData.bUseMeshDescription)
 		return EHoudiniMeshSource::LODResource;
 
 	bool bAllMeshDescriptionValid = true;
@@ -4987,7 +4830,7 @@ EHoudiniMeshSource FUnrealMeshTranslator::DetermineMeshSource(const FUnrealMeshE
 	if (StaticMesh->NaniteSettings.bEnabled)
 #endif
 	{
-		if (ExportOptions.bPreferNaniteFallbackMesh)
+		if (ExportData.bPreferNaniteFallbackMesh)
 		{
 			if (StaticMesh->GetRenderData()->LODResources.Num())
 			{
@@ -5016,47 +4859,31 @@ EHoudiniMeshSource FUnrealMeshTranslator::DetermineMeshSource(const FUnrealMeshE
 	}
 }
 
-bool FUnrealMeshTranslator::CreateInputNodeForSplineMeshComponentNew(
-	HAPI_NodeId& InputObjectNodeId,
-	FUnrealObjectInputHandle& OutHandle,
-	const USplineMeshComponent* StaticMeshComponent,
-	const FUnrealMeshExportOptions& ExportOptions,
-	const bool bInputNodesCanBeDeleted)
-{
-	// ExportData contains information about the mesh being constructed.
-	FUnrealMeshExportData ExportData(StaticMeshComponent, bInputNodesCanBeDeleted);
-
-	FString ComponentLabel;
-	bool bSuccess = GetOrConstructSplineMeshComponent(ComponentLabel, ExportData, ExportOptions, StaticMeshComponent);
-	if(!bSuccess || !ExportData.Contains(ComponentLabel))
-		return false;
-
-	// Fetch the construction results.
-	InputObjectNodeId = ExportData.GetHapiNodeId(ComponentLabel);
-	OutHandle = ExportData.GetNodeHandle(ComponentLabel);
-
-	return true;
-}
-
 bool FUnrealMeshTranslator::GetOrConstructSplineMeshRenderNode(
-	FString& RenderMeshLabel,
+	FUnrealObjectInputHandle& RenderMeshHandle,
 	FUnrealMeshExportData& ExportData,
-	const FUnrealMeshExportOptions& ExportOptions,
 	const USplineMeshComponent* SplineMeshComponent)
 {
+	FString NodeName = MakeUniqueExportName(ExportData);
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), NodeName, EUnrealObjectInputNodeType::LeafWithReferences);
+
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, RenderMeshHandle);
+	if (bSuccess || RenderMeshHandle.IsValid())
+	{
+		return true;
+	}
 
 	// Get or create the geometry node for this set of export options.
-	FString GeometryLabel;
-	bool bSuccess = GetOrConstructSplineMeshGeometryNode(
-		GeometryLabel,
+	FUnrealObjectInputHandle GeometryHandle;
+	bSuccess = GetOrConstructSplineMeshGeometryNode(
+		GeometryHandle,
 		ExportData,
-		ExportOptions,
 		SplineMeshComponent);
 
 	if(!bSuccess)
 		return false;
 
-	if(ExportOptions.bMaterialParameters)
+	if(ExportData.bExportMaterialParameters)
 	{
 		UStaticMesh* StaticMesh = SplineMeshComponent->GetStaticMesh();
 		if(!StaticMesh)
@@ -5067,190 +4894,148 @@ bool FUnrealMeshTranslator::GetOrConstructSplineMeshRenderNode(
 		TArray<FUnrealMaterialInfo> MaterialInfos;
 		GetMaterialInfo(MaterialInterfaces, MaterialInfos);
 
-		// Material Table.
-		if(!ExportData.Contains(MaterialTableName))
-		{
-			GetOrCreateMaterialTableNode(ExportData, MaterialInfos);
-		}
+		FUnrealObjectInputHandle MaterialTableHandle;
 
-		// if we need material parameters create a new node and zip the geometry and materials
-#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
-		TStringBuilder<256> StringBuilder;
-#else
-		FStringBuilderBase StringBuilder;
-#endif
-		StringBuilder.Append(GeometryLabel);
-		StringBuilder.Append(TEXT("_mparams"));
-
-		RenderMeshLabel = StringBuilder.ToString();
-
-		TSet<FUnrealObjectInputHandle> References;
-		References.Add(ExportData.GetNodeHandle(GeometryLabel));
-		References.Add(ExportData.GetNodeHandle(MaterialTableName));
-
-		// Get or create the geo node. If it already exists, don't recreate it.
-		bool bCreated = false;
-		HAPI_NodeId GeoNodeId = ExportData.GetOrCreateConstructionGeoNode(bCreated, RenderMeshLabel, EUnrealObjectInputNodeType::Reference);
-		if(GeoNodeId == INDEX_NONE)
+		bSuccess = GetOrCreateMaterialTableNode(MaterialTableHandle, ExportData, MaterialInfos);
+		if (!bSuccess)
 			return false;
 
-		if(!bCreated)
-			return true;
+		FString RenderMeshLabel = NodeName + TEXT("_mparams");
+
+		TSet<FUnrealObjectInputHandle> References;
+		References.Add(GeometryHandle);
+		References.Add(MaterialTableHandle);
+
+		HAPI_NodeId GeoNodeId = INDEX_NONE;
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), RenderMeshLabel, true, &GeoNodeId), false);
 
 		HAPI_NodeId ZipNodeId;
-
 		bSuccess = GetOrCreateMaterialZipNode(
 			ZipNodeId,
 			GeoNodeId,
-			ExportData.GetHapiNodeId(GeometryLabel),
-			ExportData.GetHapiNodeId(MaterialTableName),
+			FUnrealObjectInputManager::Get().GetHAPINodeId(GeometryHandle),
+			FUnrealObjectInputManager::Get().GetHAPINodeId(MaterialTableHandle),
 			MaterialInfos);
+		if (!bSuccess)
+			return false;
 
-		ExportData.RegisterConstructionNode(RenderMeshLabel, ZipNodeId, &References);
+		bSuccess = FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, ZipNodeId, RenderMeshHandle, &References);
+		if (!bSuccess)
+			return false;
 
 		return bSuccess;
 	}
 	else
 	{
-		RenderMeshLabel = GeometryLabel;
+		RenderMeshHandle = GeometryHandle;
 	}
 
 	return true;
 }
 
 bool FUnrealMeshTranslator::GetOrConstructSplineMeshGeometryNode(
-	FString& GeometryLabel,
+	FUnrealObjectInputHandle& GeometryHandle,
 	FUnrealMeshExportData& ExportData,
-	const FUnrealMeshExportOptions& ExportOptions,
 	const USplineMeshComponent* MeshComponent)
 
 {
-	// Create all low-level geometry nodes required by these export options. For example, lod0, lod1
-	bool bSuccess = GetOrCreateSplineMeshLODGeometries(ExportData, MeshComponent, ExportOptions);
-	if(!bSuccess)
-		return false;
-
-	// Constructs the geometry nodes for the current mesh, if needed. Usuall the main mesh and/or lods and/or
-	// hires mesh.
-
-	FString LOD0Name = MakeLODName(0, EHoudiniMeshSource::MeshDescription);
-
-	if(ExportOptions.bMainMesh && !ExportOptions.bLODs)
-	{
-		GeometryLabel = LOD0Name;
-
-		return true;
-	}
-	else if(ExportOptions.bLODs)
-	{
-		// Combine all LODs and return that node.
-
-		GeometryLabel = TEXT("all_lods");
-		if(ExportData.Contains(GeometryLabel))
-			return true;
-
-		TSet<FUnrealObjectInputHandle> NodeIds;
-
-		// Add either the hires mesh or LOD0
-
-		FString MainMeshName = LOD0Name;
-
-		NodeIds.Add(ExportData.GetNodeHandle(MainMeshName));
-
-		// Add each LOD... ignore LOD0, if its needed it will already have been added.
-
-		for(auto It : ExportData.GetConstructionHandles())
-		{
-			if(It.Key == LOD0Name)
-				continue;
-
-			if(It.Key.StartsWith(LODPrefix))
-				NodeIds.Add(It.Value);
-		}
-
-		// Create the geo node, but if it already exists just re-use it.
-
-		bool bCreated = false;
-		HAPI_NodeId GeoNode = ExportData.GetOrCreateConstructionGeoNode(bCreated, GeometryLabel, EUnrealObjectInputNodeType::Reference);
-		if(GeoNode == INDEX_NONE)
-			return false;
-
-		if(!bCreated)
-			return true;
-
-		HAPI_NodeId NodeId;
-		bSuccess = CreateMergeNode(NodeId, GeometryLabel, GeoNode, GetHapiNodeIds(NodeIds.Array()));
-
-		ExportData.RegisterConstructionNode(GeometryLabel, NodeId, &NodeIds);
-		return bSuccess;
-	}
-	return false;
+	return GetOrCreateSplineMeshLODGeometries(GeometryHandle, ExportData, MeshComponent);
 }
 
 bool FUnrealMeshTranslator::GetOrCreateSplineMeshLODGeometries(
+	FUnrealObjectInputHandle& LODsHandle,
 	FUnrealMeshExportData& ExportData,
-	const USplineMeshComponent* SplineMeshComponent,
-	const FUnrealMeshExportOptions& ExportOptions)
+	const USplineMeshComponent* SplineMeshComponent)
 {
 	UStaticMesh* StaticMesh = SplineMeshComponent->GetStaticMesh();
 	if(!IsValid(StaticMesh))
 		return true;
 
-	if(ExportOptions.bMainMesh)
+	FString NodeName = TEXT("lodgeo");
+	if (ExportData.bExportMainGeometry)
+		NodeName += TEXT("_main");
+	if (ExportData.bExportLODs)
+		NodeName += TEXT("_lods");
+
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), NodeName, EUnrealObjectInputNodeType::LeafWithReferences);
+
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, LODsHandle);
+	if (bSuccess || LODsHandle.IsValid())
+	{
+		return true;
+	}
+
+	TSet<FUnrealObjectInputHandle> Handles;
+
+	if(ExportData.bExportMainGeometry)
 	{
 		FString Label = MakeLODName(0, EHoudiniMeshSource::MeshDescription);
 
-		if(!ExportData.Contains(Label))
-		{
-			GetOrCreateExportSplineMeshLOD(ExportData, 0, SplineMeshComponent);
-		}
+		FUnrealObjectInputHandle Handle;
+		GetOrCreateExportSplineMeshLOD(Handle, ExportData, 0, SplineMeshComponent);
+		Handles.Add(Handle);
 	}
 
-	if(ExportOptions.bLODs)
+	if(ExportData.bExportLODs)
 	{
 		int NumLODs = StaticMesh->GetNumLODs();
+		int LODStart = ExportData.bExportMainGeometry ? 1 : 0;
 
-		for(int LODIndex = 0; LODIndex < NumLODs; LODIndex++)
+		for(int LODIndex = LODStart; LODIndex < NumLODs; LODIndex++)
 		{
 			FString NodeLabel = MakeLODName(LODIndex, EHoudiniMeshSource::MeshDescription);
-			if(!ExportData.Contains(NodeLabel))
-			{
-				GetOrCreateExportSplineMeshLOD(ExportData, LODIndex, SplineMeshComponent);
-			}
+
+			FUnrealObjectInputHandle Handle;
+			GetOrCreateExportSplineMeshLOD(Handle, ExportData, LODIndex, SplineMeshComponent);
+			Handles.Add(Handle);
 		}
 	}
 
+	HAPI_NodeId GeoNodeId = INDEX_NONE;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), NodeName, true, &GeoNodeId), false);
+
+	HAPI_NodeId MergeNodeId;
+	bSuccess = CreateMergeNode(MergeNodeId, TEXT("Merge"), GeoNodeId, GetHapiNodeIds(Handles.Array()));
+
+	FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, MergeNodeId, LODsHandle, &Handles);
 	return true;
 }
 
 bool FUnrealMeshTranslator::GetOrCreateExportSplineMeshLOD(
+	FUnrealObjectInputHandle& LODHandle,
 	FUnrealMeshExportData& ExportData,
 	const int LODIndex,
 	const USplineMeshComponent* SplineMeshComponent)
 
 {
-	FString LODName = MakeLODName(LODIndex, EHoudiniMeshSource::MeshDescription);
+	FString NodeName = FString::Printf(TEXT("lod_%d"), LODIndex);
 
-	bool bCreated = false;
-	HAPI_NodeId GeoNodeId = ExportData.GetOrCreateConstructionGeoNode(bCreated, LODName, EUnrealObjectInputNodeType::Leaf);
-	if(GeoNodeId == INDEX_NONE)
-		return false;
+	FUnrealObjectInputIdentifier Identifier(ExportData.ConstructionSubnetHandle.GetIdentifier(), NodeName, EUnrealObjectInputNodeType::Leaf);
 
-	// If the geo node already existed, don't recreate it.
-	if(!bCreated)
+	bool bSuccess = FUnrealObjectInputManager::Get().FindNode(Identifier, LODHandle);
+	if (bSuccess || LODHandle.IsValid())
+	{
 		return true;
+	}
+
+	// LOD not create, do create it
+
+	FString LODName = MakeLODName(LODIndex, EHoudiniMeshSource::MeshDescription);
+	
+	HAPI_NodeId GeoNodeId = INDEX_NONE;
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), NodeName, true, &GeoNodeId), false);
 
 	HAPI_NodeId NodeId = INDEX_NONE;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), GeoNodeId, "null", H_TCHAR_TO_UTF8(*LODName), true, &NodeId), false);
 
-	ExportData.RegisterConstructionNode(LODName, NodeId);
+	FUnrealObjectInputManager::Get().AddLeaf(Identifier, GeoNodeId, NodeId, LODHandle);
 
 	FMeshDescription MeshDesc;
 	static constexpr bool bPropagateVertexColours = false;
 	static constexpr bool bApplyComponentTransform = false;
 	FHoudiniMeshUtils::RetrieveMesh(MeshDesc, SplineMeshComponent, LODIndex, bPropagateVertexColours, bApplyComponentTransform);
 
-	bool bSuccess = FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
+	bSuccess = FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
 			NodeId,
 			MeshDesc,
 			LODIndex,

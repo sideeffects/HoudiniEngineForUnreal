@@ -32,8 +32,6 @@
 #include "HoudiniEnginePrivatePCH.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputUtils.h"
-#include "UnrealObjectInputRuntimeUtils.h"
-
 #include "Animation/AttributesContainer.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Engine/SkeletalMesh.h"
@@ -84,13 +82,14 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 		// Creates this input's identifier and input options
 		FUnrealObjectInputOptions Options;
 		Options.bExportMaterialParameters = bExportMaterialParameters;
-		Identifier = FUnrealObjectInputIdentifier(GeometryCollection, Options, true);
+		Identifier = FUnrealObjectInputIdentifier(GeometryCollection, Options, EUnrealObjectInputNodeType::Leaf);
 
 		FUnrealObjectInputHandle Handle;
 		if (FUnrealObjectInputUtils::NodeExistsAndIsNotDirty(Identifier, Handle))
 		{
 			HAPI_NodeId NodeId = -1;
-			if (FUnrealObjectInputUtils::GetHAPINodeId(Handle, NodeId) && FHoudiniEngineUtils::IsHoudiniNodeValid(NodeId))
+			NodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
+			if (Handle.IsValid() && FHoudiniEngineUtils::IsHoudiniNodeValid(NodeId))
 			{
 				// Make sure to prevent the destruction of the node if needed
 				if (!bInputNodesCanBeDeleted)
@@ -102,10 +101,10 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 			}
 		}
 
-		FUnrealObjectInputUtils::GetDefaultInputNodeName(Identifier, FinalInputNodeName);
+		FinalInputNodeName = FUnrealObjectInputManager::Get().GetDefaultNodeName(Identifier);
 		// Create any parent/container nodes that we would need, and get the node id of the immediate parent
-		if (FUnrealObjectInputUtils::EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
-			FUnrealObjectInputUtils::GetHAPINodeId(ParentHandle, ParentNodeId);
+		if (FUnrealObjectInputManager::Get().EnsureParentsExist(Identifier, ParentHandle, bInputNodesCanBeDeleted) && ParentHandle.IsValid())
+			ParentNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(ParentHandle);
 
 		// We now need to create the nodes (since we couldn't find existing ones in the manager)
 		// To do that, we can simply continue this function
@@ -115,8 +114,7 @@ FUnrealGeometryCollectionTranslator::HapiCreateInputNodeForGeometryCollection(
 		// the same asset, in the manager)
 		if (Handle.IsValid())
 		{
-			if (!FUnrealObjectInputUtils::GetHAPINodeId(Handle, InputNodeId))
-				InputNodeId = -1;
+			InputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
 		}
 		else
 		{
@@ -1561,4 +1559,3 @@ bool FUnrealGeometryCollectionTranslator::AddGeometryCollectionDetailAttributes(
 	
 	return true;
 }
-

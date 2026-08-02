@@ -50,7 +50,7 @@ FUnrealObjectInputManager::DestroySingleton()
 	return true;
 }
 
-FUnrealObjectInputManager* FUnrealObjectInputManager::Get()
+FUnrealObjectInputManager& FUnrealObjectInputManager::Get()
 {
 	if (Singleton == nullptr)
 	{
@@ -61,12 +61,12 @@ FUnrealObjectInputManager* FUnrealObjectInputManager::Get()
 #endif
 		SetSingleton(new FUnrealObjectInputManager());
 	}
-	return Singleton;
+	return *Singleton;
 }
 
 
 bool
-FUnrealObjectInputManager::FindNode(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle) const
+FUnrealObjectInputManager::FindNode(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutHandle)
 {
 	return false;
 }
@@ -220,8 +220,33 @@ FUnrealObjectInputManager::GetAllHAPINodeIds(TArray<int32>& OutNodeIds) const
 	return false;
 }
 
+int32
+FUnrealObjectInputManager::GetHAPINodeId(const FUnrealObjectInputHandle& InHandle) const
+{
+	if (!InHandle.IsValid())
+		return INDEX_NONE;
+
+	const FUnrealObjectInputNode* Node = nullptr;
+	if (!GetNode(InHandle, Node) || !Node)
+		return INDEX_NONE;
+
+	return Node->GetHAPINodeId();
+}
+
+int32
+FUnrealObjectInputManager::GetHAPINodeId(const FUnrealObjectInputIdentifier& InIdentifier) const
+{
+	return GetHAPINodeId(FUnrealObjectInputHandle(InIdentifier));
+}
+
 bool
 FUnrealObjectInputManager::EnsureParentsExist(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutParentHandle, const bool& bInputNodesCanBeDeleted)
+{
+	return false;
+}
+
+bool
+FUnrealObjectInputManager::EnsureContainerExists(const FUnrealObjectInputIdentifier& InIdentifier, FUnrealObjectInputHandle& OutContainerHandle, bool& bCreated, const bool& bInputNodesCanBeDeleted)
 {
 	return false;
 }

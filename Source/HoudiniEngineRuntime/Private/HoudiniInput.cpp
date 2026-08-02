@@ -38,7 +38,6 @@
 #include "HoudiniAssetBlueprintComponent.h"
 #include "UnrealObjectInputRuntimeTypes.h"
 #include "UnrealObjectInputManager.h"
-#include "UnrealObjectInputRuntimeUtils.h"
 #include "LandscapeSplineActor.h"
 
 #include "EngineUtils.h"
@@ -187,13 +186,10 @@ UHoudiniInput::PostEditUndo()
 		 		// If the ref counted input system is being used, we must not delete nodes managed by the system
 				TSet<int32> ManagedNodeIds;
 				{
-					const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-					if (Manager)
-					{
-						TArray<int32> ManagedNodeIdArray;
-						if (Manager->GetAllHAPINodeIds(ManagedNodeIdArray))
-							ManagedNodeIds.Append(ManagedNodeIdArray);
-					}
+					const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+					TArray<int32> ManagedNodeIdArray;
+					if (Manager.GetAllHAPINodeIds(ManagedNodeIdArray))
+						ManagedNodeIds.Append(ManagedNodeIdArray);
 				}
 
 			 	for (auto & NextNodeId : CreatedDataNodeIds)
@@ -1249,13 +1245,10 @@ void UHoudiniInput::InvalidateData()
 
 	TSet<int32> ManagedNodeIds;
 	{
-		const FUnrealObjectInputManager * Manager = FUnrealObjectInputManager::Get();
-		if(Manager)
-		{
-			TArray<int32> ManagedNodeIdArray;
-			if(Manager->GetAllHAPINodeIds(ManagedNodeIdArray))
-				ManagedNodeIds.Append(ManagedNodeIdArray);
-		}
+		const FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
+		TArray<int32> ManagedNodeIdArray;
+		if(Manager.GetAllHAPINodeIds(ManagedNodeIdArray))
+			ManagedNodeIds.Append(ManagedNodeIdArray);
 	}
 
 	for(UHoudiniInputObject* InputObject : GeometryInputObjects)

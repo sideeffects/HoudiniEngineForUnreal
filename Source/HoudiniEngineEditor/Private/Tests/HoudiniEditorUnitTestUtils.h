@@ -72,7 +72,7 @@ class UHoudiniAssetComponent;
 		bool ____bSuccess = TestEqual(#A, A, B);\
 		if (!____bSuccess)\
 		{\
-			REPORT_ERROR(true);\
+			REPORT_ERROR(false);\
 			_FAIL;\
 		}\
 	}
@@ -82,7 +82,7 @@ class UHoudiniAssetComponent;
 			bool ____bSuccess = TestEqual(#A, A, B, C);\
 			if(!____bSuccess)\
 			{\
-				REPORT_ERROR(true);\
+				REPORT_ERROR(false);\
 				_FAIL;\
 			}\
 	}
@@ -92,7 +92,7 @@ class UHoudiniAssetComponent;
 			bool ____bSuccess = TestNotEqual(#A, A, B);\
 			if(!____bSuccess)\
 			{\
-				REPORT_ERROR(true);\
+				REPORT_ERROR(false);\
 				_FAIL;\
 			}\
 	}
@@ -102,7 +102,7 @@ class UHoudiniAssetComponent;
 			bool ____bSuccess = TestNull(#A, A);\
 			if(!____bSuccess)\
 			{\
-				REPORT_ERROR(true);\
+				REPORT_ERROR(false);\
 				_FAIL;\
 			}\
 	}
@@ -112,7 +112,7 @@ class UHoudiniAssetComponent;
 			bool ____bSuccess = TestNotNull(#A, A);\
 			if(!____bSuccess)\
 			{\
-				REPORT_ERROR(true);\
+				REPORT_ERROR(false);\
 				_FAIL;\
 			}\
 	}
