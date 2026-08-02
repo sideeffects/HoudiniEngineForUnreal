@@ -1002,6 +1002,12 @@ protected:
 	UPROPERTY(DuplicateTransient)
 	bool bLastCookSuccess;	// bLastCookSuccess
 
+	UPROPERTY(DuplicateTransient)
+	bool bCookCancelIssued;
+
+	UPROPERTY(Transient, DuplicateTransient)
+	double CookCancelRequestTime;
+
 	// The last timestamp this cookable was ticked
 	// Used to prioritize/limit the number of Cookable processed per tick
 	UPROPERTY(Transient)

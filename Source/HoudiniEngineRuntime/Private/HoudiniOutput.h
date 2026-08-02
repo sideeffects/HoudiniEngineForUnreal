@@ -712,6 +712,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 
 	public:
 
+		static void DestroyComponent(UObject* Component);
+		static void DeleteAssetObject(UObject* Object);
+		static void DestroyOutputObject(UObject* Object);
+
 		void DestroyCookedData(EHoudiniClearFlags ClearFlags);
 
 		// The main output object
@@ -1027,5 +1031,3 @@ private:
 	UPROPERTY()
 	bool bCanDeleteHoudiniNodes;
 };
-
-

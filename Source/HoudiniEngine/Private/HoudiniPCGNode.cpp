@@ -480,12 +480,19 @@ void FHoudiniDigitalAssetPCGElement::AbortInternal(FPCGContext* Context) const
 				|| (InResource->GetCrc() != ResourceCrc && InResource->IsA<UPCGManagedResource>()))
 				return;
 
-			UHoudiniPCGManagedResource* ManagedResource = Cast<UHoudiniPCGManagedResource>(InResource);
-			if (ManagedResource)
+			if (UHoudiniPCGManagedResource* ManagedResource = Cast<UHoudiniPCGManagedResource>(InResource))
 			{
 				// Mark any managed resource as a "bInvalidateResource". The next time the node tried to execute (if the CRC is the same)
 				// the flag will be noted and the resource discarded.
 				ManagedResource->bInvalidateResource = true;
+
+				UHoudiniPCGCookable* PCGCookable = ManagedResource->GetCookable();
+				UHoudiniCookable* Cookable = PCGCookable ? PCGCookable->Cookable : nullptr;
+
+				if (Cookable && Cookable->GetCurrentState() == EHoudiniAssetState::Cooking)
+				{
+					Cookable->SetCurrentState(EHoudiniAssetState::Cancelling);
+				}
 			}
 
 		});

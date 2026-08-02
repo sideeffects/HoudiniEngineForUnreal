@@ -422,8 +422,15 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask & Task)
 	EHoudiniEngineTaskState GlobalTaskResult = EHoudiniEngineTaskState::Success;
 	for (auto& CurrentNodeId : NodesToCook)
 	{
+		bool bInterruptRequested = false;
+
 		Result = FHoudiniApi::CookNode(FHoudiniEngine::Get().GetSession(), CurrentNodeId, &CookOptions);
-		if (Result != HAPI_RESULT_SUCCESS)
+		if (Result == HAPI_RESULT_USER_INTERRUPTED)
+		{
+			bInterruptRequested = true;
+			GlobalTaskResult = EHoudiniEngineTaskState::Aborted;
+		}
+		else if (Result != HAPI_RESULT_SUCCESS)
 		{
 			AddResponseMessageTaskInfo(
 				Result,
@@ -453,14 +460,32 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask & Task)
 			HOUDINI_CHECK_ERROR_GET(&Result, FHoudiniApi::GetStatus(
 				FHoudiniEngine::Get().GetSession(), HAPI_STATUS_COOK_STATE, &Status));
 
-			if (Status == HAPI_STATE_READY)
+			if (Result == HAPI_RESULT_USER_INTERRUPTED)
+			{
+				if (!bInterruptRequested)
+				{
+					bInterruptRequested = true;
+				}
+				GlobalTaskResult = EHoudiniEngineTaskState::Aborted;
+			}
+			else if (Status == HAPI_STATE_READY)
 			{
 				// Cooking has been successful.
+				if (bInterruptRequested)
+					GlobalTaskResult = EHoudiniEngineTaskState::Aborted;
 				// Break to process the next node
 				break;
 			}
 			else if (Status == HAPI_STATE_READY_WITH_FATAL_ERRORS || Status == HAPI_STATE_READY_WITH_COOK_ERRORS)
 			{
+				int32 CookResult = static_cast<int32>(HAPI_RESULT_SUCCESS);
+				FHoudiniApi::GetStatus(FHoudiniEngine::Get().GetSession(), HAPI_STATUS_COOK_RESULT, &CookResult);
+				if (CookResult == HAPI_RESULT_USER_INTERRUPTED)
+				{
+					GlobalTaskResult = EHoudiniEngineTaskState::Aborted;
+					break;
+				}
+
 				GlobalTaskResult = EHoudiniEngineTaskState::FinishedWithFatalError;
 
 				if (Status == HAPI_STATE_READY_WITH_COOK_ERRORS)
@@ -469,7 +494,7 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask & Task)
 				break;
 			}
 
-			if (Result == HAPI_RESULT_FAILURE)
+			if (Result == HAPI_RESULT_FAILURE || Result == HAPI_RESULT_INVALID_SESSION)
 			{
 				// There was an error while getting the status - likely we've lost the session.
 				// Log an error and ensure we break cleanly in that case
@@ -495,7 +520,9 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask & Task)
 				LastUpdateTime = FPlatformTime::Seconds();
 
 				// Retrieve status string.
-				const FString & CookStateMessage = FHoudiniEngineUtils::GetCookState();
+				const FString CookStateMessage = bInterruptRequested
+					? TEXT("Interrupting cook")
+					: FHoudiniEngineUtils::GetCookState();
 
 				AddResponseMessageTaskInfo(
 					HAPI_RESULT_SUCCESS,
@@ -537,8 +564,19 @@ FHoudiniEngineScheduler::TaskCookAsset(const FHoudiniEngineTask & Task)
 		}
 		break;
 
-		case EHoudiniEngineTaskState::FinishedWithFatalError:
 		case EHoudiniEngineTaskState::Aborted:
+		{
+			AddResponseMessageTaskInfo(
+				HAPI_RESULT_USER_INTERRUPTED,
+				EHoudiniEngineTaskType::AssetCooking,
+				EHoudiniEngineTaskState::Aborted,
+				AssetId,
+				Task,
+				TEXT("Cooking interrupted"));
+		}
+		break;
+
+		case EHoudiniEngineTaskState::FinishedWithFatalError:
 		case EHoudiniEngineTaskState::None:
 		case EHoudiniEngineTaskState::Working:
 		{

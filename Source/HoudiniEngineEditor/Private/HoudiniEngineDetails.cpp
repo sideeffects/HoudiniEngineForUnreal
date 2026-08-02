@@ -41,6 +41,8 @@
 #include "HoudiniEditorNodeSyncSubsystem.h"
 #include "HoudiniEngineRuntime.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
+#include "HoudiniOutput.h"
+#include "HoudiniOutputTranslator.h"
 #include "HoudiniEngineStyle.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniLandscapeTranslator.h"
@@ -404,6 +406,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 	IDetailGroup& GenerateGroup = HoudiniEngineCategoryBuilder.AddGroup(
 		FName(TEXT(HOUDINI_ENGINE_UI_SECTION_GENERATE_HEADER_TEXT)),
 		FText::FromString(TEXT(HOUDINI_ENGINE_UI_SECTION_GENERATE_HEADER_TEXT)), false, false);
+	IDetailLayoutBuilder* SavedLayoutBuilder = &HoudiniEngineCategoryBuilder.GetParentLayout();
 
 	if(Flags.bCookButtons)
 	{
@@ -436,8 +439,132 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 				return FReply::Handled();
 			};
 
+		auto OnDeleteClickedLambda = [InHCs, SavedLayoutBuilder]()
+			{
+				TArray<AActor*> OwnersToRefresh;
+
+				// Remove outputs
+				for (auto& NextHC : InHCs)
+				{
+					if (!IsValidWeakPointer(NextHC))
+						continue;
+
+					if (AActor* OwnerActor = NextHC->GetOwner())
+					{
+						OwnersToRefresh.AddUnique(OwnerActor);
+					}
+
+					FHoudiniOutputTranslator::ClearAndRemoveOutputs(
+						NextHC->GetOutputs(),
+						EHoudiniClearFlags::EHoudiniClear_Actors
+						| EHoudiniClearFlags::EHoudiniClear_Assets
+						| EHoudiniClearFlags::EHoudiniClear_LandscapeLayers);
+				}
+
+				// We need to notify Unreal that the actors changed to force a UI refresh
+				// or we get random [unnamed] components in the details panel
+
+				for (AActor* OwnerActor : OwnersToRefresh)
+				{
+					if (!IsValid(OwnerActor))
+						continue;
+
+					OwnerActor->PostEditChange();
+				}
+
+				if (GEditor)
+				{
+					GEditor->NoteSelectionChange();
+				}
+
+				if (SavedLayoutBuilder)
+				{
+					SavedLayoutBuilder->ForceRefreshDetails();
+				}
+
+				return FReply::Handled();
+			};
+
+		auto OnCancelClickedLambda = [InHCs]()
+			{
+				for (auto& NextHC : InHCs)
+				{
+					if (!IsValidWeakPointer(NextHC))
+						continue;
+
+					if (NextHC->GetCurrentState() == EHoudiniAssetState::Cooking)
+						NextHC->SetCurrentState(EHoudiniAssetState::Cancelling);
+				}
+
+				return FReply::Handled();
+			};
+
+		auto IsCancelButtonEnabled = [InHCs]()
+			{
+				for (const auto& NextHC : InHCs)
+				{
+					if (!IsValidWeakPointer(NextHC))
+						continue;
+
+					if (NextHC->GetCurrentState() == EHoudiniAssetState::Cooking)
+						return true;
+				}
+
+				return false;
+			};
+
+		auto AreGenerateButtonsEnabled = [InHCs]()
+			{
+				for (const auto& NextHC : InHCs)
+				{
+					if (!IsValidWeakPointer(NextHC))
+						continue;
+
+					switch (NextHC->GetCurrentState())
+					{
+						case EHoudiniAssetState::PreCook:
+						case EHoudiniAssetState::Cooking:
+						case EHoudiniAssetState::Cancelling:
+						case EHoudiniAssetState::PostCook:
+						case EHoudiniAssetState::PreProcess:
+						case EHoudiniAssetState::Processing:
+							return false;
+
+						case EHoudiniAssetState::None:
+						case EHoudiniAssetState::NeedInstantiation:
+						case EHoudiniAssetState::NewHDA:
+						case EHoudiniAssetState::PreInstantiation:
+						case EHoudiniAssetState::Instantiating:
+						case EHoudiniAssetState::NeedRebuild:
+						case EHoudiniAssetState::NeedDelete:
+						case EHoudiniAssetState::Deleting:
+						case EHoudiniAssetState::ProcessTemplate:
+						case EHoudiniAssetState::Dormant:
+							break;
+					}
+				}
+
+				return true;
+			};
+
+		auto GetCancelButtonText = [InHCs]()
+			{
+				for (const auto& NextHC : InHCs)
+				{
+					if (!IsValidWeakPointer(NextHC))
+						continue;
+
+					if (NextHC->GetCurrentState() == EHoudiniAssetState::Cancelling)
+						return LOCTEXT("HoudiniAssetDetailsCancellingButtonLabel", "Cancelling");
+				}
+
+				return LOCTEXT("HoudiniAssetDetailsCancelButtonLabel", "Cancel");
+			};
+
 		TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIRebuildIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIRebuildIconBrush();
 		TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIRecookIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIRecookIconBrush();
+		TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIDeleteIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIDeleteCookIconBrush();
+		TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUICancelIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIPDGCancelIconBrush();
 
 		FDetailWidgetRow& ButtonRow = GenerateGroup.AddWidgetRow();
 		TSharedRef<SHorizontalBox> ButtonHorizontalBox = SNew(SHorizontalBox);
@@ -462,6 +589,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 							.ToolTipText(LOCTEXT("HoudiniAssetDetailsRecookAssetButton", "Recook the selected Houdini Asset: all parameters and inputs are re-upload to Houdini and the asset is then forced to recook."))
 							//.Text(FText::FromString("Recook"))
 							.Visibility(EVisibility::Visible)
+							.IsEnabled_Lambda(AreGenerateButtonsEnabled)
 							.OnClicked_Lambda(OnRecookClickedLambda)
 							.Content()
 							[
@@ -532,6 +660,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 							.ToolTipText(LOCTEXT("HoudiniAssetDetailsRebuildAssetButton", "Rebuild the selected Houdini Asset: its source .HDA file is reimported and updated, the asset's nodes in Houdini are destroyed and recreated, and the asset is then forced to recook."))
 							//.Text(FText::FromString("Rebuild"))
 							.Visibility(EVisibility::Visible)
+							.IsEnabled_Lambda(AreGenerateButtonsEnabled)
 							.Content()
 							[
 								SNew(SHorizontalBox)
@@ -579,6 +708,131 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 			[
 				SNew(STextBlock)
 					.Text(FText::FromString("Rebuild"))
+			];
+
+		//----------------------------------------------------------------
+		// Cancel button
+		//----------------------------------------------------------------
+		TSharedPtr<SButton> CancelButton;
+		TSharedPtr<SHorizontalBox> CancelButtonHorizontalBox;
+		ButtonHorizontalBox->AddSlot()
+			.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+			[
+				SNew(SBox)
+					.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+					[
+						SAssignNew(CancelButton, SButton)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Center)
+							.ToolTipText(LOCTEXT("HoudiniAssetDetailsCancelCookButton", "Interrupt the active Houdini cook for the selected asset."))
+							.IsEnabled_Lambda(IsCancelButtonEnabled)
+							.OnClicked_Lambda(OnCancelClickedLambda)
+							.Content()
+							[
+								SNew(SHorizontalBox)
+									+ SHorizontalBox::Slot()
+									.HAlign(HAlign_Center)
+									[
+										SAssignNew(CancelButtonHorizontalBox, SHorizontalBox)
+									]
+							]
+					]
+			];
+
+		if (HoudiniEngineUICancelIconBrush.IsValid())
+		{
+			TSharedPtr<SImage> CancelImage;
+			CancelButtonHorizontalBox->AddSlot()
+				.MaxWidth(16.0f)
+				[
+					SNew(SBox)
+						.WidthOverride(16.0f)
+						.HeightOverride(16.0f)
+						[
+							SAssignNew(CancelImage, SImage)
+						]
+				];
+
+			CancelImage->SetImage(
+				TAttribute<const FSlateBrush*>::Create(
+					TAttribute<const FSlateBrush*>::FGetter::CreateLambda([HoudiniEngineUICancelIconBrush]()
+						{
+							return HoudiniEngineUICancelIconBrush.Get();
+						})
+				)
+			);
+		}
+
+		CancelButtonHorizontalBox->AddSlot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			.Padding(5.0, 0.0, 0.0, 0.0)
+			[
+				SNew(STextBlock)
+					.Text_Lambda(GetCancelButtonText)
+			];
+
+		//----------------------------------------------------------------
+		// Delete button
+		//----------------------------------------------------------------
+		TSharedPtr<SButton> DeleteButton;
+		TSharedPtr<SHorizontalBox> DeleteButtonHorizontalBox;
+		ButtonHorizontalBox->AddSlot()
+			.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+			[
+				SNew(SBox)
+					.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+					[
+						SAssignNew(DeleteButton, SButton)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Center)
+							.ToolTipText(LOCTEXT("HoudiniAssetDetailsDeleteAssetButton", "Delete the selected Houdini Asset's cooked outputs."))
+							.Visibility(EVisibility::Visible)
+							.IsEnabled_Lambda(AreGenerateButtonsEnabled)
+							.Content()
+							[
+								SNew(SHorizontalBox)
+									+ SHorizontalBox::Slot()
+									.HAlign(HAlign_Center)
+									[
+										SAssignNew(DeleteButtonHorizontalBox, SHorizontalBox)
+									]
+							]
+							.OnClicked_Lambda(OnDeleteClickedLambda)
+					]
+			];
+
+		if (HoudiniEngineUIDeleteIconBrush.IsValid())
+		{
+			TSharedPtr<SImage> DeleteImage;
+			DeleteButtonHorizontalBox->AddSlot()
+				.MaxWidth(16.0f)
+				[
+					SNew(SBox)
+						.WidthOverride(16.0f)
+						.HeightOverride(16.0f)
+						[
+							SAssignNew(DeleteImage, SImage)
+						]
+				];
+
+			DeleteImage->SetImage(
+				TAttribute<const FSlateBrush*>::Create(
+					TAttribute<const FSlateBrush*>::FGetter::CreateLambda([HoudiniEngineUIDeleteIconBrush]()
+						{
+							return HoudiniEngineUIDeleteIconBrush.Get();
+						})
+				)
+			);
+		}
+
+		DeleteButtonHorizontalBox->AddSlot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			.Padding(5.0, 0.0, 0.0, 0.0)
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString("Delete"))
 			];
 
 		ButtonRow.WholeRowWidget.Widget = ButtonHorizontalBox;
@@ -3448,6 +3702,7 @@ FHoudiniEngineDetails::AddHeaderRowForHoudiniPDGAssetLink(IDetailCategoryBuilder
 		{
 			case HOUDINI_ENGINE_UI_SECTION_BAKE:
 				return FText::FromString(HOUDINI_ENGINE_UI_SECTION_BAKE_HEADER_TEXT);
+			break;
 		}
 		return FText::FromString("");
 	};

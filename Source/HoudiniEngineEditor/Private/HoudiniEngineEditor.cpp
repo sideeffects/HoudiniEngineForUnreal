@@ -1190,6 +1190,20 @@ FHoudiniEngineEditor::InitializeWidgetResource()
 		}
 	}
 
+	// Delete Cook
+	FString DeleteCookIconFilePath = IconsDir + TEXT("delete_bake16x16.png");
+	if(FSlateApplication::IsInitialized() && FPlatformFileManager::Get().GetPlatformFile().FileExists(*DeleteCookIconFilePath))
+	{
+		const FName BrushName(*DeleteCookIconFilePath);
+		const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
+		if(Size.X > 0 && Size.Y > 0)
+		{
+			static const int32 ProgressIconSize = 32;
+			HoudiniEngineUIDeleteCookIconBrush = MakeShareable(new FSlateDynamicImageBrush(
+				BrushName, FVector2D(ProgressIconSize, ProgressIconSize)));
+		}
+	}
+
 	// Unlink Bake
 	FString UnlinkBakeIconFilePath = IconsDir + TEXT("unlink_bake16x16.png");
 	if(FSlateApplication::IsInitialized() && FPlatformFileManager::Get().GetPlatformFile().FileExists(*UnlinkBakeIconFilePath))

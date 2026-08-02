@@ -1574,6 +1574,7 @@ bool FHoudiniPDGDetails::IsSOPCooking(const TWeakObjectPtr<UHoudiniCookable>& In
 	{
 	case EHoudiniAssetState::PreCook:
 	case EHoudiniAssetState::Cooking:
+	case EHoudiniAssetState::Cancelling:
 	case EHoudiniAssetState::PostCook:
 	case EHoudiniAssetState::PreProcess:
 	case EHoudiniAssetState::Processing:

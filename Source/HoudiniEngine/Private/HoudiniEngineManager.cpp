@@ -78,6 +78,14 @@ static TAutoConsoleVariable<float> CVarHoudiniEngineLiveSyncTickTime(
 	TEXT("1.0: Default\n")
 );
 
+static TAutoConsoleVariable<float> CVarHoudiniEngineCancelCookTimeout(
+	TEXT("HoudiniEngine.CancelCookTimeout"),
+	60.0,
+	TEXT("Maximum time in seconds to wait for an interrupted cook to finish cancelling.\n")
+	TEXT("<= 0.0: No Limit\n")
+	TEXT("5.0: Default\n")
+);
+
 FHoudiniEngineManager::FHoudiniEngineManager()
 	: CurrentIndex(0)
 	, ComponentCount(0)
@@ -347,6 +355,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 				case EHoudiniAssetState::NeedInstantiation:
 				case EHoudiniAssetState::Instantiating:
 				case EHoudiniAssetState::Cooking:
+				case EHoudiniAssetState::Cancelling:
 				case EHoudiniAssetState::None:
 				case EHoudiniAssetState::ProcessTemplate:
 				case EHoudiniAssetState::NeedRebuild:
@@ -539,7 +548,9 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 	const EHoudiniAssetState CurrentStateToProcess = HC->GetCurrentState();
 
 	// If cooking is paused, stay in the current state until cooking's resumed, unless we are in NewHDA
-	if (!FHoudiniEngine::Get().IsCookingEnabled() && CurrentStateToProcess != EHoudiniAssetState::NewHDA)
+	if (!FHoudiniEngine::Get().IsCookingEnabled()
+		&& CurrentStateToProcess != EHoudiniAssetState::NewHDA
+		&& CurrentStateToProcess != EHoudiniAssetState::Cancelling)
 	{
 		// Refresh UI when pause cooking
 		if (!FHoudiniEngine::Get().HasUIFinishRefreshingWhenPausingCooking())
@@ -655,7 +666,7 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 					// Reset the cook counter.
 					HC->SetCookCount(0);
 					//if (HC->IsOutputsSupported())
-						HC->ClearNodesToCook();
+					HC->ClearNodesToCook();
 
 					// We can go to PreCook
 					NextState = EHoudiniAssetState::PreCook;
@@ -773,6 +784,13 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 			{
 				DisableEditorAutoSave(HC);
 			}
+			break;
+		}
+
+		case EHoudiniAssetState::Cancelling:
+		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessCookable - Cancelling);
+			UpdateCancelling(HC);
 			break;
 		}
 
@@ -1369,6 +1387,125 @@ FHoudiniEngineManager::UpdateCooking(
 	//HAC->bLastCookSuccess = bSuccess;
 
 	return true;
+}
+
+bool
+FHoudiniEngineManager::UpdateCancelling(UHoudiniCookable* HC)
+{
+	if (!IsValid(HC))
+		return false;
+
+	const FString DisplayName = HC->GetDisplayName();
+	auto FinishCancellation = [this, HC]()
+	{
+		if (HC->HapiGUID.IsValid())
+		{
+			FHoudiniEngine::Get().RemoveTaskInfo(HC->HapiGUID);
+			HC->HapiGUID.Invalidate();
+		}
+
+		HC->bLastCookSuccess = false;
+		HC->PreventAutoUpdates();
+		HC->ClearNodesToCook();
+		FHoudiniEngineStatusManager::Get()->EndCancelling(HC);
+		HC->SetCurrentState(EHoudiniAssetState::None);
+		EnableEditorAutoSave(HC);
+	};
+
+	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+	if (!Session)
+	{
+		HOUDINI_LOG_WARNING(TEXT("   %s Cancelled cooking because the Houdini session is no longer valid."), *DisplayName);
+		FinishCancellation();
+		return true;
+	}
+
+	if (!HC->bCookCancelIssued)
+	{
+		if (!HC->HapiGUID.IsValid())
+		{
+			HOUDINI_LOG_WARNING(TEXT("   %s Cook cancellation ended with an invalid task."), *DisplayName);
+			FinishCancellation();
+			return true;
+		}
+
+		const HAPI_Result InterruptResult = FHoudiniApi::Interrupt(Session);
+		if (InterruptResult == HAPI_RESULT_SUCCESS)
+		{
+			HC->bCookCancelIssued = true;
+			HC->CookCancelRequestTime = FPlatformTime::Seconds();
+			HC->SetCurrentStateResult(EHoudiniAssetStateResult::Working);
+			DisableEditorAutoSave(HC);
+		}
+		else
+		{
+			HOUDINI_LOG_WARNING(
+				TEXT("   %s Failed to interrupt cooking: %s"),
+				*DisplayName,
+				*FHoudiniEngineUtils::GetErrorDescription(InterruptResult));
+			FinishCancellation();
+			return true;
+		}
+	}
+
+	bool bTaskFinished = !HC->HapiGUID.IsValid();
+	if (HC->HapiGUID.IsValid())
+	{
+		FHoudiniEngineTaskInfo TaskInfo;
+		if (!UpdateTaskStatus(HC->HapiGUID, TaskInfo, HC->bDoSlateNotifications)
+			|| TaskInfo.TaskType != EHoudiniEngineTaskType::AssetCooking)
+		{
+			bTaskFinished = !HC->HapiGUID.IsValid();
+		}
+		else
+		{
+			switch (TaskInfo.TaskState)
+			{
+				case EHoudiniEngineTaskState::Success:
+				case EHoudiniEngineTaskState::FinishedWithError:
+				case EHoudiniEngineTaskState::FinishedWithFatalError:
+				case EHoudiniEngineTaskState::Aborted:
+				{
+					bTaskFinished = true;
+					break;
+				}
+
+				case EHoudiniEngineTaskState::None:
+				case EHoudiniEngineTaskState::Working:
+				default:
+				{
+					bTaskFinished = false;
+					break;
+				}
+			}
+		}
+	}
+
+	if (bTaskFinished)
+	{
+		HOUDINI_LOG_MESSAGE(TEXT("   %s Cancelled cooking."), *DisplayName);
+		HC->SetCurrentStateResult(EHoudiniAssetStateResult::Aborted);
+		FinishCancellation();
+		return true;
+	}
+
+	const float CancelCookTimeout = CVarHoudiniEngineCancelCookTimeout.GetValueOnAnyThread();
+	if (HC->bCookCancelIssued
+		&& CancelCookTimeout > 0.0f
+		&& HC->CookCancelRequestTime > 0.0
+		&& (FPlatformTime::Seconds() - HC->CookCancelRequestTime) >= CancelCookTimeout)
+	{
+		HOUDINI_LOG_WARNING(
+			TEXT("%s Timed out waiting %.3f seconds for cancellation to complete.\nNext cook may pause the UI while cancellation completes."),
+			*DisplayName,
+			CancelCookTimeout);
+		HC->SetCurrentStateResult(EHoudiniAssetStateResult::Aborted);
+		FinishCancellation();
+		return true;
+	}
+
+	DisableEditorAutoSave(HC);
+	return false;
 }
 
 
@@ -2180,4 +2317,3 @@ void FHoudiniEngineManager::UploadedParametersAndInputs(UHoudiniCookable* InHC)
 {
 	PreCook(InHC);
 }
-

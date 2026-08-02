@@ -43,6 +43,8 @@ public:
 
 	virtual void StartCooking(UHoudiniCookable * Cookable) override;
 	virtual void EndCooking(UHoudiniCookable* Cookable, bool bSuccess) override;
+	virtual void StartCancelling(UHoudiniCookable* Cookable) override;
+	virtual void EndCancelling(UHoudiniCookable* Cookable) override;
 
 	virtual void StartBaking(UHoudiniCookable* Cookable) override;
 	virtual void EndBaking(UHoudiniCookable* Cookable, bool bSuccess) override;
@@ -85,7 +87,6 @@ public:
 	TWeakObjectPtr<UHoudiniCookable> Prev;
 
 };
-
 
 
 

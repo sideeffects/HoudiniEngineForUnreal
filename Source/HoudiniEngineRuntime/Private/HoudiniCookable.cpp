@@ -316,6 +316,8 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 	bCookAfterInstantiation = true;
 	bForceNeedUpdate = false;
 	bLastCookSuccess = false;
+	bCookCancelIssued = false;
+	CookCancelRequestTime = 0.0;
 	//bBlueprintStructureModified = false;
 	//bBlueprintModified = false;
 	bFullyLoaded = false;
@@ -724,6 +726,7 @@ UHoudiniCookable::ShouldTryToStartFirstSession() const
 			return true;
 
 		case EHoudiniAssetState::NeedInstantiation:
+		case EHoudiniAssetState::Cancelling:
 		case EHoudiniAssetState::PostCook:
 		case EHoudiniAssetState::PreProcess:
 		case EHoudiniAssetState::Processing:
@@ -831,6 +834,20 @@ UHoudiniCookable::SetCurrentState(EHoudiniAssetState InNewState)
 	const EHoudiniAssetState OldState = CurrentState;
 	CurrentState = InNewState;
 
+	if (InNewState == EHoudiniAssetState::Cancelling)
+	{
+		if (OldState != EHoudiniAssetState::Cancelling)
+		{
+			bCookCancelIssued = false;
+			CookCancelRequestTime = 0.0;
+		}
+	}
+	else
+	{
+		bCookCancelIssued = false;
+		CookCancelRequestTime = 0.0;
+	}
+
 	if (OldState == EHoudiniAssetState::Instantiating)
 	{
 		FHoudiniStatusManager::Get()->EndInstantiating(this, true);
@@ -842,6 +859,10 @@ UHoudiniCookable::SetCurrentState(EHoudiniAssetState InNewState)
 	else if(InNewState == EHoudiniAssetState::PreCook)
 	{
 		FHoudiniStatusManager::Get()->StartCooking(this);
+	}
+	else if (InNewState == EHoudiniAssetState::Cancelling)
+	{
+		FHoudiniStatusManager::Get()->StartCancelling(this);
 	}
 
 
@@ -2112,6 +2133,7 @@ UHoudiniCookable::IsHoudiniCookedDataAvailable(bool& bOutNeedsRebuildOrDelete, b
 	case EHoudiniAssetState::Instantiating:
 	case EHoudiniAssetState::PreCook:
 	case EHoudiniAssetState::Cooking:
+	case EHoudiniAssetState::Cancelling:
 	case EHoudiniAssetState::PostCook:
 	case EHoudiniAssetState::PreProcess:
 	case EHoudiniAssetState::Processing:

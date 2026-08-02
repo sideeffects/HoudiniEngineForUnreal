@@ -54,6 +54,8 @@ public:
 	virtual void MarkAsReused() override;
 	virtual void PostLoad() override;
 
+	UHoudiniPCGCookable* GetCookable() const;
+
 	void DestroyCookable();
 
 #if WITH_EDITOR

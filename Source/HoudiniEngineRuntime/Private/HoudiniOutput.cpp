@@ -31,6 +31,7 @@
 #include "HoudiniEngineRuntimeUtils.h"
 #include "HoudiniLandscapeRuntimeUtils.h"
 #include "HoudiniSplineComponent.h"
+#include "HoudiniStaticMesh.h"
 
 #include "Components/SceneComponent.h"
 #include "Components/MeshComponent.h"
@@ -694,7 +695,6 @@ UHoudiniOutput::GetBounds() const
 
 	return BoxBounds;
 }
-
 void
 UHoudiniOutput::Clear()
 {
@@ -720,11 +720,7 @@ UHoudiniOutput::Clear()
 		    USceneComponent* SceneComp = Cast<USceneComponent>(Component);
 		    if (IsValid(SceneComp))
 		    {
-				if(SceneComp->GetOwner())
-					SceneComp->UnregisterComponent();
-
-			    SceneComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);			    
-			    SceneComp->DestroyComponent();
+				FHoudiniOutputObject::DestroyComponent(SceneComp);
 		    }
 
 		    if (Type == EHoudiniOutputType::Landscape && !bLandscapeWorldComposition && !IsGarbageCollecting())
@@ -747,11 +743,7 @@ UHoudiniOutput::Clear()
 		USceneComponent* ProxyComp = Cast<USceneComponent>(CurrentOutputObject.Value.ProxyComponent);
 		if (IsValid(ProxyComp))
 		{
-			if (ProxyComp->GetOwner())
-				ProxyComp->UnregisterComponent();
-
-			ProxyComp->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-			ProxyComp->DestroyComponent();
+			FHoudiniOutputObject::DestroyComponent(ProxyComp);
 		}
 
 		// Destroy Landscape Spline Output Object
@@ -1248,7 +1240,7 @@ void FHoudiniClearedEditLayers::Add(FString& EditLayer, FString& TargetLayer)
 	EditLayers[EditLayer].TargetLayers.Add(TargetLayer);
 };
 
-void DestroyComponent(UObject * Component)
+void FHoudiniOutputObject::DestroyComponent(UObject* Component)
 {
 	if (Component == nullptr || !IsValid(Component))
 		return;
@@ -1260,12 +1252,77 @@ void DestroyComponent(UObject * Component)
 		if (SceneComponent->GetOwner())
 		{
 			SceneComponent->GetOwner()->RemoveOwnedComponent(SceneComponent);
+			SceneComponent->GetOwner()->RemoveInstanceComponent(SceneComponent);
 			SceneComponent->UnregisterComponent();
 		}
 
 		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 		SceneComponent->DestroyComponent();
 	}
+}
+
+void FHoudiniOutputObject::DeleteAssetObject(UObject* Object)
+{
+#if WITH_EDITOR
+	if (Object == nullptr || !IsValid(Object))
+		return;
+
+	bool bCanDelete = false;
+	if (Object->IsA<UStaticMesh>()
+		|| Object->IsA<UMaterial>()
+		|| Object->IsA<UHoudiniStaticMesh>())
+	{
+		bCanDelete = true;
+	}
+
+	if (!bCanDelete)
+		return;
+
+	if (UPackage* Package = Object->GetPackage())
+	{
+		TArray<UObject*> ObjectsToDelete;
+		ObjectsToDelete.Add(Package);
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+		GetObjectsWithOuter(Package, ObjectsToDelete, EGetObjectsFlags::IncludeNestedObjects);
+#else
+		GetObjectsWithOuter(Package, ObjectsToDelete, true);
+#endif	
+
+		ObjectTools::DeleteObjectsUnchecked(ObjectsToDelete);
+
+		FString PackagePath = Package->GetPathName();
+		FString FilePath = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
+		FString DirectoryPath = FPaths::GetPath(FilePath);
+
+		TArray<FString> Files;
+		TArray<FString> SubDirs;
+		IFileManager::Get().FindFiles(Files, *(DirectoryPath / TEXT("*")), true, false);
+		IFileManager::Get().FindFiles(SubDirs, *(DirectoryPath / TEXT("*")), false, true);
+
+		if (Files.IsEmpty() && SubDirs.IsEmpty())
+		{
+			IFileManager::Get().DeleteDirectory(*DirectoryPath, false, true);
+		}
+	}
+#endif
+}
+
+void FHoudiniOutputObject::DestroyOutputObject(UObject* Object)
+{
+	if (Object == nullptr || !IsValid(Object))
+		return;
+
+	// Packaged assets are handled separately; this is for transient/instanced output objects that
+	// otherwise remain as owned subobjects and continue to show up in the editor UI.
+	if (Object->IsAsset() || Object->GetOuter()->IsA<UPackage>())
+		return;
+
+	if (Object->GetOutermost() != GetTransientPackage())
+	{
+		Object->Rename(nullptr, GetTransientPackage(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_NonTransactional);
+	}
+
+	Object->MarkAsGarbage();
 }
 
 void FHoudiniOutputObject::DestroyCookedData(EHoudiniClearFlags ClearFlags)
@@ -1293,15 +1350,7 @@ void FHoudiniOutputObject::DestroyCookedData(EHoudiniClearFlags ClearFlags)
 
 	for(UObject* Component : ComponentsToDestroy)
 	{
-		USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
-		if (!SceneComponent)
-			continue;
-
-		if(SceneComponent->GetOwner())
-			SceneComponent->UnregisterComponent();
-
-		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);		
-		SceneComponent->DestroyComponent();
+		DestroyComponent(Component);
 	}
 
 
@@ -1313,49 +1362,10 @@ void FHoudiniOutputObject::DestroyCookedData(EHoudiniClearFlags ClearFlags)
 
 	bool bClearAssets = (ClearFlags & EHoudiniClearFlags::EHoudiniClear_Assets) == EHoudiniClearFlags::EHoudiniClear_Assets;
 
-	if(bClearAssets && IsValid(OutputObject))
+	if (bClearAssets)
 	{
-		TArray<FString> PackagesDeleted;
-
-		bool bCanDelete = false;
-		if(OutputObject->IsA<UStaticMesh>() ||
-			OutputObject->IsA<UMaterial>())
-		{
-			bCanDelete = true;
-		}
-
-		if (bCanDelete)
-		{
-			if(UPackage* Package = OutputObject->GetPackage())
-			{
-				TArray<UObject*> ObjectsToDelete;
-				ObjectsToDelete.Add(Package);
-#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
-				GetObjectsWithOuter(Package, ObjectsToDelete, EGetObjectsFlags::IncludeNestedObjects);
-#else
-				GetObjectsWithOuter(Package, ObjectsToDelete, true);
-#endif	
-
-				// Use ObjectTools to delete
-				ObjectTools::DeleteObjectsUnchecked(ObjectsToDelete);
-
-				// Also delete the package file from disk
-				FString PackagePath = Package->GetPathName();
-				FString FilePath = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
-
-				FString DirectoryPath = FPaths::GetPath(FilePath);
-
-				TArray<FString> Files;
-				TArray<FString> SubDirs;
-				IFileManager::Get().FindFiles(Files, *(DirectoryPath / TEXT("*")), true, false);
-				IFileManager::Get().FindFiles(SubDirs, *(DirectoryPath / TEXT("*")), false, true);
-
-				if(Files.IsEmpty() && SubDirs.IsEmpty())
-				{
-					IFileManager::Get().DeleteDirectory(*DirectoryPath, false, true);
-				}
-			}
-		}
+		DeleteAssetObject(OutputObject.Get());
+		DeleteAssetObject(ProxyObject.Get());
 	}
 
 	bool bClearLandscapeLayers = (ClearFlags & EHoudiniClearFlags::EHoudiniClear_LandscapeLayers) == EHoudiniClearFlags::EHoudiniClear_LandscapeLayers;
@@ -1428,6 +1438,9 @@ void FHoudiniOutputObject::DestroyCookedData(EHoudiniClearFlags ClearFlags)
 		}		
 #endif
 	}
+
+	DestroyOutputObject(OutputObject.Get());
+	DestroyOutputObject(ProxyObject.Get());
 	OutputObject = nullptr;
 	ProxyObject = nullptr;
 

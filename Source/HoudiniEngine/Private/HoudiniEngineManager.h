@@ -148,6 +148,8 @@ public:
 		bool bDoNotifications,
 		bool& OutSuccess);
 
+	bool UpdateCancelling(UHoudiniCookable* HC);
+
 	// Called to update template components. 
 	//bool PreCookTemplate(UHoudiniAssetComponent* HAC);
 

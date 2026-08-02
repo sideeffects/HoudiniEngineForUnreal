@@ -95,6 +95,21 @@ void FHoudiniEngineStatusManager::EndCooking(UHoudiniCookable* Cookable, bool bS
 	}
 }
 
+void FHoudiniEngineStatusManager::StartCancelling(UHoudiniCookable* Cookable)
+{
+	FScopeLock Lock(&Mutex);
+	FHoudiniCookableStatus& CookableStatus = CurrentStatuses.FindOrAdd(Cookable);
+	CookableStatus.Status = EHoudiniStatusManagerStatus::Cancelling;
+	CookableStatus.StartTime = FPlatformTime::Seconds();
+}
+
+void FHoudiniEngineStatusManager::EndCancelling(UHoudiniCookable* Cookable)
+{
+	FScopeLock Lock(&Mutex);
+	FHoudiniCookableStatus& CookableStatus = CurrentStatuses.FindOrAdd(Cookable);
+	CookableStatus.Status = EHoudiniStatusManagerStatus::Cancelled;
+}
+
 void FHoudiniEngineStatusManager::StartBaking(UHoudiniCookable* Cookable)
 {
 	FScopeLock Lock(&Mutex);
@@ -246,6 +261,36 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 					StringBuilder.Append(TEXT(" "));
 
 			OutStatusString = StringBuilder.ToString();
+		}
+		break;
+	case EHoudiniStatusManagerStatus::Cancelling:
+		{
+			OutStatusColor = FLinearColor::Yellow;
+
+#if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
+			TStringBuilder<256> StringBuilder;
+#else
+			FStringBuilderBase StringBuilder;
+#endif
+			StringBuilder.Append(TEXT("Cancelling.."));
+
+			double DeltaTime = FPlatformTime::Seconds() - CookableStatus->StartTime;
+
+			int TotalDotCount = 3;
+			int32 DotCount = static_cast<int32>(FMath::Fmod(DeltaTime, static_cast<double>(TotalDotCount)));
+			for (int32 Dot = 0; Dot < TotalDotCount; Dot++)
+				if (Dot < DotCount)
+					StringBuilder.Append(TEXT("."));
+				else
+					StringBuilder.Append(TEXT(" "));
+
+			OutStatusString = StringBuilder.ToString();
+		}
+		break;
+	case EHoudiniStatusManagerStatus::Cancelled:
+		{
+			OutStatusColor = FLinearColor::Yellow;
+			OutStatusString = TEXT("Cancelled");
 		}
 		break;
 
@@ -419,5 +464,4 @@ FString FHoudiniEngineStatusManager::GetLogs(const TArray<TWeakObjectPtr<UHoudin
 	}
 	return StringBuilder.ToString();
 }
-
 

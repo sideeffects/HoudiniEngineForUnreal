@@ -54,6 +54,9 @@ enum class EHoudiniAssetState : uint8
 	// Cooking task in progress
 	Cooking,
 
+	// Cooking cancel request in progress
+	Cancelling,
+
 	// Cooking has finished
 	PostCook,
 

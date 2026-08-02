@@ -36,15 +36,23 @@ void UHoudiniPCGManagedResource::PostApplyToComponent()
 	// In this case, we want to preserve the data, so we need to do nothing
 }
 
-void UHoudiniPCGManagedResource::DestroyCookable()
+UHoudiniPCGCookable* UHoudiniPCGManagedResource::GetCookable() const
 {
-	if(IsValid(HoudiniPCGComponent))
+	if (!IsValid(HoudiniPCGComponent))
 	{
-		if(IsValid(HoudiniPCGComponent->Cookable))
-			HoudiniPCGComponent->Cookable->DestroyCookable(HoudiniPCGComponent->GetWorld());
-		HoudiniPCGComponent->Cookable = nullptr;
+		return nullptr;
 	}
 
+	return HoudiniPCGComponent->Cookable.Get();
+}
+
+void UHoudiniPCGManagedResource::DestroyCookable()
+{
+	if (UHoudiniPCGCookable* Cookable = GetCookable())
+	{
+		Cookable->DestroyCookable(HoudiniPCGComponent->GetWorld());
+		HoudiniPCGComponent->Cookable = nullptr;
+	}
 }
 
 bool UHoudiniPCGManagedResource::Release(bool bHardRelease, TSet<TSoftObjectPtr<AActor>>& /*OutActorsToDelete*/)
@@ -116,5 +124,4 @@ void UHoudiniPCGManagedResource::ChangeTransientState(EPCGEditorDirtyMode NewEdi
 	Super::ChangeTransientState(NewEditingMode);
 }
 #endif
-
 

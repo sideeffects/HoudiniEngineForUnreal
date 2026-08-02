@@ -44,6 +44,8 @@ enum EHoudiniStatusManagerStatus
 	Instantiating,		// Instantiating
 	Instantiated,
 	Cooking,			// A Cook is in progress.
+	Cancelling,			// A Cook cancel is in progress.
+	Cancelled,			// Cooking was canceled.
 	CookComplete,		// Cooking complete.
 	Baking,				// A Bake is in progress.
 	BakingComplete,		// Baking complete.
@@ -75,6 +77,8 @@ public:
 
 	virtual void StartCooking(UHoudiniCookable* Cookable) {};
 	virtual void EndCooking(UHoudiniCookable* Cookable, bool bSuccess) {};
+	virtual void StartCancelling(UHoudiniCookable* Cookable) {};
+	virtual void EndCancelling(UHoudiniCookable* Cookable) {};
 
 	virtual void StartBaking(UHoudiniCookable* Cookable) {};
 	virtual void EndBaking(UHoudiniCookable* Cookable, bool bSuccess) {};
@@ -105,4 +109,3 @@ protected:
 	static FCriticalSection Mutex; // logs come in from different threads, we provide protection.
 	TMap<UHoudiniCookable*, FHoudiniCookableStatus> CurrentStatuses;
 };
-
