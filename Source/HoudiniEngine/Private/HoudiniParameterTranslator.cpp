@@ -1047,6 +1047,9 @@ FHoudiniParameterTranslator::BuildAllParameters(
 
 					break;
 				}
+
+				default:
+					break;
 			}
 
 		}

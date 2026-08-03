@@ -350,9 +350,6 @@ FHoudiniInputTranslator::BuildAllInputs(UHoudiniCookable* InHC)
 		bIsCOPInput = true;
 	}
 
-	// Keep track of the number of node inputs (not counting params)
-	int32 NodeInputCount = InputCount;
-
 	// Assign any new parameter operator paths
 	for (UHoudiniParameter* Param : InHC->GetParameters())
 	{
@@ -549,14 +546,8 @@ FHoudiniInputTranslator::DestroyInputNodes(UHoudiniInput* InputToDestroy, const 
 			{
 				FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), InputObjectNodeId);
 				CurInputObject->SetInputObjectNodeId(-1);
-
-				// TODO: CHECK ME!
-				//HAPI_NodeId ParentNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(CurInputObject->InputObjectNodeId);
-
-				//// Delete its parent node as well
-				//if (FHoudiniEngineUtils::IsHoudiniNodeValid(ParentNodeId))
-				//	FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), ParentNodeId);
 			}
+
 			// Also directly invalidate HoudiniSplineComponent's node IDs.
 			UHoudiniInputHoudiniSplineComponent* HoudiniSplineInputObject = Cast<UHoudiniInputHoudiniSplineComponent>(CurInputObject);
 			if (IsValid(HoudiniSplineInputObject) && !IsGarbageCollecting())

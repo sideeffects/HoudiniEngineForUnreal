@@ -1642,10 +1642,9 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 	// Get the HAC display name for the logs
 	FString DisplayName = HC->GetDisplayName();
 
-	//bool bCookSuccess = bLSuccess;
 	if (HC->bLastCookSuccess && (HC->GetNodeId() < 0))
 	{
-		// Task finished successfully but we received an invalid asset ID, error out
+		// Task finished successfully but we received an invalid asset ID, error out.
 		HOUDINI_LOG_ERROR(TEXT("    %s received an invalid asset id - aborting."), *DisplayName);
 		HC->bLastCookSuccess = false;
 	}
@@ -1654,7 +1653,6 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 	const int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
 	HC->SetCookCount(CookCount);
 
-	bool bNeedsToTriggerViewportUpdate = false;
 	if (HC->bLastCookSuccess)
 	{
 		if (HC->bDoSlateNotifications)
@@ -1662,11 +1660,10 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 
 		//
 		// PARAMETERS
-		//
+		//		Update parameters, since they may have been changed by scripts, etc, inside Houdini.
+
 		if (HC->IsParameterSupported())
 		{
-			//FHoudiniParameterTranslator::UpdateParameters(HAC);
-
 			// When recooking/rebuilding the HDA, force a full update of all params
 			const bool bForceFullUpdate = HC->HasRebuildBeenRequested() || HC->HasRecookBeenRequested() || HC->IsParameterDefinitionUpdateNeeded();
 			const bool bCacheRampParms = !HC->HasBeenLoaded() && !HC->HasBeenDuplicated();
@@ -1676,6 +1673,13 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 				bForceFullUpdate,
 				bCacheRampParms,
 				HC->bNeedToUpdateEditorProperties);
+
+			// Update the HDA's parameter preset. This needs to be done after inputs and parameters updates
+			if (!FHoudiniEngineUtils::GetAssetPreset(HC->GetNodeId(), HC->ParameterData->ParameterPresetBuffer))
+			{
+				HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset."));
+				HC->ParameterData->ParameterPresetBuffer.Empty();
+			}
 		}
 
 		//
@@ -1692,24 +1696,11 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 				true);
 		}
 
-		// Update the HDA's parameter preset
-		// This needs to be done after inputs and parameters updates
-		if (HC->IsParameterSupported())
-		{
-			if (!FHoudiniEngineUtils::GetAssetPreset(HC->GetNodeId(), HC->ParameterData->ParameterPresetBuffer))
-			{
-				HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset."));
-				HC->ParameterData->ParameterPresetBuffer.Empty();
-			}
-		}	
-
 		//
 		// OUTPUTS
-		//
+		//	Update our output objects. We will process them at the processing stage.
 		if (HC->IsOutputSupported())
 		{
-			// Update our output objects
-			// We will process them at the processing stage
 			FHoudiniOutputTranslator::UpdateOutputs(HC);
 
 			if(HC->IsProxySupported())
@@ -1719,7 +1710,7 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		//
 		// HANDLES
 		//
-		// Handles have to be built after the parameters
+		//	Handles have to be built after the parameters
 		FHoudiniHandleTranslator::BuildHandles(HC);
 
 		// We can clear the duplication flag
