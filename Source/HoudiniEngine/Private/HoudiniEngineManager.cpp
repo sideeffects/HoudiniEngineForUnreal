@@ -1398,6 +1398,8 @@ FHoudiniEngineManager::UpdateCancelling(UHoudiniCookable* HC)
 	const FString DisplayName = HC->GetDisplayName();
 	auto FinishCancellation = [this, HC]()
 	{
+		const EHoudiniCookableCancelReason CancelReason = HC->GetCancelReason();
+
 		if (HC->HapiGUID.IsValid())
 		{
 			FHoudiniEngine::Get().RemoveTaskInfo(HC->HapiGUID);
@@ -1408,6 +1410,12 @@ FHoudiniEngineManager::UpdateCancelling(UHoudiniCookable* HC)
 		HC->PreventAutoUpdates();
 		HC->ClearNodesToCook();
 		FHoudiniEngineStatusManager::Get()->EndCancelling(HC);
+
+		if (CancelReason == EHoudiniCookableCancelReason::CancelledDueToChangeAndRestart)
+			HC->SetRecookRequested(true);
+
+		HC->SetCancelReason(EHoudiniCookableCancelReason::None);
+
 		HC->SetCurrentState(EHoudiniAssetState::None);
 		EnableEditorAutoSave(HC);
 	};
@@ -1644,7 +1652,7 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 
 	if (HC->bLastCookSuccess && (HC->GetNodeId() < 0))
 	{
-		// Task finished successfully but we received an invalid asset ID, error out.
+		// Task finished successfully but we received an invalid asset ID, error out.%
 		HOUDINI_LOG_ERROR(TEXT("    %s received an invalid asset id - aborting."), *DisplayName);
 		HC->bLastCookSuccess = false;
 	}
@@ -1655,8 +1663,13 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 
 	if (HC->bLastCookSuccess)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - SuccessPath);
+
 		if (HC->bDoSlateNotifications)
+		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - UpdateCookingNotification);
 			FHoudiniEngine::Get().UpdateCookingNotification(FText::FromString(DisplayName + " :\nProcessing outputs..."), false);
+		}
 
 		//
 		// PARAMETERS
@@ -1664,6 +1677,8 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 
 		if (HC->IsParameterSupported())
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - Parameters);
+
 			// When recooking/rebuilding the HDA, force a full update of all params
 			const bool bForceFullUpdate = HC->HasRebuildBeenRequested() || HC->HasRecookBeenRequested() || HC->IsParameterDefinitionUpdateNeeded();
 			const bool bCacheRampParms = !HC->HasBeenLoaded() && !HC->HasBeenDuplicated();
@@ -1675,6 +1690,7 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 				HC->bNeedToUpdateEditorProperties);
 
 			// Update the HDA's parameter preset. This needs to be done after inputs and parameters updates
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - Parameters - GetAssetPreset);
 			if (!FHoudiniEngineUtils::GetAssetPreset(HC->GetNodeId(), HC->ParameterData->ParameterPresetBuffer))
 			{
 				HOUDINI_LOG_WARNING(TEXT("Failed to get the asset's preset."));
@@ -1689,6 +1705,8 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		// Set bLoadedInputs to false so as not to delete outputs.
 		if (HC->IsInputSupported())
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - Inputs);
+
 			// Update our inputs
 			FHoudiniInputTranslator::UpdateInputs(
 				HC,
@@ -1701,6 +1719,8 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		//	Update our output objects. We will process them at the processing stage.
 		if (HC->IsOutputSupported())
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - Outputs);
+
 			FHoudiniOutputTranslator::UpdateOutputs(HC);
 
 			if(HC->IsProxySupported())
@@ -1711,6 +1731,7 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 		// HANDLES
 		//
 		//	Handles have to be built after the parameters
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - Handles);
 		FHoudiniHandleTranslator::BuildHandles(HC);
 
 		// We can clear the duplication flag
@@ -1722,15 +1743,21 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 
 	// Cache the current cook counts of the nodes so that we can more reliable determine
 	// whether content has changed next time build outputs.
-	for (int32 NodeId : HC->NodeIdsToCook)
 	{
-		int32 NodeCookCount = FHoudiniEngineUtils::HapiGetCookCount(NodeId);
-		HC->NodesToCookCookCounts.Add(NodeId, NodeCookCount);
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - CacheNodeCookCounts);
+
+		for (int32 NodeId : HC->NodeIdsToCook)
+		{
+			int32 NodeCookCount = FHoudiniEngineUtils::HapiGetCookCount(NodeId);
+			HC->NodesToCookCookCounts.Add(NodeId, NodeCookCount);
+		}
 	}
 
 	// See if we need to initialize the PDG Asset Link for this HDA
 	if (HC->IsPDGSupported())
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - PDG);
+
 		InitializePDG(HC);
 
 		// Notify the PDG manager that the HDA is done cooking
@@ -1739,19 +1766,23 @@ FHoudiniEngineManager::PostCook(UHoudiniCookable* HC)
 
 	if (HC->IsImageSupported())
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - Images);
 		FHoudiniEngineUtils::UpdateImageDataOnCookable(HC);
 	}
 
 	// Clear the HasBeenLoaded flag
 	if (HC->HasBeenLoaded())
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - ClearHasBeenLoaded);
 		HC->bHasBeenLoaded = false;
 	}
 
 	// If we have downstream cookables, we need to tell them we're done cooking
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - NotifyDownstreamCookables);
 	HC->NotifyCookedToDownstreamCookables();
 
 	// Clear the rebuild/recook flags
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::PostCook - ClearCookRequests);
 	HC->bRecookRequested = false;
 	HC->bRebuildRequested = false;
 

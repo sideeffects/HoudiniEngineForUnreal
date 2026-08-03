@@ -318,6 +318,7 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 	bLastCookSuccess = false;
 	bCookCancelIssued = false;
 	CookCancelRequestTime = 0.0;
+	CancelReason = EHoudiniCookableCancelReason::None;
 	//bBlueprintStructureModified = false;
 	//bBlueprintModified = false;
 	bFullyLoaded = false;
@@ -840,12 +841,16 @@ UHoudiniCookable::SetCurrentState(EHoudiniAssetState InNewState)
 		{
 			bCookCancelIssued = false;
 			CookCancelRequestTime = 0.0;
+
+			if (CancelReason == EHoudiniCookableCancelReason::None)
+				CancelReason = EHoudiniCookableCancelReason::UserCancelled;
 		}
 	}
 	else
 	{
 		bCookCancelIssued = false;
 		CookCancelRequestTime = 0.0;
+		CancelReason = EHoudiniCookableCancelReason::None;
 	}
 
 	if (OldState == EHoudiniAssetState::Instantiating)
@@ -2457,6 +2462,12 @@ void
 UHoudiniCookable::SetRebuildRequested(const bool& InRebuild)
 {
 	bRebuildRequested = InRebuild;
+}
+
+void
+UHoudiniCookable::SetCancelReason(const EHoudiniCookableCancelReason InCancelReason)
+{
+	CancelReason = InCancelReason;
 }
 
 bool

@@ -291,8 +291,7 @@ public:
 		SetNeedsToTriggerUpdate(bInChanged);
 	};
 
-	void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate)
-		{ bNeedsToTriggerUpdate = bInTriggersUpdate; };
+	void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate);
 	void MarkDataUploadNeeded(const bool& bInDataUploadNeeded) 
 		{ bDataUploadNeeded = bInDataUploadNeeded; };
 	void MarkAllInputObjectsChanged(const bool& bInChanged);

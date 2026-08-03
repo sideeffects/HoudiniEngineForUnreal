@@ -3901,6 +3901,7 @@ FHoudiniEngineDetails::AddSessionStatusRow(IDetailCategoryBuilder& InCategory, c
 					.OnClicked_Lambda(OnClickedStatus)
 						[
 							SNew(STextBlock)
+								.Justification(ETextJustify::Center)
 								.Text_Lambda([InCookables]()
 									{
 										UHoudiniCookable* Cookable = nullptr;

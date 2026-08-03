@@ -180,8 +180,8 @@ public:
 	virtual void SetTagCount(const uint32& InTagCount) { TagCount = InTagCount; };
 	virtual void SetValueIndex(const uint32& InValueIndex) { ValueIndex = InValueIndex; };
 
-	virtual void MarkChanged(const bool& bInChanged) { bHasChanged = bInChanged; SetNeedsToTriggerUpdate(bInChanged); };
-	virtual void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate) { bNeedsToTriggerUpdate = bInTriggersUpdate; };
+	virtual void MarkChanged(const bool& bInChanged);
+	virtual void SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate);
 	virtual void RevertToDefault();
 	virtual void RevertToDefault(const int32& TupleIndex);
 	virtual void MarkDefault(const bool& bInDefault);

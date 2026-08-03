@@ -132,6 +132,29 @@ UHoudiniInput::GetCookable()
 }
 
 void
+UHoudiniInput::SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate)
+{
+	bNeedsToTriggerUpdate = bInTriggersUpdate;
+
+	if (bNeedsToTriggerUpdate)
+	{
+		UHoudiniCookable* Cookable = GetCookable();
+		if (Cookable
+			&& (Cookable->GetCurrentState() == EHoudiniAssetState::Cooking
+				|| Cookable->GetCurrentState() == EHoudiniAssetState::Cancelling))
+		{
+			if (Cookable->GetCookOnInputChange())
+				Cookable->SetCancelReason(EHoudiniCookableCancelReason::CancelledDueToChangeAndRestart);
+			else if (Cookable->GetCancelReason() != EHoudiniCookableCancelReason::CancelledDueToChangeAndRestart)
+				Cookable->SetCancelReason(EHoudiniCookableCancelReason::CancelledDueToChange);
+
+			if (Cookable->GetCurrentState() == EHoudiniAssetState::Cooking)
+				Cookable->SetCurrentState(EHoudiniAssetState::Cancelling);
+		}
+	}
+}
+
+void
 UHoudiniInput::BeginDestroy()
 {
 	InvalidateData();

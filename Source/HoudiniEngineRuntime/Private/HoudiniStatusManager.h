@@ -61,6 +61,7 @@ struct FHoudiniCookableStatus
 	int NumWarnings = 0;
 	EHoudiniStatusManagerStatus Status = EHoudiniStatusManagerStatus::Idle;
 	double StartTime = 0.0;
+	bool bCancelledDueToChange = false;
 
 };
 

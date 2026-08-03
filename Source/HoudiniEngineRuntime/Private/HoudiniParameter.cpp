@@ -80,6 +80,38 @@ UHoudiniParameter::IsChildParameter() const
 }
 
 void
+UHoudiniParameter::MarkChanged(const bool& bInChanged)
+{
+	bHasChanged = bInChanged;
+	SetNeedsToTriggerUpdate(bInChanged);
+}
+
+void
+UHoudiniParameter::SetNeedsToTriggerUpdate(const bool& bInTriggersUpdate)
+{
+	bNeedsToTriggerUpdate = bInTriggersUpdate;
+
+	if (bNeedsToTriggerUpdate)
+	{
+		// A Parameter has changed, so cancel the current cook.
+		UHoudiniCookable * Cookable = GetCookable();
+		if (Cookable
+			&& (Cookable->GetCurrentState() == EHoudiniAssetState::Cooking
+				|| Cookable->GetCurrentState() == EHoudiniAssetState::Cancelling))
+		{
+			if (Cookable->GetCookOnParameterChange())
+				Cookable->SetCancelReason(EHoudiniCookableCancelReason::CancelledDueToChangeAndRestart);
+			else if (Cookable->GetCancelReason() != EHoudiniCookableCancelReason::CancelledDueToChangeAndRestart)
+				Cookable->SetCancelReason(EHoudiniCookableCancelReason::CancelledDueToChange);
+
+			if (Cookable->GetCurrentState() == EHoudiniAssetState::Cooking)
+				Cookable->SetCurrentState(EHoudiniAssetState::Cancelling);
+		}
+
+	}
+}
+
+void
 UHoudiniParameter::RevertToDefault()
 {
 	bPendingRevertToDefault = true;

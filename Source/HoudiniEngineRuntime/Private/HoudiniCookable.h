@@ -53,6 +53,15 @@ class UHoudiniPDGAssetLink;
 class UHoudiniParameter;
 class UMaterialInterface;
 
+UENUM()
+enum class EHoudiniCookableCancelReason : uint8
+{
+	None,
+	UserCancelled,
+	CancelledDueToChange,
+	CancelledDueToChangeAndRestart
+};
+
 UCLASS()
 class HOUDINIENGINERUNTIME_API UCookableHoudiniAssetData : public UObject
 {
@@ -536,6 +545,7 @@ public:
 	bool HasBeenDuplicated() const { return bHasBeenDuplicated; };
 	bool HasRecookBeenRequested() const { return bRecookRequested; };
 	bool HasRebuildBeenRequested() const { return bRebuildRequested; };
+	EHoudiniCookableCancelReason GetCancelReason() const { return CancelReason; };
 	bool IsInstantiatingOrCooking() const;
 
 	bool GetCookOnParameterChange() const;
@@ -770,6 +780,7 @@ public:
 	void SetCookCount(const int32& InCount);
 	void SetRecookRequested(const bool& InRecook);
 	void SetRebuildRequested(const bool& InRebuild);
+	void SetCancelReason(const EHoudiniCookableCancelReason InCancelReason);
 
 	// Set to True to force the next cook to not build a proxy mesh (regardless of global or override settings) and
 	// instead build a UStaticMesh directly (if applicable for the output type).
@@ -1007,6 +1018,9 @@ protected:
 
 	UPROPERTY(Transient, DuplicateTransient)
 	double CookCancelRequestTime;
+
+	UPROPERTY(Transient, DuplicateTransient)
+	EHoudiniCookableCancelReason CancelReason;
 
 	// The last timestamp this cookable was ticked
 	// Used to prioritize/limit the number of Cookable processed per tick

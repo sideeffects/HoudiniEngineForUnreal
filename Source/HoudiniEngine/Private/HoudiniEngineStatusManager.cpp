@@ -101,6 +101,7 @@ void FHoudiniEngineStatusManager::StartCancelling(UHoudiniCookable* Cookable)
 	FHoudiniCookableStatus& CookableStatus = CurrentStatuses.FindOrAdd(Cookable);
 	CookableStatus.Status = EHoudiniStatusManagerStatus::Cancelling;
 	CookableStatus.StartTime = FPlatformTime::Seconds();
+	CookableStatus.bCancelledDueToChange = false;
 }
 
 void FHoudiniEngineStatusManager::EndCancelling(UHoudiniCookable* Cookable)
@@ -108,6 +109,9 @@ void FHoudiniEngineStatusManager::EndCancelling(UHoudiniCookable* Cookable)
 	FScopeLock Lock(&Mutex);
 	FHoudiniCookableStatus& CookableStatus = CurrentStatuses.FindOrAdd(Cookable);
 	CookableStatus.Status = EHoudiniStatusManagerStatus::Cancelled;
+	CookableStatus.bCancelledDueToChange = Cookable
+		&& (Cookable->GetCancelReason() == EHoudiniCookableCancelReason::CancelledDueToChange
+			|| Cookable->GetCancelReason() == EHoudiniCookableCancelReason::CancelledDueToChangeAndRestart);
 }
 
 void FHoudiniEngineStatusManager::StartBaking(UHoudiniCookable* Cookable)
@@ -272,7 +276,32 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 #else
 			FStringBuilderBase StringBuilder;
 #endif
-			StringBuilder.Append(TEXT("Cancelling.."));
+			const EHoudiniCookableCancelReason CancelReason = Cookable
+				? Cookable->GetCancelReason()
+				: EHoudiniCookableCancelReason::None;
+
+			switch (CancelReason)
+			{
+				case EHoudiniCookableCancelReason::None:
+				{
+					StringBuilder.Append(TEXT("Cancelling"));
+					break;
+				}
+
+				case EHoudiniCookableCancelReason::CancelledDueToChange:
+				case EHoudiniCookableCancelReason::CancelledDueToChangeAndRestart:
+				{
+					StringBuilder.Append(TEXT("Cancelling due to inputs/parameter change.."));
+					break;
+				}
+
+				case EHoudiniCookableCancelReason::UserCancelled:
+				default:
+				{
+					StringBuilder.Append(TEXT("Cancelling.."));
+					break;
+				}
+			}
 
 			double DeltaTime = FPlatformTime::Seconds() - CookableStatus->StartTime;
 
@@ -284,13 +313,36 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 				else
 					StringBuilder.Append(TEXT(" "));
 
+			switch (CancelReason)
+			{
+				case EHoudiniCookableCancelReason::None:
+				{
+					break;
+				}
+
+				case EHoudiniCookableCancelReason::CancelledDueToChangeAndRestart:
+				{
+					StringBuilder.Append(TEXT("\nwill restart cooking after cancellation"));
+					break;
+				}
+
+				case EHoudiniCookableCancelReason::CancelledDueToChange:
+				case EHoudiniCookableCancelReason::UserCancelled:
+				default:
+				{
+					break;
+				}
+			}
+
 			OutStatusString = StringBuilder.ToString();
 		}
 		break;
 	case EHoudiniStatusManagerStatus::Cancelled:
 		{
 			OutStatusColor = FLinearColor::Yellow;
-			OutStatusString = TEXT("Cancelled");
+			OutStatusString = CookableStatus->bCancelledDueToChange
+				? TEXT("Cook Cancelled due to inputs/parameter change")
+				: TEXT("Cancelled");
 		}
 		break;
 
@@ -464,4 +516,3 @@ FString FHoudiniEngineStatusManager::GetLogs(const TArray<TWeakObjectPtr<UHoudin
 	}
 	return StringBuilder.ToString();
 }
-
