@@ -3600,14 +3600,26 @@ FHoudiniParameterView::CreateWidgetFile(
 							.BrowseButtonToolTip(BrowseTooltip)
 							.BrowseDirectory(FileWidgetBrowsePath)
 							.BrowseTitle(LOCTEXT("PropertyEditorTitle", "File picker..."))
-							.FilePath(FileWidgetPath)
+							.FilePath_Lambda([MainParam, Idx]()
+								{
+									if (!IsValidWeakPointer(MainParam))
+										return FString();
+
+									if (MainParam->GetNumValues() <= Idx)
+										return FString();
+
+									return MainParam->GetValueAt(Idx);
+								})
 							.FileTypeFilter(FileTypeWidgetFilter)
 							.IsNewFile(bIsNewFile)
 							.IsDirectoryPicker(IsDirectoryPicker)
-							.ToolTipText_Lambda([MainParam]()
+							.ToolTipText_Lambda([MainParam, Idx]()
 								{
 									// return the current param value as a tooltip
-									FString FileValue = MainParam.IsValid() ? MainParam->GetValueAt(0) : FString();
+									FString FileValue =
+										(MainParam.IsValid() && MainParam->GetNumValues() > Idx)
+										? MainParam->GetValueAt(Idx)
+										: FString();
 									return FText::FromString(FileValue);
 								})
 							.OnPathPicked(FOnPathPicked::CreateLambda([MainParam, FileParams, UpdateCheckRelativePath, Idx](const FString& PickedPath)
