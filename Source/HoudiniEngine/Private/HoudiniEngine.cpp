@@ -1326,6 +1326,7 @@ FHoudiniEngine::StopSessionInternal()
 	}
 
 	Sessions.Empty();
+	FUnrealObjectInputManager::Get().Clear();
 	SetSessionStatus(EHoudiniSessionStatus::Stopped);
 	bEnableSessionSync = false;
 

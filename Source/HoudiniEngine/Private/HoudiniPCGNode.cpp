@@ -619,6 +619,8 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 		{
 			if(!IsValid(ManagedResource->HoudiniPCGComponent) ||
 				!IsValid(ManagedResource->HoudiniPCGComponent->Cookable) ||
+				!IsValid(ManagedResource->HoudiniPCGComponent->Cookable->Cookable) ||
+				ManagedResource->HoudiniPCGComponent->Cookable->Cookable->GetNodeId() == INDEX_NONE ||
 				ManagedResource->bInvalidateResource)
 			{
 				if(ManagedResource->HoudiniPCGComponent)
