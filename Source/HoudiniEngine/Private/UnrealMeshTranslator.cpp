@@ -4055,8 +4055,7 @@ bool FUnrealMeshTranslator::GetOrCreateMaterialZipNode(
 bool FUnrealMeshTranslator::GetOrCreateStaticMeshLODGeometries(
 	FUnrealObjectInputHandle& LODsHandle,
 	FUnrealMeshExportData& ExportData,
-	const UStaticMesh* StaticMesh,
-	EHoudiniMeshSource MeshSource)
+	const UStaticMesh* StaticMesh)
 {
 	FString NodeName = TEXT("lodgeo");
 	if (ExportData.bExportMainGeometry)
@@ -4077,11 +4076,11 @@ bool FUnrealMeshTranslator::GetOrCreateStaticMeshLODGeometries(
 
 	if(ExportData.bExportMainGeometry)
 	{
-		FString Label = MakeLODName(0, MeshSource);
+		FString Label = MakeLODName(0, ExportData.MainMeshSource);
 
 		const bool bAddLODGroups = true;
 		FUnrealObjectInputHandle Handle;
-		GetOrCreateExportStaticMeshLOD(Handle, ExportData, 0, bAddLODGroups, StaticMesh, MeshSource);
+		GetOrCreateExportStaticMeshLOD(Handle, ExportData, 0, bAddLODGroups, StaticMesh, ExportData.MainMeshSource);
 		Handles.Add(Handle);
 	}
 
@@ -4093,11 +4092,11 @@ bool FUnrealMeshTranslator::GetOrCreateStaticMeshLODGeometries(
 
 		for(int LODIndex = LODStart; LODIndex < NumLODs; LODIndex++)
 		{
-			FString NodeLabel = MakeLODName(LODIndex, MeshSource);
+			FString NodeLabel = MakeLODName(LODIndex, ExportData.LODMeshSource);
 
 			constexpr bool bAddLODGroups = true;
 			FUnrealObjectInputHandle Handle;
-			GetOrCreateExportStaticMeshLOD(Handle, ExportData, LODIndex, bAddLODGroups, StaticMesh, MeshSource);
+			GetOrCreateExportStaticMeshLOD(Handle, ExportData, LODIndex, bAddLODGroups, StaticMesh, ExportData.LODMeshSource);
 			Handles.Add(Handle);
 		}
 	}
@@ -4136,7 +4135,7 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMesh(
 
 		FUnrealObjectInputHandle ComponentHandle;
 
-		FUnrealMeshExportData ExportData(SplineMeshComponent, ExportOptions, bInputNodesCanBeDeleted);
+		FUnrealMeshExportData ExportData(StaticMesh, SplineMeshComponent, ExportOptions, bInputNodesCanBeDeleted);
 		
 		bool bSuccess = GetOrConstructSplineMeshComponent(
 			ComponentHandle,
@@ -4168,6 +4167,7 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMesh(
 			bSuccess = CreateInputNodeForStaticMeshComponent(
 				ComponentHandle,
 				StaticMeshHandle,
+				StaticMesh,
 				StaticMeshComponent,
 				ExportOptions,
 				bInputNodesCanBeDeleted);
@@ -4194,7 +4194,7 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshAsset(
 	const bool bInputNodesCanBeDeleted)
 {
 	// ExportData contains information about the mesh being constructed.
-	FUnrealMeshExportData ExportData(StaticMesh, ExportOptions, bInputNodesCanBeDeleted);
+	FUnrealMeshExportData ExportData(StaticMesh, StaticMesh, ExportOptions, bInputNodesCanBeDeleted);
 
 	bool bSuccess = GetOrConstructStaticMesh(OutHandle, ExportData, StaticMesh);
 	return bSuccess;
@@ -4326,10 +4326,8 @@ bool FUnrealMeshTranslator::GetOrConstructStaticMeshGeometryNode(
 	FUnrealMeshExportData& ExportData,
 	const UStaticMesh* StaticMesh)
 {
-	EHoudiniMeshSource MeshSource = DetermineMeshSource(ExportData, StaticMesh);
-
 	// Create all low-level geometry nodes required by these export options. For example, lod0, lod1
-	bool bSuccess = GetOrCreateStaticMeshLODGeometries(GeometryHandle, ExportData, StaticMesh, MeshSource);
+	bool bSuccess = GetOrCreateStaticMeshLODGeometries(GeometryHandle, ExportData, StaticMesh);
 	return bSuccess;
 }
 
@@ -4420,14 +4418,14 @@ bool FUnrealMeshTranslator::GetOrConstructStaticMeshRenderNode(
 FString FUnrealMeshTranslator::GenerateNodeNameSuffix(const FUnrealMeshExportData& ExportData)
 {
 	TArray<FString> NameParts;
+	NameParts.Add(MeshSourceToString(ExportData.MainMeshSource));
+
 	if (ExportData.bExportColliders)
 		NameParts.Add(TEXT("colliders"));
 	if (ExportData.bExportLODs)
 		NameParts.Add(TEXT("lods"));
 	if (ExportData.bExportSockets)
 		NameParts.Add(TEXT("sockets"));
-	if (ExportData.bPreferNaniteFallbackMesh)
-		NameParts.Add(TEXT("nanite_fallback"));
 	if (ExportData.bExportMaterialParameters)
 		NameParts.Add(TEXT("material_params"));
 	if (!ExportData.bExportMainGeometry)
@@ -4457,8 +4455,8 @@ FString FUnrealMeshTranslator::MakeUniqueExportName(const FUnrealMeshExportData&
 	if(ExportData.bExportSockets)
 		LabelBuilder.Append(TEXT("_sockets"));
 
-	if(ExportData.bPreferNaniteFallbackMesh)
-		LabelBuilder.Append(TEXT("_nanite"));
+	LabelBuilder.Append(MeshSourceToString(ExportData.MainMeshSource));
+	LabelBuilder.Append(MeshSourceToString(ExportData.LODMeshSource));
 
 	if(ExportData.bExportMaterialParameters)
 		LabelBuilder.Append(TEXT("_materialparams"));
@@ -4614,7 +4612,7 @@ bool FUnrealMeshTranslator::CreateMergeNode(
 	return true;
 }
 
-FString FUnrealMeshTranslator::MakeMeshSourceStr(EHoudiniMeshSource Source)
+FString MeshSourceToString(EHoudiniMeshSource Source)
 {
 	FString SourceString = TEXT("");
 	switch(Source)
@@ -4637,7 +4635,7 @@ FString FUnrealMeshTranslator::MakeMeshSourceStr(EHoudiniMeshSource Source)
 
 FString FUnrealMeshTranslator::MakeLODName(int LODIndex, EHoudiniMeshSource Source)
 {
-	FString SourceString = MakeMeshSourceStr(Source);
+	FString SourceString = MeshSourceToString(Source);
 	FString Result = FString::Printf(TEXT("lod%d_%s"), LODIndex, *SourceString);
 	return Result;
 }
@@ -4713,16 +4711,53 @@ bool FUnrealMeshTranslator::GetOrConstructSockets(
 	return bSuccess;
 }
 
-FUnrealMeshExportData::FUnrealMeshExportData(const UObject* Object, const FHoudiniInputObjectSettings& ExportOptions, bool bInCanDoDelete)
+FUnrealMeshExportData::FUnrealMeshExportData(
+	const UStaticMesh* StaticMesh, 
+	const UObject* Object, 
+	const FHoudiniInputObjectSettings& ExportOptions, 
+	bool bInCanDoDelete)
 {
 	bCanDelete = bInCanDoDelete;
 	bExportMainGeometry = ExportOptions.bExportMainGeometry;
 	bExportLODs = ExportOptions.bExportLODs;
 	bExportSockets = ExportOptions.bExportSockets;
 	bExportColliders = ExportOptions.bExportColliders;
-	bPreferNaniteFallbackMesh = ExportOptions.bPreferNaniteFallbackMesh;
 	bExportMaterialParameters = ExportOptions.bExportMaterialParameters;
-	bUseMeshDescription = ExportOptions.bUseMeshDescription;
+
+	// Determine source for the main mesh.
+	if (ExportOptions.bPreferNaniteFallbackMesh)
+	{
+		if (StaticMesh->GetMeshDescription(0))
+			MainMeshSource = EHoudiniMeshSource::MeshDescription;
+		else
+			MainMeshSource = EHoudiniMeshSource::LODResource;
+	}
+	else
+	{
+		if (StaticMesh->GetHiResMeshDescription() != nullptr)
+		{
+			MainMeshSource = EHoudiniMeshSource::HiResMeshDescription;
+		}
+		else
+		{
+			if (StaticMesh->GetMeshDescription(0))
+				MainMeshSource = EHoudiniMeshSource::MeshDescription;
+			else
+				MainMeshSource = EHoudiniMeshSource::LODResource;
+		}
+	}
+
+	// Determine the source for LODS. Ideally, use MeshDesciption, but if not present use LOD Resources
+	LODMeshSource = EHoudiniMeshSource::MeshDescription;
+
+	for (int LOD = 0; LOD < StaticMesh->GetNumLODs(); LOD++)
+	{
+		if (StaticMesh->GetMeshDescription(LOD) == nullptr)
+		{
+			LODMeshSource = EHoudiniMeshSource::LODResource;
+			break;
+		}
+	}
 
 	bool bCreated = false;
 	FUnrealObjectInputIdentifier TopLevelIdentifier = FUnrealObjectInputIdentifier(Object, EUnrealObjectInputNodeType::Container);
@@ -4769,13 +4804,14 @@ HAPI_NodeId GetHapiNodeId(FUnrealObjectInputHandle Handle)
 bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshComponent(
 	FUnrealObjectInputHandle& OutHandle,
 	const FUnrealObjectInputHandle& StaticMeshHandle,
+	const UStaticMesh* Mesh,
 	const UStaticMeshComponent* StaticMeshComponent,
 	const FHoudiniInputObjectSettings& ExportOptions,
 	const bool bInputNodesCanBeDeleted)
 {
 	FUnrealObjectInputHandle ParentHandle;
 
-	FUnrealMeshExportData SMCExportData(StaticMeshComponent, ExportOptions, bInputNodesCanBeDeleted);
+	FUnrealMeshExportData SMCExportData(Mesh, StaticMeshComponent, ExportOptions, bInputNodesCanBeDeleted);
 
 	FString MeshLabel = MakeUniqueExportName(SMCExportData);
 
@@ -4801,62 +4837,6 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshComponent(
 	bSuccess = FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, NodeId, OutHandle, &References);
 
 	return bSuccess;
-}
-
-EHoudiniMeshSource FUnrealMeshTranslator::DetermineMeshSource(const FUnrealMeshExportData& ExportData, const UStaticMesh* StaticMesh)
-{
-	if (!ExportData.bUseMeshDescription)
-		return EHoudiniMeshSource::LODResource;
-
-	bool bAllMeshDescriptionValid = true;
-	for (int LODIndex = 0; LODIndex < StaticMesh->GetNumLODs(); LODIndex++)
-	{
-		if (StaticMesh->GetMeshDescription(LODIndex) == nullptr)
-		{
-			bAllMeshDescriptionValid = false;
-			break;
-		}
-	}
-
-	// If any LOD is missing a mesh description, use the LOD Resources instead.
-	// Missing Mesh Descriptions can happen for automatically generated LODs.
-	// But we should make the LODResource and Mesh Description export data the same, then we can mix and match.
-
-	if(!bAllMeshDescriptionValid)
-		return EHoudiniMeshSource::LODResource;
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-	if (StaticMesh->IsNaniteEnabled())
-#else
-	if (StaticMesh->NaniteSettings.bEnabled)
-#endif
-	{
-		if (ExportData.bPreferNaniteFallbackMesh)
-		{
-			if (StaticMesh->GetRenderData()->LODResources.Num())
-			{
-				return EHoudiniMeshSource::LODResource;
-			}
-			else 
-			{
-				return EHoudiniMeshSource::MeshDescription;
-			}
-		}
-		else
-		{
-			if (StaticMesh->GetHiResMeshDescription() != nullptr)
-			{
-				return EHoudiniMeshSource::HiResMeshDescription;
-			}
-			else
-			{
-				return EHoudiniMeshSource::MeshDescription;
-			}
-		}
-	}
-	else
-	{
-		return EHoudiniMeshSource::MeshDescription;
-	}
 }
 
 bool FUnrealMeshTranslator::GetOrConstructSplineMeshRenderNode(

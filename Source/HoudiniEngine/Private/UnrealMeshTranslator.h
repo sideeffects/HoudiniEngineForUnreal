@@ -69,10 +69,24 @@ HAPI_NodeId GetHapiNodeId(FUnrealObjectInputIdentifier Identifier);
 TArray<HAPI_NodeId> GetHapiNodeIds(const TArray<FUnrealObjectInputHandle>& Handles);
 HAPI_NodeId GetHapiNodeId(FUnrealObjectInputHandle Handle);
 
+
+enum HOUDINIENGINE_API EHoudiniMeshSource
+{
+	MeshDescription,
+	LODResource,
+	HiResMeshDescription
+};
+
+FString MeshSourceToString(EHoudiniMeshSource Source);
+
 struct HOUDINIENGINE_API FUnrealMeshExportData
 {
 public:	
-	FUnrealMeshExportData(const UObject* Parent, const FHoudiniInputObjectSettings& ExportOptions, bool bCanDelete);
+	FUnrealMeshExportData(
+		const UStaticMesh* StaticMesh, 
+		const UObject* Parent,  // Could be a static mesh component or the static mesh
+		const FHoudiniInputObjectSettings& ExportOptions, 
+		bool bCanDelete);
 
 	FUnrealObjectInputHandle ConstructionSubnetHandle;
 	HAPI_NodeId ConstructionSubnetNodeId = INDEX_NONE;
@@ -81,16 +95,9 @@ public:
 	bool bExportLODs = false;
 	bool bExportSockets = false;
 	bool bExportColliders = false;
-	bool bPreferNaniteFallbackMesh = false;
 	bool bExportMaterialParameters = false;
-	bool bUseMeshDescription = false;
-};
-
-enum HOUDINIENGINE_API EHoudiniMeshSource
-{
-	MeshDescription,
-	LODResource,
-	HiResMeshDescription
+	EHoudiniMeshSource MainMeshSource;
+	EHoudiniMeshSource LODMeshSource;
 };
 
 struct HOUDINIENGINE_API FUnrealMeshTranslator
@@ -157,6 +164,7 @@ public:
 	static bool CreateInputNodeForStaticMeshComponent(
 		FUnrealObjectInputHandle& OutHandle,
 		const FUnrealObjectInputHandle& StaticMeshHandle,
+		const UStaticMesh* Mesh,
 		const UStaticMeshComponent* StaticMeshComponent,
 		const FHoudiniInputObjectSettings& ExportOptions,
 		const bool bInputNodesCanBeDeleted);
@@ -298,8 +306,7 @@ private:
 	static bool GetOrCreateStaticMeshLODGeometries(
 		FUnrealObjectInputHandle& Handle,
 		FUnrealMeshExportData& ExportData,
-		const UStaticMesh* StaticMesh,
-		EHoudiniMeshSource MeshSource);
+		const UStaticMesh* StaticMesh);
 
 	static bool GetOrConstructStaticMeshGeometryNode(
 		FUnrealObjectInputHandle& Geometry,
@@ -399,9 +406,4 @@ private:
 
 	static FString MakeLODName(int LODIndex, EHoudiniMeshSource Source);
 
-	static FString MakeMeshSourceStr(EHoudiniMeshSource Source);
-
-	static EHoudiniMeshSource DetermineMeshSource(
-		const FUnrealMeshExportData& ExportData,
-		const UStaticMesh* StaticMesh);
 };
