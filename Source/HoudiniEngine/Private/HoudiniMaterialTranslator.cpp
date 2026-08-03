@@ -2324,6 +2324,17 @@ FHoudiniMaterialTranslator::CreateMaterialComponentEmissive(
 	if (!IsValid(Material))
 		return false;
 
+	int32 EmitEnable = 1;
+	if (FHoudiniApi::GetParmIntValue(
+		FHoudiniEngine::Get().GetSession(),
+		InMaterialInfo.nodeId,
+		HAPI_UNREAL_PARAM_VALUE_EMISSIVE_ENABLED,
+		0,
+		&EmitEnable) == HAPI_RESULT_SUCCESS && EmitEnable == 0)
+	{
+		return false;
+	}
+
 	// Attempt to look up previously created expressions.
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	UMaterialEditorOnlyData* MaterialEditorOnly = Material->GetEditorOnlyData();

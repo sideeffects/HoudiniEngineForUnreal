@@ -509,6 +509,7 @@
 
 // Materials Emissive.
 #define HAPI_UNREAL_PARAM_VALUE_EMISSIVE				"emitcolor"
+#define HAPI_UNREAL_PARAM_VALUE_EMISSIVE_ENABLED		"emit_enable"
 #define HAPI_UNREAL_PARAM_VALUE_EMISSIVE_INTENSITY		"emitint"
 #define HAPI_UNREAL_PARAM_MAP_EMISSIVE					"emitcolor_texture"
 #define HAPI_UNREAL_PARAM_MAP_EMISSIVE_ENABLED			"emitcolor_useTexture"
