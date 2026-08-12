@@ -2440,21 +2440,25 @@ FOutputActorOwner::CreateOutputActor(UWorld* InWorld, UHoudiniPDGAssetLink* InAs
 		FHoudiniEngineRuntimeUtils::AddOrSetAsInstanceComponent(RootComponent);
 		Actor->SetRootComponent(RootComponent);
 		RootComponent->OnComponentCreated();
-		RootComponent->RegisterComponent();
 	}
 	
 	RootComponent->SetVisibility(true);
 
-	// If we have a parent actor, set mobility to Movable (or it won't work!)
-	if (InParentActor)
-		RootComponent->SetMobility(EComponentMobility::Movable);
-	else
-		RootComponent->SetMobility(EComponentMobility::Static);
+	// Match the parent root's mobility so that PDG output actors can be attached without
+	// forcing static output hierarchies to become movable.
+	const USceneComponent* ParentRootComponent = IsValid(InParentActor) ? InParentActor->GetRootComponent() : nullptr;
+	const EComponentMobility::Type RootMobility = IsValid(ParentRootComponent)
+		? static_cast<EComponentMobility::Type>(ParentRootComponent->Mobility)
+		: EComponentMobility::Static;
+	RootComponent->SetMobility(RootMobility);
 
 	const FVector ActorSpawnLocation = InParentActor ? InParentActor->GetActorLocation() : FVector::ZeroVector;
 	const FRotator ActorSpawnRotator = InParentActor ? InParentActor->GetActorRotation() : FRotator::ZeroRotator;
+	// Static and stationary components may only be moved before they are registered.
 	Actor->SetActorLocation(ActorSpawnLocation);
 	Actor->SetActorRotation(ActorSpawnRotator);
+	if (!RootComponent->IsRegistered())
+		RootComponent->RegisterComponent();
 
 #if WITH_EDITOR
 	if ((InParentActor && IsValid(InParentActor)) && InParentActor->GetLevel() == LevelToSpawnIn)

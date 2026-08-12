@@ -504,6 +504,16 @@ FHoudiniPDGTranslator::CreateAllResultObjectsFromPDGOutputs(
 				}
 			}
 		}
+
+		// New scene components default to Movable. Match the PDG work-item output actor's
+		// root mobility so that a static output parent keeps its complete output hierarchy static.
+		TArray<USceneComponent*> AttachedComponents;
+		ParentComponent->GetChildrenComponents(true, AttachedComponents);
+		for (USceneComponent* AttachedComponent : AttachedComponents)
+		{
+			if (IsValid(AttachedComponent))
+				AttachedComponent->SetMobility(ParentComponent->Mobility);
+		}
 	}
 
 	/*
