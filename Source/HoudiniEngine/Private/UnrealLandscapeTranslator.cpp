@@ -825,8 +825,13 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 	HAPI_NodeId& InputNodeId,
 	const FString& InputNodeName,
 	FUnrealObjectInputHandle& OutHandle,
+	HAPI_NodeId& OutPreviousInputNodeId,
+	HAPI_NodeId& OutPreviousInputObjectNodeId,
 	const bool& bInputNodesCanBeDeleted)
 {
+	OutPreviousInputNodeId = -1;
+	OutPreviousInputObjectNodeId = -1;
+
 	FString FinalInputNodeName = InputNodeName;
 	EHoudiniLandscapeExportType ExportType = InInput->GetLandscapeExportType();
 
@@ -896,28 +901,13 @@ FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
 
 		ParentNodeId = GeoObjNodeId;
 
-		// Delete the previous nodes, if valid
+		// Keep the previous nodes alive until the replacement is connected to the landscape reference node.
+		// Otherwise HAPI can reuse a deleted node id for the replacement before pending cleanup of the
+		// previous raw node id has completed, which would delete the replacement.
 		if (InputNodeId >= 0 && FHoudiniEngineUtils::IsHoudiniNodeValid(InputNodeId))
 		{
-			// Get the parent OBJ node ID before deleting!
-			HAPI_NodeId PreviousInputOBJNode = FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
-
-			if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
-				FHoudiniEngine::Get().GetSession(), InputNodeId))
-			{
-				HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input node for %s."), *FinalInputNodeName);
-			}
-
-			InputNodeId = -1;
-
-			if (PreviousInputOBJNode >= 0)
-			{
-				if (HAPI_RESULT_SUCCESS != FHoudiniApi::DeleteNode(
-					FHoudiniEngine::Get().GetSession(), PreviousInputOBJNode))
-				{
-					HOUDINI_LOG_WARNING(TEXT("Failed to cleanup the previous input OBJ node for %s."), *FinalInputNodeName);
-				}
-			}
+			OutPreviousInputNodeId = InputNodeId;
+			OutPreviousInputObjectNodeId = FHoudiniEngineUtils::HapiGetParentNodeId(InputNodeId);
 		}
 
 		switch (ExportType)

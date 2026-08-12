@@ -27,9 +27,12 @@
 #include "HoudiniEditorTestLandscapes.h"
 
 #include "HoudiniCookable.h"
+#include "HoudiniInput.h"
+#include "HoudiniInputObject.h"
 #include "HoudiniParameterFloat.h"
 #include "HoudiniParameterInt.h"
 #include "HoudiniParameterToggle.h"
+#include "UnrealObjectInputUtils.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Chaos/HeightField.h"
@@ -801,5 +804,85 @@ bool FHoudiniEditorTestLandscapes_ModifyExisting::RunTest(const FString& Paramet
 #endif
 	return true;
 }
-#endif
 
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestLandscapes_InputRecook, "Houdini.UnitTests.Landscapes.InputRecook",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestLandscapes_InputRecook::RunTest(const FString& Parameters)
+{
+#if !DISABLE_LANDSCAPE_RELATED_TEST
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(
+		this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	FString MapName = TEXT("/Game/TestObjects/Landscapes/Test_ModifyLandscape");
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(this, MapName));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+	{
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		UHoudiniInput* LandscapeInput = nullptr;
+		UHoudiniInputLandscape* LandscapeInputObject = nullptr;
+		for (UHoudiniInput* Input : Context->HC->GetInputs())
+		{
+			const TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = Input->GetHoudiniInputObjectArray(Input->GetInputType());
+			if (!InputObjects)
+				continue;
+
+			for (UHoudiniInputObject* InputObject : *InputObjects)
+			{
+				LandscapeInputObject = Cast<UHoudiniInputLandscape>(InputObject);
+				if (LandscapeInputObject)
+				{
+					LandscapeInput = Input;
+					break;
+				}
+			}
+
+			if (LandscapeInputObject)
+				break;
+		}
+
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(LandscapeInput, return true);
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(LandscapeInputObject, return true);
+
+		// Force the landscape input through the replacement-node path before recooking.
+		LandscapeInputObject->MarkChanged(true);
+		LandscapeInput->MarkChanged(true);
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context]()
+	{
+		UHoudiniInputLandscape* LandscapeInputObject = nullptr;
+		for (UHoudiniInput* Input : Context->HC->GetInputs())
+		{
+			const TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = Input->GetHoudiniInputObjectArray(Input->GetInputType());
+			if (!InputObjects)
+				continue;
+
+			for (UHoudiniInputObject* InputObject : *InputObjects)
+			{
+				LandscapeInputObject = Cast<UHoudiniInputLandscape>(InputObject);
+				if (LandscapeInputObject)
+					break;
+			}
+
+			if (LandscapeInputObject)
+				break;
+		}
+
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(LandscapeInputObject, return true);
+		HOUDINI_TEST_EQUAL(FUnrealObjectInputUtils::AreReferencedHAPINodesValid(LandscapeInputObject->InputNodeHandle), true);
+		return true;
+	}));
+#endif
+	return true;
+}
+#endif

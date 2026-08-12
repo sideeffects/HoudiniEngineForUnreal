@@ -4754,9 +4754,12 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 	FString LandscapeName = InObjNodeName + TEXT("_") + Landscape->GetActorLabel();
 	FUnrealObjectInputHandle InputNodeHandle;
 	HAPI_NodeId InputNodeId = InObject->GetInputNodeId();
+	HAPI_NodeId PreviousInputNodeId = -1;
+	HAPI_NodeId PreviousInputObjectNodeId = -1;
 
 	if (!FUnrealLandscapeTranslator::CreateInputNodeForLandscapeObject(
-			Landscape, InInput, InputNodeId, LandscapeName, InputNodeHandle, bInputNodesCanBeDeleted))
+			Landscape, InInput, InputNodeId, LandscapeName, InputNodeHandle,
+			PreviousInputNodeId, PreviousInputObjectNodeId, bInputNodesCanBeDeleted))
 		return false;
 	
 	FTransform Transform = InObject->GetHoudiniObjectTransform();
@@ -4774,9 +4777,20 @@ FHoudiniInputTranslator::HapiCreateInputNodeForLandscape(
 		FUnrealObjectInputIdentifier LandscapeInputNodeId(Landscape, Options, EUnrealObjectInputNodeType::LeafWithReferences);
 
 		Handles.Add(InputNodeHandle);
-		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(LandscapeInputNodeId, Handles, InObject->InputNodeHandle, true, bInputNodesCanBeDeleted);
+		if (!FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(
+			LandscapeInputNodeId, Handles, InObject->InputNodeHandle, true, bInputNodesCanBeDeleted))
+			return false;
+
 		if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), Transform))
 			return false;
+
+		if (PreviousInputNodeId >= 0 && FHoudiniEngineUtils::IsHoudiniNodeValid(PreviousInputNodeId))
+		{
+			FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputNodeId);
+
+			if (PreviousInputObjectNodeId >= 0 && FHoudiniEngineUtils::IsHoudiniNodeValid(PreviousInputObjectNodeId))
+				FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), PreviousInputObjectNodeId);
+		}
 
 		OutCreatedNodeIds.Add(InObject->GetInputObjectNodeId());
 		OutHandles.Add(InObject->InputNodeHandle);

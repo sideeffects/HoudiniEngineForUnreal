@@ -99,6 +99,8 @@ struct HOUDINIENGINE_API FUnrealLandscapeTranslator
 			HAPI_NodeId& InputNodeId,
 			const FString& InputNodeName,
 			FUnrealObjectInputHandle& OutHandle,
+			HAPI_NodeId& OutPreviousInputNodeId,
+			HAPI_NodeId& OutPreviousInputObjectNodeId,
 			const bool& bInputNodesCanBeDeleted);
 
 		static void ApplyAttributesToHeightfieldNode(
