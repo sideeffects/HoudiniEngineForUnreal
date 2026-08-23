@@ -295,6 +295,7 @@ public:
 	void MarkDataUploadNeeded(const bool& bInDataUploadNeeded) 
 		{ bDataUploadNeeded = bInDataUploadNeeded; };
 	void MarkAllInputObjectsChanged(const bool& bInChanged);
+	void ForceRecook();
 
 	void SetSOPInput(const int32& InInputIndex);
 	void SetCOPInput(const int32& InInputIndex);

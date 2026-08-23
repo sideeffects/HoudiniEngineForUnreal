@@ -1163,6 +1163,16 @@ UHoudiniInput::MarkAllInputObjectsChanged(const bool& bInChanged)
 	}
 }
 
+void
+UHoudiniInput::ForceRecook()
+{
+	// Release the reference-counted input handles before marking the input for upload.
+	// Static mesh inputs otherwise reuse their cached manager nodes and do not marshal their data again.
+	InvalidateData();
+	MarkChanged(true);
+	MarkAllInputObjectsChanged(true);
+}
+
 UHoudiniInput * UHoudiniInput::DuplicateAndCopyState(UObject * DestOuter, bool bInCanDeleteHoudiniNodes)
 {
 	UHoudiniInput* NewInput = Cast<UHoudiniInput>(StaticDuplicateObject(this, DestOuter));

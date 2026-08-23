@@ -494,10 +494,8 @@ FHoudiniInputDetails::AddInputTypeComboBox(
 					if (!IsValidWeakPointer(CurInput))
 						continue;
 
-					// Force the input to reupload its data
-					CurInput->MarkChanged(true);
-					//CurInput->MarkDataUploadNeeded(true);
-					CurInput->MarkAllInputObjectsChanged(true);
+					// Release cached input nodes so this recook uploads the input data again.
+					CurInput->ForceRecook();
 				}
 
 				return FReply::Handled();
