@@ -43,9 +43,29 @@ class UHoudiniOutput;
 class UHoudiniParameter;
 class UHoudiniInput;
 class UTOPNode;
+class UHoudiniAsset;
 class UHoudiniAssetComponent;
 class UHoudiniCookable;
 class AHoudiniAssetActor;
+
+/** Information about the HDA associated with an asset wrapper. */
+USTRUCT(BlueprintType, Category="Houdini|Public API")
+struct HOUDINIENGINEEDITOR_API FHoudiniPublicAPIHoudiniAssetInfo
+{
+	GENERATED_BODY()
+
+	// The HDA asset name. Empty when bIsValid is false.
+	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
+	FString HoudiniAssetName;
+
+	// The HDA asset associated with the wrapper. Null when bIsValid is false.
+	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
+	TObjectPtr<UHoudiniAsset> HoudiniAsset = nullptr;
+
+	// True if the wrapper has a valid associated HDA asset.
+	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
+	bool bIsValid = false;
+};
 
 /**
  * The base class of a struct for Houdini Ramp points.
@@ -376,6 +396,13 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")	
 	UHoudiniCookable* GetHoudiniCookable() const;
+
+	/**
+	 * Gets information about the HDA associated with this wrapper.
+	 * @return The HDA name, asset reference, and validity state.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	FHoudiniPublicAPIHoudiniAssetInfo GetHoudiniAssetInfo() const;
 
 	/**
 	 * Get the Temp Folder fallback as configured on asset details panel

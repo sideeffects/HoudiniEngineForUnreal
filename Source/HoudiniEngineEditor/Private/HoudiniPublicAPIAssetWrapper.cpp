@@ -27,6 +27,7 @@
 
 #include "HoudiniPublicAPIAssetWrapper.h"
 
+#include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniCookable.h"
@@ -922,6 +923,22 @@ UHoudiniCookable*
 UHoudiniPublicAPIAssetWrapper::GetHoudiniCookable_Implementation() const
 {
 	return CachedHoudiniCookable.Get();
+}
+
+FHoudiniPublicAPIHoudiniAssetInfo
+UHoudiniPublicAPIAssetWrapper::GetHoudiniAssetInfo_Implementation() const
+{
+	FHoudiniPublicAPIHoudiniAssetInfo Result;
+	UHoudiniCookable* const HoudiniCookable = GetHoudiniCookable();
+	if (!IsValid(HoudiniCookable))
+		return Result;
+
+	Result.HoudiniAsset = HoudiniCookable->GetHoudiniAsset();
+	Result.bIsValid = IsValid(Result.HoudiniAsset);
+	if (Result.bIsValid)
+		Result.HoudiniAssetName = Result.HoudiniAsset->GetName();
+
+	return Result;
 }
 
 bool
