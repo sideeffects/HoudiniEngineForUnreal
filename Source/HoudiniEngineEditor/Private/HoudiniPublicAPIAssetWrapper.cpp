@@ -1030,12 +1030,6 @@ UHoudiniPublicAPIAssetWrapper::WaitForCookCompletion(
 		return false;
 	}
 
-	if (InHC->IsLocked())
-	{
-		SetErrorMessage(FString::Printf(TEXT("Could not %s the wrapped asset because it is frozen."), *InOperationVerb));
-		return false;
-	}
-
 	FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
 	if (!HEM)
 	{

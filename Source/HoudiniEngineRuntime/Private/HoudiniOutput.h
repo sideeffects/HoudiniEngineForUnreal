@@ -722,6 +722,10 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		UPROPERTY()
 		TObjectPtr<UObject> OutputObject = nullptr;
 
+		// Materials assigned to Dynamic Mesh output components. Static mesh assets store their own material slots.
+		UPROPERTY()
+		TArray<TObjectPtr<UMaterialInterface>> OutputMaterials;
+
 		// The main output component
 		UPROPERTY()
 		TArray<TObjectPtr<UObject>> OutputComponents;
