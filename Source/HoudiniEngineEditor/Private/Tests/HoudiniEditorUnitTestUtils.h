@@ -418,7 +418,7 @@ struct FHoudiniTestContext
 	//  Check if the context is valid. This will be false if, for example, the HDA failed to load.
 	bool IsValid();
 
-	// Bakes the top network. Synchronous, returns the baked actors.
+	// Bakes the top network. Blocking, returns the baked actors.
 	TArray<FHoudiniEngineBakedActor> BakeSelectedTopNetwork();
 
 	double MaxTime = 30.0f;						// Max time (seconds) this test can run.

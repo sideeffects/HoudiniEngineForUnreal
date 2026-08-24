@@ -28,6 +28,10 @@
 #include "HoudiniPublicAPI.h"
 
 #include "HoudiniAsset.h"
+#include "HoudiniCookable.h"
+#include "HoudiniEngine.h"
+#include "HoudiniEngineManager.h"
+#include "HoudiniEngineRuntime.h"
 #include "HoudiniPreset.h"
 #include "HoudiniEngineEditorUtils.h"
 #include "HoudiniPublicAPIAssetWrapper.h"
@@ -36,6 +40,105 @@
 
 #include "Engine/World.h"
 #include "Engine/Level.h"
+#include "HAL/PlatformProcess.h"
+#include "HAL/PlatformTime.h"
+#include "Misc/ScopedSlowTask.h"
+
+namespace
+{
+bool WaitForInstantiation(UHoudiniPublicAPIAssetWrapper* Wrapper, FString& OutErrorMessage)
+{
+	if (!IsValid(Wrapper))
+	{
+		OutErrorMessage = TEXT("Could not wait for an invalid asset wrapper.");
+		return false;
+	}
+
+	UHoudiniCookable* const Cookable = Wrapper->GetHoudiniCookable();
+	if (!IsValid(Cookable))
+	{
+		OutErrorMessage = TEXT("Could not find the cookable to instantiate.");
+		return false;
+	}
+
+	if (!FHoudiniEngine::Get().IsCookingEnabled())
+	{
+		OutErrorMessage = TEXT("Could not instantiate the asset because Houdini Engine cooking is disabled.");
+		return false;
+	}
+
+	FHoudiniEngineManager* const HoudiniEngineManager = FHoudiniEngine::Get().GetHoudiniEngineManager();
+	if (!HoudiniEngineManager)
+	{
+		OutErrorMessage = TEXT("Could not find a valid Houdini Engine manager to instantiate the asset.");
+		return false;
+	}
+
+	const double TimeoutSeconds = 60.0;
+	const double StartTime = FPlatformTime::Seconds();
+	const FString HoudiniAssetName = Cookable->GetHoudiniAssetName();
+	const FString CookableName = Cookable->GetDisplayName();
+	FScopedSlowTask SlowTask(
+		0.0f,
+		FText::FromString(FString::Printf(
+			TEXT("Instantiating HDA '%s' on cookable '%s'..."),
+			*HoudiniAssetName,
+			*CookableName)));
+	SlowTask.MakeDialog(/* bShowCancelButton= */ true);
+
+	bool bInstantiationStarted = false;
+	while (FPlatformTime::Seconds() - StartTime < TimeoutSeconds)
+	{
+		const EHoudiniAssetState PreviousState = Cookable->GetCurrentState();
+		if (PreviousState == EHoudiniAssetState::PreCook || PreviousState == EHoudiniAssetState::None)
+			return Cookable->GetNodeId() >= 0;
+
+		if (SlowTask.ShouldCancel())
+		{
+			OutErrorMessage = TEXT("Asset instantiation was cancelled.");
+			return false;
+		}
+
+		if (PreviousState == EHoudiniAssetState::Dormant
+			|| (PreviousState == EHoudiniAssetState::NeedInstantiation && bInstantiationStarted))
+		{
+			OutErrorMessage = TEXT("The asset could not be instantiated.");
+			return false;
+		}
+
+		if (Cookable->ShouldTryToStartFirstSession())
+			HoudiniEngineManager->AutoStartFirstSessionIfNeeded();
+
+		HoudiniEngineManager->ProcessCookable(Cookable);
+
+		const EHoudiniAssetState CurrentState = Cookable->GetCurrentState();
+		if (CurrentState == EHoudiniAssetState::Instantiating)
+			bInstantiationStarted = true;
+
+		if (CurrentState == EHoudiniAssetState::PreCook || CurrentState == EHoudiniAssetState::None)
+			return Cookable->GetNodeId() >= 0;
+
+		if (CurrentState == EHoudiniAssetState::Dormant
+			|| (CurrentState == EHoudiniAssetState::NeedInstantiation && bInstantiationStarted))
+		{
+			OutErrorMessage = TEXT("The asset could not be instantiated.");
+			return false;
+		}
+
+		if (CurrentState == PreviousState && CurrentState != EHoudiniAssetState::Instantiating)
+		{
+			OutErrorMessage = TEXT("The asset could not make progress while instantiating.");
+			return false;
+		}
+
+		SlowTask.EnterProgressFrame(0.0f);
+		FPlatformProcess::Sleep(0.01f);
+	}
+
+	OutErrorMessage = TEXT("Asset instantiation timed out.");
+	return false;
+}
+}
 
 UHoudiniPublicAPI::UHoudiniPublicAPI()
 {
@@ -68,6 +171,60 @@ UHoudiniPublicAPI::RestartSession_Implementation()
 		FHoudiniEngineCommands::RestartSession();
 	else
 		FHoudiniEngineCommands::CreateSession();
+}
+
+UHoudiniPublicAPIAssetWrapper*
+UHoudiniPublicAPI::Instantiate_Implementation(
+	UHoudiniAsset* InHoudiniAsset,
+	EHoudiniPublicAPIInstantiationType InInstantiationType,
+	FHoudiniPublicAPISettings InSettings)
+{
+	UHoudiniPublicAPIAssetWrapper* Wrapper = nullptr;
+	switch (InInstantiationType)
+	{
+		case EHoudiniPublicAPIInstantiationType::HoudiniAssetComponent:
+			Wrapper = InstantiateAsset(
+				InHoudiniAsset,
+				InSettings.Transform,
+				InSettings.WorldContextObject,
+				InSettings.SpawnInLevelOverride,
+				InSettings.bEnableAutoCook,
+				InSettings.bEnableAutoBake,
+				InSettings.BakeDirectoryPath,
+				InSettings.BakeMethod,
+				InSettings.bRemoveOutputAfterBake,
+				InSettings.bRecenterBakedActors,
+				InSettings.bReplacePreviousBake);
+			break;
+
+		case EHoudiniPublicAPIInstantiationType::Cookable:
+			Wrapper = InstantiateAssetAsCookable(
+				InHoudiniAsset,
+				InSettings.bEnableAutoCook,
+				InSettings.bEnableAutoBake,
+				InSettings.BakeDirectoryPath,
+				InSettings.BakeMethod,
+				InSettings.bRemoveOutputAfterBake,
+				InSettings.bRecenterBakedActors,
+				InSettings.bReplacePreviousBake);
+			break;
+
+		default:
+			SetErrorMessage(TEXT("InInstantiationType is invalid."));
+			return nullptr;
+	}
+
+	if (!IsValid(Wrapper))
+		return nullptr;
+
+	FString ErrorMessage;
+	if (!WaitForInstantiation(Wrapper, ErrorMessage))
+	{
+		SetErrorMessage(ErrorMessage);
+		return nullptr;
+	}
+
+	return Wrapper;
 }
 
 UHoudiniPublicAPIAssetWrapper*
@@ -116,6 +273,75 @@ UHoudiniPublicAPI::InstantiateAsset_Implementation(
 			return nullptr;
 		}
 	}
+
+	return Wrapper;
+}
+
+UHoudiniPublicAPIAssetWrapper*
+UHoudiniPublicAPI::InstantiateAssetAsCookable(
+	UHoudiniAsset* InHoudiniAsset,
+	const bool bInEnableAutoCook,
+	const bool bInEnableAutoBake,
+	const FString& InBakeDirectoryPath,
+	const EHoudiniEngineBakeOption InBakeMethod,
+	const bool bInRemoveOutputAfterBake,
+	const bool bInRecenterBakedActors,
+	const bool bInReplacePreviousBake)
+{
+	if (!IsValid(InHoudiniAsset) || !(InHoudiniAsset->AssetImportData))
+	{
+		SetErrorMessage(TEXT("InHoudiniAsset is invalid or does not have AssetImportData."));
+		return nullptr;
+	}
+
+	UHoudiniPublicAPIAssetWrapper* Wrapper = UHoudiniPublicAPIAssetWrapper::CreateEmptyWrapper(this);
+	if (!IsValid(Wrapper))
+	{
+		SetErrorMessage(TEXT("Could not create a UHoudiniPublicAPIAssetWrapper."));
+		return nullptr;
+	}
+
+	Wrapper->SetLoggingErrorsEnabled(IsLoggingErrors());
+
+	UHoudiniCookable* Cookable = NewObject<UHoudiniCookable>(Wrapper, NAME_None, RF_Public);
+	if (!IsValid(Cookable))
+	{
+		SetErrorMessage(TEXT("Could not create a UHoudiniCookable."));
+		return nullptr;
+	}
+
+	Cookable->SetHoudiniAssetSupported(true);
+	Cookable->SetParameterSupported(true);
+	Cookable->SetInputSupported(true);
+	Cookable->SetOutputSupported(true);
+	Cookable->SetComponentSupported(false);
+	Cookable->SetPDGSupported(true);
+	Cookable->SetBakingSupported(true);
+	Cookable->SetProxySupported(true);
+	Cookable->SetImageSupported(true);
+	Cookable->GetOutputData()->bCreateSceneComponents = false;
+	Cookable->SetHoudiniAsset(InHoudiniAsset);
+
+	if (!Wrapper->WrapHoudiniAssetObject(Cookable))
+	{
+		FString WrapperError;
+		Wrapper->GetLastErrorMessage(WrapperError);
+		SetErrorMessage(FString::Printf(TEXT("Failed to wrap the cookable: %s."), *WrapperError));
+		return nullptr;
+	}
+
+	Wrapper->SetAutoCookingEnabled(bInEnableAutoCook);
+
+	FDirectoryPath BakeDirectoryPath;
+	BakeDirectoryPath.Path = InBakeDirectoryPath;
+	Wrapper->SetBakeFolder(BakeDirectoryPath);
+	Wrapper->SetBakeMethod(InBakeMethod);
+	Wrapper->SetRemoveOutputAfterBake(bInRemoveOutputAfterBake);
+	Wrapper->SetRecenterBakedActors(bInRecenterBakedActors);
+	Wrapper->SetReplacePreviousBake(bInReplacePreviousBake);
+	Wrapper->SetAutoBakeEnabled(bInEnableAutoBake);
+
+	FHoudiniEngineRuntime::Get().RegisterHoudiniCookable(Cookable);
 
 	return Wrapper;
 }

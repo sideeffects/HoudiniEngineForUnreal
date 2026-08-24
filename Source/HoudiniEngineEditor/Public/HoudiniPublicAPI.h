@@ -42,7 +42,7 @@
 // Increased for major API changes or changes that break backwards compatibility of the API
 #define HOUDINI_PUBLIC_API_VERSION_MINOR 1
 // Increased for patches/revisions that don't change the API in a backwards incompatible manner
-#define HOUDINI_PUBLIC_API_VERSION_PATCH 3
+#define HOUDINI_PUBLIC_API_VERSION_PATCH 4
 
 class ULevel;
 
@@ -64,6 +64,69 @@ enum class EHoudiniPublicAPIRampInterpolationType : uint8
 	BEZIER = 5,
 	BSPLINE = 6,
 	HERMITE = 7
+};
+
+/** The representation in which to instantiate a Houdini asset. */
+UENUM(BlueprintType)
+enum class EHoudiniPublicAPIInstantiationType : uint8
+{
+	HoudiniAssetComponent UMETA(DisplayName="Houdini Asset Component"),
+	Cookable UMETA(DisplayName="Cookable")
+};
+
+/** Determines whether a Public API operation that initiates a cook returns immediately or waits for completion. */
+UENUM(BlueprintType)
+enum class EHoudiniPublicAPICookMode : uint8
+{
+	NonBlocking UMETA(DisplayName="Non-Blocking"),
+	Blocking UMETA(DisplayName="Blocking")
+};
+
+/** Settings used when spawning a Houdini asset or cookable through the Public API. */
+USTRUCT(BlueprintType)
+struct HOUDINIENGINEEDITOR_API FHoudiniPublicAPISettings
+{
+	GENERATED_BODY()
+
+	/** The transform used when spawning a Houdini Asset Component. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Houdini|Public API")
+	FTransform Transform = FTransform::Identity;
+
+	/** The world context used when spawning a Houdini Asset Component. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Houdini|Public API")
+	TObjectPtr<UObject> WorldContextObject = nullptr;
+
+	/** The level used when spawning a Houdini Asset Component. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Houdini|Public API")
+	TObjectPtr<ULevel> SpawnInLevelOverride = nullptr;
+
+	/** If true, automatically cook after creation and after parameter, transform, and input changes. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Houdini|Public API")
+	bool bEnableAutoCook = true;
+
+	/** If true, automatically bake output after cooking. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Houdini|Public API")
+	bool bEnableAutoBake = false;
+
+	/** The directory to bake to when no bake path is specified by output attributes. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Houdini|Public API")
+	FString BakeDirectoryPath;
+
+	/** The bake target. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Houdini|Public API")
+	EHoudiniEngineBakeOption BakeMethod = EHoudiniEngineBakeOption::ToActor;
+
+	/** If true, remove temporary output after baking. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Houdini|Public API")
+	bool bRemoveOutputAfterBake = false;
+
+	/** If true, recenter baked actors to their bounding box center. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Houdini|Public API")
+	bool bRecenterBakedActors = false;
+
+	/** If true, replace the previous bake's output on each bake. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Houdini|Public API")
+	bool bReplacePreviousBake = false;
 };
 
 /**
@@ -105,6 +168,22 @@ public:
 	// Assets
 
 	/**
+	 * Creates an HDA as either a Houdini Asset Component or standalone cookable.
+	 *
+ * When InstantiationType is HoudiniAssetComponent, the settings' transform, world context, and level are used to spawn
+ * an AHoudiniAssetActor. When InstantiationType is Cookable, no actor or scene component is created. This function waits
+	 * for instantiation to complete so that the returned wrapper's parameters and inputs are available. The first cook,
+	 * if enabled, continues asynchronously after this function returns.
+	 *
+	 * @return A wrapper for the instantiated asset object, or nullptr if creation or instantiation fails.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API", Meta=(AutoCreateRefTerm="InSettings"))
+	UHoudiniPublicAPIAssetWrapper* Instantiate(
+		UHoudiniAsset* HoudiniAsset,
+		EHoudiniPublicAPIInstantiationType Type,
+		FHoudiniPublicAPISettings Settings);
+
+	/**
 	 * Instantiates an HDA in the specified world/level. Returns a wrapper for instantiated asset.
 	 *
 	 * Note: the lifecycle / ownership of the UHoudiniPublicAPIAssetWrapper* that is created and returned is not managed
@@ -130,7 +209,7 @@ public:
 	 * @return A wrapper for the instantiated asset, or nullptr if InHoudiniAsset or InInstantiateAt is invalid, or
 	 * the AHoudiniAssetActor could not be spawned. See UHoudiniPublicAPIAssetWrapper.
 	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API", Meta=(AutoCreateRefTerm="InInstantiateAt"))
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API", Meta=(AutoCreateRefTerm="InInstantiateAt",DeprecatedFunction, DeprecationMessage="Use Instantiate instead."))
 	UHoudiniPublicAPIAssetWrapper* InstantiateAsset(
 		UHoudiniAsset* InHoudiniAsset,
 		const FTransform& InInstantiateAt,
@@ -143,7 +222,6 @@ public:
 		const bool bInRemoveOutputAfterBake=false,
 		const bool bInRecenterBakedActors=false,
 		const bool bInReplacePreviousBake=false);
-
 	/**
 	 * Instantiates an HDA in the specified world/level using an existing wrapper.
 	 * @param InWrapper The wrapper to instantiate the HDA with.
@@ -299,4 +377,15 @@ public:
 	 */
 	static EHoudiniRampInterpolationType ToHoudiniRampInterpolationType(const EHoudiniPublicAPIRampInterpolationType InInterpolationType);
 
+private:
+
+	UHoudiniPublicAPIAssetWrapper* InstantiateAssetAsCookable(
+		UHoudiniAsset* InHoudiniAsset,
+		const bool bInEnableAutoCook = true,
+		const bool bInEnableAutoBake = false,
+		const FString& InBakeDirectoryPath = "",
+		const EHoudiniEngineBakeOption InBakeMethod = EHoudiniEngineBakeOption::ToActor,
+		const bool bInRemoveOutputAfterBake = false,
+		const bool bInRecenterBakedActors = false,
+		const bool bInReplacePreviousBake = false);
 };

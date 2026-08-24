@@ -47,6 +47,7 @@ class UHoudiniAsset;
 class UHoudiniAssetComponent;
 class UHoudiniCookable;
 class AHoudiniAssetActor;
+class UMaterialInterface;
 
 /** Information about the HDA associated with an asset wrapper. */
 USTRUCT(BlueprintType, Category="Houdini|Public API")
@@ -65,6 +66,32 @@ struct HOUDINIENGINEEDITOR_API FHoudiniPublicAPIHoudiniAssetInfo
 	// True if the wrapper has a valid associated HDA asset.
 	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
 	bool bIsValid = false;
+};
+
+/** Information about a cooked or baked output object of a wrapped Houdini asset. */
+USTRUCT(BlueprintType, Category="Houdini|Public API")
+struct HOUDINIENGINEEDITOR_API FHoudiniPublicAPIOutputObject
+{
+	GENERATED_BODY()
+
+	/** The index of the output that produced this object. */
+	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
+	int32 OutputIndex = INDEX_NONE;
+
+	/**
+	 * The identifier of this cooked output object within OutputIndex. This is invalid for objects returned by
+	 * GetBakedOutputObjects because baked output data does not retain all of the identifier's fields.
+	 */
+	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
+	FHoudiniPublicAPIOutputObjectIdentifier OutputIdentifier;
+
+	/** The generated or baked output object. */
+	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
+	TObjectPtr<UObject> OutputObject = nullptr;
+
+	/** Material interfaces assigned to this output object, ordered by its material IDs. */
+	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
+	TArray<TObjectPtr<UMaterialInterface>> OutputMaterials;
 };
 
 /**
@@ -284,7 +311,7 @@ struct HOUDINIENGINEEDITOR_API FHoudiniPublicAPIPDGStatus
  *
  * Important: In the current implementation of the plugin, nodes are cooked asynchronously. That means that cooking
  * (including rebuilding the HDA and auto-cooks triggered from, for example, parameter changes) does not happen
- * immediately. Functions in the API, such as Recook() and Rebuild(), do not block until the cook is complete, but
+ * immediately. By default, functions in the API, such as Recook() and Rebuild(), do not block until the cook is complete, but
  * instead immediately return after arranging for the cook to take place. This means that if a cook is triggered
  * (either automatically, via parameter changes, or by calling Recook()) and there is a reliance on data that will only
  * be available after the cook (such as an updated parameter interface, or the output objects of the cook), one of the
@@ -443,26 +470,27 @@ public:
 	bool DeleteInstantiatedAsset();
 
 	/**
-	 * Marks the HDA as needing to be rebuilt in Houdini Engine and immediately returns. The rebuild happens
-	 * asynchronously. If you need to take action after the rebuild and cook completes, one of the wrapper's delegates
-	 * can be used, such as: OnPostCookDelegate or OnPostProcessingDelegate.
+	 * Marks the HDA as needing to be rebuilt in Houdini Engine. The default asynchronous mode returns immediately.
+	 * Blocking mode blocks until the rebuild, cook, and output processing complete, displaying a modal, cancellable
+	 * progress dialog while waiting.
 	 * 
-	 * @returns true If the HDA was successfully marked as needing to be rebuilt.
+	 * @returns true if the HDA was successfully marked as needing to be rebuilt. In synchronous mode, returns true only
+	 * if the rebuild, cook, and output processing complete successfully.
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
-	bool Rebuild();
+	bool Rebuild(EHoudiniPublicAPICookMode CookMode=EHoudiniPublicAPICookMode::NonBlocking);
 
 	// Cooking
 
 	/**
-	 * Marks the HDA as needing to be cooked and immediately returns. The cook happens asynchronously. If you need
-	 * to take action after the cook completes, one of the wrapper's delegates can be used, such as:
-	 * OnPostCookDelegate or OnPostProcessingDelegate.
+	 * Marks the HDA as needing to be cooked. The default asynchronous mode returns immediately. Blocking mode blocks
+	 * until its cook and output processing complete, displaying a modal, cancellable progress dialog while waiting.
 	 * 
-	 * @returns true If the HDA was successfully marked as needing to be cooked.
+	 * @returns true if the HDA was successfully marked as needing to be cooked. In synchronous mode, returns true only
+	 * if the cook and output processing complete successfully.
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API", BlueprintPure = false)
-	bool Recook() const;
+	bool Recook(EHoudiniPublicAPICookMode CookMode=EHoudiniPublicAPICookMode::NonBlocking) const;
 
 	/**
 	 * Enable or disable auto cooking of the asset (on parameter changes, input updates and transform changes, for
@@ -1136,6 +1164,31 @@ public:
 	int32 GetNumOutputs() const;
 
 	/**
+	 * Gets all output object records from the wrapped asset where the main object matches the specified class.
+	 *
+	 * @param InObjectClass If set, only valid objects of this class or a derived class are returned. Leave unset to
+	 * return all output object records, including records without an output object (for example, an output that only
+	 * produces components or actors).
+	 * @param OutOutputObjects The matching output objects and their output indices and identifiers.
+	 * @return true if the wrapped asset is valid. Returns true with an empty array when no output object records match.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool GetOutputObjects(TSubclassOf<UObject> InObjectClass, TArray<FHoudiniPublicAPIOutputObject>& OutOutputObjects) const;
+
+	/**
+	 * Gets all valid baked asset objects from the wrapped asset that match the specified class.
+	 *
+	 * @param InObjectClass If set, only baked objects of this class or a derived class are returned. Leave unset to
+	 * return all valid baked objects.
+	 * @param OutBakedOutputObjects The matching baked output-object records. Their OutputIdentifier is invalid.
+	 * @return true if the wrapped asset is valid. Returns true with an empty array when no baked objects match.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Houdini|Public API")
+	bool GetBakedOutputObjects(
+		TSubclassOf<UObject> InObjectClass,
+		TArray<FHoudiniPublicAPIOutputObject>& OutBakedOutputObjects) const;
+
+	/**
 	 * Gets the output type of the output at index InIndex.
 	 * @param InIndex The output index to get the type for.
 	 * @return the output type of the output at index InIndex.
@@ -1662,6 +1715,12 @@ protected:
 	 */
 	bool GetValidHoudiniCookableWithError(UHoudiniCookable*& OutHC) const;
 
+	/** Drives a cookable until its cook and output processing complete. */
+	bool WaitForCookCompletion(
+		UHoudiniCookable* InHC,
+		const FString& InOperationVerb,
+		TFunctionRef<void()> InStartOperation) const;
+
 	/**
 	 * Helper function for getting a valid output at the specified index. If there is no valid
 	 * UHoudiniOutput at that index (either the index is out of range or the output is null/invalid) an error is set
@@ -1803,6 +1862,10 @@ protected:
 	/** The wrapped UHoudiniCookable (derived from HoudiniAssetObject when calling WrapHoudiniAssetObject()). */
 	UPROPERTY(BlueprintReadOnly, Category="Houdini|Public API")
 	TWeakObjectPtr<UHoudiniCookable> CachedHoudiniCookable;
+
+	/** A cookable created by UHoudiniPublicAPI::InstantiateCookable() and owned by this wrapper. */
+	UPROPERTY(Transient)
+	TObjectPtr<UHoudiniCookable> OwnedHoudiniCookable;
 
 	/**
 	 * Delegate that is broadcast when entering the PreInstantiation state: the HDA's default parameter definitions are

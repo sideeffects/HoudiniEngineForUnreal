@@ -58,10 +58,13 @@
 #include "HoudiniPublicAPIInputTypes.h"
 #include <Selection.h>
 
+#include "Engine/StaticMesh.h"
+#include "HAL/PlatformProcess.h"
 #include "HoudiniParameterTranslator.h"
 #include "Landscape.h"
 #include "LandscapeInfo.h"
 #include "LandscapeStreamingProxy.h"
+#include "Misc/ScopedSlowTask.h"
 
 FHoudiniPublicAPIRampPoint::FHoudiniPublicAPIRampPoint()
 	: Position(0)
@@ -832,6 +835,7 @@ UHoudiniPublicAPIAssetWrapper::ClearHoudiniAssetObject_Implementation()
 	CachedHoudiniAssetActor = nullptr;
 	CachedHoudiniCookable = nullptr;
 	CachedHoudiniAssetComponent = nullptr;
+	OwnedHoudiniCookable = nullptr;
 }
 
 bool
@@ -883,6 +887,8 @@ UHoudiniPublicAPIAssetWrapper::WrapHoudiniAssetObject_Implementation(UObject* In
 		CachedHoudiniCookable = Cast<UHoudiniCookable>(InHoudiniAssetObjectToWrap); 
 		CachedHoudiniAssetActor = Cast<AHoudiniAssetActor>(CachedHoudiniCookable->GetOwner());
 		CachedHoudiniAssetComponent = Cast<UHoudiniAssetComponent>(CachedHoudiniCookable->GetComponent());
+		if (CachedHoudiniCookable->GetOuter() == this)
+			OwnedHoudiniCookable = CachedHoudiniCookable.Get();
 	}
 
 	UHoudiniCookable* const HC = GetHoudiniCookable();
@@ -968,27 +974,163 @@ UHoudiniPublicAPIAssetWrapper::DeleteInstantiatedAsset_Implementation()
 }
 
 bool
-UHoudiniPublicAPIAssetWrapper::Rebuild_Implementation()
+UHoudiniPublicAPIAssetWrapper::Rebuild_Implementation(EHoudiniPublicAPICookMode InCookMode)
 {
 	UHoudiniCookable* HC = nullptr;
 	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	HC->MarkAsNeedRebuild();
+	if (InCookMode == EHoudiniPublicAPICookMode::NonBlocking)
+	{
+		HC->MarkAsNeedRebuild();
+		return true;
+	}
 
-	return true;
+	if (InCookMode != EHoudiniPublicAPICookMode::Blocking)
+	{
+		SetErrorMessage(TEXT("InCookMode is invalid."));
+		return false;
+	}
+
+	return WaitForCookCompletion(HC, TEXT("rebuild"), [HC]() { HC->MarkAsNeedRebuild(); });
 }
 
 bool
-UHoudiniPublicAPIAssetWrapper::Recook_Implementation() const
+UHoudiniPublicAPIAssetWrapper::Recook_Implementation(EHoudiniPublicAPICookMode InCookMode) const
 {
 	UHoudiniCookable* HC = nullptr;
 	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
 
-	HC->MarkAsNeedCook();
-	
-	return true;
+	if (InCookMode == EHoudiniPublicAPICookMode::NonBlocking)
+	{
+		HC->MarkAsNeedCook();
+		return true;
+	}
+
+	if (InCookMode != EHoudiniPublicAPICookMode::Blocking)
+	{
+		SetErrorMessage(TEXT("InCookMode is invalid."));
+		return false;
+	}
+
+	return WaitForCookCompletion(HC, TEXT("cook"), [HC]() { HC->MarkAsNeedCook(); });
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::WaitForCookCompletion(
+	UHoudiniCookable* InHC,
+	const FString& InOperationVerb,
+	TFunctionRef<void()> InStartOperation) const
+{
+	if (!FHoudiniEngine::Get().IsCookingEnabled())
+	{
+		SetErrorMessage(FString::Printf(
+			TEXT("Could not %s the wrapped asset because Houdini Engine cooking is disabled."), *InOperationVerb));
+		return false;
+	}
+
+	if (InHC->IsLocked())
+	{
+		SetErrorMessage(FString::Printf(TEXT("Could not %s the wrapped asset because it is frozen."), *InOperationVerb));
+		return false;
+	}
+
+	FHoudiniEngineManager* HEM = FHoudiniEngine::Get().GetHoudiniEngineManager();
+	if (!HEM)
+	{
+		SetErrorMessage(FString::Printf(
+			TEXT("Could not find a valid Houdini Engine manager to %s the wrapped asset."), *InOperationVerb));
+		return false;
+	}
+
+	InStartOperation();
+
+	const FString HoudiniAssetName = InHC->GetHoudiniAssetName();
+	const FString CookableName = InHC->GetDisplayName();
+	FScopedSlowTask SlowTask(
+		0.0f,
+		FText::FromString(FString::Printf(
+			TEXT("%sing HDA '%s' on cookable '%s'..."),
+			*InOperationVerb,
+			*HoudiniAssetName,
+			*CookableName)));
+	SlowTask.MakeDialog(/* bShowCancelButton= */ true);
+
+	bool bWasCancelled = false;
+	bool bOutputsProcessed = false;
+	while (true)
+	{
+		EHoudiniAssetState PreviousState = InHC->GetCurrentState();
+		if (PreviousState == EHoudiniAssetState::PreCook)
+			bOutputsProcessed = false;
+
+		if (SlowTask.ShouldCancel() && PreviousState == EHoudiniAssetState::Cooking)
+		{
+			InHC->SetCurrentState(EHoudiniAssetState::Cancelling);
+			bWasCancelled = true;
+		}
+
+		if (InHC->ShouldTryToStartFirstSession())
+			HEM->AutoStartFirstSessionIfNeeded();
+
+		HEM->ProcessCookable(InHC);
+
+		EHoudiniAssetState CurrentState = InHC->GetCurrentState();
+		if (PreviousState == EHoudiniAssetState::Processing && CurrentState == EHoudiniAssetState::None)
+			bOutputsProcessed = true;
+
+		if (CurrentState == EHoudiniAssetState::None)
+		{
+			// Process the idle state once more: an existing cook may have completed while this recook was queued.
+			HEM->ProcessCookable(InHC);
+			CurrentState = InHC->GetCurrentState();
+			if (CurrentState == EHoudiniAssetState::None)
+				break;
+		}
+
+		if ((CurrentState == EHoudiniAssetState::NeedInstantiation
+				&& PreviousState == EHoudiniAssetState::NeedInstantiation)
+			|| CurrentState == EHoudiniAssetState::Dormant)
+		{
+			SetErrorMessage(FString::Printf(
+				TEXT("The wrapped asset could not %s because it could not be instantiated."), *InOperationVerb));
+			return false;
+		}
+
+		if (CurrentState == PreviousState
+			&& CurrentState != EHoudiniAssetState::Instantiating
+			&& CurrentState != EHoudiniAssetState::Cooking
+			&& CurrentState != EHoudiniAssetState::Cancelling
+			&& CurrentState != EHoudiniAssetState::Processing)
+		{
+			SetErrorMessage(FString::Printf(
+				TEXT("The wrapped asset could not make progress while %sing."), *InOperationVerb));
+			return false;
+		}
+
+		// Keep the progress dialog responsive while driving the cookable state machine.
+		SlowTask.EnterProgressFrame(0.0f);
+		FPlatformProcess::Sleep(0.01f);
+	}
+
+	if (bWasCancelled)
+	{
+		SetErrorMessage(FString::Printf(TEXT("%sing the wrapped asset was cancelled."), *InOperationVerb));
+		return false;
+	}
+
+	if (!bOutputsProcessed)
+	{
+		SetErrorMessage(TEXT("The wrapped asset completed without processing its outputs."));
+		return false;
+	}
+
+	bool bSuccess = InHC->WasLastCookSuccessful();
+	if (!bSuccess)
+		SetErrorMessage(TEXT("The wrapped asset did not complete successfully."));
+
+	return bSuccess;
 }
 
 bool
@@ -3110,6 +3252,9 @@ UHoudiniPublicAPIAssetWrapper::GetNumNodeInputs_Implementation() const
 bool
 UHoudiniPublicAPIAssetWrapper::SetInputAtIndex_Implementation(const int32 InNodeInputIndex, const UHoudiniPublicAPIInput* InInput)
 {
+	if (!InInput)
+		return false;
+
 	UHoudiniCookable* HC = nullptr;
 	if (!GetValidHoudiniCookableWithError(HC))
 		return false;
@@ -3311,6 +3456,91 @@ UHoudiniPublicAPIAssetWrapper::GetNumOutputs_Implementation() const
 		return -1;
 
 	return HC->GetNumOutputs();
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::GetOutputObjects_Implementation(
+	TSubclassOf<UObject> InObjectClass,
+	TArray<FHoudiniPublicAPIOutputObject>& OutOutputObjects) const
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	OutOutputObjects.Empty();
+
+	int32 NumOutputs = HC->GetNumOutputs();
+	for (int32 OutputIndex = 0; OutputIndex < NumOutputs; ++OutputIndex)
+	{
+		UHoudiniOutput* Output = HC->GetOutputAt(OutputIndex);
+		if (!IsValid(Output))
+			continue;
+
+		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = Output->GetOutputObjects();
+		for (TPair<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& Entry : OutputObjects)
+		{
+			UObject* OutputObject = Entry.Value.bProxyIsCurrent ? Entry.Value.ProxyObject : Entry.Value.OutputObject;
+			if (InObjectClass && (!IsValid(OutputObject) || !OutputObject->IsA(InObjectClass)))
+				continue;
+
+			FHoudiniPublicAPIOutputObject& PublicOutputObject = OutOutputObjects.AddDefaulted_GetRef();
+			PublicOutputObject.OutputIndex = OutputIndex;
+			PublicOutputObject.OutputIdentifier = FHoudiniPublicAPIOutputObjectIdentifier(Entry.Key);
+			PublicOutputObject.OutputObject = OutputObject;
+			PublicOutputObject.OutputMaterials = Entry.Value.OutputMaterials;
+
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(OutputObject);
+			if (StaticMesh)
+			{
+				PublicOutputObject.OutputMaterials.Empty(StaticMesh->GetStaticMaterials().Num());
+				for (FStaticMaterial StaticMaterial : StaticMesh->GetStaticMaterials())
+					PublicOutputObject.OutputMaterials.Add(StaticMaterial.MaterialInterface);
+			}
+		}
+	}
+
+	return true;
+}
+
+bool
+UHoudiniPublicAPIAssetWrapper::GetBakedOutputObjects_Implementation(
+	TSubclassOf<UObject> InObjectClass,
+	TArray<FHoudiniPublicAPIOutputObject>& OutBakedOutputObjects) const
+{
+	UHoudiniCookable* HC = nullptr;
+	if (!GetValidHoudiniCookableWithError(HC))
+		return false;
+
+	OutBakedOutputObjects.Empty();
+
+	const TArray<FHoudiniBakedOutput>& BakedOutputs = HC->GetBakedOutputs();
+	for (int32 OutputIndex = 0; OutputIndex < BakedOutputs.Num(); ++OutputIndex)
+	{
+		const FHoudiniBakedOutput& BakedOutput = BakedOutputs[OutputIndex];
+		for (const TPair<FHoudiniBakedOutputObjectIdentifier, FHoudiniBakedOutputObject>& Entry : BakedOutput.BakedOutputObjects)
+		{
+			UObject* BakedOutputObject = Entry.Value.GetBakedObjectIfValid();
+			if (!IsValid(BakedOutputObject))
+				continue;
+
+			if (InObjectClass && !BakedOutputObject->IsA(InObjectClass))
+				continue;
+
+			FHoudiniPublicAPIOutputObject& PublicBakedOutputObject = OutBakedOutputObjects.AddDefaulted_GetRef();
+			PublicBakedOutputObject.OutputIndex = OutputIndex;
+			PublicBakedOutputObject.OutputObject = BakedOutputObject;
+
+			UStaticMesh* StaticMesh = Cast<UStaticMesh>(BakedOutputObject);
+			if (StaticMesh)
+			{
+				PublicBakedOutputObject.OutputMaterials.Reserve(StaticMesh->GetStaticMaterials().Num());
+				for (const FStaticMaterial& StaticMaterial : StaticMesh->GetStaticMaterials())
+					PublicBakedOutputObject.OutputMaterials.Add(StaticMaterial.MaterialInterface);
+			}
+		}
+	}
+
+	return true;
 }
 
 EHoudiniOutputType
