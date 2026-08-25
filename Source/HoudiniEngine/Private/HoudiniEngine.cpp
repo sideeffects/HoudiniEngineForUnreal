@@ -707,14 +707,6 @@ FHoudiniEngine::StartSessionInternal(
 		FPlatformMisc::SetEnvironmentVar(TEXT("PATH"), *ModifiedPath);
 	};
 
-	auto DisablePerfMon = []
-	{
-		// Disable the performance monitor to prevent random crashed when under heavy load.
-		// TODO: remove me when the race condition in H is fixed.
-		FPlatformMisc::SetEnvironmentVar(TEXT("HARS_DISABLE_PERFMON_LOGGING"), TEXT("1"));
-	};
-
-
 	HAPI_ThriftServerOptions ServerOptions;
 	FMemory::Memzero<HAPI_ThriftServerOptions>(ServerOptions);
 	ServerOptions.autoClose = true;
@@ -741,9 +733,6 @@ FHoudiniEngine::StartSessionInternal(
 		{
 			if(!bUseSessionSyncForAutomaticServer)
 			{
-				// TODO: remove me when the race condition in H is fixed.
-				DisablePerfMon();
-
 				UpdatePathForServer();
 				FHoudiniApi::StartThriftSocketServer(&ServerOptions, ServerPort, nullptr, nullptr);
 
@@ -772,9 +761,6 @@ FHoudiniEngine::StartSessionInternal(
 		{
 			if(!bUseSessionSyncForAutomaticServer)
 			{
-				// TODO: remove me when the race condition in H is fixed.
-				DisablePerfMon();
-
 				UpdatePathForServer();
 				FHoudiniApi::StartThriftNamedPipeServer(
 					&ServerOptions, H_TCHAR_TO_UTF8(*ServerPipeName), nullptr, nullptr);
