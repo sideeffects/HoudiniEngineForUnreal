@@ -3082,10 +3082,16 @@ FHoudiniMaterialTranslator::FindTextureParamByNameOrTag(
 	HAPI_ParmInfo& OutParmInfo)
 {
 	OutParmId = -1;
-	
+
+	if(InTextureParmName == "")
+		return false;
+
 	if(bFindByTag)
 		OutParmId = FHoudiniEngineUtils::HapiFindParameterByTag(InNodeId, InTextureParmName, OutParmInfo);
-	else
+	
+	// For older material types - the tag might also be used as the param name (see good ol' SpaceShip)
+	// So, we still look for the texture by param name even for param tags
+	if (OutParmId < 0)
 		OutParmId = FHoudiniEngineUtils::HapiFindParameterByName(InNodeId, InTextureParmName, OutParmInfo);
 
 	if (OutParmId < 0)
@@ -3095,11 +3101,13 @@ FHoudiniMaterialTranslator::FindTextureParamByNameOrTag(
 	}
 
 	// We found a valid parameter, check if the matching "use" parameter exists
-	HAPI_ParmInfo FoundUseParmInfo;
 	HAPI_ParmId FoundUseParmId = -1;
+	HAPI_ParmInfo FoundUseParmInfo;
+	FHoudiniApi::ParmInfo_Init(&FoundUseParmInfo);	
 	if(bFindByTag)
 		FoundUseParmId = FHoudiniEngineUtils::HapiFindParameterByTag(InNodeId, InUseTextureParmName, FoundUseParmInfo);
-	else
+
+	if (FoundUseParmId < 0)
 		FoundUseParmId = FHoudiniEngineUtils::HapiFindParameterByName(InNodeId, InUseTextureParmName, FoundUseParmInfo);
 
 	if (FoundUseParmId >= 0)
