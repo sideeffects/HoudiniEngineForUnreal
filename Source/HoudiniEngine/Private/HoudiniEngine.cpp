@@ -800,9 +800,6 @@ FHoudiniEngine::StartSessionInternal(
 		{
 			if(!bUseSessionSyncForAutomaticServer)
 			{
-				// TODO: remove me when the race condition in H is fixed.
-				DisablePerfMon();
-
 				UpdatePathForServer();
 				HAPI_ProcessId ServerProcID = -1;
 				HAPI_Result ServerResult = FHoudiniApi::StartThriftSharedMemoryServer(
