@@ -3405,14 +3405,22 @@ FHoudiniParameterTranslator::UploadParameterToHoudini(UHoudiniParameter* InParam
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::UploadParameterValue - FolderList);
 
+			// Radio folder lists expose their chosen folder as an integer HAPI parameter. 
+			// Ignore other folder parameter types.
 			UHoudiniParameterFolderList* FolderListParam = Cast<UHoudiniParameterFolderList>(InParam);
 			if (!FolderListParam)
 				return false;
 
+			const TArray<TObjectPtr<UHoudiniParameter>>& FolderListChildren = FolderListParam->GetChildren();
+			UHoudiniParameterFolder* FirstFolder = FolderListChildren.IsEmpty()
+				? nullptr
+				: Cast<UHoudiniParameterFolder>(FolderListChildren[0].Get());
+			if (!IsValid(FirstFolder) || FirstFolder->GetFolderType() != EHoudiniFolderParameterType::Radio)
+				break;
+
 			int ChosenFolder = FolderListParam->GetChosenFolder();
 			if (ChosenFolder != INDEX_NONE)
 			{
-				// Set the toggle parameter values.
 				HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValues(
 					FHoudiniEngine::Get().GetSession(),
 					FolderListParam->GetNodeId(),
