@@ -332,6 +332,12 @@ public:
 	bool bEnableCooking;
 
 	UPROPERTY()
+	bool bIsFrozen;
+
+	UPROPERTY()
+	bool bFreezeOnLoad;
+
+	UPROPERTY()
 	bool bForceNeedUpdate;
 
 	UPROPERTY()

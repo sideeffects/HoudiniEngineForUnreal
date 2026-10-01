@@ -850,6 +850,8 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 	PostEditChangeProperty(Evt);
 
 	SetCookingEnabled(FromComponent->IsCookingEnabled());
+	GetCookable()->SetFrozen(FromComponent->GetCookable()->IsFrozen());
+	GetCookable()->SetFreezeOnLoad(FromComponent->GetCookable()->GetFreezeOnLoad());
 	GetCookable()->SetRecookRequested(FromComponent->GetCookable()->HasRecookBeenRequested());
 	GetCookable()->SetRebuildRequested(FromComponent->GetCookable()->HasRebuildBeenRequested());
 }
@@ -1535,6 +1537,8 @@ UHoudiniAssetBlueprintComponent::GetComponentInstanceData() const
 	InstanceData->bPendingDelete = GetCookable()->IsPendingDelete();
 	InstanceData->bRecookRequested = GetCookable()->HasRecookBeenRequested();
 	InstanceData->bEnableCooking = GetCookable()->IsCookingEnabled();
+	InstanceData->bIsFrozen = GetCookable()->IsFrozen();
+	InstanceData->bFreezeOnLoad = GetCookable()->GetFreezeOnLoad();
 	InstanceData->bForceNeedUpdate = GetCookable()->bForceNeedUpdate;
 	InstanceData->bLastCookSuccess = GetCookable()->WasLastCookSuccessful();
 	InstanceData->bRegisteredComponentTemplate = bHasRegisteredComponentTemplate;
@@ -1699,6 +1703,8 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 		GetCookable()->bPendingDelete = InstanceData->bPendingDelete;
 		GetCookable()->SetRecookRequested(InstanceData->bRecookRequested);
 		GetCookable()->SetCookingEnabled(InstanceData->bEnableCooking);
+		GetCookable()->SetFrozen(InstanceData->bIsFrozen);
+		GetCookable()->SetFreezeOnLoad(InstanceData->bFreezeOnLoad);
 		GetCookable()->bForceNeedUpdate = InstanceData->bForceNeedUpdate;
 		GetCookable()->SetLastCookSuccessful(InstanceData->bLastCookSuccess);
 		bHasRegisteredComponentTemplate = InstanceData->bRegisteredComponentTemplate;
@@ -2520,6 +2526,8 @@ FHoudiniAssetBlueprintInstanceData::FHoudiniAssetBlueprintInstanceData()
 	, bRecookRequested(false)
 	, bRebuildRequested(false)
 	, bEnableCooking(true)
+	, bIsFrozen(false)
+	, bFreezeOnLoad(false)
 	, bForceNeedUpdate(false)
 	, bLastCookSuccess(false)
 	, ComponentGUID(FGuid())

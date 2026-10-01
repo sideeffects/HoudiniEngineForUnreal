@@ -360,6 +360,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 	TSharedPtr<SBorder> LandscapeThumbnailBorder;
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 	LandscapeGrp.AddWidgetRow()
+	.RowTag(FName(TEXT("HoudiniBakeOutput")))
 	.NameContent()
 	[
 		SNew(SSpacer)
@@ -1698,6 +1699,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 	// Add Bake Button UI
 	TSharedPtr<SButton> BakeButton;
 	CurveOutputGrp.AddWidgetRow()
+	.RowTag(FName(TEXT("HoudiniBakeOutput")))
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -2011,6 +2013,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 
 	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
 	StaticMeshGrp.AddWidgetRow()
+	.RowTag(FName(TEXT("HoudiniBakeOutput")))
 	.NameContent()
 	[
 		SNew( STextBlock )
@@ -4360,10 +4363,11 @@ FHoudiniOutputDetails::CreateTextureOutputWidget(
 				MakeShareable(new FAssetThumbnail(CurrentTexture, 64, 64, AssetThumbnailPool));
 
 		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
-		FString TextureLabel = TEXT("Texture");
-		IDetailGroup& TextureGrp = HouOutputCategory.AddGroup(FName(*TextureName), FText::FromString(TextureName));
-		TextureGrp.AddWidgetRow()
-		.NameContent()
+	FString TextureLabel = TEXT("Texture");
+	IDetailGroup& TextureGrp = HouOutputCategory.AddGroup(FName(*TextureName), FText::FromString(TextureName));
+	TextureGrp.AddWidgetRow()
+	.RowTag(FName(TEXT("HoudiniBakeOutput")))
+	.NameContent()
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString(TextureLabel))

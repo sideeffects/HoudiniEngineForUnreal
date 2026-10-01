@@ -158,7 +158,8 @@ public:
 	static void CreateMiscOptionsWidgets(
 		IDetailGroup& Group,
 		const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
-		const EHoudiniDetailsFlags& DetailsFlags);
+		const EHoudiniDetailsFlags& DetailsFlags,
+		IDetailLayoutBuilder* SavedLayoutBuilder);
 
 	// HELP DEBUG
 	static void CreateHelpAndDebugWidgets(

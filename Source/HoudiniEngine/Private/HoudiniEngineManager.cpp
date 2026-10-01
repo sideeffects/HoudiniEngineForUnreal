@@ -697,6 +697,14 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 		case EHoudiniAssetState::PreCook:
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessCookable - PreCook);
+			if (HC->IsFrozen())
+			{
+				HC->SetRecookRequested(false);
+				HC->SetRebuildRequested(false);
+				HC->SetCurrentState(EHoudiniAssetState::None);
+				break;
+			}
+
 			// Only proceed forward if we don't need to wait for our input
 			// HoudiniAssets to finish cooking/instantiating
 			if(HC->IsInputSupported() && HC->InputData->NeedsToWaitForInputHoudiniAssets())
@@ -2012,6 +2020,9 @@ FHoudiniEngineManager::IsCookingEnabledForCookable(UHoudiniCookable* HC)
 	bool bComponentEnable = false;
 	if (IsValid(HC))
 	{
+		if (HC->IsFrozen())
+			return false;
+
 		bManualRecook = HC->HasRecookBeenRequested();
 		bComponentEnable = HC->IsCookingEnabled();
 	}

@@ -4873,6 +4873,9 @@ FHoudiniEngineBakeUtils::CopyActorContentsToBlueprint(AActor * InActor, UBluepri
 bool 
 FHoudiniEngineBakeUtils::BakeBlueprints(UHoudiniCookable* InCookable, const FHoudiniBakeSettings& BakeSettings)
 {
+	if (!IsValid(InCookable))
+		return false;
+
 	FHoudiniBakedObjectData BakedObjectData;
 	const bool bSuccess = BakeBlueprints(InCookable, BakeSettings, BakedObjectData);
 	if (!bSuccess)
@@ -8779,6 +8782,9 @@ bool FHoudiniEngineBakeUtils::BakePDGAssetLinkOutputsKeepActors(
 bool FHoudiniEngineBakeUtils::BakePDGAssetLink(
 	UHoudiniPDGAssetLink* InPDGAssetLink)
 {
+	if (!IsValid(InPDGAssetLink))
+		return false;
+
 	bool Result;
 
 	FHoudiniBakedObjectData BakedObjectData;

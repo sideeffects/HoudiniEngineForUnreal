@@ -46,6 +46,7 @@
 #include "Chaos/AABB.h"
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
+#include "IDetailsView.h"
 #include "Engine/StaticMesh.h"
 #include "FoliageType_InstancedStaticMesh.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
@@ -71,6 +72,56 @@
 #include "HoudiniEngineStatusManager.h"
 
 #define LOCTEXT_NAMESPACE HOUDINI_LOCTEXT_NAMESPACE 
+
+namespace HoudiniCookableDetails
+{
+	bool AreSelectedCookablesFrozen(const TWeakPtr<IDetailsView>& InDetailsView)
+	{
+		const TSharedPtr<IDetailsView> DetailsView = InDetailsView.Pin();
+		if (!DetailsView.IsValid())
+			return false;
+
+		for (const TWeakObjectPtr<UObject>& SelectedObject : DetailsView->GetSelectedObjects())
+		{
+			if (!IsValidWeakPointer(SelectedObject))
+				continue;
+
+			UHoudiniCookable* Cookable = Cast<UHoudiniCookable>(SelectedObject.Get());
+			if (!Cookable)
+			{
+				if (const UHoudiniAssetComponent* HAC = Cast<UHoudiniAssetComponent>(SelectedObject.Get()))
+					Cookable = HAC->GetCookable();
+				else if (const AHoudiniAssetActor* HAA = Cast<AHoudiniAssetActor>(SelectedObject.Get()))
+					Cookable = HAA->GetHoudiniCookable();
+			}
+
+			if (IsValid(Cookable) && Cookable->IsFrozen())
+				return true;
+		}
+
+		return false;
+	}
+
+	bool IsFrozenCategory(const FName InCategoryName)
+	{
+		const FString CategoryName = InCategoryName.ToString();
+		return CategoryName.StartsWith(TEXT("HoudiniAsset"))
+			|| CategoryName.StartsWith(TEXT("HoudiniParameters"))
+			|| CategoryName.StartsWith(TEXT("HoudiniInputs"))
+			|| CategoryName.StartsWith(TEXT("HoudiniOutputs"))
+			|| CategoryName.StartsWith(TEXT("HoudiniMeshGeneration"));
+	}
+
+	FText GetFrozenCategoryDisplayName(
+		IDetailLayoutBuilder& DetailBuilder,
+		const FText& InCategoryName)
+	{
+		return AreSelectedCookablesFrozen(DetailBuilder.GetDetailsViewSharedPtr())
+			? FText::Format(LOCTEXT("HoudiniFrozenCategoryFormat", "{0} (Frozen)"), InCategoryName)
+			: FText::GetEmpty();
+	}
+
+}
 
 
 TSharedRef<IDetailCustomization>
@@ -135,6 +186,20 @@ FHoudiniCookableDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 				continue;
 			}
 		}
+	}
+
+	const TWeakPtr<IDetailsView> DetailsView = DetailBuilder.GetDetailsViewSharedPtr();
+	if (DetailsView.IsValid())
+	{
+		DetailsView.Pin()->SetIsCustomRowReadOnlyDelegate(FIsCustomRowReadOnly::CreateLambda(
+			[DetailsView](const FName InRowName, const FName InCategoryName)
+			{
+				if (InRowName == FName(TEXT("HoudiniBakeOutput")))
+					return false;
+
+				return HoudiniCookableDetails::IsFrozenCategory(InCategoryName)
+					&& HoudiniCookableDetails::AreSelectedCookablesFrozen(DetailsView);
+			}));
 	}
 
 	// Check if we'll need to add indie license labels
@@ -351,8 +416,10 @@ FHoudiniCookableDetails::CreateHoudiniAssetDetails(
 
 	// Create the HDA details category
 	FString AssetCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_HDA);
+	const FText AssetCategoryDisplayName = HoudiniCookableDetails::GetFrozenCategoryDisplayName(
+		DetailBuilder, LOCTEXT("HoudiniAssetCategory", "Houdini Asset"));
 	IDetailCategoryBuilder& HouAssetCategory =
-		DetailBuilder.EditCategory(*AssetCatName, FText::GetEmpty(), ECategoryPriority::Important);
+		DetailBuilder.EditCategory(*AssetCatName, AssetCategoryDisplayName, ECategoryPriority::Important);
 
 	HoudiniEngineDetails->CreateHoudiniAssetDetails(HouAssetCategory, InCookables);
 }
@@ -428,8 +495,11 @@ FHoudiniCookableDetails::CreateParameterDetails(
 	FString ParamCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_PARAMS);
 	ParamCatName += MultiSelectionIdentifier;
 
+	const FText ParamCategoryDisplayName = HoudiniCookableDetails::GetFrozenCategoryDisplayName(
+		DetailBuilder, LOCTEXT("HoudiniParametersCategory", "Houdini Parameters"));
+
 	// Create the Parameters details category
-	IDetailCategoryBuilder& HouParameterCategory = DetailBuilder.EditCategory(*ParamCatName, FText::GetEmpty(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& HouParameterCategory = DetailBuilder.EditCategory(*ParamCatName, ParamCategoryDisplayName, ECategoryPriority::Important);
 
 	// If we are running Houdini Engine Indie license, we need to display a special label.
 	bool bIsIndieLicense = FHoudiniEngine::Get().IsLicenseIndie();
@@ -526,9 +596,12 @@ FHoudiniCookableDetails::CreateInputDetails(
 	FString InputCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_INPUTS);
 	InputCatName += MultiSelectionIdentifier;
 
+	const FText InputCategoryDisplayName = HoudiniCookableDetails::GetFrozenCategoryDisplayName(
+		DetailBuilder, LOCTEXT("HoudiniInputsCategory", "Houdini Inputs"));
+
 	// Create the input details category
 	IDetailCategoryBuilder& HouInputCategory =
-		DetailBuilder.EditCategory(*InputCatName, FText::GetEmpty(), ECategoryPriority::Important);
+		DetailBuilder.EditCategory(*InputCatName, InputCategoryDisplayName, ECategoryPriority::Important);
 
 	// If we are running Houdini Engine Indie license, we need to display a special label.
 	bool bIsIndieLicense = FHoudiniEngine::Get().IsLicenseIndie();
@@ -598,10 +671,12 @@ FHoudiniCookableDetails::CreateOutputDetails(
 	// we need to create multiple categories one for each different HDA
 	FString OutputCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_OUTPUTS);
 	OutputCatName += MultiSelectionIdentifier;
+	const FText OutputCategoryDisplayName = HoudiniCookableDetails::GetFrozenCategoryDisplayName(
+		DetailBuilder, LOCTEXT("HoudiniOutputsCategory", "Houdini Outputs"));
 
 	// Create the output details category
 	IDetailCategoryBuilder& HouOutputCategory =
-		DetailBuilder.EditCategory(*OutputCatName, FText::GetEmpty(), ECategoryPriority::Important);
+		DetailBuilder.EditCategory(*OutputCatName, OutputCategoryDisplayName, ECategoryPriority::Important);
 
 	// Iterate through the component's outputs
 	for (int32 OutputIdx = 0; OutputIdx < MainCookable->GetNumOutputs(); OutputIdx++)
@@ -647,13 +722,15 @@ FHoudiniCookableDetails::CreateProxyDetails(
 
 	// Create the Proxy details category
 	FString ProxyCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_MESHGEN);
+	const FText MeshGenerationCategoryDisplayName = HoudiniCookableDetails::GetFrozenCategoryDisplayName(
+		DetailBuilder, LOCTEXT("HoudiniMeshGenerationCategory", "Houdini Mesh Generation"));
 
 	// If we have selected more than one component that have different HDAs, 
 	// we need to create multiple categories one for each different HDA
 	// OutputCatName += MultiSelectionIdentifier;
 	
 	IDetailCategoryBuilder& HouProxyCategory =
-		DetailBuilder.EditCategory(*ProxyCatName, FText::GetEmpty(), ECategoryPriority::Important);
+		DetailBuilder.EditCategory(*ProxyCatName, MeshGenerationCategoryDisplayName, ECategoryPriority::Important);
 
 	FString Label = TEXT("Houdini Proxy Mesh Settings");
 	IDetailGroup& ProxyGrp = HouProxyCategory.AddGroup(FName(*Label), FText::FromString(Label));
@@ -1124,13 +1201,15 @@ FHoudiniCookableDetails::CreateMeshConversonSettings(
 
 	// Create the SM Build Settings category
 	FString BuildSettingsCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_MESHGEN);
+	const FText MeshGenerationCategoryDisplayName = HoudiniCookableDetails::GetFrozenCategoryDisplayName(
+		DetailBuilder, LOCTEXT("HoudiniMeshGenerationCategory", "Houdini Mesh Generation"));
 
 	// If we have selected more than one component that have different HDAs, 
 	// we need to create multiple categories one for each different HDA
 	// OutputCatName += MultiSelectionIdentifier;
 
 	IDetailCategoryBuilder& Category =
-		DetailBuilder.EditCategory(*BuildSettingsCatName, FText::GetEmpty(), ECategoryPriority::Important);
+		DetailBuilder.EditCategory(*BuildSettingsCatName, MeshGenerationCategoryDisplayName, ECategoryPriority::Important);
 
 	FString Label = TEXT("Mesh Conversion Options");
 //	IDetailGroup& ProxyGrp = Category.AddGroup(FName(*Label), FText::FromString(Label));
@@ -1201,13 +1280,15 @@ FHoudiniCookableDetails::CreateMeshBuildSettingsDetails(
 
 	// Create the SM Build Settings category
 	FString BuildSettingsCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_MESHGEN);
+	const FText MeshGenerationCategoryDisplayName = HoudiniCookableDetails::GetFrozenCategoryDisplayName(
+		DetailBuilder, LOCTEXT("HoudiniMeshGenerationCategory", "Houdini Mesh Generation"));
 
 	// If we have selected more than one component that have different HDAs, 
 	// we need to create multiple categories one for each different HDA
 	// OutputCatName += MultiSelectionIdentifier;
 	
 	IDetailCategoryBuilder& HouMeshGenCategory =
-		DetailBuilder.EditCategory(*BuildSettingsCatName, FText::GetEmpty(), ECategoryPriority::Important);
+		DetailBuilder.EditCategory(*BuildSettingsCatName, MeshGenerationCategoryDisplayName, ECategoryPriority::Important);
 
 	FString Label = TEXT("Static Mesh Build Settings");
 	IDetailGroup& ProxyGrp = HouMeshGenCategory.AddGroup(FName(*Label), FText::FromString(Label));
@@ -1993,13 +2074,15 @@ FHoudiniCookableDetails::CreateMeshGenerationDetails(
 
 	// Create the Mesh Generation category
 	FString BuildSettingsCatName = TEXT(HOUDINI_ENGINE_EDITOR_CATEGORY_MESHGEN);
+	const FText MeshGenerationCategoryDisplayName = HoudiniCookableDetails::GetFrozenCategoryDisplayName(
+		DetailBuilder, LOCTEXT("HoudiniMeshGenerationCategory", "Houdini Mesh Generation"));
 
 	// If we have selected more than one component that have different HDAs, 
 	// we need to create multiple categories one for each different HDA
 	// OutputCatName += MultiSelectionIdentifier;
 	
 	IDetailCategoryBuilder& HouMeshGenCategory =
-		DetailBuilder.EditCategory(*BuildSettingsCatName, FText::GetEmpty(), ECategoryPriority::Important);
+		DetailBuilder.EditCategory(*BuildSettingsCatName, MeshGenerationCategoryDisplayName, ECategoryPriority::Important);
 
 	FString Label = TEXT("Static Mesh Generation Properties");
 	IDetailGroup& ProxyGrp = HouMeshGenCategory.AddGroup(FName(*Label), FText::FromString(Label));

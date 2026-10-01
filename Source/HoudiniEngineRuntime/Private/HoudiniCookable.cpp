@@ -313,6 +313,8 @@ UHoudiniCookable::UHoudiniCookable(const FObjectInitializer& ObjectInitializer)
 	bRecookRequested = false;
 	bRebuildRequested = false;
 	bEnableCooking = true;
+	bIsFrozen = false;
+	bFreezeOnLoad = false;
 	bCookAfterInstantiation = true;
 	bForceNeedUpdate = false;
 	bLastCookSuccess = false;
@@ -1165,6 +1167,9 @@ UHoudiniCookable::NeedUpdate() const
 	if (!IsFullyLoaded())
 		return false;
 
+	if (bIsFrozen)
+		return false;
+
 #if WITH_EDITORONLY_DATA
 	// If we support HDAs - we should have one assigned.
 	if (IsHoudiniAssetSupported() && !HoudiniAssetData->HoudiniAsset)
@@ -1358,6 +1363,9 @@ UHoudiniCookable::MarkAsNeedRebuild()
 void
 UHoudiniCookable::MarkAsNeedRecookOrRebuild(bool bDoRebuild)
 {
+	if (bIsFrozen)
+		return;
+
 	if (bDoRebuild)
 	{
 		// Force the asset state to NeedRebuild
@@ -2435,6 +2443,18 @@ UHoudiniCookable::SetCookingEnabled(const bool& bInCookingEnabled)
 }
 
 void
+UHoudiniCookable::SetFrozen(bool bInFrozen)
+{
+	bIsFrozen = bInFrozen;
+}
+
+void
+UHoudiniCookable::SetFreezeOnLoad(bool bInFreezeOnLoad)
+{
+	bFreezeOnLoad = bInFreezeOnLoad;
+}
+
+void
 UHoudiniCookable::SetHasBeenLoaded(const bool& InLoaded)
 {
 	bHasBeenLoaded = InLoaded;
@@ -2874,6 +2894,10 @@ void
 UHoudiniCookable::PostLoad()
 {
 	Super::PostLoad();
+
+	if (bFreezeOnLoad)
+		bIsFrozen = true;
+
 #if WITH_EDITORONLY_DATA
 	// Construct parameter tree and zero out ParmIds. The older Parameter Details code required
 	// the parmIds to reconstruct a tree (bugily), but now we explicitly store the parameter tree
