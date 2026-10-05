@@ -407,12 +407,13 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 		FName(TEXT(HOUDINI_ENGINE_UI_SECTION_GENERATE_HEADER_TEXT)),
 		FText::FromString(TEXT(HOUDINI_ENGINE_UI_SECTION_GENERATE_HEADER_TEXT)), false, false);
 	IDetailLayoutBuilder* SavedLayoutBuilder = &HoudiniEngineCategoryBuilder.GetParentLayout();
-	const TWeakObjectPtr<UHoudiniCookable>& MainHC = InHCs[0];
-	if (!IsValidWeakPointer(MainHC))
-		return;
 
 	if(Flags.bCookButtons)
 	{
+		const TWeakObjectPtr<UHoudiniCookable>& MainHC = InHCs[0];
+		if(!IsValidWeakPointer(MainHC))
+			return;
+
 		auto OnReBuildClickedLambda = [InHCs]()
 			{
 				for(auto& NextHC : InHCs)
@@ -546,20 +547,6 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 				return true;
 			};
 
-		auto AreCookButtonsEnabled = [InHCs, AreGenerateButtonsEnabled]()
-			{
-				if (!AreGenerateButtonsEnabled())
-					return false;
-
-				for (const auto& NextHC : InHCs)
-				{
-					if (IsValidWeakPointer(NextHC) && NextHC->IsFrozen())
-						return false;
-				}
-
-				return true;
-			};
-
 		auto GetCancelButtonText = [InHCs]()
 			{
 				for (const auto& NextHC : InHCs)
@@ -602,7 +589,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 							.ToolTipText(LOCTEXT("HoudiniAssetDetailsRecookAssetButton", "Recook the selected Houdini Asset: all parameters and inputs are re-upload to Houdini and the asset is then forced to recook."))
 							//.Text(FText::FromString("Recook"))
 							.Visibility(EVisibility::Visible)
-							.IsEnabled_Lambda(AreCookButtonsEnabled)
+							.IsEnabled_Lambda(AreGenerateButtonsEnabled)
 							.OnClicked_Lambda(OnRecookClickedLambda)
 							.Content()
 							[
@@ -673,7 +660,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 							.ToolTipText(LOCTEXT("HoudiniAssetDetailsRebuildAssetButton", "Rebuild the selected Houdini Asset: its source .HDA file is reimported and updated, the asset's nodes in Houdini are destroyed and recreated, and the asset is then forced to recook."))
 							//.Text(FText::FromString("Rebuild"))
 							.Visibility(EVisibility::Visible)
-							.IsEnabled_Lambda(AreCookButtonsEnabled)
+							.IsEnabled_Lambda(AreGenerateButtonsEnabled)
 							.Content()
 							[
 								SNew(SHorizontalBox)
@@ -801,7 +788,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 							.HAlign(HAlign_Center)
 							.ToolTipText(LOCTEXT("HoudiniAssetDetailsDeleteAssetButton", "Delete the selected Houdini Asset's cooked outputs."))
 							.Visibility(EVisibility::Visible)
-							.IsEnabled_Lambda(AreCookButtonsEnabled)
+							.IsEnabled_Lambda(AreGenerateButtonsEnabled)
 							.Content()
 							[
 								SNew(SHorizontalBox)
@@ -858,7 +845,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 	CreateOutputWidgets(GenerateGroup, InHCs, Flags);
 
 	if (Flags.bAssetOptions)
-		CreateMiscOptionsWidgets(GenerateGroup, InHCs, Flags, SavedLayoutBuilder);
+		CreateMiscOptionsWidgets(GenerateGroup, InHCs, Flags);
 }
 
 void
@@ -1494,10 +1481,10 @@ FHoudiniEngineDetails::AddBakeButtons(
 					[
 						SNew(SButton)
 							.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						.ToolTipText(LOCTEXT("HoudiniAssetPFGDetailsDeleteBakeButton", "Delete assets and actors from the previous Bake."))
-						.Visibility(EVisibility::Visible)
-						.OnClicked_Lambda(OnDeleteBakeButtonClickedLambda)
+							.HAlign(HAlign_Center)
+							.ToolTipText(LOCTEXT("HoudiniAssetPFGDetailsDeleteBakeButton", "Delete assets and actors from the previous Bake."))
+							.Visibility(EVisibility::Visible)
+							.OnClicked_Lambda(OnDeleteBakeButtonClickedLambda)
 							[
 								DeleteBakeButtonHBox
 							]
@@ -1547,10 +1534,10 @@ FHoudiniEngineDetails::AddBakeButtons(
 					[
 						SNew(SButton)
 							.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						.ToolTipText(LOCTEXT("HoudiniAssetPFGDetailsDeleteBakeButton", "Unlinks assets and actors from the previous Bake."))
-						.Visibility(EVisibility::Visible)
-						.OnClicked_Lambda(OnUnlinkBakeButtonClickedLambda)
+							.HAlign(HAlign_Center)
+							.ToolTipText(LOCTEXT("HoudiniAssetPFGDetailsDeleteBakeButton", "Unlinks assets and actors from the previous Bake."))
+							.Visibility(EVisibility::Visible)
+							.OnClicked_Lambda(OnUnlinkBakeButtonClickedLambda)
 							[
 								UnlinkBakeButtonHBox
 							]
@@ -2078,8 +2065,7 @@ void
 FHoudiniEngineDetails::CreateMiscOptionsWidgets(
 	IDetailGroup& ParentGroup,
 	const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
-	const EHoudiniDetailsFlags& DetailsFlags,
-	IDetailLayoutBuilder* SavedLayoutBuilder)
+	const EHoudiniDetailsFlags& DetailsFlags)
 {
 	if(InHCs.Num() <= 0)
 		return;
@@ -2089,61 +2075,6 @@ FHoudiniEngineDetails::CreateMiscOptionsWidgets(
 		return;
 
 	IDetailGroup& Group = ParentGroup.AddGroup(FName(TEXT("Cook Options")), FText::FromString(TEXT("Cook Options")), false);
-
-	{
-		FDetailWidgetRow& FreezeRow = Group.AddWidgetRow();
-		FreezeRow.NameWidget.Widget = SNew(STextBlock)
-			.Text(LOCTEXT("HoudiniEngineFreezeLabel", "Freeze"))
-			.Font(_GetEditorStyle().GetFontStyle(HOUDINI_DETAILS_FONT))
-			.ToolTipText(LOCTEXT("HoudiniEngineFreezeTooltip", "Prevent this Houdini Asset Component from cooking."));
-		FreezeRow.ValueWidget.Widget = SNew(SCheckBox)
-			.IsChecked_Lambda([MainHC]()
-				{
-					return IsValidWeakPointer(MainHC) && MainHC->IsFrozen()
-						? ECheckBoxState::Checked
-						: ECheckBoxState::Unchecked;
-				})
-			.OnCheckStateChanged_Lambda([InHCs, SavedLayoutBuilder](ECheckBoxState NewState)
-				{
-					const bool bFrozen = NewState == ECheckBoxState::Checked;
-					for (const TWeakObjectPtr<UHoudiniCookable>& NextHC : InHCs)
-					{
-						if (!IsValidWeakPointer(NextHC) || NextHC->IsFrozen() == bFrozen)
-							continue;
-
-						NextHC->SetFrozen(bFrozen);
-						NextHC->MarkPackageDirty();
-					}
-
-					if (SavedLayoutBuilder)
-						SavedLayoutBuilder->ForceRefreshDetails();
-				});
-
-		FDetailWidgetRow& FreezeOnLoadRow = Group.AddWidgetRow();
-		FreezeOnLoadRow.NameWidget.Widget = SNew(STextBlock)
-			.Text(LOCTEXT("HoudiniEngineFreezeOnLoadLabel", "Freeze On Load"))
-			.Font(_GetEditorStyle().GetFontStyle(HOUDINI_DETAILS_FONT))
-			.ToolTipText(LOCTEXT("HoudiniEngineFreezeOnLoadTooltip", "Freeze this Houdini Asset Component whenever it is loaded."));
-		FreezeOnLoadRow.ValueWidget.Widget = SNew(SCheckBox)
-			.IsChecked_Lambda([MainHC]()
-				{
-					return IsValidWeakPointer(MainHC) && MainHC->GetFreezeOnLoad()
-						? ECheckBoxState::Checked
-						: ECheckBoxState::Unchecked;
-				})
-			.OnCheckStateChanged_Lambda([InHCs](ECheckBoxState NewState)
-				{
-					const bool bFreezeOnLoad = NewState == ECheckBoxState::Checked;
-					for (const TWeakObjectPtr<UHoudiniCookable>& NextHC : InHCs)
-					{
-						if (!IsValidWeakPointer(NextHC) || NextHC->GetFreezeOnLoad() == bFreezeOnLoad)
-							continue;
-
-						NextHC->SetFreezeOnLoad(bFreezeOnLoad);
-						NextHC->MarkPackageDirty();
-					}
-				});
-	}
 
 	auto IsCheckedPushTransformToHoudiniLambda = [MainHC]()
 		{

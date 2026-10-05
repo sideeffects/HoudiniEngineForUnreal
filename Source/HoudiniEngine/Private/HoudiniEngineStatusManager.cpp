@@ -205,13 +205,9 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 	FScopeLock Lock(&Mutex);
 
 	FHoudiniCookableStatus* CookableStatus = CurrentStatuses.Find(Cookable);
-	const EHoudiniStatusManagerStatus Status = Cookable && Cookable->IsFrozen()
-		? EHoudiniStatusManagerStatus::Frozen
-		: CookableStatus ? CookableStatus->Status : EHoudiniStatusManagerStatus::Idle;
 
 	EHoudiniSessionStatus SessionStatus = FHoudiniEngine::Get().GetSessionStatus();
-	if (Status != EHoudiniStatusManagerStatus::Frozen
-		&& (!CookableStatus || SessionStatus != EHoudiniSessionStatus::Connected))
+	if(!CookableStatus || SessionStatus != EHoudiniSessionStatus::Connected)
 	{
 		this->ClearStatus(Cookable);
 		FHoudiniEngine::Get().GetSessionStatusAndColor(OutStatusString, OutStatusColor);
@@ -244,14 +240,8 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 			}
 		};
 
-	switch (Status)
+	switch (CookableStatus->Status)
 	{
-	case EHoudiniStatusManagerStatus::Frozen:
-		{
-			OutStatusColor = FLinearColor::Yellow;
-			OutStatusString = TEXT("Frozen");
-		}
-		break;
 	case EHoudiniStatusManagerStatus::Cooking:
 		{
 			FLinearColor Cyan(0.0f, 1.0f, 1.0f);

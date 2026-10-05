@@ -540,8 +540,6 @@ public:
 	void SetCookableGUID(const FGuid& InGUID) { CookableGUID = InGUID; };
 
 	bool IsCookingEnabled() const { return bEnableCooking; };
-	bool IsFrozen() const { return bIsFrozen; };
-	bool GetFreezeOnLoad() const { return bFreezeOnLoad; };
 	bool CookAfterInstantiatation() const { return bCookAfterInstantiation;  }
 	bool HasBeenLoaded() const { return bHasBeenLoaded; };
 	bool HasBeenDuplicated() const { return bHasBeenDuplicated; };
@@ -777,8 +775,6 @@ public:
 
 	void SetCookAfterInstantiation(bool bInCookAfterInstantiation);
 	void SetCookingEnabled(const bool& bInCookingEnabled);
-	void SetFrozen(bool bInFrozen);
-	void SetFreezeOnLoad(bool bInFreezeOnLoad);
 	void SetHasBeenLoaded(const bool& InLoaded);
 	void SetHasBeenDuplicated(const bool& InDuplicated);
 	void SetCookCount(const int32& InCount);
@@ -1007,14 +1003,6 @@ protected:
 
 	UPROPERTY(DuplicateTransient)
 	bool bEnableCooking;	// bEnableCooking
-
-	// Prevents this cookable from cooking or baking until it is unfrozen.
-	UPROPERTY()
-	bool bIsFrozen;
-
-	// Freezes this cookable whenever it is loaded.
-	UPROPERTY()
-	bool bFreezeOnLoad;
 
 	UPROPERTY()
 	bool bCookAfterInstantiation;

@@ -41,7 +41,6 @@ struct FHoudiniLogRecord
 enum EHoudiniStatusManagerStatus
 {
 	Idle,				// With not connected, or connected before first cook.
-	Frozen,				// Cooking and baking are disabled for this cookable.
 	Instantiating,		// Instantiating
 	Instantiated,
 	Cooking,			// A Cook is in progress.
