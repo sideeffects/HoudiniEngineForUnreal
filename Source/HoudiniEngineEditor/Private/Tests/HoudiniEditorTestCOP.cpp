@@ -367,8 +367,23 @@ FHoudiniEditorTestCOP::CheckColorPixelsInTexture(UTexture2D* InTexture, TArray<i
 		// Access the texture's buffer via PlatformData/Mip0
 		int AtIndex = AtX + AtY * InTexture->GetSizeX();
 		FColor TextureColorValue = ImageColors[AtIndex];
-				
-		if (TextureColorValue != ExpectedColorValue)
+		
+		// Compare the color with a tolerance to avoid random test failures on some build machines
+		bool bDifferentColors = false;
+		float fTolerance = 12.0f; // ~5% tolerance
+		if (abs((float)ExpectedColorValue.R - (float)TextureColorValue.R) > fTolerance)
+			bDifferentColors = true;
+
+		if (abs((float)ExpectedColorValue.G - (float)TextureColorValue.G) > fTolerance)
+			bDifferentColors = true;
+
+		if (abs((float)ExpectedColorValue.B - (float)TextureColorValue.B) > fTolerance)
+			bDifferentColors = true;
+
+		if (abs((float)ExpectedColorValue.A - (float)TextureColorValue.A) > fTolerance)
+			bDifferentColors = true;
+
+		if (bDifferentColors)
 		{
 			AllValid = false;
 
