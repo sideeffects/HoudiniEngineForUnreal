@@ -41,6 +41,7 @@ struct FHoudiniLogRecord
 enum EHoudiniStatusManagerStatus
 {
 	Idle,				// With not connected, or connected before first cook.
+	Locked,				// Cooking is disabled for this cookable.
 	Instantiating,		// Instantiating
 	Instantiated,
 	Cooking,			// A Cook is in progress.
@@ -92,6 +93,7 @@ public:
 	virtual void AddLog(const TCHAR* V, ELogVerbosity::Type Verbosity) {};
 
 	virtual void GetSessionStatusAndColor(const UHoudiniCookable* Cookable, FString& OutStatusString, FLinearColor& OutStatusColor) {};
+	virtual FText GetSessionStatusTooltip(const UHoudiniCookable* Cookable) { return FText::GetEmpty(); };
 
 	virtual FString GetLogs(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs) { return FString(); };
 

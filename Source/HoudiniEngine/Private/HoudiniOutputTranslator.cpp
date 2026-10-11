@@ -25,6 +25,7 @@
 */
 
 #include "HoudiniOutputTranslator.h"
+#include "HoudiniMeshTranslatorUtils.h"
 
 #include "HAPI/HAPI.h"
 
@@ -36,6 +37,7 @@
 #include "HoudiniCookable.h"
 #include "HoudiniDataLayerUtils.h"
 #include "HoudiniDataTableTranslator.h"
+#include "HoudiniDataAssetTranslator.h"
 #include "HoudiniEngine.h"
 #include "HoudiniEnginePrivatePCH.h"
 #include "HoudiniEngineRuntime.h"
@@ -161,12 +163,18 @@ FHoudiniOutputTranslator::ProcessOutputs(
 	PackageParams.ComponentGUID = HC->CookableGUID;
 	PackageParams.ObjectName = FString();
 
+	// Standalone cookables do not own a scene component. Use the cookable as the
+	// output outer in that case so asset translators still have a valid outer.
+	UObject* OutputOuter = HC->GetComponent()
+		? static_cast<UObject*>(HC->GetComponent())
+		: static_cast<UObject*>(HC);
+
 	TArray<UPackage*> CreatedPackages;
 	if (!CreateAllOutputs(
 		HC->GetOutputs(),
 		HC->GetInputs(),
 		PackageParams,
-		HC->GetComponent(), // TODO COOKABLE: Use Cookable / Component here ? - need to split
+		OutputOuter,
 		HC->GetWorld(),
 		HC->IsProxyStaticMeshEnabled(),
 		HC->HasNoProxyMeshNextCookBeenRequested(),
@@ -223,7 +231,8 @@ FHoudiniOutputTranslator::UpdateOutputObjects(
 	//
 	// 1. Update the output objects
 	//
-	ClearAndRemoveOutputs(Outputs, EHoudiniClearFlags::EHoudiniClear_Actors);
+	ClearAndRemoveOutputs(Outputs, EHoudiniClearFlags::EHoudiniClear_Actors | EHoudiniClearFlags::EHoudiniClear_Assets);
+	Outputs.Empty();
 
 	TArray<TObjectPtr<UHoudiniOutput>> NewOutputs;
 	if (FHoudiniOutputTranslator::BuildAllOutputs(
@@ -339,7 +348,7 @@ FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(UHoudiniCookable* InHC)
 			{
 				// Look for detail custom prim data attributes
 				TArray<float> CurrentCustomPrimData;
-				FHoudiniMeshTranslator::GetCustomPrimitiveData(
+				FHoudiniMeshTranslatorUtils::GetCustomPrimitiveData(
 					CurrentHGPO.GeoId,
 					CurrentHGPO.PartId,
 					0,
@@ -359,7 +368,7 @@ FHoudiniOutputTranslator::UpdateOutputAttributesAndTags(UHoudiniCookable* InHC)
 
 		// Apply the details custom prim data found on the cookable component
 		if (!DetailCustomPrimData.IsEmpty())
-			FHoudiniMeshTranslator::SetCustomPrimitiveData(
+			FHoudiniMeshTranslatorUtils::SetCustomPrimitiveData(
 				DetailCustomPrimData, CookablePrimComponent);
 	}
 
@@ -401,6 +410,7 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 	{
 		OuterHC = Cast<UHoudiniCookable>(InOuterComponent->GetOuter());
 	}
+	UObject* OutputObjectOuter = IsValid(InOuterComponent) ? static_cast<UObject*>(InOuterComponent) : OuterHC;
 
 	// NOTE: The world can be NULL when, for example, when working with
 	// HoudiniAssetComponents in Blueprints.
@@ -559,7 +569,7 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 					InStaticMeshGenerationProperties,
 					InStaticMeshBuildSettings,
 					AllOutputMaterials,
-					InOuterComponent);
+					OutputObjectOuter);
 
 				NumVisibleOutputs++;
 
@@ -674,6 +684,15 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 				}
 				break;
 			}
+
+		case EHoudiniOutputType::DataAsset:
+		{
+			for (auto&& HGPO : CurOutput->HoudiniGeoPartObjects)
+			{
+				FHoudiniDataAssetTranslator::BuildDataAsset(HGPO, CurOutput, PackageParams);
+			}
+			break;
+		}
 
 			case EHoudiniOutputType::LandscapeSpline:
 			{
@@ -1090,7 +1109,7 @@ FHoudiniOutputTranslator::BuildStaticMeshesOnHoudiniProxyMeshOutputs(
 			for (auto& CurOutputObject : CurOutput->OutputObjects)
 			{
 				if (CurOutputObject.Value.ProxyComponent)
-					FHoudiniMeshTranslator::RemoveAndDestroyComponent(CurOutputObject.Value.ProxyComponent);
+					FHoudiniEngineUtils::RemoveAndDestroyComponent(CurOutputObject.Value.ProxyComponent);
 
 				if (IsValid(CurOutputObject.Value.ProxyObject))
 				{
@@ -2086,7 +2105,11 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 									else
 									{
 										// No vertices, not an instancer, just a point cloud
-										if (FHoudiniEngineUtils::IsValidDataTable(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+										if (FHoudiniEngineUtils::IsValidDataAsset(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+										{
+											CurrentPartType = EHoudiniPartType::DataAsset;
+										}
+										else if (FHoudiniEngineUtils::IsValidDataTable(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
 										{
 											CurrentPartType = EHoudiniPartType::DataTable;
 										}
@@ -2114,6 +2137,10 @@ FHoudiniOutputTranslator::BuildAllOutputs(
 						{
 							// Mark the part as an instancer it as an instancer
 							CurrentPartType = EHoudiniPartType::Instancer;
+						}
+						else if (FHoudiniEngineUtils::IsValidDataAsset(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
+						{
+							CurrentPartType = EHoudiniPartType::DataAsset;
 						}
 						else if (FHoudiniEngineUtils::IsValidDataTable(CurrentHapiGeoInfo.nodeId, CurrentHapiPartInfo.id))
 						{

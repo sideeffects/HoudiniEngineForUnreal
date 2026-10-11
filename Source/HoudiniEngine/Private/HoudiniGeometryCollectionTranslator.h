@@ -95,8 +95,6 @@ struct HOUDINIENGINE_API FHoudiniGeometryCollectionTranslator
 	private:
 
 		static UGeometryCollectionComponent* CreateGeometryCollectionComponent(UObject *InOuterComponent);
-	
-		static bool RemoveAndDestroyComponent(UObject* InComponent);
 
 
 		// Extracts all Geometry collection data from the outputs
@@ -124,4 +122,3 @@ struct HOUDINIENGINE_API FHoudiniGeometryCollectionTranslator
 		// Copied from FractureToolEmbed.h
 		static void AddSingleRootNodeIfRequired(UGeometryCollection* GeometryCollectionObject);	
 };
-

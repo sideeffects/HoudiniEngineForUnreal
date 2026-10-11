@@ -312,6 +312,10 @@
 #define HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWSTRUCT				"unreal_data_table_rowstruct"
 #define HAPI_UNREAL_ATTRIB_DATA_TABLE_ROWNAME               "unreal_data_table_rowname"
 
+// data assets
+#define HAPI_UNREAL_ATTRIB_DATA_ASSET_CLASS					"unreal_data_asset_class"
+#define HAPI_UNREAL_ATTRIB_DATA_ASSET_VALUES				"unreal_data_asset_values"
+
 // Level instances
 #define HAPI_UNREAL_ATTRIB_LEVEL_INSTANCE_NAME              "unreal_level_instance_name"
 #define HAPI_UNREAL_ATTRIB_LEVEL_INSTANCE_TYPE              "unreal_level_instance_type"
@@ -320,6 +324,7 @@
 #define HAPI_UNREAL_ATTRIB_OUTPUT_UNREAL_CURVE				"unreal_output_curve"
 #define HAPI_UNREAL_ATTRIB_OUTPUT_UNREAL_CURVE_LINEAR		"unreal_output_curve_linear"
 #define HAPI_UNREAL_ATTRIB_OUTPUT_UNREAL_CURVE_CLOSED		"unreal_output_curve_closed"
+#define HAPI_UNREAL_ATTRIB_OUTPUT_DYNAMIC_MESH				"unreal_output_dynamic_mesh"
 // We only support Unreal spline outputs for now
 //#define HAPI_UNREAL_ATTRIB_OUTPUT_HOUDINI_CURVE				"houdini_output_curve"
 

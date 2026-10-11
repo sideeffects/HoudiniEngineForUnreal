@@ -25,6 +25,7 @@
 */
 
 #include "HoudiniSkeletalMeshTranslator.h"
+#include "HoudiniMeshTranslatorUtils.h"
 
 #include "HoudiniApi.h"
 #include "HoudiniEngine.h"
@@ -897,7 +898,7 @@ bool FHoudiniSkeletalMeshTranslator::ProcessSkeletalMeshParts()
 	// Get non-generic supported attributes from OutputObjectIdentifier
 	OutputObject.CachedAttributes.Empty();
 	OutputObject.CachedTokens.Empty();
-	FHoudiniMeshTranslator::CopyAttributesFromHGPOForSplit(ShapeMeshHGPO, ShapeIdentifier.PointIndex, ShapeIdentifier.PrimitiveIndex, OutputObject.CachedAttributes, OutputObject.CachedTokens);
+	FHoudiniMeshTranslatorUtils::CopyAttributesFromHGPOForSplit(ShapeMeshHGPO, ShapeIdentifier.PointIndex, ShapeIdentifier.PrimitiveIndex, OutputObject.CachedAttributes, OutputObject.CachedTokens);
 	
 
 	USkeletalMesh* SkeletalMeshAsset = CreateNewSkeletalMesh(ShapeIdentifier.SplitIdentifier);
@@ -1060,20 +1061,20 @@ FHoudiniSkeletalMeshTranslator::SetPhysicsAssetFromHGPO(UPhysicsAsset* PhysicsAs
 
 			if (GroupName.StartsWith(TEXT("collision_geo_simple_box")))
 			{
-				FHoudiniMeshTranslator::GenerateOrientedBoxAsSimpleCollision(UnrealPoints, BodySetup->AggGeom);
+				FHoudiniMeshTranslatorUtils::GenerateOrientedBoxAsSimpleCollision(UnrealPoints, BodySetup->AggGeom);
 			}
 			else if (GroupName.StartsWith(TEXT("collision_geo_simple_sphere")))
 			{
-				FHoudiniMeshTranslator::GenerateSphereAsSimpleCollision(UnrealPoints, BodySetup->AggGeom);
+				FHoudiniMeshTranslatorUtils::GenerateSphereAsSimpleCollision(UnrealPoints, BodySetup->AggGeom);
 			}
 			else if (GroupName.StartsWith(TEXT("collision_geo_simple_capsule")))
 			{
-				FHoudiniMeshTranslator::GenerateOrientedSphylAsSimpleCollision(UnrealPoints, BodySetup->AggGeom);
+				FHoudiniMeshTranslatorUtils::GenerateOrientedSphylAsSimpleCollision(UnrealPoints, BodySetup->AggGeom);
 			}
 			else if (GroupName.StartsWith(TEXT("collision_geo_simple_kdop")))
 			{
-				TArray<FVector> Directions = FHoudiniMeshTranslator::GetKdopDirections(GroupName);
-				FHoudiniMeshTranslator::GenerateKDopAsSimpleCollision(UnrealPoints, Directions, BodySetup->AggGeom);
+				TArray<FVector> Directions = FHoudiniMeshTranslatorUtils::GetKdopDirections(GroupName);
+				FHoudiniMeshTranslatorUtils::GenerateKDopAsSimpleCollision(UnrealPoints, Directions, BodySetup->AggGeom);
 			}
 		}
 	}

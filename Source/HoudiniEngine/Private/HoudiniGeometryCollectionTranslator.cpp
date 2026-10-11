@@ -8,6 +8,7 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniInstanceTranslator.h"
 #include "HoudiniMeshTranslator.h"
+#include "HoudiniMeshTranslatorUtils.h"
 
 #include "StaticMeshAttributes.h"
 #include "StaticMeshOperations.h"
@@ -181,7 +182,7 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 
 			    FHoudiniGeometryCollectionTranslator::AppendStaticMesh(ComponentStaticMesh, SourceMaterials, ComponentTransform, GeometryCollection, true);
 
-			    RemoveAndDestroyComponent(OldComponent);
+			    FHoudiniEngineUtils::RemoveAndDestroyComponent(OldComponent);
 				
 			    // Sets the GeometryIndex, to identify which this piece is when dealing with the geometry collection
 			    int32 GeometryIndex = GeometryCollection->NumElements(FGeometryCollection::TransformGroup) - 1;
@@ -279,7 +280,7 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 
 			// See if we need to update Custom Prim Data on the GCC
 			TArray<float> CustomPrimData;
-			FHoudiniMeshTranslator::GetCustomPrimitiveData(
+			FHoudiniMeshTranslatorUtils::GetCustomPrimitiveData(
 				GCData.Identifier.GeoId,
 				GCData.Identifier.PartId,
 				GCData.Identifier.PrimitiveIndex,
@@ -287,7 +288,7 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 
 			if (!CustomPrimData.IsEmpty())
 			{
-				FHoudiniMeshTranslator::SetCustomPrimitiveData(
+				FHoudiniMeshTranslatorUtils::SetCustomPrimitiveData(
 					CustomPrimData, GeometryCollectionComponent);
 			}
 
@@ -373,30 +374,6 @@ FHoudiniGeometryCollectionTranslator::ApplyGenericPropertiesAttributes(
 			FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(Owner, PropertyAttributes);
 		}
 	}
-}
-
-
-bool
-FHoudiniGeometryCollectionTranslator::RemoveAndDestroyComponent(UObject* InComponent)
-{
-	if (!IsValid(InComponent))
-		return false;
-
-	USceneComponent* SceneComponent = Cast<USceneComponent>(InComponent);
-	if (IsValid(SceneComponent))
-	{
-		// Remove from the HoudiniAssetActor
-		if (SceneComponent->GetOwner())
-			SceneComponent->GetOwner()->RemoveOwnedComponent(SceneComponent);
-
-		SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-		SceneComponent->UnregisterComponent();
-		SceneComponent->DestroyComponent();
-
-		return true;
-	}
-
-	return false;
 }
 
 

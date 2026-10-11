@@ -407,13 +407,12 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 		FName(TEXT(HOUDINI_ENGINE_UI_SECTION_GENERATE_HEADER_TEXT)),
 		FText::FromString(TEXT(HOUDINI_ENGINE_UI_SECTION_GENERATE_HEADER_TEXT)), false, false);
 	IDetailLayoutBuilder* SavedLayoutBuilder = &HoudiniEngineCategoryBuilder.GetParentLayout();
+	const TWeakObjectPtr<UHoudiniCookable>& MainHC = InHCs[0];
+	if (!IsValidWeakPointer(MainHC))
+		return;
 
 	if(Flags.bCookButtons)
 	{
-		const TWeakObjectPtr<UHoudiniCookable>& MainHC = InHCs[0];
-		if(!IsValidWeakPointer(MainHC))
-			return;
-
 		auto OnReBuildClickedLambda = [InHCs]()
 			{
 				for(auto& NextHC : InHCs)
@@ -547,6 +546,20 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 				return true;
 			};
 
+		auto AreCookButtonsEnabled = [InHCs, AreGenerateButtonsEnabled]()
+			{
+				if (!AreGenerateButtonsEnabled())
+					return false;
+
+				for (const auto& NextHC : InHCs)
+				{
+					if (IsValidWeakPointer(NextHC) && NextHC->IsLocked())
+						return false;
+				}
+
+				return true;
+			};
+
 		auto GetCancelButtonText = [InHCs]()
 			{
 				for (const auto& NextHC : InHCs)
@@ -561,10 +574,54 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 				return LOCTEXT("HoudiniAssetDetailsCancelButtonLabel", "Cancel");
 			};
 
+		auto OnLockButtonClickedLambda = [InHCs, SavedLayoutBuilder]()
+			{
+				bool bLockCookables = false;
+				for (const TWeakObjectPtr<UHoudiniCookable>& NextHC : InHCs)
+				{
+					if (IsValidWeakPointer(NextHC) && !NextHC->IsLocked())
+					{
+						bLockCookables = true;
+						break;
+					}
+				}
+
+				if (!bLockCookables)
+				{
+					// A Session Sync parameter change made while locked can leave HAPI reporting an active cook after
+					// the cookable returns to Idle. Interrupt it before unlocking so the status can complete normally.
+					const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+					if (Session)
+						FHoudiniApi::Interrupt(Session);
+				}
+
+				for (const TWeakObjectPtr<UHoudiniCookable>& NextHC : InHCs)
+				{
+					if (!IsValidWeakPointer(NextHC) || NextHC->IsLocked() == bLockCookables)
+						continue;
+
+					NextHC->SetLocked(bLockCookables);
+					NextHC->MarkPackageDirty();
+				}
+
+				if (SavedLayoutBuilder)
+					SavedLayoutBuilder->ForceRefreshDetails();
+
+				return FReply::Handled();
+			};
+
+		auto GetLockButtonTooltip = [MainHC]()
+			{
+				return IsValidWeakPointer(MainHC) && MainHC->IsLocked()
+					? LOCTEXT("HoudiniAssetDetailsUnlockButton", "Unlock the selected Houdini Asset Component.")
+					: LOCTEXT("HoudiniAssetDetailsLockButton", "Lock the selected Houdini Asset Component to prevent cooking and transform changes.");
+			};
+
 		TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIRebuildIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIRebuildIconBrush();
 		TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIRecookIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIRecookIconBrush();
 		TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUIDeleteIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIDeleteCookIconBrush();
 		TSharedPtr<FSlateDynamicImageBrush> HoudiniEngineUICancelIconBrush = FHoudiniEngineEditor::Get().GetHoudiniEngineUIPDGCancelIconBrush();
+		constexpr float CookActionButtonWidth = HOUDINI_ENGINE_UI_BUTTON_WIDTH - 30.0f;
 
 		FDetailWidgetRow& ButtonRow = GenerateGroup.AddWidgetRow();
 		TSharedRef<SHorizontalBox> ButtonHorizontalBox = SNew(SHorizontalBox);
@@ -578,10 +635,10 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 		TSharedPtr<SButton> RecookButton;
 		TSharedPtr<SHorizontalBox> RecookButtonHorizontalBox;
 		ButtonHorizontalBox->AddSlot()
-			.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+			.MaxWidth(CookActionButtonWidth)
 			[
 				SNew(SBox)
-					.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+					.WidthOverride(CookActionButtonWidth)
 					[
 						SAssignNew(RecookButton, SButton)
 							.VAlign(VAlign_Center)
@@ -589,7 +646,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 							.ToolTipText(LOCTEXT("HoudiniAssetDetailsRecookAssetButton", "Recook the selected Houdini Asset: all parameters and inputs are re-upload to Houdini and the asset is then forced to recook."))
 							//.Text(FText::FromString("Recook"))
 							.Visibility(EVisibility::Visible)
-							.IsEnabled_Lambda(AreGenerateButtonsEnabled)
+							.IsEnabled_Lambda(AreCookButtonsEnabled)
 							.OnClicked_Lambda(OnRecookClickedLambda)
 							.Content()
 							[
@@ -647,12 +704,12 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 		TSharedPtr<SButton> RebuildButton;
 		TSharedPtr<SHorizontalBox> RebuildButtonHorizontalBox;
 		ButtonHorizontalBox->AddSlot()
-			.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+			.MaxWidth(CookActionButtonWidth)
 			//.Padding(15.0f, 0.0f, 0.0f, 2.0f)
 			//.Padding(2.0f, 0.0f, 0.0f, 2.0f)
 			[
 				SNew(SBox)
-					.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+					.WidthOverride(CookActionButtonWidth)
 					[
 						SAssignNew(RebuildButton, SButton)
 							.VAlign(VAlign_Center)
@@ -660,7 +717,7 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 							.ToolTipText(LOCTEXT("HoudiniAssetDetailsRebuildAssetButton", "Rebuild the selected Houdini Asset: its source .HDA file is reimported and updated, the asset's nodes in Houdini are destroyed and recreated, and the asset is then forced to recook."))
 							//.Text(FText::FromString("Rebuild"))
 							.Visibility(EVisibility::Visible)
-							.IsEnabled_Lambda(AreGenerateButtonsEnabled)
+							.IsEnabled_Lambda(AreCookButtonsEnabled)
 							.Content()
 							[
 								SNew(SHorizontalBox)
@@ -716,10 +773,10 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 		TSharedPtr<SButton> CancelButton;
 		TSharedPtr<SHorizontalBox> CancelButtonHorizontalBox;
 		ButtonHorizontalBox->AddSlot()
-			.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+			.MaxWidth(CookActionButtonWidth)
 			[
 				SNew(SBox)
-					.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+					.WidthOverride(CookActionButtonWidth)
 					[
 						SAssignNew(CancelButton, SButton)
 							.VAlign(VAlign_Center)
@@ -778,17 +835,17 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 		TSharedPtr<SButton> DeleteButton;
 		TSharedPtr<SHorizontalBox> DeleteButtonHorizontalBox;
 		ButtonHorizontalBox->AddSlot()
-			.MaxWidth(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+			.MaxWidth(CookActionButtonWidth)
 			[
 				SNew(SBox)
-					.WidthOverride(HOUDINI_ENGINE_UI_BUTTON_WIDTH)
+					.WidthOverride(CookActionButtonWidth)
 					[
 						SAssignNew(DeleteButton, SButton)
 							.VAlign(VAlign_Center)
 							.HAlign(HAlign_Center)
 							.ToolTipText(LOCTEXT("HoudiniAssetDetailsDeleteAssetButton", "Delete the selected Houdini Asset's cooked outputs."))
 							.Visibility(EVisibility::Visible)
-							.IsEnabled_Lambda(AreGenerateButtonsEnabled)
+							.IsEnabled_Lambda(AreCookButtonsEnabled)
 							.Content()
 							[
 								SNew(SHorizontalBox)
@@ -834,6 +891,59 @@ FHoudiniEngineDetails::CreateGenerateWidgets(
 				SNew(STextBlock)
 					.Text(FText::FromString("Delete"))
 			];
+
+		//----------------------------------------------------------------
+		// Lock button
+		//----------------------------------------------------------------
+		TSharedPtr<SButton> LockButton;
+		TSharedPtr<SHorizontalBox> LockButtonHorizontalBox;
+		ButtonHorizontalBox->AddSlot()
+			.MaxWidth(CookActionButtonWidth * 0.5f)
+			[
+				SNew(SBox)
+					.WidthOverride(CookActionButtonWidth * 0.5f)
+					[
+						SAssignNew(LockButton, SButton)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Center)
+							.ButtonStyle(FAppStyle::Get(), "NoBorder")
+							.ContentPadding(0.0f)
+							.ToolTipText_Lambda(GetLockButtonTooltip)
+							.Visibility(EVisibility::Visible)
+							.IsEnabled_Lambda(AreGenerateButtonsEnabled)
+							.Content()
+							[
+								SNew(SHorizontalBox)
+								+ SHorizontalBox::Slot()
+								.HAlign(HAlign_Center)
+								[
+									SAssignNew(LockButtonHorizontalBox, SHorizontalBox)
+								]
+							]
+							.OnClicked_Lambda(OnLockButtonClickedLambda)
+					]
+			];
+
+		{
+			TSharedPtr<SImage> LockImage;
+			LockButtonHorizontalBox->AddSlot()
+				.MaxWidth(16.0f)
+				[
+					SNew(SBox)
+						.WidthOverride(16.0f)
+						.HeightOverride(16.0f)
+						[
+							SAssignNew(LockImage, SImage)
+						]
+				];
+
+			LockImage->SetImage(TAttribute<const FSlateBrush*>::Create(TAttribute<const FSlateBrush*>::FGetter::CreateLambda([MainHC]()
+				{
+					return IsValidWeakPointer(MainHC) && MainHC->IsLocked()
+						? FAppStyle::GetBrush(TEXT("PropertyWindow.Locked"))
+						: FAppStyle::GetBrush(TEXT("PropertyWindow.Unlocked"));
+				})));
+		}
 
 		ButtonRow.WholeRowWidget.Widget = ButtonHorizontalBox;
 		ButtonRow.IsEnabled(true);
@@ -1302,7 +1412,19 @@ FHoudiniEngineDetails::AddBakeButtons(
 	const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs,
 	EHoudiniDetailsFlags DetailsFlags)
 {
-	TSharedRef<SHorizontalBox> ButtonRowHorizontalBox = SNew(SHorizontalBox);
+	auto AreBakeButtonsEnabled = [InHCs]()
+		{
+			for (const TWeakObjectPtr<UHoudiniCookable>& NextHC : InHCs)
+			{
+				if (IsValidWeakPointer(NextHC) && NextHC->IsLocked())
+					return false;
+			}
+
+			return true;
+		};
+
+	TSharedRef<SHorizontalBox> ButtonRowHorizontalBox = SNew(SHorizontalBox)
+		.IsEnabled_Lambda(AreBakeButtonsEnabled);
 
 	auto OnBakeButtonClickedLambda = [InHCs, MainHC]()
 	{
@@ -1481,10 +1603,10 @@ FHoudiniEngineDetails::AddBakeButtons(
 					[
 						SNew(SButton)
 							.VAlign(VAlign_Center)
-							.HAlign(HAlign_Center)
-							.ToolTipText(LOCTEXT("HoudiniAssetPFGDetailsDeleteBakeButton", "Delete assets and actors from the previous Bake."))
-							.Visibility(EVisibility::Visible)
-							.OnClicked_Lambda(OnDeleteBakeButtonClickedLambda)
+						.HAlign(HAlign_Center)
+						.ToolTipText(LOCTEXT("HoudiniAssetPFGDetailsDeleteBakeButton", "Delete assets and actors from the previous Bake."))
+						.Visibility(EVisibility::Visible)
+						.OnClicked_Lambda(OnDeleteBakeButtonClickedLambda)
 							[
 								DeleteBakeButtonHBox
 							]
@@ -1534,10 +1656,10 @@ FHoudiniEngineDetails::AddBakeButtons(
 					[
 						SNew(SButton)
 							.VAlign(VAlign_Center)
-							.HAlign(HAlign_Center)
-							.ToolTipText(LOCTEXT("HoudiniAssetPFGDetailsDeleteBakeButton", "Unlinks assets and actors from the previous Bake."))
-							.Visibility(EVisibility::Visible)
-							.OnClicked_Lambda(OnUnlinkBakeButtonClickedLambda)
+						.HAlign(HAlign_Center)
+						.ToolTipText(LOCTEXT("HoudiniAssetPFGDetailsDeleteBakeButton", "Unlinks assets and actors from the previous Bake."))
+						.Visibility(EVisibility::Visible)
+						.OnClicked_Lambda(OnUnlinkBakeButtonClickedLambda)
 							[
 								UnlinkBakeButtonHBox
 							]
@@ -2075,6 +2197,33 @@ FHoudiniEngineDetails::CreateMiscOptionsWidgets(
 		return;
 
 	IDetailGroup& Group = ParentGroup.AddGroup(FName(TEXT("Cook Options")), FText::FromString(TEXT("Cook Options")), false);
+
+	{
+		FDetailWidgetRow& LockOnLoadRow = Group.AddWidgetRow();
+		LockOnLoadRow.NameWidget.Widget = SNew(STextBlock)
+			.Text(LOCTEXT("HoudiniEngineLockOnLoadLabel", "Lock On Load"))
+			.Font(_GetEditorStyle().GetFontStyle(HOUDINI_DETAILS_FONT))
+			.ToolTipText(LOCTEXT("HoudiniEngineLockOnLoadTooltip", "Lock this Houdini Asset Component whenever it is loaded."));
+		LockOnLoadRow.ValueWidget.Widget = SNew(SCheckBox)
+			.IsChecked_Lambda([MainHC]()
+				{
+					return IsValidWeakPointer(MainHC) && MainHC->GetLockOnLoad()
+						? ECheckBoxState::Checked
+						: ECheckBoxState::Unchecked;
+				})
+			.OnCheckStateChanged_Lambda([InHCs](ECheckBoxState NewState)
+				{
+					const bool bLockOnLoad = NewState == ECheckBoxState::Checked;
+					for (const TWeakObjectPtr<UHoudiniCookable>& NextHC : InHCs)
+					{
+						if (!IsValidWeakPointer(NextHC) || NextHC->GetLockOnLoad() == bLockOnLoad)
+							continue;
+
+						NextHC->SetLockOnLoad(bLockOnLoad);
+						NextHC->MarkPackageDirty();
+					}
+				});
+	}
 
 	auto IsCheckedPushTransformToHoudiniLambda = [MainHC]()
 		{
@@ -3899,6 +4048,13 @@ FHoudiniEngineDetails::AddSessionStatusRow(IDetailCategoryBuilder& InCategory, c
 					SNew(SButton)
 					.ButtonStyle(FAppStyle::Get(), "NoBorder")
 					.OnClicked_Lambda(OnClickedStatus)
+					.ToolTipText_Lambda([InCookables]()
+						{
+							UHoudiniCookable* Cookable = !InCookables.IsEmpty() && InCookables[0].IsValid()
+								? InCookables[0].Get()
+								: nullptr;
+							return FHoudiniEngineStatusManager::Get()->GetSessionStatusTooltip(Cookable);
+						})
 						[
 							SNew(STextBlock)
 								.Justification(ETextJustify::Center)

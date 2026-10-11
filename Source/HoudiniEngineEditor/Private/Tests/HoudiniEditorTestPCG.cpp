@@ -565,8 +565,6 @@ bool FHoudiniEditorTestPCG_LandscapesCookedCreate::RunTest(const FString& Parame
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// Test 1: Load a cube, then use it to generate a new cube.
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	AddCommand(new FFunctionLatentCommand([Context]
 		{
@@ -576,8 +574,8 @@ bool FHoudiniEditorTestPCG_LandscapesCookedCreate::RunTest(const FString& Parame
 
 	AddCommand(new FFunctionLatentCommand([this, Context, PCGAssetFullPath]()
 	{
-			if(!Context->Update())
-				return false;
+		if(!Context->Update())
+			return false;
 
 		UPCGDataAsset* MyObject = Cast<UPCGDataAsset>(StaticLoadObject(UPCGDataAsset::StaticClass(), nullptr, *PCGAssetFullPath));
 		HOUDINI_TEST_NOT_NULL_ON_FAIL(MyObject, return true);

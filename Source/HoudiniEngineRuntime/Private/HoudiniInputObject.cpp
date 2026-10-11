@@ -40,11 +40,14 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
 #include "Animation/AnimSequence.h"
+#include "Engine/DataAsset.h"
 #include "Engine/DataTable.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/DynamicMeshComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "PhysicsEngine/AggregateGeom.h"
 #include "Landscape.h"
 #include "Engine/Brush.h"
 #include "Engine/Engine.h"
@@ -79,9 +82,72 @@
 #include "LevelInstance/LevelInstanceActor.h"
 #include "PackedLevelActor/PackedLevelActor.h"
 #include "EngineUtils.h"
+#include "UDynamicMesh.h"
 #if defined(HOUDINI_USE_PCG)
 #include "HoudiniPCGDataObject.h"
 #endif
+
+namespace
+{
+uint32 GetSimpleCollisionHash(const FKAggregateGeom& SimpleColliders)
+{
+	uint32 Hash = 0;
+	auto AddVectorToHash = [&Hash](const FVector& Vector)
+	{
+		Hash = HashCombine(Hash, GetTypeHash(Vector.X));
+		Hash = HashCombine(Hash, GetTypeHash(Vector.Y));
+		Hash = HashCombine(Hash, GetTypeHash(Vector.Z));
+	};
+	auto AddRotatorToHash = [&Hash](const FRotator& Rotator)
+	{
+		Hash = HashCombine(Hash, GetTypeHash(Rotator.Pitch));
+		Hash = HashCombine(Hash, GetTypeHash(Rotator.Yaw));
+		Hash = HashCombine(Hash, GetTypeHash(Rotator.Roll));
+	};
+
+	for (const FKBoxElem& Box : SimpleColliders.BoxElems)
+	{
+		AddVectorToHash(Box.Center);
+		AddRotatorToHash(Box.Rotation);
+		Hash = HashCombine(Hash, GetTypeHash(Box.X));
+		Hash = HashCombine(Hash, GetTypeHash(Box.Y));
+		Hash = HashCombine(Hash, GetTypeHash(Box.Z));
+	}
+
+	for (const FKSphereElem& Sphere : SimpleColliders.SphereElems)
+	{
+		AddVectorToHash(Sphere.Center);
+		Hash = HashCombine(Hash, GetTypeHash(Sphere.Radius));
+	}
+
+	for (const FKSphylElem& Sphyl : SimpleColliders.SphylElems)
+	{
+		AddVectorToHash(Sphyl.Center);
+		AddRotatorToHash(Sphyl.Rotation);
+		Hash = HashCombine(Hash, GetTypeHash(Sphyl.Radius));
+		Hash = HashCombine(Hash, GetTypeHash(Sphyl.Length));
+	}
+
+	for (const FKConvexElem& Convex : SimpleColliders.ConvexElems)
+	{
+		const FTransform Transform = Convex.GetTransform();
+		AddVectorToHash(Transform.GetLocation());
+		AddVectorToHash(Transform.GetScale3D());
+		AddRotatorToHash(Transform.GetRotation().Rotator());
+		for (const FVector& Vertex : Convex.VertexData)
+			AddVectorToHash(Vertex);
+		for (const int32 Index : Convex.IndexData)
+			Hash = HashCombine(Hash, GetTypeHash(Index));
+	}
+
+	Hash = HashCombine(Hash, GetTypeHash(SimpleColliders.BoxElems.Num()));
+	Hash = HashCombine(Hash, GetTypeHash(SimpleColliders.SphereElems.Num()));
+	Hash = HashCombine(Hash, GetTypeHash(SimpleColliders.SphylElems.Num()));
+	Hash = HashCombine(Hash, GetTypeHash(SimpleColliders.ConvexElems.Num()));
+	return Hash;
+}
+}
+
 //-----------------------------------------------------------------------------------------------------------------------------
 // Constructors
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -105,6 +171,12 @@ UHoudiniInputObject::UHoudiniInputObject(const FObjectInitializer& ObjectInitial
 
 //
 UHoudiniInputStaticMesh::UHoudiniInputStaticMesh(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}
+
+UHoudiniInputDynamicMesh::UHoudiniInputDynamicMesh(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 
@@ -194,6 +266,12 @@ UHoudiniInputSceneComponent::UHoudiniInputSceneComponent(const FObjectInitialize
 
 //
 UHoudiniInputMeshComponent::UHoudiniInputMeshComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}
+
+UHoudiniInputDynamicMeshComponent::UHoudiniInputDynamicMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 
@@ -571,6 +649,19 @@ UHoudiniInputStaticMesh::GetStaticMesh() const
 	return Cast<UStaticMesh>(InputObject.LoadSynchronous());
 }
 
+UDynamicMesh*
+UHoudiniInputDynamicMesh::GetDynamicMesh() const
+{
+	return Cast<UDynamicMesh>(InputObject.LoadSynchronous());
+}
+
+bool
+UHoudiniInputDynamicMesh::HasChanged() const
+{
+	const UDynamicMesh* const DynamicMesh = GetDynamicMesh();
+	return Super::HasChanged() || (IsValid(DynamicMesh) && DynamicMesh->GetMeshRef().GetChangeStamp() != DynamicMeshChangeStamp);
+}
+
 USkeletalMesh*
 UHoudiniInputSkeletalMesh::GetSkeletalMesh()
 {
@@ -656,6 +747,19 @@ UStaticMesh*
 UHoudiniInputMeshComponent::GetStaticMesh() 
 { 
 	return StaticMesh.Get(); 
+}
+
+UDynamicMeshComponent*
+UHoudiniInputDynamicMeshComponent::GetDynamicMeshComponent() const
+{
+	return Cast<UDynamicMeshComponent>(InputObject.LoadSynchronous());
+}
+
+UDynamicMesh*
+UHoudiniInputDynamicMeshComponent::GetDynamicMesh() const
+{
+	UDynamicMeshComponent* const DynamicMeshComponent = GetDynamicMeshComponent();
+	return IsValid(DynamicMeshComponent) ? DynamicMeshComponent->GetDynamicMesh() : nullptr;
 }
 
 UInstancedStaticMeshComponent*
@@ -878,6 +982,9 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 		case EHoudiniInputObjectType::StaticMesh:
 			HoudiniInputObject = UHoudiniInputStaticMesh::Create(InObject, InOuter, InName, InInputSettings);
 			break;
+		case EHoudiniInputObjectType::DynamicMesh:
+			HoudiniInputObject = UHoudiniInputDynamicMesh::Create(InObject, InOuter, InName, InInputSettings);
+			break;
 
 		case EHoudiniInputObjectType::SkeletalMesh:
 			HoudiniInputObject = UHoudiniInputSkeletalMesh::Create(InObject, InOuter, InName, InInputSettings);
@@ -892,6 +999,9 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 
 		case EHoudiniInputObjectType::StaticMeshComponent:
 			HoudiniInputObject = UHoudiniInputMeshComponent::Create(InObject, InOuter, InName, InInputSettings, InParentInputActor);
+			break;
+		case EHoudiniInputObjectType::DynamicMeshComponent:
+			HoudiniInputObject = UHoudiniInputDynamicMeshComponent::Create(InObject, InOuter, InName, InInputSettings, InParentInputActor);
 			break;
 
 		case EHoudiniInputObjectType::InstancedStaticMeshComponent:
@@ -953,6 +1063,10 @@ UHoudiniInputObject::CreateTypedInputObject(UObject * InObject, UObject* InOuter
 
 		case EHoudiniInputObjectType::DataTable:
 			HoudiniInputObject = UHoudiniInputDataTable::Create(InObject, InOuter, InName, InInputSettings);
+			break;
+
+		case EHoudiniInputObjectType::DataAsset:
+			HoudiniInputObject = UHoudiniInputDataAsset::Create(InObject, InOuter, InName, InInputSettings);
 			break;
 
 		case EHoudiniInputObjectType::PCGData:
@@ -1040,6 +1154,23 @@ UHoudiniInputMeshComponent::Create(UObject * InObject, UObject* InOuter, const F
 
 	HoudiniInputObject->SetParentInputActor(InParentInputActor);
 	HoudiniInputObject->Type = EHoudiniInputObjectType::StaticMeshComponent;
+	HoudiniInputObject->Update(InObject, InInputSettings);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+UHoudiniInputObject*
+UHoudiniInputDynamicMeshComponent::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor)
+{
+	const FString InputObjectNameStr = "HoudiniInputObject_DynamicMeshComponent_" + InName;
+	const FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputDynamicMeshComponent::StaticClass(), *InputObjectNameStr);
+
+	UHoudiniInputDynamicMeshComponent* const HoudiniInputObject = NewObject<UHoudiniInputDynamicMeshComponent>(
+		InOuter, UHoudiniInputDynamicMeshComponent::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->SetParentInputActor(InParentInputActor);
+	HoudiniInputObject->Type = EHoudiniInputObjectType::DynamicMeshComponent;
 	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
@@ -1262,6 +1393,22 @@ UHoudiniInputStaticMesh::Create(UObject * InObject, UObject* InOuter, const FStr
 		InOuter, UHoudiniInputStaticMesh::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
 
 	HoudiniInputObject->Type = EHoudiniInputObjectType::StaticMesh;
+	HoudiniInputObject->Update(InObject, InInputSettings);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+UHoudiniInputObject*
+UHoudiniInputDynamicMesh::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
+{
+	const FString InputObjectNameStr = "HoudiniInputObject_DynamicMesh_" + InName;
+	const FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputDynamicMesh::StaticClass(), *InputObjectNameStr);
+
+	UHoudiniInputDynamicMesh* const HoudiniInputObject = NewObject<UHoudiniInputDynamicMesh>(
+		InOuter, UHoudiniInputDynamicMesh::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::DynamicMesh;
 	HoudiniInputObject->Update(InObject, InInputSettings);
 	HoudiniInputObject->bHasChanged = true;
 
@@ -1562,6 +1709,7 @@ UHoudiniInputObject::UpdateMaterialReferences()
 		}
 
 		case EHoudiniInputObjectType::StaticMeshComponent:
+		case EHoudiniInputObjectType::DynamicMeshComponent:
 		case EHoudiniInputObjectType::SkeletalMeshComponent:
 		case EHoudiniInputObjectType::GeometryCollectionComponent:
 		{
@@ -1643,6 +1791,52 @@ UHoudiniInputStaticMesh::Update(UObject * InObject, const FHoudiniInputObjectSet
 	UBlueprint* BP = Cast<UBlueprint>(InObject);
 
 	ensure(SM || BP);
+}
+
+void
+UHoudiniInputDynamicMesh::Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings)
+{
+	Super::Update(InObject, InSettings);
+
+	UDynamicMesh* const DynamicMesh = Cast<UDynamicMesh>(InObject);
+	if (!IsValid(DynamicMesh))
+		return;
+
+	UE::Geometry::FDynamicMesh3& Mesh = DynamicMesh->GetMeshRef();
+	Mesh.SetShapeChangeStampEnabled(true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+	Mesh.SetTopologyChangeStampEnabled(true);
+#endif
+	DynamicMeshChangeStamp = Mesh.GetChangeStamp();
+}
+
+void
+UHoudiniInputDynamicMeshComponent::Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings)
+{
+	Super::Update(InObject, InSettings);
+
+	UDynamicMeshComponent* const DynamicMeshComponent = Cast<UDynamicMeshComponent>(InObject);
+	if (!IsValid(DynamicMeshComponent))
+		return;
+
+	UDynamicMesh* const DynamicMesh = DynamicMeshComponent->GetDynamicMesh();
+	if (IsValid(DynamicMesh))
+	{
+		UE::Geometry::FDynamicMesh3& Mesh = DynamicMesh->GetMeshRef();
+		Mesh.SetShapeChangeStampEnabled(true);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		Mesh.SetTopologyChangeStampEnabled(true);
+#endif
+		DynamicMeshChangeStamp = Mesh.GetChangeStamp();
+	}
+
+	Materials.Reset();
+	for (UMaterialInterface* Material : DynamicMeshComponent->GetMaterials())
+	{
+		Materials.Add(Material);
+	}
+
+	SimpleCollisionHash = GetSimpleCollisionHash(DynamicMeshComponent->GetSimpleCollisionShapes());
 }
 
 void
@@ -1892,6 +2086,34 @@ UHoudiniInputMeshComponent::HasComponentChanged(const FHoudiniInputObjectSetting
 
 	// Return true if SMC's static mesh has been modified
 	return (MySM != SMCSM);
+}
+
+bool
+UHoudiniInputDynamicMeshComponent::HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const
+{
+	const UDynamicMeshComponent* const DynamicMeshComponent = GetDynamicMeshComponent();
+	const UDynamicMesh* const DynamicMesh = GetDynamicMesh();
+	if (!IsValid(DynamicMeshComponent) || !IsValid(DynamicMesh))
+		return false;
+
+	if (DynamicMesh->GetMeshRef().GetChangeStamp() != DynamicMeshChangeStamp)
+		return true;
+
+	if (InSettings.bExportColliders
+		&& GetSimpleCollisionHash(DynamicMeshComponent->GetSimpleCollisionShapes()) != SimpleCollisionHash)
+		return true;
+
+	const TArray<UMaterialInterface*> CurrentMaterials = DynamicMeshComponent->GetMaterials();
+	if (CurrentMaterials.Num() != Materials.Num())
+		return true;
+
+	for (int32 MaterialIndex = 0; MaterialIndex < CurrentMaterials.Num(); ++MaterialIndex)
+	{
+		if (CurrentMaterials[MaterialIndex] != Materials[MaterialIndex])
+			return true;
+	}
+
+	return false;
 }
 
 bool
@@ -3142,6 +3364,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		{
 			return EHoudiniInputObjectType::StaticMeshComponent;
 		}
+		else if (InObject->IsA(UDynamicMeshComponent::StaticClass()))
+		{
+			return EHoudiniInputObjectType::DynamicMeshComponent;
+		}
 		else if (InObject->IsA(USplineComponent::StaticClass()))
 		{
 			return EHoudiniInputObjectType::SplineComponent;
@@ -3225,6 +3451,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		{
 			return EHoudiniInputObjectType::StaticMesh;
 		}
+		else if (InObject->IsA(UDynamicMesh::StaticClass()))
+		{
+			return EHoudiniInputObjectType::DynamicMesh;
+		}
 		else if (InObject->IsA(USkeletalMesh::StaticClass()))
 		{
 			return EHoudiniInputObjectType::SkeletalMesh;
@@ -3240,6 +3470,10 @@ UHoudiniInputObject::GetInputObjectTypeFromObject(UObject* InObject)
 		else if (InObject->IsA(UDataTable::StaticClass()))
 		{
 			return EHoudiniInputObjectType::DataTable;
+		}
+		else if (InObject->IsA(UDataAsset::StaticClass()))
+		{
+			return EHoudiniInputObjectType::DataAsset;
 		}
 #if defined(HOUDINI_USE_PCG)
 		else if(InObject->IsA(UHoudiniPCGDataCollection::StaticClass()))
@@ -3677,6 +3911,33 @@ UDataTable*
 UHoudiniInputDataTable::GetDataTable() const
 {
 	return Cast<UDataTable>(InputObject.LoadSynchronous());
+}
+
+UHoudiniInputDataAsset::UHoudiniInputDataAsset(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+UHoudiniInputObject*
+UHoudiniInputDataAsset::Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings)
+{
+	FString InputObjectNameStr = "HoudiniInputObject_DA_" + InName;
+	FName InputObjectName = MakeUniqueObjectName(InOuter, UHoudiniInputDataAsset::StaticClass(), *InputObjectNameStr);
+
+	UHoudiniInputDataAsset* HoudiniInputObject = NewObject<UHoudiniInputDataAsset>(
+		InOuter, UHoudiniInputDataAsset::StaticClass(), InputObjectName, RF_Public | RF_Transactional);
+
+	HoudiniInputObject->Type = EHoudiniInputObjectType::DataAsset;
+	HoudiniInputObject->Update(InObject, InInputSettings);
+	HoudiniInputObject->bHasChanged = true;
+
+	return HoudiniInputObject;
+}
+
+UDataAsset*
+UHoudiniInputDataAsset::GetDataAsset() const
+{
+	return Cast<UDataAsset>(InputObject.LoadSynchronous());
 }
 
 UHoudiniInputFoliageType_InstancedStaticMesh::UHoudiniInputFoliageType_InstancedStaticMesh(const FObjectInitializer& ObjectInitializer)

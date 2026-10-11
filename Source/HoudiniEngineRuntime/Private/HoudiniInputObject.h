@@ -64,10 +64,14 @@ class ALandscapeProxy;
 class UModel;
 class UHoudiniInput;
 class UCameraComponent;
+class UDynamicMesh;
+class UDynamicMeshComponent;
+class UMaterialInterface;
 class ALevelInstance;
 class APackedLevelActor;
 class UHoudiniInputActor;
 class UPCGData;
+class UDataAsset;
 
 UENUM()
 enum class EHoudiniInputObjectType : uint8
@@ -103,7 +107,10 @@ enum class EHoudiniInputObjectType : uint8
 	PackedLevelActor,
 	PCGData,
 	Texture,
-	HoudiniCookable
+	HoudiniCookable,
+	DataAsset,
+	DynamicMesh,
+	DynamicMeshComponent
 };
 
 
@@ -335,6 +342,30 @@ public:
 };
 
 
+//-----------------------------------------------------------------------------------------------------------------------------
+// UDynamicMesh input
+//-----------------------------------------------------------------------------------------------------------------------------
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputDynamicMesh : public UHoudiniInputObject
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+
+	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
+	virtual bool HasChanged() const override;
+
+	UDynamicMesh* GetDynamicMesh() const;
+
+private:
+	// The mesh change stamp tracks UDynamicMesh geometry. Simple collision belongs
+	// to the component and is tracked separately.
+	UPROPERTY()
+	uint64 DynamicMeshChangeStamp = 0;
+};
+
+
 
 //-----------------------------------------------------------------------------------------------------------------------------
 // USkeletalMesh input
@@ -493,6 +524,35 @@ public:
 	// Keep track of the selected Static Mesh
 	UPROPERTY()
 	TSoftObjectPtr<class UStaticMesh> StaticMesh = nullptr;
+};
+
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// UDynamicMeshComponent input
+//-----------------------------------------------------------------------------------------------------------------------------
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputDynamicMeshComponent : public UHoudiniInputSceneComponent
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings, UHoudiniInputActor* InParentInputActor = nullptr);
+
+	virtual void Update(UObject* InObject, const FHoudiniInputObjectSettings& InSettings) override;
+	virtual bool HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
+
+	UDynamicMeshComponent* GetDynamicMeshComponent() const;
+	UDynamicMesh* GetDynamicMesh() const;
+
+private:
+	UPROPERTY()
+	uint64 DynamicMeshChangeStamp = 0;
+
+	UPROPERTY()
+	uint32 SimpleCollisionHash = 0;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UMaterialInterface>> Materials;
 };
 
 
@@ -1131,6 +1191,21 @@ public:
 
 	// DataTable accessor
 	class UDataTable* GetDataTable() const;
+};
+
+//-----------------------------------------------------------------------------------------------------------------------------
+// UDataAsset input
+//-----------------------------------------------------------------------------------------------------------------------------
+UCLASS()
+class HOUDINIENGINERUNTIME_API UHoudiniInputDataAsset : public UHoudiniInputObject
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+
+	static UHoudiniInputObject* Create(UObject* InObject, UObject* InOuter, const FString& InName, const FHoudiniInputObjectSettings& InInputSettings);
+
+	UDataAsset* GetDataAsset() const;
 };
 
 //-----------------------------------------------------------------------------------------------------------------------------

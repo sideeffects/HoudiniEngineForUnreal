@@ -37,6 +37,7 @@
 #include "Components/MeshComponent.h"
 #include "Components/SplineComponent.h"
 #include "Engine/Blueprint.h"
+#include "Engine/DataAsset.h"
 #include "Engine/Engine.h"
 #include "Misc/StringFormatArg.h"
 #include "Landscape.h"
@@ -52,6 +53,7 @@
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "HAL/FileManager.h"
 #include "Materials/Material.h"
+#include "UObject/GarbageCollection.h"
 #if defined(HOUDINI_USE_PCG)
 #include "HoudiniPCGDataObject.h"
 #endif
@@ -942,6 +944,7 @@ UHoudiniOutput::UpdateOutputType()
 	int32 VolumeCount = 0;
 	int32 InstancerCount = 0;
 	int32 DataTableCount = 0;
+	int32 DataAssetCount = 0;
 	int32 LandscapeSplineCount = 0;
 	int32 AnimSequenceCount = 0;
 	int32 SkeletonCount = 0;
@@ -966,6 +969,9 @@ UHoudiniOutput::UpdateOutputType()
 			break;
 		case EHoudiniPartType::DataTable:
 			DataTableCount++;
+			break;
+		case EHoudiniPartType::DataAsset:
+			DataAssetCount++;
 			break;
 		case EHoudiniPartType::LandscapeSpline:
 			LandscapeSplineCount++;
@@ -1025,6 +1031,10 @@ UHoudiniOutput::UpdateOutputType()
 	else if (DataTableCount > 0)
 	{
 		Type = EHoudiniOutputType::DataTable;
+	}
+	else if (DataAssetCount > 0)
+	{
+		Type = EHoudiniOutputType::DataAsset;
 	}
 	else if (LandscapeSplineCount > 0)
 	{
@@ -1113,6 +1123,9 @@ UHoudiniOutput::OutputTypeToString(const EHoudiniOutputType& InOutputType)
 			break;
 		case EHoudiniOutputType::DataTable:
 			OutputTypeStr = TEXT("DataTable");
+			break;
+		case EHoudiniOutputType::DataAsset:
+			OutputTypeStr = TEXT("DataAsset");
 			break;
 		case EHoudiniOutputType::LandscapeSpline:
 			OutputTypeStr = TEXT("LandscapeSpline");
@@ -1270,6 +1283,7 @@ void FHoudiniOutputObject::DeleteAssetObject(UObject* Object)
 	bool bCanDelete = false;
 	if (Object->IsA<UStaticMesh>()
 		|| Object->IsA<UMaterial>()
+		|| Object->IsA<UDataAsset>()
 		|| Object->IsA<UHoudiniStaticMesh>())
 	{
 		bCanDelete = true;
@@ -1472,12 +1486,20 @@ void FHoudiniOutputObject::DestroyCookedData(EHoudiniClearFlags ClearFlags)
 void UHoudiniOutput::DestroyCookedData(EHoudiniClearFlags ClearFlags)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UHoudiniOutput::DestroyCookedData);
+	const bool bClearAssets = (ClearFlags & EHoudiniClearFlags::EHoudiniClear_Assets) == EHoudiniClearFlags::EHoudiniClear_Assets;
+
 	for (auto It : OutputObjects)
 	{
 		FHoudiniOutputObject* FoundOutputObject = &It.Value;
 		FoundOutputObject->DestroyCookedData(ClearFlags);
 	}
 	OutputObjects.Empty();
+
+	// DeleteSingleObject() removes the asset flags, but the old object remains in the object hash
+	// until GC. This must not use Houdini.GarbageCollection: that optional runtime setting is
+	// disabled by default, whereas this cleanup is required before recreating an output by name.
+	if (bClearAssets)
+		::CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 }
 
 void FHoudiniBakedOutputObject::PostLoad()

@@ -449,6 +449,8 @@ FHoudiniEngine::RemoveTaskInfo(const FGuid& InHapiGUID)
 bool
 FHoudiniEngine::RetrieveTaskInfo(const FGuid& InHapiGUID, FHoudiniEngineTaskInfo & OutTaskInfo)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngine::RetrieveTaskInfo);
+
 	FScopeLock ScopeLock(&CriticalSection);
 
 	if (TaskInfos.Contains(InHapiGUID))
@@ -1721,6 +1723,8 @@ void FHoudiniEngine::TickCookingNotification(const float DeltaTime)
 void
 FHoudiniEngine::UpdateSessionSyncInfoFromHoudini()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngine::UpdateSessionSyncInfoFromHoudini);
+
 	if (!bEnableSessionSync)
 		return;
 

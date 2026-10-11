@@ -57,7 +57,21 @@ void UHoudiniPCGManagedResource::DestroyCookable()
 
 bool UHoudiniPCGManagedResource::Release(bool bHardRelease, TSet<TSoftObjectPtr<AActor>>& /*OutActorsToDelete*/)
 {
+	UHoudiniPCGCookable* Cookable = GetCookable();
+
+	if (Cookable)
+	{
+		HOUDINI_PCG_MESSAGE(TEXT("Releasing managed resource %p: Cookable=%p, HoudiniPCGComponent=%p, PCGComponent=%p, HardRelease=%s, WasMarkedUnused=%s"),
+			this,
+			Cookable,
+			HoudiniPCGComponent.Get(),
+			PCGComponent.Get(),
+			bHardRelease ? TEXT("true") : TEXT("false"),
+			bIsMarkedUnused ? TEXT("true") : TEXT("false"));
+	}
+
 	bIsMarkedUnused = true;
+
 	if (bHardRelease)
 	{
 		if(IsValid(HoudiniPCGComponent))
@@ -72,6 +86,14 @@ bool UHoudiniPCGManagedResource::Release(bool bHardRelease, TSet<TSoftObjectPtr<
 
 			HoudiniPCGComponent = nullptr;
 		}
+	}
+	else
+	{
+		// We must release the old outputs even on a soft release. This is because this managed 
+		// resource may not be re-used , be deleted, and end up deleting another's resources outputs...
+		// rare, but can happen with landscapes.
+		if (Cookable)
+			Cookable->ClearCookedOutputs();
 	}
 	if (PCGComponent)
 	{
@@ -124,4 +146,3 @@ void UHoudiniPCGManagedResource::ChangeTransientState(EPCGEditorDirtyMode NewEdi
 	Super::ChangeTransientState(NewEditingMode);
 }
 #endif
-

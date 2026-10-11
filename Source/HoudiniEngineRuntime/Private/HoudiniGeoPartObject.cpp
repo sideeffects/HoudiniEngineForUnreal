@@ -160,6 +160,9 @@ FHoudiniGeoPartObject::HoudiniPartTypeToString(const EHoudiniPartType& InType)
 		case EHoudiniPartType::Volume:
 			OutTypeStr = TEXT("Volume");
 			break;
+		case EHoudiniPartType::DataAsset:
+			OutTypeStr = TEXT("DataAsset");
+			break;
 		case EHoudiniPartType::LandscapeSpline:
 			OutTypeStr = TEXT("LandscapeSpline");
 			break;

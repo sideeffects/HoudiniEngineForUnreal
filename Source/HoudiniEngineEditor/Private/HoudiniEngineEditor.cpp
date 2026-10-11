@@ -34,6 +34,7 @@
 #include "HoudiniAssetBroker.h"
 #include "HoudiniAssetComponent.h"
 #include "HoudiniAssetComponentDetails.h"
+#include "HoudiniCookable.h"
 #include "HoudiniCookableDetails.h"
 #include "HoudiniEditorNodeSyncSubsystem.h"
 #include "HoudiniEngine.h"
@@ -1504,6 +1505,18 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 		HoudiniAssets.AddUnique(HoudiniAsset);
 	}
 
+	auto AreHoudiniAssetActorActionsEnabled = [HoudiniAssetActors]()
+		{
+			for (const TWeakObjectPtr<AHoudiniAssetActor>& HoudiniAssetActor : HoudiniAssetActors)
+			{
+				UHoudiniCookable* Cookable = HoudiniAssetActor.IsValid() ? HoudiniAssetActor->GetHoudiniCookable() : nullptr;
+				if (!IsValid(Cookable) || Cookable->IsLocked())
+					return false;
+			}
+
+			return HoudiniAssetActors.Num() > 0;
+		};
+
 	if (HoudiniAssets.Num() > 0)
 	{
 		// Add the Asset menu extension
@@ -1512,7 +1525,7 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 			// Add the menu extensions via our HoudiniAssetTypeActions
 			FAssetTypeActions_HoudiniAsset * HATA = static_cast<FAssetTypeActions_HoudiniAsset*>(AssetTypeActions[0].Get());
 			if (HATA)
-				Extender = HATA->AddLevelEditorMenuExtenders(HoudiniAssets);
+				Extender = HATA->AddLevelEditorMenuExtenders(HoudiniAssets, AreHoudiniAssetActorActionsEnabled());
 		}
 	}
 
@@ -1525,7 +1538,7 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 			"ActorControl",
 			EExtensionHook::After,
 			LevelEditorCommandBindings,
-			FMenuExtensionDelegate::CreateLambda([this, HoudiniAssetActors](FMenuBuilder& MenuBuilder)
+			FMenuExtensionDelegate::CreateLambda([this, HoudiniAssetActors, AreHoudiniAssetActorActionsEnabled](FMenuBuilder& MenuBuilder)
 		{
 			MenuBuilder.AddMenuEntry(
 				NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_Recentre", "Recentre selected"),
@@ -1533,7 +1546,7 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 				FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine.HoudiniEngineLogo"),
 				FUIAction(
 					FExecuteAction::CreateLambda([]() { return FHoudiniEngineCommands::RecentreSelection(); }),
-					FCanExecuteAction::CreateLambda([=] { return (HoudiniAssetActors.Num() > 0); })
+					FCanExecuteAction::CreateLambda(AreHoudiniAssetActorActionsEnabled)
 				)
 			);
 
@@ -1543,7 +1556,7 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 				FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine._CookSelected"),
 				FUIAction(					
 					FExecuteAction::CreateLambda([]() { return FHoudiniEngineCommands::RecookSelection(); }),
-					FCanExecuteAction::CreateLambda([=] { return (HoudiniAssetActors.Num() > 0); })
+					FCanExecuteAction::CreateLambda(AreHoudiniAssetActorActionsEnabled)
 				)
 			);
 
@@ -1553,7 +1566,7 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 				FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine._RebuildSelected"),
 				FUIAction(
 					FExecuteAction::CreateLambda([]() { return FHoudiniEngineCommands::RebuildSelection(); }),
-					FCanExecuteAction::CreateLambda([=] { return (HoudiniAssetActors.Num() > 0); })
+					FCanExecuteAction::CreateLambda(AreHoudiniAssetActorActionsEnabled)
 				)
 			);
 
@@ -1563,7 +1576,7 @@ FHoudiniEngineEditor::GetLevelViewportContextMenuExtender(const TSharedRef<FUICo
 				FSlateIcon(FHoudiniEngineStyle::GetStyleSetName(), "HoudiniEngine._RefineSelected"),
 				FUIAction(
 					FExecuteAction::CreateLambda([]() { FHoudiniEngineCommands::RefineHoudiniProxyMeshesToStaticMeshes(true); }),
-					FCanExecuteAction::CreateLambda([=] { return (HoudiniAssetActors.Num() > 0); })
+					FCanExecuteAction::CreateLambda(AreHoudiniAssetActorActionsEnabled)
 				)
 			);
 		})

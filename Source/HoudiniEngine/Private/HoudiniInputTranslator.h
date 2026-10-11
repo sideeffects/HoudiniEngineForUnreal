@@ -39,6 +39,7 @@ class UHoudiniParameter;
 class UHoudiniAssetComponent;
 class UHoudiniInputObject;
 class UHoudiniInputStaticMesh;
+class UHoudiniInputDynamicMesh;
 class UHoudiniInputSkeletalMesh;
 class UHoudiniInputAnimation;
 class UHoudiniInputSkeletalMeshComponent;
@@ -47,6 +48,7 @@ class UHoudiniInputGeometryCollectionComponent;
 class UHoudiniInputGeometryCollectionActor;
 class UHoudiniInputSceneComponent;
 class UHoudiniInputMeshComponent;
+class UHoudiniInputDynamicMeshComponent;
 class UHoudiniInputInstancedMeshComponent;
 class UHoudiniInputSplineComponent;
 class UHoudiniInputHoudiniSplineComponent;
@@ -58,6 +60,7 @@ class UHoudiniSplineComponent;
 class UHoudiniInputCameraComponent;
 class UHoudiniInputPCGData;
 class UHoudiniInputDataTable;
+class UHoudiniInputDataAsset;
 class UHoudiniInputFoliageType_InstancedStaticMesh;
 class UHoudiniInputBlueprint;
 class UHoudiniInputLandscapeSplinesComponent;
@@ -175,6 +178,12 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FHoudiniInputObjectSettings& InInputSettings,
 		bool bInputNodesCanBeDeleted);
 
+	static bool HapiCreateInputNodeForDynamicMesh(
+		const FString& InObjNodeName,
+		UHoudiniInputDynamicMesh* InObject,
+		const FHoudiniInputObjectSettings& InInputSettings,
+		bool bInputNodesCanBeDeleted);
+
 	static bool	HapiCreateInputNodeForHoudiniSplineComponent(
 		const FString& InObjNodeName,
 		UHoudiniInputHoudiniSplineComponent* InObject,
@@ -256,6 +265,12 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FHoudiniInputObjectSettings& InInputSettings,
 		bool bInputNodesCanBeDeleted);
 
+	static bool HapiCreateInputNodeForDynamicMeshComponent(
+		const FString& InObjNodeName,
+		UHoudiniInputDynamicMeshComponent* InObject,
+		const FHoudiniInputObjectSettings& InInputSettings,
+		bool bInputNodesCanBeDeleted);
+
 	static bool	HapiCreateInputNodeForSplineMeshComponents(
 		const FString& InObjNodeName,
 		UHoudiniInputActor* InParentActorObject,
@@ -330,6 +345,12 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		const FHoudiniInputObjectSettings& InInputSettings,
 		bool bInputNodesCanBeDeleted);
 
+	static bool HapiCreateInputNodeForDataAsset(
+		const FString& InNodeName,
+		UHoudiniInputDataAsset* InInputObject,
+		const FHoudiniInputObjectSettings& InInputSettings,
+		bool bInputNodesCanBeDeleted);
+
 	static bool	HapiCreateInputNodeForFoliageType_InstancedStaticMesh(
 		const FString& InObjNodeName,
 		UHoudiniInputFoliageType_InstancedStaticMesh* InObject,
@@ -396,4 +417,3 @@ struct HOUDINIENGINE_API FHoudiniInputTranslator
 		HAPI_NodeId InMergeNodeId,
 		const TArray<HAPI_NodeId>& InNodeIdsToConnect);
 };
-

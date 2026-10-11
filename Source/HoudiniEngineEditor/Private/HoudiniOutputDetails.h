@@ -44,7 +44,9 @@ class FDetailWidgetRow;
 class IDetailCategoryBuilder;
 class SBorder;
 class SComboButton;
+class SVerticalBox;
 class UGeometryCollection;
+class UDynamicMesh;
 class UHoudiniLandscapePtr;
 class UHoudiniLandscapeTargetLayerOutput;
 class UHoudiniOutput;
@@ -90,6 +92,9 @@ public:
 
 	void CreateDataTableOutputWidget(IDetailCategoryBuilder& HouOutputCategory,
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
+
+	void CreateDataAssetOutputWidget(IDetailCategoryBuilder& HouOutputCategory,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
 	
 	void CreateLandscapeSplineOutputWidget(IDetailCategoryBuilder& HouOutputCategory,
 		const TWeakObjectPtr<UHoudiniOutput>& InOutput);
@@ -109,6 +114,13 @@ public:
 		FHoudiniOutputObjectIdentifier& OutputIdentifier,
 		FHoudiniGeoPartObject& HoudiniGeoPartObject,
 		const bool& bIsProxyMeshCurrent);
+
+	void CreateDynamicMeshAndMaterialWidgets(
+		IDetailCategoryBuilder& HouOutputCategory,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+		const TWeakObjectPtr<UDynamicMesh>& DynamicMesh,
+		const FHoudiniOutputObjectIdentifier& OutputIdentifier,
+		const FHoudiniGeoPartObject& HoudiniGeoPartObject);
 
 	void CreateProxyMeshAndMaterialWidgets(
 		IDetailCategoryBuilder& HouOutputCategory,
@@ -281,6 +293,34 @@ public:
 	// static FReply OnBakeStaticMesh(UStaticMesh * StaticMesh, UHoudiniAssetComponent * HoudiniAssetComponent, FHoudiniGeoPartObject& GeoPartObject);
 
 private:
+	void CreateMaterialSlotWidgets(
+		const TSharedRef<SVerticalBox>& VerticalBox,
+		const TWeakObjectPtr<UObject>& OutputObject,
+		const TArray<TObjectPtr<UMaterialInterface>>& Materials,
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+		const TSharedPtr<FAssetThumbnailPool>& AssetThumbnailPool);
+
+	void OnOutputObjectMaterialInterfaceDropped(
+		const TWeakObjectPtr<UObject> InObject,
+		const TWeakObjectPtr<UObject> OutputObject,
+		const TWeakObjectPtr<UHoudiniOutput> InOutput,
+		int32 MaterialIndex);
+
+	FReply OnResetOutputObjectMaterialInterfaceClicked(
+		const TWeakObjectPtr<UObject> OutputObject,
+		const TWeakObjectPtr<UHoudiniOutput> InOutput,
+		int32 MaterialIndex);
+
+	static void SetDynamicMeshMaterial(
+		const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+		const FHoudiniOutputObjectIdentifier& OutputIdentifier,
+		int32 MaterialIndex,
+		UMaterialInterface* MaterialInterface);
+
+	static void ApplyDynamicMeshMaterial(
+		FHoudiniOutputObject& OutputObject,
+		int32 MaterialIndex,
+		UMaterialInterface* MaterialInterface);
 
 	// Map of meshes and corresponding thumbnail borders.
 	TMap<TWeakObjectPtr<UObject>, TSharedPtr<SBorder>> OutputObjectThumbnailBorders;	

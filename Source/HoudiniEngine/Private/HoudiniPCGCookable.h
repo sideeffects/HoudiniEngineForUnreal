@@ -105,6 +105,9 @@ public:
 	// DestroyCookable() releases() all data associated with the cook.
 	void DestroyCookable(UWorld * World);
 
+	// Clears generated outputs while retaining the cookable for reuse. The next use must cook again.
+	void ClearCookedOutputs();
+
 	// Updates the current cookable state.
 	void Update(FPCGContext* Context);
 
@@ -192,4 +195,3 @@ private:
 	static bool ApplyInputAsPCGData(UHoudiniInput* HoudiniInput, const TArray<UHoudiniPCGDataCollection*> & PCGCollections);
 
 };
-

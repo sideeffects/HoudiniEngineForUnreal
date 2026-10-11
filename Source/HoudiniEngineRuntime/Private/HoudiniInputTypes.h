@@ -112,6 +112,14 @@ public:
 	UPROPERTY()
 	bool bExportMaterialParameters;
 
+	// If true, export editable Data Asset properties in one Houdini dictionary attribute.
+	UPROPERTY()
+	bool bUseDictionaryForDataAssetValues;
+
+	// If true, prefix individual Data Asset property attributes with the Data Asset class name.
+	UPROPERTY()
+	bool bPrefixDataAssetPropertyNamesWithClassName;
+
 	// Set this to true to add rot and scale attributes on curve inputs.
 	UPROPERTY()
 	bool bAddRotAndScaleAttributesOnCurves;

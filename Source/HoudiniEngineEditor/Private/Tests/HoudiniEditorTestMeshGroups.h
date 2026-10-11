@@ -32,6 +32,8 @@
 #include "CoreMinimal.h"
 #include <HoudiniMeshTranslator.h>
 
+class UDynamicMeshComponent;
+
 enum EHoudiniMeshType
 {
 	None, Cube, Sphere, Torus
@@ -42,6 +44,7 @@ struct FHoudiniMeshCheck
 	TArray<EHoudiniMeshType> LODMeshes;
     EHoudiniMeshType ComplexCollisionType = EHoudiniMeshType::None;
     bool bComponentIsVisible = true;
+	bool bHasNormals = false;
     int NumBoxCollisions = 0;
     int NumSphereCollisions = 0;
     int NumConvexCollisions = 0;
@@ -70,6 +73,7 @@ struct FHoudiniTestSettings
 	TArray<FString> CubeGroups;
     TArray<FString> SphereGroups;
     bool bPack = false;
+	bool bDynamicMesh = false;
 };
 
 struct FHoudiniMeshAutomationTest : public FHoudiniAutomationTest
@@ -82,9 +86,11 @@ struct FHoudiniMeshAutomationTest : public FHoudiniAutomationTest
     void ExecuteMeshTest(TSharedPtr<FHoudiniTestContext> Context, const FHoudiniTestSettings & Settings, const FHoudiniMeshCheck& TestErrors);
 
     static TArray<UStaticMeshComponent*> GetStaticMeshes(TSharedPtr<FHoudiniTestContext> Context);
+	static TArray<UDynamicMeshComponent*> GetDynamicMeshes(TSharedPtr<FHoudiniTestContext> Context);
     static TSharedPtr<FHoudiniTestContext> LoadHDA(FAutomationTestBase* Test);
 
     void  CheckMesh(UStaticMeshComponent* StaticMeshComponent, const FHoudiniMeshCheck& Check);
+	void CheckDynamicMesh(UDynamicMeshComponent* DynamicMeshComponent, const FHoudiniMeshCheck& Check);
 
     static FString GetCollisionTypeName(EHoudiniCollisionType Type);
 
@@ -94,4 +100,3 @@ struct FHoudiniMeshAutomationTest : public FHoudiniAutomationTest
 
 
 #endif
-

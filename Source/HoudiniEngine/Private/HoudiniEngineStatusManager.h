@@ -57,6 +57,7 @@ public:
 	virtual void AddLog(const TCHAR* V, ELogVerbosity::Type Verbosity);
 
 	virtual void GetSessionStatusAndColor(const UHoudiniCookable * Cookable, FString& OutStatusString, FLinearColor& OutStatusColor) override;
+	virtual FText GetSessionStatusTooltip(const UHoudiniCookable* Cookable) override;
 
 	virtual FString GetLogs(const TArray<TWeakObjectPtr<UHoudiniCookable>>& InHCs) override;
 };
@@ -87,6 +88,5 @@ public:
 	TWeakObjectPtr<UHoudiniCookable> Prev;
 
 };
-
 
 

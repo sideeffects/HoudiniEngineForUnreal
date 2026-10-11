@@ -850,6 +850,8 @@ UHoudiniAssetBlueprintComponent::CopyDetailsFromComponent(
 	PostEditChangeProperty(Evt);
 
 	SetCookingEnabled(FromComponent->IsCookingEnabled());
+	GetCookable()->SetLocked(FromComponent->GetCookable()->IsLocked());
+	GetCookable()->SetLockOnLoad(FromComponent->GetCookable()->GetLockOnLoad());
 	GetCookable()->SetRecookRequested(FromComponent->GetCookable()->HasRecookBeenRequested());
 	GetCookable()->SetRebuildRequested(FromComponent->GetCookable()->HasRebuildBeenRequested());
 }
@@ -1535,6 +1537,8 @@ UHoudiniAssetBlueprintComponent::GetComponentInstanceData() const
 	InstanceData->bPendingDelete = GetCookable()->IsPendingDelete();
 	InstanceData->bRecookRequested = GetCookable()->HasRecookBeenRequested();
 	InstanceData->bEnableCooking = GetCookable()->IsCookingEnabled();
+	InstanceData->bIsLocked = GetCookable()->IsLocked();
+	InstanceData->bLockOnLoad = GetCookable()->GetLockOnLoad();
 	InstanceData->bForceNeedUpdate = GetCookable()->bForceNeedUpdate;
 	InstanceData->bLastCookSuccess = GetCookable()->WasLastCookSuccessful();
 	InstanceData->bRegisteredComponentTemplate = bHasRegisteredComponentTemplate;
@@ -1699,6 +1703,8 @@ UHoudiniAssetBlueprintComponent::ApplyComponentInstanceData(FHoudiniAssetBluepri
 		GetCookable()->bPendingDelete = InstanceData->bPendingDelete;
 		GetCookable()->SetRecookRequested(InstanceData->bRecookRequested);
 		GetCookable()->SetCookingEnabled(InstanceData->bEnableCooking);
+		GetCookable()->SetLocked(InstanceData->bIsLocked);
+		GetCookable()->SetLockOnLoad(InstanceData->bLockOnLoad);
 		GetCookable()->bForceNeedUpdate = InstanceData->bForceNeedUpdate;
 		GetCookable()->SetLastCookSuccessful(InstanceData->bLastCookSuccess);
 		bHasRegisteredComponentTemplate = InstanceData->bRegisteredComponentTemplate;
@@ -2520,6 +2526,8 @@ FHoudiniAssetBlueprintInstanceData::FHoudiniAssetBlueprintInstanceData()
 	, bRecookRequested(false)
 	, bRebuildRequested(false)
 	, bEnableCooking(true)
+	, bIsLocked(false)
+	, bLockOnLoad(false)
 	, bForceNeedUpdate(false)
 	, bLastCookSuccess(false)
 	, ComponentGUID(FGuid())

@@ -52,6 +52,7 @@ enum class EHoudiniPartType : uint8
 	Curve,
 	Volume,
 	DataTable,
+	DataAsset,
 	LandscapeSpline,
 	SkeletalMeshShape, // Rest Geometry for the skeletal mesh
 	SkeletalMeshPose,  // Capture Pose for the skeletal mesh 

@@ -697,6 +697,8 @@ bool FHoudiniParameterTranslator::SyncUnrealParametersToHoudini(UHoudiniCookable
 
 bool FHoudiniParameterTranslator::InstantiateParameters(UHoudiniCookable* HC)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniParameterTranslator::InstantiateParameters);
+
 	//
 	// This function should be called after a Cookable is instantiated but before
 	// cooking. It pushes all parameter to the Houdini Node. 

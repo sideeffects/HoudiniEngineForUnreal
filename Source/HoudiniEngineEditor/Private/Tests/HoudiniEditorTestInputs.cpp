@@ -34,8 +34,566 @@
 #include "HoudiniEngine.h"
 #include "HoudiniEngineAttributes.h"
 #include "HoudiniEngineUtils.h"
+#include "HoudiniInput.h"
+#include "HoudiniInputObject.h"
+#include "HoudiniInputTranslator.h"
+#include "HoudiniInputTypes.h"
+#include "HoudiniPublicAPIAssetWrapper.h"
 #include "Misc/DefaultValueHelper.h"
 #include "HoudiniEditorTests.h"
+
+#include "Components/DynamicMeshComponent.h"
+#include "DynamicMesh/DynamicMeshAttributeSet.h"
+#include "DynamicMesh/DynamicMesh3.h"
+#include "Engine/StaticMesh.h"
+#include "HoudiniAsset.h"
+#include "PhysicsEngine/AggregateGeom.h"
+#include "StaticMeshAttributes.h"
+#include "UDynamicMesh.h"
+
+TArray<FString> GetCollisionGroups(HAPI_NodeId NodeId);
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_DynamicMesh, "Houdini.UnitTests.Inputs.DynamicMesh.Geometry",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_DynamicMesh::RunTest(const FString& Parameters)
+{
+	bool bSessionCreated = FHoudiniEditorTestUtils::CreateSessionIfInvalid(FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName);
+	HOUDINI_TEST_EQUAL_ON_FAIL(bSessionCreated, true, return false);
+
+	UDynamicMesh* DynamicMesh = NewObject<UDynamicMesh>(GetTransientPackage());
+	DynamicMesh->EditMesh([](UE::Geometry::FDynamicMesh3& Mesh)
+	{
+		Mesh.AppendVertex(FVector3d(100.0, 200.0, 300.0));
+		Mesh.AppendVertex(FVector3d(200.0, 200.0, 300.0));
+		Mesh.AppendVertex(FVector3d(100.0, 400.0, 300.0));
+		Mesh.AppendTriangle(0, 1, 2);
+		Mesh.EnableAttributes();
+		UE::Geometry::FDynamicMeshNormalOverlay* NormalOverlay = Mesh.Attributes()->PrimaryNormals();
+		NormalOverlay->SetTriangle(0, UE::Geometry::FIndex3i(
+			NormalOverlay->AppendElement(FVector3f(0.0f, 0.0f, 1.0f)),
+			NormalOverlay->AppendElement(FVector3f(0.0f, 0.0f, 1.0f)),
+			NormalOverlay->AppendElement(FVector3f(0.0f, 0.0f, 1.0f))));
+		Mesh.Attributes()->EnableTangents();
+		UE::Geometry::FDynamicMeshNormalOverlay* TangentOverlay = Mesh.Attributes()->PrimaryTangents();
+		UE::Geometry::FDynamicMeshNormalOverlay* BitangentOverlay = Mesh.Attributes()->PrimaryBiTangents();
+		UE::Geometry::FIndex3i TangentTriangle(
+			TangentOverlay->AppendElement(FVector3f(1.0f, 0.0f, 0.0f)),
+			TangentOverlay->AppendElement(FVector3f(1.0f, 0.0f, 0.0f)),
+			TangentOverlay->AppendElement(FVector3f(1.0f, 0.0f, 0.0f)));
+		TangentOverlay->SetTriangle(0, TangentTriangle);
+		BitangentOverlay->SetTriangle(0, UE::Geometry::FIndex3i(
+			BitangentOverlay->AppendElement(FVector3f(0.0f, 1.0f, 0.0f)),
+			BitangentOverlay->AppendElement(FVector3f(0.0f, 1.0f, 0.0f)),
+			BitangentOverlay->AppendElement(FVector3f(0.0f, 1.0f, 0.0f))));
+	});
+
+	UDynamicMesh* ComponentDynamicMesh = NewObject<UDynamicMesh>(GetTransientPackage());
+	ComponentDynamicMesh->EditMesh([](UE::Geometry::FDynamicMesh3& Mesh)
+	{
+		Mesh.AppendVertex(FVector3d::Zero());
+		Mesh.AppendVertex(FVector3d(100.0, 0.0, 0.0));
+		Mesh.AppendVertex(FVector3d(100.0, 100.0, 0.0));
+		Mesh.AppendVertex(FVector3d(0.0, 100.0, 0.0));
+		Mesh.AppendTriangle(0, 1, 2);
+		Mesh.AppendTriangle(0, 2, 3);
+		Mesh.EnableAttributes();
+		UE::Geometry::FDynamicMeshUVOverlay* UVOverlay = Mesh.Attributes()->PrimaryUV();
+		UVOverlay->SetTriangle(0, UE::Geometry::FIndex3i(
+			UVOverlay->AppendElement(FVector2f(0.25f, 0.25f)),
+			UVOverlay->AppendElement(FVector2f(0.75f, 0.25f)),
+			UVOverlay->AppendElement(FVector2f(0.75f, 0.75f))));
+		UVOverlay->SetTriangle(1, UE::Geometry::FIndex3i(
+			UVOverlay->AppendElement(FVector2f(0.25f, 0.25f)),
+			UVOverlay->AppendElement(FVector2f(0.75f, 0.75f)),
+			UVOverlay->AppendElement(FVector2f(0.25f, 0.75f))));
+	});
+
+	UDynamicMeshComponent* DynamicMeshComponent = NewObject<UDynamicMeshComponent>(GetTransientPackage());
+	DynamicMeshComponent->SetDynamicMesh(ComponentDynamicMesh);
+
+	FKAggregateGeom SimpleColliders;
+	FKBoxElem& BoxCollider = SimpleColliders.BoxElems.AddDefaulted_GetRef();
+	BoxCollider.Center = FVector(100.0, 200.0, 300.0);
+	BoxCollider.X = 50.0f;
+	BoxCollider.Y = 100.0f;
+	BoxCollider.Z = 150.0f;
+
+	FKSphereElem& SphereCollider = SimpleColliders.SphereElems.AddDefaulted_GetRef();
+	SphereCollider.Center = FVector(200.0, 300.0, 400.0);
+	SphereCollider.Radius = 75.0f;
+
+	FKSphylElem& CapsuleCollider = SimpleColliders.SphylElems.AddDefaulted_GetRef();
+	CapsuleCollider.Center = FVector(300.0, 400.0, 500.0);
+	CapsuleCollider.Rotation = FRotator(0.0, 45.0, 0.0);
+	CapsuleCollider.Radius = 25.0f;
+	CapsuleCollider.Length = 200.0f;
+
+	FKConvexElem& ConvexCollider = SimpleColliders.ConvexElems.AddDefaulted_GetRef();
+	ConvexCollider.VertexData = {
+		FVector(0.0, 0.0, 0.0), FVector(100.0, 0.0, 0.0), FVector(0.0, 100.0, 0.0), FVector(0.0, 0.0, 100.0) };
+	ConvexCollider.IndexData = { 0, 2, 1, 0, 1, 3, 1, 2, 3, 2, 0, 3 };
+	DynamicMeshComponent->SetSimpleCollisionShapes(SimpleColliders, false);
+
+	FHoudiniInputObjectSettings InputSettings;
+	InputSettings.bExportColliders = true;
+	UHoudiniInputDynamicMesh* DynamicMeshInput = CastChecked<UHoudiniInputDynamicMesh>(
+		UHoudiniInputObject::CreateTypedInputObject(DynamicMesh, GetTransientPackage(), TEXT("DynamicMesh"), InputSettings));
+	UHoudiniInputDynamicMeshComponent* DynamicMeshComponentInput = CastChecked<UHoudiniInputDynamicMeshComponent>(
+		UHoudiniInputObject::CreateTypedInputObject(DynamicMeshComponent, GetTransientPackage(), TEXT("DynamicMeshComponent"), InputSettings));
+
+	bool bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForDynamicMesh(
+		TEXT("DynamicMesh"), DynamicMeshInput, InputSettings, true);
+	HOUDINI_TEST_EQUAL_ON_FAIL(bSuccess, true, return false);
+
+	bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForDynamicMeshComponent(
+		TEXT("DynamicMeshComponent"), DynamicMeshComponentInput, InputSettings, true);
+	HOUDINI_TEST_EQUAL_ON_FAIL(bSuccess, true, return false);
+
+	const HAPI_Session* Session = FHoudiniEngine::Get().GetSession();
+	HAPI_NodeId DynamicMeshNodeId = DynamicMeshInput->GetInputNodeId();
+	HAPI_NodeId DynamicMeshComponentNodeId = DynamicMeshComponentInput->GetInputNodeId();
+	HOUDINI_TEST_EQUAL_ON_FAIL(DynamicMeshNodeId >= 0, true, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(DynamicMeshComponentNodeId >= 0, true, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(DynamicMeshNodeId == DynamicMeshComponentNodeId, false, return false);
+
+	HAPI_PartInfo DynamicMeshPartInfo;
+	FHoudiniApi::PartInfo_Init(&DynamicMeshPartInfo);
+	HAPI_Result Result = FHoudiniApi::GetPartInfo(Session, DynamicMeshNodeId, 0, &DynamicMeshPartInfo);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL(DynamicMeshPartInfo.type, HAPI_PARTTYPE_MESH);
+	HOUDINI_TEST_EQUAL(DynamicMeshPartInfo.pointCount, 3);
+	HOUDINI_TEST_EQUAL(DynamicMeshPartInfo.vertexCount, 3);
+	HOUDINI_TEST_EQUAL(DynamicMeshPartInfo.faceCount, 1);
+
+	HAPI_PartInfo DynamicMeshComponentPartInfo;
+	FHoudiniApi::PartInfo_Init(&DynamicMeshComponentPartInfo);
+	Result = FHoudiniApi::GetPartInfo(Session, DynamicMeshComponentNodeId, 0, &DynamicMeshComponentPartInfo);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL(DynamicMeshComponentPartInfo.type, HAPI_PARTTYPE_MESH);
+	HOUDINI_TEST_EQUAL(DynamicMeshComponentPartInfo.pointCount > 4, true);
+	HOUDINI_TEST_EQUAL(DynamicMeshComponentPartInfo.vertexCount > 6, true);
+	HOUDINI_TEST_EQUAL(DynamicMeshComponentPartInfo.faceCount > 2, true);
+
+	HAPI_AttributeInfo ComponentUVInfo;
+	FHoudiniApi::AttributeInfo_Init(&ComponentUVInfo);
+	Result = FHoudiniApi::GetAttributeInfo(
+		Session, DynamicMeshComponentNodeId, 0, HAPI_UNREAL_ATTRIB_UV, HAPI_ATTROWNER_VERTEX, &ComponentUVInfo);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(ComponentUVInfo.exists, true, return false);
+	HOUDINI_TEST_EQUAL(ComponentUVInfo.tupleSize, 3);
+	HOUDINI_TEST_EQUAL(ComponentUVInfo.count, DynamicMeshComponentPartInfo.vertexCount);
+
+	TArray<float> ComponentUVs;
+	ComponentUVs.SetNumUninitialized(ComponentUVInfo.count * ComponentUVInfo.tupleSize);
+	Result = FHoudiniApi::GetAttributeFloatData(
+		Session, DynamicMeshComponentNodeId, 0, HAPI_UNREAL_ATTRIB_UV, &ComponentUVInfo, -1, ComponentUVs.GetData(), 0, ComponentUVInfo.count);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	bool bFoundRenderUV = false;
+	for (float UVValue : ComponentUVs)
+	{
+		if (FMath::IsNearlyEqual(UVValue, 0.25f) || FMath::IsNearlyEqual(UVValue, 0.75f))
+		{
+			bFoundRenderUV = true;
+			break;
+		}
+	}
+	HOUDINI_TEST_EQUAL(bFoundRenderUV, true);
+
+	TArray<FString> CollisionGroups = GetCollisionGroups(DynamicMeshComponentNodeId);
+	HOUDINI_TEST_EQUAL_ON_FAIL(CollisionGroups.Num(), 4, return false);
+	HOUDINI_TEST_EQUAL(CollisionGroups[0], TEXT("collision_geo_simple_box0"));
+	HOUDINI_TEST_EQUAL(CollisionGroups[1], TEXT("collision_geo_simple_capsule2"));
+	HOUDINI_TEST_EQUAL(CollisionGroups[2], TEXT("collision_geo_simple_sphere1"));
+	HOUDINI_TEST_EQUAL(CollisionGroups[3], TEXT("collision_geo_simple_ucx3"));
+
+	SimpleColliders.BoxElems[0].X = 75.0f;
+	DynamicMeshComponent->SetSimpleCollisionShapes(SimpleColliders, false);
+	HOUDINI_TEST_EQUAL(DynamicMeshComponentInput->HasComponentChanged(InputSettings), true);
+
+	HAPI_AttributeInfo PositionInfo;
+	FHoudiniApi::AttributeInfo_Init(&PositionInfo);
+	Result = FHoudiniApi::GetAttributeInfo(
+		Session, DynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, HAPI_ATTROWNER_POINT, &PositionInfo);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(PositionInfo.exists, true, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(PositionInfo.tupleSize, 3, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(PositionInfo.count, 3, return false);
+
+	TArray<float> Positions;
+	Positions.SetNumUninitialized(PositionInfo.count * PositionInfo.tupleSize);
+	Result = FHoudiniApi::GetAttributeFloatData(
+		Session, DynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION, &PositionInfo, -1, Positions.GetData(), 0, PositionInfo.count);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL(Positions[0], 1.0f);
+	HOUDINI_TEST_EQUAL(Positions[1], 3.0f);
+	HOUDINI_TEST_EQUAL(Positions[2], 2.0f);
+
+	HAPI_AttributeInfo NormalInfo;
+	FHoudiniApi::AttributeInfo_Init(&NormalInfo);
+	Result = FHoudiniApi::GetAttributeInfo(
+		Session, DynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, HAPI_ATTROWNER_VERTEX, &NormalInfo);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(NormalInfo.exists, true, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(NormalInfo.tupleSize, 3, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(NormalInfo.count, 3, return false);
+
+	TArray<float> Normals;
+	Normals.SetNumUninitialized(NormalInfo.count * NormalInfo.tupleSize);
+	Result = FHoudiniApi::GetAttributeFloatData(
+		Session, DynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &NormalInfo, -1, Normals.GetData(), 0, NormalInfo.count);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL(Normals[0], 0.00f);
+	HOUDINI_TEST_EQUAL(Normals[1], 1.00f);
+	HOUDINI_TEST_EQUAL(Normals[2], 0.00f);
+	// Houdini uses reverse winding after the Unreal-to-Houdini axis conversion.
+	HOUDINI_TEST_EQUAL(Normals[3], 0.00f);
+	HOUDINI_TEST_EQUAL(Normals[4], 1.00f);
+	HOUDINI_TEST_EQUAL(Normals[5], 0.00f);
+	HOUDINI_TEST_EQUAL(Normals[6], 0.00f);
+	HOUDINI_TEST_EQUAL(Normals[7], 1.00f);
+	HOUDINI_TEST_EQUAL(Normals[8], 0.00f);
+
+	HAPI_AttributeInfo TangentInfo;
+	FHoudiniApi::AttributeInfo_Init(&TangentInfo);
+	Result = FHoudiniApi::GetAttributeInfo(
+		Session, DynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, HAPI_ATTROWNER_VERTEX, &TangentInfo);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(TangentInfo.exists, true, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(TangentInfo.tupleSize, 3, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(TangentInfo.count, 3, return false);
+
+	TArray<float> Tangents;
+	Tangents.SetNumUninitialized(TangentInfo.count * TangentInfo.tupleSize);
+	Result = FHoudiniApi::GetAttributeFloatData(
+		Session, DynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &TangentInfo, -1, Tangents.GetData(), 0, TangentInfo.count);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL(Tangents[0], 1.00f);
+	HOUDINI_TEST_EQUAL(Tangents[1], 0.00f);
+	HOUDINI_TEST_EQUAL(Tangents[2], 0.00f);
+
+	HAPI_AttributeInfo BitangentInfo;
+	FHoudiniApi::AttributeInfo_Init(&BitangentInfo);
+	Result = FHoudiniApi::GetAttributeInfo(
+		Session, DynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, HAPI_ATTROWNER_VERTEX, &BitangentInfo);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(BitangentInfo.exists, true, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(BitangentInfo.tupleSize, 3, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(BitangentInfo.count, 3, return false);
+
+	TArray<float> Bitangents;
+	Bitangents.SetNumUninitialized(BitangentInfo.count * BitangentInfo.tupleSize);
+	Result = FHoudiniApi::GetAttributeFloatData(
+		Session, DynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTV, &BitangentInfo, -1, Bitangents.GetData(), 0, BitangentInfo.count);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL(Bitangents[0], 0.00f);
+	HOUDINI_TEST_EQUAL(Bitangents[1], 0.00f);
+	HOUDINI_TEST_EQUAL(Bitangents[2], 1.00f);
+
+	UDynamicMesh* ZeroTangentDynamicMesh = NewObject<UDynamicMesh>(GetTransientPackage());
+	ZeroTangentDynamicMesh->EditMesh([](UE::Geometry::FDynamicMesh3& Mesh)
+	{
+		Mesh.AppendVertex(FVector3d(100.0, 200.0, 300.0));
+		Mesh.AppendVertex(FVector3d(200.0, 200.0, 300.0));
+		Mesh.AppendVertex(FVector3d(100.0, 400.0, 300.0));
+		Mesh.AppendTriangle(0, 1, 2);
+		Mesh.EnableAttributes();
+		UE::Geometry::FDynamicMeshNormalOverlay* ZeroNormalOverlay = Mesh.Attributes()->PrimaryNormals();
+		ZeroNormalOverlay->SetTriangle(0, UE::Geometry::FIndex3i(
+			ZeroNormalOverlay->AppendElement(FVector3f::ZeroVector),
+			ZeroNormalOverlay->AppendElement(FVector3f::ZeroVector),
+			ZeroNormalOverlay->AppendElement(FVector3f::ZeroVector)));
+		Mesh.Attributes()->EnableTangents();
+		UE::Geometry::FDynamicMeshNormalOverlay* ZeroTangentOverlay = Mesh.Attributes()->PrimaryTangents();
+		UE::Geometry::FDynamicMeshNormalOverlay* ZeroBitangentOverlay = Mesh.Attributes()->PrimaryBiTangents();
+		UE::Geometry::FIndex3i ZeroTangentTriangle(
+			ZeroTangentOverlay->AppendElement(FVector3f::ZeroVector),
+			ZeroTangentOverlay->AppendElement(FVector3f::ZeroVector),
+			ZeroTangentOverlay->AppendElement(FVector3f::ZeroVector));
+		ZeroTangentOverlay->SetTriangle(0, ZeroTangentTriangle);
+		ZeroBitangentOverlay->SetTriangle(0, UE::Geometry::FIndex3i(
+			ZeroBitangentOverlay->AppendElement(FVector3f::ZeroVector),
+			ZeroBitangentOverlay->AppendElement(FVector3f::ZeroVector),
+			ZeroBitangentOverlay->AppendElement(FVector3f::ZeroVector)));
+	});
+
+	UHoudiniInputDynamicMesh* ZeroTangentDynamicMeshInput = CastChecked<UHoudiniInputDynamicMesh>(
+		UHoudiniInputObject::CreateTypedInputObject(ZeroTangentDynamicMesh, GetTransientPackage(), TEXT("ZeroTangentDynamicMesh"), InputSettings));
+	bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForDynamicMesh(
+		TEXT("ZeroTangentDynamicMesh"), ZeroTangentDynamicMeshInput, InputSettings, true);
+	HOUDINI_TEST_EQUAL_ON_FAIL(bSuccess, true, return false);
+
+	HAPI_NodeId ZeroTangentDynamicMeshNodeId = ZeroTangentDynamicMeshInput->GetInputNodeId();
+	HOUDINI_TEST_EQUAL_ON_FAIL(ZeroTangentDynamicMeshNodeId >= 0, true, return false);
+	HAPI_AttributeInfo RebuiltNormalInfo;
+	FHoudiniApi::AttributeInfo_Init(&RebuiltNormalInfo);
+	Result = FHoudiniApi::GetAttributeInfo(
+		Session, ZeroTangentDynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, HAPI_ATTROWNER_VERTEX, &RebuiltNormalInfo);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(RebuiltNormalInfo.exists, true, return false);
+
+	TArray<float> RebuiltNormals;
+	RebuiltNormals.SetNumUninitialized(RebuiltNormalInfo.count * RebuiltNormalInfo.tupleSize);
+	Result = FHoudiniApi::GetAttributeFloatData(
+		Session, ZeroTangentDynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_NORMAL, &RebuiltNormalInfo, -1, RebuiltNormals.GetData(), 0, RebuiltNormalInfo.count);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL(
+		FMath::IsNearlyZero(RebuiltNormals[0]) && FMath::IsNearlyZero(RebuiltNormals[1]) && FMath::IsNearlyZero(RebuiltNormals[2]),
+		false);
+
+	HAPI_AttributeInfo RebuiltTangentInfo;
+	FHoudiniApi::AttributeInfo_Init(&RebuiltTangentInfo);
+	Result = FHoudiniApi::GetAttributeInfo(
+		Session, ZeroTangentDynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, HAPI_ATTROWNER_VERTEX, &RebuiltTangentInfo);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL_ON_FAIL(RebuiltTangentInfo.exists, true, return false);
+
+	TArray<float> RebuiltTangents;
+	RebuiltTangents.SetNumUninitialized(RebuiltTangentInfo.count * RebuiltTangentInfo.tupleSize);
+	Result = FHoudiniApi::GetAttributeFloatData(
+		Session, ZeroTangentDynamicMeshNodeId, 0, HAPI_UNREAL_ATTRIB_TANGENTU, &RebuiltTangentInfo, -1, RebuiltTangents.GetData(), 0, RebuiltTangentInfo.count);
+	HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return false);
+	HOUDINI_TEST_EQUAL(
+		FMath::IsNearlyZero(RebuiltTangents[0]) && FMath::IsNearlyZero(RebuiltTangents[1]) && FMath::IsNearlyZero(RebuiltTangents[2]),
+		false);
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_StaticMeshRoundTrip, "Houdini.UnitTests.Inputs.StaticMesh.RoundTripColliders",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_StaticMeshRoundTrip::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(
+		this, TEXT("/Game/TestHDAs/Inputs/InputAsOutput"), FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+	Context->SetProxyMeshEnabled(false);
+
+	UStaticMesh* SourceMesh = Cast<UStaticMesh>(StaticLoadObject(
+		UStaticMesh::StaticClass(), nullptr, TEXT("/Game/TestObjects/SM_Cube.SM_Cube")));
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(SourceMesh, return false);
+	UBodySetup* SourceBodySetup = SourceMesh->GetBodySetup();
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(SourceBodySetup, return false);
+	const FKAggregateGeom& SourceCollision = SourceBodySetup->AggGeom;
+	HOUDINI_TEST_EQUAL_ON_FAIL(SourceCollision.BoxElems.Num() > 0, true, return false);
+
+	FMeshDescription* SourceMeshDescription = SourceMesh->GetMeshDescription(0);
+	HOUDINI_TEST_NOT_NULL_ON_FAIL(SourceMeshDescription, return false);
+	FStaticMeshAttributes SourceAttributes(*SourceMeshDescription);
+	TVertexInstanceAttributesRef<FVector2f> SourceTextureCoordinates = SourceAttributes.GetVertexInstanceUVs();
+	HOUDINI_TEST_EQUAL_ON_FAIL(SourceTextureCoordinates.GetNumChannels() > 0, true, return false);
+
+	TArray<FVector2f> SourceUVs;
+	TArray<FString> SourceUVPairs;
+	TVertexAttributesRef<FVector3f> SourceVertexPositions = SourceAttributes.GetVertexPositions();
+	SourceUVs.Reserve(SourceMeshDescription->VertexInstances().Num());
+	SourceUVPairs.Reserve(SourceMeshDescription->VertexInstances().Num());
+	for (FVertexInstanceID VertexInstanceID : SourceMeshDescription->VertexInstances().GetElementIDs())
+	{
+		SourceUVs.Add(SourceTextureCoordinates.Get(VertexInstanceID, 0));
+		FVector3f Position = SourceVertexPositions.Get(SourceMeshDescription->GetVertexInstanceVertex(VertexInstanceID));
+		FVector2f UV = SourceTextureCoordinates.Get(VertexInstanceID, 0);
+		SourceUVPairs.Add(FString::Printf(TEXT("%.0f,%.0f,%.0f:%.6f,%.6f"), Position.X, Position.Y, Position.Z, UV.X, UV.Y));
+	}
+	SourceUVs.Sort([](FVector2f Left, FVector2f Right) { return Left.X == Right.X ? Left.Y < Right.Y : Left.X < Right.X; });
+	SourceUVPairs.Sort();
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+	{
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, SourceMesh]()
+	{
+		UHoudiniInput* Input = Context->GetInputAt(0);
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(Input, return true);
+
+		Input->SetExportColliders(true);
+		Input->SetInputObjectAt(EHoudiniInputType::Geometry, 0, SourceMesh);
+		Input->MarkChanged(true);
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, SourceCollision, SourceUVs, SourceUVPairs]()
+	{
+		TArray<UHoudiniOutput*> Outputs;
+		Context->GetOutputs(Outputs);
+		TArray<UStaticMesh*> StaticMeshes = FHoudiniEditorUnitTestUtils::GetOutputsWithObject<UStaticMesh>(Outputs);
+		HOUDINI_TEST_EQUAL_ON_FAIL(StaticMeshes.Num(), 1, return true);
+
+		UBodySetup* OutputBodySetup = StaticMeshes[0]->GetBodySetup();
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(OutputBodySetup, return true);
+		const FKAggregateGeom& OutputCollision = OutputBodySetup->AggGeom;
+		HOUDINI_TEST_EQUAL(OutputCollision.BoxElems.Num(), SourceCollision.BoxElems.Num());
+		HOUDINI_TEST_EQUAL(OutputCollision.SphereElems.Num(), SourceCollision.SphereElems.Num());
+		HOUDINI_TEST_EQUAL(OutputCollision.SphylElems.Num(), SourceCollision.SphylElems.Num());
+		HOUDINI_TEST_EQUAL(OutputCollision.ConvexElems.Num(), SourceCollision.ConvexElems.Num());
+
+		FMeshDescription* OutputMeshDescription = StaticMeshes[0]->GetMeshDescription(0);
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(OutputMeshDescription, return true);
+		FStaticMeshAttributes OutputAttributes(*OutputMeshDescription);
+		TVertexInstanceAttributesRef<FVector2f> OutputTextureCoordinates = OutputAttributes.GetVertexInstanceUVs();
+		HOUDINI_TEST_EQUAL_ON_FAIL(OutputTextureCoordinates.GetNumChannels() > 0, true, return true);
+
+		TArray<FVector2f> OutputUVs;
+		TArray<FString> OutputUVPairs;
+		TVertexAttributesRef<FVector3f> OutputVertexPositions = OutputAttributes.GetVertexPositions();
+		OutputUVs.Reserve(OutputMeshDescription->VertexInstances().Num());
+		OutputUVPairs.Reserve(OutputMeshDescription->VertexInstances().Num());
+		for (FVertexInstanceID VertexInstanceID : OutputMeshDescription->VertexInstances().GetElementIDs())
+		{
+			OutputUVs.Add(OutputTextureCoordinates.Get(VertexInstanceID, 0));
+			FVector3f Position = OutputVertexPositions.Get(OutputMeshDescription->GetVertexInstanceVertex(VertexInstanceID));
+			FVector2f UV = OutputTextureCoordinates.Get(VertexInstanceID, 0);
+			OutputUVPairs.Add(FString::Printf(TEXT("%.0f,%.0f,%.0f:%.6f,%.6f"), Position.X, Position.Y, Position.Z, UV.X, UV.Y));
+		}
+		OutputUVs.Sort([](FVector2f Left, FVector2f Right) { return Left.X == Right.X ? Left.Y < Right.Y : Left.X < Right.X; });
+		OutputUVPairs.Sort();
+
+		HOUDINI_TEST_EQUAL(OutputUVs, SourceUVs);
+		for (int32 PairIndex = 0; PairIndex < FMath::Min(OutputUVPairs.Num(), SourceUVPairs.Num()); PairIndex++)
+		{
+			if (OutputUVPairs[PairIndex] != SourceUVPairs[PairIndex])
+			{
+				AddInfo(FString::Printf(TEXT("UV pair mismatch: expected %s, got %s"), *SourceUVPairs[PairIndex], *OutputUVPairs[PairIndex]));
+				break;
+			}
+		}
+		HOUDINI_TEST_EQUAL(OutputUVPairs, SourceUVPairs);
+
+		UHoudiniPublicAPIAssetWrapper* Wrapper = UHoudiniPublicAPIAssetWrapper::CreateWrapper(GetTransientPackage(), Context->HAC);
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(Wrapper, return true);
+
+		TArray<FHoudiniPublicAPIOutputObjectIdentifier> OutputIdentifiers;
+		bool bSuccess = Wrapper->GetOutputIdentifiersAt(0, OutputIdentifiers);
+		HOUDINI_TEST_EQUAL_ON_FAIL(bSuccess, true, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(OutputIdentifiers.Num(), 1, return true);
+
+		UStaticMesh* PublicOutputMesh = Cast<UStaticMesh>(Wrapper->GetOutputObjectAt(0, OutputIdentifiers[0]));
+		HOUDINI_TEST_EQUAL(PublicOutputMesh, StaticMeshes[0]);
+		return true;
+	}));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_DynamicMeshRoundTrip, "Houdini.UnitTests.Inputs.DynamicMesh.RoundTripColliders",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)
+
+bool FHoudiniEditorTestInput_DynamicMeshRoundTrip::RunTest(const FString& Parameters)
+{
+	FHoudiniEditorTestUtils::CreateSessionIfInvalidWithLatentRetries(this, FHoudiniEditorTestUtils::HoudiniEngineSessionPipeName, {}, {});
+
+	TSharedPtr<FHoudiniTestContext> Context(new FHoudiniTestContext(
+		this, TEXT("/Game/TestHDAs/Inputs/InputAsOutput"), FTransform::Identity, false));
+	HOUDINI_TEST_EQUAL_ON_FAIL(Context->IsValid(), true, return false);
+	Context->SetProxyMeshEnabled(false);
+
+	UDynamicMesh* DynamicMesh = NewObject<UDynamicMesh>(GetTransientPackage());
+	DynamicMesh->AddToRoot();
+	DynamicMesh->EditMesh([](UE::Geometry::FDynamicMesh3& Mesh)
+	{
+		Mesh.AppendVertex(FVector3d::Zero());
+		Mesh.AppendVertex(FVector3d(100.0, 0.0, 0.0));
+		Mesh.AppendVertex(FVector3d(0.0, 100.0, 0.0));
+		Mesh.AppendTriangle(0, 1, 2);
+		Mesh.EnableAttributes();
+		UE::Geometry::FDynamicMeshUVOverlay* UVOverlay = Mesh.Attributes()->PrimaryUV();
+		UVOverlay->SetTriangle(0, UE::Geometry::FIndex3i(
+			UVOverlay->AppendElement(FVector2f(0.125f, 0.25f)),
+			UVOverlay->AppendElement(FVector2f(0.375f, 0.50f)),
+			UVOverlay->AppendElement(FVector2f(0.625f, 0.75f))));
+	});
+
+	UDynamicMeshComponent* DynamicMeshComponent = NewObject<UDynamicMeshComponent>(GetTransientPackage());
+	DynamicMeshComponent->AddToRoot();
+	DynamicMeshComponent->SetDynamicMesh(DynamicMesh);
+
+	FKAggregateGeom Colliders;
+	FKBoxElem& BoxCollider = Colliders.BoxElems.AddDefaulted_GetRef();
+	BoxCollider.X = 50.0f;
+	BoxCollider.Y = 50.0f;
+	BoxCollider.Z = 50.0f;
+	DynamicMeshComponent->SetSimpleCollisionShapes(Colliders, false);
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [Context]()
+	{
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, DynamicMeshComponent]()
+	{
+		UHoudiniInput* Input = Context->GetInputAt(0);
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(Input, return true);
+
+		Input->SetExportColliders(true);
+		Input->SetInputObjectAt(EHoudiniInputType::Geometry, 0, DynamicMeshComponent);
+		Input->MarkChanged(true);
+		Context->StartCookingHDA();
+		return true;
+	}));
+
+	AddCommand(new FHoudiniLatentTestCommand(Context, [this, Context, DynamicMesh, DynamicMeshComponent]()
+	{
+		TArray<HAPI_NodeId> OutputNodes;
+		bool bSuccess = FHoudiniEngineUtils::GatherAllAssetOutputs(Context->HAC->GetAssetId(), true, false, false, OutputNodes);
+		HOUDINI_TEST_EQUAL_ON_FAIL(bSuccess, true, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(OutputNodes.Num(), 1, return true);
+
+		HAPI_PartInfo PartInfo;
+		FHoudiniApi::PartInfo_Init(&PartInfo);
+		HAPI_Result Result = FHoudiniApi::GetPartInfo(FHoudiniEngine::Get().GetSession(), OutputNodes[0], 0, &PartInfo);
+		HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return true);
+
+		HAPI_AttributeInfo UVInfo;
+		FHoudiniApi::AttributeInfo_Init(&UVInfo);
+		Result = FHoudiniApi::GetAttributeInfo(
+			FHoudiniEngine::Get().GetSession(), OutputNodes[0], 0, HAPI_UNREAL_ATTRIB_UV, HAPI_ATTROWNER_VERTEX, &UVInfo);
+		HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return true);
+		HOUDINI_TEST_EQUAL_ON_FAIL(UVInfo.exists, true, return true);
+		HOUDINI_TEST_EQUAL(UVInfo.tupleSize, 3);
+		HOUDINI_TEST_EQUAL(UVInfo.count, PartInfo.vertexCount);
+
+		TArray<float> UVs;
+		UVs.SetNumUninitialized(UVInfo.count * UVInfo.tupleSize);
+		Result = FHoudiniApi::GetAttributeFloatData(
+			FHoudiniEngine::Get().GetSession(), OutputNodes[0], 0, HAPI_UNREAL_ATTRIB_UV, &UVInfo, -1, UVs.GetData(), 0, UVInfo.count);
+		HOUDINI_TEST_EQUAL_ON_FAIL(Result, HAPI_RESULT_SUCCESS, return true);
+
+		TArray<UHoudiniOutput*> Outputs;
+		Context->GetOutputs(Outputs);
+		TArray<UStaticMesh*> StaticMeshes = FHoudiniEditorUnitTestUtils::GetOutputsWithObject<UStaticMesh>(Outputs);
+		HOUDINI_TEST_EQUAL_ON_FAIL(StaticMeshes.Num(), 1, return true);
+
+		FMeshDescription* MeshDescription = StaticMeshes[0]->GetMeshDescription(0);
+		HOUDINI_TEST_NOT_NULL_ON_FAIL(MeshDescription, return true);
+		FStaticMeshAttributes Attributes(*MeshDescription);
+		TVertexInstanceAttributesRef<FVector2f> TextureCoordinates = Attributes.GetVertexInstanceUVs();
+		HOUDINI_TEST_EQUAL_ON_FAIL(TextureCoordinates.GetNumChannels(), 1, return true);
+
+		TArray<FVector2f> OutputUVs;
+		OutputUVs.Reserve(MeshDescription->VertexInstances().Num());
+		for (FVertexInstanceID VertexInstanceID : MeshDescription->VertexInstances().GetElementIDs())
+			OutputUVs.Add(TextureCoordinates.Get(VertexInstanceID, 0));
+		OutputUVs.Sort([](FVector2f Left, FVector2f Right) { return Left.X == Right.X ? Left.Y < Right.Y : Left.X < Right.X; });
+		HOUDINI_TEST_EQUAL_ON_FAIL(OutputUVs.Num(), 3, return true);
+		HOUDINI_TEST_EQUAL(OutputUVs[0], FVector2f(0.125f, 0.25f));
+		HOUDINI_TEST_EQUAL(OutputUVs[1], FVector2f(0.375f, 0.50f));
+		HOUDINI_TEST_EQUAL(OutputUVs[2], FVector2f(0.625f, 0.75f));
+
+		DynamicMeshComponent->RemoveFromRoot();
+		DynamicMesh->RemoveFromRoot();
+		return true;
+	}));
+
+	return true;
+}
 
 IMPLEMENT_SIMPLE_HOUDINI_AUTOMATION_TEST(FHoudiniEditorTestInput_SplineMeshes, "Houdini.UnitTests.Inputs.SplineMesh",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ClientContext | EAutomationTestFlags::ServerContext | EAutomationTestFlags::CommandletContext | EAutomationTestFlags::ProductFilter)

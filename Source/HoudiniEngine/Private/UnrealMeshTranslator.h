@@ -50,6 +50,7 @@ class FStaticMeshConstAttributes;
 struct FStaticMeshSourceModel;
 struct FStaticMeshLODResources;
 struct FMeshDescription;
+struct FKAggregateGeom;
 struct FKConvexElem;
 struct FHoudiniInputObjectSettings;
 
@@ -220,6 +221,13 @@ public:
 		const HAPI_NodeId InParentNodeID,
 		const int32 ColliderIndex,
 		const FKConvexElem& ConvexCollider);
+
+	static bool CreateAndConnectSimpleColliders(
+		const FKAggregateGeom& SimpleColliders,
+		const HAPI_NodeId InputObjectNodeId,
+		const HAPI_NodeId MergeNodeId,
+		int32& InOutNextMergeIndex,
+		int32& InOutNextColliderIndex);
 
 	// Helper function to extract the array of material names used by a given mesh
 	// This is used for marshalling static mesh's materials.

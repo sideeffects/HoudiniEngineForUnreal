@@ -88,6 +88,11 @@ class FHoudiniInputDetails : public TSharedFromThis<FHoudiniInputDetails, ESPMod
 			TSharedRef<SVerticalBox> InVerticalBox,
 			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
 
+		// Exports Data Asset values as one dictionary attribute instead of separate attributes.
+		static void AddUseDictionaryForDataAssetValuesCheckBox(
+			TSharedRef<SVerticalBox> InVerticalBox,
+			const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs);
+
 		// Level Instance Export Options
 		static void AddLevelInstanceExportCheckboxes(
 			TSharedRef<SVerticalBox> InVerticalBox,

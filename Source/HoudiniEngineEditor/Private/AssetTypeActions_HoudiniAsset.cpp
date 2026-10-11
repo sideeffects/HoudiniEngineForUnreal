@@ -241,7 +241,7 @@ FAssetTypeActions_HoudiniAsset::AssetsActivatedOverride(const TArray<UObject*>& 
 
 
 TSharedRef<FExtender>
-FAssetTypeActions_HoudiniAsset::AddLevelEditorMenuExtenders(TArray<TWeakObjectPtr<UHoudiniAsset>> HoudiniAssets)
+FAssetTypeActions_HoudiniAsset::AddLevelEditorMenuExtenders(TArray<TWeakObjectPtr<UHoudiniAsset>> HoudiniAssets, bool bInActionsEnabled)
 {
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 	TSharedRef<FUICommandList> LevelEditorCommandBindings = LevelEditor.GetGlobalLevelEditorActions();
@@ -253,7 +253,7 @@ FAssetTypeActions_HoudiniAsset::AddLevelEditorMenuExtenders(TArray<TWeakObjectPt
 		"ActorAsset",
 		EExtensionHook::After,
 		LevelEditorCommandBindings,
-		FMenuExtensionDelegate::CreateLambda([this, HoudiniAssets, StyleSetName](FMenuBuilder& MenuBuilder)
+		FMenuExtensionDelegate::CreateLambda([this, HoudiniAssets, StyleSetName, bInActionsEnabled](FMenuBuilder& MenuBuilder)
 	{
 		MenuBuilder.AddMenuEntry(
 			NSLOCTEXT("HoudiniAssetLevelViewportContextActions", "HoudiniActor_FindInExplorer", "Find Source HDA"),
@@ -261,7 +261,7 @@ FAssetTypeActions_HoudiniAsset::AddLevelEditorMenuExtenders(TArray<TWeakObjectPt
 			FSlateIcon(StyleSetName, "HoudiniEngine.DigitalAsset"),
 			FUIAction(
 				FExecuteAction::CreateSP(this, &FAssetTypeActions_HoudiniAsset::ExecuteFindInExplorer, HoudiniAssets),
-				FCanExecuteAction::CreateLambda([=] { return (HoudiniAssets.Num() > 0); })
+				FCanExecuteAction::CreateLambda([=] { return bInActionsEnabled && HoudiniAssets.Num() > 0; })
 			)
 		);
 
@@ -271,7 +271,7 @@ FAssetTypeActions_HoudiniAsset::AddLevelEditorMenuExtenders(TArray<TWeakObjectPt
 			FSlateIcon(StyleSetName, "HoudiniEngine._OpenInHoudini"),
 			FUIAction(
 				FExecuteAction::CreateSP(this, &FAssetTypeActions_HoudiniAsset::ExecuteOpenInHoudini, HoudiniAssets),
-				FCanExecuteAction::CreateLambda([=] { return (HoudiniAssets.Num() == 1); })
+				FCanExecuteAction::CreateLambda([=] { return bInActionsEnabled && HoudiniAssets.Num() == 1; })
 			)
 		);
 	})

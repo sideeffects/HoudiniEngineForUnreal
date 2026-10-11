@@ -25,6 +25,7 @@
 */
 
 #include "HoudiniInstanceTranslator.h"
+#include "HoudiniMeshTranslatorUtils.h"
 
 #include "HoudiniEngine.h"
 #include "HoudiniEngineRuntimeUtils.h"
@@ -122,7 +123,7 @@ FHoudiniInstanceTranslator::PopulateInstancedOutputPartData(
 			continue;
 			
 		TArray<float> CustomPrimitiveData;
-		FHoudiniMeshTranslator::GetCustomPrimitiveData(
+		FHoudiniMeshTranslatorUtils::GetCustomPrimitiveData(
 			InHGPO.GeoId, InHGPO.PartId, Instancer.AttributeIndices[0], CustomPrimitiveData);
 
 		Instancer.CustomPrimData = CustomPrimitiveData;
@@ -325,6 +326,9 @@ FHoudiniInstanceTranslator::FindInstancedOutputObject(
 	FHoudiniOutputObjectIdentifier & OutId,
 	const UHoudiniOutput* & OutOutput)
 {
+	const FHoudiniOutputObjectIdentifier* FallbackIdentifier = nullptr;
+	const UHoudiniOutput* FallbackOutput = nullptr;
+
 	for (const auto& Output : InAllOutputs)
 	{
 		if (!Output || Output->Type != EHoudiniOutputType::Mesh)
@@ -335,18 +339,35 @@ FHoudiniInstanceTranslator::FindInstancedOutputObject(
 			if (!OutObjPair.Key.Matches(HGPO))
 				continue;
 
-			const FHoudiniOutputObject& CurrentOutputObject = OutObjPair.Value;
+			const EHoudiniSplitType SplitType = FHoudiniMeshTranslatorUtils::GetSplitTypeFromSplitName(OutObjPair.Key.SplitIdentifier);
+			const bool bIsInvisibleCollision = OutObjPair.Value.bIsInvisibleCollisionMesh
+				|| SplitType == EHoudiniSplitType::InvisibleComplexCollider;
+			if (!OutObjPair.Value.bIsImplicit && !bIsInvisibleCollision)
+			{
+				OutOutput = Output;
+				OutId = OutObjPair.Key;
+				return true;
+			}
 
-			if (CurrentOutputObject.bIsImplicit)
-				continue;
-
-			OutOutput = Output;
-			OutId = OutObjPair.Key;
-			return true;
+			// Packed instancers refer to the whole Houdini part, while mesh splitting can produce
+			// multiple output objects for that same part. Choosing the first map entry is therefore
+			// non-deterministic and can select an invisible collision mesh instead of main_geo.
+			// Prefer a renderable, non-implicit split above; retain this first match only as the
+			// fallback for collision-only parts, which deliberately have no visible main mesh.
+			if (!FallbackIdentifier)
+			{
+				FallbackIdentifier = &OutObjPair.Key;
+				FallbackOutput = Output;
+			}
 		}
 	}
 
-	return false;
+	if (!FallbackIdentifier)
+		return false;
+
+	OutOutput = FallbackOutput;
+	OutId = *FallbackIdentifier;
+	return true;
 }
 
 void 
@@ -372,8 +393,8 @@ FHoudiniInstanceTranslator::SetInstancerObject(
 	{
 		InstancerData.ObjectPath = OutputObject->OutputObject->GetPathName();
 
-		EHoudiniSplitType SplitType = FHoudiniMeshTranslator::GetSplitTypeFromSplitName(OutId.SplitIdentifier);
-		if (SplitType == EHoudiniSplitType::InvisibleComplexCollider)
+		EHoudiniSplitType SplitType = FHoudiniMeshTranslatorUtils::GetSplitTypeFromSplitName(OutId.SplitIdentifier);
+		if (SplitType == EHoudiniSplitType::InvisibleComplexCollider || OutputObject->bIsInvisibleCollisionMesh)
 		{
 			InstancerData.bVisible = false;
 		}
@@ -882,7 +903,7 @@ FHoudiniInstanceTranslator::CreateInstancer(
 	{
 		USceneComponent* InstancerComponent = Cast<USceneComponent>(Object);
 		SetPerInstanceCustomData(Instancers, InstancerComponent);
-		FHoudiniMeshTranslator::SetCustomPrimitiveData(Instancers.CustomPrimData, InstancerComponent);
+		FHoudiniMeshTranslatorUtils::SetCustomPrimitiveData(Instancers.CustomPrimData, InstancerComponent);
 
 		// If the instanced object (by ref) wasn't found, hide the component in game
 		if (Output.OutputObject == DefaultReferenceSM)
@@ -1178,7 +1199,7 @@ FHoudiniInstanceTranslator::CreateStaticMeshInstancer(
 
 	SetGenericPropertyAttributes(SMC, Instancers, InstancerPartData);
 
-	FHoudiniMeshTranslator::SetCustomPrimitiveData(Instancers.CustomPrimData, SMC);
+	FHoudiniMeshTranslatorUtils::SetCustomPrimitiveData(Instancers.CustomPrimData, SMC);
 
 	return true;
 }

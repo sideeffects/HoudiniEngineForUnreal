@@ -32,6 +32,7 @@
 #include "LevelInstance/LevelInstanceTypes.h"
 #include "LandscapeProxy.h"
 #include "Misc/StringFormatArg.h"
+#include "PhysicsEngine/AggregateGeom.h"
 #include "HoudiniGenericAttribute.h"
 #include "UObject/SoftObjectPtr.h"
 #if defined(HOUDINI_USE_PCG)
@@ -725,6 +726,9 @@ struct HOUDINIENGINERUNTIME_API FHoudiniOutputObject
 		// Materials assigned to Dynamic Mesh output components. Static mesh assets store their own material slots.
 		UPROPERTY()
 		TArray<TObjectPtr<UMaterialInterface>> OutputMaterials;
+
+		// Simple collision shapes assigned to Dynamic Mesh output components.
+		FKAggregateGeom DynamicMeshSimpleCollision;
 
 		// The main output component
 		UPROPERTY()

@@ -540,6 +540,8 @@ public:
 	void SetCookableGUID(const FGuid& InGUID) { CookableGUID = InGUID; };
 
 	bool IsCookingEnabled() const { return bEnableCooking; };
+	bool IsLocked() const { return bIsLocked; };
+	bool GetLockOnLoad() const { return bLockOnLoad; };
 	bool CookAfterInstantiatation() const { return bCookAfterInstantiation;  }
 	bool HasBeenLoaded() const { return bHasBeenLoaded; };
 	bool HasBeenDuplicated() const { return bHasBeenDuplicated; };
@@ -775,6 +777,8 @@ public:
 
 	void SetCookAfterInstantiation(bool bInCookAfterInstantiation);
 	void SetCookingEnabled(const bool& bInCookingEnabled);
+	void SetLocked(bool bInLocked);
+	void SetLockOnLoad(bool bInLockOnLoad);
 	void SetHasBeenLoaded(const bool& InLoaded);
 	void SetHasBeenDuplicated(const bool& InDuplicated);
 	void SetCookCount(const int32& InCount);
@@ -1003,6 +1007,14 @@ protected:
 
 	UPROPERTY(DuplicateTransient)
 	bool bEnableCooking;	// bEnableCooking
+
+	// Prevents this cookable from cooking until it is unlocked.
+	UPROPERTY()
+	bool bIsLocked;
+
+	// Locks this cookable whenever it is loaded.
+	UPROPERTY()
+	bool bLockOnLoad;
 
 	UPROPERTY()
 	bool bCookAfterInstantiation;

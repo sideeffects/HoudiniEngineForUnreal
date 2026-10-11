@@ -59,6 +59,11 @@ public:
 	// Returns the actor's cookable.
 	UHoudiniCookable* GetHoudiniCookable() const;
 
+	// Locks the actor transform whenever its Cookable is locked.
+#if WITH_EDITOR
+	virtual bool IsLockLocation() const override;
+#endif
+
 	bool IsUsedForPreview() const;
 	
 	// Gets the Houdini PDG asset link associated with this actor, if it has one.

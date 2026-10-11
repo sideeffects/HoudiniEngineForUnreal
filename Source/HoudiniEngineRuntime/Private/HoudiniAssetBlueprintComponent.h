@@ -332,6 +332,12 @@ public:
 	bool bEnableCooking;
 
 	UPROPERTY()
+	bool bIsLocked;
+
+	UPROPERTY()
+	bool bLockOnLoad;
+
+	UPROPERTY()
 	bool bForceNeedUpdate;
 
 	UPROPERTY()
@@ -357,4 +363,3 @@ public:
 	UPROPERTY()
 	TArray<TObjectPtr<UHoudiniInput>> Inputs;
 };
-

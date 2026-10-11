@@ -156,9 +156,15 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::Tick);
 
-	EnableEditorAutoSave(nullptr);
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::Tick - EnableEditorAutoSave);
+		EnableEditorAutoSave(nullptr);
+	}
 
-	FHoudiniEngine::Get().TickCookingNotification(DeltaTime);
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::Tick - TickCookingNotification);
+		FHoudiniEngine::Get().TickCookingNotification(DeltaTime);
+	}
 
 	if (bMustStopTicking)
 	{
@@ -176,6 +182,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 	TArray<UHoudiniCookable*> CookablesToProcess;
 	if (FHoudiniEngineRuntime::IsInitialized())
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::Tick - GatherCookables);
 		FHoudiniEngineRuntime::Get().CleanUpRegisteredHoudiniCookables();
 		CookableCount = FHoudiniEngineRuntime::Get().GetRegisteredHoudiniCookableCount();
 
@@ -261,7 +268,10 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 	}
 
 	// Sort the components by last tick time
-	CookablesToProcess.Sort([](const UHoudiniCookable& A, const UHoudiniCookable& B) { return A.LastTickTime < B.LastTickTime; });
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::Tick - SortCookables);
+		CookablesToProcess.Sort([](const UHoudiniCookable& A, const UHoudiniCookable& B) { return A.LastTickTime < B.LastTickTime; });
+	}
 
 	// Time limit for processing
 	double dCookableProcessTimeLimit = CVarHoudiniEngineTickTimeLimit.GetValueOnAnyThread();
@@ -270,6 +280,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 	// Process all the cookables in the list
 	for (UHoudiniCookable* CurrentCookable : CookablesToProcess)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::Tick - ProcessCookables);
 		double dNow = FPlatformTime::Seconds();
 		if (dCookableProcessTimeLimit > 0.0
 			&& dNow - dCookableProcessStartTime > dCookableProcessTimeLimit)
@@ -398,7 +409,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 
 			CurrentCookable->bNeedToUpdateEditorProperties = false;
 		}
-#endif
+		#endif
 	}
 
 	//
@@ -408,6 +419,7 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 	// Handle node delete
 	if (FHoudiniEngineRuntime::IsInitialized())
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::Tick - NodeDeletion);
 		int32 PendingDeleteCount = FHoudiniEngineRuntime::Get().GetNodeIdsPendingDeleteCount();
 		for (int32 DeleteIdx = PendingDeleteCount - 1; DeleteIdx >= 0; DeleteIdx--)
 		{
@@ -424,29 +436,58 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 	}
 
 	// Update PDG Contexts and asset link if needed
-	PDGManager.Update();
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::Tick - PDGManagerUpdate);
+		PDGManager.Update();
+	}
 
 	// Session Sync Updates
 	if (FHoudiniEngine::Get().IsSessionSyncEnabled())
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::Tick - SessionSync);
 		// See if the session sync settings have changed on the houdini side, update ours if they did
-		FHoudiniEngine::Get().UpdateSessionSyncInfoFromHoudini();
-#if WITH_EDITOR
-		// Update the Houdini viewport from unreal if needed
-		if (FHoudiniEngine::Get().IsSyncViewportEnabled())
+		bool bCookableIsCookingOrInstantiating = false;
+		if (FHoudiniEngineRuntime::IsInitialized())
 		{
-			// Sync the Houdini viewport to Unreal
-			if (!SyncHoudiniViewportToUnreal())
+			const int32 RegisteredCookableCount = FHoudiniEngineRuntime::Get().GetRegisteredHoudiniCookableCount();
+			for (int32 CookableIndex = 0; CookableIndex < RegisteredCookableCount; CookableIndex++)
 			{
-				// If the unreal viewport hasnt changed, 
-				// See if we need to sync the Unreal viewport from Houdini's
-				SyncUnrealViewportToHoudini();
+				UHoudiniCookable* Cookable = FHoudiniEngineRuntime::Get().GetRegisteredHoudiniCookableAt(CookableIndex);
+				if (!IsValid(Cookable))
+					continue;
+
+				const EHoudiniAssetState CookableState = Cookable->GetCurrentState();
+				if (CookableState == EHoudiniAssetState::Cooking
+					|| CookableState == EHoudiniAssetState::Instantiating)
+				{
+					bCookableIsCookingOrInstantiating = true;
+					break;
+				}
+			}
+		}
+
+#if WITH_EDITOR
+		if (!bCookableIsCookingOrInstantiating)
+		{
+			FHoudiniEngine::Get().UpdateSessionSyncInfoFromHoudini();
+			// Update the Houdini viewport from unreal if needed
+			if (FHoudiniEngine::Get().IsSyncViewportEnabled())
+			{
+				// Sync the Houdini viewport to Unreal
+				if (!SyncHoudiniViewportToUnreal())
+				{
+					// If the unreal viewport hasnt changed, 
+					// See if we need to sync the Unreal viewport from Houdini's
+					SyncUnrealViewportToHoudini();
+				}
 			}
 		}
 #endif
+
 	}
 	else 
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::Tick - ResetSessionSync);
 		// reset zero offset variables when session sync is off
 		if (ZeroOffsetValue != 0.f) 
 			ZeroOffsetValue = 0.f;
@@ -510,6 +551,8 @@ bool FHoudiniEngineManager::StartInstantiation(UHoudiniCookable* HC)
 
 void FHoudiniEngineManager::InitializePDG(UHoudiniCookable* HC)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::InitializePDG);
+
 	// Only do this once per cookable - only check again on rebuild
 
 	if(!HC->PDGData->bIsPDGAssetLinkInitialized)
@@ -697,6 +740,14 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 		case EHoudiniAssetState::PreCook:
 		{
 			TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::ProcessCookable - PreCook);
+			if (HC->IsLocked())
+			{
+				HC->SetRecookRequested(false);
+				HC->SetRebuildRequested(false);
+				HC->SetCurrentState(EHoudiniAssetState::None);
+				break;
+			}
+
 			// Only proceed forward if we don't need to wait for our input
 			// HoudiniAssets to finish cooking/instantiating
 			if(HC->IsInputSupported() && HC->InputData->NeedsToWaitForInputHoudiniAssets())
@@ -1083,6 +1134,8 @@ FHoudiniEngineManager::StartTaskAssetInstantiation(
 bool
 FHoudiniEngineManager::UpdateInstantiating(UHoudiniCookable* HC)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::UpdateInstantiating);
+
 	EHoudiniAssetState NewState = EHoudiniAssetState::Instantiating;
 	if(UpdateInstantiatingFromTask(HC, NewState, HC->bDoSlateNotifications))
 	{
@@ -1107,7 +1160,7 @@ FHoudiniEngineManager::UpdateInstantiating(UHoudiniCookable* HC)
 bool
 FHoudiniEngineManager::UpdateInstantiatingFromTask(UHoudiniCookable* HC, EHoudiniAssetState& NewState, bool bDoNotifications)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::UpdateInstantiating);
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::UpdateInstantiatingFromTask);
 
 	check(HC);
 
@@ -2012,6 +2065,9 @@ FHoudiniEngineManager::IsCookingEnabledForCookable(UHoudiniCookable* HC)
 	bool bComponentEnable = false;
 	if (IsValid(HC))
 	{
+		if (HC->IsLocked())
+			return false;
+
 		bManualRecook = HC->HasRecookBeenRequested();
 		bComponentEnable = HC->IsCookingEnabled();
 	}
@@ -2272,6 +2328,8 @@ FHoudiniEngineManager::SyncUnrealViewportToHoudini()
 void
 FHoudiniEngineManager::DisableEditorAutoSave(const UObject* InObject)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::DisableEditorAutoSave);
+
 #if WITH_EDITOR
 	if (!IsValid(InObject))
 		return;
@@ -2298,6 +2356,8 @@ FHoudiniEngineManager::DisableEditorAutoSave(const UObject* InObject)
 void
 FHoudiniEngineManager::EnableEditorAutoSave(const UObject* InObject = nullptr)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineManager::EnableEditorAutoSave);
+
 #if WITH_EDITOR
 	if (!GUnrealEd)
 		return;

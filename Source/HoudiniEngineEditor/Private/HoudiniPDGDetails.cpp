@@ -3243,10 +3243,10 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 			return FReply::Handled();
 		};
 
-	auto OnUnlinkBakeButtonClickedLambda = [PDGAssetLink]()
+	auto OnUnlinkBakeButtonClickedLambda = [InHC]()
 		{
-			if (PDGAssetLink.IsValid())
-				FHoudiniEngineBakeUtils::UnlinkBakedPDGOutputs(PDGAssetLink.Get());
+			if (InHC.IsValid())
+				FHoudiniEngineBakeUtils::UnlinkBakedPDGOutputs(InHC.Get());
 
 			return FReply::Handled();
 		};

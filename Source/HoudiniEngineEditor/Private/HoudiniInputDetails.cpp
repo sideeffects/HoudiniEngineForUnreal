@@ -32,6 +32,7 @@
 #include "HoudiniAssetBlueprintComponent.h"
 #include "HoudiniCookable.h"
 #include "HoudiniInput.h"
+#include "HoudiniInputObject.h"
 #include "HoudiniInputWidgets.h"
 #include "HoudiniLandscapeTranslator.h"
 #include "HoudiniEngineBakeUtils.h"
@@ -57,6 +58,7 @@
 #include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
 #include "Editor/UnrealEdEngine.h"
+#include "Engine/DataAsset.h"
 #include "Engine/Selection.h"
 #include "Engine/SkeletalMesh.h"
 #include "EngineUtils.h"
@@ -660,6 +662,138 @@ FHoudiniInputDetails::AddPackBeforeMergeCheckbox(TSharedRef< SVerticalBox > Vert
 		.OnCheckStateChanged_Lambda([=](ECheckBoxState NewState)
 		{
 			return CheckStateChangedPackBeforeMerge(InInputs, NewState);
+		})
+	];
+
+}
+
+void
+FHoudiniInputDetails::AddUseDictionaryForDataAssetValuesCheckBox(
+	TSharedRef<SVerticalBox> VerticalBox,
+	const TArray<TWeakObjectPtr<UHoudiniInput>>& InInputs)
+{
+	if (InInputs.Num() <= 0)
+		return;
+
+	const TWeakObjectPtr<UHoudiniInput>& MainInput = InInputs[0];
+	if (!IsValidWeakPointer(MainInput))
+		return;
+
+	bool bHasDataAsset = false;
+	for (const TWeakObjectPtr<UHoudiniInput>& Input : InInputs)
+	{
+		if (!IsValidWeakPointer(Input))
+			continue;
+
+		const TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects =
+			Input->GetHoudiniInputObjectArray(EHoudiniInputType::Geometry);
+		if (!InputObjects)
+			continue;
+
+		for (UHoudiniInputObject* InputObject : *InputObjects)
+		{
+			UHoudiniInputDataAsset* DataAssetInputObject = Cast<UHoudiniInputDataAsset>(InputObject);
+			if (IsValid(DataAssetInputObject) && IsValid(DataAssetInputObject->GetDataAsset()))
+			{
+				bHasDataAsset = true;
+				break;
+			}
+		}
+
+		if (bHasDataAsset)
+			break;
+	}
+
+	if (!bHasDataAsset)
+		return;
+
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("UseDictionaryForDataAssetValues", "Use Dictionary for Data Asset Values"))
+			.ToolTipText(LOCTEXT(
+				"UseDictionaryForDataAssetValuesTip",
+				"Export editable Data Asset values as one JSON dictionary attribute instead of separate attributes."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([MainInput]()
+		{
+			return MainInput->GetUseDictionaryForDataAssetValues() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		})
+		.OnCheckStateChanged_Lambda([MainInput, InInputs](ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			bool bNewState = NewState == ECheckBoxState::Checked;
+			if (MainInput->GetUseDictionaryForDataAssetValues() == bNewState)
+				return;
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Use Dictionary for Data Asset Values"),
+				MainInput->GetOuter());
+
+			for (const TWeakObjectPtr<UHoudiniInput>& Input : InInputs)
+			{
+				if (!IsValidWeakPointer(Input) || Input->GetUseDictionaryForDataAssetValues() == bNewState)
+					continue;
+
+				Input->Modify();
+				Input->SetUseDictionaryForDataAssetValues(bNewState);
+				Input->MarkChanged(true);
+				Input->MarkAllInputObjectsChanged(true);
+			}
+		})
+	];
+
+	VerticalBox->AddSlot()
+	.Padding(2, 2, 5, 2)
+	.AutoHeight()
+	[
+		SNew(SCheckBox)
+		.Content()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("PrefixDataAssetPropertyNamesWithClassName", "Prefix Data Asset Property Names with Class Name"))
+			.ToolTipText(LOCTEXT(
+				"PrefixDataAssetPropertyNamesWithClassNameTip",
+				"Prefix Data Asset property attributes and dictionary property names with their Data Asset class name, for example MyDataAsset_MyProperty."))
+			.Font(_GetEditorStyle().GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		]
+		.IsChecked_Lambda([MainInput]()
+		{
+			return MainInput->GetPrefixDataAssetPropertyNamesWithClassName() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		})
+		.OnCheckStateChanged_Lambda([MainInput, InInputs](ECheckBoxState NewState)
+		{
+			if (!IsValidWeakPointer(MainInput))
+				return;
+
+			bool bNewState = NewState == ECheckBoxState::Checked;
+			if (MainInput->GetPrefixDataAssetPropertyNamesWithClassName() == bNewState)
+				return;
+
+			FScopedTransaction Transaction(
+				TEXT(HOUDINI_MODULE_EDITOR),
+				LOCTEXT("HoudiniInputChange", "Houdini Input: Changed Prefix Data Asset Property Names with Class Name"),
+				MainInput->GetOuter());
+
+			for (const TWeakObjectPtr<UHoudiniInput>& Input : InInputs)
+			{
+				if (!IsValidWeakPointer(Input) || Input->GetPrefixDataAssetPropertyNamesWithClassName() == bNewState)
+					continue;
+
+				Input->Modify();
+				Input->SetPrefixDataAssetPropertyNamesWithClassName(bNewState);
+				Input->MarkChanged(true);
+				Input->MarkAllInputObjectsChanged(true);
+			}
 		})
 	];
 }
@@ -2869,14 +3003,50 @@ FHoudiniInputDetails::AddExportOptions(
 			ExportOptions_VerticalBox
 		];
 
+	const bool bHasOnlyDataAssets = [&InInputs]()
+	{
+		bool bHasDataAsset = false;
+		for (const TWeakObjectPtr<UHoudiniInput>& Input : InInputs)
+		{
+			if (!IsValidWeakPointer(Input))
+				continue;
+
+			const TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects =
+				Input->GetHoudiniInputObjectArray(EHoudiniInputType::Geometry);
+			if (!InputObjects)
+				continue;
+
+			for (UHoudiniInputObject* InputObject : *InputObjects)
+			{
+				if (!IsValid(InputObject))
+					continue;
+
+				UObject* SelectedObject = InputObject->GetObject();
+				if (!IsValid(SelectedObject))
+					continue;
+
+				if (!SelectedObject->IsA<UDataAsset>())
+					return false;
+
+				bHasDataAsset = true;
+			}
+		}
+
+		return bHasDataAsset;
+	}();
+
 	switch (MainInput->GetInputType())
 	{
 		case EHoudiniInputType::Geometry:
 		{
-			AddKeepWorldTransformCheckBox(ExportOptions_VerticalBox, InInputs);
-			AddPackBeforeMergeCheckbox(ExportOptions_VerticalBox, InInputs);
-			AddExportAsReferenceCheckBoxes(ExportOptions_VerticalBox, InInputs);
-			AddExportCheckboxes(ExportOptions_VerticalBox, InInputs);
+			if (!bHasOnlyDataAssets)
+			{
+				AddKeepWorldTransformCheckBox(ExportOptions_VerticalBox, InInputs);
+				AddPackBeforeMergeCheckbox(ExportOptions_VerticalBox, InInputs);
+				AddExportAsReferenceCheckBoxes(ExportOptions_VerticalBox, InInputs);
+				AddExportCheckboxes(ExportOptions_VerticalBox, InInputs);
+			}
+			AddUseDictionaryForDataAssetValuesCheckBox(ExportOptions_VerticalBox, InInputs);
 		}
 		break;
 

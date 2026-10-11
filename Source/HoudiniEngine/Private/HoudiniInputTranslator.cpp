@@ -46,8 +46,11 @@
 #include "HoudiniSplineComponent.h"
 #include "HoudiniSplineTranslator.h"
 #include "UnrealAnimationTranslator.h"
+#include "UnrealDataAssetTranslator.h"
+#include "Engine/DataAsset.h"
 #include "UnrealBrushTranslator.h"
 #include "UnrealDataTableTranslator.h"
+#include "UnrealDynamicMeshTranslator.h"
 #include "UnrealFoliageTypeTranslator.h"
 #include "UnrealGeometryCollectionTranslator.h"
 #include "UnrealInstanceTranslator.h"
@@ -75,6 +78,7 @@
 #include "Components/SplineComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/DynamicMeshComponent.h"
 #include "Engine/Brush.h"
 #include "Engine/DataTable.h"
 #include "Engine/SCS_Node.h"
@@ -1406,6 +1410,23 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 			break;
 		}
 
+		case EHoudiniInputObjectType::DynamicMesh:
+		{
+			UHoudiniInputDynamicMesh* InputDynamicMesh = Cast<UHoudiniInputDynamicMesh>(InInputObject);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForDynamicMesh(
+				ObjBaseName,
+				InputDynamicMesh,
+				InputSettings,
+				bInputNodesCanBeDeleted);
+
+			if (bSuccess)
+			{
+				OutCreatedNodeIds.Add(InInputObject->GetInputObjectNodeId());
+				OutHandles.Add(InInputObject->InputNodeHandle);
+			}
+			break;
+		}
+
 		case EHoudiniInputObjectType::SkeletalMesh:
 		{
 			UHoudiniInputSkeletalMesh* InputSkelMesh = Cast<UHoudiniInputSkeletalMesh>(InInputObject);
@@ -1526,6 +1547,22 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 				OutHandles.Add(InInputObject->InputNodeHandle);
 			}
 
+			break;
+		}
+		case EHoudiniInputObjectType::DynamicMeshComponent:
+		{
+			UHoudiniInputDynamicMeshComponent* InputDynamicMeshComponent = Cast<UHoudiniInputDynamicMeshComponent>(InInputObject);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForDynamicMeshComponent(
+				ObjBaseName,
+				InputDynamicMeshComponent,
+				InputSettings,
+				bInputNodesCanBeDeleted);
+
+			if (bSuccess)
+			{
+				OutCreatedNodeIds.Add(InInputObject->GetInputObjectNodeId());
+				OutHandles.Add(InInputObject->InputNodeHandle);
+			}
 			break;
 		}
 
@@ -1716,6 +1753,21 @@ FHoudiniInputTranslator::UploadHoudiniInputObject(
 			UHoudiniInputDataTable* InputDT = Cast<UHoudiniInputDataTable>(InInputObject);
 			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(
 				ObjBaseName, InputDT, InputSettings, bInputNodesCanBeDeleted);
+
+			if (bSuccess)
+			{
+				OutCreatedNodeIds.Add(InInputObject->GetInputObjectNodeId());
+				OutHandles.Add(InInputObject->InputNodeHandle);
+			}
+
+			break;
+		}
+
+		case EHoudiniInputObjectType::DataAsset:
+		{
+			UHoudiniInputDataAsset* InputDataAsset = Cast<UHoudiniInputDataAsset>(InInputObject);
+			bSuccess = FHoudiniInputTranslator::HapiCreateInputNodeForDataAsset(
+				ObjBaseName, InputDataAsset, InputSettings, bInputNodesCanBeDeleted);
 
 			if (bSuccess)
 			{
@@ -2330,6 +2382,38 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 	// }
 
 	return bSuccess;
+}
+
+bool
+FHoudiniInputTranslator::HapiCreateInputNodeForDynamicMesh(
+	const FString& InObjNodeName,
+	UHoudiniInputDynamicMesh* InObject,
+	const FHoudiniInputObjectSettings& InInputSettings,
+	const bool bInputNodesCanBeDeleted)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::HapiCreateInputNodeForDynamicMesh);
+
+	if (!IsValid(InObject))
+		return false;
+
+	UDynamicMesh* const DynamicMesh = InObject->GetDynamicMesh();
+	if (!IsValid(DynamicMesh))
+		return true;
+
+	FUnrealObjectInputHandle InputNodeHandle;
+	const bool bSuccess = FUnrealDynamicMeshTranslator::CreateInputNodeForDynamicMesh(
+		InputNodeHandle,
+		DynamicMesh,
+		nullptr,
+		InInputSettings,
+		bInputNodesCanBeDeleted);
+	if (!bSuccess)
+		return false;
+
+	InObject->InputNodeHandle = MoveTemp(InputNodeHandle);
+	InObject->Update(DynamicMesh, InInputSettings);
+
+	return HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), InObject->GetHoudiniObjectTransform());
 }
 
 bool
@@ -3809,6 +3893,39 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 	}
 
 	return bSuccess;
+}
+
+bool
+FHoudiniInputTranslator::HapiCreateInputNodeForDynamicMeshComponent(
+	const FString& InObjNodeName,
+	UHoudiniInputDynamicMeshComponent* InObject,
+	const FHoudiniInputObjectSettings& InInputSettings,
+	const bool bInputNodesCanBeDeleted)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::HapiCreateInputNodeForDynamicMeshComponent);
+
+	if (!IsValid(InObject))
+		return false;
+
+	UDynamicMeshComponent* const DynamicMeshComponent = InObject->GetDynamicMeshComponent();
+	UDynamicMesh* const DynamicMesh = InObject->GetDynamicMesh();
+	if (!IsValid(DynamicMeshComponent) || !IsValid(DynamicMesh))
+		return true;
+
+	FUnrealObjectInputHandle InputNodeHandle;
+	const bool bSuccess = FUnrealDynamicMeshTranslator::CreateInputNodeForDynamicMesh(
+		InputNodeHandle,
+		DynamicMesh,
+		DynamicMeshComponent,
+		InInputSettings,
+		bInputNodesCanBeDeleted);
+	if (!bSuccess)
+		return false;
+
+	InObject->InputNodeHandle = MoveTemp(InputNodeHandle);
+	InObject->Update(DynamicMeshComponent, InInputSettings);
+
+	return HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), InObject->GetHoudiniObjectTransform());
 }
 
 bool
@@ -5751,6 +5868,63 @@ FHoudiniInputTranslator::HapiCreateInputNodeForDataTable(
 
 	// Update the cached data and input settings
 	InInputObject->Update(DataTable, InInputSettings);
+
+	return true;
+}
+
+bool
+FHoudiniInputTranslator::HapiCreateInputNodeForDataAsset(
+	const FString& InNodeName,
+	UHoudiniInputDataAsset* InInputObject,
+	const FHoudiniInputObjectSettings& InInputSettings,
+	bool bInputNodesCanBeDeleted)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniInputTranslator::HapiCreateInputNodeForDataAsset);
+
+	if (!IsValid(InInputObject))
+		return false;
+
+	UDataAsset* DataAsset = InInputObject->GetDataAsset();
+	if (!IsValid(DataAsset))
+		return true;
+
+	FString DataAssetName = InNodeName + TEXT("_") + DataAsset->GetName();
+	FHoudiniEngineUtils::SanitizeHAPIVariableName(DataAssetName);
+
+	FUnrealObjectInputHandle DataAssetInputNodeHandle;
+	HAPI_NodeId InputNodeId = -1;
+
+	{
+		TSet<FUnrealObjectInputHandle> ReferencedNodes;
+		if (FUnrealObjectInputUtils::GetReferencedNodes(InInputObject->InputNodeHandle, ReferencedNodes) && ReferencedNodes.Num() == 1)
+		{
+			const FUnrealObjectInputHandle Handle = ReferencedNodes.Array()[0];
+			InputNodeId = FUnrealObjectInputManager::Get().GetHAPINodeId(Handle);
+		}
+	}
+
+	if (!FUnrealDataAssetTranslator::CreateInputNodeForDataAsset(
+		DataAsset,
+		InputNodeId,
+		DataAssetName,
+		DataAssetInputNodeHandle,
+		bInputNodesCanBeDeleted,
+		InInputSettings.bUseDictionaryForDataAssetValues,
+		InInputSettings.bPrefixDataAssetPropertyNamesWithClassName,
+		InInputObject->HasChanged()))
+		return false;
+
+	{
+		// The wrapper owns a transformable reference node; the Data Asset owns the cached leaf node.
+		FUnrealObjectInputOptions Options;
+		FUnrealObjectInputIdentifier GeoInputRefNodeId(InInputObject, Options, EUnrealObjectInputNodeType::LeafWithReferences);
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { DataAssetInputNodeHandle }, InInputObject->InputNodeHandle, true, bInputNodesCanBeDeleted);
+	}
+
+	if (!HapiSetGeoObjectTransform(InInputObject->GetInputObjectNodeId(), InInputObject->GetHoudiniObjectTransform()))
+		return false;
+
+	InInputObject->Update(DataAsset, InInputSettings);
 
 	return true;
 }

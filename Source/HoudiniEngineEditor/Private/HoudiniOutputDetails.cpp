@@ -26,6 +26,7 @@
 */
 
 #include "HoudiniOutputDetails.h"
+#include "HoudiniMeshTranslatorUtils.h"
 
 #include "HoudiniEngineEditorPrivatePCH.h"
 
@@ -50,6 +51,7 @@
 
 #include "Animation/AnimSequence.h"
 #include "Animation/Skeleton.h"
+#include "Components/DynamicMeshComponent.h"
 #include "Components/SplineComponent.h"
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
@@ -58,6 +60,7 @@
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
 #include "Editor/UnrealEdEngine.h"
 #include "Engine/DataTable.h"
+#include "Engine/DataAsset.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
 #include "IDetailGroup.h"
@@ -74,6 +77,7 @@
 #include "ScopedTransaction.h"
 #include "Sound/SoundBase.h"
 #include "UnrealEdGlobals.h"
+#include "UDynamicMesh.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
@@ -152,6 +156,11 @@ FHoudiniOutputDetails::CreateWidget(
 		case EHoudiniOutputType::DataTable:
 		{
 			FHoudiniOutputDetails::CreateDataTableOutputWidget(HouOutputCategory, MainOutput);
+			break;
+		}
+		case EHoudiniOutputType::DataAsset:
+		{
+			FHoudiniOutputDetails::CreateDataAssetOutputWidget(HouOutputCategory, MainOutput);
 			break;
 		}
 		case EHoudiniOutputType::LandscapeSpline:
@@ -360,6 +369,7 @@ FHoudiniOutputDetails::CreateLandscapeOutputWidget_Helper(
 	TSharedPtr<SBorder> LandscapeThumbnailBorder;
 	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
 	LandscapeGrp.AddWidgetRow()
+	.RowTag(FName(TEXT("HoudiniBakeOutput")))
 	.NameContent()
 	[
 		SNew(SSpacer)
@@ -813,9 +823,11 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 	for (auto& IterObject : OutputObjects)
 	{
 		UStaticMesh* StaticMesh = Cast<UStaticMesh>(IterObject.Value.OutputObject);
+		UDynamicMesh* DynamicMesh = Cast<UDynamicMesh>(IterObject.Value.OutputObject);
 		UHoudiniStaticMesh* ProxyMesh = Cast<UHoudiniStaticMesh>(IterObject.Value.ProxyObject);
 
 		if ((!IsValid(StaticMesh))
+			&& (!IsValid(DynamicMesh))
 			&& (!IsValid(ProxyMesh)))
 			continue;
 
@@ -843,11 +855,395 @@ FHoudiniOutputDetails::CreateMeshOutputWidget(
 			CreateStaticMeshAndMaterialWidgets(
 				HouOutputCategory, InOutput, StaticMesh, OutputIdentifier, HoudiniGeoPartObject, bIsProxyMeshCurrent);
 		}
+		else if (IsValid(DynamicMesh))
+		{
+			CreateDynamicMeshAndMaterialWidgets(
+				HouOutputCategory, InOutput, DynamicMesh, OutputIdentifier, HoudiniGeoPartObject);
+		}
 		else
 		{
 			// If we only have a proxy mesh, then show the proxy widget
 			CreateProxyMeshAndMaterialWidgets(
 				HouOutputCategory, InOutput, ProxyMesh, OutputIdentifier, HoudiniGeoPartObject);
+		}
+	}
+}
+
+
+void
+FHoudiniOutputDetails::CreateDynamicMeshAndMaterialWidgets(
+	IDetailCategoryBuilder& HouOutputCategory,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+	const TWeakObjectPtr<UDynamicMesh>& DynamicMesh,
+	const FHoudiniOutputObjectIdentifier& OutputIdentifier,
+	const FHoudiniGeoPartObject& HoudiniGeoPartObject)
+{
+	if (!IsValidWeakPointer(InOutput) || !IsValidWeakPointer(DynamicMesh))
+		return;
+
+	const FHoudiniOutputObject* OutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+	if (!OutputObject)
+		return;
+
+	const TWeakObjectPtr<UHoudiniCookable>& HC = Cast<UHoudiniCookable>(InOutput->GetOuter());
+	if (!IsValidWeakPointer(HC))
+		return;
+
+	const FString BakeName = OutputObject->BakeName;
+
+	FString Label = DynamicMesh->GetName();
+	if (HoudiniGeoPartObject.bHasCustomPartName)
+		Label = HoudiniGeoPartObject.PartName;
+
+	IDetailLayoutBuilder& DetailLayoutBuilder = HouOutputCategory.GetParentLayout();
+	TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = DetailLayoutBuilder.GetThumbnailPool();
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+	IDetailGroup& DynamicMeshGroup = HouOutputCategory.AddGroup(FName(*Label), FText::FromString(Label));
+	DynamicMeshGroup.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("BakeBaseName", "Bake Name"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.FillWidth(1)
+		[
+			SNew(SEditableTextBox)
+			.Text(FText::FromString(BakeName))
+			.HintText(LOCTEXT("BakeNameHintText", "Input bake name to override default"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.OnTextCommitted_Lambda([OutputIdentifier, InOutput](const FText& Value, ETextCommit::Type CommitType)
+			{
+				if (!IsValidWeakPointer(InOutput))
+					return;
+
+				FHoudiniOutputDetails::OnBakeNameCommitted(Value, CommitType, InOutput, OutputIdentifier);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
+			})
+			.ToolTipText(LOCTEXT("BakeNameTip", "The base name of the baked asset"))
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.ToolTipText(LOCTEXT("RevertNameOverride", "Revert bake name override"))
+			.ButtonStyle(_GetEditorStyle(), "NoBorder")
+			.ContentPadding(0)
+			.Visibility(EVisibility::Visible)
+			.OnClicked_Lambda([InOutput, OutputIdentifier]()
+			{
+				FHoudiniOutputDetails::OnRevertBakeNameToDefault(InOutput, OutputIdentifier);
+				FHoudiniEngineUtils::UpdateEditorProperties(true);
+				return FReply::Handled();
+			})
+			[
+				SNew(SImage)
+				.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
+			]
+		]
+	];
+	DynamicMeshGroup.AddWidgetRow()
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("DynamicMeshOutput", "Dynamic Mesh"))
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+	]
+	.ValueContent()
+	.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+	[
+		VerticalBox
+	];
+
+	VerticalBox->AddSlot()
+	.Padding(0, 2)
+	.AutoHeight()
+	[
+		SNew(SButton)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		.Text(LOCTEXT("BakeOutputDynamicMesh", "Bake Output"))
+		.IsEnabled(true)
+		.OnClicked_Lambda([BakeName, DynamicMesh, OutputIdentifier, HoudiniGeoPartObject, InOutput, HC]()
+		{
+			if (!DynamicMesh.IsValid() || !InOutput.IsValid() || !HC.IsValid())
+				return FReply::Handled();
+
+			FHoudiniOutputObject* FoundOutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+			if (!FoundOutputObject)
+				return FReply::Handled();
+
+			TArray<UHoudiniOutput*> AllOutputs;
+			AllOutputs.Reserve(HC->GetNumOutputs());
+			HC->GetOutputs(AllOutputs);
+
+			FHoudiniBakeSettings BakeSettings;
+			BakeSettings.SetFromCookable(HC.Get());
+			FHoudiniOutputDetails::OnBakeOutputObject(
+				BakeName,
+				DynamicMesh.Get(),
+				OutputIdentifier,
+				*FoundOutputObject,
+				HoudiniGeoPartObject,
+				HC.Get(),
+				InOutput.Get(),
+				HC->GetBakeFolderOrDefault(),
+				BakeSettings,
+				HC->GetTemporaryCookFolderOrDefault(),
+				EHoudiniLandscapeOutputBakeType::InValid,
+				AllOutputs);
+
+			return FReply::Handled();
+		})
+		.ToolTipText(LOCTEXT("HoudiniDynamicMeshBakeButton", "Bake this Dynamic Mesh output to a Static Mesh in the Bake folder."))
+	];
+
+	CreateMaterialSlotWidgets(
+		VerticalBox,
+		TWeakObjectPtr<UObject>(DynamicMesh.Get()),
+		OutputObject->OutputMaterials,
+		InOutput,
+		AssetThumbnailPool);
+}
+
+void
+FHoudiniOutputDetails::SetDynamicMeshMaterial(
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+	const FHoudiniOutputObjectIdentifier& OutputIdentifier,
+	int32 MaterialIndex,
+	UMaterialInterface* MaterialInterface)
+{
+	if (!IsValidWeakPointer(InOutput) || !IsValid(MaterialInterface))
+		return;
+
+	FHoudiniOutputObject* OutputObject = InOutput->GetOutputObjects().Find(OutputIdentifier);
+	if (!OutputObject || !OutputObject->OutputMaterials.IsValidIndex(MaterialIndex))
+		return;
+
+	UMaterialInterface* ExistingMaterial = OutputObject->OutputMaterials[MaterialIndex];
+	if (ExistingMaterial == MaterialInterface)
+		return;
+
+	FHoudiniMaterialIdentifier MaterialIdentifier;
+	const FHoudiniMaterialIdentifier* MaterialIdentifierPtr = InOutput->GetReplacementMaterials().FindKey(ExistingMaterial);
+	if (!MaterialIdentifierPtr)
+		MaterialIdentifierPtr = InOutput->GetAssignementMaterials().FindKey(ExistingMaterial);
+
+	if (MaterialIdentifierPtr)
+	{
+		MaterialIdentifier = *MaterialIdentifierPtr;
+	}
+	else if (ExistingMaterial == FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get())
+	{
+		MaterialIdentifier = FHoudiniMaterialIdentifier(HAPI_UNREAL_DEFAULT_MATERIAL_NAME, false, "");
+	}
+	else if (IsValid(ExistingMaterial))
+	{
+		MaterialIdentifier = FHoudiniMaterialIdentifier(ExistingMaterial->GetPathName(), false, "");
+	}
+
+	if (!MaterialIdentifier.IsValid())
+		return;
+
+	FScopedTransaction Transaction(
+		TEXT(HOUDINI_MODULE_EDITOR),
+		LOCTEXT("HoudiniDynamicMeshMaterialReplacement", "Houdini Dynamic Mesh Material Replacement"),
+		InOutput.Get());
+
+	InOutput->Modify();
+	InOutput->GetReplacementMaterials().Add(MaterialIdentifier, MaterialInterface);
+	ApplyDynamicMeshMaterial(*OutputObject, MaterialIndex, MaterialInterface);
+
+	FHoudiniEngineUtils::UpdateEditorProperties(true);
+	if (GEditor)
+		GEditor->RedrawAllViewports();
+}
+
+void
+FHoudiniOutputDetails::ApplyDynamicMeshMaterial(
+	FHoudiniOutputObject& OutputObject,
+	int32 MaterialIndex,
+	UMaterialInterface* MaterialInterface)
+{
+	if (!OutputObject.OutputMaterials.IsValidIndex(MaterialIndex))
+		return;
+
+	OutputObject.OutputMaterials[MaterialIndex] = MaterialInterface;
+
+	UDynamicMesh* DynamicMesh = Cast<UDynamicMesh>(OutputObject.OutputObject);
+	for (UObject* Component : OutputObject.OutputComponents)
+	{
+		UDynamicMeshComponent* DynamicMeshComponent = Cast<UDynamicMeshComponent>(Component);
+		if (!DynamicMeshComponent || DynamicMeshComponent->GetDynamicMesh() != DynamicMesh)
+			continue;
+
+		DynamicMeshComponent->Modify();
+		DynamicMeshComponent->SetMaterial(MaterialIndex, MaterialInterface);
+	}
+}
+
+void
+FHoudiniOutputDetails::CreateMaterialSlotWidgets(
+	const TSharedRef<SVerticalBox>& VerticalBox,
+	const TWeakObjectPtr<UObject>& OutputObject,
+	const TArray<TObjectPtr<UMaterialInterface>>& Materials,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput,
+	const TSharedPtr<FAssetThumbnailPool>& AssetThumbnailPool)
+{
+	for (int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); ++MaterialIndex)
+	{
+		UMaterialInterface* MaterialInterface = Materials[MaterialIndex];
+		TSharedPtr<SBorder> MaterialThumbnailBorder;
+		TSharedPtr<SHorizontalBox> HorizontalBox;
+
+		FString MaterialName;
+		FString MaterialPathName;
+		if (IsValid(MaterialInterface) && IsValid(MaterialInterface->GetOuter()))
+		{
+			MaterialName = MaterialInterface->GetName();
+			MaterialPathName = MaterialInterface->GetPathName();
+		}
+		else
+		{
+			MaterialInterface = nullptr;
+			MaterialName = TEXT("Material (invalid)") + FString::FromInt(MaterialIndex);
+			MaterialPathName = TEXT("Material (invalid)") + FString::FromInt(MaterialIndex);
+		}
+
+		TSharedPtr<FAssetThumbnail> MaterialThumbnail =
+			MakeShareable(new FAssetThumbnail(MaterialInterface, 64, 64, AssetThumbnailPool));
+
+		VerticalBox->AddSlot().Padding(0, 2)
+		[
+			SNew(SAssetDropTarget)
+			.OnAreAssetsAcceptableForDrop(this, &FHoudiniOutputDetails::OnMaterialInterfaceDraggedOver)
+			.OnAssetsDropped_Lambda([this, OutputObject, InOutput, MaterialIndex](const FDragDropEvent&, TArrayView<FAssetData> InAssets)
+			{
+				if (InAssets.IsEmpty())
+					return;
+
+				UObject* DroppedObject = InAssets[0].GetAsset();
+				if (DroppedObject)
+					OnOutputObjectMaterialInterfaceDropped(DroppedObject, OutputObject, InOutput, MaterialIndex);
+			})
+			[
+				SAssignNew(HorizontalBox, SHorizontalBox)
+			]
+		];
+
+		HorizontalBox->AddSlot().Padding(0.0f, 0.0f, 2.0f, 0.0f).AutoWidth()
+		[
+			SAssignNew(MaterialThumbnailBorder, SBorder)
+			.Padding(5.0f)
+			.BorderImage(this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, OutputObject, MaterialIndex)
+			.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, TWeakObjectPtr<UObject>(MaterialInterface))
+			[
+				SNew(SBox)
+				.WidthOverride(64)
+				.HeightOverride(64)
+				.ToolTipText(FText::FromString(MaterialPathName))
+				[
+					MaterialThumbnail->MakeThumbnailWidget()
+				]
+			]
+		];
+
+		{
+			TPairInitializer<const TWeakObjectPtr<UObject>&, int32> Pair(OutputObject, MaterialIndex);
+			MaterialInterfaceThumbnailBorders.Add(Pair, MaterialThumbnailBorder);
+		}
+
+		TSharedPtr<SVerticalBox> ComboAndButtonBox;
+		HorizontalBox->AddSlot()
+		.FillWidth(1.0f)
+		.Padding(0.0f, 4.0f, 4.0f, 4.0f)
+		[
+			SAssignNew(ComboAndButtonBox, SVerticalBox)
+		];
+
+		TSharedPtr<SComboButton> AssetComboButton;
+		ComboAndButtonBox->AddSlot().VAlign(VAlign_Center).FillHeight(1.0f)
+		[
+			SNew(SVerticalBox) + SVerticalBox::Slot().VAlign(VAlign_Center).FillHeight(1.0f)
+			[
+				SAssignNew(AssetComboButton, SComboButton)
+				.ButtonStyle(_GetEditorStyle(), "PropertyEditor.AssetComboStyle")
+				.ForegroundColor(_GetEditorStyle().GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
+				.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent,
+					TWeakObjectPtr<UMaterialInterface>(MaterialInterface), OutputObject, InOutput, MaterialIndex)
+				.ContentPadding(2.0f)
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+					.TextStyle(_GetEditorStyle(), "PropertyEditor.AssetClass")
+					.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
+					.Text(FText::FromString(MaterialName))
+				]
+			]
+		];
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Asset"), FText::FromString(MaterialName));
+		const FText MaterialTooltip = FText::Format(
+			LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
+
+		TSharedPtr<SHorizontalBox> ButtonBox;
+		ComboAndButtonBox->AddSlot().FillHeight(1.0f)
+		[
+			SAssignNew(ButtonBox, SHorizontalBox)
+		];
+
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			PropertyCustomizationHelpers::MakeUseSelectedButton(
+				FSimpleDelegate::CreateSP(
+					this, &FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface,
+					OutputObject, InOutput, MaterialIndex),
+				TAttribute<FText>(LOCTEXT("UseSelectedAssetFromContentBrowser", "Use Selected Asset from Content Browser")))
+		];
+
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			PropertyCustomizationHelpers::MakeBrowseButton(
+				FSimpleDelegate::CreateSP(this, &FHoudiniOutputDetails::OnBrowseTo, TWeakObjectPtr<UObject>(MaterialInterface)),
+				TAttribute<FText>(MaterialTooltip))
+		];
+
+		ButtonBox->AddSlot()
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			SNew(SButton)
+			.ToolTipText(LOCTEXT("ResetToBaseMaterial", "Reset to base material"))
+			.ButtonStyle(_GetEditorStyle(), "NoBorder")
+			.ContentPadding(0)
+			.Visibility(EVisibility::Visible)
+			.OnClicked(this, &FHoudiniOutputDetails::OnResetOutputObjectMaterialInterfaceClicked, OutputObject, InOutput, MaterialIndex)
+			[
+				SNew(SImage)
+				.Image(_GetEditorStyle().GetBrush("PropertyWindow.DiffersFromDefault"))
+			]
+		];
+
+		{
+			TPairInitializer<const TWeakObjectPtr<UObject>&, int32> Pair(OutputObject, MaterialIndex);
+			MaterialInterfaceComboButtons.Add(Pair, AssetComboButton);
 		}
 	}
 }
@@ -1142,6 +1538,95 @@ void FHoudiniOutputDetails::CreateGeometryCollectionOutputWidget(IDetailCategory
 		}
 
 		CreateGeometryCollectionWidgets(HouOutputCategory, InOutput, GeometryCollection, CurrentOutputObject, OutputIdentifier, HoudiniGeoPartObject);
+	}
+}
+
+void
+FHoudiniOutputDetails::CreateDataAssetOutputWidget(
+	IDetailCategoryBuilder& HouOutputCategory,
+	const TWeakObjectPtr<UHoudiniOutput>& InOutput)
+{
+	if (!IsValidWeakPointer(InOutput))
+		return;
+
+	TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects = InOutput->GetOutputObjects();
+	int32 Index = 1;
+	for (auto& IterObject : OutputObjects)
+	{
+		UDataAsset* DataAsset = Cast<UDataAsset>(IterObject.Value.OutputObject);
+		if (!IsValid(DataAsset))
+			continue;
+
+		FString GroupName = TEXT("Data Asset Output ") + FString::FromInt(Index++);
+		IDetailGroup& OutputGroup = HouOutputCategory.AddGroup(FName(GroupName), FText::FromString(GroupName), false, false);
+		TSharedPtr<FAssetThumbnailPool> AssetThumbnailPool = HouOutputCategory.GetParentLayout().GetThumbnailPool();
+		TSharedPtr<FAssetThumbnail> Thumbnail = MakeShareable(new FAssetThumbnail(DataAsset, 64, 64, AssetThumbnailPool));
+		TSharedPtr<SBorder> ThumbnailBorder;
+
+		OutputGroup.AddWidgetRow()
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("HoudiniDataAssetLabel", "Data Asset"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		.ValueContent()
+		.MinDesiredWidth(HAPI_UNREAL_DESIRED_ROW_VALUE_WIDGET_WIDTH)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(0.0f, 0.0f, 2.0f, 0.0f)
+			.AutoWidth()
+			[
+				SAssignNew(ThumbnailBorder, SBorder)
+				.Padding(5.0f)
+				.BorderImage(this, &FHoudiniOutputDetails::GetThumbnailBorder, (const TWeakObjectPtr<UObject>&) DataAsset)
+				.OnMouseDoubleClick(this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&) DataAsset)
+				[
+					SNew(SBox)
+					.WidthOverride(64)
+					.HeightOverride(64)
+					.ToolTipText(FText::FromString(DataAsset->GetPathName()))
+					[
+						Thumbnail->MakeThumbnailWidget()
+					]
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2.0f, 0.0f)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(2.0f, 0.0f)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromName(DataAsset->GetFName()))
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(2.0f, 0.0f)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(DataAsset->GetClass()->GetName()))
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(2.0f, 0.0f)
+				.HAlign(HAlign_Left)
+				[
+					PropertyCustomizationHelpers::MakeBrowseButton(
+						FSimpleDelegate::CreateSP(this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&) DataAsset),
+						LOCTEXT("HoudiniDataAssetBrowseButton", "Browse to this generated Data Asset in the content browser"))
+				]
+			]
+		];
+
+		OutputObjectThumbnailBorders.Add(DataAsset, ThumbnailBorder);
 	}
 }
 
@@ -1698,6 +2183,7 @@ FHoudiniOutputDetails::CreateCurveWidgets(
 	// Add Bake Button UI
 	TSharedPtr<SButton> BakeButton;
 	CurveOutputGrp.AddWidgetRow()
+	.RowTag(FName(TEXT("HoudiniBakeOutput")))
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -1952,7 +2438,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	];
 
 	// Add details on the SM colliders
-	EHoudiniSplitType SplitType = FHoudiniMeshTranslator::GetSplitTypeFromSplitName(OutputIdentifier.SplitIdentifier);
+	EHoudiniSplitType SplitType = FHoudiniMeshTranslatorUtils::GetSplitTypeFromSplitName(OutputIdentifier.SplitIdentifier);
 	FString MeshLabel = TEXT( "Static Mesh" );
 
 	// If the Proxy mesh is more recent, indicate it in the details
@@ -2011,6 +2497,7 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 
 	UHoudiniAssetComponent* HoudiniAssetComponent = Cast<UHoudiniAssetComponent>(InOutput->GetOuter());
 	StaticMeshGrp.AddWidgetRow()
+	.RowTag(FName(TEXT("HoudiniBakeOutput")))
 	.NameContent()
 	[
 		SNew( STextBlock )
@@ -2128,163 +2615,17 @@ FHoudiniOutputDetails::CreateStaticMeshAndMaterialWidgets(
 	// Store thumbnail for this mesh.
 	OutputObjectThumbnailBorders.Add(StaticMesh, StaticMeshThumbnailBorder);
 
-	// We need to add material box for each material present in this static mesh.
-	auto & StaticMeshMaterials = StaticMesh->GetStaticMaterials();
-	for ( int32 MaterialIdx = 0; MaterialIdx < StaticMeshMaterials.Num(); ++MaterialIdx )
-	{
-		UMaterialInterface * MaterialInterface = StaticMeshMaterials[ MaterialIdx ].MaterialInterface;
-		TSharedPtr< SBorder > MaterialThumbnailBorder;
-		TSharedPtr< SHorizontalBox > HorizontalBox = NULL;
+	TArray<TObjectPtr<UMaterialInterface>> StaticMeshMaterials;
+	StaticMeshMaterials.Reserve(StaticMesh->GetStaticMaterials().Num());
+	for (const FStaticMaterial& StaticMaterial : StaticMesh->GetStaticMaterials())
+		StaticMeshMaterials.Add(StaticMaterial.MaterialInterface);
 
-		FString MaterialName, MaterialPathName;
-		if ( IsValid(MaterialInterface)
-			&& IsValid(MaterialInterface->GetOuter()) )
-		{
-			MaterialName = MaterialInterface->GetName();
-			MaterialPathName = MaterialInterface->GetPathName();
-		}
-		else
-		{
-			MaterialInterface = nullptr;
-			MaterialName = TEXT("Material (invalid)") + FString::FromInt( MaterialIdx ) ;
-			MaterialPathName = TEXT("Material (invalid)") + FString::FromInt(MaterialIdx);
-		}
-
-		// Create thumbnail for this material.
-		TSharedPtr< FAssetThumbnail > MaterialInterfaceThumbnail =
-			MakeShareable( new FAssetThumbnail( MaterialInterface, 64, 64, AssetThumbnailPool ) );
-
-		VerticalBox->AddSlot().Padding( 0, 2 )
-		[
-			SNew( SAssetDropTarget )
-			.OnAreAssetsAcceptableForDrop( this, &FHoudiniOutputDetails::OnMaterialInterfaceDraggedOver )
-			.OnAssetsDropped(
-				this, &FHoudiniOutputDetails::OnMaterialInterfaceDropped, StaticMesh, InOutput, MaterialIdx )
-			[
-				SAssignNew( HorizontalBox, SHorizontalBox )
-			]
-		];
-
-		HorizontalBox->AddSlot().Padding( 0.0f, 0.0f, 2.0f, 0.0f ).AutoWidth()
-		[
-			SAssignNew( MaterialThumbnailBorder, SBorder )
-			.Padding( 5.0f )
-			.BorderImage(
-				this, &FHoudiniOutputDetails::GetMaterialInterfaceThumbnailBorder, (const TWeakObjectPtr<UObject>&)StaticMesh, MaterialIdx )
-			.OnMouseDoubleClick(
-				this, &FHoudiniOutputDetails::OnThumbnailDoubleClick, (const TWeakObjectPtr<UObject>&)MaterialInterface )
-			[
-				SNew( SBox )
-				.WidthOverride( 64 )
-				.HeightOverride( 64 )
-				.ToolTipText( FText::FromString( MaterialPathName ) )
-				[
-					MaterialInterfaceThumbnail->MakeThumbnailWidget()
-				]
-			]
-		];
-
-		// Store thumbnail for this mesh and material index.
-		{
-			TPairInitializer<const TWeakObjectPtr<UStaticMesh>&, int32> Pair( StaticMesh, MaterialIdx );
-			MaterialInterfaceThumbnailBorders.Add( Pair, MaterialThumbnailBorder );
-		}
-
-		// ComboBox and buttons
-		TSharedPtr<SVerticalBox> ComboAndButtonBox;
-		HorizontalBox->AddSlot()
-		.FillWidth(1.0f)
-		.Padding(0.0f, 4.0f, 4.0f, 4.0f)
-		[
-			SAssignNew(ComboAndButtonBox, SVerticalBox)
-		];
-
-		// Add Combo box
-		TSharedPtr< SComboButton > AssetComboButton;
-		ComboAndButtonBox->AddSlot().VAlign(VAlign_Center).FillHeight(1.0f)
-		[
-			SNew(SVerticalBox) + SVerticalBox::Slot().VAlign(VAlign_Center).FillHeight(1.0f)
-			[
-				SAssignNew(AssetComboButton, SComboButton)
-				.ButtonStyle(_GetEditorStyle(), "PropertyEditor.AssetComboStyle")
-				.ForegroundColor(_GetEditorStyle().GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
-				.OnGetMenuContent(this, &FHoudiniOutputDetails::OnGetMaterialInterfaceMenuContent,
-				TWeakObjectPtr<UMaterialInterface>(MaterialInterface), (const TWeakObjectPtr<UObject>&)StaticMesh, InOutput, MaterialIdx)
-				.ContentPadding(2.0f)
-				.ButtonContent()
-				[
-					SNew(STextBlock)
-					.TextStyle(_GetEditorStyle(), "PropertyEditor.AssetClass")
-					.Font(_GetEditorStyle().GetFontStyle(FName(TEXT("PropertyWindow.NormalFont"))))
-					.Text(FText::FromString(MaterialName))
-				]
-			]
-		];
-
-
-		// Create tooltip.
-		FFormatNamedArguments Args;
-		Args.Add(TEXT("Asset"), FText::FromString(MaterialName));
-		FText MaterialTooltip = FText::Format(
-			LOCTEXT("BrowseToSpecificAssetInContentBrowser", "Browse to '{Asset}' in Content Browser"), Args);
-
-
-		// Add buttons
-		TSharedPtr< SHorizontalBox > ButtonBox;
-		ComboAndButtonBox->AddSlot().FillHeight(1.0f)
-		[
-			SAssignNew(ButtonBox, SHorizontalBox)
-		];
-
-		// Use CB selection arrow button
-		ButtonBox->AddSlot()
-		.AutoWidth()
-		.Padding(2.0f, 0.0f)
-		.VAlign(VAlign_Center)
-		[
-			PropertyCustomizationHelpers::MakeUseSelectedButton(
-				FSimpleDelegate::CreateSP(
-					this, &FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface,
-					(const TWeakObjectPtr<UObject>&)StaticMesh, InOutput, MaterialIdx),
-				TAttribute< FText >(LOCTEXT("UseSelectedAssetFromContentBrowser", "Use Selected Asset from Content Browser")))
-		];
-
-		// Browse CB button
-		ButtonBox->AddSlot()
-		.AutoWidth()
-		.Padding( 2.0f, 0.0f )
-		.VAlign( VAlign_Center )
-		[
-			PropertyCustomizationHelpers::MakeBrowseButton(
-				FSimpleDelegate::CreateSP(
-					this, &FHoudiniOutputDetails::OnBrowseTo, (const TWeakObjectPtr<UObject>&)MaterialInterface ), TAttribute< FText >( MaterialTooltip ) )
-		];
-
-		// Reset button
-		ButtonBox->AddSlot()
-		.AutoWidth()
-		.Padding( 2.0f, 0.0f )
-		.VAlign( VAlign_Center )
-		[
-			SNew( SButton )
-			.ToolTipText( LOCTEXT( "ResetToBaseMaterial", "Reset to base material" ) )
-			.ButtonStyle(_GetEditorStyle(), "NoBorder" )
-			.ContentPadding( 0 )
-			.Visibility( EVisibility::Visible )
-			.OnClicked(
-				this, &FHoudiniOutputDetails::OnResetMaterialInterfaceClicked, StaticMesh, InOutput, MaterialIdx)
-			[
-				SNew( SImage )
-				.Image(_GetEditorStyle().GetBrush( "PropertyWindow.DiffersFromDefault" ) )
-			]
-		];
-
-		// Store combo button for this mesh and index.
-		{
-			TPairInitializer<const TWeakObjectPtr<UStaticMesh>&, int32> Pair( StaticMesh, MaterialIdx );
-			MaterialInterfaceComboButtons.Add( Pair, AssetComboButton );
-		}
-	}
+	CreateMaterialSlotWidgets(
+		VerticalBox,
+		TWeakObjectPtr<UObject>(StaticMesh.Get()),
+		StaticMeshMaterials,
+		InOutput,
+		AssetThumbnailPool);
 }
 
 void
@@ -2369,7 +2710,7 @@ FHoudiniOutputDetails::CreateProxyMeshAndMaterialWidgets(
 	];
 
 	// Add details on the Proxy Mesh
-	EHoudiniSplitType SplitType = FHoudiniMeshTranslator::GetSplitTypeFromSplitName(OutputIdentifier.SplitIdentifier);
+	EHoudiniSplitType SplitType = FHoudiniMeshTranslatorUtils::GetSplitTypeFromSplitName(OutputIdentifier.SplitIdentifier);
 	FString MeshLabel = TEXT("Proxy Mesh");
 
 	// Indicate that this mesh is instanced
@@ -2775,6 +3116,56 @@ FHoudiniOutputDetails::OnMaterialInterfaceDraggedOver(TArrayView<FAssetData> InA
 	return (InObject && InObject->IsA(UMaterialInterface::StaticClass()));
 }
 
+FReply
+FHoudiniOutputDetails::OnResetOutputObjectMaterialInterfaceClicked(
+	const TWeakObjectPtr<UObject> OutputObject,
+	const TWeakObjectPtr<UHoudiniOutput> InOutput,
+	int32 MaterialIndex)
+{
+	if (UStaticMesh* StaticMesh = Cast<UStaticMesh>(OutputObject))
+		return OnResetMaterialInterfaceClicked(StaticMesh, InOutput, MaterialIndex);
+
+	FReply Reply = FReply::Handled();
+	UDynamicMesh* DynamicMesh = Cast<UDynamicMesh>(OutputObject);
+	if (!IsValid(DynamicMesh) || !IsValidWeakPointer(InOutput))
+		return Reply;
+
+	for (TPair<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& Pair : InOutput->GetOutputObjects())
+	{
+		FHoudiniOutputObject& DynamicMeshOutput = Pair.Value;
+		if (DynamicMeshOutput.OutputObject != DynamicMesh || !DynamicMeshOutput.OutputMaterials.IsValidIndex(MaterialIndex))
+			continue;
+
+		UMaterialInterface* MaterialInterface = DynamicMeshOutput.OutputMaterials[MaterialIndex];
+		const FHoudiniMaterialIdentifier* MaterialIdentifierPtr = InOutput->GetReplacementMaterials().FindKey(MaterialInterface);
+		if (!MaterialIdentifierPtr)
+			return Reply;
+
+		const FHoudiniMaterialIdentifier MaterialIdentifier = *MaterialIdentifierPtr;
+		UMaterialInterface* AssignmentMaterial = FHoudiniEngine::Get().GetHoudiniDefaultMaterial().Get();
+		const TObjectPtr<UMaterialInterface>* FoundMaterial = InOutput->GetAssignementMaterials().Find(MaterialIdentifier);
+		if (FoundMaterial && *FoundMaterial)
+			AssignmentMaterial = FoundMaterial->Get();
+
+		FScopedTransaction Transaction(
+			TEXT(HOUDINI_MODULE_EDITOR),
+			LOCTEXT("HoudiniDynamicMeshMaterialReset", "Houdini Dynamic Mesh Material Reset"),
+			InOutput.Get());
+
+		InOutput->Modify();
+		InOutput->GetReplacementMaterials().Remove(MaterialIdentifier);
+		ApplyDynamicMeshMaterial(DynamicMeshOutput, MaterialIndex, AssignmentMaterial);
+
+		FHoudiniEngineUtils::UpdateEditorProperties(true);
+		if (GEditor)
+			GEditor->RedrawAllViewports();
+
+		return Reply;
+	}
+
+	return Reply;
+}
+
 
 FReply
 FHoudiniOutputDetails::OnResetMaterialInterfaceClicked(
@@ -2973,6 +3364,37 @@ void
 FHoudiniOutputDetails::CloseMaterialInterfaceComboButton()
 {
 
+}
+
+void
+FHoudiniOutputDetails::OnOutputObjectMaterialInterfaceDropped(
+	const TWeakObjectPtr<UObject> InObject,
+	const TWeakObjectPtr<UObject> OutputObject,
+	const TWeakObjectPtr<UHoudiniOutput> InOutput,
+	int32 MaterialIndex)
+{
+	if (!InObject.IsValid() || !IsValidWeakPointer(InOutput))
+		return;
+
+	if (UStaticMesh* StaticMesh = Cast<UStaticMesh>(OutputObject))
+	{
+		OnMaterialInterfaceDropped(InObject, StaticMesh, InOutput, MaterialIndex);
+		return;
+	}
+
+	UDynamicMesh* DynamicMesh = Cast<UDynamicMesh>(OutputObject);
+	UMaterialInterface* MaterialInterface = Cast<UMaterialInterface>(InObject);
+	if (!IsValid(DynamicMesh) || !IsValid(MaterialInterface))
+		return;
+
+	for (const TPair<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& Pair : InOutput->GetOutputObjects())
+	{
+		if (Pair.Value.OutputObject != DynamicMesh)
+			continue;
+
+		SetDynamicMeshMaterial(InOutput, Pair.Key, MaterialIndex, MaterialInterface);
+		return;
+	}
 }
 
 void
@@ -3251,6 +3673,12 @@ FHoudiniOutputDetails::OnMaterialInterfaceSelected(
 			return OnMaterialInterfaceDropped(Object, SM, InOutput, MaterialIdx);
 		}
 
+		UDynamicMesh* DynamicMesh = Cast<UDynamicMesh>(OutputObject);
+		if (IsValid(DynamicMesh))
+		{
+			return OnOutputObjectMaterialInterfaceDropped(Object, OutputObject, InOutput, MaterialIdx);
+		}
+
 		ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(OutputObject);
 		if (IsValid(Landscape))
 		{
@@ -3301,6 +3729,12 @@ FHoudiniOutputDetails::OnUseContentBrowserSelectedMaterialInterface(
 			if (IsValid(SM))
 			{
 				return OnMaterialInterfaceDropped(Object, SM, InOutput, MaterialIdx);
+			}
+
+			UDynamicMesh* DynamicMesh = Cast<UDynamicMesh>(OutputObject);
+			if (IsValid(DynamicMesh))
+			{
+				return OnOutputObjectMaterialInterfaceDropped(Object, OutputObject, InOutput, MaterialIdx);
 			}
 
 			ALandscapeProxy* Landscape = Cast<ALandscapeProxy>(OutputObject);
@@ -3630,8 +4064,29 @@ FHoudiniOutputDetails::OnBakeOutputObject(
 	const EHoudiniOutputType Type = InOutput->GetType();
 	switch (Type) 
 	{
-		case EHoudiniOutputType::Mesh:
+	case EHoudiniOutputType::Mesh:
 		{
+			UDynamicMesh* DynamicMesh = Cast<UDynamicMesh>(BakedOutputObject);
+			if (IsValid(DynamicMesh) && OutputIndex >= 0)
+			{
+				FDirectoryPath BakeFolderPath;
+				BakeFolderPath.Path = BakeFolder;
+				const bool bSuccess = FHoudiniEngineBakeUtils::BakeDynamicMeshOutputToActor(
+					HC,
+					InOutput,
+					OutputIdentifier,
+					BakeFolderPath,
+					BakeSettings);
+				if (bSuccess)
+				{
+					const FHoudiniBakedOutputObject* NewBakedObjectEntry = AllBakedOutputs[OutputIndex].BakedOutputObjects.Find(OutputIdentifier);
+					if (NewBakedObjectEntry)
+						BakedObjectEntry = *NewBakedObjectEntry;
+				}
+
+				break;
+			}
+
 			UStaticMesh* StaticMesh = Cast<UStaticMesh>(BakedOutputObject);
 			if (StaticMesh)
 			{
@@ -4360,10 +4815,11 @@ FHoudiniOutputDetails::CreateTextureOutputWidget(
 				MakeShareable(new FAssetThumbnail(CurrentTexture, 64, 64, AssetThumbnailPool));
 
 		TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
-		FString TextureLabel = TEXT("Texture");
-		IDetailGroup& TextureGrp = HouOutputCategory.AddGroup(FName(*TextureName), FText::FromString(TextureName));
-		TextureGrp.AddWidgetRow()
-		.NameContent()
+	FString TextureLabel = TEXT("Texture");
+	IDetailGroup& TextureGrp = HouOutputCategory.AddGroup(FName(*TextureName), FText::FromString(TextureName));
+	TextureGrp.AddWidgetRow()
+	.RowTag(FName(TEXT("HoudiniBakeOutput")))
+	.NameContent()
 		[
 			SNew(STextBlock)
 			.Text(FText::FromString(TextureLabel))

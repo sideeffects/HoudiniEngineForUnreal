@@ -359,7 +359,7 @@ UHoudiniPublicAPIAssetWrapper::UnlinkBakedOutputs_Implementation(EHoudiniEngineB
 		FHoudiniEngineBakeUtils::UnlinkBakedOutputs(HC);
 
 	if(BakeType == EHoudiniEngineBakeType::All || BakeType == EHoudiniEngineBakeType::PDGOutputs)
-		FHoudiniEngineBakeUtils::UnlinkBakedPDGOutputs(HC->GetPDGAssetLink());
+		FHoudiniEngineBakeUtils::UnlinkBakedPDGOutputs(HC);
 
 	return true;
 }

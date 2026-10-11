@@ -42,6 +42,7 @@
 
 #include "EngineUtils.h"
 #include "Engine/Brush.h"
+#include "Engine/DataAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/DataTable.h"
 #include "Model.h"
@@ -2173,6 +2174,7 @@ UHoudiniInput::GetAllowedClasses(const EHoudiniInputType& InInputType, bool bIsC
 			AllowedClasses.Add(UGeometryCollectionComponent::StaticClass());
 			AllowedClasses.Add(AGeometryCollectionActor::StaticClass());
 			AllowedClasses.Add(UBlueprint::StaticClass());
+			AllowedClasses.Add(UDataAsset::StaticClass());
 			AllowedClasses.Add(UDataTable::StaticClass());
 			AllowedClasses.Add(UFoliageType_InstancedStaticMesh::StaticClass());
 			AllowedClasses.Add(UTexture2D::StaticClass());

@@ -202,6 +202,26 @@ FHoudiniTestContext::StartCookingHDA()
 	CookingState = EHoudiniContextState::Cooking;
 }
 
+bool
+FHoudiniTestContext::IsCookableInstantiationComplete() const
+{
+	if (!HAC && !HC)
+		return true;
+
+	const UHoudiniCookable* Cookable = HC ? HC : HAC->GetCookable();
+	if (!Cookable)
+		return false;
+
+	if (Cookable->GetNodeId() == INDEX_NONE)
+		return false;
+
+	const EHoudiniAssetState State = Cookable->GetCurrentState();
+	return State != EHoudiniAssetState::NeedInstantiation
+		&& State != EHoudiniAssetState::NewHDA
+		&& State != EHoudiniAssetState::PreInstantiation
+		&& State != EHoudiniAssetState::Instantiating;
+}
+
 void 
 FHoudiniTestContext::WaitForTicks(int Count)
 {

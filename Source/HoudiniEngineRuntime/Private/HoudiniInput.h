@@ -162,6 +162,8 @@ public:
 	bool GetExportColliders() const						{ return InputSettings.bExportColliders; };
 	bool GetUseMeshDescription() const					{ return InputSettings.bUseMeshDescription; };
 	bool GetExportMaterialParameters() const			{ return InputSettings.bExportMaterialParameters; };
+	bool GetUseDictionaryForDataAssetValues() const		{ return InputSettings.bUseDictionaryForDataAssetValues; };
+	bool GetPrefixDataAssetPropertyNamesWithClassName() const { return InputSettings.bPrefixDataAssetPropertyNamesWithClassName; };
 	bool GetDirectlyConnectHdas() const					{ return bDirectlyConnectHdas; }
 	bool GetExportOptionsMenuExpanded() const			{ return bExportOptionsMenuExpanded; }
 	bool GetGeometryInputsMenuExpanded() const			{ return bGeometryInputsMenuExpanded; }
@@ -344,6 +346,10 @@ public:
 		{ InputSettings.bExportColliders = bInExportColliders; };
 	void SetExportMaterialParameters(const bool& bInExportMaterialParameters)
 		{ InputSettings.bExportMaterialParameters = bInExportMaterialParameters; };
+	void SetUseDictionaryForDataAssetValues(bool bInUseDictionaryForDataAssetValues)
+		{ InputSettings.bUseDictionaryForDataAssetValues = bInUseDictionaryForDataAssetValues; };
+	void SetPrefixDataAssetPropertyNamesWithClassName(bool bInPrefixDataAssetPropertyNamesWithClassName)
+		{ InputSettings.bPrefixDataAssetPropertyNamesWithClassName = bInPrefixDataAssetPropertyNamesWithClassName; };
 	void SetDirectlyConnectHdas(const bool& bInDirectlyConnectHdas)
 		{ bDirectlyConnectHdas = bInDirectlyConnectHdas; }
 	void SetExportOptionsMenuExpanded(const bool& bInExportOptionsMenuExpanded)

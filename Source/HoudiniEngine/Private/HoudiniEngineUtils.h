@@ -113,6 +113,9 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 		// Force deletes an Unreal Object without throwing up warning dialogs.
 		static void ForceDeleteObject(UObject* Object);
 
+		// Removes a scene component from its owner, detaches, unregisters and destroys it.
+		static bool RemoveAndDestroyComponent(UObject* InComponent);
+
 		// Load libHAPI and return handle to it, also store location of loaded libHAPI in passed argument.
 		static void* LoadLibHAPI(FString& StoredLibHAPILocation);
 
@@ -484,6 +487,11 @@ struct HOUDINIENGINE_API FHoudiniEngineUtils
 			EHoudiniInstancerType& OutInstancerType);
 
 		static bool IsValidDataTable(
+			HAPI_NodeId GeoId,
+			HAPI_PartId PartId);
+
+		// Returns true when the Geo-Part provides the class and dictionary attributes for a Data Asset output.
+		static bool IsValidDataAsset(
 			HAPI_NodeId GeoId,
 			HAPI_PartId PartId);
 

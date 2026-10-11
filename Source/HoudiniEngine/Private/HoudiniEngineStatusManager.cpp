@@ -205,15 +205,21 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 	FScopeLock Lock(&Mutex);
 
 	FHoudiniCookableStatus* CookableStatus = CurrentStatuses.Find(Cookable);
+	const EHoudiniStatusManagerStatus Status = Cookable && Cookable->IsLocked()
+		? EHoudiniStatusManagerStatus::Locked
+		: CookableStatus ? CookableStatus->Status : EHoudiniStatusManagerStatus::Idle;
 
 	EHoudiniSessionStatus SessionStatus = FHoudiniEngine::Get().GetSessionStatus();
-	if(!CookableStatus || SessionStatus != EHoudiniSessionStatus::Connected)
+	if (Status != EHoudiniStatusManagerStatus::Locked
+		&& (!CookableStatus || SessionStatus != EHoudiniSessionStatus::Connected))
 	{
 		this->ClearStatus(Cookable);
 		FHoudiniEngine::Get().GetSessionStatusAndColor(OutStatusString, OutStatusColor);
 		
 		return;
 	}
+
+	FLinearColor Cyan(0.0f, 1.0f, 1.0f);
 
 	auto GetWarnings = [](int Count) -> FString
 		{
@@ -240,11 +246,16 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 			}
 		};
 
-	switch (CookableStatus->Status)
+	switch (Status)
 	{
+	case EHoudiniStatusManagerStatus::Locked:
+		{
+			OutStatusColor = FLinearColor(0.0f, 1.0f, 1.0f);
+			OutStatusString = TEXT("Locked");
+		}
+		break;
 	case EHoudiniStatusManagerStatus::Cooking:
 		{
-			FLinearColor Cyan(0.0f, 1.0f, 1.0f);
 			OutStatusColor = Cyan;
 
 #if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
@@ -348,7 +359,6 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 
 	case EHoudiniStatusManagerStatus::PDGExecuting:
 	{
-		FLinearColor Cyan(0.0f, 1.0f, 1.0f);
 		OutStatusColor = Cyan;
 
 #if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
@@ -376,7 +386,6 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 
 	case EHoudiniStatusManagerStatus::Baking:
 		{
-			FLinearColor Cyan(0.0f, 1.0f, 1.0f);
 			OutStatusColor = Cyan;
 
 #if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
@@ -462,24 +471,105 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 		}
 		break;
 	case EHoudiniStatusManagerStatus::PDGComplete:
+		{
+			if(CookableStatus->NumErrors > 0)
+			{
+				OutStatusColor = FLinearColor::Red;
+				OutStatusString = FString::Printf(TEXT("PDG Unsuccessful. %s and %s"), *GetErrors(CookableStatus->NumErrors), *GetWarnings(CookableStatus->NumWarnings));
+			}
+			else if(CookableStatus->NumWarnings > 0)
+			{
+				OutStatusColor = FLinearColor::Yellow;
+				OutStatusString = FString::Printf(TEXT("PDG Completed with %s"), *GetWarnings(CookableStatus->NumWarnings));
+			}
+			else
+			{
+				OutStatusColor = FLinearColor::Green;
+				OutStatusString = TEXT("PDG Successfully Complete");
+			}
+		}
+		break;
+	case EHoudiniStatusManagerStatus::Instantiating:
+		{
+			OutStatusColor = Cyan;
+			OutStatusString = TEXT("Instantiating...");
+		}
+		break;
+	default:
+		{
+			OutStatusColor = Cyan;
+			OutStatusString = TEXT("Processing...");
+		}
+		break;
+
+	break;
+	}
+}
+
+FText FHoudiniEngineStatusManager::GetSessionStatusTooltip(const UHoudiniCookable* Cookable)
+{
+	FScopeLock Lock(&Mutex);
+
+	FHoudiniCookableStatus* CookableStatus = CurrentStatuses.Find(Cookable);
+	const EHoudiniStatusManagerStatus Status = Cookable && Cookable->IsLocked()
+		? EHoudiniStatusManagerStatus::Locked
+		: CookableStatus ? CookableStatus->Status : EHoudiniStatusManagerStatus::Idle;
+
+	const EHoudiniSessionStatus SessionStatus = FHoudiniEngine::Get().GetSessionStatus();
+	if (Status != EHoudiniStatusManagerStatus::Locked
+		&& (!CookableStatus || SessionStatus != EHoudiniSessionStatus::Connected))
 	{
-		if(CookableStatus->NumErrors > 0)
+		switch (SessionStatus)
 		{
-			OutStatusColor = FLinearColor::Red;
-			OutStatusString = FString::Printf(TEXT("PDG Unsuccessful. %s and %s"), *GetErrors(CookableStatus->NumErrors), *GetWarnings(CookableStatus->NumWarnings));
-		}
-		else if(CookableStatus->NumWarnings > 0)
-		{
-			OutStatusColor = FLinearColor::Yellow;
-			OutStatusString = FString::Printf(TEXT("PDG Completed with %s"), *GetWarnings(CookableStatus->NumWarnings));
-		}
-		else
-		{
-			OutStatusColor = FLinearColor::Green;
-			OutStatusString = TEXT("PDG Successfully Complete");
+		case EHoudiniSessionStatus::NotStarted:
+			return NSLOCTEXT("HoudiniEngineStatusManager", "SessionNotStartedTooltip", "The Houdini Engine session has not been started.");
+		case EHoudiniSessionStatus::Connected:
+			return NSLOCTEXT("HoudiniEngineStatusManager", "SessionConnectedTooltip", "The Houdini Engine session is connected and ready.");
+		case EHoudiniSessionStatus::Stopped:
+			return NSLOCTEXT("HoudiniEngineStatusManager", "SessionStoppedTooltip", "The Houdini Engine session has been stopped.");
+		case EHoudiniSessionStatus::Failed:
+			return NSLOCTEXT("HoudiniEngineStatusManager", "SessionFailedTooltip", "The Houdini Engine session failed to start or connect.");
+		case EHoudiniSessionStatus::Lost:
+			return NSLOCTEXT("HoudiniEngineStatusManager", "SessionLostTooltip", "The connection to the Houdini Engine session was lost.");
+		case EHoudiniSessionStatus::NoLicense:
+			return NSLOCTEXT("HoudiniEngineStatusManager", "SessionNoLicenseTooltip", "Houdini Engine could not acquire a license for this session.");
+		case EHoudiniSessionStatus::Connecting:
+			return NSLOCTEXT("HoudiniEngineStatusManager", "SessionConnectingTooltip", "Houdini Engine is connecting to a session.");
+		case EHoudiniSessionStatus::None:
+			return NSLOCTEXT("HoudiniEngineStatusManager", "SessionDisabledTooltip", "The Houdini Engine session is disabled in the plugin settings.");
+		case EHoudiniSessionStatus::Invalid:
+		default:
+			return NSLOCTEXT("HoudiniEngineStatusManager", "SessionInvalidTooltip", "The Houdini Engine session is invalid.");
 		}
 	}
-	break;
+
+	switch (Status)
+	{
+	case EHoudiniStatusManagerStatus::Locked:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "LockedTooltip", "This Houdini Asset Component is locked. Click the lock icon at the right of the Cook button bar to unlock it.");
+	case EHoudiniStatusManagerStatus::Instantiating:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "InstantiatingTooltip", "Houdini Engine is creating this Houdini Asset Component.");
+	case EHoudiniStatusManagerStatus::Instantiated:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "InstantiatedTooltip", "This Houdini Asset Component was created successfully.");
+	case EHoudiniStatusManagerStatus::Cooking:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "CookingTooltip", "Houdini Engine is cooking this Houdini Asset Component.");
+	case EHoudiniStatusManagerStatus::Cancelling:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "CancellingTooltip", "Houdini Engine is cancelling the active cook.\nThis may take some time if an individual SOP takes a long time to complete.");
+	case EHoudiniStatusManagerStatus::Cancelled:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "CancelledTooltip", "The Houdini Asset Component cook was cancelled.");
+	case EHoudiniStatusManagerStatus::CookComplete:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "CookCompleteTooltip", "The Houdini Asset Component cook has completed. Click to view its cook log.");
+	case EHoudiniStatusManagerStatus::Baking:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "BakingTooltip", "Houdini Engine is baking this Houdini Asset Component.");
+	case EHoudiniStatusManagerStatus::BakingComplete:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "BakingCompleteTooltip", "The Houdini Asset Component bake has completed. Click to view its cook log.");
+	case EHoudiniStatusManagerStatus::PDGExecuting:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "PDGExecutingTooltip", "PDG is executing work items for this Houdini Asset Component.");
+	case EHoudiniStatusManagerStatus::PDGComplete:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "PDGCompleteTooltip", "PDG has completed work for this Houdini Asset Component. Click to view its cook log.");
+	case EHoudiniStatusManagerStatus::Idle:
+	default:
+		return NSLOCTEXT("HoudiniEngineStatusManager", "IdleTooltip", "The Houdini Asset Component is idle.");
 	}
 }
 

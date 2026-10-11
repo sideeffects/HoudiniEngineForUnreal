@@ -168,6 +168,14 @@ AHoudiniAssetActor::GetHoudiniCookable() const
 
 #if WITH_EDITOR
 bool
+AHoudiniAssetActor::IsLockLocation() const
+{
+	return Super::IsLockLocation() || (IsValid(HoudiniCookable) && HoudiniCookable->IsLocked());
+}
+#endif
+
+#if WITH_EDITOR
+bool
 AHoudiniAssetActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
 	Super::GetReferencedContentObjects(Objects);

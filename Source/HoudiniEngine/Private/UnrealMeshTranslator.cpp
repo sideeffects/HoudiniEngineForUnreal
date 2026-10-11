@@ -1623,11 +1623,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 		MaterialInterfaces.Reserve(NumStaticMaterials);
 		for (int32 MaterialIndex = 0; MaterialIndex < NumStaticMaterials; ++MaterialIndex)
 		{
-			const FStaticMaterial &MaterialInfo = MeshMaterials[MaterialIndex];
-			UMaterialInterface *Material = nullptr;
-			{
-				Material = MaterialInfo.MaterialInterface;
-			}
+			UMaterialInterface* Material = MeshMaterials[MaterialIndex];
 			// If the Material is NULL or invalid, fallback to the default material
 			if (!IsValid(Material))
 			{
@@ -1637,7 +1633,7 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 					UEDefaultMaterialIndex = MaterialIndex;
 				}
 				Material = UEDefaultMaterial;
-				HOUDINI_LOG_WARNING(TEXT("Material Index %d (slot %s) has an invalid material, falling back to default: %s"), MaterialIndex, *(MaterialInfo.MaterialSlotName.ToString()), *(UEDefaultMaterial->GetPathName()));
+				HOUDINI_LOG_WARNING(TEXT("Material Index %d has an invalid material, falling back to default: %s"), MaterialIndex, *(UEDefaultMaterial->GetPathName()));
 			}
 			// MaterialSlotToInterface.Add(MaterialInfo.ImportedMaterialSlotName, MaterialIndex);
 			MaterialInterfaces.Add(Material);
@@ -3160,6 +3156,27 @@ FUnrealMeshTranslator::CreateInputNodeForCollider(
 	FHoudiniHapiAccessor Accessor(ColliderNodeId, 0, HAPI_UNREAL_ATTRIB_POSITION);
 	HOUDINI_CHECK_RETURN(Accessor.SetAttributeData(AttributeInfoPoint, ColliderVertices), false);
 
+	// Keep the merged geometry's UV attribute on vertices. Without an explicit
+	// UV attribute on colliders, Houdini can repack the render mesh's vertex UVs
+	// when it merges the two inputs.
+	HAPI_AttributeInfo AttributeInfoVertex;
+	FHoudiniApi::AttributeInfo_Init(&AttributeInfoVertex);
+	AttributeInfoVertex.count = ColliderIndices.Num();
+	AttributeInfoVertex.tupleSize = 3;
+	AttributeInfoVertex.exists = true;
+	AttributeInfoVertex.owner = HAPI_ATTROWNER_VERTEX;
+	AttributeInfoVertex.storage = HAPI_STORAGETYPE_FLOAT;
+	AttributeInfoVertex.originalOwner = HAPI_ATTROWNER_INVALID;
+
+	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::AddAttribute(
+		FHoudiniEngine::Get().GetSession(),
+		ColliderNodeId, 0, HAPI_UNREAL_ATTRIB_UV, &AttributeInfoVertex), false);
+
+	TArray<float> ColliderUVs;
+	ColliderUVs.Init(0.0f, AttributeInfoVertex.count * AttributeInfoVertex.tupleSize);
+	FHoudiniHapiAccessor UVAccessor(ColliderNodeId, 0, HAPI_UNREAL_ATTRIB_UV);
+	HOUDINI_CHECK_RETURN(UVAccessor.SetAttributeData(AttributeInfoVertex, ColliderUVs), false);
+
 	// Upload the indices
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::HapiSetVertexList(
 		ColliderIndices, ColliderNodeId, 0), false);
@@ -3490,6 +3507,86 @@ FUnrealMeshTranslator::CreateHoudiniMeshAttributes(
 	return bSuccess;
 }
 
+bool FUnrealMeshTranslator::CreateAndConnectSimpleColliders(
+	const FKAggregateGeom& SimpleColliders,
+	const HAPI_NodeId InputObjectNodeId,
+	const HAPI_NodeId MergeNodeId,
+	int32& InOutNextMergeIndex,
+	int32& InOutNextColliderIndex)
+{
+	for (const FKBoxElem& Box : SimpleColliders.BoxElems)
+	{
+		HAPI_NodeId ColliderNodeId = -1;
+		const bool bSuccess = CreateInputNodeForBox(
+			ColliderNodeId, InputObjectNodeId, InOutNextColliderIndex,
+			Box.Center, FVector(Box.X, Box.Y, Box.Z), Box.Rotation);
+		if (!bSuccess)
+			return false;
+
+		const HAPI_Result Result = FHoudiniApi::ConnectNodeInput(
+			FHoudiniEngine::Get().GetSession(), MergeNodeId, InOutNextMergeIndex, ColliderNodeId, 0);
+		if (Result != HAPI_RESULT_SUCCESS)
+			return false;
+
+		++InOutNextMergeIndex;
+		++InOutNextColliderIndex;
+	}
+
+	for (const FKSphereElem& Sphere : SimpleColliders.SphereElems)
+	{
+		HAPI_NodeId ColliderNodeId = -1;
+		const bool bSuccess = CreateInputNodeForSphere(
+			ColliderNodeId, InputObjectNodeId, InOutNextColliderIndex, Sphere.Center, Sphere.Radius);
+		if (!bSuccess)
+			return false;
+
+		const HAPI_Result Result = FHoudiniApi::ConnectNodeInput(
+			FHoudiniEngine::Get().GetSession(), MergeNodeId, InOutNextMergeIndex, ColliderNodeId, 0);
+		if (Result != HAPI_RESULT_SUCCESS)
+			return false;
+
+		++InOutNextMergeIndex;
+		++InOutNextColliderIndex;
+	}
+
+	for (const FKSphylElem& Sphyl : SimpleColliders.SphylElems)
+	{
+		HAPI_NodeId ColliderNodeId = -1;
+		const bool bSuccess = CreateInputNodeForSphyl(
+			ColliderNodeId, InputObjectNodeId, InOutNextColliderIndex,
+			Sphyl.Center, Sphyl.Rotation, Sphyl.Radius, Sphyl.Length);
+		if (!bSuccess)
+			return false;
+
+		const HAPI_Result Result = FHoudiniApi::ConnectNodeInput(
+			FHoudiniEngine::Get().GetSession(), MergeNodeId, InOutNextMergeIndex, ColliderNodeId, 0);
+		if (Result != HAPI_RESULT_SUCCESS)
+			return false;
+
+		++InOutNextMergeIndex;
+		++InOutNextColliderIndex;
+	}
+
+	for (const FKConvexElem& Convex : SimpleColliders.ConvexElems)
+	{
+		HAPI_NodeId ColliderNodeId = -1;
+		const bool bSuccess = CreateInputNodeForConvex(
+			ColliderNodeId, InputObjectNodeId, InOutNextColliderIndex, Convex);
+		if (!bSuccess)
+			return false;
+
+		const HAPI_Result Result = FHoudiniApi::ConnectNodeInput(
+			FHoudiniEngine::Get().GetSession(), MergeNodeId, InOutNextMergeIndex, ColliderNodeId, 0);
+		if (Result != HAPI_RESULT_SUCCESS)
+			return false;
+
+		++InOutNextMergeIndex;
+		++InOutNextColliderIndex;
+	}
+
+	return true;
+}
+
 bool FUnrealMeshTranslator::ExportCollisions(
 	int32& NextMergeIndex,
 	const UStaticMesh* StaticMesh,
@@ -3506,88 +3603,11 @@ bool FUnrealMeshTranslator::ExportCollisions(
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(
 			InputObjectNodeId, TEXT("merge"), TEXT("simple_colliders_merge") + FString::FromInt(NextMergeIndex), false, &CollisionMergeNodeId), false);
 
-		// Export BOX colliders
-		for(auto& CurBox : SimpleColliders.BoxElems)
-		{
-			FVector BoxCenter = CurBox.Center;
-			FVector BoxExtent = FVector(CurBox.X, CurBox.Y, CurBox.Z);
-			FRotator BoxRotation = CurBox.Rotation;
-
-			HAPI_NodeId BoxNodeId = -1;
-			if(!CreateInputNodeForBox(
-				BoxNodeId, InputObjectNodeId, NextCollisionMergeIndex,
-				BoxCenter, BoxExtent, BoxRotation))
-				continue;
-
-			if(BoxNodeId < 0)
-				continue;
-
-			// Connect the Box node to the merge node.
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-				FHoudiniEngine::Get().GetSession(),
-				CollisionMergeNodeId, NextCollisionMergeIndex, BoxNodeId, 0), false);
-
-			NextCollisionMergeIndex++;
-		}
-
-		// Export SPHERE colliders
-		for(auto& CurSphere : SimpleColliders.SphereElems)
-		{
-			HAPI_NodeId SphereNodeId = -1;
-			if(!CreateInputNodeForSphere(
-				SphereNodeId, InputObjectNodeId, NextCollisionMergeIndex,
-				CurSphere.Center, CurSphere.Radius))
-				continue;
-
-			if(SphereNodeId < 0)
-				continue;
-
-			// Connect the Sphere node to the merge node.
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-				FHoudiniEngine::Get().GetSession(),
-				CollisionMergeNodeId, NextCollisionMergeIndex, SphereNodeId, 0), false);
-
-			NextCollisionMergeIndex++;
-		}
-
-		// Export CAPSULE colliders
-		for(auto& CurSphyl : SimpleColliders.SphylElems)
-		{
-			HAPI_NodeId SphylNodeId = -1;
-			if(!CreateInputNodeForSphyl(
-				SphylNodeId, InputObjectNodeId, NextCollisionMergeIndex,
-				CurSphyl.Center, CurSphyl.Rotation, CurSphyl.Radius, CurSphyl.Length))
-				continue;
-
-			if(SphylNodeId < 0)
-				continue;
-
-			// Connect the capsule node to the merge node.
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-				FHoudiniEngine::Get().GetSession(),
-				CollisionMergeNodeId, NextCollisionMergeIndex, SphylNodeId, 0), false);
-
-			NextCollisionMergeIndex++;
-		}
-
-		// Export CONVEX colliders
-		for(auto& CurConvex : SimpleColliders.ConvexElems)
-		{
-			HAPI_NodeId ConvexNodeId = -1;
-			if(!CreateInputNodeForConvex(
-				ConvexNodeId, InputObjectNodeId, NextCollisionMergeIndex, CurConvex))
-				continue;
-
-			if(ConvexNodeId < 0)
-				continue;
-
-			// Connect the capsule node to the merge node.
-			HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::ConnectNodeInput(
-				FHoudiniEngine::Get().GetSession(),
-				CollisionMergeNodeId, NextCollisionMergeIndex, ConvexNodeId, 0), false);
-
-			NextCollisionMergeIndex++;
-		}
+		int32 NextColliderIndex = 0;
+		bool bCollidersCreated = CreateAndConnectSimpleColliders(
+			SimpleColliders, InputObjectNodeId, CollisionMergeNodeId, NextCollisionMergeIndex, NextColliderIndex);
+		if (!bCollidersCreated)
+			return false;
 
 		// Create a new Attribute Wrangler node which will be used to create the new attributes.
 		HAPI_NodeId AttribWrangleNodeId;

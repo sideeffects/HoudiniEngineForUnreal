@@ -418,6 +418,19 @@ UHoudiniPCGCookable::DestroyCookable(UWorld * World)
 }
 
 void
+UHoudiniPCGCookable::ClearCookedOutputs()
+{
+	if (!IsValid(Cookable))
+		return;
+
+	// This runs inside UPCGComponent's cleanup task. Clearing cooked actors here
+	// prevents a later hard release from deleting a replacement actor.
+	FHoudiniOutputTranslator::ClearAndRemoveOutputs(
+		Cookable->GetOutputs(), EHoudiniClearFlags::EHoudiniClear_Actors);
+	State = EPCGCookableState::Initialized;
+}
+
+void
 UHoudiniPCGCookable::ProcessBakedOutputs(FPCGContext* Context, const FName& OutputPinName, const FString& TagName, const FHoudiniBakedOutput* HoudiniOutput)
 {
 	if(FHoudiniPCGUtils::HasPCGOutputs(HoudiniOutput))

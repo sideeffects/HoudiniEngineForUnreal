@@ -3286,12 +3286,16 @@ FHoudiniEngineUtils::HapiSetAssetTransform(HAPI_NodeId AssetId, const FTransform
 
 	// Get the NodeInfo
 	HAPI_NodeInfo LocalAssetNodeInfo;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
-		FHoudiniEngine::Get().GetSession(), AssetId,
-		&LocalAssetNodeInfo), false);
+	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiSetAssetTransform - GetNodeInfo);
+		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::GetNodeInfo(
+			FHoudiniEngine::Get().GetSession(), AssetId,
+			&LocalAssetNodeInfo), false);
+	}
 
 	if (LocalAssetNodeInfo.type == HAPI_NODETYPE_SOP)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiSetAssetTransform - SetObjectTransform);
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
 			FHoudiniEngine::Get().GetSession(),
 			LocalAssetNodeInfo.parentId,
@@ -3299,6 +3303,7 @@ FHoudiniEngineUtils::HapiSetAssetTransform(HAPI_NodeId AssetId, const FTransform
 	}
 	else if (LocalAssetNodeInfo.type == HAPI_NODETYPE_OBJ)
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::HapiSetAssetTransform - SetObjectTransform);
 		HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetObjectTransform(
 			FHoudiniEngine::Get().GetSession(),
 			AssetId, &TransformEuler), false);
@@ -3464,6 +3469,8 @@ FHoudiniEngineUtils::IsHoudiniCookableCooking(UObject* InObj)
 void
 FHoudiniEngineUtils::UpdateEditorProperties(const bool bInForceFullUpdate)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(FHoudiniEngineUtils::UpdateEditorProperties);
+
 	if (!IsInGameThread())
 	{
 		// We need to be in the game thread to trigger editor properties update
@@ -5367,6 +5374,15 @@ FHoudiniEngineUtils::IsValidDataTable(HAPI_NodeId GeoId, HAPI_PartId PartId)
 	}
 
 	return false;
+}
+
+bool
+FHoudiniEngineUtils::IsValidDataAsset(HAPI_NodeId GeoId, HAPI_PartId PartId)
+{
+	// The class selects the object type. Values may be a dictionary or individual point attributes, and
+	// are optional so that omitted or incompatible fields retain their class defaults on import.
+	return FHoudiniEngineUtils::HapiCheckAttributeExists(
+		GeoId, PartId, HAPI_UNREAL_ATTRIB_DATA_ASSET_CLASS, HAPI_ATTROWNER_POINT);
 }
 
 bool
@@ -8428,6 +8444,25 @@ FHoudiniEngineUtils::UpdateMeshPartUVSets(
 	return true;
 }
 
+bool
+FHoudiniEngineUtils::RemoveAndDestroyComponent(UObject* InComponent)
+{
+	if (!IsValid(InComponent))
+		return false;
+
+	USceneComponent* SceneComponent = Cast<USceneComponent>(InComponent);
+	if (!IsValid(SceneComponent))
+		return false;
+
+	if (AActor* Owner = SceneComponent->GetOwner())
+		Owner->RemoveOwnedComponent(SceneComponent);
+
+	SceneComponent->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+	SceneComponent->UnregisterComponent();
+	SceneComponent->DestroyComponent();
+
+	return true;
+}
 
 void
 FHoudiniEngineUtils::ForceDeleteObject(UObject* Object)

@@ -417,6 +417,7 @@ struct FHoudiniTestContext
 
 	//  Check if the context is valid. This will be false if, for example, the HDA failed to load.
 	bool IsValid();
+	bool IsCookableInstantiationComplete() const;
 
 	// Bakes the top network. Blocking, returns the baked actors.
 	TArray<FHoudiniEngineBakedActor> BakeSelectedTopNetwork();

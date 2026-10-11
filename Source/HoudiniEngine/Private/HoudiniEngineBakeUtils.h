@@ -42,6 +42,7 @@ class ULevelInstanceComponent;
 class UHoudiniOutput;
 class ALandscapeProxy;
 class UStaticMesh;
+class UDynamicMesh;
 class USkeletalMesh;
 class USplineComponent;
 class UPackage;
@@ -49,6 +50,8 @@ class UWorld;
 class AActor;
 class UHoudiniSplineComponent;
 class UStaticMeshComponent;
+class USceneComponent;
+class UMaterialInterface;
 class UHoudiniPDGAssetLink;
 class UTOPNetwork;
 class UTOPNode;
@@ -695,6 +698,16 @@ public:
 		const FHoudiniBakeSettings& BakeSettings,
 		FHoudiniBakedObjectData& BakedObjectData);
 
+	// Copies cooked Data Asset outputs into bake packages and records the resulting assets.
+	static bool BakeDataAssets(
+		const UHoudiniCookable* InCookable,
+		int32 InOutputIndex,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		FHoudiniEngineBakeState& InBakeState,
+		const FDirectoryPath& InBakeFolder,
+		const FHoudiniBakeSettings& BakeSettings,
+		FHoudiniBakedObjectData& BakedObjectData);
+
 	static bool BakePCGData(
 		const UHoudiniCookable* InCookable,
 		int32 InOutputIndex,
@@ -1209,6 +1222,30 @@ public:
 		bool& bOutBakedToActor,
 		FHoudiniEngineBakedActor& OutBakedActorEntry);
 
+	static bool BakeDynamicMeshOutputObjectToActor(
+		const UHoudiniCookable* InCookable,
+		int32 InOutputIndex,
+		const TArray<UHoudiniOutput*>& InAllOutputs,
+		const FHoudiniOutputObjectIdentifier& InIdentifier,
+		const FHoudiniOutputObject& InOutputObject,
+		const TArray<FHoudiniGeoPartObject>& InHGPOs,
+		FHoudiniEngineBakeState& InBakeState,
+		const FDirectoryPath& InBakeFolder,
+		const FHoudiniBakeSettings& BakeSettings,
+		AActor* InFallbackActor,
+		const FString& InFallbackWorldOutlinerFolder,
+		const TArray<FHoudiniEngineBakedActor>& InAllBakedActors,
+		FHoudiniBakedObjectData& BakedObjectData,
+		bool& bOutBakedToActor,
+		FHoudiniEngineBakedActor& OutBakedActorEntry);
+
+	static bool BakeDynamicMeshOutputToActor(
+		UHoudiniCookable* InCookable,
+		UHoudiniOutput* InOutput,
+		const FHoudiniOutputObjectIdentifier& InIdentifier,
+		const FDirectoryPath& InBakeFolder,
+		const FHoudiniBakeSettings& BakeSettings);
+
 	// Skeletal Mesh Version
 	static bool BakeSkeletalMeshOutputObjectToActor(
 		const UHoudiniCookable* InCookable,
@@ -1286,7 +1323,7 @@ public:
 		UUserDefinedStruct* OldStruct, UPackage* Pacakge, FString& PackageName);
 
 	static void UnlinkBakedOutputs(UHoudiniCookable* HC);
-	static void UnlinkBakedPDGOutputs(UHoudiniPDGAssetLink* AssetLink);
+	static void UnlinkBakedPDGOutputs(UHoudiniCookable* HC);
 
 	static void DeleteBakedOutputs(UHoudiniCookable * HC);
 	static void DeleteBakedPDGOutputs(UHoudiniPDGAssetLink* AssetLink);
