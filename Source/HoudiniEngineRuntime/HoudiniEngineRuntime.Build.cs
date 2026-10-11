@@ -74,7 +74,9 @@ public class HoudiniEngineRuntime : ModuleRules
 				"Landscape",
 				"MeshUtilitiesCommon",
 				"Chaos",
-				"GeometryCollectionEngine"
+				"GeometryCollectionEngine",
+				"GeometryCore",
+				"GeometryFramework"
 			}
 		);
 

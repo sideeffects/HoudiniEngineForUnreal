@@ -32,7 +32,7 @@
 
 /*
 
-    Houdini Version: 22.0.465
+    Houdini Version: 22.0.470
     Houdini Engine Version: 9.0.0
     Unreal Version: 5.0.0
 
@@ -80,7 +80,7 @@ public class HoudiniEngine : ModuleRules
 
     private string GetHFSPath()
     {
-        string HoudiniVersion = "22.0.465";
+        string HoudiniVersion = "22.0.470";
         bool bIsRelease = true;
         string HFSPath = "";
         string RegistryPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Side Effects Software";
@@ -328,6 +328,9 @@ public class HoudiniEngine : ModuleRules
                 "StaticMeshDescription",
                 "Chaos",
                 "GeometryCollectionEngine",
+                "GeometryCore",
+                "GeometryFramework",
+                "MeshConversion",
                 "FieldSystemEngine",
                 "BSPUtils",
                 "DataLayerEditor",
@@ -340,7 +343,9 @@ public class HoudiniEngine : ModuleRules
              {
                 "Landscape",
                 "PhysicsCore",
-                "PhysicsUtilities"
+                "PhysicsUtilities",
+                "Json",
+                "JsonUtilities"
              }
         );
 
