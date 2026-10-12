@@ -2509,7 +2509,17 @@ FHoudiniPDGManager::IsPDGAsset(const HAPI_NodeId& InAssetId)
 	if (InAssetId < 0)
 		return false;
 
-	// First check if an unreal_pdg_asset detail attribute exists - and get its value 
+	// An optional (possibly invisible) parameter can classify an HDA before it has cooked.
+	// Only explicit 0/1 values override the existing attribute and TOP-node discovery paths.
+	{
+		int32 HasPDG = -1;
+		HAPI_Result Result = FHoudiniApi::GetParmIntValue(
+			FHoudiniEngine::Get().GetSession(), InAssetId, HAPI_UNREAL_ATTRIB_PDG_ASSET, 0, &HasPDG);
+		if (Result == HAPI_RESULT_SUCCESS)
+			return HasPDG != 0;
+	}
+
+	// Otherwise check if an unreal_pdg_asset detail attribute exists - and get its value 
 	// This is faster than looking at all the nodes on an HDA - especially when the HDA contains a lot of nodes/assets
 	{
 		HAPI_AttributeInfo AttribInfo;

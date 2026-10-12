@@ -542,6 +542,7 @@ bool FHoudiniEngineManager::StartInstantiation(UHoudiniCookable* HC)
 		{
 			HC->HapiGUID = TaskGuid;
 			HC->HoudiniAssetData->HapiAssetName = HapiAssetName;
+			HC->bRestoreDisplayAfterCook = true;
 			HC->SetCurrentState(EHoudiniAssetState::Instantiating);
 			return true;
 		}
@@ -852,6 +853,33 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 			EHoudiniAssetState NewState = EHoudiniAssetState::None;
 			bool bSuccess = HC->bLastCookSuccess;
 
+			// Resolve the OBJ from the current SOP, rather than retaining a separate node ID.
+			// SOP instantiation suppresses display until the first successful cook; other asset types are unchanged.
+			if (bSuccess && HC->bRestoreDisplayAfterCook)
+			{
+				HAPI_NodeInfo NodeInfo;
+				FHoudiniApi::NodeInfo_Init(&NodeInfo);
+				HAPI_Result Result = FHoudiniApi::GetNodeInfo(
+					FHoudiniEngine::Get().GetSession(), HC->GetNodeId(), &NodeInfo);
+				bSuccess = Result == HAPI_RESULT_SUCCESS;
+				if (bSuccess && NodeInfo.type == HAPI_NODETYPE_SOP)
+				{
+					Result = FHoudiniApi::SetNodeDisplay(
+						FHoudiniEngine::Get().GetSession(), NodeInfo.parentId, true);
+					bSuccess = Result == HAPI_RESULT_SUCCESS;
+				}
+				if (bSuccess)
+				{
+					HC->bRestoreDisplayAfterCook = false;
+				}
+				else
+				{
+					HOUDINI_LOG_ERROR(TEXT("Failed to restore display after cooking %s: %s"),
+						*HC->GetDisplayName(), *FHoudiniEngineUtils::GetErrorDescription(Result));
+					HC->bLastCookSuccess = false;
+				}
+			}
+
 			HC->HandleOnPreOutputProcessing();
 
 			if(MyHABC)
@@ -965,7 +993,12 @@ FHoudiniEngineManager::ProcessCookable(UHoudiniCookable* HC)
 						int32 CookCount = FHoudiniEngineUtils::HapiGetCookCount(HC->GetNodeId());
 						if (CookCount >= 0 && CookCount != HC->CookCount)
 						{
-							if (HC->bAutoCook)
+							if (HC->GetIgnoreSessionSyncCook())
+							{
+								// Consume Session Sync's external cook-count change without recooking this HAC/Cookable.
+								HC->SetCookCount(CookCount);
+							}
+							else if (HC->bAutoCook)
 							{
 								// The cook count has changed on the Houdini side,
 								// this indicates that the user has changed something in Houdini so we need to trigger an update

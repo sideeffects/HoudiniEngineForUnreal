@@ -2225,6 +2225,34 @@ FHoudiniEngineDetails::CreateMiscOptionsWidgets(
 				});
 	}
 
+	{
+		FDetailWidgetRow& IgnoreSessionCookRow = Group.AddWidgetRow();
+		IgnoreSessionCookRow.IsEnabled(!MainHC->IsLocked());
+		IgnoreSessionCookRow.NameWidget.Widget = SNew(STextBlock)
+			.Text(LOCTEXT("HoudiniEngineIgnoreSessionCookLabel", "Ignore Session Sync Cooks"))
+			.Font(_GetEditorStyle().GetFontStyle(HOUDINI_DETAILS_FONT))
+			.ToolTipText(LOCTEXT("HoudiniEngineIgnoreSessionCookTooltip", "When enabled, cook-count changes made in Houdini through Session Sync do not trigger a recook in Unreal."));
+		IgnoreSessionCookRow.ValueWidget.Widget = SNew(SCheckBox)
+			.IsChecked_Lambda([MainHC]()
+				{
+					return IsValidWeakPointer(MainHC) && MainHC->GetIgnoreSessionSyncCook()
+						? ECheckBoxState::Checked
+						: ECheckBoxState::Unchecked;
+				})
+			.OnCheckStateChanged_Lambda([InHCs](ECheckBoxState NewState)
+				{
+					bool bIgnoreSessionCook = NewState == ECheckBoxState::Checked;
+					for (const TWeakObjectPtr<UHoudiniCookable>& NextHC : InHCs)
+					{
+						if (!IsValidWeakPointer(NextHC) || NextHC->GetIgnoreSessionSyncCook() == bIgnoreSessionCook)
+							continue;
+
+						NextHC->SetIgnoreSessionSyncCook(bIgnoreSessionCook);
+						NextHC->MarkPackageDirty();
+					}
+				});
+	}
+
 	auto IsCheckedPushTransformToHoudiniLambda = [MainHC]()
 		{
 			if(!IsValidWeakPointer(MainHC))

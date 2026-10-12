@@ -878,6 +878,8 @@ public:
 	void SetAllowUpdateEditorProperties(bool bOnOff) { bAllowUpdateEditorProperties = bOnOff;  }
 
 	void SetAutoCook(bool bOnOff) { bAutoCook = bOnOff;  }
+	bool GetIgnoreSessionSyncCook() const { return bIgnoreSessionSyncCook; }
+	void SetIgnoreSessionSyncCook(bool bInIgnoreSessionCook) { bIgnoreSessionSyncCook = bInIgnoreSessionCook; }
 	//------------------------------------------------------------------------------------------------
 	// Delegates / Public API
 	//------------------------------------------------------------------------------------------------
@@ -942,6 +944,9 @@ protected:
 	UPROPERTY(DuplicateTransient,Transient)
 	int32 NodeId;	// AssetId
 
+	// Restore the SOP asset's OBJ display after its first successful cook.
+	bool bRestoreDisplayAfterCook = false;
+
 	FString NodeLabelPrefix;
 
 	// NEW: The name of the node we're creating/fetching
@@ -979,6 +984,10 @@ protected:
 
 	UPROPERTY()
 	bool bAutoCook = true;
+
+	// Ignore external cook-count changes reported by Houdini while using Session Sync.
+	UPROPERTY()
+	bool bIgnoreSessionSyncCook = false;
 
 	UPROPERTY()
 	bool bShouldUpdateUI = false;

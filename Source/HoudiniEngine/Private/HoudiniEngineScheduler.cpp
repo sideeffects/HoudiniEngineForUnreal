@@ -30,6 +30,7 @@
 #include "HoudiniEngineString.h"
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngine.h"
+#include "Misc/ScopeExit.h"
 
 const uint32 FHoudiniEngineScheduler::InitialTaskSize = 256u;
 
@@ -183,7 +184,51 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask & Task)
 	if(!StdString.empty())
 		NativeNodeLabel = StdString.c_str();
 
-	Result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), -1, &AssetNameString[0], NativeNodeLabel, false, &AssetId);
+	HAPI_NodeId DisplayNodeId = -1;
+	bool bInstantiationSucceeded = false;
+	ON_SCOPE_EXIT
+	{
+		// Unlike HAPI's implicit SOP wrapper, this explicitly created OBJ needs cleanup on failure.
+		if (DisplayNodeId >= 0 && !bInstantiationSucceeded)
+		{
+			HAPI_Result DeleteResult = FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), DisplayNodeId);
+			if (DeleteResult != HAPI_RESULT_SUCCESS)
+				HOUDINI_LOG_WARNING(TEXT("Failed to delete instantiation wrapper %d."), DisplayNodeId);
+		}
+	};
+
+	int32 TableSeparator = AssetName.Find(TEXT("/"));
+	FString OperatorTable = AssetName.Left(TableSeparator);
+	bool bIsSOP = TableSeparator >= 0
+		&& (OperatorTable == TEXT("Sop") || OperatorTable.EndsWith(TEXT("::Sop")));
+	if (bIsSOP)
+	{
+		// Hide an empty OBJ before adding the HDA. Hiding after HDA creation is too late:
+		// Session Sync's viewport may already be evaluating its display SOP.
+		FString WrapperName = AssetName.Mid(TableSeparator + 1);
+		FHoudiniEngineUtils::SanitizeHAPIVariableName(WrapperName);
+		std::string NativeWrapperName = TCHAR_TO_UTF8(*WrapperName);
+		Result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), -1, "Object/geo",
+			NativeNodeLabel ? NativeNodeLabel : NativeWrapperName.c_str(), false, &DisplayNodeId);
+		bool bSuccess = Result == HAPI_RESULT_SUCCESS;
+		if (bSuccess)
+		{
+			Result = FHoudiniApi::SetNodeDisplay(FHoudiniEngine::Get().GetSession(), DisplayNodeId, false);
+			bSuccess = Result == HAPI_RESULT_SUCCESS;
+		}
+		if (bSuccess)
+		{
+			// With an explicit parent, HAPI expects the operator name without its table prefix.
+			FString OperatorName = AssetName.Mid(TableSeparator + 1);
+			std::string NativeOperatorName = TCHAR_TO_UTF8(*OperatorName);
+			Result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), DisplayNodeId,
+				NativeOperatorName.c_str(), NativeNodeLabel, false, &AssetId);
+		}
+	}
+	else
+	{
+		Result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), -1, &AssetNameString[0], NativeNodeLabel, false, &AssetId);
+	}
 
 	if (Result != HAPI_RESULT_SUCCESS)
 	{
@@ -219,9 +264,9 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask & Task)
 
 		if (Status == HAPI_STATE_READY)
 		{
-			// Cooking has been successful.
+			bInstantiationSucceeded = true;
 			AddResponseMessageTaskInfo(
-				HAPI_RESULT_SUCCESS, 
+				HAPI_RESULT_SUCCESS,
 				EHoudiniEngineTaskType::AssetInstantiation,
 				EHoudiniEngineTaskState::Success, AssetId, Task,
 				TEXT("Finished Instantiation."));

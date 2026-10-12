@@ -1488,6 +1488,7 @@ UHoudiniCookable::MarkAsNeedInstantiation()
 {
 	// Invalidate the asset ID
 	NodeId = INDEX_NONE;
+	bRestoreDisplayAfterCook = false;
 
 	SetCurrentState(EHoudiniAssetState::NeedInstantiation);
 
@@ -1621,6 +1622,7 @@ UHoudiniCookable::PreventAutoUpdates()
 void
 UHoudiniCookable::OnSessionConnected()
 {
+	bRestoreDisplayAfterCook = false;
 #if WITH_EDITORONLY_DATA
 	if (IsParameterSupported())
 	{
