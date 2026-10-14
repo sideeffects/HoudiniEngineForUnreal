@@ -2465,7 +2465,18 @@ UHoudiniInputActor::Update(UObject * InObject, const FHoudiniInputObjectSettings
 					USceneComponent* const InputComp = CurActorComp->GetSceneComponent();
 					if (IsValid(InputComp) && !ShouldTrackComponent(InputComp))
 						bShouldRemove = true;
+
+					// Ensure the component is properly registered, as it could be a stale component
+					// for example, after a duplication
+					if (!InputComp->IsRegistered())
+						bShouldRemove = true;
+
+					// Ensure that the input component is attached to our tracked actor
+					// This could be triggered after a multi-selection duplication
+					if (InputComp->GetAttachParentActor() != Actor)
+						bShouldRemove = true;
 				}
+
 				if (bShouldRemove)
 				{
 					// If it's not, mark it for deletion

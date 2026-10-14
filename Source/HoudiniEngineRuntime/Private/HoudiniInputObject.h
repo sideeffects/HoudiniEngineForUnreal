@@ -244,7 +244,7 @@ public:
 
 	// The object referenced by this input
 	// This property should be protected. Don't access this directly. Use GetObject() / Update() instead.
-	UPROPERTY()
+	UPROPERTY(meta = (KeepObjRef, TextExportTransient))
 	TSoftObjectPtr<UObject> InputObject;
 
 	// The type of Object this input refers to

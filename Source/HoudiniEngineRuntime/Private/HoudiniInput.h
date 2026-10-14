@@ -691,7 +691,7 @@ protected:
 
 	//-------------------------------------------------------------------------------------------------------------------------
 	// Curve/Spline inputs
-	UPROPERTY()
+	UPROPERTY(meta = (DuplicateTransient, TextExportTransient))
 	TArray<TObjectPtr<UHoudiniInputObject>> CurveInputObjects;
 
 	// Offset used when using muiltiple curves
@@ -710,7 +710,7 @@ protected:
 	TArray<TObjectPtr<UHoudiniInputObject>> WorldInputObjects;
 
 	// Objects used for automatic bound selection
-	UPROPERTY()
+	UPROPERTY(meta = (DuplicateTransient, TextExportTransient))
 	TArray<TObjectPtr<AActor>> WorldInputBoundSelectorObjects;
 
 	// Indicates that this world input is in "BoundSelector" mode
