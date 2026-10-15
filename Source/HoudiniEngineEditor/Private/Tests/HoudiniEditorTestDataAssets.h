@@ -161,7 +161,7 @@ class HOUDINIENGINEEDITOR_API UHoudiniSubDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Test")
 	float Float = 0.0f;
 };
 
@@ -172,9 +172,9 @@ class HOUDINIENGINEEDITOR_API UHoudiniTestNestedDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Test")
 	float Float = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Test")
 	TArray<UHoudiniSubDataAsset*> Children;
 };

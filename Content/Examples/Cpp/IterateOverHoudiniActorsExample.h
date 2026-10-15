@@ -40,6 +40,6 @@ public:
 	// Sets default values for this actor's properties
 	AIterateOverHoudiniActorsExample();
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, CallInEditor)
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, CallInEditor, Category = "Houdini|Public API")
 	void RunIterateOverHoudiniActorsExample();
 };
