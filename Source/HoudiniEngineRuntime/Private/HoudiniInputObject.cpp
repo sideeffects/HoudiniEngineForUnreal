@@ -2259,7 +2259,7 @@ UHoudiniInputActor::Update(UObject * InObject, const FHoudiniInputObjectSettings
 
 					// Ensure that the input component is attached to our tracked actor
 					// This could be triggered after a multi-selection duplication
-					if (InputComp->GetAttachParentActor() != Actor)
+					if (InputComp->GetOwner() != Actor)
 						bShouldRemove = true;
 				}
 
