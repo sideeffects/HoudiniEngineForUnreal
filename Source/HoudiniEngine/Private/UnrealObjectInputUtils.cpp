@@ -58,7 +58,13 @@ FUnrealObjectInputUtils::AddNodeOrUpdateNode(
 	FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
 
 	FUnrealObjectInputHandle Handle;
-	const bool bNodeExists = Manager.FindNode(InIdentifier, Handle) && Handle.IsValid();
+	// Update the existing node object in place. FindNode() deletes entries whose HAPI nodes are invalid
+	// (translators delete the previous HAPI nodes right before calling this), which discards the
+	// references still held by other handles (e.g. LeafWithReferences back links); their later RemoveRef()
+	// then hits the replacement node, deleting the new HAPI nodes and cascading up the parent containers.
+	const bool bNodeExists = Manager.Contains(InIdentifier);
+	if (bNodeExists)
+		Handle = FUnrealObjectInputHandle(InIdentifier);
 
 	bool bSuccess = false;
 	switch (InIdentifier.GetNodeType())
