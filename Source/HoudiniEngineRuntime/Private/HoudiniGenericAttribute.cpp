@@ -1667,6 +1667,94 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 					OnPropertyChanged(StructProperty);
 				}
 			}
+			else if (PropertyName == "PerPlatformFloat")
+			{
+				FPerPlatformFloat& PerPlatformFloat = *static_cast<FPerPlatformFloat*>(PropertyValue);
+
+				float attribValue = (float)InGenericAttribute.GetDoubleValue(AtIndex + TupleIndex);
+
+				bool bChanged = false;
+				FPerPlatformFloat NewPerPlatformFloat;
+				NewPerPlatformFloat.Default = attribValue;
+				if (PerPlatformFloat.Default != attribValue)
+					bChanged = true;
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+				for (auto& ppValue : NewPerPlatformFloat.PerPlatform)
+				{
+					ppValue.Value = attribValue;
+
+					if (!bChanged && PerPlatformFloat.GetValueForPlatform(ppValue.Key) != attribValue)
+					{
+						bChanged = true;
+					}
+				}
+#endif
+
+				if (bChanged)
+				{
+					OnPrePropertyChanged(StructProperty);
+					PerPlatformFloat = NewPerPlatformFloat;
+					OnPropertyChanged(StructProperty);
+				}
+			}
+			else if (PropertyName == "PerPlatformInt")
+			{
+				FPerPlatformInt& PerPlatformInt = *static_cast<FPerPlatformInt*>(PropertyValue);
+
+				int32 attribValue = (int32)InGenericAttribute.GetIntValue(AtIndex + TupleIndex);
+				
+				bool bChanged = false;
+				FPerPlatformInt NewPerPlatformInt;
+				NewPerPlatformInt.Default = attribValue;
+				if(PerPlatformInt.Default != attribValue)
+					bChanged = true;
+				
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+				for (auto& ppValue : NewPerPlatformInt.PerPlatform)
+				{
+					ppValue.Value = attribValue;
+
+					if (!bChanged && PerPlatformInt.GetValueForPlatform(ppValue.Key) != attribValue)
+					{
+						bChanged = true;
+					}						
+				}
+#endif
+
+				if (bChanged)
+				{
+					OnPrePropertyChanged(StructProperty);
+					PerPlatformInt = NewPerPlatformInt;
+					OnPropertyChanged(StructProperty);
+				}
+			}
+			else if (PropertyName == "PerQualityLevelInt")
+			{
+				FPerQualityLevelInt& PerQualityInt = *static_cast<FPerQualityLevelInt*>(PropertyValue);
+
+				int32 attribValue = (int32)InGenericAttribute.GetIntValue(AtIndex + TupleIndex);
+
+				bool bChanged = false;
+				FPerQualityLevelInt NewPerQualityInt;
+				NewPerQualityInt.Default = attribValue;
+				if (PerQualityInt.Default != attribValue)
+					bChanged = true;
+
+				for (auto& pqValue : NewPerQualityInt.PerQuality)
+				{
+					pqValue.Value = attribValue;
+					if (!bChanged && PerQualityInt.GetValueForQualityLevel(pqValue.Key) != attribValue)
+						bChanged = true;
+				}
+
+				if (bChanged)
+				{
+					OnPrePropertyChanged(StructProperty);
+					PerQualityInt = NewPerQualityInt;
+					OnPropertyChanged(StructProperty);
+				}
+			}
 			else
 			{
 				HOUDINI_LOG_WARNING(TEXT("For uproperty %s (Class %s): unsupported struct property type: %s"), *InGenericAttribute.AttributeName, *PropertyClassName, *PropertyName.ToString());
@@ -2434,6 +2522,21 @@ FHoudiniGenericAttribute::DumpGenericAttributeForProperty(FProperty* InProperty,
 		else if (PropertyName == "FloatInterval")
 		{
 			HoudiniTupleSize = 2;
+			HoudiniType = FString("float");
+		}
+		else if (PropertyName == "PerQualityLevelInt")
+		{
+			HoudiniTupleSize = 1;
+			HoudiniType = FString("int");
+		}
+		else if (PropertyName == "PerPlatformInt")
+		{
+			HoudiniTupleSize = 1;
+			HoudiniType = FString("int");
+		}
+		else if (PropertyName == "PerPlatformFloat")
+		{
+			HoudiniTupleSize = 1;
 			HoudiniType = FString("float");
 		}
 		else
