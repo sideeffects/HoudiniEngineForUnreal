@@ -1679,7 +1679,7 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 				if (PerPlatformFloat.Default != attribValue)
 					bChanged = true;
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+#if WITH_EDITORONLY_DATA && ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
 				for (auto& ppValue : NewPerPlatformFloat.PerPlatform)
 				{
 					ppValue.Value = attribValue;
@@ -1710,7 +1710,7 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 				if(PerPlatformInt.Default != attribValue)
 					bChanged = true;
 				
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+#if WITH_EDITORONLY_DATA && ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
 				for (auto& ppValue : NewPerPlatformInt.PerPlatform)
 				{
 					ppValue.Value = attribValue;
@@ -1718,7 +1718,7 @@ FHoudiniGenericAttribute::ModifyPropertyValueOnObject(
 					if (!bChanged && PerPlatformInt.GetValueForPlatform(ppValue.Key) != attribValue)
 					{
 						bChanged = true;
-					}						
+					}
 				}
 #endif
 
