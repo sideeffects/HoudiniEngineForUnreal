@@ -1058,8 +1058,8 @@ FHoudiniPDGManager::ProcessPDGEvent(const HAPI_PDG_GraphContextId& InContextID, 
 				HOUDINI_LOG_WARNING(TEXT("[ProcessPDGEvent]: Could not find matching TOPNode for event %s, workitem id %d, node id %d"), *EventName, EventInfo.workItemId, EventInfo.nodeId);
 				return;
 			}
-			SetTOPNodePDGState(PDGAssetLink, TOPNode, EPDGNodeState::Cook_Complete);
-			FHoudiniStatusManager::Get()->EndPDG(Cookable, true);
+			SetTOPNodePDGState(PDGAssetLink, TOPNode, TOPNode->AnyWorkItemsFailed() ? EPDGNodeState::Cook_Failed : EPDGNodeState::Cook_Complete);
+			FHoudiniStatusManager::Get()->EndPDG(Cookable, !TOPNetwork->AnyWorkItemsFailed());
 			TOPNode->HandleOnPDGEventCookComplete();
 			TOPNetwork->HandleOnPDGEventCookCompleteReceivedByChildNode(PDGAssetLink, TOPNode);
 			break;

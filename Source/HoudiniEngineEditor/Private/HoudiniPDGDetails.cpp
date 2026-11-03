@@ -1116,7 +1116,18 @@ FHoudiniPDGDetails::GetWorkItemTallyValueAndColor(
 		bFound = true;
 		break;
 	case EWorkItemTallyType::Failed:
-		OutValue = TallyPtr->NumErroredWorkItems();
+		if(bInForSelectedNode)
+		{
+			OutValue = TallyPtr->NumErroredWorkItems();
+		}
+		else if(TOPNetwork)
+		{
+			for(UTOPNode* Node : TOPNetwork->AllTOPNodes)
+			{
+				if(Node->bAutoLoad)
+					OutValue += Node->GetWorkItemTally().NumErroredWorkItems();
+			}
+		}
 		OutColor = OutValue > 0 ? FLinearColor::Red : FLinearColor::White;
 		bFound = true;
 		break;

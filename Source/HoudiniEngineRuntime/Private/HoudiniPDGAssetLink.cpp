@@ -302,6 +302,10 @@ FWorkItemTally::RecordWorkItemAsCookCancelled(int32 InWorkItemID)
 void
 FWorkItemTally::RecordWorkItemAsEmpty(int32 InWorkItemID)
 {
+	// A failed cook also has no results; keep its failure until it is dirtied or recooked.
+	if (ErroredWorkItems.Contains(InWorkItemID))
+		return;
+
 	RemoveWorkItemFromAllStateSets(InWorkItemID);
 	EmptyWorkItems.Add(InWorkItemID);
 	AllWorkItems.Add(InWorkItemID);
@@ -310,6 +314,10 @@ FWorkItemTally::RecordWorkItemAsEmpty(int32 InWorkItemID)
 void
 FWorkItemTally::RecordWorkItemAsIgnored(int32 InWorkItemID)
 {
+	// Output filtering must not hide upstream cook failures.
+	if (ErroredWorkItems.Contains(InWorkItemID))
+		return;
+
 	RemoveWorkItemFromAllStateSets(InWorkItemID);
 	IgnoredWorkItems.Add(InWorkItemID);
 	AllWorkItems.Add(InWorkItemID);
@@ -456,11 +464,11 @@ void UTOPNode::EvaluateWorkItems()
 
 	if(this->LoadState == EPDGLoadState::Loading)
 	{
-		if(this->NodeState == EPDGNodeState::Cook_Complete)
+		if(this->NodeState == EPDGNodeState::Cook_Complete || this->NodeState == EPDGNodeState::Cook_Failed)
 		{
 			if(!bAutoLoad)
 			{
-				this->LoadState = EPDGLoadState::IgnoredForLoad;
+				this->LoadState = AnyWorkItemsFailed() ? EPDGLoadState::Loading_Failed : EPDGLoadState::IgnoredForLoad;
 				for(auto& WI : WorkResult)
 					this->WorkItemTally.RecordWorkItemAsIgnored(WI.WorkItemID);
 				this->SetWorkItemsDirty();
@@ -479,7 +487,7 @@ void UTOPNode::EvaluateWorkItems()
 				{
 					for(FTOPWorkResultObject WRO : Result.ResultObjects)
 					{
-						if(WRO.GetState() != EPDGWorkResultState::Loaded)
+						if(WRO.GetState() != EPDGWorkResultState::Loaded && WRO.GetState() != EPDGWorkResultState::Error)
 							bAllLoaded = false;
 					}
 				}
@@ -487,7 +495,7 @@ void UTOPNode::EvaluateWorkItems()
 
 			if(bAllLoaded)
 			{
-				this->LoadState = EPDGLoadState::Loading_Complete;
+				this->LoadState = AnyWorkItemsFailed() ? EPDGLoadState::Loading_Failed : EPDGLoadState::Loading_Complete;
 				this->SetWorkItemsDirty();
 			}
 		}
@@ -1098,8 +1106,18 @@ UTOPNetwork::EvaluateWorkItems()
 	bool bFailed = false;
 	for (auto Node : AllTOPNodes)
 	{
+		// Nodes that generated no work items do not receive cook-complete events.
+		// Once the network has finished cooking, they cannot have results left to import.
+		if ((NetworkState == EPDGNodeState::Cook_Complete || NetworkState == EPDGNodeState::Cook_Failed)
+			&& Node->LoadState == EPDGLoadState::Loading && Node->WorkResult.IsEmpty())
+		{
+			Node->LoadState = Node->bAutoLoad ? EPDGLoadState::Loading_Complete : EPDGLoadState::IgnoredForLoad;
+			Node->SetWorkItemsDirty();
+		}
+
 		Node->EvaluateWorkItems();
-		if(Node->LoadState != EPDGLoadState::Loading_Complete && Node->LoadState != EPDGLoadState::IgnoredForLoad)
+		if(Node->LoadState != EPDGLoadState::Loading_Complete && Node->LoadState != EPDGLoadState::IgnoredForLoad
+			&& Node->LoadState != EPDGLoadState::Loading_Failed)
 			bAllLoaded = false;
 
 		if(Node->LoadState == EPDGLoadState::Loading_Failed)
@@ -1108,7 +1126,7 @@ UTOPNetwork::EvaluateWorkItems()
 
 	}
 
-	if(bFailed)
+	if(this->LoadState == EPDGLoadState::Loading && bAllLoaded && bFailed)
 	{
 		this->LoadState = EPDGLoadState::Loading_Failed;
 
@@ -1175,9 +1193,9 @@ UTOPNetwork::HandleOnPDGEventCookCompleteReceivedByChildNode(UHoudiniPDGAssetLin
 			return;
 	}
 
-	InAssetLink->HandleOnTOPNetworkCookComplete(this);
+	this->NetworkState = AnyWorkItemsFailed() ? EPDGNodeState::Cook_Failed : EPDGNodeState::Cook_Complete;
 
-	this->NetworkState = EPDGNodeState::Cook_Complete;
+	InAssetLink->HandleOnTOPNetworkCookComplete(this);
 
 }
 
