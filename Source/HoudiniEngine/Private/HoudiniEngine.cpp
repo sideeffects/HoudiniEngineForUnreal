@@ -1300,14 +1300,20 @@ FHoudiniEngine::StopSessionInternal()
 	if (!FHoudiniApi::IsHAPIInitialized())
 		return false;
 
-	// If the current session is valid, clean up and close the session
+	// Clean up the shared Houdini state once, unless we're using Session Sync.
 	if (HAPI_RESULT_SUCCESS == FHoudiniApi::IsSessionValid(GetSession()))
 	{
 		// Only cleanup if we're not using SessionSync!
 		if(!bEnableSessionSync)
 			FHoudiniApi::Cleanup(GetSession());
+	}
 
-		FHoudiniApi::CloseSession(GetSession());
+	// HARS auto-closes only after its last connection is closed.
+	for (HAPI_Session& Session : Sessions)
+	{
+		bool bSuccess = FHoudiniApi::IsSessionValid(&Session) == HAPI_RESULT_SUCCESS;
+		if (bSuccess)
+			FHoudiniApi::CloseSession(&Session);
 	}
 
 	Sessions.Empty();
