@@ -784,7 +784,6 @@ FHoudiniEngine::StartSessionInternal(
 	{
 		// Try to connect to an existing pipe session first
 		SessionInfo.sharedMemoryBufferSize = ServerOptions.sharedMemoryBufferSize;
-		SessionInfo.sharedMemoryBufferType = ServerOptions.sharedMemoryBufferType;
 
 		// Make sure memory buffer size make sense (between 1MB and 128GB)
 		if ((SessionInfo.sharedMemoryBufferSize < 1) || (SessionInfo.sharedMemoryBufferSize > 131072))

@@ -24,6 +24,8 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "HoudiniEditorTestInstances.h"
+
 #include "HoudiniEditorTestBaking.h"
 #include "HoudiniEngineCommands.h"
 #include "HoudiniParameterInt.h"
@@ -40,7 +42,6 @@
 #include "GenericPlatform/GenericPlatformProcess.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "HoudiniEditorUnitTestUtils.h"
-#include "HoudiniEditorTestInstances.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "InstancedFoliageActor.h"
 #include "Math/UnrealMathUtility.h"

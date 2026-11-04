@@ -22,6 +22,7 @@
 */
 
 #pragma once
+
 #include "HoudiniAsset.h"
 
 #if defined(__clang__)
@@ -196,3 +197,4 @@ protected:
 	UHoudiniPCGManagedResource* GetManagedResource(FPCGContext* Context) const;
 
 };
+

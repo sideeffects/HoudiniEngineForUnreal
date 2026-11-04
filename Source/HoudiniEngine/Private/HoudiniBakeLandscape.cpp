@@ -24,8 +24,9 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "HoudiniAsset.h"
 #include "HoudiniBakeLandscape.h"
+
+#include "HoudiniAsset.h"
 #include "HoudiniCookable.h"
 #include "HoudiniEngineBakeUtils.h"
 #include "HoudiniEngineOutputStats.h"

@@ -24,9 +24,9 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "Runtime/Launch/Resources/Version.h"
-
 #include "HoudiniEditorTestCOP.h"
+
+#include "Runtime/Launch/Resources/Version.h"
 #include "HoudiniCookable.h"
 
 #include "HoudiniEngineRuntimePrivatePCH.h"

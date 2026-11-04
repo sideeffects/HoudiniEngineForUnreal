@@ -21,12 +21,11 @@
 *
 */
 
+#include "HoudiniPCGNode.h"
+
 #include "PropertyPathHelpers.h"
 #include "Async/Async.h"
 #if defined(HOUDINI_USE_PCG)
-
-#include "HoudiniPCGNode.h"
-
 #include "HoudiniEngine.h"
 #include "HoudiniEngineManager.h"
 #include "HoudiniPCGUtils.h"

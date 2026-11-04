@@ -24,6 +24,8 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "UnrealLandscapeTranslator.h"
+
 #include "HoudiniApi.h"
 #include "HoudiniEngineRuntimePrivatePCH.h"
 #include "HoudiniEnginePrivatePCH.h"
@@ -32,9 +34,6 @@
 #include "HoudiniEngineUtils.h"
 #include "HoudiniEngineString.h"
 #include "HoudiniInput.h"
-
-#include "UnrealLandscapeTranslator.h"
-
 #include "HoudiniDataLayerUtils.h"
 #include "HoudiniEngineAttributes.h"
 #include "HoudiniGeoPartObject.h"
