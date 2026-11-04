@@ -24,10 +24,10 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "HoudiniEditorTestBaking.h"
-
-#include "HoudiniCookable.h"
 #include "HoudiniEditorTestPDG.h"
+
+#include "HoudiniEditorTestBaking.h"
+#include "HoudiniCookable.h"
 #include "HoudiniParameterInt.h"
 #include "HoudiniParameterString.h"
 #include "HoudiniParameterToggle.h"

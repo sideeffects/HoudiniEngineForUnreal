@@ -20,8 +20,10 @@
 * SOFTWARE.
 *
 */
-#include "HoudiniPCGNode.h"
 
+#include "HoudiniPCGCookable.h"
+
+#include "HoudiniPCGNode.h"
 #include "HoudiniPCGUtils.h"
 #include "PCGContext.h"
 #include "PCGSettings.h"
@@ -32,7 +34,6 @@
 #include "HoudiniEngineRuntime.h"
 #include "PCGComponent.h"
 
-#include "HoudiniPCGCookable.h"
 #include "HoudiniParameter.h"
 #include <HoudiniParameterString.h>
 #include <HoudiniParameterInt.h>

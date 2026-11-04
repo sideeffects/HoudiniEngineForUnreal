@@ -24,6 +24,8 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "HoudiniEditorTestGeometryCollections.h"
+
 #include "Runtime/Launch/Resources/Version.h"
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3
 #include "GeometryCollection/GeometryCollectionActor.h"
@@ -34,7 +36,6 @@
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionComponent.h"
 #include "GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h"	
 #endif
-#include "HoudiniEditorTestGeometryCollections.h"
 #include "HoudiniParameterToggle.h"
 #include "Chaos/HeightField.h"
 #if WITH_DEV_AUTOMATION_TESTS

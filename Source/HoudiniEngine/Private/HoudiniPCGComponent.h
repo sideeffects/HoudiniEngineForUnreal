@@ -26,6 +26,7 @@
 
 #pragma once
 
+
 #include "CoreMinimal.h"
 #include "HoudiniPCGCookable.h"
 
@@ -44,7 +45,6 @@
 #include "IDetailCustomization.h"
 #include "HoudiniEngine.h"
 #include "HoudiniPCGComponent.generated.h"
-
 
 UCLASS(ClassGroup = (Rendering, Common), hidecategories = (Object, Activation, "Components|Activation"), ShowCategories = (Mobility), editinlinenew)
 class HOUDINIENGINE_API UHoudiniPCGComponent : public USceneComponent

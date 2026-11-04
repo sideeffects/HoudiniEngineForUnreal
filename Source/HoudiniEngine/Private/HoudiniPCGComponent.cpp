@@ -24,10 +24,11 @@
 * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "DetailCategoryBuilder.h"
+#include "HoudiniPCGComponent.h"
+
 #if defined(HOUDINI_USE_PCG)
 
-#include "HoudiniPCGComponent.h"
+#include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
 #include "DetailLayoutBuilder.h"
