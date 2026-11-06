@@ -664,7 +664,9 @@ FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 
 	// TODO: Fetch from settings/HAC
 	TranslationContext.DefaultMeshSmoothing = 1;
-	if (false)
+	// Add extra enclosing parentheses around 'false' to instruct the compiler
+	// that the disabled code block is intentional.
+	if ((false))
 		TranslationContext.DefaultMeshSmoothing = 0;
 
 	FHoudiniCachedMeshPart CachedMeshPart;

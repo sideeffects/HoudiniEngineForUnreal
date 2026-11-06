@@ -634,8 +634,10 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 			break;
 
 			case EHoudiniOutputType::Instancer:
+			{
 				InstancerOutputs.Add(CurOutput);
-				break;
+			}
+			break;
 
 			case EHoudiniOutputType::Landscape:
 			{
@@ -656,22 +658,34 @@ FHoudiniOutputTranslator::CreateAllOutputs(
 
 				bHasLandscape = true;
 
-				for (auto& Pair : CurOutput->GetOutputObjects())
+				auto OutputIt = CurOutput->GetOutputObjects()
+							.CreateConstIterator();
+				if (OutputIt)
 				{
-					UHoudiniLandscapeTargetLayerOutput* LayerOutput = Cast<UHoudiniLandscapeTargetLayerOutput>(Pair.Value.OutputObject);
-					if (IsValid(LayerOutput))
+				    UHoudiniLandscapeTargetLayerOutput* LayerOutput
+					    = Cast<UHoudiniLandscapeTargetLayerOutput>(
+						    OutputIt.Value().OutputObject);
+				    if (IsValid(LayerOutput))
+				    {
+					ALandscapeProxy* OutputLandscape
+						= LayerOutput->Landscape;
+					if (OutputLandscape
+					    && !LayerOutput->PropertyAttributes.IsEmpty())
 					{
-						ALandscapeProxy* OutputLandscape = LayerOutput->Landscape;
-						if (OutputLandscape && !LayerOutput->PropertyAttributes.IsEmpty())
-						{
-							FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(OutputLandscape, LayerOutput->PropertyAttributes);
-							OutputLandscape->GetLandscapeInfo()->FixupProxiesTransform();
-							OutputLandscape->GetLandscapeInfo()->RecreateLandscapeInfo(InWorld, true);
-							OutputLandscape->RecreateCollisionComponents();
-							FEditorDelegates::PostLandscapeLayerUpdated.Broadcast();
-						}
+					    FHoudiniEngineUtils::
+						    UpdateGenericPropertiesAttributes(
+							    OutputLandscape,
+							    LayerOutput
+								    ->PropertyAttributes);
+					    OutputLandscape->GetLandscapeInfo()
+						    ->FixupProxiesTransform();
+					    OutputLandscape->GetLandscapeInfo()
+						    ->RecreateLandscapeInfo(InWorld, true);
+					    OutputLandscape->RecreateCollisionComponents();
+					    FEditorDelegates::PostLandscapeLayerUpdated
+						    .Broadcast();
 					}
-					break;
+				    }
 				}
 				break;
 			}

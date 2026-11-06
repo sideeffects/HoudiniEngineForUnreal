@@ -3324,7 +3324,6 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 											"HoudiniEnginePDGBakeButtonBakeToActorToolTip",
 											"Bake this Houdini PD G Asset's output assets and seperate the output actors from the PDG asset link.");
 									}
-									break;
 
 									case EHoudiniEngineBakeOption::ToBlueprint:
 									{
@@ -3333,7 +3332,6 @@ void FHoudiniPDGDetails::AddBakeSelectionWidgets(IDetailGroup& InBakeGroup, cons
 											"Bake this Houdini PDG Asset's output assets to blueprints and remove temporary output actors that no "
 											"longer has output components from the PDG asset link.");
 									}
-									break;
 
 									case EHoudiniEngineBakeOption::ToAsset:
 									default:

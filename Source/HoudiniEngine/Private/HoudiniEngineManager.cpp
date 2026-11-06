@@ -2254,9 +2254,9 @@ FHoudiniEngineManager::SyncHoudiniViewportToUnreal()
 	bOffsetZeroed = true;
 
 	return true;
-#endif
-
+#else
 	return false;
+#endif
 }
 
 
@@ -2352,9 +2352,9 @@ FHoudiniEngineManager::SyncUnrealViewportToHoudini()
 	SyncedUnrealViewportLookatPosition = ViewportClient->GetLookAtLocation();
 
 	return true;
-#endif
-	
+#else
 	return false;
+#endif
 }
 
 

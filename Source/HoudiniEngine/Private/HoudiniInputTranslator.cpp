@@ -1215,7 +1215,9 @@ FHoudiniInputTranslator::UploadInputData(UHoudiniInput* InInput, const FTransfor
 
 	//TODO:
 	// Do we want to update the input's transform?
-	if (false)
+	// We add an extra set of enclosing parentheses around 'false' to instruct
+	// the compiler that the disabled code block is intentional.
+	if ((false))
 	{
 		FTransform ComponentTransform = FTransform::Identity;
 		UHoudiniCookable* OuterHC = Cast<UHoudiniCookable>(InInput->GetOuter());

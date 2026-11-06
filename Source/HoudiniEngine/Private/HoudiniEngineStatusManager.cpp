@@ -501,8 +501,6 @@ void FHoudiniEngineStatusManager::GetSessionStatusAndColor(const UHoudiniCookabl
 			OutStatusString = TEXT("Processing...");
 		}
 		break;
-
-	break;
 	}
 }
 

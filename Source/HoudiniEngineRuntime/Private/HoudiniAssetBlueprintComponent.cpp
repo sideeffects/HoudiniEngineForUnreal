@@ -1177,7 +1177,9 @@ UHoudiniAssetBlueprintComponent::IsValidComponent() const
 		}
 	}
 
-	if (IsPreview() && false)
+	// Keep the preview validation explicitly disabled.
+	// We inform the compiler this by adding enclosing parentheses around 'false'.
+	if (IsPreview() && (false))
 	{
 		USimpleConstructionScript* SCS = GetSCS();
 		if (!SCS)

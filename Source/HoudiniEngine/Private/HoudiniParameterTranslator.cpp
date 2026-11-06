@@ -3437,7 +3437,6 @@ FHoudiniParameterTranslator::UploadParameterToHoudini(UHoudiniParameter* InParam
 			// TODO: implement other parameter types!
 			break;
 		}
-		break;
 	}
 
 	// The parameter is no longer considered as changed
