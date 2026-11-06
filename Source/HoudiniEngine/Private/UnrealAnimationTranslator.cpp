@@ -74,7 +74,6 @@ bool FUnrealAnimationTranslator::CreateInputNodeForAnimation(
 		const FUnrealObjectInputOptions Options;
 		return true;
 	}
-	return false;
 }
 
 bool

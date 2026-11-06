@@ -1449,19 +1449,17 @@ void FHoudiniLandscapeUtils::ApplyMaterialsFromParts(
 	// The user can specify a different materials per part, but this is an error.
 	// Pick the first one we find. TODO: Add checks to see if they conflict.
 
-	for(auto & It : Parts)
-	{
-		It.Value->MaterialInstance = AssignGraphicsMaterialsToLandscape(
-								LandscapeProxy, It.Value->Materials, PackageParams, CreatedPackages);
+        auto PartIt = Parts.CreateIterator();
+        if (PartIt)
+        {
+            FHoudiniHeightFieldPartData* Part = PartIt.Value();
+            Part->MaterialInstance = AssignGraphicsMaterialsToLandscape(
+                    LandscapeProxy, Part->Materials, PackageParams,
+                    CreatedPackages);
 
-		AssignPhysicsMaterialsToLandscape(LandscapeProxy, It.Value->TargetLayerName, It.Value->Materials);
-
-		break; // just the first one.
-	}
-	
-
-
-
+            AssignPhysicsMaterialsToLandscape(
+                    LandscapeProxy, Part->TargetLayerName, Part->Materials);
+        }
 }
 
 

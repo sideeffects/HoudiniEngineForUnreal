@@ -753,7 +753,9 @@ FHoudiniMeshTranslator::CreateStaticMeshFromHoudiniGeoPartObject(
 
 	// TODO: Fetch from settings/HAC
 	CurrentTranslator.DefaultMeshSmoothing = 1;
-	if (false)
+	// Add extra enclosing parentheses around 'false' to instruct the compiler
+	// that the disabled code block is intentional.
+	if ((false))
 		CurrentTranslator.DefaultMeshSmoothing = 0;
 
 	// Create the Static Mesh with the desired method

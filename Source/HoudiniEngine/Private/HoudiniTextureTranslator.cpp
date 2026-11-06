@@ -443,7 +443,6 @@ FHoudiniTextureTranslator::CreateUnrealTexture(
 		case HAPI_IMAGE_PACKING_MAX:
 			// invalid packing
 			HOUDINI_CHECK_RETURN(false, nullptr);
-			break;
 	}
 
 	bool bHasAlphaValue = false;

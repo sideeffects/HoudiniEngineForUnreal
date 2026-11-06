@@ -649,7 +649,6 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 		}
 		return false;
 	}
-	break;
 	case EHoudiniPCGContextState::Cooking:
 	{
 		if (!IsValid(ManagedResource))
@@ -695,7 +694,6 @@ bool FHoudiniDigitalAssetPCGElement::ExecuteInternal(FPCGContext* Context) const
 			return false;
 		}
 	}
-	break;
 	default:
 		break;
 	}

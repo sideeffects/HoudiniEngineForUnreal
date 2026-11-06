@@ -2929,7 +2929,6 @@ FHoudiniParameterTranslator::UploadParameterValue(UHoudiniParameter* InParam)
 			// TODO: implement other parameter types!
 			return true;
 		}
-		break;
 	}
 
 	// The parameter is no longer considered as changed

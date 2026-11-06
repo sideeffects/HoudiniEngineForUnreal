@@ -2013,9 +2013,9 @@ FHoudiniEngineUtils::OpenSubassetSelectionWindow(TArray<HAPI_StringHandle>& Asse
 	{
 		return false;
 	}
-#endif
-
+#else
 	return true;
+#endif
 }
 
 /*

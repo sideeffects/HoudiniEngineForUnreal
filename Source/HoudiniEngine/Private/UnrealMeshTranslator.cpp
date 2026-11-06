@@ -1619,12 +1619,15 @@ FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
 		if (UAssetImportData* ImportData = StaticMesh->AssetImportData)
 #endif
 		{
-			for (const auto& SourceFile : ImportData->SourceData.SourceFiles)
-			{
-				Filename = UAssetImportData::ResolveImportFilename(SourceFile.RelativeFilename, ImportData->GetOutermost());
-				break;
-			}
-		}
+                    const auto& SourceFiles
+                            = ImportData->SourceData.SourceFiles;
+                    if (!SourceFiles.IsEmpty())
+                    {
+                        Filename = UAssetImportData::ResolveImportFilename(
+                                SourceFiles[0].RelativeFilename,
+                                ImportData->GetOutermost());
+                    }
+                }
 
 		if (!Filename.IsEmpty())
 		{
@@ -2749,12 +2752,15 @@ FUnrealMeshTranslator::CreateAndPopulateMeshPartFromMeshDescription(
 		FString Filename;
 		if (IsValid(ImportData))
 		{
-			for (const auto& SourceFile : ImportData->SourceData.SourceFiles)
-			{
-				Filename = UAssetImportData::ResolveImportFilename(SourceFile.RelativeFilename, ImportData->GetOutermost());
-				break;
-			}
-		}
+                    const auto& SourceFiles
+                            = ImportData->SourceData.SourceFiles;
+                    if (!SourceFiles.IsEmpty())
+                    {
+                        Filename = UAssetImportData::ResolveImportFilename(
+                                SourceFiles[0].RelativeFilename,
+                                ImportData->GetOutermost());
+                    }
+                }
 
 		if (!Filename.IsEmpty())
 		{
