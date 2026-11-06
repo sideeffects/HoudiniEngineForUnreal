@@ -2034,10 +2034,8 @@ UHoudiniCookable::IsHoudiniCookedDataAvailable(bool& bOutNeedsRebuildOrDelete, b
 	case EHoudiniAssetState::PreProcess:
 	case EHoudiniAssetState::Processing:
 		return false;
-		break;
 	case EHoudiniAssetState::None:
 		return true;
-		break;
 	case EHoudiniAssetState::NeedRebuild:
 	case EHoudiniAssetState::NeedDelete:
 	case EHoudiniAssetState::Deleting:

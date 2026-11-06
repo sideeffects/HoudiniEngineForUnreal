@@ -2217,7 +2217,6 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 							"HoudiniEnginePDGBakeButtonBakeToActorToolTip",
 							"Bake this Houdini PDG Asset's output assets and seperate the output actors from the PDG asset link.");
 					}
-					break;
 
 					case EHoudiniEngineBakeOption::ToBlueprint:
 					{
@@ -2226,7 +2225,6 @@ FHoudiniPDGDetails::CreatePDGBakeWidgets(IDetailCategoryBuilder& InPDGCategory, 
 							"Bake this Houdini PDG Asset's output assets to blueprints and remove temporary output actors that no "
 							"longer has output components from the PDG asset link.");
 					}
-					break;
 
 					case EHoudiniEngineBakeOption::ToAsset:
 					default:

@@ -5141,7 +5141,6 @@ bool FUnrealMeshTranslator::GetOrConstructSplineMeshComponent(
 		return false;
 
 	return bSuccess;
-	return true;
 }
 
 bool FUnrealMeshTranslator::CreateMergeNode(

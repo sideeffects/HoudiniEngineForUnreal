@@ -1395,7 +1395,7 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 	// Disable for now
 	return true;
 
-
+#if 0
 	FHoudiniEngineCommands::SetPDGCommandletEnabled(true);
 	FHoudiniEngineCommands::StartPDGCommandlet();
 
@@ -1477,6 +1477,7 @@ bool FHoudiniEditorTestPDGInstancesAsync::RunTest(const FString& Parameters)
 		}));
 
 	return true;
+#endif
 }
 
 
