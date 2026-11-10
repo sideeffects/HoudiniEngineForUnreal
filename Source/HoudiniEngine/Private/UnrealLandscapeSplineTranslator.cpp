@@ -219,7 +219,7 @@ FHoudiniUnResampledPoint::GetSelectedPosition() const
 	case EHoudiniUnrealLandscapeSplineCurve::Right:
 		return Right;
 	default:
-		HOUDINI_LOG_WARNING(TEXT("Invalid value for SplineSelection: %d, returning Center point."), SplineSelection);
+		HOUDINI_LOG_WARNING(TEXT("Invalid value for SplineSelection: %d, returning Center point."), (int32)SplineSelection);
 		break;
 	}
 	

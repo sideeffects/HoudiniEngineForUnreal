@@ -101,8 +101,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask & Task)
 	FHoudiniEngineString(Task.AssetHapiName).ToFString(AssetN);
 
 	HOUDINI_LOG_MESSAGE(
-		TEXT("HAPI Asynchronous Instantiation Started for %s: Asset=%s, HoudiniAsset = 0x%x"),
-		*Task.ActorName, *AssetN, Task.Asset.Get());
+		TEXT("HAPI Asynchronous Instantiation Started for %s: Asset=%s"), *Task.ActorName, *AssetN);
 
 	if (!FHoudiniEngineUtils::IsInitialized())
 	{
@@ -193,7 +192,7 @@ FHoudiniEngineScheduler::TaskInstantiateAsset(const FHoudiniEngineTask & Task)
 		{
 			HAPI_Result DeleteResult = FHoudiniApi::DeleteNode(FHoudiniEngine::Get().GetSession(), DisplayNodeId);
 			if (DeleteResult != HAPI_RESULT_SUCCESS)
-				HOUDINI_LOG_WARNING(TEXT("Failed to delete instantiation wrapper %d."), DisplayNodeId);
+				HOUDINI_LOG_WARNING(TEXT("Failed to delete instantiation wrapper %d."), (int32)DisplayNodeId);
 		}
 	};
 

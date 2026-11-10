@@ -2095,7 +2095,7 @@ FHoudiniEngineEditor::PDGBakePackageReplaceModeToPackageReplaceMode(const EPDGBa
 			Mode = FHoudiniPackageParams::GetDefaultReplaceMode();
 			HOUDINI_LOG_WARNING(TEXT("Unsupported value for EPDGBakePackageReplaceModeOption %d, using "
 				"FHoudiniPackageParams::GetDefaultReplaceMode() for resulting EPackageReplaceMode %d"),
-				InReplaceMode, Mode);
+				(int32)InReplaceMode, (int32)Mode);
 		}
 	}
 

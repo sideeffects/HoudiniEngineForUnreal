@@ -50,7 +50,9 @@
 #include "Widgets/Layout/SExpandableArea.h"
 #include "Engine/SkeletalMesh.h"
 #include "Misc/ConfigCacheIni.h"
-#include "Particles/ParticleSystem.h"
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 9
+	#include "Particles/ParticleSystem.h"
+#endif
 #include "Sound/SoundBase.h"
 #include "Widgets/Input/NumericUnitTypeInterface.inl"
 #include "IPropertyUtilities.h"
@@ -3073,7 +3075,9 @@ FHoudiniParameterView::CreateWidgetString(
 				AllowedClasses.Add(ULevel::StaticClass());
 				AllowedClasses.Add(UStreamableRenderAsset::StaticClass());
 				AllowedClasses.Add(USoundBase::StaticClass());
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 9
 				AllowedClasses.Add(UParticleSystem::StaticClass());
+#endif
 				AllowedClasses.Add(UFoliageType::StaticClass());
 			}
 

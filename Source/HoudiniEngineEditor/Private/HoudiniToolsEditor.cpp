@@ -390,12 +390,12 @@ FHoudiniToolsEditor::FindHoudiniToolsPackagePaths( TArray<FString>& HoudiniTools
 
 		TArray<FString> FoundFolders;
 		AssetRegistry.EnumerateSubPaths(SearchPath, [&FoundFolders](const FString& Folder)
-		{
-			FoundFolders.Add(Folder);
-			return true;
-		},
-		false);
-		
+			{
+				FoundFolders.Add(Folder);
+				return true;
+			},
+			false);
+
 		for (const FString& SubFolder : FoundFolders)
 		{
 			if (IsHoudiniToolsPackageDir(SubFolder))
@@ -408,22 +408,22 @@ FHoudiniToolsEditor::FindHoudiniToolsPackagePaths( TArray<FString>& HoudiniTools
 
 bool FHoudiniToolsEditor::LoadJSONFile(const FString& JSONFilePath, TSharedPtr<FJsonObject>& OutJSONObject)
 {
-	if ( JSONFilePath.IsEmpty() )
+	if (JSONFilePath.IsEmpty())
 		return false;
 
 	// Read the file as a string
 	FString FileContents;
-	if ( !FFileHelper::LoadFileToString( FileContents, *JSONFilePath ) )
+	if (!FFileHelper::LoadFileToString(FileContents, *JSONFilePath))
 	{
-		HOUDINI_LOG_ERROR( TEXT("Failed to import Package Descriptor .json file: %s"), *JSONFilePath);
+		HOUDINI_LOG_ERROR(TEXT("Failed to import Package Descriptor .json file: %s"), *JSONFilePath);
 		return false;
 	}
 
 	// Parse it as JSON
-	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( FileContents );
+	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(FileContents);
 	if (!FJsonSerializer::Deserialize(Reader, OutJSONObject) || !OutJSONObject.IsValid())
 	{
-		HOUDINI_LOG_ERROR( TEXT("Invalid json file: %s"), *JSONFilePath);
+		HOUDINI_LOG_ERROR(TEXT("Invalid json file: %s"), *JSONFilePath);
 		return false;
 	}
 
@@ -442,11 +442,11 @@ bool FHoudiniToolsEditor::WriteJSONFile(const FString& JSONFilePath, const TShar
 
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	// Returns true if the directory existed or has been created
-	if ( PlatformFile.CreateDirectoryTree(*SaveDirectory) )
+	if (PlatformFile.CreateDirectoryTree(*SaveDirectory))
 	{
 		return FFileHelper::SaveStringToFile(OutputString, *JSONFilePath);
 	}
-	
+
 	return false;
 }
 
@@ -454,7 +454,7 @@ void FHoudiniToolsEditor::FindHoudiniToolsPackages(TArray<UHoudiniToolsPackageAs
 {
 	TArray<FString> PackagePaths;
 	FindHoudiniToolsPackagePaths(PackagePaths);
-	
+
 	for (const FString& PackagePath : PackagePaths)
 	{
 		// Ingest tools from this package path
@@ -475,8 +475,16 @@ FHoudiniToolsEditor::FindOwningToolsPackage(const UObject* Object)
 
 	// No need to load/find Tools package while cooking or running a commandlet
 	// This would only generate unneeded warnings
-	if (IsRunningCommandlet() || IsRunningCookCommandlet() || GIsCookerLoadingPackage)
+	if (IsRunningCommandlet()
+		|| IsRunningCookCommandlet()
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 9
+		|| UE::GetIsCookerLoadingPackage())
+#else
+		|| GIsCookerLoadingPackage)
+#endif
+	{
 		return nullptr;
+	}
 
 	FString CurrentPath = FPaths::GetPath(Object->GetPathName());
 
@@ -901,7 +909,13 @@ UHoudiniToolsPackageAsset* FHoudiniToolsEditor::LoadHoudiniToolsPackage(const FS
 {
 	// No need to load/find Tools package while cooking or running a commandlet
 	// This would only generate unneeded warnings
-	if (IsRunningCommandlet() || IsRunningCookCommandlet() || GIsCookerLoadingPackage)
+	if (IsRunningCommandlet() 
+	|| IsRunningCookCommandlet()
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 9
+		|| UE::GetIsCookerLoadingPackage())
+#else
+		|| GIsCookerLoadingPackage)
+#endif
 		return nullptr;
 
 	const FString PkgPath = FPaths::Combine(PackageBasePath, FString::Format(TEXT("{0}.{0}"), { FHoudiniToolsRuntimeUtils::GetPackageUAssetName() }) );

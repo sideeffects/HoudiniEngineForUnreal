@@ -123,7 +123,6 @@
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
 #include "PackageTools.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "SkeletalMeshTypes.h"
@@ -8902,7 +8901,7 @@ FHoudiniEngineBakeUtils::PDGAutoBakeAfterResultObjectLoaded(
 			break;
 
 		default:
-			HOUDINI_LOG_WARNING(TEXT("Unsupported HoudiniEngineBakeOption %i"), InPDGAssetLink->HoudiniEngineBakeOption);
+			HOUDINI_LOG_WARNING(TEXT("Unsupported HoudiniEngineBakeOption %i"), (int32)InPDGAssetLink->HoudiniEngineBakeOption);
 	}
 
 	if (bSuccess)
