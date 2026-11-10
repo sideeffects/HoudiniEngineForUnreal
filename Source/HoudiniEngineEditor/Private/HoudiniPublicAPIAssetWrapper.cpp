@@ -968,7 +968,7 @@ UHoudiniPublicAPIAssetWrapper::SetFloatParameterValue_Implementation(FName InPar
 		if (!IsValid(FloatParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -987,7 +987,7 @@ UHoudiniPublicAPIAssetWrapper::SetFloatParameterValue_Implementation(FName InPar
 		if (!IsValid(ColorParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1035,7 +1035,7 @@ UHoudiniPublicAPIAssetWrapper::GetFloatParameterValue_Implementation(FName InPar
 		if (!IsValid(FloatParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1054,7 +1054,7 @@ UHoudiniPublicAPIAssetWrapper::GetFloatParameterValue_Implementation(FName InPar
 		if (!IsValid(ColorParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1089,7 +1089,7 @@ UHoudiniPublicAPIAssetWrapper::SetColorParameterValue_Implementation(FName InPar
 		if (!IsValid(ColorParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1123,7 +1123,7 @@ UHoudiniPublicAPIAssetWrapper::GetColorParameterValue_Implementation(FName InPar
 		if (!IsValid(ColorParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1150,7 +1150,7 @@ UHoudiniPublicAPIAssetWrapper::SetIntParameterValue_Implementation(FName InParam
 		if (!IsValid(IntParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1169,7 +1169,7 @@ UHoudiniPublicAPIAssetWrapper::SetIntParameterValue_Implementation(FName InParam
 		if (!IsValid(ChoiceParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1181,7 +1181,7 @@ UHoudiniPublicAPIAssetWrapper::SetIntParameterValue_Implementation(FName InParam
 		if (!IsValid(MultiParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1193,7 +1193,7 @@ UHoudiniPublicAPIAssetWrapper::SetIntParameterValue_Implementation(FName InParam
 		if (!IsValid(ToggleParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1205,7 +1205,7 @@ UHoudiniPublicAPIAssetWrapper::SetIntParameterValue_Implementation(FName InParam
 		if (!IsValid(FolderParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1264,7 +1264,7 @@ UHoudiniPublicAPIAssetWrapper::GetIntParameterValue_Implementation(FName InParam
 		if (!IsValid(ChoiceParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1277,7 +1277,7 @@ UHoudiniPublicAPIAssetWrapper::GetIntParameterValue_Implementation(FName InParam
 		if (!IsValid(MultiParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1290,7 +1290,7 @@ UHoudiniPublicAPIAssetWrapper::GetIntParameterValue_Implementation(FName InParam
 		if (!IsValid(ToggleParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1303,7 +1303,7 @@ UHoudiniPublicAPIAssetWrapper::GetIntParameterValue_Implementation(FName InParam
 		if (!IsValid(FolderParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1330,7 +1330,7 @@ UHoudiniPublicAPIAssetWrapper::SetBoolParameterValue_Implementation(FName InPara
 		if (!IsValid(ToggleParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1342,7 +1342,7 @@ UHoudiniPublicAPIAssetWrapper::SetBoolParameterValue_Implementation(FName InPara
 		if (!IsValid(FolderParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1380,7 +1380,7 @@ UHoudiniPublicAPIAssetWrapper::GetBoolParameterValue_Implementation(FName InPara
 		if (!IsValid(ToggleParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1393,7 +1393,7 @@ UHoudiniPublicAPIAssetWrapper::GetBoolParameterValue_Implementation(FName InPara
 		if (!IsValid(FolderParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1420,7 +1420,7 @@ UHoudiniPublicAPIAssetWrapper::SetStringParameterValue_Implementation(FName InPa
 		if (!IsValid(StringParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1464,7 +1464,7 @@ UHoudiniPublicAPIAssetWrapper::SetStringParameterValue_Implementation(FName InPa
 		if (!IsValid(ChoiceParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1477,7 +1477,7 @@ UHoudiniPublicAPIAssetWrapper::SetStringParameterValue_Implementation(FName InPa
 		if (!IsValid(FileParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1518,7 +1518,7 @@ UHoudiniPublicAPIAssetWrapper::GetStringParameterValue_Implementation(FName InPa
 		if (!IsValid(StringParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1555,7 +1555,7 @@ UHoudiniPublicAPIAssetWrapper::GetStringParameterValue_Implementation(FName InPa
 		if (!IsValid(ChoiceParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1569,7 +1569,7 @@ UHoudiniPublicAPIAssetWrapper::GetStringParameterValue_Implementation(FName InPa
 		if (!IsValid(FileParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1603,7 +1603,7 @@ UHoudiniPublicAPIAssetWrapper::SetAssetRefParameterValue_Implementation(FName In
 		if (!IsValid(StringParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1650,7 +1650,7 @@ UHoudiniPublicAPIAssetWrapper::GetAssetRefParameterValue_Implementation(FName In
 		if (!IsValid(StringParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -1698,7 +1698,7 @@ UHoudiniPublicAPIAssetWrapper::SetRampParameterNumPoints_Implementation(FName In
 		if (!IsValid(FloatRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -1708,7 +1708,7 @@ UHoudiniPublicAPIAssetWrapper::SetRampParameterNumPoints_Implementation(FName In
 		if (!IsValid(ColorRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -1922,7 +1922,7 @@ UHoudiniPublicAPIAssetWrapper::GetRampParameterNumPoints_Implementation(FName In
 		if (!IsValid(FloatRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -1932,7 +1932,7 @@ UHoudiniPublicAPIAssetWrapper::GetRampParameterNumPoints_Implementation(FName In
 		if (!IsValid(ColorRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -2034,7 +2034,7 @@ UHoudiniPublicAPIAssetWrapper::SetFloatRampParameterPoints_Implementation(
 		if (!IsValid(FloatRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -2182,7 +2182,7 @@ UHoudiniPublicAPIAssetWrapper::GetFloatRampParameterPoints_Implementation(
 		if (!IsValid(FloatRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -2304,7 +2304,7 @@ UHoudiniPublicAPIAssetWrapper::SetColorRampParameterPoints_Implementation(
 		if (!IsValid(ColorRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -2452,7 +2452,7 @@ UHoudiniPublicAPIAssetWrapper::GetColorRampParameterPoints_Implementation(
 		if (!IsValid(ColorRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -2537,7 +2537,7 @@ UHoudiniPublicAPIAssetWrapper::TriggerButtonParameter_Implementation(FName InBut
 		if (!IsValid(ButtonParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 
@@ -3156,7 +3156,7 @@ UHoudiniPublicAPIAssetWrapper::BakeOutputObjectAt_Implementation(
 		case EHoudiniOutputType::Invalid:
 		default:
 			SetErrorMessage(FString::Printf(
-				TEXT("BakeOutputObjectAt: unsupported output type (%d) for baking to CB."), OutputType));
+				TEXT("BakeOutputObjectAt: unsupported output type (%d) for baking to CB."), (int32)OutputType));
 			return false;
 	}
 
@@ -3795,7 +3795,7 @@ UHoudiniPublicAPIAssetWrapper::FindRampPointData(
 		if (!IsValid(FloatRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *InParam->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *InParam->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -3805,7 +3805,7 @@ UHoudiniPublicAPIAssetWrapper::FindRampPointData(
 		if (!IsValid(ColorRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *InParam->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *InParam->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -4062,7 +4062,7 @@ bool UHoudiniPublicAPIAssetWrapper::SetRampParameterPointValue(
 		if (!IsValid(FloatRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -4072,7 +4072,7 @@ bool UHoudiniPublicAPIAssetWrapper::SetRampParameterPointValue(
 		if (!IsValid(ColorRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -4279,7 +4279,7 @@ UHoudiniPublicAPIAssetWrapper::GetRampParameterPointValue(
 		if (!IsValid(FloatRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -4289,7 +4289,7 @@ UHoudiniPublicAPIAssetWrapper::GetRampParameterPointValue(
 		if (!IsValid(ColorRampParam))
 		{
 			SetErrorMessage(FString::Printf(
-				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), ParamType));
+				TEXT("Unexpected parameter class (%s) vs type (%d)"), *Param->GetClass()->GetName(), (int32)ParamType));
 			return false;
 		}
 	}
@@ -4497,7 +4497,7 @@ UHoudiniPublicAPIAssetWrapper::CreateAndPopulateAPIInput(const UHoudiniInput* In
 		// Deprecated input types
 		case EHoudiniInputType::Invalid:
 		default:
-			SetErrorMessage(FString::Printf(TEXT("GetInputAtIndex: Invalid input type %d"), InputType));
+			SetErrorMessage(FString::Printf(TEXT("GetInputAtIndex: Invalid input type %d"), (int32)InputType));
 			return false;
 	}
 	

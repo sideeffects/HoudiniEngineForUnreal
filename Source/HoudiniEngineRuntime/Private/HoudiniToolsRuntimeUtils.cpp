@@ -332,7 +332,12 @@ FHoudiniToolsRuntimeUtils::LoadHoudiniToolsPackage(const FString& PackageBasePat
 {
 	// No need to load/find Tools package while cooking or running a commandlet
 	// This would only generate unneeded warnings
-	if (IsRunningCommandlet() || IsRunningCookCommandlet() || GIsCookerLoadingPackage)
+	if (IsRunningCommandlet() || IsRunningCookCommandlet() 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 9
+		|| UE::GetIsCookerLoadingPackage())
+#else
+		|| GIsCookerLoadingPackage)
+#endif
 		return nullptr;
 
 	const FString PkgPath = FPaths::Combine(PackageBasePath, FString::Format(TEXT("{0}.{0}"), { GetPackageUAssetName() }) );
@@ -348,7 +353,12 @@ FHoudiniToolsRuntimeUtils::FindOwningToolsPackage(const UHoudiniAsset* HoudiniAs
 
 	// No need to load/find Tools package while cooking or running a commandlet
 	// This would only generate unneeded warnings
-	if (IsRunningCommandlet() || IsRunningCookCommandlet() || GIsCookerLoadingPackage)
+	if (IsRunningCommandlet() || IsRunningCookCommandlet() 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 9
+		|| UE::GetIsCookerLoadingPackage())
+#else
+		|| GIsCookerLoadingPackage)
+#endif
 		return nullptr;
 
 	FString CurrentPath = FPaths::GetPath(HoudiniAsset->GetPathName());

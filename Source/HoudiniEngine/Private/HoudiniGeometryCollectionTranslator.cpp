@@ -264,8 +264,11 @@ FHoudiniGeometryCollectionTranslator::SetupGeometryCollectionComponentFromOutput
 		// (which is what we used to do) - 	resetting the whole GC as temporary fix
 		// New: In addition to the above the Thumbnail generator creates its own components and if we
 		// don't update them - crash! So just go thru every component that uses this Geometry Collection
-
-		for(TObjectIterator<UGeometryCollectionComponent> It(RF_ClassDefaultObject, false, EInternalObjectFlags::Garbage); It; ++It)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 9
+		for(TObjectIterator<UGeometryCollectionComponent> It(RF_ClassDefaultObject, EInternalObjectFlags::Garbage, EObjectIteratorFlags::ExactClass); It; ++It)
+#else
+		for (TObjectIterator<UGeometryCollectionComponent> It(RF_ClassDefaultObject, false, EInternalObjectFlags::Garbage); It; ++It)
+#endif
 		{
 			if(It->RestCollection == GeometryCollection)
 			{

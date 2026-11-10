@@ -97,7 +97,7 @@ UHoudiniPublicAPIInput::PopulateFromHoudiniInput(UHoudiniInput const* const InIn
 	if (InInput->GetInputType() != InputType)
 	{
 		SetErrorMessage(FString::Printf(
-			TEXT("Incompatible input types %d vs %d"), InInput->GetInputType(), InputType));
+			TEXT("Incompatible input types %d vs %d"), (int32)InInput->GetInputType(), (int32)InputType));
 		return false;
 	}
 

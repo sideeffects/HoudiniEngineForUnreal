@@ -391,7 +391,12 @@ UHoudiniInput::GetBounds(UWorld * World)
 	// Also, don't do this when playing, only in Editor, This fixes issue in world partition when actors are not
 	// loaded. 
 
-	bool bUseCachedBounds = UE::IsSavingPackage(nullptr) || World->IsGameWorld() || GIsCookerLoadingPackage;
+	bool bUseCachedBounds = UE::IsSavingPackage(nullptr) || World->IsGameWorld() 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 9
+		|| UE::GetIsCookerLoadingPackage();
+#else
+		|| GIsCookerLoadingPackage;
+#endif
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
 	bUseCachedBounds |= IsGarbageCollecting() || IsGarbageCollectingAndLockingUObjectHashTables();

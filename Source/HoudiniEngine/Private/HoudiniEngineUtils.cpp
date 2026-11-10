@@ -694,7 +694,7 @@ void FHoudiniEngineUtils::LogPackageInfo(const UPackage* InPackage)
 #else
 	HOUDINI_LOG_MESSAGE(TEXT(" = Package Id: %d"), InPackage->GetPackageId().ValueForDebugging());
 #endif
-	HOUDINI_LOG_MESSAGE(TEXT(" = File size: %d"), InPackage->GetFileSize());
+	HOUDINI_LOG_MESSAGE(TEXT(" = File size: %d"), (int32)InPackage->GetFileSize());
 	HOUDINI_LOG_MESSAGE(TEXT(" = Contains map: %d"), InPackage->ContainsMap());
 	HOUDINI_LOG_MESSAGE(TEXT(" = Is Fully Loaded: %d"), InPackage->IsFullyLoaded());
 	HOUDINI_LOG_MESSAGE(TEXT(" = Is Dirty: %d"), InPackage->IsDirty());
@@ -881,7 +881,7 @@ FHoudiniEngineUtils::HapiGetEventTypeAsString(const HAPI_PDG_EventType& InEventT
 			break;
 	}
 
-	return FString::Printf(TEXT("Unknown HAPI_PDG_EventType %d"), InEventType);
+	return FString::Printf(TEXT("Unknown HAPI_PDG_EventType %d"), (int32)InEventType);
 }
 
 FString
@@ -913,7 +913,7 @@ FHoudiniEngineUtils::HapiGetWorkItemStateAsString(const HAPI_PDG_WorkItemState& 
 			break;
 	}
 
-	return FString::Printf(TEXT("Unknown HAPI_PDG_WorkItemState %d"), InWorkItemState);
+	return FString::Printf(TEXT("Unknown HAPI_PDG_WorkItemState %d"), (int32)InWorkItemState);
 }
 
 // Centralized call to track renaming of objects
@@ -2207,7 +2207,7 @@ FHoudiniEngineUtils::HapiGetNodePath(const FHoudiniGeoPartObject& InHGPO, FStrin
 		{
 			if (FHoudiniEngineString::ToFString(AssetNodeInfo.nameSH, NodePathTemp))
 			{
-				OutPath = FString::Printf(TEXT("%s_%d"), *NodePathTemp, InHGPO.PartId);
+				OutPath = FString::Printf(TEXT("%s_%d"), *NodePathTemp, (int32)InHGPO.PartId);
 			}
 		}
 	}
@@ -2216,7 +2216,7 @@ FHoudiniEngineUtils::HapiGetNodePath(const FHoudiniGeoPartObject& InHGPO, FStrin
 		// This is an OBJ asset, return the path to this geo relative to the asset
 		if (FHoudiniEngineUtils::HapiGetNodePath(InHGPO.GeoId, InHGPO.AssetId, NodePathTemp))
 		{
-			OutPath = FString::Printf(TEXT("%s_%d"), *NodePathTemp, InHGPO.PartId);
+			OutPath = FString::Printf(TEXT("%s_%d"), *NodePathTemp, (int32)InHGPO.PartId);
 		}
 	}
 
@@ -5879,7 +5879,7 @@ FHoudiniEngineUtils::AddMeshSocketsToArray_Group(
 	if (!FHoudiniEngineUtils::HapiGetGroupNames(
 		GeoId, PartId, HAPI_GROUPTYPE_POINT, isPackedPrim, GroupNames))
 	{
-		HOUDINI_LOG_MESSAGE(TEXT("GetMeshSocketList: Geo [%d] Part [%d] non-fatal error reading point group names"), GeoId, PartId);
+		HOUDINI_LOG_MESSAGE(TEXT("GetMeshSocketList: Geo [%d] Part [%d] non-fatal error reading point group names"), (int32)GeoId, (int32)PartId);
 	}
 
 	// First, we want to make sure we have at least one socket group before continuing
@@ -6656,7 +6656,7 @@ FHoudiniEngineUtils::SetGenericPropertyAttribute(
 			break;
 		case EAttribOwner::Invalid:
 		default:
-			HOUDINI_LOG_WARNING(TEXT("Unsupported Attribute Owner: %d"), InPropertyAttribute.AttributeOwner);
+			HOUDINI_LOG_WARNING(TEXT("Unsupported Attribute Owner: %d"), (int32)InPropertyAttribute.AttributeOwner);
 			return false;
 	}
 
@@ -6688,7 +6688,7 @@ FHoudiniEngineUtils::SetGenericPropertyAttribute(
 			break;
 		case (EAttribStorageType::Invalid):
 		default:
-			HOUDINI_LOG_WARNING(TEXT("Unsupported Attribute Storage Type: %d"), InPropertyAttribute.AttributeType);
+			HOUDINI_LOG_WARNING(TEXT("Unsupported Attribute Storage Type: %d"), (int32)InPropertyAttribute.AttributeType);
 			return false;
 	}
 
@@ -6792,7 +6792,7 @@ FHoudiniEngineUtils::SetGenericPropertyAttribute(
 
 		default:
 			// Unsupported storage type
-			HOUDINI_LOG_WARNING(TEXT("Unsupported storage type: %d"), InPropertyAttribute.AttributeType);
+			HOUDINI_LOG_WARNING(TEXT("Unsupported storage type: %d"), (int32)InPropertyAttribute.AttributeType);
 			break;
 	}
 
@@ -8137,7 +8137,7 @@ FHoudiniEngineUtils::CreateInputNode(const FString& InNodeLabel, HAPI_NodeId& Ou
 	
 	if (!IsHoudiniNodeValid(InParentNodeId))
 	{
-		HOUDINI_LOG_WARNING(TEXT("[FHoudiniEngineUtils::CreateInputNode]: InParentNodeId (%d) is not valid."), InParentNodeId);
+		HOUDINI_LOG_WARNING(TEXT("[FHoudiniEngineUtils::CreateInputNode]: InParentNodeId (%d) is not valid."), (int32)InParentNodeId);
 		return HAPI_RESULT_NODE_INVALID;
 	}
 
@@ -8553,7 +8553,7 @@ FString FHoudiniEngineUtils::DumpNode(HAPI_NodeId NodeId)
 #else
 	FStringBuilderBase Output;
 #endif
-	Output.Appendf(TEXT("Node ID: %d\n"), NodeId);
+	Output.Appendf(TEXT("Node ID: %d\n"), (int32)NodeId);
 	Output.Appendf(TEXT("    Name: %s\n"), *FHoudiniEngineString(NodeInfo.nameSH).ToFString());
 	Output.Appendf(TEXT("    Type: %s\n"), *NodeTypeToString(NodeInfo.type));
 
@@ -8613,7 +8613,7 @@ void FHoudiniEngineUtils::DumpPart(HAPI_NodeId NodeId, HAPI_PartId PartId, FStri
 		return;
 	}
 
-	Output.Appendf(TEXT("Part %d\n"), PartId);
+	Output.Appendf(TEXT("Part %d\n"), (int32)PartId);
 	Output.Appendf(TEXT("    Part Name: %s\n"), *FHoudiniEngineString(PartInfo.nameSH).ToFString());
 	Output.Appendf(TEXT("    Part Type: %s\n"), *PartTypeToString(PartInfo.type));
 	Output.Appendf(TEXT("    Part Face Count: %d\n"), PartInfo.faceCount);

@@ -302,7 +302,9 @@ FHoudiniEngineManager::Tick(float DeltaTime)
 		while (bKeepProcessing)
 		{
 			// See if we should start the default "first" session
-			if (CurrentCookable->ShouldTryToStartFirstSession())
+			if (CurrentCookable->ShouldTryToStartFirstSession()
+				&& !FHoudiniEngine::Get().GetSession()
+				&& !FHoudiniEngine::Get().GetFirstSessionCreated())
 			{
 				AutoStartFirstSessionIfNeeded();
 			}

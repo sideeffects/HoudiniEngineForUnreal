@@ -68,7 +68,6 @@
 #include "Materials/Material.h"
 #include "Materials/MaterialInstance.h"
 #include "Materials/MaterialInstanceConstant.h"
-#include "Particles/ParticleSystem.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "SAssetDropTarget.h"
 #include "ScopedTransaction.h"
