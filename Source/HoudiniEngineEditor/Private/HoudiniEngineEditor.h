@@ -297,6 +297,9 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 		// Re-select AHoudiniAssetActors that were deselected (to avoid deletion) by HandleOnDeleteActorsBegin 
 		void HandleOnDeleteActorsEnd();
 
+		// Remove world inputs within the actor deletion transaction so undo can restore them.
+		void HandleOnLevelActorDeleted(AActor* InActor);
+
 		// Handle pre-save events
 		// Either PreSaveWorld/PreSavePackage
 		// This allows proper refinement of Proxies to Static Mesh when saving
@@ -437,6 +440,8 @@ class HOUDINIENGINEEDITOR_API FHoudiniEngineEditor : public IHoudiniEngineEditor
 
 		// Delegate handle for OnDeleteActorsEnd
 		FDelegateHandle OnDeleteActorsEnd;
+
+		FDelegateHandle OnLevelActorDeletedHandle;
 
 		// Delegate handle for LevelEditorModule::OnRegisterTabs
 		FDelegateHandle OnLevelEditorRegisterTabsHandle;

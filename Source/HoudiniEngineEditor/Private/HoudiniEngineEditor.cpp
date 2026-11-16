@@ -45,6 +45,8 @@
 #include "HoudiniGeoPartObject.h"
 #include "HoudiniHandleComponentVisualizer.h"
 #include "HoudiniInput.h"
+#include "HoudiniInputObject.h"
+#include "HoudiniEngineRuntime.h"
 #include "HoudiniOutput.h"
 #include "HoudiniPackageParams.h"
 #include "HoudiniParameter.h"
@@ -1845,6 +1847,9 @@ FHoudiniEngineEditor::RegisterEditorDelegates()
 	OnDeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddLambda([this](){ this->HandleOnDeleteActorsBegin(); });
 	OnDeleteActorsEnd = FEditorDelegates::OnDeleteActorsEnd.AddLambda([this](){ this-> HandleOnDeleteActorsEnd(); });
 
+	if (GEngine)
+		OnLevelActorDeletedHandle = GEngine->OnLevelActorDeleted().AddRaw(this, &FHoudiniEngineEditor::HandleOnLevelActorDeleted);
+
 	/*
 	//
 	// COMMENTED OUT! Unreal actually calls the delegate for all class, not just the specified owner
@@ -1886,6 +1891,9 @@ FHoudiniEngineEditor::UnregisterEditorDelegates()
 
 	if (OnDeleteActorsEnd.IsValid())
 		FEditorDelegates::OnDeleteActorsEnd.Remove(OnDeleteActorsEnd);
+
+	if (GEngine && OnLevelActorDeletedHandle.IsValid())
+		GEngine->OnLevelActorDeleted().Remove(OnLevelActorDeletedHandle);
 	
 	/*
 	// Unregister the ToolsPackage rename delegate
@@ -2214,6 +2222,56 @@ FHoudiniEngineEditor::HandleOnDeleteActorsBegin()
 				GEditor->SelectActor(AssetActor, false, false);
 				ActorsToReselectOnDeleteActorsEnd.Add(AssetActor);
 			}
+		}
+	}
+}
+
+void
+FHoudiniEngineEditor::HandleOnLevelActorDeleted(AActor* InActor)
+{
+	if (!InActor || !InActor->GetWorld() || InActor->GetWorld()->WorldType != EWorldType::Editor || GIsTransacting)
+		return;
+
+	FSoftObjectPath ActorPath(InActor);
+	FHoudiniEngineRuntime& Runtime = FHoudiniEngineRuntime::Get();
+	for (int32 CookableIndex = 0; CookableIndex < Runtime.GetRegisteredHoudiniCookableCount(); ++CookableIndex)
+	{
+		UHoudiniCookable* Cookable = Runtime.GetRegisteredHoudiniCookableAt(CookableIndex);
+		if (!IsValid(Cookable) || !Cookable->IsInputSupported())
+			continue;
+
+		for (UHoudiniInput* Input : Cookable->GetInputs())
+		{
+			if (!IsValid(Input) || Input->GetInputType() != EHoudiniInputType::World)
+				continue;
+
+			TArray<TObjectPtr<UHoudiniInputObject>>* InputObjects = Input->GetHoudiniInputObjectArray(EHoudiniInputType::World);
+			if (!InputObjects)
+				continue;
+
+			bool bModified = false;
+			for (int32 Index = InputObjects->Num() - 1; Index >= 0; --Index)
+			{
+				UHoudiniInputActor* InputActor = Cast<UHoudiniInputActor>((*InputObjects)[Index]);
+				if (!IsValid(InputActor) || InputActor->InputObject.ToSoftObjectPath() != ActorPath)
+					continue;
+
+				// The world-input tick runs after the delete transaction has ended. Removing inputs there
+				// loses their soft references permanently, even when the actor deletion is undone.
+				if (!bModified)
+				{
+					Input->Modify();
+					bModified = true;
+				}
+
+				InputActor->InvalidateData();
+				// The wrapper is retained by the transaction. Recreate its Houdini data on undo.
+				InputActor->MarkChanged(true);
+				InputObjects->RemoveAt(Index);
+			}
+
+			if (bModified)
+				Input->MarkChanged(true);
 		}
 	}
 }

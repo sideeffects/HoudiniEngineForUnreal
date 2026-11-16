@@ -33,6 +33,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "LandscapeStreamingProxy.h"
+#include "EngineUtils.h"
 #include "LandscapeSplineActor.h"
 #include "LandscapeSplinesComponent.h"
 #include "LandscapeSplineControlPoint.h"
@@ -102,6 +103,41 @@ void FHoudiniLandscapeRuntimeUtils::DeleteEditLayer(ALandscape* Landscape, const
 }
 
 
+namespace
+{
+TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> GetLandscapeStreamingProxiesForCleanup(ALandscapeProxy* Landscape)
+{
+	ULandscapeInfo* Info = Landscape->GetLandscapeInfo();
+	if (IsValid(Info))
+	{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
+		return Info->GetSortedStreamingProxies();
+#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+		return Info->StreamingProxies;
+#else
+		TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies;
+		for (ALandscapeStreamingProxy* Proxy : Info->Proxies)
+			Proxies.Add(Proxy);
+		return Proxies;
+#endif
+	}
+
+	// Undo can restore the world's landscape-info map to before a cook created this landscape.
+	// The output actor and its proxies still need to be removed before the next cook creates replacements.
+	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies;
+	UWorld* World = Landscape->GetWorld();
+	if (World && Landscape->GetLandscapeGuid().IsValid())
+	{
+		for (TActorIterator<ALandscapeStreamingProxy> It(World); It; ++It)
+		{
+			if (IsValid(*It) && It->GetLandscapeGuid() == Landscape->GetLandscapeGuid())
+				Proxies.Add(*It);
+		}
+	}
+	return Proxies;
+}
+}
+
 void
 FHoudiniLandscapeRuntimeUtils::DestroyLandscape(ALandscape* Landscape)
 {
@@ -109,27 +145,15 @@ FHoudiniLandscapeRuntimeUtils::DestroyLandscape(ALandscape* Landscape)
 		return;
 
 	ULandscapeInfo* Info = Landscape->GetLandscapeInfo();
-	if (!IsValid(Info))
-		return;
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
-	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Info->GetSortedStreamingProxies();
-	for (auto ProxyPtr : Proxies)
+	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = GetLandscapeStreamingProxiesForCleanup(Landscape);
+	for (TWeakObjectPtr<ALandscapeStreamingProxy> ProxyPtr : Proxies)
 	{
 		ALandscapeStreamingProxy* Proxy = ProxyPtr.Get();
-#elif ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
-	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Info->StreamingProxies;
-	for (auto ProxyPtr : Proxies)
-	{
-		ALandscapeStreamingProxy* Proxy = ProxyPtr.Get();
-#else
-	TArray<ALandscapeStreamingProxy*> Proxies = Info->Proxies;
-	for (ALandscapeStreamingProxy* Proxy : Proxies)
-	{
-#endif	
 		if (!IsValid(Proxy))
 			continue;
 
-		Info->UnregisterActor(Proxy);
+		if (IsValid(Info))
+			Info->UnregisterActor(Proxy);
 		FHoudiniLandscapeRuntimeUtils::DestroyLandscapeProxy(Proxy);
 	}
 	Landscape->Destroy();
@@ -138,24 +162,16 @@ FHoudiniLandscapeRuntimeUtils::DestroyLandscape(ALandscape* Landscape)
 void
 FHoudiniLandscapeRuntimeUtils::DestroyLandscapeProxy(ALandscapeProxy* Proxy)
 {
-	// UE5 does not automatically delete streaming proxies, so clean them up before detroying the parent actor.
-	// Note the Proxies array must be copied, not referenced, as it is modified when each Proxy is destroyed.
+	if (!IsValid(Proxy))
+		return;
 
-#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 7
-	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Proxy->GetLandscapeInfo()->GetSortedStreamingProxies();
-#elif ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 1
-	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = Proxy->GetLandscapeInfo()->StreamingProxies;
-#else
-	TArray<TObjectPtr<ALandscapeStreamingProxy>> Proxies = Proxy->GetLandscapeInfo()->Proxies;
-#endif
-
+	// Copy the proxy list: destroying a proxy may rebuild landscape info and change the list.
+	TArray<TWeakObjectPtr<ALandscapeStreamingProxy>> Proxies = GetLandscapeStreamingProxiesForCleanup(Proxy);
 	for (TWeakObjectPtr<ALandscapeStreamingProxy> Child : Proxies)
 	{
-		if (Child.Get() != nullptr && IsValid(Child.Get()))
-			Child.Get()->Destroy();
+		if (IsValid(Child.Get()))
+			Child->Destroy();
 	}
-
-	// Once we've removed the streaming proxies delete the landscape actor itself.
 
 	Proxy->Destroy();
 }
