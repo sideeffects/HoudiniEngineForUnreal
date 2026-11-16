@@ -27,6 +27,8 @@
 
 #include "HoudiniPublicAPIAssetWrapper.h"
 
+#include "UObject/Script.h"
+
 #include "HoudiniAsset.h"
 #include "HoudiniAssetActor.h"
 #include "HoudiniAssetComponent.h"
@@ -4196,25 +4198,37 @@ UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniCookableStateChange(UHoudiniCookab
 	if (InToState == EHoudiniAssetState::PreInstantiation)
 	{
 		if (OnPreInstantiationDelegate.IsBound())
+		{
+			FEditorScriptExecutionGuard ScriptGuard;
 			OnPreInstantiationDelegate.Broadcast(this);
+		}
 	}
 
 	if (InFromState == EHoudiniAssetState::Instantiating && InToState == EHoudiniAssetState::PreCook)
 	{
 		if (OnPostInstantiationDelegate.IsBound())
+		{
+			FEditorScriptExecutionGuard ScriptGuard;
 			OnPostInstantiationDelegate.Broadcast(this);
+		}
 	}
 
 	if (InFromState == EHoudiniAssetState::PreProcess)
 	{
 		if (OnPreProcessStateExitedDelegate.IsBound())
+		{
+			FEditorScriptExecutionGuard ScriptGuard;
 			OnPreProcessStateExitedDelegate.Broadcast(this);
+		}
 	}
 
 	if (InFromState == EHoudiniAssetState::Processing && InToState == EHoudiniAssetState::None)
 	{
 		if (OnPostProcessingDelegate.IsBound())
+		{
+			FEditorScriptExecutionGuard ScriptGuard;
 			OnPostProcessingDelegate.Broadcast(this);
+		}
 	}
 }
 
@@ -4233,7 +4247,10 @@ UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniCookablePostCook(UHoudiniCookable*
 	}
 
 	if (OnPostCookDelegate.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		OnPostCookDelegate.Broadcast(this, bInCookSuccess);
+	}
 }
 
 void
@@ -4251,7 +4268,10 @@ UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniCookablePostBake(UHoudiniCookable*
 	}
 
 	if (OnPostBakeDelegate.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		OnPostBakeDelegate.Broadcast(this, bInBakeSuccess);
+	}
 }
 
 void
@@ -4269,7 +4289,10 @@ UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniPDGAssetLinkTOPNetPostCook(UHoudin
 	}
 
 	if (OnPostPDGTOPNetworkCookDelegate.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		OnPostPDGTOPNetworkCookDelegate.Broadcast(this, !bInAnyWorkItemsFailed);
+	}
 }
 
 void
@@ -4287,7 +4310,10 @@ UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniPDGAssetLinkPostBake(UHoudiniPDGAs
 	}
 
 	if (OnPostPDGBakeDelegate.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		OnPostPDGBakeDelegate.Broadcast(this, bInBakeSuccess);
+	}
 }
 
 void
@@ -4300,7 +4326,10 @@ UHoudiniPublicAPIAssetWrapper::HandleOnHoudiniProxyMeshesRefinedGlobal(UHoudiniC
 		return;
 
 	if (OnProxyMeshesRefinedDelegate.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		OnProxyMeshesRefinedDelegate.Broadcast(this, InResult);
+	}
 }
 
 UHoudiniParameter*

@@ -26,6 +26,8 @@
 
 #include "HoudiniPublicAPIProcessHDANode.h"
 
+#include "UObject/Script.h"
+
 #include "HoudiniPublicAPI.h"
 #include "HoudiniPublicAPIBlueprintLib.h"
 #include "HoudiniPublicAPIAssetWrapper.h"
@@ -161,7 +163,10 @@ void
 UHoudiniPublicAPIProcessHDANode::HandleFailure()
 {
 	if (Failed.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		Failed.Broadcast(AssetWrapper, bCookSuccess, bBakeSuccess);
+	}
 
 	UnbindDelegates();
 
@@ -175,7 +180,10 @@ void
 UHoudiniPublicAPIProcessHDANode::HandleComplete()
 {
 	if (Completed.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		Completed.Broadcast(AssetWrapper, bCookSuccess, bBakeSuccess);
+	}
 
 	UnbindDelegates();
 
@@ -204,7 +212,10 @@ UHoudiniPublicAPIProcessHDANode::HandlePreInstantiation(UHoudiniPublicAPIAssetWr
 	}
 
 	if (PreInstantiation.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		PreInstantiation.Broadcast(AssetWrapper, bCookSuccess, bBakeSuccess);
+	}
 }
 
 void
@@ -234,7 +245,10 @@ UHoudiniPublicAPIProcessHDANode::HandlePostInstantiation(UHoudiniPublicAPIAssetW
 	}
 
 	if (PostInstantiation.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		PostInstantiation.Broadcast(AssetWrapper, bCookSuccess, bBakeSuccess);
+	}
 
 	if (!bEnableAutoCook)
 		HandleComplete();
@@ -255,7 +269,10 @@ UHoudiniPublicAPIProcessHDANode::HandlePostAutoCook(UHoudiniPublicAPIAssetWrappe
 	bCookSuccess = bInCookSuccess;
 
 	if (PostAutoCook.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		PostAutoCook.Broadcast(AssetWrapper, bCookSuccess, bBakeSuccess);
+	}
 }
 
 void
@@ -271,7 +288,10 @@ UHoudiniPublicAPIProcessHDANode::HandlePreProcess(UHoudiniPublicAPIAssetWrapper*
 	}
 
 	if (PreProcess.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		PreProcess.Broadcast(AssetWrapper, bCookSuccess, bBakeSuccess);
+	}
 }
 
 void
@@ -287,7 +307,10 @@ UHoudiniPublicAPIProcessHDANode::HandlePostProcessing(UHoudiniPublicAPIAssetWrap
 	}
 
 	if (PostProcessing.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		PostProcessing.Broadcast(AssetWrapper, bCookSuccess, bBakeSuccess);
+	}
 
 	if (!bEnableAutoBake)
 		HandleComplete();
@@ -308,7 +331,10 @@ UHoudiniPublicAPIProcessHDANode::HandlePostAutoBake(UHoudiniPublicAPIAssetWrappe
 	bBakeSuccess = bInBakeSuccess;
 
 	if (PostAutoBake.IsBound())
+	{
+		FEditorScriptExecutionGuard ScriptGuard;
 		PostAutoBake.Broadcast(AssetWrapper, bCookSuccess, bBakeSuccess);
+	}
 
 	HandleComplete();
 }
