@@ -202,7 +202,9 @@ FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesControlPoint(
 		}
 	}
 
-	ULandscapeSplinesComponent* const SplinesComponent = Cast<ULandscapeSplinesComponent>(InControlPoint->GetOuter());
+	// Deletion moves the object to the transient package in UE 5.7+, so retain its owner first.
+	ULandscapeSplinesComponent* SplinesComponent = Cast<ULandscapeSplinesComponent>(InControlPoint->GetOuter());
+
 #if WITH_EDITOR
 	InControlPoint->DeleteSplinePoints();
 #endif
@@ -255,7 +257,9 @@ FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesSegment(
 	HOUDINI_LOG_WARNING(TEXT("Landscape Spline Output is only supported in UE5.1+"));
 	return false;
 #else
-	ULandscapeSplinesComponent* const SplinesComponent = Cast<ULandscapeSplinesComponent>(InSegment->GetOuter());
+	// Deletion moves the object to the transient package in UE 5.7+, so retain its owner first.
+	ULandscapeSplinesComponent* SplinesComponent = Cast<ULandscapeSplinesComponent>(InSegment->GetOuter());
+
 #if WITH_EDITOR
 	InSegment->DeleteSplinePoints();
 #endif
@@ -282,24 +286,22 @@ FHoudiniLandscapeRuntimeUtils::DestroyLandscapeSplinesSegment(
 	{
 		if (CP0->ConnectedSegments.Num() == 0)
 		{
-			ULandscapeSplinesComponent* const CP0SplinesComponent = Cast<ULandscapeSplinesComponent>(CP0->GetOuter());
 #if WITH_EDITOR
 			CP0->DeleteSplinePoints();
 #endif
 			CP0->ConnectedSegments.Empty();
-			if (bInRemoveDestroyedControlPointsFromComponent && IsValid(CP0SplinesComponent))
-				CP0SplinesComponent->GetControlPoints().Remove(CP0);
+			if (bInRemoveDestroyedControlPointsFromComponent && bIsSplinesComponentValid)
+				SplinesComponent->GetControlPoints().Remove(CP0);
 			CP0 = nullptr;
 		}
 		if (CP1->ConnectedSegments.Num() == 0)
 		{
-			ULandscapeSplinesComponent* const CP1SplinesComponent = Cast<ULandscapeSplinesComponent>(CP1->GetOuter());
 #if WITH_EDITOR
 			CP1->DeleteSplinePoints();
 #endif
 			CP1->ConnectedSegments.Empty();
-			if (bInRemoveDestroyedControlPointsFromComponent && IsValid(CP1SplinesComponent))
-				CP1SplinesComponent->GetControlPoints().Remove(CP1);
+			if (bInRemoveDestroyedControlPointsFromComponent && bIsSplinesComponentValid)
+				SplinesComponent->GetControlPoints().Remove(CP1);
 			CP1 = nullptr;
 		}
 	}

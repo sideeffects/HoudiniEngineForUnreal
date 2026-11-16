@@ -81,6 +81,12 @@ struct HOUDINIENGINE_API FHoudiniLandscapeSplineTranslator
 		TMap<FHoudiniOutputObjectIdentifier, FHoudiniOutputObject>& OutputObjects,
 		UHoudiniCookable* InHC = nullptr);
 
+	// Apply the selected control point's segment attributes to an Unreal landscape spline segment.
+	static bool SetSegmentData(
+		ULandscapeSplineSegment* InSegment, 
+		const FHoudiniLandscapeSplineData& InSplineData,
+		int InVertexIndex);
+
 private:
 	static void DeleteTempLandscapeLayers(UHoudiniOutput* InOutput);
 
@@ -122,11 +128,6 @@ private:
 		const FTransform& InTransformToApply,
 		int InPointIndex);
 
-	static bool SetSegmentData(
-		ULandscapeSplineSegment* InSegment, 
-		const FHoudiniLandscapeSplineData& InSplineData,
-		int InVertexIndex);
-	
 	static bool SetConnectionData(
 		FLandscapeSplineSegmentConnection& InConnection,
 		int InConnectionIndex,

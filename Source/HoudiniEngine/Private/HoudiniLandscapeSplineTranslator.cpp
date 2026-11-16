@@ -691,7 +691,7 @@ FHoudiniLandscapeSplineTranslator::CreateOutputLandscapeSpline(
 					FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(Segment, GenericPointAttributes, SplineInfo.PerCurveFirstPointIndex[CurveEntryIdx]);
 					FHoudiniEngineUtils::UpdateGenericPropertiesAttributes(Segment, GenericPrimAttributes, SplineInfo.CurveIndices[CurveEntryIdx]);
 
-					// Apply attributes to segment
+					// Segment-wide attributes come from the end control point; connection attributes use their own endpoints.
 					SetSegmentData(Segment, HoudiniCurveData, CurvePointArrayIdx);
 
 					// Apply attributes for connections
@@ -908,7 +908,7 @@ FHoudiniLandscapeSplineTranslator::CopySegmentMeshAttributesFromHoudini(
 		Accessor.GetAttributeData(InAttrOwner, 1, CenterHorizontally, InStartIndex, InCount);
 
 		// material overrides
-		TArray<TArray<FString>> MeterialOverideList;
+		TArray<TArray<FString>> MaterialOverrideLists;
 		FString MaterialAttrNamePrefix = AttrNamePrefix + TEXT(HAPI_UNREAL_ATTRIB_LANDSCAPE_SPLINE_MESH_MATERIAL_OVERRIDE_SUFFIX);
 
 		// The same as with the MeshIndex above, loop until the first iteration where we cannot find a material
@@ -924,18 +924,23 @@ FHoudiniLandscapeSplineTranslator::CopySegmentMeshAttributesFromHoudini(
 				: MaterialAttrNamePrefix;
 
 			Accessor.Init(InNodeId, InPartId, TCHAR_TO_ANSI(*MaterialOverrideAttrName));
-			bool bSuccess = Accessor.GetAttributeData(HAPI_ATTROWNER_INVALID, 1, MaterialOverrides);
+			bool bSuccess = Accessor.GetAttributeData(
+				InAttrOwner,
+				1,
+				MaterialOverrides,
+				InStartIndex,
+				InCount);
 
 			if (!bSuccess)
 			{
 				break;
 			}
 
-			MeterialOverideList.Emplace(MoveTemp(MaterialOverrides));
+			MaterialOverrideLists.Emplace(MoveTemp(MaterialOverrides));
 			MaterialOverrideIdx++;
 		}
 
-		bool bNoData = MeshReferences.IsEmpty() && MeshScales.IsEmpty() && CenterAdjust.IsEmpty() && MeterialOverideList.IsEmpty();
+		bool bNoData = MeshReferences.IsEmpty() && MeshScales.IsEmpty() && CenterAdjust.IsEmpty() && MaterialOverrideLists.IsEmpty();
 		if (bNoData)
 			break;
 
@@ -965,10 +970,13 @@ FHoudiniLandscapeSplineTranslator::CopySegmentMeshAttributesFromHoudini(
 					CenterAdjust[Index * 2 + 1]);
 				bSetOne = true;
 			}
-			if (MeterialOverideList.IsValidIndex(Index))
+			for (TArray<FString>& MaterialOverrides : MaterialOverrideLists)
 			{
-				SegmentMeshData.MaterialOverrideRef = MeterialOverideList[Index];
-				bSetOne = true;
+				if (MaterialOverrides.IsValidIndex(Index))
+				{
+					SegmentMeshData.MaterialOverrideRef.Add(MaterialOverrides[Index]);
+					bSetOne = true;
+				}
 			}
 			if (ScaleToWidth.IsValidIndex(Index))
 			{
@@ -1379,10 +1387,10 @@ FHoudiniLandscapeSplineTranslator::SetSegmentData(
 	// Segment static meshes
 
 	const TArray<FHoudiniLandscapeSplineMesh> * Meshes = nullptr;
-	if (InSplineData.SegmentMeshData.IsValidIndex(InVertexIndex))
+	if (InSplineData.SegmentMeshData.IsValidIndex(InVertexIndex)
+		&& !InSplineData.SegmentMeshData[InVertexIndex].Meshes.IsEmpty())
 	{
-		if (!InSplineData.SegmentMeshData.IsEmpty())
-			Meshes = &InSplineData.SegmentMeshData[InVertexIndex].Meshes;
+		Meshes = &InSplineData.SegmentMeshData[InVertexIndex].Meshes;
 	}
 	else if (!InSplineData.DefaultMeshSegmentData.IsEmpty())
 	{
@@ -1406,11 +1414,11 @@ FHoudiniLandscapeSplineTranslator::SetSegmentData(
 		SplineMeshEntry.bScaleToWidth = InputMesh.bScaleToWidth;
 		SplineMeshEntry.bCenterH = InputMesh.bCenterH;
 
-		for(int MaterialIdx = 0; MaterialIdx < SplineMeshEntry.MaterialOverrides.Num(); MaterialIdx++)
+		for (int MaterialIdx = 0; MaterialIdx < InputMesh.MaterialOverrideRef.Num(); MaterialIdx++)
 		{
 			// Found a material override at this index, try to find / load it
 
-			const FString& MaterialOverride = *InputMesh.MaterialOverrideRef[MaterialIdx];
+			FString MaterialOverride = InputMesh.MaterialOverrideRef[MaterialIdx];
 			UObject* Material = StaticFindObject(UMaterialInterface::StaticClass(), nullptr, *MaterialOverride);
 			if (!Material)
 				Material = StaticLoadObject(UMaterialInterface::StaticClass(), nullptr, *MaterialOverride);
