@@ -4106,7 +4106,8 @@ bool FUnrealMeshTranslator::GetOrCreateStaticMeshLODGeometries(
 
 		const bool bAddLODGroups = true;
 		FUnrealObjectInputHandle Handle;
-		GetOrCreateExportStaticMeshLOD(Handle, ExportData, 0, bAddLODGroups, StaticMesh, ExportData.MainMeshSource);
+		if (!GetOrCreateExportStaticMeshLOD(Handle, ExportData, 0, bAddLODGroups, StaticMesh, ExportData.MainMeshSource))
+			return false;
 		Handles.Add(Handle);
 	}
 
@@ -4122,7 +4123,8 @@ bool FUnrealMeshTranslator::GetOrCreateStaticMeshLODGeometries(
 
 			constexpr bool bAddLODGroups = true;
 			FUnrealObjectInputHandle Handle;
-			GetOrCreateExportStaticMeshLOD(Handle, ExportData, LODIndex, bAddLODGroups, StaticMesh, ExportData.LODMeshSource);
+			if (!GetOrCreateExportStaticMeshLOD(Handle, ExportData, LODIndex, bAddLODGroups, StaticMesh, ExportData.LODMeshSource))
+				return false;
 			Handles.Add(Handle);
 		}
 	}
@@ -4133,11 +4135,12 @@ bool FUnrealMeshTranslator::GetOrCreateStaticMeshLODGeometries(
 
 
 	HAPI_NodeId MergeNodeId;
-	bSuccess = CreateMergeNode(MergeNodeId, TEXT("Merge"), GeoNodeId, GetHapiNodeIds(Handles.Array()));
+	if (CreateMergeNode(MergeNodeId, TEXT("Merge"), GeoNodeId, GetHapiNodeIds(Handles.Array()))
+		&& FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, MergeNodeId, LODsHandle, &Handles))
+		return true;
 
-	FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, MergeNodeId, LODsHandle, &Handles);
-
-	return bSuccess;
+	FHoudiniEngineUtils::DeleteHoudiniNode(GeoNodeId);
+	return false;
 }
 
 
@@ -4168,10 +4171,9 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMesh(
 			ExportData,
 			SplineMeshComponent);
 
-		if(bSuccess)
-		{
-			OutHandle = std::move(ComponentHandle);
-		}
+		if (!bSuccess)
+			return false;
+		OutHandle = std::move(ComponentHandle);
 	}
 	else
 	{
@@ -4198,10 +4200,9 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMesh(
 				ExportOptions,
 				bInputNodesCanBeDeleted);
 
-			if(bSuccess)
-			{
-				OutHandle = ComponentHandle;
-			}
+			if (!bSuccess)
+				return false;
+			OutHandle = ComponentHandle;
 		}
 		else
 		{
@@ -4247,76 +4248,47 @@ bool FUnrealMeshTranslator::GetOrCreateExportStaticMeshLOD(
 		return true;
 	}
 
+	const FMeshDescription* MeshDescription = nullptr;
+	if (RequestedMeshSource == EHoudiniMeshSource::HiResMeshDescription)
+		MeshDescription = StaticMesh->GetHiResMeshDescription();
+	if (!MeshDescription && RequestedMeshSource != EHoudiniMeshSource::LODResource)
+		MeshDescription = StaticMesh->GetMeshDescription(LODIndex);
+
+	const FStaticMeshLODResources* LODResources = nullptr;
+	if (!MeshDescription)
+	{
+		const FStaticMeshRenderData* RenderData = StaticMesh->GetRenderData();
+		if (RenderData && RenderData->LODResources.IsValidIndex(LODIndex))
+			LODResources = &StaticMesh->GetLODForExport(LODIndex);
+	}
+
+	const bool bHasGeometry = MeshDescription
+		? MeshDescription->Triangles().Num() > 0
+		: LODResources && LODResources->GetNumTriangles() > 0;
+	if (!bHasGeometry)
+	{
+		HOUDINI_LOG_WARNING(TEXT("Static mesh input '%s' has no geometry to export for LOD %d."), *StaticMesh->GetPathName(), LODIndex);
+		return false;
+	}
+
 	HAPI_NodeId GeoNodeId = INDEX_NONE;
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniEngineUtils::CreateNode(ExportData.ConstructionSubnetNodeId, TEXT("geo"), LODName, true, &GeoNodeId), false);
-
-	HAPI_NodeId NodeId;
-	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), GeoNodeId, "null", "mesh", true, &NodeId), false);
-
-	bSuccess = FUnrealObjectInputManager::Get().AddLeaf(Identifier, GeoNodeId, NodeId, LODHandle);
-
-	EHoudiniMeshSource MeshSource = RequestedMeshSource;
-
-	if (MeshSource == EHoudiniMeshSource::HiResMeshDescription)
+	HAPI_NodeId NodeId = INDEX_NONE;
+	const HAPI_Result Result = FHoudiniApi::CreateNode(FHoudiniEngine::Get().GetSession(), GeoNodeId, "null", "mesh", true, &NodeId);
+	if (Result == HAPI_RESULT_SUCCESS)
 	{
-		if 	(StaticMesh->GetHiResMeshDescription() == nullptr)
-		{
-			// Something has gone wrong!
-			HOUDINI_LOG_ERROR(TEXT("Bad Mesh Descriptor"));
-			MeshSource = EHoudiniMeshSource::MeshDescription;
-		}
+		bSuccess = MeshDescription
+			? CreateInputNodeForMeshDescription(NodeId, *MeshDescription, LODIndex, bAddLODGroups, false, StaticMesh, nullptr)
+			: CreateInputNodeForStaticMeshLODResources(NodeId, *LODResources, LODIndex, bAddLODGroups, false, StaticMesh, nullptr);
+
+		// Keep failed uploads out of the cache so subsequent cooks can try again.
+		if (bSuccess && FUnrealObjectInputManager::Get().AddLeaf(Identifier, GeoNodeId, NodeId, LODHandle))
+			return true;
 	}
 
-	if(MeshSource == EHoudiniMeshSource::MeshDescription)
-	{
-		if(StaticMesh->GetMeshDescription(LODIndex) == nullptr)
-		{
-			HOUDINI_LOG_MESSAGE(TEXT("No MeshDescription, falling back to LOD Resource. %s "), *StaticMesh->GetPathName());
-			MeshSource = EHoudiniMeshSource::LODResource;
-		}
-	}
-
-	bSuccess = false;
-
-	switch(MeshSource)
-	{
-	case EHoudiniMeshSource::LODResource:
-		bSuccess = FUnrealMeshTranslator::CreateInputNodeForStaticMeshLODResources(
-			NodeId,
-			StaticMesh->GetLODForExport(LODIndex),
-			LODIndex,
-			bAddLODGroups,
-			false,
-			StaticMesh,
-			nullptr);
-		break;
-	case EHoudiniMeshSource::MeshDescription:
-		bSuccess = FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
-			NodeId,
-			*StaticMesh->GetMeshDescription(LODIndex),
-			LODIndex,
-			bAddLODGroups,
-			false,
-			StaticMesh,
-			nullptr);
-		break;
-
-		case EHoudiniMeshSource::HiResMeshDescription:
-		bSuccess = FUnrealMeshTranslator::CreateInputNodeForMeshDescription(
-			NodeId,
-			*StaticMesh->GetHiResMeshDescription(),
-			LODIndex,
-			bAddLODGroups,
-			false,
-			StaticMesh,
-			nullptr);
-		break;
-
-	default:
-		break;
-	}
-
-	return bSuccess;
+	FHoudiniEngineUtils::DeleteHoudiniNode(GeoNodeId);
+	HOUDINI_LOG_ERROR(TEXT("Failed to marshal static mesh input '%s' LOD %d to Houdini."), *StaticMesh->GetPathName(), LODIndex);
+	return false;
 }
 
 //TODO: Fix spline meshes
@@ -4858,11 +4830,12 @@ bool FUnrealMeshTranslator::CreateInputNodeForStaticMeshComponent(
 	References.Add(StaticMeshHandle);
 
 	HAPI_NodeId NodeId;
-	bSuccess = CreateMergeNode(NodeId, TEXT("merge_node"), GeoNodeId, GetHapiNodeIds(References.Array()));
+	if (CreateMergeNode(NodeId, TEXT("merge_node"), GeoNodeId, GetHapiNodeIds(References.Array()))
+		&& FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, NodeId, OutHandle, &References))
+		return true;
 
-	bSuccess = FUnrealObjectInputManager::Get().AddReferenceNode(Identifier, GeoNodeId, NodeId, OutHandle, &References);
-
-	return bSuccess;
+	FHoudiniEngineUtils::DeleteHoudiniNode(GeoNodeId);
+	return false;
 }
 
 bool FUnrealMeshTranslator::GetOrConstructSplineMeshRenderNode(
