@@ -516,7 +516,7 @@ public:
 	// Returns true if the attached component's materials have been modified
 	bool HasComponentMaterialsChanged() const;
 
-	// Return true if SMC's static mesh has been modified
+	// Return true if the component's mesh or tags have changed.
 	virtual bool HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const override;
 
 public:
@@ -524,6 +524,10 @@ public:
 	// Keep track of the selected Static Mesh
 	UPROPERTY()
 	TSoftObjectPtr<class UStaticMesh> StaticMesh = nullptr;
+
+private:
+	UPROPERTY(Transient)
+	TArray<FName> CachedComponentTags;
 };
 
 

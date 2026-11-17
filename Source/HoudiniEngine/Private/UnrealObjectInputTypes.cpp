@@ -683,7 +683,12 @@ FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& In
 	}
 
 	TArray<FName> Tags = MeshComponent->GetOwner()->Tags;
-	TArray<UActorComponent*> Components;
+	// The modifier belongs to this component's node; the referenced mesh can be shared.
+	for (const FName& Tag : MeshComponent->ComponentTags)
+	{
+		if (!Tag.IsNone())
+			Tags.AddUnique(Tag);
+	}
 
 	// Check that InNodeIdToConnectTo is valid
 	if(!InNodeIdToConnectTo.IsValid())
@@ -707,7 +712,7 @@ FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& In
 	// Set the wrangle's class to prims
 	HOUDINI_CHECK_ERROR_RETURN(FHoudiniApi::SetParmIntValue(Session, VexNodeId, "class", 0, 1), false);
 
-	// Build up Vex code for actor tags
+	// Build up Vex code for actor and component tags
 
 #if (ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION > 7)
 	TStringBuilder<256> Builder;
@@ -715,10 +720,11 @@ FUnrealObjectInputActorProperties::Update(const FUnrealObjectInputHAPINodeId& In
 	FStringBuilderBase Builder;
 #endif
 
-	for(auto Tag : Tags)
+	for (const FName& Tag : Tags)
 	{
-
-		Builder.Appendf(TEXT("setprimgroup(0, \"%s\", @primnum, 1, \"set\");\n"), *Tag.ToString());
+		FString GroupName = Tag.ToString();
+		FHoudiniEngineUtils::SanitizeHAPIVariableName(GroupName);
+		Builder.Appendf(TEXT("setprimgroup(0, \"%s\", @primnum, 1, \"set\");\n"), *GroupName);
 	}
 
 	// Various paths we want to export...

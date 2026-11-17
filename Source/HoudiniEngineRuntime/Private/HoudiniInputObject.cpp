@@ -2077,15 +2077,10 @@ UHoudiniInputSceneComponent::GetHoudiniObjectTransform() const
 bool
 UHoudiniInputMeshComponent::HasComponentChanged(const FHoudiniInputObjectSettings& InSettings) const
 {
-	UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(InputObject.LoadSynchronous());
-	UStaticMesh* SMCSM = nullptr;
-	if (IsValid(SMC))
-		SMCSM = SMC->GetStaticMesh();
-	
-	UStaticMesh* MySM = StaticMesh.Get();
-
-	// Return true if SMC's static mesh has been modified
-	return (MySM != SMCSM);
+	const UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(InputObject.LoadSynchronous());
+	const bool bValidComponent = IsValid(SMC);
+	return StaticMesh.Get() != (bValidComponent ? SMC->GetStaticMesh() : nullptr)
+		|| (bValidComponent && CachedComponentTags != SMC->ComponentTags);
 }
 
 bool
@@ -2179,6 +2174,7 @@ UHoudiniInputMeshComponent::Update(UObject * InObject, const FHoudiniInputObject
 	if (SMC && IsValid(SMC))
 	{
 		StaticMesh = TSoftObjectPtr<UStaticMesh>(SMC->GetStaticMesh());
+		CachedComponentTags = SMC->ComponentTags;
 	}
 }
 
