@@ -2355,19 +2355,12 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMesh(
 		CreatedNodeId = GetHapiNodeId(SMInputNodeHandle);
 	}
 
-	if (!bSuccess || CreatedNodeId < 0)
-	{
-		HOUDINI_LOG_ERROR(TEXT("Failed to create a Houdini input node for static mesh '%s'."), *SM->GetPathName());
-		return false;
-	}
-
 	{
 		// The static mesh can have its own transform (geometry input), so we have to create a reference node that
 		// represents InObject in the new input system that references the StaticMesh asset's input node handle
 		FUnrealObjectInputOptions Options;
 		FUnrealObjectInputIdentifier GeoInputRefNodeId(InObject, Options, EUnrealObjectInputNodeType::LeafWithReferences);
-		if (!FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { SMInputNodeHandle }, InObject->InputNodeHandle, true, bInputNodesCanBeDeleted))
-			return false;
+		FUnrealObjectInputUtils::CreateOrUpdateReferenceInputMergeNode(GeoInputRefNodeId, { SMInputNodeHandle }, InObject->InputNodeHandle, true, bInputNodesCanBeDeleted);
 	}
 
 	if (!HapiSetGeoObjectTransform(InObject->GetInputObjectNodeId(), InObject->GetHoudiniObjectTransform()))
@@ -3768,13 +3761,6 @@ FHoudiniInputTranslator::HapiCreateInputNodeForStaticMeshComponent(
 			bInputNodesCanBeDeleted);
 
 		CreatedNodeId = GetHapiNodeId(InputNodeHandle);
-	}
-
-	if (!bSuccess || CreatedNodeId < 0)
-	{
-		HOUDINI_LOG_ERROR(TEXT("Failed to create a Houdini input node for static mesh component '%s' (mesh '%s')."),
-			*SMC->GetPathName(), *SM->GetPathName());
-		return false;
 	}
 
 	// Create/update the node in the input manager if the static mesh component uses an asset directly.
