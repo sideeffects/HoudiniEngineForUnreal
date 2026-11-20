@@ -36,6 +36,10 @@
 #include "Engine/StaticMesh.h"
 //#include "Engine/SkeletalMesh.h"
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+#include "StaticMeshResources.h"
+#endif
+
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/FileHelper.h"
 #include "Internationalization/Internationalization.h"
@@ -275,9 +279,27 @@ UHoudiniGeoFactory::Import(UClass* InClass, UPackage* InParent, const FString & 
 		Object->SetFlags(Flags);
 
 		UAssetImportData * AssetImportData = nullptr;
-		if (Object->IsA<UStaticMesh>())
+		if (UStaticMesh* SM = Cast<UStaticMesh>(Object))
 		{
-			UStaticMesh* SM = Cast<UStaticMesh>(Object);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+			// Distance fields and Lumen cards enumerate explicit LOD0 section entries.
+			// Register missing entries from the initial build before PostEditChange.
+			const FStaticMeshRenderData* RenderData = SM->GetRenderData();
+			if (RenderData && !RenderData->LODResources.IsEmpty())
+			{
+				const FStaticMeshSectionArray& Sections = RenderData->LODResources[0].Sections;
+				FMeshSectionInfoMap& SectionInfoMap = SM->GetSectionInfoMap();
+				for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
+				{
+					if (!SectionInfoMap.IsValidSection(0, SectionIndex))
+					{
+						FMeshSectionInfo Info = SectionInfoMap.Get(0, SectionIndex);
+						Info.MaterialIndex = Sections[SectionIndex].MaterialIndex;
+						SectionInfoMap.Set(0, SectionIndex, Info);
+					}
+				}
+			}
+#endif
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
 			AssetImportData = SM->GetAssetImportData();
 #else
