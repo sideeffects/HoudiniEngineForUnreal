@@ -36,6 +36,10 @@
 #include "Engine/StaticMesh.h"
 //#include "Engine/SkeletalMesh.h"
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+#include "StaticMeshResources.h"
+#endif
+
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/FileHelper.h"
 #include "Internationalization/Internationalization.h"
@@ -255,6 +259,42 @@ UHoudiniGeoFactory::Import(UClass* InClass, UPackage* InParent, const FString & 
 	const FMeshBuildSettings& MeshBuildSettings = FHoudiniEngineRuntimeUtils::GetDefaultMeshBuildSettings();
 
 	TTuple<bool, FString> Result = BGEOImporter->CreateObjectsFromOutputs(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings);
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+	// Meshes can already have been built even if a later output (such as a
+	// packed primitive instancer) fails. Register sections before that exit.
+	for (UObject* Object : BGEOImporter->GetOutputObjects())
+	{
+		UStaticMesh* SM = Cast<UStaticMesh>(Object);
+		if (!IsValid(SM))
+			continue;
+
+		const FStaticMeshRenderData* RenderData = SM->GetRenderData();
+		if (!RenderData || RenderData->LODResources.IsEmpty())
+			continue;
+
+		// UE 5.8 builds distance fields and Lumen cards from explicit LOD0 sections.
+		const FStaticMeshSectionArray& Sections = RenderData->LODResources[0].Sections;
+		FMeshSectionInfoMap& SectionInfoMap = SM->GetSectionInfoMap();
+		bool bAddedSection = false;
+		for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
+		{
+			if (!SectionInfoMap.IsValidSection(0, SectionIndex))
+			{
+				FMeshSectionInfo Info = SectionInfoMap.Get(0, SectionIndex);
+				Info.MaterialIndex = Sections[SectionIndex].MaterialIndex;
+				SectionInfoMap.Set(0, SectionIndex, Info);
+				bAddedSection = true;
+			}
+		}
+
+		// A failed import skips the normal PostEditChange below. Rebuild just
+		// the already-created mesh whose section map changed and report the failure.
+		if (bAddedSection && !Result.Key)
+			SM->PostEditChange();
+	}
+#endif
+
 	if (!Result.Key)
 		return FailImportAndReturnNull();
 
@@ -275,9 +315,8 @@ UHoudiniGeoFactory::Import(UClass* InClass, UPackage* InParent, const FString & 
 		Object->SetFlags(Flags);
 
 		UAssetImportData * AssetImportData = nullptr;
-		if (Object->IsA<UStaticMesh>())
+		if (UStaticMesh* SM = Cast<UStaticMesh>(Object))
 		{
-			UStaticMesh* SM = Cast<UStaticMesh>(Object);
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
 			AssetImportData = SM->GetAssetImportData();
 #else
