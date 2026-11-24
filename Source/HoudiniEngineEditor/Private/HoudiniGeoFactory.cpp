@@ -34,7 +34,10 @@
 #include "HoudiniEngine.h"
 
 #include "Engine/StaticMesh.h"
-//#include "Engine/SkeletalMesh.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+#include "StaticMeshResources.h"
+#endif
 
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/FileHelper.h"
@@ -256,17 +259,22 @@ UHoudiniGeoFactory::Import(UClass* InClass, UPackage* InParent, const FString & 
 
 	TTuple<bool, FString> Result = BGEOImporter->CreateObjectsFromOutputs(NewOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings);
 	if (!Result.Key)
-		return FailImportAndReturnNull();
+	{
+		// The BGEO Importer may return false on partial failure - still continue with finalizing what's been imported
+		HOUDINI_LOG_ERROR(TEXT("BGEO Import: %s") , *(Result.Value));
+	}
 
 	// 6. Delete the created node in Houdini
-	if (!BGEOImporter->DeleteCreatedNode(NodeId))
-	{
-		// Not good, but not fatal..
-		//return false;
-	}
+	BGEOImporter->DeleteCreatedNode(NodeId);
 
 	// Get our result object and "finalize" them
 	TArray<UObject*> Results = BGEOImporter->GetOutputObjects();
+
+	// If CreateObjectsFromOutputs failed and we have no output - consider this a failure
+	// if not - try to finalize what's been imported
+	if(!Result.Key && Results.Num() <= 0)
+		return FailImportAndReturnNull();
+
 	for (UObject* Object : Results)
 	{
 		if (!IsValid(Object))
@@ -275,9 +283,27 @@ UHoudiniGeoFactory::Import(UClass* InClass, UPackage* InParent, const FString & 
 		Object->SetFlags(Flags);
 
 		UAssetImportData * AssetImportData = nullptr;
-		if (Object->IsA<UStaticMesh>())
+		if (UStaticMesh* SM = Cast<UStaticMesh>(Object))
 		{
-			UStaticMesh* SM = Cast<UStaticMesh>(Object);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+			// Distance fields and Lumen cards enumerate explicit LOD0 section entries.
+			// Register missing entries from the initial build before PostEditChange.
+			const FStaticMeshRenderData* RenderData = SM->GetRenderData();
+			if (RenderData && !RenderData->LODResources.IsEmpty())
+			{
+				const FStaticMeshSectionArray& Sections = RenderData->LODResources[0].Sections;
+				FMeshSectionInfoMap& SectionInfoMap = SM->GetSectionInfoMap();
+				for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
+				{
+					if (!SectionInfoMap.IsValidSection(0, SectionIndex))
+					{
+						FMeshSectionInfo Info = SectionInfoMap.Get(0, SectionIndex);
+						Info.MaterialIndex = Sections[SectionIndex].MaterialIndex;
+						SectionInfoMap.Set(0, SectionIndex, Info);
+					}
+				}
+			}
+#endif
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
 			AssetImportData = SM->GetAssetImportData();
 #else

@@ -30,18 +30,12 @@
 #include "Modules/ModuleManager.h"
 #include "Misc/Guid.h"
 #include "EditorFramework/AssetImportData.h"
-
 #include "Editor.h"
 #include "FileHelpers.h"
-
 #include "MessageEndpointBuilder.h"
-
 #include "PackageTools.h"
-
 #include "IDirectoryWatcher.h"
-
 #include "Internationalization/Regex.h"
-
 #include "Interfaces/ISlateNullRendererModule.h"
 #include "Rendering/SlateRenderer.h"
 #include "Framework/Application/SlateApplication.h"
@@ -54,6 +48,10 @@
 #include "HoudiniOutput.h"
 #include "HoudiniPDGImporterMessages.h"
 #include "HoudiniEngineRuntimeUtils.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+#include "StaticMeshResources.h"
+#endif
 
 
 UHoudiniGeoImportCommandlet::UHoudiniGeoImportCommandlet()
@@ -545,8 +543,11 @@ TTuple<bool, FString> UHoudiniGeoImportCommandlet::ImportBGEO(
 	
 	HOUDINI_LOG_DISPLAY(TEXT("Creating Objects from Outputs"));
 	TTuple<bool, FString> Result = GeoImporter->CreateObjectsFromOutputs(OutOutputs, PackageParams, StaticMeshGenerationProperties, MeshBuildSettings, OutInstancedOutputPartData);
-	if(!Result.Key)
-		return Result;
+	if (!Result.Key)
+	{
+		// The BGEO Importer may return false on partial failure - still continue with finalizing what's been imported
+		HOUDINI_LOG_ERROR(TEXT("BGEO Import: %s"), *(Result.Value));
+	}
 
 	if (OutGenericAttributes)
 	{
@@ -573,14 +574,16 @@ TTuple<bool, FString> UHoudiniGeoImportCommandlet::ImportBGEO(
 
 	// 8. Delete the created  node in Houdini
 	HOUDINI_LOG_DISPLAY(TEXT("DeleteCreatedNode %d"), NodeId);
-	if (!GeoImporter->DeleteCreatedNode(NodeId))
-	{
-		// Not good, but not fatal..
-		//return false;
-	}
+	GeoImporter->DeleteCreatedNode(NodeId);
 
 	TArray<UPackage*> PackagesToSave;
 	TArray<UObject*>& OutputObjects = GeoImporter->GetOutputObjects();
+
+	// If CreateObjectsFromOutputs failed and we have no output - consider this a failure
+	// if not - try to finalize what's been imported
+	if (!Result.Key && OutputObjects.Num() <= 0)
+		return Result;
+
 	for (UObject* Object : OutputObjects)
 	{
 		if (!IsValid(Object))
@@ -589,9 +592,27 @@ TTuple<bool, FString> UHoudiniGeoImportCommandlet::ImportBGEO(
 		HOUDINI_LOG_DISPLAY(TEXT("Created object: %s"), *Object->GetFullName());
 
 		UAssetImportData* AssetImportData = nullptr;
-		if (Object->IsA<UStaticMesh>())
+		if (UStaticMesh* SM = Cast<UStaticMesh>(Object))
 		{
-			UStaticMesh* SM = Cast<UStaticMesh>(Object);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 8
+			// Distance fields and Lumen cards enumerate explicit LOD0 section entries.
+			// Register missing entries from the initial build before PostEditChange.
+			const FStaticMeshRenderData* RenderData = SM->GetRenderData();
+			if (RenderData && !RenderData->LODResources.IsEmpty())
+			{
+				const FStaticMeshSectionArray& Sections = RenderData->LODResources[0].Sections;
+				FMeshSectionInfoMap& SectionInfoMap = SM->GetSectionInfoMap();
+				for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
+				{
+					if (!SectionInfoMap.IsValidSection(0, SectionIndex))
+					{
+						FMeshSectionInfo Info = SectionInfoMap.Get(0, SectionIndex);
+						Info.MaterialIndex = Sections[SectionIndex].MaterialIndex;
+						SectionInfoMap.Set(0, SectionIndex, Info);
+					}
+				}
+			}
+#endif
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 7
 			AssetImportData = SM->GetAssetImportData();
 #else

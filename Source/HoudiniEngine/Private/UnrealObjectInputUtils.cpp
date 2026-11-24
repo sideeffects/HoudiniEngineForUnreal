@@ -57,8 +57,12 @@ FUnrealObjectInputUtils::AddNodeOrUpdateNode(
 	
 	FUnrealObjectInputManager& Manager = FUnrealObjectInputManager::Get();
 
+	// The translator may already have deleted the old HAPI nodes. Preserve the registry entry and its
+	// outstanding references when replacing them; FindNode would remove an entry with invalid HAPI nodes.
+	bool bNodeExists = Manager.Contains(InIdentifier);
 	FUnrealObjectInputHandle Handle;
-	const bool bNodeExists = Manager.FindNode(InIdentifier, Handle) && Handle.IsValid();
+	if (bNodeExists)
+		Handle = FUnrealObjectInputHandle(InIdentifier);
 
 	bool bSuccess = false;
 	switch (InIdentifier.GetNodeType())

@@ -183,7 +183,7 @@ TTuple<bool, FString> UHoudiniGeoImporter::CreateObjectsFromOutputs(
 	TArray<UHoudiniOutput*> SkeletalOutputs;
 	TArray<UHoudiniOutput*> AnimSequenceOutputs;
 	TArray<UHoudiniOutput*> CopTextureOutputs;
-
+	
 	for (UHoudiniOutput* const Output : InOutputs)
 	{
 		switch (Output->GetType())
@@ -218,29 +218,39 @@ TTuple<bool, FString> UHoudiniGeoImporter::CreateObjectsFromOutputs(
 		}
 	}
 
+	TTuple<bool, FString> AllResult;
 	TTuple<bool, FString> Result = CreateStaticMeshes(MeshOutputs, InPackageParams, InStaticMeshGenerationProperties, InMeshBuildSettings);
 	if (!Result.Key)
-		return Result;
+	{
+		AllResult.Key = false;
+		AllResult.Value += Result.Value;
+	}
 
 	Result = CreateCurves(CurveOutputs, InPackageParams);
 	if (!Result.Key)
-		return Result;
+	{
+		AllResult.Key = false;
+		AllResult.Value += Result.Value;
+	}
 
 	Result = CreateLandscapes(LandscapeOutputs, InPackageParams);
 	if (!Result.Key)
-		return Result;
+	{
+		AllResult.Key = false;
+		AllResult.Value += Result.Value;
+	}
 
 	Result = CreateLandscapeSplines(LandscapeSplineOutputs, InPackageParams);
-
 	if (!Result.Key)
-		return Result;
+	{
+		AllResult.Key = false;
+		AllResult.Value += Result.Value;
+	}
 
+	/*
+	// Disabled Commandlet instancer import for now  https://internal.sidefx.com/bugdb/#/view/151036
 	if (!InstancerOutputs.IsEmpty())
 	{
-#if 1
-		// Disabled Commandlet import for now  https://internal.sidefx.com/bugdb/#/view/151036
-		return TTuple<bool, FString>(false, TEXT(""));
-#else
 		if(OutInstancedOutputPartData)
 		{
 			Result = CreateInstancerOutputPartData(InstancerOutputs, *OutInstancedOutputPartData);
@@ -253,26 +263,39 @@ TTuple<bool, FString> UHoudiniGeoImporter::CreateObjectsFromOutputs(
 			if(!Result.Key)
 				return Result;
 		}
-#endif
 	}
-
+	*/
 
 	Result = CreateDataTables(DataTableOutputs, InPackageParams);
 	if (!Result.Key)
-		return Result;
+	{
+		AllResult.Key = false;
+		AllResult.Value += Result.Value;
+	}
 
 	Result = CreateSkeletalMeshes(SkeletalOutputs, InPackageParams);
 	if (!Result.Key)
-		return Result;
+	{
+		AllResult.Key = false;
+		AllResult.Value += Result.Value;
+	}
 
 	Result = CreateAnimSequences(AnimSequenceOutputs, InPackageParams);
 	if (!Result.Key)
-		return Result;
+	{
+		AllResult.Key = false;
+		AllResult.Value += Result.Value;
+	}
 
 	Result = CreateCopTextures(CopTextureOutputs, InPackageParams);
-
 	if (!Result.Key)
-		return Result;
+	{
+		AllResult.Key = false;
+		AllResult.Value += Result.Value;
+	}
+
+	if (!AllResult.Key)
+		return AllResult;
 
 	return TTuple<bool, FString>(true, TEXT(""));
 }
